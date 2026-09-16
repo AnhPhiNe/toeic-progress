@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-[#EBF0F7] text-slate-800 dark:bg-[#0B111E] dark:text-slate-100 transition-colors duration-200;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}
+
+/* Clean Card Styles (Apple / Linear style with clear elevation and contrast) */
+.ui-card {
+  @apply bg-white dark:bg-[#121A2B] border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)] transition-all duration-200;
+}
+
+.ui-card-subtle {
+  @apply bg-slate-50 dark:bg-[#0E1524] border border-slate-200 dark:border-slate-800/80 rounded-xl;
+}
