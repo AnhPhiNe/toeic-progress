@@ -25,6 +25,11 @@ export function loadUserProfile(): UserProfile {
   }
   try {
     const parsed = JSON.parse(data);
+    // Tự động chuẩn hóa tên cũ 'TOEIC Legend' hoặc rỗng để triệt tiêu việc lặp thương hiệu
+    if (parsed.name === 'TOEIC Legend' || !parsed.name?.trim()) {
+      parsed.name = 'Minh Tuấn';
+      saveUserProfile(parsed);
+    }
     return updateStreakStatus(parsed);
   } catch {
     return INITIAL_USER_PROFILE;

@@ -1,7 +1,7 @@
 import { StudySession, MistakeEntry, UserProfile } from '../types';
 
 export const INITIAL_USER_PROFILE: UserProfile = {
-  name: 'TOEIC Legend',
+  name: 'Minh Tuấn',
   targetScore: 990,
   examDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 45 ngày nữa
   currentStreak: 18,

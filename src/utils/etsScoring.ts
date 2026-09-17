@@ -118,3 +118,123 @@ export function calculatePartAccuracy(partScores: LRPartScore): Record<keyof LRP
     part7: Math.round(((partScores.part7 || 0) / PART_MAX_QUESTIONS.part7) * 100)
   };
 }
+
+/**
+ * Thang quy đổi chứng chỉ quốc tế tương đương
+ * Dựa trên Khung tham chiếu CEFR, Thông tư 01/2014/TT-BGDĐT (VSTEP) và bảng đối sánh ETS / IELTS.
+ */
+export interface InternationalConcordanceTier {
+  minScore: number;
+  maxScore: number;
+  toeicRange: string;
+  cefr: string;
+  cefrLevelName: string;
+  ielts: string;
+  vstep: string;
+  vstepTier: string;
+  toeflIbt: string;
+  badgeBg: string;
+  badgeText: string;
+  academicStandard: string;
+  description: string;
+}
+
+export const CONCORDANCE_TIERS: InternationalConcordanceTier[] = [
+  {
+    minScore: 0,
+    maxScore: 250,
+    toeicRange: '0 – 250',
+    cefr: 'A1',
+    cefrLevelName: 'Căn bản (Breakthrough)',
+    ielts: '< 3.0',
+    vstep: 'Bậc 1',
+    vstepTier: 'Sơ cấp',
+    toeflIbt: '0 – 31',
+    badgeBg: 'bg-slate-100 dark:bg-slate-800',
+    badgeText: 'text-slate-600 dark:text-slate-400',
+    academicStandard: 'Căn bản / Mới bắt đầu',
+    description: 'Hiểu và sử dụng các cấu trúc quen thuộc hàng ngày, từ ngữ rất cơ bản.'
+  },
+  {
+    minScore: 255,
+    maxScore: 400,
+    toeicRange: '255 – 400',
+    cefr: 'A2',
+    cefrLevelName: 'Sơ cấp (Waystage)',
+    ielts: '3.0 – 3.5',
+    vstep: 'Bậc 2',
+    vstepTier: 'Sơ cấp nâng cao',
+    toeflIbt: '32 – 45',
+    badgeBg: 'bg-amber-50 dark:bg-amber-950/40',
+    badgeText: 'text-amber-700 dark:text-amber-400',
+    academicStandard: 'Giao tiếp tình huống đơn giản',
+    description: 'Giao tiếp trong các tình huống đơn giản, trao đổi thông tin quen thuộc.'
+  },
+  {
+    minScore: 405,
+    maxScore: 600,
+    toeicRange: '405 – 600',
+    cefr: 'B1',
+    cefrLevelName: 'Trung cấp (Threshold)',
+    ielts: '4.0 – 5.0',
+    vstep: 'Bậc 3',
+    vstepTier: 'Trung cấp',
+    toeflIbt: '46 – 64',
+    badgeBg: 'bg-blue-50 dark:bg-blue-950/40',
+    badgeText: 'text-blue-700 dark:text-blue-400',
+    academicStandard: 'Chuẩn tốt nghiệp Đại học đa số trường',
+    description: 'Xử lý hầu hết các tình huống phát sinh khi đi du lịch hoặc làm việc cơ bản.'
+  },
+  {
+    minScore: 605,
+    maxScore: 780,
+    toeicRange: '605 – 780',
+    cefr: 'B2',
+    cefrLevelName: 'Trung cấp trên (Vantage)',
+    ielts: '5.5 – 6.5',
+    vstep: 'Bậc 4',
+    vstepTier: 'Trung cấp trên',
+    toeflIbt: '65 – 94',
+    badgeBg: 'bg-indigo-50 dark:bg-indigo-950/40',
+    badgeText: 'text-indigo-700 dark:text-indigo-400',
+    academicStandard: 'Chuẩn Thạc sĩ / Tuyển dụng FDI, Ngân hàng lớn',
+    description: 'Giao tiếp trôi chảy với người bản xứ, nắm bắt ý chính các văn bản chuyên môn.'
+  },
+  {
+    minScore: 785,
+    maxScore: 900,
+    toeicRange: '785 – 900',
+    cefr: 'C1',
+    cefrLevelName: 'Cao cấp (Effective Operational)',
+    ielts: '7.0 – 7.5',
+    vstep: 'Bậc 5',
+    vstepTier: 'Cao cấp',
+    toeflIbt: '95 – 114',
+    badgeBg: 'bg-purple-50 dark:bg-purple-950/40',
+    badgeText: 'text-purple-700 dark:text-purple-400',
+    academicStandard: 'Chuẩn Giảng dạy tiếng Anh / Du học sau Đại học',
+    description: 'Sử dụng ngôn ngữ linh hoạt, hiệu quả trong học thuật và công việc cấp cao.'
+  },
+  {
+    minScore: 905,
+    maxScore: 990,
+    toeicRange: '905 – 990',
+    cefr: 'C2',
+    cefrLevelName: 'Thành thạo (Mastery)',
+    ielts: '8.0 – 9.0',
+    vstep: 'Bậc 6',
+    vstepTier: 'Thành thạo tối đa',
+    toeflIbt: '115 – 120',
+    badgeBg: 'bg-emerald-50 dark:bg-emerald-950/40',
+    badgeText: 'text-emerald-700 dark:text-emerald-400',
+    academicStandard: 'Tiệm cận bản ngữ / Chuyên gia ngôn ngữ quốc tế',
+    description: 'Hiểu hoàn toàn mọi ngữ cảnh phức tạp, diễn đạt tự nhiên và sắc sảo như bản ngữ.'
+  }
+];
+
+export function getConcordanceByToeic(score: number): InternationalConcordanceTier {
+  const clamped = Math.max(0, Math.min(990, Math.round(score)));
+  const found = CONCORDANCE_TIERS.find(t => clamped >= t.minScore && clamped <= t.maxScore);
+  return found || CONCORDANCE_TIERS[0];
+}
+

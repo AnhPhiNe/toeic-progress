@@ -1,6 +1,9 @@
 // Phân loại kỹ năng chính (Hiện tại L&R 990, sẵn sàng mở rộng S&W 400)
 export type SkillType = 'LR' | 'SW';
 
+// Các tab điều hướng chính của hệ thống
+export type NavTabId = 'dashboard' | 'analytics' | 'exam-mode' | 'mistakes' | 'resources' | 'sw-roadmap';
+
 // Chi tiết số câu đúng của từng Part trong bài thi TOEIC Listening & Reading
 export interface LRPartScore {
   part1: number; // Max 6 (Photographs)

@@ -107,7 +107,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center space-x-2">
             <span>Sổ Tay Bắt Bẫy & Lỗi Sai</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-semibold">
               Chiến Lược 990
             </span>
           </h2>
@@ -118,7 +118,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
 
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center space-x-1.5 transition active:scale-95"
+          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center space-x-1.5 transition active:scale-95 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Ghi Chú Bẫy Mới</span>
@@ -146,8 +146,8 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
         </div>
 
         <div className="ui-card p-4">
-          <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium block">Tỷ Lệ Thuần Thục</span>
-          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">{stats.masteryRate}%</span>
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium block">Tỷ Lệ Thuần Thục</span>
+          <span className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 block">{stats.masteryRate}%</span>
           <span className="text-[11px] text-slate-400">Mục tiêu: 100%</span>
         </div>
       </div>
@@ -163,7 +163,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
             placeholder="Tìm theo bẫy, từ khóa, tag..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
           />
         </div>
 
@@ -173,7 +173,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
           <select
             value={selectedPart}
             onChange={e => setSelectedPart(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 shadow-2xs"
           >
             <option value="ALL">Tất cả Part</option>
             {[1, 2, 3, 4, 5, 6, 7].map(p => (
@@ -185,7 +185,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value as any)}
-            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 shadow-2xs"
           >
             <option value="ALL">Mọi trạng thái</option>
             <option value="NEEDS_REVIEW">Cần ôn lại</option>
@@ -196,7 +196,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
           <select
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value as any)}
-            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 shadow-2xs"
           >
             <option value="ALL">Mọi nguyên nhân</option>
             {Object.entries(ERROR_CATEGORY_LABELS).map(([cat, val]) => (
@@ -219,7 +219,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
               className={`ui-card p-5 flex flex-col justify-between space-y-3.5 transition-all ${
                 isMastered 
                   ? 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/20 dark:bg-emerald-950/10' 
-                  : 'hover:border-slate-300 dark:hover:border-slate-700'
+                  : 'hover:border-slate-400 dark:hover:border-slate-600'
               }`}
             >
               <div className="space-y-2.5">
@@ -227,7 +227,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                 {/* Card Top: Part, Category & Actions */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-xs">
+                    <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold text-xs">
                       Part {mistake.part}
                     </span>
                     <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
@@ -422,7 +422,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm shadow-blue-600/20 cursor-pointer transition active:scale-95"
                 >
                   Lưu Vào Sổ Tay
                 </button>

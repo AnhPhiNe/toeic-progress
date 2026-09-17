@@ -13,13 +13,13 @@ import {
   Mic,
   PenTool
 } from 'lucide-react';
-import { UserProfile } from '../types';
+import { UserProfile, NavTabId } from '../types';
 import { exportDataAsJSON, importDataFromJSON } from '../utils/storage';
 
 interface HeaderProps {
   profile: UserProfile;
-  activeTab: 'dashboard' | 'analytics' | 'mistakes' | 'sw-roadmap';
-  setActiveTab: (tab: 'dashboard' | 'analytics' | 'mistakes' | 'sw-roadmap') => void;
+  activeTab: NavTabId;
+  setActiveTab: (tab: NavTabId) => void;
   onOpenSessionLogger: () => void;
   onOpenSettings: () => void;
   onResetData: () => void;
@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <PenTool className="w-3.5 h-3.5 text-amber-400" />
               </div>
               <span>Speaking & Writing (400)</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30">
                 Roadmap
               </span>
             </button>

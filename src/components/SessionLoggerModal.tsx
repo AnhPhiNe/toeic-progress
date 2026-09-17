@@ -172,7 +172,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         {/* Header Modal */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+            <div className="p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
               <Zap className="w-5 h-5" />
             </div>
             <div>
@@ -182,7 +182,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -192,13 +192,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
           
           {/* Mode Switcher */}
-          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setSessionType('FULL_TEST')}
-              className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 ${
+              className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
                 sessionType === 'FULL_TEST'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
@@ -207,9 +207,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="button"
               onClick={() => setSessionType('PART_PRACTICE')}
-              className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 ${
+              className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
                 sessionType === 'PART_PRACTICE'
-                  ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-300 shadow-sm'
+                  ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
@@ -227,7 +227,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 value={testName}
                 onChange={e => setTestName(e.target.value)}
                 placeholder="vd: ETS 2024 Test 05"
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
             <div>
@@ -237,7 +237,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
             <div>
@@ -249,7 +249,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 required
                 value={durationMinutes}
                 onChange={e => setDurationMinutes(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
           </div>
@@ -259,13 +259,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <div className="space-y-4">
               
               {/* Live ETS Score Conversion Banner */}
-              <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
                     Điểm Dự Kiến Chuẩn ETS
                   </span>
                   <div className="flex items-baseline space-x-2 mt-0.5">
-                    <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">
+                    <span className="text-3xl font-black text-blue-600 dark:text-blue-400">
                       {calculated.totalScore}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ 990 điểm</span>
@@ -300,49 +300,88 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   </div>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 1: Tranh (Max 6)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="6"
-                        value={partScores.part1}
-                        onChange={e => handlePartScoreChange('part1', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+                    {/* Part 1 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 1: Mô tả tranh</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part1 / PART_MAX_QUESTIONS.part1) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part1}
+                          value={partScores.part1}
+                          onChange={e => handlePartScoreChange('part1', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part1}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 2: Hỏi & Đáp (Max 25)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="25"
-                        value={partScores.part2}
-                        onChange={e => handlePartScoreChange('part2', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+
+                    {/* Part 2 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 2: Hỏi & Đáp</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part2 / PART_MAX_QUESTIONS.part2) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part2}
+                          value={partScores.part2}
+                          onChange={e => handlePartScoreChange('part2', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part2}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 3: Hội thoại (Max 39)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="39"
-                        value={partScores.part3}
-                        onChange={e => handlePartScoreChange('part3', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+
+                    {/* Part 3 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 3: Hội thoại</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part3 / PART_MAX_QUESTIONS.part3) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part3}
+                          value={partScores.part3}
+                          onChange={e => handlePartScoreChange('part3', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part3}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 4: Bài nói (Max 30)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="30"
-                        value={partScores.part4}
-                        onChange={e => handlePartScoreChange('part4', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+
+                    {/* Part 4 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 4: Bài nói</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part4 / PART_MAX_QUESTIONS.part4) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part4}
+                          value={partScores.part4}
+                          onChange={e => handlePartScoreChange('part4', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part4}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -360,38 +399,67 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   </div>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 5: Điền câu (Max 30)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="30"
-                        value={partScores.part5}
-                        onChange={e => handlePartScoreChange('part5', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+                    {/* Part 5 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 5: Điền câu</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part5 / PART_MAX_QUESTIONS.part5) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part5}
+                          value={partScores.part5}
+                          onChange={e => handlePartScoreChange('part5', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part5}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 6: Đoạn văn (Max 16)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="16"
-                        value={partScores.part6}
-                        onChange={e => handlePartScoreChange('part6', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+
+                    {/* Part 6 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 6: Điền đoạn văn</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part6 / PART_MAX_QUESTIONS.part6) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part6}
+                          value={partScores.part6}
+                          onChange={e => handlePartScoreChange('part6', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part6}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600 dark:text-slate-300">Part 7: Đọc hiểu (Max 54)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="54"
-                        value={partScores.part7}
-                        onChange={e => handlePartScoreChange('part7', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-center rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
-                      />
+
+                    {/* Part 7 */}
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 7: Đọc hiểu</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {Math.round((partScores.part7 / PART_MAX_QUESTIONS.part7) * 100)}% chính xác
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={PART_MAX_QUESTIONS.part7}
+                          value={partScores.part7}
+                          onChange={e => handlePartScoreChange('part7', parseInt(e.target.value))}
+                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part7}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -461,7 +529,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAddMistake(!showAddMistake)}
-                className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center space-x-1"
+                className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center space-x-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Thêm câu sai</span>
@@ -535,14 +603,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowAddMistake(false)}
-                    className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                    className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="button"
                     onClick={handleAddTempMistake}
-                    className="px-3 py-1 rounded-lg bg-indigo-600 text-white font-semibold"
+                    className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer transition active:scale-95"
                   >
                     Lưu
                   </button>
@@ -556,13 +624,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 {quickMistakes.map((m, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
                     <div className="space-x-1.5">
-                      <span className="font-bold text-indigo-600 dark:text-indigo-400">P{m.part}:</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">P{m.part}:</span>
                       <span className="text-slate-700 dark:text-slate-300">{m.questionContext}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveQuickMistake(idx)}
-                      className="text-slate-400 hover:text-rose-500"
+                      className="text-slate-400 hover:text-rose-500 cursor-pointer p-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -582,7 +650,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="vd: Part 7 bài đọc đôi quản lý thời gian tốt hơn..."
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
             />
           </div>
 
@@ -591,13 +659,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm flex items-center space-x-1.5 transition active:scale-95"
+              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Lưu & Giữ Streak</span>

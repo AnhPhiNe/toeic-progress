@@ -1,18 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Menu, 
   PlusCircle, 
   Calendar, 
-  Flame, 
   Sun, 
   Moon, 
-  Settings
+  Settings,
+  LayoutDashboard, 
+  TrendingUp, 
+  BookOpen, 
+  Mic, 
+  Timer,
+  GraduationCap
 } from 'lucide-react';
-import { UserProfile } from '../types';
+import { UserProfile, NavTabId } from '../types';
 
-interface TopbarProps {
-  activeTab: 'dashboard' | 'analytics' | 'mistakes' | 'sw-roadmap';
-  setActiveTab: (tab: 'dashboard' | 'analytics' | 'mistakes' | 'sw-roadmap') => void;
+export interface TopbarProps {
+  activeTab: NavTabId;
+  setActiveTab?: (tab: NavTabId) => void;
   profile: UserProfile;
   hasStudiedToday?: boolean;
   theme: 'light' | 'dark';
@@ -24,130 +29,140 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = ({
   activeTab,
-  setActiveTab: _setActiveTab,
   profile,
-  hasStudiedToday,
+  hasStudiedToday: _hasStudiedToday = false,
   theme,
   toggleTheme,
   onOpenSessionLogger,
   onOpenSettings,
   onToggleMobileMenu
 }) => {
-  // Tính D-Day
-  const daysUntilExam = React.useMemo(() => {
+  // Tính D-Day ngày thi
+  const daysUntilExam = useMemo(() => {
     if (!profile.examDate) return null;
     const target = new Date(profile.examDate).getTime();
     const now = new Date().getTime();
     const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
+    return diff >= 0 ? diff : null;
   }, [profile.examDate]);
 
-  const titles = {
-    dashboard: 'Bảng Chỉ Huy Luyện Thi',
-    analytics: 'Phân Tích & Chẩn Đoán Năng Lực',
-    mistakes: 'Sổ Tay Bắt Bẫy Đề Thi',
-    'sw-roadmap': 'Lộ Trình Speaking & Writing'
+  const tabConfig: Record<NavTabId, { title: string; icon: React.ElementType }> = {
+    dashboard: {
+      title: 'Tổng Quan',
+      icon: LayoutDashboard
+    },
+    analytics: {
+      title: 'Phân Tích Điểm Số',
+      icon: TrendingUp
+    },
+    'exam-mode': {
+      title: 'Phòng Thi ETS',
+      icon: Timer
+    },
+    mistakes: {
+      title: 'Sổ Tay Bắt Bẫy',
+      icon: BookOpen
+    },
+    resources: {
+      title: 'Tài Liệu & Quy Đổi',
+      icon: GraduationCap
+    },
+    'sw-roadmap': {
+      title: 'Lộ Trình Speaking & Writing',
+      icon: Mic
+    }
   };
 
-  const subtitles = {
-    dashboard: 'Tổng quan tiến độ & mục tiêu 990',
-    analytics: 'Đo lường 7 Part & lịch sử làm đề',
-    mistakes: 'Giải mã bẫy câu hỏi & củng cố kiến thức',
-    'sw-roadmap': 'Lộ trình mở rộng Nói & Viết 400'
-  };
+  const currentTab = tabConfig[activeTab] || tabConfig.dashboard;
+  const TabIcon = currentTab.icon;
+
+  const isExamUrgent = daysUntilExam !== null && daysUntilExam <= 14;
 
   return (
-    <header className="sticky top-0 z-20 w-full bg-white/95 dark:bg-[#0B111E]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16">
+    <header className="sticky top-0 z-20 w-full bg-white/75 dark:bg-[#0F172A]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-[0_1px_3px_0_rgba(0,0,0,0.02)] transition-colors">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-15 gap-2 sm:gap-3">
           
-          {/* Left: Mobile hamburger & Page title + subtitle */}
-          <div className="flex items-center space-x-3">
+          {/* 1. Left: Mobile menu toggle & Single-line Clean Page Title */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <button
               onClick={onToggleMobileMenu}
-              className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="md:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Mở menu điều hướng"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div>
-              <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                {titles[activeTab]}
+            <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+                <TabIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              </div>
+
+              <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">
+                {currentTab.title}
               </h1>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:block">
-                {subtitles[activeTab]}
-              </p>
             </div>
           </div>
 
-          {/* Right: Countdown, Study Status, Theme Toggle, Action Button */}
-          <div className="flex items-center space-x-2 sm:space-x-2.5">
+          {/* 2. Right: D-Day Countdown, Primary Action & Utilities */}
+          <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
             
-            {/* Countdown Badge */}
-            {daysUntilExam !== null && (
-              <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs">
-                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Thi: <strong className="text-indigo-600 dark:text-indigo-400">D-{daysUntilExam}</strong></span>
-              </div>
-            )}
+            {/* D-Day Countdown Chip */}
+            <button
+              onClick={onOpenSettings}
+              className={`h-9 flex items-center space-x-1.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer group shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                isExamUrgent
+                  ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 animate-pulse'
+                  : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+              }`}
+              title="Đếm ngược ngày thi chính thức (Bấm để đổi ngày thi trong Cài đặt)"
+              aria-label={daysUntilExam !== null ? `Đếm ngược ngày thi: D-${daysUntilExam}. Bấm để cài đặt.` : "Chưa đặt ngày thi. Bấm để cài đặt."}
+            >
+              <Calendar className={`w-4 h-4 ${isExamUrgent ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`} />
+              <span className="text-slate-600 dark:text-slate-300 font-bold hidden sm:inline text-xs">Thi:</span>
+              <span className={`font-black ${isExamUrgent ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                {daysUntilExam !== null ? `D-${daysUntilExam}` : 'Chưa đặt'}
+              </span>
+            </button>
 
-            {/* Streak mobile pill */}
-            <div className="flex md:hidden items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900 text-xs font-bold shadow-xs">
-              <Flame className="w-3.5 h-3.5 fill-current" />
-              <span>{profile.currentStreak}</span>
-            </div>
+            {/* Global Primary Action CTA: Solid Royal Blue */}
+            <button
+              onClick={onOpenSessionLogger}
+              className="h-9 flex items-center space-x-1.5 px-3.5 sm:px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-xs shadow-blue-600/25 transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              title="Ghi nhận điểm thi mới (Phím tắt: N)"
+              aria-label="Nhập kết quả đề thi mới, phím tắt N"
+            >
+              <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+              <span className="hidden sm:inline">Nhập Điểm</span>
+              <span className="sm:hidden">Nhập</span>
+              <kbd className="hidden lg:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black bg-white/20 rounded text-white leading-none ml-0.5">
+                N
+              </kbd>
+            </button>
 
-            {/* Daily Study Status Pill Badge */}
-            {hasStudiedToday !== undefined && (
-              <div 
-                className={`hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold select-none shadow-xs transition-colors ${
-                  hasStudiedToday
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-800/80 text-amber-800 dark:text-amber-300'
-                }`}
-              >
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${
-                    hasStudiedToday ? 'bg-emerald-400' : 'bg-amber-400'
-                  }`} />
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                    hasStudiedToday ? 'bg-emerald-500' : 'bg-amber-500'
-                  }`} />
-                </span>
-                <span>{hasStudiedToday ? 'Đã học hôm nay ✓' : 'Chưa học hôm nay'}</span>
-              </div>
-            )}
-
-            {/* Theme Toggle Button */}
+            {/* Theme Toggle Button: Boxed Squircle Plate */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/60 transition cursor-pointer"
-              title="Đổi giao diện Sáng / Tối"
+              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              title={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
+              aria-label={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
             >
               {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform duration-300" />
               ) : (
-                <Moon className="w-4 h-4 text-indigo-500" />
+                <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300 hover:-rotate-12 transition-transform duration-300" />
               )}
             </button>
 
-            {/* Primary Action Button: Always full text */}
-            <button
-              onClick={onOpenSessionLogger}
-              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-indigo-600/25 transition cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Nhập Điểm</span>
-            </button>
-
-            {/* Settings (Mobile only) */}
+            {/* Settings Trigger: Boxed Squircle Plate */}
             <button
               onClick={onOpenSettings}
-              className="md:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              title="Cài đặt hệ thống & Quản lý dữ liệu"
+              aria-label="Cài đặt hệ thống & Quản lý dữ liệu"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform duration-300" />
             </button>
-
           </div>
 
         </div>
