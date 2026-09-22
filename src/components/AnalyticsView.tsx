@@ -33,7 +33,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { StudySession, MistakeEntry, LRPartScore, UserProfile, ErrorCategory, ERROR_CATEGORY_LABELS, ChartAttemptFilter } from '../types';
-import { calculatePartAccuracy, PART_MAX_QUESTIONS } from '../utils/etsScoring';
+import { calculatePartAccuracy, PART_MAX_QUESTIONS, getPracticeParts } from '../utils/etsScoring';
 import { loadUserProfile, computeSessionAttemptMap, getRetestStats } from '../utils/storage';
 
 // Tên tiếng Việt ngắn gọn, dễ đọc, không rườm rà
@@ -193,6 +193,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [filteredSessions, sortField, sortOrder]);
 
   // Danh sách lỗi sai ghi nhận từ bài thi được chọn
+  // Kết quả luyện Part của buổi đang mở chi tiết (có cứu cả dữ liệu chuỗi cũ)
+  const detailPracticeParts = useMemo(
+    () => selectedSessionDetail ? getPracticeParts(selectedSessionDetail) : [],
+    [selectedSessionDetail]
+  );
+
   const selectedSessionMistakes = useMemo(() => {
     if (!selectedSessionDetail) return [];
     return mistakes.filter(m => m.sessionId === selectedSessionDetail.id);
@@ -1874,6 +1880,30 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 )}
               </div>
 
+              {detailPracticeParts.length > 0 ? (
+                /* Buổi luyện Part lẻ: hiện đúng các Part đã luyện, không phải
+                   hai ô Listening/Reading vốn chỉ có nghĩa với đề đầy đủ */
+                <div className="col-span-2 p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 shadow-2xs space-y-1.5">
+                  <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
+                    Các Part đã luyện
+                  </span>
+                  {detailPracticeParts.map((pp, i) => {
+                    const acc = pp.total > 0 ? Math.round((pp.correct / pp.total) * 100) : 0;
+                    return (
+                      <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 truncate min-w-0">
+                          Part {pp.part}
+                        </span>
+                        <span className="tabular-nums whitespace-nowrap shrink-0 text-slate-600 dark:text-slate-300">
+                          {pp.correct}/{pp.total} câu
+                          <span className="ml-1.5 font-bold text-blue-700 dark:text-blue-300">{acc}%</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
               {/* Listening */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-center shadow-2xs">
                 <span className="text-[10.5px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider block">
@@ -1907,6 +1937,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     : '--'}
                 </span>
               </div>
+                </>
+              )}
             </div>
 
             {/* Scrollable Body Content */}

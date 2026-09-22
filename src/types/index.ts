@@ -63,10 +63,26 @@ export interface StudySession {
   scaledReading?: number;  // 5 - 495
   totalScore?: number;     // 10 - 990
   partScores?: LRPartScore;
-  
+
+  /**
+   * Dành cho buổi LUYỆN PART LẺ: kết quả từng Part đã luyện trong buổi.
+   * Một buổi có thể luyện nhiều Part, mỗi Part có số câu riêng - khác với
+   * partScores của Full Test vốn cố định 6/25/39/30/30/16/54 câu.
+   * Trước đây dữ liệu này bị nhét vào chuỗi notes nên không màn hình nào
+   * dùng được (SPEC mục 4.4).
+   */
+  practiceParts?: PracticePartResult[];
+
   notes?: string;
   attemptNumber?: number;  // Lần làm thứ mấy của đề thi này: 1, 2, 3...
   createdAt: string;
+}
+
+// Kết quả luyện tập của MỘT Part trong buổi luyện lẻ (SPEC 4.4)
+export interface PracticePartResult {
+  part: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  correct: number; // Số câu làm đúng
+  total: number;   // Tổng số câu đã làm của Part này
 }
 
 // Kết quả một pha trong lượt bấm nhịp (SPEC 4.3)

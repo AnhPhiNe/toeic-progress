@@ -1,4 +1,4 @@
-import { LRPartScore } from '../types';
+import { LRPartScore, PracticePartResult } from '../types';
 
 /**
  * Bảng ma trận quy đổi điểm Raw Score (0 - 100) sang Scaled Score (5 - 495)
@@ -238,3 +238,48 @@ export function getConcordanceByToeic(score: number): InternationalConcordanceTi
   return found || CONCORDANCE_TIERS[0];
 }
 
+
+/**
+ * Lấy kết quả luyện từng Part của một buổi học.
+ *
+ * Các buổi ghi TRƯỚC khi có trường `practiceParts` lưu dữ liệu dưới dạng
+ * chuỗi trong `notes`, ví dụ "(Part 5: Đúng 28/30 câu)". Hàm này đọc ngược
+ * chuỗi đó để dữ liệu cũ vẫn vào được biểu đồ.
+ *
+ * Cố ý KHÔNG ghi đè dữ liệu gốc: đọc tới đâu suy ra tới đó, nên nếu chuỗi
+ * cũ không khớp mẫu thì chỉ đơn giản là không có kết quả, không hỏng gì.
+ */
+export function getPracticeParts(session: {
+  practiceParts?: PracticePartResult[];
+  notes?: string;
+}): PracticePartResult[] {
+  if (session.practiceParts && session.practiceParts.length > 0) {
+    return session.practiceParts;
+  }
+
+  if (!session.notes) return [];
+
+  const legacyPattern = /Part\s*([1-7])\s*:\s*Đúng\s*(\d+)\s*\/\s*(\d+)/gi;
+  const recovered: PracticePartResult[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = legacyPattern.exec(session.notes)) !== null) {
+    const part = Number(match[1]) as PracticePartResult['part'];
+    const correct = Number(match[2]);
+    const total = Number(match[3]);
+    if (total > 0 && correct >= 0 && correct <= total) {
+      recovered.push({ part, correct, total });
+    }
+  }
+
+  return recovered;
+}
+
+/** Tỷ lệ chính xác (%) của một buổi luyện Part lẻ, gộp mọi Part đã luyện */
+export function getPracticeAccuracy(parts: PracticePartResult[]): number | null {
+  if (parts.length === 0) return null;
+  const correct = parts.reduce((acc, p) => acc + p.correct, 0);
+  const total = parts.reduce((acc, p) => acc + p.total, 0);
+  if (total === 0) return null;
+  return Math.round((correct / total) * 100);
+}

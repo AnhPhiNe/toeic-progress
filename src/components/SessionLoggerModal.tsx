@@ -14,7 +14,8 @@ import {
   LRPartScore, 
   MistakeEntry, 
   ErrorCategory, 
-  ERROR_CATEGORY_LABELS 
+  ERROR_CATEGORY_LABELS,
+  PracticePartResult
 } from '../types';
 import { 
   calculateFromPartScores, 
@@ -91,9 +92,41 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   });
 
   // Part Practice mode state
-  const [selectedPracticePart, setSelectedPracticePart] = useState<number>(5);
-  const [practiceTotalQuestions, setPracticeTotalQuestions] = useState(30);
-  const [practiceCorrectQuestions, setPracticeCorrectQuestions] = useState(0);
+  /**
+   * Một buổi luyện lẻ có thể gồm NHIỀU Part, mỗi Part có số câu riêng.
+   * Lưu thành dữ liệu có cấu trúc thay vì nhét vào chuỗi notes (SPEC 4.4).
+   */
+  const [practiceRows, setPracticeRows] = useState<PracticePartResult[]>([
+    { part: 5, correct: 0, total: 30 }
+  ]);
+
+  const practiceTotals = practiceRows.reduce(
+    (acc, r) => ({ correct: acc.correct + (r.correct || 0), total: acc.total + (r.total || 0) }),
+    { correct: 0, total: 0 }
+  );
+  const practiceAccuracy = practiceTotals.total > 0
+    ? Math.round((practiceTotals.correct / practiceTotals.total) * 100)
+    : 0;
+
+  const updatePracticeRow = (index: number, patch: Partial<PracticePartResult>) => {
+    setPracticeRows(prev => prev.map((row, i) => {
+      if (i !== index) return row;
+      const next = { ...row, ...patch };
+      // Số câu đúng không bao giờ vượt quá số câu đã làm
+      if (next.correct > next.total) next.correct = next.total;
+      return next;
+    }));
+  };
+
+  const addPracticeRow = () => {
+    const used = new Set(practiceRows.map(r => r.part));
+    const nextPart = ([1, 2, 3, 4, 5, 6, 7] as const).find(p => !used.has(p)) || 5;
+    setPracticeRows(prev => [...prev, { part: nextPart, correct: 0, total: PART_MAX_QUESTIONS[`part${nextPart}` as keyof typeof PART_MAX_QUESTIONS] }]);
+  };
+
+  const removePracticeRow = (index: number) => {
+    setPracticeRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== index));
+  };
 
   // Quick Mistakes to add alongside session
   const [quickMistakes, setQuickMistakes] = useState<Array<{
@@ -174,19 +207,23 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         createdAt: new Date().toISOString()
       };
     } else {
+      const cleanRows = practiceRows.filter(r => r.total > 0);
+      const partLabel = cleanRows.length === 1
+        ? `Luyện Part ${cleanRows[0].part}`
+        : `Luyện ${cleanRows.length} Part`;
+
       newSession = {
         id: sessionId,
         skillType: 'LR',
         sessionType: 'PART_PRACTICE',
-        testName: testName.trim() || `Luyện Part ${selectedPracticePart}`,
+        testName: testName.trim() || partLabel,
         date,
         durationMinutes: Number(durationMinutes) || 30,
-        rawListening: selectedPracticePart <= 4 ? practiceCorrectQuestions : 0,
-        rawReading: selectedPracticePart >= 5 ? practiceCorrectQuestions : 0,
-        scaledListening: 0,
-        scaledReading: 0,
+        // Buổi luyện lẻ KHÔNG có raw score của đề đầy đủ - để trống thay vì
+        // nhét số câu Part lẻ vào ô vốn nghĩa là "đúng bao nhiêu trên 100 câu"
         totalScore: 0,
-        notes: `${notes} (Part ${selectedPracticePart}: Đúng ${practiceCorrectQuestions}/${practiceTotalQuestions} câu)`,
+        practiceParts: cleanRows,
+        notes,
         createdAt: new Date().toISOString()
       };
     }
@@ -270,14 +307,21 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {/* General Info Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Tên Đề Thi / Nguồn</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Tên Đề Thi / Nguồn
+                {sessionType === 'PART_PRACTICE' && (
+                  <span className="font-normal text-slate-400 dark:text-slate-500"> (không bắt buộc)</span>
+                )}
+              </label>
               <input
                 type="text"
-                required
+                // Full Test cần tên để nhận diện lần làm lại cùng một đề.
+                // Buổi luyện lẻ thì không, đã có nhãn thay thế sẵn khi lưu.
+                required={sessionType === 'FULL_TEST'}
                 list="existing-test-names"
                 value={testName}
                 onChange={e => setTestName(e.target.value)}
-                placeholder="vd: ETS 2024 Test 05"
+                placeholder={sessionType === 'FULL_TEST' ? 'vd: ETS 2024 Test 05' : 'vd: Cày Part 5 buổi tối'}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
               <datalist id="existing-test-names">
@@ -545,51 +589,93 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {/* PART PRACTICE MODE */}
           {sessionType === 'PART_PRACTICE' && (
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-3">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">
-                Cấu Hình Luyện Từng Phần
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Chọn Part</label>
-                  <select
-                    value={selectedPracticePart}
-                    onChange={e => setSelectedPracticePart(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
-                  >
-                    <option value={1}>Part 1: Mô tả tranh (6 câu)</option>
-                    <option value={2}>Part 2: Hỏi & Đáp (25 câu)</option>
-                    <option value={3}>Part 3: Hội thoại (39 câu)</option>
-                    <option value={4}>Part 4: Bài nói (30 câu)</option>
-                    <option value={5}>Part 5: Điền câu (30 câu)</option>
-                    <option value={6}>Part 6: Điền đoạn văn (16 câu)</option>
-                    <option value={7}>Part 7: Đọc hiểu (54 câu)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Số Câu Làm</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={practiceTotalQuestions}
-                    onChange={e => setPracticeTotalQuestions(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Số Câu Đúng</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max={practiceTotalQuestions}
-                    value={practiceCorrectQuestions}
-                    onChange={e => setPracticeCorrectQuestions(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
-                  />
-                </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  Các Part Đã Luyện
+                </span>
+                {practiceTotals.total > 0 && (
+                  <span className="text-xs font-bold text-blue-700 dark:text-blue-300 whitespace-nowrap shrink-0">
+                    {practiceTotals.correct}/{practiceTotals.total} câu · {practiceAccuracy}%
+                  </span>
+                )}
               </div>
+
+              <div className="space-y-2">
+                {practiceRows.map((row, index) => {
+                  const rowAccuracy = row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
+                  return (
+                    <div key={index} className="flex flex-wrap items-end gap-2">
+                      <div className="flex-1 min-w-[140px]">
+                        {index === 0 && (
+                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Part</label>
+                        )}
+                        <select
+                          value={row.part}
+                          onChange={e => updatePracticeRow(index, { part: Number(e.target.value) as PracticePartResult['part'] })}
+                          className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
+                        >
+                          {([1, 2, 3, 4, 5, 6, 7] as const).map(p => (
+                            <option key={p} value={p}>Part {p}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="w-[88px] shrink-0">
+                        {index === 0 && (
+                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Số câu làm</label>
+                        )}
+                        <input
+                          type="number"
+                          min="1"
+                          value={row.total}
+                          onChange={e => updatePracticeRow(index, { total: Math.max(0, Number(e.target.value) || 0) })}
+                          className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums"
+                        />
+                      </div>
+
+                      <div className="w-[88px] shrink-0">
+                        {index === 0 && (
+                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Số câu đúng</label>
+                        )}
+                        <input
+                          type="number"
+                          min="0"
+                          max={row.total}
+                          value={row.correct}
+                          onChange={e => updatePracticeRow(index, { correct: Math.max(0, Number(e.target.value) || 0) })}
+                          className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 pb-1.5">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums w-10 text-right">
+                          {rowAccuracy}%
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removePracticeRow(index)}
+                          disabled={practiceRows.length <= 1}
+                          aria-label={`Xóa dòng Part ${row.part}`}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {practiceRows.length < 7 && (
+                <button
+                  type="button"
+                  onClick={addPracticeRow}
+                  className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Thêm Part khác
+                </button>
+              )}
             </div>
           )}
 

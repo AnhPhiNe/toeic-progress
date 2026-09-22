@@ -69,12 +69,12 @@ export const DEMO_SESSIONS: StudySession[] = [
     testName: 'Cày sâu Part 5 & 6 (Hacker TOEIC)',
     date: '2026-08-28',
     durationMinutes: 45,
-    rawListening: 0,
-    rawReading: 42,
-    scaledListening: 0,
-    scaledReading: 0,
     totalScore: 0,
-    notes: 'Luyện tốc độ 46 câu ngữ pháp & từ vựng. Đạt 42/46 câu đúng. Làm chủ bẫy liên từ và giới từ chỉ mục đích.',
+    practiceParts: [
+      { part: 5, correct: 28, total: 30 },
+      { part: 6, correct: 14, total: 16 }
+    ],
+    notes: 'Luyện tốc độ ngữ pháp & từ vựng. Làm chủ bẫy liên từ và giới từ chỉ mục đích.',
     createdAt: '2026-08-28T22:00:00.000Z'
   },
   {
