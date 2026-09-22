@@ -610,10 +610,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* 2. MỤC TIÊU ĐIỂM
-              Nền trung tính, không nhuộm xanh: trước đây vỏ thẻ màu sky trong
-              khi các thanh bên trong cũng xanh, nên cùng một màu vừa là nền
-              vừa là tiến độ vừa là Listening. */}
-          <div className="ui-card flex-1 p-4 sm:p-4.5 flex flex-col justify-between gap-3.5">
+              Nền xanh nhạt để tách khỏi nền trang, đồng bộ với thẻ Streak
+              màu hổ phách bên trên. Sắc độ đủ nhạt để không tranh chấp với
+              các thanh xanh đậm bên trong - phân cấp nằm ở độ dày và độ đậm
+              của thanh, không phải ở việc vỏ thẻ phải trung tính. */}
+          <div className="relative overflow-hidden flex-1 p-4 sm:p-4.5 flex flex-col justify-between gap-3.5 rounded-2xl bg-gradient-to-br from-sky-50/90 via-blue-50/50 to-sky-50/30 dark:from-[#0E1A29] dark:to-[#0B1320] border border-sky-200/80 dark:border-sky-900/40 shadow-[0_2px_12px_rgba(14,165,233,0.06)] hover:shadow-[0_8px_28px_rgba(14,165,233,0.1)] hover:-translate-y-0.5 transition-all duration-300">
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -649,7 +650,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </div>
 
-              <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div className="w-full h-3 rounded-full bg-white/90 dark:bg-slate-800 border border-sky-200/50 dark:border-transparent overflow-hidden">
                 <div
                   className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-all duration-700"
                   style={{ width: `${Math.min(100, Math.max(2, targetPercent))}%` }}
@@ -666,7 +667,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 { icon: Headphones, label: 'Listening', score: listeningScore, percent: listeningPercent },
                 { icon: BookOpen, label: 'Reading', score: readingScore, percent: readingPercent }
               ].map(item => (
-                <div key={item.label} className="p-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 space-y-2 min-w-0">
+                <div key={item.label} className="p-3 rounded-xl bg-white/95 dark:bg-slate-900/60 border border-sky-200/60 dark:border-slate-700/70 shadow-2xs space-y-2 min-w-0">
                   <div className="flex items-center justify-between gap-1 min-w-0">
                     <span className="flex items-center gap-1.5 min-w-0">
                       <item.icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
@@ -686,7 +687,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </span>
                     <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">/ 495đ</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-white dark:bg-slate-900/70 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${
                         item.percent >= 100 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-400 dark:bg-blue-500'
