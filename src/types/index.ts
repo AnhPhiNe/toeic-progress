@@ -65,8 +65,23 @@ export interface StudySession {
   partScores?: LRPartScore;
   
   notes?: string;
+  attemptNumber?: number;  // Lần làm thứ mấy của đề thi này: 1, 2, 3...
   createdAt: string;
 }
+
+// Thông tin định danh và phân tích lần làm bài
+export interface SessionAttemptMeta {
+  attemptNumber: number;
+  totalAttempts: number;
+  isRetest: boolean;
+  previousSession?: StudySession;
+  firstSession?: StudySession;
+  scoreDiffFromPrevious: number | null;
+  scoreDiffFromFirst: number | null;
+}
+
+// Chế độ lọc biểu đồ theo lần làm
+export type ChartAttemptFilter = 'ALL' | 'FIRST_ONLY' | 'BEST_ONLY';
 
 // Bậc Rank theo điểm số
 export interface RankTier {

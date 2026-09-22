@@ -126,6 +126,31 @@ export const DEMO_SESSIONS: StudySession[] = [
     createdAt: '2026-09-08T22:15:00.000Z'
   },
   {
+    id: 'demo-session-retest-1',
+    skillType: 'LR',
+    sessionType: 'FULL_TEST',
+    testName: 'ETS 2024 Test 01',
+    attemptNumber: 2,
+    date: '2026-09-10',
+    durationMinutes: 110,
+    rawListening: 93,
+    rawReading: 91,
+    scaledListening: 480,
+    scaledReading: 450,
+    totalScore: 930,
+    partScores: {
+      part1: 6,
+      part2: 24,
+      part3: 37,
+      part4: 26,
+      part5: 29,
+      part6: 15,
+      part7: 47
+    },
+    notes: 'Làm lại Test 01 sau 25 ngày ôn tập Sổ tay lỗi sai. Điểm tăng bứt phá từ 825 ➔ 930 (+105đ)! Đã làm chủ các bẫy ngữ pháp Part 5.',
+    createdAt: '2026-09-10T21:00:00.000Z'
+  },
+  {
     id: 'demo-session-6',
     skillType: 'LR',
     sessionType: 'FULL_TEST',
