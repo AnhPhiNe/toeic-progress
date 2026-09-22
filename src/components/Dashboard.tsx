@@ -649,7 +649,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </div>
 
-              <div className="w-full h-2.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-all duration-700"
                   style={{ width: `${Math.min(100, Math.max(2, targetPercent))}%` }}
@@ -666,13 +666,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 { icon: Headphones, label: 'Listening', score: listeningScore, percent: listeningPercent },
                 { icon: BookOpen, label: 'Reading', score: readingScore, percent: readingPercent }
               ].map(item => (
-                <div key={item.label} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2 min-w-0">
+                <div key={item.label} className="p-3 rounded-xl bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 space-y-2 min-w-0">
                   <div className="flex items-center justify-between gap-1 min-w-0">
                     <span className="flex items-center gap-1.5 min-w-0">
                       <item.icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{item.label}</span>
                     </span>
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
+                    <span className={`text-[11px] font-bold tabular-nums shrink-0 ${
+                      item.percent >= 100
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-slate-500 dark:text-slate-400'
+                    }`}>
                       {item.percent}%
                     </span>
                   </div>
@@ -682,9 +686,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </span>
                     <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">/ 495đ</span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-white dark:bg-slate-900/70 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-700"
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        item.percent >= 100 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-400 dark:bg-blue-500'
+                      }`}
                       style={{ width: `${Math.max(2, item.percent)}%` }}
                     />
                   </div>
