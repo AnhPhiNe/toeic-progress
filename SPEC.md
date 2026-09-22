@@ -1,297 +1,289 @@
-# TÀI LIỆU ĐẶC TẢ KỸ THUẬT VÀ THIẾT KẾ SẢN PHẨM (SPEC.MD)
-# DỰ ÁN: TOEIC PROGRESS 990 — TRẠM CHỈ HUY LUYỆN THI CÔNG NGHỆ CAO
+# ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
+
+**Phiên bản 2.0** · Cập nhật 2026-09-22 · Thay thế toàn bộ SPEC v1
+
+> **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 
 ---
 
-## 1. TỔNG QUAN DỰ ÁN & TẦM NHÌN SẢN PHẨM (PRODUCT VISION)
+## 1. ĐỊNH VỊ SẢN PHẨM
 
-### 1.1. Bối cảnh & Vấn đề (Problem Statement)
-Chinh phục mức điểm tối đa **TOEIC 990** (Listening & Reading) đòi hỏi sự chính xác gần như tuyệt đối (thường chỉ cho phép sai số từ 0 - 3 câu trên toàn bộ 200 câu). Ở giai đoạn bứt phá từ 800+ lên 950+, hầu hết người tự học gặp phải hai rào cản chí mạng:
-1. **Rào cản tâm lý (Psychological Plateau & Burnout):** Mất động lực học hàng ngày, chuỗi học ngắt quãng, thiếu cảm giác tiến bộ rõ rệt khi điểm số đi ngang.
-2. **Thiếu hệ thống phân tích lỗi sai sâu (Lack of Deep Error Diagnostics):** Người học thường chỉ làm đề, đếm tổng câu đúng mà không đo lường được tỷ lệ rủi ro theo từng Part (1–7), không phân loại được nguyên nhân mất điểm (bẫy paraphrase, ngữ pháp, hụt thông tin do tốc độ nghe, hay phân bổ thời gian sai).
+### 1.1. Vấn đề
 
-### 1.2. Tầm nhìn & Sứ mệnh (Vision & Mission)
-Xây dựng **TOEIC Progress 990** thành một **"Study Command Center" (Trạm chỉ huy luyện thi)** chuẩn EdTech quốc tế:
-- **Thiết kế Modern Dark Pro:** Giao diện tối hiện đại, chuyên nghiệp, dịu mắt cho các buổi cày đêm, kết hợp các điểm nhấn neon tinh tế mang lại cảm xúc của một "trung tâm điều khiển tối tân".
-- **Hệ thống Tâm lý học hành vi (Behavioral Psychology & Gamification):** Ứng dụng các quy luật tâm lý (Mô hình Fogg, Loss Aversion với Streak & Khiên bảo vệ, Tier Gamification phân hạng từ Tân binh đến 990 Master) để biến việc luyện đề thành thói quen kỷ luật tự giác mỗi ngày.
-- **Phân tích dữ liệu & Quy đổi điểm chuẩn ETS:** Tự động quy đổi số câu đúng (Raw Score) sang điểm thực tế (Scaled Score 5–495 cho mỗi kỹ năng), vẽ biểu đồ mạng nhện (Radar Chart) điểm danh 7 Part và biểu đồ tiến độ hướng tới mốc 990.
-- **Sổ tay lỗi sai thông minh (Mistake Notebook):** Quản lý chi tiết từng "tử huyệt", bẫy đề thi và từ vựng hay quên theo trạng thái ôn tập Spaced Repetition.
-- **Kiến trúc tương lai (Future-Ready):** Thiết kế mô-đun hóa sẵn sàng mở rộng sang 2 kỹ năng Speaking & Writing (thang 400).
+Chinh phục TOEIC ở vùng điểm cao đòi hỏi độ chính xác gần như tuyệt đối. Người tự học ở giai đoạn bứt phá gặp hai rào cản:
+
+1. **Rào cản tâm lý.** Mất động lực, chuỗi học đứt quãng, điểm đi ngang nên không cảm nhận được tiến bộ.
+2. **Thiếu chẩn đoán lỗi sâu.** Làm đề xong chỉ đếm tổng câu đúng, không biết mất điểm ở Part nào và vì nguyên nhân gì — bẫy paraphrase, ngữ pháp, tốc độ nghe, hay phân bổ thời gian sai.
+
+Rào cản thứ hai là cái ít công cụ nào giải. Các web luyện đề chấm điểm rất tốt, nhưng dữ liệu chết ngay sau khi đóng tab, và không web nào biết bạn làm ETS hôm qua, Hacker tuần trước.
+
+### 1.2. Định vị: sở hữu dữ liệu, không sở hữu nội dung
+
+Đây là **lằn ranh quyết định mọi tính năng**:
+
+| Sản phẩm **KHÔNG** làm | Sản phẩm **CÓ** làm |
+| :--- | :--- |
+| Cung cấp đề thi, câu hỏi | Ghi nhận kết quả từ **bất kỳ nguồn đề nào** |
+| Chấm bài tự động | Quy đổi Raw → Scaled theo thang ETS |
+| Bộ từ vựng, flashcard dựng sẵn | Theo dõi **số từ bạn đã học** như một chỉ số |
+| Bài giảng, video, lý thuyết | Phân tích lỗi của **chính bạn** theo thời gian |
+| Cộng đồng, bảng xếp hạng | Kỷ luật và nhịp độ cá nhân |
+
+**Nội dung học là nghề của web khác — họ làm tốt hơn và đó là mô hình kinh doanh của họ.** Giá trị không thể thay thế của sản phẩm này nằm ở chỗ nó là nơi duy nhất có dữ liệu xuyên suốt nhiều nguồn đề, nhiều tháng, kèm phân loại nguyên nhân sai do chính người học ghi lại.
+
+### 1.3. Nguyên tắc lọc tính năng
+
+Trước khi thêm bất cứ thứ gì, hỏi đúng hai câu:
+
+1. **Nó tạo ra nội dung học, hay xử lý dữ liệu của người học?** Tạo nội dung thì không làm.
+2. **Nếu bỏ nó đi, người dùng có mất dữ liệu hay mất kỷ luật không?** Không mất gì thì nó là tính năng trang trí.
+
+*Ví dụ áp dụng:* Bộ đếm nhịp làm bài (mục 4.5) thoạt nhìn giống công cụ "trong lúc làm bài" nên rất dễ bị loại nhầm. Nhưng nó không cung cấp nội dung — nó huấn luyện **kỷ luật phân bổ thời gian**, và gắn trực tiếp với nhóm lỗi `TIME_PRESSURE` trong Sổ tay. Nó thuộc vế phải của bảng trên.
 
 ---
 
-## 2. HỒ SƠ NGƯỜI DÙNG & CƠ CHẾ TÂM LÝ HỌC HÀNH VI (BEHAVIORAL MECHANICS)
+## 2. NGƯỜI DÙNG & ĐÒN BẨY TÂM LÝ
 
-### 2.1. Chân dung người học mục tiêu
-- **Mục tiêu:** Đạt TOEIC 990 (trước mắt L&R, mở rộng S&W sau này).
-- **Phương pháp học:** Tự luyện đề độc lập từ các bộ đề tiêu chuẩn (ETS, Hacker TOEIC, YBM...) và cần một nơi ghi nhận, đo lường, phân tích hiệu suất học tập hàng ngày.
-- **Nhu cầu cốt lõi:** Thấy được sự tiến bộ bằng biểu đồ dữ liệu định lượng, duy trì được kỷ luật chuỗi ngày học không bỏ dở, nhận diện chính xác các bẫy hay mắc phải.
+### 2.1. Chân dung
 
-### 2.2. Các đòn bẩy tâm lý ứng dụng trong thiết kế
+- Người tự luyện đề độc lập từ các bộ chuẩn (ETS, Hacker, YBM...), trên web hoặc trên giấy.
+- Cần một nơi ghi nhận, đo lường và phân tích hiệu suất theo thời gian.
+- **Mục tiêu điểm là biến số, không phải hằng số.** Sản phẩm hiện phục vụ một người nhắm 990, nhưng mọi tính năng phải viết theo `profile.targetScore` để sau này mở rộng cho người nhắm 600–800 mà không phải viết lại.
 
-| Cơ chế tâm lý | Ứng dụng thực tế trên TOEIC Progress 990 | Tác động hành vi |
+### 2.2. Đòn bẩy tâm lý
+
+| Cơ chế | Ứng dụng | Tác động |
 | :--- | :--- | :--- |
-| **Loss Aversion (Tâm lý sợ mất mát)** | **Hệ thống Streak ngọn lửa & Khiên bảo vệ (Streak Freeze):** Người dùng có xu hướng không muốn phá vỡ chuỗi ngày học liên tục đã gầy dựng. Nếu bận đột xuất, khiên bảo vệ sẽ cứu chuỗi giúp tránh cảm giác chán nản từ bỏ. | Giữ nhịp độ học tập tối thiểu mỗi ngày, không bị đứt gãy thói quen. |
-| **Goal Gradient Effect (Hiệu ứng tiệm cận mục tiêu)** | **Đếm ngược ngày thi & Thanh tiến độ 990 (Pacing Calculator):** Càng gần mốc mục tiêu và ngày thi, năng lượng và sự tập trung của người học càng tăng vọt. Hệ thống tính toán điểm cần tăng trung bình mỗi tuần. | Tạo động lực tăng tốc trong giai đoạn nước rút. |
-| **Status & Mastery (Thèm muốn danh hiệu & Thăng hạng)** | **Hệ thống Rank Tier (6 bậc):**<br>- *Recruit (Tân binh)*: < 500<br>- *Bronze Specialist*: 500 - 695<br>- *Silver Strategist*: 700 - 845<br>- *Gold Vanguard*: 850 - 895<br>- *Platinum Elite*: 900 - 945<br>- *Diamond Legend*: 950 - 985<br>- *Grandmaster 990*: 990 điểm tuyệt đối. | Kích thích nhu cầu khẳng định bản thân và chinh phục các nấc thang năng lực cao hơn. |
-| **Cognitive Closure (Khép kín nhận thức về lỗi sai)** | **Sổ tay bắt bẫy (Mistake Notebook):** Chuyển trạng thái lỗi từ "Đang mắc bẫy / Chưa thuộc" sang "Đã thông suốt (Mastered)". | Tạo cảm giác an tâm và kiểm soát hoàn toàn các lỗ hổng kiến thức trước khi bước vào phòng thi thật. |
-| **Commitment & Micro-Motivation** | **Châm ngôn truyền lửa hàng ngày (Daily Quotes) & Bảng cam kết cá nhân:** Lời nhắc nhở tạo cảm hứng mỗi sáng và khi mở ứng dụng. | Củng cố năng lượng tích cực, giảm căng thẳng ôn tập. |
+| **Loss Aversion** | Streak ngọn lửa và khiên bảo vệ. Khiên lấp vào **đúng ngày bị lỡ**, giữ chuỗi nhưng không giả mạo "đã học hôm nay" | Giữ nhịp tối thiểu mỗi ngày |
+| **Goal Gradient** | Đếm ngược ngày thi và nhịp điểm cần tăng mỗi tuần để kịp `targetScore` | Tăng tốc giai đoạn nước rút |
+| **Status & Mastery** | Rank Tier bảy bậc theo thang TOEIC | Kích thích chinh phục nấc thang |
+| **Cognitive Closure** | Sổ tay chuyển lỗi từ "Cần ôn lại" sang "Đã thông suốt" qua lịch ôn có giãn cách | Cảm giác kiểm soát lỗ hổng |
+
+> **Ghi chú về Rank Tier.** Thang hiện tại neo vào 990 tuyệt đối. Với người nhắm 700, họ sẽ mắc kẹt ở Silver vĩnh viễn và gamification quay sang phản tác dụng. Khi mở ra công khai, Rank phải tính **tương đối theo `targetScore`**. Chưa làm bây giờ, nhưng không được viết thêm code neo cứng vào 990.
 
 ---
 
-## 3. KIẾN TRÚC THÔNG TIN & CÁC TÍNH NĂNG CHI TIẾT
+## 3. KIẾN TRÚC THÔNG TIN
 
-Ứng dụng được chia thành 5 phân hệ tính năng trực quan trên thanh điều hướng chính (Sidebar / Topbar Navigation):
+Sáu phân hệ hiện tại, dự kiến gom còn bốn:
 
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│ TOEIC PROGRESS 990 [Skill Switcher: ◉ L&R (990) | ○ S&W (Roadmap)]        │
-├───────────────┬────────────────────────────────────────────────────────────┤
-│ 1. Dashboard  │ • Streak Counter & Freeze Shield • Goal Progress & Pacing   │
-│ (Trang chủ)   │ • Current Rank Tier Badge • Quick Action (Log Session)    │
-│               │ • Score Timeline Chart • Part Accuracy Radar Chart        │
-├───────────────┼────────────────────────────────────────────────────────────┤
-│ 2. Session Log│ • Log Full Test (200 câu: Part 1 - 7)                      │
-│ (Nhật ký)     │ • Log Part Practice (Luyện lẻ từng Part)                   │
-│               │ • ETS Raw-to-Scaled Automatic Score Calculator             │
-│               │ • Session History Table (Lọc, Sửa, Xóa)                   │
-├───────────────┼────────────────────────────────────────────────────────────┤
-│ 3. Analytics  │ • Deep Score Analytics (Listening vs Reading trends)       │
-│ (Phân tích)   │ • Radar Breakdown chi tiết 7 Part                          │
-│               │ • Error Breakdown Pie/Bar Chart (Ngữ pháp, Bẫy, Từ vựng)   │
-│               │ • Tốc độ làm bài & Thời gian trung bình mỗi Part           │
-├───────────────┼────────────────────────────────────────────────────────────┤
-│ 4. Mistake Log│ • Danh sách bẫy & lỗi sai phân loại theo Part              │
-│ (Sổ tay bẫy)  │ • Thẻ lọc theo Tag (Từ mới, Ngữ pháp, Paraphrase, Tốc độ) │
-│               │ • Toggle trạng thái: 'Cần ôn lại' vs 'Đã thông suốt'       │
-├───────────────┼────────────────────────────────────────────────────────────┤
-│ 5. Settings   │ • Cấu hình mục tiêu (Target Score, Exam Date, Daily Min)  │
-│ (Cài đặt)     │ • Backup / Restore dữ liệu (Export/Import JSON)            │
-│               │ • Chuyển đổi Dữ liệu Mẫu (Demo Data) / Xóa trắng          │
-└───────────────┴────────────────────────────────────────────────────────────┘
+┌──────────────────┬───────────────────────────────────────────────────────┐
+│ 1. Tổng Quan     │ Streak · Mục tiêu & nhịp độ · Rank · Biểu đồ tiến độ  │
+├──────────────────┼───────────────────────────────────────────────────────┤
+│ 2. Phân Tích     │ Timeline · Ma trận 7 Part · Lịch sử · Làm lại đề      │
+├──────────────────┼───────────────────────────────────────────────────────┤
+│ 3. Sổ Tay Bẫy    │ Lỗi sai phân loại · Lọc · Lịch ôn giãn cách           │
+├──────────────────┼───────────────────────────────────────────────────────┤
+│ 4. Tài Liệu      │ Quy đổi điểm · Chứng chỉ quốc tế · Chiến thuật        │
+│    & Quy Đổi     │ · Bộ đếm nhịp làm bài · Lộ trình S&W (gộp vào)        │
+├──────────────────┼───────────────────────────────────────────────────────┤
+│ (Modal) Nhập Điểm│ Full Test 200 câu · Luyện Part lẻ · Ghi nhanh lỗi sai │
+│ (Modal) Cài Đặt  │ Mục tiêu · Ngày thi · Sao lưu · Dữ liệu mẫu           │
+└──────────────────┴───────────────────────────────────────────────────────┘
 ```
 
-### 3.1. Phân hệ 1: Dashboard & Trạm chỉ huy động lực (Motivation Center)
-- **Hộp chỉ số Streak (Streak Card):**
-  - Hiển thị số ngày liên tục kèm ngọn lửa cam rực rỡ và hiệu ứng phát sáng nhẹ.
-  - Trạng thái ngày hôm nay: *Đã hoàn thành* (màu xanh lá) hoặc *Chưa học* (cảnh báo cam/đỏ).
-  - Trạng thái Khiên bảo vệ (Streak Freeze): Số khiên khả dụng (mặc định tích lũy tối đa 2 khiên khi học chăm chỉ).
-- **Hộp tiến độ mục tiêu & Đếm ngược ngày thi (Target & Exam Countdown):**
-  - Điểm số cao nhất đạt được (Personal Best) và Điểm trung bình 3 đề gần nhất.
-  - Thanh tiến độ hiển thị khoảng cách từ điểm hiện tại đến 990 điểm.
-  - Bộ đếm ngược ngày thi thực tế (D-Day Countdown): Hiển thị số ngày còn lại và tốc độ tăng điểm cần thiết (Pacing: ví dụ cần tăng +8 điểm/tuần).
-- **Huy hiệu Hạng (Rank Badge):**
-  - Hiển thị huy hiệu 3D phẳng của Tier hiện tại (ví dụ: Diamond Elite hoặc Grandmaster 990) kèm thanh kinh nghiệm (XP) đến cấp bậc tiếp theo.
-- **Châm ngôn truyền lửa (Daily Wisdom):**
-  - Câu trích dẫn động lực học tập tiếng Anh thay đổi ngẫu nhiên mỗi ngày.
-- **Biểu đồ thu nhỏ (Mini Charts Overview):**
-  - Đường xu hướng điểm số và Radar tổng quan 7 Part ngay tại trang chủ.
+**Thay đổi so với hiện trạng:**
 
-### 3.2. Phân hệ 2: Ghi nhận buổi học (Session Logger) & Bộ quy đổi điểm ETS
-- **Chế độ 1: Full Test (Đề thi chuẩn 200 câu):**
-  - Nhập tên nguồn đề (ví dụ: *ETS 2024 Test 03*, *Hacker 3 Test 01*).
-  - Nhập số câu đúng từng Part:
-    - **Listening (100 câu):** Part 1 (6 câu), Part 2 (25 câu), Part 3 (39 câu), Part 4 (30 câu).
-    - **Reading (100 câu):** Part 5 (30 câu), Part 6 (16 câu), Part 7 (54 câu).
-  - Tự động cộng Raw Score Listening (0–100) và Reading (0–100).
-  - **ETS Score Converter Engine:** Tự động tra cứu bảng quy đổi chuẩn ETS quốc tế để tính ngay điểm Scaled Score (5–495 mỗi kỹ năng) và Tổng điểm (10–990).
-  - Nhập tổng thời gian làm bài (phút) và ghi chú tổng quan về buổi thi.
-- **Chế độ 2: Part Practice (Luyện lẻ từng phần):**
-  - Dành cho các ngày bận rộn chỉ kịp luyện 1–2 Part (ví dụ: cày 30 câu Part 5, hoặc 3 bài đọc đơn Part 7).
-  - Chọn Part luyện tập, nhập số câu làm, số câu đúng và thời gian.
-  - Vẫn được tính vào Streak hàng ngày để bảo toàn chuỗi kỷ luật!
-- **Tích hợp thêm nhanh lỗi sai (Direct Mistake Logging):**
-  - Cho phép thêm ngay các câu sai, bẫy gặp phải trực tiếp từ form kết thúc buổi test vào Sổ tay lỗi sai mà không cần chuyển trang.
-
-### 3.3. Phân hệ 3: Phân tích chuyên sâu & Đo lường năng lực (Advanced Analytics)
-- **Biểu đồ dòng thời gian tiến độ (Score Timeline Chart):**
-  - Trục X: Ngày làm đề.
-  - Trục Y: Thang điểm 0–990.
-  - 3 đường dữ liệu riêng biệt: Điểm Listening, Điểm Reading, và Điểm Tổng.
-  - Đường tham chiếu cố định (Reference Line) màu tím neon ở mốc **990 Target**.
-- **Biểu đồ mạng nhện 7 Part (7-Part Radar Chart):**
-  - 7 trục tương ứng Part 1 đến Part 7 thể hiện độ thành thạo (% chính xác trung bình).
-  - Nhận diện tức thì "điểm nghẽn" (bottleneck): Ví dụ Radar nhô cao ở Part 1, 2, 5 nhưng lõm sâu ở Part 7 Double/Triple Passages hoặc Part 3 Inference.
-- **Biểu đồ phân loại nguyên nhân sai (Error Taxonomy Chart):**
-  - Phân bố tỷ lệ lỗi sai theo các nhóm nguyên nhân chính:
-    1. *Từ vựng lạ / Bẫy Paraphrase*
-    2. *Ngữ pháp nâng cao / Cấu trúc câu đảo ngữ*
-    3. *Hụt thông tin / Tốc độ nói nhanh / Nối âm*
-    4. *Thiếu thời gian / Phân bổ phút làm bài chưa tối ưu*
-    5. *Mất tập trung / Bẫy suy diễn chủ quan*
-- **Bảng lịch sử chi tiết (Detailed Test History):**
-  - Danh sách toàn bộ các đề đã làm kèm tag, điểm số, thời gian, và nút xem lại phân tích chi tiết.
-
-### 3.4. Phân hệ 4: Sổ tay lỗi sai & Bẫy đề thi (Mistake Notebook)
-- **Cấu trúc một bản ghi lỗi (Mistake Entry):**
-  - Part liên quan (Part 1 -> Part 7).
-  - Nội dung câu hỏi / Bối cảnh câu sai.
-  - Lỗi sai cụ thể & Đáp án đúng.
-  - Giải thích bẫy đề thi (ETS Trap Analysis) & Từ vựng mới cần nhớ.
-  - Thẻ phân loại (Tags): `#Vocabulary`, `#Grammar`, `#InferenceTrap`, `#TimeManagement`...
-  - Trạng thái ôn tập: **"Chưa nhớ / Cần ôn lại" (Needs Review - màu đỏ cam)** vs **"Đã thông suốt" (Mastered - màu xanh ngọc)**.
-- **Bộ lọc thông minh:** Lọc theo Part, theo Trạng thái, hoặc tìm kiếm theo từ khóa.
-
-### 3.5. Phân hệ 5: Cài đặt, Quản lý dữ liệu & An toàn thông tin (Settings & Data)
-- **Cấu hình cá nhân hóa:**
-  - Thiết lập mục tiêu điểm số (mặc định 990).
-  - Ngày thi thực tế (D-Day).
-  - Mục tiêu học tối thiểu mỗi ngày để giữ streak (ví dụ: làm 1 Part hoặc học 20 phút).
-- **Lưu trữ Offline-First & Xuất/Nhập dữ liệu:**
-  - Lưu trữ tự động, an toàn và tức thì trên trình duyệt người dùng qua LocalStorage & IndexedDB.
-  - **Export Data (Sao lưu):** Tải toàn bộ dữ liệu (lịch sử test, streak, sổ tay lỗi) về máy dưới dạng file `toeic-progress-backup.json`.
-  - **Import Data (Khôi phục):** Tải file JSON lên để khôi phục hoặc chuyển đổi sang máy tính khác dễ dàng.
-- **Bộ dữ liệu mẫu (Demo Data Switcher):**
-  - Cung cấp sẵn nút bật dữ liệu demo (gồm các buổi test mẫu chân thực, biểu đồ rực rỡ, danh sách bẫy đã ghi chú sẵn) để người dùng chiêm ngưỡng ngay vẻ đẹp giao diện.
-  - Nút "Reset / Xóa trắng để bắt đầu hành trình của tôi" bất cứ lúc nào.
-
-### 3.6. Phân hệ 6: Kiến trúc mở rộng tương lai (Speaking & Writing Roadmap)
-- **Bộ chuyển đổi kỹ năng (Skill Switcher):**
-  - Header trang bị bộ chọn trực quan: `[◉ Listening & Reading (990)]` và `[○ Speaking & Writing (400) - Sắp ra mắt]`.
-  - Khi bấm sang S&W: Hiển thị giao diện lộ trình phát triển (Roadmap Preview) với cấu trúc thang điểm 0–400 (Speaking 0–200 với 11 câu hỏi / 8 level, Writing 0–200 với 8 câu hỏi / 9 level) và danh sách tiêu chí chấm điểm chuẩn (Pronunciation, Intonation, Grammar, Relevance).
-  - Toàn bộ Schema dữ liệu được thiết kế dạng module đa kỹ năng để khi kích hoạt code S&W sẽ không ảnh hưởng đến dữ liệu L&R.
+- `Lộ Trình S&W` hạ cấp thành một mục trong Tài Liệu. Nó là trang tĩnh, chưa nối với dữ liệu nào, không xứng một chỗ ngang hàng Dashboard.
+- `Phòng Thi ETS` chuyển vào Tài Liệu, giữ nguyên chức năng (xem 4.5).
+- Bỏ một trong hai mục sidebar hiện cùng mở modal Cài Đặt.
 
 ---
 
-## 4. HỆ THỐNG THIẾT KẾ THỊ GIÁC (MODERN DARK PRO DESIGN SYSTEM)
+## 4. ĐẶC TẢ TỪNG PHÂN HỆ
 
-### 4.1. Bảng màu chủ đạo (Color Palette)
+### 4.1. Tổng Quan (Dashboard)
 
-| Vai trò màu | Tên mã màu | Giá trị HEX | Ứng dụng giao diện |
-| :--- | :--- | :--- | :--- |
-| **Nền chính (Background)** | Slate Void | `#090D16` | Nền tổng thể toàn bộ trang web, tối sâu, chống chói mắt. |
-| **Nền Card (Surface)** | Slate Midnight | `#111827` | Bề mặt các card thông tin, dashboard widget. |
-| **Nền Card phụ (Elevated)** | Slate Darker | `#1F2937` | Bề mặt khi hover, popup modal, dropdown menu. |
-| **Viền & Ngăn cách (Border)** | Slate Stroke | `#374151` | Viền mỏng 1px tinh tế, hiệu ứng viền phát sáng nhẹ. |
-| **Màu Streak (Flame)** | Neon Orange / Amber | `#F97316` / `#FB923C` | Ngọn lửa chuỗi ngày học, khiên bảo vệ, cảnh báo kỷ luật. |
-| **Màu Mục tiêu 990** | Electric Violet | `#8B5CF6` / `#A855F7` | Đường kẻ đích 990, huy hiệu Grandmaster, hiệu ứng vinh danh. |
-| **Màu Listening** | Cyan Tech | `#06B6D4` / `#38BDF8` | Chỉ số Listening, Part 1 đến Part 4. |
-| **Màu Reading** | Emerald Energy | `#10B981` / `#34D399` | Chỉ số Reading, Part 5 đến Part 7, trạng thái Mastered. |
-| **Chữ chính (Text Primary)** | Pure Slate | `#F8FAFC` | Tiêu đề, số điểm to, chỉ số quan trọng. |
-| **Chữ phụ (Text Muted)** | Muted Silver | `#94A3B8` | Chú thích, nhãn mô tả, ngày tháng. |
+- **Thẻ Streak:** số ngày liên tục, trạng thái hôm nay, số khiên còn lại, lưới bảy ngày trong tuần. *Dự kiến nâng lên heatmap kiểu lịch đóng góp, 8–12 tuần.*
+- **Thẻ Mục tiêu:** điểm cao nhất, khoảng cách tới `targetScore`, phần trăm hoàn thành. **Mọi con số ở đây phải tính theo `targetScore`, không phải 990.**
+- **Đếm ngược ngày thi và nhịp độ:** từ `examDate` và khoảng cách điểm, tính nhịp cần thiết (ví dụ "còn 45 ngày, cần +30đ, tức khoảng 5đ mỗi tuần") rồi đối chiếu với nhịp thực tế gần đây.
+- **Rank Badge:** huy hiệu bậc hiện tại.
+- **Biểu đồ tiến độ:** đường điểm tổng theo thời gian, thang trục co theo `targetScore`.
+- **Ba thẻ chỉ số:** điểm mới nhất, kỷ lục, mức tăng trưởng.
 
-### 4.2. Kiểu chữ & Bố cục (Typography & Layout)
-- **Phông chữ:** `Inter`, `Plus Jakarta Sans` hoặc hệ phông System Sans-serif hiện đại, nét đậm sắc nét, hỗ trợ tiếng Việt đầy đủ.
-- **Hiệu ứng thị giác (Micro-interactions & Glow Effects):**
-  - Card bo góc mềm mại (`rounded-2xl`).
-  - Viền card có gradient phát sáng nhẹ khi hover (`hover:border-slate-500 transition-all duration-300`).
-  - Hiệu ứng pháo hoa giấy (Confetti Animation) bùng nổ khi phá kỷ lục điểm mới hoặc đạt mốc thăng hạng.
-  - Hoạt ảnh đốm lửa bập bùng nhẹ nhàng ở icon Streak.
+*Bỏ khỏi spec:* thanh XP tới cấp kế tiếp và châm ngôn ngẫu nhiên mỗi ngày — xem mục 7.
 
----
+### 4.2. Nhập Điểm (Session Logger — modal)
 
-## 5. KIẾN TRÚC KỸ THUẬT & LƯỢC ĐỒ DỮ LIỆU (TECHNICAL ARCHITECTURE)
+- **Full Test:** tên nguồn đề, ngày, thời gian làm, số câu đúng từng Part (Listening 6/25/39/30, Reading 30/16/54). Tự cộng Raw 0–100 mỗi kỹ năng, tra bảng ETS ra Scaled 5–495 và tổng 10–990.
+- **Luyện Part lẻ:** chọn Part, số câu làm, số câu đúng, thời gian. Vẫn tính vào streak. **Dữ liệu phải lưu có cấu trúc** (`practicePart`, `practiceCorrect`, `practiceTotal`), không nhét vào chuỗi `notes` như hiện tại — nếu không nó vĩnh viễn không vào được biểu đồ.
+- **Số từ vựng đã học:** một ô số nguyên tùy chọn. Đây là **chỉ số**, không phải module học từ — xem mục 7.
+- **Ghi nhanh lỗi sai:** thêm câu sai thẳng vào Sổ tay ngay trong form, không phải chuyển trang.
+- **Làm lại đề:** nhận diện tên đề trùng, đánh số lần làm, so sánh với lần trước và lần đầu.
+- **Mặc định form để trống.** Điền sẵn điểm cao khiến một cú bấm nhầm ghi nhận kỷ lục giả.
 
-### 5.1. Tech Stack
-- **Framework:** React 18+ (Single Page Application, siêu nhanh, không độ trễ).
-- **Công cụ build:** Vite (Khởi động tức thì < 300ms, hot module reload thần tốc).
-- **Styling:** Tailwind CSS 3.4+ (Tiện ích hóa tối đa, responsive mượt mà trên cả Mobile, Tablet và Desktop).
-- **Icons:** `lucide-react` (Hơn 1000+ biểu tượng vector hiện đại, tinh gọn).
-- **Biểu đồ (Data Visualization):** `recharts` (Thư viện biểu đồ chuẩn React hỗ trợ Line, Area, Radar, Bar, Pie với tooltip tương tác mượt mà).
-- **Hiệu ứng khen thưởng:** `canvas-confetti` (Pháo hoa chúc mừng khi đạt kỷ lục điểm).
-- **Lưu trữ:** LocalStorage có cơ chế serialize an toàn + Hỗ trợ Export/Import JSON chuẩn cấu trúc.
+### 4.3. Phân Tích (Analytics)
 
-### 5.2. Lược đồ dữ liệu cốt lõi (TypeScript Data Models)
+- **Timeline:** điểm tổng, Listening và Reading theo thời gian. Đường tham chiếu đặt tại `targetScore`. Lọc theo lượt làm: tất cả, chỉ lần đầu, hoặc điểm cao nhất.
+- **Ma trận năng lực 7 Part:** tỷ lệ chính xác từng Part dạng thanh capsule. **Không dùng biểu đồ radar** — bảy trục có thang tối đa lệch nhau (6 câu so với 54 câu), radar sẽ bóp méo hình dạng và đánh lừa mắt. v1 chỉ định radar; quyết định này thay thế. **Tính theo trung bình trượt N đề gần nhất**, không phải trung bình trọn đời — nếu không, những đề tệ lúc mới bắt đầu sẽ kéo chỉ số xuống vĩnh viễn.
+- **Phân bố nguyên nhân sai:** biểu đồ theo sáu nhóm lỗi trong Sổ tay. *Chưa xây.*
+- **Phân tích thời gian:** xu hướng tổng thời gian làm bài theo từng đề. *Chưa xây.* Không đặt mục tiêu đo thời gian từng Part — xem mục 7.
+- **Bảng lịch sử:** lọc, sắp xếp, xem chi tiết, xóa. **Cần bổ sung sửa.**
+- **Độ ổn định phong độ:** độ lệch chuẩn, cũng tính trên N đề gần nhất.
 
-```typescript
-// 1. Phân loại kỹ năng
-export type SkillType = 'LR' | 'SW';
+### 4.4. Sổ Tay Bẫy (Mistake Notebook)
 
-// 2. Chi tiết điểm theo từng Part của Listening & Reading
-export interface LRPartScore {
-  part1: number; // Tối đa 6 câu
-  part2: number; // Tối đa 25 câu
-  part3: number; // Tối đa 39 câu
-  part4: number; // Tối đa 30 câu
-  part5: number; // Tối đa 30 câu
-  part6: number; // Tối đa 16 câu
-  part7: number; // Tối đa 54 câu
-}
+- **Một bản ghi gồm:** Part, ngữ cảnh câu hỏi, lỗi đã mắc, đáp án đúng kèm giải thích bẫy, phân loại nguyên nhân, thẻ tag tự do.
+- **Sáu nhóm nguyên nhân:** bẫy từ vựng và paraphrase · ngữ pháp nâng cao · tốc độ nghe và nối âm · áp lực thời gian · mất tập trung và đọc ẩu · khác.
+- **Lịch ôn có giãn cách (Spaced Repetition).** *Đây là quyết định chốt, thay cho mâu thuẫn trong v1 giữa mục 1.2 và mục 3.4.* Mỗi bản ghi có `nextReviewDate`. Ôn đúng thì giãn ra theo bậc 1 → 3 → 7 → 14 → 30 ngày, sai thì quay về đầu. Dashboard hiển thị số thẻ đến hạn. Toggle thủ công hai trạng thái là không đủ — nó biến sổ tay thành kho lưu trữ chết.
+- **Sửa được bản ghi.** Hiện chỉ toggle và xóa; gõ nhầm một chữ phải xóa rồi gõ lại.
+- **Bộ lọc:** theo Part, trạng thái, nhóm nguyên nhân, và tìm kiếm toàn văn.
 
-// 3. Phân loại nguyên nhân sai
-export type ErrorCategory = 
-  | 'VOCABULARY_TRAP'     // Bẫy từ vựng / Paraphrase
-  | 'ADVANCED_GRAMMAR'    // Ngữ pháp nâng cao
-  | 'LISTENING_SPEED'     // Tốc độ nghe / Nối âm / Giọng lạ
-  | 'TIME_PRESSURE'       // Cháy giờ / Không kịp đọc
-  | 'CARELESS_DISTRACTION'// Đọc ẩu / Mất tập trung
-  | 'OTHER';
+### 4.5. Bộ Đếm Nhịp Làm Bài (Pacing Trainer)
 
-// 4. Bản ghi Sổ tay lỗi sai & Bẫy đề
-export interface MistakeEntry {
-  id: string;
-  sessionId?: string;
-  part: 1 | 2 | 3 | 4 | 5 | 6 | 7;
-  questionContext: string; // Nội dung hoặc số câu
-  userMistake: string;     // Đáp án chọn sai & lý do
-  correctAnswer: string;   // Đáp án đúng & bài học rút ra
-  category: ErrorCategory;
-  tags: string[];          // ví dụ: ['part5-inversion', 'trap-synonym']
-  status: 'NEEDS_REVIEW' | 'MASTERED';
-  createdAt: string;       // ISO Date string
-}
+> *Tính năng này không có trong v1. Nó được xây ở đợt ba và v2 ghi nhận chính thức.*
 
-// 5. Bản ghi một buổi học / Luyện đề
-export interface StudySession {
-  id: string;
-  skillType: SkillType;
-  sessionType: 'FULL_TEST' | 'PART_PRACTICE';
-  testName: string;        // ví dụ: 'ETS 2024 Test 02'
-  date: string;            // 'YYYY-MM-DD'
-  durationMinutes: number; // Thời gian làm bài
-  
-  // Dành cho L&R
-  rawListening?: number;   // 0 - 100
-  rawReading?: number;     // 0 - 100
-  scaledListening?: number;// 5 - 495
-  scaledReading?: number;  // 5 - 495
-  totalScore?: number;     // 10 - 990
-  partScores?: LRPartScore;
-  
-  notes?: string;
-  createdAt: string;
-}
+Đây **không phải** đồng hồ đếm ngược thông thường — các web luyện đề đã có sẵn. Giá trị nằm ở **mốc nhịp theo từng Part kèm chiến thuật**, thứ các web đó không cung cấp:
 
-// 6. Cấu hình người dùng & Gamification
-export interface UserProfile {
-  targetScore: number;     // Mặc định 990
-  examDate: string;        // Ngày thi dự kiến 'YYYY-MM-DD'
-  currentStreak: number;
-  longestStreak: number;
-  streakFreezes: number;   // Khiên bảo vệ chuỗi
-  lastStudyDate: string;   // 'YYYY-MM-DD'
-  dailyMinGoalMinutes: number;
-  motto: string;           // Lời cam kết cá nhân
-  selectedSkill: SkillType;
-}
-```
+- **Năm chế độ:** Full Test 120 phút · Sprint Reading 75 phút · Tốc độ phản xạ Part 5 trong 12 phút · Sức bền Part 7 trong 55 phút · Pomodoro 25 phút.
+- Mỗi chế độ chia thành các pha gắn với khoảng câu hỏi cụ thể (ví dụ *Part 5, câu 101–130, 12 phút, tối đa 25–30 giây mỗi câu*), kèm lời nhắc chiến thuật riêng cho từng pha.
+- **Phục vụ hai nhóm:** người luyện đề giấy từ sách, vốn không có timer sẵn; và người muốn tập riêng kỷ luật phân bổ thời gian.
 
-### 5.3. Thuật toán quy đổi điểm ETS (ETS Scoring Matrix Algorithm)
-Hệ thống tích hợp bảng ma trận quy đổi Raw Score -> Scaled Score chuẩn xác theo phổ điểm ETS quốc tế. Thuật toán tự động tra bảng:
-- `rawListeningToScaled(raw: 0..100) -> 5..495`
-- `rawReadingToScaled(raw: 0..100) -> 5..495`
-- Tự động hiển thị khoảng điểm chuẩn và cảnh báo các mốc tiệm cận tuyệt đối 495.
+**Hướng phát triển:** khi bấm Nộp Bài, chuyển thời gian thật đã dùng sang form Nhập Điểm, và ghi lại pha nào vượt giờ để nuôi phân tích nhóm lỗi `TIME_PRESSURE`. Hiện hai màn hình đứng cạnh nhau mà không truyền một byte dữ liệu nào — đó chính là thứ khiến nó có cảm giác thừa.
+
+### 4.6. Tài Liệu & Quy Đổi
+
+> *Tính năng này cũng không có trong v1.*
+
+- **Bộ quy đổi Raw sang Scaled** để thử "nếu đúng thêm năm câu Part 7 thì được bao nhiêu". Khởi tạo từ bài Full Test gần nhất, cho phép chỉnh tay. Nhãn phải phân biệt rõ đâu là kết quả thật, đâu là con số đang thử.
+- **Bảng đối chiếu chứng chỉ quốc tế:** TOEIC với CEFR, IELTS, VSTEP và TOEFL iBT, căn cứ Khung năng lực ngoại ngữ sáu bậc (Thông tư 01/2014/TT-BGDĐT) và tham chiếu ETS.
+- **Chiến thuật phân bổ thời gian, checklist trước ngày thi, tổng hợp các bẫy thường gặp.**
+- **Lộ trình S&W** (gộp từ phân hệ riêng): giới thiệu thang 400, cấu trúc Speaking 11 câu và Writing 8 câu. Thuần tĩnh cho tới khi có dữ liệu S&W thật.
+
+### 4.7. Cài Đặt & Dữ Liệu
+
+- Tên, `targetScore`, `examDate`, mục tiêu phút tối thiểu mỗi ngày.
+- **Xuất và nhập JSON.** Nhập phải kiểm tra cấu trúc trước khi ghi đè — hiện chỉ cần một file có khóa `profile` là xóa sạch dữ liệu thật, không hoàn tác được.
+- **Dữ liệu mẫu là tùy chọn.** Người dùng mới bắt đầu với hồ sơ trắng, không phải dữ liệu của người khác.
 
 ---
 
-## 6. LỘ TRÌNH TRIỂN KHAI PHÁT TRIỂN (DEVELOPMENT ROADMAP)
+## 5. HỆ THỐNG THIẾT KẾ
 
-- **Giai đoạn 1: Khởi tạo nền tảng & Design System**
-  - Thiết lập dự án React + Vite + Tailwind CSS với bảng màu Modern Dark Pro.
-  - Xây dựng Layout Header/Sidebar, Skill Switcher, và bộ định dạng chỉ số.
-- **Giai đoạn 2: Quản lý trạng thái & Lưu trữ LocalStorage / Demo Data**
-  - Xây dựng Data Store, bộ chuyển đổi Demo Data, xuất nhập file JSON.
-  - Tích hợp Engine tính điểm ETS chuẩn quốc tế.
-- **Giai đoạn 3: Dashboard & Cơ chế Gamification**
-  - Lập trình bộ tính Streak, bảo vệ khiên, tính Rank Tier và đếm ngược ngày thi.
-  - Tích hợp hiệu ứng pháo hoa khi đạt kỷ lục điểm.
-- **Giai đoạn 4: Bộ ghi nhận bài tập (Full Test & Part Practice) & Sổ tay bẫy**
-  - Xây dựng Modal / Form nhập điểm chi tiết từng Part.
-  - Xây dựng giao diện Sổ tay lỗi sai (Mistake Notebook) với bộ lọc thông minh.
-- **Giai đoạn 5: Biểu đồ phân tích chuyên sâu (Analytics Dashboard)**
-  - Tích hợp biểu đồ Recharts: Score Timeline (có đường mục tiêu 990), Radar Chart 7 Part, Error Breakdown.
-- **Giai đoạn 6: Kiểm thử, Tối ưu hóa & Hoàn thiện tài liệu**
-  - Kiểm thử tương thích các độ phân giải màn hình, xác thực dữ liệu nhập, đóng gói sẵn sàng sử dụng.
+### 5.1. Chế độ màu
+
+**Sáng là mặc định, tối là tùy chọn.**
+
+*Quyết định này thay thế "Modern Dark Pro" của v1 — bản sắc đó đã không còn đúng với sản phẩm thực tế.*
+
+Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặt trong `<head>` gắn class trước khi trình duyệt vẽ khung hình đầu tiên; React đọc lại trạng thái từ chính class đó. **Không được chuyển script này thành module hay defer** — sẽ nháy màn hình mỗi lần tải trang.
+
+### 5.2. Bảng màu ngữ nghĩa
+
+| Vai trò | Sáng | Tối |
+| :--- | :--- | :--- |
+| Nền trang | `#F1F5F9` | `#0B111E` |
+| Nền card | `#FFFFFF` | `#121A2B` |
+| Nền sidebar | `#FFFFFF` | `#0E1526` |
+| Hành động chính | `blue-600` | `blue-600` |
+| Streak, cảnh báo kỷ luật | `amber-500` / `orange-500` | như chế độ sáng |
+| Listening | `blue` / `sky` | như chế độ sáng |
+| Reading | `purple` / `violet` | như chế độ sáng |
+| Thành công, đã thông suốt | `emerald` | như chế độ sáng |
+| Lỗi sai, cần ôn | `rose` | như chế độ sáng |
+
+**Màu phải mang nghĩa.** Hiện bốn thẻ KPI ở Phân Tích dùng bốn màu pastel khác nhau không biểu thị điều gì — đó là màu trang trí, làm loãng tín hiệu thật.
+
+### 5.3. Bố cục & chữ
+
+- Font `Plus Jakarta Sans`, card bo `rounded-2xl`, pháo giấy khi phá kỷ lục điểm.
+- **Mobile-first.** Viết mặc định cho màn hẹp rồi mới thêm `sm:`, `md:`, `xl:`. Không bao giờ để một grid nhiều cột mà thiếu biến thể responsive.
+- **Nhãn co được, dữ liệu giữ nguyên.** Nhãn dùng `min-w-0 truncate`, con số và badge dùng `shrink-0`. Không dùng `max-w-[...]` cứng.
+- **Kiểm ở 375, 768, 1024 và 1440.** 1024 là điểm dễ vỡ nhất vì vừa đủ chia hai cột nhưng chưa đủ chỗ cho nội dung.
+- **Hộp thoại** phải có `role="dialog"`, `aria-modal`, `aria-labelledby`, đóng được bằng Escape, bẫy focus bên trong, và trả focus về chỗ cũ khi đóng.
 
 ---
-*Tài liệu Spec.md được biên soạn theo chuẩn công nghệ EdTech quốc tế, đóng vai trò kim chỉ nam cho toàn bộ quá trình lập trình và mở rộng sản phẩm.*
+
+## 6. KIẾN TRÚC KỸ THUẬT
+
+### 6.1. Tech stack
+
+React 18 · Vite 6 · TypeScript chế độ strict · Tailwind 3.4 · `recharts` · `lucide-react` · `canvas-confetti`.
+
+Lưu trữ: **LocalStorage**. v1 ghi IndexedDB — không đúng, chưa từng dùng.
+
+### 6.2. Mô hình dữ liệu
+
+Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
+
+- `UserProfile` — tên, `targetScore`, `examDate`, streak, khiên, mục tiêu mỗi ngày.
+- `StudySession` — một buổi làm đề hoặc luyện Part; điểm Raw và Scaled, `partScores`, `attemptNumber`, thời gian, ghi chú.
+- `MistakeEntry` — một lỗi sai; Part, ngữ cảnh, đáp án, nhóm nguyên nhân, tag, trạng thái.
+- `SessionAttemptMeta` — lần làm thứ mấy, chênh lệch so với lần đầu và lần trước.
+
+**Nợ kiến trúc đã biết, cần trả trước khi mở công khai:**
+
+1. Khóa localStorage đánh `_v1` nhưng **không có hàm migrate**. Đổi schema sẽ làm vỡ dữ liệu người dùng cũ.
+2. Xóa một buổi học **không xóa các lỗi sai liên kết** qua `sessionId`.
+3. **Không có routing.** Tab quản bằng `useState`, nên không deep link được, nút Back của trình duyệt không hoạt động, và F5 luôn quay về Tổng Quan.
+4. `AnalyticsView.tsx` hơn 2000 dòng, cần tách hook và component con.
+5. Không có lint, test, hay error boundary.
+6. `<input type="date">` hiển thị theo locale trình duyệt (MM/DD/YYYY), lệch với định dạng DD/MM/YYYY dùng ở mọi nơi khác trong app.
+
+### 6.3. Quy đổi điểm ETS
+
+Bảng tra Raw sang Scaled cho từng kỹ năng (0–100 thành 5–495), tổng 10–990. Hàm `calculateFromPartScores()` cộng Part 1–4 thành Raw Listening và Part 5–7 thành Raw Reading.
+
+**Đây là bảng xấp xỉ theo phổ điểm ETS, không phải bảng chính thức.** Giao diện nên gọi kết quả là "điểm dự kiến", không phải điểm chính xác.
+
+---
+
+## 7. NHỮNG THỨ KHÔNG LÀM
+
+Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm lý do.
+
+| Không làm | Vì sao |
+| :--- | :--- |
+| **Ngân hàng đề, câu hỏi trong app** | Biến tracker thành nền tảng luyện thi — khác hẳn về quy mô, bản quyền và hạ tầng. Và làm mất chính ưu thế "bất khả tri về nguồn đề" |
+| **Chấm bài tự động** | Cùng lý do trên |
+| **Module từ vựng, flashcard** | Các web chuyên dụng làm tốt hơn nhiều. **Chỉ theo dõi số từ đã học mỗi ngày như một chỉ số** — đó là dữ liệu, không phải nội dung |
+| **Bài giảng, video, lý thuyết** | Không phải vai trò của sản phẩm |
+| **Bảng xếp hạng, mạng xã hội** | Chưa có backend, chưa có người dùng thứ hai |
+| **Gợi ý bằng AI** | Với vài chục bản ghi sẽ chỉ sinh ra lời khuyên sáo rỗng. Xem lại khi dữ liệu đủ dày |
+| **Đo thời gian từng Part** | Phải bắt nhập bảy con số mỗi buổi. Chi phí nhập liệu vượt giá trị thu được |
+| **Biểu đồ radar 7 Part** | Thang tối đa lệch nhau (6 câu so với 54 câu) làm méo hình, đánh lừa mắt |
+
+---
+
+## 8. LỘ TRÌNH
+
+### Đã hoàn thành
+
+- Nền tảng React, Vite, Tailwind; layout sidebar và topbar; chế độ sáng và tối.
+- Lưu trữ LocalStorage, xuất nhập JSON, dữ liệu mẫu tùy chọn.
+- Engine quy đổi ETS; ghi nhận Full Test và Part lẻ.
+- Streak, khiên bảo vệ, Rank Tier, đếm ngược ngày thi, pháo giấy khi phá kỷ lục.
+- Sổ tay lỗi sai với sáu nhóm nguyên nhân và bộ lọc.
+- Phân tích: timeline, ma trận 7 Part, bảng lịch sử, theo dõi làm lại đề.
+- Bộ đếm nhịp làm bài với năm chế độ.
+- Tài liệu: quy đổi điểm, đối chiếu chứng chỉ quốc tế, chiến thuật, checklist.
+
+### Vòng kế tiếp — dọn nợ định vị
+
+1. Dashboard tính theo `targetScore` thay vì 990. Hiện đang mâu thuẫn với Phân Tích.
+2. Thang trục biểu đồ co theo `targetScore`.
+3. Nối Bộ đếm nhịp sang Nhập Điểm, truyền thời gian thật đã dùng.
+4. `examDate` trở thành trục nhịp độ trên Dashboard.
+5. Cấu trúc hóa dữ liệu luyện Part lẻ.
+6. Gom sáu mục điều hướng còn bốn.
+
+### Vòng sau — chiều sâu học tập
+
+7. Lịch ôn giãn cách cho Sổ tay.
+8. Sửa được bản ghi lỗi sai và buổi học.
+9. Ma trận 7 Part và độ ổn định chuyển sang trung bình trượt.
+10. Phân bố nguyên nhân sai trong Phân Tích.
+11. Ô số từ vựng đã học, và heatmap lịch thay lưới bảy ngày.
+
+### Trước khi mở công khai
+
+12. Lớp migrate schema và xác thực dữ liệu nhập.
+13. Routing.
+14. Rank Tier tính tương đối theo `targetScore`.
+15. PWA thật. Hiện chân trang ghi "100% Offline-First" nhưng chưa có manifest hay service worker — đây là một tuyên bố sai.
+16. Onboarding, i18n, lint, test, CI.
+
+---
+
+*Tài liệu này là nguồn sự thật cho quyết định sản phẩm. Khi code và spec lệch nhau, sửa một trong hai — đừng để lệch.*
