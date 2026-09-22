@@ -14,10 +14,12 @@ import {
   Volume2, 
   VolumeX
 } from 'lucide-react';
+import { PacingRun, PacingPhaseResult } from '../types';
+import { addPacingRun, getTodayDateString } from '../utils/storage';
 import confetti from 'canvas-confetti';
 
 interface ExamTimerViewProps {
-  onOpenSessionLogger: () => void;
+  onOpenSessionLogger: (prefill?: { durationMinutes?: number }) => void;
   theme?: 'light' | 'dark';
 }
 
@@ -108,6 +110,14 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
   const [secondsRemaining, setSecondsRemaining] = useState(activePreset.durationMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  /**
+   * Mốc thời gian (giây đã trôi) tại lúc người học bấm "Xong pha này".
+   * Đây là cách duy nhất biết được thời gian THẬT của từng pha: nếu chỉ để
+   * đồng hồ chạy thì mọi pha luôn khớp kế hoạch và dữ liệu vô nghĩa.
+   * Một cú bấm mỗi pha, không phải gõ con số nào.
+   */
+  const [phaseMarks, setPhaseMarks] = useState<number[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const targetEndTimeRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -163,6 +173,7 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
     const target = PRESETS.find(p => p.id === preset)!;
     setTotalSeconds(target.durationMinutes * 60);
     setSecondsRemaining(target.durationMinutes * 60);
+    setPhaseMarks([]);
   };
 
   const handleToggleTimer = () => {
@@ -181,6 +192,7 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
     targetEndTimeRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     setSecondsRemaining(totalSeconds);
+    setPhaseMarks([]);
   };
 
   const handleAdjustTime = (seconds: number) => {
@@ -246,6 +258,80 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
   const isUrgent = secondsRemaining > 0 && secondsRemaining <= 300; // < 5 phút
   const isFinished = secondsRemaining === 0;
 
+  // Pha mà người học đang thực sự làm, theo số mốc đã đánh dấu
+  const markedPhaseIndex = phaseMarks.length;
+  const phaseBeingWorked = activePreset.phases[markedPhaseIndex] || null;
+  const allPhasesMarked = markedPhaseIndex >= activePreset.phases.length;
+
+  /**
+   * Quy đổi các mốc đã bấm thành kết quả từng pha (kế hoạch vs thực tế).
+   * Chỉ tính những pha đã được đánh dấu - không suy đoán phần còn lại.
+   */
+  const buildPhaseResults = (): PacingPhaseResult[] => {
+    const results: PacingPhaseResult[] = [];
+    let previousMark = 0;
+
+    phaseMarks.forEach((markSeconds, index) => {
+      const phase = activePreset.phases[index];
+      if (!phase) return;
+      const plannedMinutes = phase.endMinute - phase.startMinute;
+      const actualMinutes = Math.round(((markSeconds - previousMark) / 60) * 10) / 10;
+      results.push({
+        name: phase.name,
+        plannedMinutes,
+        actualMinutes,
+        overrunMinutes: Math.round((actualMinutes - plannedMinutes) * 10) / 10
+      });
+      previousMark = markSeconds;
+    });
+
+    return results;
+  };
+
+  const handleMarkPhaseDone = () => {
+    if (allPhasesMarked) return;
+    setPhaseMarks(prev => [...prev, elapsedSeconds]);
+    playSoundAlert();
+  };
+
+  const handleUndoLastMark = () => {
+    setPhaseMarks(prev => prev.slice(0, -1));
+  };
+
+  /**
+   * Kết thúc lượt: lưu dữ liệu nhịp độ rồi mở form Nhập Điểm kèm thời gian
+   * thật đã dùng. Trước đây màn hình này không ghi lại gì cả (SPEC 4.3).
+   */
+  const handleSubmitAndLog = () => {
+    const actualMinutes = Math.max(1, Math.round(elapsedSeconds / 60));
+    const phases = buildPhaseResults();
+
+    const run: PacingRun = {
+      id: `pacing-${Date.now()}`,
+      presetId: activePreset.id,
+      presetName: activePreset.name,
+      date: getTodayDateString(),
+      plannedMinutes: activePreset.durationMinutes,
+      actualMinutes,
+      finishedNaturally: isFinished,
+      phases,
+      createdAt: new Date().toISOString()
+    };
+
+    addPacingRun(run);
+
+    setIsRunning(false);
+    targetEndTimeRef.current = null;
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    // Chỉ Full Test mới điền sẵn thời gian cho form nhập điểm 200 câu
+    onOpenSessionLogger(
+      activePreset.id === 'FULL_TEST' ? { durationMinutes: actualMinutes } : undefined
+    );
+  };
+
+  const phaseResultsSoFar = buildPhaseResults();
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header Banner */}
@@ -267,7 +353,7 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
 
           {/* Quick Primary Log CTA */}
           <button
-            onClick={onOpenSessionLogger}
+            onClick={handleSubmitAndLog}
             className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition active:scale-[0.98] cursor-pointer shrink-0"
           >
             <PlusCircle className="w-4 h-4" />
@@ -436,6 +522,78 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
             +1 phút
           </button>
         </div>
+      </div>
+
+      {/* Đánh dấu nhịp thật: một cú bấm mỗi khi xong một pha (SPEC 4.3) */}
+      <div className="ui-card p-5 space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="truncate">Ghi Nhịp Thật</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Bấm mỗi khi xong một phần để đo tốc độ thật so với kế hoạch
+            </p>
+          </div>
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">
+            {markedPhaseIndex}/{activePreset.phases.length} phần
+          </span>
+        </div>
+
+        {allPhasesMarked ? (
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
+            Đã ghi đủ {activePreset.phases.length} phần. Bấm "Nộp Bài & Nhập Điểm" để lưu lại nhịp độ lượt này.
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleMarkPhaseDone}
+              disabled={elapsedSeconds === 0}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer min-w-0"
+            >
+              <span className="truncate">✓ Xong: {phaseBeingWorked?.name}</span>
+            </button>
+            {elapsedSeconds === 0 && (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                Bắt đầu đồng hồ trước đã
+              </span>
+            )}
+          </div>
+        )}
+
+        {phaseResultsSoFar.length > 0 && (
+          <div className="space-y-1.5 pt-1">
+            {phaseResultsSoFar.map((r, i) => {
+              const late = r.overrunMinutes > 0;
+              return (
+                <div key={i} className="flex items-center justify-between gap-2 text-xs min-w-0">
+                  <span className="text-slate-600 dark:text-slate-300 truncate min-w-0">{r.name}</span>
+                  <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap tabular-nums">
+                    <span className="text-slate-400 dark:text-slate-500">
+                      {r.actualMinutes}p / {r.plannedMinutes}p
+                    </span>
+                    <span
+                      className={`font-bold px-1.5 py-0.5 rounded-md ${
+                        late
+                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60'
+                          : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60'
+                      }`}
+                    >
+                      {late ? '+' : ''}{r.overrunMinutes}p
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+            <button
+              onClick={handleUndoLastMark}
+              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition cursor-pointer"
+            >
+              Hoàn tác mốc vừa bấm
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Active Phase & Real-Time Strategy Guidance */}

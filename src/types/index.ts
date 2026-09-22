@@ -69,6 +69,31 @@ export interface StudySession {
   createdAt: string;
 }
 
+// Kết quả một pha trong lượt bấm nhịp (SPEC 4.3)
+export interface PacingPhaseResult {
+  name: string;
+  plannedMinutes: number;  // Thời lượng pha theo kế hoạch
+  actualMinutes: number;   // Thời gian thực tế người học đã dùng cho pha này
+  overrunMinutes: number;  // Dương là vượt giờ, âm là xong sớm
+}
+
+/**
+ * Một lượt chạy Bộ đếm nhịp. Dữ liệu này thu thập TỰ ĐỘNG từ thao tác
+ * đánh dấu xong pha - người học không phải gõ con số nào - và là nguồn
+ * cho đường cong mệt mỏi cùng nhóm lỗi TIME_PRESSURE (SPEC 1.4 điểm 3).
+ */
+export interface PacingRun {
+  id: string;
+  presetId: string;
+  presetName: string;
+  date: string;             // 'YYYY-MM-DD'
+  plannedMinutes: number;   // Tổng thời lượng chế độ
+  actualMinutes: number;    // Thời gian thật đã dùng tới lúc kết thúc
+  finishedNaturally: boolean; // true nếu chạy hết giờ, false nếu dừng sớm
+  phases: PacingPhaseResult[]; // Rỗng nếu người học không đánh dấu pha nào
+  createdAt: string;
+}
+
 // Thông tin định danh và phân tích lần làm bài
 export interface SessionAttemptMeta {
   attemptNumber: number;

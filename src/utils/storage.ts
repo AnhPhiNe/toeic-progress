@@ -1,12 +1,13 @@
 import confetti from 'canvas-confetti';
-import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta } from '../types';
+import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '../types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '../data/demoData';
 
 const STORAGE_KEYS = {
   PROFILE: 'toeic_990_profile_v1',
   SESSIONS: 'toeic_990_sessions_v1',
   MISTAKES: 'toeic_990_mistakes_v1',
-  INITIALIZED: 'toeic_990_initialized_v1'
+  INITIALIZED: 'toeic_990_initialized_v1',
+  PACING: 'toeic_990_pacing_v1'
 };
 
 export function getTodayDateString(): string {
@@ -198,6 +199,33 @@ export function loadMistakes(): MistakeEntry[] {
 
 export function saveMistakes(mistakes: MistakeEntry[]): void {
   localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes));
+}
+
+// ---- Lượt chạy Bộ đếm nhịp (SPEC 4.3) ----
+
+export function loadPacingRuns(): PacingRun[] {
+  const data = localStorage.getItem(STORAGE_KEYS.PACING);
+  if (!data) return [];
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function savePacingRuns(runs: PacingRun[]): void {
+  localStorage.setItem(STORAGE_KEYS.PACING, JSON.stringify(runs));
+}
+
+/**
+ * Ghi lại một lượt bấm nhịp. Giữ tối đa 100 lượt gần nhất - đủ dày để dựng
+ * xu hướng mà không phình localStorage.
+ */
+export function addPacingRun(run: PacingRun): PacingRun[] {
+  const updated = [run, ...loadPacingRuns()].slice(0, 100);
+  savePacingRuns(updated);
+  return updated;
 }
 
 // Tính Rank Tier hiện tại dựa trên điểm số cao nhất

@@ -31,6 +31,8 @@ export const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<NavTabId>('dashboard');
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp (SPEC 4.3)
+  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number } | undefined>(undefined);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -66,13 +68,24 @@ export const App: React.FC = () => {
 
       if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        setIsSessionModalOpen(true);
+        openSessionLogger();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSessionModalOpen, isSettingsModalOpen]);
+
+  // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
+  const openSessionLogger = (prefill?: { durationMinutes?: number }) => {
+    setSessionPrefill(prefill);
+    setIsSessionModalOpen(true);
+  };
+
+  const closeSessionLogger = () => {
+    setIsSessionModalOpen(false);
+    setSessionPrefill(undefined);
+  };
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
@@ -175,7 +188,7 @@ export const App: React.FC = () => {
         hasStudiedToday={hasStudiedToday}
         theme={theme}
         toggleTheme={toggleTheme}
-        onOpenSessionLogger={() => setIsSessionModalOpen(true)}
+        onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onResetData={handleResetData}
         onLoadDemo={handleLoadDemo}
@@ -195,7 +208,7 @@ export const App: React.FC = () => {
           hasStudiedToday={hasStudiedToday}
           theme={theme}
           toggleTheme={toggleTheme}
-          onOpenSessionLogger={() => setIsSessionModalOpen(true)}
+          onOpenSessionLogger={() => openSessionLogger()}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
         />
@@ -208,7 +221,7 @@ export const App: React.FC = () => {
               sessions={sessions}
               mistakes={mistakes}
               theme={theme}
-              onOpenSessionLogger={() => setIsSessionModalOpen(true)}
+              onOpenSessionLogger={() => openSessionLogger()}
               onNavigateToAnalytics={() => setActiveTab('analytics')}
               onNavigateToMistakes={() => setActiveTab('mistakes')}
             />
@@ -226,7 +239,7 @@ export const App: React.FC = () => {
 
           {activeTab === 'exam-mode' && (
             <ExamTimerView
-              onOpenSessionLogger={() => setIsSessionModalOpen(true)}
+              onOpenSessionLogger={openSessionLogger}
               theme={theme}
             />
           )}
@@ -271,9 +284,10 @@ export const App: React.FC = () => {
       {/* Modals */}
       <SessionLoggerModal
         isOpen={isSessionModalOpen}
-        onClose={() => setIsSessionModalOpen(false)}
+        onClose={closeSessionLogger}
         onSaveSession={handleSaveSession}
         sessions={sessions}
+        prefill={sessionPrefill}
       />
 
       <SettingsModal

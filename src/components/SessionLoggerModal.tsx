@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -28,18 +28,28 @@ interface SessionLoggerModalProps {
   onClose: () => void;
   onSaveSession: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
   sessions?: StudySession[];
+  /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp (SPEC 4.3) */
+  prefill?: { durationMinutes?: number };
 }
 
 export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   isOpen,
   onClose,
   onSaveSession,
-  sessions
+  sessions,
+  prefill
 }) => {
   const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE'>('FULL_TEST');
   const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [durationMinutes, setDurationMinutes] = useState(120);
+
+  // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
+  useEffect(() => {
+    if (isOpen && prefill?.durationMinutes) {
+      setDurationMinutes(prefill.durationMinutes);
+    }
+  }, [isOpen, prefill?.durationMinutes]);
   const [notes, setNotes] = useState('');
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
