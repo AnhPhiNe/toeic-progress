@@ -34,11 +34,11 @@ export const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Theme Management (Light by default, saved in localStorage)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('toeic_theme_v1');
-    return (saved as 'light' | 'dark') || 'light';
-  });
+  // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
+  // Đọc lại từ chính class đó để React luôn khớp với những gì người dùng đã nhìn thấy.
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  );
 
   useEffect(() => {
     const root = document.documentElement;
@@ -241,7 +241,7 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'resources' && (
-            <ResourcesView />
+            <ResourcesView sessions={sessions} />
           )}
 
           {activeTab === 'sw-roadmap' && (
@@ -273,6 +273,7 @@ export const App: React.FC = () => {
         isOpen={isSessionModalOpen}
         onClose={() => setIsSessionModalOpen(false)}
         onSaveSession={handleSaveSession}
+        sessions={sessions}
       />
 
       <SettingsModal

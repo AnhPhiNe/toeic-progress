@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   GraduationCap, 
   Calculator, 
@@ -16,13 +16,38 @@ import {
   CONCORDANCE_TIERS
 } from '../utils/etsScoring';
 import { getCurrentRankTier } from '../utils/storage';
+import { StudySession } from '../types';
 
-export const ResourcesView: React.FC = () => {
+interface ResourcesViewProps {
+  /** Toàn bộ buổi học, dùng để lấy số câu đúng của bài Full Test gần nhất làm điểm khởi tạo */
+  sessions?: StudySession[];
+}
+
+export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions }) => {
   const [activeSubTab, setActiveSubTab] = useState<'converter' | 'pacing' | 'checklist' | 'traps'>('converter');
 
-  // Converter state
-  const [rawListening, setRawListening] = useState<number>(85);
-  const [rawReading, setRawReading] = useState<number>(80);
+  // Bài Full Test gần nhất có đủ số câu đúng - dùng làm giá trị khởi tạo cho bộ quy đổi
+  const latestFullTest = useMemo(() => {
+    if (!sessions || sessions.length === 0) return null;
+    const candidates = sessions
+      .filter(s => s.sessionType === 'FULL_TEST' && s.rawListening !== undefined && s.rawReading !== undefined)
+      .sort((a, b) => {
+        const timeDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+    return candidates[0] || null;
+  }, [sessions]);
+
+  // Converter state: khởi tạo từ bài thi thật, vẫn cho phép chỉnh tay để thử nghiệm
+  const [rawListening, setRawListening] = useState<number>(latestFullTest?.rawListening ?? 85);
+  const [rawReading, setRawReading] = useState<number>(latestFullTest?.rawReading ?? 80);
+
+  // Người dùng đã tự chỉnh số câu hay vẫn đang xem đúng kết quả bài thi gần nhất
+  const isShowingRealResult =
+    latestFullTest !== null &&
+    rawListening === latestFullTest.rawListening &&
+    rawReading === latestFullTest.rawReading;
 
   const scaledListening = convertRawToListeningScore(rawListening);
   const scaledReading = convertRawToReadingScore(rawReading);
@@ -319,9 +344,15 @@ export const ResourcesView: React.FC = () => {
                   Căn cứ Khung năng lực ngoại ngữ 6 bậc VN (Thông tư 01/2014/TT-BGDĐT) & tham chiếu quốc tế ETS / Cambridge.
                 </p>
               </div>
-              <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300 self-start sm:self-auto bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/70 dark:border-slate-700">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                <span>Mức điểm hiện tại: <strong className="text-blue-600 dark:text-blue-400">{totalEstimated}đ TOEIC</strong></span>
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 self-start sm:self-auto bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/70 dark:border-slate-700 min-w-0">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isShowingRealResult ? 'bg-blue-600 animate-pulse' : 'bg-slate-400'}`} />
+                <span className="min-w-0 whitespace-nowrap truncate">
+                  {isShowingRealResult ? (
+                    <>Điểm gần nhất của bạn: <strong className="text-blue-600 dark:text-blue-400">{totalEstimated}đ TOEIC</strong></>
+                  ) : (
+                    <>Điểm thử: <strong className="text-blue-600 dark:text-blue-400">{totalEstimated}đ TOEIC</strong></>
+                  )}
+                </span>
               </div>
             </div>
 
@@ -355,8 +386,8 @@ export const ResourcesView: React.FC = () => {
                               {tier.toeicRange}
                             </span>
                             {isCurrentTier && (
-                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-blue-600 text-white shadow-2xs">
-                                Bạn đang ở đây
+                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-blue-600 text-white shadow-2xs whitespace-nowrap shrink-0">
+                                {isShowingRealResult ? 'Bạn đang ở đây' : 'Mức đang thử'}
                               </span>
                             )}
                           </div>

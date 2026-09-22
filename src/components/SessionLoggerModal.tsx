@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -6,7 +6,8 @@ import {
   BookOpen, 
   Zap, 
   Plus, 
-  Trash2
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { 
   StudySession, 
@@ -20,39 +21,69 @@ import {
   PART_MAX_QUESTIONS
 } from '../utils/etsScoring';
 import { getTodayDateString } from '../utils/storage';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveSession: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
+  sessions?: StudySession[];
 }
 
 export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   isOpen,
   onClose,
-  onSaveSession
+  onSaveSession,
+  sessions
 }) => {
   const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE'>('FULL_TEST');
-  const [testName, setTestName] = useState('ETS 2024 Test ');
+  const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [durationMinutes, setDurationMinutes] = useState(120);
   const [notes, setNotes] = useState('');
 
+  // Tìm kiếm xem đề thi này đã từng làm chưa
+  const previousAttemptsForTest = useMemo(() => {
+    if (!sessions || !testName.trim()) return [];
+    const normalized = testName.trim().toLowerCase();
+    return sessions.filter(s => s.testName.trim().toLowerCase() === normalized && s.sessionType === 'FULL_TEST');
+  }, [sessions, testName]);
+
+  const isExistingTest = sessionType === 'FULL_TEST' && previousAttemptsForTest.length > 0;
+  const nextAttemptNumber = previousAttemptsForTest.length + 1;
+  const bestPreviousScore = isExistingTest 
+    ? Math.max(...previousAttemptsForTest.map(s => s.totalScore || 0)) 
+    : 0;
+
+  // Lấy danh sách tên các đề thi Full Test đã có để gợi ý nhanh
+  const uniqueTestNameSuggestions = useMemo(() => {
+    if (!sessions) return [];
+    const names = new Set<string>();
+    sessions.forEach(s => {
+      if (s.sessionType === 'FULL_TEST' && s.testName.trim()) {
+        names.add(s.testName.trim());
+      }
+    });
+    return Array.from(names);
+  }, [sessions]);
+
   // Part scores for Full Test
+  // Bắt đầu từ 0 - người dùng tự nhập kết quả thật. Điền sẵn điểm cao
+  // dễ khiến một cú bấm nhầm ghi nhận kỷ lục không có thật.
   const [partScores, setPartScores] = useState<LRPartScore>({
-    part1: 6,
-    part2: 24,
-    part3: 36,
-    part4: 28,
-    part5: 28,
-    part6: 15,
-    part7: 50
+    part1: 0,
+    part2: 0,
+    part3: 0,
+    part4: 0,
+    part5: 0,
+    part6: 0,
+    part7: 0
   });
 
   // Part Practice mode state
   const [selectedPracticePart, setSelectedPracticePart] = useState<number>(5);
   const [practiceTotalQuestions, setPracticeTotalQuestions] = useState(30);
-  const [practiceCorrectQuestions, setPracticeCorrectQuestions] = useState(28);
+  const [practiceCorrectQuestions, setPracticeCorrectQuestions] = useState(0);
 
   // Quick Mistakes to add alongside session
   const [quickMistakes, setQuickMistakes] = useState<Array<{
@@ -73,6 +104,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     category: 'VOCABULARY_TRAP' as ErrorCategory,
     tags: ''
   });
+
+  const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -118,6 +151,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         skillType: 'LR',
         sessionType: 'FULL_TEST',
         testName: testName.trim() || 'ETS Test',
+        attemptNumber: isExistingTest ? nextAttemptNumber : 1,
         date,
         durationMinutes: Number(durationMinutes) || 120,
         rawListening: calculated.rawListening,
@@ -167,7 +201,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-3xl my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="session-logger-title"
+        tabIndex={-1}
+        className="relative w-full max-w-3xl my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header Modal */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
@@ -176,7 +216,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ghi Nhận Kết Quả Buổi Học</h2>
+              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ghi Nhận Kết Quả Buổi Học</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">Tự động quy đổi điểm chuẩn ETS và bảo toàn Streak</p>
             </div>
           </div>
@@ -224,11 +264,17 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <input
                 type="text"
                 required
+                list="existing-test-names"
                 value={testName}
                 onChange={e => setTestName(e.target.value)}
                 placeholder="vd: ETS 2024 Test 05"
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
+              <datalist id="existing-test-names">
+                {uniqueTestNameSuggestions.map(name => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
@@ -253,6 +299,23 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Smart Retest Detection Alert */}
+          {isExistingTest && (
+            <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 text-xs text-purple-950 dark:text-purple-200 flex items-start gap-2.5 shadow-2xs animate-fade-in">
+              <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-purple-900 dark:text-purple-100">
+                  Phát hiện đề thi làm lại (Retest):{' '}
+                </span>
+                Bạn đã làm đề này <strong>{previousAttemptsForTest.length} lần</strong> (Điểm cao nhất: <strong>{bestPreviousScore}đ</strong>). Buổi thi này sẽ tự động ghi nhận là{' '}
+                <span className="px-1.5 py-0.5 rounded font-black bg-purple-200/80 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200">
+                  Lần {nextAttemptNumber}
+                </span>{' '}
+                để đo lường mức độ bứt phá!
+              </div>
+            </div>
+          )}
 
           {/* FULL TEST MODE */}
           {sessionType === 'FULL_TEST' && (

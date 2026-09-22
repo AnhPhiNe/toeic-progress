@@ -1,5 +1,5 @@
 import confetti from 'canvas-confetti';
-import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier } from '../types';
+import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta } from '../types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '../data/demoData';
 
 const STORAGE_KEYS = {
@@ -17,22 +17,48 @@ export function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
+// Hồ sơ mặc định cho người dùng mới hoặc sau khi xóa trắng dữ liệu
+export function createBlankProfile(): UserProfile {
+  return {
+    name: 'Học viên',
+    targetScore: 990,
+    examDate: '',
+    currentStreak: 0,
+    longestStreak: 0,
+    streakFreezes: 2,
+    lastStudyDate: '',
+    dailyMinGoalMinutes: 30,
+    motto: '',
+    selectedSkill: 'LR'
+  };
+}
+
+// Lấy ngày hôm trước của một ngày 'YYYY-MM-DD'
+function getPreviousDateString(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() - 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Lấy Profile người dùng
 export function loadUserProfile(): UserProfile {
   const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
   if (!data) {
-    return INITIAL_USER_PROFILE;
+    return createBlankProfile();
   }
   try {
     const parsed = JSON.parse(data);
-    // Tự động chuẩn hóa tên cũ 'TOEIC Legend' hoặc rỗng để triệt tiêu việc lặp thương hiệu
-    if (parsed.name === 'TOEIC Legend' || !parsed.name?.trim()) {
-      parsed.name = 'Minh Tuấn';
+    // Hồ sơ cũ có thể thiếu tên - dùng nhãn trung tính, không gán tên của ai cả
+    if (!parsed.name?.trim()) {
+      parsed.name = 'Học viên';
       saveUserProfile(parsed);
     }
     return updateStreakStatus(parsed);
   } catch {
-    return INITIAL_USER_PROFILE;
+    return createBlankProfile();
   }
 }
 
@@ -57,11 +83,13 @@ export function updateStreakStatus(profile: UserProfile): UserProfile {
     // Vẫn trong chuỗi hợp lệ (cùng ngày hoặc ngày hôm sau)
     return profile;
   } else if (diffDays === 2 && profile.streakFreezes > 0) {
-    // Lỡ 1 ngày nhưng có khiên bảo vệ
+    // Lỡ đúng 1 ngày và còn khiên: khiên lấp vào ĐÚNG ngày bị lỡ (hôm qua),
+    // không phải hôm nay. Nhờ vậy chuỗi được giữ nhưng hôm nay vẫn tính là
+    // CHƯA học - người dùng vẫn phải học thật để tăng streak.
     const updated = {
       ...profile,
       streakFreezes: profile.streakFreezes - 1,
-      lastStudyDate: today // Kích hoạt khiên cứu chuỗi
+      lastStudyDate: getPreviousDateString(today)
     };
     saveUserProfile(updated);
     return updated;
@@ -78,9 +106,21 @@ export function updateStreakStatus(profile: UserProfile): UserProfile {
   return profile;
 }
 
-// Ghi nhận một ngày học thành công để tăng Streak
-export function recordDailyActivity(profile: UserProfile): UserProfile {
+/**
+ * Ghi nhận một ngày học thành công để tăng Streak.
+ * @param activityDate Ngày của buổi học ('YYYY-MM-DD'). Mặc định là hôm nay.
+ *   Nếu ghi bù một buổi học trong quá khứ, streak giữ nguyên - nhập liệu bù
+ *   không phải là học hôm nay.
+ */
+export function recordDailyActivity(profile: UserProfile, activityDate?: string): UserProfile {
   const today = getTodayDateString();
+  const effectiveDate = activityDate || today;
+
+  // Buổi học được ghi cho một ngày trong quá khứ (hoặc tương lai): không đụng tới streak
+  if (effectiveDate !== today) {
+    return profile;
+  }
+
   let newStreak = profile.currentStreak;
 
   if (profile.lastStudyDate !== today) {
@@ -104,9 +144,9 @@ export function recordDailyActivity(profile: UserProfile): UserProfile {
 export function loadStudySessions(): StudySession[] {
   const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
   if (!data) {
-    // Mặc định nạp dữ liệu demo cho lần đầu
-    saveStudySessions(DEMO_SESSIONS);
-    return DEMO_SESSIONS;
+    // Người dùng mới bắt đầu với dữ liệu trắng. Dữ liệu demo chỉ được nạp
+    // khi người dùng chủ động bấm "Nạp dữ liệu mẫu".
+    return [];
   }
   try {
     return JSON.parse(data);
@@ -129,7 +169,7 @@ export function addStudySession(session: StudySession): { sessions: StudySession
   saveStudySessions(updatedSessions);
 
   // Cập nhật streak
-  const updatedProfile = recordDailyActivity(currentProfile);
+  const updatedProfile = recordDailyActivity(currentProfile, session.date);
 
   const isRecord = (session.totalScore || 0) > previousMax && (session.totalScore || 0) > 0;
   if (isRecord) {
@@ -147,8 +187,7 @@ export function addStudySession(session: StudySession): { sessions: StudySession
 export function loadMistakes(): MistakeEntry[] {
   const data = localStorage.getItem(STORAGE_KEYS.MISTAKES);
   if (!data) {
-    saveMistakes(DEMO_MISTAKES);
-    return DEMO_MISTAKES;
+    return [];
   }
   try {
     return JSON.parse(data);
@@ -229,18 +268,7 @@ export function loadDemoData(): { profile: UserProfile; sessions: StudySession[]
 
 // Xóa trắng toàn bộ dữ liệu để bắt đầu từ đầu
 export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySession[]; mistakes: MistakeEntry[] } {
-  const cleanProfile: UserProfile = {
-    name: 'Chiến Binh 990',
-    targetScore: 990,
-    examDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    currentStreak: 0,
-    longestStreak: 0,
-    streakFreezes: 2,
-    lastStudyDate: '',
-    dailyMinGoalMinutes: 30,
-    motto: 'Bắt đầu từ hôm nay. Mục tiêu 990 đang chờ đón!',
-    selectedSkill: 'LR'
-  };
+  const cleanProfile = createBlankProfile();
 
   saveUserProfile(cleanProfile);
   saveStudySessions([]);
@@ -252,3 +280,102 @@ export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySess
     mistakes: []
   };
 }
+
+/**
+ * Tính toán metadata về số lần làm bài (Attempt Meta) cho từng session trong danh sách
+ * Chuẩn hóa tên bài thi (lowercase, bỏ khoảng trắng thừa) để gom nhóm chính xác
+ */
+export function computeSessionAttemptMap(sessions: StudySession[]): Record<string, SessionAttemptMeta> {
+  const result: Record<string, SessionAttemptMeta> = {};
+  const grouped: Record<string, StudySession[]> = {};
+  
+  // Sắp xếp các session theo thứ tự thời gian tăng dần (cũ -> mới)
+  const sorted = [...sessions].sort((a, b) => {
+    const timeDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    return (a.createdAt || '').localeCompare(b.createdAt || '');
+  });
+
+  for (const session of sorted) {
+    const normalizedName = session.testName.trim().toLowerCase();
+    if (!grouped[normalizedName]) {
+      grouped[normalizedName] = [];
+    }
+    grouped[normalizedName].push(session);
+  }
+
+  // Phân tích từng nhóm
+  for (const list of Object.values(grouped)) {
+    const totalAttempts = list.length;
+    const firstSession = list[0];
+
+    for (let i = 0; i < list.length; i++) {
+      const current = list[i];
+      const attemptNumber = current.attemptNumber || (i + 1);
+      const isRetest = i > 0;
+      const previousSession = i > 0 ? list[i - 1] : undefined;
+
+      const scoreDiffFromPrevious = previousSession && current.totalScore && previousSession.totalScore
+        ? current.totalScore - previousSession.totalScore
+        : null;
+
+      const scoreDiffFromFirst = isRetest && current.totalScore && firstSession.totalScore
+        ? current.totalScore - firstSession.totalScore
+        : null;
+
+      result[current.id] = {
+        attemptNumber,
+        totalAttempts,
+        isRetest,
+        previousSession,
+        firstSession,
+        scoreDiffFromPrevious,
+        scoreDiffFromFirst
+      };
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Thống kê tổng hợp về hiệu quả làm lại đề (Retest Performance)
+ */
+export function getRetestStats(sessions: StudySession[]) {
+  const fullTests = sessions.filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0);
+  const attemptMap = computeSessionAttemptMap(fullTests);
+
+  const firstAttempts = fullTests.filter(s => attemptMap[s.id]?.attemptNumber === 1);
+  const retests = fullTests.filter(s => (attemptMap[s.id]?.attemptNumber || 1) > 1);
+
+  const firstAttemptAvg = firstAttempts.length > 0
+    ? Math.round(firstAttempts.reduce((acc, s) => acc + (s.totalScore || 0), 0) / firstAttempts.length)
+    : 0;
+
+  const overallAvg = fullTests.length > 0
+    ? Math.round(fullTests.reduce((acc, s) => acc + (s.totalScore || 0), 0) / fullTests.length)
+    : 0;
+
+  // Tính mức tăng điểm trung bình khi làm lại (so với lần 1)
+  let totalGain = 0;
+  let gainCount = 0;
+  for (const retest of retests) {
+    const meta = attemptMap[retest.id];
+    if (meta && meta.scoreDiffFromFirst !== null) {
+      totalGain += meta.scoreDiffFromFirst;
+      gainCount++;
+    }
+  }
+
+  const avgRetestGain = gainCount > 0 ? Math.round(totalGain / gainCount) : 0;
+
+  return {
+    totalTests: fullTests.length,
+    firstAttemptsCount: firstAttempts.length,
+    retestCount: retests.length,
+    firstAttemptAvg,
+    overallAvg,
+    avgRetestGain
+  };
+}
+

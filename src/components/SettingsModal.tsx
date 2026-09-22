@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { 
   X, 
   Settings, 
@@ -64,6 +65,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const modalRef = useModalA11y(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,7 +77,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-modal-title"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 shrink-0">
@@ -83,7 +92,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Cài Đặt Mục Tiêu & Kỷ Luật</h3>
+              <h3 id="settings-modal-title" className="text-base font-bold text-slate-900 dark:text-white">Cài Đặt Mục Tiêu & Kỷ Luật</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">Tùy chỉnh thông số cá nhân và kỳ thi</p>
             </div>
           </div>
