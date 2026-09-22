@@ -19,7 +19,8 @@ import {
   Eye,
   FileText,
   RotateCcw,
-  Filter
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -31,7 +32,7 @@ import {
   ResponsiveContainer, 
   ReferenceLine
 } from 'recharts';
-import { StudySession, MistakeEntry, LRPartScore, UserProfile, ERROR_CATEGORY_LABELS, ChartAttemptFilter } from '../types';
+import { StudySession, MistakeEntry, LRPartScore, UserProfile, ErrorCategory, ERROR_CATEGORY_LABELS, ChartAttemptFilter } from '../types';
 import { calculatePartAccuracy, PART_MAX_QUESTIONS } from '../utils/etsScoring';
 import { loadUserProfile, computeSessionAttemptMap, getRetestStats } from '../utils/storage';
 
@@ -356,6 +357,49 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     };
   }, [partStats]);
 
+
+  /**
+   * Chẩn đoán theo NGUYÊN NHÂN sai, không theo Part (SPEC mục 1.4 điểm 1).
+   * Các web luyện đề chỉ nói được "Part 3: 35/39". Chỉ sản phẩm này biết
+   * VÌ SAO mất điểm, vì chính người học đã phân loại từng lỗi trong Sổ tay.
+   */
+  const errorDiagnosis = useMemo(() => {
+    if (mistakes.length === 0) return null;
+
+    const grouped = new Map<ErrorCategory, { count: number; parts: Set<number> }>();
+    for (const m of mistakes) {
+      const category = m.category || 'OTHER';
+      let entry = grouped.get(category);
+      if (!entry) {
+        entry = { count: 0, parts: new Set<number>() };
+        grouped.set(category, entry);
+      }
+      entry.count += 1;
+      entry.parts.add(m.part);
+    }
+
+    const total = mistakes.length;
+    const rows = Array.from(grouped.entries())
+      .map(([category, value]) => ({
+        category,
+        label: (ERROR_CATEGORY_LABELS[category] || ERROR_CATEGORY_LABELS.OTHER).label,
+        count: value.count,
+        percent: Math.round((value.count / total) * 100),
+        parts: Array.from(value.parts).sort((a, b) => a - b)
+      }))
+      // Nhiều lỗi nhất lên đầu; đồng hạng thì xếp theo tên cho ổn định giữa các lần render
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'vi'));
+
+    const pendingCount = mistakes.filter(m => m.status === 'NEEDS_REVIEW').length;
+
+    return {
+      total,
+      rows,
+      top: rows[0],
+      maxCount: rows[0].count,
+      pendingCount
+    };
+  }, [mistakes]);
 
   // Phân tích khoảng cách mục tiêu & dư địa điểm số ETS (Target Gap Analysis)
   const targetGap = useMemo(() => {
@@ -1183,7 +1227,111 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         )}
       </div>
 
-      {/* 4. Tinh Gọn: Bảng Lịch Sử Luyện Đề (Đã lược bỏ thông tin thừa, phẳng phiu & sắc nét) */}
+      {/* 4. Chẩn Đoán Theo Nguyên Nhân Sai (SPEC 1.4 điểm 1) */}
+      <div className="p-5 rounded-2xl bg-white/90 dark:bg-[#0E1526]/90 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+              <span className="truncate">Chẩn Đoán Nguyên Nhân Mất Điểm</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Không phải bạn sai ở Part nào, mà là bạn sai <strong className="font-semibold">vì sao</strong>
+            </p>
+          </div>
+          {errorDiagnosis && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">
+              {errorDiagnosis.total} lỗi đã ghi · {errorDiagnosis.pendingCount} chờ ôn
+            </span>
+          )}
+        </div>
+
+        {errorDiagnosis ? (
+          <>
+            {/* Câu kết luận - thứ người dùng đọc trước tiên */}
+            <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/25 border border-amber-200/70 dark:border-amber-900/40">
+              <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-relaxed">
+                <strong className="font-bold">{errorDiagnosis.top.percent}%</strong> số lỗi của bạn thuộc nhóm{' '}
+                <strong className="font-bold">{errorDiagnosis.top.label}</strong>
+                {errorDiagnosis.top.parts.length > 1 ? (
+                  <>
+                    {' '}— rải ở {errorDiagnosis.top.parts.map(p => `Part ${p}`).join(', ')}.{' '}
+                    <span className="text-slate-600 dark:text-slate-300">
+                      Đây là lỗ hổng <strong className="font-semibold">kỹ năng</strong>, không phải lỗ hổng Part.
+                      Luyện riêng một Part sẽ không giải quyết được.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {' '}— tập trung ở Part {errorDiagnosis.top.parts[0]}.{' '}
+                    <span className="text-slate-600 dark:text-slate-300">
+                      Khu trú ở một Part nên có thể xử lý bằng luyện tập nhắm đúng chỗ.
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* Phân bố theo nhóm nguyên nhân: một màu, xếp giảm dần, nhãn trực tiếp */}
+            <div className="space-y-2.5">
+              {errorDiagnosis.rows.map((row, index) => {
+                const barPercent = Math.round((row.count / errorDiagnosis.maxCount) * 100);
+                const isTop = index === 0;
+
+                return (
+                  <div key={row.category} className="space-y-1">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                          {row.label}
+                        </span>
+                        {isTop && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/70 whitespace-nowrap shrink-0">
+                            Điểm nghẽn
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white tabular-nums whitespace-nowrap shrink-0">
+                        {row.count} <span className="font-medium text-slate-400 dark:text-slate-500">· {row.percent}%</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-all duration-500"
+                          style={{ width: `${Math.max(3, barPercent)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap shrink-0 w-[92px] text-right">
+                        {row.parts.map(p => `P${p}`).join(' ')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
+              Cột bên phải là các Part mà nhóm lỗi đó xuất hiện. Dữ liệu lấy từ Sổ Tay Bắt Bẫy — ghi càng đủ, chẩn đoán càng chính xác.
+            </p>
+          </>
+        ) : (
+          <div className="py-10 text-center space-y-2">
+            <BookOpen className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Chưa có lỗi nào trong Sổ Tay Bắt Bẫy.
+            </p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-md mx-auto">
+              Mỗi lần làm đề, ghi lại vài câu sai kèm nguyên nhân. Sau khoảng 20 lỗi, phần này sẽ chỉ ra
+              nguyên nhân nào đang lấy đi nhiều điểm nhất của bạn.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 5. Tinh Gọn: Bảng Lịch Sử Luyện Đề (Đã lược bỏ thông tin thừa, phẳng phiu & sắc nét) */}
       <div className="p-5 rounded-2xl bg-white/90 dark:bg-[#0E1526]/90 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
         
         {/* Table Top Controls: Search & Filter Pills */}
