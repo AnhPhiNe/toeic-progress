@@ -31,8 +31,8 @@ export const SpeakingWritingRoadmap: React.FC = () => {
         
         {/* Speaking (200 điểm) */}
         <div className="ui-card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center space-x-3 min-w-0">
               <div className="p-2.5 rounded-xl bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400">
                 <Mic className="w-5 h-5" />
               </div>
@@ -51,23 +51,23 @@ export const SpeakingWritingRoadmap: React.FC = () => {
           </p>
 
           <div className="space-y-1.5 text-xs">
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 1 - 2: Đọc to đoạn văn (Read Aloud)</span>
               <span className="text-pink-600 dark:text-pink-400 font-semibold">Phát âm & Ngữ điệu</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 3 - 4: Miêu tả tranh (Describe a Picture)</span>
               <span className="text-pink-600 dark:text-pink-400 font-semibold">Từ vựng & Ngữ pháp</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 5 - 7: Trả lời câu hỏi (Respond to Questions)</span>
               <span className="text-pink-600 dark:text-pink-400 font-semibold">Phản xạ tức thì</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 8 - 10: Trả lời theo thông tin</span>
               <span className="text-pink-600 dark:text-pink-400 font-semibold">Xử lý dữ liệu</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 11: Trình bày quan điểm (Express Opinion)</span>
               <span className="text-pink-600 dark:text-pink-400 font-semibold">Lập luận 60 giây</span>
             </div>
@@ -81,8 +81,8 @@ export const SpeakingWritingRoadmap: React.FC = () => {
 
         {/* Writing (200 điểm) */}
         <div className="ui-card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center space-x-3 min-w-0">
               <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
                 <PenTool className="w-5 h-5" />
               </div>
@@ -101,15 +101,15 @@ export const SpeakingWritingRoadmap: React.FC = () => {
           </p>
 
           <div className="space-y-1.5 text-xs">
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 1 - 5: Viết câu dựa trên tranh & 2 từ</span>
               <span className="text-amber-600 dark:text-amber-400 font-semibold">Ngữ pháp tuyệt đối</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 6 - 7: Phản hồi email công sở</span>
               <span className="text-amber-600 dark:text-amber-400 font-semibold">Văn phong chuyên nghiệp</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
               <span className="text-slate-700 dark:text-slate-300 font-medium">Câu 8: Viết bài luận quan điểm (Opinion Essay)</span>
               <span className="text-amber-600 dark:text-amber-400 font-semibold">Tối thiểu 300 từ</span>
             </div>

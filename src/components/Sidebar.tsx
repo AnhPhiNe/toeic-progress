@@ -3,7 +3,6 @@ import {
   LayoutDashboard, 
   TrendingUp, 
   BookOpen, 
-  Mic, 
   Settings,
   FileSpreadsheet,
   X,
@@ -177,10 +176,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [displayName]);
 
   // 2 Nhóm điều hướng chuyên nghiệp, đồng bộ 100% với Topbar và phân bổ đều 4 mục/nhóm
+  /**
+   * Chỉ những mục là CHỨC NĂNG THẬT mới nằm trong điều hướng (SPEC mục 3.2).
+   * Cài đặt và Sao lưu là tiện ích - chúng nằm ở vùng đáy sidebar, không
+   * chiếm một dòng ngang hàng với Tổng Quan.
+   */
   const navGroups: NavGroupConfig[] = [
     {
       title: 'Luyện Thi & Tiến Độ',
-      countLabel: '4 mục',
+      countLabel: '3 mục',
       items: [
         {
           id: 'dashboard',
@@ -189,57 +193,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           description: 'Tiến trình điểm & Thói quen'
         },
         {
-          id: 'analytics',
-          label: 'Phân Tích Điểm Số',
-          icon: TrendingUp,
-          description: 'Đo lường 7 Part & Lịch sử'
+          id: 'plan',
+          label: 'Kế Hoạch',
+          icon: Target,
+          description: 'Việc cần làm tuần này'
         },
         {
           id: 'exam-mode',
           label: 'Phòng Thi ETS',
           icon: Timer,
           description: 'Mô phỏng áp lực chuẩn ETS',
-          tag: '120\''
-        },
-        {
-          id: 'settings-plan',
-          label: 'Kế Hoạch & Mục Tiêu',
-          icon: Target,
-          description: 'Mục tiêu điểm số & Ngày thi',
-          onClick: onOpenSettings
+          tag: "120'"
         }
       ]
     },
     {
-      title: 'Kho Tri Thức & Kỹ Năng',
-      countLabel: '4 mục',
+      title: 'Phân Tích & Ôn Tập',
+      countLabel: '3 mục',
       items: [
+        {
+          id: 'analytics',
+          label: 'Phân Tích Điểm Số',
+          icon: TrendingUp,
+          description: 'Đo lường 7 Part & Nguyên nhân sai'
+        },
         {
           id: 'mistakes',
           label: 'Sổ Tay Bắt Bẫy',
           icon: BookOpen,
           badge: pendingMistakesCount > 0 ? pendingMistakesCount : undefined,
-          description: 'Giải mã câu sai & từ vựng'
+          description: 'Giải mã câu sai & Ôn lại'
         },
         {
           id: 'resources',
           label: 'Tài Liệu & Quy Đổi',
           icon: GraduationCap,
-          description: 'Quy đổi điểm & Chiến thuật'
-        },
-        {
-          id: 'sw-roadmap',
-          label: 'Lộ Trình S&W',
-          icon: Mic,
-          description: 'Speaking & Writing 400',
-          tag: '400'
-        },
-        {
-          id: 'settings-data',
-          label: 'Sao Lưu & Dữ Liệu',
-          icon: Database,
-          description: 'Xuất/Nhập tệp & Dữ liệu mẫu',
-          onClick: onOpenSettings
+          description: 'Quy đổi điểm, chiến thuật & S&W'
         }
       ]
     }
@@ -553,6 +542,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
             </div>
+          </div>
+
+          {/* Vùng tiện ích: Cài đặt & Sao lưu KHÔNG phải chức năng nên không
+              nằm trong danh sách điều hướng phía trên (SPEC mục 3.2) */}
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <button
+              onClick={() => {
+                onOpenSettings();
+                if (isMobile && onCloseMobile) onCloseMobile();
+              }}
+              className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer min-w-0"
+            >
+              <Settings className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Cài đặt</span>
+            </button>
+            <button
+              onClick={() => {
+                onOpenSettings();
+                if (isMobile && onCloseMobile) onCloseMobile();
+              }}
+              className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer min-w-0"
+            >
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Sao lưu</span>
+            </button>
           </div>
 
           {/* Clean Subtle Footer Info */}

@@ -2,7 +2,7 @@
 export type SkillType = 'LR' | 'SW';
 
 // Các tab điều hướng chính của hệ thống
-export type NavTabId = 'dashboard' | 'analytics' | 'exam-mode' | 'mistakes' | 'resources' | 'sw-roadmap';
+export type NavTabId = 'dashboard' | 'plan' | 'exam-mode' | 'analytics' | 'mistakes' | 'resources';
 
 // Chi tiết số câu đúng của từng Part trong bài thi TOEIC Listening & Reading
 export interface LRPartScore {

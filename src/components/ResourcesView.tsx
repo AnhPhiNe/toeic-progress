@@ -7,7 +7,8 @@ import {
   AlertCircle, 
   Sparkles,
   Globe,
-  Award
+  Award,
+  Mic
 } from 'lucide-react';
 import { 
   convertRawToListeningScore, 
@@ -16,6 +17,7 @@ import {
   CONCORDANCE_TIERS
 } from '../utils/etsScoring';
 import { getCurrentRankTier } from '../utils/storage';
+import { SpeakingWritingRoadmap } from './SpeakingWritingRoadmap';
 import { StudySession } from '../types';
 
 interface ResourcesViewProps {
@@ -27,7 +29,7 @@ interface ResourcesViewProps {
 
 export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetScore }) => {
   const goal = Math.max(10, Math.min(990, targetScore || 990));
-  const [activeSubTab, setActiveSubTab] = useState<'converter' | 'pacing' | 'checklist' | 'traps'>('converter');
+  const [activeSubTab, setActiveSubTab] = useState<'converter' | 'pacing' | 'checklist' | 'traps' | 'sw'>('converter');
 
   // Bài Full Test gần nhất có đủ số câu đúng - dùng làm giá trị khởi tạo cho bộ quy đổi
   const latestFullTest = useMemo(() => {
@@ -161,7 +163,23 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
           <AlertCircle className="w-4 h-4" />
           <span>Top Bẫy Kinh Điển</span>
         </button>
+
+        {/* Lộ trình S&W gộp về đây: là nội dung tham khảo tĩnh, chưa nối
+            dữ liệu nào nên không xứng một mục điều hướng riêng (SPEC 3.2) */}
+        <button
+          onClick={() => setActiveSubTab('sw')}
+          className={`flex items-center space-x-2 px-4 py-2 text-xs rounded-xl transition cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'sw'
+              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold shadow-xs border border-slate-200/80 dark:border-slate-700/80'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
+          }`}
+        >
+          <Mic className="w-4 h-4" />
+          <span>Lộ Trình S&amp;W</span>
+        </button>
       </div>
+
+      {activeSubTab === 'sw' && <SpeakingWritingRoadmap />}
 
       {/* TAB 1: ETS SCORE CONVERTER */}
       {activeSubTab === 'converter' && (

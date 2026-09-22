@@ -9,7 +9,7 @@ import {
   LayoutDashboard, 
   TrendingUp, 
   BookOpen, 
-  Mic, 
+  Target, 
   Timer,
   GraduationCap
 } from 'lucide-react';
@@ -67,9 +67,9 @@ export const Topbar: React.FC<TopbarProps> = ({
       title: 'Tài Liệu & Quy Đổi',
       icon: GraduationCap
     },
-    'sw-roadmap': {
-      title: 'Lộ Trình Speaking & Writing',
-      icon: Mic
+    plan: {
+      title: 'Kế Hoạch Ôn Thi',
+      icon: Target
     }
   };
 

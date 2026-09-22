@@ -4,8 +4,8 @@ import { Topbar } from './components/Topbar';
 import { Dashboard } from './components/Dashboard';
 import { AnalyticsView } from './components/AnalyticsView';
 import { MistakeNotebookView } from './components/MistakeNotebookView';
-import { SpeakingWritingRoadmap } from './components/SpeakingWritingRoadmap';
 import { ExamTimerView } from './components/ExamTimerView';
+import { PlanView } from './components/PlanView';
 import { ResourcesView } from './components/ResourcesView';
 import { SessionLoggerModal } from './components/SessionLoggerModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -257,8 +257,15 @@ export const App: React.FC = () => {
             <ResourcesView sessions={sessions} targetScore={profile.targetScore} />
           )}
 
-          {activeTab === 'sw-roadmap' && (
-            <SpeakingWritingRoadmap />
+          {activeTab === 'plan' && (
+            <PlanView
+              profile={profile}
+              sessions={sessions}
+              mistakes={mistakes}
+              onOpenSettings={() => setIsSettingsModalOpen(true)}
+              onOpenSessionLogger={() => openSessionLogger()}
+              onNavigateToMistakes={() => setActiveTab('mistakes')}
+            />
           )}
         </main>
 
