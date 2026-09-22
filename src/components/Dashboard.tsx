@@ -27,6 +27,8 @@ import { StudySession, MistakeEntry, UserProfile } from '../types';
 import { getCurrentRankTier, getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
 
 interface DashboardProps {
+  /** Cảnh báo tái phạm, đặt ngay đầu trang khi có (SPEC mục 4.6) */
+  relapseSlot?: React.ReactNode;
   profile: UserProfile;
   sessions: StudySession[];
   mistakes: MistakeEntry[];
@@ -37,6 +39,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
+  relapseSlot,
   profile,
   sessions,
   mistakes: _mistakes,
@@ -191,6 +194,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="w-full space-y-4 animate-fade-in">
+      {relapseSlot}
       
       {/* 2-COLUMN BALANCED GRID (Apple / Notion Calm Aesthetics) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">

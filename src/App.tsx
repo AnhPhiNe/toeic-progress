@@ -10,6 +10,7 @@ import { ResourcesView } from './components/ResourcesView';
 import { SessionLoggerModal } from './components/SessionLoggerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ReviewSessionModal } from './components/ReviewSessionModal';
+import { RelapseAlert } from './components/RelapseAlert';
 
 import { 
   loadUserProfile, 
@@ -143,6 +144,23 @@ export const App: React.FC = () => {
     setMistakes(updated);
   };
 
+  /**
+   * Hạ các thẻ đã thông suốt về lại trạng thái cần ôn, hẹn ngay hôm nay.
+   * Đây là hành động người dùng chủ động bấm chứ không tự chạy ngầm - hệ
+   * thống phát hiện và đề nghị, còn quyết định vẫn là của người học.
+   */
+  const handleReopenCards = (mistakeIds: string[]) => {
+    const ids = new Set(mistakeIds);
+    const today = getTodayDateString();
+    const updated = mistakes.map(m =>
+      ids.has(m.id)
+        ? { ...m, status: 'NEEDS_REVIEW' as const, reviewStage: 0, nextReviewDate: today }
+        : m
+    );
+    saveMistakes(updated);
+    setMistakes(updated);
+  };
+
   // Xóa lỗi sai
   const handleDeleteMistake = (mistakeId: string) => {
     const updated = mistakes.filter(m => m.id !== mistakeId);
@@ -230,6 +248,13 @@ export const App: React.FC = () => {
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
           {activeTab === 'dashboard' && (
             <Dashboard
+              relapseSlot={
+                <RelapseAlert
+                  mistakes={mistakes}
+                  onReopenCards={handleReopenCards}
+                  onNavigateToMistakes={() => setActiveTab('mistakes')}
+                />
+              }
               profile={profile}
               sessions={sessions}
               mistakes={mistakes}
