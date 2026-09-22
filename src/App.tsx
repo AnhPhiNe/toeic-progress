@@ -11,6 +11,7 @@ import { SessionLoggerModal } from './components/SessionLoggerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ReviewSessionModal } from './components/ReviewSessionModal';
 import { RelapseAlert } from './components/RelapseAlert';
+import { TodayPanel } from './components/TodayPanel';
 
 import { 
   loadUserProfile, 
@@ -253,6 +254,17 @@ export const App: React.FC = () => {
                   mistakes={mistakes}
                   onReopenCards={handleReopenCards}
                   onNavigateToMistakes={() => setActiveTab('mistakes')}
+                />
+              }
+              todaySlot={
+                <TodayPanel
+                  profile={profile}
+                  sessions={sessions}
+                  mistakes={mistakes}
+                  onStartReview={() => setIsReviewModalOpen(true)}
+                  onNavigateToPlan={() => setActiveTab('plan')}
+                  onNavigateToAnalytics={() => setActiveTab('analytics')}
+                  onOpenSettings={() => setIsSettingsModalOpen(true)}
                 />
               }
               profile={profile}
