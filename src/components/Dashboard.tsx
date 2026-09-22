@@ -167,22 +167,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Tính 7 ngày trong tuần cho Lịch Check-in
   const weekDays = useMemo(() => {
-    const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    const currentDayOfWeek = new Date().getDay(); // 0 = CN, 1 = T2...
-    const adjustedCurrent = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+    const labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    const today = getTodayDateString();
 
-    return days.map((dayLabel, index) => {
-      const isPast = index < adjustedCurrent;
-      const isCurrent = index === adjustedCurrent;
-      const isCompleted = isPast || (isCurrent && hasStudiedToday);
+    // Thứ Hai của tuần hiện tại
+    const now = new Date(`${today}T00:00:00`);
+    const dayOfWeek = now.getDay(); // 0 = Chủ nhật
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
+
+    const toIso = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    // Ngày nào THỰC SỰ có buổi học được ghi. Trước đây mọi ngày đã trôi qua
+    // đều được tô xanh bất kể có học hay không, nên lưới này chỉ đếm số ngày
+    // đã qua trong tuần chứ không phản ánh kỷ luật.
+    const studiedDates = new Set(sessions.map(s => s.date));
+    if (profile.lastStudyDate) studiedDates.add(profile.lastStudyDate);
+
+    return labels.map((label, index) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + index);
+      const iso = toIso(d);
 
       return {
-        label: dayLabel,
-        isCompleted,
-        isCurrent
+        label,
+        date: iso,
+        isCompleted: studiedDates.has(iso),
+        isCurrent: iso === today,
+        isMissed: iso < today && !studiedDates.has(iso)
       };
     });
-  }, [hasStudiedToday]);
+  }, [sessions, profile.lastStudyDate]);
 
   const isDark = theme === 'dark';
 
@@ -544,6 +564,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             }`
                           : d.isCurrent
                           ? 'bg-amber-50 text-amber-800 border-2 border-dashed border-amber-400 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-500 font-black animate-pulse ring-2 ring-amber-400/60 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
+                          : d.isMissed
+                          ? 'bg-slate-50 text-slate-300 dark:bg-slate-900/60 dark:text-slate-600 font-medium border border-dashed border-slate-300 dark:border-slate-700'
                           : 'bg-slate-100/80 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 font-medium border border-slate-200/70 dark:border-slate-700'
                       }`}
                     >
@@ -551,6 +573,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <span className="text-sm font-black leading-none">✓</span>
                       ) : d.isCurrent ? (
                         <Flame className="w-4 h-4 text-amber-500 fill-amber-500/40" />
+                      ) : d.isMissed ? (
+                        <span className="w-2 h-[2px] rounded-full bg-slate-300 dark:bg-slate-600" />
                       ) : (
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                       )}
