@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { 
   Flame, 
   TrendingUp, 
+  TrendingDown,
   BookOpen, 
   Zap, 
   CheckCircle2, 
@@ -9,6 +10,7 @@ import {
   Headphones, 
   Target, 
   Crown,
+  Award,
   PlusCircle
 } from 'lucide-react';
 import { 
@@ -27,8 +29,6 @@ import { getCurrentRankTier, getTodayDateString, computeSessionAttemptMap } from
 interface DashboardProps {
   /** Cảnh báo tái phạm, đặt ngay đầu trang khi có (SPEC mục 4.6) */
   relapseSlot?: React.ReactNode;
-  /** Bảng lệnh hôm nay - nội dung chính của Tổng Quan (SPEC mục 4.1) */
-  todaySlot?: React.ReactNode;
   profile: UserProfile;
   sessions: StudySession[];
   mistakes: MistakeEntry[];
@@ -40,7 +40,6 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({
   relapseSlot,
-  todaySlot,
   profile,
   sessions,
   mistakes: _mistakes,
@@ -196,7 +195,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="w-full space-y-4 animate-fade-in">
       {relapseSlot}
-      {todaySlot}
       
       {/* 2-COLUMN BALANCED GRID (Apple / Notion Calm Aesthetics) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
@@ -226,41 +224,128 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
 
-            {/* Dải thành tích: lùi xuống một dòng mỏng để nhường chỗ cho
-                việc cần làm hôm nay (SPEC mục 4.1) */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs min-w-0">
-              <span className="flex items-baseline gap-1.5 min-w-0">
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">Mới nhất</span>
-                <span className="font-black text-blue-700 dark:text-blue-300 tabular-nums">
-                  {chartStats?.latestScore || highestScore || 0}
-                </span>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
-                  {chartStats?.latestName || ''}
-                </span>
-              </span>
+            {/* 3 KPI Stat Cards - Đồng bộ Vibrant Pastel Gradient chuẩn UI/UX Pro Max */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+              {/* Card 1: Điểm Mới Nhất - Blue Vibrant Pastel */}
+              <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-blue-100/90 via-blue-50/75 to-indigo-100/50 dark:from-blue-950/60 dark:via-slate-900/90 dark:to-blue-950/40 border border-blue-300/80 dark:border-blue-800/70 shadow-xs hover:shadow-md hover:border-blue-400 dark:hover:border-blue-700 transition-all duration-200 group flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/15 dark:bg-blue-500/20 rounded-full blur-xl pointer-events-none" />
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1 sm:mb-1.5 min-w-0">
+                    <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate min-w-0">
+                      Mới Nhất
+                    </span>
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 flex items-center justify-center shadow-2xs shrink-0">
+                      <Target className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline space-x-1">
+                    <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 tracking-tight tabular-nums leading-none">
+                      {chartStats?.latestScore || highestScore}
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/ {targetScore}đ</span>
+                  </div>
+                </div>
+                {/* Capsule Context Badge - Gọn gàng & Sắc nét */}
+                <div className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-blue-200/70 dark:border-blue-900/50 shadow-2xs flex items-center justify-between gap-1.5 text-[11px] backdrop-blur-xs min-w-0">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                    Đề thi
+                  </span>
+                  <span className="font-extrabold text-blue-700 dark:text-blue-300 truncate text-right min-w-0" title={chartStats?.latestName || 'ETS Full Test'}>
+                    {chartStats?.latestName || 'ETS Test'}
+                  </span>
+                </div>
+              </div>
 
-              <span className="flex items-baseline gap-1.5 shrink-0">
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Kỷ lục</span>
-                <span className="font-black text-amber-600 dark:text-amber-400 tabular-nums">{highestScore}</span>
-              </span>
+              {/* Card 2: Kỷ Lục Điểm Số (Personal Best) - Amber Vibrant Pastel */}
+              <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-amber-100/90 via-amber-50/75 to-orange-100/50 dark:from-amber-950/60 dark:via-slate-900/90 dark:to-amber-950/40 border border-amber-300/80 dark:border-amber-800/70 shadow-xs hover:shadow-md hover:border-amber-400 dark:hover:border-amber-700 transition-all duration-200 group flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/15 dark:bg-amber-500/20 rounded-full blur-xl pointer-events-none" />
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1 sm:mb-1.5 min-w-0">
+                    <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate min-w-0">
+                      Kỷ Lục (PB)
+                    </span>
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-center shadow-2xs shrink-0">
+                      <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline space-x-1">
+                    <div className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300 tracking-tight tabular-nums leading-none">
+                      {highestScore}
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">điểm</span>
+                  </div>
+                </div>
+                {/* Capsule Context Badge - Phân biệt rõ Listening / Reading */}
+                <div className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-amber-200/70 dark:border-amber-900/50 shadow-2xs flex items-center justify-between gap-1.5 text-[11px] backdrop-blur-xs min-w-0">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 truncate min-w-0">
+                    Đỉnh LC/RC
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="bg-amber-200/90 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 py-0.5 rounded text-[10.5px] font-black shadow-2xs">
+                      L: {bestTest?.scaledListening || 0}
+                    </span>
+                    <span className="bg-amber-200/90 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 py-0.5 rounded text-[10.5px] font-black shadow-2xs">
+                      R: {bestTest?.scaledReading || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              <span className="flex items-baseline gap-1.5 shrink-0">
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tăng trưởng</span>
-                <span className={`font-black tabular-nums ${
-                  (chartStats?.scoreDiff ?? 0) >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}>
-                  {chartStats && chartStats.totalTests > 1
-                    ? `${chartStats.scoreDiff >= 0 ? '+' : ''}${chartStats.scoreDiff}`
-                    : '—'}
-                </span>
-              </span>
-
-              <span className="flex items-baseline gap-1.5 shrink-0">
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Hạng</span>
-                <span className="font-black text-slate-700 dark:text-slate-200 truncate">{currentRank.title}</span>
-              </span>
+              {/* Card 3: Mức Độ Tăng Trưởng - Emerald Vibrant Pastel */}
+              <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-emerald-100/90 via-emerald-50/75 to-teal-100/50 dark:from-emerald-950/60 dark:via-slate-900/90 dark:to-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/70 shadow-xs hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-700 transition-all duration-200 group flex flex-col justify-between">
+                <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-xl pointer-events-none ${
+                  (chartStats?.scoreDiff ?? 0) >= 0 ? 'bg-emerald-500/15 dark:bg-emerald-500/20' : 'bg-rose-500/15 dark:bg-rose-500/20'
+                }`} />
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1 sm:mb-1.5 min-w-0">
+                    <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate min-w-0">
+                      Tăng Trưởng
+                    </span>
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center shadow-2xs shrink-0 ${
+                      (chartStats?.scoreDiff ?? 0) >= 0 
+                        ? 'text-emerald-600 dark:text-emerald-300' 
+                        : 'text-rose-600 dark:text-rose-300'
+                    }`}>
+                      {(chartStats?.scoreDiff ?? 0) >= 0 ? (
+                        <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-baseline space-x-1">
+                    <div className={`text-xl sm:text-2xl font-black tracking-tight tabular-nums leading-none ${
+                      (chartStats?.scoreDiff ?? 0) >= 0 
+                        ? 'text-emerald-700 dark:text-emerald-300' 
+                        : 'text-rose-700 dark:text-rose-300'
+                    }`}>
+                      {chartStats && chartStats.totalTests > 1 
+                        ? `${chartStats.scoreDiff >= 0 ? '+' : ''}${chartStats.scoreDiff}` 
+                        : '—'}
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">điểm</span>
+                  </div>
+                </div>
+                {/* Capsule Context Badge - Thể hiện tiến độ rõ ràng */}
+                <div className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-emerald-200/70 dark:border-emerald-900/50 shadow-2xs flex items-center justify-between gap-1.5 text-[11px] backdrop-blur-xs min-w-0">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                    So mốc đầu
+                  </span>
+                  <div className="flex items-center gap-1 text-[11px] shrink-0">
+                    <span className="text-slate-600 dark:text-slate-300 font-bold">
+                      {chartStats?.firstScore || 0}đ
+                    </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black">➔</span>
+                    <span className={`px-1 py-0.5 rounded text-[10.5px] font-black shadow-2xs ${
+                      (chartStats?.scoreDiff ?? 0) >= 0 
+                        ? 'bg-emerald-200/90 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200' 
+                        : 'bg-rose-200/90 dark:bg-rose-900/80 text-rose-900 dark:text-rose-200'
+                    }`}>
+                      {chartStats?.latestScore || 0}đ
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Line Chart */}
