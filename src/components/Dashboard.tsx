@@ -311,8 +311,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
 
-              {/* Card 3: Mức Độ Tăng Trưởng - Emerald Vibrant Pastel */}
-              <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-emerald-100/90 via-emerald-50/75 to-teal-100/50 dark:from-emerald-950/60 dark:via-slate-900/90 dark:to-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/70 shadow-xs hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-700 transition-all duration-200 group flex flex-col justify-between">
+              {/* Card 3: Mức Độ Tăng Trưởng - CẢ THẺ đổi màu theo dấu.
+                  Trước đây chỉ con số chuyển sang đỏ còn vỏ thẻ vẫn xanh lá,
+                  nên thẻ nói "tốt" trong khi số nói "giảm". */}
+              <div className={`relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br shadow-xs hover:shadow-md transition-all duration-200 group flex flex-col justify-between ${
+                (chartStats?.scoreDiff ?? 0) >= 0
+                  ? 'from-emerald-100/90 via-emerald-50/75 to-teal-100/50 dark:from-emerald-950/60 dark:via-slate-900/90 dark:to-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/70 hover:border-emerald-400 dark:hover:border-emerald-700'
+                  : 'from-rose-100/90 via-rose-50/75 to-orange-100/50 dark:from-rose-950/60 dark:via-slate-900/90 dark:to-rose-950/40 border border-rose-300/80 dark:border-rose-800/70 hover:border-rose-400 dark:hover:border-rose-700'
+              }`}>
                 <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-xl pointer-events-none ${
                   (chartStats?.scoreDiff ?? 0) >= 0 ? 'bg-emerald-500/15 dark:bg-emerald-500/20' : 'bg-rose-500/15 dark:bg-rose-500/20'
                 }`} />
@@ -321,10 +327,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate min-w-0">
                       Tăng Trưởng
                     </span>
-                    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center shadow-2xs shrink-0 ${
-                      (chartStats?.scoreDiff ?? 0) >= 0 
-                        ? 'text-emerald-600 dark:text-emerald-300' 
-                        : 'text-rose-600 dark:text-rose-300'
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 flex items-center justify-center shadow-2xs shrink-0 border ${
+                      (chartStats?.scoreDiff ?? 0) >= 0
+                        ? 'dark:bg-emerald-900/60 border-emerald-200/80 dark:border-emerald-800/80 text-emerald-600 dark:text-emerald-300'
+                        : 'dark:bg-rose-900/60 border-rose-200/80 dark:border-rose-800/80 text-rose-600 dark:text-rose-300'
                     }`}>
                       {(chartStats?.scoreDiff ?? 0) >= 0 ? (
                         <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -347,7 +353,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
                 {/* Capsule Context Badge - Thể hiện tiến độ rõ ràng */}
-                <div className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-emerald-200/70 dark:border-emerald-900/50 shadow-2xs flex items-center justify-between gap-1.5 text-[11px] backdrop-blur-xs min-w-0">
+                <div className={`mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border shadow-2xs flex items-center justify-between gap-1.5 text-[11px] backdrop-blur-xs min-w-0 ${
+                  (chartStats?.scoreDiff ?? 0) >= 0
+                    ? 'border-emerald-200/70 dark:border-emerald-900/50'
+                    : 'border-rose-200/70 dark:border-rose-900/50'
+                }`}>
                   <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0">
                     So mốc đầu
                   </span>
@@ -647,7 +657,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {/* High Contrast Progress Bar */}
               <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
                 <div 
-                  className="h-full rounded-full bg-gradient-to-r from-blue-600 via-sky-500 to-emerald-400 transition-all duration-700 shadow-2xs"
+                  className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-all duration-700"
                   style={{ width: `${Math.min(100, Math.max(3, targetPercent))}%` }}
                 />
               </div>
@@ -685,11 +695,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <div 
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      listeningScore === 495
-                        ? 'bg-gradient-to-r from-blue-600 via-sky-400 to-emerald-400 shadow-2xs'
-                        : 'bg-gradient-to-r from-blue-600 to-sky-400'
-                    }`}
+                    className="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-700"
                     style={{ width: `${listeningPercent}%` }} 
                   />
                 </div>
@@ -720,7 +726,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <div 
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-500 transition-all duration-700" 
+                    className="h-full rounded-full bg-violet-500 dark:bg-violet-400 transition-all duration-700" 
                     style={{ width: `${readingPercent}%` }} 
                   />
                 </div>
