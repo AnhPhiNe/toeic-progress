@@ -7,12 +7,16 @@ import {
   Trash2, 
   Tag, 
   X,
-  BookOpen
+  BookOpen,
+  Brain
 } from 'lucide-react';
 import { MistakeEntry, ErrorCategory, ERROR_CATEGORY_LABELS } from '../types';
 
 interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
+  /** Số thẻ tới hạn ôn hôm nay (SPEC mục 4.6) */
+  dueCount: number;
+  onStartReview: () => void;
   onAddMistake: (mistake: MistakeEntry) => void;
   onToggleStatus: (mistakeId: string) => void;
   onDeleteMistake: (mistakeId: string) => void;
@@ -20,6 +24,8 @@ interface MistakeNotebookViewProps {
 
 export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   mistakes,
+  dueCount,
+  onStartReview,
   onAddMistake,
   onToggleStatus,
   onDeleteMistake
@@ -116,13 +122,25 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center space-x-1.5 transition active:scale-95 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Ghi Chú Bẫy Mới</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={onStartReview}
+            disabled={dueCount === 0}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+          >
+            <Brain className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">
+              {dueCount > 0 ? `Ôn ${dueCount} thẻ đến hạn` : 'Chưa có thẻ đến hạn'}
+            </span>
+          </button>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Ghi Chú Bẫy Mới</span>
+          </button>
+        </div>
       </div>
 
       {/* 4 Mini Cards Overview */}
@@ -146,9 +164,9 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
         </div>
 
         <div className="ui-card p-4">
-          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium block">Tỷ Lệ Thuần Thục</span>
-          <span className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 block">{stats.masteryRate}%</span>
-          <span className="text-[11px] text-slate-400">Mục tiêu: 100%</span>
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium block">Đến Hạn Ôn Hôm Nay</span>
+          <span className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 block">{dueCount}</span>
+          <span className="text-[11px] text-slate-400">Thuần thục {stats.masteryRate}%</span>
         </div>
       </div>
 

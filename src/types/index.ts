@@ -45,6 +45,15 @@ export interface MistakeEntry {
   tags: string[];          // ví dụ: ['inversion', 'synonym', 'double-passage']
   status: 'NEEDS_REVIEW' | 'MASTERED';
   createdAt: string;       // ISO Date
+
+  // --- Lịch ôn giãn cách (SPEC mục 4.6) ---
+  /** Ngày hẹn ôn kế tiếp 'YYYY-MM-DD'. Thiếu trường này nghĩa là chưa từng ôn, coi như đến hạn ngay */
+  nextReviewDate?: string;
+  /** Bậc giãn cách hiện tại: 0 -> 1 ngày, 1 -> 3, 2 -> 7, 3 -> 14, 4 -> 30 */
+  reviewStage?: number;
+  /** Số lần đã ôn, dùng để thấy thẻ nào dai dẳng nhất */
+  reviewCount?: number;
+  lastReviewedAt?: string;
 }
 
 // Bản ghi một buổi học / làm test

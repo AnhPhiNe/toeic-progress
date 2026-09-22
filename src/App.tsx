@@ -9,6 +9,7 @@ import { PlanView } from './components/PlanView';
 import { ResourcesView } from './components/ResourcesView';
 import { SessionLoggerModal } from './components/SessionLoggerModal';
 import { SettingsModal } from './components/SettingsModal';
+import { ReviewSessionModal } from './components/ReviewSessionModal';
 
 import { 
   loadUserProfile, 
@@ -23,6 +24,7 @@ import {
   getTodayDateString 
 } from './utils/storage';
 import { StudySession, MistakeEntry, UserProfile, NavTabId } from './types';
+import { applyReviewResult, getDueMistakes } from './utils/spacedRepetition';
 
 export const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile>(loadUserProfile());
@@ -34,6 +36,7 @@ export const App: React.FC = () => {
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp (SPEC 4.3)
   const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number } | undefined>(undefined);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -131,6 +134,15 @@ export const App: React.FC = () => {
     setMistakes(updated);
   };
 
+  // Ghi kết quả tự chấm một thẻ trong phiên ôn (SPEC mục 4.6)
+  const handleGradeMistake = (mistakeId: string, remembered: boolean) => {
+    const updated = mistakes.map(m =>
+      m.id === mistakeId ? applyReviewResult(m, remembered) : m
+    );
+    saveMistakes(updated);
+    setMistakes(updated);
+  };
+
   // Xóa lỗi sai
   const handleDeleteMistake = (mistakeId: string) => {
     const updated = mistakes.filter(m => m.id !== mistakeId);
@@ -171,7 +183,8 @@ export const App: React.FC = () => {
     setMistakes(loadMistakes());
   };
 
-  const pendingMistakesCount = mistakes.filter(m => m.status === 'NEEDS_REVIEW').length;
+  // Badge điều hướng chỉ việc cần làm HÔM NAY, không phải toàn bộ tồn đọng
+  const dueMistakesCount = getDueMistakes(mistakes).length;
   const today = getTodayDateString();
   const hasStudiedToday = sessions.some(s => s.date === today) || profile.lastStudyDate === today;
 
@@ -183,7 +196,7 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         profile={profile}
-        pendingMistakesCount={pendingMistakesCount}
+        pendingMistakesCount={dueMistakesCount}
         sessions={sessions}
         hasStudiedToday={hasStudiedToday}
         theme={theme}
@@ -246,6 +259,8 @@ export const App: React.FC = () => {
 
           {activeTab === 'mistakes' && (
             <MistakeNotebookView
+              dueCount={dueMistakesCount}
+              onStartReview={() => setIsReviewModalOpen(true)}
               mistakes={mistakes}
               onAddMistake={handleAddMistake}
               onToggleStatus={handleToggleMistakeStatus}
@@ -295,6 +310,13 @@ export const App: React.FC = () => {
         onSaveSession={handleSaveSession}
         sessions={sessions}
         prefill={sessionPrefill}
+      />
+
+      <ReviewSessionModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        mistakes={mistakes}
+        onGrade={handleGradeMistake}
       />
 
       <SettingsModal

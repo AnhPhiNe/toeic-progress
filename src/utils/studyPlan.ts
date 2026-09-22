@@ -1,6 +1,7 @@
 import { StudySession, MistakeEntry, UserProfile, ErrorCategory, ERROR_CATEGORY_LABELS } from '../types';
 import { getTodayDateString } from './storage';
 import { getPracticeParts } from './etsScoring';
+import { getDueMistakes } from './spacedRepetition';
 
 /** Một việc cần làm trong tuần, sinh ra từ dữ liệu thật của người học */
 export interface WeeklyTask {
@@ -158,6 +159,9 @@ export function buildStudyPlan(
   }
 
   const pendingMistakes = mistakes.filter(m => m.status === 'NEEDS_REVIEW').length;
+  // Việc cần làm bám theo thẻ ĐẾN HẠN, không phải toàn bộ tồn đọng - lịch
+  // giãn cách chỉ có ý nghĩa nếu kế hoạch tôn trọng nó (SPEC mục 4.6)
+  const dueMistakes = getDueMistakes(mistakes).length;
 
   // ---- Việc cần làm tuần này ----
   const tasks: WeeklyTask[] = [];
@@ -201,14 +205,16 @@ export function buildStudyPlan(
     });
   }
 
-  if (pendingMistakes > 0) {
+  if (dueMistakes > 0) {
     tasks.push({
       id: 'review-mistakes',
-      label: `Ôn ${Math.min(pendingMistakes, 15)} lỗi chưa thông suốt`,
-      detail: 'Đọc lại và tự giải thích vì sao đáp án kia sai',
-      target: Math.min(pendingMistakes, 15),
+      label: `Ôn ${dueMistakes} thẻ đến hạn`,
+      detail: 'Mở phiên ôn, tự nhớ lại trước khi lật thẻ',
+      target: dueMistakes,
       done: 0,
-      reason: `Sổ tay đang có ${pendingMistakes} lỗi chờ ôn`
+      reason: pendingMistakes > dueMistakes
+        ? `${pendingMistakes} lỗi chưa thông suốt, nhưng chỉ ${dueMistakes} thẻ tới hẹn hôm nay`
+        : `Lịch giãn cách hẹn ${dueMistakes} thẻ cho hôm nay`
     });
   }
 
