@@ -21,9 +21,12 @@ import { StudySession } from '../types';
 interface ResourcesViewProps {
   /** Toàn bộ buổi học, dùng để lấy số câu đúng của bài Full Test gần nhất làm điểm khởi tạo */
   sessions?: StudySession[];
+  /** Mục tiêu điểm của người học; mặc định 990 nếu chưa đặt (SPEC mục 2.1) */
+  targetScore?: number;
 }
 
-export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions }) => {
+export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetScore }) => {
+  const goal = Math.max(10, Math.min(990, targetScore || 990));
   const [activeSubTab, setActiveSubTab] = useState<'converter' | 'pacing' | 'checklist' | 'traps'>('converter');
 
   // Bài Full Test gần nhất có đủ số câu đúng - dùng làm giá trị khởi tạo cho bộ quy đổi
@@ -318,14 +321,15 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions }) => {
                 </div>
               </div>
 
-              {/* Gap to 990 */}
+              {/* Khoảng cách tới mục tiêu của người học */}
               <div className="w-full pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-400">
-                {totalEstimated >= 990 ? (
+                {totalEstimated >= goal ? (
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
-                    <Sparkles className="w-4 h-4" /> Tuyệt đối 990/990!
+                    <Sparkles className="w-4 h-4" />
+                    {goal >= 990 ? 'Tuyệt đối 990/990!' : `Đã vượt mục tiêu ${goal}!`}
                   </span>
                 ) : (
-                  <span>Cách mục tiêu 990: <strong>+{990 - totalEstimated} điểm</strong></span>
+                  <span>Cách mục tiêu {goal}: <strong>+{goal - totalEstimated} điểm</strong></span>
                 )}
               </div>
             </div>

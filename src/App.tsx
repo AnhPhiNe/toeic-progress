@@ -254,7 +254,7 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'resources' && (
-            <ResourcesView sessions={sessions} />
+            <ResourcesView sessions={sessions} targetScore={profile.targetScore} />
           )}
 
           {activeTab === 'sw-roadmap' && (

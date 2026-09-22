@@ -358,6 +358,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [partStats]);
 
 
+  // Mục tiêu điểm của người học - dùng chung cho KPI, trục biểu đồ và đường mốc
+  const goalScore = useMemo(
+    () => Math.max(10, Math.min(990, (profile || loadUserProfile()).targetScore || 990)),
+    [profile]
+  );
+
   /**
    * Chẩn đoán theo NGUYÊN NHÂN sai, không theo Part (SPEC mục 1.4 điểm 1).
    * Các web luyện đề chỉ nói được "Part 3: 35/39". Chỉ sản phẩm này biết
@@ -468,21 +474,30 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   };
 
   // Cấu hình trục Y Bán Linh Động Thông Minh (Smart Hybrid):
-  // - Đỉnh luôn cố định ở 990đ (hoặc 495đ) để người học luôn thấy rõ vạch đích
+  // - Đỉnh là MỤC TIÊU của người học, không phải 990 cố định (SPEC mục 2.1).
+  //   Kéo trục tới 990 cho người nhắm 700 sẽ ép đường tiến bộ phẳng lì.
   // - Đáy linh động lùi 50-100đ theo điểm thấp nhất, chia vạch chuẩn mốc TOEIC
   const chartYAxisConfig = useMemo(() => {
+    const goal = goalScore;
+
     if (chartData.length === 0) {
+      const emptyFloor = Math.max(100, goal - 500);
+      const emptyTicks: number[] = [];
+      for (let t = emptyFloor; t < goal; t += 200) emptyTicks.push(t);
+      emptyTicks.push(goal);
       return {
-        totalDomain: [400, 990] as [number, number],
-        totalTicks: [400, 600, 800, 900, 990],
+        totalDomain: [emptyFloor, goal] as [number, number],
+        totalTicks: emptyTicks,
         subDomain: [200, 495] as [number, number],
         subTicks: [200, 300, 400, 495]
       };
     }
 
-    // 1. Cấu hình trục Total (Tổng Điểm 10-990)
+    // 1. Cấu hình trục Total - trần là mục tiêu, nới ra nếu đã vượt mục tiêu
     const minTotal = Math.min(...chartData.map(d => d.total));
-    const rangeTotal = 990 - minTotal;
+    const maxTotal = Math.max(...chartData.map(d => d.total));
+    const ceilingTotal = Math.min(990, Math.max(goal, Math.ceil((maxTotal + 20) / 50) * 50));
+    const rangeTotal = ceilingTotal - minTotal;
     
     let floorTotal: number;
     const totalTicks: number[] = [];
@@ -490,17 +505,17 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     if (rangeTotal <= 250) {
       // Dải điểm hẹp (người học ở band cao, ví dụ 750 - 950): Bước nhảy 50đ đều đặn
       floorTotal = Math.max(200, Math.floor((minTotal - 40) / 50) * 50);
-      for (let s = floorTotal; s <= 950; s += 50) {
+      for (let s = floorTotal; s < ceilingTotal; s += 50) {
         totalTicks.push(s);
       }
-      totalTicks.push(990);
+      totalTicks.push(ceilingTotal);
     } else {
       // Dải điểm rộng: Bước nhảy 100đ tròn trịa theo các mốc chuẩn TOEIC (500, 600, 700, 800, 900, 990)
       floorTotal = Math.max(100, Math.floor((minTotal - 40) / 100) * 100);
-      for (let s = floorTotal; s <= 900; s += 100) {
+      for (let s = floorTotal; s < ceilingTotal; s += 100) {
         totalTicks.push(s);
       }
-      totalTicks.push(990);
+      totalTicks.push(ceilingTotal);
     }
 
     // 2. Cấu hình trục Subscore (Listening & Reading 5-495)
@@ -527,12 +542,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     }
 
     return {
-      totalDomain: [floorTotal, 990] as [number, number],
+      totalDomain: [floorTotal, ceilingTotal] as [number, number],
       totalTicks,
       subDomain: [floorSub, 495] as [number, number],
       subTicks
     };
-  }, [chartData]);
+  }, [chartData, goalScore]);
 
   return (
     <div className="space-y-5 animate-fade-in text-slate-800 dark:text-slate-200">
@@ -555,7 +570,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 tracking-tight tabular-nums leading-none">
                 {stats.avg > 0 ? stats.avg : '--'}
               </div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/ 990đ</span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/ {goalScore}đ</span>
             </div>
           </div>
           <div className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-blue-200/70 dark:border-blue-900/50 shadow-2xs flex items-center justify-between gap-1 text-[11px] backdrop-blur-xs">

@@ -68,9 +68,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Rank Tier hiện tại
   const currentRank = useMemo(() => getCurrentRankTier(highestScore), [highestScore]);
 
-  // Số điểm còn thiếu để chạm 990
-  const pointsRemaining = Math.max(0, 990 - highestScore);
-  const targetPercent = highestScore ? Math.min(100, Math.round((highestScore / 990) * 100)) : 0;
+  /**
+   * Mục tiêu điểm lấy từ hồ sơ, KHÔNG neo cứng vào 990 (SPEC mục 2.1).
+   * Trước đây Dashboard tính theo 990 trong khi Phân Tích tính theo
+   * targetScore, nên người đặt mục tiêu 700 và đạt 700 thấy Dashboard
+   * báo "Thiếu 290đ - 71%" còn Phân Tích báo đã đạt 100%.
+   */
+  const targetScore = Math.max(10, Math.min(990, profile.targetScore || 990));
+  const pointsRemaining = Math.max(0, targetScore - highestScore);
+  const targetPercent = highestScore ? Math.min(100, Math.round((highestScore / targetScore) * 100)) : 0;
 
   const attemptMap = useMemo(() => computeSessionAttemptMap(sessions), [sessions]);
 
@@ -119,9 +125,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Dynamic Y-Axis: Căn chỉnh trục Y thông minh theo dải điểm thực tế, xóa bỏ khoảng trắng thừa bên dưới
   const yAxisConfig = useMemo(() => {
     if (sparklineData.length === 0) {
+      const emptyFloor = Math.max(200, Math.min(400, targetScore - 400));
+      const emptyTicks: number[] = [];
+      for (let t = emptyFloor; t < targetScore; t += 100) emptyTicks.push(t);
+      emptyTicks.push(targetScore);
       return {
-        domain: [400, 990] as [number, number],
-        ticks: [400, 500, 600, 700, 800, 900, 990]
+        domain: [emptyFloor, targetScore] as [number, number],
+        ticks: emptyTicks
       };
     }
     const minScore = Math.min(...sparklineData.map(d => d.total));
@@ -130,21 +140,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let floorScore = Math.floor((minScore - 25) / 50) * 50;
     floorScore = Math.max(200, Math.min(floorScore, 850));
 
+    // Trần biểu đồ là mục tiêu của người dùng, chừa chỗ nếu đã vượt mục tiêu.
+    // Kéo trục tới 990 cho người nhắm 700 sẽ ép đường tiến bộ phẳng lì.
+    const maxScore = Math.max(...sparklineData.map(d => d.total));
+    let ceilingScore = Math.max(targetScore, Math.ceil((maxScore + 25) / 50) * 50);
+    ceilingScore = Math.min(990, ceilingScore);
+
     // Bước nhảy 50 điểm (hoặc 100 điểm nếu khoảng cách lớn hơn 350)
-    const step = (990 - floorScore) > 350 ? 100 : 50;
+    const step = (ceilingScore - floorScore) > 350 ? 100 : 50;
     const ticks: number[] = [];
-    for (let s = floorScore; s < 990; s += step) {
+    for (let s = floorScore; s < ceilingScore; s += step) {
       ticks.push(s);
     }
-    if (!ticks.includes(990)) {
-      ticks.push(990);
+    if (!ticks.includes(ceilingScore)) {
+      ticks.push(ceilingScore);
     }
 
     return {
-      domain: [floorScore, 990] as [number, number],
+      domain: [floorScore, ceilingScore] as [number, number],
       ticks
     };
-  }, [sparklineData]);
+  }, [sparklineData, targetScore]);
 
   // Tính 7 ngày trong tuần cho Lịch Check-in
   const weekDays = useMemo(() => {
@@ -222,7 +238,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 tracking-tight tabular-nums leading-none">
                       {chartStats?.latestScore || highestScore}
                     </div>
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/ 990đ</span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/ {targetScore}đ</span>
                   </div>
                 </div>
                 {/* Capsule Context Badge - Gọn gàng & Sắc nét */}
@@ -404,7 +420,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       }} 
                     />
                     <ReferenceLine 
-                      y={990} 
+                      y={targetScore} 
                       stroke={isDark ? '#3B82F6' : '#93C5FD'} 
                       strokeDasharray="6 3" 
                       strokeWidth={1}
@@ -443,7 +459,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   <div className="space-y-0.5 max-w-sm">
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                      Bắt Đầu Hành Trình Chinh Phục 990
+                      Bắt Đầu Hành Trình Chinh Phục {targetScore}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Chưa có kết quả đề thi nào được ghi nhận. Hãy nhập điểm đề đầu tiên để kích hoạt biểu đồ tăng trưởng!
@@ -463,7 +479,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         </div>
 
-        {/* ================= RIGHT COLUMN (4 / 12 ~ 33%): STREAK & COMPACT 990 ================= */}
+        {/* ================= RIGHT COLUMN (4 / 12 ~ 33%): STREAK & MỤC TIÊU ================= */}
         <div className="xl:col-span-4 flex flex-col justify-between space-y-3.5">
           
           {/* 1. CHUỖI NGÀY HỌC - THE GOLDEN FIRE STREAK */}
@@ -555,7 +571,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* 2. MỤC TIÊU 990 - SKY AMBIENT CARD */}
+          {/* 2. MỤC TIÊU ĐIỂM - SKY AMBIENT CARD */}
           <div className="relative overflow-hidden flex-1 p-4 sm:p-4.5 flex flex-col justify-between space-y-3 rounded-2xl bg-gradient-to-br from-sky-50/80 via-blue-50/50 to-indigo-50/30 dark:from-[#0E1A29] dark:to-[#0B1320] border border-sky-200/80 dark:border-sky-900/40 shadow-[0_2px_12px_rgba(14,165,233,0.06)] hover:shadow-[0_8px_28px_rgba(14,165,233,0.1)] hover:-translate-y-0.5 transition-all duration-300">
             {/* Header: Large Prominent Title, Clean */}
             <div className="flex items-center justify-between">
@@ -565,10 +581,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-none">
-                    Mục Tiêu 990 TOEIC
+                    Mục Tiêu {targetScore} TOEIC
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                    {pointsRemaining > 0 ? `Cách đỉnh vinh quang ${pointsRemaining} điểm` : 'Đã chinh phục đỉnh 990!'}
+                    {pointsRemaining > 0 ? `Cách mục tiêu ${pointsRemaining} điểm` : `Đã chạm mục tiêu ${targetScore}!`}
                   </p>
                 </div>
               </div>
@@ -586,7 +602,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
                     {highestScore || 0}
                   </span>
-                  <span className="text-xs font-extrabold text-slate-400 dark:text-slate-500">/ 990đ</span>
+                  <span className="text-xs font-extrabold text-slate-400 dark:text-slate-500">/ {targetScore}đ</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
@@ -610,7 +626,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               <div className="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 pt-0.5">
                 <span>Khởi đầu</span>
-                <span className="text-blue-600 dark:text-blue-400 font-extrabold">🎯 Đích đến 990</span>
+                <span className="text-blue-600 dark:text-blue-400 font-extrabold">🎯 Đích đến {targetScore}</span>
               </div>
             </div>
 
