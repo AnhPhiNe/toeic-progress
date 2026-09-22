@@ -1,10 +1,12 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.1** · Cập nhật 2026-09-22 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.2** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
 > **v2.1 bổ sung:** hai chức năng mới (Kế Hoạch, Phiên Ôn Tập), kiến trúc điều hướng được dọn lại để mọi mục đều là chức năng thật, và mục 1.4 ghi rõ bốn thứ sản phẩm làm được mà các web luyện đề bên ngoài không làm được.
+>
+> **v2.2 sửa một sai lầm của chính v2.1:** mục 4.1 từng yêu cầu Tổng Quan đổi vai thành "bảng lệnh hôm nay". Đã xây, đã gỡ bỏ — nó phá bố cục hai cột và lặp lại thông tin các thẻ bên cạnh đã có. Nguyên tắc ở mục 1.4 cũng được siết lại cho đúng: sản phẩm phải trả lời "giờ tôi nên làm gì", nhưng không phải mọi màn hình đều gánh câu hỏi đó.
 
 ---
 
@@ -49,7 +51,11 @@ Trước khi thêm bất cứ thứ gì, hỏi đúng hai câu:
 | Các web luyện đề bên ngoài | *"Tôi vừa làm được bao nhiêu điểm?"* — điểm số, phần trăm, đúng sai. Hết. |
 | Sản phẩm này **phải** trả lời | *"Vậy giờ tôi nên làm gì?"* |
 
-Mọi màn hình phải kéo được về câu hỏi thứ hai. Một màn hình chỉ trưng bày thành tích quá khứ mà không dẫn tới hành động kế tiếp là màn hình chưa làm xong việc của nó.
+**Sản phẩm** phải trả lời được câu hỏi thứ hai — nhưng không phải **mọi màn hình** đều phải tự mình trả lời nó.
+
+*Đây là bản sửa sau một lần làm sai.* Bản trước viết "mọi màn hình phải kéo được về câu hỏi thứ hai", và hệ quả là Tổng Quan bị nhồi thêm một bảng việc cần làm, lặp lại đúng những gì các thẻ bên cạnh đã nói (xem hộp ghi chú ở mục 4.1). Nhồi câu trả lời vào khắp nơi không làm sản phẩm hữu ích hơn, chỉ tạo ra trùng lặp và phá bố cục.
+
+Cách chia đúng: **Kế Hoạch** (mục 4.2) chịu trách nhiệm trả lời "giờ tôi nên làm gì". **Tổng Quan** tóm gọn "tôi đang ở đâu". Mỗi màn hình làm một việc và làm cho tốt.
 
 Bốn năng lực sau là thứ các web bên ngoài **không làm được**, kể cả về nguyên tắc, vì chúng chỉ có dữ liệu của riêng chúng. Đây là trọng tâm phát triển:
 
@@ -83,9 +89,9 @@ Bốn năng lực sau là thứ các web bên ngoài **không làm được**, k
 
 ## 3. KIẾN TRÚC THÔNG TIN
 
-### 3.1. Vấn đề của kiến trúc hiện tại
+### 3.1. Vấn đề của kiến trúc cũ *(đã xử lý)*
 
-Sidebar đang có tám dòng, nhưng chỉ bốn dòng rưỡi là chức năng thật:
+Sidebar từng có tám dòng, nhưng chỉ bốn dòng rưỡi là chức năng thật:
 
 | Dòng hiện tại | Thực chất |
 | :--- | :--- |
@@ -100,11 +106,11 @@ Sidebar đang có tám dòng, nhưng chỉ bốn dòng rưỡi là chức năng 
 
 Hai dòng cuối không phải là lỗi cẩu thả. *"Kế Hoạch & Mục Tiêu"* là cái tên đúng cho một chức năng đáng tồn tại nhưng chưa ai xây — sidebar đang tự gọi tên chỗ còn thiếu.
 
-### 3.2. Kiến trúc đích
+### 3.2. Kiến trúc hiện tại
 
 ```
 LUYỆN THI
-  1. Tổng Quan        Bảng lệnh hôm nay
+  1. Tổng Quan        Tóm gọn: điểm, streak, mục tiêu
   2. Kế Hoạch         ★ MỚI — lấp đúng cái tên đang rỗng
   3. Phòng Thi        Bộ đếm nhịp, có lưu dữ liệu
 
@@ -124,7 +130,7 @@ THAM KHẢO
 
 Sáu mục điều hướng, **cả sáu đều là chức năng thật**. Cài đặt và Sao lưu xuống vùng tiện ích ở đáy — đó là nơi đúng của chúng.
 
-**Thay đổi so với hiện trạng:**
+**Những thay đổi đã thực hiện:**
 
 - Thêm **Kế Hoạch** (mục 4.2) và **Phiên Ôn Tập** bên trong Sổ Tay (mục 4.6).
 - `Lộ Trình S&W` gộp vào Tài Liệu.
@@ -137,29 +143,34 @@ Sáu mục điều hướng, **cả sáu đều là chức năng thật**. Cài 
 
 ### 4.1. Tổng Quan (Dashboard)
 
-**Đổi vai: từ tủ cúp thành bảng lệnh.** Bố cục hiện tại trưng bày điểm cao nhất, streak và huy hiệu — toàn thành tích quá khứ. Theo mục 1.4, việc cần làm hôm nay phải chiếm vị trí chính, thành tích lùi xuống một dải mỏng.
+**Vai trò: tóm gọn và trực quan.** Đây là màn hình mở đầu, trả lời trong vài giây câu hỏi "tôi đang ở đâu". Nó cố ý **không** ôm việc cần làm — đó là việc của màn hình Kế Hoạch (mục 4.2).
+
+Bố cục hai cột, giữ nguyên:
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  HÔM NAY                                             │
-│  ├ 7 thẻ lỗi đến hạn ôn              → [Ôn ngay]     │
-│  ├ Điểm nghẽn lớn nhất: bẫy paraphrase (-25đ)        │
-│  └ Nhịp: cần 5đ/tuần · thực tế 8đ/tuần → đi trước    │
-├──────────────────────────────────────────────────────┤
-│  ⚠ Tái phạm: bẫy đảo ngữ đã đánh dấu thông suốt      │
-│     3 tuần trước, đề hôm nay lại sai nhóm này        │
-├──────────────────────────────────────────────────────┤
-│  [dải mỏng] 960 · PB 960 · streak 18 · Kim Cương     │
-├──────────────────────────────────────────────────────┤
-│  Biểu đồ tiến độ                                     │
-└──────────────────────────────────────────────────────┘
+┌─ ⚠ Tái phạm (một dòng, thu gọn) ────────────────────────┐
+├─ CỘT TRÁI (8/12) ─────────────┬─ CỘT PHẢI (4/12) ───────┤
+│  Ba thẻ chỉ số:               │  Chuỗi Ngày Học         │
+│  Mới nhất · Kỷ lục · Tăng     │  (streak + lưới 7 ngày) │
+│  trưởng                       ├─────────────────────────┤
+│                               │  Mục Tiêu               │
+│  Biểu đồ tiến trình điểm      │  (khoảng cách + L/R)    │
+└───────────────────────────────┴─────────────────────────┘
 ```
 
-- **Khối Hôm Nay:** số thẻ đến hạn ôn kèm nút vào thẳng Phiên Ôn Tập; điểm nghẽn lớn nhất theo nguyên nhân; nhịp cần thiết đối chiếu nhịp thực tế.
-- **Cảnh báo tái phạm:** khi một nhóm lỗi đã đánh dấu thông suốt xuất hiện lại ở buổi mới.
-- **Dải thành tích:** điểm mới nhất, kỷ lục, streak, rank. **Mọi con số phải tính theo `targetScore`, không phải 990.**
-- **Streak:** *dự kiến nâng lưới bảy ngày lên heatmap kiểu lịch đóng góp, 8–12 tuần.*
-- **Biểu đồ tiến độ:** đường điểm tổng theo thời gian, thang trục co theo `targetScore`.
+- **Ba thẻ chỉ số:** điểm mới nhất kèm tên đề, kỷ lục, mức tăng trưởng so với mốc đầu.
+- **Biểu đồ tiến trình:** đường điểm tổng theo thời gian, thang trục co theo `targetScore`.
+- **Chuỗi Ngày Học:** số ngày liên tục, khiên còn lại, lưới bảy ngày trong tuần. Một ngày chỉ được tính khi **thực sự có buổi học được ghi** — không tô theo ngày đã trôi qua. Ngày đã qua mà không học hiển thị khác với ngày chưa tới.
+- **Mục Tiêu:** khoảng cách tới `targetScore`, phần trăm hoàn thành, Listening/Reading. **Mọi con số tính theo `targetScore`, không phải 990.**
+- **Cảnh báo tái phạm:** một dòng thu gọn ở trên cùng, mở ra khi người dùng bấm (mục 4.6).
+
+> **Đã thử và đã gỡ bỏ: "bảng lệnh hôm nay".**
+> Một bản trước của mục này yêu cầu Tổng Quan đổi vai thành bảng việc cần làm, đẩy thành tích xuống dải mỏng. Đã xây và đã revert, vì ba lý do:
+> 1. Nó chen một **dải full-width lên trên bố cục hai cột**, tạo tầng cấu trúc thứ ba không thuộc cột nào.
+> 2. Nó **nói lại điều cột phải đã nói** — nhịp độ trùng thẻ Mục Tiêu, số ngày trong tuần trùng thẻ Streak, điểm và hạng trùng cả hai.
+> 3. Dashboard tóm gọn sẵn đã tốt. Vấn đề nó định giải đã được màn hình Kế Hoạch giải rồi.
+>
+> Đừng đề xuất lại. Muốn thêm thông tin vào Tổng Quan thì phải **thay thế** thứ đang có, không phải chồng thêm tầng.
 
 *Bỏ khỏi spec:* thanh XP tới cấp kế tiếp và châm ngôn ngẫu nhiên mỗi ngày — xem mục 7.
 
@@ -374,28 +385,27 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 - Phân tích: timeline, ma trận 7 Part, bảng lịch sử, theo dõi làm lại đề.
 - Bộ đếm nhịp làm bài với năm chế độ.
 - Tài liệu: quy đổi điểm, đối chiếu chứng chỉ quốc tế, chiến thuật, checklist.
-
-### Vòng kế tiếp — đánh thức dữ liệu đang chết
-
-*Thứ tự ưu tiên theo mục 1.4: làm trước những gì biến dữ liệu sẵn có thành câu trả lời.*
-
-1. **Chẩn đoán theo nguyên nhân** trong Phân Tích. Rẻ nhất, mở đường cho mục 4 và cho Kế Hoạch. Dữ liệu đã nằm sẵn trong `MistakeEntry.category`.
-2. **Bộ đếm nhịp lưu dữ liệu** — truyền thời gian thật sang Nhập Điểm, ghi lại pha vượt giờ.
-3. Dashboard tính theo `targetScore` thay vì 990. Hiện đang mâu thuẫn với Phân Tích.
-4. Thang trục biểu đồ co theo `targetScore`.
-5. Cấu trúc hóa dữ liệu luyện Part lẻ.
-6. Dọn điều hướng: thêm Kế Hoạch, gộp Lộ Trình S&W, đẩy Cài đặt và Sao lưu xuống vùng tiện ích.
+- Chẩn đoán lỗi theo nguyên nhân, lịch ôn giãn cách, phát hiện tái phạm, màn hình Kế Hoạch.
 
 ### Vòng sau — đóng vòng lặp học tập
 
-7. **Phiên Ôn Tập** và lịch giãn cách cho Sổ tay.
-8. **Phát hiện tái phạm** — đối chiếu nhóm lỗi mới với các thẻ đã đánh dấu thông suốt.
-9. **Màn hình Kế Hoạch** đầy đủ: mục tiêu tuần, xếp ưu tiên theo lợi ích, theo dõi kế hoạch so với thực tế.
-10. **Tổng Quan đổi vai** thành bảng lệnh hôm nay.
-11. Sửa được bản ghi lỗi sai và buổi học.
-12. Ma trận 7 Part và độ ổn định chuyển sang trung bình trượt.
-13. Đường cong mệt mỏi dựng từ dữ liệu pha vượt giờ.
-14. Ô số từ vựng đã học, và heatmap lịch thay lưới bảy ngày.
+Đã xong:
+
+- ~~Chẩn đoán theo nguyên nhân trong Phân Tích~~
+- ~~Bộ đếm nhịp lưu dữ liệu và truyền thời gian sang Nhập Điểm~~
+- ~~Dashboard và thang trục biểu đồ tính theo `targetScore`~~
+- ~~Cấu trúc hóa dữ liệu luyện Part lẻ (nhiều Part một buổi)~~
+- ~~Dọn điều hướng còn sáu mục, thêm màn hình Kế Hoạch~~
+- ~~Phiên Ôn Tập và lịch giãn cách cho Sổ tay~~
+- ~~Phát hiện tái phạm~~
+- ~~Tổng Quan đổi vai thành bảng lệnh~~ — **đã thử, đã gỡ bỏ**, xem hộp ghi chú mục 4.1
+
+Còn lại:
+
+7. Sửa được bản ghi lỗi sai và buổi học.
+8. Ma trận 7 Part và độ ổn định chuyển sang trung bình trượt.
+9. Đường cong mệt mỏi dựng từ dữ liệu pha vượt giờ của Bộ đếm nhịp.
+10. Ô số từ vựng đã học, và heatmap lịch thay lưới bảy ngày.
 
 ### Trước khi mở công khai
 
