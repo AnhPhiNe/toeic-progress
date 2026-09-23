@@ -380,7 +380,7 @@ Bảng tra Raw sang Scaled cho từng kỹ năng (0–100 thành 5–495), tổn
 - Mọi bản ghi, kể cả hồ sơ, checklist theo mục, từ vựng theo ngày và ngày dùng khiên, có `updatedAt`/`deletedAt`. Xóa mềm. Gộp theo ID; bản mới hơn thắng, trùng thời điểm thì bản xóa thắng. Một RPC Postgres kiểm tra phiên bản trong chính giao dịch ghi để yêu cầu đến muộn không ghi đè bản mới. Lựa chọn dùng máy này tạo bản xóa cho mục chỉ có trên server.
 - `sync_records` bật RLS theo `user_id = auth.uid()`; trình duyệt chỉ được SELECT, ghi qua RPC có xác thực. FK `ON DELETE CASCADE` xóa dữ liệu khi Edge Function dùng quyền server xóa Auth user. Không đưa khóa quản trị vào frontend.
 - Khi đăng nhập mà mất mạng hoặc đồng bộ lỗi, chặn ghi tài khoản và báo trạng thái; cho phép quay về gói khách. Streak luôn suy ra từ ngày học, ngày từ vựng và ngày dùng khiên.
-- **Trạng thái triển khai:** code, migration và kiểm thử gộp cục bộ đã có. Chưa có dự án staging/production, nên chưa kiểm thử đăng nhập thực tế, RLS truy cập chéo hay xóa tài khoản trên server. Chưa mời người thử qua email cho đến khi cấu hình SMTP riêng.
+- **Trạng thái triển khai:** code, migration và kiểm thử gộp cục bộ đã có. Chưa có dự án staging/production, nên chưa kiểm thử đăng nhập thực tế, RLS truy cập chéo hay xóa tài khoản trên server. Email OTP cần mẫu dùng `{{ .Token }}` và SMTP riêng trước khi mời người thử ngoài nhóm quản trị.
 
 ---
 

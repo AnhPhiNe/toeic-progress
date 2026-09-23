@@ -27,7 +27,7 @@ Playwright dùng Chromium và context riêng. Lần đầu chạy `npx playwrigh
 1. Tạo **hai dự án riêng**: staging và production. Điền URL/publishable key của staging khi phát triển. Không dùng chung database hoặc Auth users.
 2. Áp dụng `supabase/migrations/20260923000000_sync_records.sql` trên cả hai dự án. Kiểm tra bảng `public.sync_records` đã bật RLS và các policy theo `auth.uid()`.
 3. Deploy `supabase/functions/delete-account` trên cả hai dự án. Service-role key chỉ tồn tại trong môi trường Edge Function của Supabase. Kiểm tra xóa Auth user làm FK xóa `sync_records`.
-4. Bật Google và/hoặc email OTP trong Supabase Auth. Cấu hình Site URL và Redirect URLs cho localhost, `*.pages.dev` staging và tên miền production đã chốt. Trước khi mời người dùng ngoài nhóm quản trị bằng email, cấu hình SMTP riêng.
+4. Bật Google và/hoặc email OTP trong Supabase Auth. Mẫu email phải dùng `{{ .Token }}` để gửi mã sáu chữ số; mẫu dùng `{{ .ConfirmationURL }}` sẽ gửi magic link. Cấu hình Site URL và Redirect URLs cho localhost, `*.pages.dev` staging và tên miền production đã chốt. Trước khi mời người dùng ngoài nhóm quản trị bằng email, cấu hình SMTP riêng.
 5. Chạy kiểm thử RLS **chỉ trên staging** với `SUPABASE_TEST_PROJECT=staging`, `SUPABASE_STAGING_URL`, `SUPABASE_STAGING_PUBLISHABLE_KEY`, `SUPABASE_STAGING_SERVICE_ROLE_KEY` trong môi trường terminal (không commit chúng), rồi `npm run test:rls`. Script tạo hai tài khoản tạm và xóa chúng sau khi kiểm thử. Chưa có staging thì chưa thể xác nhận RLS thực tế.
 
 ## Triển khai web
