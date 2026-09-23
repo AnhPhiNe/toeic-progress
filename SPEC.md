@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.10** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.11** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -61,7 +61,7 @@ Cách chia đúng: **Kế Hoạch** (mục 4.2) chịu trách nhiệm trả lờ
 
 Bốn năng lực sau là thứ các web bên ngoài **không làm được**, kể cả về nguyên tắc, vì chúng chỉ có dữ liệu của riêng chúng. Đây là trọng tâm phát triển:
 
-1. **Chẩn đoán theo nguyên nhân, không theo Part.** Web ngoài nói "Part 3: 35/39". Sản phẩm này phải nói được "60% điểm mất đến từ bẫy paraphrase, rải đều Part 3, 4 và 7 — đây là lỗ hổng kỹ năng, không phải lỗ hổng Part". Dữ liệu đã có trong `MistakeEntry.category` nhưng **chưa từng được tổng hợp**.
+1. **Chẩn đoán theo nguyên nhân, không theo Part.** Web ngoài nói "Part 3: 35/39". Sản phẩm này phải nói được "60% điểm mất đến từ bẫy paraphrase, rải đều Part 3, 4 và 7 — đây là lỗ hổng kỹ năng, không phải lỗ hổng Part". Phân Tích đã tổng hợp dữ liệu từ `MistakeEntry.category` và chỉ ước tính điểm mất khi đủ ngưỡng dữ liệu.
 2. **Phát hiện tái phạm.** "Bạn đánh dấu bẫy đảo ngữ là đã thông suốt ba tuần trước, nhưng đề hôm nay lại sai đúng nhóm đó." Cần lịch sử lỗi xuyên nhiều nguồn đề và nhiều tháng — không web nào có.
 3. **Đường cong mệt mỏi, thu thập tự động.** Bộ đếm nhịp đã biết mốc từng pha; chỉ cần ghi lại pha nào vượt giờ là có dữ liệu thật cho `TIME_PRESSURE` mà người dùng không phải gõ gì.
 4. **Xếp ưu tiên theo lợi ích thu được.** "Sửa bẫy từ vựng Part 7 ước tính +25đ; sửa tốc độ Part 5 được +8đ — làm cái đầu trước." Đây chính là câu trả lời cho mục 1.4.
@@ -243,7 +243,7 @@ Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng
 
 - **Timeline:** điểm tổng, Listening và Reading theo thời gian. Đường tham chiếu đặt tại `targetScore`. Lọc theo lượt làm: tất cả, chỉ lần đầu, hoặc điểm cao nhất.
 - **Ma trận năng lực 7 Part và độ ổn định:** dùng tối đa năm Full Test gần nhất có điểm từng Part, loại lượt làm lại; hiển thị số đề thực dùng. Không dùng radar.
-- **Chẩn đoán theo nguyên nhân** *(ưu tiên cao nhất — xem mục 1.4 điểm 1)*: tổng hợp sáu nhóm lỗi từ Sổ tay thành biểu đồ phân bố, kèm diễn giải bằng lời. Phải trả lời được "nguyên nhân nào làm mất nhiều điểm nhất, và nó rải ở những Part nào". Hiện `mistakes` đã được truyền vào màn hình này nhưng chỉ dùng để liệt kê lỗi của một buổi khi bấm xem chi tiết — sáu nhóm nguyên nhân **chưa từng được tổng hợp**. *Đã xây.*
+- **Chẩn đoán theo nguyên nhân** *(ưu tiên cao nhất — xem mục 1.4 điểm 1)*: đã tổng hợp sáu nhóm lỗi từ Sổ tay thành biểu đồ phân bố, kèm diễn giải bằng lời. Trả lời "nguyên nhân nào xuất hiện nhiều nhất, và nó rải ở những Part nào"; chỉ diễn giải điểm mất khi đủ ngưỡng để ước tính.
 - **Xếp ưu tiên theo lợi ích:** chỉ khi có từ ba Full Test đủ số câu từng Part và mười lỗi đã phân loại. Điểm mất ở Part = (số câu tối đa − số câu đúng trung bình) × 5; chia cho nhóm nguyên nhân theo tỷ lệ lỗi trong Part. Luôn ghi “ước tính”. Dưới ngưỡng chỉ xếp theo tần suất. Cùng kết quả cấp cho Kế Hoạch.
 - **Phân tích thời gian:** hiển thị mức vượt giờ từng pha từ ít nhất ba lượt Phòng Thi cùng chế độ đã đánh dấu pha; thiếu dữ liệu thì hướng dẫn bấm "xong pha".
 - **Lịch học 12 tuần:** chỉ đặt tại Phân Tích; tô ngày có buổi học hoặc ghi từ vựng. Không thay lưới bảy ngày trong thẻ Chuỗi Ngày Học ở Tổng Quan.
@@ -260,7 +260,7 @@ Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng
 
 #### Phiên Ôn Tập ★ chức năng mới
 
-Sổ Tay hiện là tủ hồ sơ: xem được, lọc được, đánh dấu được — nhưng **không có nút "ôn"**. Thiếu chế độ phiên thì Spaced Repetition chỉ là một cột ngày nằm trong database, không ai dùng tới.
+Sổ Tay từng chỉ là tủ hồ sơ. Phiên Ôn Tập hiện cho người học lật thẻ và tự chấm để lịch ôn giãn cách được sử dụng thực tế.
 
 **Luồng một phiên:**
 
@@ -437,7 +437,7 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 
 ### Trước khi mở công khai
 
-15. Lớp migrate schema và xác thực dữ liệu nhập.
+15. ~~Lớp migrate schema và xác thực dữ liệu nhập.~~ Gói v2 chuyển từ các khóa v1 và kiểm tra toàn bộ tệp sao lưu trước khi khôi phục.
 16. ~~Routing cho sáu màn hình và ba trang công khai.~~
 17. ~~Rank Tier tính tương đối theo `targetScore`.~~
 18. ~~PWA cài được nhưng cần mạng.~~ Đã có manifest, icon 192/512 và service worker network-only; không cache dữ liệu học. Chân trang hiển thị trạng thái lưu trữ thực tế.
