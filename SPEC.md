@@ -161,7 +161,7 @@ Bố cục hai cột, giữ nguyên:
 - **Ba thẻ chỉ số:** điểm mới nhất kèm tên đề, kỷ lục, mức tăng trưởng so với mốc đầu.
 - **Biểu đồ tiến trình:** đường điểm tổng theo thời gian, thang trục co theo `targetScore`.
 - **Chuỗi Ngày Học:** số ngày liên tục, khiên còn lại, lưới bảy ngày trong tuần. Một ngày chỉ được tính khi **thực sự có buổi học được ghi** — không tô theo ngày đã trôi qua. Ngày đã qua mà không học hiển thị khác với ngày chưa tới.
-- **Mục Tiêu:** khoảng cách tới `targetScore`, phần trăm hoàn thành, Listening/Reading. **Mọi con số tính theo `targetScore`, không phải 990.**
+- **Mục Tiêu:** thẻ riêng cho điểm tổng — thanh có vạch tại ngưỡng từng bậc Rank dưới `targetScore` và dải mốc (đã qua / kế tiếp / chưa tới), báo "Còn Xđ tới <mốc kế>". Listening/Reading ở thẻ riêng bên dưới; màu thanh là danh tính kỹ năng, không đổi theo trạng thái. **Mọi con số tính theo `targetScore`, không phải 990.**
 - **Cảnh báo tái phạm:** một dòng thu gọn ở trên cùng, mở ra khi người dùng bấm (mục 4.6).
 
 > **Đã thử và đã gỡ bỏ: "bảng lệnh hôm nay".**
@@ -306,7 +306,7 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 | Hành động chính | `blue-600` | `blue-600` |
 | Streak, cảnh báo kỷ luật | `amber-500` / `orange-500` | như chế độ sáng |
 | Listening | `blue` / `sky` | như chế độ sáng |
-| Reading | `purple` / `violet` | như chế độ sáng |
+| Reading | `orange-500` (tối: `orange-400`) — không dùng tím: xanh/tím chỉ cách ΔE 1.3 với người mù màu đỏ-lục | như chế độ sáng |
 | Thành công, đã thông suốt | `emerald` | như chế độ sáng |
 | Lỗi sai, cần ôn | `rose` | như chế độ sáng |
 
