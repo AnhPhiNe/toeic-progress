@@ -34,18 +34,14 @@ interface DashboardProps {
 }
 
 /**
- * Màu nền thẻ. Mỗi thẻ một tông theo CHỦ ĐỀ của nó, và hai thẻ đứng cạnh
- * nhau không bao giờ chung tông - trang không còn là một mảng trắng liền.
- * Tông chỉ ở mức 50 nên mọi màu tín hiệu bên trong vẫn nổi rõ.
+ * Một bề mặt thẻ cho cả trang: nền trắng, viền mảnh, bóng nhẹ. Thẻ tách
+ * khỏi nền trang nhờ nền trang đậm hơn (App.tsx), KHÔNG nhờ tô màu thẻ -
+ * mỗi thẻ một màu nền đã thử và bị chê chói, rời rạc.
+ * Màu chỉ còn mang nghĩa: xanh dương = điểm / Listening / hành động chính,
+ * cam = Reading, xanh lá / đỏ = tăng / giảm.
  */
-const CARD = 'rounded-2xl border p-4 sm:p-5 transition-colors';
-const TINT = {
-  amber: 'bg-amber-50 border-amber-200/80 dark:bg-amber-950/20 dark:border-amber-900/40',
-  sky: 'bg-sky-50/80 border-sky-200/70 dark:bg-sky-950/20 dark:border-sky-900/40',
-  violet: 'bg-violet-50/80 border-violet-200/70 dark:bg-violet-950/20 dark:border-violet-900/40',
-  teal: 'bg-teal-50/70 border-teal-200/70 dark:bg-teal-950/20 dark:border-teal-900/40',
-  split: 'bg-gradient-to-br from-blue-100/70 via-slate-50 to-orange-100/70 border-slate-200 dark:from-blue-950/20 dark:to-orange-950/20 dark:border-slate-800'
-};
+const CARD =
+  'rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] dark:bg-[#111A2C] dark:border-slate-800 dark:shadow-none';
 
 const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
@@ -233,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       label: 'Chuỗi học',
       value: `${profile.currentStreak} ngày`,
       note: hasStudiedToday ? 'Đã học hôm nay' : 'Giữ nhịp mỗi ngày',
-      color: 'text-orange-600 dark:text-orange-400',
+      color: 'text-slate-900 dark:text-white',
       icon: <Flame className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
     }
   ];
@@ -251,17 +247,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
         {/* ================= CỘT TRÁI ================= */}
-        <div className="xl:col-span-8 space-y-4 sm:space-y-5 min-w-0">
+        <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 min-w-0">
 
           {/* 1. DẢI CHỈ SỐ - một thẻ, bốn ô ngăn bằng vạch; màu nằm ở CON SỐ */}
-          <div className={`${CARD} ${TINT.violet} !p-0 grid grid-cols-2 lg:grid-cols-4`}>
+          <div className={`${CARD} !p-0 grid grid-cols-2 lg:grid-cols-4`}>
             {kpis.map((k, i) => (
               <div
                 key={k.label}
-                className={`p-4 sm:p-5 min-w-0 border-violet-200/70 dark:border-violet-900/40 ${
+                className={`p-4 sm:p-5 min-w-0 border-slate-100 dark:border-slate-800 ${
                   i % 2 === 1 ? 'border-l' : ''
                 } ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}
               >
@@ -279,7 +275,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* 3. BIỂU ĐỒ TIẾN BỘ */}
-          <div className={`${CARD} ${TINT.sky} space-y-4`}>
+          <div className={`${CARD} flex-1 flex flex-col gap-4`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
@@ -287,7 +283,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Điểm quy đổi · các bài Full Test</p>
               </div>
-              <div className="inline-flex p-1 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-sky-200/70 dark:border-slate-700" role="tablist">
+              <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80" role="tablist">
                 {([['ALL', 'Tất cả'], ['FIRST', 'Lần đầu']] as const).map(([key, label]) => (
                   <button
                     key={key}
@@ -306,7 +302,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="h-[260px] sm:h-[280px] w-full rounded-xl bg-white/70 dark:bg-slate-900/40 pt-3 pr-1">
+            <div className="h-[260px] sm:h-[300px] w-full">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 24, right: 24, left: 0, bottom: 4 }}>
@@ -428,7 +424,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end mt-auto">
               <button
                 onClick={onNavigateToAnalytics}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
@@ -442,14 +438,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* ================= CỘT PHẢI ================= */}
-        <div className="xl:col-span-4 space-y-4 sm:space-y-5 min-w-0">
+        <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 min-w-0">
 
           {/* 5. NHỊP HỌC TUẦN NÀY */}
-          <div className={`${CARD} ${TINT.amber} space-y-4`}>
+          <div className={`${CARD} space-y-4`}>
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Nhịp học tuần này</h2>
               <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-900/50 text-sm font-bold text-amber-700 dark:text-amber-300 shrink-0"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 shrink-0"
                 title="Chuỗi ngày học liên tục"
               >
                 <Flame className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
@@ -459,7 +455,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm text-slate-700 dark:text-slate-200">
-                <span className="text-xl font-black text-amber-600 dark:text-amber-400 tabular-nums">
+                <span className="text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
                   {weekDays.filter(d => d.isCompleted).length}
                 </span>
                 <span className="font-semibold"> / 7 ngày</span>
@@ -477,19 +473,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       d.isCompleted
-                        ? 'bg-amber-500 text-white'
+                        ? 'bg-blue-600 text-white'
                         : d.isCurrent
-                        ? 'bg-white dark:bg-slate-900 border-2 border-dashed border-amber-500'
+                        ? 'bg-white dark:bg-slate-900 border-2 border-dashed border-blue-400'
                         : d.isMissed
                         ? 'bg-white/60 dark:bg-slate-900/40 border border-dashed border-slate-300 dark:border-slate-700'
                         : 'bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700'
                     }`}
                   >
                     {d.isCompleted && <CheckCircle2 className="w-4 h-4" />}
-                    {!d.isCompleted && d.isCurrent && <Flame className="w-4 h-4 text-amber-500" />}
+                    {!d.isCompleted && d.isCurrent && <Flame className="w-4 h-4 text-blue-500" />}
                   </div>
                   <span className={`text-xs font-semibold ${
-                    d.isCurrent ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
+                    d.isCurrent ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
                   }`}>
                     {d.label}
                   </span>
@@ -497,7 +493,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               ))}
             </div>
 
-            <div className="pt-3 border-t border-amber-200/70 dark:border-amber-900/40 flex items-center justify-between gap-2 text-sm">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-sm">
               <span className="text-slate-600 dark:text-slate-300">Mục tiêu mỗi ngày</span>
               <span className="inline-flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
                 <Clock className="w-4 h-4 text-slate-500 shrink-0" />
@@ -509,12 +505,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* 6. KỸ NĂNG HIỆN TẠI.
               Màu thanh là DANH TÍNH kỹ năng và không đổi theo trạng thái:
               Listening xanh dương, Reading cam (ΔE 30 với người mù màu đỏ-lục). */}
-          <div className={`${CARD} ${TINT.split} space-y-5`}>
+          <div className={`${CARD} flex-1 flex flex-col gap-5`}>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
 
             {[
-              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-blue-500 dark:bg-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', iconBox: 'bg-blue-100/80 border-blue-200 dark:bg-blue-950/50 dark:border-blue-900/60' },
-              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-orange-500 dark:bg-orange-400', iconColor: 'text-orange-600 dark:text-orange-400', iconBox: 'bg-orange-100/80 border-orange-200 dark:bg-orange-950/50 dark:border-orange-900/60' }
+              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-blue-500 dark:bg-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', iconBox: 'bg-blue-50 border-blue-100 dark:bg-blue-950/50 dark:border-blue-900/60' },
+              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-orange-500 dark:bg-orange-400', iconColor: 'text-orange-600 dark:text-orange-400', iconBox: 'bg-orange-50 border-orange-100 dark:bg-orange-950/50 dark:border-orange-900/60' }
             ].map(item => {
               const percent = Math.min(100, Math.round((item.score / 495) * 100));
               return (
@@ -535,7 +531,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {percent}%
                       </span>
                     </div>
-                    <div className="mt-2 w-full h-2 rounded-full bg-white dark:bg-slate-800 overflow-hidden">
+                    <div className="mt-2 w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${item.bar}`}
                         style={{ width: `${Math.max(2, percent)}%` }}
@@ -547,7 +543,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             })}
 
             {latestTest && (
-              <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200">
+              <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200">
                 <Target className="w-4 h-4 text-slate-500 shrink-0" />
                 <span className="min-w-0">
                   {latestGap > 0 ? (
@@ -561,7 +557,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <button
               onClick={onNavigateToAnalytics}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
+              className="mt-auto self-start inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
             >
               Xem điểm cần cải thiện
               <ArrowRight className="w-4 h-4" />
@@ -571,7 +567,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* 8. BUỔI HỌC GẦN ĐÂY - trải hết chiều ngang, dưới cả hai cột */}
-      <div className={`${CARD} ${TINT.teal}`}>
+      <div className={CARD}>
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Buổi học gần đây</h2>
           <button
@@ -586,8 +582,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {recentSessions.length === 0 ? (
           <p className="py-4 text-sm text-slate-500 dark:text-slate-400">Chưa có buổi học nào được ghi.</p>
         ) : (
-          <div className="rounded-xl bg-white/80 dark:bg-slate-900/50 border border-teal-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
-            <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <span className="col-span-6">Đề thi</span>
               <span className="col-span-2">Ngày</span>
               <span className="col-span-2">Kết quả</span>

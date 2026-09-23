@@ -207,7 +207,7 @@ export const App: React.FC = () => {
   const hasStudiedToday = sessions.some(s => s.date === today) || profile.lastStudyDate === today;
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] dark:bg-[#0B111E] text-slate-800 dark:text-slate-100 flex transition-colors">
+    <div className="min-h-screen bg-[#EAEFF5] dark:bg-[#0B111E] text-slate-800 dark:text-slate-100 flex transition-colors">
       
       {/* 1. Sidebar (Desktop Persistent & Mobile Overlay Drawer Unified) */}
       <Sidebar

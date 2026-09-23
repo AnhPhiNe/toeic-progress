@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.4** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.5** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -168,7 +168,11 @@ Bố cục (v2.4):
 - **Buổi học gần đây:** bốn buổi mới nhất, cả Full Test (điểm) lẫn luyện Part (% đúng).
 - **Mọi con số tính theo `targetScore`, không phải 990.**
 
-**Quy tắc trình bày:** mỗi thẻ một tông nền mức 50, hai thẻ đứng cạnh nhau không chung tông, không thẻ nào nền trắng trơn. Chữ nhỏ nhất 12px.
+**Quy tắc trình bày:**
+- Mọi thẻ chung **một** bề mặt: nền trắng, viền `slate-200`, bóng nhẹ. Thẻ tách khỏi trang nhờ nền trang `#EAEFF5` đậm hơn, không nhờ tô màu thẻ. *(Đã thử mỗi thẻ một tông nền — bị chê chói và rời rạc. Đừng quay lại.)*
+- Màu chỉ mang nghĩa: xanh dương = điểm, Listening, hành động chính, ngày đã học · cam = **chỉ** Reading · xanh lá / đỏ = tăng / giảm. Số chuỗi học để trung tính, chỉ icon lửa có màu.
+- Hai cột cao bằng nhau: thẻ cuối mỗi cột (biểu đồ, kỹ năng) giãn ra lấp phần dư, link "Xem…" dồn xuống đáy thẻ.
+- Chữ nhỏ nhất 12px.
 
 > **Đã thử và đã gỡ bỏ trên màn hình này:**
 > - *Bảng lệnh hôm nay* (nhiều dòng việc) — phá bố cục, lặp số liệu của các thẻ khác.
@@ -305,17 +309,17 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 
 | Vai trò | Sáng | Tối |
 | :--- | :--- | :--- |
-| Nền trang | `#F1F5F9` | `#0B111E` |
+| Nền trang | `#EAEFF5` | `#0B111E` |
 | Nền card | `#FFFFFF` | `#121A2B` |
 | Nền sidebar | `#FFFFFF` | `#0E1526` |
 | Hành động chính | `blue-600` | `blue-600` |
-| Streak, cảnh báo kỷ luật | `amber-500` / `orange-500` | như chế độ sáng |
+| Streak | icon lửa cam; số và ngày đã học dùng màu trung tính / xanh chủ đạo | như chế độ sáng |
 | Listening | `blue` / `sky` | như chế độ sáng |
 | Reading | `orange-500` (tối: `orange-400`) — không dùng tím: xanh/tím chỉ cách ΔE 1.3 với người mù màu đỏ-lục | như chế độ sáng |
 | Thành công, đã thông suốt | `emerald` | như chế độ sáng |
 | Lỗi sai, cần ôn | `rose` | như chế độ sáng |
 
-**Màu phải mang nghĩa.** Hiện bốn thẻ KPI ở Phân Tích dùng bốn màu pastel khác nhau không biểu thị điều gì — đó là màu trang trí, làm loãng tín hiệu thật.
+**Màu phải mang nghĩa.** Nền thẻ luôn trắng (tối: `#111A2C`); không tô nền thẻ theo chủ đề. Bốn thẻ KPI ở Phân Tích vẫn còn bốn màu pastel trang trí — cần dọn theo cùng quy tắc.
 
 ### 5.3. Bố cục & chữ
 
