@@ -168,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <nav key={group.title} aria-label={group.title}>
               {compact
                 ? groupIndex > 0 && <div className="mx-auto mb-3 h-px w-7 bg-slate-200 dark:bg-slate-700" />
-                : <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.05em] text-slate-500 dark:text-slate-400">{group.title}</p>}
+                : <p className="mb-2 px-3 text-xs font-semibold tracking-[0.05em] text-slate-500 dark:text-slate-400">{group.title}</p>}
               <div className="space-y-1">
                 {group.items.map(item => {
                   const Icon = item.icon;
@@ -183,7 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         (compact ? ' justify-center !px-0' : '') +
                         (active
                           ? ' bg-white text-slate-900 shadow-[0_2px_10px_rgba(31,45,74,0.08)] dark:bg-slate-800 dark:text-white dark:shadow-none'
-                          : ' text-slate-600 hover:bg-white/75 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-white')
+                          : ' text-slate-600 hover:bg-white/55 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-white')
                       }
                       aria-label={item.fullLabel}
                       aria-current={active ? 'page' : undefined}
@@ -196,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {!compact && <>
                         <span className="min-w-0 flex-1 truncate">{item.label}</span>
                         {item.badge !== undefined && (
-                          <span className="flex min-w-5 items-center justify-center rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-700 dark:bg-slate-700 dark:text-slate-200" aria-label={item.badge + ' lỗi cần ôn'}>
+                          <span className="flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-700 dark:text-slate-200" aria-label={item.badge + ' lỗi cần ôn'}>
                             {item.badge}
                           </span>
                         )}
@@ -215,19 +215,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className={'shrink-0 border-t border-slate-200/80 pt-3 dark:border-slate-800 ' + (compact ? 'mt-4' : 'mt-6')}>
+      <div className={'shrink-0 border-t border-slate-300/50 pt-3 dark:border-slate-800 ' + (compact ? 'mt-4' : 'mt-6')}>
         <button
           type="button"
           onClick={() => openSettings(mobile)}
-          className={'group flex min-h-12 w-full items-center rounded-xl text-left outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none dark:hover:bg-slate-800 ' + (compact ? 'justify-center' : 'gap-3 px-2')}
+          className={'group flex min-h-12 w-full items-center rounded-xl text-left outline-none transition-colors hover:bg-white/55 focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none dark:hover:bg-slate-800 ' + (compact ? 'justify-center' : 'gap-3 px-2')}
           aria-label={'Cài đặt hồ sơ ' + displayName}
           title={compact ? 'Cài đặt và sao lưu' : 'Cài đặt và sao lưu dữ liệu'}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[12px] font-bold text-slate-700 dark:bg-slate-700 dark:text-white">{initials}</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[12px] font-bold text-slate-700 dark:bg-slate-700 dark:text-white">{initials}</span>
           {!compact && <>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12px] font-semibold text-slate-900 dark:text-white">{displayName}</span>
-              <span className="block text-[11px] text-slate-500 dark:text-slate-400">Mục tiêu {profile.targetScore || 990}đ</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">Mục tiêu {profile.targetScore || 990}đ</span>
             </span>
             <Settings size={17} strokeWidth={1.7} className="shrink-0 text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-300" aria-hidden="true" />
           </>}
@@ -237,13 +237,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return <>
-    <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 border-r border-slate-200/80 bg-[#F7F9FC] p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:border-slate-800 dark:bg-[#0E1526] dark:text-slate-100 md:block ' + (isCollapsed ? 'w-[72px]' : 'w-[264px]')}>
+    {/* Khung app cùng màu nền trang (#EAEFF5): trắng chỉ dành cho nội dung.
+        Sidebar trắng + topbar trắng + footer trắng từng làm cả màn hình thành
+        một mảng trắng chói, không phân biệt được khung và nội dung. */}
+    <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 bg-[#EAEFF5] p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:bg-[#0B111E] dark:text-slate-100 md:block ' + (isCollapsed ? 'w-[72px]' : 'w-[264px]')}>
       {renderContent(false, isCollapsed)}
     </aside>
     {isMobileOpen && (
       <div className="fixed inset-0 z-50 flex md:hidden" role="dialog" aria-modal="true" aria-label="Điều hướng">
         <button type="button" className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onCloseMobile} aria-label="Đóng menu điều hướng" />
-        <div className="relative h-full w-[280px] max-w-[86vw] border-r border-slate-200 bg-[#F7F9FC] p-4 shadow-2xl dark:border-slate-800 dark:bg-[#0E1526]">
+        <div className="relative h-full w-[280px] max-w-[86vw] bg-[#EAEFF5] p-4 shadow-2xl dark:bg-[#0B111E]">
           {renderContent(true, false)}
         </div>
       </div>

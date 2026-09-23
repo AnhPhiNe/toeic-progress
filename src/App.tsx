@@ -385,7 +385,8 @@ export const App: React.FC = () => {
         </main>
 
         {/* Modern 2-sided Sleek Footer */}
-        <footer className="bg-white/80 dark:bg-[#0E1526]/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 py-3.5 sm:py-4 text-xs text-slate-500 dark:text-slate-400 transition-colors shadow-[0_-1px_3px_0_rgba(0,0,0,0.02)]">
+        {/* Footer là một dòng chữ trên nền trang, không phải thanh trắng */}
+        <footer className="border-t border-slate-300/50 dark:border-slate-800 py-3 text-xs text-slate-500 dark:text-slate-400 transition-colors">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -393,7 +394,7 @@ export const App: React.FC = () => {
               <span className="text-slate-300 dark:text-slate-700">•</span>
               <span>Trạm Luyện Thi Cá Nhân</span>
             </div>
-            <div className="flex items-center space-x-1.5 text-[11px] text-slate-400 dark:text-slate-500">
+            <div className="flex flex-wrap items-center justify-center gap-x-1.5 text-xs text-slate-500 dark:text-slate-400">
               <span>{account.status === 'synced' ? 'Đã đồng bộ' : account.status === 'syncing' ? 'Đang đồng bộ' : getActiveAccountId() ? 'Chưa kết nối' : 'Chế độ khách · lưu trên máy này'}</span>
               <span>•</span>
               <span>{getActiveAccountId() ? 'Tài khoản nhiều thiết bị' : 'Dữ liệu trên máy này'}</span>

@@ -79,7 +79,9 @@ export const Topbar: React.FC<TopbarProps> = ({
   const isExamUrgent = daysUntilExam !== null && daysUntilExam <= 14;
 
   return (
-    <header className="sticky top-0 z-20 w-full bg-white/75 dark:bg-[#0F172A]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-[0_1px_3px_0_rgba(0,0,0,0.02)] transition-colors">
+    // Cùng màu nền trang, không viền, không bóng: topbar là một phần của khung,
+    // không phải một thanh trắng thứ ba. Mờ nền để nội dung cuộn qua vẫn đọc được.
+    <header className="sticky top-0 z-20 w-full bg-[#EAEFF5]/85 dark:bg-[#0B111E]/85 backdrop-blur-md transition-colors">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-15 gap-2 sm:gap-3">
           
@@ -87,14 +89,14 @@ export const Topbar: React.FC<TopbarProps> = ({
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <button
               onClick={onToggleMobileMenu}
-              className="md:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="md:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800 transition cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Mở menu điều hướng"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                 <TabIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </div>
 
@@ -113,7 +115,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               className={`h-9 flex items-center space-x-1.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer group shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isExamUrgent
                   ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 animate-pulse'
-                  : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+                  : 'bg-white/60 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800/80 border-transparent text-slate-700 dark:text-slate-200'
               }`}
               title="Đếm ngược ngày thi chính thức (Bấm để đổi ngày thi trong Cài đặt)"
               aria-label={daysUntilExam !== null ? `Đếm ngược ngày thi: D-${daysUntilExam}. Bấm để cài đặt.` : "Chưa đặt ngày thi. Bấm để cài đặt."}
@@ -143,7 +145,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             {/* Theme Toggle Button: Boxed Squircle Plate */}
             <button
               onClick={toggleTheme}
-              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               title={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
               aria-label={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
             >
@@ -157,7 +159,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             {/* Settings Trigger: Boxed Squircle Plate */}
             <button
               onClick={onOpenSettings}
-              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800 transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               title="Cài đặt hệ thống & Quản lý dữ liệu"
               aria-label="Cài đặt hệ thống & Quản lý dữ liệu"
             >
