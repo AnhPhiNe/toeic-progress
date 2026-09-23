@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import { StudySession, UserProfile } from '../types';
 import { getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
+import { CARD } from './surfaces';
 
 interface DashboardProps {
   /** Cảnh báo tái phạm, đặt ngay đầu trang khi có (SPEC mục 4.6) */
@@ -34,16 +35,7 @@ interface DashboardProps {
   onNavigateToAnalytics: () => void;
 }
 
-/**
- * Một bề mặt thẻ cho cả trang: nền trắng, viền mảnh, bóng nhẹ. Thẻ tách
- * khỏi nền trang nhờ nền trang đậm hơn (App.tsx), KHÔNG nhờ tô màu thẻ -
- * mỗi thẻ một màu nền đã thử và bị chê chói, rời rạc.
- * Ngoại lệ duy nhất: thẻ Chuỗi Ngày Học giữ nền hổ phách (người dùng chọn).
- * Màu chỉ mang nghĩa: xanh dương = điểm / biểu đồ / hành động chính,
- * cyan = Listening, tím = Reading, xanh lá / đỏ = tăng / giảm.
- */
-const CARD =
-  'rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] dark:bg-[#111A2C] dark:border-slate-800 dark:shadow-none';
+// Bề mặt thẻ dùng chung với các màn hình khác (xem surfaces.ts)
 
 const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');

@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.9** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.10** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -239,19 +239,22 @@ Chừng nào còn không lưu gì, nó vẫn sẽ có cảm giác thừa — kh�
 
 ### 4.5. Phân Tích (Analytics)
 
+**Trình bày đồng bộ với Tổng Quan** (v2.10): thẻ dùng chung `CARD` trong `src/components/surfaces.ts`; dải bốn chỉ số cùng kiểu và cùng bốn tông (xanh dương · xanh lá/đỏ · hổ phách · hồng); biểu đồ ghi số trên từng chấm, chấm mới nhất tô đặc, nhãn mục tiêu trên đường, không hiệu ứng vẽ; Listening chàm · Reading xanh ngọc ở mọi nơi (`SKILL_COLORS`) kể cả hộp chi tiết; chữ tối thiểu 12px. Đã gỡ: hai đường mốc Rank 800/900 trên biểu đồ, nền tím/xanh của hai khối ma trận.
+
 - **Timeline:** điểm tổng, Listening và Reading theo thời gian. Đường tham chiếu đặt tại `targetScore`. Lọc theo lượt làm: tất cả, chỉ lần đầu, hoặc điểm cao nhất.
 - **Ma trận năng lực 7 Part:** tỷ lệ chính xác từng Part dạng thanh capsule. **Không dùng biểu đồ radar** — bảy trục có thang tối đa lệch nhau (6 câu so với 54 câu), radar sẽ bóp méo hình dạng và đánh lừa mắt. v1 chỉ định radar; quyết định này thay thế. **Tính theo trung bình trượt N đề gần nhất**, không phải trung bình trọn đời — nếu không, những đề tệ lúc mới bắt đầu sẽ kéo chỉ số xuống vĩnh viễn.
-- **Chẩn đoán theo nguyên nhân** *(ưu tiên cao nhất — xem mục 1.4 điểm 1)*: tổng hợp sáu nhóm lỗi từ Sổ tay thành biểu đồ phân bố, kèm diễn giải bằng lời. Phải trả lời được "nguyên nhân nào làm mất nhiều điểm nhất, và nó rải ở những Part nào". Hiện `mistakes` đã được truyền vào màn hình này nhưng chỉ dùng để liệt kê lỗi của một buổi khi bấm xem chi tiết — sáu nhóm nguyên nhân **chưa từng được tổng hợp**. *Chưa xây.*
+- **Chẩn đoán theo nguyên nhân** *(ưu tiên cao nhất — xem mục 1.4 điểm 1)*: tổng hợp sáu nhóm lỗi từ Sổ tay thành biểu đồ phân bố, kèm diễn giải bằng lời. Phải trả lời được "nguyên nhân nào làm mất nhiều điểm nhất, và nó rải ở những Part nào". Hiện `mistakes` đã được truyền vào màn hình này nhưng chỉ dùng để liệt kê lỗi của một buổi khi bấm xem chi tiết — sáu nhóm nguyên nhân **chưa từng được tổng hợp**. *Đã xây.*
 - **Xếp ưu tiên theo lợi ích** *(mục 1.4 điểm 4)*: ước tính số điểm thu được nếu khắc phục từng điểm nghẽn, rồi xếp hạng. Kết quả cấp dữ liệu cho màn hình Kế Hoạch. *Chưa xây.*
 - **Phân tích thời gian:** xu hướng tổng thời gian làm bài theo từng đề, cộng với đường cong mệt mỏi dựng từ dữ liệu pha vượt giờ của Bộ đếm nhịp. *Chưa xây.*
-- **Bảng lịch sử:** lọc, sắp xếp, xem chi tiết, xóa. **Cần bổ sung sửa.**
+- **Bảng lịch sử:** lọc, sắp xếp, xem chi tiết, sửa, xóa.
+- **Gợi ý dưới ma trận** tính từ dữ liệu thật: Part thấp nhất, số câu trung bình, và ≈ +5đ mỗi câu đúng thêm. *(Bản cũ ghi cứng "~2 câu · +25đ" cho mọi người dùng — đã sửa.)*
 - **Độ ổn định phong độ:** độ lệch chuẩn, cũng tính trên N đề gần nhất.
 
 ### 4.6. Sổ Tay Bẫy (Mistake Notebook)
 
 - **Một bản ghi gồm:** Part, ngữ cảnh câu hỏi, lỗi đã mắc, đáp án đúng kèm giải thích bẫy, phân loại nguyên nhân, thẻ tag tự do.
 - **Sáu nhóm nguyên nhân:** bẫy từ vựng và paraphrase · ngữ pháp nâng cao · tốc độ nghe và nối âm · áp lực thời gian · mất tập trung và đọc ẩu · khác.
-- **Sửa được bản ghi.** Hiện chỉ toggle và xóa; gõ nhầm một chữ phải xóa rồi gõ lại.
+- **Sửa được bản ghi** — giữ nguyên trạng thái và lịch ôn giãn cách.
 - **Bộ lọc:** theo Part, trạng thái, nhóm nguyên nhân, và tìm kiếm toàn văn.
 
 #### Phiên Ôn Tập ★ chức năng mới
@@ -322,7 +325,7 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 | Thành công, đã thông suốt | `emerald` | như chế độ sáng |
 | Lỗi sai, cần ôn | `rose` | như chế độ sáng |
 
-**Màu phải mang nghĩa.** Nền thẻ luôn trắng (tối: `#111A2C`); không tô nền thẻ theo chủ đề. Bốn thẻ KPI ở Phân Tích vẫn còn bốn màu pastel trang trí — cần dọn theo cùng quy tắc.
+**Màu phải mang nghĩa.** Nền thẻ luôn trắng (tối: `#111A2C`); không tô nền thẻ theo chủ đề — ngoại lệ duy nhất là thẻ Chuỗi Ngày Học. Tổng Quan và Phân Tích dùng chung `CARD` / `SKILL_COLORS` trong `surfaces.ts`; màn hình mới phải import từ đó thay vì tự viết lớp màu.
 
 ### 5.3. Bố cục & chữ
 

@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, 
   TrendingDown,
-  Target, 
   Trash2,
   Pencil,
   Search,
@@ -36,6 +35,7 @@ import {
 import { StudySession, MistakeEntry, LRPartScore, UserProfile, ErrorCategory, ERROR_CATEGORY_LABELS, ChartAttemptFilter } from '../types';
 import { calculatePartAccuracy, PART_MAX_QUESTIONS, getPracticeParts } from '../utils/etsScoring';
 import { loadUserProfile, computeSessionAttemptMap, getRetestStats } from '../utils/storage';
+import { CARD, SKILL_COLORS } from './surfaces';
 
 // Tên tiếng Việt ngắn gọn, dễ đọc, không rườm rà
 const PART_SHORT_NAMES: Record<keyof LRPartScore, string> = {
@@ -559,418 +559,304 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     };
   }, [chartData, goalScore]);
 
+  const isDark = theme === 'dark';
+
+  /**
+   * Dải bốn chỉ số, cùng kiểu và cùng bốn tông màu với Tổng Quan:
+   * xanh dương, xanh lá (đỏ khi giảm), hổ phách, hồng.
+   */
+  const isUp = stats.breakthrough >= 0;
+  const hasTests = stats.totalTests > 0;
+  const stabilityLabel = stats.totalTests <= 1
+    ? 'Cần từ 2 đề'
+    : stats.stability <= 25 ? 'Rất ổn định' : stats.stability <= 45 ? 'Phong độ tốt' : 'Dao động mạnh';
+  const kpis: {
+    label: string;
+    value: string | number;
+    suffix?: string;
+    note: string;
+    hint?: string;
+    icon: React.ElementType;
+    number: string;
+    badge: string;
+    pill: string;
+  }[] = [
+    {
+      label: 'Điểm trung bình',
+      value: hasTests ? stats.avg : '—',
+      suffix: `/ ${goalScore}`,
+      note: retestStats.retestCount > 0 ? `Đề mới: ${retestStats.firstAttemptAvg}` : `${stats.totalTests} đề Full Test`,
+      hint: retestStats.retestCount > 0
+        ? `Số lớn tính mọi lượt, kể cả ${retestStats.retestCount} lượt làm lại. "Đề mới" chỉ tính lần làm đầu mỗi đề - con số sát thực lực hơn, vì làm lại thì nhớ đáp án (trung bình +${retestStats.avgRetestGain}đ).`
+        : undefined,
+      icon: BarChart3,
+      number: 'text-blue-600 dark:text-blue-400',
+      badge: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400',
+      pill: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+    },
+    {
+      label: 'Bứt phá',
+      value: stats.totalTests > 1 ? `${stats.breakthrough > 0 ? '+' : ''}${stats.breakthrough}` : '—',
+      note: stats.totalTests > 1 ? `${stats.firstScore} → ${stats.latestScore}` : 'Cần từ 2 đề',
+      icon: isUp ? TrendingUp : TrendingDown,
+      number: isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
+      badge: isUp
+        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+        : 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
+      pill: isUp
+        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+    },
+    {
+      label: 'Kỷ lục',
+      value: hasTests ? stats.highest : '—',
+      note: `L ${stats.highestListening} · R ${stats.highestReading}`,
+      icon: Award,
+      number: 'text-amber-600 dark:text-amber-400',
+      badge: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400',
+      pill: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+    },
+    {
+      label: 'Độ ổn định',
+      value: stats.totalTests > 1 ? `±${stats.stability}` : '—',
+      note: stabilityLabel,
+      hint: 'Độ lệch chuẩn tổng điểm các bài Full Test - càng nhỏ phong độ càng đều.',
+      icon: Zap,
+      number: 'text-pink-600 dark:text-pink-400',
+      badge: 'bg-pink-50 text-pink-600 dark:bg-pink-950/60 dark:text-pink-400',
+      pill: 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300'
+    }
+  ];
+
   return (
-    <div className="space-y-5 animate-fade-in text-slate-800 dark:text-slate-200">
+    <div className="space-y-4 animate-fade-in text-slate-800 dark:text-slate-200">
       
-      {/* 1. Top 4 High-Value Bento KPI Cards (Compact & Tinh Tế theo chuẩn UI/UX Pro Max) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-        {/* Card 1: Điểm Trung Bình - Vibrant Blue Pastel Gradient */}
-        <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-blue-100/90 via-blue-50/75 to-indigo-100/50 dark:from-blue-950/60 dark:via-slate-900/90 dark:to-blue-950/40 border border-blue-300/80 dark:border-blue-800/70 shadow-xs hover:shadow-md hover:border-blue-400 dark:hover:border-blue-700 transition-all duration-200 group flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/15 dark:bg-blue-500/20 rounded-full blur-xl pointer-events-none" />
-          <div>
-            <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate mr-1">
-                Điểm Trung Bình
+      {/* 1. DẢI CHỈ SỐ - cùng kiểu dải bốn ô ở Tổng Quan: ô icon màu, con số
+          cùng màu, nhãn màu thay cho dòng chữ xám. Cùng bốn tông màu. */}
+      <div className={`${CARD} !p-0 grid grid-cols-2 lg:grid-cols-4`}>
+        {kpis.map((k, i) => (
+          <div
+            key={k.label}
+            className={`px-3 py-3.5 2xl:px-5 min-w-0 border-slate-100 dark:border-slate-800 ${
+              i % 2 === 1 ? 'border-l' : ''
+            } ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${k.badge}`}>
+                <k.icon className="w-4 h-4" />
               </span>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 flex items-center justify-center shadow-2xs shrink-0">
-                <Target className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </div>
+              <span className="text-sm font-semibold leading-tight text-slate-600 dark:text-slate-300 min-w-0">{k.label}</span>
             </div>
-            <div className="flex items-baseline space-x-1">
-              <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 tracking-tight tabular-nums leading-none">
-                {stats.avg > 0 ? stats.avg : '--'}
-              </div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">/ {goalScore}đ</span>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className={`text-[28px] font-black tabular-nums leading-none ${k.number}`}>{k.value}</span>
+              {k.suffix && <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">{k.suffix}</span>}
             </div>
-          </div>
-          <div className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-blue-200/70 dark:border-blue-900/50 shadow-2xs flex items-center justify-between gap-1 text-[11px] backdrop-blur-xs">
-            <span className="font-bold text-slate-700 dark:text-slate-300 truncate">
-              {retestStats.retestCount > 0 
-                ? `Đề mới: ${retestStats.firstAttemptAvg}đ` 
-                : `${stats.totalTests} đề Full Test`}
-            </span>
-            {retestStats.retestCount > 0 ? (
-              <span 
-                className="inline-flex items-center text-blue-700 dark:text-blue-300 font-black bg-blue-100/90 dark:bg-blue-950/80 border border-blue-200/80 dark:border-blue-800/80 px-1.5 py-0.5 rounded text-[10.5px] shadow-2xs shrink-0"
-                title={`Đã làm lại ${retestStats.retestCount} lượt đề thi cũ. Trung bình tăng +${retestStats.avgRetestGain}đ so với lần đầu.`}
-              >
-                ▲ +{retestStats.avgRetestGain}đ
-              </span>
-            ) : (
-              <span className="inline-flex items-center text-blue-700 dark:text-blue-300 font-black bg-blue-100 dark:bg-blue-950/80 px-1.5 py-0.5 rounded text-[10.5px] shadow-2xs shrink-0">
-                ETS Scaled
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Card 2: Mức Độ Bứt Phá - Vibrant Emerald Pastel Gradient */}
-        <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-emerald-100/90 via-emerald-50/75 to-teal-100/50 dark:from-emerald-950/60 dark:via-slate-900/90 dark:to-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/70 shadow-xs hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-700 transition-all duration-200 group flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/15 dark:bg-emerald-500/20 rounded-full blur-xl pointer-events-none" />
-          <div>
-            <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate mr-1">
-                Mức Độ Bứt Phá
-              </span>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center shadow-2xs shrink-0">
-                <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </div>
-            </div>
-            <div className="flex items-baseline space-x-1">
-              <div className={`text-xl sm:text-2xl font-black tracking-tight tabular-nums leading-none ${
-                stats.breakthrough >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-400'
-              }`}>
-                {stats.breakthrough > 0 ? `+${stats.breakthrough}` : stats.breakthrough}
-              </div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">điểm</span>
-            </div>
-          </div>
-          <div className="mt-2 sm:mt-2.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-emerald-200/70 dark:border-emerald-900/50 flex items-center justify-between gap-1 text-[11px] backdrop-blur-xs">
-            <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0">So với mốc đầu</span>
-            <div className="flex items-center gap-1 text-[11px] shrink-0 font-bold">
-              <span className="text-slate-600 dark:text-slate-300">{stats.firstScore}đ</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-black">➔</span>
-              <span className="bg-emerald-200/90 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 px-1 py-0.5 rounded text-[10.5px] font-black shadow-2xs">
-                {stats.latestScore}đ
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Kỷ Lục Điểm Số (Personal Best) - Vibrant Amber Pastel Gradient */}
-        <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-amber-100/90 via-amber-50/75 to-orange-100/50 dark:from-amber-950/60 dark:via-slate-900/90 dark:to-amber-950/40 border border-amber-300/80 dark:border-amber-800/70 shadow-xs hover:shadow-md hover:border-amber-400 dark:hover:border-amber-700 transition-all duration-200 group flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/15 dark:bg-amber-500/20 rounded-full blur-xl pointer-events-none" />
-          <div>
-            <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate mr-1">
-                Kỷ Lục Điểm Số (PB)
-              </span>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-center shadow-2xs shrink-0">
-                <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </div>
-            </div>
-            <div className="flex items-baseline space-x-1">
-              <div className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300 tracking-tight tabular-nums leading-none">
-                {stats.highest > 0 ? stats.highest : '--'}
-              </div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">điểm</span>
-            </div>
-          </div>
-          <div className="mt-2 sm:mt-2.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-amber-200/70 dark:border-amber-900/50 flex items-center justify-between gap-1 text-[11px] backdrop-blur-xs">
-            <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0">Đỉnh LC / RC</span>
-            <div className="flex items-center gap-1 shrink-0">
-              <span className="bg-amber-200/90 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 py-0.5 rounded text-[10.5px] font-black shadow-2xs">
-                L: {stats.highestListening}
-              </span>
-              <span className="bg-amber-200/90 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 py-0.5 rounded text-[10.5px] font-black shadow-2xs">
-                R: {stats.highestReading}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Độ Ổn Định Phong Độ - Vibrant Purple Pastel Gradient */}
-        <div className="relative overflow-hidden p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-purple-100/90 via-purple-50/75 to-violet-100/50 dark:from-purple-950/60 dark:via-slate-900/90 dark:to-purple-950/40 border border-purple-300/80 dark:border-purple-800/70 shadow-xs hover:shadow-md hover:border-purple-400 dark:hover:border-purple-700 transition-all duration-200 group flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/15 dark:bg-purple-500/20 rounded-full blur-xl pointer-events-none" />
-          <div>
-            <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider truncate mr-1">
-                Độ Ổn Định Phong Độ
-              </span>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/90 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80 flex items-center justify-center shadow-2xs shrink-0">
-                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </div>
-            </div>
-            <div className="flex items-baseline space-x-1">
-              <div className="text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-300 tracking-tight tabular-nums leading-none">
-                {stats.totalTests > 1 ? `±${stats.stability}` : '--'}
-              </div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">điểm</span>
-            </div>
-          </div>
-          <div className="mt-2 sm:mt-2.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-purple-200/70 dark:border-purple-900/50 flex items-center justify-between gap-1 text-[11px] backdrop-blur-xs">
-            <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0">Đánh giá</span>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded font-black text-[10.5px] shadow-2xs shrink-0 ${
-              stats.totalTests <= 1 
-                ? 'bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                : stats.stability <= 25 
-                ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60'
-                : stats.stability <= 45
-                ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-300/60 dark:border-blue-800/60'
-                : 'bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-300/60 dark:border-purple-800/60'
-            }`}>
-              {stats.totalTests <= 1 
-                ? 'Cần thêm đề' 
-                : stats.stability <= 25 
-                ? 'Rất Ổn Định' 
-                : stats.stability <= 45
-                ? 'Phong Độ Tốt' 
-                : 'Đang Bứt Tốc'}
+            <span
+              className={`mt-2 inline-block max-w-full truncate px-2 py-0.5 rounded-md text-xs font-semibold ${k.pill}`}
+              title={k.hint || k.note}
+            >
+              {k.note}
             </span>
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* 2. Main Growth Timeline Chart (Dual Y-Axis, Clean TOEIC Ticks, High Contrast) */}
-      <div className="p-5 rounded-2xl bg-white/90 dark:bg-[#0E1526]/90 border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-2xs border border-blue-100/80 dark:border-blue-900/60">
-              <BarChart3 className="w-4 h-4" />
-            </div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
-              Lộ Trình Tăng Trưởng Điểm Số
-            </h2>
+      {/* 2. LỘ TRÌNH TĂNG TRƯỞNG - cùng kiểu biểu đồ ở Tổng Quan: số điểm trên
+          từng chấm, chấm mới nhất tô đặc, nhãn mục tiêu nằm trên đường. */}
+      <div className={`${CARD} space-y-4`}>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Lộ trình tăng trưởng</h2>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+              {chartViewMode === 'TOTAL' ? 'Tổng điểm quy đổi · các bài Full Test' : 'Listening và Reading trên cùng thang 495'}
+            </p>
           </div>
 
-          {/* Chart Controls: Clean Dropdown Filter + Segmented View Mode Toggle */}
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            {/* 1. Attempt Scope Filter Dropdown */}
-            <div className="relative inline-flex items-center">
-              <div className="flex items-center space-x-1.5 bg-slate-100/80 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-xs shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
-                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <select
-                  value={chartAttemptFilter}
-                  onChange={(e) => setChartAttemptFilter(e.target.value as ChartAttemptFilter)}
-                  aria-label="Lọc lượt thi"
-                  className="bg-transparent font-semibold text-slate-700 dark:text-slate-200 text-xs outline-none cursor-pointer pr-1"
-                >
-                  <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
-                    Tất cả lượt thi
-                  </option>
-                  <option value="FIRST_ONLY" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
-                    Chỉ lần đầu (Đề mới)
-                  </option>
-                  <option value="BEST_ONLY" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
-                    Điểm cao nhất mỗi đề
-                  </option>
-                </select>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-sm">
+              <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+              <select
+                value={chartAttemptFilter}
+                onChange={(e) => setChartAttemptFilter(e.target.value as ChartAttemptFilter)}
+                aria-label="Lọc lượt thi"
+                className="bg-transparent font-semibold text-slate-700 dark:text-slate-200 outline-none cursor-pointer py-0.5"
+              >
+                <option value="ALL">Tất cả lượt thi</option>
+                <option value="FIRST_ONLY">Chỉ lần đầu</option>
+                <option value="BEST_ONLY">Điểm cao nhất mỗi đề</option>
+              </select>
+            </label>
 
-            {/* 2. Series View Mode Toggle: Tổng Điểm | Listening & Reading */}
-            <div className="flex items-center bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/70 dark:border-slate-700/70 shadow-2xs">
-              <button
-                onClick={() => setChartViewMode('TOTAL')}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
-                  chartViewMode === 'TOTAL'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400" />
-                <span>Tổng Điểm</span>
-              </button>
-              <button
-                onClick={() => setChartViewMode('LR')}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
-                  chartViewMode === 'LR'
-                    ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-purple-500" />
-                <span>Listening & Reading</span>
-              </button>
+            <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80" role="tablist">
+              {([['TOTAL', 'Tổng điểm'], ['LR', 'Listening & Reading']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={chartViewMode === key}
+                  onClick={() => setChartViewMode(key)}
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold transition cursor-pointer ${
+                    chartViewMode === key
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
+        {chartViewMode === 'LR' && (
+          <div className="flex items-center gap-4 text-sm font-semibold text-slate-600 dark:text-slate-300">
+            <span className="inline-flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${SKILL_COLORS.listening.bar}`} /> Listening
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${SKILL_COLORS.reading.bar}`} /> Reading
+            </span>
+          </div>
+        )}
+
         {chartData.length > 0 ? (
-          <div className="h-72 sm:h-80 w-full pt-2">
+          <div className="h-[300px] sm:h-[340px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart 
-                data={chartData} 
-                margin={{ 
-                  top: 16, 
-                  right: 16, 
-                  left: -8, 
-                  bottom: 0 
-                }}
-              >
+              <AreaChart data={chartData} margin={{ top: 24, right: 24, left: 0, bottom: 4 }}>
                 <defs>
-                  {/* Royal Blue Gradient for Total */}
-                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
+                  <linearGradient id="anFillTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563EB" stopOpacity={isDark ? 0.3 : 0.16} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
                   </linearGradient>
-                  {/* Violet Gradient for Listening */}
-                  <linearGradient id="colorListening" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0} />
+                  <linearGradient id="anFillL" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={SKILL_COLORS.listening.hex} stopOpacity={0.14} />
+                    <stop offset="95%" stopColor={SKILL_COLORS.listening.hex} stopOpacity={0} />
                   </linearGradient>
-                  {/* Emerald Gradient for Reading */}
-                  <linearGradient id="colorReading" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+                  <linearGradient id="anFillR" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={SKILL_COLORS.reading.hex} stopOpacity={0.14} />
+                    <stop offset="95%" stopColor={SKILL_COLORS.reading.hex} stopOpacity={0} />
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={theme === 'dark' ? '#1E293B' : '#E2E8F0'} 
-                  vertical={false} 
-                  horizontalValues={chartViewMode === 'TOTAL' ? chartYAxisConfig.totalTicks : chartYAxisConfig.subTicks}
-                />
-                
-                <XAxis 
-                  dataKey="date" 
-                  stroke={theme === 'dark' ? '#64748B' : '#94A3B8'} 
-                  fontSize={11}
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#E2E8F0'} />
+
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: isDark ? '#CBD5E1' : '#475569', fontWeight: 600 }}
+                  tickMargin={8}
+                  axisLine={{ stroke: isDark ? '#475569' : '#CBD5E1' }}
                   tickLine={false}
-                  axisLine={{ stroke: theme === 'dark' ? '#334155' : '#CBD5E1' }}
-                  tickFormatter={(val, idx) => `${val} (${chartData[idx]?.testIndex || ''}${chartData[idx]?.isRetest ? ' • L' + chartData[idx]?.attemptNumber : ''})`}
+                  padding={{ left: 24, right: 24 }}
                 />
-                
-                {/* Trục Y duy nhất bên trái: Rõ ràng, không bao giờ bị đè hoặc lẫn lộn */}
-                <YAxis 
-                  orientation="left"
-                  domain={chartViewMode === 'TOTAL' ? chartYAxisConfig.totalDomain : chartYAxisConfig.subDomain} 
+                <YAxis
+                  domain={chartViewMode === 'TOTAL' ? chartYAxisConfig.totalDomain : chartYAxisConfig.subDomain}
                   ticks={chartViewMode === 'TOTAL' ? chartYAxisConfig.totalTicks : chartYAxisConfig.subTicks}
-                  stroke={theme === 'dark' ? '#64748B' : '#94A3B8'} 
-                  fontSize={10.5}
-                  tickLine={false}
+                  interval={0}
+                  width={44}
+                  tick={{ fontSize: 12, fill: isDark ? '#94A3B8' : '#64748B', fontWeight: 600 }}
                   axisLine={false}
-                  width={38}
-                  tick={{ fill: theme === 'dark' ? '#94A3B8' : '#64748B', fontWeight: 600 }}
+                  tickLine={false}
                 />
 
-                <Tooltip 
+                <Tooltip
                   content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const dataItem = payload[0].payload;
-                      const diff = sessionDiffMap[dataItem.id];
-                      return (
-                        <div className="bg-white/95 dark:bg-slate-900/95 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl backdrop-blur-md text-xs space-y-1.5 min-w-[210px]">
-                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 font-bold gap-2">
-                            <div className="flex items-center space-x-1.5 truncate">
-                              <span className="text-slate-900 dark:text-white truncate max-w-[120px]">{dataItem.name}</span>
-                              <span className={`px-1.5 py-0.2 rounded text-[9.5px] font-black shrink-0 ${
-                                dataItem.isRetest
-                                  ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/60 dark:border-purple-800/60'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                              }`}>
-                                Lần {dataItem.attemptNumber}
-                              </span>
-                            </div>
-                            <span className="text-slate-400 font-normal shrink-0">{dataItem.rawDate}</span>
-                          </div>
-                          
-                          <div className="space-y-1 pt-0.5">
-                            <div className="flex justify-between items-center text-blue-600 dark:text-blue-400 font-black text-sm">
-                              <span>Tổng điểm ETS:</span>
-                              <span className="flex items-center">
-                                {dataItem.total}đ
-                                {diff !== null && diff !== undefined && (
-                                  <span className={`ml-1 text-[10px] font-bold px-1 rounded ${
-                                    diff >= 0 ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50' : 'text-rose-600 bg-rose-50 dark:bg-rose-950/50'
-                                  }`}>
-                                    {diff > 0 ? `+${diff}` : diff}
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-
-                            {dataItem.isRetest && dataItem.scoreDiffFromFirst !== null && dataItem.scoreDiffFromFirst !== undefined && (
-                              <div className="py-1 px-2 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/50 text-[10.5px] text-purple-900 dark:text-purple-200 flex items-center justify-between">
-                                <span>Tiến bộ so với Lần 1:</span>
-                                <span className="font-extrabold text-purple-700 dark:text-purple-300">
-                                  {dataItem.scoreDiffFromFirst >= 0 ? `+${dataItem.scoreDiffFromFirst}` : dataItem.scoreDiffFromFirst}đ
-                                </span>
-                              </div>
-                            )}
-
-                            <div className="flex justify-between items-center text-purple-600 dark:text-purple-400 font-semibold">
-                              <span>Listening (LC):</span>
-                              <span className="font-bold">{dataItem.listening}đ</span>
-                            </div>
-                            <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
-                              <span>Reading (RC):</span>
-                              <span className="font-bold">{dataItem.reading}đ</span>
-                            </div>
-                          </div>
+                    if (!active || !payload || !payload.length) return null;
+                    const d = payload[0].payload;
+                    const diff = sessionDiffMap[d.id];
+                    return (
+                      <div className="p-3 rounded-xl bg-slate-900/95 text-white shadow-xl border border-slate-700 text-sm space-y-1 min-w-[200px]">
+                        <div className="text-xs text-slate-300 font-semibold">
+                          {d.date} · {d.name}{d.isRetest ? ` · Lần ${d.attemptNumber}` : ''}
                         </div>
-                      );
-                    }
-                    return null;
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-black text-blue-300 tabular-nums">{d.total}đ</span>
+                          {diff !== null && diff !== undefined && (
+                            <span className={`text-xs font-bold ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                              {diff > 0 ? `+${diff}` : diff} so với đề trước
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-300">L {d.listening} · R {d.reading}</div>
+                        {d.isRetest && d.scoreDiffFromFirst !== null && d.scoreDiffFromFirst !== undefined && (
+                          <div className="text-xs text-slate-300">
+                            So với lần 1: {d.scoreDiffFromFirst >= 0 ? `+${d.scoreDiffFromFirst}` : d.scoreDiffFromFirst}đ
+                          </div>
+                        )}
+                      </div>
+                    );
                   }}
                 />
 
-                {/* Reference Target Lines: Đặt nhãn góc trái tránh va chạm số và đường cong */}
                 {chartViewMode === 'TOTAL' && (
-                  <>
-                    {chartYAxisConfig.totalDomain[0] <= 900 && (
-                      <ReferenceLine 
-                        y={900} 
-                        stroke="#8B5CF6" 
-                        strokeDasharray="3 3" 
-                        strokeOpacity={0.6} 
-                        label={{ value: 'Mốc 900+ Master', fill: '#8B5CF6', fontSize: 10, position: 'insideTopLeft' }} 
-                      />
-                    )}
-                    {chartYAxisConfig.totalDomain[0] <= 800 && (
-                      <ReferenceLine 
-                        y={800} 
-                        stroke="#3B82F6" 
-                        strokeDasharray="3 3" 
-                        strokeOpacity={0.4} 
-                        label={{ value: 'Mốc 800+ Vàng', fill: '#3B82F6', fontSize: 10, position: 'insideBottomLeft' }} 
-                      />
-                    )}
-                  </>
+                  <ReferenceLine
+                    y={goalScore}
+                    stroke={isDark ? '#60A5FA' : '#93C5FD'}
+                    strokeDasharray="6 3"
+                    label={{
+                      value: `Mục tiêu ${goalScore}`,
+                      position: 'insideBottomRight',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fill: isDark ? '#93C5FD' : '#2563EB'
+                    }}
+                  />
                 )}
 
-                {/* Đường biểu đồ theo chế độ: Đường thẳng chuẩn xác (linear) thể hiện rõ độ dốc tăng/giảm */}
+                {/* Không dùng hiệu ứng vẽ đường: Recharts chỉ vẽ chấm (và số
+                    điểm) sau khi hiệu ứng xong, mà hiệu ứng có lúc không xong. */}
                 {chartViewMode === 'TOTAL' ? (
-                  <Area 
-                    type="linear" 
-                    dataKey="total" 
-                    name="Tổng Điểm" 
-                    stroke="#2563EB" 
-                    strokeWidth={3} 
-                    fillOpacity={1} 
-                    fill="url(#colorTotal)" 
+                  <Area
+                    type="linear"
+                    dataKey="total"
+                    name="Tổng điểm"
+                    stroke="#2563EB"
+                    strokeWidth={2.5}
+                    fill="url(#anFillTotal)"
+                    isAnimationActive={false}
                     dot={(props: any) => {
-                      const { cx, cy, payload } = props;
+                      const { cx, cy, payload, index } = props;
                       if (!cx || !cy) return <g key={props?.key || 'empty'} />;
-                      const isRetest = payload?.isRetest;
+                      const isLast = index === chartData.length - 1;
                       return (
-                        <circle
-                          key={`dot-${payload?.id || cx}`}
-                          cx={cx}
-                          cy={cy}
-                          r={isRetest ? 5.5 : 4}
-                          fill={isRetest ? '#8B5CF6' : '#2563EB'}
-                          stroke="#FFFFFF"
-                          strokeWidth={2}
-                        />
+                        <g key={`an-dot-${payload?.id || cx}`}>
+                          <text x={cx} y={cy - 12} textAnchor="middle" fontSize={12} fontWeight={700} fill={isDark ? '#E2E8F0' : '#1E293B'}>
+                            {payload?.total}
+                          </text>
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={isLast ? 5.5 : 4}
+                            fill={isLast ? '#2563EB' : isDark ? '#0F172A' : '#FFFFFF'}
+                            stroke="#2563EB"
+                            strokeWidth={2}
+                          />
+                        </g>
                       );
                     }}
-                    activeDot={{ r: 6.5, fill: '#1D4ED8', stroke: '#FFFFFF', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#2563EB', stroke: '#FFFFFF', strokeWidth: 2 }}
                   />
                 ) : (
                   <>
-                    <Area 
-                      type="linear" 
-                      dataKey="listening" 
-                      name="Listening" 
-                      stroke="#8B5CF6" 
-                      strokeWidth={2.5} 
-                      fillOpacity={1} 
-                      fill="url(#colorListening)" 
-                      dot={{ r: 3.5, fill: '#8B5CF6', stroke: '#FFFFFF', strokeWidth: 1.5 }}
-                      activeDot={{ r: 5.5, fill: '#7C3AED', stroke: '#FFFFFF', strokeWidth: 2 }}
+                    <Area
+                      type="linear"
+                      dataKey="listening"
+                      name="Listening"
+                      stroke={SKILL_COLORS.listening.hex}
+                      strokeWidth={2.5}
+                      fill="url(#anFillL)"
+                      isAnimationActive={false}
+                      dot={{ r: 4, fill: isDark ? '#0F172A' : '#FFFFFF', stroke: SKILL_COLORS.listening.hex, strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: SKILL_COLORS.listening.hex, stroke: '#FFFFFF', strokeWidth: 2 }}
                     />
-                    <Area 
-                      type="linear" 
-                      dataKey="reading" 
-                      name="Reading" 
-                      stroke="#10B981" 
-                      strokeWidth={2.5} 
-                      fillOpacity={1} 
-                      fill="url(#colorReading)" 
-                      dot={{ r: 3.5, fill: '#10B981', stroke: '#FFFFFF', strokeWidth: 1.5 }}
-                      activeDot={{ r: 5.5, fill: '#059669', stroke: '#FFFFFF', strokeWidth: 2 }}
+                    <Area
+                      type="linear"
+                      dataKey="reading"
+                      name="Reading"
+                      stroke={SKILL_COLORS.reading.hex}
+                      strokeWidth={2.5}
+                      fill="url(#anFillR)"
+                      isAnimationActive={false}
+                      dot={{ r: 4, fill: isDark ? '#0F172A' : '#FFFFFF', stroke: SKILL_COLORS.reading.hex, strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: SKILL_COLORS.reading.hex, stroke: '#FFFFFF', strokeWidth: 2 }}
                     />
                   </>
                 )}
@@ -978,282 +864,151 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-xs">
-            <BarChart3 className="w-8 h-8 mb-2 opacity-40" />
-            <span>Chưa có dữ liệu bài thi Full Test nào để vẽ đồ thị.</span>
+          <div className="h-64 flex flex-col items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <BarChart3 className="w-8 h-8 opacity-40" />
+            <span>Chưa có bài Full Test nào để vẽ biểu đồ.</span>
           </div>
         )}
-
-        {/* Legend strip Tinh Gọn */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-          <div className="flex flex-wrap items-center gap-4">
-            {chartViewMode === 'TOTAL' ? (
-              <div className="flex items-center space-x-1.5">
-                <span className="w-3 h-3 rounded-full bg-blue-600 shadow-2xs" />
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  Tổng điểm ETS (10–990)
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-3 h-3 rounded-full bg-purple-500 shadow-2xs" />
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    Listening (5–495)
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-2xs" />
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    Reading (5–495)
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-            {chartViewMode === 'TOTAL' 
-              ? '💡 Rê chuột vào từng bài thi để xem chi tiết LC & RC'
-              : '💡 So sánh tương quan 2 kỹ năng trên cùng thang chuẩn 495đ'}
-          </span>
-        </div>
       </div>
 
-      {/* 3. Ma Trận Năng Lực 7 Part: Thẻ Hợp Nhất Chống Chói & Liền Mạch (Unified Master Card) */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-white/95 dark:bg-[#0E1526]/95 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
-        {/* Header Tổng Thể Trong Cùng 1 Khung Tinh Gọn */}
-        <div className="flex items-center justify-between gap-3.5 pb-4 border-b border-slate-200/70 dark:border-slate-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs shrink-0">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Ma Trận Năng Lực 7 Part
-              </h2>
-              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                Chuẩn ETS
-              </span>
-            </div>
-          </div>
-
+      {/* 3. MA TRẬN 7 PART - hai khối trung tính, màu nằm ở icon, thanh và
+          chip của từng kỹ năng (chàm / xanh ngọc) như thẻ Kỹ năng ở Tổng Quan.
+          Part thấp nhất đánh dấu hổ phách (màu cảnh báo), thanh vẫn giữ màu kỹ năng. */}
+      <div className={`${CARD} space-y-4`}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ma trận năng lực 7 Part</h2>
           {partStats && (
-            <div className="inline-flex items-center space-x-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/70 px-3 py-1.5 rounded-xl border border-blue-200/80 dark:border-blue-800 shadow-2xs shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-              <span>{partStats.validTestsCount} bài thi chuẩn ETS</span>
-            </div>
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg whitespace-nowrap">
+              Trung bình {partStats.validTestsCount} bài Full Test
+            </span>
           )}
         </div>
 
         {partStats ? (
-          /* 2 Cột Song Song Có Ranh Giới Phân Định Rõ Ràng & Sắc Thái Màu Riêng Biệt */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
-            
-            {/* CỘT TRÁI: KỸ NĂNG NGHE (LISTENING) - BLUE SURFACE */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-100/60 via-blue-50/40 to-sky-100/30 dark:from-blue-950/40 dark:via-slate-900/60 dark:to-blue-950/20 border border-blue-200/80 dark:border-blue-900/50 flex flex-col space-y-4 shadow-2xs">
-              {/* Header Kỹ Năng Nghe */}
-              <div className="flex items-center justify-between gap-3 pb-1 min-h-[48px]">
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white/90 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-2xs border border-blue-200/80 dark:border-blue-800/60">
-                    <Headphones className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0 space-y-0.5">
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
-                      Kỹ Năng Nghe (Listening)
-                    </h3>
-                    <div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/90 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-2xs">
-                        {targetGap.lcGap > 0 ? `Cần bù +${targetGap.lcGap}đ (~${targetGap.lcQuestionsNeeded} câu)` : '✓ Cận cực đại'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-2xl sm:text-3xl font-black font-mono text-blue-700 dark:text-blue-300 tracking-tight">
-                    {targetGap.currentLC}
-                  </span>
-                  <span className="text-xs sm:text-sm font-bold font-mono text-slate-500 dark:text-slate-400 ml-1">
-                    / {targetGap.targetLC}đ
-                  </span>
-                </div>
-              </div>
-
-              {/* Danh Sách 4 Part Listening Dạng Capsule Nổi Bật */}
-              <div className="space-y-2.5">
-                {[
-                  { key: 'part1', code: 'P1', name: 'Part 1: Mô tả tranh', max: 6 },
-                  { key: 'part2', code: 'P2', name: 'Part 2: Hỏi & Đáp', max: 25 },
-                  { key: 'part3', code: 'P3', name: 'Part 3: Hội thoại', max: 39 },
-                  { key: 'part4', code: 'P4', name: 'Part 4: Bài nói ngắn', max: 30 },
-                ].map(p => {
-                  const key = p.key as keyof LRPartScore;
-                  const acc = partStats.accuracy[key] || 0;
-                  const avg = Math.round(partStats.averages[key] || 0);
-
-                  return (
-                    <div 
-                      key={key} 
-                      className="flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-slate-900/85 border border-blue-200/70 dark:border-blue-900/40 shadow-2xs hover:shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all"
-                    >
-                      {/* Tên Part & Số câu đúng */}
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <span className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/80 text-xs font-black text-blue-700 dark:text-blue-300 flex items-center justify-center border border-blue-200 dark:border-blue-800/80 shrink-0">
-                          {p.code}
-                        </span>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {([
+                {
+                  skill: 'listening' as const,
+                  icon: Headphones,
+                  title: 'Listening',
+                  current: targetGap.currentLC,
+                  target: targetGap.targetLC,
+                  gap: targetGap.lcGap,
+                  questions: targetGap.lcQuestionsNeeded,
+                  parts: [
+                    { key: 'part1', code: 'P1', name: 'Mô tả tranh', max: 6 },
+                    { key: 'part2', code: 'P2', name: 'Hỏi & Đáp', max: 25 },
+                    { key: 'part3', code: 'P3', name: 'Hội thoại', max: 39 },
+                    { key: 'part4', code: 'P4', name: 'Bài nói ngắn', max: 30 }
+                  ]
+                },
+                {
+                  skill: 'reading' as const,
+                  icon: BookOpen,
+                  title: 'Reading',
+                  current: targetGap.currentRC,
+                  target: targetGap.targetRC,
+                  gap: targetGap.rcGap,
+                  questions: targetGap.rcQuestionsNeeded,
+                  parts: [
+                    { key: 'part5', code: 'P5', name: 'Điền câu', max: 30 },
+                    { key: 'part6', code: 'P6', name: 'Điền đoạn văn', max: 16 },
+                    { key: 'part7', code: 'P7', name: 'Đọc hiểu văn bản', max: 54 }
+                  ]
+                }
+              ]).map(block => {
+                const c = SKILL_COLORS[block.skill];
+                return (
+                  <div key={block.skill} className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${c.soft}`}>
+                          <block.icon className={`w-5 h-5 ${c.text}`} />
+                        </div>
                         <div className="min-w-0">
-                          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                            {p.name}
-                          </h4>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium font-mono">
-                            {avg} / {p.max} câu đúng
+                          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">{block.title}</h3>
+                          <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-md text-xs font-semibold ${c.chip}`}>
+                            {block.gap > 0 ? `Cần thêm +${block.gap}đ (~${block.questions} câu)` : 'Đã đạt phần mục tiêu'}
                           </span>
                         </div>
                       </div>
-
-                      {/* Thanh Cầu Nối Tiến Độ Trực Quan & Điểm % */}
-                      <div className="flex items-center space-x-3 shrink-0">
-                        <div className="w-20 sm:w-28 md:w-36 h-2 bg-blue-100/90 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-sky-400 transition-all duration-500"
-                            style={{ width: `${acc}%` }}
-                          />
-                        </div>
-                        <span className="text-base sm:text-lg font-black font-mono text-blue-900 dark:text-blue-100 w-12 text-right">
-                          {acc}%
-                        </span>
+                      <div className="text-right shrink-0">
+                        <span className={`text-2xl font-black tabular-nums ${c.text}`}>{block.current}</span>
+                        <span className="text-sm font-semibold text-slate-400 dark:text-slate-500"> / {block.target}</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* CỘT PHẢI: KỸ NĂNG ĐỌC (READING) - PURPLE SURFACE */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-100/60 via-purple-50/40 to-indigo-100/30 dark:from-purple-950/40 dark:via-slate-900/60 dark:to-purple-950/20 border border-purple-200/80 dark:border-purple-900/50 flex flex-col space-y-4 shadow-2xs">
-              {/* Header Kỹ Năng Đọc */}
-              <div className="flex items-center justify-between gap-3 pb-1 min-h-[48px]">
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white/90 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-2xs border border-purple-200/80 dark:border-purple-800/60">
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0 space-y-0.5">
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
-                      Kỹ Năng Đọc (Reading)
-                    </h3>
-                    <div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/90 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 shadow-2xs">
-                        {targetGap.rcGap > 0 ? `Cần bù +${targetGap.rcGap}đ (~${targetGap.rcQuestionsNeeded} câu)` : '✓ Đạt chuẩn'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-2xl sm:text-3xl font-black font-mono text-purple-700 dark:text-purple-300 tracking-tight">
-                    {targetGap.currentRC}
-                  </span>
-                  <span className="text-xs sm:text-sm font-bold font-mono text-slate-500 dark:text-slate-400 ml-1">
-                    / {targetGap.targetRC}đ
-                  </span>
-                </div>
-              </div>
-
-              {/* Danh Sách 3 Part Reading + 1 Khung Khuyến Nghị */}
-              <div className="space-y-2.5">
-                {[
-                  { key: 'part5', code: 'P5', name: 'Part 5: Điền câu', max: 30 },
-                  { key: 'part6', code: 'P6', name: 'Part 6: Điền đoạn văn', max: 16 },
-                  { key: 'part7', code: 'P7', name: 'Part 7: Đọc hiểu văn bản', max: 54 },
-                ].map(p => {
-                  const key = p.key as keyof LRPartScore;
-                  const acc = partStats.accuracy[key] || 0;
-                  const avg = Math.round(partStats.averages[key] || 0);
-                  const isWeakest = weakestPart?.key === key;
-
-                  return (
-                    <div 
-                      key={key} 
-                      className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl transition-all shadow-2xs ${
-                        isWeakest 
-                          ? 'bg-amber-50/95 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 hover:border-amber-400' 
-                          : 'bg-white/95 dark:bg-slate-900/85 border border-purple-200/70 dark:border-purple-900/40 hover:shadow-xs hover:border-purple-300 dark:hover:border-purple-700'
-                      }`}
-                    >
-                      {/* Tên Part & Số câu đúng */}
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <span className={`w-8 h-8 rounded-lg text-xs font-black flex items-center justify-center border shrink-0 ${
-                          isWeakest
-                            ? 'bg-amber-100 dark:bg-amber-900/70 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700'
-                            : 'bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/70'
-                        }`}>
-                          {p.code}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                              {p.name}
-                            </h4>
-                            {isWeakest && (
-                              <span className="px-1.5 py-0.5 rounded text-[9.5px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 border border-amber-300 shrink-0">
-                                Điểm nghẽn
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium font-mono">
-                            {avg} / {p.max} câu đúng
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Thanh Cầu Nối Tiến Độ Trực Quan & Điểm % */}
-                      <div className="flex items-center space-x-3 shrink-0">
-                        <div className="w-20 sm:w-28 md:w-36 h-2 bg-purple-100/90 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              isWeakest 
-                                ? 'bg-gradient-to-r from-amber-500 to-amber-400' 
-                                : 'bg-gradient-to-r from-purple-600 to-indigo-400'
+                    <div className="space-y-2">
+                      {block.parts.map(p => {
+                        const key = p.key as keyof LRPartScore;
+                        const acc = partStats.accuracy[key] || 0;
+                        const avg = Math.round(partStats.averages[key] || 0);
+                        const isWeakest = weakestPart?.key === key;
+                        return (
+                          <div
+                            key={key}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
+                              isWeakest
+                                ? 'bg-amber-50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-800'
+                                : 'bg-white border-slate-100 dark:bg-slate-900/70 dark:border-slate-800'
                             }`}
-                            style={{ width: `${acc}%` }}
-                          />
-                        </div>
-                        <span className={`text-base sm:text-lg font-black font-mono w-12 text-right ${
-                          isWeakest ? 'text-amber-700 dark:text-amber-300' : 'text-purple-900 dark:text-purple-100'
-                        }`}>
-                          {acc}%
-                        </span>
-                      </div>
+                          >
+                            <span className={`w-8 h-8 rounded-lg text-xs font-black flex items-center justify-center shrink-0 ${c.chip}`}>
+                              {p.code}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{p.name}</span>
+                                {isWeakest && (
+                                  <span className="px-1.5 py-0.5 rounded-md text-xs font-bold text-amber-800 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/60 whitespace-nowrap">
+                                    Thấp nhất
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-1.5 flex items-center gap-2">
+                                <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                  <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${Math.max(2, acc)}%` }} />
+                                </div>
+                                <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums whitespace-nowrap">
+                                  {avg}/{p.max} câu
+                                </span>
+                              </div>
+                            </div>
+                            <span className={`text-base font-black tabular-nums w-12 text-right shrink-0 ${
+                              isWeakest ? 'text-amber-700 dark:text-amber-300' : 'text-slate-800 dark:text-slate-100'
+                            }`}>
+                              {acc}%
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-
-                {/* Khung Khuyến Nghị Chiến Lược */}
-                <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/95 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/70 flex items-center justify-between gap-2.5 shadow-2xs">
-                  <div className="flex items-center space-x-2.5 min-w-0">
-                    <div className="w-6 h-6 rounded-lg bg-amber-500/20 dark:bg-amber-400/25 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                      <Zap className="w-3.5 h-3.5 fill-current" />
-                    </div>
-                    <span className="text-xs text-slate-800 dark:text-slate-200 truncate">
-                      Tập trung vá <strong className="font-bold text-amber-900 dark:text-amber-200">{weakestPart ? weakestPart.name.split(':')[0] : 'Part 6'}</strong> (~2 câu) để tăng ngay +25đ mốc mục tiêu.
-                    </span>
                   </div>
-                  <span className="text-[10px] font-black text-amber-800 dark:text-amber-200 bg-amber-200/80 dark:bg-amber-900/80 px-2.5 py-1 rounded-lg shrink-0 border border-amber-300 dark:border-amber-700">
-                    Mục tiêu +25đ
-                  </span>
-                </div>
-              </div>
+                );
+              })}
             </div>
-          </div>
+
+            {/* Gợi ý tính từ dữ liệu thật. Bản cũ ghi cứng "~2 câu · +25đ" cho mọi người. */}
+            {weakestPart && weakestPart.accuracy < 100 && (
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-sm text-slate-700 dark:text-slate-200">
+                <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-current shrink-0" />
+                <span className="min-w-0">
+                  <strong className="font-bold">{weakestPart.name.split(':')[0]}</strong> đang thấp nhất: trung bình {weakestPart.avgCorrect}/{weakestPart.max} câu ({weakestPart.accuracy}%).
+                  {' '}Mỗi câu đúng thêm ≈ +5đ {['part1', 'part2', 'part3', 'part4'].includes(weakestPart.key) ? 'Listening' : 'Reading'}.
+                </span>
+              </div>
+            )}
+          </>
         ) : (
-          <div className="py-12 text-center text-slate-400 text-xs">
-            Chưa có dữ liệu bài thi chi tiết Part 1 - Part 7.
+          <div className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+            Chưa có bài Full Test nào ghi số câu đúng từng Part.
           </div>
         )}
       </div>
 
       {/* 4. Chẩn Đoán Theo Nguyên Nhân Sai (SPEC 1.4 điểm 1) */}
-      <div className="p-5 rounded-2xl bg-white/90 dark:bg-[#0E1526]/90 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+      <div className={`${CARD} space-y-4`}>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
@@ -1266,7 +1021,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </p>
           </div>
           {errorDiagnosis && (
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">
               {errorDiagnosis.total} lỗi đã ghi · {errorDiagnosis.pendingCount} chờ ôn
             </span>
           )}
@@ -1312,7 +1067,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           {row.label}
                         </span>
                         {isTop && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/70 whitespace-nowrap shrink-0">
+                          <span className="text-xs font-bold px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/70 whitespace-nowrap shrink-0">
                             Điểm nghẽn
                           </span>
                         )}
@@ -1329,7 +1084,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           style={{ width: `${Math.max(3, barPercent)}%` }}
                         />
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap shrink-0 w-[92px] text-right">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap shrink-0 w-[92px] text-right">
                         {row.parts.map(p => `P${p}`).join(' ')}
                       </span>
                     </div>
@@ -1338,7 +1093,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               })}
             </div>
 
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-xs text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
               Cột bên phải là các Part mà nhóm lỗi đó xuất hiện. Dữ liệu lấy từ Sổ Tay Bắt Bẫy — ghi càng đủ, chẩn đoán càng chính xác.
             </p>
           </>
@@ -1348,7 +1103,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Chưa có lỗi nào trong Sổ Tay Bắt Bẫy.
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-md mx-auto">
+            <p className="text-xs text-slate-400 dark:text-slate-500 max-w-md mx-auto">
               Mỗi lần làm đề, ghi lại vài câu sai kèm nguyên nhân. Sau khoảng 20 lỗi, phần này sẽ chỉ ra
               nguyên nhân nào đang lấy đi nhiều điểm nhất của bạn.
             </p>
@@ -1357,7 +1112,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* 5. Tinh Gọn: Bảng Lịch Sử Luyện Đề (Đã lược bỏ thông tin thừa, phẳng phiu & sắc nét) */}
-      <div className="p-5 rounded-2xl bg-white/90 dark:bg-[#0E1526]/90 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+      <div className={`${CARD} space-y-4`}>
         
         {/* Table Top Controls: Search & Filter Pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1374,7 +1129,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <span>
                   Đang xếp: {sortField === 'totalScore' ? 'Tổng Điểm' : sortField === 'scaledListening' ? 'Listening' : sortField === 'scaledReading' ? 'Reading' : sortField === 'testName' ? 'Tên đề' : 'Ngày thi'} ({sortOrder === 'desc' ? 'Giảm dần' : 'Tăng dần'})
                 </span>
-                <span className="px-1.5 py-0.5 rounded bg-blue-200/80 dark:bg-blue-900/80 text-blue-800 dark:text-blue-200 group-hover:bg-rose-200 group-hover:text-rose-800 text-[10.5px] font-black flex items-center gap-0.5">
+                <span className="px-1.5 py-0.5 rounded bg-blue-200/80 dark:bg-blue-900/80 text-blue-800 dark:text-blue-200 group-hover:bg-rose-200 group-hover:text-rose-800 text-xs font-black flex items-center gap-0.5">
                   <X className="w-2.5 h-2.5" /> Hủy xếp
                 </span>
               </button>
@@ -1626,10 +1381,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         </span>
 
                         {isFull && attemptMeta && attemptMeta.isRetest && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-black shrink-0 bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/60 dark:border-purple-800/60">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-black shrink-0 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
                             Lần {attemptMeta.attemptNumber}
                             {attemptMeta.scoreDiffFromFirst !== null && (
-                              <span className="ml-1 text-[9px] font-extrabold text-purple-600 dark:text-purple-300">
+                              <span className="ml-1 text-xs font-extrabold text-blue-600 dark:text-blue-300">
                                 {attemptMeta.scoreDiffFromFirst >= 0 ? `+${attemptMeta.scoreDiffFromFirst}` : attemptMeta.scoreDiffFromFirst}đ
                               </span>
                             )}
@@ -1646,7 +1401,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         )}
                       </div>
                       {session.durationMinutes && (
-                        <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                           <Clock className="w-3 h-3 text-blue-500/80 dark:text-blue-400/80 shrink-0" />
                           <span>{session.durationMinutes} phút</span>
                         </div>
@@ -1655,7 +1410,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
                     {/* Hình thức gọn gàng */}
                     <td className="py-3 px-3 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-xs ${
                         isFull 
                           ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60'
                           : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60'
@@ -1664,10 +1419,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </span>
                     </td>
 
-                    {/* Listening - Chuẩn màu Blue đồng bộ toàn hệ thống */}
+                    {/* Listening - màu chàm như Tổng Quan */}
                     <td className="py-3 px-3 text-center whitespace-nowrap">
                       {session.scaledListening ? (
-                        <span className="font-bold text-blue-600 dark:text-blue-400 text-xs font-mono tabular-nums">
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs font-mono tabular-nums">
                           {session.scaledListening}đ
                         </span>
                       ) : (
@@ -1675,10 +1430,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       )}
                     </td>
 
-                    {/* Reading - Chuẩn màu Purple đồng bộ toàn hệ thống */}
+                    {/* Reading - màu xanh ngọc như Tổng Quan */}
                     <td className="py-3 px-3 text-center whitespace-nowrap">
                       {session.scaledReading ? (
-                        <span className="font-bold text-purple-600 dark:text-purple-400 text-xs font-mono tabular-nums">
+                        <span className="font-bold text-teal-600 dark:text-teal-400 text-xs font-mono tabular-nums">
                           {session.scaledReading}đ
                         </span>
                       ) : (
@@ -1702,23 +1457,23 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       {isFull ? (
                         diff !== null && diff !== undefined ? (
                           diff > 0 ? (
-                            <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full font-bold text-[11px] font-mono tabular-nums">
+                            <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full font-bold text-xs font-mono tabular-nums">
                               <TrendingUp className="w-3 h-3 mr-1" />+{diff}đ
                             </span>
                           ) : diff < 0 ? (
-                            <span className="inline-flex items-center text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full font-bold text-[11px] font-mono tabular-nums">
+                            <span className="inline-flex items-center text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full font-bold text-xs font-mono tabular-nums">
                               <TrendingDown className="w-3 h-3 mr-1" />{diff}đ
                             </span>
                           ) : (
-                            <span className="inline-flex items-center text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-semibold text-[11px] font-mono tabular-nums">
+                            <span className="inline-flex items-center text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-semibold text-xs font-mono tabular-nums">
                               0đ
                             </span>
                           )
                         ) : (
-                          <span className="text-slate-400 text-[11px] font-medium">Mốc đầu</span>
+                          <span className="text-slate-400 text-xs font-medium">Mốc đầu</span>
                         )
                       ) : (
-                        <span className="text-slate-300 dark:text-slate-600 text-[11px]">-</span>
+                        <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
                       )}
                     </td>
 
@@ -1778,7 +1533,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {/* Pagination Controls */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 text-xs">
-            <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+            <span className="text-slate-500 dark:text-slate-400 text-xs">
               Hiển thị {(currentPage - 1) * itemsPerPage + 1} – {Math.min(currentPage * itemsPerPage, sortedSessionsForTable.length)} trên tổng {sortedSessionsForTable.length} bài thi
             </span>
             <div className="flex items-center space-x-1.5">
@@ -1828,7 +1583,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                     <span className="font-mono font-semibold">{formatDateDisplay(selectedSessionDetail.date)}</span>
                     <span>•</span>
-                    <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${
+                    <span className={`px-1.5 py-0.5 rounded font-bold text-xs ${
                       selectedSessionDetail.sessionType === 'FULL_TEST'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
                         : 'bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300'
@@ -1838,9 +1593,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     {selectedSessionDetail.sessionType === 'FULL_TEST' && attemptMap[selectedSessionDetail.id] && (
                       <>
                         <span>•</span>
-                        <span className={`px-1.5 py-0.5 rounded font-black text-[10px] ${
+                        <span className={`px-1.5 py-0.5 rounded font-black text-xs ${
                           attemptMap[selectedSessionDetail.id].isRetest
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-300/60 dark:border-purple-800/60'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
                             : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                         }`}>
                           Lần {attemptMap[selectedSessionDetail.id].attemptNumber}
@@ -1850,7 +1605,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     {selectedSessionDetail.durationMinutes && (
                       <>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                        <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-slate-600 dark:text-slate-300">
                           <Clock className="w-3 h-3 text-slate-400" />
                           {selectedSessionDetail.durationMinutes} phút
                         </span>
@@ -1872,7 +1627,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             <div className="grid grid-cols-3 gap-2.5 p-4 bg-slate-100/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800">
               {/* Tổng Điểm */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-center shadow-2xs">
-                <span className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                   Tổng Điểm
                 </span>
                 <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white mt-0.5">
@@ -1881,15 +1636,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 {sessionDiffMap[selectedSessionDetail.id] !== undefined && sessionDiffMap[selectedSessionDetail.id] !== null && (
                   <div className="mt-1">
                     {sessionDiffMap[selectedSessionDetail.id]! > 0 ? (
-                      <span className="inline-flex items-center text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-full">
+                      <span className="inline-flex items-center text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-full">
                         <TrendingUp className="w-2.5 h-2.5 mr-0.5" />+{sessionDiffMap[selectedSessionDetail.id]}đ
                       </span>
                     ) : sessionDiffMap[selectedSessionDetail.id]! < 0 ? (
-                      <span className="inline-flex items-center text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.5 rounded-full">
+                      <span className="inline-flex items-center text-xs font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.5 rounded-full">
                         <TrendingDown className="w-2.5 h-2.5 mr-0.5" />{sessionDiffMap[selectedSessionDetail.id]}đ
                       </span>
                     ) : (
-                      <span className="text-[10px] font-semibold text-slate-400">0đ so với trước</span>
+                      <span className="text-xs font-semibold text-slate-400">0đ so với trước</span>
                     )}
                   </div>
                 )}
@@ -1899,7 +1654,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 /* Buổi luyện Part lẻ: hiện đúng các Part đã luyện, không phải
                    hai ô Listening/Reading vốn chỉ có nghĩa với đề đầy đủ */
                 <div className="col-span-2 p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 shadow-2xs space-y-1.5">
-                  <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
                     Các Part đã luyện
                   </span>
                   {detailPracticeParts.map((pp, i) => {
@@ -1921,13 +1676,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <>
               {/* Listening */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-center shadow-2xs">
-                <span className="text-[10.5px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider block">
+                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">
                   Listening
                 </span>
-                <div className="text-xl sm:text-2xl font-black font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+                <div className="text-xl sm:text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400 mt-0.5">
                   {selectedSessionDetail.scaledListening ? `${selectedSessionDetail.scaledListening}đ` : '--'}
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5 block">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 block">
                   {selectedSessionDetail.rawListening !== undefined 
                     ? `${selectedSessionDetail.rawListening}/100 câu` 
                     : selectedSessionDetail.partScores 
@@ -1938,13 +1693,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
               {/* Reading */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-center shadow-2xs">
-                <span className="text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
+                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block">
                   Reading
                 </span>
-                <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                <div className="text-xl sm:text-2xl font-black font-mono text-teal-600 dark:text-teal-400 mt-0.5">
                   {selectedSessionDetail.scaledReading ? `${selectedSessionDetail.scaledReading}đ` : '--'}
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5 block">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 block">
                   {selectedSessionDetail.rawReading !== undefined 
                     ? `${selectedSessionDetail.rawReading}/100 câu` 
                     : selectedSessionDetail.partScores 
@@ -1967,27 +1722,27 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 const diffRC = (selectedSessionDetail.scaledReading || 0) - (first.scaledReading || 0);
 
                 return (
-                  <div className="p-4 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/60 space-y-3 shadow-2xs">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 space-y-3 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        <h4 className="text-xs font-bold text-purple-950 dark:text-purple-200 uppercase tracking-wider">
+                        <RotateCcw className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
                           So Sánh Đối Đầu Với Lần 1 ({formatDateDisplay(first.date)})
                         </h4>
                       </div>
-                      <span className="text-[10.5px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full border border-purple-300/60 dark:border-purple-800/60">
+                      <span className="text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/60 px-2 py-0.5 rounded-full">
                         Lần {meta.attemptNumber} (Làm lại)
                       </span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-center text-xs">
                       {/* Tổng Điểm */}
-                      <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-purple-100 dark:border-purple-900/50 shadow-2xs">
-                        <span className="text-[10px] text-slate-400 block font-semibold">Tổng Điểm</span>
+                      <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                        <span className="text-xs text-slate-400 block font-semibold">Tổng Điểm</span>
                         <div className="font-mono font-black text-sm text-slate-900 dark:text-white mt-0.5">
                           {first.totalScore}đ ➔ {selectedSessionDetail.totalScore}đ
                         </div>
-                        <span className={`text-[11px] font-black block mt-0.5 ${
+                        <span className={`text-xs font-black block mt-0.5 ${
                           diffTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                         }`}>
                           {diffTotal >= 0 ? `+${diffTotal}` : diffTotal} điểm
@@ -1995,23 +1750,23 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </div>
 
                       {/* Listening */}
-                      <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-purple-100 dark:border-purple-900/50 shadow-2xs">
-                        <span className="text-[10px] text-purple-600 dark:text-purple-400 block font-semibold">Listening</span>
-                        <div className="font-mono font-black text-sm text-purple-600 dark:text-purple-400 mt-0.5">
+                      <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                        <span className="text-xs text-indigo-600 dark:text-indigo-400 block font-semibold">Listening</span>
+                        <div className="font-mono font-black text-sm text-indigo-600 dark:text-indigo-400 mt-0.5">
                           {first.scaledListening}đ ➔ {selectedSessionDetail.scaledListening}đ
                         </div>
-                        <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 block mt-0.5">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 block mt-0.5">
                           {diffLC >= 0 ? `+${diffLC}` : diffLC}đ
                         </span>
                       </div>
 
                       {/* Reading */}
-                      <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-purple-100 dark:border-purple-900/50 shadow-2xs">
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-semibold">Reading</span>
-                        <div className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                        <span className="text-xs text-teal-600 dark:text-teal-400 block font-semibold">Reading</span>
+                        <div className="font-mono font-black text-sm text-teal-600 dark:text-teal-400 mt-0.5">
                           {first.scaledReading}đ ➔ {selectedSessionDetail.scaledReading}đ
                         </div>
-                        <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                        <span className="text-xs font-black text-teal-600 dark:text-teal-400 block mt-0.5">
                           {diffRC >= 0 ? `+${diffRC}` : diffRC}đ
                         </span>
                       </div>
@@ -2031,12 +1786,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Listening Parts (1-4) */}
                     <div className="space-y-2 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-purple-700 dark:text-purple-300">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-indigo-700 dark:text-indigo-300">
                         <span className="flex items-center gap-1.5">
                           <Headphones className="w-3.5 h-3.5" />
                           Listening (Part 1 - 4)
                         </span>
-                        <span className="font-mono text-[11px]">
+                        <span className="font-mono text-xs">
                           {(selectedSessionDetail.partScores.part1 || 0) + (selectedSessionDetail.partScores.part2 || 0) + (selectedSessionDetail.partScores.part3 || 0) + (selectedSessionDetail.partScores.part4 || 0)}/100 đúng
                         </span>
                       </div>
@@ -2051,7 +1806,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         return (
                           <div key={p.key} className="flex items-center justify-between gap-2 text-xs py-1">
                             <div className="flex items-center space-x-2 min-w-0">
-                              <span className="w-6 h-6 rounded bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 text-[10.5px] font-black flex items-center justify-center shrink-0">
+                              <span className="w-6 h-6 rounded bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center justify-center shrink-0">
                                 {p.code}
                               </span>
                               <span className="font-medium text-slate-700 dark:text-slate-300 truncate">
@@ -2064,11 +1819,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                               </span>
                               <div className="w-14 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-purple-500 rounded-full" 
+                                  className="h-full bg-indigo-500 rounded-full" 
                                   style={{ width: `${acc}%` }}
                                 />
                               </div>
-                              <span className="font-mono text-[10.5px] text-slate-400 w-8 text-right font-semibold">
+                              <span className="font-mono text-xs text-slate-400 w-8 text-right font-semibold">
                                 {acc}%
                               </span>
                             </div>
@@ -2079,12 +1834,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
                     {/* Reading Parts (5-7) */}
                     <div className="space-y-2 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-teal-700 dark:text-teal-300">
                         <span className="flex items-center gap-1.5">
                           <BookOpen className="w-3.5 h-3.5" />
                           Reading (Part 5 - 7)
                         </span>
-                        <span className="font-mono text-[11px]">
+                        <span className="font-mono text-xs">
                           {(selectedSessionDetail.partScores.part5 || 0) + (selectedSessionDetail.partScores.part6 || 0) + (selectedSessionDetail.partScores.part7 || 0)}/100 đúng
                         </span>
                       </div>
@@ -2098,7 +1853,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         return (
                           <div key={p.key} className="flex items-center justify-between gap-2 text-xs py-1">
                             <div className="flex items-center space-x-2 min-w-0">
-                              <span className="w-6 h-6 rounded bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-black flex items-center justify-center shrink-0">
+                              <span className="w-6 h-6 rounded bg-teal-100 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 text-xs font-black flex items-center justify-center shrink-0">
                                 {p.code}
                               </span>
                               <span className="font-medium text-slate-700 dark:text-slate-300 truncate">
@@ -2111,11 +1866,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                               </span>
                               <div className="w-14 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-emerald-500 rounded-full" 
+                                  className="h-full bg-teal-500 rounded-full" 
                                   style={{ width: `${acc}%` }}
                                 />
                               </div>
-                              <span className="font-mono text-[10.5px] text-slate-400 w-8 text-right font-semibold">
+                              <span className="font-mono text-xs text-slate-400 w-8 text-right font-semibold">
                                 {acc}%
                               </span>
                             </div>
@@ -2163,7 +1918,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center space-x-1.5 min-w-0">
-                              <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
+                              <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold text-xs">
                                 Part {m.part}
                               </span>
                               <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
@@ -2172,14 +1927,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             </div>
                             {catInfo && (
                               <span 
-                                className="px-2 py-0.5 rounded-full font-bold text-[10px] shrink-0"
+                                className="px-2 py-0.5 rounded-full font-bold text-xs shrink-0"
                                 style={{ backgroundColor: catInfo.bg, color: catInfo.color }}
                               >
                                 {catInfo.label}
                               </span>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-[11px]">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-xs">
                             <div className="text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 p-1.5 rounded-lg">
                               <span className="font-bold">Lỗi chọn: </span>{m.userMistake}
                             </div>
@@ -2201,8 +1956,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
             {/* Modal Footer */}
             <div className="flex items-center justify-between p-3.5 px-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 text-xs">
-              <span className="text-slate-400 text-[11px]">
-                Nhấn phím <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded font-mono text-[10px] text-slate-700 dark:text-slate-300">Esc</kbd> hoặc nhấp ra ngoài để đóng
+              <span className="text-slate-400 text-xs">
+                Nhấn phím <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded font-mono text-xs text-slate-700 dark:text-slate-300">Esc</kbd> hoặc nhấp ra ngoài để đóng
               </span>
               <button
                 onClick={() => setSelectedSessionDetail(null)}
