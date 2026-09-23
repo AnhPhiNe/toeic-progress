@@ -295,7 +295,8 @@ Không web luyện đề nào làm được điều này, kể cả về nguyên
 ### 4.8. Cài Đặt & Dữ Liệu
 
 - Tên, `targetScore`, `examDate`, mục tiêu phút tối thiểu mỗi ngày.
-- **Xuất và nhập JSON.** Nhập phải kiểm tra cấu trúc trước khi ghi đè — hiện chỉ cần một file có khóa `profile` là xóa sạch dữ liệu thật, không hoàn tác được.
+- **Sao lưu JSON v2:** gồm hồ sơ, buổi học, lỗi sai, lượt Phòng Thi, checklist, từ vựng và ngày dùng khiên. Dữ liệu lưu trong một gói `toeic_progress_bundle_v2`; lần đầu mở ứng dụng tự chép khóa v1 sang gói mới, không xóa các khóa gốc. Một lần `localStorage.setItem` là điểm commit nguyên khối.
+- **Khôi phục:** kiểm tra toàn bộ tệp trước khi ghi, báo tối đa 10 lỗi kèm vị trí, từ chối tệp phiên bản mới hơn. Chỉ chuẩn hóa nhóm lỗi lạ thành “Khác” và trường không bắt buộc bị thiếu, đồng thời báo các sửa đổi. Xem trước số bản ghi trong tệp so với máy, có nút xuất bản hiện tại và xác nhận trước khi thay thế. Tệp v1 thiếu Phòng Thi/checklist/từ vựng/ngày dùng khiên thì giữ nguyên các phần đó trên máy.
 - **Dữ liệu mẫu là tùy chọn.** Người dùng mới bắt đầu với hồ sơ trắng, không phải dữ liệu của người khác.
 
 ---
@@ -343,7 +344,7 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 
 React 18 · Vite 6 · TypeScript chế độ strict · Tailwind 3.4 · `recharts` · `lucide-react` · `canvas-confetti`.
 
-Lưu trữ: **LocalStorage**. v1 ghi IndexedDB — không đúng, chưa từng dùng.
+Lưu trữ khách: **LocalStorage**, một gói dữ liệu có phiên bản. Các khóa v1 được giữ lại khi migrate. Chưa dùng IndexedDB.
 
 ### 6.2. Mô hình dữ liệu
 
@@ -356,7 +357,7 @@ Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
 
 **Nợ kiến trúc đã biết, cần trả trước khi mở công khai:**
 
-1. Khóa localStorage đánh `_v1` nhưng **không có hàm migrate**. Đổi schema sẽ làm vỡ dữ liệu người dùng cũ.
+1. Đã có bước chuyển dữ liệu v1 sang gói v2; các lần đổi schema sau vẫn cần migration riêng và bài kiểm thử tương ứng.
 2. Xóa một buổi học **không xóa các lỗi sai liên kết** qua `sessionId`.
 3. **Không có routing.** Tab quản bằng `useState`, nên không deep link được, nút Back của trình duyệt không hoạt động, và F5 luôn quay về Tổng Quan.
 4. `AnalyticsView.tsx` hơn 2000 dòng, cần tách hook và component con.

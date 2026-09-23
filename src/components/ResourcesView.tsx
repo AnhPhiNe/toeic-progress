@@ -16,7 +16,7 @@ import {
   getConcordanceByToeic,
   CONCORDANCE_TIERS
 } from '../utils/etsScoring';
-import { getCurrentRankTier } from '../utils/storage';
+import { getCurrentRankTier, loadChecklist, saveChecklist } from '../utils/storage';
 import { SpeakingWritingRoadmap } from './SpeakingWritingRoadmap';
 import { StudySession } from '../types';
 
@@ -60,29 +60,12 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
   const currentRank = getCurrentRankTier(totalEstimated);
   const concordance = getConcordanceByToeic(totalEstimated);
 
-  // Checklist state stored in localStorage
-  const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem('toeic_exam_checklist_v1');
-      return saved ? JSON.parse(saved) : {
-        id_original: true,
-        exam_slip: true,
-        pencils_2b: false,
-        eraser: false,
-        dress_code: false,
-        arrive_early: false,
-        sleep_well: false,
-        no_smartwatch: false
-      };
-    } catch {
-      return {};
-    }
-  });
+  const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>(loadChecklist);
 
   const toggleChecklist = (id: string) => {
     const updated = { ...checklistItems, [id]: !checklistItems[id] };
     setChecklistItems(updated);
-    localStorage.setItem('toeic_exam_checklist_v1', JSON.stringify(updated));
+    saveChecklist(updated);
   };
 
   const completedChecklistCount = Object.values(checklistItems).filter(Boolean).length;

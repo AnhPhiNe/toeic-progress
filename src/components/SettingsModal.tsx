@@ -17,7 +17,9 @@ import {
   Trash2
 } from 'lucide-react';
 import { UserProfile } from '../types';
-import { exportDataAsJSON, importDataFromJSON } from '../utils/storage';
+import { exportDataAsJSON, restoreBackup } from '../utils/storage';
+import { parseBackup, type BackupPreview } from '../utils/backup';
+import { live, readDataBundle } from '../utils/dataBundle';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,6 +42,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<UserProfile>({ ...profile });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [backupPreview, setBackupPreview] = useState<BackupPreview | null>(null);
+  const [backupErrors, setBackupErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -53,15 +57,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
-        if (content && importDataFromJSON(content)) {
-          alert('Khôi phục dữ liệu sao lưu thành công!');
-          onImportSuccess?.();
-          onClose();
-        } else {
-          alert('Tệp dữ liệu không hợp lệ!');
-        }
+        const result = parseBackup(content || '');
+        setBackupPreview(result.ok ? result.preview : null);
+        setBackupErrors(result.ok ? [] : result.errors);
       };
+      reader.onerror = () => setBackupErrors(['Tệp: không thể đọc tệp sao lưu']);
       reader.readAsText(file);
+      e.target.value = '';
+    }
+  };
+
+  const handleRestore = () => {
+    if (!backupPreview || !window.confirm('Thay thế dữ liệu bằng bản sao lưu đã xem trước? Dữ liệu hiện tại sẽ bị ghi đè.')) return;
+    try {
+      restoreBackup(backupPreview);
+      setBackupPreview(null);
+      onImportSuccess?.();
+      onClose();
+    } catch {
+      setBackupErrors(['Không thể ghi dữ liệu. Dữ liệu hiện tại vẫn được giữ nguyên.']);
     }
   };
 
@@ -237,6 +251,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="hidden"
               />
             </div>
+
+            {backupErrors.length > 0 && (
+              <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+                <p className="font-semibold">Không thể khôi phục tệp</p>
+                <ul className="mt-1 list-disc pl-4 space-y-0.5">{backupErrors.slice(0, 10).map((error, index) => <li key={index}>{error}</li>)}</ul>
+              </div>
+            )}
+
+            {backupPreview && (() => {
+              const current = readDataBundle();
+              const currentCounts: Record<string, number> = {
+                sessions: live(current.sessions).length,
+                mistakes: live(current.mistakes).length,
+                pacingRuns: live(current.pacingRuns).length,
+                checklist: live(current.checklist).length,
+                vocabLog: live(current.vocabLog).length,
+                shieldDays: live(current.shieldDays).length
+              };
+              const labels: Record<string, string> = {
+                sessions: 'Buổi học', mistakes: 'Lỗi sai', pacingRuns: 'Lượt Phòng Thi',
+                checklist: 'Checklist', vocabLog: 'Ngày từ vựng', shieldDays: 'Ngày dùng khiên'
+              };
+              return (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 dark:border-slate-700 dark:bg-slate-900" aria-label="Xem trước bản sao lưu">
+                  <p className="font-semibold">Xem trước tệp sao lưu v{backupPreview.version}</p>
+                  <div className="space-y-1">
+                    {Object.entries(labels).map(([key, label]) => (
+                      <p key={key} className="flex justify-between gap-2"><span>{label}</span><span className="font-semibold">{backupPreview.counts[key] ?? '—'} trong tệp · {currentCounts[key]} hiện có</span></p>
+                    ))}
+                  </div>
+                  {backupPreview.preserved.map(label => <p key={label} className="text-amber-700 dark:text-amber-300">Tệp này không có {label} — giữ nguyên dữ liệu hiện tại.</p>)}
+                  {backupPreview.corrections.length > 0 && (
+                    <details><summary>Đã chuẩn hóa {backupPreview.corrections.length} trường</summary><ul className="mt-1 list-disc pl-4">{backupPreview.corrections.map((item, index) => <li key={index}>{item}</li>)}</ul></details>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={exportDataAsJSON} className="rounded-lg border border-slate-300 px-3 py-2 font-semibold dark:border-slate-600">Xuất bản hiện tại trước</button>
+                    <button type="button" onClick={handleRestore} className="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white">Thay thế</button>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="flex items-center justify-between pt-1 text-[11px]">
               {onLoadDemo && (

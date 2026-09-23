@@ -1,14 +1,8 @@
 import confetti from 'canvas-confetti';
 import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '../types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '../data/demoData';
-
-const STORAGE_KEYS = {
-  PROFILE: 'toeic_990_profile_v1',
-  SESSIONS: 'toeic_990_sessions_v1',
-  MISTAKES: 'toeic_990_mistakes_v1',
-  INITIALIZED: 'toeic_990_initialized_v1',
-  PACING: 'toeic_990_pacing_v1'
-};
+import { DEFAULT_CHECKLIST, defaultProfile, live, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle } from './dataBundle';
+import { parseBackup, type BackupPreview } from './backup';
 
 export function getTodayDateString(): string {
   const d = new Date();
@@ -20,18 +14,7 @@ export function getTodayDateString(): string {
 
 // Hồ sơ mặc định cho người dùng mới hoặc sau khi xóa trắng dữ liệu
 export function createBlankProfile(): UserProfile {
-  return {
-    name: 'Học viên',
-    targetScore: 990,
-    examDate: '',
-    currentStreak: 0,
-    longestStreak: 0,
-    streakFreezes: 2,
-    lastStudyDate: '',
-    dailyMinGoalMinutes: 30,
-    motto: '',
-    selectedSkill: 'LR'
-  };
+  return defaultProfile();
 }
 
 // Lấy ngày hôm trước của một ngày 'YYYY-MM-DD'
@@ -46,26 +29,15 @@ function getPreviousDateString(dateStr: string): string {
 
 // Lấy Profile người dùng
 export function loadUserProfile(): UserProfile {
-  const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
-  if (!data) {
-    return createBlankProfile();
-  }
-  try {
-    const parsed = JSON.parse(data);
-    // Hồ sơ cũ có thể thiếu tên - dùng nhãn trung tính, không gán tên của ai cả
-    if (!parsed.name?.trim()) {
-      parsed.name = 'Học viên';
-      saveUserProfile(parsed);
-    }
-    return updateStreakStatus(parsed);
-  } catch {
-    return createBlankProfile();
-  }
+  return readDataBundle().profile;
 }
 
 // Lưu Profile người dùng
 export function saveUserProfile(profile: UserProfile): void {
-  localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+  updateDataBundle(current => ({
+    ...current,
+    profile: { ...profile, updatedAt: new Date().toISOString(), deletedAt: null }
+  }));
 }
 
 // Cập nhật trạng thái chuỗi Streak theo ngày thực tế
@@ -143,21 +115,11 @@ export function recordDailyActivity(profile: UserProfile, activityDate?: string)
 
 // Lấy danh sách toàn bộ các buổi học
 export function loadStudySessions(): StudySession[] {
-  const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
-  if (!data) {
-    // Người dùng mới bắt đầu với dữ liệu trắng. Dữ liệu demo chỉ được nạp
-    // khi người dùng chủ động bấm "Nạp dữ liệu mẫu".
-    return [];
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
+  return live(readDataBundle().sessions);
 }
 
 export function saveStudySessions(sessions: StudySession[]): void {
-  localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+  updateDataBundle(current => ({ ...current, sessions: replaceCollection(current.sessions, sessions) }));
 }
 
 // Thêm một buổi học mới
@@ -186,36 +148,21 @@ export function addStudySession(session: StudySession): { sessions: StudySession
 
 // Lấy danh sách Sổ tay lỗi sai
 export function loadMistakes(): MistakeEntry[] {
-  const data = localStorage.getItem(STORAGE_KEYS.MISTAKES);
-  if (!data) {
-    return [];
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
+  return live(readDataBundle().mistakes);
 }
 
 export function saveMistakes(mistakes: MistakeEntry[]): void {
-  localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes));
+  updateDataBundle(current => ({ ...current, mistakes: replaceCollection(current.mistakes, mistakes) }));
 }
 
 // ---- Lượt chạy Bộ đếm nhịp (SPEC 4.3) ----
 
 export function loadPacingRuns(): PacingRun[] {
-  const data = localStorage.getItem(STORAGE_KEYS.PACING);
-  if (!data) return [];
-  try {
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return live(readDataBundle().pacingRuns);
 }
 
 export function savePacingRuns(runs: PacingRun[]): void {
-  localStorage.setItem(STORAGE_KEYS.PACING, JSON.stringify(runs));
+  updateDataBundle(current => ({ ...current, pacingRuns: replaceCollection(current.pacingRuns, runs) }));
 }
 
 /**
@@ -223,9 +170,28 @@ export function savePacingRuns(runs: PacingRun[]): void {
  * xu hướng mà không phình localStorage.
  */
 export function addPacingRun(run: PacingRun): PacingRun[] {
-  const updated = [run, ...loadPacingRuns()].slice(0, 100);
+  const updated = [run, ...loadPacingRuns()];
   savePacingRuns(updated);
   return updated;
+}
+
+export function loadChecklist(): Record<string, boolean> {
+  const values = { ...DEFAULT_CHECKLIST };
+  for (const item of live(readDataBundle().checklist)) values[item.id] = item.checked;
+  return values;
+}
+
+export function saveChecklist(values: Record<string, boolean>): void {
+  updateDataBundle(current => {
+    const before = new Map(current.checklist.map(item => [item.id, item]));
+    const checklist = Object.entries(values).map(([id, checked]) => {
+      const old = before.get(id);
+      return old && old.checked === checked && !old.deletedAt
+        ? old
+        : { id, checked, updatedAt: new Date().toISOString(), deletedAt: null };
+    });
+    return { ...current, checklist };
+  });
 }
 
 // Tính Rank Tier hiện tại dựa trên điểm số cao nhất
@@ -251,35 +217,32 @@ export function triggerCelebrationConfetti(): void {
 
 // Xuất file JSON toàn bộ dữ liệu
 export function exportDataAsJSON(): void {
-  const backup = {
-    profile: loadUserProfile(),
-    sessions: loadStudySessions(),
-    mistakes: loadMistakes(),
-    exportDate: new Date().toISOString(),
-    appVersion: '1.0.0'
-  };
-
-  const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backup, null, 2))}`;
+  const backup = { ...readDataBundle(), exportDate: new Date().toISOString() };
+  const file = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(file);
   const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute('href', jsonString);
+  downloadAnchor.setAttribute('href', url);
   downloadAnchor.setAttribute('download', `toeic-progress-990-backup-${getTodayDateString()}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-// Nhập dữ liệu từ file JSON
+export function restoreBackup(preview: BackupPreview): void {
+  const current = readDataBundle();
+  const next = preview.version === 2
+    ? preview.data as typeof current
+    : { ...current, ...preview.data };
+  writeDataBundle(next);
+}
+
+// Kept for callers that have not moved to the preview flow yet.
 export function importDataFromJSON(jsonData: string): boolean {
-  try {
-    const parsed = JSON.parse(jsonData);
-    if (parsed.profile) saveUserProfile(parsed.profile);
-    if (parsed.sessions && Array.isArray(parsed.sessions)) saveStudySessions(parsed.sessions);
-    if (parsed.mistakes && Array.isArray(parsed.mistakes)) saveMistakes(parsed.mistakes);
-    return true;
-  } catch (err) {
-    console.error('Import failed:', err);
-    return false;
-  }
+  const result = parseBackup(jsonData);
+  if (!result.ok) return false;
+  restoreBackup(result.preview);
+  return true;
 }
 
 // Nạp lại toàn bộ dữ liệu mẫu Demo

@@ -231,9 +231,8 @@ export const App: React.FC = () => {
 
   // Khôi phục sau khi import JSON
   const handleImportSuccess = () => {
-    setProfile(loadUserProfile());
-    setSessions(loadStudySessions());
-    setMistakes(loadMistakes());
+    // Reload every mounted view, including checklist and pacing data.
+    window.location.reload();
   };
 
   // Badge điều hướng chỉ việc cần làm HÔM NAY, không phải toàn bộ tồn đọng
