@@ -33,6 +33,22 @@ export interface DataBundle {
 }
 
 const BUNDLE_KEY = 'toeic_progress_bundle_v2';
+const ACTIVE_ACCOUNT_KEY = 'toeic_active_account_v1';
+const accountKey = (userId: string) => `toeic_progress_account_${userId}_v2`;
+let accountWriteEnabled = false;
+
+export function setAccountWriteEnabled(enabled: boolean): void {
+  accountWriteEnabled = enabled;
+}
+
+export function canWriteAccount(): boolean {
+  return accountWriteEnabled && navigator.onLine;
+}
+
+export function nextUpdatedAt(previous?: string): string {
+  const prior = previous ? Date.parse(previous) : 0;
+  return new Date(Math.max(Date.now(), Number.isFinite(prior) ? prior + 1 : 0)).toISOString();
+}
 const LEGACY_KEYS = {
   profile: 'toeic_990_profile_v1',
   sessions: 'toeic_990_sessions_v1',
@@ -65,6 +81,16 @@ export function defaultProfile(): UserProfile {
     dailyMinGoalMinutes: 30,
     motto: '',
     selectedSkill: 'LR'
+  };
+}
+
+export function emptyBundle(): DataBundle {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: 2,
+    profile: { ...defaultProfile(), updatedAt: now, deletedAt: null },
+    sessions: [], mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: [],
+    checklist: Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked, updatedAt: now, deletedAt: null }))
   };
 }
 
@@ -109,31 +135,65 @@ function migrateLegacy(): DataBundle {
   };
 }
 
-/** One localStorage write is the commit point. Legacy keys are never deleted. */
-export function readDataBundle(): DataBundle {
+export function getActiveAccountId(): string | null {
+  return localStorage.getItem(ACTIVE_ACCOUNT_KEY);
+}
+
+export function activateAccount(userId: string): void {
+  localStorage.setItem(ACTIVE_ACCOUNT_KEY, userId);
+}
+
+export function deactivateAccount(): void {
+  accountWriteEnabled = false;
+  localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+}
+
+export function readGuestBundle(): DataBundle {
   const raw = localStorage.getItem(BUNDLE_KEY);
-  if (raw) {
-    const parsed = JSON.parse(raw) as DataBundle;
-    if (parsed.schemaVersion !== 2) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
-    return parsed;
-  }
+  if (raw) return parseStoredBundle(raw);
   const migrated = migrateLegacy();
-  writeDataBundle(migrated);
+  localStorage.setItem(BUNDLE_KEY, JSON.stringify(migrated));
   return migrated;
 }
 
+export function readAccountBundle(userId: string): DataBundle | null {
+  const raw = localStorage.getItem(accountKey(userId));
+  return raw ? parseStoredBundle(raw) : null;
+}
+
+export function writeAccountBundle(userId: string, bundle: DataBundle): void {
+  localStorage.setItem(accountKey(userId), JSON.stringify(bundle));
+}
+
+function parseStoredBundle(raw: string): DataBundle {
+  const parsed = JSON.parse(raw) as DataBundle;
+  if (parsed.schemaVersion !== 2) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
+  return parsed;
+}
+
+/** One localStorage write is the commit point. Legacy keys are never deleted. */
+export function readDataBundle(): DataBundle {
+  const accountId = getActiveAccountId();
+  if (accountId) return readAccountBundle(accountId) || emptyBundle();
+  return readGuestBundle();
+}
+
 export function writeDataBundle(bundle: DataBundle): void {
-  const previous = localStorage.getItem(BUNDLE_KEY);
+  const accountId = getActiveAccountId();
+  if (accountId && !canWriteAccount()) throw new Error('Chưa kết nối. Vui lòng kết nối mạng trước khi ghi dữ liệu tài khoản.');
+  const key = accountId ? accountKey(accountId) : BUNDLE_KEY;
+  const previous = localStorage.getItem(key);
   try {
-    localStorage.setItem(BUNDLE_KEY, JSON.stringify(bundle));
+    localStorage.setItem(key, JSON.stringify(bundle));
   } catch (error) {
     // setItem replaces one key atomically; restore defensively for unusual browsers.
-    if (localStorage.getItem(BUNDLE_KEY) !== previous) {
-      if (previous === null) localStorage.removeItem(BUNDLE_KEY);
-      else localStorage.setItem(BUNDLE_KEY, previous);
+    if (localStorage.getItem(key) !== previous) {
+      if (previous === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, previous);
     }
     throw error;
   }
+  if (accountId) window.dispatchEvent(new CustomEvent('toeic:account-data-changed', { detail: accountId }));
 }
 
 export function updateDataBundle(update: (current: DataBundle) => DataBundle): DataBundle {
@@ -149,7 +209,6 @@ export function live<T extends SyncMeta>(records: T[]): T[] {
 export function replaceCollection<T extends { id: string } & Partial<SyncMeta>>(
   oldRecords: T[], incoming: T[]
 ): Array<T & SyncMeta> {
-  const now = new Date().toISOString();
   const incomingIds = new Set(incoming.map(item => item.id));
   const oldById = new Map(oldRecords.map(item => [item.id, item]));
   const content = (record: T) => {
@@ -161,11 +220,12 @@ export function replaceCollection<T extends { id: string } & Partial<SyncMeta>>(
   const next: Array<T & SyncMeta> = incoming.map(item => {
     const old = oldById.get(item.id);
     if (old && !old.deletedAt && content(old) === content(item)) return old as T & SyncMeta;
-    return { ...item, updatedAt: now, deletedAt: null };
+    return { ...item, updatedAt: nextUpdatedAt(old?.updatedAt), deletedAt: null };
   });
   for (const old of oldRecords) {
     if (!incomingIds.has(old.id)) {
-      next.push({ ...old, updatedAt: now, deletedAt: old.deletedAt || now });
+      const updatedAt = old.deletedAt && old.updatedAt ? old.updatedAt : nextUpdatedAt(old.updatedAt);
+      next.push({ ...old, updatedAt, deletedAt: old.deletedAt || updatedAt });
     }
   }
   return next;

@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '../types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '../data/demoData';
-import { DEFAULT_CHECKLIST, defaultProfile, live, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle, type VocabLog } from './dataBundle';
+import { DEFAULT_CHECKLIST, canWriteAccount, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle, type VocabLog } from './dataBundle';
 import { parseBackup, type BackupPreview } from './backup';
 import { deriveStreak } from './streak';
 
@@ -40,10 +40,10 @@ export function loadUserProfile(): UserProfile {
   ]);
   const alreadyShielded = live(bundle.shieldDays).some(item => item.date === yesterday);
   let current = bundle;
-  if (activityDates.has(dayBefore) && !activityDates.has(yesterday) && !alreadyShielded && deriveStreak(bundle, today).streakFreezes > 0) {
+  if ((!getActiveAccountId() || canWriteAccount()) && activityDates.has(dayBefore) && !activityDates.has(yesterday) && !alreadyShielded && deriveStreak(bundle, today).streakFreezes > 0) {
     current = updateDataBundle(data => ({
       ...data,
-      shieldDays: [...data.shieldDays, { id: `shield:${yesterday}`, date: yesterday, updatedAt: new Date().toISOString(), deletedAt: null }]
+      shieldDays: [...data.shieldDays.filter(item => item.id !== `shield:${yesterday}`), { id: `shield:${yesterday}`, date: yesterday, updatedAt: nextUpdatedAt(data.shieldDays.find(item => item.date === yesterday)?.updatedAt), deletedAt: null }]
     }));
   }
   return { ...current.profile, ...deriveStreak(current, today) };
@@ -59,7 +59,7 @@ export function saveUserProfile(profile: UserProfile): void {
       : current.profile.shieldAllowance ?? current.profile.streakFreezes + used;
     return {
       ...current,
-      profile: { ...profile, shieldAllowance, updatedAt: new Date().toISOString(), deletedAt: null }
+      profile: { ...profile, shieldAllowance, updatedAt: nextUpdatedAt(current.profile.updatedAt), deletedAt: null }
     };
   });
 }
@@ -152,7 +152,7 @@ export function saveChecklist(values: Record<string, boolean>): void {
       const old = before.get(id);
       return old && old.checked === checked && !old.deletedAt
         ? old
-        : { id, checked, updatedAt: new Date().toISOString(), deletedAt: null };
+        : { id, checked, updatedAt: nextUpdatedAt(old?.updatedAt), deletedAt: null };
     });
     return { ...current, checklist };
   });
@@ -167,12 +167,11 @@ export function upsertVocabLog(date: string, count: number): VocabLog[] {
     throw new Error('Ngày và số từ vựng phải hợp lệ; số từ phải lớn hơn 0.');
   }
   const id = `vocab:${date}`;
-  const now = new Date().toISOString();
   const next = updateDataBundle(current => ({
     ...current,
     vocabLog: [
       ...current.vocabLog.filter(item => item.id !== id),
-      { id, date, count, updatedAt: now, deletedAt: null }
+      { id, date, count, updatedAt: nextUpdatedAt(current.vocabLog.find(item => item.id === id)?.updatedAt), deletedAt: null }
     ]
   }));
   return live(next.vocabLog);
@@ -239,16 +238,15 @@ export function loadDemoData(): { profile: UserProfile; sessions: StudySession[]
 // Xóa trắng toàn bộ dữ liệu để bắt đầu từ đầu
 export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySession[]; mistakes: MistakeEntry[] } {
   const cleanProfile = createBlankProfile();
-  const now = new Date().toISOString();
   updateDataBundle(current => ({
     ...current,
-    profile: { ...cleanProfile, updatedAt: now, deletedAt: null },
+    profile: { ...cleanProfile, updatedAt: nextUpdatedAt(current.profile.updatedAt), deletedAt: null },
     sessions: replaceCollection(current.sessions, []),
     mistakes: replaceCollection(current.mistakes, []),
     pacingRuns: replaceCollection(current.pacingRuns, []),
-    vocabLog: current.vocabLog.map(item => ({ ...item, updatedAt: now, deletedAt: now })),
-    shieldDays: current.shieldDays.map(item => ({ ...item, updatedAt: now, deletedAt: now })),
-    checklist: Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked, updatedAt: now, deletedAt: null }))
+    vocabLog: current.vocabLog.map(item => { const updatedAt = nextUpdatedAt(item.updatedAt); return { ...item, updatedAt, deletedAt: updatedAt }; }),
+    shieldDays: current.shieldDays.map(item => { const updatedAt = nextUpdatedAt(item.updatedAt); return { ...item, updatedAt, deletedAt: updatedAt }; }),
+    checklist: replaceCollection(current.checklist, Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked })))
   }));
 
   return {

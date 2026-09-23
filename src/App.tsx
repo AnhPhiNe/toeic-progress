@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { Dashboard } from './components/Dashboard';
@@ -11,6 +11,10 @@ import { SessionLoggerModal } from './components/SessionLoggerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ReviewSessionModal } from './components/ReviewSessionModal';
 import { RelapseAlert } from './components/RelapseAlert';
+import { AccountPanel } from './components/AccountPanel';
+import { CARD } from './components/surfaces';
+import { useCloudAccount } from './hooks/useCloudAccount';
+import { getActiveAccountId } from './utils/dataBundle';
 
 import { 
   loadUserProfile, 
@@ -35,6 +39,16 @@ export const App: React.FC = () => {
   const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions());
   const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes());
   const [vocabLog, setVocabLog] = useState(loadVocabLog());
+  const [dataVersion, setDataVersion] = useState(0);
+
+  const refreshFromStorage = useCallback(() => {
+    setProfile(loadUserProfile());
+    setSessions(loadStudySessions());
+    setMistakes(loadMistakes());
+    setVocabLog(loadVocabLog());
+    setDataVersion(value => value + 1);
+  }, []);
+  const account = useCloudAccount(refreshFromStorage);
 
   const [activeTab, setActiveTab] = useState<NavTabId>('dashboard');
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -292,7 +306,7 @@ export const App: React.FC = () => {
         />
 
         {/* Body Container */}
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
+        <main key={dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
           {activeTab === 'dashboard' && (
             <Dashboard
               relapseSlot={
@@ -368,9 +382,9 @@ export const App: React.FC = () => {
               <span>Trạm Luyện Thi Cá Nhân</span>
             </div>
             <div className="flex items-center space-x-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-              <span>🔒 100% Offline-First</span>
+              <span>{account.status === 'synced' ? 'Đã đồng bộ' : account.status === 'syncing' ? 'Đang đồng bộ' : getActiveAccountId() ? 'Chưa kết nối' : 'Chế độ khách · lưu trên máy này'}</span>
               <span>•</span>
-              <span>Dữ liệu lưu an toàn trên trình duyệt</span>
+              <span>{getActiveAccountId() ? 'Tài khoản nhiều thiết bị' : 'Dữ liệu trên máy này'}</span>
             </div>
           </div>
         </footer>
@@ -404,7 +418,39 @@ export const App: React.FC = () => {
         onResetData={handleResetData}
         onLoadDemo={handleLoadDemo}
         onImportSuccess={handleImportSuccess}
+        accountPanel={<AccountPanel available={account.available} status={account.status} email={account.email} error={account.error}
+          onGoogle={account.signInGoogle} onSendOtp={account.sendOtp} onVerifyOtp={account.verifyOtp}
+          onRetry={() => void account.retry()} onSignOut={account.signOut} onDelete={account.deleteAccount} />}
       />
+
+      {account.pendingTransfer && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
+          <div className={`${CARD} w-full max-w-lg space-y-4`}>
+            <h2 id="transfer-title" className="text-lg font-bold">Chọn dữ liệu để đồng bộ</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Máy này và tài khoản đều có dữ liệu. Bản dữ liệu khách trên máy luôn được giữ riêng.</p>
+            {account.error && <p role="alert" className="text-sm text-rose-600">{account.error}</p>}
+            <div className="grid gap-2">
+              <button type="button" autoFocus onClick={() => void account.chooseTransfer('merge')} className="rounded-xl border border-blue-400 bg-blue-50 px-4 py-3 text-left font-semibold text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">Gộp — khuyên dùng <span className="block text-xs font-normal">Bản cập nhật mới hơn của mỗi mục được giữ.</span></button>
+              <button type="button" onClick={() => void account.chooseTransfer('account')} className="rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold dark:border-slate-700">Dùng dữ liệu tài khoản <span className="block text-xs font-normal">Bỏ qua dữ liệu máy trong tài khoản; bản khách vẫn ở máy.</span></button>
+              <button type="button" onClick={() => void account.chooseTransfer('device')} className="rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold dark:border-slate-700">Dùng dữ liệu máy này <span className="block text-xs font-normal">Thay dữ liệu trên máy chủ bằng bản trên máy.</span></button>
+              <button type="button" onClick={() => void account.signOut()} className="px-4 py-2 text-left text-sm font-semibold text-slate-500 dark:text-slate-400">Để sau · tiếp tục chế độ khách</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {getActiveAccountId() && ['loading', 'disconnected', 'error'].includes(account.status) && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/65 p-4" role="alertdialog" aria-modal="true" aria-label="Trạng thái kết nối">
+          <div className={`${CARD} w-full max-w-sm space-y-3 text-center`}>
+            <h2 className="text-lg font-bold">{account.status === 'loading' ? 'Đang kết nối tài khoản' : 'Chưa kết nối'}</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{account.error || 'Dữ liệu tài khoản tạm thời chỉ xem được. Kết nối lại để tiếp tục ghi và đồng bộ.'}</p>
+            {account.status !== 'loading' && <div className="flex justify-center gap-2">
+              <button type="button" onClick={() => void account.retry()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Thử lại</button>
+              <button type="button" onClick={() => void account.signOut()} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-600">Dùng chế độ khách</button>
+            </div>}
+          </div>
+        </div>
+      )}
 
     </div>
   );

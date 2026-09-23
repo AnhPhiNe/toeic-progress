@@ -9,9 +9,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test:rls": "node scripts/test-rls.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.0",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",

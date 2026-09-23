@@ -347,6 +347,8 @@ React 18 · Vite 6 · TypeScript chế độ strict · Tailwind 3.4 · `recharts
 
 Lưu trữ khách: **LocalStorage**, một gói dữ liệu có phiên bản. Các khóa v1 được giữ lại khi migrate. Chưa dùng IndexedDB.
 
+Đồng bộ tài khoản dùng Supabase Auth (Google hoặc email OTP). URL và publishable key lấy từ biến môi trường; service-role key chỉ chạy trong Edge Function. Không có cấu hình Supabase thì ứng dụng vẫn chạy ở chế độ khách.
+
 ### 6.2. Mô hình dữ liệu
 
 Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
@@ -363,7 +365,7 @@ Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
 2. Xóa một buổi học **không xóa các lỗi sai liên kết** qua `sessionId`.
 3. **Không có routing.** Tab quản bằng `useState`, nên không deep link được, nút Back của trình duyệt không hoạt động, và F5 luôn quay về Tổng Quan.
 4. `AnalyticsView.tsx` hơn 2000 dòng, cần tách hook và component con.
-5. Không có lint, test, hay error boundary.
+5. Đã có Vitest cho logic sao lưu, streak, phân tích và gộp; ESLint và Playwright đã cài nhưng chưa cấu hình/chạy; chưa có error boundary.
 6. `<input type="date">` hiển thị theo locale trình duyệt (MM/DD/YYYY), lệch với định dạng DD/MM/YYYY dùng ở mọi nơi khác trong app.
 
 ### 6.3. Quy đổi điểm ETS
@@ -371,6 +373,14 @@ Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
 Bảng tra Raw sang Scaled cho từng kỹ năng (0–100 thành 5–495), tổng 10–990. Hàm `calculateFromPartScores()` cộng Part 1–4 thành Raw Listening và Part 5–7 thành Raw Reading.
 
 **Đây là bảng xấp xỉ theo phổ điểm ETS, không phải bảng chính thức.** Giao diện nên gọi kết quả là "điểm dự kiến", không phải điểm chính xác.
+
+### 6.4. Tài khoản và đồng bộ
+
+- Dữ liệu khách nằm ở gói riêng; đăng nhập không xóa gói này. Dữ liệu từng tài khoản có gói cục bộ theo user ID. Khi cả tài khoản và máy có dữ liệu, hỏi **Gộp** (mặc định), **Dùng tài khoản**, hoặc **Dùng máy này**.
+- Mọi bản ghi, kể cả hồ sơ, checklist theo mục, từ vựng theo ngày và ngày dùng khiên, có `updatedAt`/`deletedAt`. Xóa mềm. Gộp theo ID; bản mới hơn thắng, trùng thời điểm thì bản xóa thắng. Một RPC Postgres kiểm tra phiên bản trong chính giao dịch ghi để yêu cầu đến muộn không ghi đè bản mới. Lựa chọn dùng máy này tạo bản xóa cho mục chỉ có trên server.
+- `sync_records` bật RLS theo `user_id = auth.uid()`; trình duyệt chỉ được SELECT, ghi qua RPC có xác thực. FK `ON DELETE CASCADE` xóa dữ liệu khi Edge Function dùng quyền server xóa Auth user. Không đưa khóa quản trị vào frontend.
+- Khi đăng nhập mà mất mạng hoặc đồng bộ lỗi, chặn ghi tài khoản và báo trạng thái; cho phép quay về gói khách. Streak luôn suy ra từ ngày học, ngày từ vựng và ngày dùng khiên.
+- **Trạng thái triển khai:** code, migration và kiểm thử gộp cục bộ đã có. Chưa có dự án staging/production, nên chưa kiểm thử đăng nhập thực tế, RLS truy cập chéo hay xóa tài khoản trên server. Chưa mời người thử qua email cho đến khi cấu hình SMTP riêng.
 
 ---
 
@@ -384,7 +394,7 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 | **Chấm bài tự động** | Cùng lý do trên |
 | **Module từ vựng, flashcard** | Các web chuyên dụng làm tốt hơn nhiều. **Chỉ theo dõi số từ đã học mỗi ngày như một chỉ số** — đó là dữ liệu, không phải nội dung |
 | **Bài giảng, video, lý thuyết** | Không phải vai trò của sản phẩm |
-| **Bảng xếp hạng, mạng xã hội** | Chưa có backend, chưa có người dùng thứ hai |
+| **Bảng xếp hạng, mạng xã hội** | Không phục vụ mục tiêu theo dõi tiến bộ cá nhân của sản phẩm |
 | **Gợi ý bằng AI** | Với vài chục bản ghi sẽ chỉ sinh ra lời khuyên sáo rỗng. Xem lại khi dữ liệu đủ dày |
 | **Bắt người dùng nhập tay thời gian từng Part** | Phải gõ bảy con số mỗi buổi. Chi phí nhập liệu vượt giá trị thu được. **Nhưng đo tự động thì được** — Bộ đếm nhịp đã biết mốc từng pha, ghi lại pha vượt giờ không tốn thao tác nào của người dùng (mục 4.3) |
 | **Biểu đồ radar 7 Part** | Thang tối đa lệch nhau (6 câu so với 54 câu) làm méo hình, đánh lừa mắt |
@@ -430,8 +440,9 @@ Còn lại:
 15. Lớp migrate schema và xác thực dữ liệu nhập.
 16. Routing.
 17. ~~Rank Tier tính tương đối theo `targetScore`.~~
-18. PWA thật. Hiện chân trang ghi "100% Offline-First" nhưng chưa có manifest hay service worker — đây là một tuyên bố sai.
-19. Onboarding, i18n, lint, test, CI.
+18. PWA cài được nhưng cần mạng. Chân trang đã hiển thị trạng thái lưu trữ thực tế.
+19. Onboarding, routing, cấu hình ESLint/Playwright và CI. Bản đầu chỉ tiếng Việt; i18n tiếng Anh sau ra mắt.
+20. Kết nối hai dự án Supabase staging/production, kiểm tra RLS bằng hai tài khoản, SMTP riêng trước mời người thử ngoài nhóm, rồi mới mở công khai trên tên miền đã chốt.
 
 ---
 

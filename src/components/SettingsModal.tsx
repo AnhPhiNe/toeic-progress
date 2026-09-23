@@ -29,6 +29,7 @@ interface SettingsModalProps {
   onResetData?: () => void;
   onLoadDemo?: () => void;
   onImportSuccess?: () => void;
+  accountPanel?: React.ReactNode;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -38,7 +39,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveProfile,
   onResetData,
   onLoadDemo,
-  onImportSuccess
+  onImportSuccess,
+  accountPanel
 }) => {
   const [formData, setFormData] = useState<UserProfile>({ ...profile });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +119,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Form Body (Scrollable) */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
+          {accountPanel}
           
           {/* User Name */}
           <div>
@@ -219,7 +222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <span>Quản Lý Dữ Liệu Luyện Thi</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Dữ liệu được lưu an toàn trên trình duyệt của bạn (Offline-First). Bạn có thể sao lưu ra tệp JSON hoặc khôi phục dữ liệu bất cứ lúc nào.
+              Chế độ khách lưu trên máy này; khi đăng nhập, dữ liệu tài khoản được đồng bộ. Bạn có thể xuất tệp JSON hoặc khôi phục bất cứ lúc nào.
             </p>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
