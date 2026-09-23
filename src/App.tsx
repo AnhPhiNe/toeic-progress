@@ -12,9 +12,12 @@ import { SettingsModal } from './components/SettingsModal';
 import { ReviewSessionModal } from './components/ReviewSessionModal';
 import { RelapseAlert } from './components/RelapseAlert';
 import { AccountPanel } from './components/AccountPanel';
+import { OnboardingCard } from './components/OnboardingCard';
 import { CARD } from './components/surfaces';
 import { useCloudAccount } from './hooks/useCloudAccount';
-import { getActiveAccountId } from './utils/dataBundle';
+import { useRouteTab } from './hooks/useRouteTab';
+import { getActiveAccountId, readDataBundle } from './utils/dataBundle';
+import { hasPersonalData } from './utils/syncMerge';
 
 import { 
   loadUserProfile, 
@@ -31,7 +34,7 @@ import {
   recordDailyActivity,
   getTodayDateString 
 } from './utils/storage';
-import { StudySession, MistakeEntry, UserProfile, NavTabId } from './types';
+import { StudySession, MistakeEntry, UserProfile } from './types';
 import { applyReviewResult, getDueMistakes } from './utils/spacedRepetition';
 
 export const App: React.FC = () => {
@@ -39,7 +42,13 @@ export const App: React.FC = () => {
   const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions());
   const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes());
   const [vocabLog, setVocabLog] = useState(loadVocabLog());
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('toeic_onboarding_done_v1') && !hasPersonalData(readDataBundle()));
   const [dataVersion, setDataVersion] = useState(0);
+
+  const dismissOnboarding = () => {
+    localStorage.setItem('toeic_onboarding_done_v1', 'true');
+    setShowOnboarding(false);
+  };
 
   const refreshFromStorage = useCallback(() => {
     setProfile(loadUserProfile());
@@ -50,7 +59,7 @@ export const App: React.FC = () => {
   }, []);
   const account = useCloudAccount(refreshFromStorage);
 
-  const [activeTab, setActiveTab] = useState<NavTabId>('dashboard');
+  const [activeTab, setActiveTab] = useRouteTab();
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp (SPEC 4.3)
   const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number } | undefined>(undefined);
@@ -127,6 +136,7 @@ export const App: React.FC = () => {
   // Lưu và cập nhật session
   const handleSaveSession = (session: StudySession, newMistakes?: MistakeEntry[]) => {
     const result = addStudySession(session);
+    dismissOnboarding();
     setSessions(result.sessions);
     setProfile(result.profile);
 
@@ -139,6 +149,7 @@ export const App: React.FC = () => {
 
   const handleSaveVocab = (date: string, count: number) => {
     setVocabLog(upsertVocabLog(date, count));
+    dismissOnboarding();
     setProfile(recordDailyActivity(profile, date));
   };
 
@@ -307,6 +318,7 @@ export const App: React.FC = () => {
 
         {/* Body Container */}
         <main key={dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
+          {activeTab === 'dashboard' && showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
           {activeTab === 'dashboard' && (
             <Dashboard
               relapseSlot={
@@ -385,6 +397,9 @@ export const App: React.FC = () => {
               <span>{account.status === 'synced' ? 'Đã đồng bộ' : account.status === 'syncing' ? 'Đang đồng bộ' : getActiveAccountId() ? 'Chưa kết nối' : 'Chế độ khách · lưu trên máy này'}</span>
               <span>•</span>
               <span>{getActiveAccountId() ? 'Tài khoản nhiều thiết bị' : 'Dữ liệu trên máy này'}</span>
+              <span>•</span>
+              <a href="/chinh-sach-quyen-rieng-tu" className="hover:underline">Quyền riêng tư</a>
+              <a href="/dieu-khoan" className="hover:underline">Điều khoản</a>
             </div>
           </div>
         </footer>

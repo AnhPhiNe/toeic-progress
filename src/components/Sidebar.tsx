@@ -128,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       const next = !prev;
       try {
         localStorage.setItem('toeic_sidebar_collapsed', String(next));
-      } catch {}
+      } catch { /* Sidebar vẫn hoạt động khi trình duyệt chặn localStorage. */ }
       return next;
     });
   };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Play, 
   Pause, 
@@ -125,7 +125,7 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
   soundEnabledRef.current = soundEnabled;
 
   // Khởi tạo AudioContext theo hành vi người dùng tương tác để tránh bị trình duyệt chặn
-  const initAudio = () => {
+  const initAudio = useCallback(() => {
     try {
       if (!audioCtxRef.current) {
         const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -139,10 +139,10 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
     } catch {
       // Audio context may be restricted
     }
-  };
+  }, []);
 
   // Web Audio chime generator
-  const playSoundAlert = () => {
+  const playSoundAlert = useCallback(() => {
     if (!soundEnabledRef.current) return;
     try {
       initAudio();
@@ -162,7 +162,7 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
     } catch {
       // Audio fallback
     }
-  };
+  }, [initAudio]);
 
   // Cập nhật lại thời gian khi đổi preset
   const handleSelectPreset = (preset: TimerPreset) => {
@@ -229,7 +229,7 @@ export const ExamTimerView: React.FC<ExamTimerViewProps> = ({ onOpenSessionLogge
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning]);
+  }, [isRunning, playSoundAlert]);
 
   // Format time
   const hours = Math.floor(secondsRemaining / 3600);

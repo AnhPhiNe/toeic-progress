@@ -363,9 +363,9 @@ Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
 
 1. Đã có bước chuyển dữ liệu v1 sang gói v2; các lần đổi schema sau vẫn cần migration riêng và bài kiểm thử tương ứng.
 2. Xóa một buổi học **không xóa các lỗi sai liên kết** qua `sessionId`.
-3. **Không có routing.** Tab quản bằng `useState`, nên không deep link được, nút Back của trình duyệt không hoạt động, và F5 luôn quay về Tổng Quan.
+3. Sáu màn hình có URL riêng, deep link và Back/Forward qua History API. Ba trang công khai có URL riêng và tải trực tiếp được.
 4. `AnalyticsView.tsx` hơn 2000 dòng, cần tách hook và component con.
-5. Đã có Vitest cho logic sao lưu, streak, phân tích và gộp; ESLint và Playwright đã cài nhưng chưa cấu hình/chạy; chưa có error boundary.
+5. Có Vitest cho logic, ESLint và Playwright cho luồng trình duyệt; CI chạy cả ba. Error boundary giữ nguyên dữ liệu hỏng và cho xuất bản thô để phục hồi.
 6. `<input type="date">` hiển thị theo locale trình duyệt (MM/DD/YYYY), lệch với định dạng DD/MM/YYYY dùng ở mọi nơi khác trong app.
 
 ### 6.3. Quy đổi điểm ETS
@@ -429,7 +429,7 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 - ~~Tổng Quan đổi vai thành bảng lệnh~~ — **đã thử, đã gỡ bỏ**, xem hộp ghi chú mục 4.1
 - ~~Sửa được bản ghi lỗi sai và buổi học~~ — nút bút chì ở bảng lịch sử (Phân Tích) và trên từng thẻ Sổ tay. Sửa buổi học dùng lại form Nhập Điểm, giữ nguyên id/createdAt, quy đổi lại điểm, **không** chạm streak hay pháo giấy. Sửa thẻ lỗi giữ nguyên trạng thái và toàn bộ lịch ôn giãn cách.
 
-Còn lại:
+Đã xử lý tiếp:
 
 8. ~~Ma trận 7 Part và độ ổn định chuyển sang tối đa năm đề mới gần nhất.~~
 9. ~~Mức vượt giờ từng pha từ dữ liệu Bộ đếm nhịp (từ ba lượt có đánh dấu pha).~~
@@ -438,11 +438,12 @@ Còn lại:
 ### Trước khi mở công khai
 
 15. Lớp migrate schema và xác thực dữ liệu nhập.
-16. Routing.
+16. ~~Routing cho sáu màn hình và ba trang công khai.~~
 17. ~~Rank Tier tính tương đối theo `targetScore`.~~
-18. PWA cài được nhưng cần mạng. Chân trang đã hiển thị trạng thái lưu trữ thực tế.
-19. Onboarding, routing, cấu hình ESLint/Playwright và CI. Bản đầu chỉ tiếng Việt; i18n tiếng Anh sau ra mắt.
+18. ~~PWA cài được nhưng cần mạng.~~ Đã có manifest, icon 192/512 và service worker network-only; không cache dữ liệu học. Chân trang hiển thị trạng thái lưu trữ thực tế.
+19. ~~Onboarding, routing, cấu hình ESLint/Playwright và CI.~~ Đã có thẻ bắt đầu cho người mới, URL riêng cho sáu màn hình và ba trang công khai, kiểm thử trình duyệt ở 375/768/1024/1440 và zoom 125%. Bản đầu chỉ tiếng Việt; i18n tiếng Anh sau ra mắt.
 20. Kết nối hai dự án Supabase staging/production, kiểm tra RLS bằng hai tài khoản, SMTP riêng trước mời người thử ngoài nhóm, rồi mới mở công khai trên tên miền đã chốt.
+21. Điền tên đơn vị vận hành và email hỗ trợ trong `VITE_OPERATOR_NAME`/`VITE_SUPPORT_EMAIL` trước khi công bố trang pháp lý; hiện dùng nội dung tạm có ghi rõ chưa có kênh liên hệ.
 
 ---
 

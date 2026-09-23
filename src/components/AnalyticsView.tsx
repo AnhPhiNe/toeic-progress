@@ -162,7 +162,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const priority = useMemo(() => causePriority(sessions, mistakes), [sessions, mistakes]);
   const heatmap = useMemo(() => heatmapDays(sessions, vocabLog, getTodayDateString()), [sessions, vocabLog]);
   const vocabTotal12Weeks = vocabLog.filter(item => !item.deletedAt && item.date >= heatmap[0].date && item.date <= heatmap[83].date).reduce((sum, item) => sum + item.count, 0);
-  const pacing = useMemo(() => phaseOverruns(loadPacingRuns()), [sessions]);
+  const pacing = useMemo(() => phaseOverruns(loadPacingRuns()), []);
 
   // SẮP XẾP THỜI GIAN CHUẨN XÁC TĂNG DẦN (Cũ nhất -> Mới nhất, Trái qua Phải) cho Biểu đồ
   const chronologicalFullTests = useMemo(() => {
@@ -310,9 +310,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [displayedFullTests, attemptMap]);
 
   // Phân tích trung bình từng Part 1-7
-  const partStats = rolling.tests.length
+  const partStats = useMemo(() => rolling.tests.length
     ? { averages: rolling.averages, accuracy: rolling.accuracy, validTestsCount: rolling.tests.length }
-    : null;
+    : null, [rolling]);
 
   // Xác định Part yếu nhất (Điểm nghẽn)
   const { weakestPart } = useMemo(() => {
