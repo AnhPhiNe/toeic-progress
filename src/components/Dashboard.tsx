@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Flame,
   BookOpen,
@@ -23,7 +23,7 @@ import {
 } from 'recharts';
 import { StudySession, UserProfile } from '../types';
 import { getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
-import { getPracticeParts, getPracticeAccuracy } from '../utils/etsScoring';
+import { calculatePartAccuracy } from '../utils/etsScoring';
 
 interface DashboardProps {
   /** Cảnh báo tái phạm, đặt ngay đầu trang khi có (SPEC mục 4.6) */
@@ -125,6 +125,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return {
       first,
       latest,
+      prev: allChartData.length > 1 ? allChartData[allChartData.length - 2] : null,
       diff: latest.total - first.total,
       totalTests: allChartData.length
     };
@@ -181,18 +182,61 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   }, [sessions, profile.lastStudyDate, today]);
 
-  const recentSessions = useMemo(
-    () =>
-      [...sessions]
-        .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''))
-        .slice(0, 4),
-    [sessions]
-  );
-
   // Kỹ năng HIỆN TẠI lấy từ bài Full Test gần nhất, không phải bài cao nhất
   const latestTest = stats ? fullTests.find(s => s.id === stats.latest.id) || bestTest : bestTest;
   const listeningScore = latestTest?.scaledListening || 0;
   const readingScore = latestTest?.scaledReading || 0;
+
+  // Chênh lệch từng kỹ năng so với đề Full Test liền trước
+  const skillDelta = (key: 'listening' | 'reading') =>
+    stats?.prev ? stats.latest[key] - stats.prev[key] : null;
+
+  // Độ chính xác từng Part của đề gần nhất - thứ web luyện đề chỉ cho xem từng đề một
+  const partBars = useMemo(() => {
+    if (!latestTest?.partScores) return null;
+    const acc = calculatePartAccuracy(latestTest.partScores);
+    const rows = ([1, 2, 3, 4, 5, 6, 7] as const).map(n => ({
+      part: n,
+      acc: acc[`part${n}` as keyof typeof acc],
+      isListening: n <= 4
+    }));
+    const weakest = rows.reduce((w, r) => (r.acc < w.acc ? r : w), rows[0]);
+    return { rows, weakest };
+  }, [latestTest]);
+
+  /**
+   * Khớp màn hình (≥ xl): lưới hai cột cao ít nhất bằng phần còn lại của
+   * khung nhìn, để mép dưới thẻ biểu đồ và thẻ kỹ năng nằm trọn trong màn
+   * hình khi vừa mở trang; biểu đồ giãn ra lấp chỗ trống. Màn hình thấp hơn
+   * 520px thì thôi khớp, để nội dung không bị ép bẹp.
+   */
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [fitHeight, setFitHeight] = useState<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const mq = window.matchMedia('(min-width: 1280px)');
+    const update = () => {
+      if (!mq.matches) {
+        setFitHeight(undefined);
+        return;
+      }
+      const top = grid.getBoundingClientRect().top + window.scrollY;
+      // 20px = đệm dưới của <main> ở App
+      setFitHeight(Math.max(520, Math.floor(window.innerHeight - top - 20)));
+    };
+    update();
+    // Cảnh báo tái phạm mở/đóng làm lưới dịch xuống/lên - đo lại khi phần trên đổi cỡ
+    const ro = new ResizeObserver(update);
+    if (grid.parentElement) ro.observe(grid.parentElement);
+    window.addEventListener('resize', update);
+    mq.addEventListener('change', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+      mq.removeEventListener('change', update);
+    };
+  }, []);
 
   const diff = stats?.diff ?? 0;
 
@@ -275,7 +319,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch"
+        style={fitHeight ? { minHeight: fitHeight } : undefined}
+      >
 
         {/* ================= CỘT TRÁI ================= */}
         <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 min-w-0">
@@ -285,22 +333,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {kpis.map((k, i) => (
               <div
                 key={k.label}
-                className={`p-4 sm:p-5 min-w-0 border-slate-100 dark:border-slate-800 ${
+                className={`px-4 py-3.5 sm:px-5 min-w-0 border-slate-100 dark:border-slate-800 ${
                   i % 2 === 1 ? 'border-l' : ''
                 } ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${k.badge}`}>
-                    <k.icon className="w-[18px] h-[18px]" />
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${k.badge}`}>
+                    <k.icon className="w-4 h-4" />
                   </span>
                   <span className="text-sm font-semibold leading-tight text-slate-600 dark:text-slate-300 min-w-0">{k.label}</span>
                 </div>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className={`text-3xl font-black tabular-nums leading-none ${k.number}`}>{k.value}</span>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className={`text-[28px] font-black tabular-nums leading-none ${k.number}`}>{k.value}</span>
                   {k.suffix && <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">{k.suffix}</span>}
                 </div>
                 <span
-                  className={`mt-3 inline-block max-w-full truncate px-2 py-0.5 rounded-md text-xs font-semibold ${k.pill}`}
+                  className={`mt-2 inline-block max-w-full truncate px-2 py-0.5 rounded-md text-xs font-semibold ${k.pill}`}
                   title={k.note}
                 >
                   {k.note}
@@ -337,7 +385,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="h-[260px] sm:h-[300px] w-full">
+            <div className="relative w-full h-[260px] sm:h-[300px] xl:h-auto xl:flex-1 xl:min-h-[240px]">
+              <div className="absolute inset-0">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 24, right: 24, left: 0, bottom: 4 }}>
@@ -457,9 +506,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
               )}
+              </div>
             </div>
 
-            <div className="flex justify-end mt-auto">
+            <div className="flex justify-end">
               <button
                 onClick={onNavigateToAnalytics}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
@@ -558,31 +608,52 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* 6. KỸ NĂNG HIỆN TẠI.
-              Màu thanh là DANH TÍNH kỹ năng và không đổi theo trạng thái.
-              Listening cyan, Reading tím: không trùng màu biểu đồ (xanh dương),
-              streak (hổ phách) hay các con số KPI; hai màu cách nhau ΔE 15
-              với người mù màu đỏ-lục. */}
-          <div className={`${CARD} flex-1 flex flex-col gap-5`}>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
+              Màu là DANH TÍNH kỹ năng và không đổi theo trạng thái:
+              Listening cyan (Part 1-4), Reading tím (Part 5-7) - không trùng
+              màu biểu đồ, streak hay các con số KPI; cách nhau ΔE 15 với
+              người mù màu đỏ-lục. */}
+          <div className={`${CARD} flex-1 flex flex-col gap-4`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
+              {latestTest && (
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  Đề {formatShortDate(latestTest.date)}
+                </span>
+              )}
+            </div>
 
             {[
-              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-cyan-500 dark:bg-cyan-400', iconColor: 'text-cyan-600 dark:text-cyan-400', iconBox: 'bg-cyan-50 border-cyan-100 dark:bg-cyan-950/50 dark:border-cyan-900/60' },
-              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-purple-500 dark:bg-purple-400', iconColor: 'text-purple-600 dark:text-purple-400', iconBox: 'bg-purple-50 border-purple-100 dark:bg-purple-950/50 dark:border-purple-900/60' }
+              { key: 'listening' as const, icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-cyan-500 dark:bg-cyan-400', iconColor: 'text-cyan-600 dark:text-cyan-400', iconBox: 'bg-cyan-50 border-cyan-100 dark:bg-cyan-950/50 dark:border-cyan-900/60' },
+              { key: 'reading' as const, icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-purple-500 dark:bg-purple-400', iconColor: 'text-purple-600 dark:text-purple-400', iconBox: 'bg-purple-50 border-purple-100 dark:bg-purple-950/50 dark:border-purple-900/60' }
             ].map(item => {
               const percent = Math.min(100, Math.round((item.score / 495) * 100));
+              const delta = skillDelta(item.key);
               return (
                 <div key={item.label} className="flex items-center gap-3.5">
                   <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${item.iconBox}`}>
                     <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{item.label}</div>
-                    <div className="flex items-baseline justify-between gap-2 mt-0.5">
-                      <span className="flex items-baseline gap-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="flex items-baseline gap-1.5 min-w-0">
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{item.label}</span>
                         <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-none">{item.score}</span>
-                        <span className="text-sm text-slate-400 dark:text-slate-500">/ 495</span>
+                        {delta !== null && (
+                          <span
+                            title="So với đề Full Test liền trước"
+                            className={`px-1.5 py-0.5 rounded-md text-xs font-bold tabular-nums leading-none ${
+                              delta > 0
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                : delta < 0
+                                ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                            }`}
+                          >
+                            {delta > 0 ? `+${delta}` : delta < 0 ? `−${Math.abs(delta)}` : '±0'}
+                          </span>
+                        )}
                       </span>
-                      <span className={`text-sm font-bold tabular-nums ${
+                      <span className={`text-sm font-bold tabular-nums shrink-0 ${
                         percent >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'
                       }`}>
                         {percent}%
@@ -599,6 +670,55 @@ export const Dashboard: React.FC<DashboardProps> = ({
               );
             })}
 
+            {/* Độ chính xác từng Part, hai cột: P1-4 Listening (cyan) | P5-7 Reading (tím).
+                Thanh ngang mảnh cùng kiểu thanh L/R - cột đứng đã thử, thành
+                khối màu lớn nặng mắt; bảy dòng xếp dọc thì tràn màn hình 768px.
+                Các dòng giãn đều theo chiều cao thẻ. */}
+            {partBars && (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex-1 flex flex-col">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Độ chính xác theo Part</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    Thấp nhất:{' '}
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      Part {partBars.weakest.part} · {partBars.weakest.acc}%
+                    </span>
+                  </span>
+                </div>
+                <div className="mt-3 flex-1 grid grid-cols-2 gap-x-5">
+                  {[partBars.rows.filter(r => r.isListening), partBars.rows.filter(r => !r.isListening)].map((group, gi) => (
+                    <div key={gi} className="flex flex-col justify-around gap-2">
+                      {group.map(r => {
+                        const isWeakest = r.part === partBars.weakest.part;
+                        return (
+                          <div key={r.part} className="grid grid-cols-[1.5rem_1fr_2.5rem] items-center gap-2">
+                            <span className={`text-xs ${
+                              isWeakest ? 'font-black text-slate-900 dark:text-white' : 'font-semibold text-slate-500 dark:text-slate-400'
+                            }`}>
+                              P{r.part}
+                            </span>
+                            <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  r.isListening ? 'bg-cyan-500 dark:bg-cyan-400' : 'bg-purple-500 dark:bg-purple-400'
+                                }`}
+                                style={{ width: `${Math.max(2, r.acc)}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs text-right tabular-nums ${
+                              isWeakest ? 'font-black text-slate-900 dark:text-white' : 'font-semibold text-slate-500 dark:text-slate-400'
+                            }`}>
+                              {r.acc}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={onNavigateToAnalytics}
               className="mt-auto self-start inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
@@ -608,72 +728,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
         </div>
-      </div>
-
-      {/* 8. BUỔI HỌC GẦN ĐÂY - trải hết chiều ngang, dưới cả hai cột */}
-      <div className={CARD}>
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Buổi học gần đây</h2>
-          <button
-            onClick={onNavigateToAnalytics}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer shrink-0"
-          >
-            Xem lịch sử
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {recentSessions.length === 0 ? (
-          <p className="py-4 text-sm text-slate-500 dark:text-slate-400">Chưa có buổi học nào được ghi.</p>
-        ) : (
-          <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-            <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              <span className="col-span-6">Đề thi</span>
-              <span className="col-span-2">Ngày</span>
-              <span className="col-span-2">Kết quả</span>
-              <span className="col-span-2 text-right">Thời gian</span>
-            </div>
-            {recentSessions.map(s => {
-              const attempt = attemptMap[s.id]?.attemptNumber || s.attemptNumber || 1;
-              const parts = s.sessionType === 'PART_PRACTICE' ? getPracticeParts(s) : [];
-              let result: string;
-              if (s.sessionType === 'FULL_TEST') {
-                result = `${s.totalScore || 0}đ`;
-              } else {
-                const acc = getPracticeAccuracy(parts);
-                result = acc !== null ? `${acc}%` : '—';
-              }
-              const title = s.testName ||
-                (s.sessionType === 'PART_PRACTICE'
-                  ? `Luyện Part ${parts.map(p => p.part).join(', ') || 'lẻ'}`
-                  : 'Full Test');
-              return (
-                <div key={s.id} className="grid grid-cols-12 gap-3 px-4 py-3 items-center text-sm">
-                  <div className="col-span-8 sm:col-span-6 min-w-0 flex items-center gap-2">
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">{title}</span>
-                    {s.sessionType === 'FULL_TEST' && attempt > 1 && (
-                      <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-semibold shrink-0">
-                        Lần {attempt}
-                      </span>
-                    )}
-                  </div>
-                  <span className="hidden sm:block col-span-2 text-slate-600 dark:text-slate-300 tabular-nums">
-                    {formatShortDate(s.date)}
-                  </span>
-                  <span className="col-span-4 sm:col-span-2 text-right sm:text-left font-bold text-slate-900 dark:text-white tabular-nums">
-                    {result}
-                    <span className="sm:hidden block text-xs font-medium text-slate-500 dark:text-slate-400">
-                      {formatShortDate(s.date)}
-                    </span>
-                  </span>
-                  <span className="hidden sm:block col-span-2 text-right text-slate-600 dark:text-slate-300 tabular-nums">
-                    {s.durationMinutes} phút
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

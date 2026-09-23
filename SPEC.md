@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.6** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.7** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -155,29 +155,30 @@ Bố cục (v2.4):
 ├─ CỘT TRÁI (8/12) ──────────────┬─ CỘT PHẢI (4/12) ───────┤
 │  Gần nhất│Tiến bộ│Mục tiêu│Chuỗi│  Chuỗi Ngày Học         │
 │  (một thẻ, bốn ô ngăn vạch)    ├─────────────────────────┤
-│  Biểu đồ tiến bộ               │  Kỹ năng hiện tại (L/R) │
-├────────────────────────────────┴─────────────────────────┤
-│  Buổi học gần đây (4 dòng, trải hết chiều ngang)         │
-└──────────────────────────────────────────────────────────┘
+│  Biểu đồ tiến bộ (giãn)        │  Kỹ năng hiện tại       │
+│                                │  L/R + độ chính xác Part│
+└────────────────────────────────┴─────────────────────────┘
+        ↑ đáy hai cột luôn nằm trong màn hình (≥ 1280px)
 ```
 
 - **Dải chỉ số:** một thẻ, bốn ô — điểm gần nhất, tiến bộ, mục tiêu, chuỗi học. Mỗi ô: ô icon tô màu + nhãn, con số lớn cùng màu, và một **nhãn màu** thay cho dòng chữ xám (tên đề · "825 → 960" · "Còn 30 điểm" · "Chưa học hôm nay"). Màu: xanh dương, xanh lá (đỏ khi giảm), hồng, hổ phách. Không số nào để đen.
 - **Biểu đồ tiến bộ:** điểm tổng theo thời gian, **ghi số điểm trên từng chấm**, chấm mới nhất tô đặc, đường mục tiêu có nhãn nằm phía trên đường. Trần trục là `targetScore`. "Lần đầu" loại các lượt làm lại vì điểm làm lại bị thổi phồng do nhớ đáp án. Không dùng hiệu ứng vẽ đường: Recharts chỉ vẽ chấm sau khi hiệu ứng xong, và hiệu ứng có lúc không bao giờ xong.
 - **Chuỗi Ngày Học:** thẻ **duy nhất giữ nền màu** (hổ phách, viền cam nhạt — người dùng chọn giữ thiết kế này). Icon lửa, số streak, hộp trắng chứa "Tuần này: N/7 ngày" + trạng thái hôm nay + lưới bảy ô. Không phụ đề, không dòng mục tiêu phút. Một ngày chỉ được tính khi **thực sự có buổi học được ghi**.
-- **Kỹ năng hiện tại:** L/R từ bài Full Test **gần nhất**. Màu thanh là danh tính kỹ năng — Listening **cyan**, Reading **tím** — không đổi theo trạng thái. Không kèm dòng gợi ý (đã gỡ vì thừa).
-- **Buổi học gần đây:** bốn buổi mới nhất, cả Full Test (điểm) lẫn luyện Part (% đúng).
+- **Kỹ năng hiện tại:** L/R từ bài Full Test **gần nhất**, kèm chênh lệch so với đề liền trước (+10 / −5). Màu thanh là danh tính kỹ năng — Listening **cyan**, Reading **tím** — không đổi theo trạng thái. Bên dưới: **độ chính xác từng Part** của đề đó, hai cột (P1–4 | P5–7), thanh ngang mảnh, Part thấp nhất in đậm. Không kèm dòng gợi ý (đã gỡ vì thừa). *(Cột đứng đã thử — thành khối màu lớn nặng mắt; bảy dòng xếp dọc thì tràn màn 768px.)*
 - **Mọi con số tính theo `targetScore`, không phải 990.**
 
 **Quy tắc trình bày:**
 - Mọi thẻ (trừ Chuỗi Ngày Học) chung **một** bề mặt: nền trắng, viền `slate-200`, bóng nhẹ. Thẻ tách khỏi trang nhờ nền trang `#EAEFF5` đậm hơn, không nhờ tô màu thẻ. *(Đã thử mỗi thẻ một tông nền — bị chê chói và rời rạc. Đừng quay lại.)*
 - Màu chỉ mang nghĩa, mỗi màu **một** việc: xanh dương = điểm / biểu đồ / hành động chính · xanh lá / đỏ = tăng / giảm · hồng = mục tiêu · hổ phách = chuỗi học · cyan = Listening · tím = Reading. Bộ màu chọn bằng đo ΔE OKLab: mọi cặp cách nhau ≥ 16 với mắt thường; cyan↔tím cách nhau 15 với người mù màu đỏ-lục. (Không bộ nào tách được cả 6 màu cho người mù màu — nhãn và icon là mã hóa phụ.)
-- Hai cột cao bằng nhau: thẻ cuối mỗi cột (biểu đồ, kỹ năng) giãn ra lấp phần dư, link "Xem…" dồn xuống đáy thẻ.
+- **Khớp màn hình (≥ 1280px):** lưới hai cột cao tối thiểu bằng phần còn lại của khung nhìn (đo bằng JS, đo lại khi đổi cỡ cửa sổ hoặc khi cảnh báo tái phạm mở/đóng), nên mép dưới thẻ biểu đồ và thẻ kỹ năng không bao giờ bị khuất khi vừa mở trang. Biểu đồ giãn theo chiều cao (tối thiểu 240px). Đã đo: 768 / 900 / 1080px → đáy ở 748 / 880 / 1060. Dưới 520px thôi khớp để nội dung không bị ép.
+- Dải chỉ số giữ gọn (~133px) để nhường chiều cao cho biểu đồ.
 - Chữ nhỏ nhất 12px.
 
 > **Đã thử và đã gỡ bỏ trên màn hình này:**
 > - *Bảng lệnh hôm nay* (nhiều dòng việc) — phá bố cục, lặp số liệu của các thẻ khác.
 > - *Thẻ "Hôm nay: ôn N lỗi sai"* — một việc, một nút; vẫn bị gỡ vì người dùng thấy rối. Lối vào phiên ôn nằm ở Sổ Tay và Kế Hoạch.
 > - *Thẻ Mục tiêu với dải mốc Rank* — gỡ vì trùng với ô "Mục tiêu" trong dải chỉ số.
+> - *Bảng "Buổi học gần đây"* — gỡ cho gọn; lịch sử đầy đủ ở Phân Tích.
 >
 > Đừng đề xuất lại. Muốn thêm gì vào Tổng Quan thì phải **thay thế** thứ đang có.
 
