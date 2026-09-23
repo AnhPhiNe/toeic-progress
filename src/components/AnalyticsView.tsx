@@ -3,8 +3,9 @@ import {
   TrendingUp, 
   TrendingDown,
   Target, 
-  Trash2, 
-  Search, 
+  Trash2,
+  Pencil,
+  Search,
   Award,
   Zap,
   Layers,
@@ -56,6 +57,8 @@ interface AnalyticsViewProps {
   mistakes: MistakeEntry[];
   theme: 'light' | 'dark';
   onDeleteSession: (sessionId: string) => void;
+  /** Mở form Nhập Điểm ở chế độ sửa cho bản ghi này */
+  onEditSession: (session: StudySession) => void;
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -63,7 +66,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   sessions,
   mistakes,
   theme,
-  onDeleteSession
+  onDeleteSession,
+  onEditSession
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'FULL_TEST' | 'PART_PRACTICE'>('ALL');
@@ -1730,6 +1734,17 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           title="Xem chi tiết điểm Part 1 - 7 & ghi chú"
                         >
                           <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditSession(session);
+                          }}
+                          className="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100/80 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 border border-transparent hover:border-blue-200/50 dark:hover:border-blue-800/50 transition-all cursor-pointer shadow-2xs"
+                          title="Sửa bản ghi này"
+                          aria-label={`Sửa bản ghi ${session.testName}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => {

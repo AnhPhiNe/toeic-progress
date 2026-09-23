@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.8** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.9** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -411,10 +411,10 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 - ~~Phiên Ôn Tập và lịch giãn cách cho Sổ tay~~
 - ~~Phát hiện tái phạm~~
 - ~~Tổng Quan đổi vai thành bảng lệnh~~ — **đã thử, đã gỡ bỏ**, xem hộp ghi chú mục 4.1
+- ~~Sửa được bản ghi lỗi sai và buổi học~~ — nút bút chì ở bảng lịch sử (Phân Tích) và trên từng thẻ Sổ tay. Sửa buổi học dùng lại form Nhập Điểm, giữ nguyên id/createdAt, quy đổi lại điểm, **không** chạm streak hay pháo giấy. Sửa thẻ lỗi giữ nguyên trạng thái và toàn bộ lịch ôn giãn cách.
 
 Còn lại:
 
-7. Sửa được bản ghi lỗi sai và buổi học.
 8. Ma trận 7 Part và độ ổn định chuyển sang trung bình trượt.
 9. Đường cong mệt mỏi dựng từ dữ liệu pha vượt giờ của Bộ đếm nhịp.
 10. Ô số từ vựng đã học, và heatmap lịch thay lưới bảy ngày.

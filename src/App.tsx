@@ -36,6 +36,8 @@ export const App: React.FC = () => {
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp (SPEC 4.3)
   const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number } | undefined>(undefined);
+  // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -82,13 +84,22 @@ export const App: React.FC = () => {
 
   // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
   const openSessionLogger = (prefill?: { durationMinutes?: number }) => {
+    setEditingSession(null);
     setSessionPrefill(prefill);
+    setIsSessionModalOpen(true);
+  };
+
+  // Mở cùng form Nhập Điểm ở chế độ sửa một bản ghi có sẵn
+  const openSessionEditor = (session: StudySession) => {
+    setSessionPrefill(undefined);
+    setEditingSession(session);
     setIsSessionModalOpen(true);
   };
 
   const closeSessionLogger = () => {
     setIsSessionModalOpen(false);
     setSessionPrefill(undefined);
+    setEditingSession(null);
   };
 
   const toggleTheme = () => {
@@ -106,6 +117,30 @@ export const App: React.FC = () => {
       saveMistakes(updatedMistakes);
       setMistakes(updatedMistakes);
     }
+  };
+
+  /**
+   * Thay thế một buổi học đã có. KHÔNG đi qua addStudySession: sửa số liệu
+   * một buổi cũ không phải là hoạt động học hôm nay, nên streak và pháo giấy
+   * kỷ lục không được kích hoạt.
+   */
+  const handleUpdateSession = (session: StudySession, newMistakes?: MistakeEntry[]) => {
+    const updated = sessions.map(s => (s.id === session.id ? session : s));
+    saveStudySessions(updated);
+    setSessions(updated);
+
+    if (newMistakes && newMistakes.length > 0) {
+      const updatedMistakes = [...newMistakes, ...mistakes];
+      saveMistakes(updatedMistakes);
+      setMistakes(updatedMistakes);
+    }
+  };
+
+  // Thay nội dung một thẻ lỗi sai (trạng thái & lịch ôn đã được giữ ở form)
+  const handleUpdateMistake = (entry: MistakeEntry) => {
+    const updated = mistakes.map(m => (m.id === entry.id ? entry : m));
+    saveMistakes(updated);
+    setMistakes(updated);
   };
 
   // Xóa session
@@ -270,6 +305,7 @@ export const App: React.FC = () => {
               mistakes={mistakes}
               theme={theme}
               onDeleteSession={handleDeleteSession}
+              onEditSession={openSessionEditor}
             />
           )}
 
@@ -288,6 +324,7 @@ export const App: React.FC = () => {
               onAddMistake={handleAddMistake}
               onToggleStatus={handleToggleMistakeStatus}
               onDeleteMistake={handleDeleteMistake}
+              onUpdateMistake={handleUpdateMistake}
             />
           )}
 
@@ -333,6 +370,8 @@ export const App: React.FC = () => {
         onSaveSession={handleSaveSession}
         sessions={sessions}
         prefill={sessionPrefill}
+        editingSession={editingSession}
+        onUpdateSession={handleUpdateSession}
       />
 
       <ReviewSessionModal

@@ -4,8 +4,9 @@ import {
   CheckCircle2, 
   Plus, 
   Search, 
-  Trash2, 
-  Tag, 
+  Trash2,
+  Pencil,
+  Tag,
   X,
   BookOpen,
   Brain
@@ -20,7 +21,18 @@ interface MistakeNotebookViewProps {
   onAddMistake: (mistake: MistakeEntry) => void;
   onToggleStatus: (mistakeId: string) => void;
   onDeleteMistake: (mistakeId: string) => void;
+  /** Thay thế nội dung một thẻ, giữ nguyên trạng thái và lịch ôn giãn cách */
+  onUpdateMistake: (mistake: MistakeEntry) => void;
 }
+
+const EMPTY_FORM = {
+  part: 5 as 1 | 2 | 3 | 4 | 5 | 6 | 7,
+  questionContext: '',
+  userMistake: '',
+  correctAnswer: '',
+  category: 'VOCABULARY_TRAP' as ErrorCategory,
+  tags: ''
+};
 
 export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   mistakes,
@@ -28,23 +40,42 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   onStartReview,
   onAddMistake,
   onToggleStatus,
-  onDeleteMistake
+  onDeleteMistake,
+  onUpdateMistake
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'NEEDS_REVIEW' | 'MASTERED'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<ErrorCategory | 'ALL'>('ALL');
 
-  // Modal thêm mới
+  // Modal thêm mới / sửa - cùng một form, editingMistake có giá trị là đang sửa
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newMistake, setNewMistake] = useState({
-    part: 5 as 1 | 2 | 3 | 4 | 5 | 6 | 7,
-    questionContext: '',
-    userMistake: '',
-    correctAnswer: '',
-    category: 'VOCABULARY_TRAP' as ErrorCategory,
-    tags: ''
-  });
+  const [editingMistake, setEditingMistake] = useState<MistakeEntry | null>(null);
+  const [newMistake, setNewMistake] = useState({ ...EMPTY_FORM });
+
+  const openCreate = () => {
+    setEditingMistake(null);
+    setNewMistake({ ...EMPTY_FORM });
+    setIsAddModalOpen(true);
+  };
+
+  const openEdit = (m: MistakeEntry) => {
+    setEditingMistake(m);
+    setNewMistake({
+      part: m.part,
+      questionContext: m.questionContext,
+      userMistake: m.userMistake,
+      correctAnswer: m.correctAnswer,
+      category: m.category,
+      tags: m.tags.join(', ')
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsAddModalOpen(false);
+    setEditingMistake(null);
+  };
 
   // Thống kê nhanh
   const stats = useMemo(() => {
@@ -81,6 +112,24 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     e.preventDefault();
     if (!newMistake.questionContext.trim()) return;
 
+    const tags = newMistake.tags.split(',').map(t => t.trim()).filter(Boolean);
+
+    if (editingMistake) {
+      // Chỉ thay nội dung. Trạng thái, lịch ôn, số lần ôn, ngày tạo giữ nguyên:
+      // sửa lỗi chính tả không được làm thẻ quay về ôn từ đầu.
+      onUpdateMistake({
+        ...editingMistake,
+        part: newMistake.part,
+        questionContext: newMistake.questionContext,
+        userMistake: newMistake.userMistake,
+        correctAnswer: newMistake.correctAnswer,
+        category: newMistake.category,
+        tags
+      });
+      closeModal();
+      return;
+    }
+
     const entry: MistakeEntry = {
       id: `mistake-${Date.now()}`,
       part: newMistake.part,
@@ -88,21 +137,13 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       userMistake: newMistake.userMistake,
       correctAnswer: newMistake.correctAnswer,
       category: newMistake.category,
-      tags: newMistake.tags.split(',').map(t => t.trim()).filter(Boolean),
+      tags,
       status: 'NEEDS_REVIEW',
       createdAt: new Date().toISOString()
     };
 
     onAddMistake(entry);
-    setNewMistake({
-      part: 5,
-      questionContext: '',
-      userMistake: '',
-      correctAnswer: '',
-      category: 'VOCABULARY_TRAP',
-      tags: ''
-    });
-    setIsAddModalOpen(false);
+    closeModal();
   };
 
   return (
@@ -134,7 +175,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
             </span>
           </button>
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={openCreate}
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4 shrink-0" />
@@ -253,17 +294,28 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      if (confirm('Xóa lỗi này khỏi sổ tay?')) {
-                        onDeleteMistake(mistake.id);
-                      }
-                    }}
-                    className="text-slate-400 hover:text-rose-500 p-1 rounded-lg transition"
-                    title="Xóa lỗi này"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={() => openEdit(mistake)}
+                      className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-lg transition cursor-pointer"
+                      title="Sửa lỗi này"
+                      aria-label="Sửa lỗi này"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Xóa lỗi này khỏi sổ tay?')) {
+                          onDeleteMistake(mistake.id);
+                        }
+                      }}
+                      className="text-slate-400 hover:text-rose-500 p-1 rounded-lg transition cursor-pointer"
+                      title="Xóa lỗi này"
+                      aria-label="Xóa lỗi này"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Question Context */}
@@ -348,9 +400,11 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Ghi Chép Bẫy & Lỗi Sai Mới</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {editingMistake ? 'Sửa Ghi Chép Lỗi Sai' : 'Ghi Chép Bẫy & Lỗi Sai Mới'}
+                </h3>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white">
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-700 dark:hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -433,7 +487,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
               <div className="pt-3 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={closeModal}
                   className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                 >
                   Hủy
@@ -442,7 +496,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm shadow-blue-600/20 cursor-pointer transition active:scale-95"
                 >
-                  Lưu Vào Sổ Tay
+                  {editingMistake ? 'Lưu thay đổi' : 'Lưu Vào Sổ Tay'}
                 </button>
               </div>
             </form>

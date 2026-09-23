@@ -17,9 +17,10 @@ import {
   ERROR_CATEGORY_LABELS,
   PracticePartResult
 } from '../types';
-import { 
-  calculateFromPartScores, 
-  PART_MAX_QUESTIONS
+import {
+  calculateFromPartScores,
+  PART_MAX_QUESTIONS,
+  getPracticeParts
 } from '../utils/etsScoring';
 import { getTodayDateString } from '../utils/storage';
 import { useModalA11y } from '../hooks/useModalA11y';
@@ -31,34 +32,44 @@ interface SessionLoggerModalProps {
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp (SPEC 4.3) */
   prefill?: { durationMinutes?: number };
+  /**
+   * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
+   * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
+   */
+  editingSession?: StudySession | null;
+  onUpdateSession?: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
 }
+
+const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
 
 export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   isOpen,
   onClose,
   onSaveSession,
   sessions,
-  prefill
+  prefill,
+  editingSession,
+  onUpdateSession
 }) => {
+  const isEditing = !!editingSession;
   const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE'>('FULL_TEST');
   const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [durationMinutes, setDurationMinutes] = useState(120);
 
-  // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
-  useEffect(() => {
-    if (isOpen && prefill?.durationMinutes) {
-      setDurationMinutes(prefill.durationMinutes);
-    }
-  }, [isOpen, prefill?.durationMinutes]);
   const [notes, setNotes] = useState('');
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
   const previousAttemptsForTest = useMemo(() => {
     if (!sessions || !testName.trim()) return [];
     const normalized = testName.trim().toLowerCase();
-    return sessions.filter(s => s.testName.trim().toLowerCase() === normalized && s.sessionType === 'FULL_TEST');
-  }, [sessions, testName]);
+    // Khi sửa, không tính chính bản ghi đang sửa là "lần làm trước"
+    return sessions.filter(s =>
+      s.testName.trim().toLowerCase() === normalized &&
+      s.sessionType === 'FULL_TEST' &&
+      s.id !== editingSession?.id
+    );
+  }, [sessions, testName, editingSession?.id]);
 
   const isExistingTest = sessionType === 'FULL_TEST' && previousAttemptsForTest.length > 0;
   const nextAttemptNumber = previousAttemptsForTest.length + 1;
@@ -148,6 +159,27 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     tags: ''
   });
 
+  /**
+   * Nạp lại form MỖI LẦN mở. Component không bị gỡ khi đóng (chỉ trả null),
+   * nên trước đây lần mở sau còn nguyên số của lần nhập trước - và với chế
+   * độ sửa, sửa xong rồi bấm "Nhập điểm" sẽ thấy dữ liệu của buổi vừa sửa.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    const e = editingSession;
+    setSessionType(e?.sessionType ?? 'FULL_TEST');
+    setTestName(e?.testName ?? '');
+    setDate(e?.date ?? getTodayDateString());
+    // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
+    setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? 120);
+    setNotes(e?.notes ?? '');
+    setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
+    const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
+    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part: 5, correct: 0, total: 30 }]);
+    setQuickMistakes([]);
+    setShowAddMistake(false);
+  }, [isOpen, editingSession, prefill?.durationMinutes]);
+
   const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
@@ -185,7 +217,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const sessionId = `session-${Date.now()}`;
+    const sessionId = editingSession?.id ?? `session-${Date.now()}`;
+    const createdAt = editingSession?.createdAt ?? new Date().toISOString();
     let newSession: StudySession;
 
     if (sessionType === 'FULL_TEST') {
@@ -194,7 +227,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         skillType: 'LR',
         sessionType: 'FULL_TEST',
         testName: testName.trim() || 'ETS Test',
-        attemptNumber: isExistingTest ? nextAttemptNumber : 1,
+        attemptNumber: isEditing && editingSession?.attemptNumber
+          ? editingSession.attemptNumber
+          : isExistingTest ? nextAttemptNumber : 1,
         date,
         durationMinutes: Number(durationMinutes) || 120,
         rawListening: calculated.rawListening,
@@ -204,7 +239,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         totalScore: calculated.totalScore,
         partScores,
         notes,
-        createdAt: new Date().toISOString()
+        createdAt
       };
     } else {
       const cleanRows = practiceRows.filter(r => r.total > 0);
@@ -224,7 +259,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         totalScore: 0,
         practiceParts: cleanRows,
         notes,
-        createdAt: new Date().toISOString()
+        createdAt
       };
     }
 
@@ -242,7 +277,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       createdAt: new Date().toISOString()
     }));
 
-    onSaveSession(newSession, formattedMistakes);
+    if (isEditing && onUpdateSession) {
+      onUpdateSession(newSession, formattedMistakes);
+    } else {
+      onSaveSession(newSession, formattedMistakes);
+    }
     onClose();
   };
 
@@ -263,8 +302,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ghi Nhận Kết Quả Buổi Học</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Tự động quy đổi điểm chuẩn ETS và bảo toàn Streak</p>
+              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học'}</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isEditing ? 'Điểm được quy đổi lại theo số câu mới · không ảnh hưởng Streak' : 'Tự động quy đổi điểm chuẩn ETS và bảo toàn Streak'}
+              </p>
             </div>
           </div>
           <button
@@ -827,7 +868,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Lưu & Giữ Streak</span>
+              <span>{isEditing ? 'Lưu thay đổi' : 'Lưu & Giữ Streak'}</span>
             </button>
           </div>
 
