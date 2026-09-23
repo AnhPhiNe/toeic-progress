@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.11** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.12** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -111,32 +111,30 @@ Hai dòng cuối không phải là lỗi cẩu thả. *"Kế Hoạch & Mục Ti�
 ### 3.2. Kiến trúc hiện tại
 
 ```
-LUYỆN THI
+HỌC TẬP
   1. Tổng Quan        Tóm gọn: điểm, streak, mục tiêu
-  2. Kế Hoạch         ★ MỚI — lấp đúng cái tên đang rỗng
+  2. Kế Hoạch         Việc cần làm và mục tiêu
   3. Phòng Thi        Bộ đếm nhịp, có lưu dữ liệu
 
-PHÂN TÍCH & ÔN TẬP
-  4. Phân Tích        + chẩn đoán theo nguyên nhân, xếp ưu tiên
-  5. Sổ Tay           + Phiên Ôn Tập ★ MỚI
-
-THAM KHẢO
+THEO DÕI
+  4. Phân Tích        Chẩn đoán nguyên nhân, xếp ưu tiên
+  5. Sổ Tay Lỗi Sai   Ghi lỗi và ôn tập
   6. Tài Liệu         Quy đổi · Chứng chỉ · Chiến thuật · Lộ trình S&W
 
 ──────────────────────────────────────────
-  ⚙ Cài đặt      💾 Sao lưu
-  (vùng tiện ích ở đáy sidebar, KHÔNG nằm trong danh sách điều hướng)
+  Hồ sơ học viên → Cài đặt, sao lưu và dữ liệu mẫu
+  (một lối vào ở đáy sidebar; Cài đặt cũng có ở header)
 
-(Modal) Nhập Điểm   Full Test · Luyện Part lẻ · Ghi nhanh lỗi sai
+(Modal) Nhập Điểm   Full Test · Luyện Part lẻ · Từ vựng · Ghi nhanh lỗi sai
 ```
 
-Sáu mục điều hướng, **cả sáu đều là chức năng thật**. Cài đặt và Sao lưu xuống vùng tiện ích ở đáy — đó là nơi đúng của chúng.
+Sáu mục điều hướng, **cả sáu đều là chức năng thật**. Nhãn trong sidebar được rút gọn để dễ quét; tên đầy đủ vẫn dùng cho nhãn truy cập. Hồ sơ ở đáy mở Cài đặt, nơi chứa sao lưu và dữ liệu mẫu.
 
 **Những thay đổi đã thực hiện:**
 
 - Thêm **Kế Hoạch** (mục 4.2) và **Phiên Ôn Tập** bên trong Sổ Tay (mục 4.6).
 - `Lộ Trình S&W` gộp vào Tài Liệu.
-- `Kế Hoạch & Mục Tiêu` và `Sao Lưu & Dữ Liệu` rời khỏi danh sách điều hướng, trở thành hai nút tiện ích ở đáy sidebar.
+- `Kế Hoạch & Mục Tiêu` trở thành màn Kế Hoạch; sao lưu và dữ liệu mẫu ở trong Cài đặt, truy cập qua hồ sơ ở đáy sidebar hoặc nút header.
 - `Phòng Thi ETS` giữ nguyên vị trí điều hướng nhưng bắt đầu lưu dữ liệu (mục 4.3).
 
 ---
@@ -318,7 +316,7 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 | :--- | :--- | :--- |
 | Nền trang | `#EAEFF5` | `#0B111E` |
 | Nền card | `#FFFFFF` | `#121A2B` |
-| Nền sidebar | `#FFFFFF` | `#0E1526` |
+| Nền sidebar | `#F7F9FC` | `#0E1526` |
 | Hành động chính | `blue-600` | `blue-600` |
 | Streak | `amber` — thẻ Chuỗi Ngày Học nền hổ phách, số streak ở dải chỉ số `amber-600` | như chế độ sáng |
 | Listening | `indigo-600` (tối: `indigo-400`) | như chế độ sáng |
@@ -326,6 +324,8 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 | Mục tiêu | `pink-600` | `pink-400` |
 | Thành công, đã thông suốt | `emerald` | như chế độ sáng |
 | Lỗi sai, cần ôn | `rose` | như chế độ sáng |
+
+Sidebar dùng nền xám rất nhạt và các mục không viền; mục đang mở nổi trên nền trắng với một vạch chàm mảnh, thay cho ô xanh viền toàn bộ. Chỉ hai nhãn nhóm ngắn `Học tập` và `Theo dõi`, tên mục hiển thị ngắn nhưng nhãn truy cập giữ tên đầy đủ. Đáy sidebar chỉ còn hồ sơ mở Cài đặt; sao lưu và dữ liệu mẫu nằm trong modal đó. Chế độ tối giữ cùng phân cấp và độ tương phản.
 
 **Màu phải mang nghĩa.** Nền thẻ luôn trắng (tối: `#111A2C`); không tô nền thẻ theo chủ đề — ngoại lệ duy nhất là thẻ Chuỗi Ngày Học. Tổng Quan và Phân Tích dùng chung `CARD` / `SKILL_COLORS` trong `surfaces.ts`; màn hình mới phải import từ đó thay vì tự viết lớp màu.
 
