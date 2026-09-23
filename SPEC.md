@@ -1,12 +1,14 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.2** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.3** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
 > **v2.1 bổ sung:** hai chức năng mới (Kế Hoạch, Phiên Ôn Tập), kiến trúc điều hướng được dọn lại để mọi mục đều là chức năng thật, và mục 1.4 ghi rõ bốn thứ sản phẩm làm được mà các web luyện đề bên ngoài không làm được.
 >
 > **v2.2 sửa một sai lầm của chính v2.1:** mục 4.1 từng yêu cầu Tổng Quan đổi vai thành "bảng lệnh hôm nay". Đã xây, đã gỡ bỏ — nó phá bố cục hai cột và lặp lại thông tin các thẻ bên cạnh đã có. Nguyên tắc ở mục 1.4 cũng được siết lại cho đúng: sản phẩm phải trả lời "giờ tôi nên làm gì", nhưng không phải mọi màn hình đều gánh câu hỏi đó.
+
+> **v2.3:** Tổng Quan dựng lại theo ảnh tham khảo người dùng đưa — ba ô chỉ số, thẻ "Hôm nay" một việc, biểu đồ có lọc lần đầu, bảng buổi học gần đây; mỗi thẻ một tông nền, chữ nhỏ nhất 12px (mục 4.1).
 
 ---
 
@@ -143,34 +145,40 @@ Sáu mục điều hướng, **cả sáu đều là chức năng thật**. Cài 
 
 ### 4.1. Tổng Quan (Dashboard)
 
-**Vai trò: tóm gọn và trực quan.** Đây là màn hình mở đầu, trả lời trong vài giây câu hỏi "tôi đang ở đâu". Nó cố ý **không** ôm việc cần làm — đó là việc của màn hình Kế Hoạch (mục 4.2).
+**Vai trò: tóm gọn và trực quan.** Đây là màn hình mở đầu, trả lời trong vài giây câu hỏi "tôi đang ở đâu" — kèm **đúng một** việc nên làm hôm nay. Danh sách việc đầy đủ là của màn hình Kế Hoạch (mục 4.2).
 
-Bố cục hai cột, giữ nguyên:
+Bố cục (v2.3, dựng theo ảnh tham khảo người dùng đưa):
 
 ```
-┌─ ⚠ Tái phạm (một dòng, thu gọn) ────────────────────────┐
-├─ CỘT TRÁI (8/12) ─────────────┬─ CỘT PHẢI (4/12) ───────┤
-│  Ba thẻ chỉ số:               │  Chuỗi Ngày Học         │
-│  Mới nhất · Kỷ lục · Tăng     │  (streak + lưới 7 ngày) │
-│  trưởng                       ├─────────────────────────┤
-│                               │  Mục Tiêu               │
-│  Biểu đồ tiến trình điểm      │  (khoảng cách + L/R)    │
-└───────────────────────────────┴─────────────────────────┘
+┌─ ⚠ Tái phạm (một dòng, thu gọn) ─────────────────────────┐
+├─ CỘT TRÁI (8/12) ──────────────┬─ CỘT PHẢI (4/12) ───────┤
+│  Gần nhất · Kỷ lục · Tiến bộ   │  Nhịp học tuần này      │
+│  (ba ô, mỗi ô một màu)         │  (streak + 7 ngày)      │
+│  Hôm nay: ôn N lỗi đến hạn     ├─────────────────────────┤
+│                                │  Mục tiêu (dải mốc Rank)│
+│  Biểu đồ tiến bộ               ├─────────────────────────┤
+│  (lọc Tất cả / Lần đầu)        │  Kỹ năng hiện tại (L/R) │
+├────────────────────────────────┴─────────────────────────┤
+│  Buổi học gần đây (4 dòng, trải hết chiều ngang)         │
+└──────────────────────────────────────────────────────────┘
 ```
 
-- **Ba thẻ chỉ số:** điểm mới nhất kèm tên đề, kỷ lục, mức tăng trưởng so với mốc đầu.
-- **Biểu đồ tiến trình:** đường điểm tổng theo thời gian, thang trục co theo `targetScore`.
-- **Chuỗi Ngày Học:** số ngày liên tục, khiên còn lại, lưới bảy ngày trong tuần. Một ngày chỉ được tính khi **thực sự có buổi học được ghi** — không tô theo ngày đã trôi qua. Ngày đã qua mà không học hiển thị khác với ngày chưa tới.
-- **Mục Tiêu:** thẻ riêng cho điểm tổng — thanh có vạch tại ngưỡng từng bậc Rank dưới `targetScore` và dải mốc (đã qua / kế tiếp / chưa tới), báo "Còn Xđ tới <mốc kế>". Listening/Reading ở thẻ riêng bên dưới; màu thanh là danh tính kỹ năng, không đổi theo trạng thái. **Mọi con số tính theo `targetScore`, không phải 990.**
+- **Ba ô chỉ số:** điểm gần nhất kèm tên đề, kỷ lục kèm L/R, tiến bộ so với đề đầu tiên. Ô tiến bộ đổi **cả nền** sang rose khi âm, không chỉ con số.
+- **Hôm nay:** đúng một hành động — số lỗi sai đến hạn ôn và nút mở phiên ôn. Không có lỗi đến hạn thì nút đổi thành "Ghi kết quả đề mới".
+- **Biểu đồ tiến bộ:** điểm tổng theo thời gian, trần trục là `targetScore`, đường tham chiếu có nhãn. "Lần đầu" loại các lượt làm lại vì điểm làm lại bị thổi phồng do nhớ đáp án.
+- **Nhịp học tuần này:** streak, lưới bảy ngày, mục tiêu phút mỗi ngày. Một ngày chỉ được tính khi **thực sự có buổi học được ghi** — không tô theo ngày đã trôi qua.
+- **Mục tiêu:** điểm cao nhất, thanh có vạch tại ngưỡng từng bậc Rank dưới `targetScore`, dải mốc (đã qua / kế tiếp / chưa tới), báo "Còn Xđ tới <mốc kế>". **Mọi con số tính theo `targetScore`, không phải 990.**
+- **Kỹ năng hiện tại:** L/R từ bài Full Test **gần nhất**. Màu thanh là danh tính kỹ năng (xanh / cam), không đổi theo trạng thái. Lệch từ 20đ trở lên thì gợi ý kỹ năng cần ưu tiên.
+- **Buổi học gần đây:** bốn buổi mới nhất, cả Full Test (điểm) lẫn luyện Part (% đúng).
 - **Cảnh báo tái phạm:** một dòng thu gọn ở trên cùng, mở ra khi người dùng bấm (mục 4.6).
 
+**Quy tắc trình bày:**
+- Mỗi thẻ một tông nền mức 50 theo chủ đề của nó; hai thẻ **đứng cạnh nhau không chung tông**. Không thẻ nào nền trắng trơn.
+- Chữ nhỏ nhất 12px. Không dòng phụ đề mô tả lại điều tiêu đề đã nói.
+
 > **Đã thử và đã gỡ bỏ: "bảng lệnh hôm nay".**
-> Một bản trước của mục này yêu cầu Tổng Quan đổi vai thành bảng việc cần làm, đẩy thành tích xuống dải mỏng. Đã xây và đã revert, vì ba lý do:
-> 1. Nó chen một **dải full-width lên trên bố cục hai cột**, tạo tầng cấu trúc thứ ba không thuộc cột nào.
-> 2. Nó **nói lại điều cột phải đã nói** — nhịp độ trùng thẻ Mục Tiêu, số ngày trong tuần trùng thẻ Streak, điểm và hạng trùng cả hai.
-> 3. Dashboard tóm gọn sẵn đã tốt. Vấn đề nó định giải đã được màn hình Kế Hoạch giải rồi.
->
-> Đừng đề xuất lại. Muốn thêm thông tin vào Tổng Quan thì phải **thay thế** thứ đang có, không phải chồng thêm tầng.
+> Một bản trước biến Tổng Quan thành bảng việc cần làm nhiều dòng, đẩy thành tích xuống dải mỏng, và nói lại điều cột phải đã nói (nhịp độ, số ngày, điểm). Đã revert.
+> Thẻ "Hôm nay" hiện tại khác ở chỗ: **một** việc, **một** nút, không lặp số liệu của thẻ khác. Đừng mở rộng nó thành danh sách — danh sách thuộc về Kế Hoạch.
 
 *Bỏ khỏi spec:* thanh XP tới cấp kế tiếp và châm ngôn ngẫu nhiên mỗi ngày — xem mục 7.
 
