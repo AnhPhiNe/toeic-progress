@@ -23,7 +23,7 @@ import {
   ReferenceLine,
   CartesianGrid
 } from 'recharts';
-import { StudySession, MistakeEntry, UserProfile } from '../types';
+import { StudySession, MistakeEntry, UserProfile, RANK_TIERS } from '../types';
 import { getCurrentRankTier, getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
 
 interface DashboardProps {
@@ -78,8 +78,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
    * báo "Thiếu 290đ - 71%" còn Phân Tích báo đã đạt 100%.
    */
   const targetScore = Math.max(10, Math.min(990, profile.targetScore || 990));
-  const pointsRemaining = Math.max(0, targetScore - highestScore);
   const targetPercent = highestScore ? Math.min(100, Math.round((highestScore / targetScore) * 100)) : 0;
+
+  /**
+   * Các mốc thành tựu trên đường tới mục tiêu: ngưỡng các bậc Rank nằm dưới
+   * mục tiêu, cộng chính mục tiêu làm mốc cuối. Mục tiêu 750 thì chỉ có
+   * Đồng 500 - Bạc 700 - Mục tiêu 750, không bày ra các mốc không theo đuổi.
+   */
+  const milestones = useMemo(() => {
+    const list = RANK_TIERS
+      .filter(t => t.minScore > 0 && t.minScore < targetScore)
+      .map(t => ({ label: t.shortName, score: t.minScore }));
+    const targetTier = RANK_TIERS.find(t => t.minScore === targetScore);
+    list.push({ label: targetTier ? targetTier.shortName : 'Mục tiêu', score: targetScore });
+    return list;
+  }, [targetScore]);
+
+  const nextMilestone = milestones.find(m => highestScore < m.score) || null;
 
   const attemptMap = useMemo(() => computeSessionAttemptMap(sessions), [sessions]);
 
@@ -514,7 +529,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* ================= RIGHT COLUMN (4 / 12 ~ 33%): STREAK & MỤC TIÊU ================= */}
-        <div className="xl:col-span-4 flex flex-col justify-between space-y-3.5">
+        <div className="xl:col-span-4 flex flex-col space-y-4">
           
           {/* 1. CHUỖI NGÀY HỌC - THE GOLDEN FIRE STREAK */}
           <div className="relative overflow-hidden p-3.5 sm:p-4 space-y-3 rounded-2xl bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-50/30 dark:from-[#1C1814] dark:to-[#14100C] border border-amber-200/80 dark:border-amber-900/40 shadow-[0_2px_12px_rgba(245,158,11,0.06)] hover:shadow-[0_8px_28px_rgba(245,158,11,0.1)] hover:-translate-y-0.5 transition-all duration-300">
@@ -609,12 +624,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* 2. MỤC TIÊU ĐIỂM
-              Nền xanh nhạt để tách khỏi nền trang, đồng bộ với thẻ Streak
-              màu hổ phách bên trên. Sắc độ đủ nhạt để không tranh chấp với
-              các thanh xanh đậm bên trong - phân cấp nằm ở độ dày và độ đậm
-              của thanh, không phải ở việc vỏ thẻ phải trung tính. */}
-          <div className="relative overflow-hidden flex-1 p-4 sm:p-4.5 flex flex-col justify-between gap-3.5 rounded-2xl bg-gradient-to-br from-sky-50/90 via-blue-50/50 to-sky-50/30 dark:from-[#0E1A29] dark:to-[#0B1320] border border-sky-200/80 dark:border-sky-900/40 shadow-[0_2px_12px_rgba(14,165,233,0.06)] hover:shadow-[0_8px_28px_rgba(14,165,233,0.1)] hover:-translate-y-0.5 transition-all duration-300">
+          {/* 2. MỤC TIÊU ĐIỂM - DẢI MỐC THÀNH TỰU
+              Thẻ riêng cho điểm tổng: một con số, một thanh, các mốc Rank.
+              Mỗi mốc vượt qua là một lần "mở khóa" nhìn thấy được, thay vì
+              một thanh % trơn chỉ nhích vài điểm mỗi tuần. */}
+          <div className="relative overflow-hidden p-4 space-y-3.5 rounded-2xl bg-gradient-to-br from-sky-50/90 via-blue-50/50 to-sky-50/30 dark:from-[#0E1A29] dark:to-[#0B1320] border border-sky-200/80 dark:border-sky-900/40 shadow-[0_2px_12px_rgba(14,165,233,0.06)] hover:shadow-[0_8px_28px_rgba(14,165,233,0.1)] hover:-translate-y-0.5 transition-all duration-300">
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -631,46 +645,83 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </div>
 
-            {/* Tiến độ tổng. Con số đã nói đủ nên bỏ nhãn trục "Khởi đầu"/"Đích đến" */}
-            <div className="space-y-2">
+            <div className="p-3.5 rounded-xl bg-white/95 dark:bg-slate-900/60 border border-sky-200/60 dark:border-slate-700/70 shadow-2xs space-y-3">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span className="flex items-baseline gap-1 min-w-0">
-                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight leading-none">
                     {highestScore || 0}
                   </span>
                   <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {targetScore}đ</span>
                 </span>
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">
-                  {pointsRemaining > 0 ? (
-                    <>Còn <span className="text-slate-900 dark:text-white font-black">{pointsRemaining}đ</span></>
+                  {nextMilestone ? (
+                    <>Còn <span className="text-slate-900 dark:text-white font-black">{nextMilestone.score - highestScore}đ</span> tới {nextMilestone.label}</>
                   ) : (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-black">Đã đạt</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black">Đã đạt mục tiêu</span>
                   )}
-                  <span className="ml-1.5 text-slate-400 dark:text-slate-500 font-semibold">{targetPercent}%</span>
                 </span>
               </div>
 
-              <div className="w-full h-3 rounded-full bg-white/90 dark:bg-slate-800 border border-sky-200/50 dark:border-transparent overflow-hidden">
+              {/* Thanh tổng với vạch mốc: vạch trắng cắt qua phần đã tô, vạch xám trên phần chưa tới */}
+              <div className="relative w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-all duration-700"
                   style={{ width: `${Math.min(100, Math.max(2, targetPercent))}%` }}
                 />
+                {milestones.slice(0, -1).map(m => (
+                  <span
+                    key={m.score}
+                    aria-hidden
+                    className={`absolute top-0 bottom-0 w-[2px] -translate-x-1/2 ${
+                      highestScore >= m.score ? 'bg-white/90 dark:bg-slate-900/80' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                    style={{ left: `${(m.score / targetScore) * 100}%` }}
+                  />
+                ))}
               </div>
-            </div>
 
-            {/* Listening & Reading.
-                Cùng một màu: mỗi ô đã có icon và tên riêng nên màu theo kỹ năng
-                là mã hóa thừa - và cặp xanh/tím cũ chỉ cách nhau ΔE 1.3 với
-                người mù màu đỏ-lục, tức gần như không phân biệt được. */}
+              {/* Các mốc: đã qua (tô xanh + dấu tích), mốc kế tiếp (viền xanh), còn lại (mờ) */}
+              <ol className="grid grid-cols-3 gap-1.5" aria-label="Các mốc điểm">
+                {milestones.map(m => {
+                  const passed = highestScore >= m.score;
+                  const isNext = nextMilestone?.score === m.score;
+                  return (
+                    <li
+                      key={m.score}
+                      className={`flex items-center justify-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-bold whitespace-nowrap border min-w-0 ${
+                        passed
+                          ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-500 dark:border-blue-500'
+                          : isNext
+                          ? 'bg-blue-50 border-blue-400 text-blue-800 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-200'
+                          : 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-800/60 dark:border-slate-700 dark:text-slate-500'
+                      }`}
+                    >
+                      {passed && <CheckCircle2 className="w-3 h-3 shrink-0" />}
+                      <span>{m.label}</span>
+                      <span className={`tabular-nums ${passed ? 'text-blue-100' : 'opacity-70'}`}>{m.score}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          </div>
+
+          {/* 3. KỸ NĂNG - thẻ trắng riêng, tách khỏi thẻ mục tiêu.
+              Màu thanh là DANH TÍNH kỹ năng và không đổi theo trạng thái:
+              Listening xanh dương, Reading cam (ΔE 30 với người mù màu đỏ-lục,
+              cặp xanh/tím cũ chỉ 1.3). Việc đạt 100% do con số % báo. */}
+          <div className="p-4 space-y-3 rounded-2xl bg-white dark:bg-[#0F1729] border border-slate-200 dark:border-slate-800 shadow-[0_2px_12px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_28px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 transition-all duration-300">
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { icon: Headphones, label: 'Listening', score: listeningScore, percent: listeningPercent },
-                { icon: BookOpen, label: 'Reading', score: readingScore, percent: readingPercent }
+                { icon: Headphones, label: 'Listening', score: listeningScore, percent: listeningPercent,
+                  bar: 'bg-blue-500 dark:bg-blue-400', box: 'bg-blue-50/60 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400' },
+                { icon: BookOpen, label: 'Reading', score: readingScore, percent: readingPercent,
+                  bar: 'bg-orange-500 dark:bg-orange-400', box: 'bg-orange-50/60 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400' }
               ].map(item => (
-                <div key={item.label} className="p-3 rounded-xl bg-white/95 dark:bg-slate-900/60 border border-sky-200/60 dark:border-slate-700/70 shadow-2xs space-y-2 min-w-0">
+                <div key={item.label} className={`p-3 rounded-xl border space-y-2 min-w-0 ${item.box}`}>
                   <div className="flex items-center justify-between gap-1 min-w-0">
                     <span className="flex items-center gap-1.5 min-w-0">
-                      <item.icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+                      <item.icon className={`w-3.5 h-3.5 shrink-0 ${item.iconColor}`} />
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{item.label}</span>
                     </span>
                     <span className={`text-[11px] font-bold tabular-nums shrink-0 ${
@@ -687,11 +738,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </span>
                     <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">/ 495đ</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-white dark:bg-slate-800 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        item.percent >= 100 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-400 dark:bg-blue-500'
-                      }`}
+                      className={`h-full rounded-full transition-all duration-700 ${item.bar}`}
                       style={{ width: `${Math.max(2, item.percent)}%` }}
                     />
                   </div>

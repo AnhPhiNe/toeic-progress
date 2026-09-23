@@ -137,6 +137,8 @@ export type ChartAttemptFilter = 'ALL' | 'FIRST_ONLY' | 'BEST_ONLY';
 export interface RankTier {
   name: string;
   title: string;
+  /** Tên rút gọn để hiển thị trên dải mốc thành tựu */
+  shortName: string;
   minScore: number;
   maxScore: number;
   badgeColor: string;
@@ -149,6 +151,7 @@ export interface RankTier {
 export const RANK_TIERS: RankTier[] = [
   {
     name: 'RECRUIT',
+    shortName: 'Tân Binh',
     title: 'Tân Binh Khởi Đầu',
     minScore: 0,
     maxScore: 495,
@@ -160,6 +163,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     name: 'BRONZE',
+    shortName: 'Đồng',
     title: 'Đồng Chinh Phục',
     minScore: 500,
     maxScore: 695,
@@ -171,6 +175,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     name: 'SILVER',
+    shortName: 'Bạc',
     title: 'Bạc Chiến Lược',
     minScore: 700,
     maxScore: 845,
@@ -182,6 +187,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     name: 'GOLD',
+    shortName: 'Vàng',
     title: 'Vàng Tinh Anh',
     minScore: 850,
     maxScore: 895,
@@ -193,6 +199,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     name: 'PLATINUM',
+    shortName: 'Bạch Kim',
     title: 'Bạch Kim Cao Thủ',
     minScore: 900,
     maxScore: 945,
@@ -204,6 +211,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     name: 'DIAMOND',
+    shortName: 'Kim Cương',
     title: 'Kim Cương Huyền Thoại',
     minScore: 950,
     maxScore: 985,
@@ -215,6 +223,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     name: 'GRANDMASTER',
+    shortName: 'Đại Sư',
     title: 'Đại Sư 990 Tuyệt Đối',
     minScore: 990,
     maxScore: 990,
