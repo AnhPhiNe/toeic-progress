@@ -257,12 +257,9 @@ export const App: React.FC = () => {
               }
               profile={profile}
               sessions={sessions}
-              mistakes={mistakes}
               theme={theme}
               onOpenSessionLogger={() => openSessionLogger()}
-              onStartReview={() => setIsReviewModalOpen(true)}
               onNavigateToAnalytics={() => setActiveTab('analytics')}
-              onNavigateToPlan={() => setActiveTab('plan')}
             />
           )}
 

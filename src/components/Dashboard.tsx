@@ -1,19 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
   Flame,
-  TrendingUp,
-  TrendingDown,
   BookOpen,
   CheckCircle2,
   ArrowRight,
   Headphones,
   Target,
-  Crown,
-  Award,
   PlusCircle,
-  Clock,
-  Layers,
-  ChevronRight
+  Clock
 } from 'lucide-react';
 import {
   AreaChart,
@@ -25,9 +19,8 @@ import {
   ReferenceLine,
   CartesianGrid
 } from 'recharts';
-import { StudySession, MistakeEntry, UserProfile, RANK_TIERS } from '../types';
-import { getCurrentRankTier, getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
-import { getDueMistakes } from '../utils/spacedRepetition';
+import { StudySession, UserProfile } from '../types';
+import { getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
 import { getPracticeParts, getPracticeAccuracy } from '../utils/etsScoring';
 
 interface DashboardProps {
@@ -35,12 +28,9 @@ interface DashboardProps {
   relapseSlot?: React.ReactNode;
   profile: UserProfile;
   sessions: StudySession[];
-  mistakes: MistakeEntry[];
   theme: 'light' | 'dark';
   onOpenSessionLogger: () => void;
-  onStartReview: () => void;
   onNavigateToAnalytics: () => void;
-  onNavigateToPlan: () => void;
 }
 
 /**
@@ -50,10 +40,7 @@ interface DashboardProps {
  */
 const CARD = 'rounded-2xl border p-4 sm:p-5 transition-colors';
 const TINT = {
-  blue: 'bg-blue-50 border-blue-200/70 dark:bg-blue-950/25 dark:border-blue-900/50',
   amber: 'bg-amber-50 border-amber-200/80 dark:bg-amber-950/20 dark:border-amber-900/40',
-  emerald: 'bg-emerald-50 border-emerald-200/80 dark:bg-emerald-950/20 dark:border-emerald-900/40',
-  rose: 'bg-rose-50 border-rose-200/80 dark:bg-rose-950/20 dark:border-rose-900/40',
   sky: 'bg-sky-50/80 border-sky-200/70 dark:bg-sky-950/20 dark:border-sky-900/40',
   violet: 'bg-violet-50/80 border-violet-200/70 dark:bg-violet-950/20 dark:border-violet-900/40',
   teal: 'bg-teal-50/70 border-teal-200/70 dark:bg-teal-950/20 dark:border-teal-900/40',
@@ -69,12 +56,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   relapseSlot,
   profile,
   sessions,
-  mistakes,
   theme,
   onOpenSessionLogger,
-  onStartReview,
-  onNavigateToAnalytics,
-  onNavigateToPlan
+  onNavigateToAnalytics
 }) => {
   const today = getTodayDateString();
   const isDark = theme === 'dark';
@@ -99,8 +83,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return [...fullTests].sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))[0];
   }, [fullTests]);
 
-  const currentRank = useMemo(() => getCurrentRankTier(highestScore), [highestScore]);
-
   /**
    * Mục tiêu điểm lấy từ hồ sơ, KHÔNG neo cứng vào 990 (SPEC mục 2.1).
    * Trước đây Dashboard tính theo 990 trong khi Phân Tích tính theo
@@ -108,23 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
    * báo "Thiếu 290đ - 71%" còn Phân Tích báo đã đạt 100%.
    */
   const targetScore = Math.max(10, Math.min(990, profile.targetScore || 990));
-  const targetPercent = highestScore ? Math.min(100, Math.round((highestScore / targetScore) * 100)) : 0;
-
-  /**
-   * Các mốc thành tựu trên đường tới mục tiêu: ngưỡng các bậc Rank nằm dưới
-   * mục tiêu, cộng chính mục tiêu làm mốc cuối. Mục tiêu 750 thì chỉ có
-   * Đồng 500 - Bạc 700 - Mục tiêu 750, không bày ra các mốc không theo đuổi.
-   */
-  const milestones = useMemo(() => {
-    const list = RANK_TIERS
-      .filter(t => t.minScore > 0 && t.minScore < targetScore)
-      .map(t => ({ label: t.shortName, score: t.minScore }));
-    const targetTier = RANK_TIERS.find(t => t.minScore === targetScore);
-    list.push({ label: targetTier ? targetTier.shortName : 'Mục tiêu', score: targetScore });
-    return list;
-  }, [targetScore]);
-
-  const nextMilestone = milestones.find(m => highestScore < m.score) || null;
+  const pointsRemaining = Math.max(0, targetScore - highestScore);
 
   const attemptMap = useMemo(() => computeSessionAttemptMap(sessions), [sessions]);
 
@@ -215,8 +181,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   }, [sessions, profile.lastStudyDate, today]);
 
-  const dueCount = useMemo(() => getDueMistakes(mistakes).length, [mistakes]);
-
   const recentSessions = useMemo(
     () =>
       [...sessions]
@@ -229,133 +193,100 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const latestTest = stats ? fullTests.find(s => s.id === stats.latest.id) || bestTest : bestTest;
   const listeningScore = latestTest?.scaledListening || 0;
   const readingScore = latestTest?.scaledReading || 0;
-  const skillGap = Math.abs(listeningScore - readingScore);
   const weakerSkill = listeningScore < readingScore ? 'Listening' : 'Reading';
+  const latestGap = Math.max(0, targetScore - (latestTest?.totalScore || 0));
 
   const diff = stats?.diff ?? 0;
-  const isGrowthPositive = diff >= 0;
+
+  const todayLabel = new Date(`${today}T00:00:00`).toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+
+  /**
+   * Dải bốn chỉ số. Nền chung một tông, màu nằm ở CON SỐ và mỗi số một màu
+   * theo nghĩa: điểm xanh dương, tiến bộ xanh lá (đỏ khi giảm), mục tiêu
+   * trung tính, chuỗi học cam - cùng tông với thẻ Nhịp học bên phải.
+   */
+  const kpis: { label: string; value: string | number; suffix?: string; note: string; color: string; icon?: React.ReactNode }[] = [
+    {
+      label: 'Điểm gần nhất',
+      value: stats?.latest.total || 0,
+      suffix: `/ ${targetScore}`,
+      note: stats?.latest.name || 'Chưa có đề nào',
+      color: 'text-blue-700 dark:text-blue-300'
+    },
+    {
+      label: 'Tiến bộ',
+      value: stats && stats.totalTests > 1 ? `${diff > 0 ? '+' : ''}${diff}` : '—',
+      note: 'so với bài đầu tiên',
+      color: diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+    },
+    {
+      label: 'Mục tiêu',
+      value: targetScore,
+      note: pointsRemaining > 0 ? `Còn ${pointsRemaining} điểm` : 'Đã đạt',
+      color: 'text-slate-900 dark:text-white'
+    },
+    {
+      label: 'Chuỗi học',
+      value: `${profile.currentStreak} ngày`,
+      note: hasStudiedToday ? 'Đã học hôm nay' : 'Giữ nhịp mỗi ngày',
+      color: 'text-orange-600 dark:text-orange-400',
+      icon: <Flame className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
+    }
+  ];
 
   return (
     <div className="w-full space-y-4 sm:space-y-5 animate-fade-in">
       {relapseSlot}
+
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+          Mỗi ngày, gần mục tiêu hơn.
+        </h1>
+        <span className="text-sm font-medium text-slate-500 dark:text-slate-400 first-letter:uppercase">
+          {todayLabel}
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-start">
 
         {/* ================= CỘT TRÁI ================= */}
         <div className="xl:col-span-8 space-y-4 sm:space-y-5 min-w-0">
 
-          {/* 1. BA CHỈ SỐ - mỗi ô một màu theo nghĩa của nó */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            <div className={`${CARD} ${TINT.blue} min-w-0`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Điểm gần nhất</span>
-                <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-3xl font-black text-blue-700 dark:text-blue-300 tabular-nums leading-none">
-                  {stats?.latest.total || 0}
-                </span>
-                <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">/ {targetScore}</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 truncate" title={stats?.latest.name}>
-                {stats?.latest.name || 'Chưa có đề nào'}
-              </p>
-            </div>
-
-            <div className={`${CARD} ${TINT.amber} min-w-0`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Kỷ lục</span>
-                <Award className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-3xl font-black text-amber-700 dark:text-amber-300 tabular-nums leading-none">
-                  {highestScore}
-                </span>
-                <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">điểm</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 truncate">
-                L {bestTest?.scaledListening || 0} · R {bestTest?.scaledReading || 0}
-              </p>
-            </div>
-
-            {/* Cả ô đổi màu theo dấu, không chỉ con số */}
-            <div className={`${CARD} ${isGrowthPositive ? TINT.emerald : TINT.rose} min-w-0`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Tiến bộ</span>
-                {isGrowthPositive ? (
-                  <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                )}
-              </div>
-              <div className="mt-2">
-                <span className={`text-3xl font-black tabular-nums leading-none ${
-                  isGrowthPositive ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
-                }`}>
-                  {stats && stats.totalTests > 1 ? `${diff > 0 ? '+' : ''}${diff}` : '—'}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 truncate">so với đề đầu tiên</p>
-            </div>
-          </div>
-
-          {/* 2. HÔM NAY - đúng một việc, không phải một bảng lệnh */}
-          <div className={`${CARD} ${TINT.rose} flex items-center gap-5`}>
-            <div className="min-w-0 flex-1 space-y-3">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
-                  Hôm nay
-                </span>
-                <h2 className="mt-1 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                  {dueCount > 0 ? `Ôn ${dueCount} lỗi sai đến hạn` : 'Không có lỗi sai nào đến hạn ôn'}
-                </h2>
-              </div>
-
-              {dueCount > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-rose-200/80 dark:border-rose-900/50 text-sm font-medium text-slate-700 dark:text-slate-200">
-                    <Layers className="w-4 h-4 text-rose-500 shrink-0" />
-                    {dueCount} thẻ
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-rose-200/80 dark:border-rose-900/50 text-sm font-medium text-slate-700 dark:text-slate-200">
-                    <Clock className="w-4 h-4 text-rose-500 shrink-0" />
-                    Khoảng {Math.max(1, Math.round(dueCount * 1.2))} phút
-                  </span>
+          {/* 1. DẢI CHỈ SỐ - một thẻ, bốn ô ngăn bằng vạch; màu nằm ở CON SỐ */}
+          <div className={`${CARD} ${TINT.violet} !p-0 grid grid-cols-2 lg:grid-cols-4`}>
+            {kpis.map((k, i) => (
+              <div
+                key={k.label}
+                className={`p-4 sm:p-5 min-w-0 border-violet-200/70 dark:border-violet-900/40 ${
+                  i % 2 === 1 ? 'border-l' : ''
+                } ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}
+              >
+                <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{k.label}</div>
+                <div className="mt-1.5 flex items-baseline gap-1">
+                  <span className={`text-3xl font-black tabular-nums leading-none ${k.color}`}>{k.value}</span>
+                  {k.suffix && <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">{k.suffix}</span>}
                 </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <button
-                  onClick={dueCount > 0 ? onStartReview : onOpenSessionLogger}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl btn-linear-primary text-sm cursor-pointer"
-                >
-                  {dueCount > 0 ? 'Bắt đầu ôn tập' : 'Ghi kết quả đề mới'}
-                  <ArrowRight className="w-4 h-4 shrink-0" />
-                </button>
-                <button
-                  onClick={onNavigateToPlan}
-                  className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
-                >
-                  Xem kế hoạch
-                </button>
+                <div className="mt-2 text-sm text-slate-500 dark:text-slate-400 truncate flex items-center gap-1" title={k.note}>
+                  {k.icon}
+                  <span className="truncate">{k.note}</span>
+                </div>
               </div>
-            </div>
-
-            <div className="hidden sm:flex w-24 h-24 rounded-3xl bg-white/70 dark:bg-slate-900/50 border border-rose-200/70 dark:border-rose-900/40 items-center justify-center shrink-0">
-              {dueCount > 0 ? (
-                <Layers className="w-10 h-10 text-rose-400" strokeWidth={1.5} />
-              ) : (
-                <CheckCircle2 className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
-              )}
-            </div>
+            ))}
           </div>
 
           {/* 3. BIỂU ĐỒ TIẾN BỘ */}
           <div className={`${CARD} ${TINT.sky} space-y-4`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Tiến bộ qua từng bài thi
-              </h2>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  Tiến bộ qua từng bài thi
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Điểm quy đổi · các bài Full Test</p>
+              </div>
               <div className="inline-flex p-1 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-sky-200/70 dark:border-slate-700" role="tablist">
                 {([['ALL', 'Tất cả'], ['FIRST', 'Lần đầu']] as const).map(([key, label]) => (
                   <button
@@ -378,7 +309,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="h-[260px] sm:h-[280px] w-full rounded-xl bg-white/70 dark:bg-slate-900/40 pt-3 pr-1">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 16, right: 24, left: 0, bottom: 4 }}>
+                  <AreaChart data={chartData} margin={{ top: 24, right: 24, left: 0, bottom: 4 }}>
                     <defs>
                       <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#2563EB" stopOpacity={isDark ? 0.3 : 0.16} />
@@ -430,7 +361,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       strokeDasharray="6 3"
                       label={{
                         value: `Mục tiêu ${targetScore}`,
-                        position: 'insideTopRight',
+                        position: 'insideBottomRight',
                         fontSize: 12,
                         fontWeight: 600,
                         fill: isDark ? '#93C5FD' : '#2563EB'
@@ -442,19 +373,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       stroke="#2563EB"
                       strokeWidth={2.5}
                       fill="url(#scoreFill)"
+                      // Recharts chỉ vẽ chấm (và số điểm) SAU khi hiệu ứng đường kết thúc;
+                      // trong trình duyệt nhúng hiệu ứng có lúc không bao giờ kết thúc,
+                      // khiến số điểm biến mất. Số điểm là thông tin chính nên tắt hiệu ứng.
+                      isAnimationActive={false}
+                      // Số điểm ghi ngay trên từng chấm; chấm mới nhất tô đặc
+                      // để mắt tìm ra "bây giờ" mà không cần rê chuột.
                       dot={(props: any) => {
-                        const { cx, cy, payload } = props;
+                        const { cx, cy, payload, index } = props;
                         if (!cx || !cy) return <g key={props?.key || 'empty'} />;
+                        const isLast = index === chartData.length - 1;
                         return (
-                          <circle
-                            key={`dot-${payload?.id || cx}`}
-                            cx={cx}
-                            cy={cy}
-                            r={4}
-                            fill={isDark ? '#0F172A' : '#FFFFFF'}
-                            stroke="#2563EB"
-                            strokeWidth={2}
-                          />
+                          <g key={`dot-${payload?.id || cx}`}>
+                            <text
+                              x={cx}
+                              y={cy - 12}
+                              textAnchor="middle"
+                              fontSize={12}
+                              fontWeight={700}
+                              fill={isDark ? '#E2E8F0' : '#1E293B'}
+                            >
+                              {payload?.total}
+                            </text>
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={isLast ? 5.5 : 4}
+                              fill={isLast ? '#2563EB' : isDark ? '#0F172A' : '#FFFFFF'}
+                              stroke="#2563EB"
+                              strokeWidth={2}
+                            />
+                          </g>
                         );
                       }}
                       activeDot={{ r: 6, fill: '#2563EB', stroke: '#FFFFFF', strokeWidth: 2 }}
@@ -557,107 +506,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* 6. MỤC TIÊU - DẢI MỐC THÀNH TỰU.
-              Mỗi mốc Rank vượt qua là một lần "mở khóa" nhìn thấy được, thay vì
-              một thanh % trơn chỉ nhích vài điểm mỗi tuần. */}
-          <div className={`${CARD} ${TINT.violet} space-y-4`}>
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                Mục tiêu {targetScore}
-              </h2>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-900/50 text-sm font-bold text-amber-700 dark:text-amber-300 shrink-0 whitespace-nowrap">
-                <Crown className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
-                {currentRank.shortName}
-              </span>
-            </div>
-
-            <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-black text-slate-900 dark:text-white tabular-nums leading-none">
-                  {highestScore}
-                </span>
-                <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">/ {targetScore}</span>
-              </span>
-              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                {nextMilestone ? (
-                  <>Còn <span className="font-black text-slate-900 dark:text-white">{nextMilestone.score - highestScore}đ</span> tới {nextMilestone.label}</>
-                ) : (
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Đã đạt mục tiêu</span>
-                )}
-              </span>
-            </div>
-
-            <div className="relative w-full h-3 rounded-full bg-white dark:bg-slate-800 border border-violet-200/60 dark:border-transparent overflow-hidden">
-              <div
-                className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-all duration-700"
-                style={{ width: `${Math.min(100, Math.max(2, targetPercent))}%` }}
-              />
-              {milestones.slice(0, -1).map(m => (
-                <span
-                  key={m.score}
-                  aria-hidden
-                  className={`absolute top-0 bottom-0 w-[2px] -translate-x-1/2 ${
-                    highestScore >= m.score ? 'bg-white/90 dark:bg-slate-900/80' : 'bg-slate-200 dark:bg-slate-700'
-                  }`}
-                  style={{ left: `${(m.score / targetScore) * 100}%` }}
-                />
-              ))}
-            </div>
-
-            <ol className="grid grid-cols-3 gap-1.5" aria-label="Các mốc điểm">
-              {milestones.map(m => {
-                const passed = highestScore >= m.score;
-                const isNext = nextMilestone?.score === m.score;
-                return (
-                  <li
-                    key={m.score}
-                    title={`${m.label}: ${m.score} điểm`}
-                    className={`flex items-center justify-center gap-1 px-1.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap border min-w-0 ${
-                      passed
-                        ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-500 dark:border-blue-500'
-                        : isNext
-                        ? 'bg-white border-blue-400 text-blue-700 dark:bg-slate-900 dark:border-blue-500 dark:text-blue-300'
-                        : 'bg-white/60 border-violet-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-700 dark:text-slate-500'
-                    }`}
-                  >
-                    {passed && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
-                    <span className="truncate">{m.label}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-
-          {/* 7. KỸ NĂNG HIỆN TẠI.
+          {/* 6. KỸ NĂNG HIỆN TẠI.
               Màu thanh là DANH TÍNH kỹ năng và không đổi theo trạng thái:
               Listening xanh dương, Reading cam (ΔE 30 với người mù màu đỏ-lục). */}
-          <div className={`${CARD} ${TINT.split} space-y-4`}>
+          <div className={`${CARD} ${TINT.split} space-y-5`}>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
 
             {[
-              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-blue-500 dark:bg-blue-400', iconColor: 'text-blue-600 dark:text-blue-400' },
-              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-orange-500 dark:bg-orange-400', iconColor: 'text-orange-600 dark:text-orange-400' }
+              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-blue-500 dark:bg-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', iconBox: 'bg-blue-100/80 border-blue-200 dark:bg-blue-950/50 dark:border-blue-900/60' },
+              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-orange-500 dark:bg-orange-400', iconColor: 'text-orange-600 dark:text-orange-400', iconBox: 'bg-orange-100/80 border-orange-200 dark:bg-orange-950/50 dark:border-orange-900/60' }
             ].map(item => {
               const percent = Math.min(100, Math.round((item.score / 495) * 100));
               return (
-                <div key={item.label} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                <div key={item.label} className="flex items-center gap-3.5">
+                  <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${item.iconBox}`}>
                     <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                   </div>
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{item.label}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{item.label}</div>
+                    <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                      <span className="flex items-baseline gap-1">
+                        <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-none">{item.score}</span>
+                        <span className="text-sm text-slate-400 dark:text-slate-500">/ 495</span>
+                      </span>
                       <span className={`text-sm font-bold tabular-nums ${
-                        percent >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                        percent >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'
                       }`}>
                         {percent}%
                       </span>
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-none">{item.score}</span>
-                      <span className="text-sm text-slate-400 dark:text-slate-500">/ 495</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-white dark:bg-slate-800 overflow-hidden">
+                    <div className="mt-2 w-full h-2 rounded-full bg-white dark:bg-slate-800 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${item.bar}`}
                         style={{ width: `${Math.max(2, percent)}%` }}
@@ -668,17 +546,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
               );
             })}
 
-            {latestTest && skillGap >= 20 && (
-              <button
-                onClick={onNavigateToAnalytics}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition cursor-pointer"
-              >
+            {latestTest && (
+              <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200">
+                <Target className="w-4 h-4 text-slate-500 shrink-0" />
                 <span className="min-w-0">
-                  {weakerSkill} đang thấp hơn <span className="font-bold">{skillGap}đ</span> — nên ưu tiên
+                  {latestGap > 0 ? (
+                    <>Còn <span className="font-bold">{latestGap} điểm</span> để chạm mục tiêu — ưu tiên {weakerSkill}.</>
+                  ) : (
+                    <>Bài gần nhất đã chạm mục tiêu {targetScore}.</>
+                  )}
                 </span>
-                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-              </button>
+              </div>
             )}
+
+            <button
+              onClick={onNavigateToAnalytics}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
+            >
+              Xem điểm cần cải thiện
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
