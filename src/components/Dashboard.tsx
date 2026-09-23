@@ -7,7 +7,9 @@ import {
   Headphones,
   Target,
   PlusCircle,
-  Clock
+  Gauge,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 import {
   AreaChart,
@@ -37,8 +39,9 @@ interface DashboardProps {
  * Một bề mặt thẻ cho cả trang: nền trắng, viền mảnh, bóng nhẹ. Thẻ tách
  * khỏi nền trang nhờ nền trang đậm hơn (App.tsx), KHÔNG nhờ tô màu thẻ -
  * mỗi thẻ một màu nền đã thử và bị chê chói, rời rạc.
- * Màu chỉ còn mang nghĩa: xanh dương = điểm / Listening / hành động chính,
- * cam = Reading, xanh lá / đỏ = tăng / giảm.
+ * Ngoại lệ duy nhất: thẻ Chuỗi Ngày Học giữ nền hổ phách (người dùng chọn).
+ * Màu chỉ mang nghĩa: xanh dương = điểm / biểu đồ / hành động chính,
+ * cyan = Listening, tím = Reading, xanh lá / đỏ = tăng / giảm.
  */
 const CARD =
   'rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] dark:bg-[#111A2C] dark:border-slate-800 dark:shadow-none';
@@ -120,6 +123,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const first = allChartData[0];
     const latest = allChartData[allChartData.length - 1];
     return {
+      first,
       latest,
       diff: latest.total - first.total,
       totalTests: allChartData.length
@@ -189,8 +193,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const latestTest = stats ? fullTests.find(s => s.id === stats.latest.id) || bestTest : bestTest;
   const listeningScore = latestTest?.scaledListening || 0;
   const readingScore = latestTest?.scaledReading || 0;
-  const weakerSkill = listeningScore < readingScore ? 'Listening' : 'Reading';
-  const latestGap = Math.max(0, targetScore - (latestTest?.totalScore || 0));
 
   const diff = stats?.diff ?? 0;
 
@@ -201,36 +203,62 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
 
   /**
-   * Dải bốn chỉ số. Nền chung một tông, màu nằm ở CON SỐ và mỗi số một màu
-   * theo nghĩa: điểm xanh dương, tiến bộ xanh lá (đỏ khi giảm), mục tiêu
-   * trung tính, chuỗi học cam - cùng tông với thẻ Nhịp học bên phải.
+   * Dải bốn chỉ số. Mỗi ô một màu riêng, dùng cho ô icon, con số và nhãn
+   * ghi chú. Bộ màu chọn bằng đo ΔE (OKLab): mọi cặp màu trên trang cách
+   * nhau ≥ 16 với mắt thường - điểm xanh dương, tiến bộ xanh lá (đỏ khi
+   * giảm), mục tiêu hồng, chuỗi học hổ phách (cùng tông thẻ Chuỗi Ngày Học).
    */
-  const kpis: { label: string; value: string | number; suffix?: string; note: string; color: string; icon?: React.ReactNode }[] = [
+  const isUp = diff >= 0;
+  const kpis: {
+    label: string;
+    value: string | number;
+    suffix?: string;
+    note: string;
+    icon: React.ElementType;
+    number: string;
+    badge: string;
+    pill: string;
+  }[] = [
     {
       label: 'Điểm gần nhất',
       value: stats?.latest.total || 0,
       suffix: `/ ${targetScore}`,
       note: stats?.latest.name || 'Chưa có đề nào',
-      color: 'text-blue-700 dark:text-blue-300'
+      icon: Gauge,
+      number: 'text-blue-600 dark:text-blue-400',
+      badge: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400',
+      pill: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
     },
     {
       label: 'Tiến bộ',
       value: stats && stats.totalTests > 1 ? `${diff > 0 ? '+' : ''}${diff}` : '—',
-      note: 'so với bài đầu tiên',
-      color: diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+      note: stats && stats.totalTests > 1 ? `${stats.first.total} → ${stats.latest.total}` : 'Cần từ 2 đề',
+      icon: isUp ? TrendingUp : TrendingDown,
+      number: isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
+      badge: isUp
+        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+        : 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
+      pill: isUp
+        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
     },
     {
       label: 'Mục tiêu',
       value: targetScore,
       note: pointsRemaining > 0 ? `Còn ${pointsRemaining} điểm` : 'Đã đạt',
-      color: 'text-slate-900 dark:text-white'
+      icon: Target,
+      number: 'text-pink-600 dark:text-pink-400',
+      badge: 'bg-pink-50 text-pink-600 dark:bg-pink-950/60 dark:text-pink-400',
+      pill: 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300'
     },
     {
       label: 'Chuỗi học',
       value: `${profile.currentStreak} ngày`,
-      note: hasStudiedToday ? 'Đã học hôm nay' : 'Giữ nhịp mỗi ngày',
-      color: 'text-slate-900 dark:text-white',
-      icon: <Flame className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
+      note: hasStudiedToday ? 'Đã học hôm nay' : 'Chưa học hôm nay',
+      icon: Flame,
+      number: 'text-amber-600 dark:text-amber-400',
+      badge: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400',
+      pill: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
     }
   ];
 
@@ -261,15 +289,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   i % 2 === 1 ? 'border-l' : ''
                 } ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}
               >
-                <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{k.label}</div>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  <span className={`text-3xl font-black tabular-nums leading-none ${k.color}`}>{k.value}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${k.badge}`}>
+                    <k.icon className="w-[18px] h-[18px]" />
+                  </span>
+                  <span className="text-sm font-semibold leading-tight text-slate-600 dark:text-slate-300 min-w-0">{k.label}</span>
+                </div>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className={`text-3xl font-black tabular-nums leading-none ${k.number}`}>{k.value}</span>
                   {k.suffix && <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">{k.suffix}</span>}
                 </div>
-                <div className="mt-2 text-sm text-slate-500 dark:text-slate-400 truncate flex items-center gap-1" title={k.note}>
-                  {k.icon}
-                  <span className="truncate">{k.note}</span>
-                </div>
+                <span
+                  className={`mt-3 inline-block max-w-full truncate px-2 py-0.5 rounded-md text-xs font-semibold ${k.pill}`}
+                  title={k.note}
+                >
+                  {k.note}
+                </span>
               </div>
             ))}
           </div>
@@ -440,77 +475,99 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* ================= CỘT PHẢI ================= */}
         <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 min-w-0">
 
-          {/* 5. NHỊP HỌC TUẦN NÀY */}
-          <div className={`${CARD} space-y-4`}>
+          {/* 5. CHUỖI NGÀY HỌC.
+              Thẻ duy nhất giữ nền màu: tông hổ phách là danh tính của thói quen
+              học, người dùng chọn giữ lại thiết kế này. */}
+          <div className="rounded-2xl border border-amber-200/80 dark:border-amber-900/40 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-50/40 dark:from-[#1C1814] dark:to-[#14100C] p-4 sm:p-5 space-y-3.5 shadow-[0_2px_12px_rgba(245,158,11,0.06)]">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Nhịp học tuần này</h2>
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 shrink-0"
-                title="Chuỗi ngày học liên tục"
-              >
-                <Flame className="w-4 h-4 text-orange-500 fill-orange-400 shrink-0" />
-                {profile.currentStreak} ngày
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-slate-700 dark:text-slate-200">
-                <span className="text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
-                  {weekDays.filter(d => d.isCompleted).length}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 text-white shadow-sm shadow-orange-500/30 flex items-center justify-center shrink-0">
+                  <Flame className="w-[18px] h-[18px] fill-white" />
                 </span>
-                <span className="font-semibold"> / 7 ngày</span>
-              </span>
-              <span className={`text-sm font-semibold ${
-                hasStudiedToday ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
-              }`}>
-                {hasStudiedToday ? 'Đã học hôm nay' : 'Hôm nay chưa học'}
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">Chuỗi Ngày Học</h2>
+              </div>
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100/90 dark:bg-amber-950/80 border border-amber-300/80 dark:border-amber-700 shrink-0"
+                title="Số ngày học liên tục"
+              >
+                <span className="text-xl font-black text-amber-950 dark:text-amber-200 tabular-nums leading-none">
+                  {profile.currentStreak}
+                </span>
+                <Flame className="w-4 h-4 text-red-600 fill-orange-500" />
               </span>
             </div>
 
-            <div className="grid grid-cols-7 gap-1">
-              {weekDays.map(d => (
-                <div key={d.label} className="flex flex-col items-center gap-1.5 min-w-0">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      d.isCompleted
-                        ? 'bg-blue-600 text-white'
-                        : d.isCurrent
-                        ? 'bg-white dark:bg-slate-900 border-2 border-dashed border-blue-400'
-                        : d.isMissed
-                        ? 'bg-white/60 dark:bg-slate-900/40 border border-dashed border-slate-300 dark:border-slate-700'
-                        : 'bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    {d.isCompleted && <CheckCircle2 className="w-4 h-4" />}
-                    {!d.isCompleted && d.isCurrent && <Flame className="w-4 h-4 text-blue-500" />}
+            <div className="p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-slate-900/90 border border-amber-200/60 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  Tuần này:{' '}
+                  <span className="text-amber-600 dark:text-amber-400 font-black">
+                    {weekDays.filter(d => d.isCompleted).length}/7
+                  </span>{' '}
+                  ngày
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-bold whitespace-nowrap ${
+                  hasStudiedToday
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800/80 text-amber-700 dark:text-amber-300'
+                }`}>
+                  {hasStudiedToday && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {hasStudiedToday ? 'Đã học hôm nay' : 'Chưa học hôm nay'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {weekDays.map(d => (
+                  <div key={d.label} className="flex flex-col items-center gap-1.5 min-w-0">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        d.isCompleted
+                          ? `bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm shadow-orange-500/25 ${
+                              d.isCurrent ? 'ring-2 ring-amber-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' : ''
+                            }`
+                          : d.isCurrent
+                          ? 'bg-amber-50 border-2 border-dashed border-amber-400 dark:bg-amber-950/70 dark:border-amber-500'
+                          : d.isMissed
+                          ? 'bg-slate-50 dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-700'
+                          : 'bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700'
+                      }`}
+                    >
+                      {d.isCompleted ? (
+                        <span className="text-sm font-black leading-none">✓</span>
+                      ) : d.isCurrent ? (
+                        <Flame className="w-4 h-4 text-amber-500 fill-amber-500/40" />
+                      ) : d.isMissed ? (
+                        <span className="w-2 h-[2px] rounded-full bg-slate-300 dark:bg-slate-600" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      )}
+                    </div>
+                    <span className={`text-xs font-bold ${
+                      d.isCurrent
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : d.isCompleted
+                        ? 'text-slate-700 dark:text-slate-300'
+                        : 'text-slate-400 dark:text-slate-500'
+                    }`}>
+                      {d.label}
+                    </span>
                   </div>
-                  <span className={`text-xs font-semibold ${
-                    d.isCurrent ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
-                  }`}>
-                    {d.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Mục tiêu mỗi ngày</span>
-              <span className="inline-flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
-                <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-                {profile.dailyMinGoalMinutes || 30} phút
-              </span>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* 6. KỸ NĂNG HIỆN TẠI.
-              Màu thanh là DANH TÍNH kỹ năng và không đổi theo trạng thái:
-              Listening xanh dương, Reading cam (ΔE 30 với người mù màu đỏ-lục). */}
+              Màu thanh là DANH TÍNH kỹ năng và không đổi theo trạng thái.
+              Listening cyan, Reading tím: không trùng màu biểu đồ (xanh dương),
+              streak (hổ phách) hay các con số KPI; hai màu cách nhau ΔE 15
+              với người mù màu đỏ-lục. */}
           <div className={`${CARD} flex-1 flex flex-col gap-5`}>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
 
             {[
-              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-blue-500 dark:bg-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', iconBox: 'bg-blue-50 border-blue-100 dark:bg-blue-950/50 dark:border-blue-900/60' },
-              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-orange-500 dark:bg-orange-400', iconColor: 'text-orange-600 dark:text-orange-400', iconBox: 'bg-orange-50 border-orange-100 dark:bg-orange-950/50 dark:border-orange-900/60' }
+              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-cyan-500 dark:bg-cyan-400', iconColor: 'text-cyan-600 dark:text-cyan-400', iconBox: 'bg-cyan-50 border-cyan-100 dark:bg-cyan-950/50 dark:border-cyan-900/60' },
+              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-purple-500 dark:bg-purple-400', iconColor: 'text-purple-600 dark:text-purple-400', iconBox: 'bg-purple-50 border-purple-100 dark:bg-purple-950/50 dark:border-purple-900/60' }
             ].map(item => {
               const percent = Math.min(100, Math.round((item.score / 495) * 100));
               return (
@@ -541,19 +598,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               );
             })}
-
-            {latestTest && (
-              <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200">
-                <Target className="w-4 h-4 text-slate-500 shrink-0" />
-                <span className="min-w-0">
-                  {latestGap > 0 ? (
-                    <>Còn <span className="font-bold">{latestGap} điểm</span> để chạm mục tiêu — ưu tiên {weakerSkill}.</>
-                  ) : (
-                    <>Bài gần nhất đã chạm mục tiêu {targetScore}.</>
-                  )}
-                </span>
-              </div>
-            )}
 
             <button
               onClick={onNavigateToAnalytics}

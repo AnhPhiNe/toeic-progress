@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.5** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.6** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -153,7 +153,7 @@ Bố cục (v2.4):
   Mỗi ngày, gần mục tiêu hơn.                      Thứ Tư, 23 tháng 9
 ┌─ ⚠ Tái phạm (một dòng, thu gọn) ─────────────────────────┐
 ├─ CỘT TRÁI (8/12) ──────────────┬─ CỘT PHẢI (4/12) ───────┤
-│  Gần nhất│Tiến bộ│Mục tiêu│Chuỗi│  Nhịp học tuần này      │
+│  Gần nhất│Tiến bộ│Mục tiêu│Chuỗi│  Chuỗi Ngày Học         │
 │  (một thẻ, bốn ô ngăn vạch)    ├─────────────────────────┤
 │  Biểu đồ tiến bộ               │  Kỹ năng hiện tại (L/R) │
 ├────────────────────────────────┴─────────────────────────┤
@@ -161,16 +161,16 @@ Bố cục (v2.4):
 └──────────────────────────────────────────────────────────┘
 ```
 
-- **Dải chỉ số:** một thẻ, bốn ô — điểm gần nhất kèm tên đề, tiến bộ so với bài đầu tiên, mục tiêu kèm số điểm còn thiếu, chuỗi ngày học. Màu nằm ở **con số**: xanh dương, xanh lá (đỏ khi giảm), trung tính, cam.
+- **Dải chỉ số:** một thẻ, bốn ô — điểm gần nhất, tiến bộ, mục tiêu, chuỗi học. Mỗi ô: ô icon tô màu + nhãn, con số lớn cùng màu, và một **nhãn màu** thay cho dòng chữ xám (tên đề · "825 → 960" · "Còn 30 điểm" · "Chưa học hôm nay"). Màu: xanh dương, xanh lá (đỏ khi giảm), hồng, hổ phách. Không số nào để đen.
 - **Biểu đồ tiến bộ:** điểm tổng theo thời gian, **ghi số điểm trên từng chấm**, chấm mới nhất tô đặc, đường mục tiêu có nhãn nằm phía trên đường. Trần trục là `targetScore`. "Lần đầu" loại các lượt làm lại vì điểm làm lại bị thổi phồng do nhớ đáp án. Không dùng hiệu ứng vẽ đường: Recharts chỉ vẽ chấm sau khi hiệu ứng xong, và hiệu ứng có lúc không bao giờ xong.
-- **Nhịp học tuần này:** streak, lưới bảy ngày, mục tiêu phút mỗi ngày. Một ngày chỉ được tính khi **thực sự có buổi học được ghi**.
-- **Kỹ năng hiện tại:** L/R từ bài Full Test **gần nhất**. Màu thanh là danh tính kỹ năng (xanh / cam), không đổi theo trạng thái. Kèm một dòng số điểm còn thiếu tới mục tiêu và kỹ năng nên ưu tiên.
+- **Chuỗi Ngày Học:** thẻ **duy nhất giữ nền màu** (hổ phách, viền cam nhạt — người dùng chọn giữ thiết kế này). Icon lửa, số streak, hộp trắng chứa "Tuần này: N/7 ngày" + trạng thái hôm nay + lưới bảy ô. Không phụ đề, không dòng mục tiêu phút. Một ngày chỉ được tính khi **thực sự có buổi học được ghi**.
+- **Kỹ năng hiện tại:** L/R từ bài Full Test **gần nhất**. Màu thanh là danh tính kỹ năng — Listening **cyan**, Reading **tím** — không đổi theo trạng thái. Không kèm dòng gợi ý (đã gỡ vì thừa).
 - **Buổi học gần đây:** bốn buổi mới nhất, cả Full Test (điểm) lẫn luyện Part (% đúng).
 - **Mọi con số tính theo `targetScore`, không phải 990.**
 
 **Quy tắc trình bày:**
-- Mọi thẻ chung **một** bề mặt: nền trắng, viền `slate-200`, bóng nhẹ. Thẻ tách khỏi trang nhờ nền trang `#EAEFF5` đậm hơn, không nhờ tô màu thẻ. *(Đã thử mỗi thẻ một tông nền — bị chê chói và rời rạc. Đừng quay lại.)*
-- Màu chỉ mang nghĩa: xanh dương = điểm, Listening, hành động chính, ngày đã học · cam = **chỉ** Reading · xanh lá / đỏ = tăng / giảm. Số chuỗi học để trung tính, chỉ icon lửa có màu.
+- Mọi thẻ (trừ Chuỗi Ngày Học) chung **một** bề mặt: nền trắng, viền `slate-200`, bóng nhẹ. Thẻ tách khỏi trang nhờ nền trang `#EAEFF5` đậm hơn, không nhờ tô màu thẻ. *(Đã thử mỗi thẻ một tông nền — bị chê chói và rời rạc. Đừng quay lại.)*
+- Màu chỉ mang nghĩa, mỗi màu **một** việc: xanh dương = điểm / biểu đồ / hành động chính · xanh lá / đỏ = tăng / giảm · hồng = mục tiêu · hổ phách = chuỗi học · cyan = Listening · tím = Reading. Bộ màu chọn bằng đo ΔE OKLab: mọi cặp cách nhau ≥ 16 với mắt thường; cyan↔tím cách nhau 15 với người mù màu đỏ-lục. (Không bộ nào tách được cả 6 màu cho người mù màu — nhãn và icon là mã hóa phụ.)
 - Hai cột cao bằng nhau: thẻ cuối mỗi cột (biểu đồ, kỹ năng) giãn ra lấp phần dư, link "Xem…" dồn xuống đáy thẻ.
 - Chữ nhỏ nhất 12px.
 
@@ -313,9 +313,10 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 | Nền card | `#FFFFFF` | `#121A2B` |
 | Nền sidebar | `#FFFFFF` | `#0E1526` |
 | Hành động chính | `blue-600` | `blue-600` |
-| Streak | icon lửa cam; số và ngày đã học dùng màu trung tính / xanh chủ đạo | như chế độ sáng |
-| Listening | `blue` / `sky` | như chế độ sáng |
-| Reading | `orange-500` (tối: `orange-400`) — không dùng tím: xanh/tím chỉ cách ΔE 1.3 với người mù màu đỏ-lục | như chế độ sáng |
+| Streak | `amber` — thẻ Chuỗi Ngày Học nền hổ phách, số streak ở dải chỉ số `amber-600` | như chế độ sáng |
+| Listening | `cyan-500` (tối: `cyan-400`) | như chế độ sáng |
+| Reading | `purple-500` (tối: `purple-400`) — không đặt cạnh xanh dương: xanh/tím chỉ cách ΔE 0.4–1.3 với người mù màu đỏ-lục | như chế độ sáng |
+| Mục tiêu | `pink-600` | `pink-400` |
 | Thành công, đã thông suốt | `emerald` | như chế độ sáng |
 | Lỗi sai, cần ôn | `rose` | như chế độ sáng |
 
