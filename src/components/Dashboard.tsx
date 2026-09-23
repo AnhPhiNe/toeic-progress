@@ -608,8 +608,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* 6. KỸ NĂNG HIỆN TẠI - theo mẫu người dùng đưa.
               Màu là DANH TÍNH kỹ năng, không đổi theo trạng thái:
               Listening chàm, Reading xanh ngọc (người dùng chọn theo mẫu).
-              Độ chính xác từng Part đã thử đặt ở đây và gỡ: trùng với Phân Tích. */}
-          <div className={`${CARD} flex-1 flex flex-col gap-3`}>
+              Độ chính xác từng Part đã thử đặt ở đây và gỡ: trùng với Phân Tích.
+              Phần dư chia ĐỀU giữa các khối (justify-between), không dồn hết
+              xuống trên link cuối thẻ. */}
+          <div className={`${CARD} flex-1 flex flex-col justify-between gap-3`}>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
 
             {[
@@ -655,7 +657,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <button
               onClick={onNavigateToAnalytics}
-              className="mt-auto self-start inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
+              className="self-start inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
             >
               Xem điểm cần cải thiện
               <ArrowRight className="w-4 h-4" />
