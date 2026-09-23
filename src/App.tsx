@@ -22,6 +22,9 @@ import {
   saveMistakes, 
   loadDemoData, 
   resetToCleanSlate,
+  loadVocabLog,
+  upsertVocabLog,
+  recordDailyActivity,
   getTodayDateString 
 } from './utils/storage';
 import { StudySession, MistakeEntry, UserProfile, NavTabId } from './types';
@@ -31,6 +34,7 @@ export const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile>(loadUserProfile());
   const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions());
   const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes());
+  const [vocabLog, setVocabLog] = useState(loadVocabLog());
 
   const [activeTab, setActiveTab] = useState<NavTabId>('dashboard');
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -119,6 +123,11 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSaveVocab = (date: string, count: number) => {
+    setVocabLog(upsertVocabLog(date, count));
+    setProfile(recordDailyActivity(profile, date));
+  };
+
   /**
    * Thay thế một buổi học đã có. KHÔNG đi qua addStudySession: sửa số liệu
    * một buổi cũ không phải là hoạt động học hôm nay, nên streak và pháo giấy
@@ -128,6 +137,7 @@ export const App: React.FC = () => {
     const updated = sessions.map(s => (s.id === session.id ? session : s));
     saveStudySessions(updated);
     setSessions(updated);
+    setProfile(loadUserProfile());
 
     if (newMistakes && newMistakes.length > 0) {
       const updatedMistakes = [...newMistakes, ...mistakes];
@@ -148,6 +158,7 @@ export const App: React.FC = () => {
     const updated = sessions.filter(s => s.id !== sessionId);
     saveStudySessions(updated);
     setSessions(updated);
+    setProfile(loadUserProfile());
   };
 
   // Thêm lỗi sai vào Sổ tay
@@ -206,16 +217,17 @@ export const App: React.FC = () => {
   // Lưu cấu hình
   const handleSaveProfile = (newProfile: UserProfile) => {
     saveUserProfile(newProfile);
-    setProfile(newProfile);
+    setProfile(loadUserProfile());
   };
 
   // Nạp lại demo data
   const handleLoadDemo = () => {
     if (confirm('Nạp lại dữ liệu mẫu Demo? (Dữ liệu sẽ được cập nhật bộ đề mẫu)')) {
       const demo = loadDemoData();
-      setProfile(demo.profile);
+      setProfile(loadUserProfile());
       setSessions(demo.sessions);
       setMistakes(demo.mistakes);
+      setVocabLog(loadVocabLog());
     }
   };
 
@@ -223,9 +235,10 @@ export const App: React.FC = () => {
   const handleResetData = () => {
     if (confirm('Bạn có chắc muốn XÓA TOÀN BỘ dữ liệu để bắt đầu học thật từ đầu?')) {
       const clean = resetToCleanSlate();
-      setProfile(clean.profile);
+      setProfile(loadUserProfile());
       setSessions(clean.sessions);
       setMistakes(clean.mistakes);
+      setVocabLog(loadVocabLog());
     }
   };
 
@@ -238,7 +251,7 @@ export const App: React.FC = () => {
   // Badge điều hướng chỉ việc cần làm HÔM NAY, không phải toàn bộ tồn đọng
   const dueMistakesCount = getDueMistakes(mistakes).length;
   const today = getTodayDateString();
-  const hasStudiedToday = sessions.some(s => s.date === today) || profile.lastStudyDate === today;
+  const hasStudiedToday = sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
 
   return (
     <div className="min-h-screen bg-[#EAEFF5] dark:bg-[#0B111E] text-slate-800 dark:text-slate-100 flex transition-colors">
@@ -302,6 +315,7 @@ export const App: React.FC = () => {
               profile={profile}
               sessions={sessions}
               mistakes={mistakes}
+              vocabLog={vocabLog}
               theme={theme}
               onDeleteSession={handleDeleteSession}
               onEditSession={openSessionEditor}
@@ -336,6 +350,7 @@ export const App: React.FC = () => {
               profile={profile}
               sessions={sessions}
               mistakes={mistakes}
+              vocabLog={vocabLog}
               onOpenSettings={() => setIsSettingsModalOpen(true)}
               onOpenSessionLogger={() => openSessionLogger()}
               onNavigateToMistakes={() => setActiveTab('mistakes')}
@@ -367,6 +382,7 @@ export const App: React.FC = () => {
         isOpen={isSessionModalOpen}
         onClose={closeSessionLogger}
         onSaveSession={handleSaveSession}
+        onSaveVocab={handleSaveVocab}
         sessions={sessions}
         prefill={sessionPrefill}
         editingSession={editingSession}

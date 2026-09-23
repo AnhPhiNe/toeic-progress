@@ -2,6 +2,8 @@ import { StudySession, MistakeEntry, UserProfile, ErrorCategory, ERROR_CATEGORY_
 import { getTodayDateString } from './storage';
 import { getPracticeParts } from './etsScoring';
 import { getDueMistakes } from './spacedRepetition';
+import { causePriority } from './learningAnalytics';
+import type { VocabLog } from './dataBundle';
 
 /** Một việc cần làm trong tuần, sinh ra từ dữ liệu thật của người học */
 export interface WeeklyTask {
@@ -40,7 +42,7 @@ export interface StudyPlan {
   minutesGoalThisWeek: number;
   daysStudiedThisWeek: number;
 
-  bottleneckCause: { category: ErrorCategory; label: string; count: number; percent: number } | null;
+  bottleneckCause: { category: ErrorCategory; label: string; count: number; percent: number; estimatedPoints: number | null } | null;
   pendingMistakes: number;
 }
 
@@ -80,7 +82,8 @@ function daysBetween(fromStr: string, toStr: string): number {
 export function buildStudyPlan(
   profile: UserProfile,
   sessions: StudySession[],
-  mistakes: MistakeEntry[]
+  mistakes: MistakeEntry[],
+  vocabLog: VocabLog[] = []
 ): StudyPlan {
   const today = getTodayDateString();
   const targetScore = Math.max(10, Math.min(990, profile.targetScore || 990));
@@ -139,22 +142,22 @@ export function buildStudyPlan(
   const fullTestsThisWeek = thisWeek.filter(s => s.sessionType === 'FULL_TEST').length;
   const minutesThisWeek = thisWeek.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
   const minutesGoalThisWeek = (profile.dailyMinGoalMinutes || 30) * 7;
-  const daysStudiedThisWeek = new Set(thisWeek.map(s => s.date)).size;
+  const daysStudiedThisWeek = new Set([
+    ...thisWeek.map(s => s.date),
+    ...vocabLog.filter(item => !item.deletedAt && item.count > 0 && item.date >= weekStart && item.date <= weekEnd).map(item => item.date)
+  ]).size;
 
-  // ---- Nhóm lỗi đang lấy nhiều điểm nhất ----
+  // ---- Ưu tiên theo điểm ước tính khi đủ dữ liệu, nếu không theo tần suất ----
   let bottleneckCause: StudyPlan['bottleneckCause'] = null;
-  if (mistakes.length > 0) {
-    const counts = new Map<ErrorCategory, number>();
-    for (const m of mistakes) {
-      const c = m.category || 'OTHER';
-      counts.set(c, (counts.get(c) || 0) + 1);
-    }
-    const [category, count] = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
+  const priority = causePriority(sessions, mistakes);
+  if (priority.rows.length > 0) {
+    const top = priority.rows[0];
     bottleneckCause = {
-      category,
-      label: (ERROR_CATEGORY_LABELS[category] || ERROR_CATEGORY_LABELS.OTHER).label,
-      count,
-      percent: Math.round((count / mistakes.length) * 100)
+      category: top.category,
+      label: ERROR_CATEGORY_LABELS[top.category].label,
+      count: top.count,
+      percent: Math.round((top.count / priority.mistakeCount) * 100),
+      estimatedPoints: priority.eligible ? Math.round(top.estimatedPoints) : null
     };
   }
 
@@ -201,7 +204,9 @@ export function buildStudyPlan(
       detail: `Nhắm vào nhóm lỗi ${bottleneckCause.label}`,
       target: 2,
       done: practiceThisWeek,
-      reason: `${bottleneckCause.percent}% lỗi của bạn thuộc nhóm này`
+      reason: bottleneckCause.estimatedPoints !== null
+        ? `Khắc phục nhóm này có thể mang lại ước tính +${bottleneckCause.estimatedPoints}đ`
+        : `${bottleneckCause.percent}% lỗi của bạn thuộc nhóm này (chưa đủ dữ liệu ước tính điểm)`
     });
   }
 

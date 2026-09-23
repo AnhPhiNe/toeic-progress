@@ -12,11 +12,13 @@ import {
 } from 'lucide-react';
 import { StudySession, MistakeEntry, UserProfile } from '../types';
 import { buildStudyPlan } from '../utils/studyPlan';
+import type { VocabLog } from '../utils/dataBundle';
 
 interface PlanViewProps {
   profile: UserProfile;
   sessions: StudySession[];
   mistakes: MistakeEntry[];
+  vocabLog: VocabLog[];
   onOpenSettings: () => void;
   onOpenSessionLogger: () => void;
   onNavigateToMistakes: () => void;
@@ -32,13 +34,14 @@ export const PlanView: React.FC<PlanViewProps> = ({
   profile,
   sessions,
   mistakes,
+  vocabLog,
   onOpenSettings,
   onOpenSessionLogger,
   onNavigateToMistakes
 }) => {
   const plan = useMemo(
-    () => buildStudyPlan(profile, sessions, mistakes),
-    [profile, sessions, mistakes]
+    () => buildStudyPlan(profile, sessions, mistakes, vocabLog),
+    [profile, sessions, mistakes, vocabLog]
   );
 
   const paceCopy = {

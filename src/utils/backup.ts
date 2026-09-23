@@ -12,6 +12,7 @@ const profile = z.object({
   name: z.string().min(1), targetScore: z.number().int().min(10).max(990), examDate: z.string(),
   currentStreak: z.number().int().nonnegative(), longestStreak: z.number().int().nonnegative(),
   streakFreezes: z.number().int().min(0).max(5), lastStudyDate: z.string(),
+  shieldAllowance: z.number().int().nonnegative().optional(),
   dailyMinGoalMinutes: z.number().int().positive(), motto: z.string(), selectedSkill: z.enum(['LR', 'SW']),
   ...metadata
 }).passthrough();
@@ -96,6 +97,7 @@ function normalize(raw: Record<string, unknown>, version: 1 | 2, corrections: st
     fill(profileValue, 'currentStreak', 0, 'profile', corrections);
     fill(profileValue, 'longestStreak', 0, 'profile', corrections);
     fill(profileValue, 'streakFreezes', 2, 'profile', corrections);
+    fill(profileValue, 'shieldAllowance', profileValue.streakFreezes, 'profile', corrections);
     fill(profileValue, 'lastStudyDate', '', 'profile', corrections);
     fill(profileValue, 'dailyMinGoalMinutes', 30, 'profile', corrections);
     fill(profileValue, 'motto', '', 'profile', corrections);

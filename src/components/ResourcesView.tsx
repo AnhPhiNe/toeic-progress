@@ -57,7 +57,7 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
   const scaledListening = convertRawToListeningScore(rawListening);
   const scaledReading = convertRawToReadingScore(rawReading);
   const totalEstimated = scaledListening + scaledReading;
-  const currentRank = getCurrentRankTier(totalEstimated);
+  const currentRank = getCurrentRankTier(totalEstimated, goal);
   const concordance = getConcordanceByToeic(totalEstimated);
 
   const [checklistItems, setChecklistItems] = useState<Record<string, boolean>>(loadChecklist);

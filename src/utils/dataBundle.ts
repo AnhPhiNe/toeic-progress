@@ -60,6 +60,7 @@ export function defaultProfile(): UserProfile {
     currentStreak: 0,
     longestStreak: 0,
     streakFreezes: 2,
+    shieldAllowance: 2,
     lastStudyDate: '',
     dailyMinGoalMinutes: 30,
     motto: '',
@@ -95,7 +96,10 @@ function migrateLegacy(): DataBundle {
   const pacingRuns = readLegacy<PacingRun[]>(LEGACY_KEYS.pacingRuns, []);
   return {
     schemaVersion: 2,
-    profile: stamp({ ...defaultProfile(), ...readLegacy<UserProfile>(LEGACY_KEYS.profile, defaultProfile()) }, now),
+    profile: stamp((() => {
+      const old = readLegacy<UserProfile>(LEGACY_KEYS.profile, defaultProfile());
+      return { ...defaultProfile(), ...old, shieldAllowance: old.shieldAllowance ?? old.streakFreezes };
+    })(), now),
     sessions: Array.isArray(sessions) ? sessions.map(item => stamp(item, item.createdAt || now)) : [],
     mistakes: Array.isArray(mistakes) ? mistakes.map(item => stamp(item, item.createdAt || now)) : [],
     pacingRuns: Array.isArray(pacingRuns) ? pacingRuns.map(item => stamp(item, item.createdAt || now)) : [],

@@ -29,6 +29,7 @@ interface SessionLoggerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveSession: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
+  onSaveVocab: (date: string, count: number) => void;
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp (SPEC 4.3) */
   prefill?: { durationMinutes?: number };
@@ -46,16 +47,18 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   isOpen,
   onClose,
   onSaveSession,
+  onSaveVocab,
   sessions,
   prefill,
   editingSession,
   onUpdateSession
 }) => {
   const isEditing = !!editingSession;
-  const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE'>('FULL_TEST');
+  const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'>('FULL_TEST');
   const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [durationMinutes, setDurationMinutes] = useState(120);
+  const [vocabCount, setVocabCount] = useState(1);
 
   const [notes, setNotes] = useState('');
 
@@ -172,6 +175,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? 120);
+    setVocabCount(1);
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
     const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
@@ -216,6 +220,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (sessionType === 'VOCAB') {
+      onSaveVocab(date, vocabCount);
+      onClose();
+      return;
+    }
 
     const sessionId = editingSession?.id ?? `session-${Date.now()}`;
     const createdAt = editingSession?.createdAt ?? new Date().toISOString();
@@ -302,9 +312,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học'}</h2>
+              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{sessionType === 'VOCAB' ? 'Ghi Số Từ Vựng Đã Học' : isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học'}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isEditing ? 'Điểm được quy đổi lại theo số câu mới · không ảnh hưởng Streak' : 'Tự động quy đổi điểm chuẩn ETS và bảo toàn Streak'}
+                {sessionType === 'VOCAB' ? 'Theo dõi riêng theo ngày và giữ chuỗi học' : isEditing ? 'Điểm được quy đổi lại theo số câu mới · không ảnh hưởng Streak' : 'Tự động quy đổi điểm chuẩn ETS và bảo toàn Streak'}
               </p>
             </div>
           </div>
@@ -320,7 +330,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
           
           {/* Mode Switcher */}
-          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800">
+          <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
             <button
               type="button"
               onClick={() => setSessionType('FULL_TEST')}
@@ -343,8 +353,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             >
               <span>Luyện Từng Part Lẻ (Mini Practice)</span>
             </button>
+            {!isEditing && (
+              <button type="button" onClick={() => setSessionType('VOCAB')}
+                className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer ${sessionType === 'VOCAB' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
+                Từ vựng
+              </button>
+            )}
           </div>
 
+          {sessionType !== 'VOCAB' && (<>
           {/* General Info Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -853,6 +870,19 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
             />
           </div>
+          </>)}
+
+          {sessionType === 'VOCAB' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Ngày học
+                <input type="date" required max={getTodayDateString()} value={date} onChange={e => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Số từ đã học
+                <input type="number" min="1" step="1" required value={vocabCount} onChange={e => setVocabCount(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+              </label>
+              <p className="sm:col-span-2 text-xs text-slate-500 dark:text-slate-400">Ghi riêng theo ngày; không tạo buổi thi hay cộng điểm TOEIC.</p>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="pt-2 flex justify-end space-x-2">
@@ -868,7 +898,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{isEditing ? 'Lưu thay đổi' : 'Lưu & Giữ Streak'}</span>
+              <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : 'Lưu & Giữ Streak'}</span>
             </button>
           </div>
 

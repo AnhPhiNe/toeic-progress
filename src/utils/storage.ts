@@ -1,8 +1,9 @@
 import confetti from 'canvas-confetti';
 import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '../types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '../data/demoData';
-import { DEFAULT_CHECKLIST, defaultProfile, live, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle } from './dataBundle';
+import { DEFAULT_CHECKLIST, defaultProfile, live, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle, type VocabLog } from './dataBundle';
 import { parseBackup, type BackupPreview } from './backup';
+import { deriveStreak } from './streak';
 
 export function getTodayDateString(): string {
   const d = new Date();
@@ -29,54 +30,42 @@ function getPreviousDateString(dateStr: string): string {
 
 // Lấy Profile người dùng
 export function loadUserProfile(): UserProfile {
-  return readDataBundle().profile;
+  const today = getTodayDateString();
+  const yesterday = getPreviousDateString(today);
+  const dayBefore = getPreviousDateString(yesterday);
+  const bundle = readDataBundle();
+  const activityDates = new Set([
+    ...live(bundle.sessions).map(item => item.date),
+    ...live(bundle.vocabLog).filter(item => item.count > 0).map(item => item.date)
+  ]);
+  const alreadyShielded = live(bundle.shieldDays).some(item => item.date === yesterday);
+  let current = bundle;
+  if (activityDates.has(dayBefore) && !activityDates.has(yesterday) && !alreadyShielded && deriveStreak(bundle, today).streakFreezes > 0) {
+    current = updateDataBundle(data => ({
+      ...data,
+      shieldDays: [...data.shieldDays, { id: `shield:${yesterday}`, date: yesterday, updatedAt: new Date().toISOString(), deletedAt: null }]
+    }));
+  }
+  return { ...current.profile, ...deriveStreak(current, today) };
 }
 
 // Lưu Profile người dùng
 export function saveUserProfile(profile: UserProfile): void {
-  updateDataBundle(current => ({
-    ...current,
-    profile: { ...profile, updatedAt: new Date().toISOString(), deletedAt: null }
-  }));
+  updateDataBundle(current => {
+    const remaining = deriveStreak(current, getTodayDateString()).streakFreezes;
+    const used = live(current.shieldDays).length;
+    const shieldAllowance = profile.streakFreezes !== remaining
+      ? profile.streakFreezes + used
+      : current.profile.shieldAllowance ?? current.profile.streakFreezes + used;
+    return {
+      ...current,
+      profile: { ...profile, shieldAllowance, updatedAt: new Date().toISOString(), deletedAt: null }
+    };
+  });
 }
 
-// Cập nhật trạng thái chuỗi Streak theo ngày thực tế
-export function updateStreakStatus(profile: UserProfile): UserProfile {
-  const today = getTodayDateString();
-  if (!profile.lastStudyDate) {
-    return profile;
-  }
-
-  const lastDate = new Date(profile.lastStudyDate);
-  const currentDate = new Date(today);
-  const diffTime = currentDate.getTime() - lastDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays <= 1) {
-    // Vẫn trong chuỗi hợp lệ (cùng ngày hoặc ngày hôm sau)
-    return profile;
-  } else if (diffDays === 2 && profile.streakFreezes > 0) {
-    // Lỡ đúng 1 ngày và còn khiên: khiên lấp vào ĐÚNG ngày bị lỡ (hôm qua),
-    // không phải hôm nay. Nhờ vậy chuỗi được giữ nhưng hôm nay vẫn tính là
-    // CHƯA học - người dùng vẫn phải học thật để tăng streak.
-    const updated = {
-      ...profile,
-      streakFreezes: profile.streakFreezes - 1,
-      lastStudyDate: getPreviousDateString(today)
-    };
-    saveUserProfile(updated);
-    return updated;
-  } else if (diffDays > 1) {
-    // Đã đứt chuỗi
-    const updated = {
-      ...profile,
-      currentStreak: 0
-    };
-    saveUserProfile(updated);
-    return updated;
-  }
-
-  return profile;
+export function updateStreakStatus(_profile: UserProfile): UserProfile {
+  return loadUserProfile();
 }
 
 /**
@@ -85,32 +74,8 @@ export function updateStreakStatus(profile: UserProfile): UserProfile {
  *   Nếu ghi bù một buổi học trong quá khứ, streak giữ nguyên - nhập liệu bù
  *   không phải là học hôm nay.
  */
-export function recordDailyActivity(profile: UserProfile, activityDate?: string): UserProfile {
-  const today = getTodayDateString();
-  const effectiveDate = activityDate || today;
-
-  // Buổi học được ghi cho một ngày trong quá khứ (hoặc tương lai): không đụng tới streak
-  if (effectiveDate !== today) {
-    return profile;
-  }
-
-  let newStreak = profile.currentStreak;
-
-  if (profile.lastStudyDate !== today) {
-    newStreak = profile.currentStreak + 1;
-  }
-
-  const longest = Math.max(newStreak, profile.longestStreak || 0);
-
-  const updated: UserProfile = {
-    ...profile,
-    currentStreak: newStreak,
-    longestStreak: longest,
-    lastStudyDate: today
-  };
-
-  saveUserProfile(updated);
-  return updated;
+export function recordDailyActivity(_profile: UserProfile, _activityDate?: string): UserProfile {
+  return loadUserProfile();
 }
 
 // Lấy danh sách toàn bộ các buổi học
@@ -125,14 +90,13 @@ export function saveStudySessions(sessions: StudySession[]): void {
 // Thêm một buổi học mới
 export function addStudySession(session: StudySession): { sessions: StudySession[]; profile: UserProfile; isRecord: boolean } {
   const currentSessions = loadStudySessions();
-  const currentProfile = loadUserProfile();
 
   const previousMax = Math.max(...currentSessions.map(s => s.totalScore || 0), 0);
   const updatedSessions = [session, ...currentSessions];
   saveStudySessions(updatedSessions);
 
   // Cập nhật streak
-  const updatedProfile = recordDailyActivity(currentProfile, session.date);
+  const updatedProfile = loadUserProfile();
 
   const isRecord = (session.totalScore || 0) > previousMax && (session.totalScore || 0) > 0;
   if (isRecord) {
@@ -194,15 +158,30 @@ export function saveChecklist(values: Record<string, boolean>): void {
   });
 }
 
+export function loadVocabLog(): VocabLog[] {
+  return live(readDataBundle().vocabLog);
+}
+
+export function upsertVocabLog(date: string, count: number): VocabLog[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(count) || count <= 0) {
+    throw new Error('Ngày và số từ vựng phải hợp lệ; số từ phải lớn hơn 0.');
+  }
+  const id = `vocab:${date}`;
+  const now = new Date().toISOString();
+  const next = updateDataBundle(current => ({
+    ...current,
+    vocabLog: [
+      ...current.vocabLog.filter(item => item.id !== id),
+      { id, date, count, updatedAt: now, deletedAt: null }
+    ]
+  }));
+  return live(next.vocabLog);
+}
+
 // Tính Rank Tier hiện tại dựa trên điểm số cao nhất
-export function getCurrentRankTier(highestScore: number): RankTier {
-  if (highestScore >= 990) return RANK_TIERS[6]; // Grandmaster
-  if (highestScore >= 950) return RANK_TIERS[5]; // Diamond
-  if (highestScore >= 900) return RANK_TIERS[4]; // Platinum
-  if (highestScore >= 850) return RANK_TIERS[3]; // Gold
-  if (highestScore >= 700) return RANK_TIERS[2]; // Silver
-  if (highestScore >= 500) return RANK_TIERS[1]; // Bronze
-  return RANK_TIERS[0];                          // Recruit
+export function getCurrentRankTier(highestScore: number, targetScore = 990): RankTier {
+  const target = Math.max(10, Math.min(990, targetScore));
+  return [...RANK_TIERS].reverse().find(tier => highestScore * 100 >= target * tier.minPercent) || RANK_TIERS[0];
 }
 
 // Hiệu ứng pháo hoa chúc mừng
@@ -260,10 +239,17 @@ export function loadDemoData(): { profile: UserProfile; sessions: StudySession[]
 // Xóa trắng toàn bộ dữ liệu để bắt đầu từ đầu
 export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySession[]; mistakes: MistakeEntry[] } {
   const cleanProfile = createBlankProfile();
-
-  saveUserProfile(cleanProfile);
-  saveStudySessions([]);
-  saveMistakes([]);
+  const now = new Date().toISOString();
+  updateDataBundle(current => ({
+    ...current,
+    profile: { ...cleanProfile, updatedAt: now, deletedAt: null },
+    sessions: replaceCollection(current.sessions, []),
+    mistakes: replaceCollection(current.mistakes, []),
+    pacingRuns: replaceCollection(current.pacingRuns, []),
+    vocabLog: current.vocabLog.map(item => ({ ...item, updatedAt: now, deletedAt: now })),
+    shieldDays: current.shieldDays.map(item => ({ ...item, updatedAt: now, deletedAt: now })),
+    checklist: Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked, updatedAt: now, deletedAt: null }))
+  }));
 
   return {
     profile: cleanProfile,

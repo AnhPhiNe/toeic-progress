@@ -85,7 +85,7 @@ Bốn năng lực sau là thứ các web bên ngoài **không làm được**, k
 | **Status & Mastery** | Rank Tier bảy bậc theo thang TOEIC | Kích thích chinh phục nấc thang |
 | **Cognitive Closure** | Sổ tay chuyển lỗi từ "Cần ôn lại" sang "Đã thông suốt" qua lịch ôn có giãn cách | Cảm giác kiểm soát lỗ hổng |
 
-> **Ghi chú về Rank Tier.** Thang hiện tại neo vào 990 tuyệt đối. Với người nhắm 700, họ sẽ mắc kẹt ở Silver vĩnh viễn và gamification quay sang phản tác dụng. Khi mở ra công khai, Rank phải tính **tương đối theo `targetScore`**. Chưa làm bây giờ, nhưng không được viết thêm code neo cứng vào 990.
+> **Rank Tier theo mục tiêu.** So trực tiếp điểm hiện tại với `targetScore` ở các ngưỡng Tân Binh <50%, Đồng 50%, Bạc 70%, Vàng 85%, Bạch Kim 92%, Kim Cương 97%, Đại Sư 100%. Không làm tròn tỷ lệ trước khi xếp bậc. Với mục tiêu 990, các điểm TOEIC đầu tiên chạm từng bậc là 495/695/845/915/965/990. Tên bậc không chứa số điểm; bậc cao nhất là “Đại Sư — Chạm Mục Tiêu”.
 
 ---
 
@@ -162,7 +162,7 @@ Bố cục (v2.4):
 
 - **Dải chỉ số:** một thẻ, bốn ô — điểm gần nhất, tiến bộ, mục tiêu, chuỗi học. Mỗi ô: ô icon tô màu + nhãn, con số lớn cùng màu, và một **nhãn màu** thay cho dòng chữ xám (tên đề · "825 → 960" · "Còn 30 điểm" · "Chưa học hôm nay"). Màu: xanh dương, xanh lá (đỏ khi giảm), hồng, hổ phách. Không số nào để đen.
 - **Biểu đồ tiến bộ:** điểm tổng theo thời gian, **ghi số điểm trên từng chấm**, chấm mới nhất tô đặc, đường mục tiêu có nhãn nằm phía trên đường. Trần trục là `targetScore`. "Lần đầu" loại các lượt làm lại vì điểm làm lại bị thổi phồng do nhớ đáp án. Không dùng hiệu ứng vẽ đường: Recharts chỉ vẽ chấm sau khi hiệu ứng xong, và hiệu ứng có lúc không bao giờ xong.
-- **Chuỗi Ngày Học:** thẻ **duy nhất giữ nền màu** (hổ phách, viền cam nhạt — người dùng chọn giữ thiết kế này). Icon lửa, số streak, hộp trắng chứa "Tuần này: N/7 ngày" + trạng thái hôm nay + lưới bảy ô. Không phụ đề, không dòng mục tiêu phút. Một ngày chỉ được tính khi **thực sự có buổi học được ghi**.
+- **Chuỗi Ngày Học:** giữ nguyên thẻ và lưới bảy ô đã chốt. Một ngày được tính là đã học khi có buổi học hoặc ghi từ vựng với `count > 0`; ngày dùng khiên chỉ nối chuỗi, không được hiển thị là đã học. `currentStreak` được tính lại từ các ngày nguồn, không làm nguồn dữ liệu gốc.
 - **Kỹ năng hiện tại** (theo mẫu người dùng đưa): L/R từ bài Full Test **gần nhất** — nhãn, điểm / 495, %, thanh. Màu thanh là danh tính kỹ năng — Listening **chàm** (`indigo-600`), Reading **xanh ngọc** (`teal-600`), người dùng chọn theo mẫu — không đổi theo trạng thái. Một dòng gợi ý: "Còn X điểm ở Reading để chạm mục tiêu." *(Độ chính xác từng Part đã thử đặt ở đây và gỡ — trùng với Phân Tích. Chênh lệch từng kỹ năng so với đề trước cũng gỡ cùng.)*
 - **Mọi con số tính theo `targetScore`, không phải 990.**
 
@@ -221,18 +221,18 @@ Nhịp thực tế 8đ/tuần — đang đi trước kế hoạch.
 - Mỗi chế độ chia thành các pha gắn với khoảng câu hỏi cụ thể (ví dụ *Part 5, câu 101–130, 12 phút, tối đa 25–30 giây mỗi câu*), kèm lời nhắc chiến thuật riêng cho từng pha.
 - **Phục vụ hai nhóm:** người luyện đề giấy từ sách, vốn không có timer sẵn; và người muốn tập riêng kỷ luật phân bổ thời gian.
 
-**Phải lưu dữ liệu.** Hiện nó không ghi một byte nào — bấm xong là quên sạch. Cần:
+**Đã lưu lượt Phòng Thi:** khi Nộp Bài, thời gian thật được truyền sang Nhập Điểm và các pha đã đánh dấu "xong pha" được lưu để phân tích. Tiếp tục dùng dữ liệu này cho:
 
 1. Khi Nộp Bài, chuyển **thời gian thật đã dùng** sang form Nhập Điểm.
 2. Ghi lại **pha nào vượt giờ và vượt bao nhiêu**, để dựng đường cong mệt mỏi (mục 1.4 điểm 3) mà người dùng không phải gõ thêm gì.
 
-Chừng nào còn không lưu gì, nó vẫn sẽ có cảm giác thừa — không phải vì tính năng dở, mà vì nó bị cô lập khỏi phần còn lại của hệ thống.
+Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng chế độ đã bấm "xong pha"; dưới ngưỡng thì hướng dẫn người học thao tác.
 
 ### 4.4. Nhập Điểm (Session Logger — modal)
 
 - **Full Test:** tên nguồn đề, ngày, thời gian làm, số câu đúng từng Part (Listening 6/25/39/30, Reading 30/16/54). Tự cộng Raw 0–100 mỗi kỹ năng, tra bảng ETS ra Scaled 5–495 và tổng 10–990.
 - **Luyện Part lẻ:** chọn Part, số câu làm, số câu đúng, thời gian. Vẫn tính vào streak. **Dữ liệu phải lưu có cấu trúc** (`practicePart`, `practiceCorrect`, `practiceTotal`), không nhét vào chuỗi `notes` như hiện tại — nếu không nó vĩnh viễn không vào được biểu đồ.
-- **Số từ vựng đã học:** một ô số nguyên tùy chọn. Đây là **chỉ số**, không phải module học từ — xem mục 7.
+- **Từ vựng:** tab thứ ba trong form Nhập Điểm. Ghi riêng theo ngày (`vocabLog: {date, count}` với `count` là số nguyên dương), không gắn vào buổi học và không thêm mục điều hướng.
 - **Ghi nhanh lỗi sai:** thêm câu sai thẳng vào Sổ tay ngay trong form, không phải chuyển trang.
 - **Làm lại đề:** nhận diện tên đề trùng, đánh số lần làm, so sánh với lần trước và lần đầu.
 - **Mặc định form để trống.** Điền sẵn điểm cao khiến một cú bấm nhầm ghi nhận kỷ lục giả.
@@ -242,13 +242,14 @@ Chừng nào còn không lưu gì, nó vẫn sẽ có cảm giác thừa — kh�
 **Trình bày đồng bộ với Tổng Quan** (v2.10): thẻ dùng chung `CARD` trong `src/components/surfaces.ts`; dải bốn chỉ số cùng kiểu và cùng bốn tông (xanh dương · xanh lá/đỏ · hổ phách · hồng); biểu đồ ghi số trên từng chấm, chấm mới nhất tô đặc, nhãn mục tiêu trên đường, không hiệu ứng vẽ; Listening chàm · Reading xanh ngọc ở mọi nơi (`SKILL_COLORS`) kể cả hộp chi tiết; chữ tối thiểu 12px. Đã gỡ: hai đường mốc Rank 800/900 trên biểu đồ, nền tím/xanh của hai khối ma trận.
 
 - **Timeline:** điểm tổng, Listening và Reading theo thời gian. Đường tham chiếu đặt tại `targetScore`. Lọc theo lượt làm: tất cả, chỉ lần đầu, hoặc điểm cao nhất.
-- **Ma trận năng lực 7 Part:** tỷ lệ chính xác từng Part dạng thanh capsule. **Không dùng biểu đồ radar** — bảy trục có thang tối đa lệch nhau (6 câu so với 54 câu), radar sẽ bóp méo hình dạng và đánh lừa mắt. v1 chỉ định radar; quyết định này thay thế. **Tính theo trung bình trượt N đề gần nhất**, không phải trung bình trọn đời — nếu không, những đề tệ lúc mới bắt đầu sẽ kéo chỉ số xuống vĩnh viễn.
+- **Ma trận năng lực 7 Part và độ ổn định:** dùng tối đa năm Full Test gần nhất có điểm từng Part, loại lượt làm lại; hiển thị số đề thực dùng. Không dùng radar.
 - **Chẩn đoán theo nguyên nhân** *(ưu tiên cao nhất — xem mục 1.4 điểm 1)*: tổng hợp sáu nhóm lỗi từ Sổ tay thành biểu đồ phân bố, kèm diễn giải bằng lời. Phải trả lời được "nguyên nhân nào làm mất nhiều điểm nhất, và nó rải ở những Part nào". Hiện `mistakes` đã được truyền vào màn hình này nhưng chỉ dùng để liệt kê lỗi của một buổi khi bấm xem chi tiết — sáu nhóm nguyên nhân **chưa từng được tổng hợp**. *Đã xây.*
-- **Xếp ưu tiên theo lợi ích** *(mục 1.4 điểm 4)*: ước tính số điểm thu được nếu khắc phục từng điểm nghẽn, rồi xếp hạng. Kết quả cấp dữ liệu cho màn hình Kế Hoạch. *Chưa xây.*
-- **Phân tích thời gian:** xu hướng tổng thời gian làm bài theo từng đề, cộng với đường cong mệt mỏi dựng từ dữ liệu pha vượt giờ của Bộ đếm nhịp. *Chưa xây.*
+- **Xếp ưu tiên theo lợi ích:** chỉ khi có từ ba Full Test đủ số câu từng Part và mười lỗi đã phân loại. Điểm mất ở Part = (số câu tối đa − số câu đúng trung bình) × 5; chia cho nhóm nguyên nhân theo tỷ lệ lỗi trong Part. Luôn ghi “ước tính”. Dưới ngưỡng chỉ xếp theo tần suất. Cùng kết quả cấp cho Kế Hoạch.
+- **Phân tích thời gian:** hiển thị mức vượt giờ từng pha từ ít nhất ba lượt Phòng Thi cùng chế độ đã đánh dấu pha; thiếu dữ liệu thì hướng dẫn bấm "xong pha".
+- **Lịch học 12 tuần:** chỉ đặt tại Phân Tích; tô ngày có buổi học hoặc ghi từ vựng. Không thay lưới bảy ngày trong thẻ Chuỗi Ngày Học ở Tổng Quan.
 - **Bảng lịch sử:** lọc, sắp xếp, xem chi tiết, sửa, xóa.
 - **Gợi ý dưới ma trận** tính từ dữ liệu thật: Part thấp nhất, số câu trung bình, và ≈ +5đ mỗi câu đúng thêm. *(Bản cũ ghi cứng "~2 câu · +25đ" cho mọi người dùng — đã sửa.)*
-- **Độ ổn định phong độ:** độ lệch chuẩn, cũng tính trên N đề gần nhất.
+- **Độ ổn định phong độ:** độ lệch chuẩn trên cùng cửa sổ tối đa năm đề mới với ma trận 7 Part.
 
 ### 4.6. Sổ Tay Bẫy (Mistake Notebook)
 
@@ -350,10 +351,11 @@ Lưu trữ khách: **LocalStorage**, một gói dữ liệu có phiên bản. C�
 
 Nguồn sự thật là `src/types/index.ts`. Các thực thể chính:
 
-- `UserProfile` — tên, `targetScore`, `examDate`, streak, khiên, mục tiêu mỗi ngày.
+- `UserProfile` — tên, `targetScore`, `examDate`, cấu hình khiên và mục tiêu mỗi ngày. Streak suy ra từ ngày học/từ vựng/ngày dùng khiên.
 - `StudySession` — một buổi làm đề hoặc luyện Part; điểm Raw và Scaled, `partScores`, `attemptNumber`, thời gian, ghi chú.
 - `MistakeEntry` — một lỗi sai; Part, ngữ cảnh, đáp án, nhóm nguyên nhân, tag, trạng thái.
 - `SessionAttemptMeta` — lần làm thứ mấy, chênh lệch so với lần đầu và lần trước.
+- `VocabLog` — ngày và số từ đã học. `ShieldDay` — ngày khiên đã lấp; hai loại đều có `updatedAt`/`deletedAt` để đồng bộ.
 
 **Nợ kiến trúc đã biết, cần trả trước khi mở công khai:**
 
@@ -419,15 +421,15 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 
 Còn lại:
 
-8. Ma trận 7 Part và độ ổn định chuyển sang trung bình trượt.
-9. Đường cong mệt mỏi dựng từ dữ liệu pha vượt giờ của Bộ đếm nhịp.
-10. Ô số từ vựng đã học, và heatmap lịch thay lưới bảy ngày.
+8. ~~Ma trận 7 Part và độ ổn định chuyển sang tối đa năm đề mới gần nhất.~~
+9. ~~Mức vượt giờ từng pha từ dữ liệu Bộ đếm nhịp (từ ba lượt có đánh dấu pha).~~
+10. ~~Từ vựng theo ngày và heatmap 12 tuần ở Phân Tích, giữ lưới Tổng Quan.~~
 
 ### Trước khi mở công khai
 
 15. Lớp migrate schema và xác thực dữ liệu nhập.
 16. Routing.
-17. Rank Tier tính tương đối theo `targetScore`.
+17. ~~Rank Tier tính tương đối theo `targetScore`.~~
 18. PWA thật. Hiện chân trang ghi "100% Offline-First" nhưng chưa có manifest hay service worker — đây là một tuyên bố sai.
 19. Onboarding, i18n, lint, test, CI.
 

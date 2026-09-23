@@ -30,11 +30,15 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  ReferenceLine
+  ReferenceLine,
+  BarChart,
+  Bar
 } from 'recharts';
 import { StudySession, MistakeEntry, LRPartScore, UserProfile, ErrorCategory, ERROR_CATEGORY_LABELS, ChartAttemptFilter } from '../types';
-import { calculatePartAccuracy, PART_MAX_QUESTIONS, getPracticeParts } from '../utils/etsScoring';
-import { loadUserProfile, computeSessionAttemptMap, getRetestStats } from '../utils/storage';
+import { PART_MAX_QUESTIONS, getPracticeParts } from '../utils/etsScoring';
+import { loadUserProfile, computeSessionAttemptMap, getRetestStats, loadPacingRuns, getTodayDateString } from '../utils/storage';
+import { causePriority, heatmapDays, phaseOverruns, rollingPartStats } from '../utils/learningAnalytics';
+import type { VocabLog } from '../utils/dataBundle';
 import { CARD, SKILL_COLORS } from './surfaces';
 
 // Tên tiếng Việt ngắn gọn, dễ đọc, không rườm rà
@@ -55,6 +59,7 @@ interface AnalyticsViewProps {
   profile?: UserProfile;
   sessions: StudySession[];
   mistakes: MistakeEntry[];
+  vocabLog: VocabLog[];
   theme: 'light' | 'dark';
   onDeleteSession: (sessionId: string) => void;
   /** Mở form Nhập Điểm ở chế độ sửa cho bản ghi này */
@@ -65,6 +70,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   profile,
   sessions,
   mistakes,
+  vocabLog,
   theme,
   onDeleteSession,
   onEditSession
@@ -152,6 +158,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const fullTests = useMemo(() => {
     return sessions.filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0);
   }, [sessions]);
+  const rolling = useMemo(() => rollingPartStats(sessions), [sessions]);
+  const priority = useMemo(() => causePriority(sessions, mistakes), [sessions, mistakes]);
+  const heatmap = useMemo(() => heatmapDays(sessions, vocabLog, getTodayDateString()), [sessions, vocabLog]);
+  const vocabTotal12Weeks = vocabLog.filter(item => !item.deletedAt && item.date >= heatmap[0].date && item.date <= heatmap[83].date).reduce((sum, item) => sum + item.count, 0);
+  const pacing = useMemo(() => phaseOverruns(loadPacingRuns()), [sessions]);
 
   // SẮP XẾP THỜI GIAN CHUẨN XÁC TĂNG DẦN (Cũ nhất -> Mới nhất, Trái qua Phải) cho Biểu đồ
   const chronologicalFullTests = useMemo(() => {
@@ -239,13 +250,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       projectedScore = Math.round(weighted / 5) * 5;
     }
 
-    // Tính độ ổn định (Độ lệch chuẩn điểm số của các bài gần nhất)
-    let stability = 0;
-    if (fullTests.length > 1) {
-      const variance = fullTests.reduce((acc, s) => acc + Math.pow((s.totalScore || 0) - avg, 2), 0) / fullTests.length;
-      stability = Math.round(Math.sqrt(variance));
-    }
-
     return {
       totalTests: fullTests.length,
       totalHours: totalTimeHours,
@@ -257,9 +261,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       latestScore,
       breakthrough,
       projectedScore,
-      stability
+      stability: rolling.stability || 0
     };
-  }, [sessions, fullTests, chronologicalFullTests]);
+  }, [sessions, fullTests, chronologicalFullTests, rolling.stability]);
 
   // Danh sách hiển thị trên biểu đồ dựa theo chế độ lọc lần thi (Tất cả / Chỉ lần 1 / Điểm cao nhất)
   const displayedFullTests = useMemo(() => {
@@ -306,41 +310,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [displayedFullTests, attemptMap]);
 
   // Phân tích trung bình từng Part 1-7
-  const partStats = useMemo(() => {
-    const validTests = fullTests.filter(t => t.partScores);
-    if (validTests.length === 0) return null;
-
-    const totals: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
-    validTests.forEach(t => {
-      if (t.partScores) {
-        totals.part1 += t.partScores.part1 || 0;
-        totals.part2 += t.partScores.part2 || 0;
-        totals.part3 += t.partScores.part3 || 0;
-        totals.part4 += t.partScores.part4 || 0;
-        totals.part5 += t.partScores.part5 || 0;
-        totals.part6 += t.partScores.part6 || 0;
-        totals.part7 += t.partScores.part7 || 0;
-      }
-    });
-
-    const averages: LRPartScore = {
-      part1: Number((totals.part1 / validTests.length).toFixed(1)),
-      part2: Number((totals.part2 / validTests.length).toFixed(1)),
-      part3: Number((totals.part3 / validTests.length).toFixed(1)),
-      part4: Number((totals.part4 / validTests.length).toFixed(1)),
-      part5: Number((totals.part5 / validTests.length).toFixed(1)),
-      part6: Number((totals.part6 / validTests.length).toFixed(1)),
-      part7: Number((totals.part7 / validTests.length).toFixed(1)),
-    };
-
-    const accuracy = calculatePartAccuracy(averages);
-
-    return {
-      averages,
-      accuracy,
-      validTestsCount: validTests.length
-    };
-  }, [fullTests]);
+  const partStats = rolling.tests.length
+    ? { averages: rolling.averages, accuracy: rolling.accuracy, validTestsCount: rolling.tests.length }
+    : null;
 
   // Xác định Part yếu nhất (Điểm nghẽn)
   const { weakestPart } = useMemo(() => {
@@ -567,7 +539,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
    */
   const isUp = stats.breakthrough >= 0;
   const hasTests = stats.totalTests > 0;
-  const stabilityLabel = stats.totalTests <= 1
+  const stabilityLabel = rolling.tests.length <= 1
     ? 'Cần từ 2 đề'
     : stats.stability <= 25 ? 'Rất ổn định' : stats.stability <= 45 ? 'Phong độ tốt' : 'Dao động mạnh';
   const kpis: {
@@ -618,9 +590,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     },
     {
       label: 'Độ ổn định',
-      value: stats.totalTests > 1 ? `±${stats.stability}` : '—',
-      note: stabilityLabel,
-      hint: 'Độ lệch chuẩn tổng điểm các bài Full Test - càng nhỏ phong độ càng đều.',
+      value: rolling.tests.length > 1 ? `±${stats.stability}` : '—',
+      note: `${stabilityLabel} · ${rolling.tests.length} đề mới`,
+      hint: 'Độ lệch chuẩn tổng điểm của tối đa 5 Full Test gần nhất, loại lượt làm lại.',
       icon: Zap,
       number: 'text-pink-600 dark:text-pink-400',
       badge: 'bg-pink-50 text-pink-600 dark:bg-pink-950/60 dark:text-pink-400',
@@ -879,7 +851,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ma trận năng lực 7 Part</h2>
           {partStats && (
             <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg whitespace-nowrap">
-              Trung bình {partStats.validTestsCount} bài Full Test
+              {partStats.validTestsCount}/5 đề mới gần nhất
             </span>
           )}
         </div>
@@ -1110,6 +1082,66 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
         )}
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section className={`${CARD} space-y-3`}>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Lịch học 12 tuần</h2>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{heatmap.filter(day => day.active).length}/84 ngày</span>
+          </div>
+          <div className="grid grid-flow-col grid-rows-7 grid-cols-12 gap-1" aria-label="Lịch học 12 tuần">
+            {heatmap.map(day => (
+              <span key={day.date} title={`${day.date}: ${day.session ? 'có buổi học' : ''}${day.session && day.vocabulary ? ', ' : ''}${day.vocabulary ? 'có từ vựng' : ''}${!day.active ? 'chưa ghi học' : ''}`}
+                aria-label={`${day.date}: ${day.active ? 'đã học' : 'chưa học'}`}
+                className={`aspect-square rounded-[4px] border ${day.active ? 'border-blue-500 bg-blue-600 dark:border-blue-400 dark:bg-blue-500' : 'border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'}`} />
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{vocabTotal12Weeks} từ đã ghi trong 12 tuần. Một ngày được tô khi có buổi học hoặc ghi từ vựng.</p>
+        </section>
+
+        <section className={`${CARD} space-y-3`}>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Thời gian vượt từng pha</h2>
+          {pacing.phases.length ? (
+            <>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Trung bình từ {pacing.runsUsed} lượt Phòng Thi cùng chế độ có bấm “xong pha”.</p>
+              <div className="h-40" aria-label="Biểu đồ thời gian vượt từng pha">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={pacing.phases} margin={{ top: 4, right: 8, bottom: 4, left: -25 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#CBD5E1" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} unit="′" />
+                    <Tooltip formatter={(value: number) => [`${value} phút`, 'Vượt giờ trung bình']} />
+                    <Bar dataKey="averageOverrun" fill="#475569" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-2">{pacing.phases.map(phase => (
+                <div key={phase.name} className="flex justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                  <span>{phase.name} <span className="text-xs text-slate-400">({phase.count} lượt)</span></span>
+                  <strong className={phase.averageOverrun > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}>{phase.averageOverrun > 0 ? '+' : ''}{phase.averageOverrun} phút</strong>
+                </div>
+              ))}</div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400">Cần ít nhất 3 lượt cùng chế độ: vào Phòng Thi và bấm “xong pha” khi hoàn tất từng pha để xem xu hướng.</p>
+          )}
+        </section>
+      </div>
+
+      <section className={`${CARD} space-y-3`}>
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ưu tiên cải thiện theo nguyên nhân</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {priority.eligible
+            ? `Ước tính từ ${priority.testsUsed} đề mới và ${priority.mistakeCount} lỗi đã phân loại; đây không phải điểm ETS chính thức.`
+            : `Chưa đủ dữ liệu (${priority.testsUsed}/3 đề mới có điểm từng Part, ${priority.mistakeCount}/10 lỗi). Hiện chỉ xếp theo tần suất lỗi.`}
+        </p>
+        {priority.rows.length ? <div className="space-y-2">{priority.rows.map(row => (
+          <div key={row.category} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+            <span>{ERROR_CATEGORY_LABELS[row.category].label}</span>
+            <strong className="whitespace-nowrap">{priority.eligible ? `ước tính +${Math.round(row.estimatedPoints)}đ` : `${row.count} lỗi`}</strong>
+          </div>
+        ))}</div> : <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có lỗi đã phân loại.</p>}
+      </section>
 
       {/* 5. Tinh Gọn: Bảng Lịch Sử Luyện Đề (Đã lược bỏ thông tin thừa, phẳng phiu & sắc nét) */}
       <div className={`${CARD} space-y-4`}>
