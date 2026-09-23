@@ -23,7 +23,6 @@ import {
 } from 'recharts';
 import { StudySession, UserProfile } from '../types';
 import { getTodayDateString, computeSessionAttemptMap } from '../utils/storage';
-import { calculatePartAccuracy } from '../utils/etsScoring';
 
 interface DashboardProps {
   /** Cảnh báo tái phạm, đặt ngay đầu trang khi có (SPEC mục 4.6) */
@@ -44,7 +43,7 @@ interface DashboardProps {
  * cyan = Listening, tím = Reading, xanh lá / đỏ = tăng / giảm.
  */
 const CARD =
-  'rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] dark:bg-[#111A2C] dark:border-slate-800 dark:shadow-none';
+  'rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] dark:bg-[#111A2C] dark:border-slate-800 dark:shadow-none';
 
 const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
@@ -125,7 +124,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return {
       first,
       latest,
-      prev: allChartData.length > 1 ? allChartData[allChartData.length - 2] : null,
       diff: latest.total - first.total,
       totalTests: allChartData.length
     };
@@ -187,28 +185,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const listeningScore = latestTest?.scaledListening || 0;
   const readingScore = latestTest?.scaledReading || 0;
 
-  // Chênh lệch từng kỹ năng so với đề Full Test liền trước
-  const skillDelta = (key: 'listening' | 'reading') =>
-    stats?.prev ? stats.latest[key] - stats.prev[key] : null;
-
-  // Độ chính xác từng Part của đề gần nhất - thứ web luyện đề chỉ cho xem từng đề một
-  const partBars = useMemo(() => {
-    if (!latestTest?.partScores) return null;
-    const acc = calculatePartAccuracy(latestTest.partScores);
-    const rows = ([1, 2, 3, 4, 5, 6, 7] as const).map(n => ({
-      part: n,
-      acc: acc[`part${n}` as keyof typeof acc],
-      isListening: n <= 4
-    }));
-    const weakest = rows.reduce((w, r) => (r.acc < w.acc ? r : w), rows[0]);
-    return { rows, weakest };
-  }, [latestTest]);
+  // Một dòng gợi ý: còn bao nhiêu điểm tới mục tiêu và nên dồn sức vào kỹ năng nào
+  const skillHint = useMemo(() => {
+    if (!latestTest) return null;
+    const gap = targetScore - (latestTest.totalScore || 0);
+    if (gap <= 0) return `Bài gần nhất đã chạm mục tiêu ${targetScore}.`;
+    const weaker = listeningScore < readingScore ? 'Listening' : 'Reading';
+    const otherMaxed = Math.max(listeningScore, readingScore) >= 495;
+    return otherMaxed
+      ? `Còn ${gap} điểm ở ${weaker} để chạm mục tiêu.`
+      : `Còn ${gap} điểm để chạm mục tiêu — ưu tiên ${weaker}.`;
+  }, [latestTest, targetScore, listeningScore, readingScore]);
 
   /**
-   * Khớp màn hình (≥ xl): lưới hai cột cao ít nhất bằng phần còn lại của
-   * khung nhìn, để mép dưới thẻ biểu đồ và thẻ kỹ năng nằm trọn trong màn
-   * hình khi vừa mở trang; biểu đồ giãn ra lấp chỗ trống. Màn hình thấp hơn
-   * 520px thì thôi khớp, để nội dung không bị ép bẹp.
+   * Khớp màn hình (≥ xl): lưới hai cột cao đúng bằng phần còn lại của khung
+   * nhìn SAU KHI trừ footer, để cả mép dưới hai thẻ lẫn thanh footer đều
+   * nằm trong màn hình khi vừa mở trang; biểu đồ co giãn lấp phần chênh.
+   * Chỗ trống dưới 440px thì thôi khớp, để nội dung không bị ép bẹp.
+   * Đã thử: chỉ trừ đệm 20px và quên footer - footer bị đẩy khỏi màn hình,
+   * và trên máy phóng to 125% (khung nhìn ~730px) thẻ vẫn bị khuất.
    */
   const gridRef = useRef<HTMLDivElement>(null);
   const [fitHeight, setFitHeight] = useState<number | undefined>(undefined);
@@ -222,8 +217,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return;
       }
       const top = grid.getBoundingClientRect().top + window.scrollY;
-      // 20px = đệm dưới của <main> ở App
-      setFitHeight(Math.max(520, Math.floor(window.innerHeight - top - 20)));
+      // Phần nằm dưới lưới: đệm dưới của <main> + footer của App
+      const main = grid.closest('main');
+      const mainPad = main ? parseFloat(getComputedStyle(main).paddingBottom) || 0 : 0;
+      const footer = document.querySelector('footer');
+      const footerH = footer ? footer.getBoundingClientRect().height : 0;
+      setFitHeight(Math.max(440, Math.floor(window.innerHeight - top - mainPad - footerH)));
     };
     update();
     // Cảnh báo tái phạm mở/đóng làm lưới dịch xuống/lên - đo lại khi phần trên đổi cỡ
@@ -307,11 +306,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   ];
 
   return (
-    <div className="w-full space-y-4 sm:space-y-5 animate-fade-in">
+    <div className="w-full space-y-4 animate-fade-in">
       {relapseSlot}
 
       <div className="flex items-end justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
           Mỗi ngày, gần mục tiêu hơn.
         </h1>
         <span className="text-sm font-medium text-slate-500 dark:text-slate-400 first-letter:uppercase">
@@ -321,23 +320,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <div
         ref={gridRef}
-        className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch"
+        className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch"
         style={fitHeight ? { minHeight: fitHeight } : undefined}
       >
 
         {/* ================= CỘT TRÁI ================= */}
-        <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 min-w-0">
+        <div className="xl:col-span-8 flex flex-col gap-4 min-w-0">
 
           {/* 1. DẢI CHỈ SỐ - một thẻ, bốn ô ngăn bằng vạch; màu nằm ở CON SỐ */}
           <div className={`${CARD} !p-0 grid grid-cols-2 lg:grid-cols-4`}>
             {kpis.map((k, i) => (
               <div
                 key={k.label}
-                className={`px-4 py-3.5 sm:px-5 min-w-0 border-slate-100 dark:border-slate-800 ${
+                className={`px-3 py-3.5 2xl:px-5 min-w-0 border-slate-100 dark:border-slate-800 ${
                   i % 2 === 1 ? 'border-l' : ''
                 } ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''}`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                   <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${k.badge}`}>
                     <k.icon className="w-4 h-4" />
                   </span>
@@ -385,7 +384,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="relative w-full h-[260px] sm:h-[300px] xl:h-auto xl:flex-1 xl:min-h-[240px]">
+            <div className="relative w-full h-[260px] sm:h-[300px] xl:h-auto xl:flex-1 xl:min-h-[190px]">
               <div className="absolute inset-0">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -523,12 +522,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* ================= CỘT PHẢI ================= */}
-        <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 min-w-0">
+        <div className="xl:col-span-4 flex flex-col gap-4 min-w-0">
 
           {/* 5. CHUỖI NGÀY HỌC.
               Thẻ duy nhất giữ nền màu: tông hổ phách là danh tính của thói quen
               học, người dùng chọn giữ lại thiết kế này. */}
-          <div className="rounded-2xl border border-amber-200/80 dark:border-amber-900/40 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-50/40 dark:from-[#1C1814] dark:to-[#14100C] p-4 sm:p-5 space-y-3.5 shadow-[0_2px_12px_rgba(245,158,11,0.06)]">
+          <div className="rounded-2xl border border-amber-200/80 dark:border-amber-900/40 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-50/40 dark:from-[#1C1814] dark:to-[#14100C] p-4 space-y-3 shadow-[0_2px_12px_rgba(245,158,11,0.06)]">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 text-white shadow-sm shadow-orange-500/30 flex items-center justify-center shrink-0">
@@ -547,14 +546,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </div>
 
-            <div className="p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-slate-900/90 border border-amber-200/60 dark:border-slate-800 space-y-3">
+            <div className="p-3 rounded-xl bg-white/95 dark:bg-slate-900/90 border border-amber-200/60 dark:border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                   Tuần này:{' '}
                   <span className="text-amber-600 dark:text-amber-400 font-black">
                     {weekDays.filter(d => d.isCompleted).length}/7
-                  </span>{' '}
-                  ngày
+                  </span>
                 </span>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-bold whitespace-nowrap ${
                   hasStudiedToday
@@ -607,59 +605,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* 6. KỸ NĂNG HIỆN TẠI.
-              Màu là DANH TÍNH kỹ năng và không đổi theo trạng thái:
-              Listening cyan (Part 1-4), Reading tím (Part 5-7) - không trùng
-              màu biểu đồ, streak hay các con số KPI; cách nhau ΔE 15 với
-              người mù màu đỏ-lục. */}
-          <div className={`${CARD} flex-1 flex flex-col gap-4`}>
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
-              {latestTest && (
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                  Đề {formatShortDate(latestTest.date)}
-                </span>
-              )}
-            </div>
+          {/* 6. KỸ NĂNG HIỆN TẠI - theo mẫu người dùng đưa.
+              Màu là DANH TÍNH kỹ năng, không đổi theo trạng thái:
+              Listening chàm, Reading xanh ngọc (người dùng chọn theo mẫu).
+              Độ chính xác từng Part đã thử đặt ở đây và gỡ: trùng với Phân Tích. */}
+          <div className={`${CARD} flex-1 flex flex-col gap-3`}>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Kỹ năng hiện tại</h2>
 
             {[
-              { key: 'listening' as const, icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-cyan-500 dark:bg-cyan-400', iconColor: 'text-cyan-600 dark:text-cyan-400', iconBox: 'bg-cyan-50 border-cyan-100 dark:bg-cyan-950/50 dark:border-cyan-900/60' },
-              { key: 'reading' as const, icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-purple-500 dark:bg-purple-400', iconColor: 'text-purple-600 dark:text-purple-400', iconBox: 'bg-purple-50 border-purple-100 dark:bg-purple-950/50 dark:border-purple-900/60' }
+              { icon: Headphones, label: 'Listening', score: listeningScore, bar: 'bg-indigo-600 dark:bg-indigo-400', iconColor: 'text-indigo-600 dark:text-indigo-400', iconBox: 'bg-indigo-50 border-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-900/60' },
+              { icon: BookOpen, label: 'Reading', score: readingScore, bar: 'bg-teal-600 dark:bg-teal-400', iconColor: 'text-teal-600 dark:text-teal-400', iconBox: 'bg-teal-50 border-teal-100 dark:bg-teal-950/50 dark:border-teal-900/60' }
             ].map(item => {
               const percent = Math.min(100, Math.round((item.score / 495) * 100));
-              const delta = skillDelta(item.key);
               return (
                 <div key={item.label} className="flex items-center gap-3.5">
                   <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${item.iconBox}`}>
                     <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                   </div>
                   <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{item.label}</div>
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{item.label}</span>
-                        <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-none">{item.score}</span>
-                        {delta !== null && (
-                          <span
-                            title="So với đề Full Test liền trước"
-                            className={`px-1.5 py-0.5 rounded-md text-xs font-bold tabular-nums leading-none ${
-                              delta > 0
-                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                : delta < 0
-                                ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                            }`}
-                          >
-                            {delta > 0 ? `+${delta}` : delta < 0 ? `−${Math.abs(delta)}` : '±0'}
-                          </span>
-                        )}
+                      <span className="flex items-baseline gap-1">
+                        <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{item.score}</span>
+                        <span className="text-sm text-slate-400 dark:text-slate-500">/ 495</span>
                       </span>
-                      <span className={`text-sm font-bold tabular-nums shrink-0 ${
+                      <span className={`text-sm font-bold tabular-nums ${
                         percent >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'
                       }`}>
                         {percent}%
                       </span>
                     </div>
-                    <div className="mt-2 w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div className="mt-1.5 w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${item.bar}`}
                         style={{ width: `${Math.max(2, percent)}%` }}
@@ -670,52 +646,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               );
             })}
 
-            {/* Độ chính xác từng Part, hai cột: P1-4 Listening (cyan) | P5-7 Reading (tím).
-                Thanh ngang mảnh cùng kiểu thanh L/R - cột đứng đã thử, thành
-                khối màu lớn nặng mắt; bảy dòng xếp dọc thì tràn màn hình 768px.
-                Các dòng giãn đều theo chiều cao thẻ. */}
-            {partBars && (
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex-1 flex flex-col">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Độ chính xác theo Part</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    Thấp nhất:{' '}
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      Part {partBars.weakest.part} · {partBars.weakest.acc}%
-                    </span>
-                  </span>
-                </div>
-                <div className="mt-3 flex-1 grid grid-cols-2 gap-x-5">
-                  {[partBars.rows.filter(r => r.isListening), partBars.rows.filter(r => !r.isListening)].map((group, gi) => (
-                    <div key={gi} className="flex flex-col justify-around gap-2">
-                      {group.map(r => {
-                        const isWeakest = r.part === partBars.weakest.part;
-                        return (
-                          <div key={r.part} className="grid grid-cols-[1.5rem_1fr_2.5rem] items-center gap-2">
-                            <span className={`text-xs ${
-                              isWeakest ? 'font-black text-slate-900 dark:text-white' : 'font-semibold text-slate-500 dark:text-slate-400'
-                            }`}>
-                              P{r.part}
-                            </span>
-                            <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${
-                                  r.isListening ? 'bg-cyan-500 dark:bg-cyan-400' : 'bg-purple-500 dark:bg-purple-400'
-                                }`}
-                                style={{ width: `${Math.max(2, r.acc)}%` }}
-                              />
-                            </div>
-                            <span className={`text-xs text-right tabular-nums ${
-                              isWeakest ? 'font-black text-slate-900 dark:text-white' : 'font-semibold text-slate-500 dark:text-slate-400'
-                            }`}>
-                              {r.acc}%
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
+            {skillHint && (
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300">
+                <Target className="w-4 h-4 text-slate-500 shrink-0" />
+                <span className="min-w-0">{skillHint}</span>
               </div>
             )}
 

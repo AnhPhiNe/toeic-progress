@@ -1,6 +1,6 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.7** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.8** · Cập nhật 2026-09-23 · Thay thế toàn bộ SPEC v1
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -155,22 +155,22 @@ Bố cục (v2.4):
 ├─ CỘT TRÁI (8/12) ──────────────┬─ CỘT PHẢI (4/12) ───────┤
 │  Gần nhất│Tiến bộ│Mục tiêu│Chuỗi│  Chuỗi Ngày Học         │
 │  (một thẻ, bốn ô ngăn vạch)    ├─────────────────────────┤
-│  Biểu đồ tiến bộ (giãn)        │  Kỹ năng hiện tại       │
-│                                │  L/R + độ chính xác Part│
+│  Biểu đồ tiến bộ (giãn)        │  Kỹ năng hiện tại (L/R) │
 └────────────────────────────────┴─────────────────────────┘
-        ↑ đáy hai cột luôn nằm trong màn hình (≥ 1280px)
+  footer ── cả đáy hai cột LẪN footer nằm trong màn hình (≥ 1280px)
 ```
 
 - **Dải chỉ số:** một thẻ, bốn ô — điểm gần nhất, tiến bộ, mục tiêu, chuỗi học. Mỗi ô: ô icon tô màu + nhãn, con số lớn cùng màu, và một **nhãn màu** thay cho dòng chữ xám (tên đề · "825 → 960" · "Còn 30 điểm" · "Chưa học hôm nay"). Màu: xanh dương, xanh lá (đỏ khi giảm), hồng, hổ phách. Không số nào để đen.
 - **Biểu đồ tiến bộ:** điểm tổng theo thời gian, **ghi số điểm trên từng chấm**, chấm mới nhất tô đặc, đường mục tiêu có nhãn nằm phía trên đường. Trần trục là `targetScore`. "Lần đầu" loại các lượt làm lại vì điểm làm lại bị thổi phồng do nhớ đáp án. Không dùng hiệu ứng vẽ đường: Recharts chỉ vẽ chấm sau khi hiệu ứng xong, và hiệu ứng có lúc không bao giờ xong.
 - **Chuỗi Ngày Học:** thẻ **duy nhất giữ nền màu** (hổ phách, viền cam nhạt — người dùng chọn giữ thiết kế này). Icon lửa, số streak, hộp trắng chứa "Tuần này: N/7 ngày" + trạng thái hôm nay + lưới bảy ô. Không phụ đề, không dòng mục tiêu phút. Một ngày chỉ được tính khi **thực sự có buổi học được ghi**.
-- **Kỹ năng hiện tại:** L/R từ bài Full Test **gần nhất**, kèm chênh lệch so với đề liền trước (+10 / −5). Màu thanh là danh tính kỹ năng — Listening **cyan**, Reading **tím** — không đổi theo trạng thái. Bên dưới: **độ chính xác từng Part** của đề đó, hai cột (P1–4 | P5–7), thanh ngang mảnh, Part thấp nhất in đậm. Không kèm dòng gợi ý (đã gỡ vì thừa). *(Cột đứng đã thử — thành khối màu lớn nặng mắt; bảy dòng xếp dọc thì tràn màn 768px.)*
+- **Kỹ năng hiện tại** (theo mẫu người dùng đưa): L/R từ bài Full Test **gần nhất** — nhãn, điểm / 495, %, thanh. Màu thanh là danh tính kỹ năng — Listening **chàm** (`indigo-600`), Reading **xanh ngọc** (`teal-600`), người dùng chọn theo mẫu — không đổi theo trạng thái. Một dòng gợi ý: "Còn X điểm ở Reading để chạm mục tiêu." *(Độ chính xác từng Part đã thử đặt ở đây và gỡ — trùng với Phân Tích. Chênh lệch từng kỹ năng so với đề trước cũng gỡ cùng.)*
 - **Mọi con số tính theo `targetScore`, không phải 990.**
 
 **Quy tắc trình bày:**
 - Mọi thẻ (trừ Chuỗi Ngày Học) chung **một** bề mặt: nền trắng, viền `slate-200`, bóng nhẹ. Thẻ tách khỏi trang nhờ nền trang `#EAEFF5` đậm hơn, không nhờ tô màu thẻ. *(Đã thử mỗi thẻ một tông nền — bị chê chói và rời rạc. Đừng quay lại.)*
-- Màu chỉ mang nghĩa, mỗi màu **một** việc: xanh dương = điểm / biểu đồ / hành động chính · xanh lá / đỏ = tăng / giảm · hồng = mục tiêu · hổ phách = chuỗi học · cyan = Listening · tím = Reading. Bộ màu chọn bằng đo ΔE OKLab: mọi cặp cách nhau ≥ 16 với mắt thường; cyan↔tím cách nhau 15 với người mù màu đỏ-lục. (Không bộ nào tách được cả 6 màu cho người mù màu — nhãn và icon là mã hóa phụ.)
-- **Khớp màn hình (≥ 1280px):** lưới hai cột cao tối thiểu bằng phần còn lại của khung nhìn (đo bằng JS, đo lại khi đổi cỡ cửa sổ hoặc khi cảnh báo tái phạm mở/đóng), nên mép dưới thẻ biểu đồ và thẻ kỹ năng không bao giờ bị khuất khi vừa mở trang. Biểu đồ giãn theo chiều cao (tối thiểu 240px). Đã đo: 768 / 900 / 1080px → đáy ở 748 / 880 / 1060. Dưới 520px thôi khớp để nội dung không bị ép.
+- Màu chỉ mang nghĩa, mỗi màu **một** việc: xanh dương = điểm / biểu đồ / hành động chính · xanh lá / đỏ = tăng / giảm · hồng = mục tiêu · hổ phách = chuỗi học · chàm = Listening · xanh ngọc = Reading. Chàm↔xanh ngọc cách nhau ΔE 27 (mù màu đỏ-lục: 22). **Đánh đổi đã biết, người dùng chấp nhận:** xanh ngọc gần xanh lá "tăng" (ΔE 4.9) và chàm gần xanh dương "điểm" (ΔE 6.7) — chúng nằm ở thẻ khác nhau và luôn có nhãn đi kèm. Bộ cyan/tím trước đó tách tốt hơn (mọi cặp ≥ 16) nhưng người dùng chọn màu theo mẫu.
+- **Khớp màn hình (≥ 1280px):** lưới hai cột cao tối thiểu bằng khung nhìn trừ phần trên lưới, đệm dưới của `<main>` **và footer** (đo bằng JS, đo lại khi đổi cỡ cửa sổ hoặc khi cảnh báo tái phạm mở/đóng). Mép dưới hai thẻ và cả footer đều nằm trong màn hình khi vừa mở trang. Biểu đồ co giãn (tối thiểu 190px). Đã đo, footer chạm đúng đáy màn hình ở 730 / 768 / 900 / 1080px. Ở 700px hai thẻ vẫn trọn, footer lấn 22px. Dưới 440px chỗ trống thì thôi khớp.
+- **Máy phóng to 125%** (màn 1600×900 → khung nhìn ~1280×730) là cỡ mục tiêu chính — người dùng dùng đúng cỡ này. Cột phải (Chuỗi Ngày Học + Kỹ năng) là thứ quyết định chiều cao tối thiểu, nên hai thẻ này giữ đệm `p-4` và khoảng cách hẹp.
 - Dải chỉ số giữ gọn (~133px) để nhường chiều cao cho biểu đồ.
 - Chữ nhỏ nhất 12px.
 
@@ -179,6 +179,7 @@ Bố cục (v2.4):
 > - *Thẻ "Hôm nay: ôn N lỗi sai"* — một việc, một nút; vẫn bị gỡ vì người dùng thấy rối. Lối vào phiên ôn nằm ở Sổ Tay và Kế Hoạch.
 > - *Thẻ Mục tiêu với dải mốc Rank* — gỡ vì trùng với ô "Mục tiêu" trong dải chỉ số.
 > - *Bảng "Buổi học gần đây"* — gỡ cho gọn; lịch sử đầy đủ ở Phân Tích.
+> - *Độ chính xác từng Part trong thẻ Kỹ năng* — gỡ, trùng với Phân Tích.
 >
 > Đừng đề xuất lại. Muốn thêm gì vào Tổng Quan thì phải **thay thế** thứ đang có.
 
@@ -315,8 +316,8 @@ Theme lưu ở `localStorage['toeic_theme_v1']`. Một script đồng bộ đặ
 | Nền sidebar | `#FFFFFF` | `#0E1526` |
 | Hành động chính | `blue-600` | `blue-600` |
 | Streak | `amber` — thẻ Chuỗi Ngày Học nền hổ phách, số streak ở dải chỉ số `amber-600` | như chế độ sáng |
-| Listening | `cyan-500` (tối: `cyan-400`) | như chế độ sáng |
-| Reading | `purple-500` (tối: `purple-400`) — không đặt cạnh xanh dương: xanh/tím chỉ cách ΔE 0.4–1.3 với người mù màu đỏ-lục | như chế độ sáng |
+| Listening | `indigo-600` (tối: `indigo-400`) | như chế độ sáng |
+| Reading | `teal-600` (tối: `teal-400`) — người dùng chọn theo mẫu | như chế độ sáng |
 | Mục tiêu | `pink-600` | `pink-400` |
 | Thành công, đã thông suốt | `emerald` | như chế độ sáng |
 | Lỗi sai, cần ôn | `rose` | như chế độ sáng |
