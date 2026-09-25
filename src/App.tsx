@@ -3,10 +3,12 @@ import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { Dashboard } from './components/Dashboard';
 import { AnalyticsView } from './components/AnalyticsView';
+import { ExamHistoryView } from './components/ExamHistoryView';
 import { MistakeNotebookView } from './components/MistakeNotebookView';
 import { ExamTimerView } from './components/ExamTimerView';
 import { PlanView } from './components/PlanView';
 import { ResourcesView } from './components/ResourcesView';
+import { VocabularyView } from './components/VocabularyView';
 import { SessionLoggerModal } from './components/SessionLoggerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ReviewSessionModal } from './components/ReviewSessionModal';
@@ -31,6 +33,7 @@ import {
   resetToCleanSlate,
   loadVocabLog,
   upsertVocabLog,
+  deleteVocabLog,
   recordDailyActivity,
   getTodayDateString 
 } from './utils/storage';
@@ -61,8 +64,8 @@ export const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
-  // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp (SPEC 4.3)
-  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number } | undefined>(undefined);
+  // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
+  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' } | undefined>(undefined);
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -110,7 +113,7 @@ export const App: React.FC = () => {
   }, [isSessionModalOpen, isSettingsModalOpen]);
 
   // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
-  const openSessionLogger = (prefill?: { durationMinutes?: number }) => {
+  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => {
     setEditingSession(null);
     setSessionPrefill(prefill);
     setIsSessionModalOpen(true);
@@ -151,6 +154,10 @@ export const App: React.FC = () => {
     setVocabLog(upsertVocabLog(date, count));
     dismissOnboarding();
     setProfile(recordDailyActivity(profile, date));
+  };
+
+  const handleDeleteVocab = (id: string) => {
+    setVocabLog(deleteVocabLog(id));
   };
 
   /**
@@ -279,7 +286,7 @@ export const App: React.FC = () => {
   const hasStudiedToday = sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
 
   return (
-    <div className="min-h-screen bg-[#EAEFF5] dark:bg-[#0B111E] text-slate-800 dark:text-slate-100 flex transition-colors">
+    <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
       
       {/* 1. Sidebar (Desktop Persistent & Mobile Overlay Drawer Unified) */}
       <Sidebar
@@ -317,22 +324,35 @@ export const App: React.FC = () => {
         />
 
         {/* Body Container */}
-        <main key={dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
-          {activeTab === 'dashboard' && showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
+        <main key={dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col min-h-0 space-y-2.5">
           {activeTab === 'dashboard' && (
-            <Dashboard
-              relapseSlot={
-                <RelapseAlert
-                  mistakes={mistakes}
-                  onReopenCards={handleReopenCards}
-                  onNavigateToMistakes={() => setActiveTab('mistakes')}
-                />
-              }
-              profile={profile}
+            <div className="w-full space-y-2.5 sm:space-y-3">
+              {showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
+              <Dashboard
+                relapseSlot={
+                  <RelapseAlert
+                    mistakes={mistakes}
+                    onReopenCards={handleReopenCards}
+                    onNavigateToMistakes={() => setActiveTab('mistakes')}
+                  />
+                }
+                profile={profile}
+                sessions={sessions}
+                theme={theme}
+                onOpenSessionLogger={() => openSessionLogger()}
+                onNavigateToAnalytics={() => setActiveTab('analytics')}
+              />
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <ExamHistoryView
               sessions={sessions}
+              mistakes={mistakes}
               theme={theme}
+              onDeleteSession={handleDeleteSession}
+              onEditSession={openSessionEditor}
               onOpenSessionLogger={() => openSessionLogger()}
-              onNavigateToAnalytics={() => setActiveTab('analytics')}
             />
           )}
 
@@ -343,8 +363,7 @@ export const App: React.FC = () => {
               mistakes={mistakes}
               vocabLog={vocabLog}
               theme={theme}
-              onDeleteSession={handleDeleteSession}
-              onEditSession={openSessionEditor}
+              onOpenSessionLogger={openSessionLogger}
             />
           )}
 
@@ -367,6 +386,16 @@ export const App: React.FC = () => {
             />
           )}
 
+          {activeTab === 'vocabulary' && (
+            <VocabularyView
+              vocabLog={vocabLog}
+              theme={theme}
+              onSaveVocab={handleSaveVocab}
+              onDeleteVocab={handleDeleteVocab}
+              onOpenSessionLogger={openSessionLogger}
+            />
+          )}
+
           {activeTab === 'resources' && (
             <ResourcesView sessions={sessions} targetScore={profile.targetScore} />
           )}
@@ -380,29 +409,10 @@ export const App: React.FC = () => {
               onOpenSettings={() => setIsSettingsModalOpen(true)}
               onOpenSessionLogger={() => openSessionLogger()}
               onNavigateToMistakes={() => setActiveTab('mistakes')}
+              onNavigateToTimer={() => setActiveTab('exam-mode')}
             />
           )}
         </main>
-
-        {/* Modern 2-sided Sleek Footer */}
-        <footer className="bg-white/80 dark:bg-[#0E1526]/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 py-3.5 sm:py-4 text-xs text-slate-500 dark:text-slate-400 transition-colors shadow-[0_-1px_3px_0_rgba(0,0,0,0.02)]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-semibold text-slate-700 dark:text-slate-300">TOEIC Progress v2.4</span>
-              <span className="text-slate-300 dark:text-slate-700">•</span>
-              <span>Trạm Luyện Thi Cá Nhân</span>
-            </div>
-            <div className="flex items-center space-x-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-              <span>{account.status === 'synced' ? 'Đã đồng bộ' : account.status === 'syncing' ? 'Đang đồng bộ' : getActiveAccountId() ? 'Chưa kết nối' : 'Chế độ khách · lưu trên máy này'}</span>
-              <span>•</span>
-              <span>{getActiveAccountId() ? 'Tài khoản nhiều thiết bị' : 'Dữ liệu trên máy này'}</span>
-              <span>•</span>
-              <a href="/chinh-sach-quyen-rieng-tu" className="hover:underline">Quyền riêng tư</a>
-              <a href="/dieu-khoan" className="hover:underline">Điều khoản</a>
-            </div>
-          </div>
-        </footer>
 
       </div>
 

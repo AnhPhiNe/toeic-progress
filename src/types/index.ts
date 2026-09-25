@@ -2,7 +2,7 @@
 export type SkillType = 'LR' | 'SW';
 
 // Các tab điều hướng chính của hệ thống
-export type NavTabId = 'dashboard' | 'plan' | 'exam-mode' | 'analytics' | 'mistakes' | 'resources';
+export type NavTabId = 'dashboard' | 'plan' | 'exam-mode' | 'history' | 'analytics' | 'mistakes' | 'vocabulary' | 'resources';
 
 // Chi tiết số câu đúng của từng Part trong bài thi TOEIC Listening & Reading
 export interface LRPartScore {
@@ -240,3 +240,32 @@ export interface UserProfile {
   motto: string;             // Câu châm ngôn hoặc cam kết cá nhân
   selectedSkill: SkillType;  // 'LR' | 'SW'
 }
+
+// ================= KẾ HOẠCH TUẦN SMART =================
+export type SmartTaskType =
+  | 'AUTO_FULL_TEST'      // Tự động đếm đề Full Test trong tuần
+  | 'AUTO_PART_PRACTICE'  // Tự động đếm bài luyện Part cụ thể trong tuần
+  | 'AUTO_STUDY_TIME'     // Tự động đếm tổng phút học trong tuần
+  | 'CUSTOM';             // Người dùng tự tick hoàn thành hoặc tự tăng giảm
+
+export type TaskColorKey = 'indigo' | 'blue' | 'amber' | 'sky' | 'rose' | 'purple';
+
+export interface SmartWeeklyTask {
+  id: string;
+  title: string;
+  type: SmartTaskType;
+  target: number;           // Số lượng mục tiêu (ví dụ 1 đề, 180 phút, 1 lần)
+  unit: string;             // 'đề', 'phút', 'lần', 'buổi'
+  partNumber?: number;      // Nếu là AUTO_PART_PRACTICE (Part 1-7)
+  manualDone?: number;      // Tiến độ người dùng tự tick/nhập (với CUSTOM)
+  isCompleted?: boolean;    // Đánh dấu hoàn thành
+  notes?: string;           // Ghi chú hoặc lý do
+  color?: TaskColorKey;     // Gam màu tùy biến (6 màu chuẩn Neo Pastel)
+  createdAt: string;
+}
+
+export interface WeeklyPlanRecord {
+  weekKey: string;          // Định dạng 'YYYY-MM-DD' (Thứ Hai đầu tuần)
+  tasks: SmartWeeklyTask[];
+}
+

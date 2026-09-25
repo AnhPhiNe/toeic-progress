@@ -31,8 +31,8 @@ interface SessionLoggerModalProps {
   onSaveSession: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
   onSaveVocab: (date: string, count: number) => void;
   sessions?: StudySession[];
-  /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp (SPEC 4.3) */
-  prefill?: { durationMinutes?: number };
+  /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3) */
+  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' };
   /**
    * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
@@ -170,7 +170,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const e = editingSession;
-    setSessionType(e?.sessionType ?? 'FULL_TEST');
+    setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
     setTestName(e?.testName ?? '');
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút

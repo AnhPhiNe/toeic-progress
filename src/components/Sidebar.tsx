@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  BookMarked,
   BookOpen,
-  GraduationCap,
+  Calculator,
+  History,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
@@ -40,7 +42,7 @@ interface NavItem {
 }
 
 const navButton =
-  'group relative flex min-h-11 w-full items-center gap-3 rounded-[13px] px-3 text-left text-[13px] font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none';
+  'group relative flex min-h-11 w-full items-center gap-3 rounded-[13px] px-3 text-left text-[13px] font-medium outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 motion-reduce:transition-none';
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
@@ -92,25 +94,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const groups: Array<{ title: string; items: NavItem[] }> = [
     {
-      title: 'Học tập',
+      title: 'HÀNH TRÌNH',
       items: [
         { id: 'dashboard', label: 'Tổng quan', fullLabel: 'Tổng Quan', icon: LayoutDashboard },
         { id: 'plan', label: 'Kế hoạch', fullLabel: 'Kế Hoạch', icon: Target },
-        { id: 'exam-mode', label: 'Phòng thi', fullLabel: 'Phòng Thi ETS', icon: Timer }
+        { id: 'exam-mode', label: 'Đồng hồ phòng thi', fullLabel: 'Đồng Hồ Phòng Thi', icon: Timer }
       ]
     },
     {
-      title: 'Theo dõi',
+      title: 'ĐO LƯỜNG & CHẨN ĐOÁN',
       items: [
-        { id: 'analytics', label: 'Phân tích', fullLabel: 'Phân Tích Điểm Số', icon: TrendingUp },
+        { id: 'history', label: 'Lịch sử thi', fullLabel: 'Lịch Sử Đề Thi', icon: History },
+        { id: 'analytics', label: 'Phân tích điểm', fullLabel: 'Phân Tích Điểm Số', icon: TrendingUp },
         {
           id: 'mistakes',
-          label: 'Sổ tay lỗi sai',
-          fullLabel: 'Sổ Tay Bắt Bẫy',
+          label: 'Sổ tay bẫy sai',
+          fullLabel: 'Sổ Tay Bẫy Sai',
           icon: BookOpen,
           badge: pendingMistakesCount > 0 ? pendingMistakesCount : undefined
         },
-        { id: 'resources', label: 'Tài liệu', fullLabel: 'Tài Liệu & Quy Đổi', icon: GraduationCap }
+        { id: 'vocabulary', label: 'Vốn từ vựng', fullLabel: 'Vốn Từ Vựng TOEIC', icon: BookMarked },
+        { id: 'resources', label: 'Quy đổi điểm số', fullLabel: 'Thang Quy Đổi ETS', icon: Calculator }
       ]
     }
   ];
@@ -128,48 +132,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const renderContent = (mobile: boolean, compact: boolean) => (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-        <div className={'flex items-center ' + (compact ? 'flex-col gap-2 pb-7' : 'gap-2 pb-8')}>
+        <div className={'flex items-center ' + (compact ? 'flex-col gap-2 pb-6' : 'gap-2 pb-7')}>
           <button
             type="button"
             onClick={() => navigate('dashboard', mobile)}
-            className={'flex min-w-0 items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ' + (compact ? 'justify-center' : 'flex-1')}
+            className={'flex min-w-0 items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ' + (compact ? 'justify-center' : 'flex-1')}
             aria-label="TOEIC Progress · Tổng quan"
             title={compact ? 'TOEIC Progress' : undefined}
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[#344A83] text-[13px] font-bold tracking-tight text-white shadow-[0_3px_10px_rgba(38,58,111,0.18)] dark:bg-indigo-500 dark:shadow-none">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white font-black tracking-tight border-2 border-slate-900 shadow-[2.5px_2.5px_0px_0px_#0f172a]">
               TP
             </span>
-            {!compact && <span className="truncate text-[14px] font-bold tracking-tight text-slate-900 dark:text-white">TOEIC Progress</span>}
+            {!compact && <span className="truncate text-[15px] font-black tracking-tight text-slate-900 dark:text-white">TOEIC Progress</span>}
           </button>
           {mobile ? (
             <button
               type="button"
               onClick={onCloseMobile}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-200/60 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-slate-900 bg-white text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-rose-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
               aria-label="Đóng menu"
             >
-              <X size={18} aria-hidden="true" />
+              <X size={16} aria-hidden="true" />
             </button>
           ) : (
             <button
               type="button"
               onClick={toggleCollapse}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-200/60 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-slate-900 bg-white text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-indigo-100 dark:hover:bg-indigo-900/60 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
               aria-label={compact ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
               title={compact ? 'Mở rộng (Ctrl+B)' : 'Thu gọn (Ctrl+B)'}
             >
-              {compact ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+              {compact ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
             </button>
           )}
         </div>
 
-        <div className={compact ? 'space-y-5' : 'space-y-7'}>
+        <div className={compact ? 'space-y-4' : 'space-y-6'}>
           {groups.map((group, groupIndex) => (
             <nav key={group.title} aria-label={group.title}>
               {compact
-                ? groupIndex > 0 && <div className="mx-auto mb-3 h-px w-7 bg-slate-200 dark:bg-slate-700" />
-                : <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.05em] text-slate-500 dark:text-slate-400">{group.title}</p>}
-              <div className="space-y-1">
+                ? groupIndex > 0 && <div className="mx-auto mb-3 h-0.5 w-7 bg-slate-900 dark:bg-slate-700" />
+                : <p className="mb-2 px-3 text-[10px] font-black tracking-[0.1em] uppercase text-slate-600 dark:text-slate-400">{group.title}</p>}
+              <div className="space-y-1.5">
                 {group.items.map(item => {
                   const Icon = item.icon;
                   const active = activeTab === item.id;
@@ -182,27 +186,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         navButton +
                         (compact ? ' justify-center !px-0' : '') +
                         (active
-                          ? ' bg-white text-slate-900 shadow-[0_2px_10px_rgba(31,45,74,0.08)] dark:bg-slate-800 dark:text-white dark:shadow-none'
-                          : ' text-slate-600 hover:bg-white/75 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-white')
+                          ? ' bg-indigo-100 dark:bg-indigo-950/80 text-indigo-950 dark:text-indigo-100 font-black border-2 border-slate-900 dark:border-slate-400 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#6366f1]'
+                          : ' text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-2 hover:border-slate-900/40 dark:hover:border-slate-600 font-bold border-2 border-transparent')
                       }
                       aria-label={item.fullLabel}
                       aria-current={active ? 'page' : undefined}
                       title={compact ? item.fullLabel : undefined}
                     >
-                      {active && <span className="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-indigo-500 dark:bg-indigo-400" aria-hidden="true" />}
-                      <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ' + (active ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400')}>
-                        <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+                      <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all ' + (active ? 'bg-indigo-600 text-white border border-slate-900 dark:border-slate-700 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-950 dark:group-hover:text-white')}>
+                        <Icon size={17} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
                       </span>
                       {!compact && <>
                         <span className="min-w-0 flex-1 truncate">{item.label}</span>
                         {item.badge !== undefined && (
-                          <span className="flex min-w-5 items-center justify-center rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-700 dark:bg-slate-700 dark:text-slate-200" aria-label={item.badge + ' lỗi cần ôn'}>
+                          <span className={`flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums border border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] ${
+                            active 
+                              ? 'bg-rose-300 text-slate-950' 
+                              : 'bg-rose-100 text-slate-950'
+                          }`} aria-label={item.badge + ' lỗi cần ôn'}>
                             {item.badge}
                           </span>
                         )}
                       </>}
                       {compact && item.badge !== undefined && (
-                        <span className="absolute -right-0.5 top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold text-white dark:bg-indigo-400 dark:text-slate-950">
+                        <span className="absolute -right-0.5 top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 border border-slate-900 px-1 text-[9px] font-black text-white shadow-xs">
                           {item.badge}
                         </span>
                       )}
@@ -215,21 +222,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className={'shrink-0 border-t border-slate-200/80 pt-3 dark:border-slate-800 ' + (compact ? 'mt-4' : 'mt-6')}>
+      <div className={'shrink-0 border-t-2 border-slate-900 dark:border-slate-700 pt-3 ' + (compact ? 'mt-4' : 'mt-5')}>
         <button
           type="button"
           onClick={() => openSettings(mobile)}
-          className={'group flex min-h-12 w-full items-center rounded-xl text-left outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none dark:hover:bg-slate-800 ' + (compact ? 'justify-center' : 'gap-3 px-2')}
+          className={'group flex min-h-12 w-full items-center rounded-xl text-left outline-none transition-all hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border-2 border-transparent hover:border-slate-900 dark:hover:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900 ' + (compact ? 'justify-center' : 'gap-3 px-2.5 py-1.5')}
           aria-label={'Cài đặt hồ sơ ' + displayName}
           title={compact ? 'Cài đặt và sao lưu' : 'Cài đặt và sao lưu dữ liệu'}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[12px] font-bold text-slate-700 dark:bg-slate-700 dark:text-white">{initials}</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DDD6FE] text-slate-950 font-black border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] text-[12px]">{initials}</span>
           {!compact && <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-semibold text-slate-900 dark:text-white">{displayName}</span>
-              <span className="block text-[11px] text-slate-500 dark:text-slate-400">Mục tiêu {profile.targetScore || 990}đ</span>
+              <span className="block truncate text-[12px] font-black text-slate-900 dark:text-white transition-colors">{displayName}</span>
+              <span className="block text-[11px] text-slate-600 dark:text-slate-400 font-bold">Mục tiêu {profile.targetScore || 990}đ</span>
             </span>
-            <Settings size={17} strokeWidth={1.7} className="shrink-0 text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-300" aria-hidden="true" />
+            <Settings size={17} strokeWidth={2} className="shrink-0 text-slate-600 dark:text-slate-400 group-hover:text-slate-950 dark:group-hover:text-white group-hover:rotate-45 transition-all duration-200" aria-hidden="true" />
           </>}
         </button>
       </div>
@@ -237,13 +244,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return <>
-    <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 border-r border-slate-200/80 bg-[#F7F9FC] p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:border-slate-800 dark:bg-[#0E1526] dark:text-slate-100 md:block ' + (isCollapsed ? 'w-[72px]' : 'w-[264px]')}>
+    <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 border-r-2 border-slate-900 bg-white p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100 md:block ' + (isCollapsed ? 'w-[72px]' : 'w-[264px]')}>
       {renderContent(false, isCollapsed)}
     </aside>
     {isMobileOpen && (
       <div className="fixed inset-0 z-50 flex md:hidden" role="dialog" aria-modal="true" aria-label="Điều hướng">
-        <button type="button" className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onCloseMobile} aria-label="Đóng menu điều hướng" />
-        <div className="relative h-full w-[280px] max-w-[86vw] border-r border-slate-200 bg-[#F7F9FC] p-4 shadow-2xl dark:border-slate-800 dark:bg-[#0E1526]">
+        <button type="button" className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onCloseMobile} aria-label="Đóng menu điều hướng" />
+        <div className="relative h-full w-[280px] max-w-[86vw] border-r-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#0B132B] p-4 shadow-2xl text-slate-800 dark:text-slate-100">
           {renderContent(true, false)}
         </div>
       </div>

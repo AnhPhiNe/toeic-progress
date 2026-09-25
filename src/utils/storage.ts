@@ -1,5 +1,5 @@
 import confetti from 'canvas-confetti';
-import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '../types';
+import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun, WeeklyPlanRecord } from '../types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '../data/demoData';
 import { DEFAULT_CHECKLIST, canWriteAccount, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle, type VocabLog } from './dataBundle';
 import { parseBackup, type BackupPreview } from './backup';
@@ -177,6 +177,18 @@ export function upsertVocabLog(date: string, count: number): VocabLog[] {
   return live(next.vocabLog);
 }
 
+export function deleteVocabLog(id: string): VocabLog[] {
+  const next = updateDataBundle(current => ({
+    ...current,
+    vocabLog: current.vocabLog.map(item => {
+      if (item.id !== id) return item;
+      const updatedAt = nextUpdatedAt(item.updatedAt);
+      return { ...item, updatedAt, deletedAt: updatedAt };
+    })
+  }));
+  return live(next.vocabLog);
+}
+
 // Tính Rank Tier hiện tại dựa trên điểm số cao nhất
 export function getCurrentRankTier(highestScore: number, targetScore = 990): RankTier {
   const target = Math.max(10, Math.min(990, targetScore));
@@ -248,6 +260,9 @@ export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySess
     shieldDays: current.shieldDays.map(item => { const updatedAt = nextUpdatedAt(item.updatedAt); return { ...item, updatedAt, deletedAt: updatedAt }; }),
     checklist: replaceCollection(current.checklist, Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked })))
   }));
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(SMART_WEEKLY_PLANS_KEY);
+  }
 
   return {
     profile: cleanProfile,
@@ -353,4 +368,86 @@ export function getRetestStats(sessions: StudySession[]) {
     avgRetestGain
   };
 }
+
+// ================= KẾ HOẠCH TUẦN SMART =================
+export const SMART_WEEKLY_PLANS_KEY = 'toeic_smart_weekly_plans_v1';
+
+export function getWeekMonday(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const offsetToMonday = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + offsetToMonday);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayStr = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayStr}`;
+}
+
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayStr = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayStr}`;
+}
+
+export function loadWeeklyPlans(): Record<string, WeeklyPlanRecord> {
+  if (typeof localStorage === 'undefined') return {};
+  const raw = localStorage.getItem(SMART_WEEKLY_PLANS_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export function saveWeeklyPlans(plans: Record<string, WeeklyPlanRecord>): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(SMART_WEEKLY_PLANS_KEY, JSON.stringify(plans));
+  } catch (err) {
+    console.error('Lỗi khi lưu kế hoạch tuần:', err);
+  }
+}
+
+export function getOrCreateWeeklyPlan(weekKey: string, profile?: UserProfile): WeeklyPlanRecord {
+  const plans = loadWeeklyPlans();
+  if (plans[weekKey]) {
+    return plans[weekKey];
+  }
+
+  const defaultWeeklyMinutes = ((profile?.dailyMinGoalMinutes || 30) * 7);
+  const defaultPlan: WeeklyPlanRecord = {
+    weekKey,
+    tasks: [
+      {
+        id: `task-ft-${Date.now()}-1`,
+        title: 'Làm 1 đề Full Test (200 câu)',
+        type: 'AUTO_FULL_TEST',
+        target: 1,
+        unit: 'đề',
+        notes: 'Giữ phản xạ và cảm giác làm bài thi thực tế',
+        color: 'blue',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: `task-min-${Date.now()}-2`,
+        title: `Học ${defaultWeeklyMinutes} phút tuần này`,
+        type: 'AUTO_STUDY_TIME',
+        target: defaultWeeklyMinutes,
+        unit: 'phút',
+        notes: `Tương đương ~${profile?.dailyMinGoalMinutes || 30} phút mỗi ngày`,
+        color: 'indigo',
+        createdAt: new Date().toISOString()
+      }
+    ]
+  };
+
+  plans[weekKey] = defaultPlan;
+  saveWeeklyPlans(plans);
+  return defaultPlan;
+}
+
 

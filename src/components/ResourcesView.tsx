@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  GraduationCap, 
   Calculator, 
   Clock, 
   CheckSquare, 
@@ -78,14 +77,14 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
         <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold">
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>Cẩm Nang & Tài Liệu Chuẩn ETS 990</span>
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Thang Quy Đổi & Ma Trận Điểm Số ETS</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-            Kho Chiến Thuật & Ma Trận Điểm Số ETS
+            Quy Đổi Điểm Số & Chuẩn Đoán ETS
           </h2>
           <p className="text-xs sm:text-sm text-blue-200/80 max-w-2xl">
-            Tất cả công cụ quy đổi điểm chính xác, ma trận phân bổ thời gian từng Part, và checklist chuẩn bị ngày thi thực tế tại IIG.
+            Công cụ quy đổi điểm thô ra điểm scaled ETS 990, ma trận phân bổ thời gian từng Part và checklist phòng thi.
           </p>
         </div>
       </div>

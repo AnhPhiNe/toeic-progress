@@ -1,71 +1,48 @@
-import { StudySession, MistakeEntry, UserProfile, ErrorCategory, ERROR_CATEGORY_LABELS } from '../types';
-import { getTodayDateString } from './storage';
+import { StudySession, MistakeEntry, UserProfile, SmartWeeklyTask, WeeklyPlanRecord } from '../types';
+import { getTodayDateString, getWeekMonday, addDays, getOrCreateWeeklyPlan } from './storage';
 import { getPracticeParts } from './etsScoring';
-import { getDueMistakes } from './spacedRepetition';
 import { causePriority } from './learningAnalytics';
 import type { VocabLog } from './dataBundle';
 
-/** Một việc cần làm trong tuần, sinh ra từ dữ liệu thật của người học */
-export interface WeeklyTask {
-  id: string;
-  label: string;
-  detail: string;
-  target: number;
+export interface EvaluatedSmartTask extends SmartWeeklyTask {
   done: number;
-  /** Lý do việc này được đề xuất - luôn bắt nguồn từ dữ liệu, không phải mẹo chung chung */
-  reason?: string;
+  isComplete: boolean;
+  percent: number;
 }
 
-export interface StudyPlan {
-  hasExamDate: boolean;
-  hasScoreData: boolean;
+export interface SmartRecommendation {
+  id: string;
+  title: string;
+  reason: string;
+  type: SmartWeeklyTask['type'];
+  partNumber?: number;
+  target: number;
+  unit: string;
+  notes?: string;
+}
+
+export interface WeeklyStudyPlanSummary {
+  weekKey: string;
+  weekStart: string;
+  weekEnd: string;
+  isCurrentWeek: boolean;
 
   daysUntilExam: number | null;
-  weeksRemaining: number | null;
-
   targetScore: number;
   currentLevel: number;
   pointsGap: number;
 
-  /** Số điểm cần tăng mỗi tuần để kịp ngày thi */
-  requiredPacePerWeek: number | null;
-  /** Nhịp tăng điểm thực tế gần đây */
-  actualPacePerWeek: number | null;
-  /** 'ahead' đi trước kế hoạch, 'behind' chậm hơn, 'on-track' vừa đúng, null chưa đủ dữ liệu */
-  paceStatus: 'ahead' | 'on-track' | 'behind' | null;
-
-  weekStart: string;
-  weekEnd: string;
-  tasks: WeeklyTask[];
+  totalTasks: number;
+  completedTasks: number;
+  completionPercent: number;
 
   minutesThisWeek: number;
   minutesGoalThisWeek: number;
   daysStudiedThisWeek: number;
+  fullTestsThisWeek: number;
 
-  bottleneckCause: { category: ErrorCategory; label: string; count: number; percent: number; estimatedPoints: number | null } | null;
-  pendingMistakes: number;
-}
-
-/** Thứ Hai của tuần chứa ngày đã cho, trả về 'YYYY-MM-DD' */
-function getWeekStart(dateStr: string): string {
-  const d = new Date(`${dateStr}T00:00:00`);
-  const day = d.getDay(); // 0 = Chủ nhật
-  const offsetToMonday = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + offsetToMonday);
-  return toDateString(d);
-}
-
-function toDateString(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return toDateString(d);
+  tasks: EvaluatedSmartTask[];
+  recommendation: SmartRecommendation | null;
 }
 
 function daysBetween(fromStr: string, toStr: string): number {
@@ -75,26 +52,32 @@ function daysBetween(fromStr: string, toStr: string): number {
 }
 
 /**
- * Dựng kế hoạch tuần từ dữ liệu thật: ngày thi, mục tiêu, lịch sử điểm và
- * nhóm lỗi hay mắc. Không có mẹo chung chung - mọi việc đề xuất đều kèm lý do
- * truy được về dữ liệu của chính người học (SPEC mục 4.2).
+ * Xây dựng báo cáo Kế hoạch tuần SMART từ dữ liệu thực tế
  */
-export function buildStudyPlan(
+export function buildWeeklyStudyPlan(
+  weekKey: string,
   profile: UserProfile,
   sessions: StudySession[],
   mistakes: MistakeEntry[],
-  vocabLog: VocabLog[] = []
-): StudyPlan {
+  vocabLog: VocabLog[] = [],
+  storedPlan?: WeeklyPlanRecord
+): WeeklyStudyPlanSummary {
   const today = getTodayDateString();
+  const currentWeekMonday = getWeekMonday(today);
+  const isCurrentWeek = weekKey === currentWeekMonday;
+
+  const weekStart = weekKey;
+  const weekEnd = addDays(weekKey, 6);
+
+  // Đếm ngược ngày thi và mục tiêu điểm
   const targetScore = Math.max(10, Math.min(990, profile.targetScore || 990));
+  const hasExamDate = Boolean(profile.examDate);
+  const daysUntilExam = hasExamDate ? daysBetween(today, profile.examDate) : null;
 
   const fullTests = sessions
     .filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const hasScoreData = fullTests.length > 0;
-
-  // Mức hiện tại: trung bình trọng số 3 đề gần nhất, giống cách Phân Tích dự báo
   let currentLevel = 0;
   if (fullTests.length >= 3) {
     const last3 = fullTests.slice(-3);
@@ -107,148 +90,126 @@ export function buildStudyPlan(
 
   const pointsGap = Math.max(0, targetScore - currentLevel);
 
-  const hasExamDate = Boolean(profile.examDate);
-  const daysUntilExam = hasExamDate ? daysBetween(today, profile.examDate) : null;
-  const weeksRemaining =
-    daysUntilExam !== null && daysUntilExam > 0 ? Math.max(1, Math.ceil(daysUntilExam / 7)) : null;
-
-  const requiredPacePerWeek =
-    weeksRemaining !== null && hasScoreData ? Math.round((pointsGap / weeksRemaining) * 10) / 10 : null;
-
-  // Nhịp thực tế: chênh lệch điểm chia cho số tuần giữa đề đầu và đề cuối
-  let actualPacePerWeek: number | null = null;
-  if (fullTests.length >= 2) {
-    const first = fullTests[0];
-    const last = fullTests[fullTests.length - 1];
-    const spanDays = Math.max(7, daysBetween(first.date, last.date));
-    const spanWeeks = spanDays / 7;
-    const gained = (last.totalScore || 0) - (first.totalScore || 0);
-    actualPacePerWeek = Math.round((gained / spanWeeks) * 10) / 10;
-  }
-
-  let paceStatus: StudyPlan['paceStatus'] = null;
-  if (requiredPacePerWeek !== null && actualPacePerWeek !== null) {
-    if (pointsGap === 0) paceStatus = 'ahead';
-    else if (actualPacePerWeek >= requiredPacePerWeek * 1.1) paceStatus = 'ahead';
-    else if (actualPacePerWeek >= requiredPacePerWeek * 0.9) paceStatus = 'on-track';
-    else paceStatus = 'behind';
-  }
-
-  // ---- Tuần hiện tại ----
-  const weekStart = getWeekStart(today);
-  const weekEnd = addDays(weekStart, 6);
-  const thisWeek = sessions.filter(s => s.date >= weekStart && s.date <= weekEnd);
-
-  const fullTestsThisWeek = thisWeek.filter(s => s.sessionType === 'FULL_TEST').length;
-  const minutesThisWeek = thisWeek.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+  // Dữ liệu học tập trong tuần này
+  const thisWeekSessions = sessions.filter(s => s.date >= weekStart && s.date <= weekEnd);
+  const fullTestsThisWeek = thisWeekSessions.filter(s => s.sessionType === 'FULL_TEST').length;
+  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
   const minutesGoalThisWeek = (profile.dailyMinGoalMinutes || 30) * 7;
+
   const daysStudiedThisWeek = new Set([
-    ...thisWeek.map(s => s.date),
+    ...thisWeekSessions.map(s => s.date),
     ...vocabLog.filter(item => !item.deletedAt && item.count > 0 && item.date >= weekStart && item.date <= weekEnd).map(item => item.date)
   ]).size;
 
-  // ---- Ưu tiên theo điểm ước tính khi đủ dữ liệu, nếu không theo tần suất ----
-  let bottleneckCause: StudyPlan['bottleneckCause'] = null;
+  // Lấy hoặc khởi tạo kế hoạch tuần
+  const planRecord = storedPlan || getOrCreateWeeklyPlan(weekKey, profile);
+
+  // Đánh giá tiến độ từng mục tiêu SMART
+  const evaluatedTasks: EvaluatedSmartTask[] = planRecord.tasks.map(task => {
+    let done = 0;
+    let isComplete = false;
+
+    if (task.type === 'AUTO_FULL_TEST') {
+      const autoDone = fullTestsThisWeek;
+      isComplete = Boolean(task.isCompleted || autoDone >= task.target);
+      done = task.isCompleted ? Math.max(task.target, autoDone) : autoDone;
+    } else if (task.type === 'AUTO_STUDY_TIME') {
+      const autoDone = minutesThisWeek;
+      isComplete = Boolean(task.isCompleted || autoDone >= task.target);
+      done = task.isCompleted ? Math.max(task.target, autoDone) : autoDone;
+    } else if (task.type === 'AUTO_PART_PRACTICE') {
+      const targetPart = task.partNumber;
+      const autoDone = thisWeekSessions
+        .filter(s => s.sessionType === 'PART_PRACTICE')
+        .flatMap(s => getPracticeParts(s))
+        .filter(p => (targetPart ? p.part === targetPart : true)).length;
+      isComplete = Boolean(task.isCompleted || autoDone >= task.target);
+      done = task.isCompleted ? Math.max(task.target, autoDone) : autoDone;
+    } else {
+      // CUSTOM
+      if (task.target > 1) {
+        done = task.manualDone || (task.isCompleted ? task.target : 0);
+        isComplete = Boolean(task.isCompleted || done >= task.target);
+      } else {
+        done = task.isCompleted ? 1 : 0;
+        isComplete = Boolean(task.isCompleted);
+      }
+    }
+
+    const percent = task.target > 0
+      ? Math.min(100, Math.round((done / task.target) * 100))
+      : (isComplete ? 100 : 0);
+
+    return {
+      ...task,
+      done,
+      isComplete,
+      percent
+    };
+  });
+
+  const totalTasks = evaluatedTasks.length;
+  const completedTasks = evaluatedTasks.filter(t => t.isComplete).length;
+  const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Xây dựng gợi ý thông minh 1-click
+  let recommendation: SmartRecommendation | null = null;
   const priority = causePriority(sessions, mistakes);
   if (priority.rows.length > 0) {
-    const top = priority.rows[0];
-    bottleneckCause = {
-      category: top.category,
-      label: ERROR_CATEGORY_LABELS[top.category].label,
-      count: top.count,
-      percent: Math.round((top.count / priority.mistakeCount) * 100),
-      estimatedPoints: priority.eligible ? Math.round(top.estimatedPoints) : null
-    };
-  }
+    const topCause = priority.rows[0];
+    const topMistakes = mistakes.filter(m => m.category === topCause.category);
+    const topPart = topMistakes.length > 0 ? topMistakes[0].part : 5;
 
-  const pendingMistakes = mistakes.filter(m => m.status === 'NEEDS_REVIEW').length;
-  // Việc cần làm bám theo thẻ ĐẾN HẠN, không phải toàn bộ tồn đọng - lịch
-  // giãn cách chỉ có ý nghĩa nếu kế hoạch tôn trọng nó (SPEC mục 4.6)
-  const dueMistakes = getDueMistakes(mistakes).length;
-
-  // ---- Việc cần làm tuần này ----
-  const tasks: WeeklyTask[] = [];
-
-  // Số đề cần làm phụ thuộc thời gian còn lại: càng gần ngày thi càng dày
-  let fullTestTarget = 1;
-  if (daysUntilExam !== null) {
-    if (daysUntilExam <= 14) fullTestTarget = 3;
-    else if (daysUntilExam <= 30) fullTestTarget = 2;
-  }
-  tasks.push({
-    id: 'full-test',
-    label: `${fullTestTarget} đề Full Test`,
-    detail: 'Giữ cảm giác làm bài liên tục 200 câu',
-    target: fullTestTarget,
-    done: fullTestsThisWeek,
-    reason:
-      daysUntilExam !== null && daysUntilExam <= 30
-        ? `Còn ${daysUntilExam} ngày - giai đoạn nước rút cần tần suất dày hơn`
-        : undefined
-  });
-
-  // Luyện đúng chỗ đang yếu nhất, không luyện tràn lan
-  if (bottleneckCause) {
-    const partsOfCause = new Set(
-      mistakes.filter(m => m.category === bottleneckCause!.category).map(m => m.part)
+    const hasPartTask = planRecord.tasks.some(
+      t => t.type === 'AUTO_PART_PRACTICE' && t.partNumber === topPart
     );
-    const partList = Array.from(partsOfCause).sort((a, b) => a - b);
-    const practiceThisWeek = thisWeek
-      .filter(s => s.sessionType === 'PART_PRACTICE')
-      .flatMap(s => getPracticeParts(s))
-      .filter(p => partsOfCause.has(p.part)).length;
 
-    tasks.push({
-      id: 'focus-practice',
-      label: `2 buổi luyện ${partList.map(p => `Part ${p}`).join(', ')}`,
-      detail: `Nhắm vào nhóm lỗi ${bottleneckCause.label}`,
-      target: 2,
-      done: practiceThisWeek,
-      reason: bottleneckCause.estimatedPoints !== null
-        ? `Khắc phục nhóm này có thể mang lại ước tính +${bottleneckCause.estimatedPoints}đ`
-        : `${bottleneckCause.percent}% lỗi của bạn thuộc nhóm này (chưa đủ dữ liệu ước tính điểm)`
-    });
+    if (!hasPartTask) {
+      recommendation = {
+        id: `rec-part-${topPart}`,
+        title: `Luyện 2 bài Part ${topPart}`,
+        reason: `Bạn có ${Math.round((topCause.count / Math.max(1, priority.mistakeCount)) * 100)}% lỗi thuộc nhóm ${topCause.category === 'VOCABULARY_TRAP' ? 'Bẫy từ vựng' : 'Ngữ pháp/Kỹ năng'} trong sổ tay`,
+        type: 'AUTO_PART_PRACTICE',
+        partNumber: topPart,
+        target: 2,
+        unit: 'bài',
+        notes: `Tập trung khắc phục các bẫy hay gặp ở Part ${topPart}`
+      };
+    }
   }
 
-  if (dueMistakes > 0) {
-    tasks.push({
-      id: 'review-mistakes',
-      label: `Ôn ${dueMistakes} thẻ đến hạn`,
-      detail: 'Mở phiên ôn, tự nhớ lại trước khi lật thẻ',
-      target: dueMistakes,
-      done: 0,
-      reason: pendingMistakes > dueMistakes
-        ? `${pendingMistakes} lỗi chưa thông suốt, nhưng chỉ ${dueMistakes} thẻ tới hẹn hôm nay`
-        : `Lịch giãn cách hẹn ${dueMistakes} thẻ cho hôm nay`
-    });
+  if (!recommendation) {
+    const hasFullTestTask = planRecord.tasks.some(t => t.type === 'AUTO_FULL_TEST');
+    if (!hasFullTestTask) {
+      recommendation = {
+        id: 'rec-fulltest',
+        title: 'Làm 1 đề Full Test (200 câu)',
+        reason: 'Duy trì phản xạ và quản lý thời gian thi thực tế',
+        type: 'AUTO_FULL_TEST',
+        target: 1,
+        unit: 'đề',
+        notes: 'Giữ phong độ 200 câu trước ngày thi'
+      };
+    }
   }
-
-  tasks.push({
-    id: 'minutes',
-    label: `Học đủ ${minutesGoalThisWeek} phút`,
-    detail: `Mục tiêu ${profile.dailyMinGoalMinutes || 30} phút mỗi ngày`,
-    target: minutesGoalThisWeek,
-    done: minutesThisWeek
-  });
 
   return {
-    hasExamDate,
-    hasScoreData,
+    weekKey,
+    weekStart,
+    weekEnd,
+    isCurrentWeek,
     daysUntilExam,
-    weeksRemaining,
     targetScore,
     currentLevel,
     pointsGap,
-    requiredPacePerWeek,
-    actualPacePerWeek,
-    paceStatus,
-    weekStart,
-    weekEnd,
-    tasks,
+    totalTasks,
+    completedTasks,
+    completionPercent,
     minutesThisWeek,
     minutesGoalThisWeek,
     daysStudiedThisWeek,
-    bottleneckCause,
-    pendingMistakes
+    fullTestsThisWeek,
+    tasks: evaluatedTasks,
+    recommendation
   };
 }
