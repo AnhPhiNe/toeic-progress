@@ -21,9 +21,9 @@ export function useCloudAccount(onDataChanged: () => void) {
   const generation = useRef(0);
   const resetting = useRef(false);
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (queueIfBusy = true) => {
     if (resetting.current || !userId.current || !initialized.current) return;
-    if (syncing.current) { dirty.current = true; return; }
+    if (syncing.current) { if (queueIfBusy) dirty.current = true; return; }
     if (!navigator.onLine) { setStatus('disconnected'); setAccountWriteEnabled(false); return; }
     syncing.current = true;
     const id = userId.current;
@@ -122,9 +122,21 @@ export function useCloudAccount(onDataChanged: () => void) {
     const requestEpoch = generation;
     void bootstrap();
     let disposed = false;
-    const subscription = cloud?.auth.onAuthStateChange(event => {
+    const subscription = cloud?.auth.onAuthStateChange((event, session) => {
       if (['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED'].includes(event)) {
-        setTimeout(() => { if (!disposed) void bootstrap(); }, 0);
+        setTimeout(() => {
+          if (disposed) return;
+          // Supabase also emits SIGNED_IN when an existing session is confirmed
+          // after returning to the tab. Keep the active account usable while
+          // pulling changes; only a new identity needs the blocking bootstrap.
+          if (event === 'SIGNED_IN' && session && !session.user.is_anonymous
+            && initialized.current && userId.current === session.user.id
+            && getActiveAccountId() === session.user.id) {
+            void sync(false);
+            return;
+          }
+          void bootstrap();
+        }, 0);
       }
     });
     const changed = (event: Event) => {
@@ -132,7 +144,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     };
     const offline = () => { if (userId.current) { setAccountWriteEnabled(false); setStatus('disconnected'); } };
     const online = () => { if (userId.current) void sync(); };
-    const focused = () => { if (userId.current && navigator.onLine) void sync(); };
+    const focused = () => { if (userId.current && navigator.onLine) void sync(false); };
     window.addEventListener('toeic:account-data-changed', changed);
     window.addEventListener('offline', offline);
     window.addEventListener('online', online);
