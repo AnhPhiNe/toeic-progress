@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test';
 
 test('direct routes and public legal pages are available without an account', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
   await page.getByRole('button', { name: 'Phân Tích Điểm Số' }).click();
   await expect(page).toHaveURL(/\/phan-tich$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
   await page.goto('/phan-tich');
-  await expect(page.getByText('Lịch học 12 tuần')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Năng Lực 7 Part' })).toBeVisible();
   await page.reload();
   await expect(page).toHaveURL(/\/phan-tich$/);
   await page.goto('/chinh-sach-quyen-rieng-tu');
@@ -25,18 +26,16 @@ test('direct routes and public legal pages are available without an account', as
 });
 
 test('guest vocabulary entry persists and counts as study activity', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/tu-vung');
   const original = await page.evaluate(() => ({ ...localStorage }));
   try {
-    await page.getByRole('button', { name: /Ghi buổi đầu/ }).click();
-    await page.getByRole('button', { name: 'Từ vựng' }).click();
     await page.getByRole('spinbutton', { name: 'Số từ đã học' }).fill('12');
     await page.getByRole('button', { name: 'Lưu từ vựng' }).click();
-    await expect(page.getByText('1 ngày', { exact: true }).first()).toBeVisible();
-    await page.goto('/phan-tich');
-    await expect(page.getByText('12 từ đã ghi trong 12 tuần.', { exact: false })).toBeVisible();
+    await expect(page.getByText('12 từ tích lũy', { exact: true })).toBeVisible();
     await page.reload();
-    await expect(page.getByText('12 từ đã ghi trong 12 tuần.', { exact: false })).toBeVisible();
+    await expect(page.getByText('12 từ tích lũy', { exact: true })).toBeVisible();
+    await page.goto('/');
+    await expect(page.getByRole('group', { name: 'Chuỗi học 1 ngày' })).toBeVisible();
   } finally {
     await page.evaluate(saved => { localStorage.clear(); for (const [key, value] of Object.entries(saved)) localStorage.setItem(key, value); }, original);
   }
@@ -44,11 +43,12 @@ test('guest vocabulary entry persists and counts as study activity', async ({ pa
 
 test('invalid backup is rejected without changing saved data', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Cài đặt hệ thống & Quản lý dữ liệu' }).click();
-  const before = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v2'));
+  await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
+  await page.getByRole('button', { name: 'Cài đặt hồ sơ Học viên' }).click();
+  const before = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
   await page.locator('input[type="file"]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"version":2,"sessions":[{"id":1}]}') });
   await expect(page.getByText('Không thể khôi phục tệp')).toBeVisible();
-  const after = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v2'));
+  const after = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
   expect(after).toBe(before);
 });
 
@@ -56,10 +56,10 @@ test('corrupted local data shows recovery without deleting the original bytes', 
   await page.goto('/');
   const saved = await page.evaluate(() => ({ ...localStorage }));
   try {
-    await page.evaluate(() => localStorage.setItem('toeic_progress_bundle_v2', '{broken'));
+    await page.evaluate(() => localStorage.setItem('toeic_progress_bundle_v3', '{broken'));
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Không thể mở dữ liệu học tập' })).toBeVisible();
-    expect(await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v2'))).toBe('{broken');
+    expect(await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'))).toBe('{broken');
   } finally {
     await page.evaluate(previous => { localStorage.clear(); for (const [key, value] of Object.entries(previous)) localStorage.setItem(key, value); }, saved);
   }
@@ -69,7 +69,7 @@ test('new feature cards do not overflow supported widths or 125% zoom', async ({
   for (const width of [375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/phan-tich');
-    await expect(page.getByText('Lịch học 12 tuần')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Năng Lực 7 Part' })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${width}px horizontal overflow`).toBeLessThanOrEqual(1);
   }

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kế Hoạch Ôn Thi — Tinh Chỉnh Bố Cục Task & Kéo Thả</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+
+    /* Dragging ghost styling */
+    .task-item.dragging {
+      opacity: 0.35;
+      transform: scale(0.98);
+      border-style: dashed !important;
+      border-color: #6366f1 !important;
+    }
+    .task-item.drag-over {
+      border-color: #4f46e5 !important;
+      background-color: rgba(99, 102, 241, 0.08) !important;
+      transform: translateY(-2px);
+    }
+
+    /* Pop on check */
+    @keyframes check-pop {
+      0% { transform: scale(0.85); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .animate-check-pop {
+      animation: check-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-[#0B111E] text-slate-900 dark:text-slate-100 min-h-screen p-4 sm:p-6 transition-colors duration-200">
+
+  <!-- TOP HEADER / CONTROL BAR -->
+  <div class="max-w-6xl mx-auto mb-6 p-4 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-0.5 rounded-md bg-indigo-500 text-white font-black text-xs border border-slate-900 shadow-2xs">
+          GIẢI PHÁP GỌN MẮT & KÉO THẢ
+        </span>
+        <h1 class="text-base sm:text-lg font-black text-slate-950 dark:text-white">
+          Khắc Phục Khoảng Cách Quét Mắt & Bổ Sung Kéo Thả (Drag & Drop)
+        </h1>
+      </div>
+      <p class="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
+        Giữ nguyên Dải Ribbon tiến độ ở trên • So sánh 2 cách bố trí danh sách việc cần làm:
+      </p>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-slate-900 dark:border-slate-700">
+        <button
+          id="btn-layout-grid"
+          onclick="switchTaskLayout('grid')"
+          class="px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs flex items-center gap-1.5"
+        >
+          <span>⊞</span>
+          <span>Cách A: Dạng Grid 2 Cột (Gom Gần Mắt ⭐)</span>
+        </button>
+        <button
+          id="btn-layout-row"
+          onclick="switchTaskLayout('row')"
+          class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <span>☰</span>
+          <span>Cách B: Hàng Ngang Gom Cụm</span>
+        </button>
+      </div>
+
+      <!-- Theme Toggle -->
+      <button
+        onclick="toggleTheme()"
+        class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-600 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition shadow-[1.5px_1.5px_0px_#0f172a]"
+      >
+        <span id="theme-icon">🌙</span>
+        <span id="theme-text" class="hidden sm:inline">Tối</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- EXPLANATION BANNER -->
+  <div id="expl-banner" class="max-w-6xl mx-auto mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-slate-900 dark:border-amber-600/50 text-xs shadow-[2px_2px_0px_#0f172a]">
+    <div class="font-black text-amber-950 dark:text-amber-200 text-sm flex items-center gap-2 mb-1">
+      <span>💡</span>
+      <span id="expl-title">Cách A: Bố Cục Dạng Lưới 2 Cột (2-Column Task Grid) — Giải Pháp Tối Ưu Cho Mắt</span>
+    </div>
+    <p id="expl-desc" class="text-slate-700 dark:text-slate-300 leading-relaxed">
+      Thay vì kéo dãn 1 hàng dài 1200px khiến mắt phải đảo từ tận cùng bên trái sang tận cùng bên phải mới thấy nút bấm: Các mục tiêu được chia thành <strong>Lưới 2 Cột vừa vặn (~540px/thẻ)</strong>. Tên bài, thanh tiến độ và nút bấm nằm ngay trong tầm mắt tự nhiên. Bạn có thể <strong>cầm vào icon ⠿ để kéo thả đổi chỗ trực tiếp</strong>!
+    </p>
+  </div>
+
+  <!-- MAIN CANVAS -->
+  <div class="max-w-6xl mx-auto space-y-5">
+    
+    <!-- 1. HEADER CHÍNH -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl sm:text-2xl font-black text-slate-950 dark:text-white">
+            Kế Hoạch Ôn Thi
+          </h1>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-400/40">
+            Tuần này
+          </span>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-semibold mt-1">
+          28/09/2026 – 04/10/2026 • Còn 43 ngày tới kỳ thi
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="inline-flex items-center rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-[1.5px_1.5px_0px_#0f172a]">
+          <button class="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">◀</button>
+          <span class="px-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">Chuyển tuần</span>
+          <button class="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">▶</button>
+        </div>
+
+        <button class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold shadow-[1.5px_1.5px_0px_#0f172a] transition active:scale-95 cursor-pointer">
+          📝 Ghi Kết Quả
+        </button>
+      </div>
+    </div>
+
+    <!-- RIBBON SIMPLIFICATION CONTROLS -->
+    <div class="flex items-center justify-between gap-3 p-3 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-300 dark:border-slate-700 text-xs">
+      <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+        <span>✂️</span>
+        <span>Thử mức độ tinh gọn của thanh Tiến Độ:</span>
+      </span>
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button
+          id="btn-ribbon-pure"
+          onclick="setRibbonStyle('pure')"
+          class="px-2.5 py-1 rounded-lg font-black text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs transition cursor-pointer"
+        >
+          1. Chỉ 1 Thanh Tiến Độ Tuần (Khuyên dùng ⭐)
+        </button>
+        <button
+          id="btn-ribbon-integrated"
+          onclick="setRibbonStyle('integrated')"
+          class="px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 dark:text-slate-400 hover:text-slate-950 transition cursor-pointer"
+        >
+          2. Tích Hợp Vào Bảng (Bỏ luôn thanh này)
+        </button>
+        <button
+          id="btn-ribbon-all"
+          onclick="setRibbonStyle('all')"
+          class="px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 dark:text-slate-400 hover:text-slate-950 transition cursor-pointer"
+        >
+          3. Giữ 3 Khối Cũ
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. DẢI RIBBON TIẾN ĐỘ (SẼ ĐƯỢC CHUYỂN STYLE THEO NÚT BẤM TRÊN) -->
+    <div id="ribbon-container" class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      
+      <!-- Khối 1: Tiến độ tuần & Thanh năng lượng -->
+      <div class="flex-1 flex items-center gap-3.5 pr-0 md:pr-4">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 border-slate-900 bg-indigo-500 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-2xs">
+          🎯
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+              Tiến Độ Tuần Này
+            </span>
+            <span id="ribbon-counter" class="text-xs font-black tabular-nums text-indigo-600 dark:text-indigo-400">
+              0/3 Việc (0%)
+            </span>
+          </div>
+          <div class="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-900 dark:border-slate-700 overflow-hidden mt-1.5 shadow-2xs">
+            <div id="ribbon-bar" class="h-full bg-indigo-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Khối 2: Thời lượng tích luỹ (Ẩn khi ở chế độ Pure) -->
+      <div id="ribbon-extra-1" class="hidden flex items-center gap-3 px-0 md:px-5 pt-3 md:pt-0 shrink-0 border-t md:border-t-0 md:border-l-2 border-slate-200 dark:border-slate-800">
+        <div class="w-9 h-9 rounded-xl border-2 border-slate-900 bg-teal-300 text-teal-950 flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
+          ⏰
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Thời Lượng Học
+          </div>
+          <div class="text-base font-black tabular-nums text-slate-900 dark:text-white">
+            0 <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">/ 210p</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Khối 3: Chuyên cần (Ẩn khi ở chế độ Pure) -->
+      <div id="ribbon-extra-2" class="hidden flex items-center gap-3 pl-0 md:pl-5 pt-3 md:pt-0 shrink-0 border-t md:border-t-0 md:border-l-2 border-slate-200 dark:border-slate-800">
+        <div class="w-9 h-9 rounded-xl border-2 border-slate-900 bg-rose-300 text-rose-950 flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
+          🔥
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Chuyên Cần Tuần
+          </div>
+          <div class="text-base font-black tabular-nums text-rose-600 dark:text-rose-400">
+            2/7 ngày
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. GỢI Ý CHIẾN LƯỢC AI -->
+    <div class="p-4 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_#0f172a] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="text-xl shrink-0">💡</span>
+        <div class="text-xs">
+          <strong class="text-slate-900 dark:text-white">Gợi ý AI tuần này:</strong> Luyện 2 bài Part 5 (Bạn đang có 33% lỗi thuộc nhóm Bẫy từ vựng trong sổ tay).
+        </div>
+      </div>
+      <button class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs border border-slate-900 shrink-0 shadow-2xs transition active:scale-95 cursor-pointer">
+        + Nhận mục tiêu này
+      </button>
+    </div>
+
+    <!-- 4. KHU VỰC VIỆC CẦN LÀM TUẦN NÀY (HỖ TRỢ CẢ 2 BỐ CỤC) -->
+    <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3.5px_3.5px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_#cbd5e1] p-4 sm:p-5 space-y-4">
+      
+      <!-- Card Sub-Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b-2 border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-base sm:text-lg font-black text-slate-950 dark:text-white flex items-center gap-2">
+            Việc Cần Làm Tuần Này
+            <span id="tasks-badge-count" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-900 shadow-2xs tabular-nums">
+              0/3
+            </span>
+          </h2>
+          <span class="text-[11px] text-slate-500 font-medium hidden md:inline">
+            (Có thể cầm ⠿ kéo thả đổi chỗ thứ tự việc)
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-900 dark:text-white text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] transition active:scale-95 cursor-pointer">
+            📋 Sao chép tuần trước (4)
+          </button>
+          <button class="px-3.5 py-1.5 rounded-xl border-2 border-slate-900 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] transition active:scale-95 cursor-pointer flex items-center gap-1.5">
+            <span>➕</span>
+            <span>Thêm mục tiêu</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTAINER TASK LIST / GRID SẼ ĐƯỢC RENDER BẰNG JS -->
+      <div id="tasks-container">
+        <!-- Rendered by renderTasks() -->
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Task data state with order
+    let tasks = [
+      {
+        id: 'task-1',
+        title: 'Làm 1 đề Full Test (200 câu)',
+        tag: 'Full Test',
+        tagBg: 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200',
+        barColor: 'bg-blue-600',
+        done: 0,
+        target: 2,
+        unit: 'đề',
+        btnText: 'Nhập điểm',
+        btnBg: 'bg-sky-200 hover:bg-sky-300 dark:bg-sky-900 text-slate-950 dark:text-white',
+        isComplete: false
+      },
+      {
+        id: 'task-2',
+        title: 'Luyện 2 bài Part 7',
+        tag: 'Part 7',
+        tagBg: 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-200',
+        barColor: 'bg-amber-500',
+        done: 0,
+        target: 2,
+        unit: 'bài',
+        btnText: 'Ghi kết quả',
+        btnBg: 'bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 text-slate-950 dark:text-white',
+        isComplete: false
+      },
+      {
+        id: 'task-3',
+        title: 'Học 210 phút tuần này',
+        tag: 'Thời gian học',
+        tagBg: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200',
+        barColor: 'bg-indigo-600',
+        done: 0,
+        target: 210,
+        unit: 'phút',
+        btnText: 'Bật đồng hồ',
+        btnBg: 'bg-indigo-200 hover:bg-indigo-300 dark:bg-indigo-900 text-slate-950 dark:text-white',
+        isComplete: false
+      }
+    ];
+
+    let currentLayout = 'grid'; // 'grid' or 'row'
+
+    function renderTasks() {
+      const container = document.getElementById('tasks-container');
+      
+      if (currentLayout === 'grid') {
+        // ==========================================
+        // CÁCH A: GRID 2 CỘT — GỌN GÀNG, GẦN MẮT
+        // ==========================================
+        container.className = 'grid grid-cols-1 md:grid-cols-2 gap-3.5';
+        container.innerHTML = tasks.map((t, idx) => {
+          const percent = t.isComplete ? 100 : (t.done / t.target) * 100;
+          return `
+            <div
+              id="${t.id}"
+              draggable="true"
+              ondragstart="handleDragStart(event, '${t.id}')"
+              ondragover="handleDragOver(event, '${t.id}')"
+              ondragleave="handleDragLeave(event)"
+              ondrop="handleDrop(event, '${t.id}')"
+              ondragend="handleDragEnd(event)"
+              class="task-item p-4 rounded-xl border-2 border-slate-900 dark:border-slate-700 ${t.isComplete ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500' : 'bg-white dark:bg-[#151f32]'} shadow-[2px_2px_0px_#0f172a] hover:shadow-[3px_3px_0px_#0f172a] hover:-translate-y-0.5 transition-all flex flex-col justify-between gap-3 group"
+            >
+              <!-- Hàng trên: Grip + Checkbox + Tiêu đề + Badge -->
+              <div class="flex items-start gap-2.5">
+                <span class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 group-hover:text-slate-800 dark:group-hover:text-slate-200 text-sm select-none pt-0.5" title="Kéo thả đổi vị trí">
+                  ⠿
+                </span>
+                
+                <button
+                  onclick="toggleTask('${t.id}')"
+                  class="w-5.5 h-5.5 rounded-md border-2 border-slate-900 dark:border-slate-400 ${t.isComplete ? 'bg-emerald-500 text-white animate-check-pop' : 'bg-white dark:bg-slate-800'} flex items-center justify-center text-xs font-black transition-all hover:scale-110 cursor-pointer shrink-0 mt-0.5 shadow-2xs"
+                  title="Đánh dấu hoàn thành"
+                >
+                  ${t.isComplete ? '✓' : ''}
+                </button>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-sm font-black text-slate-950 dark:text-white ${t.isComplete ? 'line-through text-slate-400 dark:text-slate-500' : ''}">
+                      ${t.title}
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black border border-slate-900/40 ${t.tagBg} shadow-2xs">
+                      ${t.tag}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Sửa/Xóa mờ -->
+                <div class="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                  <button class="p-1 text-slate-500 hover:text-slate-900 text-xs" title="Chỉnh sửa">✏️</button>
+                  <button class="p-1 text-slate-500 hover:text-rose-600 text-xs" title="Xóa">🗑️</button>
+                </div>
+              </div>
+
+              <!-- Hàng dưới: Thanh tiến độ VÀ Nút bấm nằm CẠNH NHAU (Mắt nhìn trực diện, không bị kéo dãn) -->
+              <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 flex-1 max-w-[200px]">
+                  <div class="flex-1 h-2 rounded-full border border-slate-900 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-2xs">
+                    <div class="h-full ${t.isComplete ? 'bg-emerald-500' : t.barColor} transition-all duration-500" style="width: ${percent}%"></div>
+                  </div>
+                  <span class="text-xs font-black tabular-nums ${t.isComplete ? 'text-emerald-600' : 'text-slate-900 dark:text-white'} shrink-0">
+                    ${t.isComplete ? `${t.target}/${t.target} ${t.unit} ✓` : `${t.done}/${t.target} ${t.unit}`}
+                  </span>
+                </div>
+
+                <!-- NÚT BẤM NẰM NGAY TRONG TẦM MẮT (~200px TỪ TÊN TASK) -->
+                ${t.isComplete ? `
+                  <span class="px-3 py-1 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-xs border border-emerald-400">
+                    Đã xong ✓
+                  </span>
+                ` : `
+                  <button class="px-3 py-1.5 rounded-xl border-2 border-slate-900 ${t.btnBg} text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 cursor-pointer flex items-center gap-1">
+                    <span>${t.btnText}</span>
+                    <span>→</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } else {
+        // ==========================================
+        // CÁCH B: HÀNG NGANG GOM CỤM (COMPACT ROW)
+        // ==========================================
+        container.className = 'space-y-2.5';
+        container.innerHTML = tasks.map((t, idx) => {
+          const percent = t.isComplete ? 100 : (t.done / t.target) * 100;
+          return `
+            <div
+              id="${t.id}"
+              draggable="true"
+              ondragstart="handleDragStart(event, '${t.id}')"
+              ondragover="handleDragOver(event, '${t.id}')"
+              ondragleave="handleDragLeave(event)"
+              ondrop="handleDrop(event, '${t.id}')"
+              ondragend="handleDragEnd(event)"
+              class="task-item p-3 sm:px-4 sm:py-3 rounded-xl border-2 border-slate-900 dark:border-slate-700 ${t.isComplete ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500' : 'bg-white dark:bg-[#151f32]'} shadow-[2px_2px_0px_#0f172a] hover:shadow-[3px_3px_0px_#0f172a] hover:-translate-y-0.5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 group"
+            >
+              <!-- Cột 1: Grip + Checkbox + Title (chiếm 50% hàng) -->
+              <div class="flex items-center gap-3 min-w-0 md:w-1/2">
+                <span class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 group-hover:text-slate-800 dark:group-hover:text-slate-200 text-sm select-none" title="Kéo thả đổi vị trí">
+                  ⠿
+                </span>
+                
+                <button
+                  onclick="toggleTask('${t.id}')"
+                  class="w-5.5 h-5.5 rounded-md border-2 border-slate-900 dark:border-slate-400 ${t.isComplete ? 'bg-emerald-500 text-white animate-check-pop' : 'bg-white dark:bg-slate-800'} flex items-center justify-center text-xs font-black transition-all hover:scale-110 cursor-pointer shrink-0 shadow-2xs"
+                  title="Đánh dấu hoàn thành"
+                >
+                  ${t.isComplete ? '✓' : ''}
+                </button>
+
+                <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                  <span class="text-sm sm:text-base font-black text-slate-950 dark:text-white truncate ${t.isComplete ? 'line-through text-slate-400 dark:text-slate-500' : ''}">
+                    ${t.title}
+                  </span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black border border-slate-900/40 ${t.tagBg} shadow-2xs shrink-0">
+                    ${t.tag}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Cột 2 & 3: Tiến độ & Nút bấm gom lại gần nhau -->
+              <div class="flex items-center justify-between md:justify-end gap-4 shrink-0 md:w-1/2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                
+                <!-- Tiến độ -->
+                <div class="flex items-center gap-2 w-36 sm:w-44 shrink-0">
+                  <div class="flex-1 h-2 rounded-full border border-slate-900 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-2xs">
+                    <div class="h-full ${t.isComplete ? 'bg-emerald-500' : t.barColor} transition-all duration-500" style="width: ${percent}%"></div>
+                  </div>
+                  <span class="text-xs font-black tabular-nums ${t.isComplete ? 'text-emerald-600' : 'text-slate-900 dark:text-white'} shrink-0">
+                    ${t.isComplete ? `${t.target}/${t.target} ${t.unit} ✓` : `${t.done}/${t.target} ${t.unit}`}
+                  </span>
+                </div>
+
+                <!-- Nút bấm & Option -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                  ${t.isComplete ? `
+                    <span class="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-xs border border-emerald-400">
+                      Đã xong ✓
+                    </span>
+                  ` : `
+                    <button class="px-3 py-1.5 rounded-xl border-2 border-slate-900 ${t.btnBg} text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 cursor-pointer flex items-center gap-1">
+                      <span>${t.btnText}</span>
+                      <span>→</span>
+                    </button>
+                  `}
+
+                  <div class="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <button class="p-1 text-slate-500 hover:text-slate-900 text-xs" title="Chỉnh sửa">✏️</button>
+                    <button class="p-1 text-slate-500 hover:text-rose-600 text-xs" title="Xóa">🗑️</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      updateCounters();
+    }
+
+    function toggleTask(id) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        task.isComplete = !task.isComplete;
+        renderTasks();
+      }
+    }
+
+    function updateCounters() {
+      const completed = tasks.filter(t => t.isComplete).length;
+      const total = tasks.length;
+      const pct = Math.round((completed / total) * 100);
+
+      document.getElementById('ribbon-counter').innerText = `${completed}/${total} Việc (${pct}%)`;
+      document.getElementById('ribbon-bar').style.width = `${pct}%`;
+      document.getElementById('tasks-badge-count').innerText = `${completed}/${total}`;
+    }
+
+    // Switch between Grid and Row
+    function switchTaskLayout(layout) {
+      currentLayout = layout;
+      const btnGrid = document.getElementById('btn-layout-grid');
+      const btnRow = document.getElementById('btn-layout-row');
+      const title = document.getElementById('expl-title');
+      const desc = document.getElementById('expl-desc');
+
+      if (layout === 'grid') {
+        btnGrid.className = 'px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs flex items-center gap-1.5';
+        btnRow.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1.5';
+        title.innerText = 'Cách A: Bố Cục Dạng Lưới 2 Cột (2-Column Task Grid) — Giải Pháp Tối Ưu Cho Mắt';
+        desc.innerHTML = 'Thay vì kéo dãn 1 hàng dài 1200px khiến mắt phải đảo từ tận cùng bên trái sang tận cùng bên phải mới thấy nút bấm: Các mục tiêu được chia thành <strong>Lưới 2 Cột vừa vặn (~540px/thẻ)</strong>. Tên bài, thanh tiến độ và nút bấm nằm ngay trong tầm mắt tự nhiên. Bạn có thể <strong>cầm vào icon ⠿ để kéo thả đổi chỗ trực tiếp</strong>!';
+      } else {
+        btnRow.className = 'px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs flex items-center gap-1.5';
+        btnGrid.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1.5';
+        title.innerText = 'Cách B: Hàng Ngang Gom Cụm Tinh Gọn (Compact Clustered Row)';
+        desc.innerHTML = 'Giữ nguyên dạng danh sách 1 cột truyền thống, nhưng <strong>gom cụm thanh tiến độ và nút bấm</strong> về nửa bên phải một cách chặt chẽ thay vì để khoảng cách dạt ra 2 biên màn hình. Vẫn có đầy đủ <strong>icon ⠿ kéo thả đổi chỗ</strong> và tick checkbox!';
+      }
+
+      renderTasks();
+    }
+
+    // ==========================================
+    // HTML5 DRAG & DROP HANDLERS
+    // ==========================================
+    let draggedId = null;
+
+    function handleDragStart(e, id) {
+      draggedId = id;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('dragging');
+      }, 0);
+    }
+
+    function handleDragOver(e, id) {
+      e.preventDefault();
+      if (draggedId === id) return;
+      const el = document.getElementById(id);
+      if (el) el.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      const el = e.currentTarget;
+      if (el) el.classList.remove('drag-over');
+    }
+
+    function handleDrop(e, targetId) {
+      e.preventDefault();
+      const el = document.getElementById(targetId);
+      if (el) el.classList.remove('drag-over');
+
+      if (!draggedId || draggedId === targetId) return;
+
+      const fromIndex = tasks.findIndex(t => t.id === draggedId);
+      const toIndex = tasks.findIndex(t => t.id === targetId);
+
+      if (fromIndex !== -1 && toIndex !== -1) {
+        const [moved] = tasks.splice(fromIndex, 1);
+        tasks.splice(toIndex, 0, moved);
+        renderTasks();
+      }
+    }
+
+    function handleDragEnd(e) {
+      const el = document.getElementById(draggedId);
+      if (el) el.classList.remove('dragging');
+      draggedId = null;
+      document.querySelectorAll('.task-item').forEach(item => {
+        item.classList.remove('drag-over', 'dragging');
+      });
+    }
+
+    function setRibbonStyle(style) {
+      const container = document.getElementById('ribbon-container');
+      const extra1 = document.getElementById('ribbon-extra-1');
+      const extra2 = document.getElementById('ribbon-extra-2');
+
+      const btnPure = document.getElementById('btn-ribbon-pure');
+      const btnInteg = document.getElementById('btn-ribbon-integrated');
+      const btnAll = document.getElementById('btn-ribbon-all');
+
+      [btnPure, btnInteg, btnAll].forEach(b => {
+        b.className = 'px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 dark:text-slate-400 hover:text-slate-950 transition cursor-pointer';
+      });
+
+      if (style === 'pure') {
+        container.classList.remove('hidden');
+        extra1.classList.add('hidden');
+        extra2.classList.add('hidden');
+        btnPure.className = 'px-2.5 py-1 rounded-lg font-black text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs transition cursor-pointer';
+      } else if (style === 'all') {
+        container.classList.remove('hidden');
+        extra1.classList.remove('hidden');
+        extra2.classList.remove('hidden');
+        btnAll.className = 'px-2.5 py-1 rounded-lg font-black text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs transition cursor-pointer';
+      } else if (style === 'integrated') {
+        container.classList.add('hidden');
+        btnInteg.className = 'px-2.5 py-1 rounded-lg font-black text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs transition cursor-pointer';
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      document.getElementById('theme-icon').innerText = isDark ? '☀️' : '🌙';
+      document.getElementById('theme-text').innerText = isDark ? 'Sáng' : 'Tối';
+    }
+
+    // Initial render
+    renderTasks();
+  </script>
+</body>
+</html>

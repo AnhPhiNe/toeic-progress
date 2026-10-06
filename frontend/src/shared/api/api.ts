@@ -1,0 +1,38 @@
+import { cloud } from '@/shared/api/supabaseClient';
+export const apiAvailable = Boolean(import.meta.env.VITE_API_URL && cloud);
+
+export class ApiRequestError extends Error {
+  constructor(message: string, public readonly status: number, public readonly requestId?: string, public readonly retryAfter?: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+}
+
+export async function backendRequest<T>(path: string, method = 'GET', body?: unknown, expectedUserId?: string): Promise<T> {
+  if (!apiAvailable || !cloud) throw new Error('Backend chưa được cấu hình. Bạn vẫn có thể dùng chế độ khách.');
+  const { data, error } = await cloud.auth.getSession();
+  if (error || !data.session) throw new Error('Cần đăng nhập hoặc tạo phiên khách để tiếp tục.');
+  if (expectedUserId && data.session.user.id !== expectedUserId) throw new Error('Tài khoản đã thay đổi. Vui lòng thử đồng bộ lại.');
+  let response: Response;
+  try {
+    response = await fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${data.session.access_token}`, 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(90_000)
+    });
+  } catch {
+    throw new Error('Chưa kết nối được backend. Vui lòng thử lại sau; dữ liệu trên máy vẫn được giữ.');
+  }
+  const value = await response.json().catch(() => null);
+  if (!response.ok) {
+    const headerId = response.headers.get('X-Request-ID') || '';
+    const requestId = /^[a-f0-9-]{36}$/i.test(headerId) ? headerId : undefined;
+    const seconds = Number(response.headers.get('Retry-After'));
+    const retryAfter = Number.isInteger(seconds) && seconds > 0 && seconds <= 300 ? seconds : undefined;
+    let message = typeof value?.detail === 'string' ? value.detail : 'Máy chủ chưa xử lý được yêu cầu.';
+    if (retryAfter) message += ` Thử lại sau ${retryAfter} giây.`;
+    if (response.status >= 500 && requestId) message += ` Mã hỗ trợ: ${requestId}.`;
+    throw new ApiRequestError(message, response.status, requestId, retryAfter);
+  }
+  return value as T;
+}

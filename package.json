@@ -3,41 +3,24 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
+    "dev": "npm run dev --workspace=@toeic-progress/frontend --",
+    "build": "npm run build --workspace=@toeic-progress/frontend --",
+    "preview": "npm run preview --workspace=@toeic-progress/frontend --",
+    "test": "npm run test --workspace=@toeic-progress/frontend --",
+    "lint": "npm run lint --workspace=@toeic-progress/frontend --",
+    "typecheck": "npm run typecheck --workspace=@toeic-progress/frontend --",
     "test:e2e": "playwright test",
-    "lint": "eslint src",
-    "test:rls": "node scripts/test-rls.mjs"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.117.0",
-    "canvas-confetti": "^1.9.4",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.16.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "recharts": "^2.15.0",
-    "tailwind-merge": "^2.5.5",
-    "zod": "^4.6.5"
+    "test:rls": "node tests/staging/rls.mjs",
+    "test:staging": "node tests/staging/smoke.mjs",
+    "test:db": "node tests/database/test-database.mjs && node tests/database/test-domain-tables.mjs && node tests/database/test-content-purge.mjs && node tests/database/test-api-limits.mjs"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.63.0",
-    "@types/canvas-confetti": "^1.9.0",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^10.11.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.70.1",
-    "vite": "^6.0.7",
-    "vitest": "^5.0.1"
+    "@supabase/supabase-js": "^2.117.0"
   }
 }

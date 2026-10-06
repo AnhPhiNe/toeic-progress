@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phương Án Thay Thế 4 Thẻ KPI Trang Lịch Sử Thi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f8fafc', 500: '#3b82f6', 600: '#2563eb' }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 p-4 sm:p-8 min-h-screen text-slate-800 dark:text-slate-100 transition-colors">
+
+  <!-- TOP BAR CONTROL -->
+  <div class="max-w-6xl mx-auto mb-8 flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1]">
+    <div>
+      <h1 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+        <span>💡 Đánh Giá: 4 Thẻ KPI Có Thật Sự Cần Thiết Ở Trang Lịch Sử?</span>
+      </h1>
+      <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+        Phân tích chuyên sâu & Đề xuất các component thay thế đúng chức năng "Nhật Ký Lịch Sử" hơn
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleDark()" class="px-3.5 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-amber-300 dark:bg-slate-800 text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] cursor-pointer">
+        🌙 / ☀️ Chuyển Dark/Light Mode
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-12">
+
+    <!-- 0. PHÂN TÍCH TẠI SAO 4 CARD BỊ THỪA -->
+    <div class="p-4 rounded-2xl border-2 border-amber-500/80 bg-amber-50/80 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 space-y-2">
+      <div class="flex items-center gap-2 font-black text-sm">
+        <span>⚠️ Nhận Định Của Bạn Rất Chuẩn: 4 Card Này Bị Trùng Lặp & Chiếm Chỗ</span>
+      </div>
+      <ul class="text-xs space-y-1 list-disc list-inside font-medium leading-relaxed">
+        <li><strong>Bị trùng lặp:</strong> Số liệu <em>"Tổng 5 bài, 4 đề Full, 1 Part"</em> thực chất chính là các Tab bộ lọc <code>[Tất Cả (5)] [Full Test (4)] [Luyện Part (1)]</code> ngay bên dưới.</li>
+        <li><strong>Đẩy lùi danh sách:</strong> 4 thẻ to đùng chiếm tới 110px chiều cao màn hình, làm người dùng phải cuộn chuột mới xem được lịch sử bài thi gần nhất.</li>
+        <li><strong>Sai trọng tâm trang:</strong> Trang này là <strong>Nhật ký tra cứu (Log & History)</strong> chứ không phải Dashboard KPI. Người dùng vào đây để tìm bài thi, xem lại điểm và lỗi sai.</li>
+      </ul>
+    </div>
+
+    <!-- 1. PHƯƠNG ÁN 1: MINI TIMELINE SPARKLINE RIBBON (ĐÚNG CHẤT LỊCH SỬ THI NHẤT - KHUYÊN DÙNG) -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 px-3 py-1 rounded-full border border-indigo-300 dark:border-indigo-800 flex items-center gap-1.5">
+          <span>✨ Lựa Chọn 1: Mini Trend Ribbon (Thanh Nhịp Điệu Lịch Sử - Khuyên Dùng)</span>
+          <span class="text-[10px] bg-indigo-600 text-white px-1.5 py-0.2 rounded font-black">Chuẩn UX</span>
+        </span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">Thay 4 hộp thô cứng bằng 1 dải tiến trình điểm thi qua thời gian</span>
+      </div>
+
+      <div class="space-y-4">
+        <!-- COMPONENT MỚI: MINI PROGRESS TIMELINE (Cao chỉ 56px, trực quan tuyệt đối) -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] p-3.5 px-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <!-- Trái: Tóm tắt tiến bộ -->
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-2 border-slate-900 dark:border-slate-700 flex items-center justify-center font-black shrink-0">
+              📈
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Tiến Độ Điểm Qua 4 Đề Full Test</span>
+                <span class="px-2 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-black border border-emerald-300 dark:border-emerald-800">
+                  +90đ so với mốc đầu
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-400 font-medium mt-0.5">
+                Mốc đầu: 870đ ➔ Đề gần nhất: <strong class="text-slate-900 dark:text-white font-bold">960đ (Kỷ lục cá nhân 🏆)</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Giữa: Chuỗi bước điểm số (Timeline Stepper) -->
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <!-- Node 1 -->
+            <div class="text-center group cursor-pointer" title="22/08 • ETS Test 02: 870đ">
+              <span class="text-[10px] font-bold text-slate-400 block">Đề 1</span>
+              <div class="px-2 py-1 rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs font-bold text-slate-600 dark:text-slate-300">
+                870đ
+              </div>
+            </div>
+
+            <span class="text-slate-300 dark:text-slate-700 font-bold text-xs">➔</span>
+
+            <!-- Node 2 -->
+            <div class="text-center group cursor-pointer" title="02/09 • ETS Test 03: 920đ">
+              <span class="text-[10px] font-bold text-emerald-500 block">+50đ</span>
+              <div class="px-2 py-1 rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs font-bold text-slate-700 dark:text-slate-200">
+                920đ
+              </div>
+            </div>
+
+            <span class="text-slate-300 dark:text-slate-700 font-bold text-xs">➔</span>
+
+            <!-- Node 3 -->
+            <div class="text-center group cursor-pointer" title="08/09 • Hacker Test 01: 910đ">
+              <span class="text-[10px] font-bold text-rose-500 block">-10đ</span>
+              <div class="px-2 py-1 rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs font-bold text-slate-700 dark:text-slate-200">
+                910đ
+              </div>
+            </div>
+
+            <span class="text-slate-300 dark:text-slate-700 font-bold text-xs">➔</span>
+
+            <!-- Node 4 (Đỉnh) -->
+            <div class="text-center group cursor-pointer" title="13/09 • ETS Test 04: 960đ">
+              <span class="text-[10px] font-black text-amber-500 block">MAX 🏆</span>
+              <div class="px-2.5 py-1 rounded-lg border-2 border-slate-900 dark:border-slate-200 bg-amber-400 text-slate-950 font-mono text-xs font-black shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+                960đ
+              </div>
+            </div>
+          </div>
+
+          <!-- Phải: Nút Ghi Điểm Nhanh -->
+          <button class="px-3.5 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white border-2 border-slate-900 dark:border-slate-300 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer">
+            <span>+ Ghi Điểm Mới</span>
+          </button>
+        </div>
+
+        <!-- BẢNG DỮ LIỆU ĐƯỢC ĐẨY LÊN NGAY TRUNG TÂM MÀN HÌNH -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] space-y-4">
+          
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b-2 border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border-2 border-slate-900 dark:border-slate-700 w-fit">
+              <button class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-white dark:bg-slate-800 text-slate-950 dark:text-white border-2 border-slate-900 dark:border-slate-300 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+                Tất Cả (5)
+              </button>
+              <button class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950">
+                Full Test (4)
+              </button>
+              <button class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950">
+                Luyện Part (1)
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                <input 
+                  type="text" 
+                  placeholder="Tìm đề thi, ghi chú..." 
+                  class="pl-8 pr-3 py-1.5 text-xs rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium w-48 sm:w-56"
+                />
+              </div>
+
+              <select class="px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                <option>Mọi lượt thi</option>
+                <option>Chỉ đề mới (L1)</option>
+                <option>Chỉ đề làm lại (Retest)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Bảng 6 Cột Gọn Gàng -->
+          <div class="overflow-x-auto rounded-xl border-2 border-slate-900 dark:border-slate-700">
+            <table class="w-full text-left text-xs sm:text-sm border-collapse">
+              <thead>
+                <tr class="bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 font-black uppercase text-[11px] border-b-2 border-slate-900 dark:border-slate-700">
+                  <th class="py-3 px-4">BÀI THI & NGÀY LÀM</th>
+                  <th class="py-3 px-3 text-center">LISTENING</th>
+                  <th class="py-3 px-3 text-center">READING</th>
+                  <th class="py-3 px-3 text-center">TỔNG ĐIỂM</th>
+                  <th class="py-3 px-3 text-center">XU HƯỚNG</th>
+                  <th class="py-3 px-4 text-right">THAO TÁC</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y-2 divide-slate-100 dark:divide-slate-800 font-medium">
+                <tr class="hover:bg-blue-50/60 dark:hover:bg-blue-950/30 transition cursor-pointer">
+                  <td class="py-3.5 px-4">
+                    <div class="flex items-center gap-2">
+                      <span class="font-black text-slate-900 dark:text-white text-sm">ETS 2024 Test 04</span>
+                      <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-300">Lần 1</span>
+                    </div>
+                    <div class="text-xs text-slate-400 mt-0.5">13/09/2026 • ⏱ 112 phút</div>
+                  </td>
+                  <td class="text-center font-black font-mono text-indigo-600">495đ</td>
+                  <td class="text-center font-black font-mono text-teal-600">465đ</td>
+                  <td class="text-center font-black font-mono text-slate-900 dark:text-white text-base">960đ</td>
+                  <td class="text-center">
+                    <span class="px-2 py-0.5 rounded-md text-xs font-black bg-emerald-100 text-emerald-700 border border-emerald-300 font-mono">+50đ</span>
+                  </td>
+                  <td class="text-right px-4">
+                    <button class="p-1.5 rounded-lg border border-slate-300 hover:border-slate-900 mr-1">✏️</button>
+                    <button class="p-1.5 rounded-lg border border-slate-300 hover:border-rose-500 text-rose-500">🗑️</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. PHƯƠNG ÁN 2: ZERO-CLUTTER MINIMALIST (BỎ HẲN CARD - TẬP TRUNG 100% VÀO BẢNG) -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-black uppercase tracking-wider text-slate-600 bg-slate-200 dark:bg-slate-800 dark:text-slate-300 px-3 py-1 rounded-full border border-slate-400 flex items-center gap-1.5">
+          <span>Lựa Chọn 2: Zero-Clutter Minimalist (Bỏ Toàn Bộ Khối Phía Trên)</span>
+        </span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">Không card, không ribbon — Mở trang là thấy ngay bảng tra cứu</span>
+      </div>
+
+      <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] space-y-4">
+        
+        <!-- Header tích hợp thống kê siêu gọn trên 1 dòng -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <span>📋 Nhật Ký & Lịch Sử Bài Thi</span>
+            </h2>
+            <p class="text-xs text-slate-400 font-medium">
+              Đã ghi nhận <strong>5 bài</strong> • Điểm cao nhất: <strong class="text-amber-500 font-black">960đ 🏆</strong> • Trung bình: <strong class="text-emerald-500 font-black">915đ</strong>
+            </p>
+          </div>
+
+          <button class="px-4 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white border-2 border-slate-900 dark:border-slate-300 shadow-[2px_2px_0px_0px_#0f172a] cursor-pointer flex items-center gap-1.5 w-fit">
+            <span>+ Ghi Nhận Điểm Thi</span>
+          </button>
+        </div>
+
+        <!-- Filter + Bảng -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border-2 border-slate-900 dark:border-slate-700 w-fit">
+            <button class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-white dark:bg-slate-800 text-slate-950 dark:text-white border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+              Tất Cả (5)
+            </button>
+            <button class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400">
+              Full Test (4)
+            </button>
+            <button class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400">
+              Luyện Part (1)
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input 
+              type="text" 
+              placeholder="Tìm đề thi, ghi chú..." 
+              class="pl-3 pr-3 py-1.5 text-xs rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 w-52"
+            />
+            <select class="px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+              <option>Mọi lượt thi</option>
+              <option>Chỉ đề mới (L1)</option>
+              <option>Chỉ đề làm lại</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="p-6 text-center text-xs text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+          [Toàn bộ Bảng Lịch Sử hiển thị ngay trên cùng màn hình mà không cần cuộn trang]
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function toggleDark() {
+      document.documentElement.classList.toggle('dark');
+    }
+  </script>
+</body>
+</html>

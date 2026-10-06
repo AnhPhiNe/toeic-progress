@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bản Phóng Lớn 2 Biểu Đồ (Không Thêm Bất Kỳ Thẻ Nào) — TOEIC Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 antialiased p-4 sm:p-6 lg:p-8 min-h-screen">
+  <div class="max-w-6xl mx-auto space-y-4">
+
+    <!-- Header thông báo -->
+    <div class="flex items-center justify-between pb-3 border-b-2 border-slate-900">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 border-2 border-slate-900 text-[11px] font-black uppercase tracking-wider text-blue-900 shadow-[2px_2px_0px_0px_#0f172a]">
+          🎯 ĐÚNG 2 KHỐI DUY NHẤT • KHÔNG THÊM BẤT KỲ THẺ CARD NÀO
+        </div>
+        <h1 class="text-xl sm:text-2xl font-black text-slate-950 mt-1">
+          Chẩn Đoán Năng Lực & Phân Tích Lỗi Sai
+        </h1>
+        <p class="text-xs text-slate-500 font-medium">
+          Mở rộng kích thước và chiều sâu dữ liệu của 2 biểu đồ để lấp đầy màn hình tự nhiên
+        </p>
+      </div>
+
+      <div class="text-right">
+        <span class="text-xs font-mono font-bold text-slate-600 bg-white px-3 py-1.5 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+          5 đề gần nhất · 6 lỗi ghi nhận
+        </span>
+      </div>
+    </div>
+
+    <!-- CHỈ CÒN ĐÚNG 2 KHỐI HERO (50% / 50%) - CAO RÁO, ĐẦY ĐẶN, KHÔNG BỊ TRỐNG -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      
+      <!-- CỘT 1: BIỂU ĐỒ 7 PART CAO RÁO + BẢNG CHI TIẾT SỐ CÂU ĐÚNG -->
+      <div class="rounded-2xl border-2 border-slate-900 bg-white p-5 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col justify-between space-y-4">
+        
+        <!-- Header biểu đồ -->
+        <div class="flex items-center justify-between pb-2 border-b-2 border-slate-900">
+          <div>
+            <h2 class="font-black text-base text-slate-950">Năng Lực 7 Part (Độ chính xác %)</h2>
+            <p class="text-xs text-slate-400">Chạm vào cột bất kỳ để chọn Part cần luyện tập</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200 text-xs">
+              <button class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white text-slate-900 shadow-xs">5 đề gần nhất</button>
+              <button class="px-2 py-0.5 rounded-md text-[11px] font-medium text-slate-500">Tất cả (6)</button>
+            </div>
+            <span class="text-xs font-mono text-slate-400 hidden sm:inline">| Mục tiêu: 90%</span>
+          </div>
+        </div>
+
+        <!-- Biểu đồ cột cao ráo (h-[230px]) -->
+        <div class="relative w-full h-[230px]">
+          <canvas id="colChart"></canvas>
+        </div>
+
+        <!-- BẢNG CHI TIẾT SỐ CÂU ĐÚNG TỪNG PART (LẤP ĐẦY KHÔNG GIAN CỰC KỲ THỰC CHIẾN) -->
+        <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-xs">
+          
+          <!-- Nhóm Listening -->
+          <div class="p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-200/80 space-y-1.5">
+            <div class="flex justify-between font-black text-indigo-950 border-b border-indigo-200/60 pb-1">
+              <span>🎧 LISTENING</span>
+              <span class="font-mono text-indigo-700">485/495đ</span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+              <div class="flex justify-between text-slate-600"><span>P1: Tranh</span> <strong class="font-mono text-slate-900">6/6</strong></div>
+              <div class="flex justify-between text-slate-600"><span>P2: Hỏi-Đáp</span> <strong class="font-mono text-slate-900">23/25</strong></div>
+              <div class="flex justify-between text-slate-600"><span>P3: Hội thoại</span> <strong class="font-mono text-slate-900">36/39</strong></div>
+              <div class="flex justify-between text-slate-600"><span>P4: Bài nói</span> <strong class="font-mono text-slate-900">26/30</strong></div>
+            </div>
+          </div>
+
+          <!-- Nhóm Reading -->
+          <div class="p-2.5 rounded-xl bg-teal-50/60 border border-teal-200/80 space-y-1.5">
+            <div class="flex justify-between font-black text-teal-950 border-b border-teal-200/60 pb-1">
+              <span>📖 READING</span>
+              <span class="font-mono text-teal-700">455/495đ</span>
+            </div>
+            <div class="space-y-1 text-[11px]">
+              <div class="flex justify-between text-slate-600"><span>P5: Điền câu</span> <strong class="font-mono text-slate-900">28/30</strong></div>
+              <div class="flex justify-between text-slate-600"><span>P6: Đoạn văn</span> <strong class="font-mono text-slate-900">14/16</strong></div>
+              <div class="flex justify-between text-rose-700 font-bold bg-rose-50 px-1 rounded">
+                <span>⚠️ P7: Đọc hiểu</span> <strong class="font-mono text-rose-700">47/54 (86%)</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Chân thẻ: Nút bấm giờ tương tác -->
+        <div class="p-3 rounded-xl bg-amber-50/80 border-2 border-slate-900 flex items-center justify-between gap-3 shadow-[2px_2px_0px_0px_#0f172a]">
+          <div class="min-w-0 text-xs">
+            <span class="font-black text-amber-950 block truncate">⚡ Part 7 (86%) · Điểm nghẽn cần ưu tiên</span>
+            <span class="text-[11px] text-slate-500 font-medium truncate block">Đang đạt 47/54 câu · Cần thêm ~6 câu để đạt mốc Reading</span>
+          </div>
+          <button class="px-3.5 py-2 rounded-lg border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs font-black shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0 transition-all">
+            ⏱️ Bấm giờ P7
+          </button>
+        </div>
+
+      </div>
+
+
+      <!-- CỘT 2: BIỂU ĐỒ DONUT RỘNG RÃI + BẢNG TIẾN ĐỘ BẮT BẪY -->
+      <div class="rounded-2xl border-2 border-slate-900 bg-white p-5 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col justify-between space-y-4">
+        
+        <!-- Header biểu đồ -->
+        <div class="flex items-center justify-between pb-2 border-b-2 border-slate-900">
+          <div>
+            <h2 class="font-black text-base text-slate-950">Nguyên Nhân Mất Điểm</h2>
+            <p class="text-xs text-slate-400">Phân loại từ 6 lỗi sai trong Sổ tay bắt bẫy</p>
+          </div>
+          <span class="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            Tổng 6 lỗi
+          </span>
+        </div>
+
+        <!-- Bánh Donut lớn và rõ nét (h-[200px]) -->
+        <div class="relative h-[200px] flex items-center justify-center">
+          <canvas id="donutChart"></canvas>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span class="text-3xl font-black font-mono text-slate-900">6</span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lỗi ghi nhận</span>
+          </div>
+        </div>
+
+        <!-- DANH SÁCH CHI TIẾT CÓ THANH TIẾN ĐỘ VÀ NƠI XUẤT HIỆN LỖI -->
+        <div class="space-y-2 pt-2 border-t border-slate-100 text-xs">
+          
+          <!-- Lỗi 1: Bẫy từ vựng -->
+          <div class="space-y-1 p-2 rounded-lg bg-rose-50/70 border border-rose-200/70">
+            <div class="flex justify-between font-black text-slate-900">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                Bẫy Từ Vựng & Paraphrase (Điểm nghẽn)
+              </span>
+              <span class="font-mono text-rose-600 font-bold">33% (2 câu)</span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <div class="flex-1 bg-rose-200 h-1.5 rounded-full overflow-hidden mr-3">
+                <div class="bg-rose-500 h-full w-[33%]"></div>
+              </div>
+              <span class="text-slate-400 shrink-0">Xuất hiện tại: Part 6, Part 7</span>
+            </div>
+          </div>
+
+          <!-- Lỗi 2: Áp lực thời gian -->
+          <div class="space-y-1 p-1.5 px-2 rounded-lg bg-slate-50">
+            <div class="flex justify-between font-bold text-slate-800">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                Áp Lực Thời Gian / Cháy Giờ
+              </span>
+              <span class="font-mono text-slate-700">17% (1 câu)</span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <div class="flex-1 bg-slate-200 h-1.5 rounded-full overflow-hidden mr-3">
+                <div class="bg-amber-500 h-full w-[17%]"></div>
+              </div>
+              <span>Xuất hiện tại: Part 7</span>
+            </div>
+          </div>
+
+          <!-- Lỗi 3: Mất tập trung -->
+          <div class="space-y-1 p-1.5 px-2 rounded-lg bg-slate-50">
+            <div class="flex justify-between font-bold text-slate-800">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                Mất Tập Trung / Đọc Ẩu
+              </span>
+              <span class="font-mono text-slate-700">17% (1 câu)</span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <div class="flex-1 bg-slate-200 h-1.5 rounded-full overflow-hidden mr-3">
+                <div class="bg-blue-500 h-full w-[17%]"></div>
+              </div>
+              <span>Xuất hiện tại: Part 2</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Chân thẻ: Nút mở sổ tay bắt bẫy -->
+        <div class="p-3 rounded-xl bg-rose-50/80 border-2 border-slate-900 flex items-center justify-between gap-3 shadow-[2px_2px_0px_0px_#0f172a]">
+          <div class="min-w-0 text-xs">
+            <span class="font-black text-rose-950 block truncate">🎯 Bẫy từ vựng chiếm 33% số điểm mất</span>
+            <span class="text-[11px] text-slate-500 font-medium truncate block">Ưu tiên ôn lại 2 câu sai để không mất điểm ở đề tới</span>
+          </div>
+          <button class="px-3.5 py-2 rounded-lg border-2 border-slate-900 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0 transition-all flex items-center gap-1">
+            <span>Mở Sổ Tay</span>
+            <span>➔</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Col chart
+    const ctxCol = document.getElementById('colChart').getContext('2d');
+    new Chart(ctxCol, {
+      type: 'bar',
+      data: {
+        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'],
+        datasets: [{
+          data: [100, 95, 92, 89, 92, 89, 86],
+          backgroundColor: ['#60A5FA', '#60A5FA', '#60A5FA', '#60A5FA', '#60A5FA', '#60A5FA', '#F43F5E'],
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 50, max: 100, ticks: { stepSize: 20 }, grid: { color: '#F1F5F9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // Donut chart
+    const ctxDonut = document.getElementById('donutChart').getContext('2d');
+    new Chart(ctxDonut, {
+      type: 'doughnut',
+      data: {
+        labels: ['Bẫy Từ Vựng (33%)', 'Áp Lực Thời Gian (17%)', 'Mất Tập Trung (17%)', 'Ngữ Pháp (17%)', 'Khác (16%)'],
+        datasets: [{
+          data: [2, 1, 1, 1, 1],
+          backgroundColor: ['#F43F5E', '#F59E0B', '#3B82F6', '#8B5CF6', '#94A3B8'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: { legend: { display: false } }
+      }
+    });
+  </script>
+</body>
+</html>

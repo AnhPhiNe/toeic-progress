@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>So Sánh Đổ Bóng (Shadow Hierarchy) — TOEIC Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 antialiased p-4 sm:p-6 lg:p-8 min-h-screen">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Header giới thiệu -->
+    <div class="text-center space-y-2 border-b-2 border-slate-900 pb-5">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-300 border-2 border-slate-900 text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] uppercase tracking-wider">
+        <span>🎨</span> Phân Tích UI/UX: Có Nên Đổ Bóng Mọi Nơi?
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-950">
+        So Sánh Các Mức Độ Đổ Bóng (Shadow Visual Hierarchy)
+      </h1>
+      <p class="text-sm text-slate-600 max-w-3xl mx-auto font-medium">
+        Nhận xét của bạn rất tinh tế! Khi <strong>phần tử nào cũng đổ bóng</strong> (thẻ ngoài có bóng, hộp con có bóng, icon có bóng, badge có bóng), mắt người dùng sẽ bị <strong>"ngợp bóng" (Shadow Overload)</strong> và mất đi điểm nhấn chính.
+      </p>
+    </div>
+
+    <!-- 3 Cột So Sánh -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+
+      <!-- ================= OPTION A: HIỆN TẠI (FULL SHADOW) ================= -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-200 text-rose-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+            Phương án A: Hiện tại
+          </span>
+          <span class="text-xs font-bold text-rose-600">Đổ bóng mọi tầng ⚠️</span>
+        </div>
+
+        <!-- CARD MOCKUP A -->
+        <div class="rounded-2xl border-2 border-slate-900 bg-white p-3.5 sm:p-4 shadow-[3.5px_3.5px_0px_0px_#0f172a] space-y-3">
+          <!-- Header -->
+          <div class="flex items-center justify-between pb-2.5 border-b-2 border-slate-900">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-8 h-8 rounded-xl bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-sm shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
+                ⚡
+              </span>
+              <h2 class="text-sm font-black text-slate-900 leading-none truncate">
+                Bài Thi Gần Nhất
+              </h2>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-sky-200 text-slate-950 border-2 border-slate-900 font-mono font-black text-xs flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0f172a] shrink-0">
+              <span class="text-sm font-black text-blue-950">960</span>
+              <span class="text-[10px] font-bold text-slate-700 opacity-90">/ 990đ</span>
+              <span class="text-xs">🎯</span>
+            </span>
+          </div>
+
+          <!-- Listening: Box CÓ BÓNG, Icon CÓ BÓNG, Badge CÓ BÓNG, Chip CÓ BÓNG -->
+          <div class="p-3 rounded-xl bg-[#EEF2FF] border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white border-2 border-slate-900 flex items-center justify-center text-sm shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
+                  🎧
+                </span>
+                <span class="text-sm font-black uppercase tracking-wider text-slate-950 leading-none">
+                  Listening
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-indigo-950 border-2 border-slate-900 font-mono font-black text-[11px] shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
+                  97/100
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-black font-mono text-indigo-700 leading-none">495</span>
+                <span class="text-xs font-bold text-slate-600">/ 495đ</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div class="h-3.5 rounded-lg border-2 border-slate-900 bg-white p-0.5 overflow-hidden grid grid-cols-4 gap-1 shadow-2xs">
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-bold px-0.5">
+                <span class="text-slate-900 font-black">0</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-indigo-900 font-black border-1.5 border-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                  <span>✓</span> 200
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-indigo-900 font-black border-1.5 border-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                  <span>✓</span> 350
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 font-black border-1.5 border-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                  495 🏆
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reading: Box CÓ BÓNG -->
+          <div class="p-3 rounded-xl bg-[#F0FDF4] border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-xl bg-teal-600 text-white border-2 border-slate-900 flex items-center justify-center text-sm shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
+                  📖
+                </span>
+                <span class="text-sm font-black uppercase tracking-wider text-slate-950 leading-none">
+                  Reading
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-teal-950 border-2 border-slate-900 font-mono font-black text-[11px] shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
+                  94/100
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-black font-mono text-teal-700 leading-none">465</span>
+                <span class="text-xs font-bold text-slate-600">/ 495đ</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div class="h-3.5 rounded-lg border-2 border-slate-900 bg-white p-0.5 overflow-hidden grid grid-cols-4 gap-1 shadow-2xs">
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs w-[33%]"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-bold px-0.5">
+                <span class="text-slate-900 font-black">0</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-teal-900 font-black border-1.5 border-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                  <span>✓</span> 200
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-teal-900 font-black border-1.5 border-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                  <span>✓</span> 350
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 font-black border-1.5 border-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                  495 🏆
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút CTA CÓ BÓNG -->
+          <button class="w-full py-2.5 px-4 rounded-xl bg-blue-600 text-white border-2 border-slate-900 shadow-[3px_3px_0px_0px_#0f172a] font-black text-xs sm:text-sm flex items-center justify-between">
+            <span>Xem Ma Trận 7 Part</span>
+            <span>➔</span>
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
+          <p>❌ <strong>Nhược điểm:</strong> Quá nhiều góc đen bóng đổ chật chội (hơn 10 điểm đổ bóng). Mắt dễ bị phân tâm và không rõ nút bấm là hành động chính.</p>
+        </div>
+      </div>
+
+      <!-- ================= OPTION B: NEO-CLEAN HIERARCHY (KHUYÊN DÙNG) ================= -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-emerald-300 text-emerald-950 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+            Phương án B: Neo-Clean (Đề Xuất ⭐)
+          </span>
+          <span class="text-xs font-black text-emerald-700">Chuẩn UI/UX Pro</span>
+        </div>
+
+        <!-- CARD MOCKUP B -->
+        <div class="rounded-2xl border-2 border-slate-900 bg-white p-3.5 sm:p-4 shadow-[3.5px_3.5px_0px_0px_#0f172a] space-y-3">
+          <!-- Header: Chỉ giữ bóng ở Chip điểm, Icon viền 2px sạch sẽ -->
+          <div class="flex items-center justify-between pb-2.5 border-b-2 border-slate-900">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-8 h-8 rounded-xl bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-sm shrink-0">
+                ⚡
+              </span>
+              <h2 class="text-sm font-black text-slate-900 leading-none truncate">
+                Bài Thi Gần Nhất
+              </h2>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-sky-200 text-slate-950 border-2 border-slate-900 font-mono font-black text-xs flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0f172a] shrink-0">
+              <span class="text-sm font-black text-blue-950">960</span>
+              <span class="text-[10px] font-bold text-slate-700 opacity-90">/ 990đ</span>
+              <span class="text-xs">🎯</span>
+            </span>
+          </div>
+
+          <!-- Listening: Box KHÔNG ĐỔ BÓNG (border-2 + nền pastel), Badge & Chip KHÔNG BÓNG -> Cực kỳ thanh thoát -->
+          <div class="p-3 rounded-xl bg-[#EEF2FF] border-2 border-slate-900 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white border-2 border-slate-900 flex items-center justify-center text-sm shrink-0">
+                  🎧
+                </span>
+                <span class="text-sm font-black uppercase tracking-wider text-slate-950 leading-none">
+                  Listening
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-indigo-950 border-2 border-slate-900 font-mono font-black text-[11px] shrink-0">
+                  97/100
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-black font-mono text-indigo-700 leading-none">495</span>
+                <span class="text-xs font-bold text-slate-600">/ 495đ</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div class="h-3.5 rounded-lg border-2 border-slate-900 bg-white p-0.5 overflow-hidden grid grid-cols-4 gap-1">
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-bold px-0.5">
+                <span class="text-slate-900 font-black">0</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-indigo-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 200
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-indigo-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 350
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 font-black border-1.5 border-slate-900">
+                  495 🏆
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reading: Box KHÔNG ĐỔ BÓNG -->
+          <div class="p-3 rounded-xl bg-[#F0FDF4] border-2 border-slate-900 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-xl bg-teal-600 text-white border-2 border-slate-900 flex items-center justify-center text-sm shrink-0">
+                  📖
+                </span>
+                <span class="text-sm font-black uppercase tracking-wider text-slate-950 leading-none">
+                  Reading
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-teal-950 border-2 border-slate-900 font-mono font-black text-[11px] shrink-0">
+                  94/100
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-black font-mono text-teal-700 leading-none">465</span>
+                <span class="text-xs font-bold text-slate-600">/ 495đ</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div class="h-3.5 rounded-lg border-2 border-slate-900 bg-white p-0.5 overflow-hidden grid grid-cols-4 gap-1">
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs w-[33%]"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-bold px-0.5">
+                <span class="text-slate-900 font-black">0</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-teal-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 200
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-teal-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 350
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 font-black border-1.5 border-slate-900">
+                  495 🏆
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút CTA CÓ BÓNG NỔI BẬT: Là nút duy nhất có bóng để người dùng ấn -->
+          <button class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-2 border-slate-900 shadow-[3px_3px_0px_0px_#0f172a] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1.5px_1.5px_0px_0px_#0f172a] active:shadow-none font-black text-xs sm:text-sm flex items-center justify-between transition-all cursor-pointer">
+            <span>Xem Ma Trận 7 Part</span>
+            <span>➔</span>
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 space-y-1">
+          <p>✅ <strong>Ưu điểm vượt trội:</strong></p>
+          <ul class="list-disc pl-4 space-y-0.5">
+            <li><strong>Thẻ ngoài + Nút bấm có bóng</strong>: Phân biệt rõ cái nào là hộp và cái nào là nút bấm tương tác.</li>
+            <li><strong>Bên trong chỉ dùng viền đen</strong>: Gọn mắt, thoáng đãng, sang xịn mà vẫn đậm chất Neo-Brutalism!</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ================= OPTION C: CARD SHADOW ONLY (TỐI GIẢN) ================= -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-slate-200 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+            Phương án C: Tối Giản (Minimal)
+          </span>
+          <span class="text-xs font-bold text-slate-600">Chỉ Thẻ Ngoài Có Bóng</span>
+        </div>
+
+        <!-- CARD MOCKUP C -->
+        <div class="rounded-2xl border-2 border-slate-900 bg-white p-3.5 sm:p-4 shadow-[3px_3px_0px_0px_#0f172a] space-y-3">
+          <!-- Header -->
+          <div class="flex items-center justify-between pb-2.5 border-b-2 border-slate-900">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-8 h-8 rounded-xl bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-sm shrink-0">
+                ⚡
+              </span>
+              <h2 class="text-sm font-black text-slate-900 leading-none truncate">
+                Bài Thi Gần Nhất
+              </h2>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-sky-200 text-slate-950 border-2 border-slate-900 font-mono font-black text-xs flex items-center gap-1.5 shrink-0">
+              <span class="text-sm font-black text-blue-950">960</span>
+              <span class="text-[10px] font-bold text-slate-700 opacity-90">/ 990đ</span>
+              <span class="text-xs">🎯</span>
+            </span>
+          </div>
+
+          <!-- Listening -->
+          <div class="p-3 rounded-xl bg-[#EEF2FF] border-2 border-slate-900 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white border-2 border-slate-900 flex items-center justify-center text-sm shrink-0">
+                  🎧
+                </span>
+                <span class="text-sm font-black uppercase tracking-wider text-slate-950 leading-none">
+                  Listening
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-indigo-950 border-2 border-slate-900 font-mono font-black text-[11px] shrink-0">
+                  97/100
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-black font-mono text-indigo-700 leading-none">495</span>
+                <span class="text-xs font-bold text-slate-600">/ 495đ</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div class="h-3.5 rounded-lg border-2 border-slate-900 bg-white p-0.5 overflow-hidden grid grid-cols-4 gap-1">
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+                <div class="h-full bg-indigo-600 rounded-xs"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-bold px-0.5">
+                <span class="text-slate-900 font-black">0</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-indigo-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 200
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-indigo-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 350
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 font-black border-1.5 border-slate-900">
+                  495 🏆
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reading -->
+          <div class="p-3 rounded-xl bg-[#F0FDF4] border-2 border-slate-900 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-8 h-8 rounded-xl bg-teal-600 text-white border-2 border-slate-900 flex items-center justify-center text-sm shrink-0">
+                  📖
+                </span>
+                <span class="text-sm font-black uppercase tracking-wider text-slate-950 leading-none">
+                  Reading
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-teal-950 border-2 border-slate-900 font-mono font-black text-[11px] shrink-0">
+                  94/100
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-black font-mono text-teal-700 leading-none">465</span>
+                <span class="text-xs font-bold text-slate-600">/ 495đ</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-0.5">
+              <div class="h-3.5 rounded-lg border-2 border-slate-900 bg-white p-0.5 overflow-hidden grid grid-cols-4 gap-1">
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs"></div>
+                <div class="h-full bg-teal-600 rounded-xs w-[33%]"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-bold px-0.5">
+                <span class="text-slate-900 font-black">0</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-teal-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 200
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white text-teal-900 font-black border-1.5 border-slate-900">
+                  <span>✓</span> 350
+                </span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 font-black border-1.5 border-slate-900">
+                  495 🏆
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút CTA Phẳng -->
+          <button class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-2 border-slate-900 font-black text-xs sm:text-sm flex items-center justify-between transition-all cursor-pointer">
+            <span>Xem Ma Trận 7 Part</span>
+            <span>➔</span>
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-100 border border-slate-300 text-xs text-slate-700 space-y-1">
+          <p>ℹ️ <strong>Đặc điểm:</strong> Giống phong cách báo giấy / Modern Flat. Tuy nhiên nút bấm không có bóng nên hơi kém cảm giác bấm.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tóm lược quy tắc thiết kế -->
+    <div class="rounded-2xl border-2 border-slate-900 bg-amber-100 p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0f172a] space-y-3">
+      <h3 class="text-base font-black text-slate-950 flex items-center gap-2">
+        <span>💡</span> Quy Tắc Vàng Của Neo-Brutalism (Visual Hierarchy):
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-800 font-medium">
+        <div class="p-3 rounded-xl bg-white border-2 border-slate-900">
+          <strong class="text-emerald-700 font-black block mb-1">NÊN đổ bóng ở đâu?</strong>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>Thẻ lớn ngoài cùng (Parent Card)</strong>: Để tách biệt các module nội dung với nền app.</li>
+            <li><strong>Nút bấm hành động (Interactive Buttons)</strong>: Để người dùng biết đây là nút bấm vật lý có thể click được.</li>
+          </ul>
+        </div>
+        <div class="p-3 rounded-xl bg-white border-2 border-slate-900">
+          <strong class="text-rose-700 font-black block mb-1">KHÔNG NÊN đổ bóng ở đâu?</strong>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>Các hộp con bên trong (Nested Boxes)</strong>: Tránh hiệu ứng "hộp trong hộp trong hộp" làm nặng mắt.</li>
+            <li><strong>Icon tĩnh, chip mốc điểm, nhãn số câu</strong>: Chỉ cần viền sắc nét <code>border-2</code> hoặc <code>border-1.5</code> là đủ chuẩn Neo tinh tế!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>So Sánh Cách Tách Cột Ngày - Lịch Sử Luyện Đề</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f8fafc', 500: '#3b82f6', 600: '#2563eb' }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 p-4 sm:p-8 min-h-screen text-slate-800 dark:text-slate-100 transition-colors">
+
+  <!-- TOP BAR CONTROL -->
+  <div class="max-w-6xl mx-auto mb-6 flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1]">
+    <div>
+      <h1 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+        <span>📅 So Sánh: Tách Riêng Cột NGÀY Để Dễ Nhìn & Quét Nhanh</span>
+      </h1>
+      <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+        Khắc phục việc dồn Ngày và Thời lượng dưới Tên đề gây khó nhìn
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleDark()" class="px-3.5 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-amber-300 dark:bg-slate-800 text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] cursor-pointer">
+        🌙 / ☀️ Chuyển Dark/Light Mode
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-10">
+
+    <!-- PHƯƠNG ÁN 1: TÁCH RIÊNG CỘT 'NGÀY' ĐỘC LẬP (KHUYÊN DÙNG NHẤT) -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-black uppercase tracking-wider text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5">
+          <span>✨ Phương Án 1: Tách Riêng Cột "NGÀY" Độc Lập (Khuyên Dùng)</span>
+          <span class="text-[10px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-black">Dễ Quét Nhất</span>
+        </span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">Mắt quét dọc theo ngày cực nhanh, tên đề thi đứng riêng thanh thoát</span>
+      </div>
+
+      <div class="rounded-3xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[4px_4px_0px_0px_#0f172a] dark:shadow-[4px_4px_0px_0px_#cbd5e1] overflow-hidden">
+        
+        <!-- TOOLBAR: Tinh gọn, không chữ thừa -->
+        <div class="p-4 sm:p-5 border-b-2 border-slate-900 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <h2 class="text-base font-black text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-2">
+              <span>📋 Lịch Sử Luyện Đề</span>
+            </h2>
+
+            <div class="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700 w-fit">
+              <button class="px-3 py-1.5 rounded-lg text-xs font-black bg-white dark:bg-slate-700 text-slate-950 dark:text-white border border-slate-300 dark:border-slate-600 shadow-xs cursor-pointer">
+                Tất Cả (5)
+              </button>
+              <button class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white cursor-pointer">
+                Full Test (4)
+              </button>
+              <button class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white cursor-pointer">
+                Luyện Part (1)
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            <div class="relative flex-1 sm:flex-initial">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Tìm tên đề, ghi chú..." 
+                class="w-full sm:w-48 md:w-56 pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <select class="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none cursor-pointer">
+              <option>Mọi lượt thi</option>
+              <option>Chỉ đề mới (L1)</option>
+              <option>Chỉ đề làm lại (Retest)</option>
+            </select>
+
+            <button class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white border-2 border-slate-900 dark:border-slate-300 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] flex items-center gap-1.5 transition shrink-0 cursor-pointer">
+              <span>+ Ghi Điểm</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- BẢNG CÓ CỘT 'NGÀY' RIÊNG BIỆT (TỰ NHIÊN, CỰC DỄ NHÌN) -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm border-collapse">
+            <thead>
+              <tr class="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 font-black uppercase text-[11px] select-none tracking-wider">
+                <th class="py-3.5 px-4 whitespace-nowrap">NGÀY ⇅</th>
+                <th class="py-3.5 px-4">TÊN ĐỀ THI</th>
+                <th class="py-3.5 px-3 text-center">LISTENING</th>
+                <th class="py-3.5 px-3 text-center">READING</th>
+                <th class="py-3.5 px-3 text-center">TỔNG ĐIỂM</th>
+                <th class="py-3.5 px-3 text-center">XU HƯỚNG</th>
+                <th class="py-3.5 px-5 text-right">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+              
+              <!-- Row 1 -->
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition cursor-pointer group">
+                <!-- Cột Ngày độc lập -->
+                <td class="py-4 px-4 font-mono font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  13/09/2026
+                </td>
+                
+                <!-- Cột Tên đề thi riêng biệt -->
+                <td class="py-4 px-4">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-black text-slate-900 dark:text-white text-sm sm:text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                      ETS 2024 Test 04
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      Lần 1
+                    </span>
+                    <span class="text-xs font-mono font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                      ⏱ 112'
+                    </span>
+                  </div>
+                </td>
+
+                <td class="text-center font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm sm:text-base tabular-nums">
+                  495đ
+                </td>
+                <td class="text-center font-mono font-black text-teal-600 dark:text-teal-400 text-sm sm:text-base tabular-nums">
+                  465đ
+                </td>
+                <td class="text-center font-mono font-black text-slate-900 dark:text-white text-base sm:text-lg tabular-nums">
+                  960đ
+                </td>
+                <td class="text-center">
+                  <span class="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-lg text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-mono tabular-nums">
+                    +50đ
+                  </span>
+                </td>
+                <td class="text-right px-5">
+                  <div class="inline-flex items-center gap-1.5">
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-900 dark:hover:border-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer shadow-2xs" title="Sửa bản ghi">
+                      ✏️
+                    </button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-500 transition flex items-center justify-center cursor-pointer shadow-2xs" title="Xóa bản ghi">
+                      🗑️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 2 -->
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition cursor-pointer group">
+                <td class="py-4 px-4 font-mono font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  08/09/2026
+                </td>
+                <td class="py-4 px-4">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-black text-slate-900 dark:text-white text-sm sm:text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                      Hacker 3 Test 01 (Hard)
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      Lần 1
+                    </span>
+                    <span class="text-xs font-mono font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                      ⏱ 120'
+                    </span>
+                  </div>
+                </td>
+                <td class="text-center font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm sm:text-base tabular-nums">
+                  475đ
+                </td>
+                <td class="text-center font-mono font-black text-teal-600 dark:text-teal-400 text-sm sm:text-base tabular-nums">
+                  435đ
+                </td>
+                <td class="text-center font-mono font-black text-slate-900 dark:text-white text-base sm:text-lg tabular-nums">
+                  910đ
+                </td>
+                <td class="text-center">
+                  <span class="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-lg text-xs font-black bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-mono tabular-nums">
+                    -10đ
+                  </span>
+                </td>
+                <td class="text-right px-5">
+                  <div class="inline-flex items-center gap-1.5">
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-900 dark:hover:border-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer shadow-2xs">✏️</button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-500 transition flex items-center justify-center cursor-pointer shadow-2xs">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 3: Part lẻ -->
+              <tr class="bg-amber-50/30 dark:bg-amber-950/15 hover:bg-amber-50/60 dark:hover:bg-amber-950/30 transition cursor-pointer group">
+                <td class="py-4 px-4 font-mono font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  28/08/2026
+                </td>
+                <td class="py-4 px-4">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-black text-slate-900 dark:text-white text-sm sm:text-base group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
+                      Cày sâu Part 5 & 6 (Hacker)
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-400 text-slate-950 border border-slate-900">
+                      ⚡ Luyện Part
+                    </span>
+                    <span class="text-xs font-mono font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                      ⏱ 45'
+                    </span>
+                  </div>
+                </td>
+                <td colspan="3" class="px-3 text-center">
+                  <div class="inline-flex items-center gap-3 bg-white dark:bg-slate-900 px-3.5 py-1.5 rounded-xl border border-amber-300/80 dark:border-amber-800/80 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
+                    <span>🎯 Đúng <strong class="text-amber-600 dark:text-amber-400 font-black">42 / 46 câu</strong></span>
+                    <span class="w-[1.5px] h-3 bg-slate-300 dark:bg-slate-700"></span>
+                    <span class="text-emerald-600 dark:text-emerald-400 font-black">Chính xác: 91.3%</span>
+                  </div>
+                </td>
+                <td class="text-center text-xs font-mono font-bold text-slate-400 dark:text-slate-500">
+                  58s/câu
+                </td>
+                <td class="text-right px-5">
+                  <div class="inline-flex items-center gap-1.5">
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-900 dark:hover:border-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer shadow-2xs">✏️</button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-500 transition flex items-center justify-center cursor-pointer shadow-2xs">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <div class="p-3.5 px-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Hiển thị 1 - 5 trong số 5 bài thi</span>
+          <div class="flex items-center gap-1">
+            <button disabled class="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 opacity-40 cursor-not-allowed">Trước</button>
+            <span class="px-2 font-mono font-bold text-slate-700 dark:text-slate-300">1 / 1</span>
+            <button disabled class="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 opacity-40 cursor-not-allowed">Sau</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function toggleDark() {
+      document.documentElement.classList.toggle('dark');
+    }
+  </script>
+</body>
+</html>

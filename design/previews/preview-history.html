@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đánh Giá & Đề Xuất Thiết Kế: Trang Lịch Sử Đề Thi — TOEIC Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 antialiased p-4 sm:p-6 lg:p-8 min-h-screen">
+  <div class="max-w-6xl mx-auto space-y-8">
+
+    <!-- Header giới thiệu -->
+    <div class="text-center space-y-2 border-b-2 border-slate-900 pb-5">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-300 border-2 border-slate-900 text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] uppercase tracking-wider">
+        <span>🎯</span> Nhận Định Chuẩn Xác: Lặp Lại Header & Nút Bấm!
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-950">
+        Phát Hiện Lặp Lại & Đề Xuất BỎ BANNER Thừa Thãi
+      </h1>
+      <p class="text-sm text-slate-600 max-w-3xl mx-auto font-medium">
+        Bạn nhận xét <strong>chính xác 100%!</strong> Chữ <em>"Lịch Sử Đề Thi"</em> và nút <em>"Nhập Điểm"</em> đang bị <strong>lặp lại tới 3 lần</strong> gây lãng phí không gian dọc màn hình:
+      </p>
+    </div>
+
+    <!-- MINH HỌA SỰ LẶP LẠI 3 LẦN HIỆN TẠI -->
+    <div class="p-4 rounded-2xl border-2 border-rose-500 bg-rose-50/80 space-y-3">
+      <div class="flex items-center gap-2 text-rose-800 font-black text-sm">
+        <span>⚠️</span> Thực trạng lặp lại 3 tầng hiện tại:
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        <div class="p-3 rounded-xl bg-white border border-rose-300 space-y-1">
+          <strong class="text-rose-700 block font-black">1. Trên Topbar:</strong>
+          <p class="text-slate-700">Đã có Breadcrumb <code>Đo lường & Chẩn đoán / Lịch Sử Đề Thi</code> + Nút <code>+ Nhập Điểm (N)</code>.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-rose-300 space-y-1">
+          <strong class="text-rose-700 block font-black">2. Header Banner to đùng:</strong>
+          <p class="text-slate-700">Lại lặp lại <code>Lịch Sử Đề Thi & Luyện Tập</code> + Nút <code>+ Ghi Điểm Đề Mới</code> (chiếm hơn 100px chiều cao!).</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-rose-300 space-y-1">
+          <strong class="text-rose-700 block font-black">3. Tiêu đề Bảng bên dưới:</strong>
+          <p class="text-slate-700">Lại ghi tiếp: <code>Nhật Ký & Lịch Sử Luyện Đề</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= GIẢI PHÁP TỐI ƯU: BỎ HẲN BANNER (VÀO THẲNG DỮ LIỆU) ================= -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between pb-1 border-b-2 border-emerald-400">
+        <div class="flex items-center gap-2.5">
+          <span class="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]">
+            Đề Xuất Tối Ưu: BỎ HẲN BANNER (Khuyên Dùng ⭐⭐⭐)
+          </span>
+          <span class="text-xs font-bold text-emerald-700 hidden sm:inline">Tiết kiệm 100px • Vào thẳng 4 KPI & Bảng • Gọn gàng như Dashboard</span>
+        </div>
+      </div>
+
+      <!-- MOCKUP HOÀN THIỆN: TOPBAR -> 4 KPI -> BẢNG -->
+      <div class="space-y-4 p-4 sm:p-5 rounded-3xl border-2 border-slate-900 bg-[#F4F4F0] shadow-[4px_4px_0px_0px_#0f172a]">
+        
+        <!-- MÔ PHỎNG TOPBAR -->
+        <div class="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border-2 border-slate-900 text-xs shadow-2xs">
+          <div class="flex items-center gap-2 font-bold text-slate-700">
+            <span class="p-1 rounded bg-slate-100 border border-slate-300">🕒</span>
+            <span class="text-slate-400">Đo lường & Chẩn đoán /</span>
+            <span class="font-black text-slate-950">Lịch Sử Đề Thi</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-1 rounded-lg bg-sky-100 border border-sky-300 font-bold text-sky-900">📅 Thi: D-45</span>
+            <button class="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-black flex items-center gap-1 shadow-2xs">
+              <span>➕ Nhập Điểm</span> <kbd class="px-1 py-0.2 text-[10px] bg-slate-800 rounded">N</kbd>
+            </button>
+            <span class="p-1 rounded-lg border border-slate-300">🌙</span>
+          </div>
+        </div>
+
+        <p class="text-xs font-black text-emerald-800 flex items-center gap-1.5 pt-1">
+          <span>✨</span> Khi bỏ Banner: Trang bắt đầu ngay lập tức từ 4 Thẻ KPI và Bảng Nhật Ký, không cuộn màn hình:
+        </p>
+
+        <!-- 1. 4 Thẻ KPI Neo Game Hóa Nổi Bật -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <!-- KPI 1 -->
+          <div class="p-3 rounded-2xl border-2 border-slate-900 bg-white shadow-[2px_2px_0px_0px_#0f172a] flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-sky-200 text-blue-950 border-2 border-slate-900 flex items-center justify-center text-lg shrink-0 select-none">
+              📄
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Tổng Đề Đã Làm</span>
+              <div class="text-xl font-black text-slate-950 font-mono leading-none mt-1">
+                7 <span class="text-xs font-bold text-slate-500">bài</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2 -->
+          <div class="p-3 rounded-2xl border-2 border-slate-900 bg-white shadow-[2px_2px_0px_0px_#0f172a] flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-200 text-purple-950 border-2 border-slate-900 flex items-center justify-center text-lg shrink-0 select-none">
+              🎯
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Full Test (200c)</span>
+              <div class="text-xl font-black text-slate-950 font-mono leading-none mt-1">
+                6 <span class="text-xs font-bold text-slate-500">đề</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3 -->
+          <div class="p-3 rounded-2xl border-2 border-slate-900 bg-white shadow-[2px_2px_0px_0px_#0f172a] flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-lg shrink-0 select-none">
+              🏆
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Điểm Cao Nhất</span>
+              <div class="text-xl font-black text-amber-600 font-mono leading-none mt-1">
+                960đ
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4 -->
+          <div class="p-3 rounded-2xl border-2 border-slate-900 bg-white shadow-[2px_2px_0px_0px_#0f172a] flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-200 text-emerald-950 border-2 border-slate-900 flex items-center justify-center text-lg shrink-0 select-none">
+              🔄
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Đề Làm Lại</span>
+              <div class="text-xl font-black text-emerald-700 font-mono leading-none mt-1">
+                1 <span class="text-xs font-bold text-slate-500">đề</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Bảng Dữ Liệu Neo-Clean -->
+        <div class="rounded-2xl border-2 border-slate-900 bg-white shadow-[3.5px_3.5px_0px_0px_#0f172a] p-4 sm:p-5 space-y-4">
+          
+          <!-- Toolbar Neo: Search viền đen + Dropdown viền đen + Tabs viền đen -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-slate-900">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-xs font-black select-none">
+                ⚡
+              </span>
+              <h3 class="text-sm font-black text-slate-950">
+                Nhật Ký & Lịch Sử Luyện Đề
+              </h3>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Search Box Neo -->
+              <div class="relative">
+                <input
+                  type="text"
+                  placeholder="Tìm tên đề, ghi chú..."
+                  class="pl-8 pr-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 border-2 border-slate-900 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white w-44 sm:w-56"
+                />
+                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500">🔍</span>
+              </div>
+
+              <!-- Dropdown Neo -->
+              <div class="px-2.5 py-1.5 rounded-xl border-2 border-slate-900 bg-white text-xs font-bold text-slate-800 flex items-center gap-1 shadow-2xs">
+                <span>⚡ Mọi lượt thi</span>
+                <span class="text-[10px]">▼</span>
+              </div>
+
+              <!-- Filter Tabs Neo -->
+              <div class="inline-flex p-0.5 rounded-xl bg-slate-100 border-2 border-slate-900 text-xs shadow-2xs">
+                <span class="px-2.5 py-1 rounded-lg font-black bg-slate-950 text-white cursor-pointer">Tất Cả</span>
+                <span class="px-2.5 py-1 rounded-lg font-bold text-slate-700 hover:text-slate-950 cursor-pointer">Full Test (200c)</span>
+                <span class="px-2.5 py-1 rounded-lg font-bold text-slate-700 hover:text-slate-950 cursor-pointer">Luyện Part</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bảng Neo với các hàng rõ nét -->
+          <div class="overflow-x-auto rounded-xl border-2 border-slate-900">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b-2 border-slate-900 bg-slate-100 text-slate-950 font-black uppercase tracking-wider text-[11px] select-none">
+                  <th class="py-3 px-3.5">Ngày</th>
+                  <th class="py-3 px-3.5">Tên Đề Thi</th>
+                  <th class="py-3 px-3 text-center">Lần</th>
+                  <th class="py-3 px-3 text-right">Listening</th>
+                  <th class="py-3 px-3 text-right">Reading</th>
+                  <th class="py-3 px-3.5 text-right">Tổng Điểm</th>
+                  <th class="py-3 px-3 text-center">Xu Hướng</th>
+                  <th class="py-3 px-3.5 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y-2 border-slate-900/10 font-bold">
+                <!-- Row 1: Kỷ Lục Gần Nhất -->
+                <tr class="hover:bg-amber-50/60 transition-colors">
+                  <td class="py-3 px-3.5 font-mono text-slate-600 font-bold">13/09/2026</td>
+                  <td class="py-3 px-3.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-black text-slate-950 text-[13px]">ETS 2024 Test 04</span>
+                      <span class="inline-flex items-center gap-1 text-[10.5px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-400">⏱️ 112'</span>
+                      <span class="inline-flex items-center px-1.5 py-0.2 rounded bg-amber-300 text-slate-950 border border-slate-900 text-[10px] font-black">⭐ Kỷ Lục</span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white border-1.5 border-slate-900 text-slate-900 font-mono font-black text-[10.5px]">L1</span>
+                  </td>
+                  <td class="py-3 px-3 text-right font-mono font-black text-indigo-700 text-sm">495đ</td>
+                  <td class="py-3 px-3 text-right font-mono font-black text-teal-700 text-sm">465đ</td>
+                  <td class="py-3 px-3.5 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-sky-100 text-blue-950 border-1.5 border-slate-900 font-mono font-black text-sm">
+                      960đ
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-950 border-1.5 border-slate-900 font-mono font-black text-[11px]">
+                      +30đ 📈
+                    </span>
+                  </td>
+                  <td class="py-3 px-3.5 text-right">
+                    <div class="inline-flex items-center gap-1">
+                      <button class="w-7 h-7 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border-1.5 border-slate-900 flex items-center justify-center text-xs">👁️</button>
+                      <button class="w-7 h-7 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border-1.5 border-slate-900 flex items-center justify-center text-xs">✏️</button>
+                      <button class="w-7 h-7 rounded-lg bg-white hover:bg-rose-100 text-rose-700 border-1.5 border-slate-900 flex items-center justify-center text-xs">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Row 2: Retest Lần 2 -->
+                <tr class="hover:bg-blue-50/50 transition-colors">
+                  <td class="py-3 px-3.5 font-mono text-slate-600 font-bold">10/09/2026</td>
+                  <td class="py-3 px-3.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-black text-slate-950 text-[13px]">ETS 2024 Test 01</span>
+                      <span class="inline-flex items-center gap-1 text-[10.5px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-400">⏱️ 110'</span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 border-1.5 border-slate-900 text-blue-950 font-black text-[10.5px]">Lần 2 🔄</span>
+                  </td>
+                  <td class="py-3 px-3 text-right font-mono font-black text-indigo-700 text-sm">480đ</td>
+                  <td class="py-3 px-3 text-right font-mono font-black text-teal-700 text-sm">450đ</td>
+                  <td class="py-3 px-3.5 text-right">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-white text-slate-950 border-1.5 border-slate-900 font-mono font-black text-sm">
+                      930đ
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-950 border-1.5 border-slate-900 font-mono font-black text-[11px]">
+                      +20đ 📈
+                    </span>
+                  </td>
+                  <td class="py-3 px-3.5 text-right">
+                    <div class="inline-flex items-center gap-1">
+                      <button class="w-7 h-7 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border-1.5 border-slate-900 flex items-center justify-center text-xs">👁️</button>
+                      <button class="w-7 h-7 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border-1.5 border-slate-900 flex items-center justify-center text-xs">✏️</button>
+                      <button class="w-7 h-7 rounded-lg bg-white hover:bg-rose-100 text-rose-700 border-1.5 border-slate-900 flex items-center justify-center text-xs">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 space-y-1">
+        <p>⭐ <strong>Đánh giá sau khi BỎ BANNER:</strong></p>
+        <ul class="list-disc pl-4 space-y-0.5">
+          <li><strong>Không còn lặp từ:</strong> Topbar đã có <em>"Lịch Sử Đề Thi"</em>, Bảng có <em>"Nhật Ký & Lịch Sử Luyện Đề"</em> $\to$ Rất vừa vặn, không bị thừa một chữ nào!</li>
+          <li><strong>Không còn lặp nút:</strong> Nút <em>"Nhập Điểm (N)"</em> trên Topbar đã cố định ở mọi màn hình, không cần nút bấm thứ hai ở banner.</li>
+          <li><strong>Màn hình cực thoáng:</strong> Toàn bộ 4 thẻ KPI và Bảng trồi lên trên, vừa vặn ngay trong một khung nhìn của màn hình máy tính và laptop mà không cần phải cuộn chuột!</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

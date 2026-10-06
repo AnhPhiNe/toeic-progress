@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bản Phác Thảo Cải Tiến 8 Cột — Bảng Lịch Sử Đề Thi TOEIC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body id="pageBody" class="bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 antialiased p-3 sm:p-6 lg:p-8 min-h-screen transition-colors duration-200">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- 0. THANH TIÊU ĐỀ & CHUYỂN ĐỔI PHƯƠNG ÁN TRỰC QUAN -->
+    <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-4 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-300 text-slate-950 border border-slate-900 text-[11px] font-black tracking-wide uppercase shadow-[1px_1px_0px_0px_#0f172a]">
+          ✨ GIẢI PHÁP THEO Ý BẠN: GIỮ ĐỦ 8 CỘT NHƯNG THIẾT KẾ DỄ NHÌN HƠN
+        </div>
+        <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1.5 flex items-center gap-2">
+          Căn Chỉnh & Nâng Cấp Bảng 8 Cột Lịch Sử Đề Thi
+        </h1>
+        <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+          Giữ nguyên 100% dữ liệu 8 cột nhưng giải quyết triệt để vấn đề rối mắt, lệch hàng, và 5 dấu gạch trống ở bài Part lẻ.
+        </p>
+      </div>
+
+      <!-- Tab Switcher Phương án & Dark Mode -->
+      <div class="flex items-center gap-2 flex-wrap shrink-0">
+        <div class="p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-slate-900 dark:border-slate-700 flex gap-1 flex-wrap">
+          <button
+            onclick="setMode('opt8_redesign')"
+            id="tab8Redesign"
+            class="px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]"
+          >
+            ⭐ 8 Cột Nâng Cấp (Dễ Nhìn)
+          </button>
+          <button
+            onclick="setMode('current')"
+            id="tabCurrent"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950"
+          >
+            8 Cột Cũ (Chưa Sửa)
+          </button>
+          <button
+            onclick="setMode('optB')"
+            id="tabOptB"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950"
+          >
+            5 Cột (Cân Bằng)
+          </button>
+          <button
+            onclick="setMode('optA')"
+            id="tabOptA"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950"
+          >
+            4 Cột (Siêu Gọn)
+          </button>
+        </div>
+
+        <button
+          onclick="toggleDark()"
+          id="btnToggleTheme"
+          class="p-2.5 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] cursor-pointer text-xs font-bold flex items-center gap-1.5"
+          title="Chuyển chế độ Sáng / Tối"
+        >
+          <span id="themeIcon">🌙</span>
+          <span id="themeLabel">Tối</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1. DẢI 4 THẺ THỐNG KÊ (ĐÃ TINH GỌN LÊN ĐẦU VÀ CÓ HIỆU ỨNG ỬNG MÀU KHI RÊ CHUỘT) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <!-- Thẻ 1 -->
+      <div class="rounded-2xl border-2 border-slate-900 bg-white dark:bg-[#111A2C] dark:border-slate-200 p-4 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] cursor-default transition-colors duration-150 flex items-center gap-3.5 hover:bg-blue-50/90 dark:hover:bg-blue-950/40">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 text-xl">
+          📄
+        </div>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+            Tổng Đề Đã Làm
+          </span>
+          <div class="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+            7 <span class="text-xs font-semibold text-slate-400">bài</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ 2 -->
+      <div class="rounded-2xl border-2 border-slate-900 bg-white dark:bg-[#111A2C] dark:border-slate-200 p-4 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] cursor-default transition-colors duration-150 flex items-center gap-3.5 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/40">
+        <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 text-xl">
+          ✅
+        </div>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+            Full Test (200c)
+          </span>
+          <div class="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+            6 <span class="text-xs font-semibold text-slate-400">đề</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ 3 -->
+      <div class="rounded-2xl border-2 border-slate-900 bg-white dark:bg-[#111A2C] dark:border-slate-200 p-4 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] cursor-default transition-colors duration-150 flex items-center gap-3.5 hover:bg-amber-50/90 dark:hover:bg-amber-950/40">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 text-xl">
+          🏆
+        </div>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+            Điểm Cao Nhất
+          </span>
+          <div class="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 font-mono">
+            960đ
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ 4 -->
+      <div class="rounded-2xl border-2 border-slate-900 bg-white dark:bg-[#111A2C] dark:border-slate-200 p-4 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] cursor-default transition-colors duration-150 flex items-center gap-3.5 hover:bg-emerald-50/90 dark:hover:bg-emerald-950/40">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 text-xl">
+          🔄
+        </div>
+        <div class="min-w-0">
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+            Đề Làm Lại (Retest)
+          </span>
+          <div class="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+            1 <span class="text-xs font-semibold text-slate-400">đề</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BANNER GIẢI THÍCH NHANH CHO TỪNG PHƯƠNG ÁN -->
+    <div id="optionBanner" class="p-4 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-amber-50 dark:bg-amber-950/30 text-xs sm:text-sm">
+      <!-- Nội dung được cập nhật bằng JS -->
+    </div>
+
+    <!-- 2. KHỐI BẢNG DỮ LIỆU CHÍNH -->
+    <div class="rounded-2xl border-2 border-slate-900 bg-white dark:bg-[#111A2C] dark:border-slate-200 p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] space-y-4">
+      
+      <!-- Toolbar: Tiêu đề & Bộ lọc -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-base font-bold text-slate-900 dark:text-white whitespace-nowrap">
+            Nhật Ký & Lịch Sử Luyện Đề
+          </h2>
+          <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+            7 bài làm
+          </span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <div class="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-400 flex items-center gap-1.5 w-44 sm:w-52">
+            <span>🔍</span>
+            <span class="text-slate-400 truncate">Tìm tên đề, ghi chú...</span>
+          </div>
+          <div class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-300">
+            Mọi lượt thi ▾
+          </div>
+          <div class="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl font-bold">
+            <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-blue-600 shadow-2xs">Tất Cả</span>
+            <span class="px-2.5 py-1 text-slate-500">Full Test</span>
+            <span class="px-2.5 py-1 text-slate-500">Luyện Part</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BẢNG RENDER DYNAMIC THEO PHƯƠNG ÁN -->
+      <div class="overflow-x-auto" id="tableContainer">
+        <!-- Render bằng JS -->
+      </div>
+    </div>
+
+    <!-- 3. BẢNG SO SÁNH TRỰC DIỆN ĐẶC ĐIỂM -->
+    <div class="rounded-2xl border-2 border-slate-900 bg-white dark:bg-[#111A2C] dark:border-slate-200 p-5 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] space-y-3">
+      <h3 class="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+        <span>💡</span> Chi Tiết Các Tinh Chỉnh Cho Phương Án 8 Cột Nâng Cấp
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
+          <div class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span class="text-blue-600 font-black">1.</span> Cố định chiều rộng & Căn gióng chuẩn số học
+          </div>
+          <p class="text-slate-600 dark:text-slate-300">
+            Cột Ngày (105px, font-mono), Lượt (75px, căn giữa), Listening / Reading / Tổng điểm (căn phải thẳng hàng số học <code class="bg-white dark:bg-slate-900 px-1 py-0.5 rounded font-mono">tabular-nums</code>). Cột không còn bị co giãn xiêu vẹo.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
+          <div class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span class="text-indigo-600 font-black">2.</span> Nhận diện màu sắc cột Listening / Reading / Tổng điểm
+          </div>
+          <p class="text-slate-600 dark:text-slate-300">
+            Header có chấm màu nhận diện: 🟣 Listening (chàm), 🟢 Reading (ngọc), 🏆 Tổng điểm (số to đậm nhất). Mắt người đọc định vị cột ngay tức khắc.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
+          <div class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span class="text-emerald-600 font-black">3.</span> Chuẩn hóa kích thước viên nang Xu Hướng & Lượt
+          </div>
+          <p class="text-slate-600 dark:text-slate-300">
+            Tất cả badge <code class="bg-white dark:bg-slate-900 px-1 rounded font-mono">↗ +30đ</code>, <code class="bg-white dark:bg-slate-900 px-1 rounded font-mono">↘ -10đ</code>, <code class="bg-white dark:bg-slate-900 px-1 rounded">Mốc đầu</code> và <code class="bg-white dark:bg-slate-900 px-1 rounded">Lần 1</code> / <code class="bg-white dark:bg-slate-900 px-1 rounded">Lần 2</code> đều có cùng chiều cao 22px và font chuẩn, mắt không bị nhảy nhót khi quét dọc.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
+          <div class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span class="text-amber-600 font-black">4.</span> Dòng bài "Part lẻ": Để trống các cột điểm theo đúng ý bạn
+          </div>
+          <p class="text-slate-600 dark:text-slate-300">
+            Các cột Listening, Reading, Tổng điểm, Xu hướng được <strong>để trống hoàn toàn</strong>, không gượng ép nhồi số câu hay % vào cột điểm Full test. Kết quả làm bài (<code class="bg-white dark:bg-slate-900 px-1 rounded font-mono text-teal-600 dark:text-teal-400 font-bold">42/46c • 91%</code>) được gắn tinh tế ngay cạnh tên đề hoặc xem trong popup chi tiết 👁️.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const SESSIONS = [
+      { id: '1', date: '13/09/2026', testName: 'ETS 2024 Test 04', duration: 112, type: 'FULL_TEST', attempt: 1, listening: 495, reading: 465, total: 960, diff: 30 },
+      { id: '2', date: '10/09/2026', testName: 'ETS 2024 Test 01', duration: 110, type: 'FULL_TEST', attempt: 2, listening: 480, reading: 450, total: 930, diff: 20 },
+      { id: '3', date: '08/09/2026', testName: 'Hacker 3 Test 01 (Hard)', duration: 120, type: 'FULL_TEST', attempt: 1, listening: 475, reading: 435, total: 910, diff: -10 },
+      { id: '4', date: '02/09/2026', testName: 'ETS 2024 Test 03', duration: 115, type: 'FULL_TEST', attempt: 1, listening: 480, reading: 440, total: 920, diff: 50 },
+      { id: '5', date: '28/08/2026', testName: 'Cày sâu Part 5 & 6 (Reading)', duration: 45, type: 'PART_PRACTICE', attempt: 1, listening: null, reading: null, total: null, diff: null, p5Correct: 28, p5Total: 30, p6Correct: 14, p6Total: 16, correct: 42, totalQ: 46, percent: 91 },
+      { id: '5b', date: '25/08/2026', testName: 'Luyện phản xạ Part 1 & 2 (Listening)', duration: 30, type: 'PART_PRACTICE', attempt: 1, listening: null, reading: null, total: null, diff: null, p1Correct: 6, p1Total: 6, p2Correct: 32, p2Total: 33, correct: 38, totalQ: 39, percent: 97, isListeningPart: true },
+      { id: '6', date: '22/08/2026', testName: 'ETS 2024 Test 02', duration: 118, type: 'FULL_TEST', attempt: 1, listening: 455, reading: 415, total: 870, diff: 45 },
+      { id: '7', date: '15/08/2026', testName: 'ETS 2024 Test 01', duration: 120, type: 'FULL_TEST', attempt: 1, listening: 430, reading: 395, total: 825, diff: null }
+    ];
+
+    let currentMode = 'opt8_redesign'; // Mặc định mở Phương Án 8 Cột Nâng Cấp
+    let partRowStyle = 'correct_count'; // 'correct_count' (Ghi số câu 42/46c) | 'est_score' (Điểm quy đổi ~450đ) | 'blank' (Để trống)
+    let showTrendArrow = false; // Mặc định BỎ MŨI TÊN theo gợi ý của bạn
+
+    function setPartRowStyle(style) {
+      partRowStyle = style;
+      renderTable();
+    }
+
+    function toggleTrendArrow() {
+      showTrendArrow = !showTrendArrow;
+      renderTable();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      
+      const tabs = ['tab8Redesign', 'tabCurrent', 'tabOptB', 'tabOptA'];
+      tabs.forEach(t => {
+        const el = document.getElementById(t);
+        el.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white';
+      });
+
+      const activeMap = {
+        'opt8_redesign': 'tab8Redesign',
+        'current': 'tabCurrent',
+        'optB': 'tabOptB',
+        'optA': 'tabOptA'
+      };
+      const activeEl = document.getElementById(activeMap[mode]);
+      activeEl.className = 'px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]';
+
+      renderBanner();
+      renderTable();
+    }
+
+    function renderBanner() {
+      const banner = document.getElementById('optionBanner');
+      if (currentMode === 'opt8_redesign') {
+        banner.className = 'p-3.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 text-xs sm:text-sm';
+        banner.innerHTML = `
+          <div class="font-black flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+            <span>⭐</span> PHƯƠNG ÁN 8 CỘT NÂNG CẤP (CĂN CHỈNH CHUẨN, KHÔNG BỎ CỘT NÀO):
+          </div>
+          <div class="mt-1 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+            <p>✅ <strong>Giữ trọn vẹn 8 cột</strong>: <code>Ngày</code> | <code>Tên Đề Thi</code> | <code>Lần</code> | <code>Listening</code> | <code>Reading</code> | <code>Tổng Điểm</code> | <code>Xu Hướng</code> | <code>Thao Tác</code>.</p>
+            <p>✅ <strong>Căn gióng số học thẳng tắp</strong>: Số điểm căn phải, chữ số font tabular-nums đều tăm tắp, mắt lướt từ trên xuống dưới so sánh cực nhanh.</p>
+            <p>✅ <strong>Khử sạch 5 dấu gạch trống ở bài Part lẻ</strong>: Thay vì để gạch trống, cột Reading hiện số câu (<code>42/46c</code>) và Tổng điểm hiện tỷ lệ (<code>91%</code>).</p>
+            <p>✅ <strong>Thao tác nhẹ nhàng</strong>: Các nút [Chi tiết], [Sửa], [Xóa] được tinh gọn dạng icon mềm, rê chuột vào hàng mới sáng rõ, không làm nặng mắt.</p>
+          </div>
+        `;
+      } else if (currentMode === 'current') {
+        banner.className = 'p-3.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-rose-50 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 text-xs sm:text-sm';
+        banner.innerHTML = `
+          <div class="font-bold flex items-center gap-1.5 text-rose-900 dark:text-rose-300">
+            <span>⚠️</span> BẢNG 8 CỘT CŨ (CHƯA CĂN CHỈNH) — CÁC ĐIỂM NGHẼN:
+          </div>
+          <ul class="list-disc list-inside mt-1.5 space-y-0.5 text-xs text-rose-800 dark:text-rose-300">
+            <li>Khoảng cách các cột phân bổ ngẫu nhiên, không có độ rộng cố định.</li>
+            <li>Dòng Part lẻ có tới 5 dấu gạch ngang trống trơn (<code class="bg-rose-100 dark:bg-rose-900/60 px-1 rounded">- -- -- -- -</code>).</li>
+            <li>3 nút thao tác xám đậm chiếm diện tích lớn và tranh chấp thị giác với điểm số.</li>
+          </ul>
+        `;
+      } else if (currentMode === 'optB') {
+        banner.className = 'p-3.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 text-xs sm:text-sm';
+        banner.innerHTML = `
+          <div class="font-black flex items-center gap-1.5 text-emerald-900 dark:text-emerald-300">
+            <span>🌿</span> PHƯƠNG ÁN B: 5 CỘT (CÂN BẰNG THÔNG MINH)
+          </div>
+          <div class="mt-1 text-xs text-slate-700 dark:text-slate-300">
+            Gộp Lần vào Tên đề, gộp Xu hướng vào Tổng Điểm (960đ ↗ +30đ). Rút gọn từ 8 cột xuống 5 cột.
+          </div>
+        `;
+      } else {
+        banner.className = 'p-3.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-blue-50 dark:bg-blue-950/30 text-blue-950 dark:text-blue-200 text-xs sm:text-sm';
+        banner.innerHTML = `
+          <div class="font-black flex items-center gap-1.5 text-blue-900 dark:text-blue-300">
+            <span>⚡</span> PHƯƠNG ÁN A: 4 CỘT (SIÊU TỐI GIẢN)
+          </div>
+          <div class="mt-1 text-xs text-slate-700 dark:text-slate-300">
+            Gộp cả 3 cột điểm thành 1 cột Kết quả duy nhất (Tổng điểm to ở trên, L/R ở dưới). Bảng thoáng mát tối đa.
+          </div>
+        `;
+      }
+    }
+
+    function renderTable() {
+      const container = document.getElementById('tableContainer');
+
+      if (currentMode === 'opt8_redesign') {
+        // PHƯƠNG ÁN 8 CỘT NÂNG CẤP (CĂN CHỈNH HOÀN HẢO THEO YÊU CẦU CỦA USER)
+        container.innerHTML = `
+          <!-- Tùy chọn kiểu hiển thị Part lẻ để người dùng so sánh ngay -->
+          <div class="mb-3.5 flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
+              <span class="text-amber-500">⚙️</span> Lựa chọn hiển thị ở cột Listening / Reading bài "Part lẻ":
+            </div>
+            <div class="flex items-center gap-1 bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 flex-wrap">
+              <button 
+                onclick="setPartRowStyle('correct_count')" 
+                id="btnPartCorrectCount"
+                class="px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${partRowStyle === 'correct_count' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}"
+              >
+                ⭐ 1. Ghi Số Câu (42/46c) & Để trống Tổng điểm (Theo ý bạn)
+              </button>
+              <button 
+                onclick="setPartRowStyle('est_score')" 
+                id="btnPartEstScore"
+                class="px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${partRowStyle === 'est_score' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}"
+              >
+                2. Ghi Điểm Ước Lượng (~450đ)
+              </button>
+              <button 
+                onclick="setPartRowStyle('blank')" 
+                id="btnPartBlank"
+                class="px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${partRowStyle === 'blank' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}"
+              >
+                3. Để Trống Hoàn Toàn
+              </button>
+              <span class="w-px h-4 bg-slate-200 dark:bg-slate-700 my-auto mx-1"></span>
+              <button 
+                onclick="toggleTrendArrow()" 
+                id="btnToggleTrendArrow"
+                class="px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${!showTrendArrow ? 'bg-amber-400 text-slate-950 font-black' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}"
+                title="Bấm để bật / tắt mũi tên ở cột xu hướng"
+              >
+                ${!showTrendArrow ? '✓ Đã Bỏ Mũi Tên (+30đ)' : 'Đang Có Mũi Tên (↗ +30đ)'}
+              </button>
+            </div>
+          </div>
+
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 font-black uppercase tracking-wider text-[11px] select-none">
+                <!-- 1. Ngày -->
+                <th class="py-3 px-3 w-28 whitespace-nowrap">Ngày ⇅</th>
+                
+                <!-- 2. Tên Đề Thi -->
+                <th class="py-3 px-3.5">Tên Đề Thi ⇅</th>
+                
+                <!-- 3. Lần thi -->
+                <th class="py-3 px-2 text-center w-20 whitespace-nowrap">Lượt ⇅</th>
+                
+                <!-- 4. Listening -->
+                <th class="py-3 px-3 text-center w-28 whitespace-nowrap">
+                  <span>Listening ⇅</span>
+                </th>
+                
+                <!-- 5. Reading -->
+                <th class="py-3 px-3 text-center w-28 whitespace-nowrap">
+                  <span>Reading ⇅</span>
+                </th>
+                
+                <!-- 6. Tổng Điểm -->
+                <th class="py-3 px-3 text-center w-28 whitespace-nowrap text-slate-900 dark:text-white">
+                  <span>Tổng Điểm ⇅</span>
+                </th>
+                
+                <!-- 7. Xu Hướng (BỎ BADGE, BỎ MŨI TÊN, CHỮ TO RÕ) -->
+                <th class="py-3 px-3 text-center w-28 whitespace-nowrap">Xu Hướng</th>
+                
+                <!-- 8. Thao Tác -->
+                <th class="py-3 px-3 text-right w-24 whitespace-nowrap">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+              ${SESSIONS.map(s => {
+                const isFull = s.type === 'FULL_TEST';
+                return `
+                  <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                    <!-- 1. Ngày -->
+                    <td class="py-3 px-3 font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap font-semibold">
+                      ${s.date}
+                    </td>
+
+                    <!-- 2. Tên Đề Thi & Thời gian -->
+                    <td class="py-3 px-3.5">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
+                          ${s.testName}
+                        </span>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100/90 dark:bg-slate-800/80 px-1.5 py-0.5 rounded-md shrink-0">
+                          ⏱ ${s.duration}p
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- 3. Lượt thi (Badge chuẩn hóa gọn gàng) -->
+                    <td class="py-3 px-2 text-center whitespace-nowrap">
+                      ${isFull 
+                        ? (s.attempt > 1 
+                            ? `<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800 w-14">Lần ${s.attempt}</span>` 
+                            : `<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 w-14">Lần 1</span>`)
+                        : `<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60 w-14">Part lẻ</span>`
+                      }
+                    </td>
+
+                    ${isFull ? `
+                      <!-- 4. Listening: CĂN CHÍNH GIỮA -->
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap tabular-nums">
+                        <span class="font-black text-sm text-indigo-600 dark:text-indigo-400">${s.listening}đ</span>
+                      </td>
+
+                      <!-- 5. Reading: CĂN CHÍNH GIỮA -->
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap tabular-nums">
+                        <span class="font-black text-sm text-teal-600 dark:text-teal-400">${s.reading}đ</span>
+                      </td>
+
+                      <!-- 6. Tổng Điểm: CĂN CHÍNH GIỮA -->
+                      <td class="py-3 px-3.5 text-center font-mono whitespace-nowrap tabular-nums">
+                        <span class="font-black text-base text-slate-900 dark:text-white">${s.total}đ</span>
+                      </td>
+
+                      <!-- 7. Xu Hướng: CĂN GIỮA, BỎ BADGE & BỎ MŨI TÊN (CHỮ TO RÕ TEXT-SM) -->
+                      <td class="py-3 px-3 text-center whitespace-nowrap tabular-nums">
+                        ${s.diff !== null 
+                          ? (s.diff > 0 
+                              ? `<span class="text-emerald-600 dark:text-emerald-400 font-bold text-sm font-mono">${showTrendArrow ? '↗ ' : ''}+${s.diff}đ</span>`
+                              : s.diff < 0 
+                              ? `<span class="text-rose-600 dark:text-rose-400 font-bold text-sm font-mono">${showTrendArrow ? '↘ ' : ''}${s.diff}đ</span>`
+                              : `<span class="text-slate-400 font-bold text-sm font-mono">0đ</span>`
+                            )
+                          : `<span class="text-xs text-slate-400 dark:text-slate-500 font-medium">Mốc đầu</span>`
+                        }
+                      </td>
+                    ` : (partRowStyle === 'correct_count' ? `
+                      <!-- GHI SỐ CÂU ĐÚNG Ở LISTENING / READING & ĐỂ TRỐNG Ở TỔNG ĐIỂM THEO Ý BẠN -->
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap tabular-nums">
+                        ${s.isListeningPart 
+                          ? `<span class="font-bold text-sm text-indigo-600 dark:text-indigo-400 font-mono">${s.correct}/${s.totalQ}c</span>` 
+                          : `<span class="text-slate-300 dark:text-slate-600 font-bold text-sm">—</span>`
+                        }
+                      </td>
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap tabular-nums">
+                        ${!s.isListeningPart 
+                          ? `<span class="font-bold text-sm text-teal-600 dark:text-teal-400 font-mono">${s.correct}/${s.totalQ}c</span>` 
+                          : `<span class="text-slate-300 dark:text-slate-600 font-bold text-sm">—</span>`
+                        }
+                      </td>
+                      <!-- Cột Tổng Điểm: ĐỂ TRỐNG (THEO ĐÚNG Ý BẠN) -->
+                      <td class="py-3 px-3.5 text-center font-mono whitespace-nowrap text-slate-300 dark:text-slate-600 font-bold text-sm">
+                        —
+                      </td>
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap text-slate-300 dark:text-slate-600 font-bold text-sm">
+                        —
+                      </td>
+                    ` : partRowStyle === 'est_score' ? `
+                      <!-- LỰA CHỌN 2: GHI ĐIỂM QUY ĐỔI ƯỚC LƯỢNG (~450đ) -->
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap tabular-nums">
+                        ${s.isListeningPart 
+                          ? `<span class="font-bold text-sm text-indigo-600 dark:text-indigo-400 font-mono">~480đ</span>` 
+                          : `<span class="text-slate-300 dark:text-slate-600 font-bold text-sm">—</span>`
+                        }
+                      </td>
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap tabular-nums">
+                        ${!s.isListeningPart 
+                          ? `<span class="font-bold text-sm text-teal-600 dark:text-teal-400 font-mono">~450đ</span>` 
+                          : `<span class="text-slate-300 dark:text-slate-600 font-bold text-sm">—</span>`
+                        }
+                      </td>
+                      <td class="py-3 px-3.5 text-center font-mono whitespace-nowrap tabular-nums">
+                        <span class="font-black text-sm text-amber-600 dark:text-amber-400 font-mono">~${s.isListeningPart ? 480 : 450}đ</span>
+                      </td>
+                      <td class="py-3 px-3 text-center font-mono whitespace-nowrap text-slate-300 dark:text-slate-600 font-bold text-sm">
+                        —
+                      </td>
+                    ` : `
+                      <!-- LỰA CHỌN 3: ĐỂ TRỐNG HOÀN TOÀN 4 CỘT -->
+                      <td class="py-3 px-3 text-center font-mono text-slate-300 dark:text-slate-600 text-sm">—</td>
+                      <td class="py-3 px-3 text-center font-mono text-slate-300 dark:text-slate-600 text-sm">—</td>
+                      <td class="py-3 px-3.5 text-center font-mono text-slate-300 dark:text-slate-600 text-sm">—</td>
+                      <td class="py-3 px-3 text-center font-mono text-slate-300 dark:text-slate-600 text-sm">—</td>
+                    `)}
+
+                    <!-- 8. Thao Tác (GỌN GÀNG, SÁNG RÕ KHI HOVER) -->
+                    <td class="py-3 px-3 text-right whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <button class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100/90 dark:bg-slate-800/90 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 text-slate-500 transition cursor-pointer" title="Xem chi tiết">
+                          👁️
+                        </button>
+                        <button class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100/90 dark:bg-slate-800/90 hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-950 dark:hover:text-amber-300 text-slate-500 transition cursor-pointer" title="Sửa bài thi">
+                          ✏️
+                        </button>
+                        <button class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100/90 dark:bg-slate-800/90 hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-950 dark:hover:text-rose-300 text-slate-500 transition cursor-pointer" title="Xóa bài thi">
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (currentMode === 'current') {
+        // BẢNG 8 CỘT CŨ (CHƯA SỬA ĐỂ SO SÁNH)
+        container.innerHTML = `
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] select-none">
+                <th class="py-3 px-3">Ngày ⇅</th>
+                <th class="py-3 px-3">Tên Đề Thi ⇅</th>
+                <th class="py-3 px-3 text-center">Lần</th>
+                <th class="py-3 px-3 text-right">Listening ⇅</th>
+                <th class="py-3 px-3 text-right">Reading ⇅</th>
+                <th class="py-3 px-3 text-right">Tổng Điểm ⇅</th>
+                <th class="py-3 px-3 text-center">Xu Hướng</th>
+                <th class="py-3 px-3 text-right">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+              ${SESSIONS.map(s => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                  <td class="py-3.5 px-3 font-mono text-slate-500 text-xs">${s.date}</td>
+                  <td class="py-3.5 px-3">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-bold text-slate-800 dark:text-slate-100">${s.testName}</span>
+                      ${s.type !== 'FULL_TEST' ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">Part lẻ</span>` : ''}
+                      <span class="text-[11px] font-mono text-slate-400">⏱ ${s.duration}'</span>
+                    </div>
+                  </td>
+                  <td class="py-3.5 px-3 text-center">
+                    ${s.type === 'FULL_TEST' 
+                      ? (s.attempt > 1 ? `<span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300">Lần ${s.attempt}</span>` : `<span class="px-1.5 py-0.5 rounded text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">L1</span>`)
+                      : `<span class="text-slate-300 dark:text-slate-600 font-bold">-</span>`}
+                  </td>
+                  <td class="py-3.5 px-3 text-right font-mono">
+                    ${s.listening ? `<span class="font-bold text-indigo-600 dark:text-indigo-400">${s.listening}đ</span>` : `<span class="text-slate-300 dark:text-slate-600 font-bold">--</span>`}
+                  </td>
+                  <td class="py-3.5 px-3 text-right font-mono">
+                    ${s.reading ? `<span class="font-bold text-teal-600 dark:text-teal-400">${s.reading}đ</span>` : `<span class="text-slate-300 dark:text-slate-600 font-bold">--</span>`}
+                  </td>
+                  <td class="py-3.5 px-3 text-right font-mono">
+                    ${s.total ? `<span class="font-black text-slate-900 dark:text-white text-base">${s.total}đ</span>` : `<span class="text-slate-300 dark:text-slate-600 font-bold">--</span>`}
+                  </td>
+                  <td class="py-3.5 px-3 text-center">
+                    ${s.type === 'FULL_TEST'
+                      ? (s.diff !== null
+                          ? (s.diff > 0 
+                              ? `<span class="inline-flex items-center text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 px-2 py-0.5 rounded-full font-bold text-xs font-mono">↗ +${s.diff}đ</span>`
+                              : `<span class="inline-flex items-center text-rose-700 bg-rose-50 dark:bg-rose-950/50 border border-rose-200/60 px-2 py-0.5 rounded-full font-bold text-xs font-mono">↘ ${s.diff}đ</span>`)
+                          : `<span class="text-slate-400 text-xs">Mốc đầu</span>`)
+                      : `<span class="text-slate-300 dark:text-slate-600 font-bold">-</span>`}
+                  </td>
+                  <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                    <div class="inline-flex items-center space-x-1 opacity-70">
+                      <button class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">👁️</button>
+                      <button class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">✏️</button>
+                      <button class="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (currentMode === 'optB') {
+        // PHƯƠNG ÁN B: 5 CỘT
+        container.innerHTML = `
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 font-black uppercase tracking-wider text-xs select-none">
+                <th class="py-3 px-4 w-28">Ngày ⇅</th>
+                <th class="py-3 px-4">Bài Thi & Lượt Thi ⇅</th>
+                <th class="py-3 px-4 text-right w-28">Listening ⇅</th>
+                <th class="py-3 px-4 text-right w-28">Reading ⇅</th>
+                <th class="py-3 px-4 text-right w-44">Tổng Điểm & Xu Hướng ⇅</th>
+                <th class="py-3 px-3 text-right w-20"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+              ${SESSIONS.map(s => {
+                const isFull = s.type === 'FULL_TEST';
+                return `
+                  <tr class="hover:bg-amber-50/40 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group">
+                    <td class="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap font-semibold">
+                      ${s.date}
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                          ${s.testName}
+                        </span>
+                        ${isFull 
+                          ? (s.attempt > 1 
+                              ? `<span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800">Lần ${s.attempt}</span>` 
+                              : `<span class="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">L1</span>`)
+                          : `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60">Part lẻ</span>`
+                        }
+                        <span class="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                          ⏱ ${s.duration}p
+                        </span>
+                      </div>
+                    </td>
+                    ${isFull ? `
+                      <td class="py-3.5 px-4 text-right font-mono whitespace-nowrap">
+                        <span class="font-bold text-sm text-indigo-600 dark:text-indigo-400">${s.listening}đ</span>
+                      </td>
+                      <td class="py-3.5 px-4 text-right font-mono whitespace-nowrap">
+                        <span class="font-bold text-sm text-teal-600 dark:text-teal-400">${s.reading}đ</span>
+                      </td>
+                      <td class="py-3.5 px-4 text-right font-mono whitespace-nowrap">
+                        <div class="inline-flex items-center justify-end gap-2">
+                          <span class="font-black text-base text-slate-900 dark:text-white">${s.total}đ</span>
+                          ${s.diff !== null 
+                            ? (s.diff > 0 
+                                ? `<span class="inline-flex items-center text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded-full text-[11px] font-black font-mono">↗ +${s.diff}đ</span>`
+                                : `<span class="inline-flex items-center text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-1.5 py-0.5 rounded-full text-[11px] font-black font-mono">↘ ${s.diff}đ</span>`)
+                            : `<span class="text-[10px] text-slate-400 font-medium">Mốc đầu</span>`
+                          }
+                        </div>
+                      </td>
+                    ` : `
+                      <td colspan="3" class="py-3.5 px-4 text-right font-mono">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700">
+                          <span>🎯 Kết quả:</span>
+                          <span class="text-amber-700 dark:text-amber-300 font-black">${s.partDetails}</span>
+                        </span>
+                      </td>
+                    `}
+                    <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-950 text-slate-600 dark:text-slate-300 text-xs" title="Sửa bài thi">✏️</button>
+                        <button class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-300 text-xs" title="Xóa bài thi">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      } else {
+        // PHƯƠNG ÁN A: 4 CỘT
+        container.innerHTML = `
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 font-black uppercase tracking-wider text-xs select-none">
+                <th class="py-3 px-4 w-32">Ngày ⇅</th>
+                <th class="py-3 px-4">Bài Thi & Lượt Thi ⇅</th>
+                <th class="py-3 px-4 text-right w-64">Kết Quả Điểm Số ⇅</th>
+                <th class="py-3 px-3 text-right w-20"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+              ${SESSIONS.map(s => {
+                const isFull = s.type === 'FULL_TEST';
+                return `
+                  <tr class="hover:bg-blue-50/40 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group">
+                    <td class="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap font-semibold">
+                      ${s.date}
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-base">
+                          ${s.testName}
+                        </span>
+                        ${isFull 
+                          ? (s.attempt > 1 
+                              ? `<span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800">Lần ${s.attempt}</span>` 
+                              : `<span class="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">L1</span>`)
+                          : `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60">Part lẻ</span>`
+                        }
+                        <span class="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                          ⏱ ${s.duration}p
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-right font-mono whitespace-nowrap">
+                      ${isFull ? `
+                        <div class="flex flex-col items-end">
+                          <div class="inline-flex items-center gap-2">
+                            <span class="font-black text-lg text-slate-900 dark:text-white">${s.total}đ</span>
+                            ${s.diff !== null 
+                              ? (s.diff > 0 
+                                  ? `<span class="inline-flex items-center text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded-full text-[10.5px] font-black font-mono">↗ +${s.diff}đ</span>`
+                                  : `<span class="inline-flex items-center text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-1.5 py-0.5 rounded-full text-[10.5px] font-black font-mono">↘ ${s.diff}đ</span>`)
+                              : `<span class="text-[10px] text-slate-400 font-medium">Mốc đầu</span>`
+                            }
+                          </div>
+                          <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400">${s.listening} L</span>
+                            <span>•</span>
+                            <span class="font-bold text-teal-600 dark:text-teal-400">${s.reading} R</span>
+                          </div>
+                        </div>
+                      ` : `
+                        <div class="flex flex-col items-end">
+                          <span class="text-xs font-bold text-amber-700 dark:text-amber-400">${s.partDetails}</span>
+                        </div>
+                      `}
+                    </td>
+                    <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-950 text-slate-600 dark:text-slate-300 text-xs" title="Sửa bài thi">✏️</button>
+                        <button class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-300 text-xs" title="Xóa bài thi">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    function toggleDark() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+      document.getElementById('themeLabel').textContent = isDark ? 'Sáng' : 'Tối';
+    }
+
+    // Initialize with 8 columns redesign!
+    setMode('opt8_redesign');
+  </script>
+</body>
+</html>

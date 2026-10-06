@@ -1,0 +1,102 @@
+# TOEIC Progress — Python/FastAPI
+
+Backend nghiệp vụ dùng FastAPI + Pydantic. Supabase cung cấp PostgreSQL và Auth; Gemini chỉ được gọi từ backend. Frontend không giữ khóa Gemini hay service-role key.
+
+Lộ trình beta, migration vận hành, biến deploy, staging tests và backup/restore: [hướng dẫn beta](../docs/DEPLOYMENT.md). Backend có chống spam trước xác thực, bộ đếm API dùng chung qua PostgreSQL, log JSON có mã request, Trusted Host, kiểm tra cấu hình deploy và `/ready` kiểm tra database. Cần cấu hình hosting và kiểm chứng thực tế trước khi mời người dùng.
+
+## Chạy trên Windows
+
+Từ thư mục gốc của repo:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements-dev.txt
+Copy-Item backend/.env.example backend/.env
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --env-file backend/.env --reload --port 8000
+```
+
+Nếu môi trường `.venv` đã có thì bỏ bước tạo. Backend chạy được khi chưa có khóa: `/health` báo dịch vụ nào đã được cấu hình; các API cần dịch vụ đó trả lỗi rõ ràng. Swagger ở `http://127.0.0.1:8000/docs`.
+
+Frontend: sao chép `frontend/.env.example` thành `frontend/.env.local`, điền `VITE_API_URL=http://127.0.0.1:8000`, URL/publishable key của Supabase và Turnstile site key. Chạy `npm run dev`. Giá trị `VITE_*` là công khai; khóa bí mật chỉ nằm trong `backend/.env` hoặc môi trường hosting.
+
+## Supabase
+
+1. Tạo project Free riêng cho staging và dữ liệu thật. Áp dụng năm migration theo thứ tự tên trong `supabase/migrations/`. Project đã chạy migration 4 chỉ cần thêm `20261006020000_api_rate_limits.sql` rồi bật `API_LIMITS_ENABLED=true`. Migration 4 (`20261006010000_purge_deleted_content.sql`) xóa nội dung đã đánh dấu xóa trước đó; dữ liệu đang hiệu lực được giữ. Xem docs/DEPLOYMENT.md để cấu hình đúng thứ tự.
+2. Điền `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`), `SUPABASE_SECRET_KEY` (`sb_secret_...`) vào `backend/.env`. URL/publishable key của frontend phải thuộc cùng project. Secret key chỉ ở backend. Biến `SUPABASE_SERVICE_ROLE_KEY` vẫn được hỗ trợ cho cấu hình cũ dùng JWT; cấu hình mới dùng secret key.
+3. Bật Google OAuth, Site URL và Redirect URLs cho localhost và domain frontend. Bản đầu ẩn email OTP; chỉ bật `VITE_ENABLE_EMAIL_OTP=true` sau khi cấu hình SMTP riêng.
+4. Bật Anonymous Sign-Ins và Turnstile CAPTCHA trong Auth. Khách chỉ được tạo phiên ẩn danh khi dùng AI; phiên này không kích hoạt đồng bộ dữ liệu học.
+5. Cấu hình Turnstile site key ở frontend và secret key ở backend. `TURNSTILE_HOSTNAMES` là mảng JSON các hostname frontend được chấp nhận, không có scheme/path. Backend xác minh token với action `toeic-ai`.
+
+Mọi yêu cầu API xác thực token qua `/auth/v1/user`, không giải mã JWT rồi tin vào nội dung chưa xác minh. HTTP API lấy owner từ phiên đã xác thực. RPC ghi và quota chỉ cấp `EXECUTE` cho `service_role`; client không được sửa bộ đếm hoặc gọi RPC bằng user ID tự chọn. Anonymous JWT cũng bị chặn đọc dữ liệu tài khoản qua RLS.
+
+## Gemini và hạn mức 0 đồng
+
+Tạo Gemini API project trên Free Tier, giữ billing chưa liên kết. Điền `GEMINI_API_KEY`; model mặc định `gemini-3.8-flash`. Xem hạn mức thực tế trong [AI Studio](https://ai.google.dev/gemini-api/docs/rate-limits) rồi điều chỉnh cấu hình xuống dưới RPM/TPM/RPD đó.
+
+Mẫu `.env` và Render Blueprint bắt đầu với `AI_ENABLED=false` để triển khai tracker trước. Sau khi có Gemini/Turnstile, bật `AI_ENABLED=true` và kiểm thử nhà cung cấp thật.
+
+Mặc định: khách 3 lượt/danh tính ẩn danh; tài khoản 10 lượt/tháng; cả app 20 lượt/ngày, 2 lượt/phút; mỗi IP 5 lượt/ngày. Các bucket tính theo UTC. Đây là cấu hình app, không phải hạn mức bảo đảm của Google. Giới hạn tính các yêu cầu đã giữ lượt và gửi xử lý, gồm lỗi nhà cung cấp. Cơ chế giữ lượt chạy trong giao dịch PostgreSQL trước khi gọi Gemini. Một UUID yêu cầu chỉ được giữ lượt một lần; không tự retry hoặc fallback sang model khác.
+
+Khóa `RATE_LIMIT_SECRET` dùng để HMAC địa chỉ IP, cần tạo ngẫu nhiên ít nhất 32 ký tự và giữ cố định. Khi chạy sau reverse proxy, cấu hình Uvicorn chỉ tin các proxy của hosting để `request.client.host` đúng. Không đọc tùy ý `X-Forwarded-For` từ client. Giới hạn toàn app và tài khoản vẫn áp dụng dù IP bị gom chung.
+
+Yêu cầu AI nhận 20–8.000 ký tự, không nhận tệp. Người học phải xác nhận gửi văn bản tới Google. Backend chỉ lưu hash và bộ đếm, không lưu câu hỏi hoặc bản nháp AI. Phương án không xuất hiện trong đầu vào bị bỏ; đáp án chỉ được giữ khi khớp nhãn `Đáp án chuẩn:`, `Đáp án đúng:`, `Answer:` hoặc `Correct answer:`. Kết quả vẫn là bản nháp cần người học kiểm tra.
+
+## Dữ liệu và đồng bộ
+
+Database dùng các bảng nghiệp vụ với cột có kiểu và ràng buộc riêng:
+
+| Bảng | Nội dung |
+|---|---|
+| `user_profiles` | Hồ sơ, mục tiêu điểm và cấu hình học |
+| `study_sessions` | Buổi học, tên đề, ngày học, thời gian, điểm và số câu đúng 7 Part |
+| `study_session_parts` | Chi tiết các Part trong buổi luyện lẻ |
+| `mistakes` | Câu hỏi, lỗi, đáp án, nhóm nguyên nhân và lịch ôn |
+| `vocabulary_logs` | Ngày và số từ đã học; chưa có danh sách từng từ |
+| `weekly_plans` / `weekly_plan_tasks` | Tuần và từng mục tiêu |
+| `pacing_runs` / `pacing_run_phases` | Lượt bấm giờ và các pha |
+| `exam_checklist` / `streak_shields` | Checklist và ngày dùng khiên |
+
+`exam_history` là view lọc Full Test còn hiệu lực từ `study_sessions`. `sync_records` là view dựng lại định dạng JSON của giao thức đồng bộ, không còn là bảng lưu chính. Những trường bổ sung chưa thuộc schema được giữ trong `extra` để bảo toàn backup/khả năng tương thích. Các cột nghiệp vụ đã biết có kiểu riêng, không nằm trong `payload`.
+
+Migration 3 chuyển dữ liệu hiện có trong một giao dịch, giữ nguyên ID, thời điểm, dấu xóa và phiên bản server. Bảng gốc được giữ ở `sync_records_legacy` để phục hồi; client và service key không đọc/ghi bảng này. Tài khoản bị xóa vẫn được FK dọn cả bản cũ. Dữ liệu legacy không hợp lệ làm migration dừng và rollback, không bị bỏ qua.
+
+Migration 4 tách bản ghi đã xóa sang `sync_tombstones` chỉ có owner, loại, ID, thời điểm và phiên bản, không giữ nội dung. Nội dung ở bảng nghiệp vụ/bảng con và bản tương ứng trong `sync_records_legacy` bị xóa. Khi xóa trắng, `POST /api/v1/data/reset` thực hiện trong một giao dịch theo owner: dọn mọi nội dung học của tài khoản, reset hồ sơ/checklist, dọn toàn bộ bản legacy của owner và ghi mốc vào `learning_data_resets`. Quota AI và tài khoản đăng nhập vẫn giữ.
+
+`learning_data_resets` bảo vệ khỏi thiết bị chưa nhận reset: mọi request có cursor cũ phải bỏ các thay đổi cũ và nhận snapshot chuẩn (`resetBarrier=true`) trước khi sửa tiếp. Frontend hủy áp dụng các response đang chạy khi reset và chỉ ghi cursor sau khi lưu snapshot. Việc nhập backup hay chọn dữ liệu máy là thao tác phục hồi có chủ đích; không diễn ra tự động. Không dọn dấu xóa theo thời gian khi chưa có giao thức hết hạn thiết bị.
+
+Sau reset, máy đang dùng chỉ giữ dấu xóa trong gói tài khoản và xóa bản v2 của cùng tài khoản. Reset khách chỉ tác động gói khách và các khóa legacy thuộc khách. Dữ liệu guest riêng, tài khoản khác, bản dữ liệu còn trên máy chưa kết nối và tệp backup người dùng đã tải không được xóa từ xa. Máy khác loại nội dung cũ khi nhận reset. Export JSON mới chỉ gồm bản ghi đang hiệu lực, không gồm dấu xóa.
+
+Các bảng chính và bảng con đều có RLS theo chủ sở hữu, chặn danh tính ẩn danh; client chỉ SELECT, ghi qua FastAPI. Chỉnh cột nghiệp vụ hoặc bảng con bằng quyền quản trị sẽ tăng phiên bản để các thiết bị nhận thay đổi. Xóa hàng ở bảng nghiệp vụ chuyển thành dấu xóa; hồ sơ chỉ được xóa qua xóa tài khoản. Khóa liên kết `mistakes.linked_session_id` trỏ buổi học cùng chủ sở hữu khi có; `session_id` giữ tham chiếu lịch sử khi tệp nhập thiếu buổi học tương ứng.
+
+Gói cục bộ v3 gồm cả kế hoạch tuần. Chuyển v2 sang v3 giữ lại các khóa cũ; kế hoạch v1 từng dùng chung chỉ chuyển vào danh tính đang hoạt động khi migrate. Backup v1/v2 vẫn nhập được và giữ kế hoạch tuần đang có. Backup v3 kiểm tra kế hoạch và ID trước khi ghi.
+
+`POST /api/v1/sync` nhận các bản ghi thay đổi, cursor và lựa chọn thay thế. PostgreSQL giữ khóa giao dịch theo owner, áp dụng quy tắc bản mới hơn thắng/xóa thắng khi trùng thời điểm, trả delta cùng cursor mới. Bản ghi bị từ chối do cũ vẫn trả phiên bản chuẩn. Chỉ lưu cursor sau khi ghi snapshot cục bộ thành công. Mỗi kế hoạch tuần là một bản ghi; hai thiết bị sửa cùng tuần dùng quy tắc phiên bản mới hơn thắng, không gộp từng task.
+
+Giới hạn hiện tại: 10.000 bản ghi/tài khoản, 32 KiB/bản ghi, 4 MiB/request. Dữ liệu tài khoản chỉ sửa khi có mạng và đồng bộ đã thành công. Xóa tài khoản xóa Auth user cùng dữ liệu server qua FK; các bản cục bộ vẫn có thể xuất/xóa riêng.
+
+## Kiểm thử
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests -c backend/pyproject.toml
+.\.venv\Scripts\python.exe -m ruff check backend
+npm test
+npm run test:db
+npm run test:e2e
+npm run build
+```
+
+`test:db` chạy PostgreSQL WASM trong bộ nhớ, áp dụng các migration và kiểm tra chuyển dữ liệu, RLS/cursor/quota, xóa nội dung/bảng con/bản legacy, mốc reset và request từ thiết bị cũ. Nó không thay thế kiểm chứng Supabase Auth/PostgREST thực tế. `test:rls` chỉ dùng staging với biến môi trường được ghi ở đầu script; không chạy trên dữ liệu thật. SQL migration 3/4 được sinh bằng `python scripts/database/generate-domain-migration.py` / `python scripts/database/generate-reset-migration.py`. Playwright chạy cổng 3100 riêng, cấu hình Supabase/AI bị tắt để không dùng dịch vụ thật.
+
+## Deploy thử miễn phí
+
+Frontend: Vercel, Root Directory `frontend`, framework Vite, build `npm run build`, output `dist`. `frontend/vercel.json` có rewrite cho deep link; xem các biến `VITE_*` trong README ở thư mục gốc. Backend: Render Python Web Service, root `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Blueprint ở `backend/render.yaml`. Chọn Free, dùng subdomain có sẵn và giữ cấu hình trong hạn mức.
+
+Render Free có thể ngủ sau 15 phút không có traffic và mất khoảng một phút để khởi động lại. Dữ liệu bền vững nằm ở Supabase; không ghi database hoặc quota vào filesystem của Render. [Giới hạn Render Free](https://render.com/docs/free)
+
+Điền `CORS_ORIGINS` là mảng JSON URL frontend chính xác; `TURNSTILE_HOSTNAMES` là hostname tương ứng. Điền các biến riêng cho staging và dữ liệu thật. Giữ kế hoạch beta 20–30 người trước khi tăng quy mô. Hiện chưa triển khai dịch vụ hay kiểm chứng OAuth/Gemini thật.
+
+## Vận hành
+
+Supabase Free không gồm sao lưu tự động: giữ chức năng export JSON cho người dùng và tạo bản dump database trước migration. Chạy `python -m app.commands.maintenance` từ `backend` để dọn counter hết hạn và request hash cũ. Guest counter được giữ theo danh tính; cần dọn Auth user ẩn danh không còn dùng bằng công cụ quản trị trước khi mở quy mô lớn. Không log token, khóa dịch vụ hoặc nguyên văn câu hỏi.
+
+Beta miễn phí, AI có giới hạn; gói nâng cao có thể thu phí khi ra mắt chính thức. Các cờ/hạn mức đã được cấu hình riêng để thay đổi về sau; chưa tích hợp thanh toán.

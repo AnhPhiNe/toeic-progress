@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tối Ưu Chuỗi Ngày Học & Hiệu Ứng Tương Tác — TOEIC Progress</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    
+    @keyframes fire-flicker {
+      0%, 100% {
+        transform: scale(1) translateY(0);
+        filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.7));
+      }
+      25% {
+        transform: scale(1.08, 0.95) translateY(-1px) rotate(-2deg);
+        filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.9));
+      }
+      50% {
+        transform: scale(0.95, 1.1) translateY(-2px) rotate(2deg);
+        filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
+      }
+      75% {
+        transform: scale(1.04, 1.02) translateY(-1px);
+        filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.7));
+      }
+    }
+    
+    .flame-active {
+      animation: fire-flicker 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-breath {
+      animation: pulse-ring 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-[#0B111E] text-slate-900 dark:text-slate-100 min-h-screen p-4 sm:p-6 transition-colors duration-200">
+
+  <!-- TOP HEADER / CONTROL BAR -->
+  <div class="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1]">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-0.5 rounded-md bg-amber-300 dark:bg-amber-400 text-slate-950 font-black text-xs border border-slate-900">
+          TƯ VẤN & BẢN DEMO TƯƠNG TÁC
+        </span>
+        <h1 class="text-base sm:text-lg font-black text-slate-950 dark:text-white">
+          Tối Ưu Thẻ Chuỗi Ngày Học (Streak)
+        </h1>
+      </div>
+      <p class="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
+        Đánh giá đường gạch chân "CN" & Đề xuất 4 animation / hiệu ứng tương tác game hóa
+      </p>
+    </div>
+
+    <!-- Theme Toggle -->
+    <button
+      id="theme-toggle"
+      class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-600 font-bold text-xs flex items-center gap-2 self-start sm:self-auto cursor-pointer transition shadow-[1.5px_1.5px_0px_#0f172a]"
+    >
+      <span id="theme-icon">🌙</span>
+      <span id="theme-text">Chế độ tối</span>
+    </button>
+  </div>
+
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- 1. PHÂN TÍCH NHANH: CÓ NÊN BỎ GẠCH DƯỚI "CN" KHÔNG? -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      <!-- Cột Hiện tại (Có gạch dưới) -->
+      <div class="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/20 border-2 border-rose-300 dark:border-rose-900/50 space-y-2">
+        <div class="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-black text-xs">
+          <span>❌</span>
+          <span>HIỆN TẠI (CÓ GẠCH CHÂN DƯỚI "CN")</span>
+        </div>
+        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+          Đường gạch cam <code class="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[11px] font-bold">underline decoration-[2px]</code> ngắn cụt lủn ngay dưới 2 chữ "CN", dính sát vào viền đen của ô bên dưới, trông như một thanh gờ thừa thãi hoặc lỗi hiển thị.
+        </p>
+      </div>
+
+      <!-- Cột Đề xuất (Bỏ gạch dưới) -->
+      <div class="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border-2 border-emerald-300 dark:border-emerald-900/50 space-y-2">
+        <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-black text-xs">
+          <span>✅</span>
+          <span>GIẢI PHÁP ĐỀ XUẤT (BỎ GẠCH CHÂN)</span>
+        </div>
+        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+          <strong>Nên bỏ hoàn toàn gạch chân.</strong> Thay vào đó, chữ "CN" chuyển màu cam đậm kèm một chấm định vị nhỏ màu hổ phách <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mx-0.5"></span> ở trên hoặc dưới. Gọn gàng, thoáng mắt và chuẩn typography!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- 2. BẢN SO SÁNH TRỰC QUAN (CŨ vs MỚI) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- THẺ CŨ: CÓ GẠCH DƯỚI & KHÔNG TƯƠNG TÁC -->
+      <div class="space-y-2">
+        <span class="text-xs font-black uppercase text-slate-500 tracking-wider">Phiên bản hiện tại (Gạch chân cứng nhắc)</span>
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] p-4 shadow-[3px_3px_0px_#0f172a] space-y-3 opacity-80">
+          
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-slate-900 flex items-center justify-center text-base">🔥</span>
+              <h2 class="text-sm font-black text-slate-900 dark:text-white">Chuỗi Ngày Học</h2>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-amber-200 dark:bg-amber-950 text-amber-950 dark:text-amber-200 border-2 border-slate-900 text-xs font-black">
+              <span class="tabular-nums">0</span> ngày 🕯️
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between text-xs font-bold pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span class="text-slate-600 dark:text-slate-400 text-[11px]">Tuần này: <strong>0/7</strong> ngày</span>
+            <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-400">Chưa học hôm nay</span>
+          </div>
+
+          <!-- 7 ngày tuần cũ -->
+          <div class="grid grid-cols-7 gap-1.5 pt-0.5 text-center font-bold">
+            <div class="space-y-1"><span class="text-[10px] text-slate-400">T2</span><div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></div></div>
+            <div class="space-y-1"><span class="text-[10px] text-slate-400">T3</span><div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></div></div>
+            <div class="space-y-1"><span class="text-[10px] text-slate-400">T4</span><div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></div></div>
+            <div class="space-y-1"><span class="text-[10px] text-slate-400">T5</span><div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></div></div>
+            <div class="space-y-1"><span class="text-[10px] text-slate-400">T6</span><div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></div></div>
+            <div class="space-y-1"><span class="text-[10px] text-slate-400">T7</span><div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></div></div>
+            
+            <!-- CN với underline vụn -->
+            <div class="space-y-1">
+              <span class="text-[10px] text-amber-600 dark:text-amber-400 font-black block leading-none underline decoration-[2px] underline-offset-2">CN</span>
+              <div class="w-full aspect-square rounded-lg bg-amber-100/60 dark:bg-amber-950/40 border-2 border-dashed border-amber-500 flex items-center justify-center">
+                <span class="text-base opacity-40">🔥</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- THẺ MỚI: BỎ GẠCH DƯỚI + ANIMATION BẬP BÙNG & TƯƠNG TÁC THẬT -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">Phiên bản mới đề xuất (Hãy bấm thử vào ô CN!)</span>
+          <span class="text-[11px] font-bold text-amber-600 animate-pulse">✨ Interactive Demo</span>
+        </div>
+
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] p-4 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] space-y-3 transition-all">
+          
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-slate-900 flex items-center justify-center text-base shrink-0 select-none">
+                <span id="streak-main-icon" class="flame-active">🔥</span>
+              </span>
+              <h2 class="text-sm font-black text-slate-900 dark:text-white">
+                Chuỗi Ngày Học
+              </h2>
+            </div>
+
+            <button
+              id="streak-badge-btn"
+              class="px-2.5 py-1 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-950 dark:text-amber-200 border-2 border-slate-900 dark:border-slate-700 text-xs font-black flex items-center gap-1 shadow-[1.5px_1.5px_0px_#0f172a] shrink-0 cursor-pointer transition active:scale-95 group"
+              title="Bấm để xem kỷ lục chuỗi ngày học"
+            >
+              <span id="streak-number" class="tabular-nums text-sm font-black">1</span>
+              <span class="font-black text-[11px]">ngày</span>
+              <span id="streak-fire" class="text-sm leading-none group-hover:scale-125 transition-transform">🔥</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between text-xs font-bold pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span class="text-slate-600 dark:text-slate-400 text-[11px]">
+              Tuần này: <strong id="week-count" class="font-black text-slate-950 dark:text-white text-xs tabular-nums">1/7</strong> ngày
+            </span>
+            <span
+              id="today-status-chip"
+              class="px-2.5 py-0.5 rounded-full text-[10.5px] font-black border shadow-2xs transition-all inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-500"
+            >
+              <span id="status-icon">✓</span>
+              <span id="status-text">Đã học hôm nay 🎉</span>
+            </span>
+          </div>
+
+          <!-- 7 ngày tuần mới: BỎ GẠCH DƯỚI, CÓ HIỆU ỨNG TƯƠNG TÁC -->
+          <div class="grid grid-cols-7 gap-1.5 pt-0.5 text-center font-bold">
+            
+            <!-- T2 -->
+            <div class="space-y-1 group/day">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">T2</span>
+              <div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Thứ 2: Chưa học">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+              </div>
+            </div>
+
+            <!-- T3 -->
+            <div class="space-y-1 group/day">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">T3</span>
+              <div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Thứ 3: Chưa học">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+              </div>
+            </div>
+
+            <!-- T4 -->
+            <div class="space-y-1 group/day">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">T4</span>
+              <div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Thứ 4: Chưa học">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+              </div>
+            </div>
+
+            <!-- T5 -->
+            <div class="space-y-1 group/day">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">T5</span>
+              <div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Thứ 5: Chưa học">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+              </div>
+            </div>
+
+            <!-- T6 -->
+            <div class="space-y-1 group/day">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">T6</span>
+              <div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Thứ 6: Chưa học">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+              </div>
+            </div>
+
+            <!-- T7 -->
+            <div class="space-y-1 group/day">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">T7</span>
+              <div class="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Thứ 7: Chưa học">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+              </div>
+            </div>
+
+            <!-- CN (HÔM NAY): BỎ GẠCH CHÂN, DÙNG CHẤM CAM ĐỊNH VỊ + TƯƠNG TÁC BẬP BÙNG -->
+            <div class="space-y-1 relative">
+              <!-- Nhãn CN tinh tế: Chữ cam đậm + chấm tròn nhỏ định vị vị trí hôm nay -->
+              <div class="flex items-center justify-center gap-0.5 leading-none">
+                <span class="text-[10.5px] font-black text-amber-600 dark:text-amber-400 block">CN</span>
+                <span class="w-1 h-1 rounded-full bg-amber-500 animate-ping block"></span>
+              </div>
+
+              <!-- Ô Tương tác CN: Bấm để toggle trạng thái thắp lửa -->
+              <div
+                id="today-box"
+                onclick="toggleTodayStreak()"
+                class="relative w-full aspect-square rounded-lg bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] flex items-center justify-center cursor-pointer hover:scale-110 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#0f172a] active:scale-90 transition-all group"
+                title="Bấm để trải nghiệm thắp sáng hoặc dập lửa thử!"
+              >
+                <!-- Flame with animation -->
+                <span id="today-flame-icon" class="text-base sm:text-lg flame-active leading-none select-none group-hover:scale-125 transition-transform">
+                  🔥
+                </span>
+
+                <!-- Ripple hint on hover -->
+                <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[8px] px-1 py-0.2 rounded whitespace-nowrap pointer-events-none">
+                  Bấm thử
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. BẢNG TỔNG HỢP 4 HIỆU ỨNG TƯƠNG TÁC ĐƯỢC BỔ SUNG -->
+    <div class="p-5 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] space-y-4">
+      <h3 class="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+        <span>⚡</span>
+        <span>4 Hiệu Ứng Tương Tác & Animation Nên Thêm Vào:</span>
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 space-y-1">
+          <div class="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span>1️⃣</span>
+            <span>Bỏ gạch chân & Thêm chấm định vị Pulse</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+            Thay vì gạch chân 2px đè sát mép hộp, ta dùng chữ cam đậm và một chấm micro-dot <code class="bg-amber-100 dark:bg-amber-950 px-1 py-0.2 rounded text-amber-700">w-1 h-1 bg-amber-500 animate-ping</code> đánh dấu ngày hôm nay nhẹ nhàng, sang trọng.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 space-y-1">
+          <div class="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span>2️⃣</span>
+            <span>Animation Lửa Bập Bùng (Fire Flicker)</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+            Ngọn lửa các ngày đã học có chuyển động co giãn đa hướng nhẹ (<code class="bg-slate-200 dark:bg-slate-700 px-1 py-0.2 rounded text-[10.5px]">flame-active</code>) kết hợp bóng đổ ấm vàng cam, tạo cảm giác "ngọn lửa đang sống" thật sự.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 space-y-1">
+          <div class="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span>3️⃣</span>
+            <span>Nhịp Thở Viền Ô Khi Chưa Học (Breathing Border)</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+            Nếu hôm nay chưa học, ô CN có viền nét đứt nhịp thở (<code class="bg-slate-200 dark:bg-slate-700 px-1 py-0.2 rounded text-[10.5px]">border-dashed animate-pulse</code>). Khi hover, ngọn lửa mờ bừng sáng và vẫy gọi học viên.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 space-y-1">
+          <div class="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span>4️⃣</span>
+            <span>Bấm vào ô Hôm Nay để mở Nhập Điểm (Actionable Click)</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+            Thay vì là ô hiển thị tĩnh, người dùng bấm vào ô hôm nay sẽ kích hoạt ngay popup <strong>Nhập điểm / Ghi buổi học</strong> (<code class="bg-slate-200 dark:bg-slate-700 px-1 py-0.2 rounded text-[10.5px]">openSessionLogger</code>) cực kỳ tiện lợi và logic.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Action Button to Trigger Confetti -->
+      <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          💡 Hãy bấm nút bên phải hoặc bấm thẳng vào ô CN để test hiệu ứng:
+        </span>
+        <button
+          onclick="toggleTodayStreak()"
+          class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer transition flex items-center gap-1.5"
+        >
+          <span>🔥 Bấm Để Chuyển Trạng Thái Hôm Nay</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Theme toggle
+    const themeBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+    let isDark = false;
+
+    themeBtn.addEventListener('click', () => {
+      isDark = !isDark;
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Chế độ sáng';
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Chế độ tối';
+      }
+    });
+
+    // Toggle today streak state
+    let isTodayCompleted = true;
+
+    function toggleTodayStreak() {
+      isTodayCompleted = !isTodayCompleted;
+      const box = document.getElementById('today-box');
+      const flame = document.getElementById('today-flame-icon');
+      const streakNum = document.getElementById('streak-number');
+      const streakFire = document.getElementById('streak-fire');
+      const weekCount = document.getElementById('week-count');
+      const statusChip = document.getElementById('today-status-chip');
+      const statusIcon = document.getElementById('status-icon');
+      const statusText = document.getElementById('status-text');
+
+      if (isTodayCompleted) {
+        // Switch to COMPLETED
+        box.className = 'relative w-full aspect-square rounded-lg bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] flex items-center justify-center cursor-pointer hover:scale-110 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#0f172a] active:scale-90 transition-all group';
+        flame.textContent = '🔥';
+        flame.className = 'text-base sm:text-lg flame-active leading-none select-none group-hover:scale-125 transition-transform';
+        streakNum.textContent = '1';
+        streakFire.textContent = '🔥';
+        weekCount.textContent = '1/7';
+        statusChip.className = 'px-2.5 py-0.5 rounded-full text-[10.5px] font-black border shadow-2xs transition-all inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-500';
+        statusIcon.textContent = '✓';
+        statusText.textContent = 'Đã học hôm nay 🎉';
+
+        // Fire celebration confetti!
+        confetti({
+          particleCount: 40,
+          spread: 50,
+          origin: { y: 0.6 }
+        });
+      } else {
+        // Switch to UNCOMPLETED
+        box.className = 'relative w-full aspect-square rounded-lg bg-amber-100/50 dark:bg-amber-950/30 border-2 border-dashed border-amber-500 flex items-center justify-center cursor-pointer hover:bg-amber-100/80 dark:hover:bg-amber-950/60 hover:scale-110 hover:border-solid hover:shadow-[2px_2px_0px_#0f172a] active:scale-90 transition-all group';
+        flame.textContent = '🔥';
+        flame.className = 'text-base sm:text-lg opacity-35 leading-none select-none group-hover:opacity-100 group-hover:scale-125 transition-all';
+        streakNum.textContent = '0';
+        streakFire.textContent = '🕯️';
+        weekCount.textContent = '0/7';
+        statusChip.className = 'px-2.5 py-0.5 rounded-full text-[10.5px] font-black border shadow-2xs transition-all inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-400';
+        statusIcon.textContent = '⏳';
+        statusText.textContent = 'Chưa học hôm nay';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khắc Phục 2 Đường Kẻ Song Song — TOEIC Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 antialiased p-4 sm:p-6 lg:p-8 min-h-screen">
+  <div class="max-w-5xl mx-auto space-y-8">
+
+    <!-- Header -->
+    <div class="text-center space-y-2 border-b-2 border-slate-900 pb-5">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-300 border-2 border-slate-900 text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] uppercase tracking-wider">
+        <span>🔍</span> Phát Hiện Rất Tinh Tế!
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-950">
+        Tại Sao 2 Đường Kẻ Hiện Tại Lại Xấu?
+      </h1>
+      <p class="text-sm text-slate-600 max-w-2xl mx-auto font-medium">
+        Đường kẻ 1 (dưới thanh tìm kiếm) và đường kẻ 2 (dưới tiêu đề bảng) đang chạy <strong>song song quá gần nhau</strong> như "đường ray xe lửa", kẹp giữa là hàng chữ lơ lửng gây rối mắt và vụn vặt giao diện.
+      </p>
+    </div>
+
+    <!-- SO SÁNH 3 HƯỚNG XỬ LÝ -->
+    <div class="space-y-8">
+
+      <!-- THỰC TRẠNG: 2 ĐƯỜNG KẺ XẤU -->
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-md text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">
+            ❌ Hiện Tại: 2 Đường Kẻ Đen Song Song (Trông Bị Rối & Cứng)
+          </span>
+        </div>
+        <div class="rounded-2xl border-2 border-slate-900 bg-white p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] space-y-4">
+          <!-- Toolbar -->
+          <div class="flex items-center justify-between pb-3 border-b-2 border-slate-900">
+            <span class="font-black text-sm text-slate-900">⚡ Nhật Ký & Lịch Sử Luyện Đề</span>
+            <span class="text-xs text-slate-400 font-semibold">🔍 Tìm kiếm... | ▾ Mọi lượt thi | Tất Cả</span>
+          </div>
+
+          <!-- Table -->
+          <table class="w-full text-xs text-left">
+            <thead>
+              <tr class="border-b-2 border-slate-900 bg-slate-50/80 text-slate-900 font-black uppercase text-[11px]">
+                <th class="py-2.5 px-3">NGÀY</th>
+                <th class="py-2.5 px-3">TÊN ĐỀ THI</th>
+                <th class="py-2.5 px-3 text-center">LẦN</th>
+                <th class="py-2.5 px-3 text-right">LISTENING</th>
+                <th class="py-2.5 px-3 text-right">READING</th>
+                <th class="py-2.5 px-3 text-right">TỔNG ĐIỂM</th>
+                <th class="py-2.5 px-3 text-center">XU HƯỚNG</th>
+                <th class="py-2.5 px-3 text-right">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-bold">
+              <tr>
+                <td class="py-3 px-3 font-mono text-slate-500">13/09/2026</td>
+                <td class="py-3 px-3 font-black">ETS 2024 Test 04</td>
+                <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded bg-slate-100">L1</span></td>
+                <td class="py-3 px-3 text-right font-black text-indigo-600">495đ</td>
+                <td class="py-3 px-3 text-right font-black text-teal-600">465đ</td>
+                <td class="py-3 px-3 text-right"><span class="px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-950 font-black font-mono">960đ</span></td>
+                <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black">+30đ 📈</span></td>
+                <td class="py-3 px-3 text-right text-slate-400">👁️ ✏️ 🗑️</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="text-[11px] text-rose-600 font-bold text-center">
+            ⚠️ Nhược điểm: Hai vạch đen kè nhau chỉ cách 20px làm mắt bị phân tâm, giao diện bị cắt thành từng khúc vụn.
+          </p>
+        </div>
+      </div>
+
+      <!-- PHƯƠNG ÁN 1: BỎ ĐƯỜNG KẺ TOOLBAR + THEAD BO TRÒN (KHUYÊN DÙNG ⭐⭐⭐) -->
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-md text-xs font-black bg-emerald-100 text-emerald-950 border-2 border-emerald-500 shadow-[1px_1px_0px_#047857]">
+            ⭐ Phương Án 1: Bỏ Đường Kẻ Toolbar + Thead Dải Bo Tròn (Khuyên Dùng Nhất)
+          </span>
+          <span class="text-xs text-emerald-800 font-bold">Cực kỳ liền mạch, hiện đại & êm mắt</span>
+        </div>
+        <div class="rounded-2xl border-2 border-slate-900 bg-white p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] space-y-4">
+          <!-- Toolbar KHÔNG KẺ ĐƯỜNG ĐEN BÊN DƯỚI (Thoáng đãng) -->
+          <div class="flex items-center justify-between pb-1">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-xs font-black">⚡</span>
+              <span class="font-black text-sm sm:text-base text-slate-950">Nhật Ký & Lịch Sử Luyện Đề</span>
+            </div>
+            <div class="flex gap-2">
+              <input class="px-3.5 py-1.5 text-xs font-semibold bg-slate-50 border-2 border-slate-900 rounded-xl w-44" value="Tìm tên đề thi..." readonly />
+              <div class="px-3 py-1.5 text-xs border-2 border-slate-900 rounded-xl font-bold bg-white">Mọi lượt thi ▾</div>
+            </div>
+          </div>
+
+          <!-- Table với THEAD BO TRÒN TỰ NHIÊN (Không có vạch đen nào cắt ngang) -->
+          <table class="w-full text-xs text-left">
+            <thead>
+              <tr class="bg-slate-100/90 text-slate-700 font-black uppercase text-[11px]">
+                <th class="py-3 px-3.5 rounded-l-xl">NGÀY</th>
+                <th class="py-3 px-3">TÊN ĐỀ THI</th>
+                <th class="py-3 px-3 text-center">LẦN</th>
+                <th class="py-3 px-3 text-right">LISTENING</th>
+                <th class="py-3 px-3 text-right">READING</th>
+                <th class="py-3 px-3 text-right">TỔNG ĐIỂM</th>
+                <th class="py-3 px-3 text-center">XU HƯỚNG</th>
+                <th class="py-3 px-3.5 text-right rounded-r-xl">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-bold">
+              <tr class="hover:bg-blue-50/50 transition-colors">
+                <td class="py-3 px-3.5 font-mono text-slate-500 font-semibold">13/09/2026</td>
+                <td class="py-3 px-3 font-black text-slate-900">ETS 2024 Test 04 <span class="ml-1 text-[10px] text-slate-400 font-normal">112'</span></td>
+                <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-black text-[11px]">L1</span></td>
+                <td class="py-3 px-3 text-right font-black text-indigo-600 font-mono text-sm">495đ</td>
+                <td class="py-3 px-3 text-right font-black text-teal-600 font-mono text-sm">465đ</td>
+                <td class="py-3 px-3 text-right"><span class="inline-flex px-2.5 py-1 rounded-lg bg-sky-100 text-sky-950 font-black font-mono text-sm">960đ</span></td>
+                <td class="py-3 px-3 text-center"><span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black font-mono text-xs">+30đ 📈</span></td>
+                <td class="py-3 px-3.5 text-right space-x-1">
+                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50">👁️</button>
+                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50">✏️</button>
+                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50">🗑️</button>
+                </td>
+              </tr>
+              <tr class="hover:bg-blue-50/50 transition-colors">
+                <td class="py-3 px-3.5 font-mono text-slate-500 font-semibold">10/09/2026</td>
+                <td class="py-3 px-3 font-black text-slate-900">ETS 2024 Test 01 <span class="ml-1 text-[10px] text-slate-400 font-normal">110'</span></td>
+                <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-black text-[11px]">Lần 2 🔄</span></td>
+                <td class="py-3 px-3 text-right font-black text-indigo-600 font-mono text-sm">480đ</td>
+                <td class="py-3 px-3 text-right font-black text-teal-600 font-mono text-sm">450đ</td>
+                <td class="py-3 px-3 text-right"><span class="inline-flex px-2.5 py-1 rounded-lg bg-sky-100 text-sky-950 font-black font-mono text-sm">930đ</span></td>
+                <td class="py-3 px-3 text-center"><span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black font-mono text-xs">+20đ 📈</span></td>
+                <td class="py-3 px-3.5 text-right space-x-1">
+                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50">👁️</button>
+                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50">✏️</button>
+                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="text-[11px] text-emerald-700 font-bold text-center">
+            ✨ Ưu điểm: Bỏ hoàn toàn 2 đường vạch cứng. Header là một dải pill nền xám nhạt bo cong 2 đầu, nhìn sang trọng và tinh tế như các app Pro!
+          </p>
+        </div>
+      </div>
+
+      <!-- PHƯƠNG ÁN 2: CHỈ GIỮ 1 ĐƯỜNG KẺ MỎNG DUY NHẤT DƯỚI THEAD -->
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-md text-xs font-black bg-blue-100 text-blue-900 border border-blue-300">
+            Phương Án 2: Bỏ Đường Kẻ Toolbar, Chỉ Giữ 1 Đường Kẻ Mỏng Dưới Thead
+          </span>
+        </div>
+        <div class="rounded-2xl border-2 border-slate-900 bg-white p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] space-y-4">
+          <!-- Toolbar không kẻ -->
+          <div class="flex items-center justify-between pb-1">
+            <span class="font-black text-sm text-slate-900">⚡ Nhật Ký & Lịch Sử Luyện Đề</span>
+            <div class="flex gap-2">
+              <input class="px-3 py-1 text-xs border-2 border-slate-900 rounded-xl w-40" value="Tìm kiếm..." readonly />
+              <div class="px-2.5 py-1 text-xs border-2 border-slate-900 rounded-xl font-bold bg-white">Mọi lượt thi ▾</div>
+            </div>
+          </div>
+
+          <!-- Table chỉ có 1 đường border-b border-slate-200 mỏng -->
+          <table class="w-full text-xs text-left">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-black uppercase text-[11px]">
+                <th class="py-2.5 px-3">NGÀY</th>
+                <th class="py-2.5 px-3">TÊN ĐỀ THI</th>
+                <th class="py-2.5 px-3 text-center">LẦN</th>
+                <th class="py-2.5 px-3 text-right">LISTENING</th>
+                <th class="py-2.5 px-3 text-right">READING</th>
+                <th class="py-2.5 px-3 text-right">TỔNG ĐIỂM</th>
+                <th class="py-2.5 px-3 text-center">XU HƯỚNG</th>
+                <th class="py-2.5 px-3 text-right">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-bold">
+              <tr>
+                <td class="py-3 px-3 font-mono text-slate-500">13/09/2026</td>
+                <td class="py-3 px-3 font-black">ETS 2024 Test 04</td>
+                <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded bg-slate-100">L1</span></td>
+                <td class="py-3 px-3 text-right font-black text-indigo-600">495đ</td>
+                <td class="py-3 px-3 text-right font-black text-teal-600">465đ</td>
+                <td class="py-3 px-3 text-right"><span class="px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-950 font-black font-mono">960đ</span></td>
+                <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black">+30đ 📈</span></td>
+                <td class="py-3 px-3 text-right text-slate-400">👁️ ✏️ 🗑️</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đánh Giá 3 Ý Tưởng Thiết Kế Sổ Tay Lỗi Sai — TOEIC Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-[#0B111E] text-slate-800 dark:text-slate-100 antialiased p-3 sm:p-6 lg:p-8 min-h-screen transition-colors duration-200">
+  
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Top Banner & Controls -->
+    <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#121A2B] p-4 sm:p-6 shadow-[4px_4px_0px_0px_#0f172a] dark:shadow-[4px_4px_0px_0px_#cbd5e1] space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 dark:border-slate-800 pb-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-300 border-2 border-slate-900 text-[11px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_0px_#0f172a] text-slate-950">
+            🔍 TRỰC QUAN HÓA TRƯỚC KHI TRIỂN KHAI
+          </div>
+          <h1 class="text-xl sm:text-2xl font-black text-slate-950 dark:text-white mt-1.5">
+            Sổ Tay Bắt Bẫy & Lỗi Sai: 3 Hướng Tiếp Cận Khác Nhau
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+            Chọn phương án bên dưới để xem trực quan giao diện thực tế với 6 câu lỗi sai TOEIC.
+          </p>
+        </div>
+
+        <!-- Dark/Light Toggle -->
+        <button 
+          onclick="toggleDark()" 
+          class="self-start sm:self-center px-3 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-300 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] cursor-pointer flex items-center gap-1.5"
+        >
+          <span id="themeIcon">🌙</span>
+          <span id="themeText">Chế độ Tối</span>
+        </button>
+      </div>
+
+      <!-- Segmented Option Picker -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button 
+          onclick="switchTab(1)" 
+          id="btn-opt-1"
+          class="p-3 rounded-xl border-2 border-slate-900 text-left transition-all cursor-pointer bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1]"
+        >
+          <div class="text-[11px] font-bold opacity-80 uppercase tracking-wide">Phương Án 1</div>
+          <div class="text-sm font-black flex items-center gap-1.5 mt-0.5">
+            <span>🗂️ Active Recall (Flashcard)</span>
+          </div>
+          <div class="text-[11px] opacity-75 mt-1 leading-snug">
+            Ẩn đáp án/bí kíp, bấm để lật xem. Chống "rừng chữ", rèn phản xạ nhớ sâu.
+          </div>
+        </button>
+
+        <button 
+          onclick="switchTab(2)" 
+          id="btn-opt-2"
+          class="p-3 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-[#121A2B] text-slate-700 dark:text-slate-300 text-left hover:border-slate-900 dark:hover:border-slate-300 transition-all cursor-pointer"
+        >
+          <div class="text-[11px] font-bold opacity-70 uppercase tracking-wide">Phương Án 2</div>
+          <div class="text-sm font-black flex items-center gap-1.5 mt-0.5">
+            <span>📋 Bảng Gọn (Compact Feed)</span>
+          </div>
+          <div class="text-[11px] opacity-75 mt-1 leading-snug">
+            Danh sách hàng ngang kiểu Notion/Linear. Quét 20 lỗi trên 1 màn hình cực nhanh.
+          </div>
+        </button>
+
+        <button 
+          onclick="switchTab(3)" 
+          id="btn-opt-3"
+          class="p-3 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-[#121A2B] text-slate-700 dark:text-slate-300 text-left hover:border-slate-900 dark:hover:border-slate-300 transition-all cursor-pointer"
+        >
+          <div class="text-[11px] font-bold opacity-70 uppercase tracking-wide">Phương Án 3</div>
+          <div class="text-sm font-black flex items-center gap-1.5 mt-0.5">
+            <span>🧘 Calm Card (Thẻ Thoáng Đãng)</span>
+          </div>
+          <div class="text-[11px] opacity-75 mt-1 leading-snug">
+            Thẻ 2 cột mềm mại, phân cấp thị giác rõ ràng, không viền đen đè nặng mắt.
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- PHƯƠNG ÁN 1: ACTIVE RECALL / FLASHCARD (LẬT MẶT THẺ)     -->
+    <!-- ========================================================= -->
+    <div id="section-opt-1" class="space-y-4">
+      <div class="flex items-center justify-between px-1">
+        <div>
+          <span class="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            💡 Ý tưởng cốt lõi: Học tập chủ động (Active Recall)
+          </span>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Khi nhìn thấy lỗi sai, não phải tự nhớ lại "Bẫy ở đây là gì?" trước khi bấm nút xem bí kíp. Không bị ngợp bởi một rừng chữ cùng lúc!
+          </p>
+        </div>
+        <button 
+          onclick="toggleAllCards()" 
+          class="px-3 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-slate-800 text-xs font-black text-slate-900 dark:text-white shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] cursor-pointer"
+        >
+          <span id="toggleAllText">👁️ Mở toàn bộ bí kíp</span>
+        </button>
+      </div>
+
+      <!-- Quick Header Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#121A2B] shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1]">
+        <div class="flex items-center gap-3 text-xs font-bold text-slate-700 dark:text-slate-300">
+          <span class="font-black text-slate-950 dark:text-white">6 Bẫy Đã Lưu</span>
+          <span class="text-slate-300 dark:text-slate-700">|</span>
+          <span class="text-amber-600 dark:text-amber-400">4 Thẻ cần ôn</span>
+          <span class="text-slate-300 dark:text-slate-700">|</span>
+          <span class="text-emerald-600 dark:text-emerald-400">2 Đã thông suốt</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] cursor-pointer">
+            🧠 Bắt đầu ôn (4 thẻ)
+          </button>
+          <button class="px-3 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-950 text-xs font-black border-2 border-slate-900 dark:border-white shadow-[1.5px_1.5px_0px_0px_#0f172a] dark:shadow-[1.5px_1.5px_0px_0px_#cbd5e1] cursor-pointer">
+            + Thêm bẫy mới
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Cards Grid - Flashcard style -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Flashcard 1 -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#121A2B] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col justify-between space-y-3">
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-700">
+                  Part 7
+                </span>
+                <span class="text-xs font-black text-slate-700 dark:text-slate-300">
+                  Bẫy Từ Vựng & Paraphrase
+                </span>
+              </div>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-600">
+                ⚠️ Cần ôn lại
+              </span>
+            </div>
+
+            <!-- Câu hỏi -->
+            <h3 class="text-sm font-black text-slate-900 dark:text-white leading-snug">
+              Câu 182 (Đoạn kép Email & Schedule): Thời điểm bảo trì máy chủ diễn ra khi nào?
+            </h3>
+
+            <!-- Lỗi từng mắc -->
+            <div class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs">
+              <span class="font-black text-rose-600 dark:text-rose-400 block mb-0.5">❌ Bạn từng chọn nhầm:</span>
+              <p class="text-slate-700 dark:text-slate-300 font-medium">Chọn 14:00 vì đọc lướt thấy mốc giờ này trong bảng lịch trình phụ.</p>
+            </div>
+
+            <!-- Bí kíp ẩn / hiện -->
+            <div id="secret-1" class="hidden p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs animate-fade-in">
+              <span class="font-black text-emerald-700 dark:text-emerald-400 block mb-0.5">💡 Bí kíp giải bẫy:</span>
+              <p class="text-slate-900 dark:text-slate-100 font-semibold leading-relaxed">
+                Đáp án là 18:00 (Sau giờ làm việc). Bẫy thông tin liên kết giữa 2 bài: email thông báo dời lịch do lỗi kỹ thuật.
+              </p>
+            </div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button 
+              onclick="toggleSecret('secret-1', this)" 
+              class="text-xs font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>👁️ Xem bí kíp & đáp án</span>
+            </button>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold text-slate-400">14/9/2026</span>
+              <button class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-600 dark:text-slate-300 transition">
+                ✓ Đã hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flashcard 2 -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#121A2B] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col justify-between space-y-3">
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-700">
+                  Part 5
+                </span>
+                <span class="text-xs font-black text-slate-700 dark:text-slate-300">
+                  Ngữ Pháp Nâng Cao
+                </span>
+              </div>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-600">
+                ✅ Đã thông suốt
+              </span>
+            </div>
+
+            <!-- Câu hỏi -->
+            <h3 class="text-sm font-black text-slate-900 dark:text-white leading-snug">
+              Câu 128: Hardly ______ the contract when the client requested amendments.
+            </h3>
+
+            <!-- Lỗi từng mắc -->
+            <div class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs">
+              <span class="font-black text-rose-600 dark:text-rose-400 block mb-0.5">❌ Bạn từng chọn nhầm:</span>
+              <p class="text-slate-700 dark:text-slate-300 font-medium">Chọn "he had signed" theo thói quen chủ ngữ đứng trước động từ.</p>
+            </div>
+
+            <!-- Bí kíp ẩn / hiện -->
+            <div id="secret-2" class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs">
+              <span class="font-black text-emerald-700 dark:text-emerald-400 block mb-0.5">💡 Bí kíp giải bẫy:</span>
+              <p class="text-slate-900 dark:text-slate-100 font-semibold leading-relaxed">
+                Đáp án đúng: "had he signed". Cấu trúc đảo ngữ với phó từ phủ định đứng đầu câu: Hardly/Scarcely + Had + S + V3.
+              </p>
+            </div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button 
+              onclick="toggleSecret('secret-2', this)" 
+              class="text-xs font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Ẩn bí kíp</span>
+            </button>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold text-slate-400">14/9/2026</span>
+              <button class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                ↺ Ôn lại
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flashcard 3 -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#121A2B] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col justify-between space-y-3">
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-700">
+                  Part 3
+                </span>
+                <span class="text-xs font-black text-slate-700 dark:text-slate-300">
+                  Tốc Độ Nghe & Nối Âm
+                </span>
+              </div>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-600">
+                ⚠️ Cần ôn lại
+              </span>
+            </div>
+
+            <h3 class="text-sm font-black text-slate-900 dark:text-white leading-snug">
+              Câu 54 (Hội thoại): Người phụ nữ có ý gì khi nói "Does the elevator work today?"
+            </h3>
+
+            <div class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs">
+              <span class="font-black text-rose-600 dark:text-rose-400 block mb-0.5">❌ Bạn từng chọn nhầm:</span>
+              <p class="text-slate-700 dark:text-slate-300 font-medium">Nghĩ rằng cô ấy hỏi đường đi thang máy.</p>
+            </div>
+
+            <div id="secret-3" class="hidden p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs animate-fade-in">
+              <span class="font-black text-emerald-700 dark:text-emerald-400 block mb-0.5">💡 Bí kíp giải bẫy:</span>
+              <p class="text-slate-900 dark:text-slate-100 font-semibold leading-relaxed">
+                Ngụ ý cô ấy ngạc nhiên/phàn nàn vì thang máy hỏng, buộc phải đi cầu thang bộ lên tầng 8.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button 
+              onclick="toggleSecret('secret-3', this)" 
+              class="text-xs font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>👁️ Xem bí kíp & đáp án</span>
+            </button>
+            <span class="text-[10px] font-bold text-slate-400">9/9/2026</span>
+          </div>
+        </div>
+
+        <!-- Flashcard 4 -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#121A2B] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col justify-between space-y-3">
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-black bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-700">
+                  Part 6
+                </span>
+                <span class="text-xs font-black text-slate-700 dark:text-slate-300">
+                  Bẫy Từ Vựng & Paraphrase
+                </span>
+              </div>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-600">
+                ⚠️ Cần ôn lại
+              </span>
+            </div>
+
+            <h3 class="text-sm font-black text-slate-900 dark:text-white leading-snug">
+              Câu 138 (Điền liên từ câu): ______ of the harsh weather, the outdoor seminar was rescheduled.
+            </h3>
+
+            <div class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs">
+              <span class="font-black text-rose-600 dark:text-rose-400 block mb-0.5">❌ Bạn từng chọn nhầm:</span>
+              <p class="text-slate-700 dark:text-slate-300 font-medium">Chọn "In spite" (thiếu of) hoặc nhầm với "Because".</p>
+            </div>
+
+            <div id="secret-4" class="hidden p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs animate-fade-in">
+              <span class="font-black text-emerald-700 dark:text-emerald-400 block mb-0.5">💡 Bí kíp giải bẫy:</span>
+              <p class="text-slate-900 dark:text-slate-100 font-semibold leading-relaxed">
+                Đáp án đúng: "In light of" (bằng với Because of/Considering). Cần học thuộc cụm từ cố định.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button 
+              onclick="toggleSecret('secret-4', this)" 
+              class="text-xs font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>👁️ Xem bí kíp & đáp án</span>
+            </button>
+            <span class="text-[10px] font-bold text-slate-400">3/9/2026</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- PHƯƠNG ÁN 2: BẢNG GỌN KIỂU NOTION / LINEAR (COMPACT FEED) -->
+    <!-- ========================================================= -->
+    <div id="section-opt-2" class="hidden space-y-4">
+      <div class="flex items-center justify-between px-1">
+        <div>
+          <span class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+            💡 Ý tưởng cốt lõi: Quản lý tinh gọn, quét nhanh 10-20 lỗi trong 1 trang
+          </span>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Dạng danh sách hàng ngang, bấm vào hàng nào thì hàng đó mới mở rộng chi tiết. Không bị tốn diện tích, nhìn cực kỳ chuyên nghiệp.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Filter Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#121A2B]">
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="🔍 Tìm nhanh bẫy, từ khóa..." 
+            class="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 w-48 sm:w-64 focus:outline-none"
+          />
+          <div class="flex items-center gap-1 text-xs">
+            <button class="px-2.5 py-1 rounded-lg font-bold bg-slate-900 text-white dark:bg-white dark:text-slate-900">Tất cả (6)</button>
+            <button class="px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100">Cần ôn (4)</button>
+            <button class="px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100">Thông suốt (2)</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">
+            Ôn 4 thẻ đến hạn
+          </button>
+          <button class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-bold hover:bg-slate-50">
+            + Thêm lỗi
+          </button>
+        </div>
+      </div>
+
+      <!-- Table / Accordion List -->
+      <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B] overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 shadow-sm">
+        
+        <!-- Row 1 (Expanded by default) -->
+        <div class="p-3.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+          <div class="flex items-start sm:items-center justify-between gap-3 cursor-pointer" onclick="toggleRow('row-detail-1')">
+            <div class="flex items-start sm:items-center gap-3 min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 shrink-0">
+                P7
+              </span>
+              <span class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                Câu 182: Thời điểm bảo trì máy chủ diễn ra khi nào?
+              </span>
+              <span class="hidden md:inline text-[11px] text-slate-400">
+                • Bẫy Từ Vựng & Paraphrase
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                Cần ôn
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">14/9</span>
+              <span class="text-slate-400 text-xs">▼</span>
+            </div>
+          </div>
+
+          <!-- Expanded Content -->
+          <div id="row-detail-1" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border-l-2 border-rose-500">
+              <span class="font-bold text-rose-700 dark:text-rose-400 block mb-0.5">Lỗi đã chọn:</span>
+              <p class="text-slate-700 dark:text-slate-300">Chọn 14:00 vì đọc lướt thấy mốc giờ này trong bảng lịch trình phụ.</p>
+            </div>
+            <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border-l-2 border-emerald-500">
+              <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">Bí kíp cốt lõi:</span>
+              <p class="text-slate-800 dark:text-slate-200 font-medium">Đáp án 18:00 (Sau giờ làm việc). Bẫy thông tin liên kết giữa email và lịch trình.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="p-3.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+          <div class="flex items-start sm:items-center justify-between gap-3 cursor-pointer" onclick="toggleRow('row-detail-2')">
+            <div class="flex items-start sm:items-center gap-3 min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 shrink-0">
+                P5
+              </span>
+              <span class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                Câu 128: Hardly ______ the contract when the client requested amendments.
+              </span>
+              <span class="hidden md:inline text-[11px] text-slate-400">
+                • Ngữ Pháp Nâng Cao
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Thông suốt
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">14/9</span>
+              <span class="text-slate-400 text-xs">▶</span>
+            </div>
+          </div>
+
+          <div id="row-detail-2" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border-l-2 border-rose-500">
+              <span class="font-bold text-rose-700 dark:text-rose-400 block mb-0.5">Lỗi đã chọn:</span>
+              <p class="text-slate-700 dark:text-slate-300">Chọn "he had signed" theo thói quen ngữ pháp thông thường.</p>
+            </div>
+            <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border-l-2 border-emerald-500">
+              <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">Bí kíp cốt lõi:</span>
+              <p class="text-slate-800 dark:text-slate-200 font-medium">Đảo ngữ với Hardly: Hardly + Had + S + V3. Đáp án "had he signed".</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="p-3.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+          <div class="flex items-start sm:items-center justify-between gap-3 cursor-pointer" onclick="toggleRow('row-detail-3')">
+            <div class="flex items-start sm:items-center gap-3 min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 shrink-0">
+                P3
+              </span>
+              <span class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                Câu 54: Ý người phụ nữ khi nói "Does the elevator work today?"
+              </span>
+              <span class="hidden md:inline text-[11px] text-slate-400">
+                • Tốc Độ Nghe & Nối Âm
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                Cần ôn
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">9/9</span>
+              <span class="text-slate-400 text-xs">▶</span>
+            </div>
+          </div>
+
+          <div id="row-detail-3" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border-l-2 border-rose-500">
+              <span class="font-bold text-rose-700 dark:text-rose-400 block mb-0.5">Lỗi đã chọn:</span>
+              <p class="text-slate-700 dark:text-slate-300">Nghĩ rằng cô ấy hỏi đường đi thang máy.</p>
+            </div>
+            <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border-l-2 border-emerald-500">
+              <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">Bí kíp cốt lõi:</span>
+              <p class="text-slate-800 dark:text-slate-200 font-medium">Ngụ ý phàn nàn vì thang máy hỏng, phải đi bộ lên tầng 8.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="p-3.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+          <div class="flex items-start sm:items-center justify-between gap-3 cursor-pointer" onclick="toggleRow('row-detail-4')">
+            <div class="flex items-start sm:items-center gap-3 min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 shrink-0">
+                P6
+              </span>
+              <span class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                Câu 138: Điền liên từ câu phù hợp vào chỗ trống
+              </span>
+              <span class="hidden md:inline text-[11px] text-slate-400">
+                • Bẫy Từ Vựng
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                Cần ôn
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">3/9</span>
+              <span class="text-slate-400 text-xs">▶</span>
+            </div>
+          </div>
+
+          <div id="row-detail-4" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border-l-2 border-rose-500">
+              <span class="font-bold text-rose-700 dark:text-rose-400 block mb-0.5">Lỗi đã chọn:</span>
+              <p class="text-slate-700 dark:text-slate-300">Chọn "In spite" (thiếu of) hoặc nhầm với "Because".</p>
+            </div>
+            <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border-l-2 border-emerald-500">
+              <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">Bí kíp cốt lõi:</span>
+              <p class="text-slate-800 dark:text-slate-200 font-medium">Đáp án "In light of" (= Because of/Considering).</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- PHƯƠNG ÁN 3: CALM NEO-CARD (THẺ THOÁNG ĐÃNG, VIỀN MỀM)     -->
+    <!-- ========================================================= -->
+    <div id="section-opt-3" class="hidden space-y-4">
+      <div class="flex items-center justify-between px-1">
+        <div>
+          <span class="text-xs font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider">
+            💡 Ý tưởng cốt lõi: Giữ dạng Thẻ nhưng giảm bớt viền đen thô kệch
+          </span>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Dùng viền mỏng tinh tế, khoảng cách thoáng đãng, phân chia rõ câu hỏi và giải pháp mà không bị "hộp đè hộp".
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Stats & Filter -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="Tìm bẫy đề thi..." 
+            class="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#121A2B] text-slate-800 dark:text-slate-200 w-56 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          />
+          <div class="flex items-center gap-1 text-xs">
+            <button class="px-2.5 py-1 rounded-lg font-bold bg-slate-900 text-white dark:bg-white dark:text-slate-900">Tất cả</button>
+            <button class="px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200/60">Cần ôn (4)</button>
+            <button class="px-2.5 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200/60">Thông suốt (2)</button>
+          </div>
+        </div>
+
+        <button class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm">
+          🧠 Ôn 4 thẻ hôm nay
+        </button>
+      </div>
+
+      <!-- 4 Cards Grid - Calm Clean Style -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Calm Card 1 -->
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B] p-5 shadow-xs hover:border-slate-400 dark:hover:border-slate-600 transition flex flex-col justify-between space-y-3.5">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  Part 7
+                </span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  Bẫy Từ Vựng & Paraphrase
+                </span>
+              </div>
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>Cần ôn lại</span>
+              </span>
+            </div>
+
+            <!-- Câu hỏi -->
+            <p class="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+              Câu 182 (Đoạn kép): Thời điểm bảo trì máy chủ diễn ra khi nào?
+            </p>
+
+            <!-- Tinh gọn 2 dòng -->
+            <div class="space-y-1.5 text-xs">
+              <div class="text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                <span class="text-rose-500 font-bold shrink-0">❌ Đã chọn:</span>
+                <span>14:00 (đọc lướt lịch trình phụ mà bỏ qua email đính kèm)</span>
+              </div>
+              <div class="text-slate-800 dark:text-slate-200 font-medium flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-lg">
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">✓ Bí kíp:</span>
+                <span>18:00 (sau giờ làm). Email thông báo dời lịch do lỗi kỹ thuật.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span>#DoublePassage #Paraphrase</span>
+            <span>14/9/2026</span>
+          </div>
+        </div>
+
+        <!-- Calm Card 2 -->
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B] p-5 shadow-xs hover:border-slate-400 dark:hover:border-slate-600 transition flex flex-col justify-between space-y-3.5">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  Part 5
+                </span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  Ngữ Pháp Nâng Cao
+                </span>
+              </div>
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Đã thông suốt</span>
+              </span>
+            </div>
+
+            <!-- Câu hỏi -->
+            <p class="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+              Câu 128: Hardly ______ the contract when the client requested amendments.
+            </p>
+
+            <!-- Tinh gọn 2 dòng -->
+            <div class="space-y-1.5 text-xs">
+              <div class="text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                <span class="text-rose-500 font-bold shrink-0">❌ Đã chọn:</span>
+                <span>"he had signed" (thói quen ngữ pháp thông thường)</span>
+              </div>
+              <div class="text-slate-800 dark:text-slate-200 font-medium flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-lg">
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">✓ Bí kíp:</span>
+                <span>Đảo ngữ với Hardly: Hardly + Had + S + V3. Đáp án "had he signed".</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span>#Inversion #Grammar</span>
+            <span>14/9/2026</span>
+          </div>
+        </div>
+
+        <!-- Calm Card 3 -->
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B] p-5 shadow-xs hover:border-slate-400 dark:hover:border-slate-600 transition flex flex-col justify-between space-y-3.5">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  Part 3
+                </span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  Tốc Độ Nghe & Nối Âm
+                </span>
+              </div>
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>Cần ôn lại</span>
+              </span>
+            </div>
+
+            <p class="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+              Câu 54: Ý người phụ nữ khi nói "Does the elevator work today?"
+            </p>
+
+            <div class="space-y-1.5 text-xs">
+              <div class="text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                <span class="text-rose-500 font-bold shrink-0">❌ Đã chọn:</span>
+                <span>Nghĩ cô ấy hỏi đường đi thang máy</span>
+              </div>
+              <div class="text-slate-800 dark:text-slate-200 font-medium flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-lg">
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">✓ Bí kíp:</span>
+                <span>Ngụ ý phàn nàn vì thang máy hỏng, phải đi bộ lên tầng 8.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span>#ListeningSpeed #Implication</span>
+            <span>9/9/2026</span>
+          </div>
+        </div>
+
+        <!-- Calm Card 4 -->
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B] p-5 shadow-xs hover:border-slate-400 dark:hover:border-slate-600 transition flex flex-col justify-between space-y-3.5">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  Part 6
+                </span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  Bẫy Từ Vựng & Paraphrase
+                </span>
+              </div>
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>Cần ôn lại</span>
+              </span>
+            </div>
+
+            <p class="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+              Câu 138: ______ of the harsh weather, the outdoor seminar was rescheduled.
+            </p>
+
+            <div class="space-y-1.5 text-xs">
+              <div class="text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                <span class="text-rose-500 font-bold shrink-0">❌ Đã chọn:</span>
+                <span>"In spite" (thiếu of) hoặc nhầm với "Because"</span>
+              </div>
+              <div class="text-slate-800 dark:text-slate-200 font-medium flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-lg">
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">✓ Bí kíp:</span>
+                <span>Đáp án đúng: "In light of" (= Because of/Considering). Cụm từ cố định.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span>#Collocation #Preposition</span>
+            <span>3/9/2026</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let activeTab = 1;
+    let allRevealed = false;
+
+    function switchTab(tab) {
+      activeTab = tab;
+      [1, 2, 3].forEach(i => {
+        const sec = document.getElementById(`section-opt-${i}`);
+        const btn = document.getElementById(`btn-opt-${i}`);
+        if (i === tab) {
+          sec.classList.remove('hidden');
+          btn.className = 'p-3 rounded-xl border-2 border-slate-900 text-left transition-all cursor-pointer bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1]';
+        } else {
+          sec.classList.add('hidden');
+          btn.className = 'p-3 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-[#121A2B] text-slate-700 dark:text-slate-300 text-left hover:border-slate-900 dark:hover:border-slate-300 transition-all cursor-pointer';
+        }
+      });
+    }
+
+    function toggleSecret(id, btn) {
+      const el = document.getElementById(id);
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        btn.querySelector('span').textContent = 'Ẩn bí kíp';
+      } else {
+        el.classList.add('hidden');
+        btn.querySelector('span').textContent = '👁️ Xem bí kíp & đáp án';
+      }
+    }
+
+    function toggleAllCards() {
+      allRevealed = !allRevealed;
+      const secrets = ['secret-1', 'secret-2', 'secret-3', 'secret-4'];
+      secrets.forEach(id => {
+        const el = document.getElementById(id);
+        if (allRevealed) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+      document.getElementById('toggleAllText').textContent = allRevealed ? '🙈 Ẩn toàn bộ bí kíp' : '👁️ Mở toàn bộ bí kíp';
+    }
+
+    function toggleRow(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle('hidden');
+    }
+
+    function toggleDark() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+      document.getElementById('themeText').textContent = isDark ? 'Chế độ Sáng' : 'Chế độ Tối';
+    }
+  </script>
+</body>
+</html>

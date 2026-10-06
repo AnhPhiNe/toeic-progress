@@ -1,0 +1,17 @@
+from fastapi import APIRouter, Depends, Request
+
+from app.api.dependencies import account
+from app.schemas.models import ResetRequest
+
+router = APIRouter()
+
+
+@router.delete("/api/v1/account")
+async def delete_account(request: Request, user=Depends(account)):
+    await request.app.state.gateway.delete_account(user["id"])
+    return {"deleted": True}
+
+
+@router.post("/api/v1/data/reset")
+async def reset_learning_data(body: ResetRequest, request: Request, user=Depends(account)):
+    return await request.app.state.gateway.rpc("reset_learning_data", {"p_owner_id": user["id"]})

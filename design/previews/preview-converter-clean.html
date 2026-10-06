@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thiết Kế Tinh Gọn Trang Quy Đổi Điểm Số</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 p-6 space-y-8">
+
+  <div class="max-w-5xl mx-auto space-y-2 text-center pb-4 border-b-2 border-slate-900">
+    <span class="px-3 py-1 rounded-full bg-amber-200 text-amber-950 font-black text-xs border border-slate-900">ĐỀ XUẤT THIẾT KẾ TINH GỌN (NEO-BRUTALISM)</span>
+    <h1 class="text-2xl font-black">Trang Quy Đổi Điểm Số ETS: Lược Bỏ Chữ Thừa & Chống Rối</h1>
+    <p class="text-xs font-semibold text-slate-600">Loại bỏ toàn bộ các đoạn văn xuôi dài dòng, dẹp bỏ banner to, bảng đối chiếu 4 cột ngắn gọn</p>
+  </div>
+
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- 1. HEADER TINH GỌN (Thay thế banner to 150px) -->
+    <div class="p-4 rounded-2xl bg-white border-2 border-slate-900 shadow-[3px_3px_0px_#0f172a] flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]">
+          🧮
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-black text-slate-950">Quy Đổi Điểm Số ETS</h2>
+            <span class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-950 font-mono font-black text-xs border border-slate-900">Thang 990</span>
+          </div>
+          <p class="text-xs text-slate-500 font-semibold">Quy đổi số câu đúng sang điểm chuẩn ETS và tham chiếu quốc tế</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-slate-600">Khởi tạo từ bài thi:</span>
+        <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-950 font-mono font-black text-xs border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]">
+          L: 97 câu • R: 94 câu
+        </span>
+      </div>
+    </div>
+
+    <!-- 2. KHU VỰC QUY ĐỔI CHÍNH (2 CỘT CÂN ĐỐI) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      
+      <!-- Cột Trái: Sliders (7 cols) -->
+      <div class="lg:col-span-7 p-5 rounded-2xl bg-white border-2 border-slate-900 shadow-[3px_3px_0px_#0f172a] space-y-5">
+        <div class="flex items-center justify-between pb-2 border-b-2 border-slate-100">
+          <h3 class="font-black text-sm text-slate-900">Số Câu Đúng (Raw Score)</h3>
+          <span class="text-[11px] font-bold text-slate-500">Kéo hoặc nhập số</span>
+        </div>
+
+        <!-- Listening Slider -->
+        <div class="p-4 rounded-xl bg-slate-50 border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-xs bg-indigo-600 border border-slate-900"></span>
+              <span class="text-xs font-black text-slate-900">Listening (100 câu)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="number" value="97" class="w-14 text-center py-1 rounded-lg bg-white border-2 border-slate-900 font-mono font-black text-sm text-indigo-700 shadow-[1px_1px_0px_#0f172a]">
+              <span class="text-xs font-bold text-slate-500">câu</span>
+              <span class="text-slate-400">→</span>
+              <span class="px-2 py-0.5 rounded-md bg-indigo-200 text-indigo-950 font-mono font-black text-sm border-2 border-slate-900 shadow-[1px_1px_0px_#0f172a]">495đ</span>
+            </div>
+          </div>
+          <input type="range" min="0" max="100" value="97" class="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 border border-slate-900">
+          <div class="flex justify-between text-[11px] font-mono font-bold text-slate-400">
+            <span>0 (5đ)</span>
+            <span>50 (260đ)</span>
+            <span>80 (450đ)</span>
+            <span>100 (495đ)</span>
+          </div>
+        </div>
+
+        <!-- Reading Slider -->
+        <div class="p-4 rounded-xl bg-slate-50 border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-xs bg-teal-600 border border-slate-900"></span>
+              <span class="text-xs font-black text-slate-900">Reading (100 câu)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="number" value="94" class="w-14 text-center py-1 rounded-lg bg-white border-2 border-slate-900 font-mono font-black text-sm text-teal-700 shadow-[1px_1px_0px_#0f172a]">
+              <span class="text-xs font-bold text-slate-500">câu</span>
+              <span class="text-slate-400">→</span>
+              <span class="px-2 py-0.5 rounded-md bg-teal-200 text-teal-950 font-mono font-black text-sm border-2 border-slate-900 shadow-[1px_1px_0px_#0f172a]">490đ</span>
+            </div>
+          </div>
+          <input type="range" min="0" max="100" value="94" class="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600 border border-slate-900">
+          <div class="flex justify-between text-[11px] font-mono font-bold text-slate-400">
+            <span>0 (5đ)</span>
+            <span>50 (250đ)</span>
+            <span>80 (415đ)</span>
+            <span>100 (495đ)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột Phải: Kết Quả & Quy Đổi Quốc Tế (5 cols) -->
+      <div class="lg:col-span-5 p-5 rounded-2xl bg-white border-2 border-slate-900 shadow-[3px_3px_0px_#0f172a] flex flex-col justify-between space-y-4">
+        
+        <!-- Hộp Tổng Điểm -->
+        <div class="p-4 rounded-xl bg-amber-100/70 border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] text-center space-y-1">
+          <span class="text-[10px] font-black uppercase tracking-wider text-slate-600">Dự Phóng Tổng Điểm ETS</span>
+          <div class="text-5xl font-black font-mono text-slate-950 tracking-tight">985</div>
+          <div class="flex justify-center items-center gap-3 text-xs font-mono font-black text-slate-700 pt-1">
+            <span class="px-2 py-0.5 rounded bg-indigo-100 border border-slate-900">L: 495đ</span>
+            <span>+</span>
+            <span class="px-2 py-0.5 rounded bg-teal-100 border border-slate-900">R: 490đ</span>
+          </div>
+          <div class="text-xs font-bold text-emerald-700 pt-1">
+            ✓ Đã vượt mục tiêu 900đ (+85đ)
+          </div>
+        </div>
+
+        <!-- Hộp Quy Đổi Quốc Tế Nhanh -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center px-1">
+            <span class="text-xs font-black uppercase text-slate-500">Quy Đổi Tương Đương</span>
+            <span class="px-2 py-0.5 rounded-md bg-emerald-300 text-slate-950 font-black text-xs border border-slate-900">CEFR C2</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="p-2.5 rounded-xl bg-rose-50 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] text-center">
+              <div class="text-[10px] font-black text-slate-500 uppercase">IELTS</div>
+              <div class="font-mono font-black text-base text-rose-700 mt-0.5">8.0 – 9.0</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-emerald-50 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] text-center">
+              <div class="text-[10px] font-black text-slate-500 uppercase">VSTEP</div>
+              <div class="font-mono font-black text-base text-emerald-700 mt-0.5">Bậc 6</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-blue-50 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] text-center">
+              <div class="text-[10px] font-black text-slate-500 uppercase">TOEFL iBT</div>
+              <div class="font-mono font-black text-base text-blue-700 mt-0.5">115 – 120</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 3. BẢNG MA TRẬN QUY ĐỔI TINH GỌN (Lược bỏ toàn bộ văn bản dài, chỉ giữ các cột số liệu) -->
+    <div class="p-5 rounded-2xl bg-white border-2 border-slate-900 shadow-[3px_3px_0px_#0f172a] space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="font-black text-sm text-slate-900">Tham Chiếu Các Mốc Điểm Quốc Tế</span>
+        </div>
+        <span class="text-xs font-bold text-slate-500">Mức điểm của bạn được đánh dấu bên dưới</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b-2 border-slate-900 bg-slate-100 text-slate-900 font-black">
+              <th class="py-2.5 px-3">Thang Điểm TOEIC</th>
+              <th class="py-2.5 px-3">Khung CEFR</th>
+              <th class="py-2.5 px-3">IELTS Tương Đương</th>
+              <th class="py-2.5 px-3">VSTEP (Bộ GD&ĐT)</th>
+              <th class="py-2.5 px-3">TOEFL iBT</th>
+              <th class="py-2.5 px-3 text-right">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y-2 divide-slate-100 font-semibold">
+            <tr class="text-slate-600 hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-mono font-bold">0 – 250</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold text-[10px]">A1</span> Căn bản</td>
+              <td class="py-2.5 px-3 font-mono font-bold">&lt; 3.0</td>
+              <td class="py-2.5 px-3">Bậc 1</td>
+              <td class="py-2.5 px-3 font-mono">0 – 31</td>
+              <td class="py-2.5 px-3 text-right text-slate-400">—</td>
+            </tr>
+            <tr class="text-slate-600 hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-mono font-bold">255 – 400</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-bold text-[10px]">A2</span> Sơ cấp</td>
+              <td class="py-2.5 px-3 font-mono font-bold">3.0 – 3.5</td>
+              <td class="py-2.5 px-3">Bậc 2</td>
+              <td class="py-2.5 px-3 font-mono">32 – 45</td>
+              <td class="py-2.5 px-3 text-right text-slate-400">—</td>
+            </tr>
+            <tr class="text-slate-600 hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-mono font-bold">405 – 600</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-blue-200 text-blue-900 font-bold text-[10px]">B1</span> Trung cấp</td>
+              <td class="py-2.5 px-3 font-mono font-bold">4.0 – 5.0</td>
+              <td class="py-2.5 px-3">Bậc 3</td>
+              <td class="py-2.5 px-3 font-mono">46 – 64</td>
+              <td class="py-2.5 px-3 text-right text-slate-400">—</td>
+            </tr>
+            <tr class="text-slate-600 hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-mono font-bold">605 – 780</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-indigo-200 text-indigo-900 font-bold text-[10px]">B2</span> Trung cấp trên</td>
+              <td class="py-2.5 px-3 font-mono font-bold">5.5 – 6.5</td>
+              <td class="py-2.5 px-3">Bậc 4</td>
+              <td class="py-2.5 px-3 font-mono">65 – 94</td>
+              <td class="py-2.5 px-3 text-right text-slate-400">—</td>
+            </tr>
+            <tr class="text-slate-600 hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-mono font-bold">785 – 900</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-purple-200 text-purple-900 font-bold text-[10px]">C1</span> Cao cấp</td>
+              <td class="py-2.5 px-3 font-mono font-bold">7.0 – 8.0</td>
+              <td class="py-2.5 px-3">Bậc 5</td>
+              <td class="py-2.5 px-3 font-mono">95 – 114</td>
+              <td class="py-2.5 px-3 text-right text-slate-400">—</td>
+            </tr>
+            <!-- HÀNG ĐANG Ở MỨC NÀY -->
+            <tr class="bg-amber-100 border-2 border-slate-900 font-black text-slate-950 shadow-[1px_1px_0px_#0f172a]">
+              <td class="py-3 px-3 font-mono text-sm text-indigo-700">905 – 990</td>
+              <td class="py-3 px-3"><span class="px-2 py-0.5 rounded bg-emerald-400 text-slate-950 border border-slate-900 font-black text-[10px]">C2</span> Thành thạo</td>
+              <td class="py-3 px-3 font-mono text-rose-700 text-sm">8.0 – 9.0</td>
+              <td class="py-3 px-3 text-emerald-800">Bậc 6</td>
+              <td class="py-3 px-3 font-mono text-blue-700">115 – 120</td>
+              <td class="py-3 px-3 text-right">
+                <span class="px-2 py-0.5 rounded bg-emerald-300 text-slate-950 border border-slate-900 text-[10px] font-black shadow-[1px_1px_0px_#0f172a]">
+                  👈 Điểm hiện tại (985đ)
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

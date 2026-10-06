@@ -8,3 +8,12 @@ dist-ssr
 *.log
 test-results/
 playwright-report/
+.venv/
+__pycache__/
+.pytest_cache/
+backend/.ruff_cache/
+.ruff_cache/
+*.tsbuildinfo
+.backups/
+*.dump
+scratch/

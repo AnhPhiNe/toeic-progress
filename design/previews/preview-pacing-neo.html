@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bản Phác Thảo Chuẩn Neo-Brutalism — Đồng Hồ Phòng Thi (Pacing)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body id="pageBody" class="bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 antialiased p-3 sm:p-6 lg:p-8 min-h-screen transition-colors duration-200">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- 0. THANH TIÊU ĐỀ ĐIỀU KHIỂN & CHUYỂN ĐỔI 3 THIẾT KẾ SUBBAR -->
+    <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-4 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-300 text-slate-950 border border-slate-900 text-[11px] font-black tracking-wide uppercase shadow-[1px_1px_0px_0px_#0f172a]">
+          ⚡ NEO-BRUTALISM AUDIT & UPGRADE
+        </div>
+        <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1.5 flex items-center gap-2">
+          Phác Thảo Lại Thanh Chọn Part & Xử Lý Gọn Gàng Part 7
+        </h1>
+        <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+          Khắc phục hoàn toàn: Sub-bar <strong>chỉ xuất hiện khi chọn Part 7</strong>, ẩn tuyệt đối ở Part 5/6, loại bỏ chiếm chỗ & nhảy bố cục.
+        </p>
+      </div>
+
+      <!-- 3 Nút chọn Phương án thiết kế trực quan -->
+      <div class="flex items-center gap-2 flex-wrap shrink-0">
+        <div class="p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-slate-900 dark:border-slate-700 flex gap-1">
+          <button
+            onclick="setDesignOption('option1')"
+            id="tabOpt1"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]"
+            title="Tách 6 nút thẳng hàng, 0px chiều cao thừa, 1 chạm làm bài"
+          >
+            PA 1: 1 Hàng Thẳng (Khuyên Dùng)
+          </button>
+          <button
+            onclick="setDesignOption('option2')"
+            id="tabOpt2"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950"
+            title="Menu nổi z-30 khi click Part 7, 0px layout shift, không đẩy đồng hồ"
+          >
+            PA 2: Menu Nổi (Popover)
+          </button>
+          <button
+            onclick="setDesignOption('option3')"
+            id="tabOpt3"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950"
+            title="Micro-dock siêu mảnh 28px chỉ hiện khi chọn Part 7"
+          >
+            PA 3: Micro-Dock Gọn
+          </button>
+        </div>
+
+        <!-- Nút gạt Dark / Light mode -->
+        <button
+          id="btnToggleTheme"
+          onclick="toggleTheme()"
+          class="px-3 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-black shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <span id="themeIcon">🌙</span>
+          <span id="themeText" class="hidden sm:inline">Tối</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KHUNG GIAO DIỆN CHÍNH -->
+    <div id="mainContainer" class="space-y-5">
+
+      <!-- ================= 1. MASTER CARD 1: ZEN FOCUS TIMER COCKPIT ================= -->
+      <section id="cardCockpit" class="w-full rounded-3xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] overflow-visible min-h-[520px] flex flex-col transition-all duration-200">
+        
+        <!-- THANH HEADER TAB (Bàn luyện tập / Lịch sử / Thống kê + Âm báo) -->
+        <div class="px-4 sm:px-5 py-3 border-b-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-t-[22px]">
+          <div class="flex items-center gap-2">
+            <div class="bg-slate-200/90 dark:bg-slate-900 p-1 rounded-xl border-2 border-slate-900 dark:border-slate-700 flex gap-1 flex-wrap">
+              <button
+                class="px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 text-slate-950 dark:text-white border-2 border-slate-900 dark:border-slate-200 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1]"
+              >
+                <span>⏱️</span>
+                <span>Bàn Luyện Tập</span>
+              </button>
+
+              <button
+                class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>📜</span>
+                <span>Lịch Sử Luyện Tập</span>
+                <span class="font-mono text-[10px] px-1.5 py-0.2 bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200 rounded-full font-black border border-blue-300 dark:border-blue-700">
+                  4
+                </span>
+              </button>
+
+              <button
+                class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>📊</span>
+                <span>Thống Kê & Biểu Đồ</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded-md text-[10.5px] font-black bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] flex items-center gap-1">
+              <span>⚡</span>
+              FOCUS PACING
+            </span>
+            <div class="h-4 w-[2px] bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
+            <button
+              id="soundBtn"
+              onclick="toggleSound()"
+              class="px-2.5 py-1 rounded-lg border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            >
+              <span>🔊</span>
+              <span id="soundLabel">Âm báo: Bật</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- THÂN COCKPIT -->
+        <div class="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
+          
+          <!-- ================= CÁC PHƯƠNG ÁN THANH CHỌN PART ================= -->
+          
+          <!-- PHƯƠNG ÁN 1 (KHUYÊN DÙNG): 6 NÚT THẲNG HÀNG - KHÔNG CẦN SUBBAR, 0PX THỪA -->
+          <div id="wrapperOption1" class="space-y-1">
+            <div class="bg-slate-100 dark:bg-slate-800/90 p-1.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-inner">
+              <!-- Pomodoro -->
+              <button
+                onclick="selectMode('POMODORO')"
+                id="opt1_POMODORO"
+                class="mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🍅</span>
+                <span>Pomodoro</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">25p</span>
+              </button>
+
+              <!-- Part 5 (Active Mặc Định) -->
+              <button
+                onclick="selectMode('PART_5')"
+                id="opt1_PART_5"
+                class="mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
+              >
+                <span>⚡</span>
+                <span>Part 5</span>
+                <span class="badge-time text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20 shadow-2xs">12 phút</span>
+              </button>
+
+              <!-- Part 6 -->
+              <button
+                onclick="selectMode('PART_6')"
+                id="opt1_PART_6"
+                class="mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🎯</span>
+                <span>Part 6</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">8 phút</span>
+              </button>
+
+              <!-- Part 7A: Đoạn đơn (25p) -->
+              <button
+                onclick="selectMode('PART_7_SINGLE')"
+                id="opt1_PART_7_SINGLE"
+                class="mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🔥</span>
+                <span>Part 7A</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">25p</span>
+              </button>
+
+              <!-- Part 7B: Đoạn đôi/ba (30p) -->
+              <button
+                onclick="selectMode('PART_7_MULTI')"
+                id="opt1_PART_7_MULTI"
+                class="mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🔥</span>
+                <span>Part 7B</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">30p</span>
+              </button>
+
+              <!-- Full Reading (75p) -->
+              <button
+                onclick="selectMode('FULL_READING')"
+                id="opt1_FULL_READING"
+                class="mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>📖</span>
+                <span>Full Reading</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">75p</span>
+              </button>
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 text-center font-medium">
+              💡 <em>Ưu điểm: Tách trực diện 7A & 7B lên dải ngang — 0px chiều cao thừa, 1 chạm vào làm bài ngay lập tức.</em>
+            </div>
+          </div>
+
+          <!-- PHƯƠNG ÁN 2: MENU NỔI (POPOVER) DƯỚI NÚT PART 7 - 0PX LAYOUT SHIFT -->
+          <div id="wrapperOption2" class="hidden space-y-1 relative">
+            <div class="bg-slate-100 dark:bg-slate-800/90 p-1.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-inner">
+              <!-- Pomodoro -->
+              <button
+                onclick="selectMode('POMODORO')"
+                id="opt2_POMODORO"
+                class="mode-btn-opt2 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🍅</span>
+                <span>Pomodoro</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">25p</span>
+              </button>
+
+              <!-- Part 5 -->
+              <button
+                onclick="selectMode('PART_5')"
+                id="opt2_PART_5"
+                class="mode-btn-opt2 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
+              >
+                <span>⚡</span>
+                <span>Part 5</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20">12 phút</span>
+              </button>
+
+              <!-- Part 6 -->
+              <button
+                onclick="selectMode('PART_6')"
+                id="opt2_PART_6"
+                class="mode-btn-opt2 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🎯</span>
+                <span>Part 6</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">8 phút</span>
+              </button>
+
+              <!-- Part 7 (Với Popover Nổi Không Đẩy Bố Cục) -->
+              <div class="relative flex-1 min-w-[120px]">
+                <button
+                  onclick="togglePart7Popover(event)"
+                  id="opt2_PART_7_WRAPPER"
+                  class="mode-btn-opt2 w-full py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  <span>🔥</span>
+                  <span id="opt2_Part7Label">Part 7</span>
+                  <span id="opt2_Part7Badge" class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 flex items-center gap-0.5">
+                    <span id="opt2_Part7Mins">55p</span>
+                    <span class="text-[9px]">▾</span>
+                  </span>
+                </button>
+
+                <!-- POPOVER MENU NỔI (ABSOLUTE Z-30, HOÀN TOÀN KHÔNG ĐẨY ĐỒNG HỒ) -->
+                <div
+                  id="popoverMenu"
+                  class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-white dark:bg-[#111A2C] rounded-2xl border-2 border-slate-900 dark:border-slate-200 shadow-[4px_4px_0px_0px_#0f172a] dark:shadow-[4px_4px_0px_0px_#cbd5e1] p-1.5 z-30"
+                >
+                  <div class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase px-2 py-1 tracking-wider border-b border-slate-100 dark:border-slate-800">
+                    Chọn phân đoạn Part 7:
+                  </div>
+                  <div class="p-1 space-y-1">
+                    <button
+                      onclick="selectMode('PART_7_SINGLE'); closePopover();"
+                      id="popover_7A"
+                      class="w-full text-left p-2 rounded-xl border border-transparent hover:border-slate-900 hover:bg-orange-50 dark:hover:bg-orange-950/40 flex items-center justify-between group cursor-pointer transition-all"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">⚡</span>
+                        <div>
+                          <div class="text-xs font-black text-slate-900 dark:text-white">Part 7A: Đoạn đơn</div>
+                          <div class="text-[10px] text-slate-500 dark:text-slate-400">Câu 147–175 • 29 câu</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-mono font-black px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/60 text-orange-950 dark:text-orange-200 border border-orange-300">25p</span>
+                    </button>
+
+                    <button
+                      onclick="selectMode('PART_7_MULTI'); closePopover();"
+                      id="popover_7B"
+                      class="w-full text-left p-2 rounded-xl border border-transparent hover:border-slate-900 hover:bg-orange-50 dark:hover:bg-orange-950/40 flex items-center justify-between group cursor-pointer transition-all"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">🔥</span>
+                        <div>
+                          <div class="text-xs font-black text-slate-900 dark:text-white">Part 7B: Đôi / ba</div>
+                          <div class="text-[10px] text-slate-500 dark:text-slate-400">Câu 176–200 • 25 câu</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-mono font-black px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/60 text-orange-950 dark:text-orange-200 border border-orange-300">30p</span>
+                    </button>
+
+                    <button
+                      onclick="selectMode('PART_7'); closePopover();"
+                      id="popover_7FULL"
+                      class="w-full text-left p-2 rounded-xl border border-transparent hover:border-slate-900 hover:bg-orange-50 dark:hover:bg-orange-950/40 flex items-center justify-between group cursor-pointer transition-all"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">📖</span>
+                        <div>
+                          <div class="text-xs font-black text-slate-900 dark:text-white">Toàn bộ 54 câu</div>
+                          <div class="text-[10px] text-slate-500 dark:text-slate-400">Câu 147–200 • Full Part 7</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-mono font-black px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/60 text-orange-950 dark:text-orange-200 border border-orange-300">55p</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Full Reading -->
+              <button
+                onclick="selectMode('FULL_READING')"
+                id="opt2_FULL_READING"
+                class="mode-btn-opt2 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>📖</span>
+                <span>Full Reading</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">75p</span>
+              </button>
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 text-center font-medium">
+              💡 <em>Ưu điểm: Bấm Part 7 mở Menu nổi (Popover) — Tuyệt đối không đẩy đồng hồ xuống, chuyển sang Part 5/6 thì tự động ẩn 100%.</em>
+            </div>
+          </div>
+
+          <!-- PHƯƠNG ÁN 3: MICRO-DOCK SIÊU MẢNH (CHỈ HIỂN THỊ KHI CHỌN PART 7) -->
+          <div id="wrapperOption3" class="hidden space-y-2">
+            <div class="bg-slate-100 dark:bg-slate-800/90 p-1.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-inner">
+              <button
+                onclick="selectMode('POMODORO')"
+                id="opt3_POMODORO"
+                class="mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🍅</span>
+                <span>Pomodoro</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">25p</span>
+              </button>
+
+              <button
+                onclick="selectMode('PART_5')"
+                id="opt3_PART_5"
+                class="mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
+              >
+                <span>⚡</span>
+                <span>Part 5</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20">12 phút</span>
+              </button>
+
+              <button
+                onclick="selectMode('PART_6')"
+                id="opt3_PART_6"
+                class="mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🎯</span>
+                <span>Part 6</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">8 phút</span>
+              </button>
+
+              <button
+                onclick="selectMode('PART_7_SINGLE')"
+                id="opt3_PART_7"
+                class="mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>🔥</span>
+                <span id="opt3_Part7Label">Part 7</span>
+                <span id="opt3_Part7Badge" class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">25p</span>
+              </button>
+
+              <button
+                onclick="selectMode('FULL_READING')"
+                id="opt3_FULL_READING"
+                class="mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                <span>📖</span>
+                <span>Full Reading</span>
+                <span class="badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700">75p</span>
+              </button>
+            </div>
+
+            <!-- MICRO-DOCK GỌN GÀNG (CHỈ HIỂN THỊ KHI Ở PART 7 / 7A / 7B, ẨN HOÀN TOÀN Ở PART 5, 6, POMODORO) -->
+            <div id="microDockPart7" class="hidden flex items-center justify-center pt-0.5">
+              <div class="inline-flex items-center p-1 bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] gap-1">
+                <button
+                  onclick="selectMode('PART_7_SINGLE')"
+                  id="dockBtn_7A"
+                  class="px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer bg-orange-400 text-slate-950 border border-slate-900"
+                >
+                  ⚡ 7A: Đoạn đơn <span class="font-mono text-[10px] font-bold">25p</span>
+                </button>
+                <div class="w-[1.5px] h-3.5 bg-slate-300 dark:bg-slate-700"></div>
+                <button
+                  onclick="selectMode('PART_7_MULTI')"
+                  id="dockBtn_7B"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-700 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40"
+                >
+                  🔥 7B: Đôi/Ba <span class="font-mono text-[10px] font-bold">30p</span>
+                </button>
+                <div class="w-[1.5px] h-3.5 bg-slate-300 dark:bg-slate-700"></div>
+                <button
+                  onclick="selectMode('PART_7')"
+                  id="dockBtn_7FULL"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-700 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40"
+                >
+                  📖 Toàn bộ <span class="font-mono text-[10px] font-bold">55p</span>
+                </button>
+              </div>
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 text-center font-medium">
+              💡 <em>Ưu điểm: Micro-dock mini 28px — ĐÃ FIX: Chỉ xuất hiện khi bạn chọn Part 7, ẩn sạch sẽ ở Part 5 & 6.</em>
+            </div>
+          </div>
+
+          <!-- ================= ĐỒNG HỒ SỐ VÀ TRẠNG THÁI NHỊP ================= -->
+          <div class="py-2 sm:py-4 text-center space-y-4">
+            
+            <!-- Context status bar: Số câu + Mục tiêu chuẩn ETS (Neo Pill) -->
+            <div class="flex items-center justify-center">
+              <div class="inline-flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-200 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] flex-wrap justify-center">
+                <div class="flex items-center gap-2">
+                  <span class="relative flex h-2.5 w-2.5">
+                    <span id="timerPulse" class="hidden animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="timerDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-400"></span>
+                  </span>
+                  <span id="topicText" class="font-black text-slate-900 dark:text-white text-sm">
+                    30 câu Ngữ pháp & Từ vựng
+                  </span>
+                </div>
+
+                <div id="targetBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-amber-100 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                  <span class="text-sm">🎯</span>
+                  <span class="uppercase tracking-wide text-[11px]">Mục tiêu</span>
+                  <span id="targetSecText">≤ 24s / câu</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Đồng Hồ Số Khổng Lồ (Neo Big Typography) -->
+            <div class="flex items-center justify-center py-2 sm:py-3">
+              <div
+                id="clockDisplay"
+                class="font-mono text-7xl sm:text-8xl md:text-9xl font-black tracking-tight select-none tabular-nums text-slate-900 dark:text-white drop-shadow-xs transition-colors"
+              >
+                12:00
+              </div>
+            </div>
+
+            <!-- Thanh Tiến Độ Thời Gian (Neo Progress Bar với viền 2px) -->
+            <div class="w-full max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-full h-3 border-2 border-slate-900 dark:border-slate-200 overflow-hidden shadow-inner">
+              <div
+                id="progressBar"
+                class="h-full rounded-full transition-all duration-300 bg-amber-400"
+                style="width: 0%;"
+              ></div>
+            </div>
+
+            <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+              Phím tắt: Nhấn <kbd class="px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300">Space</kbd> để Bắt đầu/Tạm dừng
+            </p>
+          </div>
+
+          <!-- CỤM NÚT HÀNH ĐỘNG NEO-BRUTALISM -->
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              id="btnMainAction"
+              onclick="toggleTimer()"
+              class="w-full sm:w-64 py-3.5 rounded-2xl font-black text-sm sm:text-base border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[1px_1px_0px_0px_#0f172a] flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <span id="mainBtnIcon">▶</span>
+              <span id="mainBtnText">Bắt Đầu Làm Bài</span>
+            </button>
+
+            <button
+              id="btnFinish"
+              onclick="finishSession()"
+              class="hidden w-full sm:w-60 py-3.5 rounded-2xl font-black text-xs sm:text-sm border-2 border-slate-900 bg-blue-400 hover:bg-blue-300 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] active:translate-y-0 active:shadow-[1px_1px_0px_0px_#0f172a] flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <span>✅</span>
+              <span>Xong Bài & Nhập Điểm</span>
+            </button>
+
+            <button
+              id="btnReset"
+              onclick="resetTimer()"
+              class="hidden p-3.5 rounded-2xl font-black text-slate-700 dark:text-slate-200 hover:text-slate-900 bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-200 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all flex items-center justify-center cursor-pointer"
+              title="Làm lại từ đầu"
+            >
+              <span>🔄</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. MASTER CARD 2: BẢN ĐỒ PHÂN BỔ 75 PHÚT READING CHUẨN ETS ================= -->
+      <section id="cardRoadmap" class="rounded-3xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] p-5 sm:p-6 space-y-4 transition-all duration-200">
+        
+        <!-- Header widget -->
+        <div class="flex items-center justify-between border-b-2 border-slate-900 dark:border-slate-700 pb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="p-1.5 rounded-xl bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] font-black">
+              🧭
+            </span>
+            <span class="text-xs sm:text-sm font-black uppercase text-slate-900 dark:text-white tracking-wide">
+              Bản Đồ Phân Bổ 75 Phút Reading Chuẩn ETS
+            </span>
+          </div>
+          <span class="text-xs font-black text-slate-900 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl border-2 border-slate-900 dark:border-slate-700 shadow-[1.5px_1.5px_0px_0px_#0f172a] dark:shadow-[1.5px_1.5px_0px_0px_#cbd5e1]">
+            Tổng cộng: 100 câu • 75 phút
+          </span>
+        </div>
+
+        <!-- THANH TIMELINE 75 PHÚT PHÂN KHÚC TRỰC QUAN (CHUẨN NEO VỚI VIỀN 2PX & SHADOW) -->
+        <div class="h-11 sm:h-12 w-full rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-slate-100 dark:bg-slate-800 overflow-hidden flex select-none shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1]">
+          <!-- Part 5 -->
+          <button
+            onclick="selectMode('PART_5')"
+            id="bar_PART_5"
+            class="h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-amber-400 text-slate-950 font-black shadow-inner"
+            style="width: 16%;"
+            title="Part 5: 12 phút • 30 câu"
+          >
+            <span>⚡</span>
+            <span class="text-xs sm:text-sm tracking-tight truncate">Part 5: 12p</span>
+          </button>
+
+          <!-- Part 6 -->
+          <button
+            onclick="selectMode('PART_6')"
+            id="bar_PART_6"
+            class="h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 hover:bg-sky-100 text-slate-700 opacity-90 font-bold"
+            style="width: 12%;"
+            title="Part 6: 8 phút • 16 câu"
+          >
+            <span>🎯</span>
+            <span class="text-xs sm:text-sm tracking-tight truncate">Part 6: 8p</span>
+          </button>
+
+          <!-- 7A Đoạn đơn (ĐỘC LẬP) -->
+          <button
+            onclick="selectMode('PART_7_SINGLE')"
+            id="bar_PART_7A"
+            class="h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 hover:bg-orange-100 text-slate-700 opacity-90 font-bold"
+            style="width: 34%;"
+            title="Part 7A: 25 phút • 29 câu"
+          >
+            <span>🔥</span>
+            <span class="text-xs sm:text-sm tracking-tight truncate">7A: Đoạn đơn (25p)</span>
+          </button>
+
+          <!-- 7B Đôi/Ba (ĐỘC LẬP) -->
+          <button
+            onclick="selectMode('PART_7_MULTI')"
+            id="bar_PART_7B"
+            class="h-full flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 hover:bg-orange-100 text-slate-700 opacity-90 font-bold"
+            style="width: 38%;"
+            title="Part 7B: 30 phút • 25 câu"
+          >
+            <span>🔥</span>
+            <span class="text-xs sm:text-sm tracking-tight truncate">7B: Đôi/Ba (30p)</span>
+          </button>
+        </div>
+
+        <!-- 4 THẺ MẸO CHIẾN THUẬT TỪNG PART (TÁCH BIỆT 100% GIỮA 7A VÀ 7B) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          
+          <!-- Thẻ 1: Part 5 -->
+          <button
+            type="button"
+            onclick="selectMode('PART_5')"
+            id="strategyCard_PART_5"
+            class="p-3.5 rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-amber-50 dark:bg-amber-950/40 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] hover:-translate-y-0.5 transition-all cursor-pointer text-left flex flex-col justify-between space-y-2 group"
+          >
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="font-black text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
+                  <span class="text-sm">⚡</span>
+                  <span class="truncate">Quy tắc 20s Part 5</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <span id="badgeSelect_PART_5" class="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-950 text-amber-300 font-mono font-black tracking-wider">
+                    CHỌN
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 border border-slate-900 dark:border-slate-600 font-mono font-black shadow-2xs">
+                    12p
+                  </span>
+                </div>
+              </div>
+              <p class="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">
+                Nhìn 2 từ trước/sau chỗ trống để bắt ngay từ loại (noun/adj/adv). Tuyệt đối không dịch cả câu với bài ngữ pháp.
+              </p>
+            </div>
+            <div class="pt-1.5 border-t border-amber-200/80 dark:border-amber-900/40 text-[10px] font-bold text-amber-800 dark:text-amber-400">
+              Target: ≤ 24s/câu
+            </div>
+          </button>
+
+          <!-- Thẻ 2: Part 6 -->
+          <button
+            type="button"
+            onclick="selectMode('PART_6')"
+            id="strategyCard_PART_6"
+            class="p-3.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#111A2C] shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] hover:-translate-y-0.5 hover:bg-sky-50/50 transition-all cursor-pointer text-left flex flex-col justify-between space-y-2 group"
+          >
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="font-black text-sky-950 dark:text-sky-300 text-xs flex items-center gap-1.5">
+                  <span class="text-sm">🎯</span>
+                  <span class="truncate">Mạch Văn Part 6</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <span id="badgeSelect_PART_6" class="hidden text-[9.5px] px-1.5 py-0.5 rounded bg-slate-950 text-sky-300 font-mono font-black tracking-wider">
+                    CHỌN
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 border border-slate-900 dark:border-slate-600 font-mono font-black shadow-2xs">
+                    8p
+                  </span>
+                </div>
+              </div>
+              <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                Đọc lướt câu đầu đoạn để định hình ngữ cảnh bài viết. Soi kỹ liên từ (However, Therefore) và thì của đoạn văn.
+              </p>
+            </div>
+            <div class="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+              Target: ≤ 30s/câu
+            </div>
+          </button>
+
+          <!-- Thẻ 3: Part 7A: Đoạn đơn -->
+          <button
+            type="button"
+            onclick="selectMode('PART_7_SINGLE')"
+            id="strategyCard_PART_7A"
+            class="p-3.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#111A2C] shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] hover:-translate-y-0.5 hover:bg-orange-50/50 transition-all cursor-pointer text-left flex flex-col justify-between space-y-2 group"
+          >
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="font-black text-orange-950 dark:text-orange-300 text-xs flex items-center gap-1.5">
+                  <span class="text-sm">🔥</span>
+                  <span class="truncate">7A: Đoạn đơn</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <span id="badgeSelect_PART_7A" class="hidden text-[9.5px] px-1.5 py-0.5 rounded bg-slate-950 text-orange-300 font-mono font-black tracking-wider">
+                    CHỌN
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 border border-slate-900 dark:border-slate-600 font-mono font-black shadow-2xs">
+                    25p
+                  </span>
+                </div>
+              </div>
+              <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                Câu 147–175: Đọc lướt câu hỏi trước để lấy từ khóa (tên riêng, số tiền, ngày tháng), sau đó quét nhanh bài đọc (scan).
+              </p>
+            </div>
+            <div class="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-orange-700 dark:text-orange-400">
+              Target: ≤ 52s/câu
+            </div>
+          </button>
+
+          <!-- Thẻ 4: Part 7B: Đôi / Ba -->
+          <button
+            type="button"
+            onclick="selectMode('PART_7_MULTI')"
+            id="strategyCard_PART_7B"
+            class="p-3.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#111A2C] shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] hover:-translate-y-0.5 hover:bg-orange-50/50 transition-all cursor-pointer text-left flex flex-col justify-between space-y-2 group"
+          >
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="font-black text-orange-950 dark:text-orange-300 text-xs flex items-center gap-1.5">
+                  <span class="text-sm">🔥</span>
+                  <span class="truncate">7B: Đôi / Ba</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <span id="badgeSelect_PART_7B" class="hidden text-[9.5px] px-1.5 py-0.5 rounded bg-slate-950 text-orange-300 font-mono font-black tracking-wider">
+                    CHỌN
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-200 border border-slate-900 dark:border-slate-600 font-mono font-black shadow-2xs">
+                    30p
+                  </span>
+                </div>
+              </div>
+              <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                Câu 176–200: Chú ý các câu hỏi đối chiếu chéo (cross-reference) nối giữa Email và Bảng biểu/Lịch trình. ~72s/câu.
+              </p>
+            </div>
+            <div class="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-orange-700 dark:text-orange-400">
+              Target: ≤ 72s/câu
+            </div>
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- SO SÁNH 3 PHƯƠNG ÁN THIẾT KẾ CHO BẠN LỰA CHỌN -->
+    <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] space-y-3">
+      <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+        <span>📋</span>
+        <span>Đánh Giá Chi Tiết 3 Phương Án Thiết Kế Mới</span>
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+        
+        <!-- Cột 1 -->
+        <div class="p-3.5 rounded-xl border-2 border-slate-900 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 space-y-2 shadow-[2px_2px_0px_0px_#0f172a]">
+          <strong class="font-black text-amber-900 dark:text-amber-300 text-sm flex items-center gap-1.5">
+            <span>⭐</span> PA 1: 1 Hàng Thẳng (Khuyên Dùng)
+          </strong>
+          <ul class="list-disc pl-4 space-y-1 text-[11.5px] leading-relaxed">
+            <li><strong>0px chiều cao thừa</strong>: Hoàn toàn không cần sub-bar hay thanh phụ nào.</li>
+            <li><strong>1 chạm</strong>: Người học bấm thẳng vào 7A (25p) hoặc 7B (30p) để canh giờ ngay.</li>
+            <li><strong>Rất thoáng</strong>: Trên laptop/PC 6 nút hiển thị rộng rãi ~160px/nút, không bị chật.</li>
+          </ul>
+        </div>
+
+        <!-- Cột 2 -->
+        <div class="p-3.5 rounded-xl border-2 border-slate-900 bg-orange-50 dark:bg-orange-950/30 text-orange-950 dark:text-orange-200 space-y-2 shadow-[2px_2px_0px_0px_#0f172a]">
+          <strong class="font-black text-orange-900 dark:text-orange-300 text-sm flex items-center gap-1.5">
+            <span>✨</span> PA 2: Menu Nổi (Popover)
+          </strong>
+          <ul class="list-disc pl-4 space-y-1 text-[11.5px] leading-relaxed">
+            <li><strong>0px Layout Shift</strong>: Menu nổi dùng <code class="bg-orange-200 dark:bg-orange-900 px-1 rounded font-bold">absolute z-30</code> trôi bên trên, không hề đẩy đồng hồ xuống.</li>
+            <li><strong>Ẩn tự động</strong>: Khi chọn Part 5 hoặc Part 6, menu tự đóng 100%.</li>
+            <li><strong>Đầy đủ</strong>: Cho phép chọn 7A (25p), 7B (30p), hoặc Toàn bộ 54 câu (55p).</li>
+          </ul>
+        </div>
+
+        <!-- Cột 3 -->
+        <div class="p-3.5 rounded-xl border-2 border-slate-900 bg-sky-50 dark:bg-sky-950/30 text-sky-950 dark:text-sky-200 space-y-2 shadow-[2px_2px_0px_0px_#0f172a]">
+          <strong class="font-black text-sky-900 dark:text-sky-300 text-sm flex items-center gap-1.5">
+            <span>🎯</span> PA 3: Micro-Dock Siêu Mảnh
+          </strong>
+          <ul class="list-disc pl-4 space-y-1 text-[11.5px] leading-relaxed">
+            <li><strong>Chỉ hiện khi ở Part 7</strong>: Đã fix lỗi — ở Part 5 & 6 dock này biến mất hoàn toàn!</li>
+            <li><strong>Cực kỳ gọn</strong>: Bỏ chữ tiêu đề cồng kềnh, chỉ giữ lại thanh 28px tinh giản.</li>
+            <li><strong>Chuẩn Neo</strong>: Đóng khung bo góc viền 2px và đổ bóng nhẹ sắc sảo.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JAVASCRIPT ĐIỀU KHIỂN PREVIEW TƯƠNG TÁC -->
+  <script>
+    const MODES = {
+      POMODORO: { name: 'Pomodoro', seconds: 25 * 60, topic: 'Phiên Pomodoro tập trung sâu', target: '25 phút tập trung', color: 'bg-rose-400' },
+      PART_5: { name: 'Part 5', seconds: 12 * 60, topic: '30 câu Ngữ pháp & Từ vựng', target: '≤ 24s / câu', color: 'bg-amber-400' },
+      PART_6: { name: 'Part 6', seconds: 8 * 60, topic: '16 câu Điền đoạn văn', target: '≤ 30s / câu', color: 'bg-sky-400' },
+      PART_7_SINGLE: { name: 'Part 7A', seconds: 25 * 60, topic: '29 câu Đọc hiểu Đoạn đơn (Câu 147–175)', target: '≤ 52s / câu', color: 'bg-orange-400' },
+      PART_7_MULTI: { name: 'Part 7B', seconds: 30 * 60, topic: '25 câu Đoạn đôi & ba (Câu 176–200)', target: '≤ 72s / câu', color: 'bg-orange-400' },
+      PART_7: { name: 'Part 7', seconds: 55 * 60, topic: '54 câu Đọc hiểu Toàn bộ Part 7', target: '≤ 61s / câu', color: 'bg-orange-400' },
+      FULL_READING: { name: 'Full Reading', seconds: 75 * 60, topic: '100 câu Full Đọc (Part 5 + 6 + 7)', target: '≤ 45s / câu', color: 'bg-purple-400' }
+    };
+
+    let activeOption = 'option1'; // 'option1' | 'option2' | 'option3'
+    let currentMode = 'PART_5';
+    let totalSeconds = MODES[currentMode].seconds;
+    let secondsLeft = totalSeconds;
+    let timerId = null;
+    let isRunning = false;
+    let isSoundOn = true;
+    let isPopoverOpen = false;
+
+    function formatTime(s) {
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      document.getElementById('clockDisplay').textContent = formatTime(secondsLeft);
+      const percent = Math.min(100, Math.round(((totalSeconds - secondsLeft) / totalSeconds) * 100));
+      document.getElementById('progressBar').style.width = percent + '%';
+    }
+
+    // Chuyển đổi giữa 3 thiết kế thanh Part
+    function setDesignOption(opt) {
+      activeOption = opt;
+      ['option1', 'option2', 'option3'].forEach((o, idx) => {
+        const wrapper = document.getElementById(`wrapperOption${idx + 1}`);
+        const tab = document.getElementById(`tabOpt${idx + 1}`);
+        if (o === opt) {
+          wrapper.classList.remove('hidden');
+          tab.className = 'px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]';
+        } else {
+          wrapper.classList.add('hidden');
+          tab.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-600 dark:text-slate-300 hover:text-slate-950';
+        }
+      });
+      closePopover();
+      selectMode(currentMode);
+    }
+
+    // Toggle popover trong Option 2
+    function togglePart7Popover(e) {
+      if (e) e.stopPropagation();
+      const popover = document.getElementById('popoverMenu');
+      if (isPopoverOpen) {
+        closePopover();
+      } else {
+        popover.classList.remove('hidden');
+        isPopoverOpen = true;
+      }
+    }
+
+    function closePopover() {
+      const popover = document.getElementById('popoverMenu');
+      if (popover) popover.classList.add('hidden');
+      isPopoverOpen = false;
+    }
+
+    // Đóng popover khi click ra ngoài
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('wrapperOption2');
+      if (isPopoverOpen && wrapper && !wrapper.contains(e.target)) {
+        closePopover();
+      }
+    });
+
+    function selectMode(modeKey) {
+      currentMode = modeKey;
+      pauseTimer();
+      const cfg = MODES[modeKey];
+      totalSeconds = cfg.seconds;
+      secondsLeft = totalSeconds;
+
+      // Cập nhật text topic & target
+      document.getElementById('topicText').textContent = cfg.topic;
+      document.getElementById('targetSecText').textContent = cfg.target;
+
+      // ================= CẬP NHẬT UI CHO PHƯƠNG ÁN 1 =================
+      document.querySelectorAll('#wrapperOption1 .mode-btn-opt1').forEach(btn => {
+        btn.className = 'mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700';
+        const b = btn.querySelector('.badge-time');
+        if (b) {
+          b.className = 'badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300';
+        }
+      });
+
+      const opt1Key = (modeKey === 'PART_7') ? 'PART_7_SINGLE' : modeKey;
+      const activeBtnOpt1 = document.getElementById('opt1_' + opt1Key);
+      if (activeBtnOpt1) {
+        let activeColor = 'bg-amber-400';
+        if (modeKey === 'POMODORO') activeColor = 'bg-rose-400';
+        if (modeKey === 'PART_6') activeColor = 'bg-sky-400';
+        if (modeKey === 'PART_7_SINGLE' || modeKey === 'PART_7_MULTI' || modeKey === 'PART_7') activeColor = 'bg-orange-400';
+        if (modeKey === 'FULL_READING') activeColor = 'bg-purple-400';
+
+        activeBtnOpt1.className = `mode-btn-opt1 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 ${activeColor} text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]`;
+        const b = activeBtnOpt1.querySelector('.badge-time');
+        if (b) {
+          b.className = 'badge-time text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20 shadow-2xs';
+        }
+      }
+
+      // ================= CẬP NHẬT UI CHO PHƯƠNG ÁN 2 (POPOVER) =================
+      document.querySelectorAll('#wrapperOption2 .mode-btn-opt2').forEach(btn => {
+        btn.className = 'mode-btn-opt2 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700';
+        const b = btn.querySelector('.badge-time');
+        if (b) {
+          b.className = 'badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300';
+        }
+      });
+
+      const isPart7Family = (modeKey === 'PART_7' || modeKey === 'PART_7_SINGLE' || modeKey === 'PART_7_MULTI');
+      if (isPart7Family) {
+        const p7Btn = document.getElementById('opt2_PART_7_WRAPPER');
+        if (p7Btn) {
+          p7Btn.className = 'mode-btn-opt2 w-full py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 bg-orange-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]';
+          const p7Label = document.getElementById('opt2_Part7Label');
+          const p7Mins = document.getElementById('opt2_Part7Mins');
+          const p7Badge = document.getElementById('opt2_Part7Badge');
+          if (modeKey === 'PART_7_SINGLE') {
+            p7Label.textContent = 'Part 7A';
+            p7Mins.textContent = '25p';
+          } else if (modeKey === 'PART_7_MULTI') {
+            p7Label.textContent = 'Part 7B';
+            p7Mins.textContent = '30p';
+          } else {
+            p7Label.textContent = 'Part 7';
+            p7Mins.textContent = '55p';
+          }
+          if (p7Badge) {
+            p7Badge.className = 'badge-time text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20 shadow-2xs flex items-center gap-0.5';
+          }
+        }
+      } else {
+        const nonP7Btn = document.getElementById('opt2_' + modeKey);
+        if (nonP7Btn) {
+          let activeColor = modeKey === 'POMODORO' ? 'bg-rose-400' : modeKey === 'PART_6' ? 'bg-sky-400' : modeKey === 'FULL_READING' ? 'bg-purple-400' : 'bg-amber-400';
+          nonP7Btn.className = `mode-btn-opt2 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 ${activeColor} text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]`;
+          const b = nonP7Btn.querySelector('.badge-time');
+          if (b) {
+            b.className = 'badge-time text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20 shadow-2xs';
+          }
+        }
+        // TỰ ĐỘNG ĐÓNG POPOVER KHI CHỌN PART 5/6/POMODORO
+        closePopover();
+      }
+
+      // ================= CẬP NHẬT UI CHO PHƯƠNG ÁN 3 (MICRO-DOCK) =================
+      const dockContainer = document.getElementById('microDockPart7');
+      document.querySelectorAll('#wrapperOption3 .mode-btn-opt3').forEach(btn => {
+        btn.className = 'mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700';
+        const b = btn.querySelector('.badge-time');
+        if (b) {
+          b.className = 'badge-time text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300';
+        }
+      });
+
+      if (isPart7Family) {
+        // ĐÃ KHẮC PHỤC: HIỆN DOCK KHI Ở PART 7
+        dockContainer.classList.remove('hidden');
+        const p7Btn3 = document.getElementById('opt3_PART_7');
+        if (p7Btn3) {
+          p7Btn3.className = 'mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 bg-orange-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]';
+          const p7Label3 = document.getElementById('opt3_Part7Label');
+          const p7Badge3 = document.getElementById('opt3_Part7Badge');
+          if (modeKey === 'PART_7_SINGLE') {
+            p7Label3.textContent = 'Part 7A';
+            p7Badge3.textContent = '25p';
+          } else if (modeKey === 'PART_7_MULTI') {
+            p7Label3.textContent = 'Part 7B';
+            p7Badge3.textContent = '30p';
+          } else {
+            p7Label3.textContent = 'Part 7';
+            p7Badge3.textContent = '55p';
+          }
+          p7Badge3.className = 'badge-time text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20 shadow-2xs';
+        }
+
+        // Cập nhật trạng thái active của từng nút trong Micro-dock
+        const dock7A = document.getElementById('dockBtn_7A');
+        const dock7B = document.getElementById('dockBtn_7B');
+        const dockFull = document.getElementById('dockBtn_7FULL');
+        [dock7A, dock7B, dockFull].forEach(btn => {
+          btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-slate-700 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40';
+        });
+        if (modeKey === 'PART_7_SINGLE') {
+          dock7A.className = 'px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer bg-orange-400 text-slate-950 border border-slate-900 shadow-2xs';
+        } else if (modeKey === 'PART_7_MULTI') {
+          dock7B.className = 'px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer bg-orange-400 text-slate-950 border border-slate-900 shadow-2xs';
+        } else {
+          dockFull.className = 'px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer bg-orange-400 text-slate-950 border border-slate-900 shadow-2xs';
+        }
+      } else {
+        // ĐÃ KHẮC PHỤC: ẨN HOÀN TOÀN DOCK KHI CHỌN PART 5, 6, POMODORO, FULL READING!
+        dockContainer.classList.add('hidden');
+        const nonP7Btn3 = document.getElementById('opt3_' + modeKey);
+        if (nonP7Btn3) {
+          let activeColor = modeKey === 'POMODORO' ? 'bg-rose-400' : modeKey === 'PART_6' ? 'bg-sky-400' : modeKey === 'FULL_READING' ? 'bg-purple-400' : 'bg-amber-400';
+          nonP7Btn3.className = `mode-btn-opt3 flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all border-2 border-slate-900 ${activeColor} text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]`;
+          const b = nonP7Btn3.querySelector('.badge-time');
+          if (b) {
+            b.className = 'badge-time text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-900/20 shadow-2xs';
+          }
+        }
+      }
+
+      // ================= CẬP NHẬT THANH TIMELINE 75 PHÚT =================
+      const barPart5 = document.getElementById('bar_PART_5');
+      const barPart6 = document.getElementById('bar_PART_6');
+      const barPart7A = document.getElementById('bar_PART_7A');
+      const barPart7B = document.getElementById('bar_PART_7B');
+
+      // Reset style
+      barPart5.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 text-slate-700 dark:text-slate-300 opacity-90 font-bold';
+      barPart6.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-sky-100 text-slate-700 dark:text-slate-300 opacity-90 font-bold';
+      barPart7A.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-orange-100 text-slate-700 dark:text-slate-300 opacity-90 font-bold';
+      barPart7B.className = 'h-full flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-orange-100 text-slate-700 dark:text-slate-300 opacity-90 font-bold';
+
+      if (modeKey === 'PART_5') {
+        barPart5.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-amber-400 text-slate-950 font-black shadow-inner';
+      } else if (modeKey === 'PART_6') {
+        barPart6.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-sky-400 text-slate-950 font-black shadow-inner';
+      } else if (modeKey === 'PART_7_SINGLE') {
+        // CHỈ SÁNG 7A
+        barPart7A.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-orange-400 text-slate-950 font-black shadow-inner';
+      } else if (modeKey === 'PART_7_MULTI') {
+        // CHỈ SÁNG 7B (7A KHÔNG SÁNG)
+        barPart7B.className = 'h-full flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-orange-400 text-slate-950 font-black shadow-inner';
+      } else if (modeKey === 'PART_7' || modeKey === 'FULL_READING') {
+        barPart5.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-amber-300 text-slate-950 font-black';
+        barPart6.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-sky-300 text-slate-950 font-black';
+        barPart7A.className = 'h-full border-r-2 border-slate-900 dark:border-slate-700 flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-orange-300 text-slate-950 font-black';
+        barPart7B.className = 'h-full flex items-center justify-center gap-1.5 px-2 transition-all cursor-pointer bg-orange-300 text-slate-950 font-black';
+      }
+
+      // ================= CẬP NHẬT 4 THẺ MẸO CHIẾN THUẬT =================
+      ['PART_5', 'PART_6', 'PART_7A', 'PART_7B'].forEach(id => {
+        const badge = document.getElementById('badgeSelect_' + id);
+        const card = document.getElementById('strategyCard_' + id);
+        if (badge) badge.classList.add('hidden');
+        if (card) {
+          card.classList.remove('bg-amber-50', 'bg-sky-50', 'bg-orange-50', 'dark:bg-amber-950/40', 'dark:bg-sky-950/40', 'dark:bg-orange-950/40');
+          card.classList.add('bg-white', 'dark:bg-[#111A2C]');
+        }
+      });
+
+      if (modeKey === 'PART_5') {
+        document.getElementById('badgeSelect_PART_5')?.classList.remove('hidden');
+        document.getElementById('strategyCard_PART_5')?.classList.add('bg-amber-50', 'dark:bg-amber-950/40');
+      } else if (modeKey === 'PART_6') {
+        document.getElementById('badgeSelect_PART_6')?.classList.remove('hidden');
+        document.getElementById('strategyCard_PART_6')?.classList.add('bg-sky-50', 'dark:bg-sky-950/40');
+      } else if (modeKey === 'PART_7_SINGLE') {
+        document.getElementById('badgeSelect_PART_7A')?.classList.remove('hidden');
+        document.getElementById('strategyCard_PART_7A')?.classList.add('bg-orange-50', 'dark:bg-orange-950/40');
+      } else if (modeKey === 'PART_7_MULTI') {
+        document.getElementById('badgeSelect_PART_7B')?.classList.remove('hidden');
+        document.getElementById('strategyCard_PART_7B')?.classList.add('bg-orange-50', 'dark:bg-orange-950/40');
+      } else if (modeKey === 'PART_7') {
+        document.getElementById('badgeSelect_PART_7A')?.classList.remove('hidden');
+        document.getElementById('strategyCard_PART_7A')?.classList.add('bg-orange-50', 'dark:bg-orange-950/40');
+        document.getElementById('badgeSelect_PART_7B')?.classList.remove('hidden');
+        document.getElementById('strategyCard_PART_7B')?.classList.add('bg-orange-50', 'dark:bg-orange-950/40');
+      }
+
+      updateDisplay();
+    }
+
+    function toggleTimer() {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      isRunning = true;
+      document.getElementById('timerPulse').classList.remove('hidden');
+      document.getElementById('timerDot').className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500';
+      document.getElementById('mainBtnIcon').textContent = '⏸';
+      document.getElementById('mainBtnText').textContent = 'Tạm Dừng';
+      document.getElementById('btnMainAction').className = 'w-full sm:w-44 py-3.5 rounded-2xl font-black text-sm sm:text-base border-2 border-slate-900 bg-amber-300 hover:bg-amber-200 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2';
+
+      document.getElementById('btnFinish').classList.remove('hidden');
+      document.getElementById('btnReset').classList.remove('hidden');
+
+      timerId = setInterval(() => {
+        if (secondsLeft > 0) {
+          secondsLeft--;
+          updateDisplay();
+        } else {
+          pauseTimer();
+          alert('⏰ Hết thời gian bài thi!');
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      clearInterval(timerId);
+      document.getElementById('timerPulse').classList.add('hidden');
+      document.getElementById('timerDot').className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500';
+      document.getElementById('mainBtnIcon').textContent = '▶';
+      document.getElementById('mainBtnText').textContent = secondsLeft < totalSeconds ? 'Tiếp Tục' : 'Bắt Đầu Làm Bài';
+      document.getElementById('btnMainAction').className = 'w-full sm:w-64 py-3.5 rounded-2xl font-black text-sm sm:text-base border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2';
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      secondsLeft = totalSeconds;
+      document.getElementById('timerDot').className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-400';
+      document.getElementById('btnFinish').classList.add('hidden');
+      document.getElementById('btnReset').classList.add('hidden');
+      document.getElementById('mainBtnText').textContent = 'Bắt Đầu Làm Bài';
+      updateDisplay();
+    }
+
+    function finishSession() {
+      pauseTimer();
+      const doneMins = Math.ceil((totalSeconds - secondsLeft) / 60);
+      alert(`🎉 Chúc mừng bạn đã hoàn thành bài thi trong ${doneMins} phút! Hệ thống sẽ mở popup nhập điểm.`);
+      resetTimer();
+    }
+
+    function toggleSound() {
+      isSoundOn = !isSoundOn;
+      document.getElementById('soundLabel').textContent = isSoundOn ? 'Âm báo: Bật' : 'Âm báo: Tắt';
+    }
+
+    function toggleTheme() {
+      const root = document.documentElement;
+      root.classList.toggle('dark');
+      const isDark = root.classList.contains('dark');
+      document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+      document.getElementById('themeText').textContent = isDark ? 'Sáng' : 'Tối';
+    }
+
+    // Bắt phím Space
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        toggleTimer();
+      }
+    });
+
+    // Khởi tạo ban đầu
+    selectMode('PART_5');
+  </script>
+</body>
+</html>

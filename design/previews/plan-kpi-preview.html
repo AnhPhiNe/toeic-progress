@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khảo Sát & Thiết Kế Lại Khu Vực Thẻ Kế Hoạch Ôn Thi — TOEIC Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-[#0B0F17] text-slate-800 dark:text-slate-200 p-4 sm:p-8 md:p-10 transition-colors duration-200">
+
+  <div class="max-w-5xl mx-auto space-y-10">
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-700 rounded-3xl p-6 sm:p-8 shadow-[4px_4px_0px_0px_#0f172a] dark:shadow-[4px_4px_0px_0px_#334155] space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span class="px-3.5 py-1 bg-amber-400 text-slate-950 border border-slate-900 rounded-xl text-xs font-black uppercase tracking-wider shadow-2xs">
+          Tối Ưu Giao Diện Kế Hoạch 🎯
+        </span>
+        <button onclick="toggleTheme()" class="px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-300 bg-slate-100 dark:bg-slate-800 text-xs font-black cursor-pointer hover:bg-slate-200 transition-all flex items-center gap-2 shadow-2xs">
+          <span id="themeIcon">🌙</span>
+          <span id="themeLabel">Chế độ tối (Dark Mode)</span>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white tracking-tight">
+          Phần Thẻ Bên Kế Hoạch Có Nên Giữ Không? Có Giải Pháp Nào Tốt Hơn?
+        </h1>
+        <p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-3xl">
+          Phân tích chuyên sâu: <strong>4 chiếc thẻ hiện tại đang chiếm nhiều diện tích và lặp lại thông tin</strong> (ví dụ thẻ <em>Mục tiêu tuần 2/3</em> lặp lại ngay với tiêu đề <em>Việc cần làm tuần này (2/3)</em>, thẻ <em>Thời gian học</em> lặp với việc cần làm thời gian học).
+          Dưới đây là <strong>3 giải pháp nâng cấp thực tế và hữu ích hơn nhiều</strong>:
+        </p>
+      </div>
+    </header>
+
+    <!-- ==================== PHƯƠNG ÁN 1 ==================== -->
+    <section class="space-y-3">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-emerald-400 text-slate-950 border-2 border-slate-900 font-black text-sm flex items-center justify-center shadow-2xs">1</span>
+        <div>
+          <h2 class="text-base sm:text-lg font-black text-slate-950 dark:text-white flex items-center gap-2">
+            Phương Án 1: Thanh Tóm Tắt Tinh Gọn (Cockpit Summary Strip) — Khuyên Dùng ⭐
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Gom 4 hộp cồng kềnh thành <strong>1 thanh Bar ngang mỏng liền khối</strong>. Tiết kiệm 70% diện tích, đẩy danh sách việc cần làm lên ngay mắt người dùng!
+          </p>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 rounded-3xl bg-slate-100/90 dark:bg-slate-900/60 border-2 border-slate-900 dark:border-slate-700 space-y-4">
+        
+        <!-- Thanh Bar Tóm Tắt 1 Hàng -->
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-3 sm:p-3.5 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#334155] grid grid-cols-2 md:grid-cols-4 gap-3 divide-y md:divide-y-0 md:divide-x-2 divide-slate-100 dark:divide-slate-800">
+          
+          <!-- Mục 1: Tiến độ tuần -->
+          <div class="flex items-center gap-2.5 pt-2 md:pt-0">
+            <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-sm font-black shrink-0">
+              🎯
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Tiến độ tuần</span>
+              <div class="flex items-baseline gap-1">
+                <span class="text-base sm:text-lg font-black font-mono text-slate-900 dark:text-white">2/3</span>
+                <span class="text-[11px] font-bold text-slate-500">việc (67%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mục 2: Thời lượng -->
+          <div class="flex items-center gap-2.5 pt-2 md:pt-0 md:pl-3.5">
+            <div class="w-9 h-9 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-sm font-black shrink-0">
+              ⏱️
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Thời gian học</span>
+              <div class="flex items-baseline gap-1">
+                <span class="text-base sm:text-lg font-black font-mono text-teal-600 dark:text-teal-400">120</span>
+                <span class="text-[11px] font-bold text-slate-500">/ 210p</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mục 3: Đếm ngược thi -->
+          <div class="flex items-center gap-2.5 pt-2 md:pt-0 md:pl-3.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-sm font-black shrink-0">
+              🗓️
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Ngày thi</span>
+              <div class="flex items-baseline gap-1">
+                <span class="text-base sm:text-lg font-black font-mono text-amber-600 dark:text-amber-400">D-40</span>
+                <span class="text-[11px] font-bold text-slate-500">40 ngày nữa</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mục 4: Chuyên cần -->
+          <div class="flex items-center gap-2.5 pt-2 md:pt-0 md:pl-3.5">
+            <div class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-sm font-black shrink-0">
+              🔥
+            </div>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Chuyên cần</span>
+              <div class="flex items-baseline gap-1">
+                <span class="text-base sm:text-lg font-black font-mono text-rose-600 dark:text-rose-400">1/7</span>
+                <span class="text-[11px] font-bold text-slate-500">ngày học</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bên dưới là danh sách việc làm xuất hiện ngay tầm mắt -->
+        <div class="p-3.5 rounded-2xl bg-white dark:bg-[#111A2C] border-2 border-slate-900 dark:border-slate-200 shadow-sm space-y-2">
+          <div class="text-xs font-black text-slate-900 dark:text-white flex items-center justify-between">
+            <span>Việc Cần Làm Tuần Này (2/3)</span>
+            <span class="text-[11px] font-bold text-slate-500">Xuất hiện ngay lập tức, không bị đẩy xuống dưới</span>
+          </div>
+          <div class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">⭕ Luyện 2 bài Part 7</span>
+            <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black text-[10px] border border-slate-900">Ghi kết quả ➔</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== PHƯƠNG ÁN 2 ==================== -->
+    <section class="space-y-3 pt-6 border-t-2 border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-blue-400 text-slate-950 border-2 border-slate-900 font-black text-sm flex items-center justify-center shadow-2xs">2</span>
+        <div>
+          <h2 class="text-base sm:text-lg font-black text-slate-950 dark:text-white flex items-center gap-2">
+            Phương Án 2: Thay Thế Bằng "Lịch Nhịp Học 7 Ngày Tuần Này" (Weekly Rhythm Board)
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Thay vì hiển thị các con số tổng kết tĩnh, hiển thị trực tiếp <strong>7 ngày trong tuần (T2 ➔ CN)</strong> xem ngày nào đã học bao nhiêu phút, ngày nào chưa học. Cực kỳ thực tế cho việc lập kế hoạch!
+          </p>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 rounded-3xl bg-slate-100/90 dark:bg-slate-900/60 border-2 border-slate-900 dark:border-slate-700">
+        
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-4 shadow-[2.5px_2.5px_0px_0px_#0f172a] space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <span class="text-xs font-black uppercase text-slate-900 dark:text-white flex items-center gap-1.5">
+                📅 Nhịp Độ Học Tuần Này (28/09 – 04/10)
+              </span>
+              <p class="text-[11px] font-bold text-slate-500">Đã học 120 phút / Chỉ tiêu 210 phút (30p/ngày)</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 font-black text-xs border border-amber-300">
+                Thi D-40 (40 ngày nữa)
+              </span>
+              <span class="px-2.5 py-1 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-300 font-black text-xs border border-blue-300">
+                2/3 Mục tiêu xong
+              </span>
+            </div>
+          </div>
+
+          <!-- Dải 7 ngày tương tác -->
+          <div class="grid grid-cols-7 gap-2 pt-1 text-center font-bold">
+            <div class="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 border-2 border-slate-900 text-slate-950 dark:text-white">
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block">T2 (28)</span>
+              <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">120p ✓</span>
+            </div>
+            <div class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-500 text-slate-950 dark:text-white ring-2 ring-amber-400/50">
+              <span class="text-[10px] text-amber-700 dark:text-amber-300 font-black block">Hôm nay</span>
+              <span class="text-xs font-black text-amber-600 dark:text-amber-400">Chưa học</span>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-400">
+              <span class="text-[10px] block">T4 (30)</span>
+              <span class="text-xs font-semibold">30p goal</span>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-400">
+              <span class="text-[10px] block">T5 (01)</span>
+              <span class="text-xs font-semibold">30p goal</span>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-400">
+              <span class="text-[10px] block">T6 (02)</span>
+              <span class="text-xs font-semibold">30p goal</span>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-400">
+              <span class="text-[10px] block">T7 (03)</span>
+              <span class="text-xs font-semibold">Full Test</span>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-400">
+              <span class="text-[10px] block">CN (04)</span>
+              <span class="text-xs font-semibold">Ôn từ vựng</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== PHƯƠNG ÁN 3 ==================== -->
+    <section class="space-y-3 pt-6 border-t-2 border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-purple-400 text-slate-950 border-2 border-slate-900 font-black text-sm flex items-center justify-center shadow-2xs">3</span>
+        <div>
+          <h2 class="text-base sm:text-lg font-black text-slate-950 dark:text-white flex items-center gap-2">
+            Phương Án 3: Thẻ Trọng Tâm Hành Động "Hero Next Action + Mini Badges"
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Chỉ giữ <strong>1 Thẻ Hành Động Lớn</strong> nhắc việc cần làm tiếp theo và gợi ý bấm làm ngay, kèm 3 huy hiệu trạng thái siêu gọn gàng bên cạnh.
+          </p>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 rounded-3xl bg-slate-100/90 dark:bg-slate-900/60 border-2 border-slate-900 dark:border-slate-700">
+        
+        <div class="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-4 shadow-[2.5px_2.5px_0px_0px_#0f172a] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="space-y-1.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider border border-slate-900">
+                Việc trọng tâm tiếp theo 🚀
+              </span>
+              <span class="text-xs font-bold text-slate-500">Hoàn thành 2/3 việc (còn 1 việc)</span>
+            </div>
+            <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+              Luyện 2 bài Part 7 (Đọc hiểu đoạn văn)
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Đã xong Full Test & Thời gian học. Hãy hoàn thành nốt Part 7 để đạt 100% mục tiêu tuần!
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="text-right hidden sm:block">
+              <div class="text-xs font-black text-amber-600 dark:text-amber-400">D-40 Ngày thi</div>
+              <div class="text-[11px] font-bold text-teal-600 dark:text-teal-400">120/210 phút học</div>
+            </div>
+            <button class="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs border-2 border-slate-900 shadow-2xs transition-all cursor-pointer">
+              Làm Ngay ➔
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+      document.getElementById('themeLabel').textContent = isDark ? 'Chế độ sáng (Light Mode)' : 'Chế độ tối (Dark Mode)';
+    }
+  </script>
+</body>
+</html>
