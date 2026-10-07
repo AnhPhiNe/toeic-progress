@@ -2,23 +2,28 @@ import type { MistakeEntry } from '@/shared/types';
 
 export type ChoiceLetter = 'A' | 'B' | 'C' | 'D';
 
-// "(A) are", "A. are", "A - ...": a letter that is not the first letter of a word such as "Chọn".
-const LEADING_LETTER = /^\s*(?:\(([A-Da-d])\)|([A-D])(?![\p{L}\p{N}]))/u;
-// "Chọn A vì...", "Tôi chọn nhầm (B)", "nghĩ là C".
-const NARRATED_LETTER = /(?:[Cc]họn nhầm|[Cc]họn|[Nn]ghĩ là)\s*\(?([A-D])\)?(?![\p{L}\p{N}])/u;
-
-/** Letter of the option the learner described choosing, or '' when the text names none. */
-export function letterFromChoiceText(text: string): ChoiceLetter | '' {
-  const leading = text.match(LEADING_LETTER);
-  const letter = leading ? (leading[1] || leading[2]) : text.match(NARRATED_LETTER)?.[1];
-  return (letter?.toUpperCase() || '') as ChoiceLetter | '';
+/**
+ * Letter of an option written in the "(A) text" form that the app and the AI
+ * draft always produce. Free text is never guessed: "Chọn A vì..." or "be"
+ * return '' instead of a letter that might be wrong.
+ */
+export function optionLetter(value: string): ChoiceLetter | '' {
+  return (value.match(/^\s*\(([A-D])\)/i)?.[1]?.toUpperCase() || '') as ChoiceLetter | '';
 }
 
-/** Stored choice first; older records only describe it inside userMistake. */
+/**
+ * The learner's choice comes from structured data: the AI draft's userChoice
+ * or the A–D buttons. Records saved before that field existed only have it
+ * when the manual form wrote userMistake as "(A) text - reason".
+ */
 export function getUserChoice(mistake: Pick<MistakeEntry, 'userChoice' | 'userMistake'>): ChoiceLetter | '' {
-  return mistake.userChoice || letterFromChoiceText(mistake.userMistake);
+  return mistake.userChoice || optionLetter(mistake.userMistake);
 }
 
-export function optionLetter(option: string): ChoiceLetter | '' {
-  return (option.match(/^\s*\(([A-D])\)/i)?.[1]?.toUpperCase() || '') as ChoiceLetter | '';
+/** Reason part of a userMistake the manual form wrote as "(A) text - reason". */
+export function reasonAfterChoice(userMistake: string, choiceLabel: string): string {
+  const value = userMistake.trim();
+  if (!choiceLabel) return value;
+  if (value === choiceLabel) return '';
+  return value.startsWith(`${choiceLabel} - `) ? value.slice(choiceLabel.length + 3).trim() : value;
 }

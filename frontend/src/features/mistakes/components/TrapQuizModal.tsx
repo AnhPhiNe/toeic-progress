@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MistakeEntry, ERROR_CATEGORY_LABELS } from '@/shared/types';
+import { optionLetter } from '@/features/mistakes/lib/userChoice';
 
 interface TrapQuizModalProps {
   mistake: MistakeEntry | null;
@@ -29,237 +30,32 @@ export interface ParsedOption {
 }
 
 /**
- * Trích xuất và chuẩn hóa 4 phương án trắc nghiệm + đáp án đúng
+ * Thử thách chỉ dùng dữ liệu có cấu trúc: các phương án đã lưu và một đáp án
+ * đúng trỏ tới một trong số đó bằng nhãn "(B) ..." hoặc đúng nguyên văn nội dung.
+ * Không suy phương án từ văn bản tự do và không tự tạo phương án; đáp án không
+ * khớp phương án nào thì correctIndex = -1 để Sổ tay yêu cầu chọn lại.
  */
 export function resolveQuizOptions(mistake: MistakeEntry): {
   questionTitle: string;
   options: ParsedOption[];
   correctIndex: number;
 } {
-  const letters = ['A', 'B', 'C', 'D'];
-  const fullContext = mistake.questionContext.trim();
-
-  // Tìm chữ cái đáp án đúng (A, B, C hoặc D) từ correctAnswer
-  const letterMatch = mistake.correctAnswer.match(/\(?([A-D])\)?/i);
-  const targetLetter = letterMatch ? letterMatch[1].toUpperCase() : null;
-
-  // Trường hợp 1: Có mảng options sẵn trong mistake (từ demoData hoặc AI parser)
-  if (mistake.options && mistake.options.length >= 2) {
-    let resolvedCorrectIdx = -1;
-
-    const parsed = mistake.options.map((opt, idx) => {
-      const letter = letters[idx] || String.fromCharCode(65 + idx);
-      // Tách bỏ (A), (B)... nếu đã có trong text
-      const cleanText = opt.replace(/^\(?([A-D])\)?[:.\s-]*/i, '').trim();
-
-      // Kiểm tra có phải đáp án đúng không
-      const matchesLetter = targetLetter === letter;
-      const matchesText = mistake.correctAnswer.toLowerCase().includes(cleanText.toLowerCase()) && cleanText.length > 2;
-      const isMatch = matchesLetter || (targetLetter === null && matchesText);
-
-      if (isMatch && resolvedCorrectIdx === -1) {
-        resolvedCorrectIdx = idx;
-      }
-
-      return {
-        letter,
-        text: cleanText || opt,
-        isCorrect: false
-      };
-    });
-
-    if (resolvedCorrectIdx === -1) {
-      resolvedCorrectIdx = targetLetter ? letters.indexOf(targetLetter) : 0;
-      if (resolvedCorrectIdx === -1 || resolvedCorrectIdx >= parsed.length) {
-        resolvedCorrectIdx = 0;
-      }
-    }
-
-    parsed[resolvedCorrectIdx].isCorrect = true;
-
+  const label = /^\s*(?:\(([A-D])\)|([A-D])[.):])\s*/i;
+  const normalize = (value: string) => value.replace(label, '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const options: ParsedOption[] = (mistake.options ?? []).map((option, index) => {
+    const match = option.match(label);
     return {
-      questionTitle: fullContext,
-      options: parsed,
-      correctIndex: resolvedCorrectIdx
-    };
-  }
-
-  // Trường hợp 2: Trích xuất options từ questionContext dạng "(A) text (B) text (C) text (D) text"
-  const optionRegex = /\(([A-D])\)\s*([^()\n\r]+)/gi;
-  const matches = Array.from(fullContext.matchAll(optionRegex));
-
-  if (matches.length >= 2) {
-    const firstMatchIdx = matches[0].index ?? fullContext.length;
-    const questionTitle = fullContext.slice(0, firstMatchIdx).trim() || fullContext;
-
-    let resolvedCorrectIdx = -1;
-    const parsed = matches.map((m, idx) => {
-      const letter = m[1].toUpperCase();
-      const text = m[2].trim();
-      const matchesLetter = targetLetter === letter;
-      const matchesText = mistake.correctAnswer.toLowerCase().includes(text.toLowerCase()) && text.length > 2;
-      const isMatch = matchesLetter || (targetLetter === null && matchesText);
-
-      if (isMatch && resolvedCorrectIdx === -1) {
-        resolvedCorrectIdx = idx;
-      }
-
-      return {
-        letter,
-        text,
-        isCorrect: false
-      };
-    });
-
-    if (resolvedCorrectIdx === -1) {
-      resolvedCorrectIdx = targetLetter ? letters.indexOf(targetLetter) : 0;
-      if (resolvedCorrectIdx === -1 || resolvedCorrectIdx >= parsed.length) {
-        resolvedCorrectIdx = 0;
-      }
-    }
-
-    parsed[resolvedCorrectIdx].isCorrect = true;
-
-    return {
-      questionTitle,
-      options: parsed,
-      correctIndex: resolvedCorrectIdx
-    };
-  }
-
-function extractChoice(rawText: string, fallback: string): { letter?: string; text: string } {
-  if (!rawText) return { text: fallback };
-
-  // 1. Tìm tiền tố dạng "(B) be" hoặc "(D) significantly"
-  const prefixMatch = rawText.match(/^\(?([A-D])\)[:.\s-]*([^()\n\r]+)/i);
-  if (prefixMatch && prefixMatch[2].trim()) {
-    const clean = prefixMatch[2].trim().split(/\s+(?:do|vì|theo|nghĩ|bỏ qua)\b/i)[0].trim();
-    if (clean) return { letter: prefixMatch[1].toUpperCase(), text: clean };
-  }
-
-  // 2. Tìm chữ cái đứng độc lập hoặc trong ngoặc: "(A)", "(B)" hoặc "chọn A"
-  const standaloneLetterMatch = rawText.match(/\(([A-D])\)|\b([A-D])\b/i);
-  const letter = standaloneLetterMatch ? (standaloneLetterMatch[1] || standaloneLetterMatch[2]).toUpperCase() : undefined;
-
-  // 3. Tìm từ/cụm từ trong ngoặc kép: 'will be' hoặc "he had signed"
-  const quoteMatch = rawText.match(/['"]([^'"]+)['"]/);
-  if (quoteMatch && quoteMatch[1].trim().length < 50) {
-    return { letter, text: quoteMatch[1].trim() };
-  }
-
-  // 4. Tìm sau từ "chọn", "đã chọn": ví dụ "chọn 14:00", "chọn are"
-  const selectMatch = rawText.match(/(?:chọn|chọn nhầm|đã chọn)\s*(?:\(?([A-D])\)?)?[:\s]*([a-zA-Z0-9_:\s/-]+)/i);
-  if (selectMatch && selectMatch[2].trim().length < 40) {
-    const clean = selectMatch[2].split(/\s+(?:vì|do|theo|nghĩ|nhầm)\b/i)[0].trim();
-    if (clean) return { letter: selectMatch[1]?.toUpperCase() || letter, text: clean };
-  }
-
-  // 5. Làm sạch tiền tố câu trả lời thông thường
-  const cleanAnswer = rawText
-    .replace(/^(đáp án đúng:?|đáp án là:?|câu trả lời là:?)\s*/i, '')
-    .split(/\s+(?:do|vì|theo|nghĩ|bỏ qua)\b/i)[0]
-    .replace(/^(người học|tôi|bạn)?\s*(chọn|đã chọn|khoanh)?\s*(\([A-D]\)|[A-D])?[:\s]*/i, '')
-    .trim();
-
-  if (cleanAnswer && cleanAnswer.length < 80) {
-    return { letter, text: cleanAnswer };
-  }
-
-  return { letter, text: fallback };
-}
-
-  // Trường hợp 3: Fallback luôn tạo đủ 4 lựa chọn chuẩn TOEIC (3 lựa chọn cho Part 2)
-  if (fullContext.toLowerCase().includes('watson') || fullContext.toLowerCase().includes('expense reports')) {
-    return {
-      questionTitle: fullContext,
-      options: [
-        { letter: 'A', text: 'are', isCorrect: false },
-        { letter: 'B', text: 'be', isCorrect: true },
-        { letter: 'C', text: 'were', isCorrect: false },
-        { letter: 'D', text: 'will be', isCorrect: false }
-      ],
-      correctIndex: 1
-    };
-  }
-
-  if (fullContext.toLowerCase().includes('hardly') && fullContext.toLowerCase().includes('contract')) {
-    return {
-      questionTitle: fullContext,
-      options: [
-        { letter: 'A', text: 'he signed', isCorrect: false },
-        { letter: 'B', text: 'he had signed', isCorrect: false },
-        { letter: 'C', text: 'had he signed', isCorrect: true },
-        { letter: 'D', text: 'did he signed', isCorrect: false }
-      ],
-      correctIndex: 2
-    };
-  }
-
-  const correctChoice = extractChoice(mistake.correctAnswer, 'Đáp án chính xác');
-  const wrongChoice = extractChoice(mistake.userMistake, 'Phương án gây nhiễu');
-
-  // Part 2: 3 phương án A, B, C
-  if (mistake.part === 2) {
-    const correctLetter = (correctChoice.letter && ['A', 'B', 'C'].includes(correctChoice.letter)) ? correctChoice.letter : 'C';
-    const correctIdx = ['A', 'B', 'C'].indexOf(correctLetter);
-
-    const wrongLetter = (wrongChoice.letter && ['A', 'B', 'C'].includes(wrongChoice.letter) && wrongChoice.letter !== correctLetter)
-      ? wrongChoice.letter
-      : ['A', 'B', 'C'].find(l => l !== correctLetter) || 'A';
-    const wrongIdx = ['A', 'B', 'C'].indexOf(wrongLetter);
-
-    const p2Options: ParsedOption[] = ['A', 'B', 'C'].map(letter => ({ letter, text: '', isCorrect: false }));
-    p2Options[correctIdx] = { letter: ['A', 'B', 'C'][correctIdx], text: correctChoice.text, isCorrect: true };
-    p2Options[wrongIdx] = { letter: ['A', 'B', 'C'][wrongIdx], text: wrongChoice.text, isCorrect: false };
-
-    const remainingIdx = [0, 1, 2].find(i => i !== correctIdx && i !== wrongIdx) ?? 0;
-    p2Options[remainingIdx] = { letter: ['A', 'B', 'C'][remainingIdx], text: 'Phương án loại trừ thông thường', isCorrect: false };
-
-    return {
-      questionTitle: fullContext,
-      options: p2Options,
-      correctIndex: correctIdx
-    };
-  }
-
-  // Các Part khác: Luôn luôn đủ 4 phương án A, B, C, D
-  const targetLetters = ['A', 'B', 'C', 'D'];
-  const correctLetter = (correctChoice.letter && targetLetters.includes(correctChoice.letter)) ? correctChoice.letter : 'B';
-  const correctIdx = targetLetters.indexOf(correctLetter);
-
-  const wrongLetter = (wrongChoice.letter && targetLetters.includes(wrongChoice.letter) && wrongChoice.letter !== correctLetter)
-    ? wrongChoice.letter
-    : targetLetters.find(l => l !== correctLetter) || 'A';
-  const wrongIdx = targetLetters.indexOf(wrongLetter);
-
-  const fourOptions: ParsedOption[] = targetLetters.map(letter => ({
-    letter,
-    text: '',
-    isCorrect: false
-  }));
-
-  fourOptions[correctIdx] = { letter: targetLetters[correctIdx], text: correctChoice.text, isCorrect: true };
-  fourOptions[wrongIdx] = { letter: targetLetters[wrongIdx], text: wrongChoice.text, isCorrect: false };
-
-  const remainingIndices = [0, 1, 2, 3].filter(i => i !== correctIdx && i !== wrongIdx);
-  const genericDistractors = [
-    'Phương án gây nhiễu thường gặp',
-    'Phương án suy đoán khác'
-  ];
-
-  remainingIndices.forEach((slotIdx, i) => {
-    fourOptions[slotIdx] = {
-      letter: targetLetters[slotIdx],
-      text: genericDistractors[i] || 'Phương án lựa chọn khác',
+      letter: (match?.[1] || match?.[2] || String.fromCharCode(65 + index)).toUpperCase(),
+      text: option.replace(label, '').trim() || option,
       isCorrect: false
     };
   });
-
-  return {
-    questionTitle: fullContext,
-    options: fourOptions,
-    correctIndex: correctIdx
-  };
+  const targetLetter = optionLetter(mistake.correctAnswer);
+  const answerText = normalize(mistake.correctAnswer);
+  let correctIndex = targetLetter ? options.findIndex(option => option.letter === targetLetter) : -1;
+  if (correctIndex === -1 && answerText) correctIndex = options.findIndex(option => normalize(option.text) === answerText);
+  if (correctIndex >= 0) options[correctIndex].isCorrect = true;
+  return { questionTitle: mistake.questionContext.trim(), options, correctIndex };
 }
 
 export const TrapQuizModal: React.FC<TrapQuizModalProps> = ({

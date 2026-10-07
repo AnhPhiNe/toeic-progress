@@ -37,8 +37,8 @@ import {
   getAIUsage,
   getAIConfiguration
 } from '@/features/mistakes/services/aiMistakeExtractor';
-import { TrapQuizModal } from '@/features/mistakes/components/TrapQuizModal';
-import { getUserChoice, letterFromChoiceText } from '@/features/mistakes/lib/userChoice';
+import { TrapQuizModal, resolveQuizOptions } from '@/features/mistakes/components/TrapQuizModal';
+import { getUserChoice, optionLetter, reasonAfterChoice } from '@/features/mistakes/lib/userChoice';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import type { AIUsage, AIMistakeParseResult, AIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
@@ -150,6 +150,11 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       setManualNotice('Bổ sung đầy đủ phương án và đáp án chuẩn trước khi làm thử thách.');
       return;
     }
+    if (resolveQuizOptions(m).correctIndex < 0) {
+      openEdit(m);
+      setManualNotice('Đáp án chuẩn chưa khớp phương án nào. Hãy chọn lại đáp án đúng (A–D) trước khi làm thử thách.');
+      return;
+    }
     setQuizMistake(m);
     setIsQuizOpen(true);
   };
@@ -228,16 +233,13 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     setEditingMistake(m);
     const slots = parseOptionsTextToSlots((m.options || []).join('\n'));
 
-    const correctMatch = m.correctAnswer.match(/^\(?([A-D])\)?/i);
-    const correctLetter = (correctMatch?.[1]?.toUpperCase() || '') as '' | 'A' | 'B' | 'C' | 'D';
-
+    const correctLetter = optionLetter(m.correctAnswer);
     const wrongLetter = getUserChoice(m);
-
-    let wrongReason = m.userMistake;
-    if (wrongLetter) {
-      wrongReason = wrongReason.replace(new RegExp(`^\\(?${wrongLetter}\\)?(?!\\p{L})[\\.:\\s-]*`, 'iu'), '').trim();
-      wrongReason = wrongReason.replace(new RegExp(`^(?:chọn|chọn nhầm)\\s*\\(?${wrongLetter}\\)?[\\s:-]*(?:do|vì)?\\s*`, 'i'), '').trim();
-    }
+    // Only the "(A) text - " prefix the manual form wrote is removed; free text stays as written.
+    const wrongReason = reasonAfterChoice(
+      m.userMistake,
+      wrongLetter ? (formatOptionSlot(wrongLetter, slots[`opt${wrongLetter}`]) || `(${wrongLetter})`) : ''
+    );
 
     setNewMistake({
       part: m.part,
@@ -267,15 +269,10 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     removeCaptcha();
     setIsAILoading(false);
     const slots = parseOptionsTextToSlots(newMistake.optionsText);
-    const correctMatch = newMistake.correctAnswer.match(/^\(?([A-D])\)?/i);
-    const correctLetter = (correctMatch?.[1]?.toUpperCase() || newMistake.correctLetter || '') as '' | 'A' | 'B' | 'C' | 'D';
-    const wrongLetter = newMistake.wrongLetter || letterFromChoiceText(newMistake.userMistake);
-
-    let wrongReason = newMistake.wrongReason || newMistake.userMistake;
-    if (wrongLetter && !newMistake.wrongReason) {
-      wrongReason = wrongReason.replace(new RegExp(`^\\(?${wrongLetter}\\)?(?!\\p{L})[\\.:\\s-]*`, 'iu'), '').trim();
-      wrongReason = wrongReason.replace(new RegExp(`^(?:chọn|chọn nhầm)\\s*\\(?${wrongLetter}\\)?[\\s:-]*(?:do|vì)?\\s*`, 'i'), '').trim();
-    }
+    const correctLetter = optionLetter(newMistake.correctAnswer) || newMistake.correctLetter;
+    // The AI draft already carries the choice (userChoice); its narrated reason is kept as written.
+    const wrongLetter = newMistake.wrongLetter;
+    const wrongReason = newMistake.wrongReason || newMistake.userMistake;
 
     setNewMistake(prev => ({
       ...prev,
@@ -304,12 +301,12 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
 
   const showDraft = (draft: AIMistakeParseResult, demo = false) => {
     const slots = parseOptionsTextToSlots(draft.options.join('\n'));
-    const correctLetter = (draft.correctAnswer.match(/^\(?([A-D])\)?/i)?.[1]?.toUpperCase() || '') as '' | 'A' | 'B' | 'C' | 'D';
+    const correctLetter = optionLetter(draft.correctAnswer);
     setNewMistake({
       ...EMPTY_FORM, ...slots, part: (draft.part ?? 5) as 1 | 2 | 3 | 4 | 5 | 6 | 7, category: draft.category,
       questionContext: draft.questionContext, userMistake: draft.userMistake,
       correctAnswer: draft.correctAnswer, answerSource: draft.answerSource, trapTip: draft.trapTip, correctLetter,
-      wrongLetter: draft.userChoice || letterFromChoiceText(draft.userMistake),
+      wrongLetter: draft.userChoice,
       optionsText: draft.options.join('\n'), tags: draft.tags.join(', ')
     });
     setAIMissingInformation([...draft.missingInformation, ...(draft.part === null ? ['Chưa xác định được Part; hãy chọn lại khi chỉnh sửa.'] : [])]);

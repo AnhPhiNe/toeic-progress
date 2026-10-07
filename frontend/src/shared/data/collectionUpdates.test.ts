@@ -62,3 +62,20 @@ describe('collection updates apply to the stored list, not a stale copy', () => 
     expect(loadMistakes().find(m => m.id === 'm1')?.status).toBe('MASTERED');
   });
 });
+
+describe('loading mistakes', () => {
+  beforeEach(() => {
+    values.clear();
+    vi.stubGlobal('localStorage', fakeStorage);
+    vi.stubGlobal('navigator', { onLine: true });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('never attaches guessed options to a learner card based on its wording', () => {
+    saveMistakes([{ ...mistake('own-card'), questionContext: 'The air conditioning system runs ____ quietly.' }]);
+    expect(loadMistakes()[0].options).toBeUndefined();
+  });
+});

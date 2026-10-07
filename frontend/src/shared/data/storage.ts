@@ -123,39 +123,18 @@ export function addStudySession(session: StudySession): { sessions: StudySession
   };
 }
 
-// Lấy danh sách Sổ tay lỗi sai (kèm tự động đồng bộ/backfill options nếu dữ liệu cũ chưa có)
+// Lấy danh sách Sổ tay lỗi sai. Chỉ bổ sung phương án cho thẻ MẪU (nhận theo id) lưu từ
+// phiên bản cũ; thẻ của người học không bao giờ được gắn phương án đoán theo nội dung.
 export function loadMistakes(): MistakeEntry[] {
   const current = live(readDataBundle().mistakes);
   let hasMissingOptions = false;
 
   const migrated = current.map(m => {
-    // 1. Nếu là câu demo mẫu (mistake-1 -> mistake-6) bị thiếu options do lưu từ phiên bản cũ
     const demo = DEMO_MISTAKES.find(d => d.id === m.id);
     if (demo && demo.options && (!m.options || m.options.length < 2)) {
       hasMissingOptions = true;
       return { ...m, options: demo.options, trapTip: m.trapTip || demo.trapTip };
     }
-
-    // 2. Nếu là câu Ms. Watson / Subjunctive demo AI mà bị thiếu options
-    if ((m.questionContext.includes('Watson') || m.questionContext.includes('expense reports')) && (!m.options || m.options.length < 2)) {
-      hasMissingOptions = true;
-      return {
-        ...m,
-        options: ['(A) are', '(B) be', '(C) were', '(D) will be'],
-        trapTip: m.trapTip || 'Cấu trúc giả định (Subjunctive): S + request/suggest + that + S + (should) + V nguyên thể (be submitted).'
-      };
-    }
-
-    // 3. Nếu là câu air conditioning system mà bị thiếu options
-    if (m.questionContext.toLowerCase().includes('air conditioning') && (!m.options || m.options.length < 2)) {
-      hasMissingOptions = true;
-      return {
-        ...m,
-        options: ['(A) remarkably', '(B) remarkable', '(C) remarking', '(D) remarked'],
-        trapTip: m.trapTip || 'Mẹo 10s: Adv bổ nghĩa cho Adv. Trước một trạng từ (quietly) cần một trạng từ khác (remarkably) đóng vai trò làm trạng từ chỉ mức độ.'
-      };
-    }
-
     return m;
   });
 
