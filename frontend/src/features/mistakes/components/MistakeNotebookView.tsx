@@ -160,6 +160,8 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiUsage, setAIUsage] = useState<AIUsage | null>(null);
   const [aiConfiguration, setAIConfiguration] = useState<AIConfiguration | null>(null);
+  const [aiConfigurationLoading, setAIConfigurationLoading] = useState(false);
+  const [aiConfigurationRetry, setAIConfigurationRetry] = useState(0);
   const [aiMissingInformation, setAIMissingInformation] = useState<string[]>([]);
   const [aiConsent, setAIConsent] = useState(false);
   const [aiReviewed, setAIReviewed] = useState(false);
@@ -172,17 +174,21 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     let cancelled = false;
     setAIUsage(null);
     setAIConfiguration(null);
+    setAIConfigurationLoading(true);
     setAIConsent(false);
+    setAiError(null);
     void getAIConfiguration().then(configuration => {
       if (!cancelled) setAIConfiguration(configuration);
     }).catch(reason => {
       if (!cancelled) setAiError(reason instanceof Error ? reason.message : 'Chưa kết nối được AI.');
+    }).finally(() => {
+      if (!cancelled) setAIConfigurationLoading(false);
     });
     void getAIUsage().then(usage => {
       if (!cancelled) setAIUsage(usage);
     }).catch(() => { /* Quota lookup failure leaves manual entry and the AI request available. */ });
     return () => { cancelled = true; };
-  }, [isAddModalOpen, modalMode]);
+  }, [isAddModalOpen, modalMode, aiConfigurationRetry]);
 
   // Lọc tag thông minh cho AI Preview: Bỏ tag trùng lặp với Part và Category
   const previewTags = useMemo(() => {
@@ -206,6 +212,8 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     setAiStep('INPUT');
     setRawAIText('');
     setAiError(null);
+    setAIConfiguration(null);
+    setAIConfigurationLoading(true);
     setAIConsent(false);
     setAIReviewed(false);
     setAIMissingInformation([]);
@@ -285,6 +293,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     aiGeneration.current++;
     removeCaptcha();
     setIsAILoading(false);
+    setAIConfigurationLoading(false);
     setIsAddModalOpen(false);
     setEditingMistake(null);
     setAiError(null);
@@ -1135,7 +1144,8 @@ Tôi chọn A vì nghĩ reports là số nhiều.
 
                   <label className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
                     <input type="checkbox" checked={aiConsent} disabled={!aiConfiguration} onChange={event => setAIConsent(event.target.checked)} className="mt-0.5" />
-                    <span>{!aiConfiguration ? 'Đang kiểm tra kết nối AI…'
+                    <span aria-live="polite">{!aiConfiguration
+                      ? aiConfigurationLoading ? 'Đang kiểm tra kết nối AI…' : 'AI chưa sẵn sàng. Bạn có thể thử kết nối lại hoặc nhập thủ công.'
                       : aiConfiguration.provider === 'openai' ? 'Tôi đồng ý gửi nội dung này tới OpenAI để phân tích.'
                         : 'Tôi đồng ý gửi nội dung này tới Google để phân tích. Gemini Free có thể dùng nội dung để cải thiện sản phẩm.'}</span>
                   </label>
@@ -1143,9 +1153,15 @@ Tôi chọn A vì nghĩ reports là số nhiều.
 
                   {/* Thông báo lỗi nếu có */}
                   {aiError && (
-                    <div className="p-3 rounded-xl bg-rose-100 dark:bg-rose-950/60 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] text-rose-950 dark:text-rose-200 flex items-start gap-2 font-bold">
-                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-700" />
-                      <span>{aiError}</span>
+                    <div role="alert" className="p-3 rounded-xl bg-rose-100 dark:bg-rose-950/60 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] text-rose-950 dark:text-rose-200 flex flex-wrap items-start gap-2 font-bold">
+                      <AlertTriangle aria-hidden="true" className="w-4 h-4 shrink-0 mt-0.5 text-rose-700" />
+                      <span className="flex-1 min-w-0">{aiError}</span>
+                      {!aiConfiguration && !aiConfigurationLoading && (
+                        <button type="button" onClick={() => setAIConfigurationRetry(value => value + 1)}
+                          className="px-3 py-2 rounded-lg border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                          Thử kết nối lại
+                        </button>
+                      )}
                     </div>
                   )}
 

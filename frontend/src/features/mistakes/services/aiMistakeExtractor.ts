@@ -17,11 +17,26 @@ export interface AIConfiguration { provider: AIProvider; requireProviderConsent:
 
 export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!apiAvailable) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
-  const response = await fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}/health`, {
-    signal: AbortSignal.timeout(90_000), cache: 'no-store'
-  });
-  if (!response.ok) throw new Error('Chưa kết nối được AI. Bạn vẫn có thể nhập thủ công.');
-  const value = await response.json();
+  const message = 'Chưa kết nối được AI. Vui lòng thử kết nối lại hoặc nhập thủ công.';
+  // Retry only the public GET probe. Never retry the paid extraction POST.
+  // One deadline covers every attempt, including a Render cold start.
+  const signal = AbortSignal.timeout(90_000);
+  let response: Response | undefined;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      response = await fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}/health`, { signal, cache: 'no-store' });
+    } catch {
+      if (attempt === 2 || signal.aborted) throw new Error(message);
+      await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
+      continue;
+    }
+    if (response.ok) break;
+    if (![502, 503, 504].includes(response.status) || attempt === 2 || signal.aborted) throw new Error(message);
+    await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
+  }
+  if (!response?.ok) throw new Error(message);
+  const value = await response.json().catch(() => null);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Cấu hình AI chưa hợp lệ.');
   if (!value.ai_configured) throw new Error('AI đang tạm tắt. Bạn vẫn có thể nhập thủ công hoặc xem mẫu minh họa.');
   // Older Gemini deployments have no provider field. This also keeps a rolling
   // frontend/backend deployment compatible without sending unknown JSON fields.

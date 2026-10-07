@@ -86,7 +86,7 @@ describe('AI quota lookup', () => {
 
 describe('AI recipient configuration', () => {
   beforeEach(() => vi.stubEnv('VITE_API_URL', 'https://api.example'));
-  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
   it('loads the recipient without creating or authenticating a guest identity', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
@@ -106,5 +106,41 @@ describe('AI recipient configuration', () => {
   it('does not permit consent to an unknown provider', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'unknown' }) }));
     await expect(getAIConfiguration()).rejects.toThrow('chưa hợp lệ');
+  });
+
+  it('recovers from a transient fetch failure without calling the paid API', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
+    vi.stubGlobal('fetch', fetch);
+    const pending = getAIConfiguration();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await pending).toEqual({ provider: 'openai', requireProviderConsent: true });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls.every(([url]) => url === 'https://api.example/health')).toBe(true);
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+
+  it('bounds retries and replaces raw browser errors with Vietnamese recovery guidance', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetch);
+    const pending = getAIConfiguration().catch(reason => reason);
+    await vi.advanceTimersByTimeAsync(3000);
+    const error = await pending;
+    expect(error.message).toContain('thử kết nối lại');
+    expect(error.message).not.toContain('Failed to fetch');
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+
+  it('can recover after a deployment returns a temporary 503', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn().mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
+    vi.stubGlobal('fetch', fetch);
+    const pending = getAIConfiguration();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect((await pending).provider).toBe('openai');
   });
 });
