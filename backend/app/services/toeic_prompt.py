@@ -53,6 +53,8 @@ Dịch ngữ cảnh: Dịch tự nhiên câu chứa chỗ trống. Có đáp án
 ghi 'Dịch theo đáp án AI đề xuất'; MISSING thì giữ [chỗ trống]. Part 6 dịch thêm câu liên quan nếu đã có.
 Từ vựng/phương án: Nghĩa từng phương án theo ngữ cảnh, giữ nhãn A/B/C/D. Các dạng của cùng một từ: nêu khác
 biệt từ loại/ngữ pháp, không dịch bốn lần cùng một nghĩa. Thành ngữ/collocation: dịch nghĩa CẢ CỤM.
+Sau phần phương án, giải thêm 1–3 cụm/từ khóa đáng học trong câu (không phải phương án), dạng 'cụm: nghĩa theo
+ngữ cảnh'; bỏ qua từ quá cơ bản.
 Phân tích: Dấu hiệu ngay trước/sau chỗ trống và cấu trúc/nghĩa quyết định; vì sao đáp án phù hợp, vì sao các
 phương án còn lại sai, đối chiếu lựa chọn người học. Part 6 xét từ nối, đại từ, thì, mạch văn; thiếu đoạn
 trước/sau cho câu nối hoặc chèn câu thì ghi missingInformation, không bịa ngữ cảnh.
@@ -88,6 +90,7 @@ Dịch ngữ cảnh: Tất cả giao dịch chuyển khoản đều có thể ph
 
 Từ vựng/phương án: (A) required: bắt buộc, được yêu cầu; (B) imaginary: tưởng tượng; (C) conscious: có ý thức;
 (D) subject trong 'be subject to': thuộc diện, có thể phải trải qua.
+bank transfer: chuyển khoản ngân hàng; identify an issue: phát hiện một vấn đề.
 
 Phân tích: 'are ____ to review' cần 'be subject to + danh từ' = thuộc diện xét duyệt, khớp vế 'could be delayed'.
 A gây nhầm với 'be required to + động từ nguyên thể'; ở đây review là danh từ. B và C không hợp nghĩa.
