@@ -33,6 +33,26 @@ export const ERROR_CATEGORY_LABELS: Record<ErrorCategory, { label: string; color
   OTHER: { label: 'Lý Do Khác', color: '#94A3B8', bg: 'rgba(148, 163, 184, 0.15)' }
 };
 
+export type PartOfSpeech = 'n' | 'v' | 'adj' | 'adv' | 'prep' | 'conj' | 'pron' | 'det' | '';
+
+export interface OptionNote {
+  label: 'A' | 'B' | 'C' | 'D';
+  /** Từ loại viết tắt tiếng Anh; '' với cụm từ hoặc câu */
+  pos: PartOfSpeech;
+  meaning: string;
+}
+
+/** Các mục giải thích; mục không áp dụng là '' */
+export interface MistakeExplanation {
+  quickTip: string;
+  translation: string;
+  questionType: string;
+  evidence: string;
+  paraphrase: string;
+  analysis: string;
+  keyVocabulary: string;
+}
+
 // Sổ tay bẫy & lỗi sai
 export interface MistakeEntry {
   id: string;
@@ -46,6 +66,10 @@ export interface MistakeEntry {
   answerSource?: 'PROVIDED' | 'AI_PROPOSED' | 'MISSING';
   /** Phương án người học đã chọn sai. Bản ghi cũ không có thì suy từ userMistake */
   userChoice?: 'A' | 'B' | 'C' | 'D';
+  /** Nghĩa và từ loại từng phương án do AI trả về; bản ghi cũ hoặc nhập tay không có */
+  optionNotes?: OptionNote[];
+  /** Giải thích theo từng mục do AI trả về; không có thì hiển thị trapTip dạng văn bản */
+  explanation?: MistakeExplanation;
   trapTip?: string;        // Mẹo bẫy thi / Bí kíp 10s cần nhớ
   options?: string[];      // 4 phương án trắc nghiệm (vd: ['(A) are', '(B) be', '(C) were', '(D) will be'])
   category: ErrorCategory;

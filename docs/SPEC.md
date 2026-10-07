@@ -254,8 +254,9 @@ Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng
 
 - **Một bản ghi gồm:** Part, ngữ cảnh câu hỏi, lỗi đã mắc, đáp án đúng kèm giải thích bẫy, phân loại nguyên nhân, thẻ tag tự do.
 - **Sáu nhóm nguyên nhân:** bẫy từ vựng và paraphrase · ngữ pháp nâng cao · tốc độ nghe và nối âm · áp lực thời gian · mất tập trung và đọc ẩu · khác.
-- **Sửa được bản ghi** — giữ nguyên trạng thái và lịch ôn giãn cách.
-- **Bộ lọc:** theo Part, trạng thái, nhóm nguyên nhân, và tìm kiếm toàn văn.
+- **Sửa được bản ghi** — giữ nguyên trạng thái và lịch ôn giãn cách. Sửa tay giữ nghĩa phương án nào không đổi chữ và giữ các mục giải thích khi văn bản giải thích không bị sửa.
+- **Bộ lọc:** ba tab Tất cả / Đến hạn / Thông suốt; Part, nhóm nguyên nhân và tìm kiếm nằm trong nút "Lọc" (tìm kiếm hiện ngoài trên màn rộng).
+- **Trình bày (2026-10-07, đã duyệt mockup):** mỗi dòng chỉ có Part, câu hỏi (tối đa 2 dòng), trạng thái ôn bằng chữ ("Ôn hôm nay", "Quá hạn N ngày", "Ôn sau N ngày", "Thông suốt") và menu ⋯ (Ôn câu này, Sửa, Đánh dấu đã thuộc / Ôn lại từ đầu, Xóa). Mở dòng: đoạn trích, phương án A–D kèm nghĩa và từ loại viết tắt tiếng Anh (`prompt (adj): nhanh chóng`; Part 7 chỉ bản dịch), phương án đã chọn tô đỏ, đáp án tô xanh, một hộp "Mẹo 10s"; phần giải thích còn lại thu gọn sau "Xem giải thích". Viền đen dày chỉ ở khung danh sách và nút chính. Không còn nút một chạm Cần ôn/Thông suốt trên từng dòng.
 
 #### Phiên Ôn Tập ★ chức năng mới
 
@@ -264,14 +265,16 @@ Sổ Tay từng chỉ là tủ hồ sơ. Phiên Ôn Tập hiện cho người h�
 **Luồng một phiên:**
 
 ```
-Hiện ngữ cảnh câu hỏi
-  → người học tự nhớ lại đáp án và cái bẫy
-  → lật thẻ xem đáp án đúng
-  → tự chấm: Nhớ / Quên
-  → hệ thống giãn hoặc đặt lại lịch
+Hiện đoạn trích và câu hỏi
+  → người học chọn A–D (nghĩa phương án ẩn tới khi trả lời)
+  → app tự chấm, tô đáp án và phương án đã chọn, hiện nghĩa từng phương án
+  → một dòng kết quả kèm lịch mới ("Đúng · ôn sau 3 ngày", "Vẫn nhầm như lần trước · ôn lại ngày mai")
+  → Mẹo 10s; giải thích chi tiết thu gọn
 ```
 
-- **Lịch giãn cách:** mỗi bản ghi có `nextReviewDate`. Nhớ thì giãn theo bậc 1 → 3 → 7 → 14 → 30 ngày; quên thì quay về bậc đầu. *Đây là quyết định chốt, thay cho mâu thuẫn trong v1 giữa mục 1.2 và mục 3.4.*
+- **Một luồng ôn duy nhất (2026-10-07):** thay cho "Thử thách vượt bẫy" (từng không cập nhật lịch) và phiên lật thẻ cũ (từng không hiện phương án). Thẻ không có phương án hoặc đáp án không khớp phương án nào thì lật thẻ rồi tự chấm Nhớ / Chưa nhớ. Danh sách thẻ được chốt lúc mở phiên.
+- **Lịch giãn cách:** mỗi bản ghi có `nextReviewDate`. Nhớ thì giãn theo bậc 1 → 3 → 7 → 14 → 30 ngày; quên thì quay về bậc đầu. Đúng ở bậc cuối thì tự chuyển "Thông suốt". *Đây là quyết định chốt, thay cho mâu thuẫn trong v1 giữa mục 1.2 và mục 3.4.*
+- **Ôn sớm** ("Ôn câu này" với thẻ chưa đến hạn hoặc đã thông suốt): sai thì đặt lại lịch về ngày mai; đúng thì giữ nguyên lịch, để không thể đẩy thẻ lên "Thông suốt" bằng cách làm nhiều lần trong một ngày. Muốn bỏ qua lịch thì dùng "Đánh dấu đã thuộc" trong menu ⋯.
 - Tổng Quan hiển thị số thẻ đến hạn kèm lối vào thẳng phiên ôn.
 - Ưu tiên trong phiên: thẻ quá hạn lâu nhất trước, rồi tới nhóm nguyên nhân đang là điểm nghẽn lớn nhất.
 
@@ -400,7 +403,7 @@ Bảng tra Raw sang Scaled cho từng kỹ năng (0–100 thành 5–495), tổn
 - Mặc định khách 3 lượt, tài khoản 10 lượt/tháng, cả app 20 lượt/ngày và 2 lượt/phút; cấu hình theo quota Gemini Free thực tế. Giữ lượt người dùng một lần trong giao dịch PostgreSQL; UUID chống gửi trùng. Backend có failover giới hạn theo thứ tự 3.8 Flash → 3.7 Flash → 3.6 Flash → 3.5 Flash; từng outbound attempt giữ RPM/TPM/RPD riêng trong database.
 - Gmail trong `AI_UNLIMITED_EMAILS` ở backend được miễn mọi cap AI tháng/ngày/phút và spam theo tài khoản/IP khi Supabase Auth trả email đã xác nhận và Google identity khớp email có `email_verified=true`. Không tin `user_metadata` hay email từ client. Vẫn giữ idempotency, counter/audit, RLS và giới hạn tài nguyên/provider; không cấp quyền dữ liệu người khác. UI lấy quyền từ backend, không hardcode email.
 - OpenAI trực tiếp qua Responses API dùng `gpt-6-luna`, effort `medium` mặc định, strict JSON theo `MistakeDraft`, `store=false`, output tối đa 8.192 token (gồm reasoning), timeout 45 giây. Không retry hoặc chuyển sang provider khác khi lỗi. `/health` thông báo provider để nhận consent đúng bên nhận dữ liệu; API từ chối provider consent không khớp trước gọi AI. Quota app thường vẫn áp dụng; tài khoản được miễn vẫn phát sinh phí OpenAI. Gemini là chế độ tương thích deploy cũ tới khi operator đổi `AI_PROVIDER`.
-- Prompt OpenAI (2026-10-07, đã so sánh 18 câu Part 5/6/7 trên GPT-6 Luna và DeepSeek V4.1 Flash) trả `trapTip` thành các đoạn mở đầu bằng nhãn cố định. Part 5/6: Dịch ngữ cảnh · Từ vựng/phương án · Phân tích · Mẹo 10s. Part 7: Dạng câu hỏi · Bằng chứng (trích nguyên văn) · Paraphrase · Phân tích phương án nhiễu · Mẹo 10s. Nguồn nhiều câu thì chỉ giải câu người học nói làm sai, không rõ câu nào thì MISSING. Part suy từ số câu (101–130/131–146/147–200); nhóm "đọc ẩu"/"áp lực giờ" chỉ khi người học tự kể. Part 7 chỉ lưu câu hỏi kèm đoạn trích bằng chứng. Độ dài theo mức: 400–700 / 700–1.200 / 900–1.800, tối đa 2.000 ký tự. `options` và `questionContext` giữ tiếng Anh nguồn. UI giữ xuống dòng trong preview, sổ tay và ôn tập.
+- Prompt OpenAI (2026-10-07, đã so sánh 18 câu Part 5/6/7 trên GPT-6 Luna và DeepSeek V4.1 Flash; chọn Luna `medium`) trả dữ liệu có cấu trúc, không tách chữ bằng regex: `optionNotes` (mỗi phương án: nhãn, từ loại viết tắt `n/v/adj/adv/prep/conj/pron/det` hoặc rỗng với cụm/câu, nghĩa ngắn) và `explanation` (quickTip = Mẹo 10s, translation, questionType, evidence trích nguyên văn, paraphrase, analysis, keyVocabulary; mục không áp dụng là rỗng). Backend ghép `trapTip` dạng văn bản có nhãn từ các mục này để tìm kiếm, sao lưu và client cũ; grounding bỏ ghi chú của phương án không có trong nguồn. Nguồn nhiều câu thì chỉ giải câu người học nói làm sai, không rõ câu nào thì MISSING. Part suy từ số câu (101–130/131–146/147–200); nhóm "đọc ẩu"/"áp lực giờ" chỉ khi người học tự kể. Part 7 chỉ lưu câu hỏi kèm đoạn trích bằng chứng. `options` và `questionContext` giữ tiếng Anh nguồn. `optionNotes`/`explanation` lưu trong `extra`, không cần migration; Gemini và bản ghi cũ không có thì hiển thị `trapTip`.
 - `userChoice` (A–D) là phương án người học đã chọn; backend xóa nếu không khớp phương án nguồn. Lưu trong `extra`, sao lưu và đồng bộ, không cần migration. Bản ghi cũ suy từ `userMistake`. Preview và sổ tay tô đỏ phương án này cạnh đáp án đúng.
 - Đáp án nguồn tùy chọn: có nguồn hợp lệ ưu tiên `PROVIDED`, báo mâu thuẫn nếu AI chọn khác. Không có nguồn và đủ dữ liệu thì AI tự giải, trả `AI_PROPOSED` khớp phương án gốc. Thiếu ngữ cảnh/không đủ phương án/nguồn lỗi thì `MISSING`, không đoán bừa. `answerSource` được giữ khi lưu, đồng bộ và backup trong metadata `extra`, không cần migration. Preview/sổ tay/ôn tập đều phân biệt 'Đáp án AI đề xuất' với nguồn người dùng cung cấp; kiểm tra trước lưu. Gemini giữ chính sách cần nguồn cũ.
 - **Cân bằng Gemini (2026-10-07):** theo xác nhận của người dùng, mỗi key thuộc tài khoản/project có quota độc lập. Cấu hình đơn giản `GEMINI_API_KEYS` là mảng chuỗi, không cần project ID; từng key được gán nhóm bằng hash ổn định. Chọn key ít request đang chạy, sau đó lâu chưa dùng. `GEMINI_PROJECTS` vẫn hỗ trợ nhóm nâng cao nếu có key chung project; không dùng đồng thời hai chế độ. `ai_provider_state` và `ai_provider_attempts` chỉ lưu hash và metadata vận hành, chỉ service role truy cập. Hết RPM/TPM đặt cooldown ≥60 giây; RPD ≥24 giờ từ lúc phát hiện; tôn trọng Retry-After dài hơn. Hết cooldown chỉ một probe thử hồi phục. Quota không rõ phạm vi khóa cả nhóm của key; timeout/mất kết nối không gửi lại trong cùng lượt. Tổng số lượt app không tăng theo số key. Dùng migration `20261007000000_gemini_provider_pool.sql` đã có, không tạo/chạy lại migration khi đổi cách nhập. Key/Turnstile và test staging thật cần xong trước khi bật AI; xem `backend/README.md`.

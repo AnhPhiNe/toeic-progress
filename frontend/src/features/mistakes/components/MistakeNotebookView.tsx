@@ -1,43 +1,18 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { 
-  AlertTriangle, 
-  CheckCircle2, 
-  Plus, 
-  Search, 
-  Trash2,
-  Pencil,
-  BookOpen,
-  Brain,
-  X,
-  ChevronDown,
-  ChevronRight,
-  ChevronsUpDown,
-  Tag,
-  Sparkles,
-  Loader2,
-  RotateCcw,
-  Target,
-  Lightbulb,
-  XCircle,
-  AlertCircle
-} from 'lucide-react';
+import { AlertTriangle, Brain, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Loader2, X, BookOpen } from 'lucide-react';
 import { MistakeEntry, ErrorCategory, ERROR_CATEGORY_LABELS } from '@/shared/types';
-
-const SHORT_CATEGORY_LABELS: Record<ErrorCategory, string> = {
-  VOCABULARY_TRAP: 'Từ vựng',
-  ADVANCED_GRAMMAR: 'Ngữ pháp',
-  LISTENING_SPEED: 'Tốc độ nghe',
-  TIME_PRESSURE: 'Áp lực giờ',
-  CARELESS_DISTRACTION: 'Đọc ẩu',
-  OTHER: 'Khác'
-};
 import { 
   extractMistakeWithAI, 
   getDemoSampleInput,
   getAIUsage,
   getAIConfiguration
 } from '@/features/mistakes/services/aiMistakeExtractor';
-import { TrapQuizModal, resolveQuizOptions } from '@/features/mistakes/components/TrapQuizModal';
+import { MistakeCard, PartBadge, splitQuestion } from '@/features/mistakes/components/MistakeCard';
+import { OptionList } from '@/features/mistakes/components/OptionList';
+import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
+import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
+import { carryStructured, type StructuredSource } from '@/features/mistakes/lib/structuredFields';
+import { isDueForReview } from '@/features/mistakes/lib/spacedRepetition';
 import { getUserChoice, optionLetter, reasonAfterChoice } from '@/features/mistakes/lib/userChoice';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
@@ -47,9 +22,12 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   /** Số thẻ tới hạn ôn hôm nay (SPEC mục 4.6) */
   dueCount: number;
-  onStartReview: () => void;
+  /** Mở phiên ôn cho các thẻ được chọn; không truyền thì ôn mọi thẻ đến hạn */
+  onStartReview: (mistakeIds?: string[]) => void;
   onAddMistake: (mistake: MistakeEntry) => void;
-  onToggleStatus: (mistakeId: string) => void;
+  onMarkMastered: (mistakeId: string) => void;
+  /** Đưa thẻ đã thông suốt về đầu lịch ôn */
+  onReopenCards: (mistakeIds: string[]) => void;
   onDeleteMistake: (mistakeId: string) => void;
   /** Thay thế nội dung một thẻ, giữ nguyên trạng thái và lịch ôn giãn cách */
   onUpdateMistake: (mistake: MistakeEntry) => void;
@@ -122,13 +100,16 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   dueCount,
   onStartReview,
   onAddMistake,
-  onToggleStatus,
+  onMarkMastered,
+  onReopenCards,
   onDeleteMistake,
   onUpdateMistake
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'NEEDS_REVIEW' | 'MASTERED'>('ALL');
+  const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<ErrorCategory | 'ALL'>('ALL');
 
   // Quản lý các dòng đang mở rộng chi tiết (Mặc định thu gọn gọn gàng)
@@ -139,25 +120,9 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   const [editingMistake, setEditingMistake] = useState<MistakeEntry | null>(null);
   const [newMistake, setNewMistake] = useState({ ...EMPTY_FORM });
 
-  // Modal Thử Thách Vượt Bẫy (Trap Quiz Modal)
-  const [quizMistake, setQuizMistake] = useState<MistakeEntry | null>(null);
-  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  // Trường có cấu trúc của bản nháp AI hoặc thẻ đang sửa, giữ lại khi lưu nếu nội dung không đổi
+  const [structured, setStructured] = useState<StructuredSource | null>(null);
   const [manualNotice, setManualNotice] = useState('');
-
-  const openQuiz = (m: MistakeEntry) => {
-    if ((m.options?.length ?? 0) < (m.part === 2 ? 3 : 4) || !m.correctAnswer.trim()) {
-      openEdit(m);
-      setManualNotice('Bổ sung đầy đủ phương án và đáp án chuẩn trước khi làm thử thách.');
-      return;
-    }
-    if (resolveQuizOptions(m).correctIndex < 0) {
-      openEdit(m);
-      setManualNotice('Đáp án chuẩn chưa khớp phương án nào. Hãy chọn lại đáp án đúng (A–D) trước khi làm thử thách.');
-      return;
-    }
-    setQuizMistake(m);
-    setIsQuizOpen(true);
-  };
 
   // AI Extract States
   const [modalMode, setModalMode] = useState<'AI_PARSE' | 'MANUAL'>('AI_PARSE');
@@ -197,20 +162,6 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     return () => { cancelled = true; };
   }, [isAddModalOpen, modalMode, aiConfigurationRetry]);
 
-  // Lọc tag thông minh cho AI Preview: Bỏ tag trùng lặp với Part và Category
-  const previewTags = useMemo(() => {
-    if (!newMistake.tags) return [];
-    const rawList = newMistake.tags.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
-    const partPattern = new RegExp(`^part\\s*${newMistake.part}$`, 'i');
-    return rawList.filter(t => {
-      if (partPattern.test(t)) return false;
-      const catLabel = ERROR_CATEGORY_LABELS[newMistake.category]?.label || '';
-      if (t.toLowerCase() === newMistake.category.toLowerCase() || t.toLowerCase() === catLabel.toLowerCase()) return false;
-      if (['vocabulary', 'grammar', 'reading', 'listening'].includes(t.toLowerCase()) && catLabel.toLowerCase().includes(t.toLowerCase())) return false;
-      return true;
-    });
-  }, [newMistake.tags, newMistake.part, newMistake.category]);
-
   const openCreate = () => {
     setManualNotice('');
     setEditingMistake(null);
@@ -225,12 +176,14 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     setAIReviewed(false);
     setAIMissingInformation([]);
     setAIIsDemo(false);
+    setStructured(null);
     setIsAddModalOpen(true);
   };
 
   const openEdit = (m: MistakeEntry) => {
     setManualNotice('');
     setEditingMistake(m);
+    setStructured({ options: m.options ?? [], trapTip: m.trapTip ?? '', optionNotes: m.optionNotes ?? [], explanation: m.explanation ?? null });
     const slots = parseOptionsTextToSlots((m.options || []).join('\n'));
 
     const correctLetter = optionLetter(m.correctAnswer);
@@ -309,6 +262,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       wrongLetter: draft.userChoice,
       optionsText: draft.options.join('\n'), tags: draft.tags.join(', ')
     });
+    setStructured({ options: draft.options, trapTip: draft.trapTip, optionNotes: draft.optionNotes, explanation: draft.explanation });
     setAIMissingInformation([...draft.missingInformation, ...(draft.part === null ? ['Chưa xác định được Part; hãy chọn lại khi chỉnh sửa.'] : [])]);
     setAIReviewed(false);
     setAIIsDemo(demo);
@@ -360,6 +314,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       correctAnswer: newMistake.correctAnswer,
       answerSource: newMistake.answerSource,
       userChoice: newMistake.wrongLetter || undefined,
+      ...carryStructured(structured, parsedOptions, newMistake.trapTip),
       trapTip: newMistake.trapTip,
       options: parsedOptions.length > 0 ? parsedOptions : undefined,
       category: newMistake.category,
@@ -372,37 +327,45 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     closeModal();
   };
 
-  // Thống kê nhanh
-  const stats = useMemo(() => {
-    const total = mistakes.length;
-    const mastered = mistakes.filter(m => m.status === 'MASTERED').length;
-    const needsReview = total - mastered;
-    const masteryRate = total > 0 ? Math.round((mastered / total) * 100) : 0;
+  const stats = useMemo(() => ({
+    total: mistakes.length,
+    due: mistakes.filter(m => isDueForReview(m)).length,
+    mastered: mistakes.filter(m => m.status === 'MASTERED').length
+  }), [mistakes]);
 
-    return {
-      total,
-      mastered,
-      needsReview,
-      masteryRate
-    };
-  }, [mistakes]);
-
-  // Danh sách sau khi lọc
   const filteredMistakes = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
     return mistakes.filter(m => {
-      const matchSearch = m.questionContext.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          m.userMistake.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          m.correctAnswer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (m.trapTip && m.trapTip.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          m.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+      const matchSearch = !term || [m.questionContext, m.userMistake, m.correctAnswer, m.trapTip ?? '', ...m.tags]
+        .some(value => value.toLowerCase().includes(term));
       const matchPart = selectedPart === 'ALL' || m.part === selectedPart;
-      const matchStatus = selectedStatus === 'ALL' || m.status === selectedStatus;
+      const matchStatus = selectedStatus === 'ALL'
+        || (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED');
       const matchCategory = selectedCategory === 'ALL' || m.category === selectedCategory;
-
       return matchSearch && matchPart && matchStatus && matchCategory;
     });
   }, [mistakes, searchTerm, selectedPart, selectedStatus, selectedCategory]);
+
+  const activeFilterCount = (selectedPart === 'ALL' ? 0 : 1) + (selectedCategory === 'ALL' ? 0 : 1) + (searchTerm.trim() ? 1 : 0);
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedPart('ALL');
+    setSelectedStatus('ALL');
+    setSelectedCategory('ALL');
+  };
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !filterRef.current?.contains(event.target as Node)) setFilterOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [filterOpen]);
 
   const toggleRow = (id: string) => {
     setExpandedIds(prev => {
@@ -411,16 +374,6 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       else next.add(id);
       return next;
     });
-  };
-
-  const allExpanded = filteredMistakes.length > 0 && filteredMistakes.every(m => expandedIds.has(m.id));
-
-  const toggleExpandAll = () => {
-    if (allExpanded) {
-      setExpandedIds(new Set());
-    } else {
-      setExpandedIds(new Set(filteredMistakes.map(m => m.id)));
-    }
   };
 
   const handleCreateMistake = (e: React.FormEvent) => {
@@ -473,6 +426,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     }
 
     if (editingMistake) {
+      const finalOptions = parsedOptions.length > 0 ? parsedOptions : editingMistake.options ?? [];
       onUpdateMistake({
         ...editingMistake,
         part: newMistake.part,
@@ -481,8 +435,9 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
         correctAnswer: finalCorrectAnswer,
         answerSource: finalCorrectAnswer ? (newMistake.answerSource === 'AI_PROPOSED' ? 'AI_PROPOSED' : 'PROVIDED') : 'MISSING',
         userChoice: newMistake.wrongLetter || undefined,
+        ...carryStructured(structured, finalOptions, newMistake.trapTip),
         trapTip: newMistake.trapTip,
-        options: parsedOptions.length > 0 ? parsedOptions : editingMistake.options,
+        options: finalOptions.length > 0 ? finalOptions : undefined,
         category: newMistake.category,
         tags
       });
@@ -498,6 +453,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       correctAnswer: finalCorrectAnswer,
       answerSource: finalCorrectAnswer ? (newMistake.answerSource === 'AI_PROPOSED' ? 'AI_PROPOSED' : 'PROVIDED') : 'MISSING',
       userChoice: newMistake.wrongLetter || undefined,
+      ...carryStructured(structured, parsedOptions, newMistake.trapTip),
       trapTip: newMistake.trapTip,
       options: parsedOptions.length > 0 ? parsedOptions : undefined,
       category: newMistake.category,
@@ -510,428 +466,190 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     closeModal();
   };
 
+  // Bản nháp AI dùng cùng cách hiển thị câu hỏi và phương án với thẻ trong sổ tay
+  const draftQuestion = splitQuestion(newMistake.questionContext);
+  const draftQuiz = resolveQuizOptions({
+    questionContext: newMistake.questionContext,
+    options: newMistake.optionsText.split(/\r?\n/).map(option => option.trim()).filter(Boolean),
+    correctAnswer: newMistake.correctAnswer,
+    optionNotes: structured?.optionNotes
+  });
+
   return (
-    <div className="space-y-4 animate-fade-in pb-10">
-      
-      {/* 1. Header Tinh Gọn (Không lặp lại số liệu) */}
-      {/* 1. Header Tinh Gọn (Không lặp lại số liệu) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in pb-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-[26px]">
           Sổ Tay Bắt Bẫy & Lỗi Sai
         </h2>
-
-        {/* Nút hành động */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <button
-            onClick={onStartReview}
+            type="button"
+            onClick={() => onStartReview()}
             disabled={dueCount === 0}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 transition-all ${
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-all ${
               dueCount > 0
-                ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 border-2 border-slate-900 shadow-[2.5px_2.5px_0px_#0f172a] cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border-2 border-slate-300 dark:border-slate-700'
+                ? 'cursor-pointer border-2 border-slate-900 bg-emerald-400 text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
+                : 'cursor-not-allowed border-2 border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
             }`}
           >
-            <Brain className="w-4 h-4 shrink-0" />
-            <span>{dueCount > 0 ? `Ôn ${dueCount} thẻ đến hạn` : 'Chưa có thẻ đến hạn'}</span>
+            <Brain className="h-4 w-4 shrink-0" />
+            {dueCount > 0
+              ? <span>Ôn {dueCount} thẻ<span className="hidden sm:inline"> đến hạn</span></span>
+              : <span>Chưa có thẻ<span className="hidden sm:inline"> đến hạn</span></span>}
           </button>
-
           <button
+            type="button"
             onClick={openCreate}
-            className="px-3.5 py-2 rounded-xl bg-yellow-300 hover:bg-yellow-200 text-slate-950 font-black text-xs sm:text-sm border-2 border-slate-900 shadow-[2.5px_2.5px_0px_#0f172a] flex items-center gap-1.5 transition-all cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-300 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-yellow-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
-            <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
+            <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" />
             <span>Ghi Chú Bẫy</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Thanh Công Cụ Lọc Nhanh (Chuẩn Neo, không emoji thừa) */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] shadow-[2.5px_2.5px_0px_#0f172a]">
-        
-        {/* Tìm kiếm */}
-        <div className="relative flex-1 min-w-[180px] max-w-xs sm:max-w-sm">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm bẫy, từ khóa..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-900/60 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-slate-900 transition-all placeholder:text-slate-400"
-          />
-        </div>
-
-        {/* Bộ lọc 1 chạm (Segmented Buttons) - Bỏ emoji thừa */}
-        <div className="flex items-center gap-1.5 text-xs font-black">
-          <button
-            onClick={() => setSelectedStatus('ALL')}
-            className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap border-2 ${
-              selectedStatus === 'ALL'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            Tất cả ({stats.total})
-          </button>
-          <button
-            onClick={() => setSelectedStatus('NEEDS_REVIEW')}
-            className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap border-2 ${
-              selectedStatus === 'NEEDS_REVIEW'
-                ? 'bg-amber-300 text-slate-950 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]'
-                : 'border-transparent text-amber-700 dark:text-amber-400 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-            }`}
-          >
-            Cần ôn ({stats.needsReview})
-          </button>
-          <button
-            onClick={() => setSelectedStatus('MASTERED')}
-            className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap border-2 ${
-              selectedStatus === 'MASTERED'
-                ? 'bg-emerald-300 text-slate-950 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]'
-                : 'border-transparent text-emerald-700 dark:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
-            }`}
-          >
-            Thông suốt ({stats.mastered})
-          </button>
-        </div>
-
-        {/* Dropdown Filters & Mở rộng tất cả */}
-        <div className="flex items-center gap-1.5 ml-auto">
-          <select
-            value={selectedPart}
-            onChange={e => setSelectedPart(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-900/60 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none cursor-pointer"
-          >
-            <option value="ALL">Mọi Part</option>
-            {[1, 2, 3, 4, 5, 6, 7].map(p => (
-              <option key={p} value={p}>Part {p}</option>
-            ))}
-          </select>
-
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value as any)}
-            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-900/60 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none cursor-pointer max-w-[140px] truncate"
-          >
-            <option value="ALL">Mọi nguyên nhân</option>
-            {Object.entries(ERROR_CATEGORY_LABELS).map(([cat, val]) => (
-              <option key={cat} value={cat}>{val.label}</option>
-            ))}
-          </select>
-
-          {filteredMistakes.length > 0 && (
-            <button
-              onClick={toggleExpandAll}
-              title={allExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
-              className="px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 border-2 border-slate-900/40 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer shrink-0"
-            >
-              <ChevronsUpDown className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{allExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
-            </button>
-          )}
-        </div>
-
-      </div>
-
-      {/* 3. BẢNG GỌN DẠNG COMPACT FEED (CHUẨN NEO-BRUTALISM) */}
-      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] overflow-hidden divide-y-2 divide-slate-900/10 dark:divide-slate-800 shadow-[3.5px_3.5px_0px_#0f172a]">
-        {filteredMistakes.map(mistake => {
-          const categoryInfo = ERROR_CATEGORY_LABELS[mistake.category] || ERROR_CATEGORY_LABELS.OTHER;
-          const shortCatLabel = SHORT_CATEGORY_LABELS[mistake.category] || 'Khác';
-          const isMastered = mistake.status === 'MASTERED';
-          const isListening = mistake.part <= 4;
-          const isExpanded = expandedIds.has(mistake.id);
-
-          return (
-            <div 
-              key={mistake.id}
-              className={`transition-colors duration-150 ${
-                isExpanded 
-                  ? 'bg-slate-50/70 dark:bg-slate-800/30' 
-                  : 'hover:bg-amber-50/30 dark:hover:bg-slate-800/40'
-              }`}
-            >
-              {/* Tiêu đề dòng (Bấm vào để mở Thử Thách Vượt Bẫy) */}
-              <div 
-                onClick={() => openQuiz(mistake)}
-                className="p-3 sm:p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none transition-colors"
-                title="Bấm vào câu này để bắt đầu Thử Thách Vượt Bẫy"
+      {mistakes.length > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-[13px] font-semibold" role="group" aria-label="Lọc theo trạng thái">
+            {([['ALL', 'Tất cả', stats.total], ['DUE', 'Đến hạn', stats.due], ['MASTERED', 'Thông suốt', stats.mastered]] as const).map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={selectedStatus === value}
+                onClick={() => setSelectedStatus(value)}
+                className={`cursor-pointer whitespace-nowrap rounded-lg px-3 py-1.5 ${
+                  selectedStatus === value
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
               >
-                {/* Vế trái: Nút mở rộng + Part badge + Category badge + Câu hỏi */}
-                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleRow(mistake.id);
-                    }}
-                    title={isExpanded ? 'Thu gọn chi tiết ghi chú' : 'Xem ghi chú chi tiết'}
-                    aria-label={isExpanded ? 'Thu gọn chi tiết' : 'Mở rộng chi tiết'}
-                    className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition cursor-pointer shrink-0"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-slate-900 dark:text-white stroke-[2.5]" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-slate-500 stroke-[2.5]" />
-                    )}
-                  </button>
-
-                  {/* Part Badge chuẩn Neo */}
-                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-black shrink-0 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] ${
-                    isListening
-                      ? 'bg-indigo-200 text-slate-950'
-                      : 'bg-cyan-200 text-slate-950'
-                  }`}>
-                    P{mistake.part}
-                  </span>
-
-                  {/* Category Pill gọn nhẹ */}
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shrink-0">
-                    {shortCatLabel}
-                  </span>
-
-                  {/* Câu hỏi */}
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {mistake.questionContext}
-                  </span>
-                </div>
-
-                {/* Vế phải: Nút trạng thái 1-chạm (NO EMOJI) + Sửa / Xóa */}
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                  {/* Nút trạng thái 1 chạm (Chuẩn Neo, không có emoji thừa) */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleStatus(mistake.id);
-                    }}
-                    title={isMastered ? 'Bấm để chuyển về Cần ôn lại' : 'Bấm để đánh dấu Đã thông suốt'}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-black border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition cursor-pointer ${
-                      isMastered
-                        ? 'bg-emerald-300 hover:bg-emerald-200 text-slate-950'
-                        : 'bg-amber-300 hover:bg-amber-200 text-slate-950'
-                    }`}
-                  >
-                    {isMastered ? 'Thông suốt' : 'Cần ôn'}
-                  </button>
-
-                  {/* Sửa / Xóa */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(mistake);
-                      }}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                      title="Sửa lỗi này"
+                {label} {count}
+              </button>
+            ))}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="relative hidden sm:block">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Tìm câu hỏi, mẹo…"
+                aria-label="Tìm trong sổ tay"
+                className="w-64 rounded-lg border-2 border-slate-300 bg-white py-1.5 pl-8 pr-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </div>
+            <div ref={filterRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setFilterOpen(value => !value)}
+                aria-expanded={filterOpen}
+                aria-label="Bộ lọc"
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 px-3 py-1.5 text-[13px] font-semibold ${
+                  activeFilterCount > 0
+                    ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white'
+                    : 'border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Lọc</span>
+                {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+              </button>
+              {filterOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-72 space-y-3 rounded-xl border-2 border-slate-900 bg-white p-3 shadow-[3px_3px_0px_#0f172a] dark:border-slate-600 dark:bg-[#121A2B]">
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Tìm câu hỏi, mẹo…"
+                    aria-label="Tìm trong sổ tay"
+                    className="w-full rounded-lg border-2 border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white sm:hidden"
+                  />
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Part
+                    <select
+                      value={selectedPart}
+                      onChange={e => setSelectedPart(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                      className="mt-1 block w-full rounded-lg border-2 border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm('Xóa lỗi này khỏi sổ tay?')) {
-                          onDeleteMistake(mistake.id);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                      title="Xóa lỗi này"
+                      <option value="ALL">Mọi Part</option>
+                      {[1, 2, 3, 4, 5, 6, 7].map(p => <option key={p} value={p}>Part {p}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Nguyên nhân
+                    <select
+                      value={selectedCategory}
+                      onChange={e => setSelectedCategory(e.target.value as ErrorCategory | 'ALL')}
+                      className="mt-1 block w-full rounded-lg border-2 border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <option value="ALL">Mọi nguyên nhân</option>
+                      {Object.entries(ERROR_CATEGORY_LABELS).map(([cat, val]) => <option key={cat} value={cat}>{val.label}</option>)}
+                    </select>
+                  </label>
+                  {activeFilterCount > 0 && (
+                    <button type="button" onClick={resetFilters} className="cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      Đặt lại bộ lọc
                     </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chi tiết mở rộng (giữ nguyên đầy đủ tính năng nhưng chuẩn Neo) */}
-              {isExpanded && (
-                <div className="px-4 pb-4 pt-2 sm:pl-11 space-y-3 animate-fade-in text-xs border-t-2 border-slate-900/10 dark:border-slate-800">
-                  {/* Khối Bí kíp 10s né bẫy (Nếu có) */}
-                  {mistake.trapTip && (
-                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-100 dark:bg-amber-950/40 border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] text-slate-900 dark:text-white">
-                      <Lightbulb className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5 min-w-0 flex-1">
-                        <span className="text-[10px] font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider block">
-                          Giải thích & ghi nhớ
-                        </span>
-                        <p className="text-xs leading-relaxed text-slate-900 dark:text-slate-200 font-medium whitespace-pre-line break-words">
-                          {mistake.trapTip}
-                        </p>
-                      </div>
-                    </div>
                   )}
-
-                  {/* Danh sách 4 lựa chọn trắc nghiệm (nếu có) */}
-                  {mistake.options && mistake.options.length > 0 && (
-                    <div className="space-y-1.5">
-                      <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                        Phương án trắc nghiệm:
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        {mistake.options.map((opt, idx) => {
-                          const optLetter = opt.match(/^\(([A-D])\)/i)?.[1]?.toUpperCase();
-                          const correctLetter = mistake.correctAnswer.match(/^\(([A-D])\)/i)?.[1]?.toUpperCase();
-                          const isCorrect = Boolean(
-                            (optLetter && correctLetter && optLetter === correctLetter) ||
-                            opt.trim().toLowerCase() === mistake.correctAnswer.trim().toLowerCase() ||
-                            (opt.toLowerCase().includes(mistake.correctAnswer.toLowerCase().replace(/^\([A-D]\)\s*/i, '').trim()) && mistake.correctAnswer.replace(/^\([A-D]\)\s*/i, '').trim().length > 2)
-                          );
-                          const isChosenWrong = !isCorrect && Boolean(optLetter) && optLetter === getUserChoice(mistake);
-
-                          return (
-                            <div
-                              key={idx}
-                              className={`px-3 py-2 rounded-lg text-xs flex items-center justify-between border-2 transition-colors ${
-                                isCorrect
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/40 border-slate-900 text-slate-950 dark:text-emerald-200 font-bold shadow-[1.5px_1.5px_0px_#0f172a]'
-                                  : isChosenWrong
-                                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 dark:border-rose-800 text-rose-950 dark:text-rose-200 font-semibold'
-                                    : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium'
-                              }`}
-                            >
-                              <span className="font-mono">{opt}</span>
-                              {isCorrect && (
-                                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 dark:text-emerald-300 font-black ml-2 shrink-0">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Đáp án đúng</span>
-                                </span>
-                              )}
-                              {isChosenWrong && (
-                                <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 dark:text-rose-300 font-black ml-2 shrink-0">
-                                  <XCircle className="w-3.5 h-3.5" />
-                                  <span>Bạn chọn</span>
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Khối Phân tích đối chiếu: Đáp án đúng & Lỗi đã chọn */}
-                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900/70 border-2 border-slate-900/40 dark:border-slate-700 space-y-2.5">
-                    {/* Đáp án chuẩn */}
-                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2.5 text-xs">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-black text-[11px] bg-emerald-200 text-emerald-950 border border-emerald-400 shrink-0 w-fit">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                        {mistake.answerSource === 'AI_PROPOSED' ? 'Đáp án đề xuất' : 'Đáp án đúng'}
-                      </span>
-                      <span className="font-bold text-slate-900 dark:text-white font-mono">
-                        {mistake.correctAnswer}
-                      </span>
-                      {mistake.answerSource === 'AI_PROPOSED' && (
-                        <span className="px-2 py-0.5 rounded-md border border-amber-700 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200 text-[10px] font-bold">Đáp án AI đề xuất</span>
-                      )}
-                      {mistake.answerSource === 'PROVIDED' && (
-                        <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Theo đáp án bạn cung cấp</span>
-                      )}
-                    </div>
-
-                    {/* Lỗi đã chọn */}
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2.5 text-xs pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-black text-[11px] bg-rose-200 text-rose-950 border border-rose-400 shrink-0 w-fit">
-                        <XCircle className="w-3 h-3 text-rose-700" />
-                        Lỗi đã chọn
-                      </span>
-                      <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                        {mistake.userMistake || 'Chưa ghi chú lỗi sai cụ thể.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Dòng chân thẻ chi tiết: Phân loại, Tags, Ngày tạo, Nút Luyện bẫy */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-slate-400">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded-md">
-                        {categoryInfo.label}
-                      </span>
-                      {mistake.tags.map(tag => (
-                        <span 
-                          key={tag}
-                          className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 font-medium flex items-center gap-1"
-                        >
-                          <Tag className="w-2.5 h-2.5" />
-                          <span>{tag}</span>
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-slate-400 dark:text-slate-500 text-[11px]">
-                        {mistake.createdAt ? new Date(mistake.createdAt).toLocaleDateString('vi-VN') : ''}
-                      </span>
-                      <button
-                        onClick={() => openQuiz(mistake)}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-500 text-white border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition cursor-pointer"
-                        title="Bắt đầu kiểm tra lại câu này"
-                      >
-                        <Target className="w-3.5 h-3.5" />
-                        <span>Luyện bẫy</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
-          );
-        })}
-
-        {/* Trạng thái trống */}
-        {filteredMistakes.length === 0 && (
-          <div className="text-center py-12 px-4 space-y-2 text-slate-400 text-xs">
-            <BookOpen className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
-            <p className="text-slate-600 dark:text-slate-400 font-medium">Không tìm thấy bẫy nào theo bộ lọc.</p>
-            <button 
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedPart('ALL');
-                setSelectedStatus('ALL');
-                setSelectedCategory('ALL');
-              }} 
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              Đặt lại tất cả bộ lọc
-            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Gợi ý tương tác nhanh ở chân danh sách */}
-      <div className="text-center text-xs font-semibold text-slate-500 dark:text-slate-400 pt-1">
-        Bấm trực tiếp vào từng câu để mở Thử Thách Vượt Bẫy • Bấm nút Cần ôn / Thông suốt để đổi trạng thái
-      </div>
+      {mistakes.length === 0 ? (
+        <div className="space-y-2 rounded-2xl border-2 border-dashed border-slate-300 px-4 py-12 text-center dark:border-slate-700">
+          <BookOpen className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
+          <p className="font-semibold text-slate-700 dark:text-slate-200">Chưa có lỗi sai nào</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Bấm “Ghi Chú Bẫy”, dán câu bạn làm sai và AI sẽ soạn ghi chú.</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-200 rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:divide-slate-800 dark:border-slate-700 dark:bg-[#121A2B]">
+          {filteredMistakes.map(mistake => (
+            <MistakeCard
+              key={mistake.id}
+              mistake={mistake}
+              expanded={expandedIds.has(mistake.id)}
+              onToggle={() => toggleRow(mistake.id)}
+              onReview={() => onStartReview([mistake.id])}
+              onEdit={() => openEdit(mistake)}
+              onDelete={() => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); }}
+              onMarkMastered={() => onMarkMastered(mistake.id)}
+              onReopen={() => onReopenCards([mistake.id])}
+            />
+          ))}
+          {filteredMistakes.length === 0 && (
+            <div className="space-y-2 px-4 py-10 text-center text-sm">
+              <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp bộ lọc.</p>
+              <button type="button" onClick={resetFilters} className="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 4. MODAL: GHI CHÚ BẪY (CHUẨN PHONG CÁCH NEO-BRUTALISM) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in">
           <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="mistake-modal-title" className="w-full max-w-2xl sm:max-w-3xl rounded-2xl bg-white dark:bg-[#111A2C] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0px_0px_#0f172a] dark:shadow-[6px_6px_0px_0px_#cbd5e1] p-4 sm:p-6 space-y-3.5 sm:space-y-4 max-h-[92vh] overflow-y-auto">
             
-            {/* Header Modal Neo */}
-            <div className="flex items-center justify-between border-b-2 border-slate-900 dark:border-slate-700 pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-300 dark:bg-amber-400 text-slate-950 border-2 border-slate-900 flex items-center justify-center font-black shadow-[2px_2px_0px_0px_#0f172a] shrink-0">
-                  {modalMode === 'AI_PARSE' ? <Sparkles className="w-5 h-5 text-slate-950" /> : <BookOpen className="w-5 h-5 text-slate-950" />}
-                </div>
-                <div>
-                  <h3 id="mistake-modal-title" className="text-base sm:text-lg font-black text-slate-950 dark:text-white tracking-tight">
-                    {editingMistake 
-                      ? 'Sửa Ghi Chú Bẫy' 
-                      : modalMode === 'AI_PARSE' && aiStep === 'PREVIEW'
-                      ? (aiIsDemo ? 'Mẫu minh họa có sẵn' : 'Bản nháp phân tích lỗi') 
-                      : 'Ghi Chú Bẫy & Lỗi Sai Mới'}
-                  </h3>
-                  {!(modalMode === 'AI_PARSE' && aiStep === 'PREVIEW') && (
-                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      {modalMode === 'AI_PARSE' ? 'Dán đề bài để AI tự động trích xuất cấu trúc bẫy & mẹo 10s' : 'Điền thủ công các trường nội dung'}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button 
-                onClick={closeModal} 
-                className="p-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="mistake-modal-title" className="text-[17px] font-extrabold tracking-tight text-slate-900 dark:text-white">
+                {editingMistake
+                  ? 'Sửa Ghi Chú Bẫy'
+                  : modalMode === 'AI_PARSE' && aiStep === 'PREVIEW'
+                  ? (aiIsDemo ? 'Mẫu minh họa có sẵn' : 'Bản nháp AI')
+                  : 'Ghi Chú Bẫy & Lỗi Sai Mới'}
+              </h3>
+              <button
+                type="button"
+                onClick={closeModal}
+                aria-label="Đóng"
                 title="Đóng (Esc)"
+                className="cursor-pointer rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -968,172 +686,69 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
             {/* TH 1: CHẾ ĐỘ DÁN NHANH AI */}
             {modalMode === 'AI_PARSE' && !editingMistake && (
               aiStep === 'PREVIEW' ? (
-                /* GIAO DIỆN PREVIEW NEO-BRUTALISM */
-                <div className="space-y-4 text-xs animate-fade-in">
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] space-y-3.5">
-                    
-                    {/* Header Thẻ: Part & Category & Tags */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-950 dark:bg-blue-900/60 dark:text-blue-200 border-2 border-slate-900 dark:border-slate-700 font-black text-xs shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
-                          Part {newMistake.part}
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-amber-200 text-amber-950 dark:bg-amber-900/50 dark:text-amber-200 border-2 border-slate-900 dark:border-slate-700 font-bold text-xs shadow-[1.5px_1.5px_0px_0px_#0f172a] shrink-0">
-                          {ERROR_CATEGORY_LABELS[newMistake.category]?.label || newMistake.category}
-                        </span>
-                        {previewTags.map((t, idx) => (
-                          <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-200/90 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-400 dark:border-slate-600 text-[11px] font-mono font-bold shrink-0">
-                            #{t}
-                          </span>
-                        ))}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleSwitchToManual}
-                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 font-bold text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center gap-1 cursor-pointer transition-all shrink-0"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        <span>Sửa chi tiết</span>
-                      </button>
-                    </div>
-
-                    {/* Ngữ cảnh / Câu hỏi */}
-                    <div className="p-3.5 rounded-xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 text-xs sm:text-[13px] text-slate-900 dark:text-slate-100 leading-relaxed font-mono shadow-[2px_2px_0px_0px_#0f172a]">
-                      {newMistake.questionContext}
-                    </div>
-
-                    {newMistake.correctAnswer && newMistake.answerSource && (
-                      <div className={`px-3 py-2 rounded-xl border-2 text-xs flex flex-wrap items-center gap-2 ${newMistake.answerSource === 'AI_PROPOSED'
-                        ? 'bg-amber-50 border-amber-700 text-amber-950 dark:bg-amber-950/30 dark:text-amber-200'
-                        : 'bg-emerald-50 border-emerald-700 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-200'}`}>
-                        <span className="font-bold">{newMistake.answerSource === 'AI_PROPOSED' ? 'Đáp án AI đề xuất' : 'Theo đáp án bạn cung cấp'}</span>
-                        <span className="font-mono font-bold">{newMistake.correctAnswer}</span>
-                      </div>
-                    )}
-
-                    {/* Nội dung bóc tách */}
-                    <div className="space-y-3 text-xs">
-                      {/* 4 Phương án trắc nghiệm A, B, C, D (nếu có) */}
-                      {newMistake.optionsText && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {newMistake.optionsText.split(/\r?\n/).filter(Boolean).map((opt, idx) => {
-                            const optLetter = opt.match(/^\(([A-D])\)/i)?.[1]?.toUpperCase();
-                            const correctLetter = newMistake.correctAnswer.match(/^\(([A-D])\)/i)?.[1]?.toUpperCase();
-                            const isCorrect = Boolean(
-                              (optLetter && correctLetter && optLetter === correctLetter) ||
-                              opt.trim().toLowerCase() === newMistake.correctAnswer.trim().toLowerCase() ||
-                              (opt.toLowerCase().includes(newMistake.correctAnswer.toLowerCase().replace(/^\([A-D]\)\s*/i, '').trim()) && newMistake.correctAnswer.replace(/^\([A-D]\)\s*/i, '').trim().length > 2)
-                            );
-                            const isChosenWrong = !isCorrect && Boolean(optLetter) && optLetter === newMistake.wrongLetter;
-
-                            return (
-                              <div
-                                key={idx}
-                                className={`px-3 py-2 rounded-xl text-xs flex items-center justify-between border-2 transition-all ${
-                                  isCorrect
-                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-950 dark:text-emerald-200 font-bold border-slate-900 dark:border-emerald-600 shadow-[2px_2px_0px_0px_#0f172a]'
-                                    : isChosenWrong
-                                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-950 dark:text-rose-200 font-semibold border-slate-900 dark:border-rose-700 shadow-[1.5px_1.5px_0px_0px_#0f172a]'
-                                      : 'bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-900 dark:border-slate-700 shadow-[1.5px_1.5px_0px_0px_#0f172a]'
-                                }`}
-                              >
-                                <span className="font-mono">{opt}</span>
-                                {isCorrect && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 dark:text-emerald-300 font-black ml-2 shrink-0">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Đáp án đúng</span>
-                                  </span>
-                                )}
-                                {isChosenWrong && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 dark:text-rose-300 font-black ml-2 shrink-0">
-                                    <XCircle className="w-3.5 h-3.5" />
-                                    <span>Bạn chọn</span>
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Chỉ hiển thị Đáp án đúng khi KHÔNG CÓ danh sách trắc nghiệm phía trên */}
-                      {!newMistake.optionsText && newMistake.correctAnswer && (
-                        <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] flex items-center gap-2 text-xs">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-[11px] bg-emerald-200 text-emerald-950 border border-slate-900 shrink-0">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                            Đáp án đúng:
-                          </span>
-                          <span className="font-bold text-slate-950 dark:text-white font-mono">
-                            {newMistake.correctAnswer}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Thẻ 1: Điểm dễ nhầm (Lý do bẫy) */}
-                      {newMistake.userMistake && newMistake.userMistake !== 'Chưa ghi chú lỗi' && (
-                        <div className="p-3 sm:p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] flex items-start gap-2.5 text-xs">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] bg-rose-100 text-rose-900 dark:bg-rose-900/60 dark:text-rose-200 border border-slate-900 shrink-0">
-                            <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                            Điểm dễ nhầm
-                          </span>
-                          <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed pt-0.5">
-                            {newMistake.userMistake}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Thẻ 2: Mẹo 10s né bẫy */}
-                      {newMistake.trapTip && (
-                        <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] flex items-start gap-2.5 text-xs">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-[11px] bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-200 border border-slate-900 shrink-0">
-                            <Lightbulb className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300 fill-amber-400/40" />
-                            Giải thích
-                          </span>
-                          <p className="text-slate-900 dark:text-slate-100 font-medium leading-relaxed pt-0.5 min-w-0 whitespace-pre-line break-words">
-                            {newMistake.trapTip}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                    {aiIsDemo && <p className="font-semibold">Đây là ví dụ có sẵn, không phải kết quả phân tích nội dung bạn nhập.</p>}
-                    {aiMissingInformation.map((item, index) => <p key={index}>{item}</p>)}
-                    <label className="mt-2 flex items-start gap-2">
-                      <input type="checkbox" checked={aiReviewed} onChange={event => setAIReviewed(event.target.checked)} />
-                      <span>Tôi đã kiểm tra nội dung và đáp án trước khi lưu.</span>
-                    </label>
-                  </div>
-                  {/* Thanh hành động dưới thẻ preview Neo */}
-                  <div className="flex items-center justify-between pt-1">
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
+                    <PartBadge part={newMistake.part} />
+                    <span>{ERROR_CATEGORY_LABELS[newMistake.category]?.label}</span>
                     <button
                       type="button"
-                      onClick={() => setAiStep('INPUT')}
-                      className="px-3 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs flex items-center gap-1.5 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer transition-all"
+                      onClick={handleSwitchToManual}
+                      className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-300 px-3 py-1 text-[13px] font-semibold text-slate-700 hover:border-slate-500 dark:border-slate-600 dark:text-slate-200"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Dán câu khác</span>
+                      <Pencil className="h-3.5 w-3.5" />
+                      Sửa
                     </button>
+                  </div>
 
-                    <div className="flex items-center gap-2">
+                  <p className="text-[16px] font-semibold leading-relaxed text-slate-900 dark:text-white">{draftQuestion.question}</p>
+                  {draftQuestion.context && (
+                    <p className="whitespace-pre-line border-l-[3px] border-slate-300 pl-3 text-sm leading-relaxed text-slate-600 dark:border-slate-600 dark:text-slate-300">{draftQuestion.context}</p>
+                  )}
+
+                  {draftQuiz.options.length > 0 ? (
+                    <OptionList
+                      options={draftQuiz.options}
+                      chosen={newMistake.wrongLetter}
+                      correctLabel={newMistake.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án của đề'}
+                    />
+                  ) : newMistake.correctAnswer && (
+                    <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">Đáp án:</span> {newMistake.correctAnswer}</p>
+                  )}
+
+                  <ExplanationView
+                    explanation={structured?.explanation}
+                    trapTip={newMistake.trapTip}
+                    collapsible={false}
+                    extra={[['Bạn đã nhầm', newMistake.userMistake]]}
+                  />
+
+                  {(aiIsDemo || aiMissingInformation.length > 0) && (
+                    <div className="space-y-1 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                      {aiIsDemo && <p className="font-semibold">Đây là ví dụ có sẵn, không phải kết quả phân tích nội dung bạn nhập.</p>}
+                      {aiMissingInformation.map((item, index) => <p key={index}>{item}</p>)}
+                    </div>
+                  )}
+
+                  <div className="sticky bottom-0 -mx-4 -mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t-2 border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#111A2C] sm:-mx-6 sm:-mb-6 sm:px-6">
+                    <label className="flex items-center gap-2 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+                      <input type="checkbox" checked={aiReviewed} onChange={event => setAIReviewed(event.target.checked)} className="h-4 w-4 accent-slate-900" />
+                      <span>Tôi đã kiểm tra nội dung và đáp án trước khi lưu.</span>
+                    </label>
+                    <div className="ml-auto flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={closeModal}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-slate-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer transition-all"
+                        onClick={() => setAiStep('INPUT')}
+                        className="cursor-pointer px-3 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                       >
-                        Hủy
+                        Dán câu khác
                       </button>
                       <button
                         type="button"
                         onClick={handleSaveFromAIPreview}
                         disabled={!aiReviewed}
-                        aria-disabled={!aiReviewed}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs border-2 border-slate-900 dark:border-slate-200 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="cursor-pointer rounded-xl border-2 border-slate-900 bg-emerald-400 px-5 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Lưu Vào Sổ Tay</span>
+                        Lưu Vào Sổ Tay
                       </button>
                     </div>
                   </div>
@@ -1466,17 +1081,6 @@ Tôi chọn A vì nghĩ reports là số nhiều.
           </div>
         </div>
       )}
-
-      {/* 4. MODAL THỬ THÁCH VƯỢT BẪY (TRAP QUIZ MODAL) */}
-      <TrapQuizModal
-        mistake={quizMistake}
-        isOpen={isQuizOpen}
-        onClose={() => {
-          setIsQuizOpen(false);
-          setQuizMistake(null);
-        }}
-        onToggleStatus={onToggleStatus}
-      />
 
     </div>
   );

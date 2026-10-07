@@ -1,16 +1,19 @@
 import { z } from 'zod';
 import { backendRequest, apiAvailable } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
+import { explanationSchema, optionNoteSchema } from '@/shared/data/mistakeFields';
 
 const draftSchema = z.object({
   part: z.number().int().min(1).max(7).nullable(),
   category: z.enum(['VOCABULARY_TRAP', 'ADVANCED_GRAMMAR', 'LISTENING_SPEED', 'TIME_PRESSURE', 'CARELESS_DISTRACTION', 'OTHER']),
   questionContext: z.string().min(1).max(4000), userMistake: z.string().max(2000),
-  correctAnswer: z.string().max(1000), trapTip: z.string().max(2000),
+  correctAnswer: z.string().max(1000), trapTip: z.string().max(4000),
   options: z.array(z.string().max(1000)).max(4), tags: z.array(z.string().max(50)).max(5),
   missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']),
-  // Older backends and Gemini drafts omit the learner's choice.
-  userChoice: z.enum(['A', 'B', 'C', 'D', '']).default('')
+  // Older backends and Gemini drafts omit the learner's choice and the structured fields.
+  userChoice: z.enum(['A', 'B', 'C', 'D', '']).default(''),
+  optionNotes: z.array(optionNoteSchema).max(4).default([]),
+  explanation: explanationSchema.nullable().default(null)
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
@@ -101,15 +104,31 @@ Tôi chọn A vì thấy reports là số nhiều nên chọn are.
       part: 5, category: 'ADVANCED_GRAMMAR',
       questionContext: 'Ms. Watson requested that all expense reports ______ submitted to the accounting department before 5:00 PM on Friday.',
       userMistake: 'Chọn A vì nghĩ reports số nhiều nên dùng are.', correctAnswer: '(B) be',
+      // Same labeled text the backend composes from the structured fields below.
       trapTip: `Dịch ngữ cảnh: Bà Watson yêu cầu tất cả báo cáo chi phí được nộp cho phòng kế toán trước 5 giờ chiều thứ Sáu.
 
-Từ vựng/phương án: (A) are: dạng hiện tại của be với chủ ngữ số nhiều; (B) be: động từ nguyên thể; (C) were: dạng quá khứ; (D) will be: dạng tương lai. expense report: báo cáo chi phí; submit: nộp; accounting department: phòng kế toán.
+Phương án: (A) (v) to be, hiện tại số nhiều; (B) (v) nguyên thể; (C) (v) to be, quá khứ; (D) (v) to be, tương lai
 
-Phân tích: requested that diễn tả yêu cầu, dùng cấu trúc giả định request + that + chủ ngữ + động từ nguyên thể không to. Báo cáo được nộp nên dùng bị động be + submitted (V3). Theo đáp án chuẩn B, be phù hợp. A dễ gây nhầm do reports là số nhiều, nhưng động từ trong mệnh đề giả định không chia theo số ít/số nhiều. C chia quá khứ và D dùng tương lai, đều không theo cấu trúc đang được kiểm tra.
+Phân tích: "requested that" dùng cấu trúc giả định nên động từ ở dạng nguyên thể; báo cáo được nộp nên dùng bị động be submitted. Chọn A vì thấy reports số nhiều là bẫy: động từ trong mệnh đề giả định không chia theo số nhiều.
 
-Mẹo 10s: Gặp request that, kiểm tra động từ nguyên thể; nếu chủ ngữ nhận hành động thì dùng be + V3. Đừng chỉ nhìn chủ ngữ số nhiều để chọn are.`,
+Từ vựng: expense report: báo cáo chi phí · accounting department: phòng kế toán
+
+Mẹo 10s: Gặp "request that" → động từ nguyên thể; chủ ngữ nhận hành động thì dùng be + V3.`,
       options: ['(A) are', '(B) be', '(C) were', '(D) will be'],
-      tags: ['subjunctive', 'part5'], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A'
+      tags: ['subjunctive', 'part5'], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
+      optionNotes: [
+        { label: 'A', pos: 'v', meaning: 'to be, hiện tại số nhiều' },
+        { label: 'B', pos: 'v', meaning: 'nguyên thể' },
+        { label: 'C', pos: 'v', meaning: 'to be, quá khứ' },
+        { label: 'D', pos: 'v', meaning: 'to be, tương lai' }
+      ],
+      explanation: {
+        quickTip: 'Gặp "request that" → động từ nguyên thể; chủ ngữ nhận hành động thì dùng be + V3.',
+        translation: 'Bà Watson yêu cầu tất cả báo cáo chi phí được nộp cho phòng kế toán trước 5 giờ chiều thứ Sáu.',
+        questionType: '', evidence: '', paraphrase: '',
+        analysis: '"requested that" dùng cấu trúc giả định nên động từ ở dạng nguyên thể; báo cáo được nộp nên dùng bị động be submitted. Chọn A vì thấy reports số nhiều là bẫy: động từ trong mệnh đề giả định không chia theo số nhiều.',
+        keyVocabulary: 'expense report: báo cáo chi phí · accounting department: phòng kế toán'
+      }
     }
   };
 }

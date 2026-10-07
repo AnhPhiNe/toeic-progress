@@ -62,9 +62,20 @@ describe('backend AI extraction', () => {
     mocks.backendRequest.mockResolvedValue({ draft: demo.result, usage: { remaining: 9, limit: 10, guest: false } });
     const { draft } = await extractMistakeWithAI(demo.input, vi.fn(), 'openai');
     expect(draft.trapTip).toBe(demo.result.trapTip);
-    expect(draft.trapTip.split('\n\n')).toHaveLength(4);
+    expect(draft.trapTip.split('\n\n')).toHaveLength(5);
     expect(draft.options).toEqual(['(A) are', '(B) be', '(C) were', '(D) will be']);
     expect(draft.correctAnswer).toBe('(B) be');
+    expect(draft.optionNotes.map(note => `${note.label} (${note.pos})`)).toEqual(['A (v)', 'B (v)', 'C (v)', 'D (v)']);
+    expect(draft.explanation?.quickTip).toContain('request that');
+  });
+
+  it('accepts drafts from backends without structured fields', async () => {
+    const { optionNotes: _notes, explanation: _explanation, userChoice: _choice, ...older } = getDemoSampleInput().result;
+    mocks.backendRequest.mockResolvedValue({ draft: older, usage: {} });
+    const { draft } = await extractMistakeWithAI(getDemoSampleInput().input, vi.fn(), 'gemini');
+    expect(draft.optionNotes).toEqual([]);
+    expect(draft.explanation).toBeNull();
+    expect(draft.userChoice).toBe('');
   });
 
   it('keeps an explicitly marked AI proposal instead of erasing the answer', async () => {

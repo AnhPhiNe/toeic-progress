@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { DataBundle } from '@/shared/data/dataBundle';
+import { explanationSchema, optionNoteSchema } from '@/shared/data/mistakeFields';
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'phải là ngày YYYY-MM-DD')
   .refine(value => Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value && Number(value.slice(0, 4)) > 0, 'ngày không tồn tại');
@@ -56,6 +57,8 @@ const mistake = z.object({
   questionContext: z.string(), userMistake: z.string(), correctAnswer: z.string(),
   answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']).optional(),
   userChoice: z.enum(['A', 'B', 'C', 'D']).optional(),
+  optionNotes: z.array(optionNoteSchema).max(4).optional(),
+  explanation: explanationSchema.optional(),
   trapTip: z.string().optional(),
   options: z.array(z.string()).optional(),
   category, tags: z.array(z.string()), status: z.enum(['NEEDS_REVIEW', 'MASTERED']),

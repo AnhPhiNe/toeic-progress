@@ -11,7 +11,7 @@ import { ResourcesView } from '@/features/resources/components/ResourcesView';
 import { VocabularyView } from '@/features/vocabulary/components/VocabularyView';
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
-import { ReviewSessionModal } from '@/features/mistakes/components/ReviewSessionModal';
+import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { RelapseAlert } from '@/features/dashboard/components/RelapseAlert';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
@@ -38,7 +38,7 @@ import {
   getTodayDateString 
 } from '@/shared/data/storage';
 import { StudySession, MistakeEntry, UserProfile, ReadingPartType } from '@/shared/types';
-import { applyReviewResult, getDueMistakes } from '@/features/mistakes/lib/spacedRepetition';
+import { getDueMistakes } from '@/features/mistakes/lib/spacedRepetition';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -71,7 +71,7 @@ export const App: React.FC = () => {
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -197,21 +197,23 @@ export const App: React.FC = () => {
   };
 
   // Chuyển đổi trạng thái lỗi sai
-  const handleToggleMistakeStatus = (mistakeId: string) => {
-    setMistakes(updateMistakes(current => current.map(m => {
-      if (m.id === mistakeId) {
-        const nextStatus: 'NEEDS_REVIEW' | 'MASTERED' = m.status === 'MASTERED' ? 'NEEDS_REVIEW' : 'MASTERED';
-        return { ...m, status: nextStatus };
-      }
-      return m;
-    })));
+  // Người học tự đánh dấu đã thuộc (menu ⋯), bỏ qua phần lịch ôn còn lại
+  const handleMarkMastered = (mistakeId: string) => {
+    setMistakes(updateMistakes(current => current.map(m =>
+      m.id === mistakeId ? { ...m, status: 'MASTERED' as const } : m
+    )));
   };
 
-  // Ghi kết quả tự chấm một thẻ trong phiên ôn (SPEC mục 4.6)
-  const handleGradeMistake = (mistakeId: string, remembered: boolean) => {
-    setMistakes(updateMistakes(current => current.map(m =>
-      m.id === mistakeId ? applyReviewResult(m, remembered) : m
-    )));
+  // Lưu thẻ đã được chấm trong phiên ôn (SPEC mục 4.6)
+  const handleSaveReviewedMistake = (reviewed: MistakeEntry) => {
+    setMistakes(updateMistakes(current => current.map(m => (m.id === reviewed.id ? reviewed : m))));
+  };
+
+  // Mở phiên ôn: các thẻ được chọn, hoặc mọi thẻ đến hạn. Danh sách được chốt lúc mở.
+  const openReview = (mistakeIds?: string[]) => {
+    const ids = mistakeIds ? new Set(mistakeIds) : null;
+    const cards = ids ? mistakes.filter(m => ids.has(m.id)) : getDueMistakes(mistakes);
+    if (cards.length > 0) setReviewCards(cards);
   };
 
   /**
@@ -370,10 +372,11 @@ export const App: React.FC = () => {
           {activeTab === 'mistakes' && (
             <MistakeNotebookView
               dueCount={dueMistakesCount}
-              onStartReview={() => setIsReviewModalOpen(true)}
+              onStartReview={openReview}
               mistakes={mistakes}
               onAddMistake={handleAddMistake}
-              onToggleStatus={handleToggleMistakeStatus}
+              onMarkMastered={handleMarkMastered}
+              onReopenCards={handleReopenCards}
               onDeleteMistake={handleDeleteMistake}
               onUpdateMistake={handleUpdateMistake}
             />
@@ -425,12 +428,9 @@ export const App: React.FC = () => {
         onUpdateSession={handleUpdateSession}
       />
 
-      <ReviewSessionModal
-        isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
-        mistakes={mistakes}
-        onGrade={handleGradeMistake}
-      />
+      {reviewCards && (
+        <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onSave={handleSaveReviewedMistake} />
+      )}
 
       <SettingsModal
         isOpen={isSettingsModalOpen}
