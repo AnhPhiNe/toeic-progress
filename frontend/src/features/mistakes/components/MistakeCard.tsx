@@ -84,7 +84,6 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             expanded ? 'font-bold' : 'font-semibold line-clamp-2'
           }`}>{question}</span>
           <span className={`hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap pt-0.5 text-[13px] font-semibold ${style.text}`}>
-            {style.dot && <span className="sr-only">Trạng thái:</span>}
             {style.dot && <span className={`h-2 w-2 rounded-full ${style.dot}`} />}{status.label}
           </span>
         </button>
