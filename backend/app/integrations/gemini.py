@@ -15,6 +15,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import Settings
+from app.core.runtime import request_id_context
 from app.schemas.models import MistakeDraft
 from app.services.ai_grounding import ground_draft
 
@@ -150,6 +151,9 @@ class GeminiProvider:
             async with asyncio.timeout(self.settings.gemini_total_timeout_seconds):
                 return await self._generate(text)
         except TimeoutError as error:
+            logger.warning(json.dumps({
+                "event": "gemini_deadline", "request_id": request_id_context.get(), "error_type": "TimeoutError",
+            }))
             # An interrupted RPC/provider call may have committed already. Its
             # lease and counters stay reserved; do not launch another generation.
             raise HTTPException(503, "AI đang chậm. Vui lòng thử lại sau hoặc nhập thủ công.") from error
@@ -205,6 +209,7 @@ class GeminiProvider:
                     raise HTTPException(503, "Cấu hình nhóm key AI chưa hợp lệ.")
                 attempt_count += 1
                 response = None
+                started = time.monotonic()
                 try:
                     timeout = min(self.settings.gemini_attempt_timeout_seconds, deadline - time.monotonic())
                     # A total deadline also bounds connect/read phases together.
@@ -216,13 +221,26 @@ class GeminiProvider:
                             timeout=max(0.1, timeout),
                         )
                 except (httpx.HTTPError, TimeoutError) as error:
+                    timed_out = isinstance(error, (httpx.TimeoutException, TimeoutError))
+                    logger.warning(json.dumps({
+                        "event": "gemini_transport_error", "request_id": request_id_context.get(),
+                        "attempt_id": attempt_id, "model": model, "error_type": type(error).__name__,
+                        "duration_ms": round((time.monotonic() - started) * 1000, 2),
+                    }))
                     # The provider may already be generating: do not multiply ambiguous requests.
                     await self.finish(attempt_id, Cooldown("model", "network", 30))
-                    raise HTTPException(503, "Kết nối AI bị gián đoạn. Vui lòng thử lại sau.") from error
+                    raise HTTPException(503, (
+                        "AI phản hồi quá lâu. Vui lòng thử lại sau hoặc nhập thủ công."
+                        if timed_out else "Kết nối AI bị gián đoạn. Vui lòng thử lại sau."
+                    )) from error
                 except asyncio.CancelledError:
                     # Expiring leases recover crashes/cancellation without waiting forever.
                     raise
-                logger.info(json.dumps({"event": "gemini_attempt", "model": model, "status": response.status_code}))
+                logger.info(json.dumps({
+                    "event": "gemini_attempt", "request_id": request_id_context.get(), "attempt_id": attempt_id,
+                    "model": model, "status": response.status_code,
+                    "duration_ms": round((time.monotonic() - started) * 1000, 2),
+                }))
                 if response.status_code == 429:
                     cooldown = provider_cooldown(response, model, self.settings)
                     await self.finish(attempt_id, cooldown)

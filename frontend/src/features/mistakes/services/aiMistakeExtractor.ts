@@ -11,7 +11,16 @@ const draftSchema = z.object({
   missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'MISSING'])
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
-export interface AIUsage { remaining: number; limit: number; guest: boolean }
+export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
+
+export async function getAIUsage(): Promise<AIUsage | null> {
+  if (!apiAvailable || !cloud) return null;
+  const { data: { session } } = await cloud.auth.getSession();
+  if (!session) return null;
+  const usage = await backendRequest<AIUsage>('/api/v1/ai/usage', 'GET', undefined, session.user.id);
+  const { data: { session: current } } = await cloud.auth.getSession();
+  return current?.user.id === session.user.id ? usage : null;
+}
 
 export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
   if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');

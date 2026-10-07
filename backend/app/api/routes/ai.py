@@ -11,6 +11,8 @@ router = APIRouter()
 @router.get("/api/v1/ai/usage")
 async def usage(request: Request, user=Depends(identity)):
     settings = request.app.state.settings
+    if settings.unlimited_ai_for(user):
+        return {"remaining": None, "limit": None, "guest": False, "unlimited": True}
     return await request.app.state.gateway.rpc(
         "get_ai_usage",
         {
@@ -27,6 +29,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     if not settings.ai_ready:
         raise HTTPException(503, "AI chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.")
     gateway = request.app.state.gateway
+    unlimited = settings.unlimited_ai_for(user)
     if user["is_anonymous"]:
         await gateway.verify_captcha(body.captcha_token)
     reservation = await gateway.rpc(
@@ -37,10 +40,14 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             "p_request_id": str(body.request_id),
             "p_input_hash": hashlib.sha256(body.text.encode()).hexdigest(),
             "p_ip_hash": gateway.ip_hash(request.client.host if request.client else "unknown"),
-            "p_user_limit": settings.ai_guest_limit if user["is_anonymous"] else settings.ai_account_monthly_limit,
-            "p_day_limit": settings.ai_global_daily_limit,
+            # These RPC parameters are service-role only. NULL leaves the
+            # corresponding cap unset while still recording usage/idempotency.
+            "p_user_limit": None if unlimited else (
+                settings.ai_guest_limit if user["is_anonymous"] else settings.ai_account_monthly_limit
+            ),
+            "p_day_limit": None if unlimited else settings.ai_global_daily_limit,
             "p_minute_limit": settings.ai_global_minute_limit,
-            "p_ip_limit": settings.ai_ip_daily_limit,
+            "p_ip_limit": None if unlimited else settings.ai_ip_daily_limit,
         },
     )
     if not reservation["allowed"]:
@@ -58,8 +65,9 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     return {
         "draft": result.model_dump(),
         "usage": {
-            "remaining": reservation["remaining"],
-            "limit": reservation["limit"],
+            "remaining": None if unlimited else reservation["remaining"],
+            "limit": None if unlimited else reservation["limit"],
             "guest": user["is_anonymous"],
+            "unlimited": unlimited,
         },
     }

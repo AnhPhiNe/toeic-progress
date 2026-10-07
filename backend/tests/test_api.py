@@ -40,6 +40,8 @@ def api():
         api_reservation=None,
         readiness_status=200,
         settings_overrides=None,
+        auth_user=None,
+        gemini_error=None,
     ):
         calls = []
         provider_blocked = False
@@ -53,7 +55,7 @@ def api():
             )
             calls.append((request.url.host, request.url.path, body, dict(request.headers)))
             if request.url.path == "/auth/v1/user":
-                return httpx.Response(auth_status, json={"id": USER_ID, "is_anonymous": guest})
+                return httpx.Response(auth_status, json={"id": USER_ID, "is_anonymous": guest, **(auth_user or {})})
             if request.url.path.endswith("/sync_account_records"):
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
@@ -79,6 +81,8 @@ def api():
             if request.url.host == "challenges.cloudflare.com":
                 return httpx.Response(200, json={"success": True, "hostname": captcha_host, "action": "toeic-ai"})
             if request.url.host == "generativelanguage.googleapis.com":
+                if gemini_error:
+                    raise gemini_error("must not log Gemini key or input", request=request)
                 return httpx.Response(
                     gemini_status,
                     json={
@@ -443,3 +447,76 @@ def test_untrusted_host_is_rejected_before_supabase(api):
     with api() as (client, calls):
         assert client.post("/api/v1/sync", json={}, headers={"Host": "attacker.example"}).status_code == 400
         assert calls == []
+
+
+def google_identity(email="owner@gmail.com", verified=True):
+    return {"provider": "google", "identity_data": {"email": email, "email_verified": verified}}
+
+
+def trusted_user(**overrides):
+    return {
+        "email": "owner@gmail.com", "email_confirmed_at": "2026-10-07T00:00:00Z",
+        "identities": [google_identity()], **overrides,
+    }
+
+
+def test_google_verified_allowlisted_user_has_unlimited_usage_and_retains_safety_caps(api):
+    with api(
+        auth_user=trusted_user(),
+        settings_overrides={"ai_unlimited_emails": [" Owner@gmail.com "], "api_limits_enabled": True},
+    ) as (client, calls):
+        expected = {"remaining": None, "limit": None, "guest": False, "unlimited": True}
+        assert client.get("/api/v1/ai/usage").json() == expected
+        response = client.post("/api/v1/ai/extract", json=extraction())
+        assert response.status_code == 200 and response.json()["usage"] == expected
+        quota = next(call[2] for call in calls if call[1].endswith("/reserve_ai_request"))
+        assert quota["p_user_limit"] is None and quota["p_day_limit"] is None and quota["p_ip_limit"] is None
+        assert quota["p_minute_limit"] == 2
+        assert any(call[1].endswith("/reserve_api_request") for call in calls)
+        assert any(call[1].endswith("/reserve_gemini_attempt") for call in calls)
+        assert not any(call[1].endswith("/get_ai_usage") for call in calls)
+
+
+@pytest.mark.parametrize("auth_user", [
+    trusted_user(is_anonymous=True),
+    trusted_user(email_confirmed_at=None),
+    trusted_user(email="another@gmail.com"),
+    trusted_user(identities=[google_identity(verified=False)]),
+    trusted_user(identities=[google_identity(email="another@gmail.com")]),
+    trusted_user(identities=[{"provider": "email", "identity_data": {"email": "owner@gmail.com", "email_verified": True}}]),
+    trusted_user(identities=[]),
+    {"email": "owner@gmail.com", "user_metadata": {"email_verified": True, "unlimited": True}},
+])
+def test_email_metadata_or_unverified_identity_cannot_bypass_ai_limits(api, auth_user):
+    with api(auth_user=auth_user, settings_overrides={"ai_unlimited_emails": ["owner@gmail.com"]}) as (client, calls):
+        extra = {"captcha_token": "token"} if auth_user.get("is_anonymous") else {}
+        assert client.post("/api/v1/ai/extract", json=extraction(**extra)).status_code == 200
+        quota = next(call[2] for call in calls if call[1].endswith("/reserve_ai_request"))
+        assert quota["p_user_limit"] in (3, 10) and quota["p_day_limit"] == 20 and quota["p_ip_limit"] == 5
+
+
+@pytest.mark.parametrize("error_type", [httpx.ReadTimeout, httpx.ConnectError])
+def test_gemini_transport_logs_correlate_with_support_id_without_secrets(api, caplog, error_type):
+    with api(gemini_error=error_type) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction())
+        assert response.status_code == 503
+        assert ("quá lâu" in response.json()["detail"]) is (error_type is httpx.ReadTimeout)
+        events = [json.loads(record.message) for record in caplog.records if record.name == "toeic.runtime"]
+        event = next(event for event in events if event.get("event") == "gemini_transport_error")
+        assert event["request_id"] == response.headers["x-request-id"]
+        assert event["error_type"] == error_type.__name__
+        assert sum(call[0] == "generativelanguage.googleapis.com" for call in calls) == 1
+        assert "must not log" not in json.dumps(events) and "gemini-secret" not in json.dumps(events)
+
+
+def test_unlimited_account_cannot_bypass_api_throttling_or_request_deduplication(api):
+    trusted = {"auth_user": trusted_user(), "settings_overrides": {"ai_unlimited_emails": ["owner@gmail.com"]}}
+    with api(
+        auth_user=trusted_user(), api_reservation={"allowed": False, "retry_after": 10},
+        settings_overrides={"ai_unlimited_emails": ["owner@gmail.com"], "api_limits_enabled": True},
+    ) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 429
+        assert not any(call[1].endswith("/reserve_ai_request") for call in calls)
+    with api(**trusted, reservation={"allowed": False, "code": "duplicate"}) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 409
+        assert not any(call[0] == "generativelanguage.googleapis.com" for call in calls)

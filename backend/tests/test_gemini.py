@@ -182,6 +182,28 @@ def test_total_deadline_also_bounds_a_slow_reservation_rpc():
     asyncio.run(run())
 
 
+def test_provider_can_complete_within_the_longer_attempt_budget():
+    async def run():
+        settings = Settings(_env_file=None, gemini_api_key="key-one")
+        assert settings.gemini_attempt_timeout_seconds == 30 and settings.gemini_total_timeout_seconds == 60
+        async def transport(request):
+            # The outbound HTTP timeout must use the provider budget rather
+            # than a short connection-oriented timeout for model generation.
+            assert request.extensions["timeout"]["read"] > 29
+            await asyncio.sleep(0.02)
+            return successful_response()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+            assert (await GeminiProvider(settings, client, MockReservations()).generate(TEXT)).correctAnswer == "(B) be"
+    asyncio.run(run())
+
+
+def test_gmail_allowlist_is_normalized_but_rejects_non_gmail_or_wildcard_rules():
+    assert Settings(_env_file=None, ai_unlimited_emails=[" OWNER@gmail.com ", "owner@gmail.com"]).ai_unlimited_emails == ["owner@gmail.com"]
+    for values in (["*@gmail.com"], ["owner@example.com"], [""]):
+        with pytest.raises(ValidationError):
+            Settings(_env_file=None, ai_unlimited_emails=values)
+
+
 def test_only_a_structurally_invalid_key_is_immediately_rotated():
     async def run():
         settings = Settings(_env_file=None, gemini_api_keys=["invalid-key", "healthy-key"])

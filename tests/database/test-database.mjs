@@ -79,6 +79,23 @@ try {
   assert.equal(usage.remaining, 0);
   await db.exec("update public.ai_usage_counters set expires_at=now()-interval '2 days' where bucket like 'minute:%'; select public.cleanup_ai_usage();");
   assert.equal((await db.query("select count(*)::int as total from public.ai_usage_counters where bucket like 'minute:%'")).rows[0].total, 0);
+  // Service-role-only NULL caps support trusted backend exemptions. Request
+  // deduplication, shared minute caps and the audit counters still apply.
+  await db.exec('truncate public.ai_requests,public.ai_usage_counters;');
+  await db.query(`insert into public.ai_usage_counters(bucket,used) values
+    ('user:'||$1||':'||to_char(now() at time zone 'UTC','YYYY-MM'),10),
+    ('day:'||to_char(now() at time zone 'UTC','YYYY-MM-DD'),20),
+    ('ip:'||$2||':'||to_char(now() at time zone 'UTC','YYYY-MM-DD'),5)`, [alice, 'b'.repeat(64)]);
+  const unlimited = id => db.query(`select public.reserve_ai_request(
+    $1::uuid,false,$2::uuid,$3,$4,null,null,2,null) as value`,
+    [alice, id, 'a'.repeat(64), 'b'.repeat(64)]).then(result => result.rows[0].value);
+  const privilegedId = '55555555-5555-4555-8555-555555555555';
+  const privileged = await unlimited(privilegedId);
+  assert.deepEqual(privileged, { allowed: true, remaining: null, limit: null });
+  assert.equal((await unlimited(privilegedId)).code, 'duplicate');
+  const burst = await Promise.all(requests.map(id => unlimited(id)));
+  assert.equal(burst.filter(result => result.allowed).length, 1, 'Unlimited usage retains the global minute cap');
+  assert.equal((await reserve('66666666-6666-4666-8666-666666666666', alice, 10)).code, 'quota');
   console.log('Database migrations, incremental sync, tombstones, RLS, RPC grants, quota reservations and cleanup passed.');
 } finally {
   await db.close();

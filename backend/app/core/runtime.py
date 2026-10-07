@@ -5,6 +5,7 @@ import logging
 import math
 import time
 from collections import OrderedDict
+from contextvars import ContextVar
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -14,6 +15,7 @@ from starlette.responses import JSONResponse
 from app.core.config import Settings
 
 logger = logging.getLogger("toeic.runtime")
+request_id_context: ContextVar[str | None] = ContextVar("request_id", default=None)
 ROUTES = {
     "/health": "health",
     "/ready": "ready",
@@ -75,6 +77,7 @@ class RuntimeMiddleware:
             return await self.app(scope, receive, send)
         started = time.monotonic()
         request_id = str(uuid4())
+        context_token = request_id_context.set(request_id)
         scope.setdefault("state", {})["request_id"] = request_id
         path = scope.get("path", "")
         method = scope.get("method", "")
@@ -150,3 +153,4 @@ class RuntimeMiddleware:
                     }
                 )
             )
+            request_id_context.reset(context_token)

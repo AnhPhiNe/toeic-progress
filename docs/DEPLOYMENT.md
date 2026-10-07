@@ -70,6 +70,8 @@ Với backend mới có cân bằng Gemini, chạy thêm migration `202610070000
 
 Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức cam kết của Google.
 
+Tùy chọn miễn hạn mức: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail đã xác minh qua Google trong Supabase Auth được miễn cap tháng/ngày; vẫn chịu cap phút, API và provider, không thêm quyền database. Để `[]` để tắt. Không cần chạy thêm migration. Request ưu tiên vẫn được ghi vào bộ đếm chung. Khi triển khai từ cấu hình cũ, đặt `GEMINI_ATTEMPT_TIMEOUT_SECONDS=30`, `GEMINI_TOTAL_TIMEOUT_SECONDS=60` để model đủ thời gian sinh bản nháp.
+
 ## 6. Giới hạn, log và proxy
 
 PostgreSQL giữ lượt theo tài khoản trước nghiệp vụ, dùng chung giữa instance: tổng 60 request/phút; sync 30; usage 30; AI 10; reset/xóa tài khoản chung 3. Fixed minute windows có thể cho phép burst ở ranh giới phút.

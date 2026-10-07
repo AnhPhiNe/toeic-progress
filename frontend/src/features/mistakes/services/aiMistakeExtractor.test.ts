@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 const mocks = vi.hoisted(() => ({ getSession: vi.fn(), signInAnonymously: vi.fn(), backendRequest: vi.fn() }));
 vi.mock('@/shared/api/api', () => ({ apiAvailable: true, backendRequest: mocks.backendRequest }));
 vi.mock('@/shared/api/supabaseClient', () => ({ cloud: { auth: { getSession: mocks.getSession, signInAnonymously: mocks.signInAnonymously } } }));
-import { extractMistakeWithAI, getDemoSampleInput } from '@/features/mistakes/services/aiMistakeExtractor';
+
+import { extractMistakeWithAI, getDemoSampleInput, getAIUsage } from './aiMistakeExtractor';
+
 const guest = { user: { id: 'guest-id', is_anonymous: true }, access_token: 'guest-token' };
 const account = { user: { id: 'account-id', is_anonymous: false }, access_token: 'account-token' };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   mocks.getSession.mockResolvedValue({ data: { session: account } });
   mocks.backendRequest.mockResolvedValue({ draft: getDemoSampleInput().result, usage: { remaining: 9, limit: 10, guest: false } });
 });
@@ -52,5 +55,31 @@ describe('backend AI extraction', () => {
   it('keeps a missing answer empty even if the provider filled an answer', async () => {
     mocks.backendRequest.mockResolvedValue({ draft: { ...getDemoSampleInput().result, answerSource: 'MISSING' }, usage: {} });
     expect((await extractMistakeWithAI(getDemoSampleInput().input, vi.fn())).draft.correctAnswer).toBe('');
+  });
+});
+
+const session = (id: string) => ({ data: { session: { user: { id } } } });
+
+describe('AI quota lookup', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('does not create a guest identity or call the API just to open the modal', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    expect(await getAIUsage()).toBeNull();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+
+  it('displays backend entitlement using the current verified session owner', async () => {
+    mocks.getSession.mockResolvedValue(session('alice'));
+    const usage = { remaining: null, limit: null, guest: false, unlimited: true };
+    mocks.backendRequest.mockResolvedValue(usage);
+    expect(await getAIUsage()).toEqual(usage);
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/usage', 'GET', undefined, 'alice');
+  });
+
+  it('discards a quota response when the account changes during the request', async () => {
+    mocks.getSession.mockResolvedValueOnce(session('alice')).mockResolvedValueOnce(session('bob'));
+    mocks.backendRequest.mockResolvedValue({ remaining: null, limit: null, guest: false, unlimited: true });
+    expect(await getAIUsage()).toBeNull();
   });
 });

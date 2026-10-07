@@ -57,8 +57,8 @@ class Settings(BaseSettings):
     gemini_max_concurrent: int = Field(default=2, ge=1, le=16)
     gemini_key_max_concurrent: int = Field(default=1, ge=1, le=8)
     gemini_max_attempts: int = Field(default=8, ge=1, le=16)
-    gemini_attempt_timeout_seconds: float = Field(default=12, ge=1, le=30)
-    gemini_total_timeout_seconds: float = Field(default=45, ge=5, le=60)
+    gemini_attempt_timeout_seconds: float = Field(default=30, ge=1, le=30)
+    gemini_total_timeout_seconds: float = Field(default=60, ge=5, le=60)
     gemini_rpm_cooldown_seconds: int = Field(default=60, ge=60, le=3600)
     gemini_rpd_cooldown_seconds: int = Field(default=86400, ge=86400, le=604800)
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
@@ -70,6 +70,40 @@ class Settings(BaseSettings):
     ai_global_daily_limit: int = Field(default=20, ge=0, le=10000)
     ai_global_minute_limit: int = Field(default=2, ge=0, le=100)
     ai_ip_daily_limit: int = Field(default=5, ge=0, le=1000)
+    ai_unlimited_emails: list[str] = Field(default_factory=list, max_length=100, repr=False)
+
+    @field_validator("ai_unlimited_emails")
+    @classmethod
+    def clean_unlimited_emails(cls, emails: list[str]) -> list[str]:
+        import re
+
+        values = [email.strip().lower() for email in emails]
+        if any(not re.fullmatch(r"[a-z0-9][a-z0-9._+\-]*@gmail\.com", email) for email in values):
+            raise ValueError("AI_UNLIMITED_EMAILS must contain Gmail addresses")
+        return list(dict.fromkeys(values))
+
+    def unlimited_ai_for(self, user: dict) -> bool:
+        """Only provider-verified Google identities from Supabase Auth can qualify."""
+        email = user.get("email")
+        if user.get("is_anonymous") is not False or not user.get("email_confirmed_at") or not isinstance(email, str):
+            return False
+        email = email.strip().lower()
+        if email not in self.ai_unlimited_emails:
+            return False
+        identities = user.get("identities")
+        if not isinstance(identities, list):
+            return False
+        for identity in identities:
+            if not isinstance(identity, dict) or identity.get("provider") != "google":
+                continue
+            data = identity.get("identity_data")
+            identity_email = data.get("email") if isinstance(data, dict) else None
+            if (
+                isinstance(data, dict) and data.get("email_verified") is True
+                and isinstance(identity_email, str) and identity_email.lower() == email
+            ):
+                return True
+        return False
 
     @field_validator("gemini_api_keys")
     @classmethod

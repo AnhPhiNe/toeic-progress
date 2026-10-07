@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { 
   AlertTriangle, 
   CheckCircle2, 
@@ -33,7 +33,8 @@ const SHORT_CATEGORY_LABELS: Record<ErrorCategory, string> = {
 };
 import { 
   extractMistakeWithAI, 
-  getDemoSampleInput 
+  getDemoSampleInput,
+  getAIUsage
 } from '@/features/mistakes/services/aiMistakeExtractor';
 import { TrapQuizModal } from '@/features/mistakes/components/TrapQuizModal';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
@@ -163,6 +164,16 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   const [aiIsDemo, setAIIsDemo] = useState(false);
   const aiGeneration = useRef(0);
   const { containerRef: captchaRef, getToken: getCaptcha, remove: removeCaptcha } = useTurnstile();
+
+  useEffect(() => {
+    if (!isAddModalOpen || modalMode !== 'AI_PARSE') return;
+    let cancelled = false;
+    setAIUsage(null);
+    void getAIUsage().then(usage => {
+      if (!cancelled) setAIUsage(usage);
+    }).catch(() => { /* Quota lookup failure leaves manual entry and the AI request available. */ });
+    return () => { cancelled = true; };
+  }, [isAddModalOpen, modalMode]);
 
   // Lọc tag thông minh cho AI Preview: Bỏ tag trùng lặp với Part và Category
   const previewTags = useMemo(() => {
@@ -1075,7 +1086,10 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                 <div className="space-y-3.5 text-xs">
                   
                   <div className="rounded-xl bg-slate-50 p-3 text-slate-600 dark:bg-slate-900 dark:text-slate-300" role="status">
-                    {aiUsage ? `Còn ${aiUsage.remaining}/${aiUsage.limit} lượt AI${aiUsage.guest ? ' dùng thử cho khách' : ' trong tháng'}.` : 'Khách được thử 3 lượt AI; tài khoản có 10 lượt/tháng. Tổng hạn mức beta có giới hạn.'}
+                    {aiUsage?.unlimited
+                      ? 'Tài khoản của bạn được miễn hạn mức lượt AI. Tốc độ sử dụng vẫn phụ thuộc giới hạn của Gemini.'
+                      : aiUsage ? `Còn ${aiUsage.remaining}/${aiUsage.limit} lượt AI${aiUsage.guest ? ' dùng thử cho khách' : ' trong tháng'}.`
+                        : 'Khách được thử 3 lượt AI; tài khoản có 10 lượt/tháng. Tổng hạn mức beta có giới hạn.'}
                     <p className="mt-1">Kết quả là bản nháp để bạn kiểm tra và chỉnh sửa trước khi lưu.</p>
                   </div>
 
