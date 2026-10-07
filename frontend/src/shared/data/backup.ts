@@ -54,6 +54,7 @@ const session = z.object({
 const mistake = z.object({
   id: z.string().min(1), sessionId: z.string().optional(), part: partNumber,
   questionContext: z.string(), userMistake: z.string(), correctAnswer: z.string(),
+  answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']).optional(),
   trapTip: z.string().optional(),
   options: z.array(z.string()).optional(),
   category, tags: z.array(z.string()), status: z.enum(['NEEDS_REVIEW', 'MASTERED']),

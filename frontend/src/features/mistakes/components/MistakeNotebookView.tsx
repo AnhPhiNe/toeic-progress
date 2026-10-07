@@ -102,6 +102,7 @@ const EMPTY_FORM = {
   questionContext: '',
   userMistake: '',
   correctAnswer: '',
+  answerSource: undefined as MistakeEntry['answerSource'],
   trapTip: '',
   optionsText: '',
   optA: '',
@@ -243,6 +244,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       questionContext: m.questionContext,
       userMistake: m.userMistake,
       correctAnswer: m.correctAnswer,
+      answerSource: m.answerSource,
       trapTip: m.trapTip || '',
       optionsText: (m.options || []).join('\n'),
       optA: slots.optA,
@@ -307,7 +309,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     setNewMistake({
       ...EMPTY_FORM, ...slots, part: (draft.part ?? 5) as 1 | 2 | 3 | 4 | 5 | 6 | 7, category: draft.category,
       questionContext: draft.questionContext, userMistake: draft.userMistake,
-      correctAnswer: draft.correctAnswer, trapTip: draft.trapTip, correctLetter,
+      correctAnswer: draft.correctAnswer, answerSource: draft.answerSource, trapTip: draft.trapTip, correctLetter,
       optionsText: draft.options.join('\n'), tags: draft.tags.join(', ')
     });
     setAIMissingInformation([...draft.missingInformation, ...(draft.part === null ? ['Chưa xác định được Part; hãy chọn lại khi chỉnh sửa.'] : [])]);
@@ -359,6 +361,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       questionContext: newMistake.questionContext,
       userMistake: newMistake.userMistake,
       correctAnswer: newMistake.correctAnswer,
+      answerSource: newMistake.answerSource,
       trapTip: newMistake.trapTip,
       options: parsedOptions.length > 0 ? parsedOptions : undefined,
       category: newMistake.category,
@@ -478,6 +481,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
         questionContext: newMistake.questionContext,
         userMistake: finalUserMistake,
         correctAnswer: finalCorrectAnswer,
+        answerSource: finalCorrectAnswer ? (newMistake.answerSource === 'AI_PROPOSED' ? 'AI_PROPOSED' : 'PROVIDED') : 'MISSING',
         trapTip: newMistake.trapTip,
         options: parsedOptions.length > 0 ? parsedOptions : editingMistake.options,
         category: newMistake.category,
@@ -493,6 +497,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       questionContext: newMistake.questionContext,
       userMistake: finalUserMistake,
       correctAnswer: finalCorrectAnswer,
+      answerSource: finalCorrectAnswer ? (newMistake.answerSource === 'AI_PROPOSED' ? 'AI_PROPOSED' : 'PROVIDED') : 'MISSING',
       trapTip: newMistake.trapTip,
       options: parsedOptions.length > 0 ? parsedOptions : undefined,
       category: newMistake.category,
@@ -799,11 +804,17 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                     <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2.5 text-xs">
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-black text-[11px] bg-emerald-200 text-emerald-950 border border-emerald-400 shrink-0 w-fit">
                         <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                        Đáp án đúng
+                        {mistake.answerSource === 'AI_PROPOSED' ? 'Đáp án đề xuất' : 'Đáp án đúng'}
                       </span>
                       <span className="font-bold text-slate-900 dark:text-white font-mono">
                         {mistake.correctAnswer}
                       </span>
+                      {mistake.answerSource === 'AI_PROPOSED' && (
+                        <span className="px-2 py-0.5 rounded-md border border-amber-700 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200 text-[10px] font-bold">Đáp án AI đề xuất</span>
+                      )}
+                      {mistake.answerSource === 'PROVIDED' && (
+                        <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Theo đáp án bạn cung cấp</span>
+                      )}
                     </div>
 
                     {/* Lỗi đã chọn */}
@@ -983,6 +994,15 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                       {newMistake.questionContext}
                     </div>
 
+                    {newMistake.correctAnswer && newMistake.answerSource && (
+                      <div className={`px-3 py-2 rounded-xl border-2 text-xs flex flex-wrap items-center gap-2 ${newMistake.answerSource === 'AI_PROPOSED'
+                        ? 'bg-amber-50 border-amber-700 text-amber-950 dark:bg-amber-950/30 dark:text-amber-200'
+                        : 'bg-emerald-50 border-emerald-700 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-200'}`}>
+                        <span className="font-bold">{newMistake.answerSource === 'AI_PROPOSED' ? 'Đáp án AI đề xuất' : 'Theo đáp án bạn cung cấp'}</span>
+                        <span className="font-mono font-bold">{newMistake.correctAnswer}</span>
+                      </div>
+                    )}
+
                     {/* Nội dung bóc tách */}
                     <div className="space-y-3 text-xs">
                       {/* 4 Phương án trắc nghiệm A, B, C, D (nếu có) */}
@@ -1110,6 +1130,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                       : aiUsage ? `Còn ${aiUsage.remaining}/${aiUsage.limit} lượt AI${aiUsage.guest ? ' dùng thử cho khách' : ' trong tháng'}.`
                         : 'Khách được thử 3 lượt AI; tài khoản có 10 lượt/tháng. Tổng hạn mức beta có giới hạn.'}
                     <p className="mt-1">Kết quả là bản nháp để bạn kiểm tra và chỉnh sửa trước khi lưu.</p>
+                    {aiConfiguration?.provider === 'openai' && <p className="mt-1">Đáp án nguồn là tùy chọn. Chưa có thì AI sẽ tự giải khi đủ dữ liệu và ghi rõ đáp án đề xuất.</p>}
                   </div>
 
                   {/* Ô Dán Nội Dung Đề Bài Neo */}
@@ -1292,7 +1313,7 @@ Tôi chọn A vì nghĩ reports là số nhiều.
                             setNewMistake(prev => ({
                               ...prev,
                               [key]: val,
-                              ...(prev.correctLetter === letter ? { correctAnswer: formatOptionSlot(letter, val) } : {})
+                              ...(prev.correctLetter === letter ? { correctAnswer: formatOptionSlot(letter, val), answerSource: 'PROVIDED' } : {})
                             }));
                           }}
                           className="w-full px-3 py-1.5 font-mono text-xs bg-transparent text-slate-900 dark:text-white focus:outline-none"
@@ -1332,7 +1353,8 @@ Tôi chọn A vì nghĩ reports là số nhiều.
                                   ...prev,
                                   correctLetter: nextCorrect,
                                   wrongLetter: nextWrong,
-                                  correctAnswer: nextCorrect ? formatOptionSlot(letter, slotVal) : ''
+                                  correctAnswer: nextCorrect ? formatOptionSlot(letter, slotVal) : '',
+                                  answerSource: nextCorrect ? 'PROVIDED' : 'MISSING'
                                 };
                               });
                             }}

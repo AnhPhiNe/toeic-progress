@@ -38,6 +38,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('backup restore', () => {
+  it('retains AI answer provenance when exporting/importing a saved note', () => {
+    const data = bundle();
+    data.mistakes.push({
+      id: 'ai-note', part: 5, category: 'ADVANCED_GRAMMAR', status: 'NEEDS_REVIEW',
+      questionContext: 'Reports ____ submitted.', userMistake: '(A) are', correctAnswer: '(B) be',
+      answerSource: 'AI_PROPOSED', trapTip: 'Dịch ngữ cảnh: Báo cáo được nộp.\n\nMẹo 10s: be + V3.',
+      options: ['(A) are', '(B) be'], tags: ['grammar'], createdAt: '2026-10-07T00:00:00Z',
+      updatedAt: '2026-10-07T00:00:00Z', deletedAt: null,
+    });
+    const result = parseBackup(JSON.stringify({ ...data, exportDate: '2026-10-07T00:00:00Z' }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    restoreBackup(result.preview);
+    expect(readDataBundle().mistakes[0].answerSource).toBe('AI_PROPOSED');
+    expect(readDataBundle().mistakes[0].correctAnswer).toBe('(B) be');
+  });
   it('preserves categories absent from a v1 backup', () => {
     writeDataBundle(bundle());
     const result = parseBackup(JSON.stringify({ profile: defaultProfile(), sessions: [], mistakes: [] }));

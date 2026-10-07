@@ -155,3 +155,14 @@ def test_part6_missing_context_remains_visible_with_translation_in_the_explanati
     result, _calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source)
     assert result.part == 6 and result.trapTip == draft["trapTip"]
     assert result.correctAnswer == "" and "Thiếu câu trước để xác định quan hệ ý." in result.missingInformation
+
+
+def test_openai_can_return_an_ai_proposal_when_source_answer_is_optional():
+    draft = {**DRAFT, "correctAnswer": "B", "answerSource": "AI_PROPOSED"}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+    }])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response),
+                                text="Part 5: Reports should ____ submitted. (A) are (B) be. Tôi chọn A.")
+    assert len(calls) == 1 and result.correctAnswer == "(B) be" and result.answerSource == "AI_PROPOSED"

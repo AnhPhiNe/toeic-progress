@@ -10,6 +10,7 @@ Part = Annotated[int, Field(ge=1, le=7, strict=True)]
 Category = Literal[
     "VOCABULARY_TRAP", "ADVANCED_GRAMMAR", "LISTENING_SPEED", "TIME_PRESSURE", "CARELESS_DISTRACTION", "OTHER"
 ]
+AnswerSource = Literal["PROVIDED", "AI_PROPOSED", "MISSING"]
 
 
 class Payload(BaseModel):
@@ -104,6 +105,7 @@ class Mistake(Payload):
     questionContext: str = Field(max_length=16000)
     userMistake: str = Field(max_length=4000)
     correctAnswer: str = Field(max_length=2000)
+    answerSource: AnswerSource | None = None
     tags: list[Annotated[str, Field(max_length=80)]] = Field(max_length=20)
     options: list[Annotated[str, Field(max_length=2000)]] | None = Field(default=None, max_length=4)
     createdAt: AwareDatetime
@@ -265,7 +267,7 @@ class MistakeDraft(BaseModel):
     options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
     tags: list[Annotated[str, Field(max_length=50)]] = Field(max_length=5)
     missingInformation: list[Annotated[str, Field(max_length=300)]] = Field(max_length=8)
-    answerSource: Literal["PROVIDED", "MISSING"]
+    answerSource: AnswerSource
 
     @model_validator(mode="after")
     def clear_missing_answer(self):

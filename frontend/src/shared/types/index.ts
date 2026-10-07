@@ -43,6 +43,7 @@ export interface MistakeEntry {
   questionContext: string; // Nội dung câu hỏi hoặc vị trí câu (vd: Câu 134 Part 5)
   userMistake: string;     // Lỗi sai mình mắc phải hoặc đáp án chọn nhầm
   correctAnswer: string;   // Đáp án đúng (vd: (B) be)
+  answerSource?: 'PROVIDED' | 'AI_PROPOSED' | 'MISSING';
   trapTip?: string;        // Mẹo bẫy thi / Bí kíp 10s cần nhớ
   options?: string[];      // 4 phương án trắc nghiệm (vd: ['(A) are', '(B) be', '(C) were', '(D) will be'])
   category: ErrorCategory;

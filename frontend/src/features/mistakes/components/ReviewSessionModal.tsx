@@ -183,11 +183,12 @@ export const ReviewSessionModal: React.FC<ReviewSessionModalProps> = ({
 
                   <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-emerald-700 dark:text-emerald-400">Đáp án đúng:</span>
+                      <span className="font-semibold text-emerald-700 dark:text-emerald-400">{current.answerSource === 'AI_PROPOSED' ? 'Đáp án AI đề xuất:' : 'Đáp án đúng:'}</span>
                       <span className="font-black text-slate-900 dark:text-white">{current.correctAnswer}</span>
                     </div>
+                    {current.answerSource === 'AI_PROPOSED' && <p className="text-amber-800 dark:text-amber-200">Cần đối chiếu đáp án nguồn khi có.</p>}
                     {current.trapTip && (
-                      <div className="text-slate-800 dark:text-slate-200 font-medium pt-1.5 border-t border-emerald-200/60 dark:border-emerald-900/40 leading-relaxed">
+                      <div className="text-slate-800 dark:text-slate-200 font-medium pt-1.5 border-t border-emerald-200/60 dark:border-emerald-900/40 leading-relaxed whitespace-pre-line">
                         <span className="font-semibold text-emerald-700 dark:text-emerald-400 mr-1">💡 Bí kíp 10s:</span>
                         <span>{current.trapTip}</span>
                       </div>

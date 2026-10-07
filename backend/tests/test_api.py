@@ -603,3 +603,18 @@ def test_cached_privilege_only_skips_ingress_and_never_skips_fresh_authenticatio
         assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 429
         assert sum(call[1] == "/auth/v1/user" for call in calls) == 5
         assert sum(call[0] == "api.openai.com" for call in calls) == 2
+
+
+def test_ai_answer_provenance_is_preserved_in_the_sync_payload(api):
+    with api() as (client, calls):
+        record = {
+            "entity_type": "mistakes", "record_id": "ai-proposal", "updated_at": "2026-10-07T00:00:00Z",
+            "deleted_at": None, "payload": {
+                "id": "ai-proposal", "part": 5, "category": "ADVANCED_GRAMMAR", "status": "NEEDS_REVIEW",
+                "questionContext": TEXT, "userMistake": "Chọn A", "correctAnswer": "(B) be",
+                "answerSource": "AI_PROPOSED", "tags": [], "createdAt": "2026-10-07T00:00:00Z",
+            },
+        }
+        assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 200
+        sync = next(call for call in calls if call[1].endswith("/sync_account_records"))
+        assert sync[2]["p_records"][0]["payload"]["answerSource"] == "AI_PROPOSED"

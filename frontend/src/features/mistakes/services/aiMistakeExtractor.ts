@@ -8,7 +8,7 @@ const draftSchema = z.object({
   questionContext: z.string().min(1).max(4000), userMistake: z.string().max(2000),
   correctAnswer: z.string().max(1000), trapTip: z.string().max(2000),
   options: z.array(z.string().max(1000)).max(4), tags: z.array(z.string().max(50)).max(5),
-  missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'MISSING'])
+  missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING'])
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }

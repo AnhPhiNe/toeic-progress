@@ -19,7 +19,7 @@ const practice = row('sessions', {
 });
 const mistake = row('mistakes', {
   id: 'm1', sessionId: 'full1', part: 5, category: 'ADVANCED_GRAMMAR', status: 'NEEDS_REVIEW',
-  questionContext: 'Reports ____ submitted.', userMistake: '(A) are', correctAnswer: '(B) be', trapTip: 'Subjunctive',
+  questionContext: 'Reports ____ submitted.', userMistake: '(A) are', correctAnswer: '(B) be', answerSource: 'AI_PROPOSED', trapTip: 'Subjunctive',
   options: ['(A) are','(B) be','(C) were','(D) been'], tags: ['grammar'], createdAt: stamp, reviewStage: 0, nextReviewDate: '2026-10-08'
 });
 const orphan = row('mistakes', { ...mistake.payload, id: 'orphan', sessionId: 'external-session' });
@@ -65,6 +65,7 @@ try {
     const payload = normalize(get(migrated,fixture.record_id).payload);
     for (const [key,value] of Object.entries(normalize(fixture.payload))) assert.deepEqual(payload[key],value, `${fixture.record_id}.${key} changed during backfill`);
   }
+  assert.equal(get(migrated, 'm1').payload.answerSource, 'AI_PROPOSED', 'Answer provenance must survive database backfill/sync');
   assert.equal((await db.query("select count(*)::int as total from information_schema.columns where table_schema='public' and table_name in ('user_profiles','study_sessions','mistakes','vocabulary_logs','weekly_plans') and column_name='payload'")).rows[0].total, 0, 'Business tables must contain native columns');
   assert.deepEqual((await db.query('select id from public.exam_history')).rows.map(item=>item.id), ['full1']);
   assert.equal((await db.query('select count(*)::int as total from public.study_session_parts')).rows[0].total, 2);

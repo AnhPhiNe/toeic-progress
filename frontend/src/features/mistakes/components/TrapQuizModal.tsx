@@ -588,11 +588,12 @@ export const TrapQuizModal: React.FC<TrapQuizModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] space-y-1.5">
                   <span className="font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 text-xs">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Đáp án chuẩn xác:</span>
+                    <span>{mistake.answerSource === 'AI_PROPOSED' ? 'Đáp án AI đề xuất:' : 'Đáp án chuẩn xác:'}</span>
                   </span>
                   <p className="text-xs text-slate-950 dark:text-emerald-100 font-black leading-relaxed font-mono">
                     {mistake.correctAnswer}
                   </p>
+                  {mistake.answerSource === 'AI_PROPOSED' && <p className="text-xs text-amber-800 dark:text-amber-200">Chưa đối chiếu đáp án nguồn; kết quả bài ôn dựa trên đề xuất này.</p>}
                 </div>
               </div>
 

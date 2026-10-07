@@ -33,3 +33,35 @@ def test_discards_options_not_present_in_source():
 def test_rejects_answer_that_conflicts_with_explicit_key():
     result = ground_draft("(A) are (B) be. Đáp án chuẩn: A.", draft())
     assert result.correctAnswer == ""
+
+
+def test_ai_proposal_is_allowed_only_in_the_explicit_openai_mode():
+    text = "Reports ____ submitted. (A) are (B) be. Tôi chọn A."
+    proposed = draft(answerSource="AI_PROPOSED")
+    assert ground_draft(text, proposed.model_copy(deep=True)).answerSource == "MISSING"
+    result = ground_draft(text, proposed, allow_ai_answer=True)
+    assert result.correctAnswer == "(B) be" and result.answerSource == "AI_PROPOSED"
+    assert any("AI đề xuất" in warning for warning in result.missingInformation)
+
+
+def test_an_ai_answer_cannot_be_promoted_to_a_provided_answer_without_a_source():
+    result = ground_draft("(A) are (B) be. Tôi chọn B.", draft(), allow_ai_answer=True)
+    assert result.correctAnswer == "" and result.answerSource == "MISSING"
+
+
+def test_source_key_wins_even_if_ai_proposes_another_answer():
+    result = ground_draft("(A) are (B) be. Đáp án chuẩn: A vì đây là nguồn của đề.",
+                          draft(answerSource="AI_PROPOSED"), allow_ai_answer=True)
+    assert result.correctAnswer == "(A) are" and result.answerSource == "PROVIDED"
+    assert any("chưa khớp" in warning for warning in result.missingInformation)
+
+
+def test_invalid_source_key_does_not_fall_back_to_an_ai_guess():
+    result = ground_draft("(A) are (B) be. Đáp án chuẩn: D.", draft(answerSource="AI_PROPOSED"), allow_ai_answer=True)
+    assert result.correctAnswer == "" and result.answerSource == "MISSING"
+
+
+def test_proposal_must_match_the_original_label_and_option_text():
+    for answer in ("(C) imagined", "(B) are"):
+        result = ground_draft("(A) are (B) be.", draft(answerSource="AI_PROPOSED", correctAnswer=answer), allow_ai_answer=True)
+        assert result.correctAnswer == "" and result.answerSource == "MISSING"

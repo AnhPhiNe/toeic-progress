@@ -66,6 +66,13 @@ describe('backend AI extraction', () => {
     expect(draft.options).toEqual(['(A) are', '(B) be', '(C) were', '(D) will be']);
     expect(draft.correctAnswer).toBe('(B) be');
   });
+
+  it('keeps an explicitly marked AI proposal instead of erasing the answer', async () => {
+    mocks.backendRequest.mockResolvedValue({ draft: { ...getDemoSampleInput().result, answerSource: 'AI_PROPOSED' }, usage: {} });
+    const { draft } = await extractMistakeWithAI(getDemoSampleInput().input, vi.fn(), 'openai');
+    expect(draft.answerSource).toBe('AI_PROPOSED');
+    expect(draft.correctAnswer).toBe('(B) be');
+  });
 });
 
 const session = (id: string) => ({ data: { session: { user: { id } } } });

@@ -101,6 +101,6 @@ class OpenAIProvider:
                         chunks.append(content["text"])
             if not chunks:
                 raise ValueError("Missing output")
-            return ground_draft(text, MistakeDraft.model_validate_json("".join(chunks)))
+            return ground_draft(text, MistakeDraft.model_validate_json("".join(chunks)), allow_ai_answer=True)
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             raise HTTPException(502, "AI trả bản nháp chưa hoàn chỉnh hoặc chưa hợp lệ. Hãy nhập thủ công hoặc bổ sung nội dung.") from error
