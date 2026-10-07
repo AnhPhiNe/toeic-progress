@@ -69,6 +69,6 @@ Vitest ở frontend và test Python ở backend. Test SQL dùng PostgreSQL trong
 
 Vercel: **Root Directory `frontend`**, framework Vite, build `npm run build`, output `dist`. Cấu hình route/security headers nằm ở `frontend/vercel.json`. Render: Root Directory `backend`, Blueprint `backend/render.yaml`.
 
-Beta bắt đầu với tracker, `AI_ENABLED=false`. Áp dụng năm migration theo thứ tự tên trước khi bật API limits trên môi trường deploy. [Hướng dẫn triển khai](docs/DEPLOYMENT.md) có biến môi trường, Google login, backup/restore và kiểm thử staging.
+Beta bắt đầu với tracker, `AI_ENABLED=false`. Áp dụng năm migration đầu trước khi bật API limits. Backend AI có thêm migration `20261007000000_gemini_provider_pool.sql` cho cân bằng project/key và cooldown; chạy trước khi bật AI. [Hướng dẫn triển khai](docs/DEPLOYMENT.md) có biến môi trường, Google login, backup/restore và kiểm thử staging.
 
 Full Test có thể ước tính theo số câu đúng hoặc nhập điểm L/R/chỉ tổng. Điểm nhập được ưu tiên; bảng quy đổi chỉ là tham khảo chưa hiệu chuẩn cho từng đề. Hiện chưa có thanh toán hay kết quả kiểm thử sức chứa cộng đồng.

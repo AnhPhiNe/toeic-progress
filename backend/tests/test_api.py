@@ -42,8 +42,10 @@ def api():
         settings_overrides=None,
     ):
         calls = []
+        provider_blocked = False
 
         def respond(request):
+            nonlocal provider_blocked
             body = (
                 json.loads(request.content)
                 if request.content and request.headers.get("content-type") == "application/json"
@@ -56,12 +58,22 @@ def api():
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
                 return httpx.Response(200, json=api_reservation or {"allowed": True})
-            if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles"):
+            if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles", "/rest/v1/ai_provider_state"):
                 return httpx.Response(readiness_status, json=[])
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
             if request.url.path.endswith("/get_ai_usage"):
                 return httpx.Response(200, json={"remaining": 3, "limit": 3, "guest": guest})
+            if request.url.path.endswith("/reserve_gemini_attempt"):
+                if provider_blocked:
+                    return httpx.Response(200, json={"allowed": False, "code": "quota", "retry_after": 60})
+                project = body["p_projects"][0]
+                return httpx.Response(200, json={
+                    "allowed": True, "project_id": project["id"], "key_id": project["key_ids"][0],
+                })
+            if request.url.path.endswith("/finish_gemini_attempt"):
+                provider_blocked = provider_blocked or body["p_scope"] == "project"
+                return httpx.Response(200, json=None)
             if request.url.path.endswith("/reset_learning_data"):
                 return httpx.Response(200, json={"cursor": 10, "records": [], "hasRecords": True, "resetBarrier": True})
             if request.url.host == "challenges.cloudflare.com":
@@ -320,10 +332,12 @@ def test_rejected_reservation_never_calls_gemini(api, code, status):
         assert not any(call[0] == "generativelanguage.googleapis.com" for call in calls)
 
 
-def test_provider_quota_does_not_trigger_retry_or_fallback(api):
+def test_unknown_provider_quota_does_not_rotate_into_the_same_project(api):
     with api(gemini_status=429) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 429
         assert sum(call[0] == "generativelanguage.googleapis.com" for call in calls) == 1
+        finish = next(call for call in calls if call[1].endswith("finish_gemini_attempt"))
+        assert finish[2]["p_scope"] == "project" and finish[2]["p_seconds"] == 60
 
 
 def test_truncated_provider_output_is_not_saved_as_a_draft(api):
@@ -394,8 +408,8 @@ def test_readiness_probes_database_with_zero_rows_and_caches_result(api):
     with api(settings_overrides={"api_limits_enabled": True}) as (client, calls):
         assert client.get("/ready").status_code == 200
         assert client.get("/ready").json()["database_reachable"] is True
-        assert len(calls) == 1
-        assert calls[0][1] == "/rest/v1/api_rate_limits"
+        assert len(calls) == 2
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/ai_provider_state"]
 
 
 def test_readiness_fails_when_required_migration_is_missing(api):

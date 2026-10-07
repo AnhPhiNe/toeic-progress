@@ -31,11 +31,37 @@ Mọi yêu cầu API xác thực token qua `/auth/v1/user`, không giải mã JW
 
 ## Gemini và hạn mức 0 đồng
 
-Tạo Gemini API project trên Free Tier, giữ billing chưa liên kết. Điền `GEMINI_API_KEY`; model mặc định `gemini-3.8-flash`. Xem hạn mức thực tế trong [AI Studio](https://ai.google.dev/gemini-api/docs/rate-limits) rồi điều chỉnh cấu hình xuống dưới RPM/TPM/RPD đó.
+Tạo Gemini API project trên Free Tier, giữ billing chưa liên kết. Thứ tự mặc định: `gemini-3.8-flash` → `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash`. Xem hạn mức từng model thực tế trong [AI Studio](https://ai.google.dev/gemini-api/docs/rate-limits) rồi điều chỉnh cấu hình không vượt RPM/TPM/RPD đó. Không tự bật billing khi fallback.
 
 Mẫu `.env` và Render Blueprint bắt đầu với `AI_ENABLED=false` để triển khai tracker trước. Sau khi có Gemini/Turnstile, bật `AI_ENABLED=true` và kiểm thử nhà cung cấp thật.
 
-Mặc định: khách 3 lượt/danh tính ẩn danh; tài khoản 10 lượt/tháng; cả app 20 lượt/ngày, 2 lượt/phút; mỗi IP 5 lượt/ngày. Các bucket tính theo UTC. Đây là cấu hình app, không phải hạn mức bảo đảm của Google. Giới hạn tính các yêu cầu đã giữ lượt và gửi xử lý, gồm lỗi nhà cung cấp. Cơ chế giữ lượt chạy trong giao dịch PostgreSQL trước khi gọi Gemini. Một UUID yêu cầu chỉ được giữ lượt một lần; không tự retry hoặc fallback sang model khác.
+Mặc định: khách 3 lượt/danh tính ẩn danh; tài khoản 10 lượt/tháng; cả app 20 lượt/ngày, 2 lượt/phút; mỗi IP 5 lượt/ngày. Các bucket của app tính theo UTC. Đây là cấu hình app, không phải hạn mức bảo đảm của Google. Một UUID yêu cầu chỉ được giữ lượt người dùng một lần, kể cả lỗi nhà cung cấp. Mỗi lần thử model/key giữ quota provider riêng trước khi gọi; không nhân lượt người dùng khi fallback.
+
+### Cân bằng project/key và fallback
+
+Chạy migration `supabase/migrations/20261007000000_gemini_provider_pool.sql` sau năm migration trước, **trước khi bật AI với code mới**. Nó chỉ thêm hai bảng vận hành `ai_provider_state`, `ai_provider_attempts` và RPC service-role; không thay dữ liệu học. Readiness kiểm tra bảng mới khi AI bật. Tracker với `AI_ENABLED=false` vẫn chạy trước migration này.
+
+Một key: dùng `GEMINI_API_KEY` như cũ. Nhiều key cùng project: `GEMINI_API_KEYS=["key-1","key-2"]`. Nhiều project: để hai biến đó trống, điền **project ID thật** trong một dòng JSON ở `GEMINI_PROJECTS`:
+
+```dotenv
+GEMINI_API_KEY=
+GEMINI_API_KEYS=[]
+GEMINI_PROJECTS=[{"project_id":"toeic-project-one","api_keys":["REPLACE_PRIVATE_KEY_1","REPLACE_PRIVATE_KEY_2"],"rpm_limit":5,"tpm_limit":250000,"rpd_limit":20},{"project_id":"toeic-project-two","api_keys":["REPLACE_PRIVATE_KEY_3"],"rpm_limit":5,"tpm_limit":250000,"rpd_limit":20}]
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_FALLBACK_MODELS=["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash"]
+```
+
+Giá trị trên là mẫu, không phải credential. Chỉ điền tại backend `.env` / Environment Variables của Render, không gửi vào chat, commit, screenshot hoặc biến `VITE_*`. Không gán các key cùng project sang tên project khác để nhân quota. Nếu từng model có quota khác nhau, cấu hình mức thấp nhất phù hợp cho toàn chuỗi model trong project đó; các hạn mức này không tự được xác minh với Google. Key trùng hoặc project ID trùng làm cấu hình bị từ chối. Một pool khai báo project hỗ trợ tối đa 8 project, 16 key/project.
+
+- Ưu tiên model theo đúng thứ tự đã khai báo. Trong một model, chọn project ít request đang chạy nhất, sau đó project được dùng lâu nhất; tương tự với key khỏe trong project. Mặc định tối đa 2 request/project và 1 request/key.
+- Quota RPM/TPM/RPD **dùng chung mọi key trong cùng project/model**, được giữ nguyên qua restart và dùng chung các worker. Kiểm tra 5 RPM, 250.000 TPM, 20 RPD trước khi gửi; token đầu vào được giữ theo chặn trên thận trọng của UTF-8 payload, không phải số token được Google đo chính xác. Mỗi outbound attempt, kể cả thất bại, tính vào giới hạn cục bộ.
+- Hết RPM hoặc TPM: đặt cooldown ít nhất 60 giây. Hết RPD: 24 giờ từ lúc phát hiện, theo cấu hình đã chốt. Khi `Retry-After` / `RetryInfo` của Google dài hơn, dùng thời gian dài hơn. Google thực tế reset RPD lúc nửa đêm Pacific; bộ đếm cục bộ dùng ngày Pacific, còn cooldown 24 giờ chủ động có thể giữ lâu hơn thời điểm reset.
+- Chỉ coi quota là riêng model khi lỗi có chi tiết `QuotaFailure` chỉ đúng model. Lỗi 429 không rõ phạm vi khóa cả project, không thử mù các key/model chung quota. Project khác chỉ được dùng trong hạn mức riêng của nó; giới hạn toàn app vẫn giữ chung.
+- Hết cooldown không chạy job thử liên tục: request kế tiếp được cấp **một probe**; request khác chuyển sang nhóm còn khả dụng. Thành công mới gỡ dấu; lỗi đặt thời gian chờ mới. Lease 90 giây thu hồi slot nếu tiến trình mất kết nối hoặc restart.
+- 404 model hoặc 5xx: tạm bỏ project/model đó để thử nhóm khả dụng. Chỉ xoay ngay key bị xác định `API_KEY_INVALID` / `API_KEY_EXPIRED`; key này bị vô hiệu tới khi thay credential (không tự hồi sau 24 giờ). Lỗi quyền chung, payload, bản nháp không hợp lệ, bị cắt hoặc bị chặn không tự nhân request. Timeout/mất kết nối có thể đã sinh kết quả nên không gửi lại trong cùng lượt.
+- Tối đa 8 lần gọi/lượt và tổng thời gian gọi Gemini 45 giây (12 giây/lần); không ngủ trong request chờ 60 giây/24 giờ. Hết khả dụng trả 429/503 và `Retry-After`; frontend vẫn cho nhập thủ công. Bộ đếm app giữ lượt một lần cho cả chuỗi, tổng 20 lượt/ngày và 2 lượt/phút không tăng theo số project.
+
+Chưa có key/project thực tế và Turnstile thì giữ `AI_ENABLED=false`. Kiểm thử nhà cung cấp thật trên staging trước khi bật public; test tự động chỉ dùng transport giả và PostgreSQL trong bộ nhớ, không tiêu quota.
 
 Khóa `RATE_LIMIT_SECRET` dùng để HMAC địa chỉ IP, cần tạo ngẫu nhiên ít nhất 32 ký tự và giữ cố định. Khi chạy sau reverse proxy, cấu hình Uvicorn chỉ tin các proxy của hosting để `request.client.host` đúng. Không đọc tùy ý `X-Forwarded-For` từ client. Giới hạn toàn app và tài khoản vẫn áp dụng dù IP bị gom chung.
 

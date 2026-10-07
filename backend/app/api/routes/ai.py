@@ -52,7 +52,8 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             else "Đã hết lượt hoặc AI đang bận. Bạn vẫn có thể nhập thủ công.",
         )
     # Reservation is committed before calling Gemini, including failed attempts.
-    # No automatic retry or model fallback can multiply provider requests.
+    # One user reservation covers bounded model failover. Every outbound attempt
+    # separately reserves shared project/model RPM/TPM/RPD capacity.
     result = await gateway.generate(body.text)
     return {
         "draft": result.model_dump(),
