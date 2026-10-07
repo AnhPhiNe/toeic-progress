@@ -11,6 +11,7 @@ Category = Literal[
     "VOCABULARY_TRAP", "ADVANCED_GRAMMAR", "LISTENING_SPEED", "TIME_PRESSURE", "CARELESS_DISTRACTION", "OTHER"
 ]
 AnswerSource = Literal["PROVIDED", "AI_PROPOSED", "MISSING"]
+UserChoice = Literal["A", "B", "C", "D", ""]
 
 
 class Payload(BaseModel):
@@ -106,6 +107,7 @@ class Mistake(Payload):
     userMistake: str = Field(max_length=4000)
     correctAnswer: str = Field(max_length=2000)
     answerSource: AnswerSource | None = None
+    userChoice: Literal["A", "B", "C", "D"] | None = None
     tags: list[Annotated[str, Field(max_length=80)]] = Field(max_length=20)
     options: list[Annotated[str, Field(max_length=2000)]] | None = Field(default=None, max_length=4)
     createdAt: AwareDatetime
@@ -268,9 +270,17 @@ class MistakeDraft(BaseModel):
     tags: list[Annotated[str, Field(max_length=50)]] = Field(max_length=5)
     missingInformation: list[Annotated[str, Field(max_length=300)]] = Field(max_length=8)
     answerSource: AnswerSource
+    # Letter the learner chose. Gemini drafts may omit it; StrictMistakeDraft requires it.
+    userChoice: UserChoice = ""
 
     @model_validator(mode="after")
     def clear_missing_answer(self):
         if self.answerSource == "MISSING":
             self.correctAnswer = ""
         return self
+
+
+class StrictMistakeDraft(MistakeDraft):
+    """Structured-output schema for OpenAI strict mode, where every property must be required."""
+
+    userChoice: UserChoice

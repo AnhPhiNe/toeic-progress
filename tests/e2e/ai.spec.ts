@@ -9,6 +9,8 @@ test('AI sample is explicit and requires review before saving', async ({ page })
   await dialog.getByRole('button', { name: 'Xem mẫu minh họa' }).click();
   await expect(dialog.getByRole('heading', { name: 'Mẫu minh họa có sẵn' })).toBeVisible();
   await expect(dialog.getByText('Đây là ví dụ có sẵn, không phải kết quả phân tích nội dung bạn nhập.')).toBeVisible();
+  // The learner's own choice (A) is marked next to the correct option.
+  await expect(dialog.getByText('(A) are', { exact: true }).locator('..')).toContainText('Bạn chọn');
   const save = dialog.getByRole('button', { name: 'Lưu Vào Sổ Tay' });
   await expect(save).toBeDisabled();
   await dialog.getByRole('checkbox', { name: 'Tôi đã kiểm tra nội dung và đáp án trước khi lưu.' }).check();
@@ -22,11 +24,14 @@ test('unconfigured AI never substitutes a sample for pasted content', async ({ p
   await page.goto('/so-tay');
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Dán câu hỏi + đáp án đã chọn + đáp án chuẩn nếu có:').fill('This is a different TOEIC question with no configured backend.');
-  await dialog.getByRole('checkbox', { name: /Tôi đồng ý gửi nội dung/ }).check();
-  await dialog.getByRole('button', { name: 'AI Phân Tích Bẫy' }).click();
+  const input = dialog.getByLabel('Dán câu hỏi + đáp án đã chọn + đáp án chuẩn nếu có:');
+  await input.fill('This is a different TOEIC question with no configured backend.');
+  // Without a configured provider there is no recipient to consent to, so analysis stays unavailable.
   await expect(dialog.getByText('AI thật chưa được cấu hình.', { exact: false })).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: /Tôi đồng ý gửi nội dung/ })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'AI Phân Tích Bẫy' })).toBeDisabled();
   await expect(dialog.getByRole('heading', { name: 'Mẫu minh họa có sẵn' })).not.toBeVisible();
+  await expect(input).toHaveValue('This is a different TOEIC question with no configured backend.');
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
 });

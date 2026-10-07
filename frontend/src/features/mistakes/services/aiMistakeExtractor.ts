@@ -8,7 +8,9 @@ const draftSchema = z.object({
   questionContext: z.string().min(1).max(4000), userMistake: z.string().max(2000),
   correctAnswer: z.string().max(1000), trapTip: z.string().max(2000),
   options: z.array(z.string().max(1000)).max(4), tags: z.array(z.string().max(50)).max(5),
-  missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING'])
+  missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']),
+  // Older backends and Gemini drafts omit the learner's choice.
+  userChoice: z.enum(['A', 'B', 'C', 'D', '']).default('')
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
@@ -107,7 +109,7 @@ Phân tích: requested that diễn tả yêu cầu, dùng cấu trúc giả đ�
 
 Mẹo 10s: Gặp request that, kiểm tra động từ nguyên thể; nếu chủ ngữ nhận hành động thì dùng be + V3. Đừng chỉ nhìn chủ ngữ số nhiều để chọn are.`,
       options: ['(A) are', '(B) be', '(C) were', '(D) will be'],
-      tags: ['subjunctive', 'part5'], missingInformation: [], answerSource: 'PROVIDED'
+      tags: ['subjunctive', 'part5'], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A'
     }
   };
 }

@@ -13,6 +13,7 @@ DRAFT = {
     "part": 5, "category": "ADVANCED_GRAMMAR", "questionContext": TEXT,
     "userMistake": "Chọn A", "correctAnswer": "(B) be", "trapTip": "Kiểm tra cấu trúc bị động.",
     "options": ["(A) are", "(B) be"], "tags": [], "missingInformation": [], "answerSource": "PROVIDED",
+    "userChoice": "A",
 }
 
 
@@ -56,6 +57,17 @@ def test_official_responses_api_uses_medium_and_strict_schema_without_sampling_o
     schema = body["text"]["format"]["schema"]
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"])
+    assert "userChoice" in schema["required"] and result.userChoice == "A"
+
+
+def test_strict_schema_rejects_a_draft_without_the_learner_choice():
+    draft = {key: value for key, value in DRAFT.items() if key != "userChoice"}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+    }])
+    result, _calls = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert isinstance(result, HTTPException) and result.status_code == 502
 
 
 def test_high_is_an_explicit_configuration_change():

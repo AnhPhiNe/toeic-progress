@@ -11,7 +11,7 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.core.runtime import request_id_context
-from app.schemas.models import MistakeDraft
+from app.schemas.models import MistakeDraft, StrictMistakeDraft
 from app.services.ai_grounding import ground_draft
 from app.services.toeic_prompt import OPENAI_TOEIC_PROMPT
 
@@ -33,7 +33,7 @@ class OpenAIProvider:
             "reasoning": {"effort": self.settings.openai_reasoning_effort},
             "text": {"format": {
                 "type": "json_schema", "name": "toeic_mistake", "strict": True,
-                "schema": MistakeDraft.model_json_schema(),
+                "schema": StrictMistakeDraft.model_json_schema(),
             }},
             "max_output_tokens": self.settings.openai_max_output_tokens,
             "store": False,
@@ -101,6 +101,6 @@ class OpenAIProvider:
                         chunks.append(content["text"])
             if not chunks:
                 raise ValueError("Missing output")
-            return ground_draft(text, MistakeDraft.model_validate_json("".join(chunks)), allow_ai_answer=True)
+            return ground_draft(text, StrictMistakeDraft.model_validate_json("".join(chunks)), allow_ai_answer=True)
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             raise HTTPException(502, "AI trả bản nháp chưa hoàn chỉnh hoặc chưa hợp lệ. Hãy nhập thủ công hoặc bổ sung nội dung.") from error

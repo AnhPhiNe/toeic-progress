@@ -44,6 +44,8 @@ export interface MistakeEntry {
   userMistake: string;     // Lỗi sai mình mắc phải hoặc đáp án chọn nhầm
   correctAnswer: string;   // Đáp án đúng (vd: (B) be)
   answerSource?: 'PROVIDED' | 'AI_PROPOSED' | 'MISSING';
+  /** Phương án người học đã chọn sai. Bản ghi cũ không có thì suy từ userMistake */
+  userChoice?: 'A' | 'B' | 'C' | 'D';
   trapTip?: string;        // Mẹo bẫy thi / Bí kíp 10s cần nhớ
   options?: string[];      // 4 phương án trắc nghiệm (vd: ['(A) are', '(B) be', '(C) were', '(D) will be'])
   category: ErrorCategory;

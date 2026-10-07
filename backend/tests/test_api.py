@@ -20,6 +20,7 @@ DRAFT = {
     "tags": ["grammar"],
     "missingInformation": [],
     "answerSource": "PROVIDED",
+    "userChoice": "",
 }
 TEXT = "Reports should ____ submitted. (A) are (B) be. Tôi chọn A. Đáp án chuẩn: B."
 

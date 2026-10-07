@@ -65,3 +65,9 @@ def test_proposal_must_match_the_original_label_and_option_text():
     for answer in ("(C) imagined", "(B) are"):
         result = ground_draft("(A) are (B) be.", draft(answerSource="AI_PROPOSED", correctAnswer=answer), allow_ai_answer=True)
         assert result.correctAnswer == "" and result.answerSource == "MISSING"
+
+
+def test_learner_choice_is_kept_only_when_it_names_a_source_option():
+    text = "Reports should ____ submitted. (A) are (B) be. Tôi chọn A. Đáp án chuẩn: B."
+    assert ground_draft(text, draft(userChoice="A")).userChoice == "A"
+    assert ground_draft(text, draft(userChoice="D")).userChoice == ""

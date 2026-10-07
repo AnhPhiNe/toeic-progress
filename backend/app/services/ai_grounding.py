@@ -35,6 +35,14 @@ def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = Fals
     if len(options) != len(draft.options):
         draft.missingInformation.append("Đã bỏ phương án không tìm thấy trong nội dung gốc.")
     draft.options = options
+    labels = set()
+    for option in options:
+        label = re.match(r"^\s*(?:\(([A-D])\)|([A-D])[.):\s])", option, re.IGNORECASE)
+        if label:
+            labels.add((label[1] or label[2]).upper())
+    if draft.userChoice not in labels:
+        # The learner's choice is only shown when it names an option that exists in the source.
+        draft.userChoice = ""
     provided = re.search(
         r"(?:đáp án(?:\s+(?:chuẩn|đúng))?|correct answer|answer key|answer)\s*[:=-]\s*([^\n]+)", text, re.IGNORECASE
     )

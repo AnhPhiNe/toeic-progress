@@ -38,6 +38,7 @@ import {
   getAIConfiguration
 } from '@/features/mistakes/services/aiMistakeExtractor';
 import { TrapQuizModal } from '@/features/mistakes/components/TrapQuizModal';
+import { getUserChoice, letterFromChoiceText } from '@/features/mistakes/lib/userChoice';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import type { AIUsage, AIMistakeParseResult, AIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
@@ -230,12 +231,11 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     const correctMatch = m.correctAnswer.match(/^\(?([A-D])\)?/i);
     const correctLetter = (correctMatch?.[1]?.toUpperCase() || '') as '' | 'A' | 'B' | 'C' | 'D';
 
-    const wrongMatch = m.userMistake.match(/^\(?([A-D])\)?/i) || m.userMistake.match(/(?:chọn|chọn nhầm|nghĩ là)\s*\(?([A-D])\)?/i);
-    const wrongLetter = (wrongMatch?.[1]?.toUpperCase() || '') as '' | 'A' | 'B' | 'C' | 'D';
+    const wrongLetter = getUserChoice(m);
 
     let wrongReason = m.userMistake;
     if (wrongLetter) {
-      wrongReason = wrongReason.replace(new RegExp(`^\\(?${wrongLetter}\\)?[\\.:\\s-]*`, 'i'), '').trim();
+      wrongReason = wrongReason.replace(new RegExp(`^\\(?${wrongLetter}\\)?(?!\\p{L})[\\.:\\s-]*`, 'iu'), '').trim();
       wrongReason = wrongReason.replace(new RegExp(`^(?:chọn|chọn nhầm)\\s*\\(?${wrongLetter}\\)?[\\s:-]*(?:do|vì)?\\s*`, 'i'), '').trim();
     }
 
@@ -269,12 +269,11 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     const slots = parseOptionsTextToSlots(newMistake.optionsText);
     const correctMatch = newMistake.correctAnswer.match(/^\(?([A-D])\)?/i);
     const correctLetter = (correctMatch?.[1]?.toUpperCase() || newMistake.correctLetter || '') as '' | 'A' | 'B' | 'C' | 'D';
-    const wrongMatch = newMistake.userMistake.match(/^\(?([A-D])\)?/i) || newMistake.userMistake.match(/(?:chọn|chọn nhầm|nghĩ là)\s*\(?([A-D])\)?/i);
-    const wrongLetter = (wrongMatch?.[1]?.toUpperCase() || newMistake.wrongLetter || '') as '' | 'A' | 'B' | 'C' | 'D';
+    const wrongLetter = newMistake.wrongLetter || letterFromChoiceText(newMistake.userMistake);
 
     let wrongReason = newMistake.wrongReason || newMistake.userMistake;
     if (wrongLetter && !newMistake.wrongReason) {
-      wrongReason = wrongReason.replace(new RegExp(`^\\(?${wrongLetter}\\)?[\\.:\\s-]*`, 'i'), '').trim();
+      wrongReason = wrongReason.replace(new RegExp(`^\\(?${wrongLetter}\\)?(?!\\p{L})[\\.:\\s-]*`, 'iu'), '').trim();
       wrongReason = wrongReason.replace(new RegExp(`^(?:chọn|chọn nhầm)\\s*\\(?${wrongLetter}\\)?[\\s:-]*(?:do|vì)?\\s*`, 'i'), '').trim();
     }
 
@@ -310,6 +309,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       ...EMPTY_FORM, ...slots, part: (draft.part ?? 5) as 1 | 2 | 3 | 4 | 5 | 6 | 7, category: draft.category,
       questionContext: draft.questionContext, userMistake: draft.userMistake,
       correctAnswer: draft.correctAnswer, answerSource: draft.answerSource, trapTip: draft.trapTip, correctLetter,
+      wrongLetter: draft.userChoice || letterFromChoiceText(draft.userMistake),
       optionsText: draft.options.join('\n'), tags: draft.tags.join(', ')
     });
     setAIMissingInformation([...draft.missingInformation, ...(draft.part === null ? ['Chưa xác định được Part; hãy chọn lại khi chỉnh sửa.'] : [])]);
@@ -362,6 +362,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       userMistake: newMistake.userMistake,
       correctAnswer: newMistake.correctAnswer,
       answerSource: newMistake.answerSource,
+      userChoice: newMistake.wrongLetter || undefined,
       trapTip: newMistake.trapTip,
       options: parsedOptions.length > 0 ? parsedOptions : undefined,
       category: newMistake.category,
@@ -482,6 +483,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
         userMistake: finalUserMistake,
         correctAnswer: finalCorrectAnswer,
         answerSource: finalCorrectAnswer ? (newMistake.answerSource === 'AI_PROPOSED' ? 'AI_PROPOSED' : 'PROVIDED') : 'MISSING',
+        userChoice: newMistake.wrongLetter || undefined,
         trapTip: newMistake.trapTip,
         options: parsedOptions.length > 0 ? parsedOptions : editingMistake.options,
         category: newMistake.category,
@@ -498,6 +500,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
       userMistake: finalUserMistake,
       correctAnswer: finalCorrectAnswer,
       answerSource: finalCorrectAnswer ? (newMistake.answerSource === 'AI_PROPOSED' ? 'AI_PROPOSED' : 'PROVIDED') : 'MISSING',
+      userChoice: newMistake.wrongLetter || undefined,
       trapTip: newMistake.trapTip,
       options: parsedOptions.length > 0 ? parsedOptions : undefined,
       category: newMistake.category,
@@ -774,6 +777,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                             opt.trim().toLowerCase() === mistake.correctAnswer.trim().toLowerCase() ||
                             (opt.toLowerCase().includes(mistake.correctAnswer.toLowerCase().replace(/^\([A-D]\)\s*/i, '').trim()) && mistake.correctAnswer.replace(/^\([A-D]\)\s*/i, '').trim().length > 2)
                           );
+                          const isChosenWrong = !isCorrect && Boolean(optLetter) && optLetter === getUserChoice(mistake);
 
                           return (
                             <div
@@ -781,7 +785,9 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                               className={`px-3 py-2 rounded-lg text-xs flex items-center justify-between border-2 transition-colors ${
                                 isCorrect
                                   ? 'bg-emerald-100 dark:bg-emerald-950/40 border-slate-900 text-slate-950 dark:text-emerald-200 font-bold shadow-[1.5px_1.5px_0px_#0f172a]'
-                                  : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium'
+                                  : isChosenWrong
+                                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 dark:border-rose-800 text-rose-950 dark:text-rose-200 font-semibold'
+                                    : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium'
                               }`}
                             >
                               <span className="font-mono">{opt}</span>
@@ -789,6 +795,12 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 dark:text-emerald-300 font-black ml-2 shrink-0">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   <span>Đáp án đúng</span>
+                                </span>
+                              )}
+                              {isChosenWrong && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 dark:text-rose-300 font-black ml-2 shrink-0">
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  <span>Bạn chọn</span>
                                 </span>
                               )}
                             </div>
@@ -1016,14 +1028,17 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                               opt.trim().toLowerCase() === newMistake.correctAnswer.trim().toLowerCase() ||
                               (opt.toLowerCase().includes(newMistake.correctAnswer.toLowerCase().replace(/^\([A-D]\)\s*/i, '').trim()) && newMistake.correctAnswer.replace(/^\([A-D]\)\s*/i, '').trim().length > 2)
                             );
+                            const isChosenWrong = !isCorrect && Boolean(optLetter) && optLetter === newMistake.wrongLetter;
 
                             return (
-                              <div 
-                                key={idx} 
+                              <div
+                                key={idx}
                                 className={`px-3 py-2 rounded-xl text-xs flex items-center justify-between border-2 transition-all ${
                                   isCorrect
                                     ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-950 dark:text-emerald-200 font-bold border-slate-900 dark:border-emerald-600 shadow-[2px_2px_0px_0px_#0f172a]'
-                                    : 'bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-900 dark:border-slate-700 shadow-[1.5px_1.5px_0px_0px_#0f172a]'
+                                    : isChosenWrong
+                                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-950 dark:text-rose-200 font-semibold border-slate-900 dark:border-rose-700 shadow-[1.5px_1.5px_0px_0px_#0f172a]'
+                                      : 'bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-900 dark:border-slate-700 shadow-[1.5px_1.5px_0px_0px_#0f172a]'
                                 }`}
                               >
                                 <span className="font-mono">{opt}</span>
@@ -1031,6 +1046,12 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                                   <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 dark:text-emerald-300 font-black ml-2 shrink-0">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                     <span>Đáp án đúng</span>
+                                  </span>
+                                )}
+                                {isChosenWrong && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 dark:text-rose-300 font-black ml-2 shrink-0">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    <span>Bạn chọn</span>
                                   </span>
                                 )}
                               </div>
