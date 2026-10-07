@@ -11,10 +11,18 @@ from app.integrations.openai_provider import OpenAIProvider
 TEXT = "Reports should ____ submitted. (A) are (B) be. Tôi chọn A. Đáp án chuẩn: B."
 DRAFT = {
     "part": 5, "category": "ADVANCED_GRAMMAR", "questionContext": TEXT,
-    "userMistake": "Chọn A", "correctAnswer": "(B) be", "trapTip": "Kiểm tra cấu trúc bị động.",
+    "userMistake": "Chọn A", "correctAnswer": "(B) be",
     "options": ["(A) are", "(B) be"], "tags": [], "missingInformation": [], "answerSource": "PROVIDED",
     "userChoice": "A",
+    "optionNotes": [{"label": "A", "pos": "v", "meaning": "to be, hiện tại số nhiều"},
+                    {"label": "B", "pos": "v", "meaning": "nguyên thể"}],
+    "explanation": {"quickTip": "Kiểm tra cấu trúc bị động.", "translation": "", "questionType": "",
+                    "evidence": "", "paraphrase": "", "analysis": "", "keyVocabulary": ""},
 }
+
+
+def explanation(**sections):
+    return {**DRAFT["explanation"], "quickTip": "", **sections}
 
 
 def completed(**changes):
@@ -57,7 +65,8 @@ def test_official_responses_api_uses_medium_and_strict_schema_without_sampling_o
     schema = body["text"]["format"]["schema"]
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"])
-    assert "userChoice" in schema["required"] and result.userChoice == "A"
+    assert {"userChoice", "optionNotes", "explanation"} <= set(schema["required"]) and "trapTip" not in schema["properties"]
+    assert result.userChoice == "A" and [note.label for note in result.optionNotes] == ["A", "B"]
 
 
 def test_strict_schema_rejects_a_draft_without_the_learner_choice():
@@ -125,47 +134,64 @@ def test_openai_configuration_does_not_depend_on_gemini_credentials():
 
 
 @pytest.mark.parametrize("answer_provided", [True, False])
-def test_detailed_vietnamese_explanation_keeps_source_options_and_missing_answer_contract(answer_provided):
+def test_structured_explanation_becomes_labeled_text_and_keeps_the_answer_contract(answer_provided):
     source = (
         "Part 5. All bank transfers are ____ to review and could be delayed if an issue is identified. "
         "(A) required (B) imaginary (C) conscious (D) subject. Tôi chọn A vì hiểu required là được yêu cầu."
         + ("\nĐáp án chuẩn: D." if answer_provided else "")
     )
-    explanation = (
-        "Dịch ngữ cảnh: Tất cả giao dịch chuyển khoản đều [chỗ trống] xét duyệt và có thể bị trì hoãn.\n\n"
-        "Từ vựng/phương án: (A) required: bắt buộc; (B) imaginary: tưởng tượng; "
-        "(C) conscious: có ý thức; (D) be subject to: thuộc diện/chịu.\n\n"
-        "Phân tích: be subject to + danh từ diễn tả việc chịu xét duyệt; "
-        "be required to + động từ diễn tả yêu cầu làm gì.\n\n"
-        "Mẹo 10s: Kiểm tra to + danh từ hay to + động từ."
-    )
     options = ["(A) required", "(B) imaginary", "(C) conscious", "(D) subject"]
-    draft = {**DRAFT, "category": "VOCABULARY_TRAP", "questionContext": source,
-             "options": options, "correctAnswer": "(D) subject", "trapTip": explanation}
+    draft = {**DRAFT, "category": "VOCABULARY_TRAP", "questionContext": source, "options": options,
+             "correctAnswer": "(D) subject",
+             "optionNotes": [{"label": "A", "pos": "adj", "meaning": "bắt buộc"},
+                             {"label": "D", "pos": "adj", "meaning": "be subject to: thuộc diện"}],
+             "explanation": explanation(
+                 translation="Mọi giao dịch chuyển khoản đều thuộc diện xét duyệt.",
+                 analysis="be subject to + danh từ; be required to + động từ.",
+                 keyVocabulary="bank transfer: chuyển khoản", quickTip="Kiểm tra to + danh từ hay to + động từ.")}
     response = completed(output=[{
         "type": "message", "role": "assistant", "status": "completed",
         "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
     }])
     result, calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source)
-    assert result.trapTip == explanation and result.options == options
+    assert result.options == options and result.explanation.quickTip == "Kiểm tra to + danh từ hay to + động từ."
+    assert result.trapTip == (
+        "Dịch ngữ cảnh: Mọi giao dịch chuyển khoản đều thuộc diện xét duyệt.\n\n"
+        "Phương án: (A) (adj) bắt buộc; (D) (adj) be subject to: thuộc diện\n\n"
+        "Phân tích: be subject to + danh từ; be required to + động từ.\n\n"
+        "Từ vựng: bank transfer: chuyển khoản\n\n"
+        "Mẹo 10s: Kiểm tra to + danh từ hay to + động từ."
+    )
     assert result.correctAnswer == ("(D) subject" if answer_provided else "")
     assert result.answerSource == ("PROVIDED" if answer_provided else "MISSING")
     assert json.loads(calls[0].content)["input"][0]["content"][0]["text"] == source
 
 
-def test_part6_missing_context_remains_visible_with_translation_in_the_explanation():
+def test_notes_for_options_missing_from_the_source_are_dropped():
+    draft = {**DRAFT, "optionNotes": [*DRAFT["optionNotes"], {"label": "C", "pos": "v", "meaning": "invented"}]}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
+    }])
+    result, _calls = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert [note.label for note in result.optionNotes] == ["A", "B"] and "invented" not in result.trapTip
+
+
+def test_part6_missing_context_remains_visible_with_option_meanings():
     source = "Part 6: ____, the office will be closed. (A) Therefore (B) However (C) Meanwhile (D) Similarly."
     draft = {**DRAFT, "part": 6, "questionContext": "____, the office will be closed.",
              "options": ["(A) Therefore", "(B) However", "(C) Meanwhile", "(D) Similarly"],
-             "answerSource": "MISSING", "correctAnswer": "", "userMistake": "",
+             "answerSource": "MISSING", "correctAnswer": "", "userMistake": "", "userChoice": "",
              "missingInformation": ["Thiếu câu trước để xác định quan hệ ý."],
-             "trapTip": "Từ vựng/phương án: Therefore = vì vậy; However = tuy nhiên; Meanwhile = trong khi đó; Similarly = tương tự.\n\nPhân tích: Cần câu trước để phân biệt kết quả, đối lập, đồng thời hay tương đồng."}
+             "optionNotes": [{"label": letter, "pos": "adv", "meaning": meaning} for letter, meaning in
+                             zip("ABCD", ["vì vậy", "tuy nhiên", "trong khi đó", "tương tự"], strict=True)],
+             "explanation": explanation(analysis="Cần câu trước để phân biệt kết quả, đối lập, đồng thời hay tương đồng.")}
     response = completed(output=[{
         "type": "message", "role": "assistant", "status": "completed",
-        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+        "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
     }])
     result, _calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source)
-    assert result.part == 6 and result.trapTip == draft["trapTip"]
+    assert result.part == 6 and len(result.optionNotes) == 4 and result.trapTip.startswith("Phương án: (A) (adv) vì vậy")
     assert result.correctAnswer == "" and "Thiếu câu trước để xác định quan hệ ý." in result.missingInformation
 
 

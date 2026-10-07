@@ -12,6 +12,7 @@ Category = Literal[
 ]
 AnswerSource = Literal["PROVIDED", "AI_PROPOSED", "MISSING"]
 UserChoice = Literal["A", "B", "C", "D", ""]
+PartOfSpeech = Literal["n", "v", "adj", "adv", "prep", "conj", "pron", "det", ""]
 
 
 class Payload(BaseModel):
@@ -258,19 +259,46 @@ class ResetRequest(BaseModel):
     confirm: Literal[True]
 
 
-class MistakeDraft(BaseModel):
+class OptionNote(BaseModel):
+    """Meaning of one answer option. pos is an English abbreviation, '' for phrases and sentences."""
+
+    model_config = ConfigDict(extra="forbid")
+    label: Literal["A", "B", "C", "D"]
+    pos: PartOfSpeech
+    meaning: str = Field(max_length=120)
+
+
+class Explanation(BaseModel):
+    """Explanation sections; a section that does not apply is ''."""
+
+    model_config = ConfigDict(extra="forbid")
+    quickTip: str = Field(max_length=400)
+    translation: str = Field(max_length=600)
+    questionType: str = Field(max_length=300)
+    evidence: str = Field(max_length=800)
+    paraphrase: str = Field(max_length=400)
+    analysis: str = Field(max_length=1200)
+    keyVocabulary: str = Field(max_length=400)
+
+
+EXPLANATION_LABELS = (
+    ("translation", "Dịch ngữ cảnh"), ("questionType", "Dạng câu hỏi"), ("evidence", "Bằng chứng"),
+    ("paraphrase", "Paraphrase"), ("analysis", "Phân tích"), ("keyVocabulary", "Từ vựng"), ("quickTip", "Mẹo 10s"),
+)
+
+
+class DraftCore(BaseModel):
     model_config = ConfigDict(extra="forbid")
     part: Part | None
     category: Category
     questionContext: str = Field(min_length=1, max_length=4000)
     userMistake: str = Field(max_length=2000)
     correctAnswer: str = Field(max_length=1000)
-    trapTip: str = Field(max_length=2000)
     options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
     tags: list[Annotated[str, Field(max_length=50)]] = Field(max_length=5)
     missingInformation: list[Annotated[str, Field(max_length=300)]] = Field(max_length=8)
     answerSource: AnswerSource
-    # Letter the learner chose. Gemini drafts may omit it; StrictMistakeDraft requires it.
+    # Letter the learner chose. Gemini drafts may omit it; the OpenAI output requires it.
     userChoice: UserChoice = ""
 
     @model_validator(mode="after")
@@ -280,7 +308,45 @@ class MistakeDraft(BaseModel):
         return self
 
 
-class StrictMistakeDraft(MistakeDraft):
-    """Structured-output schema for OpenAI strict mode, where every property must be required."""
+class GeminiDraftOutput(DraftCore):
+    """Gemini compatibility mode: one free-text explanation."""
+
+    trapTip: str = Field(max_length=4000)
+
+
+class MistakeDraft(DraftCore):
+    """Draft returned to the app. trapTip is plain text for older clients, search and backups."""
+
+    trapTip: str = Field(max_length=4000)
+    optionNotes: list[OptionNote] = Field(default_factory=list, max_length=4)
+    explanation: Explanation | None = None
+
+    def compose_trap_tip(self) -> None:
+        """Write trapTip from the structured sections with fixed labels; Gemini drafts keep their own text."""
+        if self.explanation is None:
+            return
+        notes = "; ".join(
+            f"({note.label}) ({note.pos}) {note.meaning}" if note.pos else f"({note.label}) {note.meaning}"
+            for note in self.optionNotes if note.meaning.strip()
+        )
+        sections = []
+        for key, label in EXPLANATION_LABELS:
+            if key == "analysis" and notes:
+                sections.append(f"Phương án: {notes}")
+            value = getattr(self.explanation, key).strip()
+            if value:
+                sections.append(f"{label}: {value}")
+        self.trapTip = "\n\n".join(sections)
+
+
+class OpenAIDraftOutput(DraftCore):
+    """OpenAI strict structured output: every property is required."""
 
     userChoice: UserChoice
+    optionNotes: list[OptionNote] = Field(max_length=4)
+    explanation: Explanation
+
+    def to_draft(self) -> MistakeDraft:
+        draft = MistakeDraft(**self.model_dump(), trapTip="")
+        draft.compose_trap_tip()
+        return draft

@@ -22,6 +22,14 @@ DRAFT = {
     "answerSource": "PROVIDED",
     "userChoice": "",
 }
+# OpenAI strict output: structured explanation and option notes instead of trapTip.
+OPENAI_DRAFT = {
+    **{key: value for key, value in DRAFT.items() if key != "trapTip"},
+    "optionNotes": [{"label": "A", "pos": "v", "meaning": "to be, hiện tại số nhiều"},
+                    {"label": "B", "pos": "v", "meaning": "nguyên thể"}],
+    "explanation": {"quickTip": "Kiểm tra cấu trúc giả định.", "translation": "", "questionType": "", "evidence": "",
+                    "paraphrase": "", "analysis": "", "keyVocabulary": ""},
+}
 TEXT = "Reports should ____ submitted. (A) are (B) be. Tôi chọn A. Đáp án chuẩn: B."
 
 
@@ -98,7 +106,7 @@ def api():
                 return httpx.Response(200, json={
                     "status": "completed", "output": [{
                         "type": "message", "role": "assistant", "status": "completed",
-                        "content": [{"type": "output_text", "text": json.dumps(draft or DRAFT)}],
+                        "content": [{"type": "output_text", "text": json.dumps(draft or OPENAI_DRAFT)}],
                     }],
                 })
             if request.url.path.startswith("/auth/v1/admin/users/"):

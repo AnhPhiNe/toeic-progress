@@ -16,7 +16,7 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.core.runtime import request_id_context
-from app.schemas.models import MistakeDraft
+from app.schemas.models import GeminiDraftOutput, MistakeDraft
 from app.services.ai_grounding import ground_draft
 
 SYSTEM_PROMPT = """Bạn hỗ trợ ghi sổ lỗi sai TOEIC, trả JSON theo schema.
@@ -171,7 +171,7 @@ class GeminiProvider:
                 generation = {
                     "temperature": 0.1,
                     "responseMimeType": "application/json",
-                    "responseJsonSchema": MistakeDraft.model_json_schema(),
+                    "responseJsonSchema": GeminiDraftOutput.model_json_schema(),
                     "maxOutputTokens": 2048,
                 }
                 if model.startswith("gemini-3."):
@@ -265,7 +265,8 @@ class GeminiProvider:
                     content = "".join(
                         part.get("text", "") for part in candidate["content"]["parts"] if not part.get("thought")
                     )
-                    return ground_draft(text, MistakeDraft.model_validate_json(content))
+                    output = GeminiDraftOutput.model_validate_json(content)
+                    return ground_draft(text, MistakeDraft(**output.model_dump()))
                 except (ValueError, KeyError, IndexError, TypeError) as error:
                     raise HTTPException(502, "AI trả bản nháp chưa hợp lệ. Hãy bổ sung nội dung hoặc nhập thủ công.") from error
         if retry_delays:
