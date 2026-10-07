@@ -18,13 +18,21 @@ export interface AIConfiguration { provider: AIProvider; requireProviderConsent:
 export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!apiAvailable) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
   const message = 'Chưa kết nối được AI. Vui lòng thử kết nối lại hoặc nhập thủ công.';
+  const apiBase = import.meta.env.VITE_API_URL!.replace(/\/$/, '');
+  // The deployed site's public health probe is proxied by Vercel. A browser
+  // that can open Render but cannot read its cross-origin response can still
+  // load recipient consent. Local/preview/staging configurations stay direct.
+  const statusURL = typeof window !== 'undefined'
+    && window.location.hostname === 'toeictracking.vercel.app'
+    && apiBase === 'https://toeic-progress-api.onrender.com'
+    ? '/api/ai-status' : `${apiBase}/health`;
   // Retry only the public GET probe. Never retry the paid extraction POST.
   // One deadline covers every attempt, including a Render cold start.
   const signal = AbortSignal.timeout(90_000);
   let response: Response | undefined;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      response = await fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}/health`, { signal, cache: 'no-store' });
+      response = await fetch(statusURL, { signal, cache: 'no-store' });
     } catch {
       if (attempt === 2 || signal.aborted) throw new Error(message);
       await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));

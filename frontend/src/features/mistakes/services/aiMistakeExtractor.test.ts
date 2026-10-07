@@ -143,4 +143,31 @@ describe('AI recipient configuration', () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect((await pending).provider).toBe('openai');
   });
+
+  it('uses a same-origin public probe only for the configured production website', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://toeic-progress-api.onrender.com/');
+    vi.stubGlobal('window', { location: { hostname: 'toeictracking.vercel.app' } });
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
+    vi.stubGlobal('fetch', fetch);
+    await getAIConfiguration();
+    expect(fetch).toHaveBeenCalledWith('/api/ai-status', expect.objectContaining({ cache: 'no-store' }));
+    const options = fetch.mock.calls[0][1];
+    expect(options.headers).toBeUndefined();
+    expect(options.body).toBeUndefined();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+    // A staging API on the same frontend hostname must never be silently
+    // replaced with the production Render project.
+    vi.stubEnv('VITE_API_URL', 'https://api.staging.example');
+    await getAIConfiguration();
+    expect(fetch).toHaveBeenLastCalledWith('https://api.staging.example/health', expect.anything());
+  });
+
+  it('preserves direct health checks for localhost and preview deployments', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://toeic-progress-api.onrender.com');
+    vi.stubGlobal('window', { location: { hostname: 'localhost' } });
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
+    vi.stubGlobal('fetch', fetch);
+    await getAIConfiguration();
+    expect(fetch).toHaveBeenCalledWith('https://toeic-progress-api.onrender.com/health', expect.anything());
+  });
 });
