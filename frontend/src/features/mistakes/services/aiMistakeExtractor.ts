@@ -12,6 +12,23 @@ const draftSchema = z.object({
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
+export type AIProvider = 'openai' | 'gemini';
+export interface AIConfiguration { provider: AIProvider; requireProviderConsent: boolean }
+
+export async function getAIConfiguration(): Promise<AIConfiguration> {
+  if (!apiAvailable) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
+  const response = await fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}/health`, {
+    signal: AbortSignal.timeout(90_000), cache: 'no-store'
+  });
+  if (!response.ok) throw new Error('Chưa kết nối được AI. Bạn vẫn có thể nhập thủ công.');
+  const value = await response.json();
+  if (!value.ai_configured) throw new Error('AI đang tạm tắt. Bạn vẫn có thể nhập thủ công hoặc xem mẫu minh họa.');
+  // Older Gemini deployments have no provider field. This also keeps a rolling
+  // frontend/backend deployment compatible without sending unknown JSON fields.
+  if (value.ai_provider === undefined) return { provider: 'gemini', requireProviderConsent: false };
+  if (value.ai_provider !== 'openai' && value.ai_provider !== 'gemini') throw new Error('Cấu hình AI chưa hợp lệ.');
+  return { provider: value.ai_provider, requireProviderConsent: true };
+}
 
 export async function getAIUsage(): Promise<AIUsage | null> {
   if (!apiAvailable || !cloud) return null;
@@ -22,7 +39,7 @@ export async function getAIUsage(): Promise<AIUsage | null> {
   return current?.user.id === session.user.id ? usage : null;
 }
 
-export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
+export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, provider?: AIProvider): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
   if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
   if (!apiAvailable || !cloud) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
   let { data: { session } } = await cloud.auth.getSession();
@@ -35,7 +52,8 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   // Supabase consumes the sign-up token. The API needs a NEW, single-use token.
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ draft: unknown; usage: AIUsage }>('/api/v1/ai/extract', 'POST', {
-    text: rawInput.trim(), request_id: crypto.randomUUID(), consent: true, captcha_token: captchaToken
+    text: rawInput.trim(), request_id: crypto.randomUUID(), consent: true, captcha_token: captchaToken,
+    ...(provider ? { provider } : {})
   }, session.user.id);
   const parsed = draftSchema.safeParse(value.draft);
   if (!parsed.success) throw new Error('Bản nháp AI chưa hợp lệ. Vui lòng nhập thủ công hoặc thử lại sau.');

@@ -28,6 +28,8 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     settings = request.app.state.settings
     if not settings.ai_ready:
         raise HTTPException(503, "AI chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.")
+    if body.provider != settings.ai_provider and not (body.provider is None and settings.ai_provider == "gemini"):
+        raise HTTPException(409, "Nhà cung cấp AI đã thay đổi. Tải lại trang và xác nhận gửi nội dung trước khi thử lại.")
     gateway = request.app.state.gateway
     unlimited = settings.unlimited_ai_for(user)
     if user["is_anonymous"]:
@@ -46,7 +48,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
                 settings.ai_guest_limit if user["is_anonymous"] else settings.ai_account_monthly_limit
             ),
             "p_day_limit": None if unlimited else settings.ai_global_daily_limit,
-            "p_minute_limit": settings.ai_global_minute_limit,
+            "p_minute_limit": None if unlimited else settings.ai_global_minute_limit,
             "p_ip_limit": None if unlimited else settings.ai_ip_daily_limit,
         },
     )
@@ -59,9 +61,9 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             else "Đã hết lượt hoặc AI đang bận. Bạn vẫn có thể nhập thủ công.",
         )
     # Reservation is committed before calling Gemini, including failed attempts.
-    # One user reservation covers bounded model failover. Every outbound attempt
-    # separately reserves shared project/model RPM/TPM/RPD capacity.
-    result = await gateway.generate(body.text)
+    # Gemini's bounded failover reserves each attempt in its provider pool.
+    # OpenAI posts one request and does not retry ambiguous billed generations.
+    result = await gateway.generate(body.text, user["id"])
     return {
         "draft": result.model_dump(),
         "usage": {

@@ -96,6 +96,10 @@ try {
   const burst = await Promise.all(requests.map(id => unlimited(id)));
   assert.equal(burst.filter(result => result.allowed).length, 1, 'Unlimited usage retains the global minute cap');
   assert.equal((await reserve('66666666-6666-4666-8666-666666666666', alice, 10)).code, 'quota');
+  const fullyExempt = (await db.query(`select public.reserve_ai_request(
+    $1::uuid,false,$2::uuid,$3,$4,null,null,null,null) as value`,
+    [alice, '77777777-7777-4777-8777-777777777777', 'a'.repeat(64), 'b'.repeat(64)])).rows[0].value;
+  assert.deepEqual(fullyExempt, { allowed: true, remaining: null, limit: null });
   console.log('Database migrations, incremental sync, tombstones, RLS, RPC grants, quota reservations and cleanup passed.');
 } finally {
   await db.close();

@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ getSession: vi.fn(), signInAnonymously: vi.fn(), backendRequest: vi.fn() }));
 vi.mock('@/shared/api/api', () => ({ apiAvailable: true, backendRequest: mocks.backendRequest }));
 vi.mock('@/shared/api/supabaseClient', () => ({ cloud: { auth: { getSession: mocks.getSession, signInAnonymously: mocks.signInAnonymously } } }));
 
-import { extractMistakeWithAI, getDemoSampleInput, getAIUsage } from './aiMistakeExtractor';
+import { extractMistakeWithAI, getDemoSampleInput, getAIUsage, getAIConfiguration } from './aiMistakeExtractor';
 
 const guest = { user: { id: 'guest-id', is_anonymous: true }, access_token: 'guest-token' };
 const account = { user: { id: 'account-id', is_anonymous: false }, access_token: 'account-token' };
@@ -81,5 +81,30 @@ describe('AI quota lookup', () => {
     mocks.getSession.mockResolvedValueOnce(session('alice')).mockResolvedValueOnce(session('bob'));
     mocks.backendRequest.mockResolvedValue({ remaining: null, limit: null, guest: false, unlimited: true });
     expect(await getAIUsage()).toBeNull();
+  });
+});
+
+describe('AI recipient configuration', () => {
+  beforeEach(() => vi.stubEnv('VITE_API_URL', 'https://api.example'));
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+  it('loads the recipient without creating or authenticating a guest identity', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
+    vi.stubGlobal('fetch', fetch);
+    expect(await getAIConfiguration()).toEqual({ provider: 'openai', requireProviderConsent: true });
+    expect(mocks.getSession).not.toHaveBeenCalled();
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+    await extractMistakeWithAI(getDemoSampleInput().input, vi.fn(), 'openai');
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ provider: 'openai' }), 'account-id');
+  });
+
+  it('keeps the legacy Gemini request contract compatible during deployment', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true }) }));
+    expect(await getAIConfiguration()).toEqual({ provider: 'gemini', requireProviderConsent: false });
+  });
+
+  it('does not permit consent to an unknown provider', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'unknown' }) }));
+    await expect(getAIConfiguration()).rejects.toThrow('chưa hợp lệ');
   });
 });

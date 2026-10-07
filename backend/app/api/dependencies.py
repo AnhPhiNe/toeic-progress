@@ -12,6 +12,11 @@ async def identity(request: Request, credentials: HTTPAuthorizationCredentials |
         raise HTTPException(401, "Cần phiên đăng nhập hoặc phiên khách để tiếp tục.")
     gateway = request.app.state.gateway
     user = await gateway.authenticate(credentials.credentials)
+    privileged = settings.unlimited_ai_for(user)
+    request.state.verified_ai_unlimited = privileged
+    if privileged and request.url.path in ("/api/v1/ai/usage", "/api/v1/ai/extract"):
+        request.state.ai_limit_exempt = True
+        return user
     if not user["is_anonymous"] or request.url.path in ("/api/v1/ai/usage", "/api/v1/ai/extract"):
         await reserve_account_request(gateway, settings, user["id"], request.url.path)
     return user

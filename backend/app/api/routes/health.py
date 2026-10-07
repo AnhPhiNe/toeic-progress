@@ -9,7 +9,10 @@ router = APIRouter()
 @router.get("/health")
 async def health(request: Request):
     settings = request.app.state.settings
-    return {"status": "ok", "database_configured": settings.database_ready, "ai_configured": settings.ai_ready}
+    return {
+        "status": "ok", "database_configured": settings.database_ready,
+        "ai_configured": settings.ai_ready, "ai_provider": settings.ai_provider,
+    }
 
 
 @router.get("/ready")
@@ -25,6 +28,7 @@ async def ready(request: Request):
                 "database_reachable": reachable,
                 "ai_enabled": settings.ai_enabled,
                 "ai_configured": settings.ai_ready,
+                "ai_provider": settings.ai_provider,
             }
             cached = (time.monotonic(), value)
             request.app.state.readiness = cached

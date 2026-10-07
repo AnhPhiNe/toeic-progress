@@ -245,6 +245,7 @@ class ExtractRequest(BaseModel):
     text: str = Field(min_length=20, max_length=8000)
     request_id: UUID
     consent: Literal[True]
+    provider: Literal["gemini", "openai"] | None = None
     captcha_token: str | None = Field(default=None, max_length=2048)
 
 

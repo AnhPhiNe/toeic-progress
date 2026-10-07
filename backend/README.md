@@ -1,6 +1,6 @@
 # TOEIC Progress — Python/FastAPI
 
-Backend nghiệp vụ dùng FastAPI + Pydantic. Supabase cung cấp PostgreSQL và Auth; Gemini chỉ được gọi từ backend. Frontend không giữ khóa Gemini hay service-role key.
+Backend nghiệp vụ dùng FastAPI + Pydantic. Supabase cung cấp PostgreSQL và Auth; OpenAI/Gemini chỉ được gọi từ backend. Frontend không giữ khóa AI hay service-role key.
 
 Lộ trình beta, migration vận hành, biến deploy, staging tests và backup/restore: [hướng dẫn beta](../docs/DEPLOYMENT.md). Backend có chống spam trước xác thực, bộ đếm API dùng chung qua PostgreSQL, log JSON có mã request, Trusted Host, kiểm tra cấu hình deploy và `/ready` kiểm tra database. Cần cấu hình hosting và kiểm chứng thực tế trước khi mời người dùng.
 
@@ -37,7 +37,28 @@ Mẫu `.env` và Render Blueprint bắt đầu với `AI_ENABLED=false` để tr
 
 Mặc định: khách 3 lượt/danh tính ẩn danh; tài khoản 10 lượt/tháng; cả app 20 lượt/ngày, 2 lượt/phút; mỗi IP 5 lượt/ngày. Các bucket của app tính theo UTC. Đây là cấu hình app, không phải hạn mức bảo đảm của Google. Một UUID yêu cầu chỉ được giữ lượt người dùng một lần, kể cả lỗi nhà cung cấp. Mỗi lần thử model/key giữ quota provider riêng trước khi gọi; không nhân lượt người dùng khi fallback.
 
-`AI_UNLIMITED_EMAILS` là mảng JSON các Gmail được miễn hạn mức tài khoản/tháng, app/ngày và IP/ngày, ví dụ `["your-account@gmail.com"]`; mặc định `[]`. Chỉ đặt ở backend `.env` hoặc Render, không ở biến `VITE_*`. Backend lấy email đã xác nhận và Google identity có `email_verified=true` từ Supabase Auth; không tin email/quyền do frontend hoặc `user_metadata` tự gửi. Danh sách chỉ cấp quyền dùng AI, không cấp quyền đọc dữ liệu học người khác. Giữ nguyên giới hạn phút, chống spam API, request đồng thời và RPM/TPM/RPD của Gemini. Các request ưu tiên vẫn ghi audit/counter dùng chung, nên có thể tiêu hết budget beta ngày của tài khoản thường; tài khoản ưu tiên vẫn tiếp tục trong quota provider. Không cần migration mới: RPC service-role hiện có nhận `NULL` cho những cap được miễn, vẫn giữ deduplication và minute cap. `/api/v1/ai/usage` và kết quả extraction trả `unlimited=true`, `limit=null`, `remaining=null` cho tài khoản đủ điều kiện.
+`AI_UNLIMITED_EMAILS` là mảng JSON các Gmail được miễn **toàn bộ hạn mức AI của app** (tháng/ngày/phút, tài khoản/IP), ví dụ `["your-account@gmail.com"]`; mặc định `[]`. Chỉ đặt ở backend `.env` hoặc Render, không ở biến `VITE_*`. Backend lấy email đã xác nhận và Google identity có `email_verified=true` từ Supabase Auth; không tin email/quyền do frontend hoặc `user_metadata` tự gửi. Danh sách chỉ cấp quyền dùng AI, không cấp quyền đọc dữ liệu người khác. Quyền được xác minh lại với Supabase trong mọi request. Ingress dùng hint HMAC của phiên đã xác minh, tối đa 1.024 mục/60 giây, chỉ để bỏ chặn IP cho phiên được nhận diện; hint không thay thế xác thực. AI của tài khoản được xác minh không tiêu bộ đếm spam ingress. Các API đồng bộ/xóa vẫn có giới hạn riêng. Vẫn giữ giới hạn request đang xử lý, kích thước, timeout, UUID chống gửi trùng và quota của nhà cung cấp. Request vẫn ghi counter/audit dùng chung; tài khoản thường có thể hết budget ngày khi tổng sử dụng tăng. Không cần migration mới: RPC service-role nhận `NULL` cho các cap được miễn. `/api/v1/ai/usage` và extraction trả `unlimited=true`, `limit=null`, `remaining=null` cho tài khoản đủ điều kiện. OpenAI tính phí cả những request của Gmail được miễn.
+
+## OpenAI trực tiếp — GPT-6 Luna
+
+Đặt các biến backend/Render:
+
+```dotenv
+AI_PROVIDER=openai
+OPENAI_API_KEY=REPLACE_PRIVATE_KEY
+OPENAI_MODEL=gpt-6-luna
+OPENAI_REASONING_EFFORT=medium
+OPENAI_MAX_OUTPUT_TOKENS=8192
+OPENAI_TIMEOUT_SECONDS=45
+```
+
+`OPENAI_API_KEY` là **một chuỗi key**, không phải mảng JSON. Dùng tài khoản OpenAI API có tín dụng; chi phí không nằm trong hạn mức ChatGPT. Key chỉ ở backend. Chuẩn bị key và các biến trước khi lưu/redeploy với `AI_ENABLED=true`. Không cần chạy migration mới khi chuyển từ Gemini. `AI_PROVIDER` mặc định `gemini` để các deploy cũ tiếp tục chạy tới lúc người vận hành chủ động đổi; `.env.example` và Blueprint mới chọn OpenAI khi triển khai mới.
+
+Backend gọi cố định `https://api.openai.com/v1/responses`, model `gpt-6-luna`, `reasoning.effort=medium`, Structured Outputs theo schema sổ tay, `store=false`, Standard processing. Không gửi `temperature`/`top_p` cho cấu hình reasoning này. Có thể chọn `low` hoặc `high` bằng biến effort; medium là lựa chọn ban đầu cho việc trích xuất kèm phân tích. Giới hạn output 8.192 token bao gồm token suy luận; bản nháp chưa hoàn chỉnh/bị từ chối không được lưu. Mỗi lượt chỉ gửi một request; timeout hoặc lỗi quota/billing không tự gọi lại, xoay key hay chuyển sang Gemini. Log chỉ ghi request ID, status, thời gian và số token input/output, không ghi câu hỏi, đáp án hay key. Backend gửi safety identifier HMAC thay vì email/user ID thô.
+
+`/health` công khai tên provider để frontend hiển thị đúng nơi nhận dữ liệu trước khi người học đồng ý. Yêu cầu gửi lại provider đã được đồng ý; đổi cấu hình trong lúc mở modal trả 409 trước quota hoặc gọi AI. Client cũ chỉ tương thích Gemini, không tự gửi nội dung đã đồng ý cho Google sang OpenAI.
+
+Giữ quota beta của tài khoản thường (3 lượt khách, 10/tháng, toàn app 20/ngày, 2/phút) và theo dõi usage trên OpenAI. Đây là giới hạn **lượt**, không phải trần hóa đơn USD. Gmail được miễn có thể dùng vượt các cap đó và vẫn phát sinh phí; đặt ngân sách/giới hạn trong project OpenAI theo mức đã chọn. Tham khảo [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [reasoning](https://developers.openai.com/api/docs/guides/reasoning), [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 
 ### Cân bằng key và fallback
 
@@ -63,7 +84,7 @@ Google tính quota theo project. Nếu sau này thêm nhiều key chung một pr
 - Chỉ coi quota là riêng model khi lỗi có chi tiết `QuotaFailure` chỉ đúng model. Lỗi 429 không rõ phạm vi khóa cả project, không thử mù các key/model chung quota. Project khác chỉ được dùng trong hạn mức riêng của nó; giới hạn toàn app vẫn giữ chung.
 - Hết cooldown không chạy job thử liên tục: request kế tiếp được cấp **một probe**; request khác chuyển sang nhóm còn khả dụng. Thành công mới gỡ dấu; lỗi đặt thời gian chờ mới. Lease 90 giây thu hồi slot nếu tiến trình mất kết nối hoặc restart.
 - 404 model hoặc 5xx: tạm bỏ project/model đó để thử nhóm khả dụng. Chỉ xoay ngay key bị xác định `API_KEY_INVALID` / `API_KEY_EXPIRED`; key này bị vô hiệu tới khi thay credential (không tự hồi sau 24 giờ). Lỗi quyền chung, payload, bản nháp không hợp lệ, bị cắt hoặc bị chặn không tự nhân request. Timeout/mất kết nối có thể đã sinh kết quả nên không gửi lại trong cùng lượt.
-- Tối đa 8 lần gọi/lượt và tổng thời gian gọi Gemini 60 giây (30 giây/lần); không ngủ trong request chờ 60 giây/24 giờ. Model sinh nội dung có thể mất hơn 12 giây, nên không dùng timeout ngắn đó mặc định. Hết khả dụng trả 429/503 và `Retry-After`; frontend vẫn cho nhập thủ công. Bộ đếm app giữ lượt một lần cho cả chuỗi, tổng 20 lượt/ngày và 2 lượt/phút không tăng theo số project (Gmail được miễn chỉ bỏ cap ngày/tháng). Log Gemini ghi loại lỗi, thời gian và request ID để phân biệt timeout với lỗi kết nối; không ghi key, URL có credential hay nội dung câu hỏi.
+- Tối đa 8 lần gọi/lượt và tổng thời gian gọi Gemini 60 giây (30 giây/lần); không ngủ trong request chờ 60 giây/24 giờ. Model sinh nội dung có thể mất hơn 12 giây, nên không dùng timeout ngắn đó mặc định. Hết khả dụng trả 429/503 và `Retry-After`; frontend vẫn cho nhập thủ công. Bộ đếm app giữ lượt một lần cho cả chuỗi, tổng 20 lượt/ngày và 2 lượt/phút không tăng theo số project; Gmail được miễn bỏ mọi cap app cho AI, vẫn chịu quota provider. Log Gemini ghi loại lỗi, thời gian và request ID để phân biệt timeout với lỗi kết nối; không ghi key, URL có credential hay nội dung câu hỏi.
 
 Chưa có key/project thực tế và Turnstile thì giữ `AI_ENABLED=false`. Kiểm thử nhà cung cấp thật trên staging trước khi bật public; test tự động chỉ dùng transport giả và PostgreSQL trong bộ nhớ, không tiêu quota.
 

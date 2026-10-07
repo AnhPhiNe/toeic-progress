@@ -42,6 +42,7 @@ def api():
         settings_overrides=None,
         auth_user=None,
         gemini_error=None,
+        auth_statuses=None,
     ):
         calls = []
         provider_blocked = False
@@ -55,7 +56,8 @@ def api():
             )
             calls.append((request.url.host, request.url.path, body, dict(request.headers)))
             if request.url.path == "/auth/v1/user":
-                return httpx.Response(auth_status, json={"id": USER_ID, "is_anonymous": guest, **(auth_user or {})})
+                status = auth_statuses.pop(0) if auth_statuses else auth_status
+                return httpx.Response(status, json={"id": USER_ID, "is_anonymous": guest, **(auth_user or {})})
             if request.url.path.endswith("/sync_account_records"):
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
@@ -91,6 +93,13 @@ def api():
                         ]
                     },
                 )
+            if request.url.host == "api.openai.com":
+                return httpx.Response(200, json={
+                    "status": "completed", "output": [{
+                        "type": "message", "role": "assistant", "status": "completed",
+                        "content": [{"type": "output_text", "text": json.dumps(draft or DRAFT)}],
+                    }],
+                })
             if request.url.path.startswith("/auth/v1/admin/users/"):
                 return httpx.Response(200, json={})
             raise AssertionError(f"Unexpected request: {request.url}")
@@ -460,7 +469,7 @@ def trusted_user(**overrides):
     }
 
 
-def test_google_verified_allowlisted_user_has_unlimited_usage_and_retains_safety_caps(api):
+def test_google_verified_allowlisted_user_has_unlimited_usage_and_retains_provider_checks(api):
     with api(
         auth_user=trusted_user(),
         settings_overrides={"ai_unlimited_emails": [" Owner@gmail.com "], "api_limits_enabled": True},
@@ -471,8 +480,8 @@ def test_google_verified_allowlisted_user_has_unlimited_usage_and_retains_safety
         assert response.status_code == 200 and response.json()["usage"] == expected
         quota = next(call[2] for call in calls if call[1].endswith("/reserve_ai_request"))
         assert quota["p_user_limit"] is None and quota["p_day_limit"] is None and quota["p_ip_limit"] is None
-        assert quota["p_minute_limit"] == 2
-        assert any(call[1].endswith("/reserve_api_request") for call in calls)
+        assert quota["p_minute_limit"] is None
+        assert not any(call[1].endswith("/reserve_api_request") for call in calls)
         assert any(call[1].endswith("/reserve_gemini_attempt") for call in calls)
         assert not any(call[1].endswith("/get_ai_usage") for call in calls)
 
@@ -509,14 +518,88 @@ def test_gemini_transport_logs_correlate_with_support_id_without_secrets(api, ca
         assert "must not log" not in json.dumps(events) and "gemini-secret" not in json.dumps(events)
 
 
-def test_unlimited_account_cannot_bypass_api_throttling_or_request_deduplication(api):
+def test_unlimited_ai_account_bypasses_ai_throttling_and_retains_deduplication(api):
     trusted = {"auth_user": trusted_user(), "settings_overrides": {"ai_unlimited_emails": ["owner@gmail.com"]}}
     with api(
         auth_user=trusted_user(), api_reservation={"allowed": False, "retry_after": 10},
         settings_overrides={"ai_unlimited_emails": ["owner@gmail.com"], "api_limits_enabled": True},
     ) as (client, calls):
-        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 429
-        assert not any(call[1].endswith("/reserve_ai_request") for call in calls)
+        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 200
+        assert not any(call[1].endswith("/reserve_api_request") for call in calls)
+        assert client.post("/api/v1/sync", json={}).status_code == 429
     with api(**trusted, reservation={"allowed": False, "code": "duplicate"}) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 409
         assert not any(call[0] == "generativelanguage.googleapis.com" for call in calls)
+
+
+@pytest.mark.parametrize("provider", [None, "gemini"])
+def test_provider_change_requires_new_recipient_consent_before_reserving_or_generating(api, provider):
+    with api(settings_overrides={"ai_provider": "openai", "openai_api_key": "openai-key"}) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction(provider=provider))
+        assert response.status_code == 409
+        assert not any("reserve_ai_request" in call[1] or call[0] == "api.openai.com" for call in calls)
+
+
+def test_openai_exempt_account_has_no_app_quota_and_never_calls_gemini(api):
+    with api(auth_user=trusted_user(), settings_overrides={
+        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+    }) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction(provider="openai"))
+        assert response.status_code == 200 and response.json()["usage"]["unlimited"] is True
+        reservation = next(call[2] for call in calls if call[1].endswith("/reserve_ai_request"))
+        assert reservation["p_user_limit"] is None and reservation["p_ip_limit"] is None
+        assert reservation["p_day_limit"] is None and reservation["p_minute_limit"] is None
+        provider = next(call for call in calls if call[0] == "api.openai.com")
+        assert provider[3]["authorization"] == "Bearer openai-key"
+        assert len(provider[2]["safety_identifier"]) == 64 and USER_ID not in provider[2]["safety_identifier"]
+        assert not any("gemini" in call[1] or call[0] == "generativelanguage.googleapis.com" for call in calls)
+        assert client.get("/health").json()["ai_provider"] == "openai"
+
+
+def test_openai_readiness_skips_gemini_state_and_only_checks_required_database(api):
+    with api(settings_overrides={
+        "ai_provider": "openai", "openai_api_key": "openai-key", "api_limits_enabled": True,
+    }) as (client, calls):
+        assert client.get("/ready").json()["ai_provider"] == "openai"
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
+
+
+def test_verified_privileged_ai_traffic_does_not_trigger_ingress_spam_limit(api):
+    with api(auth_user=trusted_user(), settings_overrides={
+        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "api_limits_enabled": True, "ingress_ip_minute_limit": 2,
+    }) as (client, calls):
+        for number in range(6):
+            assert client.post("/api/v1/ai/extract", json=extraction(
+                provider="openai", request_id=f"22222222-2222-4222-8222-{number:012d}",
+            )).status_code == 200
+        assert sum(call[1] == "/auth/v1/user" for call in calls) == 6
+        assert not any(call[1].endswith("/reserve_api_request") for call in calls)
+
+
+def test_unverified_email_cannot_obtain_spam_exemption(api):
+    with api(auth_user=trusted_user(identities=[]), settings_overrides={
+        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "ingress_ip_minute_limit": 2,
+    }) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 200
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 200
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 429
+        assert sum(call[1] == "/auth/v1/user" for call in calls) == 2
+
+
+def test_cached_privilege_only_skips_ingress_and_never_skips_fresh_authentication(api):
+    with api(auth_user=trusted_user(), auth_statuses=[200, 200, 200, 200, 401], settings_overrides={
+        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "api_limits_enabled": True, "ingress_ip_minute_limit": 2,
+    }) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 200
+        assert client.post("/api/v1/sync", json={}).status_code == 200
+        assert client.post("/api/v1/sync", json={}).status_code == 200
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 200
+        # The token is subsequently revoked. A previous positive hint cannot
+        # obtain quota, access data, or call the paid provider after revocation.
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 401
+        assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 429
+        assert sum(call[1] == "/auth/v1/user" for call in calls) == 5
+        assert sum(call[0] == "api.openai.com" for call in calls) == 2

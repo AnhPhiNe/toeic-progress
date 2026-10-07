@@ -1,5 +1,7 @@
 """Bound ingress, share account limits in PostgreSQL, and emit metadata-only request logs."""
 
+import hashlib
+import hmac
 import json
 import logging
 import math
@@ -71,6 +73,9 @@ class RuntimeMiddleware:
         self.app, self.settings = app, settings
         self.active = 0
         self.ip_windows = OrderedDict()
+        # Opaque positive hints bypass only ingress throttling. Identity is
+        # still revalidated by Supabase on EVERY request before granting AI.
+        self.ai_exempt_tokens = OrderedDict()
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -79,12 +84,17 @@ class RuntimeMiddleware:
         request_id = str(uuid4())
         context_token = request_id_context.set(request_id)
         scope.setdefault("state", {})["request_id"] = request_id
+        scope["state"]["verified_ai_unlimited"] = False
+        scope["state"]["ai_limit_exempt"] = False
         path = scope.get("path", "")
         method = scope.get("method", "")
         guarded = method != "OPTIONS" and not (path in ("/health", "/ready") and method in ("GET", "HEAD"))
         acquired = False
         status = 500
         response_started = False
+        ip_window = None
+        authorization = next((value for name, value in scope.get("headers", []) if name.lower() == b"authorization"), b"")
+        token_hash = hmac.new(self.settings.rate_limit_secret.encode(), authorization, hashlib.sha256).hexdigest() if authorization else None
 
         async def tracked_send(message):
             nonlocal status, response_started
@@ -102,6 +112,8 @@ class RuntimeMiddleware:
         try:
             if guarded:
                 now = time.monotonic()
+                while self.ai_exempt_tokens and next(iter(self.ai_exempt_tokens.values())) <= now:
+                    self.ai_exempt_tokens.popitem(last=False)
                 # Drop expired windows before admitting new addresses; bound memory under IP churn.
                 while self.ip_windows and next(iter(self.ip_windows.values()))[0] <= now:
                     self.ip_windows.popitem(last=False)
@@ -115,7 +127,12 @@ class RuntimeMiddleware:
                     current = [now + 60, 0]
                     self.ip_windows[address] = current
                 current[1] += 1
-                if current[1] > self.settings.ingress_ip_minute_limit:
+                ip_window = current
+                known_ai_exempt = (
+                    path in ("/api/v1/ai/usage", "/api/v1/ai/extract")
+                    and token_hash in self.ai_exempt_tokens
+                )
+                if current[1] > self.settings.ingress_ip_minute_limit and not known_ai_exempt:
                     delay = str(max(1, math.ceil(current[0] - now)))
                     return await JSONResponse(
                         {"detail": "Có quá nhiều yêu cầu. Vui lòng chờ rồi thử lại."},
@@ -139,6 +156,17 @@ class RuntimeMiddleware:
                     scope, receive, tracked_send
                 )
         finally:
+            if scope["state"].get("ai_limit_exempt") is True and ip_window is not None:
+                # Verified privileged AI traffic does not spend the IP's spam budget.
+                ip_window[1] = max(0, ip_window[1] - 1)
+            if token_hash:
+                if scope["state"].get("verified_ai_unlimited") is True:
+                    self.ai_exempt_tokens.pop(token_hash, None)
+                    if len(self.ai_exempt_tokens) >= 1024:
+                        self.ai_exempt_tokens.popitem(last=False)
+                    self.ai_exempt_tokens[token_hash] = time.monotonic() + 60
+                else:
+                    self.ai_exempt_tokens.pop(token_hash, None)
             if acquired:
                 self.active -= 1
             logger.info(

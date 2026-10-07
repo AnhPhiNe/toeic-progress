@@ -27,6 +27,13 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "staging", "production"] = "development"
     ai_enabled: bool = True
+    # Existing deployments keep their provider until the operator explicitly switches.
+    ai_provider: Literal["gemini", "openai"] = "gemini"
+    openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    openai_model: Literal["gpt-6-luna"] = "gpt-6-luna"
+    openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"
+    openai_max_output_tokens: int = Field(default=8192, ge=2048, le=16384)
+    openai_timeout_seconds: float = Field(default=45, ge=5, le=60)
     api_limits_enabled: bool = False  # Enable after applying the runtime migration; required when deployed.
     allowed_hosts: list[str] = []
     render_external_hostname: str = ""
@@ -182,7 +189,9 @@ class Settings(BaseSettings):
         return (
             self.ai_enabled
             and self.database_ready
-            and bool(self.effective_gemini_projects and self.rate_limit_secret and self.turnstile_secret_key)
+            and bool(self.rate_limit_secret and self.turnstile_secret_key)
+            and (bool(self.openai_api_key.get_secret_value().strip()) if self.ai_provider == "openai"
+                 else bool(self.effective_gemini_projects))
         )
 
     @property
@@ -236,6 +245,6 @@ class Settings(BaseSettings):
                 for host in self.turnstile_hostnames
             )
         ):
-            missing.append("GEMINI_PROJECTS or GEMINI_API_KEY(S)/TURNSTILE_SECRET_KEY/TURNSTILE_HOSTNAMES or AI_ENABLED=false")
+            missing.append("AI provider key/TURNSTILE_SECRET_KEY/TURNSTILE_HOSTNAMES or AI_ENABLED=false")
         if missing:
             raise ValueError("Deployment configuration incomplete: " + "; ".join(missing))

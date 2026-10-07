@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.integrations.gemini import GeminiProvider
+from app.integrations.openai_provider import OpenAIProvider
 from app.schemas.models import MistakeDraft
 
 
@@ -14,6 +15,7 @@ class Gateway:
         self.settings = settings
         self.client = client
         self.gemini = GeminiProvider(settings, client, self.rpc)
+        self.openai = OpenAIProvider(settings, client)
 
     async def readiness(self) -> bool:
         if not self.settings.database_ready:
@@ -28,7 +30,7 @@ class Gateway:
             )
             if not response.is_success:
                 return False
-            if self.settings.ai_enabled:
+            if self.settings.ai_enabled and self.settings.ai_provider == "gemini":
                 response = await self.client.get(
                     f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_provider_state",
                     params={"select": "scope", "limit": "0"}, headers=self.admin_headers(), timeout=3,
@@ -93,7 +95,9 @@ class Gateway:
         ):
             raise HTTPException(403, "Xác minh đã hết hạn. Vui lòng thử lại.")
 
-    async def generate(self, text: str) -> MistakeDraft:
+    async def generate(self, text: str, user_id: str | None = None) -> MistakeDraft:
+        if self.settings.ai_provider == "openai":
+            return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None)
         return await self.gemini.generate(text)
 
     async def delete_account(self, user_id: str):

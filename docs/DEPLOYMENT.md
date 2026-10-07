@@ -1,6 +1,6 @@
 # Đưa TOEIC Progress vào beta
 
-Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI sau khi có Gemini/Turnstile và đã kiểm thử hạn mức thật. Render Free có thể ngủ; beta cần chấp nhận thời gian chờ, chưa có cam kết uptime hay sức chịu tải.
+Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI sau khi có key OpenAI/Gemini, Turnstile và đã kiểm thử provider thật. Render Free có thể ngủ; beta cần chấp nhận thời gian chờ, chưa có cam kết uptime hay sức chịu tải.
 
 ## 1. Chuẩn bị database
 
@@ -62,15 +62,15 @@ Script cần `SUPABASE_STAGING_API_URL` và `SUPABASE_STAGING_USER_TOKEN`; đồ
 
 ## 5. Bật AI sau khi tracker ổn
 
-Tạo Gemini API key, xác minh model/hạn mức thực tế trong AI Studio. Tạo Turnstile site và thêm hostname frontend; bật Anonymous Sign-Ins và CAPTCHA trong Supabase Auth.
+OpenAI đã được chọn cho cấu hình mới: tạo key trên OpenAI Platform, tài khoản API có tín dụng. Trên Render đặt `AI_PROVIDER=openai`, `OPENAI_API_KEY` là một chuỗi key, `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`. Giữ `AI_ENABLED=false` nếu chưa có key, và lưu cả cấu hình trước khi bật AI. Tạo Turnstile site và thêm hostname frontend; bật Anonymous Sign-Ins và CAPTCHA trong Supabase Auth.
 
-Backend: điền `GEMINI_API_KEY`, `GEMINI_MODEL`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đổi `AI_ENABLED=true`. Frontend: điền `VITE_TURNSTILE_SITE_KEY` và redeploy.
+Backend: điền key provider, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đổi `AI_ENABLED=true`. Frontend: điền `VITE_TURNSTILE_SITE_KEY` và redeploy. Không cần biến OpenAI trong Vercel. `/ready` phải báo `ai_provider=openai`, `ai_configured=true` sau khi chuyển. Không cần migration mới khi chuyển từ Gemini. Backend cũ đang chạy Gemini tiếp tục dùng provider đó tới khi đổi biến `AI_PROVIDER`.
 
 Với backend mới có cân bằng Gemini, chạy thêm migration `20261007000000_gemini_provider_pool.sql` trước khi bật AI. Cách dùng đã chốt: mỗi key có quota độc lập, nhập `GEMINI_API_KEYS=["KEY_1","KEY_2",...]`, để `GEMINI_PROJECTS=[]` và `GEMINI_API_KEY` trống; không cần project ID. Chuỗi mặc định: 3.8 Flash → 3.7 Flash → 3.6 Flash → 3.5 Flash. Xem [backend/README.md](../backend/README.md#cân-bằng-key-và-fallback) cho JSON mẫu, hạn mức, cooldown 60 giây/24 giờ và kiểm thử staging. Không tăng giới hạn toàn app theo số key. Migration đã áp dụng không cần chạy lại khi đổi cách nhập key.
 
 Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức cam kết của Google.
 
-Tùy chọn miễn hạn mức: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail đã xác minh qua Google trong Supabase Auth được miễn cap tháng/ngày; vẫn chịu cap phút, API và provider, không thêm quyền database. Để `[]` để tắt. Không cần chạy thêm migration. Request ưu tiên vẫn được ghi vào bộ đếm chung. Khi triển khai từ cấu hình cũ, đặt `GEMINI_ATTEMPT_TIMEOUT_SECONDS=30`, `GEMINI_TOTAL_TIMEOUT_SECONDS=60` để model đủ thời gian sinh bản nháp.
+Tùy chọn miễn toàn bộ hạn mức AI app: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail được Google xác minh trong Supabase Auth được miễn cap tháng/ngày/phút và spam theo tài khoản/IP cho AI; không thêm quyền database. Để `[]` để tắt. Không cần migration mới. Vẫn ghi counter, chống gửi trùng và giữ giới hạn tài nguyên/provider. Phí OpenAI vẫn áp dụng; giám sát ngân sách đã chọn trên OpenAI Platform. Khi còn dùng Gemini từ cấu hình cũ, đặt `GEMINI_ATTEMPT_TIMEOUT_SECONDS=30`, `GEMINI_TOTAL_TIMEOUT_SECONDS=60`.
 
 ## 6. Giới hạn, log và proxy
 

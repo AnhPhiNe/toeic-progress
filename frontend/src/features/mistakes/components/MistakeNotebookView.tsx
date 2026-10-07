@@ -34,12 +34,13 @@ const SHORT_CATEGORY_LABELS: Record<ErrorCategory, string> = {
 import { 
   extractMistakeWithAI, 
   getDemoSampleInput,
-  getAIUsage
+  getAIUsage,
+  getAIConfiguration
 } from '@/features/mistakes/services/aiMistakeExtractor';
 import { TrapQuizModal } from '@/features/mistakes/components/TrapQuizModal';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
-import type { AIUsage, AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
+import type { AIUsage, AIMistakeParseResult, AIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
 
 interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
@@ -158,6 +159,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiUsage, setAIUsage] = useState<AIUsage | null>(null);
+  const [aiConfiguration, setAIConfiguration] = useState<AIConfiguration | null>(null);
   const [aiMissingInformation, setAIMissingInformation] = useState<string[]>([]);
   const [aiConsent, setAIConsent] = useState(false);
   const [aiReviewed, setAIReviewed] = useState(false);
@@ -169,6 +171,13 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
     if (!isAddModalOpen || modalMode !== 'AI_PARSE') return;
     let cancelled = false;
     setAIUsage(null);
+    setAIConfiguration(null);
+    setAIConsent(false);
+    void getAIConfiguration().then(configuration => {
+      if (!cancelled) setAIConfiguration(configuration);
+    }).catch(reason => {
+      if (!cancelled) setAiError(reason instanceof Error ? reason.message : 'Chưa kết nối được AI.');
+    });
     void getAIUsage().then(usage => {
       if (!cancelled) setAIUsage(usage);
     }).catch(() => { /* Quota lookup failure leaves manual entry and the AI request available. */ });
@@ -309,12 +318,13 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
   };
 
   const handleRunAIExtract = async () => {
-    if (!aiConsent) { setAiError('Xác nhận gửi nội dung tới AI trước khi phân tích.'); return; }
+    if (!aiConsent || !aiConfiguration) { setAiError('Xác nhận gửi nội dung tới AI trước khi phân tích.'); return; }
     const run = ++aiGeneration.current;
     try {
       setIsAILoading(true);
       setAiError(null);
-      const { draft, usage } = await extractMistakeWithAI(rawAIText, getCaptcha);
+      const { draft, usage } = await extractMistakeWithAI(rawAIText, getCaptcha,
+        aiConfiguration.requireProviderConsent ? aiConfiguration.provider : undefined);
       if (run !== aiGeneration.current) return;
       setAIUsage(usage);
       showDraft(draft);
@@ -1087,7 +1097,7 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                   
                   <div className="rounded-xl bg-slate-50 p-3 text-slate-600 dark:bg-slate-900 dark:text-slate-300" role="status">
                     {aiUsage?.unlimited
-                      ? 'Tài khoản của bạn được miễn hạn mức lượt AI. Tốc độ sử dụng vẫn phụ thuộc giới hạn của Gemini.'
+                      ? 'Tài khoản của bạn được miễn hạn mức AI của website. Vẫn áp dụng giới hạn của nhà cung cấp AI.'
                       : aiUsage ? `Còn ${aiUsage.remaining}/${aiUsage.limit} lượt AI${aiUsage.guest ? ' dùng thử cho khách' : ' trong tháng'}.`
                         : 'Khách được thử 3 lượt AI; tài khoản có 10 lượt/tháng. Tổng hạn mức beta có giới hạn.'}
                     <p className="mt-1">Kết quả là bản nháp để bạn kiểm tra và chỉnh sửa trước khi lưu.</p>
@@ -1124,8 +1134,10 @@ Tôi chọn A vì nghĩ reports là số nhiều.
                   </div>
 
                   <label className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
-                    <input type="checkbox" checked={aiConsent} onChange={event => setAIConsent(event.target.checked)} className="mt-0.5" />
-                    <span>Tôi đồng ý gửi nội dung này tới Google để phân tích. Gemini Free có thể dùng nội dung để cải thiện sản phẩm.</span>
+                    <input type="checkbox" checked={aiConsent} disabled={!aiConfiguration} onChange={event => setAIConsent(event.target.checked)} className="mt-0.5" />
+                    <span>{!aiConfiguration ? 'Đang kiểm tra kết nối AI…'
+                      : aiConfiguration.provider === 'openai' ? 'Tôi đồng ý gửi nội dung này tới OpenAI để phân tích.'
+                        : 'Tôi đồng ý gửi nội dung này tới Google để phân tích. Gemini Free có thể dùng nội dung để cải thiện sản phẩm.'}</span>
                   </label>
                   <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
 
@@ -1146,7 +1158,7 @@ Tôi chọn A vì nghĩ reports là số nhiều.
                     <button
                       type="button"
                       onClick={handleRunAIExtract}
-                      disabled={isAILoading || !aiConsent}
+                      disabled={isAILoading || !aiConsent || !aiConfiguration}
                       className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-xs border-2 border-slate-900 dark:border-slate-200 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-2 cursor-pointer transition-all"
                     >
                       {isAILoading ? (
