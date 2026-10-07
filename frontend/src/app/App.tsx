@@ -25,10 +25,10 @@ import {
   loadUserProfile, 
   saveUserProfile, 
   loadStudySessions, 
-  saveStudySessions, 
-  addStudySession, 
-  loadMistakes, 
-  saveMistakes, 
+  updateStudySessions,
+  addStudySession,
+  loadMistakes,
+  updateMistakes,
   loadDemoData, 
   resetToCleanSlate,
   loadVocabLog,
@@ -41,10 +41,11 @@ import { StudySession, MistakeEntry, UserProfile, ReadingPartType } from '@/shar
 import { applyReviewResult, getDueMistakes } from '@/features/mistakes/lib/spacedRepetition';
 
 export const App: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile>(loadUserProfile());
-  const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions());
-  const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes());
-  const [vocabLog, setVocabLog] = useState(loadVocabLog());
+  // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
+  const [profile, setProfile] = useState<UserProfile>(loadUserProfile);
+  const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions);
+  const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes);
+  const [vocabLog, setVocabLog] = useState(loadVocabLog);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('toeic_onboarding_done_v1') && !hasPersonalData(readDataBundle()));
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -145,11 +146,15 @@ export const App: React.FC = () => {
     setProfile(result.profile);
 
     if (newMistakes && newMistakes.length > 0) {
-      const updatedMistakes = [...newMistakes, ...mistakes];
-      saveMistakes(updatedMistakes);
-      setMistakes(updatedMistakes);
+      setMistakes(updateMistakes(current => [...newMistakes, ...current]));
     }
   };
+
+  // Phòng Thi tự ghi buổi học vào bộ nhớ; đọc lại để state không bị cũ
+  const handleSessionsChangedElsewhere = useCallback(() => {
+    setSessions(loadStudySessions());
+    setProfile(loadUserProfile());
+  }, []);
 
   const handleSaveVocab = (date: string, count: number) => {
     setVocabLog(upsertVocabLog(date, count));
@@ -167,60 +172,46 @@ export const App: React.FC = () => {
    * kỷ lục không được kích hoạt.
    */
   const handleUpdateSession = (session: StudySession, newMistakes?: MistakeEntry[]) => {
-    const updated = sessions.map(s => (s.id === session.id ? session : s));
-    saveStudySessions(updated);
-    setSessions(updated);
+    setSessions(updateStudySessions(current => current.map(s => (s.id === session.id ? session : s))));
     setProfile(loadUserProfile());
 
     if (newMistakes && newMistakes.length > 0) {
-      const updatedMistakes = [...newMistakes, ...mistakes];
-      saveMistakes(updatedMistakes);
-      setMistakes(updatedMistakes);
+      setMistakes(updateMistakes(current => [...newMistakes, ...current]));
     }
   };
 
   // Thay nội dung một thẻ lỗi sai (trạng thái & lịch ôn đã được giữ ở form)
   const handleUpdateMistake = (entry: MistakeEntry) => {
-    const updated = mistakes.map(m => (m.id === entry.id ? entry : m));
-    saveMistakes(updated);
-    setMistakes(updated);
+    setMistakes(updateMistakes(current => current.map(m => (m.id === entry.id ? entry : m))));
   };
 
   // Xóa session
   const handleDeleteSession = (sessionId: string) => {
-    const updated = sessions.filter(s => s.id !== sessionId);
-    saveStudySessions(updated);
-    setSessions(updated);
+    setSessions(updateStudySessions(current => current.filter(s => s.id !== sessionId)));
     setProfile(loadUserProfile());
   };
 
   // Thêm lỗi sai vào Sổ tay
   const handleAddMistake = (entry: MistakeEntry) => {
-    const updated = [entry, ...mistakes];
-    saveMistakes(updated);
-    setMistakes(updated);
+    setMistakes(updateMistakes(current => [entry, ...current]));
   };
 
   // Chuyển đổi trạng thái lỗi sai
   const handleToggleMistakeStatus = (mistakeId: string) => {
-    const updated = mistakes.map(m => {
+    setMistakes(updateMistakes(current => current.map(m => {
       if (m.id === mistakeId) {
         const nextStatus: 'NEEDS_REVIEW' | 'MASTERED' = m.status === 'MASTERED' ? 'NEEDS_REVIEW' : 'MASTERED';
         return { ...m, status: nextStatus };
       }
       return m;
-    });
-    saveMistakes(updated);
-    setMistakes(updated);
+    })));
   };
 
   // Ghi kết quả tự chấm một thẻ trong phiên ôn (SPEC mục 4.6)
   const handleGradeMistake = (mistakeId: string, remembered: boolean) => {
-    const updated = mistakes.map(m =>
+    setMistakes(updateMistakes(current => current.map(m =>
       m.id === mistakeId ? applyReviewResult(m, remembered) : m
-    );
-    saveMistakes(updated);
-    setMistakes(updated);
+    )));
   };
 
   /**
@@ -231,20 +222,16 @@ export const App: React.FC = () => {
   const handleReopenCards = (mistakeIds: string[]) => {
     const ids = new Set(mistakeIds);
     const today = getTodayDateString();
-    const updated = mistakes.map(m =>
+    setMistakes(updateMistakes(current => current.map(m =>
       ids.has(m.id)
         ? { ...m, status: 'NEEDS_REVIEW' as const, reviewStage: 0, nextReviewDate: today }
         : m
-    );
-    saveMistakes(updated);
-    setMistakes(updated);
+    )));
   };
 
   // Xóa lỗi sai
   const handleDeleteMistake = (mistakeId: string) => {
-    const updated = mistakes.filter(m => m.id !== mistakeId);
-    saveMistakes(updated);
-    setMistakes(updated);
+    setMistakes(updateMistakes(current => current.filter(m => m.id !== mistakeId)));
   };
 
   // Lưu cấu hình
@@ -374,6 +361,7 @@ export const App: React.FC = () => {
           {activeTab === 'exam-mode' && (
             <ReadingPacingView
               onOpenSessionLogger={openSessionLogger}
+              onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
               initialPart={pacingInitialPart}
             />

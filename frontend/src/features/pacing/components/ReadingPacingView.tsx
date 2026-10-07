@@ -43,6 +43,8 @@ import confetti from 'canvas-confetti';
 
 export interface ReadingPacingViewProps {
   onOpenSessionLogger?: (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => void;
+  /** Gọi sau khi màn hình này tự ghi buổi học, để App đọc lại thay vì giữ state cũ */
+  onSessionsChanged?: () => void;
   theme?: 'light' | 'dark';
   initialPart?: ReadingPartType;
 }
@@ -509,6 +511,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
 
 export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
   onOpenSessionLogger,
+  onSessionsChanged,
   initialPart = 'PART_5'
 }) => {
   const [selectedPart, setSelectedPart] = useState<ReadingPartType>(initialPart);
@@ -802,6 +805,7 @@ export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
           createdAt: new Date().toISOString()
         };
         addStudySession(pomoSession);
+        onSessionsChanged?.();
       }
       setSecondsRemaining(totalSeconds);
       setIsPomodoroFinishOpen(true);
@@ -813,7 +817,7 @@ export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
       setIsModalOpen(true);
       playSoundAlert();
     }
-  }, [activeConfig.totalQuestions, incrementPomodoro, playSoundAlert, pomodoroPhase, pomodoroSettings.workMinutes, secondsRemaining, selectedPart, totalSeconds]);
+  }, [activeConfig.totalQuestions, incrementPomodoro, onSessionsChanged, playSoundAlert, pomodoroPhase, pomodoroSettings.workMinutes, secondsRemaining, selectedPart, totalSeconds]);
 
   // Phím tắt Space để Xong Bài nhanh
   useEffect(() => {
@@ -886,6 +890,7 @@ export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
                   createdAt: new Date().toISOString()
                 };
                 addStudySession(pomoSession);
+                onSessionsChanged?.();
               }
               setIsPomodoroFinishOpen(true);
             } else {
@@ -905,7 +910,7 @@ export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [activeConfig.totalQuestions, incrementPomodoro, isRunning, playSoundAlert, pomodoroPhase, pomodoroSettings.workMinutes, selectedPart, totalSeconds]);
+  }, [activeConfig.totalQuestions, incrementPomodoro, isRunning, onSessionsChanged, playSoundAlert, pomodoroPhase, pomodoroSettings.workMinutes, selectedPart, totalSeconds]);
 
   // Định dạng hiển thị đồng hồ
   const elapsedSeconds = Math.max(0, totalSeconds - secondsRemaining);
@@ -964,7 +969,8 @@ export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
     const newSession: StudySession = {
       id: `session-pacing-${Date.now()}`,
       skillType: 'LR',
-      sessionType: selectedPart === 'FULL_READING' ? 'FULL_TEST' : 'PART_PRACTICE',
+      // Sprint Reading không có điểm L/R nên không được tính là Full Test
+      sessionType: 'PART_PRACTICE',
       testName: modalTestName.trim()
         ? `[Tốc độ] ${modalTestName.trim()}`
         : `[Luyện tốc độ] ${activeConfig.name}`,
@@ -979,6 +985,7 @@ export const ReadingPacingView: React.FC<ReadingPacingViewProps> = ({
       createdAt: new Date().toISOString()
     };
     addStudySession(newSession);
+    onSessionsChanged?.();
 
     setIsModalOpen(false);
     handleResetTimer();

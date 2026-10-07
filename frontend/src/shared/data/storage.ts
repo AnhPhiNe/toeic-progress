@@ -87,6 +87,19 @@ export function saveStudySessions(sessions: StudySession[]): void {
   updateDataBundle(current => ({ ...current, sessions: replaceCollection(current.sessions, sessions) }));
 }
 
+/**
+ * Áp một thay đổi lên danh sách buổi học ĐANG LƯU, không phải bản sao trong state.
+ * Phòng Thi ghi buổi học thẳng vào bộ nhớ; nếu ghi đè bằng state cũ của App,
+ * replaceCollection sẽ đánh dấu xóa các buổi đó.
+ */
+export function updateStudySessions(update: (current: StudySession[]) => StudySession[]): StudySession[] {
+  const next = updateDataBundle(current => ({
+    ...current,
+    sessions: replaceCollection(current.sessions, update(live(current.sessions)))
+  }));
+  return live(next.sessions);
+}
+
 // Thêm một buổi học mới
 export function addStudySession(session: StudySession): { sessions: StudySession[]; profile: UserProfile; isRecord: boolean } {
   const currentSessions = loadStudySessions();
@@ -155,6 +168,15 @@ export function loadMistakes(): MistakeEntry[] {
 
 export function saveMistakes(mistakes: MistakeEntry[]): void {
   updateDataBundle(current => ({ ...current, mistakes: replaceCollection(current.mistakes, mistakes) }));
+}
+
+/** Như updateStudySessions: luôn áp thay đổi lên danh sách lỗi sai đang lưu. */
+export function updateMistakes(update: (current: MistakeEntry[]) => MistakeEntry[]): MistakeEntry[] {
+  const next = updateDataBundle(current => ({
+    ...current,
+    mistakes: replaceCollection(current.mistakes, update(live(current.mistakes)))
+  }));
+  return live(next.mistakes);
 }
 
 // ---- Lượt chạy Bộ đếm nhịp (SPEC 4.3) ----

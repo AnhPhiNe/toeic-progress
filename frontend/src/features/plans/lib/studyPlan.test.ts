@@ -87,6 +87,17 @@ describe('studyPlan SMART engine', () => {
     expect(summary.completionPercent).toBe(50);
   });
 
+  it('does not count an unscored Full Test record (old Sprint Reading saves) toward the weekly Full Test task', () => {
+    const sessions: StudySession[] = [{
+      id: 'sprint', skillType: 'LR', sessionType: 'FULL_TEST', testName: '[Luyện tốc độ] Sprint Reading',
+      date: '2026-09-22', durationMinutes: 75, createdAt: '2026-09-22T10:00:00Z'
+    }];
+    const summary = buildWeeklyStudyPlan('2026-09-21', mockProfile, sessions, []);
+    expect(summary.fullTestsThisWeek).toBe(0);
+    expect(summary.tasks.find(t => t.type === 'AUTO_FULL_TEST')?.isComplete).toBe(false);
+    expect(summary.minutesThisWeek).toBe(75);
+  });
+
   it('supports manual completion toggle for auto tasks (offline/flexible learning)', () => {
     const monday = '2026-09-21';
     const plan = getOrCreateWeeklyPlan(monday, mockProfile);

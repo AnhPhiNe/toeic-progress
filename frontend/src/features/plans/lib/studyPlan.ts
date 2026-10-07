@@ -92,7 +92,8 @@ export function buildWeeklyStudyPlan(
 
   // Dữ liệu học tập trong tuần này
   const thisWeekSessions = sessions.filter(s => s.date >= weekStart && s.date <= weekEnd);
-  const fullTestsThisWeek = thisWeekSessions.filter(s => s.sessionType === 'FULL_TEST').length;
+  // Chỉ đếm Full Test có điểm; bản ghi Sprint Reading cũ từng bị lưu là FULL_TEST không điểm
+  const fullTestsThisWeek = thisWeekSessions.filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0).length;
   const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
   const minutesGoalThisWeek = (profile.dailyMinGoalMinutes || 30) * 7;
 
