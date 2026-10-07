@@ -66,7 +66,7 @@ Tạo Gemini API key, xác minh model/hạn mức thực tế trong AI Studio. T
 
 Backend: điền `GEMINI_API_KEY`, `GEMINI_MODEL`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đổi `AI_ENABLED=true`. Frontend: điền `VITE_TURNSTILE_SITE_KEY` và redeploy.
 
-Với backend mới có cân bằng Gemini, chạy thêm migration `20261007000000_gemini_provider_pool.sql` trước khi bật AI. Dùng `GEMINI_PROJECTS` để khai báo project ID thật và key thuộc từng project; để `GEMINI_API_KEY` trống và `GEMINI_API_KEYS=[]` khi dùng cấu hình này. Chuỗi mặc định: 3.8 Flash → 3.7 Flash → 3.6 Flash → 3.5 Flash. Xem [backend/README.md](../backend/README.md#cân-bằng-projectkey-và-fallback) cho JSON mẫu, hạn mức, cooldown 60 giây/24 giờ và kiểm thử staging. Không tăng giới hạn toàn app theo số project.
+Với backend mới có cân bằng Gemini, chạy thêm migration `20261007000000_gemini_provider_pool.sql` trước khi bật AI. Cách dùng đã chốt: mỗi key có quota độc lập, nhập `GEMINI_API_KEYS=["KEY_1","KEY_2",...]`, để `GEMINI_PROJECTS=[]` và `GEMINI_API_KEY` trống; không cần project ID. Chuỗi mặc định: 3.8 Flash → 3.7 Flash → 3.6 Flash → 3.5 Flash. Xem [backend/README.md](../backend/README.md#cân-bằng-key-và-fallback) cho JSON mẫu, hạn mức, cooldown 60 giây/24 giờ và kiểm thử staging. Không tăng giới hạn toàn app theo số key. Migration đã áp dụng không cần chạy lại khi đổi cách nhập key.
 
 Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức cam kết của Google.
 

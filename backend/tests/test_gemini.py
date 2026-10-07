@@ -220,6 +220,48 @@ def test_independent_project_can_continue_when_another_is_throttled():
     asyncio.run(run())
 
 
+def test_flat_independent_key_pool_rotates_after_quota_without_project_ids():
+    async def run():
+        settings = Settings(_env_file=None, gemini_api_keys=["account-one-key", "account-two-key"])
+        pool, calls = MockReservations(), []
+
+        def transport(request):
+            calls.append((request.url.path, request.headers["x-goog-api-key"]))
+            return httpx.Response(429, json={"error": {}}) if len(calls) == 1 else successful_response()
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+            draft = await GeminiProvider(settings, client, pool).generate(TEXT)
+        assert draft.correctAnswer == "(B) be"
+        assert calls == [
+            ("/v1beta/models/gemini-3.8-flash:generateContent", "account-one-key"),
+            ("/v1beta/models/gemini-3.8-flash:generateContent", "account-two-key"),
+        ]
+        assert len(settings.effective_gemini_projects) == 2
+        assert all(len(group.api_keys) == 1 for group in settings.effective_gemini_projects)
+        assert "account-one-key" not in json.dumps(pool.calls)
+    asyncio.run(run())
+
+
+def test_flat_key_group_ids_are_stable_across_reorder_and_do_not_contain_credentials():
+    keys = ["account-one-key", "account-two-key"]
+    first = Settings(_env_file=None, gemini_api_keys=keys)
+    second = Settings(_env_file=None, gemini_api_keys=keys[::-1])
+    def mapping(settings):
+        return {
+            project.api_keys[0].get_secret_value(): project.project_id for project in settings.effective_gemini_projects
+        }
+    assert mapping(first) == mapping(second)
+    assert len(set(mapping(first).values())) == 2
+    assert "account-one-key" not in repr(first) and "account-one-key" not in first.model_dump_json()
+    assert all(key not in project_id for key, project_id in mapping(first).items())
+
+
+def test_flat_key_pool_rejects_empty_duplicate_or_too_many_keys():
+    for keys in (["same-key", " same-key "], [""], [f"key-{n}" for n in range(9)]):
+        with pytest.raises(ValidationError):
+            Settings(_env_file=None, gemini_api_keys=keys)
+
+
 def test_key_pool_config_keeps_secrets_out_of_repr_and_rejects_duplicate_assignment():
     settings = Settings(_env_file=None, gemini_projects=[{"project_id": "toeic-one", "api_keys": ["private-key"]}])
     assert "private-key" not in repr(settings) and "private-key" not in settings.model_dump_json()

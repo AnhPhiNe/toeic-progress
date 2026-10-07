@@ -37,23 +37,25 @@ Mẫu `.env` và Render Blueprint bắt đầu với `AI_ENABLED=false` để tr
 
 Mặc định: khách 3 lượt/danh tính ẩn danh; tài khoản 10 lượt/tháng; cả app 20 lượt/ngày, 2 lượt/phút; mỗi IP 5 lượt/ngày. Các bucket của app tính theo UTC. Đây là cấu hình app, không phải hạn mức bảo đảm của Google. Một UUID yêu cầu chỉ được giữ lượt người dùng một lần, kể cả lỗi nhà cung cấp. Mỗi lần thử model/key giữ quota provider riêng trước khi gọi; không nhân lượt người dùng khi fallback.
 
-### Cân bằng project/key và fallback
+### Cân bằng key và fallback
 
 Chạy migration `supabase/migrations/20261007000000_gemini_provider_pool.sql` sau năm migration trước, **trước khi bật AI với code mới**. Nó chỉ thêm hai bảng vận hành `ai_provider_state`, `ai_provider_attempts` và RPC service-role; không thay dữ liệu học. Readiness kiểm tra bảng mới khi AI bật. Tracker với `AI_ENABLED=false` vẫn chạy trước migration này.
 
-Một key: dùng `GEMINI_API_KEY` như cũ. Nhiều key cùng project: `GEMINI_API_KEYS=["key-1","key-2"]`. Nhiều project: để hai biến đó trống, điền **project ID thật** trong một dòng JSON ở `GEMINI_PROJECTS`:
+Với cách dùng đã chốt — mỗi key từ một tài khoản/project riêng, không chung quota — chỉ cần `GEMINI_API_KEYS` là mảng JSON các chuỗi key. Không nhập email tài khoản hoặc project ID. Backend tự tạo nhóm hạn mức riêng từ hash ổn định của từng key, nên đổi thứ tự danh sách không làm mất cooldown/bộ đếm. Hỗ trợ tối đa 8 key độc lập. Một key cũ trong `GEMINI_API_KEY` vẫn tương thích.
 
 ```dotenv
 GEMINI_API_KEY=
-GEMINI_API_KEYS=[]
-GEMINI_PROJECTS=[{"project_id":"toeic-project-one","api_keys":["REPLACE_PRIVATE_KEY_1","REPLACE_PRIVATE_KEY_2"],"rpm_limit":5,"tpm_limit":250000,"rpd_limit":20},{"project_id":"toeic-project-two","api_keys":["REPLACE_PRIVATE_KEY_3"],"rpm_limit":5,"tpm_limit":250000,"rpd_limit":20}]
+GEMINI_API_KEYS=["REPLACE_PRIVATE_KEY_1","REPLACE_PRIVATE_KEY_2","REPLACE_PRIVATE_KEY_3"]
+GEMINI_PROJECTS=[]
 GEMINI_MODEL=gemini-3.8-flash
 GEMINI_FALLBACK_MODELS=["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash"]
 ```
 
-Giá trị trên là mẫu, không phải credential. Chỉ điền tại backend `.env` / Environment Variables của Render, không gửi vào chat, commit, screenshot hoặc biến `VITE_*`. Không gán các key cùng project sang tên project khác để nhân quota. Nếu từng model có quota khác nhau, cấu hình mức thấp nhất phù hợp cho toàn chuỗi model trong project đó; các hạn mức này không tự được xác minh với Google. Key trùng hoặc project ID trùng làm cấu hình bị từ chối. Một pool khai báo project hỗ trợ tối đa 8 project, 16 key/project.
+Giá trị trên là mẫu, không phải credential. Chỉ điền tại backend `.env` / Environment Variables của Render, không gửi vào chat, commit, screenshot hoặc biến `VITE_*`. Mặc định từng key/model dùng 5 RPM, 250.000 TPM, 20 RPD theo các biến `GEMINI_RPM_LIMIT`, `GEMINI_TPM_LIMIT`, `GEMINI_RPD_LIMIT`; chọn mức không vượt hạn mức thật của các key/model. Key trùng hoặc rỗng bị từ chối. Cách nhập đơn giản này dựa trên xác nhận của người vận hành rằng các key có quota độc lập; backend không tự xác minh project của key với Google.
 
-- Ưu tiên model theo đúng thứ tự đã khai báo. Trong một model, chọn project ít request đang chạy nhất, sau đó project được dùng lâu nhất; tương tự với key khỏe trong project. Mặc định tối đa 2 request/project và 1 request/key.
+Google tính quota theo project. Nếu sau này thêm nhiều key chung một project, dùng cấu hình nhóm nâng cao `GEMINI_PROJECTS` với `project_id` và `api_keys` để chúng dùng chung bộ đếm; để `GEMINI_API_KEYS=[]` và `GEMINI_API_KEY` trống khi dùng chế độ đó. Không kết hợp hai cách cấu hình.
+
+- Ưu tiên model theo đúng thứ tự đã khai báo. Với danh sách độc lập, chọn key ít request đang chạy nhất, sau đó lâu chưa dùng. Mặc định 1 request/key; các nhóm nâng cao vẫn giới hạn tối đa 2 request/project.
 - Quota RPM/TPM/RPD **dùng chung mọi key trong cùng project/model**, được giữ nguyên qua restart và dùng chung các worker. Kiểm tra 5 RPM, 250.000 TPM, 20 RPD trước khi gửi; token đầu vào được giữ theo chặn trên thận trọng của UTF-8 payload, không phải số token được Google đo chính xác. Mỗi outbound attempt, kể cả thất bại, tính vào giới hạn cục bộ.
 - Hết RPM hoặc TPM: đặt cooldown ít nhất 60 giây. Hết RPD: 24 giờ từ lúc phát hiện, theo cấu hình đã chốt. Khi `Retry-After` / `RetryInfo` của Google dài hơn, dùng thời gian dài hơn. Google thực tế reset RPD lúc nửa đêm Pacific; bộ đếm cục bộ dùng ngày Pacific, còn cooldown 24 giờ chủ động có thể giữ lâu hơn thời điểm reset.
 - Chỉ coi quota là riêng model khi lỗi có chi tiết `QuotaFailure` chỉ đúng model. Lỗi 429 không rõ phạm vi khóa cả project, không thử mù các key/model chung quota. Project khác chỉ được dùng trong hạn mức riêng của nó; giới hạn toàn app vẫn giữ chung.

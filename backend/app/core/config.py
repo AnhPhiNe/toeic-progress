@@ -1,3 +1,4 @@
+import hashlib
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -44,8 +45,9 @@ class Settings(BaseSettings):
     # Compatibility for existing deployments using a legacy JWT key.
     supabase_service_role_key: str = ""
     gemini_api_key: str = Field(default="", repr=False)
-    # All keys in this pool share ONE Google project's quota.
-    gemini_api_keys: list[SecretStr] = Field(default_factory=list, max_length=16, repr=False)
+    # Simple mode: the operator guarantees these keys have independent project
+    # quotas (one key per account/project). Shared-project keys use gemini_projects.
+    gemini_api_keys: list[SecretStr] = Field(default_factory=list, max_length=8, repr=False)
     gemini_projects: list[GeminiProject] = Field(default_factory=list, max_length=8, repr=False)
     gemini_model: str = Field(default="gemini-3.8-flash", pattern=r"^gemini-[a-zA-Z0-9.-]+$")
     gemini_fallback_models: list[str] = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
@@ -109,6 +111,17 @@ class Settings(BaseSettings):
     def effective_gemini_projects(self) -> list[GeminiProject]:
         if self.gemini_projects:
             return self.gemini_projects
+        if self.gemini_api_keys:
+            # Stable, opaque group IDs keep each key's counters/cooldowns intact
+            # when the list is reordered or the API worker restarts. No project
+            # IDs need to be entered for the independent-account key pool.
+            return [GeminiProject(
+                project_id="key-" + hashlib.sha256(key.get_secret_value().encode()).hexdigest()[:48],
+                api_keys=[key],
+                rpm_limit=self.gemini_rpm_limit,
+                tpm_limit=self.gemini_tpm_limit,
+                rpd_limit=self.gemini_rpd_limit,
+            ) for key in self.gemini_api_keys]
         keys = self.effective_gemini_keys
         return [GeminiProject(
             project_id="legacy-project",
