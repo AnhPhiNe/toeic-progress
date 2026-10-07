@@ -745,9 +745,9 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                       <Lightbulb className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <span className="text-[10px] font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider block">
-                          Bí kíp 10s né bẫy
+                          Giải thích & ghi nhớ
                         </span>
-                        <p className="text-xs leading-relaxed text-slate-900 dark:text-slate-200 font-bold">
+                        <p className="text-xs leading-relaxed text-slate-900 dark:text-slate-200 font-medium whitespace-pre-line break-words">
                           {mistake.trapTip}
                         </p>
                       </div>
@@ -1050,9 +1050,9 @@ export const MistakeNotebookView: React.FC<MistakeNotebookViewProps> = ({
                         <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border-2 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_0px_#0f172a] flex items-start gap-2.5 text-xs">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-[11px] bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-200 border border-slate-900 shrink-0">
                             <Lightbulb className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300 fill-amber-400/40" />
-                            Mẹo 10s
+                            Giải thích
                           </span>
-                          <p className="text-slate-900 dark:text-slate-100 font-medium leading-relaxed pt-0.5">
+                          <p className="text-slate-900 dark:text-slate-100 font-medium leading-relaxed pt-0.5 min-w-0 whitespace-pre-line break-words">
                             {newMistake.trapTip}
                           </p>
                         </div>
@@ -1168,7 +1168,7 @@ Tôi chọn A vì nghĩ reports là số nhiều.
                   {/* Nút Phân Tích Neo */}
                   <div className="pt-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t-2 border-slate-900 dark:border-slate-700">
                     <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                      ⚡ Tự động trích xuất Part, Bẫy đề thi, Lý do sai & Bí kíp 10s
+                      ⚡ Trích xuất câu hỏi, dịch nghĩa, phân tích bẫy & mẹo ghi nhớ
                     </span>
 
                     <button

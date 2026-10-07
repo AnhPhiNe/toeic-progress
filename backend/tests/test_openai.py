@@ -110,3 +110,48 @@ def test_openai_configuration_does_not_depend_on_gemini_credentials():
     assert settings.ai_ready and not settings.effective_gemini_projects
     assert "private-openai-key" not in repr(settings) and "private-openai-key" not in settings.model_dump_json()
     assert not settings.model_copy(update={"openai_api_key": Settings(_env_file=None).openai_api_key}).ai_ready
+
+
+@pytest.mark.parametrize("answer_provided", [True, False])
+def test_detailed_vietnamese_explanation_keeps_source_options_and_missing_answer_contract(answer_provided):
+    source = (
+        "Part 5. All bank transfers are ____ to review and could be delayed if an issue is identified. "
+        "(A) required (B) imaginary (C) conscious (D) subject. Tôi chọn A vì hiểu required là được yêu cầu."
+        + ("\nĐáp án chuẩn: D." if answer_provided else "")
+    )
+    explanation = (
+        "Dịch ngữ cảnh: Tất cả giao dịch chuyển khoản đều [chỗ trống] xét duyệt và có thể bị trì hoãn.\n\n"
+        "Từ vựng/phương án: (A) required: bắt buộc; (B) imaginary: tưởng tượng; "
+        "(C) conscious: có ý thức; (D) be subject to: thuộc diện/chịu.\n\n"
+        "Phân tích: be subject to + danh từ diễn tả việc chịu xét duyệt; "
+        "be required to + động từ diễn tả yêu cầu làm gì.\n\n"
+        "Mẹo 10s: Kiểm tra to + danh từ hay to + động từ."
+    )
+    options = ["(A) required", "(B) imaginary", "(C) conscious", "(D) subject"]
+    draft = {**DRAFT, "category": "VOCABULARY_TRAP", "questionContext": source,
+             "options": options, "correctAnswer": "(D) subject", "trapTip": explanation}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
+    }])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source)
+    assert result.trapTip == explanation and result.options == options
+    assert result.correctAnswer == ("(D) subject" if answer_provided else "")
+    assert result.answerSource == ("PROVIDED" if answer_provided else "MISSING")
+    assert json.loads(calls[0].content)["input"][0]["content"][0]["text"] == source
+
+
+def test_part6_missing_context_remains_visible_with_translation_in_the_explanation():
+    source = "Part 6: ____, the office will be closed. (A) Therefore (B) However (C) Meanwhile (D) Similarly."
+    draft = {**DRAFT, "part": 6, "questionContext": "____, the office will be closed.",
+             "options": ["(A) Therefore", "(B) However", "(C) Meanwhile", "(D) Similarly"],
+             "answerSource": "MISSING", "correctAnswer": "", "userMistake": "",
+             "missingInformation": ["Thiếu câu trước để xác định quan hệ ý."],
+             "trapTip": "Từ vựng/phương án: Therefore = vì vậy; However = tuy nhiên; Meanwhile = trong khi đó; Similarly = tương tự.\n\nPhân tích: Cần câu trước để phân biệt kết quả, đối lập, đồng thời hay tương đồng."}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+    }])
+    result, _calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source)
+    assert result.part == 6 and result.trapTip == draft["trapTip"]
+    assert result.correctAnswer == "" and "Thiếu câu trước để xác định quan hệ ý." in result.missingInformation

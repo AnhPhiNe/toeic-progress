@@ -58,6 +58,8 @@ Backend gọi cố định `https://api.openai.com/v1/responses`, model `gpt-6-l
 
 `/health` công khai tên provider để frontend hiển thị đúng nơi nhận dữ liệu trước khi người học đồng ý. Yêu cầu gửi lại provider đã được đồng ý; đổi cấu hình trong lúc mở modal trả 409 trước quota hoặc gọi AI. Client cũ chỉ tương thích Gemini, không tự gửi nội dung đã đồng ý cho Google sang OpenAI.
 
+Prompt OpenAI ở `app/services/toeic_prompt.py` yêu cầu giải thích Part 5/6 theo bốn đoạn trong `trapTip`: dịch ngữ cảnh, nghĩa/phân biệt từng phương án và cụm từ, phân tích dấu hiệu/cấu trúc/mạch văn, rồi mẹo 10s cụ thể. Giữ nguyên phương án tiếng Anh trong `options`; chỉ đặt bản dịch trong giải thích để grounding, làm quiz và sync không đổi. Giải thích tối đa 2.000 ký tự, không tăng output cap/effort. Chưa có đáp án chuẩn vẫn dịch và giải thích kiến thức nhưng không tự điền suy đoán vào `correctAnswer`; Part 6 thiếu đoạn trước/sau phải báo thiếu ngữ cảnh. UI giữ xuống dòng ở bản nháp và thẻ đã lưu. Bản demo minh họa cùng cách trình bày, không phải kết quả live của provider.
+
 Giữ quota beta của tài khoản thường (3 lượt khách, 10/tháng, toàn app 20/ngày, 2/phút) và theo dõi usage trên OpenAI. Đây là giới hạn **lượt**, không phải trần hóa đơn USD. Gmail được miễn có thể dùng vượt các cap đó và vẫn phát sinh phí; đặt ngân sách/giới hạn trong project OpenAI theo mức đã chọn. Tham khảo [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [reasoning](https://developers.openai.com/api/docs/guides/reasoning), [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 
 ### Cân bằng key và fallback

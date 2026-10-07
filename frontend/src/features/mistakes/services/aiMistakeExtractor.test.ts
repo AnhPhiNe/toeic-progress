@@ -56,6 +56,16 @@ describe('backend AI extraction', () => {
     mocks.backendRequest.mockResolvedValue({ draft: { ...getDemoSampleInput().result, answerSource: 'MISSING' }, usage: {} });
     expect((await extractMistakeWithAI(getDemoSampleInput().input, vi.fn())).draft.correctAnswer).toBe('');
   });
+
+  it('preserves multiline translations without changing quiz option text', async () => {
+    const demo = getDemoSampleInput();
+    mocks.backendRequest.mockResolvedValue({ draft: demo.result, usage: { remaining: 9, limit: 10, guest: false } });
+    const { draft } = await extractMistakeWithAI(demo.input, vi.fn(), 'openai');
+    expect(draft.trapTip).toBe(demo.result.trapTip);
+    expect(draft.trapTip.split('\n\n')).toHaveLength(4);
+    expect(draft.options).toEqual(['(A) are', '(B) be', '(C) were', '(D) will be']);
+    expect(draft.correctAnswer).toBe('(B) be');
+  });
 });
 
 const session = (id: string) => ({ data: { session: { user: { id } } } });

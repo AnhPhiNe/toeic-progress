@@ -11,9 +11,9 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.core.runtime import request_id_context
-from app.integrations.gemini import SYSTEM_PROMPT
 from app.schemas.models import MistakeDraft
 from app.services.ai_grounding import ground_draft
+from app.services.toeic_prompt import OPENAI_TOEIC_PROMPT
 
 logger = logging.getLogger("toeic.runtime")
 
@@ -28,7 +28,7 @@ class OpenAIProvider:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
         payload = {
             "model": self.settings.openai_model,
-            "instructions": SYSTEM_PROMPT,
+            "instructions": OPENAI_TOEIC_PROMPT,
             "input": [{"role": "user", "content": [{"type": "input_text", "text": text}]}],
             "reasoning": {"effort": self.settings.openai_reasoning_effort},
             "text": {"format": {

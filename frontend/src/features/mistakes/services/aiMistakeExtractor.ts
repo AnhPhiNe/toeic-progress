@@ -99,7 +99,13 @@ Tôi chọn A vì thấy reports là số nhiều nên chọn are.
       part: 5, category: 'ADVANCED_GRAMMAR',
       questionContext: 'Ms. Watson requested that all expense reports ______ submitted to the accounting department before 5:00 PM on Friday.',
       userMistake: 'Chọn A vì nghĩ reports số nhiều nên dùng are.', correctAnswer: '(B) be',
-      trapTip: 'Cấu trúc giả định: request + that + chủ ngữ + động từ nguyên thể (be submitted).',
+      trapTip: `Dịch ngữ cảnh: Bà Watson yêu cầu tất cả báo cáo chi phí được nộp cho phòng kế toán trước 5 giờ chiều thứ Sáu.
+
+Từ vựng/phương án: (A) are: dạng hiện tại của be với chủ ngữ số nhiều; (B) be: động từ nguyên thể; (C) were: dạng quá khứ; (D) will be: dạng tương lai. expense report: báo cáo chi phí; submit: nộp; accounting department: phòng kế toán.
+
+Phân tích: requested that diễn tả yêu cầu, dùng cấu trúc giả định request + that + chủ ngữ + động từ nguyên thể không to. Báo cáo được nộp nên dùng bị động be + submitted (V3). Theo đáp án chuẩn B, be phù hợp. A dễ gây nhầm do reports là số nhiều, nhưng động từ trong mệnh đề giả định không chia theo số ít/số nhiều. C chia quá khứ và D dùng tương lai, đều không theo cấu trúc đang được kiểm tra.
+
+Mẹo 10s: Gặp request that, kiểm tra động từ nguyên thể; nếu chủ ngữ nhận hành động thì dùng be + V3. Đừng chỉ nhìn chủ ngữ số nhiều để chọn are.`,
       options: ['(A) are', '(B) be', '(C) were', '(D) will be'],
       tags: ['subjunctive', 'part5'], missingInformation: [], answerSource: 'PROVIDED'
     }
