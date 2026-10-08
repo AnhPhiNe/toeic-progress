@@ -358,6 +358,7 @@ export const App: React.FC = () => {
               onDeleteSession={handleDeleteSession}
               onEditSession={openSessionEditor}
               onOpenSessionLogger={() => openSessionLogger()}
+              onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
             />
           )}
 

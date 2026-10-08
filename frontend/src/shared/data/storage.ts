@@ -4,6 +4,7 @@ import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '@/shared/dat
 import { DEFAULT_CHECKLIST, canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { deriveStreak } from '@/shared/domain/streak';
+import { testNameKey } from '@/shared/domain/testNames';
 
 export function getTodayDateString(): string {
   const d = new Date();
@@ -353,40 +354,39 @@ export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySess
  * Chuẩn hóa tên bài thi (lowercase, bỏ khoảng trắng thừa) để gom nhóm chính xác
  */
 export function computeSessionAttemptMap(sessions: StudySession[]): Record<string, SessionAttemptMeta> {
-  const result: Record<string, SessionAttemptMeta> = {};
-  const grouped: Record<string, StudySession[]> = {};
+  const result: Record<string, SessionAttemptMeta> = Object.create(null);
+  const grouped = new Map<string, StudySession[]>();
   
   // Sắp xếp các session theo thứ tự thời gian tăng dần (cũ -> mới)
-  const sorted = [...sessions].sort((a, b) => {
+  const sorted = sessions.filter(session => !session.deletedAt).sort((a, b) => {
     const timeDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
     if (timeDiff !== 0) return timeDiff;
-    return (a.createdAt || '').localeCompare(b.createdAt || '');
+    return (a.createdAt || '').localeCompare(b.createdAt || '') || a.id.localeCompare(b.id);
   });
 
   for (const session of sorted) {
-    const normalizedName = session.testName.trim().toLowerCase();
-    if (!grouped[normalizedName]) {
-      grouped[normalizedName] = [];
-    }
-    grouped[normalizedName].push(session);
+    const name = testNameKey(session.testName);
+    const key = `${session.skillType}:${session.sessionType}:${name || `unnamed:${session.id}`}`;
+    grouped.set(key, [...(grouped.get(key) ?? []), session]);
   }
 
   // Phân tích từng nhóm
-  for (const list of Object.values(grouped)) {
+  for (const list of grouped.values()) {
     const totalAttempts = list.length;
     const firstSession = list[0];
 
     for (let i = 0; i < list.length; i++) {
       const current = list[i];
-      const attemptNumber = current.attemptNumber || (i + 1);
-      const isRetest = i > 0;
+      const recorded = Number.isInteger(current.attemptNumber) && current.attemptNumber! > 0 ? current.attemptNumber! : 1;
+      const attemptNumber = Math.max(recorded, i > 0 ? result[list[i - 1].id].attemptNumber + 1 : 1);
+      const isRetest = attemptNumber > 1;
       const previousSession = i > 0 ? list[i - 1] : undefined;
 
       const scoreDiffFromPrevious = previousSession && current.totalScore && previousSession.totalScore
         ? current.totalScore - previousSession.totalScore
         : null;
 
-      const scoreDiffFromFirst = isRetest && current.totalScore && firstSession.totalScore
+      const scoreDiffFromFirst = i > 0 && result[firstSession.id]?.attemptNumber === 1 && current.totalScore && firstSession.totalScore
         ? current.totalScore - firstSession.totalScore
         : null;
 

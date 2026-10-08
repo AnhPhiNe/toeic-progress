@@ -238,6 +238,18 @@ Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng
 - **Làm lại đề:** nhận diện tên đề trùng, đánh số lần làm, so sánh với lần trước và lần đầu.
 - **Mặc định form để trống.** Điền sẵn điểm cao khiến một cú bấm nhầm ghi nhận kỷ lục giả.
 
+#### Lịch sử luyện đề — bản duyệt 09/10/2026
+
+- Giữ top bar hiện tại. Desktop dùng bảng; màn hình nhỏ chuyển thành danh sách với ngày, tên đề, kết quả và thao tác, không yêu cầu kéo ngang để xem/sửa.
+- Tên đề là nút mở chi tiết, dùng được bằng bàn phím. Dòng phụ ghi lần làm/thời gian, giảm badge có khung màu. Tabs Tất cả/Full Test/Luyện Part giữ số bản ghi; tìm theo tên đề/ghi chú; bộ lọc Mọi lần làm/Lần đầu/Làm lại ẩn khi chỉ xem Luyện Part.
+- Cột “So với bài trước” là chênh lệch tổng điểm với Full Test L&R có điểm liền trước theo ngày + thời gian tạo, kể cả khác đề; không gọi là xu hướng hay kết luận tiến bộ. Tooltip/nhãn truy cập ghi đề/ngày/điểm tham chiếu; lọc hoặc sắp xếp bảng không thay đổi mốc so sánh.
+- Bài Luyện Part hiện tổng câu đúng/tổng số câu và tỷ lệ đúng; không lặp “Part lẻ” ở cột so sánh. Sắp xếp điểm giữ bản ghi chưa có điểm ở cuối thay vì coi là 0.
+- Chuẩn hóa tên đề theo cùng NFKC/khoảng trắng/hoa thường với Sổ tay và form điểm. Lượt làm được nhóm theo loại bài/kỹ năng; bài Luyện Part không làm tăng lần làm Full Test. Giữ số lần đã ghi qua việc xóa bản ghi, xử lý số trùng/tên trống, không sửa dữ liệu điểm để tính metadata.
+- Phân trang năm bài để bảng gọn và dễ thấy footer; nút Trước/Sau mở các bài còn lại. Tìm kiếm/lọc/sắp xếp áp dụng trên toàn bộ lịch sử. Xóa bản ghi cuối ở trang cuối phải hiển thị lại trang còn dữ liệu. Xóa cần xác nhận, hủy không ghi dữ liệu.
+- Modal chi tiết có focus trap/Escape/trả focus và body cuộn riêng, header/footer không che nội dung. Hiện tổng/Listening/Reading hoặc kết quả luyện Part, nguồn điểm, từng Part; dữ liệu thiếu hiện “Chưa ghi”. Ghi chú và so với lần đầu của cùng đề thu gọn. Sửa kết quả dùng form hiện có.
+- Modal gom số lỗi Sổ tay theo tên đề qua mọi lần làm, hỗ trợ liên kết sessionId cũ; tên nguồn được gỡ hoặc đổi rõ ràng phải được tôn trọng. Không gọi đây là lỗi riêng của lượt làm. Nút Mở Sổ tay mang cùng bộ lọc tên đề; bản ghi không có tên chỉ tính lỗi còn liên kết trực tiếp và không trộn mọi lỗi chưa gắn đề.
+- Không thêm DB/API, bảng đề hay liên kết lượt làm mới trong đợt này.
+
 ### 4.5. Phân Tích (Analytics)
 
 **Bản duyệt ngày 09/10/2026:** giữ top bar, hai thẻ biểu đồ cạnh nhau trên desktop và khối “Ưu tiên luyện tiếp” bên dưới. Thẻ dùng chung `CARD`; Listening chàm, Reading xanh ngọc. Trên màn hình hẹp, các thẻ xếp dọc.

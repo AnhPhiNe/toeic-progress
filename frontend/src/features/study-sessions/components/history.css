@@ -1,0 +1,19 @@
+.history-table th { padding: 8px 10px; }
+.history-table td { padding: 13px 10px; }
+.history-table th:first-child, .history-table td:first-child { padding-left: 20px; }
+.history-name { overflow-wrap: anywhere; }
+.history-mobile { display: none; }
+.history-filters { max-width: 100%; }
+.history-search { max-width: 230px; }
+@media (max-width: 1199px) {
+  .history-table { display: none; }
+  .history-mobile { display: block; }
+}
+@media (max-width: 640px) {
+  .history-filters { width: 100%; }
+  .history-search { max-width: none; font-size: 16px; }
+}
+@media (pointer: coarse) {
+  .history-view button { min-height: 44px; }
+  .history-mobile button[aria-label^="Sửa"], .history-mobile button[aria-label^="Xóa"] { min-width: 44px; }
+}

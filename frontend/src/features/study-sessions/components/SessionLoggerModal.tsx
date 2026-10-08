@@ -22,7 +22,7 @@ import {
   PART_MAX_QUESTIONS,
   getPracticeParts
 } from '@/shared/domain/etsScoring';
-import { getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
+import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
 import { collectTestNames, normalizeTestName, testNameKey } from '@/shared/domain/testNames';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
@@ -79,13 +79,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     // Khi sửa, không tính chính bản ghi đang sửa là "lần làm trước"
     return sessions.filter(s =>
       !s.deletedAt && testNameKey(s.testName) === normalized &&
+      s.skillType === 'LR' &&
       s.sessionType === 'FULL_TEST' &&
       s.id !== editingSession?.id
     );
   }, [sessions, testName, editingSession?.id]);
 
   const isExistingTest = sessionType === 'FULL_TEST' && previousAttemptsForTest.length > 0;
-  const nextAttemptNumber = previousAttemptsForTest.length + 1;
+  const nextAttemptNumber = Math.max(0, ...Object.values(computeSessionAttemptMap(previousAttemptsForTest)).map(meta => meta.attemptNumber)) + 1;
   const bestPreviousScore = isExistingTest 
     ? Math.max(...previousAttemptsForTest.map(s => s.totalScore || 0)) 
     : 0;
@@ -259,8 +260,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         skillType: 'LR',
         sessionType: 'FULL_TEST',
         testName: canonicalTestName || 'ETS Test',
-        attemptNumber: isEditing && editingSession?.attemptNumber
-          ? editingSession.attemptNumber
+        attemptNumber: isEditing && editingSession
+          ? computeSessionAttemptMap(sessions ?? loadStudySessions())[editingSession.id]?.attemptNumber ?? editingSession.attemptNumber ?? 1
           : isExistingTest ? nextAttemptNumber : 1,
         date,
         durationMinutes: Number(durationMinutes) || 120,
