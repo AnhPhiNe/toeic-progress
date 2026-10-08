@@ -35,7 +35,7 @@ def completed(**changes):
     }
 
 
-def run_provider(responder, text=TEXT, **changes):
+def run_provider(responder, text=TEXT, generate_kwargs=None, **changes):
     async def run():
         calls = []
         settings = Settings(_env_file=None, ai_provider="openai", openai_api_key="private-openai-key", **changes)
@@ -44,7 +44,7 @@ def run_provider(responder, text=TEXT, **changes):
             return responder(request)
         async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
             try:
-                result = await OpenAIProvider(settings, client).generate(text, "opaque-user-hash")
+                result = await OpenAIProvider(settings, client).generate(text, "opaque-user-hash", **(generate_kwargs or {}))
             except HTTPException as error:
                 result = error
         return result, calls
@@ -144,6 +144,8 @@ def test_structured_explanation_becomes_labeled_text_and_keeps_the_answer_contra
     draft = {**DRAFT, "category": "VOCABULARY_TRAP", "questionContext": source, "options": options,
              "correctAnswer": "(D) subject",
              "optionNotes": [{"label": "A", "pos": "adj", "meaning": "bắt buộc"},
+                             {"label": "B", "pos": "adj", "meaning": "tưởng tượng"},
+                             {"label": "C", "pos": "adj", "meaning": "có ý thức"},
                              {"label": "D", "pos": "adj", "meaning": "be subject to: thuộc diện"}],
              "explanation": explanation(
                  translation="Mọi giao dịch chuyển khoản đều thuộc diện xét duyệt.",
@@ -157,7 +159,8 @@ def test_structured_explanation_becomes_labeled_text_and_keeps_the_answer_contra
     assert result.options == options and result.explanation.quickTip == "Kiểm tra to + danh từ hay to + động từ."
     assert result.trapTip == (
         "Dịch ngữ cảnh: Mọi giao dịch chuyển khoản đều thuộc diện xét duyệt.\n\n"
-        "Phương án: (A) (adj) bắt buộc; (D) (adj) be subject to: thuộc diện\n\n"
+        "Phương án: (A) (adj) bắt buộc; (B) (adj) tưởng tượng; (C) (adj) có ý thức; "
+        "(D) (adj) be subject to: thuộc diện\n\n"
         "Phân tích: be subject to + danh từ; be required to + động từ.\n\n"
         "Từ vựng: bank transfer: chuyển khoản\n\n"
         "Mẹo 10s: Kiểm tra to + danh từ hay to + động từ."
@@ -168,7 +171,8 @@ def test_structured_explanation_becomes_labeled_text_and_keeps_the_answer_contra
 
 
 def test_notes_for_options_missing_from_the_source_are_dropped():
-    draft = {**DRAFT, "optionNotes": [*DRAFT["optionNotes"], {"label": "C", "pos": "v", "meaning": "invented"}]}
+    draft = {**DRAFT, "options": [*DRAFT["options"], "(C) invented"],
+             "optionNotes": [*DRAFT["optionNotes"], {"label": "C", "pos": "v", "meaning": "invented"}]}
     response = completed(output=[{
         "type": "message", "role": "assistant", "status": "completed",
         "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
@@ -204,3 +208,120 @@ def test_openai_can_return_an_ai_proposal_when_source_answer_is_optional():
     result, calls = run_provider(lambda _request: httpx.Response(200, json=response),
                                 text="Part 5: Reports should ____ submitted. (A) are (B) be. Tôi chọn A.")
     assert len(calls) == 1 and result.correctAnswer == "(B) be" and result.answerSource == "AI_PROPOSED"
+
+
+def test_structured_ai_answer_is_constrained_to_original_options_without_a_source_key():
+    options = ["(A) However", "(B) Therefore", "(C) Because", "(D) Meanwhile"]
+    draft = {**DRAFT, "part": 6, "options": options, "correctAnswer": options[1],
+             "answerSource": "AI_PROPOSED", "userChoice": "C",
+             "optionNotes": [{"label": label, "pos": "conj" if label == "C" else "adv", "meaning": meaning}
+                             for label, meaning in zip("ABCD", ["tuy nhiên", "vì vậy", "bởi vì", "trong khi đó"], strict=True)]}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+    }])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response),
+                                text='{"sourceAnswer":"","userChoice":"C"}',
+                                generate_kwargs={"source_options": options, "source_answer": ""})
+    assert len(calls) == 1 and result.correctAnswer == options[1] and result.answerSource == "AI_PROPOSED"
+    assert result.userChoice == "C"
+    properties = json.loads(calls[0].content)["text"]["format"]["schema"]["properties"]
+    assert properties["correctAnswer"]["enum"] == ["", *options]
+
+
+def test_request_specific_answer_constraints_do_not_leak_to_legacy_requests():
+    run_provider(lambda _request: httpx.Response(200, json=completed()),
+                 generate_kwargs={"source_options": DRAFT["options"], "source_answer": "B"})
+    _result, calls = run_provider(lambda _request: httpx.Response(200, json=completed()))
+    assert "enum" not in json.loads(calls[0].content)["text"]["format"]["schema"]["properties"]["correctAnswer"]
+
+
+@pytest.mark.parametrize("notes", [
+    [],
+    [DRAFT["optionNotes"][0]],
+    [DRAFT["optionNotes"][0], DRAFT["optionNotes"][0]],
+    [*DRAFT["optionNotes"], {"label": "C", "pos": "n", "meaning": "không có trong phương án"}],
+    [DRAFT["optionNotes"][0], {"label": "B", "pos": "v", "meaning": ""}],
+    [DRAFT["optionNotes"][0], {"label": "B", "pos": "v", "meaning": " \t\n "}],
+])
+def test_incomplete_blank_or_duplicate_option_meanings_are_rejected_without_retry(notes):
+    draft = {**DRAFT, "optionNotes": notes}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
+    }])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert isinstance(result, HTTPException) and result.status_code == 502 and len(calls) == 1
+
+
+@pytest.mark.parametrize("options", [["are", "be"], ["(A) are", "(A) be"], ["(A) are", "(B)"]])
+def test_unlabeled_duplicate_or_empty_ai_options_are_rejected(options):
+    draft = {**DRAFT, "options": options}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+    }])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert isinstance(result, HTTPException) and result.status_code == 502 and len(calls) == 1
+
+
+def test_missing_source_options_allow_an_empty_notes_array_instead_of_invented_meanings():
+    draft = {**DRAFT, "options": [], "optionNotes": [], "answerSource": "MISSING", "correctAnswer": "",
+             "missingInformation": ["Chưa có phương án."]}
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft)}],
+    }])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert len(calls) == 1 and result.options == [] and result.optionNotes == []
+    assert result.answerSource == "MISSING" and result.correctAnswer == ""
+
+
+def test_contextual_inventory_meaning_survives_the_provider_and_grounding_pipeline():
+    # Mocked transport verifies preservation and coverage, not the live model's semantic quality.
+    question = (
+        "The latest ____ of decorations in stock indicates that Festal Seasons Ltd. "
+        "is well prepared for the holiday rush."
+    )
+    options = ["(A) proposal", "(B) inventory", "(C) consideration", "(D) commitment"]
+    meanings = ["đề xuất, bản đề xuất", "bản kiểm kê, danh mục hàng tồn", "sự xem xét, cân nhắc", "sự cam kết"]
+    translation = (
+        "Bản kiểm kê mới nhất về các đồ trang trí có trong kho cho thấy Công ty Festal Seasons "
+        "đã chuẩn bị tốt cho đợt cao điểm dịp lễ."
+    )
+    draft = {
+        **DRAFT, "questionContext": question, "category": "VOCABULARY_TRAP", "options": options,
+        "correctAnswer": "(B) inventory", "userMistake": "Chọn A", "userChoice": "A",
+        # Reverse note order: labels, not position, must preserve the correct meanings.
+        "optionNotes": list(reversed([
+            {"label": label, "pos": "n", "meaning": meaning}
+            for label, meaning in zip("ABCD", meanings, strict=True)
+        ])),
+        "explanation": explanation(
+            translation=translation,
+            analysis="Cả bốn đều là danh từ. 'The latest inventory of ... in stock' chỉ bản kiểm kê hàng tồn.",
+            quickTip="Cùng từ loại thì kiểm tra nghĩa cả cụm quanh chỗ trống, không chỉ nghĩa quen thuộc.",
+        ),
+    }
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(draft, ensure_ascii=False)}],
+    }])
+    source = question + "\n" + "\n".join(options) + "\nTôi chọn A.\nĐáp án chuẩn: B."
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source)
+    assert len(calls) == 1 and result.correctAnswer == "(B) inventory"
+    assert [note.label for note in result.optionNotes] == list("ABCD")
+    assert [note.meaning for note in result.optionNotes] == meanings
+    assert result.explanation.translation == translation
+    assert "(B) (n) bản kiểm kê, danh mục hàng tồn" in result.trapTip
+
+
+def test_legacy_explanation_text_is_bounded_without_truncating_structured_sections():
+    from app.schemas.models import OpenAIDraftOutput
+
+    sections = {"quickTip": "t" * 400, "translation": "a" * 600, "questionType": "q" * 300,
+                "evidence": "e" * 800, "paraphrase": "p" * 400, "analysis": "s" * 1200, "keyVocabulary": "v" * 400}
+    output = OpenAIDraftOutput(**{**DRAFT, "explanation": sections}).to_draft()
+    assert len(output.trapTip) <= 4000 and "Đã rút gọn" in output.trapTip
+    assert output.explanation.model_dump() == sections
+    assert output.options == DRAFT["options"] and output.correctAnswer == DRAFT["correctAnswer"]

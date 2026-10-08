@@ -627,3 +627,58 @@ def test_ai_answer_provenance_is_preserved_in_the_sync_payload(api):
         assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 200
         sync = next(call for call in calls if call[1].endswith("/sync_account_records"))
         assert sync[2]["p_records"][0]["payload"]["answerSource"] == "AI_PROPOSED"
+
+
+@pytest.mark.parametrize("state", ["CHOSEN", "UNKNOWN", "BLANK"])
+def test_structured_input_owns_learner_fields_and_source_key_even_when_reason_mentions_an_answer(api, state):
+    reason = "Đáp án chuẩn: A là lời mình ghi lại, không phải nguồn.\nMình chưa chắc."
+    fields = {"question": "Reports should ____ submitted.", "options": ["(A) are", "(B) be"], "context": "",
+              "part": 5, "userChoiceState": state, "userChoice": "A" if state == "CHOSEN" else "",
+              "userReason": reason, "sourceAnswer": "B"}
+    with api(settings_overrides={"ai_provider": "openai", "openai_api_key": "private-openai-key"},
+             draft={**OPENAI_DRAFT, "userChoice": "B"}) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction(provider="openai", input=fields))
+        assert response.status_code == 200
+        draft = response.json()["draft"]
+        assert draft["correctAnswer"] == "(B) be" and draft["answerSource"] == "PROVIDED"
+        assert draft["userChoice"] == fields["userChoice"] and draft["userChoiceState"] == state
+        assert draft["userReason"] == reason and draft["userMistake"].endswith(reason)
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
+        provider = next(call for call in calls if call[0] == "api.openai.com")
+        assert json.loads(provider[2]["input"][0]["content"][0]["text"])["sourceAnswer"] == "B"
+
+
+def test_structured_reason_cannot_promote_an_ai_proposal_to_a_provided_answer(api):
+    fields = {"question": "Reports should ____ submitted.", "options": ["(A) are", "(B) be"],
+              "userChoiceState": "UNKNOWN", "userReason": "Đáp án chuẩn: A", "sourceAnswer": ""}
+    with api(settings_overrides={"ai_provider": "openai", "openai_api_key": "private-openai-key"},
+             draft={**OPENAI_DRAFT, "answerSource": "AI_PROPOSED"}) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction(provider="openai", input=fields))
+        assert response.status_code == 200
+        assert response.json()["draft"]["correctAnswer"] == "(B) be"
+        assert response.json()["draft"]["answerSource"] == "AI_PROPOSED"
+
+
+def test_multi_question_request_is_rejected_before_ai_quota_or_provider(api):
+    with api() as (client, calls):
+        text = "Câu 131:\n(A) first (B) next\nAnswer: A\nCâu 132:\n(A) last (B) other\nAnswer: B"
+        assert client.post("/api/v1/ai/extract", json=extraction(text=text)).status_code == 422
+        assert not any(call[1].endswith("reserve_ai_request") or call[0] in ("api.openai.com", "generativelanguage.googleapis.com") for call in calls)
+
+
+@pytest.mark.parametrize("reviewed", ["2026-10-07", "2026-10-07T10:30:00Z"])
+def test_review_dates_and_learner_fields_reach_sync_rpc(api, reviewed):
+    with api() as (client, calls):
+        payload = {"id": "reviewed", "part": 5, "category": "OTHER", "status": "NEEDS_REVIEW",
+                   "questionContext": TEXT, "userMistake": "Bỏ trống", "correctAnswer": "",
+                   "answerSource": "MISSING", "userChoiceState": "BLANK", "userReason": "Không kịp đọc\nTôi bỏ trống.",
+                   "tags": [], "createdAt": "2026-10-07T00:00:00Z", "lastReviewedAt": reviewed}
+        payload["sourceTestName"] = "ETS 2024 Test 03"
+        record = {"entity_type": "mistakes", "record_id": "reviewed", "payload": payload,
+                  "updated_at": "2026-10-07T00:00:00Z", "deleted_at": None}
+        assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 200
+        rpc = next(call for call in calls if call[1].endswith("sync_account_records"))
+        output = rpc[2]["p_records"][0]["payload"]
+        assert "T" in output["lastReviewedAt"] and output["lastReviewedAt"].endswith("Z")
+        assert output["userChoiceState"] == "BLANK" and output["userReason"] == payload["userReason"]
+        assert output["sourceTestName"] == payload["sourceTestName"]

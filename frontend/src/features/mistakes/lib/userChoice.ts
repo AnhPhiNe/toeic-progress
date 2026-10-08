@@ -16,7 +16,8 @@ export function optionLetter(value: string): ChoiceLetter | '' {
  * or the A–D buttons. Records saved before that field existed only have it
  * when the manual form wrote userMistake as "(A) text - reason".
  */
-export function getUserChoice(mistake: Pick<MistakeEntry, 'userChoice' | 'userMistake'>): ChoiceLetter | '' {
+export function getUserChoice(mistake: Pick<MistakeEntry, 'userChoice' | 'userMistake' | 'userChoiceState'>): ChoiceLetter | '' {
+  if (mistake.userChoiceState && mistake.userChoiceState !== 'CHOSEN') return '';
   return mistake.userChoice || optionLetter(mistake.userMistake);
 }
 

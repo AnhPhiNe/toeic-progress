@@ -1,7 +1,9 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
-**Phiên bản 2.13** · Cập nhật 2026-10-05 · Thay thế toàn bộ SPEC v1
+**Phiên bản 2.14** · Cập nhật 2026-10-08 · Thay thế toàn bộ SPEC v1
 > Cập nhật kiến trúc dữ liệu 2026-10-06: lưu trữ server chuyển sang bảng nghiệp vụ có cột kiểu riêng, xem mục 6.4.
+
+> **Phạm vi v2.14:** Sổ tay và modal nhập lỗi theo bản phác thảo người dùng duyệt ngày 08/10/2026 (mục 4.6), cùng hợp đồng dữ liệu/AI liên quan (mục 6.2, 6.5), đã triển khai và kiểm thử local trên nhánh `stabilize-data-and-ai`. Đã thử prompt/provider OpenAI thật với 11 câu/ca biên và 6 lượt bổ sung sau chỉnh prompt/schema, kết quả và giới hạn đánh giá ở `AI_READING_EVAL.md`; OAuth/quota app/đồng bộ/backup trên staging chưa kiểm chứng. Các phân hệ khác chưa được chốt lại trong đợt này; những mô tả/trạng thái cũ của chúng cần đối chiếu riêng trước khi dùng làm yêu cầu triển khai.
 
 > **v2 khác v1 ở đâu:** v1 được viết trước khi code. Sau ba đợt phát triển, một số phần đã lệch thực tế, hai tính năng được xây mà không hề có trong spec, và spec tự mâu thuẫn với chính nó ở chỗ Spaced Repetition. v2 viết lại theo đúng những gì tồn tại và những gì đã quyết định, đồng thời bổ sung **nguyên tắc lọc tính năng** — thứ v1 không có, và là lý do những tính năng lạc đề lọt được vào sản phẩm.
 >
@@ -252,15 +254,64 @@ Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng
 
 ### 4.6. Sổ Tay Bẫy (Mistake Notebook)
 
-- **Một bản ghi gồm:** Part, ngữ cảnh câu hỏi, lỗi đã mắc, đáp án đúng kèm giải thích bẫy, phân loại nguyên nhân, thẻ tag tự do.
+#### Phạm vi và trạng thái
+
+Sổ tay ghi lại câu người học đã làm sai từ nguồn đề bên ngoài, lựa chọn và cách nghĩ của họ, rồi hỗ trợ xem lại và ôn tập. **Mỗi lần nhập một câu**, có thể kèm đoạn văn liên quan của Part 6/7. Không nhập hàng loạt nhiều câu trong đợt này.
+
+| Phần | Trạng thái ngày 08/10/2026 |
+| :--- | :--- |
+| Thêm/sửa/xóa thẻ, bộ lọc, giải thích có cấu trúc, một modal ôn chung | Đã có trên nhánh `stabilize-data-and-ai` |
+| Modal nhập gọn hai bước, textarea lớn, bỏ checkbox gửi AI | Đã triển khai local theo bản duyệt; kiểm thử viewport 320/375/768/1024/1440px và zoom 125% |
+| Tách phương án trên máy, lựa chọn/lý do thành trường riêng, lưu thẻ thiếu đáp án | Đã triển khai; kiểm thử dữ liệu giả từ input tới API, sync RPC, SQL extra và backup |
+| Ngày ôn tương thích API/backup, chống ghi đè thẻ mới khi ôn, nhãn nguồn đáp án trong phiên ôn | Đã sửa và có test hồi quy local |
+| Provider AI thật | Đã thử 11 request với prompt/schema/grounding hiện tại; còn điểm chất lượng dịch/độ gọn cần tinh chỉnh, xem `AI_READING_EVAL.md` |
+| Auth/quota/CAPTCHA và đồng bộ nhiều thiết bị trên dịch vụ thật | Chưa kiểm chứng trong đợt này; đồng bộ để sau theo yêu cầu người dùng |
+
+#### Một bản ghi và danh sách
+
+- **Một bản ghi gồm:** Part, câu hỏi/ngữ cảnh, phương án gốc, trạng thái lựa chọn của người học, lý do chọn nếu có, đáp án và nguồn đáp án, giải thích/mẹo, nhóm nguyên nhân, tag, trạng thái và lịch ôn. Lý do người học là dữ liệu riêng; không dùng phần phân tích AI thay thế lời họ đã nhập.
 - **Sáu nhóm nguyên nhân:** bẫy từ vựng và paraphrase · ngữ pháp nâng cao · tốc độ nghe và nối âm · áp lực thời gian · mất tập trung và đọc ẩu · khác.
-- **Sửa được bản ghi** — giữ nguyên trạng thái và lịch ôn giãn cách. Sửa tay giữ nghĩa phương án nào không đổi chữ và giữ các mục giải thích khi văn bản giải thích không bị sửa.
-- **Bộ lọc:** ba tab Tất cả / Đến hạn / Thông suốt; Part, nhóm nguyên nhân và tìm kiếm nằm trong nút "Lọc" (tìm kiếm hiện ngoài trên màn rộng).
+- **Sửa được bản ghi:** giữ ID, ngày tạo, trạng thái và lịch ôn; không ghi đè lịch ôn mới từ thiết bị khác bằng bản chụp lúc mở form. Giữ nghĩa của phương án không đổi chữ. Nếu sửa câu hỏi/ngữ cảnh, đáp án hoặc phương án làm giải thích cũ không còn phù hợp, bỏ giải thích AI có cấu trúc và yêu cầu người học kiểm tra lại; giữ bản nháp trong form để họ chỉnh.
+- **Bộ lọc:** ba tab Tất cả / Đến hạn / Thông suốt; phần mở từ nút **Lọc** xếp **Đề → Part → Nguyên nhân**, tìm kiếm hiện ngoài trên màn rộng. Đề có Tất cả đề / Chưa gắn đề / các tên nguồn có thẻ. Kết hợp các tiêu chí; badge Lọc đếm cả đề. Số thẻ ở ba tab tính trong phạm vi đề/Part/nguyên nhân/tìm kiếm hiện tại; nút Ôn chỉ lấy thẻ đến hạn trong phạm vi đó. Đặt lại xóa tất cả tiêu chí.
+- **Nguồn đề (duyệt 08/10/2026):** tên đề tùy chọn, chọn gợi ý hoặc nhập mới; gợi ý lấy từ các thẻ và lịch sử làm bài. Trim/gộp khoảng trắng, gom tên chỉ khác hoa/thường; không tự đoán tên từ nội dung AI. Thẻ cũ chưa có tên dùng `sessionId` tra buổi làm bài nếu còn. Lưu tên vào `sourceTestName` (tối đa 300 ký tự), chuỗi rỗng là chủ động bỏ nguồn; null/thiếu trường vẫn nhận nguồn cũ nếu có. Tên lưu trên thẻ không phụ thuộc việc còn lịch sử buổi học. Lưu & thêm tiếp giữ tên đề; tạo thẻ trong lúc lọc một đề điền sẵn đề đó. Có thể gắn/gỡ tên đề qua Sửa; giữ lịch ôn. Backup/schema API/SQL extra giữ trường mới, không cần migration. Tên đề là metadata người học, không gửi AI hoặc khiến model đoán lại đáp án.
+- **Phần đầu trang (chốt phạm vi 08/10/2026):** giữ nguyên top bar toàn ứng dụng. Bỏ tiêu đề lớn lặp tên trang trong phần nội dung (vẫn giữ heading cho screen reader); gom tab trạng thái, tìm kiếm/Lọc và nút ôn/thêm vào thanh công cụ có thể xuống dòng. Nút ôn dùng nhãn ngắn "Ôn N thẻ". Thứ tự DOM theo thứ tự nhìn thấy, không đảo thứ tự bằng CSS.
+- **Độ dài danh sách:** mặc định hiện tối đa 5 thẻ trong kết quả lọc. Nếu có nhiều hơn, chân bảng ghi "Hiển thị 5/N thẻ" và có **Xem tất cả (N)**; mở hết có **Thu gọn** để trở lại 5 thẻ. Đổi tìm kiếm/đề/Part/nguyên nhân/trạng thái hoặc Đặt lại trở về mức 5. Tìm kiếm, lọc, số đếm và phiên ôn vẫn dùng toàn bộ tập thẻ phù hợp, không chỉ 5 thẻ đang hiển thị; không xóa dữ liệu hay gọi AI khi mở/thu gọn.
 - **Trình bày (2026-10-07, đã duyệt mockup):** mỗi dòng chỉ có Part, câu hỏi (tối đa 2 dòng), trạng thái ôn bằng chữ ("Ôn hôm nay", "Quá hạn N ngày", "Ôn sau N ngày", "Thông suốt") và menu ⋯ (Ôn câu này, Sửa, Đánh dấu đã thuộc / Ôn lại từ đầu, Xóa). Mở dòng: đoạn trích, phương án A–D kèm nghĩa và từ loại viết tắt tiếng Anh (`prompt (adj): nhanh chóng`; Part 7 chỉ bản dịch), phương án đã chọn tô đỏ, đáp án tô xanh, một hộp "Mẹo 10s"; phần giải thích còn lại thu gọn sau "Xem giải thích". Viền đen dày chỉ ở khung danh sách và nút chính. Không còn nút một chạm Cần ôn/Thông suốt trên từng dòng.
 
-#### Phiên Ôn Tập ★ chức năng mới
+- **Thẻ chưa có đáp án:** hiện "Chưa có đáp án", vẫn sửa/xóa được; không tính vào số thẻ đến hạn, không đưa vào phiên ôn và không cho đánh dấu đã thuộc. Sau khi bổ sung đáp án hợp lệ, thẻ cần ôn mới được xét theo lịch. Thiếu đáp án là trạng thái nội dung, không thêm một bậc lịch ôn.
 
-Sổ Tay từng chỉ là tủ hồ sơ. Phiên Ôn Tập hiện cho người học lật thẻ và tự chấm để lịch ôn giãn cách được sử dụng thực tế.
+#### Modal nhập lỗi — đã triển khai local theo bản duyệt
+
+**Một form, hai cách hoàn tất (bản gọn duyệt 08/10/2026).** Người dùng mới mở form trống. **Lưu nhanh** ghi trực tiếp sau kiểm tra hợp lệ, không gọi AI hoặc bắt mở preview. **Phân tích với AI** mở bước kiểm tra kết quả trước khi lưu. AI và nhập thủ công dùng chung dữ liệu; không chuyển sang form dài khác khi AI lỗi. Bỏ mẫu minh họa khỏi form thường dùng.
+
+**Bước 1 — Thêm lỗi sai**
+
+1. **Câu hỏi + phương án:** một textarea để dán nguyên câu hỏi và các lựa chọn. Nhận `(A)`, `A.`, `A)`, `A:`; phương án có nhãn có thể cùng dòng. Không có nhãn: mỗi phương án một dòng, gán A–D theo thứ tự. Tách nội dung trên máy, không gọi AI hay tiêu quota chỉ để nhận diện phương án. Liên kết **Sửa** mở phần chỉnh câu hỏi/từng phương án khi cần; nếu tách không chắc thì báo lỗi tại đây và yêu cầu chỉnh trước phân tích. Không tự điền phương án thiếu hoặc lấy nội dung một câu khác làm phương án.
+   Phía trên hiện tên đề nhỏ cùng **Đổi**, hoặc **Chưa gắn đề / Gắn đề**. Bấm thay ngay dòng tên bằng ô tìm kiếm; danh sách chọn hiện các tên từ Sổ tay và lịch sử, có **+ Thêm tên đề “…”** khi chưa có tên khớp và **Chưa gắn đề** để bỏ nguồn. Chọn/Enter xong tự thu gọn; Escape hoặc bấm ngoài hủy thay đổi chưa chọn. Tên mới được lưu cùng thẻ/lượt học, không tạo bản ghi điểm khi chỉ chọn/thêm tên vào bản nháp. Form nhập điểm dùng chung component/gợi ý và chuẩn hóa tên (hoa/thường, Unicode, khoảng trắng); không bắt nhập điểm để ghi lỗi. Không mở rộng danh mục đề bằng ID hay tính năng lượt làm trong đợt này. Bước kiểm tra hiện tên đề nhỏ cạnh Part khi có. Các bullet định dạng trước nhãn A–D được bỏ khi tách, không lọt vào phương án.
+2. **Bạn đã chọn:** nút chữ A–D gọn (nhãn truy cập rõ, nội dung đầy đủ có trong ô dán), không lặp lại phương án thành bốn thẻ lớn. Thêm **Không nhớ** và **Bỏ trống**; bắt buộc chọn một trạng thái, không mặc định A. Part 2 chỉ có A–C. Không đánh dấu đúng/sai ở bước nhập.
+3. **Lý do chọn (nếu muốn):** không bắt buộc, bắt đầu trống. AI không suy ra lý do/tâm lý nếu người học không viết.
+4. **Có đáp án từ đề:** thu gọn mặc định, bấm mới mở A–D. Chọn key thì summary hiện "Đáp án từ đề: B" và có Bỏ chọn; key là tùy chọn, không có thì AI tự giải khi đủ ngữ cảnh. Không có textarea lời giải nguồn mặc định. **Thêm đoạn đọc · Part 6/7** là phần thu gọn riêng, chỉ bổ sung nếu câu dán chưa đủ ngữ cảnh. Không bắt người làm Part 5 mở chung hai tính năng. Nếu phát hiện nhiều câu hỏi, yêu cầu giữ một câu trước khi gửi.
+5. Hành động chính **Lưu nhanh** (sửa thẻ: **Lưu thay đổi**), phụ **Phân tích với AI**. Lưu nhanh không đưa nội dung tới provider. Nếu chưa xác định Part, mở phần Sửa với lỗi yêu cầu chọn trước lưu; nếu thẻ cũ có giải thích không còn phù hợp sau sửa nội dung/lý do, mở kiểm tra và cảnh báo thay vì lưu âm thầm. Lưu mới thành công hiện xác nhận và **Thêm lỗi tiếp** (giữ tên đề, xóa câu/key/lựa chọn/lý do) hoặc Đóng; bấm liên tiếp không ghi trùng. Bỏ checkbox consent và banner quota/hướng dẫn dài khỏi form. Chỉ bấm Phân tích mới gửi nội dung; dán, sửa hoặc mở modal không tự gọi AI. Thông tin provider ở trang quyền riêng tư; hợp đồng API vẫn kiểm tra provider hiện tại (mục 6.5).
+
+**Bước 2 — Kiểm tra và lưu**
+
+- Mặc định chỉ hiện Part, câu hỏi/ngữ cảnh, phương án và nghĩa ngắn nếu có, phương án đã chọn, đáp án với nhãn nguồn, cùng **Mẹo 10s**. Lý do đã chọn, bản dịch, phân tích và từ vựng đặt sau **Xem giải thích**, thu gọn ban đầu. Không lặp lại nhãn nguồn bằng một đoạn cảnh báo riêng nếu không có thông tin thiếu/mâu thuẫn cần xử lý.
+- Nguồn đáp án luôn rõ: **Đáp án từ đề** (`PROVIDED`), **AI đề xuất** (`AI_PROPOSED`) hoặc **Chưa có đáp án** (`MISSING`). Nhập thủ công là đáp án người học cung cấp, không tự tuyên bố đó là đáp án ETS đã kiểm chứng. Khi người học tự bổ sung thay vì lấy từ đề, dùng nhãn **Đáp án đã nhập**.
+- **Sửa** cho chỉnh nội dung trong cùng bản nháp; giữ dữ liệu khi quay lại. Part/nhóm lỗi/tag là thông tin phụ trong phần sửa, không đặt thành một khối mặc định trên màn hình kiểm tra. Part không xác định được thì yêu cầu chọn trước lưu, không âm thầm gán Part 5. Nhóm lỗi chưa xác định dùng Khác.
+- Hành động chính **Lưu lỗi sai**, phụ **Lưu & thêm tiếp**, kèm **Quay lại**. Bấm lưu là xác nhận bản nháp; không thêm checkbox "đã kiểm tra". Lưu thành công mới đóng hoặc mở form trống tiếp theo. Không ghi thẻ trùng khi bấm liên tiếp.
+- AI lỗi, hết lượt hoặc tắt: giữ câu hỏi, phương án, lựa chọn, lý do và nguồn đáp án; cho tiếp tục thủ công. Bản nháp thủ công không hiện các mục giải thích AI giả. Vẫn lưu được khi chưa có đáp án, với nhãn và điều kiện ôn đã nêu ở trên.
+- Lỗi tại trường liên quan, không dùng `alert()` cho kiểm tra form. Lưu thất bại giữ bản nháp và cho thử lại. Đóng bằng nút X, Escape hoặc bấm ngoài khi có nội dung chưa lưu phải xác nhận bỏ; chuyển giữa hai bước không mất dữ liệu.
+
+**Giao diện đã duyệt ngày 08/10/2026**
+
+- Giữ phong cách hiện tại: Plus Jakarta Sans, khung modal bo 16px, viền đậm và bóng lệch; Lưu nhanh xanh ngọc, Phân tích là hành động phụ xanh dương. Modal desktop tối đa khoảng **740–768px**.
+- **Textarea dán đề bản gọn cao tối thiểu 210px, 8 dòng**, kéo cao thêm được; nội dung không dùng monospace. Tắt spellcheck trong câu/đoạn đọc tiếng Anh. Nội dung nhập, phương án, câu hỏi/giải thích ở bước kiểm tra dùng cùng font **16px**, line-height khoảng 1.6; nhãn/phần phụ nhỏ hơn theo phân cấp. Lý do bắt đầu một dòng, giãn khi nhập tới khoảng 120px và kéo cao được.
+- Ô đề nền xanh nhạt, ô lý do vàng nhạt; phương án đang chọn xanh dương. Đỏ/xanh lá chỉ dùng khi có kết quả để biểu thị phương án sai/đúng. Chế độ tối giữ phân cấp và độ tương phản tương ứng.
+- Không slogan, thanh bước lặp với tiêu đề, dòng "đã nhận N phương án", mô tả dài dưới từng trường hoặc khối phân loại/tag mặc định. Hướng dẫn định dạng đặt trong placeholder/help theo nhu cầu; chỉ hiện lỗi tách khi có vấn đề.
+- Điện thoại dùng chiều rộng màn hình, nút chọn chữ A–D thành một hàng có thể wrap; hai nhóm lựa chọn/key xếp dọc. Phương án ở preview vẫn một cột trên điện thoại. Nội dung modal cuộn và hành động cuối vẫn truy cập được. Giữ nhãn truy cập, bàn phím, focus và Escape theo mục 5.3. Kiểm tra 320/375/768/1024/1440px, sáng/tối và zoom 125%.
+- Khi còn nội dung dưới vùng cuộn: nút **↓** tròn 44px nổi ở chính giữa mép dưới, có nhãn truy cập và tooltip "Còn nội dung bên dưới" khi hover/focus. Mũi tên nảy nhẹ 4px, hai nhịp khi xuất hiện rồi dừng; vùng bấm đứng yên. Tắt hiệu ứng nếu bật reduced motion. Bấm cuộn tới cuối (tôn trọng reduced motion), tự ẩn khi tới cuối/không có overflow; xuất hiện lại khi cuộn lên hoặc mở thêm nội dung. Không thêm hàng thông báo vào layout, không che hàng nút lưu. Danh sách tên đề nằm trên vùng cuộn, hỗ trợ Up/Down/Enter/Escape; Escape đầu tiên chỉ đóng picker, không đóng modal.
+
+#### Phiên ôn tập
 
 **Luồng một phiên:**
 
@@ -272,17 +323,28 @@ Hiện đoạn trích và câu hỏi
   → Mẹo 10s; giải thích chi tiết thu gọn
 ```
 
-- **Một luồng ôn duy nhất (2026-10-07):** thay cho "Thử thách vượt bẫy" (từng không cập nhật lịch) và phiên lật thẻ cũ (từng không hiện phương án). Thẻ không có phương án hoặc đáp án không khớp phương án nào thì lật thẻ rồi tự chấm Nhớ / Chưa nhớ. Danh sách thẻ được chốt lúc mở phiên.
+- **Một luồng ôn duy nhất:** trắc nghiệm khi đáp án khớp một phương án có thật; nếu có đáp án nhưng không đủ phương án để chấm thì lật thẻ và tự chấm Nhớ / Chưa nhớ. Thẻ chưa có đáp án bị loại trước khi mở phiên. Chốt danh sách ID/thứ tự lúc mở; khi chấm, đọc bản ghi mới nhất và chỉ cập nhật trường lịch ôn, không thay toàn bộ thẻ bằng bản chụp cũ. Nếu câu hỏi/phương án/đáp án đã đổi trong khi ôn, yêu cầu tải lại thẻ trước khi chấm; thẻ bị xóa thì bỏ qua.
+- **Nguồn đáp án:** thẻ `AI_PROPOSED` phải hiện nhãn AI đề xuất trong cả trắc nghiệm và lật thẻ; kết quả được chấm theo đề xuất đó, không gọi là đáp án nguồn đã kiểm chứng. Nhãn không hiện đáp án trước khi người học trả lời.
 - **Lịch giãn cách:** mỗi bản ghi có `nextReviewDate`. Nhớ thì giãn theo bậc 1 → 3 → 7 → 14 → 30 ngày; quên thì quay về bậc đầu. Đúng ở bậc cuối thì tự chuyển "Thông suốt". *Đây là quyết định chốt, thay cho mâu thuẫn trong v1 giữa mục 1.2 và mục 3.4.*
 - **Ôn sớm** ("Ôn câu này" với thẻ chưa đến hạn hoặc đã thông suốt): sai thì đặt lại lịch về ngày mai; đúng thì giữ nguyên lịch, để không thể đẩy thẻ lên "Thông suốt" bằng cách làm nhiều lần trong một ngày. Muốn bỏ qua lịch thì dùng "Đánh dấu đã thuộc" trong menu ⋯.
-- Tổng Quan hiển thị số thẻ đến hạn kèm lối vào thẳng phiên ôn.
+- Tổng Quan/điều hướng chỉ đếm các thẻ đủ điều kiện ôn; thiếu đáp án không làm tăng badge. Lối vào trực tiếp phiên ôn từ Tổng Quan là yêu cầu cần đối chiếu với UI hiện tại, không coi là đã hoàn thành.
 - Ưu tiên trong phiên: thẻ quá hạn lâu nhất trước, rồi tới nhóm nguyên nhân đang là điểm nghẽn lớn nhất.
 
 #### Phát hiện tái phạm
 
 *Xem mục 1.4 điểm 2 — đây là năng lực khác biệt mạnh nhất của sản phẩm.*
 
-Khi một buổi học mới ghi nhận lỗi thuộc nhóm nguyên nhân mà người học **đã từng đánh dấu là thông suốt**, hệ thống phải đối chiếu và cảnh báo trên Tổng Quan, đồng thời hạ thẻ liên quan về lại trạng thái cần ôn.
+Khi ghi nhận lỗi mới thuộc nhóm nguyên nhân mà người học **đã từng đánh dấu là thông suốt**, hệ thống đối chiếu và cảnh báo trên Tổng Quan. Người học chủ động bấm đưa các thẻ liên quan về ôn lại; không tự hạ trạng thái khi chỉ mở màn hình. Ghi lại thời điểm khi đánh dấu đã thuộc để đối chiếu đúng mốc, không lấy ngày tạo thẻ làm thời điểm tuyên bố thông suốt.
+
+#### Điều kiện nghiệm thu Sổ tay v2.14
+
+- Dán một câu có nhãn, không nhãn mỗi phương án một dòng, cùng dòng có nhãn; sửa được trường hợp tách không rõ. Nguồn nhiều câu không được lấy đáp án đầu tiên rồi gán cho câu khác.
+- Lựa chọn A–D/Không nhớ/Bỏ trống và lý do trống giữ đúng qua AI, sửa, lưu, tải lại, đồng bộ và xuất/nhập backup. AI không thay lời người học hoặc bịa phương án/lý do.
+- Thẻ có đáp án nguồn, AI đề xuất và thiếu đáp án hiển thị nhãn đúng ở preview/sổ tay/ôn tập; thẻ thiếu đáp án không vào lịch ôn.
+- Quay lại, chuyển thủ công, AI lỗi/hết lượt, lỗi ghi dữ liệu và xác nhận đóng không làm mất bản nháp; hai nút lưu không tạo bản ghi trùng.
+- Ôn rồi đồng bộ và xuất/nhập backup thành công với cả dữ liệu cũ và mới. Thay đổi ở thiết bị khác trong lúc ôn không bị ghi đè bởi bản chụp cũ.
+- Kiểm tra bản nháp dài hợp lệ ở backend vẫn đọc được ở frontend; các trường nguồn, lựa chọn, lời người học và giải thích tồn tại qua toàn bộ vòng lưu/đồng bộ/backup.
+- UI đúng kích thước, cỡ chữ, màu và mức thu gọn đã duyệt; bàn phím, màn hẹp, dark mode và zoom không mất nội dung/hành động.
 
 Không web luyện đề nào làm được điều này, kể cả về nguyên tắc, vì nó đòi hỏi lịch sử lỗi xuyên nhiều nguồn đề trong nhiều tháng. Đây là vòng lặp khép kín: ghi lỗi → ôn → **kiểm chứng bằng đề sau** → phát hiện chưa thật sự thuộc.
 
@@ -363,6 +425,10 @@ Nguồn sự thật là `frontend/src/shared/types/index.ts`. Các thực thể 
 - `SessionAttemptMeta` — lần làm thứ mấy, chênh lệch so với lần đầu và lần trước.
 - `VocabLog` — ngày và số từ đã học. `ShieldDay` — ngày khiên đã lấp; hai loại đều có `updatedAt`/`deletedAt` để đồng bộ.
 
+**Hợp đồng Sổ tay v2.14 — đã triển khai local:** giữ `userChoice` cho A–D và bổ sung `userChoiceState` (`CHOSEN`/`UNKNOWN`/`BLANK`), `userReason` cho nguyên văn lý do; `answerProvidedBy` (`SOURCE`/`LEARNER`) phân biệt đáp án lấy từ đề và đáp án người học nhập tay. `CHOSEN` cần phương án khớp; hai trạng thái còn lại không có `userChoice`. Giữ `userMistake` để hiển thị bản ghi cũ/client cũ, không dùng nó làm nguồn ghi đè các trường mới. Dữ liệu cũ có `userChoice` hợp lệ hoặc tiền tố chuẩn `(A) ...` do form cũ ghi thì nhận là CHOSEN; không suy lựa chọn từ lời kể tùy ý, thiếu căn cứ dùng UNKNOWN. Không tự tách lý do từ văn bản cũ thiếu cấu trúc; giữ nguyên `userMistake` để xem.
+
+Các trường mới phải đi qua type frontend, validation backend, backup và sync; lưu trong `extra` của bảng `mistakes` hiện có, không đổi endpoint, khóa localStorage hay tạo migration SQL chỉ để thêm metadata. Giữ gói/backup v3 và khả năng nhập v1/v2. Chuẩn hóa `lastReviewedAt` mới thành ISO timestamp có múi giờ; `nextReviewDate` vẫn là ngày `YYYY-MM-DD`. Ngày-only đã được lưu bởi code cũ phải được nhận ở đường đọc local, nhập backup và API, chuẩn hóa thành `00:00:00Z` của ngày đó, không đoán giờ lịch sử hoặc đổi lịch hẹn. Các sửa đổi khi nhập backup phải được báo trong preview.
+
 **Nợ kiến trúc đã biết, cần trả trước khi mở công khai:**
 
 1. Đã có bước chuyển dữ liệu v1/v2 sang gói v3, gồm kế hoạch tuần; các lần đổi schema sau vẫn cần migration riêng và bài kiểm thử tương ứng.
@@ -398,16 +464,18 @@ Bảng tra Raw sang Scaled cho từng kỹ năng (0–100 thành 5–495), tổn
 
 ### 6.5. AI hỗ trợ nhập/phân tích lỗi và beta miễn phí
 
-- Bản đầu nhận văn bản câu hỏi kèm lựa chọn của người học/đáp án chuẩn; không nhận ảnh/PDF.
+- Bản đầu nhận một câu hỏi cùng phương án/ngữ cảnh bằng văn bản; không nhận ảnh/PDF. Luồng nhập mới theo mục 4.6, tách lựa chọn và lý do thành trường riêng trước gọi AI. Endpoint extraction giữ đường dẫn hiện tại và nhận `input` tùy chọn (`question`, `options`, `context`, `part`, `userChoiceState`, `userChoice`, `userReason`, `sourceAnswer`). Giữ `text` cho client cũ; client mới lấy capability `structured_mistake_input` từ `/health`, không tự gửi nhóm input cho backend cũ chưa hỗ trợ và vẫn cho nhập thủ công. Input có cấu trúc được kiểm tra và gửi nguyên nhóm sang provider; grounding dùng options/sourceAnswer của nhóm đó, không tìm đáp án trong lời người học. API trả lại lựa chọn/lý do do người học cung cấp thay cho trường AI tự kể. Kiểm tra số câu 101–200, nhãn câu, nhóm phương án/đáp án lặp ở backend trước quota AI/provider; đây là kiểm tra định dạng, không cam kết hiểu mọi đoạn văn không có ranh giới rõ.
 - Khách dùng tracker trước, AI tạo danh tính ẩn danh khi cần. Dữ liệu học chỉ đồng bộ sau khi đăng nhập Google.
 - Mặc định khách 3 lượt, tài khoản 10 lượt/tháng, cả app 20 lượt/ngày và 2 lượt/phút; cấu hình theo quota Gemini Free thực tế. Giữ lượt người dùng một lần trong giao dịch PostgreSQL; UUID chống gửi trùng. Backend có failover giới hạn theo thứ tự 3.8 Flash → 3.7 Flash → 3.6 Flash → 3.5 Flash; từng outbound attempt giữ RPM/TPM/RPD riêng trong database.
 - Gmail trong `AI_UNLIMITED_EMAILS` ở backend được miễn mọi cap AI tháng/ngày/phút và spam theo tài khoản/IP khi Supabase Auth trả email đã xác nhận và Google identity khớp email có `email_verified=true`. Không tin `user_metadata` hay email từ client. Vẫn giữ idempotency, counter/audit, RLS và giới hạn tài nguyên/provider; không cấp quyền dữ liệu người khác. UI lấy quyền từ backend, không hardcode email.
-- OpenAI trực tiếp qua Responses API dùng `gpt-6-luna`, effort `medium` mặc định, strict JSON theo `MistakeDraft`, `store=false`, output tối đa 8.192 token (gồm reasoning), timeout 45 giây. Không retry hoặc chuyển sang provider khác khi lỗi. `/health` thông báo provider để nhận consent đúng bên nhận dữ liệu; API từ chối provider consent không khớp trước gọi AI. Quota app thường vẫn áp dụng; tài khoản được miễn vẫn phát sinh phí OpenAI. Gemini là chế độ tương thích deploy cũ tới khi operator đổi `AI_PROVIDER`.
-- Prompt OpenAI (2026-10-07, đã so sánh 18 câu Part 5/6/7 trên GPT-6 Luna và DeepSeek V4.1 Flash; chọn Luna `medium`) trả dữ liệu có cấu trúc, không tách chữ bằng regex: `optionNotes` (mỗi phương án: nhãn, từ loại viết tắt `n/v/adj/adv/prep/conj/pron/det` hoặc rỗng với cụm/câu, nghĩa ngắn) và `explanation` (quickTip = Mẹo 10s, translation, questionType, evidence trích nguyên văn, paraphrase, analysis, keyVocabulary; mục không áp dụng là rỗng). Backend ghép `trapTip` dạng văn bản có nhãn từ các mục này để tìm kiếm, sao lưu và client cũ; grounding bỏ ghi chú của phương án không có trong nguồn. Nguồn nhiều câu thì chỉ giải câu người học nói làm sai, không rõ câu nào thì MISSING. Part suy từ số câu (101–130/131–146/147–200); nhóm "đọc ẩu"/"áp lực giờ" chỉ khi người học tự kể. Part 7 chỉ lưu câu hỏi kèm đoạn trích bằng chứng. `options` và `questionContext` giữ tiếng Anh nguồn. `optionNotes`/`explanation` lưu trong `extra`, không cần migration; Gemini và bản ghi cũ không có thì hiển thị `trapTip`.
-- `userChoice` (A–D) là phương án người học đã chọn; backend xóa nếu không khớp phương án nguồn. Lưu trong `extra`, sao lưu và đồng bộ, không cần migration. Bản ghi cũ suy từ `userMistake`. Preview và sổ tay tô đỏ phương án này cạnh đáp án đúng.
+- OpenAI trực tiếp qua Responses API dùng `gpt-6-luna`, effort `medium` mặc định, strict JSON theo `OpenAIDraftOutput` rồi chuyển sang `MistakeDraft`, `store=false`, output tối đa 8.192 token (gồm reasoning), timeout 45 giây. Không retry hoặc chuyển sang provider khác khi lỗi. `/health` thông báo provider; API từ chối provider không khớp trước gọi AI. Luồng mới không có checkbox gửi AI: thao tác bấm **Phân tích với AI** mới gửi request có `consent=true` cùng provider đã xác định, không gửi khi dán/sửa/mở modal. Đổi provider trong lúc mở form phải cập nhật thông tin và cho người học bấm lại, không tự gửi hoặc tự retry extraction. Trang quyền riêng tư phải mô tả đúng các provider có thể dùng. Quota app thường vẫn áp dụng; tài khoản được miễn vẫn phát sinh phí OpenAI. Gemini là chế độ tương thích deploy cũ tới khi operator đổi `AI_PROVIDER`.
+- AI trả dữ liệu có cấu trúc: `optionNotes` (nhãn, từ loại viết tắt `n/v/adj/adv/prep/conj/pron/det` hoặc rỗng với cụm/câu, nghĩa ngắn) và `explanation` (quickTip, translation, questionType, evidence trích nguyên văn, paraphrase, analysis, keyVocabulary; mục không áp dụng là rỗng). Backend ghép `trapTip` có nhãn để tìm kiếm/client cũ; grounding bỏ ghi chú của phương án không có trong nguồn. Tổng `trapTip` sau ghép phải nằm trong giới hạn **4.000 ký tự** mà frontend/backend/sync chấp nhận, kể cả nhãn và nghĩa phương án; không để từng trường hợp lệ nhưng bản nháp cuối bị frontend từ chối. Giữ các mục có cấu trúc đầy đủ; phần văn bản tương thích nếu cần rút gọn phải theo đoạn và có dấu rút gọn, không cắt phương án/đáp án gốc. Part dựa vào nguồn và dạng bài; thiếu căn cứ thì yêu cầu người học chọn trước lưu. Nhóm "đọc ẩu"/"áp lực giờ" chỉ khi người học tự kể. Part 7 cần đoạn bằng chứng liên quan, không bịa nội dung audio/đoạn văn. `options` và `questionContext` giữ tiếng Anh nguồn. `optionNotes`/`explanation` lưu trong `extra`; Gemini/bản ghi cũ không có thì hiển thị `trapTip`.
+- **Đầu vào người học là nguồn sự thật:** lựa chọn, UNKNOWN/BLANK và nguyên văn lý do đã nhập phải được giữ; AI chỉ nhận xét dựa trên đó. Không để `userChoice` AI trả về thay thế trạng thái/lựa chọn trong form. Không có lý do thì không tạo lý do mới. Phương án được gán nhãn trên máy vẫn phải có đúng nội dung gốc; backend kiểm tra lựa chọn và đáp án nguồn trong tập phương án của đúng một câu đó. Hợp đồng lưu/đọc bản ghi cũ theo mục 6.2; các trường mới đi qua backup/sync.
+- **Chất lượng giải thích Reading (prompt và kiểm tra đầu ra OpenAI đã cập nhật 08/10/2026):** Part 5 ưu tiên cấu trúc/từ loại/nghĩa/collocation; Part 6 xét thêm mạch văn; Part 7 dùng bằng chứng/paraphrase trong bài. Nghĩa A–D chỉ gồm bản dịch/dạng từ: ưu tiên nghĩa trong câu, có thể thêm 1–2 nghĩa cùng từ loại thường gặp trong TOEIC Listening & Reading, không liệt kê từ điển hay trộn lý do chọn/loại. Giới hạn nghĩa 120 ký tự, không rút ngắn làm mất ý. Bản dịch giữ các cụm mang nghĩa của câu nguồn (kể cả revised/latest/additional), nhất quán với nghĩa phương án. Phân tích Reading tách dòng dấu hiệu, lý do chọn và từng phương án nhiễu; cho phép nhắc lại nghĩa quyết định nhưng không chép toàn bộ danh sách. Giao diện giữ xuống dòng và tách câu của phân tích cũ để dễ đọc, không sửa nội dung đã lưu. Đầu ra OpenAI mới thiếu/trùng/để trống ghi chú phương án bị từ chối; không áp ràng buộc mới này hồi tố lên thẻ đã lưu hoặc Gemini. Validator kiểm tra cấu trúc, không xác minh ngữ nghĩa. [Bộ đánh giá Reading](AI_READING_EVAL.md) kiểm tra các từ nhiều nghĩa và các Part; chưa coi test dùng phản hồi giả là bằng chứng chất lượng model thật.
 - Đáp án nguồn tùy chọn: có nguồn hợp lệ ưu tiên `PROVIDED`, báo mâu thuẫn nếu AI chọn khác. Không có nguồn và đủ dữ liệu thì AI tự giải, trả `AI_PROPOSED` khớp phương án gốc. Thiếu ngữ cảnh/không đủ phương án/nguồn lỗi thì `MISSING`, không đoán bừa. `answerSource` được giữ khi lưu, đồng bộ và backup trong metadata `extra`, không cần migration. Preview/sổ tay/ôn tập đều phân biệt 'Đáp án AI đề xuất' với nguồn người dùng cung cấp; kiểm tra trước lưu. Gemini giữ chính sách cần nguồn cũ.
 - **Cân bằng Gemini (2026-10-07):** theo xác nhận của người dùng, mỗi key thuộc tài khoản/project có quota độc lập. Cấu hình đơn giản `GEMINI_API_KEYS` là mảng chuỗi, không cần project ID; từng key được gán nhóm bằng hash ổn định. Chọn key ít request đang chạy, sau đó lâu chưa dùng. `GEMINI_PROJECTS` vẫn hỗ trợ nhóm nâng cao nếu có key chung project; không dùng đồng thời hai chế độ. `ai_provider_state` và `ai_provider_attempts` chỉ lưu hash và metadata vận hành, chỉ service role truy cập. Hết RPM/TPM đặt cooldown ≥60 giây; RPD ≥24 giờ từ lúc phát hiện; tôn trọng Retry-After dài hơn. Hết cooldown chỉ một probe thử hồi phục. Quota không rõ phạm vi khóa cả nhóm của key; timeout/mất kết nối không gửi lại trong cùng lượt. Tổng số lượt app không tăng theo số key. Dùng migration `20261007000000_gemini_provider_pool.sql` đã có, không tạo/chạy lại migration khi đổi cách nhập. Key/Turnstile và test staging thật cần xong trước khi bật AI; xem `backend/README.md`.
-- Người học xác nhận gửi nội dung tới Google; kết quả là bản nháp có thông tin thiếu, cần kiểm tra trước khi lưu. Không tạo phương án thiếu, không suy diễn lý do sai của người học. Đáp án chuẩn cần có trong nguồn.
+- Người học chủ động bấm Phân tích để gửi tới provider đang cấu hình; kết quả là bản nháp. Nguồn đáp án tùy chọn đối với OpenAI, Gemini giữ chính sách cần nguồn khi dùng chế độ cũ. Khi không có đáp án, AI lỗi hoặc thiếu ngữ cảnh, vẫn cho lưu thủ công với `answerSource=MISSING` và không đưa thẻ đó vào ôn. Không tạo phương án thiếu, không suy diễn lý do sai và không biến đáp án AI thành PROVIDED chỉ vì người học đã bấm Lưu. AI không lưu thẻ thay người học; chỉ hai hành động lưu ở bước kiểm tra mới ghi dữ liệu học.
+- Không có đáp án nguồn nhưng đủ dữ liệu: AI tự giải, phương án được chọn hiện xanh lá kèm **AI đề xuất**. Strict schema của request có cấu trúc giới hạn `correctAnswer` trong chính các phương án gốc hoặc chuỗi rỗng; không tái tạo câu đã điền hay thêm dấu câu vào đáp án. Thiếu ngữ cảnh quyết định vẫn dùng MISSING, không tô một phương án xanh chỉ từ mẹo/phân tích.
 - Kế hoạch tuần đi cùng gói v3 và backup. Mỗi tuần là một bản ghi; sửa đồng thời trên hai máy dùng bản mới hơn thắng.
 - Bắt đầu ngân sách 0 đồng, dùng cá nhân rồi beta 20–30 người; thông báo beta miễn phí có giới hạn, gói nâng cao có thể trả phí khi chính thức. Chưa tích hợp thanh toán.
 
@@ -431,6 +499,15 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 ---
 
 ## 8. LỘ TRÌNH
+
+### Đợt Sổ tay v2.14 — đã triển khai local, chờ kiểm chứng dịch vụ thật
+
+1. Thực hiện modal theo mục 4.6 và các trường/hợp đồng AI ở mục 6.2, 6.5; giữ giao diện danh sách hiện có.
+2. Sửa ngày ôn/backup/API, cập nhật lịch ôn trên bản ghi mới nhất và khôi phục nhãn nguồn đáp án trong phiên ôn.
+3. Đồng bộ prompt/grounding với phạm vi một câu; sửa giới hạn văn bản ghép, bổ sung kiểm thử cho các tình huống đã xác minh. Không gọi provider tính phí trong test tự động.
+4. Đã chạy typecheck/lint, frontend/backend/database tests, Playwright và build cho triển khai local. Test AI dùng transport giả, test đồng bộ API/SQL không thay thế kiểm chứng Supabase thật. Còn kiểm chứng provider thực tế, staging và tình huống nội dung thực dài trước khi công bố public.
+
+Các việc đã thống nhất cho đợt ổn định dùng cá nhân (Pomodoro ghi thời gian thực/tách bộ đếm theo danh tính, cửa sổ đề mới và gợi ý Part, launcher kế thừa `backend/.env`) giữ trong backlog sau khi chốt Sổ tay. Tối ưu bundle, kiểm chứng dịch vụ thật và chuẩn bị public là đợt riêng.
 
 ### Đã hoàn thành
 

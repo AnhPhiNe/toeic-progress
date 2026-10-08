@@ -38,6 +38,30 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('backup restore', () => {
+  it('round-trips an actual review and preserves learner fields through legacy date normalization', async () => {
+    const { gradeReview } = await import('@/features/mistakes/lib/review');
+    const { recordsFromBundle, bundleFromRecords } = await import('@/features/account/services/cloud');
+    const now = new Date().toISOString();
+    const data = bundle();
+    data.mistakes = [{ id: 'reviewed', part: 5, questionContext: 'Reports ____ submitted.', userMistake: 'Bỏ trống',
+      userChoiceState: 'BLANK', userReason: 'Không kịp đọc\nTôi chưa biết đáp án.', correctAnswer: '(B) be',
+      sourceTestName: 'ETS 2024 Test 03',
+      answerSource: 'AI_PROPOSED', category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: now, updatedAt: now, deletedAt: null }];
+    data.mistakes[0] = { ...data.mistakes[0], ...gradeReview(data.mistakes[0], false) };
+    let result = parseBackup(JSON.stringify({ ...data, exportDate: now }));
+    expect(result.ok).toBe(true);
+    const cloud = bundleFromRecords(recordsFromBundle(data));
+    expect(cloud.mistakes[0]).toMatchObject({ userChoiceState: 'BLANK', userReason: data.mistakes[0].userReason, sourceTestName: 'ETS 2024 Test 03' });
+    data.mistakes[0].lastReviewedAt = '2026-10-07';
+    result = parseBackup(JSON.stringify({ ...data, exportDate: now }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.preview.corrections.some(message => message.includes('lastReviewedAt'))).toBe(true);
+    restoreBackup(result.preview);
+    expect(readDataBundle().mistakes[0].lastReviewedAt).toBe('2026-10-07T00:00:00.000Z');
+    expect(readDataBundle().mistakes[0].userReason).toBe(data.mistakes[0].userReason);
+    expect(readDataBundle().mistakes[0].sourceTestName).toBe('ETS 2024 Test 03');
+  });
   it('retains AI answer provenance when exporting/importing a saved note', () => {
     const data = bundle();
     data.mistakes.push({

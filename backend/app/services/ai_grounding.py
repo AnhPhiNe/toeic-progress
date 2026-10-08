@@ -1,5 +1,6 @@
 import re
 
+from app.core.text_input import has_multiple_questions
 from app.schemas.models import MistakeDraft
 
 
@@ -24,16 +25,23 @@ def source_option(answer: str, options: list[str]) -> str | None:
     return None
 
 
-def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = False) -> MistakeDraft:
+def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = False,
+                 source_options: list[str] | None = None, source_answer: str | None = None) -> MistakeDraft:
     """Ground options; optionally admit labeled AI proposals without claiming a source key."""
     source = normalized(text)
     options = []
+    canonical_options = {normalized(option): option for option in source_options} if source_options is not None else None
     for option in draft.options:
         content = re.sub(r"^(?:\([A-D]\)|[A-D][.):\s-])\s*", "", option, flags=re.IGNORECASE).strip()
-        if content and normalized(content) in source:
+        if canonical_options is not None:
+            if normalized(option) in canonical_options:
+                options.append(canonical_options[normalized(option)])
+        elif content and normalized(content) in source:
             options.append(option)
     if len(options) != len(draft.options):
         draft.missingInformation.append("Đã bỏ phương án không tìm thấy trong nội dung gốc.")
+    if source_options is not None and (len(options) != len(source_options) or len(set(options)) != len(options)):
+        raise ValueError("AI omitted or changed source options")
     draft.options = options
     labels = set()
     for option in options:
@@ -47,9 +55,13 @@ def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = Fals
     notes = {note.label: note for note in draft.optionNotes if note.label in labels}
     draft.optionNotes = [notes[label] for label in sorted(notes)]
     draft.compose_trap_tip()
+    if source_options is None and has_multiple_questions(text):
+        draft.correctAnswer, draft.answerSource = "", "MISSING"
+        draft.missingInformation = list(dict.fromkeys([*draft.missingInformation, "Mỗi lần nhập một câu. Không lấy đáp án của câu khác."]))[:8]
+        return draft
     provided = re.search(
         r"(?:đáp án(?:\s+(?:chuẩn|đúng))?|correct answer|answer key|answer)\s*[:=-]\s*([^\n]+)", text, re.IGNORECASE
-    )
+    ) if source_answer is None else (re.match(r"(.*)", source_answer) if source_answer else None)
     if allow_ai_answer:
         if provided:
             key_prefix = re.match(r"^\s*\(?([A-D])\)?(?:[.):\s]|$)", provided[1], re.IGNORECASE)

@@ -8,6 +8,10 @@ import { getTodayDateString } from '@/shared/data/storage';
 export const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14, 30] as const;
 export const MAX_REVIEW_STAGE = REVIEW_INTERVALS_DAYS.length - 1;
 
+export function canReview(mistake: MistakeEntry): boolean {
+  return !mistake.deletedAt && mistake.answerSource !== 'MISSING' && Boolean(mistake.correctAnswer.trim());
+}
+
 function addDays(dateStr: string, days: number): string {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + days);
@@ -22,9 +26,17 @@ function addDays(dateStr: string, days: number): string {
  * Bản ghi cũ chưa có lịch thì coi như đến hạn ngay - không cần migrate.
  */
 export function isDueForReview(mistake: MistakeEntry, today = getTodayDateString()): boolean {
-  if (mistake.status === 'MASTERED') return false;
+  if (!canReview(mistake) || mistake.status === 'MASTERED') return false;
   if (!mistake.nextReviewDate) return true;
   return mistake.nextReviewDate <= today;
+}
+
+/** Keep the same queue priority for all-card and explicitly selected review sessions. */
+export function compareReviewPriority(a: MistakeEntry, b: MistakeEntry): number {
+  const aDate = a.nextReviewDate || '';
+  const bDate = b.nextReviewDate || '';
+  if (aDate !== bDate) return aDate.localeCompare(bDate);
+  return (a.createdAt || '').localeCompare(b.createdAt || '');
 }
 
 /**
@@ -34,12 +46,7 @@ export function isDueForReview(mistake: MistakeEntry, today = getTodayDateString
 export function getDueMistakes(mistakes: MistakeEntry[], today = getTodayDateString()): MistakeEntry[] {
   return mistakes
     .filter(m => isDueForReview(m, today))
-    .sort((a, b) => {
-      const aDate = a.nextReviewDate || '';
-      const bDate = b.nextReviewDate || '';
-      if (aDate !== bDate) return aDate.localeCompare(bDate);
-      return (a.createdAt || '').localeCompare(b.createdAt || '');
-    });
+    .sort(compareReviewPriority);
 }
 
 /**
@@ -54,6 +61,7 @@ export function applyReviewResult(
 ): MistakeEntry {
   const currentStage = mistake.reviewStage ?? 0;
   const reviewCount = (mistake.reviewCount ?? 0) + 1;
+  const lastReviewedAt = new Date().toISOString();
 
   if (!remembered) {
     return {
@@ -61,7 +69,7 @@ export function applyReviewResult(
       status: 'NEEDS_REVIEW',
       reviewStage: 0,
       reviewCount,
-      lastReviewedAt: today,
+      lastReviewedAt,
       nextReviewDate: addDays(today, REVIEW_INTERVALS_DAYS[0])
     };
   }
@@ -73,7 +81,7 @@ export function applyReviewResult(
       status: 'MASTERED',
       reviewStage: MAX_REVIEW_STAGE,
       reviewCount,
-      lastReviewedAt: today,
+      lastReviewedAt,
       nextReviewDate: undefined
     };
   }
@@ -84,7 +92,7 @@ export function applyReviewResult(
     status: 'NEEDS_REVIEW',
     reviewStage: nextStage,
     reviewCount,
-    lastReviewedAt: today,
+    lastReviewedAt,
     nextReviewDate: addDays(today, REVIEW_INTERVALS_DAYS[nextStage])
   };
 }

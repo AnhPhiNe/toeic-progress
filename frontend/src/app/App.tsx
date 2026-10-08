@@ -38,7 +38,8 @@ import {
   getTodayDateString 
 } from '@/shared/data/storage';
 import { StudySession, MistakeEntry, UserProfile, ReadingPartType } from '@/shared/types';
-import { getDueMistakes } from '@/features/mistakes/lib/spacedRepetition';
+import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
+import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -72,6 +73,8 @@ export const App: React.FC = () => {
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
+  const activeOwner = getActiveAccountId();
+  useEffect(() => { setReviewCards(null); }, [activeOwner]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -181,8 +184,11 @@ export const App: React.FC = () => {
   };
 
   // Thay nội dung một thẻ lỗi sai (trạng thái & lịch ôn đã được giữ ở form)
-  const handleUpdateMistake = (entry: MistakeEntry) => {
-    setMistakes(updateMistakes(current => current.map(m => (m.id === entry.id ? entry : m))));
+  const handleUpdateMistake = (entry: MistakeEntry, original: MistakeEntry) => {
+    setMistakes(updateMistakes(current => {
+      const updated = mergeMistakeEdit(current.find(m => m.id === entry.id), original, entry);
+      return current.map(m => m.id === entry.id ? updated : m);
+    }));
   };
 
   // Xóa session
@@ -200,19 +206,28 @@ export const App: React.FC = () => {
   // Người học tự đánh dấu đã thuộc (menu ⋯), bỏ qua phần lịch ôn còn lại
   const handleMarkMastered = (mistakeId: string) => {
     setMistakes(updateMistakes(current => current.map(m =>
-      m.id === mistakeId ? { ...m, status: 'MASTERED' as const } : m
+      m.id === mistakeId && canReview(m) ? { ...m, status: 'MASTERED' as const, lastReviewedAt: new Date().toISOString() } : m
     )));
   };
 
   // Lưu thẻ đã được chấm trong phiên ôn (SPEC mục 4.6)
-  const handleSaveReviewedMistake = (reviewed: MistakeEntry) => {
-    setMistakes(updateMistakes(current => current.map(m => (m.id === reviewed.id ? reviewed : m))));
+  const handleGradeMistake = (snapshot: MistakeEntry, correct: boolean) => {
+    let before: MistakeEntry | undefined;
+    let after: MistakeEntry | undefined;
+    const next = updateMistakes(current => {
+      before = current.find(m => m.id === snapshot.id);
+      after = gradeLatestMistake(before, snapshot, correct);
+      return current.map(m => m.id === snapshot.id ? after! : m);
+    });
+    setMistakes(next);
+    return { before: before!, after: after! };
   };
 
   // Mở phiên ôn: các thẻ được chọn, hoặc mọi thẻ đến hạn. Danh sách được chốt lúc mở.
   const openReview = (mistakeIds?: string[]) => {
     const ids = mistakeIds ? new Set(mistakeIds) : null;
-    const cards = ids ? mistakes.filter(m => ids.has(m.id)) : getDueMistakes(mistakes);
+    const latest = loadMistakes();
+    const cards = ids ? latest.filter(m => ids.has(m.id) && canReview(m)).sort(compareReviewPriority) : getDueMistakes(latest);
     if (cards.length > 0) setReviewCards(cards);
   };
 
@@ -312,7 +327,7 @@ export const App: React.FC = () => {
         />
 
         {/* Body Container */}
-        <main key={dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 flex flex-col min-h-0">
+        <main key={activeTab === 'mistakes' ? `mistakes:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 flex flex-col min-h-0">
           {activeTab === 'dashboard' && (
             <div className="w-full space-y-3 sm:space-y-4 my-auto">
               {showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
@@ -371,6 +386,7 @@ export const App: React.FC = () => {
 
           {activeTab === 'mistakes' && (
             <MistakeNotebookView
+              sessions={sessions}
               dueCount={dueMistakesCount}
               onStartReview={openReview}
               mistakes={mistakes}
@@ -429,7 +445,8 @@ export const App: React.FC = () => {
       />
 
       {reviewCards && (
-        <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onSave={handleSaveReviewedMistake} />
+        <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}
+          onReload={id => loadMistakes().find(m => m.id === id && canReview(m))} />
       )}
 
       <SettingsModal

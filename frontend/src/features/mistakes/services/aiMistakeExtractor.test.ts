@@ -16,6 +16,13 @@ beforeEach(() => {
 });
 
 describe('backend AI extraction', () => {
+  it('sends the learner fields separately without folding their reason into a source answer', async () => {
+    const input = { question: 'Reports ____ submitted.', options: ['(A) are', '(B) be'], context: '', part: 5 as const,
+      userChoice: '' as const, userChoiceState: 'UNKNOWN' as const, userReason: 'Đáp án chuẩn: A là lời mình ghi lại', sourceAnswer: 'B' as const };
+    await extractMistakeWithAI(JSON.stringify(input), vi.fn(), 'openai', input);
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input, consent: true, provider: 'openai' }), 'account-id');
+    expect(mocks.backendRequest).toHaveBeenCalledTimes(1);
+  });
   it('rejects empty or oversized input before creating an identity', async () => {
     await expect(extractMistakeWithAI('', vi.fn())).rejects.toThrow('20 đến');
     await expect(extractMistakeWithAI('a'.repeat(8001), vi.fn())).rejects.toThrow('20 đến');

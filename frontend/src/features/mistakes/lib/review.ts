@@ -1,9 +1,9 @@
 import type { MistakeEntry } from '@/shared/types';
 import { getTodayDateString } from '@/shared/data/storage';
-import { applyReviewResult, isDueForReview } from '@/features/mistakes/lib/spacedRepetition';
+import { applyReviewResult, isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 
-export type ReviewStatusKind = 'mastered' | 'overdue' | 'due' | 'scheduled';
+export type ReviewStatusKind = 'mastered' | 'overdue' | 'due' | 'scheduled' | 'incomplete';
 
 export interface ReviewStatus {
   kind: ReviewStatusKind;
@@ -16,6 +16,7 @@ function daysBetween(from: string, to: string): number {
 
 /** One short status for the notebook row: when the card is due next. */
 export function reviewStatus(mistake: MistakeEntry, today = getTodayDateString()): ReviewStatus {
+  if (!canReview(mistake)) return { kind: 'incomplete', label: 'Chưa có đáp án' };
   if (mistake.status === 'MASTERED') return { kind: 'mastered', label: 'Thông suốt' };
   if (!mistake.nextReviewDate) return { kind: 'due', label: 'Ôn hôm nay' };
   const days = daysBetween(today, mistake.nextReviewDate);
@@ -30,6 +31,7 @@ export function reviewStatus(mistake: MistakeEntry, today = getTodayDateString()
  * cannot be pushed to "mastered" by answering it several times in one day.
  */
 export function gradeReview(mistake: MistakeEntry, correct: boolean, today = getTodayDateString()): MistakeEntry {
+  if (!canReview(mistake)) return mistake;
   if (mistake.status !== 'MASTERED' && isDueForReview(mistake, today)) {
     return applyReviewResult(mistake, correct, today);
   }

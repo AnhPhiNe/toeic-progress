@@ -95,10 +95,12 @@ class Gateway:
         ):
             raise HTTPException(403, "Xác minh đã hết hạn. Vui lòng thử lại.")
 
-    async def generate(self, text: str, user_id: str | None = None) -> MistakeDraft:
+    async def generate(self, text: str, user_id: str | None = None, *, source_options: list[str] | None = None,
+                       source_answer: str | None = None) -> MistakeDraft:
         if self.settings.ai_provider == "openai":
-            return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None)
-        return await self.gemini.generate(text)
+            return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None,
+                                              source_options=source_options, source_answer=source_answer)
+        return await self.gemini.generate(text, source_options=source_options, source_answer=source_answer)
 
     async def delete_account(self, user_id: str):
         response = await self.client.delete(

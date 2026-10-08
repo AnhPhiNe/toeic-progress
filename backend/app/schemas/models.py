@@ -1,9 +1,12 @@
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.core.text_input import has_multiple_questions
 
 Number = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 Part = Annotated[int, Field(ge=1, le=7, strict=True)]
@@ -109,15 +112,40 @@ class Mistake(Payload):
     correctAnswer: str = Field(max_length=2000)
     answerSource: AnswerSource | None = None
     userChoice: Literal["A", "B", "C", "D"] | None = None
+    userChoiceState: Literal["CHOSEN", "UNKNOWN", "BLANK"] | None = None
+    userReason: str | None = Field(default=None, max_length=2000)
+    answerProvidedBy: Literal["SOURCE", "LEARNER"] | None = None
     tags: list[Annotated[str, Field(max_length=80)]] = Field(max_length=20)
     options: list[Annotated[str, Field(max_length=2000)]] | None = Field(default=None, max_length=4)
     createdAt: AwareDatetime
     nextReviewDate: date | None = None
     sessionId: str | None = Field(default=None, max_length=200)
+    sourceTestName: str | None = Field(default=None, max_length=300)
     trapTip: str | None = Field(default=None, max_length=4000)
     reviewStage: int | None = Field(default=None, ge=0)
     reviewCount: int | None = Field(default=None, ge=0)
     lastReviewedAt: AwareDatetime | None = None
+
+    @field_validator("lastReviewedAt", mode="before")
+    @classmethod
+    def accept_legacy_review_date(cls, value):
+        if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            return datetime.fromisoformat(date.fromisoformat(value).isoformat() + "T00:00:00+00:00")
+        if isinstance(value, str):
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return value
+
+    @model_validator(mode="after")
+    def check_learner_choice(self):
+        if self.userChoiceState is None:
+            match = re.match(r"^\s*\(([A-D])\)", self.userMistake, re.IGNORECASE)
+            self.userChoice = self.userChoice or (match[1].upper() if match else None)
+            self.userChoiceState = "CHOSEN" if self.userChoice else "UNKNOWN"
+        elif self.userChoiceState == "CHOSEN" and self.userChoice is None:
+            raise ValueError("Cần phương án người học đã chọn")
+        elif self.userChoiceState != "CHOSEN" and self.userChoice is not None:
+            raise ValueError("Không nhớ/bỏ trống không có phương án đã chọn")
+        return self
 
 
 class PacingPhase(Payload):
@@ -245,6 +273,43 @@ class SyncRequest(BaseModel):
         return self
 
 
+class MistakeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    question: str = Field(min_length=1, max_length=4000)
+    options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(min_length=2, max_length=4)
+    context: str = Field(default="", max_length=4000)
+    part: Part | None = None
+    userChoiceState: Literal["CHOSEN", "UNKNOWN", "BLANK"]
+    userChoice: UserChoice = ""
+    userReason: str = Field(default="", max_length=2000)
+    sourceAnswer: UserChoice = ""
+
+    @model_validator(mode="after")
+    def check_input(self):
+        labels = []
+        for option in self.options:
+            match = re.match(r"^\(([A-D])\)\s+\S", option)
+            if not match:
+                raise ValueError("Phương án cần nhãn A-D và nội dung")
+            labels.append(match[1])
+        if labels != list("ABCD"[:len(labels)]) or (self.part == 2 and len(labels) > 3):
+            raise ValueError("Phương án cần theo thứ tự A-D; Part 2 chỉ có A-C")
+        if self.userChoiceState == "CHOSEN" and self.userChoice not in labels:
+            raise ValueError("Lựa chọn chưa khớp phương án")
+        if self.userChoiceState != "CHOSEN" and self.userChoice:
+            raise ValueError("Không nhớ/bỏ trống không có phương án đã chọn")
+        if self.sourceAnswer and self.sourceAnswer not in labels:
+            raise ValueError("Đáp án nguồn chưa khớp phương án")
+        if not self.question.strip() or has_multiple_questions(self.question + "\n" + self.context):
+            raise ValueError("Mỗi lần nhập một câu hỏi")
+        if len(self.as_text()) > 8000:
+            raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
+        return self
+
+    def as_text(self) -> str:
+        return json.dumps(self.model_dump(), ensure_ascii=False, separators=(",", ":"))
+
+
 class ExtractRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str = Field(min_length=20, max_length=8000)
@@ -252,6 +317,13 @@ class ExtractRequest(BaseModel):
     consent: Literal[True]
     provider: Literal["gemini", "openai"] | None = None
     captcha_token: str | None = Field(default=None, max_length=2048)
+    input: MistakeInput | None = None
+
+    @model_validator(mode="after")
+    def single_question(self):
+        if self.input is None and has_multiple_questions(self.text):
+            raise ValueError("Mỗi lần nhập một câu hỏi")
+        return self
 
 
 class ResetRequest(BaseModel):
@@ -336,7 +408,17 @@ class MistakeDraft(DraftCore):
             value = getattr(self.explanation, key).strip()
             if value:
                 sections.append(f"{label}: {value}")
-        self.trapTip = "\n\n".join(sections)
+        text = "\n\n".join(sections)
+        if len(text) > 4000:
+            # Structured sections remain intact; only the legacy text is shortened.
+            marker = "\n\n[Đã rút gọn; xem giải thích chi tiết.]"
+            kept = []
+            for section in sections:
+                if len("\n\n".join([*kept, section])) > 4000 - len(marker):
+                    break
+                kept.append(section)
+            text = "\n\n".join(kept) + marker
+        self.trapTip = text
 
 
 class OpenAIDraftOutput(DraftCore):
@@ -345,6 +427,24 @@ class OpenAIDraftOutput(DraftCore):
     userChoice: UserChoice
     optionNotes: list[OptionNote] = Field(max_length=4)
     explanation: Explanation
+
+    @model_validator(mode="after")
+    def check_option_notes(self):
+        """New AI output must explain each labeled option; legacy saved drafts remain readable."""
+        labels = []
+        for option in self.options:
+            match = re.match(r"^\s*\(([A-D])\)\s*\S", option, re.IGNORECASE)
+            if not match:
+                raise ValueError("AI options must have an A-D label and nonempty text")
+            labels.append(match[1].upper())
+        if len(labels) != len(set(labels)):
+            raise ValueError("AI option labels must be unique")
+        note_labels = [note.label for note in self.optionNotes]
+        if len(note_labels) != len(set(note_labels)) or set(note_labels) != set(labels):
+            raise ValueError("Each AI option must have exactly one meaning")
+        if any(not note.meaning.strip() for note in self.optionNotes):
+            raise ValueError("AI option meanings must not be blank")
+        return self
 
     def to_draft(self) -> MistakeDraft:
         draft = MistakeDraft(**self.model_dump(), trapTip="")

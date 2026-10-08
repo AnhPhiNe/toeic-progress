@@ -22,10 +22,16 @@ class OpenAIProvider:
     def __init__(self, settings: Settings, client: httpx.AsyncClient):
         self.settings, self.client = settings, client
 
-    async def generate(self, text: str, safety_identifier: str | None = None) -> MistakeDraft:
+    async def generate(self, text: str, safety_identifier: str | None = None, *,
+                       source_options: list[str] | None = None, source_answer: str | None = None) -> MistakeDraft:
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
+        schema = OpenAIDraftOutput.model_json_schema()
+        if source_options is not None:
+            # Select an exact source option rather than regenerating its wording/punctuation.
+            # Empty remains available when the question lacks decisive context.
+            schema["properties"]["correctAnswer"]["enum"] = ["", *source_options]
         payload = {
             "model": self.settings.openai_model,
             "instructions": OPENAI_TOEIC_PROMPT,
@@ -33,7 +39,7 @@ class OpenAIProvider:
             "reasoning": {"effort": self.settings.openai_reasoning_effort},
             "text": {"format": {
                 "type": "json_schema", "name": "toeic_mistake", "strict": True,
-                "schema": OpenAIDraftOutput.model_json_schema(),
+                "schema": schema,
             }},
             "max_output_tokens": self.settings.openai_max_output_tokens,
             "store": False,
@@ -102,6 +108,6 @@ class OpenAIProvider:
             if not chunks:
                 raise ValueError("Missing output")
             draft = OpenAIDraftOutput.model_validate_json("".join(chunks)).to_draft()
-            return ground_draft(text, draft, allow_ai_answer=True)
+            return ground_draft(text, draft, allow_ai_answer=True, source_options=source_options, source_answer=source_answer)
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             raise HTTPException(502, "AI trả bản nháp chưa hoàn chỉnh hoặc chưa hợp lệ. Hãy nhập thủ công hoặc bổ sung nội dung.") from error

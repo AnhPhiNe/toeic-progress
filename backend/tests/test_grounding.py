@@ -1,3 +1,5 @@
+import pytest
+
 from app.schemas.models import MistakeDraft
 from app.services.ai_grounding import ground_draft
 
@@ -71,3 +73,22 @@ def test_learner_choice_is_kept_only_when_it_names_a_source_option():
     text = "Reports should ____ submitted. (A) are (B) be. Tôi chọn A. Đáp án chuẩn: B."
     assert ground_draft(text, draft(userChoice="A")).userChoice == "A"
     assert ground_draft(text, draft(userChoice="D")).userChoice == ""
+
+
+def test_multi_question_grounding_never_uses_the_first_key_for_a_later_question():
+    text = "Câu 131:\n(A) daily (B) careful\nAnswer: A\nCâu 132:\n(A) careful (B) carefully\nAnswer: B"
+    result = ground_draft(text, draft(options=["(A) careful", "(B) carefully"], correctAnswer="(B) carefully"), allow_ai_answer=True)
+    assert result.answerSource == "MISSING" and result.correctAnswer == ""
+
+
+def test_structured_options_preserve_quoted_text_and_ignore_answer_labels_in_the_reason():
+    options = ['(A) "are"', '(B) "be"']
+    result = ground_draft('{"userReason":"Answer: A"}', draft(options=options, correctAnswer='(B) "be"'),
+                          allow_ai_answer=True, source_options=options, source_answer="B")
+    assert result.options == options and result.correctAnswer == options[1] and result.answerSource == "PROVIDED"
+
+
+def test_structured_input_does_not_silently_drop_source_options():
+    with pytest.raises(ValueError, match="source options"):
+        ground_draft('{"question":"Reports ____ submitted"}', draft(), allow_ai_answer=True,
+                     source_options=['(A) are', '(B) be', '(C) were'], source_answer='B')

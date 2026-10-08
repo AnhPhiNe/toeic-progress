@@ -1,4 +1,5 @@
 import type { MistakeEntry, PacingRun, StudySession, UserProfile, WeeklyPlanRecord } from '@/shared/types';
+import { normalizeMistakeRecord } from '@/shared/data/mistakeFields';
 
 export interface SyncMeta {
   updatedAt: string;
@@ -130,7 +131,7 @@ function migrateLegacy(): DataBundle {
       return { ...defaultProfile(), ...old, shieldAllowance: old.shieldAllowance ?? old.streakFreezes };
     })(), now),
     sessions: Array.isArray(sessions) ? sessions.map(item => stamp(item, item.createdAt || now)) : [],
-    mistakes: Array.isArray(mistakes) ? mistakes.map(item => stamp(item, item.createdAt || now)) : [],
+    mistakes: Array.isArray(mistakes) ? mistakes.map(item => normalizeMistakeRecord(stamp(item, item.createdAt || now))) : [],
     pacingRuns: Array.isArray(pacingRuns) ? pacingRuns.map(item => stamp(item, item.createdAt || now)) : [],
     checklist: Object.entries({ ...DEFAULT_CHECKLIST, ...legacyChecklist }).map(([id, checked]) => ({ id, checked: Boolean(checked), updatedAt: now, deletedAt: null })),
     vocabLog: [],
@@ -184,7 +185,7 @@ export function readAccountBundle(userId: string): DataBundle | null {
 function migrateV2(raw: string, ownerId: string | null): DataBundle {
   const parsed = JSON.parse(raw);
   if (parsed.schemaVersion !== 2) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
-  return { ...parsed, schemaVersion: 3, weeklyPlans: migrateWeeklyPlans(new Date().toISOString(), ownerId) };
+  return { ...parsed, schemaVersion: 3, mistakes: parsed.mistakes.map(normalizeMistakeRecord), weeklyPlans: migrateWeeklyPlans(new Date().toISOString(), ownerId) };
 }
 
 export function writeAccountBundle(userId: string, bundle: DataBundle): void {
@@ -194,7 +195,7 @@ export function writeAccountBundle(userId: string, bundle: DataBundle): void {
 function parseStoredBundle(raw: string): DataBundle {
   const parsed = JSON.parse(raw) as DataBundle;
   if (parsed.schemaVersion !== 3 || !Array.isArray(parsed.weeklyPlans)) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
-  return parsed;
+  return { ...parsed, mistakes: parsed.mistakes.map(normalizeMistakeRecord) };
 }
 
 /** One localStorage write is the commit point. Retired keys are cleared only by explicit reset. */

@@ -59,6 +59,8 @@ export interface MistakeEntry {
   updatedAt?: string;
   deletedAt?: string | null;
   sessionId?: string;
+  /** Name of the source test; empty explicitly clears a legacy session reference. */
+  sourceTestName?: string | null;
   part: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   questionContext: string; // Nội dung câu hỏi hoặc vị trí câu (vd: Câu 134 Part 5)
   userMistake: string;     // Lỗi sai mình mắc phải hoặc đáp án chọn nhầm
@@ -66,6 +68,10 @@ export interface MistakeEntry {
   answerSource?: 'PROVIDED' | 'AI_PROPOSED' | 'MISSING';
   /** Phương án người học đã chọn sai. Bản ghi cũ không có thì suy từ userMistake */
   userChoice?: 'A' | 'B' | 'C' | 'D';
+  userChoiceState?: 'CHOSEN' | 'UNKNOWN' | 'BLANK';
+  /** Nguyên văn lý do người học nhập; AI không thay thế trường này. */
+  userReason?: string;
+  answerProvidedBy?: 'SOURCE' | 'LEARNER';
   /** Nghĩa và từ loại từng phương án do AI trả về; bản ghi cũ hoặc nhập tay không có */
   optionNotes?: OptionNote[];
   /** Giải thích theo từng mục do AI trả về; không có thì hiển thị trapTip dạng văn bản */

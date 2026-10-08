@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { DataBundle } from '@/shared/data/dataBundle';
-import { explanationSchema, optionNoteSchema } from '@/shared/data/mistakeFields';
+import { explanationSchema, optionNoteSchema, normalizeReviewTimestamp, normalizeMistakeRecord } from '@/shared/data/mistakeFields';
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'phải là ngày YYYY-MM-DD')
   .refine(value => Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value && Number(value.slice(0, 4)) > 0, 'ngày không tồn tại');
@@ -54,9 +54,13 @@ const session = z.object({
 
 const mistake = z.object({
   id: z.string().min(1), sessionId: z.string().optional(), part: partNumber,
+  sourceTestName: z.string().max(300).nullable().optional(),
   questionContext: z.string(), userMistake: z.string(), correctAnswer: z.string(),
   answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']).optional(),
   userChoice: z.enum(['A', 'B', 'C', 'D']).optional(),
+  userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
+  userReason: z.string().max(2000).optional(),
+  answerProvidedBy: z.enum(['SOURCE', 'LEARNER']).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).optional(),
   explanation: explanationSchema.optional(),
   trapTip: z.string().optional(),
@@ -64,7 +68,10 @@ const mistake = z.object({
   category, tags: z.array(z.string()), status: z.enum(['NEEDS_REVIEW', 'MASTERED']),
   createdAt: timestamp, nextReviewDate: date.optional(), reviewStage: nonnegative.optional(),
   reviewCount: nonnegative.optional(), lastReviewedAt: timestamp.optional(), ...metadata
-}).passthrough();
+}).passthrough().superRefine((value, context) => {
+  if (value.userChoiceState === 'CHOSEN' && !value.userChoice) context.addIssue({ code: 'custom', path: ['userChoice'], message: 'thiếu phương án đã chọn' });
+  if (value.userChoiceState && value.userChoiceState !== 'CHOSEN' && value.userChoice) context.addIssue({ code: 'custom', path: ['userChoice'], message: 'Không nhớ/Bỏ trống không có phương án đã chọn' });
+});
 
 const pacingRun = z.object({
   id: z.string().min(1), presetId: z.string(), presetName: z.string(), date,
@@ -149,6 +156,12 @@ function normalize(raw: Record<string, unknown>, version: 1 | 2 | 3, corrections
         fill(value, 'deletedAt', null, path, corrections);
       }
       if (key === 'mistakes') {
+        const normalizedTime = normalizeReviewTimestamp(value.lastReviewedAt);
+        if (normalizedTime !== value.lastReviewedAt) {
+          value.lastReviewedAt = normalizedTime;
+          corrections.push(`${path}.lastReviewedAt: chuyển ngày cũ sang thời điểm UTC`);
+        }
+        Object.assign(value, normalizeMistakeRecord(value));
         fill(value, 'tags', [], path, corrections);
         if (typeof value.category === 'string' && !category.safeParse(value.category).success) {
           value.category = 'OTHER';

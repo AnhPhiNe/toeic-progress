@@ -41,6 +41,8 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // The first Escape dismisses a combobox's popup; the next closes the modal.
+        if (e.target instanceof Element && e.target.closest('[role="combobox"][aria-expanded="true"]')) return;
         e.stopPropagation();
         onClose();
         return;

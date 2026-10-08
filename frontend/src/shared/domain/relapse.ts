@@ -21,7 +21,11 @@ export interface RelapseSignal {
 
 /** Ngày (YYYY-MM-DD) mà một thẻ được coi là đã thông suốt */
 function masteryDateOf(m: MistakeEntry): string {
-  return m.lastReviewedAt || (m.createdAt || '').slice(0, 10);
+  const value = m.lastReviewedAt;
+  if (!value) return (m.createdAt || '').slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '';
 }
 
 function daysBetween(fromStr: string, toStr: string): number {

@@ -2,23 +2,26 @@ import { z } from 'zod';
 import { backendRequest, apiAvailable } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 import { explanationSchema, optionNoteSchema } from '@/shared/data/mistakeFields';
+import type { MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 
 const draftSchema = z.object({
   part: z.number().int().min(1).max(7).nullable(),
   category: z.enum(['VOCABULARY_TRAP', 'ADVANCED_GRAMMAR', 'LISTENING_SPEED', 'TIME_PRESSURE', 'CARELESS_DISTRACTION', 'OTHER']),
-  questionContext: z.string().min(1).max(4000), userMistake: z.string().max(2000),
+  questionContext: z.string().min(1).max(4000), userMistake: z.string().max(4000),
   correctAnswer: z.string().max(1000), trapTip: z.string().max(4000),
   options: z.array(z.string().max(1000)).max(4), tags: z.array(z.string().max(50)).max(5),
   missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']),
   // Older backends and Gemini drafts omit the learner's choice and the structured fields.
   userChoice: z.enum(['A', 'B', 'C', 'D', '']).default(''),
+  userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
+  userReason: z.string().max(2000).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).default([]),
   explanation: explanationSchema.nullable().default(null)
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
 export type AIProvider = 'openai' | 'gemini';
-export interface AIConfiguration { provider: AIProvider; requireProviderConsent: boolean }
+export interface AIConfiguration { provider: AIProvider; requireProviderConsent: boolean; structuredInput?: boolean }
 
 export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!apiAvailable) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
@@ -55,7 +58,8 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
   // frontend/backend deployment compatible without sending unknown JSON fields.
   if (value.ai_provider === undefined) return { provider: 'gemini', requireProviderConsent: false };
   if (value.ai_provider !== 'openai' && value.ai_provider !== 'gemini') throw new Error('Cấu hình AI chưa hợp lệ.');
-  return { provider: value.ai_provider, requireProviderConsent: true };
+  return { provider: value.ai_provider, requireProviderConsent: true,
+    ...(value.structured_mistake_input === true ? { structuredInput: true } : {}) };
 }
 
 export async function getAIUsage(): Promise<AIUsage | null> {
@@ -67,7 +71,7 @@ export async function getAIUsage(): Promise<AIUsage | null> {
   return current?.user.id === session.user.id ? usage : null;
 }
 
-export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, provider?: AIProvider): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
+export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, provider?: AIProvider, input?: MistakeInput): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
   if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
   if (!apiAvailable || !cloud) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
   let { data: { session } } = await cloud.auth.getSession();
@@ -81,7 +85,7 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ draft: unknown; usage: AIUsage }>('/api/v1/ai/extract', 'POST', {
     text: rawInput.trim(), request_id: crypto.randomUUID(), consent: true, captcha_token: captchaToken,
-    ...(provider ? { provider } : {})
+    ...(provider ? { provider } : {}), ...(input ? { input } : {})
   }, session.user.id);
   const parsed = draftSchema.safeParse(value.draft);
   if (!parsed.success) throw new Error('Bản nháp AI chưa hợp lệ. Vui lòng nhập thủ công hoặc thử lại sau.');

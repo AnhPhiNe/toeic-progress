@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { ChevronDown, Lightbulb } from 'lucide-react';
 import type { MistakeExplanation } from '@/shared/types';
+import { analysisLines } from '@/features/mistakes/lib/analysisLines';
 
 const SECTIONS: Array<[keyof MistakeExplanation, string]> = [
   ['questionType', 'Dạng câu hỏi'],
@@ -42,7 +43,7 @@ export const ExplanationView: React.FC<ExplanationViewProps> = ({
   return (
     <div className="space-y-3">
       {tip && (
-        <div className="flex gap-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/40 px-3.5 py-3 text-sm leading-relaxed text-slate-900 dark:text-amber-50">
+        <div className="flex gap-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/40 px-3.5 py-3 text-base leading-relaxed text-slate-900 dark:text-amber-50">
           <Lightbulb className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <p><span className="font-bold">Mẹo 10s:</span> {tip}</p>
         </div>
@@ -60,13 +61,17 @@ export const ExplanationView: React.FC<ExplanationViewProps> = ({
         </div>
       ) : null}
       {open && hasDetails && (
-        <div id={detailsId} className="space-y-2.5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-          {sections.map(([label, value]) => (
+        <div id={detailsId} className="space-y-2.5 text-base leading-relaxed text-slate-700 dark:text-slate-300">
+          {sections.map(([label, value]) => label === 'Phân tích' ? (
+            <div key={label}><p className="font-bold text-slate-900 dark:text-white">{label}:</p>
+              <div className="mt-1.5 space-y-1.5">{analysisLines(value).map((line, index) => <p key={index} className="whitespace-pre-line break-words">{line}</p>)}</div>
+            </div>
+          ) : (
             <p key={label} className="whitespace-pre-line break-words">
               <span className="font-bold text-slate-900 dark:text-white">{label}:</span> {value}
             </p>
           ))}
-          {legacyText && <p className="whitespace-pre-line break-words">{legacyText}</p>}
+          {legacyText && <div className="space-y-1.5">{analysisLines(legacyText).map((line, index) => <p key={index} className="whitespace-pre-line break-words">{line}</p>)}</div>}
         </div>
       )}
     </div>

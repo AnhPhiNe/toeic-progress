@@ -31,6 +31,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     if body.provider != settings.ai_provider and not (body.provider is None and settings.ai_provider == "gemini"):
         raise HTTPException(409, "Nhà cung cấp AI đã thay đổi. Tải lại trang và xác nhận gửi nội dung trước khi thử lại.")
     gateway = request.app.state.gateway
+    extraction_text = body.input.as_text() if body.input is not None else body.text
     unlimited = settings.unlimited_ai_for(user)
     if user["is_anonymous"]:
         await gateway.verify_captcha(body.captcha_token)
@@ -40,7 +41,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             "p_owner_id": user["id"],
             "p_guest": user["is_anonymous"],
             "p_request_id": str(body.request_id),
-            "p_input_hash": hashlib.sha256(body.text.encode()).hexdigest(),
+            "p_input_hash": hashlib.sha256(extraction_text.encode()).hexdigest(),
             "p_ip_hash": gateway.ip_hash(request.client.host if request.client else "unknown"),
             # These RPC parameters are service-role only. NULL leaves the
             # corresponding cap unset while still recording usage/idempotency.
@@ -63,9 +64,22 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     # Reservation is committed before calling Gemini, including failed attempts.
     # Gemini's bounded failover reserves each attempt in its provider pool.
     # OpenAI posts one request and does not retry ambiguous billed generations.
-    result = await gateway.generate(body.text, user["id"])
+    if body.input is not None:
+        result = await gateway.generate(extraction_text, user["id"],
+                                        source_options=body.input.options, source_answer=body.input.sourceAnswer)
+    else:
+        result = await gateway.generate(extraction_text, user["id"])
+    draft = result.model_dump()
+    if body.input is not None:
+        learner = body.input
+        selected = next((option for option in learner.options if option.startswith(f"({learner.userChoice})")), "")
+        description = selected if learner.userChoiceState == "CHOSEN" else "Bỏ trống" if learner.userChoiceState == "BLANK" else "Không nhớ"
+        draft.update(userChoice=learner.userChoice, userChoiceState=learner.userChoiceState,
+                     userReason=learner.userReason, userMistake=description + (" - " + learner.userReason if learner.userReason.strip() else ""))
+        if learner.part is not None:
+            draft["part"] = learner.part
     return {
-        "draft": result.model_dump(),
+        "draft": draft,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],

@@ -54,7 +54,7 @@ export const OptionList: React.FC<OptionListProps> = ({
         </>
       );
       const className = `w-full text-left rounded-[10px] border-[1.5px] flex items-start gap-2.5 text-slate-900 dark:text-slate-100 ${
-        large ? 'px-3.5 py-3 text-[15px]' : 'px-3 py-2 text-sm'
+                large ? 'px-3.5 py-3 text-base leading-relaxed' : 'px-3 py-2 text-sm'
       } ${
         tone === 'right'
           ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40'

@@ -7,6 +7,15 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      keyframes: {
+        'scroll-cue': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '45%': { transform: 'translateY(4px)' },
+        },
+      },
+      animation: {
+        'scroll-cue': 'scroll-cue 650ms ease-out 2',
+      },
       colors: {
         brand: {
           50: '#EEF2FF',

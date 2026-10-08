@@ -12,6 +12,7 @@ async def health(request: Request):
     return {
         "status": "ok", "database_configured": settings.database_ready,
         "ai_configured": settings.ai_ready, "ai_provider": settings.ai_provider,
+        "structured_mistake_input": True,
     }
 
 

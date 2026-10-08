@@ -146,10 +146,11 @@ class GeminiProvider:
             },
         )
 
-    async def generate(self, text: str) -> MistakeDraft:
+    async def generate(self, text: str, *, source_options: list[str] | None = None,
+                       source_answer: str | None = None) -> MistakeDraft:
         try:
             async with asyncio.timeout(self.settings.gemini_total_timeout_seconds):
-                return await self._generate(text)
+                return await self._generate(text, source_options=source_options, source_answer=source_answer)
         except TimeoutError as error:
             logger.warning(json.dumps({
                 "event": "gemini_deadline", "request_id": request_id_context.get(), "error_type": "TimeoutError",
@@ -158,7 +159,8 @@ class GeminiProvider:
             # lease and counters stay reserved; do not launch another generation.
             raise HTTPException(503, "AI đang chậm. Vui lòng thử lại sau hoặc nhập thủ công.") from error
 
-    async def _generate(self, text: str) -> MistakeDraft:
+    async def _generate(self, text: str, *, source_options: list[str] | None = None,
+                        source_answer: str | None = None) -> MistakeDraft:
         if not self.keys:
             raise HTTPException(503, "AI chưa có key được cấu hình.")
         deadline = time.monotonic() + self.settings.gemini_total_timeout_seconds
@@ -266,7 +268,8 @@ class GeminiProvider:
                         part.get("text", "") for part in candidate["content"]["parts"] if not part.get("thought")
                     )
                     output = GeminiDraftOutput.model_validate_json(content)
-                    return ground_draft(text, MistakeDraft(**output.model_dump()))
+                    return ground_draft(text, MistakeDraft(**output.model_dump()),
+                                        source_options=source_options, source_answer=source_answer)
                 except (ValueError, KeyError, IndexError, TypeError) as error:
                     raise HTTPException(502, "AI trả bản nháp chưa hợp lệ. Hãy bổ sung nội dung hoặc nhập thủ công.") from error
         if retry_delays:

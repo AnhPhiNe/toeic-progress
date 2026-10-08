@@ -22,7 +22,9 @@ import {
   PART_MAX_QUESTIONS,
   getPracticeParts
 } from '@/shared/domain/etsScoring';
-import { getTodayDateString } from '@/shared/data/storage';
+import { getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
+import { collectTestNames, normalizeTestName, testNameKey } from '@/shared/domain/testNames';
+import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 
@@ -73,10 +75,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   // Tìm kiếm xem đề thi này đã từng làm chưa
   const previousAttemptsForTest = useMemo(() => {
     if (!sessions || !testName.trim()) return [];
-    const normalized = testName.trim().toLowerCase();
+    const normalized = testNameKey(testName);
     // Khi sửa, không tính chính bản ghi đang sửa là "lần làm trước"
     return sessions.filter(s =>
-      s.testName.trim().toLowerCase() === normalized &&
+      !s.deletedAt && testNameKey(s.testName) === normalized &&
       s.sessionType === 'FULL_TEST' &&
       s.id !== editingSession?.id
     );
@@ -88,17 +90,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     ? Math.max(...previousAttemptsForTest.map(s => s.totalScore || 0)) 
     : 0;
 
-  // Lấy danh sách tên các đề thi Full Test đã có để gợi ý nhanh
-  const uniqueTestNameSuggestions = useMemo(() => {
-    if (!sessions) return [];
-    const names = new Set<string>();
-    sessions.forEach(s => {
-      if (s.sessionType === 'FULL_TEST' && s.testName.trim()) {
-        names.add(s.testName.trim());
-      }
-    });
-    return Array.from(names);
-  }, [sessions]);
+  // Notes can name a test before the learner has a total score.
+  const uniqueTestNameSuggestions = useMemo(() => isOpen ? collectTestNames(sessions ?? loadStudySessions(), loadMistakes()) : [], [sessions, isOpen]);
+  const canonicalTestName = uniqueTestNameSuggestions.find(name => testNameKey(name) === testNameKey(testName)) ?? normalizeTestName(testName);
 
   // Part scores for Full Test
   // Bắt đầu từ 0 - người dùng tự nhập kết quả thật. Điền sẵn điểm cao
@@ -264,7 +258,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         id: sessionId,
         skillType: 'LR',
         sessionType: 'FULL_TEST',
-        testName: testName.trim() || 'ETS Test',
+        testName: canonicalTestName || 'ETS Test',
         attemptNumber: isEditing && editingSession?.attemptNumber
           ? editingSession.attemptNumber
           : isExistingTest ? nextAttemptNumber : 1,
@@ -284,7 +278,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         id: sessionId,
         skillType: 'LR',
         sessionType: 'PART_PRACTICE',
-        testName: testName.trim() || partLabel,
+        testName: canonicalTestName || partLabel,
         date,
         durationMinutes: Number(durationMinutes) || 30,
         // Buổi luyện lẻ KHÔNG có raw score của đề đầy đủ - để trống thay vì
@@ -300,6 +294,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const formattedMistakes: MistakeEntry[] = quickMistakes.map((m, idx) => ({
       id: `mistake-${Date.now()}-${idx}`,
       sessionId,
+      sourceTestName: newSession.testName,
       part: m.part,
       questionContext: m.questionContext,
       userMistake: m.userMistake,
@@ -394,23 +389,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   <span className="font-normal text-slate-400 dark:text-slate-500"> (không bắt buộc)</span>
                 )}
               </label>
-              <input
-                id="session-test-name"
-                type="text"
-                // Full Test cần tên để nhận diện lần làm lại cùng một đề.
-                // Buổi luyện lẻ thì không, đã có nhãn thay thế sẵn khi lưu.
-                required={sessionType === 'FULL_TEST'}
-                list="existing-test-names"
-                value={testName}
-                onChange={e => setTestName(e.target.value)}
-                placeholder={sessionType === 'FULL_TEST' ? 'vd: ETS 2024 Test 05' : 'vd: Cày Part 5 buổi tối'}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
-              />
-              <datalist id="existing-test-names">
-                {uniqueTestNameSuggestions.map(name => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
+              <TestNamePicker id="session-test-name" label="Tên Đề Thi / Nguồn" required={sessionType === 'FULL_TEST'}
+                value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
