@@ -240,17 +240,18 @@ Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng
 
 ### 4.5. Phân Tích (Analytics)
 
-**Trình bày đồng bộ với Tổng Quan** (v2.10): thẻ dùng chung `CARD` trong `frontend/src/shared/ui/surfaces.ts`; dải bốn chỉ số cùng kiểu và cùng bốn tông (xanh dương · xanh lá/đỏ · hổ phách · hồng); biểu đồ ghi số trên từng chấm, chấm mới nhất tô đặc, nhãn mục tiêu trên đường, không hiệu ứng vẽ; Listening chàm · Reading xanh ngọc ở mọi nơi (`SKILL_COLORS`) kể cả hộp chi tiết; chữ tối thiểu 12px. Đã gỡ: hai đường mốc Rank 800/900 trên biểu đồ, nền tím/xanh của hai khối ma trận.
+**Bản duyệt ngày 09/10/2026:** giữ top bar, hai thẻ biểu đồ cạnh nhau trên desktop và khối “Ưu tiên luyện tiếp” bên dưới. Thẻ dùng chung `CARD`; Listening chàm, Reading xanh ngọc. Trên màn hình hẹp, các thẻ xếp dọc.
 
-- **Timeline:** điểm tổng, Listening và Reading theo thời gian. Đường tham chiếu đặt tại `targetScore`. Lọc theo lượt làm: tất cả, chỉ lần đầu, hoặc điểm cao nhất.
-- **Ma trận năng lực 7 Part và độ ổn định:** dùng tối đa năm Full Test gần nhất có điểm từng Part, loại lượt làm lại; hiển thị số đề thực dùng. Không dùng radar.
-- **Chẩn đoán theo nguyên nhân** *(ưu tiên cao nhất — xem mục 1.4 điểm 1)*: đã tổng hợp sáu nhóm lỗi từ Sổ tay thành biểu đồ phân bố, kèm diễn giải bằng lời. Trả lời "nguyên nhân nào xuất hiện nhiều nhất, và nó rải ở những Part nào"; chỉ diễn giải điểm mất khi đủ ngưỡng để ước tính.
-- **Xếp ưu tiên theo lợi ích:** chỉ khi có từ ba Full Test đủ số câu từng Part và mười lỗi đã phân loại. Điểm mất ở Part = (số câu tối đa − số câu đúng trung bình) × 5; chia cho nhóm nguyên nhân theo tỷ lệ lỗi trong Part. Luôn ghi “ước tính”. Dưới ngưỡng chỉ xếp theo tần suất. Cùng kết quả cấp cho Kế Hoạch.
-- **Phân tích thời gian:** hiển thị mức vượt giờ từng pha từ ít nhất ba lượt Phòng Thi cùng chế độ đã đánh dấu pha; thiếu dữ liệu thì hướng dẫn bấm "xong pha".
-- **Lịch học 12 tuần:** chỉ đặt tại Phân Tích; tô ngày có buổi học hoặc ghi từ vựng. Không thay lưới bảy ngày trong thẻ Chuỗi Ngày Học ở Tổng Quan.
-- **Bảng lịch sử:** lọc, sắp xếp, xem chi tiết, sửa, xóa.
-- **Gợi ý dưới ma trận** tính từ dữ liệu thật: Part thấp nhất, số câu trung bình, và ≈ +5đ mỗi câu đúng thêm. *(Bản cũ ghi cứng "~2 câu · +25đ" cho mọi người dùng — đã sửa.)*
-- **Độ ổn định phong độ:** độ lệch chuẩn trên cùng cửa sổ tối đa năm đề mới với ma trận 7 Part.
+- **Bộ chọn phạm vi có tìm kiếm:** mặc định “Đề gần nhất”; chọn một tên đề, “Tổng quan 5 lượt gần nhất”, hoặc “Tất cả”. Danh sách tên dùng chung từ lịch sử và Sổ tay, chuẩn hóa Unicode/khoảng trắng/hoa thường; không tạo danh mục đề hoặc liên kết lỗi tới lượt làm mới.
+- **Theo một đề:** dùng kết quả Full Test L&R mới nhất của tên đề đó, kể cả làm lại. Hiện ngày kết quả; không lấy chi tiết Part hoặc điểm L/R của kết quả cũ để bù cho kết quả mới thiếu dữ liệu.
+- **Tổng quan:** chọn năm lượt gần nhất hoặc toàn bộ Full Test L&R có kết quả, kể cả làm lại; loại bản ghi đã xóa. Số liệu Part chỉ tính lượt đủ số câu hợp lệ của cả bảy Part; điểm mỗi kỹ năng tính trung bình các điểm kỹ năng có ghi trong cùng phạm vi và ghi “TB”. Không tự điền 0 cho dữ liệu thiếu. Quy tắc first-attempt của Tổng Quan/Kế Hoạch không thay đổi.
+- **Độ chính xác 7 Part:** biểu đồ cột từ 0–100%, nhãn phần trăm, chân cột vuông và đỉnh bo nhẹ. Tooltip hiện số câu đúng hoặc trung bình có phần thập phân, tránh hiển thị 6/6 bên cạnh tỷ lệ trung bình 92%. Ghi số lượt thực có chi tiết Part khi xem tổng quan.
+- **Chuyển động biểu đồ:** cột mọc từ 0% trong 500ms; donut vẽ theo chiều kim đồng hồ từ vị trí 12 giờ trong 600ms. Khi đổi bộ lọc, các hình chuyển tới tỷ lệ mới trong 300ms, không quay cả donut hoặc lặp liên tục. Nhãn %, số tổng và tên nhóm lỗi đứng yên; màu nhóm lỗi giữ đúng danh tính khi tỷ lệ/thứ tự trong danh sách thay đổi. Hover sáng nhẹ. Tắt chuyển động biểu đồ khi `prefers-reduced-motion: reduce`, kể cả khi tùy chọn hệ thống đổi trong lúc đang xem trang.
+- **Lỗi thường gặp trong Sổ tay:** donut lớn, màu cố định theo sáu nhóm nguyên nhân; tên lỗi và cột % cách 28px. Đếm các lỗi đã ghi của tên đề được chọn, gom qua mọi lần làm; tổng quan năm lượt gom lỗi của các tên đề trong cửa sổ, “Tất cả” gồm cả lỗi chưa gắn đề. Luôn ghi rõ đây là lỗi đã ghi, không phải toàn bộ câu sai khi thi; không hiển thị “độ phủ /7”.
+- **Thiếu dữ liệu:** đề chỉ có ghi chú vẫn chọn được và xem được lỗi; phần điểm/Part hiện trạng thái chưa có dữ liệu cùng nút nhập kết quả.
+- **Ưu tiên luyện tiếp:** chỉ nêu Part có tỷ lệ đúng thấp nhất và nhóm lỗi thường gặp nhất trong phạm vi; bỏ dự báo điểm “+30đ” và các kết luận tiến bộ không có dữ liệu. Nút Listening mở phiên tập trung; Reading mở bộ đếm đúng Part 5/6/7.
+- **Mở Sổ tay:** mang bộ lọc tên đề/phạm vi đang chọn sang Sổ tay; người học vẫn đổi hoặc đặt lại bộ lọc được. Bộ lọc điều hướng tạm thời thuộc tài khoản hiện tại, không thay đổi dữ liệu lưu.
+- Các phân tích kế hoạch, lịch sử và bộ đếm thời gian có màn hình riêng; trang này không bổ sung biểu đồ mới, DB/API hoặc liên kết bắt buộc tới từng lượt làm.
 
 ### 4.6. Sổ Tay Bẫy (Mistake Notebook)
 

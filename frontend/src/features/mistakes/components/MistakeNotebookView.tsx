@@ -14,6 +14,7 @@ const COLLAPSED_CARD_COUNT = 5;
 interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
+  initialSourceNames?: string[];
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
@@ -23,13 +24,14 @@ interface MistakeNotebookViewProps {
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
 }
 
-export function MistakeNotebookView({ mistakes, sessions = [], dueCount, onStartReview, onAddMistake,
+export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, dueCount, onStartReview, onAddMistake,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<ErrorCategory | 'ALL'>('ALL');
-  const [selectedTest, setSelectedTest] = useState('ALL');
+  const [selectedTest, setSelectedTest] = useState(() => initialSourceNames === undefined ? 'ALL'
+    : initialSourceNames.length === 1 ? initialSourceNames[0] ? `test:${testNameKey(initialSourceNames[0])}` : 'NONE' : 'SCOPE');
   const [showAll, setShowAll] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -42,14 +44,17 @@ export function MistakeNotebookView({ mistakes, sessions = [], dueCount, onStart
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const sourceNames = useMemo(() => uniqueTestNames(sourcedMistakes.map(m => m.sourceTestName)), [sourcedMistakes]);
+  const scopeKeys = useMemo(() => new Set((initialSourceNames ?? []).map(testNameKey)), [initialSourceNames]);
+  const filterSourceNames = useMemo(() => uniqueTestNames([...sourceNames, ...(initialSourceNames ?? [])]), [sourceNames, initialSourceNames]);
   const sourceSuggestions = useMemo(() => collectTestNames(sessions, mistakes), [sessions, mistakes]);
   const matchingMistakes = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return sourcedMistakes.filter(m => (!term || [m.questionContext, m.userMistake, m.userReason ?? '', m.correctAnswer, m.trapTip ?? '', m.sourceTestName, ...m.tags]
       .some(value => value.toLowerCase().includes(term))) && (selectedPart === 'ALL' || m.part === selectedPart)
-      && (selectedTest === 'ALL' || (selectedTest === 'NONE' ? !m.sourceTestName : `test:${testNameKey(m.sourceTestName)}` === selectedTest))
+      && (selectedTest === 'ALL' || (selectedTest === 'SCOPE' ? scopeKeys.has(testNameKey(m.sourceTestName))
+        : selectedTest === 'NONE' ? !m.sourceTestName : `test:${testNameKey(m.sourceTestName)}` === selectedTest))
       && (selectedCategory === 'ALL' || m.category === selectedCategory));
-  }, [sourcedMistakes, searchTerm, selectedPart, selectedTest, selectedCategory]);
+  }, [sourcedMistakes, searchTerm, selectedPart, selectedTest, selectedCategory, scopeKeys]);
   const stats = useMemo(() => ({ total: matchingMistakes.length, due: matchingMistakes.filter(m => isDueForReview(m)).length,
     mastered: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [matchingMistakes]);
   const filteredMistakes = useMemo(() => matchingMistakes.filter(m => selectedStatus === 'ALL' ||
@@ -57,7 +62,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], dueCount, onStart
   const visibleMistakes = showAll ? filteredMistakes : filteredMistakes.slice(0, COLLAPSED_CARD_COUNT);
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
-  const defaultSourceName = sourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? '';
+  const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? '';
   const resetFilters = () => { setShowAll(false); setSearchTerm(''); setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedStatus('ALL'); setSelectedCategory('ALL'); };
   const toggleRow = (id: string) => setExpandedIds(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   useEffect(() => {
@@ -135,7 +140,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], dueCount, onStart
                     <select aria-label="Đề" value={selectedTest} onChange={e => { setSelectedTest(e.target.value); setShowAll(false); }}
                       className="mt-1 block w-full rounded-lg border-2 border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                       <option value="ALL">Tất cả đề</option><option value="NONE">Chưa gắn đề</option>
-                      {sourceNames.map(name => <option key={testNameKey(name)} value={`test:${testNameKey(name)}`}>{name}</option>)}
+                      {initialSourceNames !== undefined && initialSourceNames.length !== 1 && <option value="SCOPE">Các đề trong phạm vi chọn</option>}
+                      {filterSourceNames.map(name => <option key={testNameKey(name)} value={`test:${testNameKey(name)}`}>{name}</option>)}
                     </select>
                   </label>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">

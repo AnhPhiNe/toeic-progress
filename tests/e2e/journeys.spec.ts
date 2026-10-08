@@ -8,7 +8,7 @@ test('direct routes and public legal pages are available without an account', as
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
   await page.goto('/phan-tich');
-  await expect(page.getByRole('heading', { name: 'Năng Lực 7 Part' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Độ chính xác 7 Part' })).toBeVisible();
   await page.reload();
   await expect(page).toHaveURL(/\/phan-tich$/);
   await page.goto('/chinh-sach-quyen-rieng-tu');
@@ -69,7 +69,7 @@ test('new feature cards do not overflow supported widths or 125% zoom', async ({
   for (const width of [375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/phan-tich');
-    await expect(page.getByRole('heading', { name: 'Năng Lực 7 Part' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Độ chính xác 7 Part' })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${width}px horizontal overflow`).toBeLessThanOrEqual(1);
   }

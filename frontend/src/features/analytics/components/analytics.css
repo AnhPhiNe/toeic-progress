@@ -1,0 +1,14 @@
+.analytics-panel { container-type: inline-size; }
+.analytics-errors { --donut-size: 240px; display: grid; grid-template-columns: var(--donut-size) minmax(0, 1fr); align-items: center; gap: 14px; min-height: 285px; }
+.analytics-donut { width: var(--donut-size); height: var(--donut-size); }
+.analytics-error-list { display: grid; grid-template-columns: minmax(0, max-content) max-content; justify-content: start; align-items: center; gap: 14px 28px; }
+.analytics-view .recharts-bar-rectangle path,
+.analytics-view .recharts-pie-sector path { transition: filter 120ms ease-out; }
+.analytics-view .recharts-bar-rectangle:hover path,
+.analytics-view .recharts-pie-sector:hover path { filter: brightness(1.1); }
+@media (prefers-reduced-motion: reduce) {
+  .analytics-view .recharts-bar-rectangle path,
+  .analytics-view .recharts-pie-sector path { transition: none; }
+}
+@container (max-width: 470px) { .analytics-errors { --donut-size: 210px; } }
+@container (max-width: 350px) { .analytics-errors { grid-template-columns: 1fr; justify-items: center; padding-bottom: 18px; } .analytics-error-list { width: 100%; } }

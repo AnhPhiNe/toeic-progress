@@ -65,6 +65,8 @@ export const App: React.FC = () => {
   const account = useCloudAccount(refreshFromStorage);
 
   const [activeTab, setActiveTab] = useRouteTab();
+  const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
+  useEffect(() => { if (activeTab !== 'mistakes') setNotebookSourceFilter(null); }, [activeTab]);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
@@ -74,7 +76,7 @@ export const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setReviewCards(null); }, [activeOwner]);
+  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); }, [activeOwner]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -367,7 +369,7 @@ export const App: React.FC = () => {
               vocabLog={vocabLog}
               theme={theme}
               onOpenSessionLogger={openSessionLogger}
-              onNavigateToMistakes={() => setActiveTab('mistakes')}
+              onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
               onNavigateToTimer={(part = 'POMODORO') => {
                 setPacingInitialPart(part);
                 setActiveTab('exam-mode');
@@ -386,6 +388,7 @@ export const App: React.FC = () => {
 
           {activeTab === 'mistakes' && (
             <MistakeNotebookView
+              initialSourceNames={notebookSourceFilter?.owner === activeOwner ? notebookSourceFilter.names : undefined}
               sessions={sessions}
               dueCount={dueMistakesCount}
               onStartReview={openReview}
