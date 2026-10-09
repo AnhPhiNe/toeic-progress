@@ -1,4 +1,4 @@
-import { StudySession, MistakeEntry, UserProfile, SmartWeeklyTask, WeeklyPlanRecord } from '@/shared/types';
+import { StudySession, MistakeEntry, UserProfile, SmartWeeklyTask, WeeklyPlanRecord, PacingRun } from '@/shared/types';
 import { getTodayDateString, getWeekMonday, addDays, getOrCreateWeeklyPlan } from '@/shared/data/storage';
 import { getPracticeParts } from '@/shared/domain/etsScoring';
 import { causePriority } from '@/shared/domain/learningAnalytics';
@@ -60,7 +60,8 @@ export function buildWeeklyStudyPlan(
   sessions: StudySession[],
   mistakes: MistakeEntry[],
   vocabLog: VocabLog[] = [],
-  storedPlan?: WeeklyPlanRecord
+  storedPlan?: WeeklyPlanRecord,
+  pacingRuns: PacingRun[] = []
 ): WeeklyStudyPlanSummary {
   const today = getTodayDateString();
   const currentWeekMonday = getWeekMonday(today);
@@ -75,7 +76,7 @@ export function buildWeeklyStudyPlan(
   const daysUntilExam = hasExamDate ? daysBetween(today, profile.examDate) : null;
 
   const fullTests = sessions
-    .filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0)
+    .filter(s => !s.deletedAt && s.skillType === 'LR' && s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   let currentLevel = 0;
@@ -91,11 +92,10 @@ export function buildWeeklyStudyPlan(
   const pointsGap = Math.max(0, targetScore - currentLevel);
 
   // Dữ liệu học tập trong tuần này
-  const thisWeekSessions = sessions.filter(s => s.date >= weekStart && s.date <= weekEnd);
+  const thisWeekSessions = sessions.filter(s => !s.deletedAt && s.date >= weekStart && s.date <= weekEnd);
   // Chỉ đếm Full Test có điểm; bản ghi Sprint Reading cũ từng bị lưu là FULL_TEST không điểm
-  const fullTestsThisWeek = thisWeekSessions.filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0).length;
-  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-  const minutesGoalThisWeek = (profile.dailyMinGoalMinutes || 30) * 7;
+  const fullTestsThisWeek = thisWeekSessions.filter(s => s.skillType === 'LR' && s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0).length;
+  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + (Number.isFinite(s.durationMinutes) && s.durationMinutes > 0 ? s.durationMinutes : 0), 0);
 
   const daysStudiedThisWeek = new Set([
     ...thisWeekSessions.map(s => s.date),
@@ -104,6 +104,27 @@ export function buildWeeklyStudyPlan(
 
   // Lấy hoặc khởi tạo kế hoạch tuần
   const planRecord = storedPlan || getOrCreateWeeklyPlan(weekKey, profile);
+  const timeTargets = planRecord.tasks
+    .filter(task => task.type === 'AUTO_STUDY_TIME' && Number.isFinite(task.target) && task.target > 0)
+    .map(task => task.target);
+  const minutesGoalThisWeek = timeTargets.length > 0
+    ? Math.max(...timeTargets)
+    : (profile.dailyMinGoalMinutes || 30) * 7;
+  const measured = new Map(pacingRuns.filter(run => {
+    const seconds = run.actualSeconds ?? run.actualMinutes * 60;
+    return !run.deletedAt
+      && run.id.startsWith('pacing-v2-')
+      && Number.isFinite(seconds) && seconds > 0
+      && Number.isInteger(run.totalQuestions) && run.totalQuestions! > 0;
+  }).map(run => [run.id, run]));
+  const practiced = thisWeekSessions.filter(session => session.skillType === 'LR' && session.sessionType === 'PART_PRACTICE').map(session => {
+    const parts = new Set<number>(getPracticeParts(session).map(part => part.part));
+    const run = measured.get(session.id);
+    if (run?.partType === 'PART_5') parts.add(5);
+    else if (run?.partType === 'PART_6') parts.add(6);
+    else if (run?.partType?.startsWith('PART_7')) parts.add(7);
+    return { parts, reading: parts.size > 0 || run?.partType === 'FULL_READING' };
+  });
 
   // Đánh giá tiến độ từng mục tiêu SMART
   const evaluatedTasks: EvaluatedSmartTask[] = planRecord.tasks.map(task => {
@@ -112,20 +133,17 @@ export function buildWeeklyStudyPlan(
 
     if (task.type === 'AUTO_FULL_TEST') {
       const autoDone = fullTestsThisWeek;
-      isComplete = Boolean(task.isCompleted || autoDone >= task.target);
-      done = task.isCompleted ? Math.max(task.target, autoDone) : autoDone;
+      isComplete = autoDone >= task.target;
+      done = autoDone;
     } else if (task.type === 'AUTO_STUDY_TIME') {
       const autoDone = minutesThisWeek;
-      isComplete = Boolean(task.isCompleted || autoDone >= task.target);
-      done = task.isCompleted ? Math.max(task.target, autoDone) : autoDone;
+      isComplete = autoDone >= task.target;
+      done = autoDone;
     } else if (task.type === 'AUTO_PART_PRACTICE') {
       const targetPart = task.partNumber;
-      const autoDone = thisWeekSessions
-        .filter(s => s.sessionType === 'PART_PRACTICE')
-        .flatMap(s => getPracticeParts(s))
-        .filter(p => (targetPart ? p.part === targetPart : true)).length;
-      isComplete = Boolean(task.isCompleted || autoDone >= task.target);
-      done = task.isCompleted ? Math.max(task.target, autoDone) : autoDone;
+      const autoDone = practiced.filter(session => targetPart ? session.parts.has(targetPart) : session.reading).length;
+      isComplete = autoDone >= task.target;
+      done = autoDone;
     } else {
       // CUSTOM
       if (task.target > 1) {

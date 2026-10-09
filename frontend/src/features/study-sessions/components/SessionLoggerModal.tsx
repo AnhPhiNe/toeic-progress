@@ -35,7 +35,7 @@ interface SessionLoggerModalProps {
   onSaveVocab: (date: string, count: number) => void;
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3) */
-  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' };
+  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number };
   /**
    * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
@@ -177,7 +177,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setTestName(e?.testName ?? '');
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
-    setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? 120);
+    setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
     setVocabCount(1);
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
@@ -190,10 +190,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setIncludePartDetails(source === 'ESTIMATED' || Boolean(e?.partScores));
     setScoreError('');
     const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
-    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part: 5, correct: 0, total: 30 }]);
+    const requestedPart = prefill?.partNumber;
+    const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
+    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
     setQuickMistakes([]);
     setShowAddMistake(false);
-  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType]);
+  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
 
   const modalRef = useModalA11y(isOpen, onClose);
 

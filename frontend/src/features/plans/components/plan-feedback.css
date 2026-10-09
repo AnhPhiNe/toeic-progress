@@ -1,0 +1,31 @@
+.plan-task-modal {
+  animation: plan-modal-enter 160ms ease-out;
+}
+
+.plan-view button:focus-visible,
+.plan-task-modal :is(button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.plan-view [data-task-id] {
+  transition-property: background-color, border-color, opacity;
+  transition-duration: 150ms;
+}
+
+.plan-view [data-plan-progress] {
+  transition: width 350ms ease-out;
+}
+
+@keyframes plan-modal-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-view, .plan-view *, .plan-task-modal, .plan-task-modal * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -82,7 +82,7 @@ export const App: React.FC = () => {
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
-  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' } | undefined>(undefined);
+  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number } | undefined>(undefined);
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [editingPacing, setEditingPacing] = useState<{ run: PacingRun; owner: string | null } | null>(null);
@@ -121,7 +121,7 @@ export const App: React.FC = () => {
       ) {
         return;
       }
-      if (isSessionModalOpen || isSettingsModalOpen || editingPacing) return;
+      if (isSessionModalOpen || isSettingsModalOpen || editingPacing || document.querySelector('[role="dialog"]')) return;
 
       if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -134,7 +134,7 @@ export const App: React.FC = () => {
   }, [isSessionModalOpen, isSettingsModalOpen, editingPacing]);
 
   // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
-  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => {
+  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number }) => {
     setEditingSession(null);
     setSessionPrefill(prefill);
     setIsSessionModalOpen(true);
@@ -435,13 +435,15 @@ export const App: React.FC = () => {
 
           {activeTab === 'plan' && (
             <PlanView
+              key={activeOwner ?? 'guest'}
               storageVersion={dataVersion}
               profile={profile}
               sessions={sessions}
               mistakes={mistakes}
               vocabLog={vocabLog}
+              pacingRuns={loadPacingRuns()}
               onOpenSettings={() => setIsSettingsModalOpen(true)}
-              onOpenSessionLogger={() => openSessionLogger()}
+              onOpenSessionLogger={openSessionLogger}
               onNavigateToMistakes={() => setActiveTab('mistakes')}
               onNavigateToTimer={() => navigateToPacing('POMODORO')}
             />

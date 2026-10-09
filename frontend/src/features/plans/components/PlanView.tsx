@@ -1,20 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Target,
   CheckCircle2,
-  Circle,
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Trash2,
-  Lightbulb,
-  Sparkles,
-  Settings,
-  X,
-  Check,
   Pencil,
   Copy,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   GripVertical
 } from 'lucide-react';
 import {
@@ -25,7 +22,13 @@ import {
   SmartWeeklyTask,
   TaskColorKey
 } from '@/shared/types';
+import type { PacingRun } from '@/shared/types';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
+import { PlanTaskModal, type PlanTaskDraft } from './PlanTaskModal';
+import { PlanLimitDialog } from './PlanLimitDialog';
+import './plan-feedback.css';
 import { buildWeeklyStudyPlan } from '@/features/plans/lib/studyPlan';
+import { assertPlanFitsSync } from '@/features/plans/lib/planLimits';
 import { getTodayDateString, getWeekMonday, addDays, loadWeeklyPlans, saveWeeklyPlans, getOrCreateWeeklyPlan } from '@/shared/data/storage';
 import { CARD } from '@/shared/ui/surfaces';
 import type { VocabLog } from '@/shared/data/dataBundle';
@@ -36,8 +39,9 @@ interface PlanViewProps {
   sessions: StudySession[];
   mistakes: MistakeEntry[];
   vocabLog: VocabLog[];
+  pacingRuns?: PacingRun[];
   onOpenSettings: () => void;
-  onOpenSessionLogger: () => void;
+  onOpenSessionLogger: (prefill?: { sessionType?: 'FULL_TEST' | 'PART_PRACTICE'; partNumber?: number }) => void;
   onNavigateToMistakes: () => void;
   onNavigateToTimer?: () => void;
 }
@@ -130,9 +134,8 @@ export const PlanView: React.FC<PlanViewProps> = ({
   sessions,
   mistakes,
   vocabLog,
-  onOpenSettings,
+  pacingRuns = [],
   onOpenSessionLogger,
-  onNavigateToMistakes,
   onNavigateToTimer
 }) => {
   const today = getTodayDateString();
@@ -143,20 +146,30 @@ export const PlanView: React.FC<PlanViewProps> = ({
   // Trạng thái lưu trữ kế hoạch các tuần
   const [plansStore, setPlansStore] = useState(() => loadWeeklyPlans());
   const [saveError, setSaveError] = useState('');
+  const [saveFeedback, setSaveFeedback] = useState('');
+  const owner = useRef(getActiveAccountId());
+  const modalBaseline = useRef<{ week: string; signature: string; owner: string | null } | null>(null);
   useEffect(() => { setPlansStore(loadWeeklyPlans()); }, [storageVersion]);
 
   // Modal thêm/sửa mục tiêu
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const closeTaskModal = useCallback(() => { setIsModalOpen(false); setSaveError(''); }, []);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskFilter, setTaskFilter] = useState<'ALL' | 'INCOMPLETE' | 'COMPLETED'>('ALL');
   const [taskTitle, setTaskTitle] = useState('');
-  const [taskType, setTaskType] = useState<SmartTaskType>('CUSTOM');
+  const [taskType, setTaskType] = useState<SmartTaskType>('AUTO_FULL_TEST');
   const [taskTarget, setTaskTarget] = useState<number>(1);
-  const [taskUnit, setTaskUnit] = useState('lần');
+  const [taskUnit, setTaskUnit] = useState('đề');
   const [taskPart, setTaskPart] = useState<number>(5);
   const [taskNotes, setTaskNotes] = useState('');
-  const [taskColor, setTaskColor] = useState<TaskColorKey>('purple');
+  const [taskColor, setTaskColor] = useState<TaskColorKey>('blue');
   const [wipLimitAlert, setWipLimitAlert] = useState(false);
+  const closeLimitDialog = useCallback(() => setWipLimitAlert(false), []);
+  useEffect(() => {
+    if (!saveFeedback) return;
+    const timeout = window.setTimeout(() => setSaveFeedback(''), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [saveFeedback]);
 
   // Lấy hoặc tạo plan cho tuần được chọn
   const activePlanRecord = useMemo(() => {
@@ -166,22 +179,36 @@ export const PlanView: React.FC<PlanViewProps> = ({
 
   // Đánh giá kế hoạch tuần
   const summary = useMemo(() => {
-    return buildWeeklyStudyPlan(selectedWeek, profile, sessions, mistakes, vocabLog, activePlanRecord);
-  }, [selectedWeek, profile, sessions, mistakes, vocabLog, activePlanRecord]);
+    return buildWeeklyStudyPlan(selectedWeek, profile, sessions, mistakes, vocabLog, activePlanRecord, pacingRuns);
+  }, [selectedWeek, profile, sessions, mistakes, vocabLog, activePlanRecord, pacingRuns]);
 
   // Cập nhật kế hoạch tuần vào state & storage
   const updateCurrentWeekTasks = (newTasks: SmartWeeklyTask[]) => {
-    const updated = {
-      ...loadWeeklyPlans(),
-      [selectedWeek]: {
-        weekKey: selectedWeek,
-        tasks: newTasks
-      }
-    };
     try {
+      const latest = loadWeeklyPlans();
+      const baseline = isModalOpen ? modalBaseline.current : {
+        week: selectedWeek,
+        signature: JSON.stringify(plansStore[selectedWeek]?.tasks ?? null),
+        owner: owner.current
+      };
+      if (!baseline || getActiveAccountId() !== owner.current || baseline.owner !== owner.current) {
+        throw new Error('Tài khoản đã thay đổi. Hãy mở lại kế hoạch.');
+      }
+      if (baseline.week !== selectedWeek || baseline.signature !== JSON.stringify(latest[selectedWeek]?.tasks ?? null)) {
+        setPlansStore(latest);
+        throw new Error('Kế hoạch đã được sửa ở nơi khác. Hãy đóng và mở lại mục tiêu trước khi lưu.');
+      }
+      const updated = { ...latest, [selectedWeek]: { ...latest[selectedWeek], weekKey: selectedWeek, tasks: newTasks } };
+      assertPlanFitsSync(updated[selectedWeek]);
+      const nextSummary = buildWeeklyStudyPlan(selectedWeek, profile, sessions, mistakes, vocabLog, updated[selectedWeek], pacingRuns);
+      const nextIncomplete = nextSummary.tasks.filter(task => !task.isComplete).length;
+      if (nextIncomplete > 6 && nextIncomplete > summary.tasks.filter(task => !task.isComplete).length) {
+        throw new Error('Đã có 6 mục tiêu đang làm. Hoàn thành hoặc xóa bớt trước khi tăng chỉ tiêu.');
+      }
       saveWeeklyPlans(updated);
-      setPlansStore(updated);
+      setPlansStore(loadWeeklyPlans());
       setSaveError('');
+      setSaveFeedback('Đã lưu kế hoạch.');
       return true;
     } catch (reason) {
       setSaveError(reason instanceof Error ? reason.message : 'Chưa lưu được kế hoạch.');
@@ -198,7 +225,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 
   // Sao chép kế hoạch từ tuần trước
   const prevWeekKey = addDays(selectedWeek, -7);
-  const prevWeekTasks = plansStore[prevWeekKey]?.tasks || [];
+  const prevWeekTasks = (plansStore[prevWeekKey]?.tasks || []).filter(task => task.type !== 'CUSTOM');
   const canCopyPrevWeek = prevWeekTasks.length > 0;
 
   const handleCopyPrevWeek = () => {
@@ -232,20 +259,6 @@ export const PlanView: React.FC<PlanViewProps> = ({
   const handleNextWeek = () => setSelectedWeek(w => addDays(w, 7));
   const handleCurrentWeek = () => setSelectedWeek(currentWeekMonday);
 
-  // Toggle hoàn thành cho MỌI mục tiêu (Linh hoạt tự do, không ép buộc phải thao tác trên web)
-  const handleToggleTask = (task: { id: string; isComplete: boolean; target: number }) => {
-    const updated = activePlanRecord.tasks.map(t => {
-      if (t.id !== task.id) return t;
-      const nextComplete = !task.isComplete;
-      return {
-        ...t,
-        isCompleted: nextComplete,
-        manualDone: nextComplete ? (t.target || 1) : 0
-      };
-    });
-    updateCurrentWeekTasks(updated);
-  };
-
   // Xóa mục tiêu
   const handleDeleteTask = (taskId: string) => {
     const updated = activePlanRecord.tasks.filter(t => t.id !== taskId);
@@ -257,8 +270,24 @@ export const PlanView: React.FC<PlanViewProps> = ({
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'above' | 'below'>('above');
+  const [orderTaskId, setOrderTaskId] = useState<string | null>(null);
+
+  const moveTask = (taskId: string, direction: -1 | 1) => {
+    const task = summary.tasks.find(item => item.id === taskId);
+    if (!task) return;
+    const group = summary.tasks.filter(item => item.isComplete === task.isComplete);
+    const index = group.findIndex(item => item.id === taskId);
+    const neighbor = group[index + direction];
+    if (!neighbor) return;
+    const tasks = [...activePlanRecord.tasks];
+    const from = tasks.findIndex(item => item.id === taskId);
+    const to = tasks.findIndex(item => item.id === neighbor.id);
+    [tasks[from], tasks[to]] = [tasks[to], tasks[from]];
+    if (updateCurrentWeekTasks(tasks)) setSaveFeedback('Đã đổi thứ tự mục tiêu.');
+  };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    setOrderTaskId(null);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', taskId);
     setDraggedTaskId(taskId);
@@ -313,29 +342,6 @@ export const PlanView: React.FC<PlanViewProps> = ({
     setDraggableTaskId(null);
   };
 
-  // Chấp nhận gợi ý thông minh 1-click
-  const handleAcceptRecommendation = () => {
-    if (!summary.recommendation) return;
-    if (incompleteTasksCount >= 6) {
-      setWipLimitAlert(true);
-      return;
-    }
-    const rec = summary.recommendation;
-    const recColor: TaskColorKey = rec.partNumber === 7 ? 'amber' : (rec.partNumber && rec.partNumber <= 4 ? 'rose' : 'sky');
-    const newTask: SmartWeeklyTask = {
-      id: `task-rec-${Date.now()}`,
-      title: rec.title,
-      type: rec.type,
-      target: rec.target,
-      unit: rec.unit,
-      partNumber: rec.partNumber,
-      notes: rec.notes || rec.reason,
-      color: recColor,
-      createdAt: new Date().toISOString()
-    };
-    updateCurrentWeekTasks([...activePlanRecord.tasks, newTask]);
-  };
-
   // Mở modal thêm mục tiêu
   const handleOpenAddModal = () => {
     if (incompleteTasksCount >= 6) {
@@ -343,18 +349,22 @@ export const PlanView: React.FC<PlanViewProps> = ({
       return;
     }
     setEditingTaskId(null);
+    modalBaseline.current = { week: selectedWeek, owner: owner.current, signature: JSON.stringify(plansStore[selectedWeek]?.tasks ?? null) };
+    setSaveError('');
     setTaskTitle('');
-    setTaskType('CUSTOM');
+    setTaskType('AUTO_FULL_TEST');
     setTaskTarget(1);
-    setTaskUnit('lần');
+    setTaskUnit('đề');
     setTaskPart(5);
     setTaskNotes('');
-    setTaskColor('purple');
+    setTaskColor('blue');
     setIsModalOpen(true);
   };
 
   // Mở modal sửa mục tiêu
   const handleOpenEditModal = (task: SmartWeeklyTask) => {
+    modalBaseline.current = { week: selectedWeek, owner: owner.current, signature: JSON.stringify(plansStore[selectedWeek]?.tasks ?? null) };
+    setSaveError('');
     setEditingTaskId(task.id);
     setTaskTitle(task.title);
     setTaskType(task.type);
@@ -367,7 +377,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
   };
 
   // Áp dụng mẫu chọn nhanh (Quick Preset)
-  const applyQuickPreset = (preset: 'FULL_TEST' | 'MINUTES' | 'PART_5' | 'PART_7' | 'CUSTOM_REVIEW') => {
+  const applyQuickPreset = (preset: 'FULL_TEST' | 'MINUTES' | 'PART_5' | 'PART_7') => {
     if (preset === 'FULL_TEST') {
       setTaskTitle('Làm 1 đề Full Test (200 câu)');
       setTaskType('AUTO_FULL_TEST');
@@ -399,20 +409,24 @@ export const PlanView: React.FC<PlanViewProps> = ({
       setTaskUnit('bài');
       setTaskNotes('Luyện kỹ năng scan tìm thông tin và đọc đoạn đôi/ba');
       setTaskColor('amber');
-    } else if (preset === 'CUSTOM_REVIEW') {
-      setTaskTitle('Ôn lại 30 từ vựng và bẫy sai tuần trước');
-      setTaskType('CUSTOM');
-      setTaskTarget(1);
-      setTaskUnit('lần');
-      setTaskNotes('Xem lại Sổ tay bắt bẫy và từ vựng đã note');
-      setTaskColor('purple');
+
     }
   };
 
   // Lưu mục tiêu (thêm mới hoặc cập nhật sửa)
   const handleSaveModal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTitle.trim()) return;
+    if (taskType === 'CUSTOM') {
+      setSaveError('Chọn cách theo dõi tự động cho mục tiêu này trước khi lưu.');
+      return;
+    }
+    if (!taskTitle.trim() || taskTitle.trim().length > 300
+      || !Number.isFinite(taskTarget) || taskTarget < 1 || taskTarget > 100000
+      || (taskType !== 'AUTO_STUDY_TIME' && !Number.isInteger(taskTarget))
+      || !taskUnit.trim() || taskUnit.trim().length > 50 || taskNotes.length > 4000) {
+      setSaveError('Nhập tên, chỉ tiêu và đơn vị hợp lệ. Số đề/bài/lần phải là số nguyên.');
+      return;
+    }
 
     if (editingTaskId) {
       const updated = activePlanRecord.tasks.map(t => {
@@ -421,11 +435,13 @@ export const PlanView: React.FC<PlanViewProps> = ({
           ...t,
           title: taskTitle.trim(),
           type: taskType,
-          target: Math.max(1, Number(taskTarget) || 1),
+          target: taskTarget,
           unit: taskUnit.trim() || 'lần',
           partNumber: taskType === 'AUTO_PART_PRACTICE' ? taskPart : undefined,
           notes: taskNotes.trim() || undefined,
           color: taskColor,
+          isCompleted: false,
+          manualDone: 0,
           updatedAt: new Date().toISOString()
         };
       });
@@ -433,15 +449,14 @@ export const PlanView: React.FC<PlanViewProps> = ({
       setEditingTaskId(null);
     } else {
       if (incompleteTasksCount >= 6) {
-        setWipLimitAlert(true);
-        setIsModalOpen(false);
+        setSaveError('Đã có 6 mục tiêu đang làm. Hoàn thành hoặc xóa bớt trước khi thêm.');
         return;
       }
       const newTask: SmartWeeklyTask = {
-        id: `task-${Date.now()}`,
+        id: `task-${crypto.randomUUID()}`,
         title: taskTitle.trim(),
         type: taskType,
-        target: Math.max(1, Number(taskTarget) || 1),
+        target: taskTarget,
         unit: taskUnit.trim() || 'lần',
         partNumber: taskType === 'AUTO_PART_PRACTICE' ? taskPart : undefined,
         notes: taskNotes.trim() || undefined,
@@ -465,10 +480,214 @@ export const PlanView: React.FC<PlanViewProps> = ({
     return [...incompleteTasks, ...completedTasks];
   }, [incompleteTasks, completedTasks, taskFilter]);
 
+  const renderTask = (task: (typeof summary.tasks)[number]) => {
+              const isAuto = task.type !== 'CUSTOM';
+              const theme = getTaskTheme(task);
+              const isDragging = draggedTaskId === task.id;
+              const isDragOver = dragOverTaskId === task.id && !isDragging;
+              const group = summary.tasks.filter(item => item.isComplete === task.isComplete);
+              const groupIndex = group.findIndex(item => item.id === task.id);
+
+              return (
+                  <div
+                    key={task.id}
+                    data-task-id={task.id}
+                    draggable={draggableTaskId === task.id}
+                    onDragStart={(e) => handleDragStart(e, task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, task.id)}
+                    onDragEnd={handleDragEnd}
+                    className={`p-3 sm:px-4 sm:py-3.5 rounded-xl border-2 transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 group ${
+                      isDragging
+                        ? 'opacity-40 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[0.99] border-2 border-dashed border-indigo-400'
+                        : task.isComplete
+                        ? 'bg-emerald-50/60 hover:bg-emerald-50/90 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border-emerald-500/80 dark:border-emerald-800/60 '
+                        : 'bg-white dark:bg-[#151f32] hover:bg-slate-50/90 dark:hover:bg-slate-800/80 border-slate-900 dark:border-slate-700 '
+                    } ${
+                      isDragOver && dropPosition === 'above'
+                        ? 'border-t-2 !border-t-indigo-600 dark:!border-t-indigo-400 '
+                        : ''
+                    } ${
+                      isDragOver && dropPosition === 'below'
+                        ? 'border-b-2 !border-b-indigo-600 dark:!border-b-indigo-400 '
+                        : ''
+                    }`}
+                  >
+                    {/* Dải vạch màu nội bộ cho việc đang làm dở */}
+                    {!task.isComplete && task.done > 0 && (
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${theme.progressBar} pointer-events-none`} />
+                    )}
+
+                    {/* CỘT TRÁI: Grip kéo thả + Tiêu đề + 1 Badge loại bài duy nhất (chiếm 50% hàng) */}
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 md:w-1/2 flex-1">
+                      {/* Grip Kéo Thả */}
+                      <button
+                        type="button"
+                        className="flex min-h-9 min-w-6 items-center justify-center cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none shrink-0"
+                        onMouseEnter={() => setDraggableTaskId(task.id)}
+                        onMouseLeave={() => setDraggableTaskId(null)}
+                        onTouchStart={() => setDraggableTaskId(task.id)}
+                        aria-label={`Sắp xếp ${task.title}`}
+                        aria-expanded={orderTaskId === task.id}
+                        onClick={() => setOrderTaskId(current => current === task.id ? null : task.id)}
+                        onKeyDown={event => {
+                          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                            event.preventDefault();
+                            moveTask(task.id, event.key === 'ArrowUp' ? -1 : 1);
+                          } else if (event.key === 'Escape') setOrderTaskId(null);
+                        }}
+                        title="Kéo để sắp xếp, hoặc bấm để chọn lên/xuống. Có thể dùng phím ↑/↓."
+                      >
+                        <GripVertical className="w-4 h-4 stroke-[2.5]" aria-hidden="true" />
+                      </button>
+                      {orderTaskId === task.id && (
+                        <div role="group" aria-label="Đổi thứ tự mục tiêu" className="flex shrink-0 gap-1">
+                          <button type="button" aria-label="Di chuyển lên" disabled={groupIndex === 0} onClick={() => moveTask(task.id, -1)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-700 disabled:opacity-30 dark:border-slate-600 dark:text-slate-200"><ArrowUp className="h-4 w-4" aria-hidden="true" /></button>
+                          <button type="button" aria-label="Di chuyển xuống" disabled={groupIndex === group.length - 1} onClick={() => moveTask(task.id, 1)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-700 disabled:opacity-30 dark:border-slate-600 dark:text-slate-200"><ArrowDown className="h-4 w-4" aria-hidden="true" /></button>
+                        </div>
+                      )}
+
+                      {/* Tên Task + Phân loại */}
+                      <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-sm sm:text-base font-black truncate max-w-full ${
+                            task.isComplete
+                              ? 'line-through text-slate-400 dark:text-slate-500'
+                              : 'text-slate-900 dark:text-white'
+                          }`}
+                          title={task.title}
+                        >
+                          {task.title}
+                        </span>
+
+                        {/* Badge phân loại duy nhất */}
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border border-slate-900/30 dark:border-slate-700 shadow-2xs shrink-0 ${theme.badge}`}>
+                          {isAuto
+                            ? (task.type === 'AUTO_FULL_TEST' ? 'Full Test' : task.type === 'AUTO_STUDY_TIME' ? 'Thời gian học' : `Part ${task.partNumber || 5}`)
+                            : 'Mục tiêu cũ'}
+                        </span>
+
+                        {task.type === 'CUSTOM' && task.notes && !task.isComplete && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400 italic hidden sm:inline shrink-0 truncate max-w-xs" title={task.notes}>
+                            ({task.notes})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* CỘT PHẢI: Mini Progress Bar + Nút CTA gom cụm chặt chẽ (chiếm 50% hàng) */}
+                    <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 sm:gap-4 min-w-0 md:w-1/2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
+                      {/* Mini Progress Bar */}
+                      <div className="flex items-center gap-2 w-36 sm:w-40 lg:w-44 shrink-0">
+                        <div className="flex-1 h-2 rounded-full border border-slate-900 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/60 overflow-hidden shadow-2xs">
+                          <div
+                            data-plan-progress
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              task.isComplete ? 'bg-emerald-500' : theme.progressBar
+                            }`}
+                            style={{ width: `${Math.max(task.done > 0 ? 3 : 0, Math.min(100, task.percent))}%` }}
+                          />
+                        </div>
+                        <div className="flex items-baseline gap-1 shrink-0 text-xs">
+                          <span
+                            className={`font-black tabular-nums ${
+                              task.isComplete
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-slate-900 dark:text-white'
+                            }`}
+                          >
+                            {task.done}/{task.target}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            {task.unit}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Nút Hành Động Nhanh (CTA) hoặc Trạng thái Hoàn thành */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {task.isComplete ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-800/80 select-none">
+                            <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Đã xong</span>
+                          </div>
+                        ) : (
+                          <>
+                            {task.type === 'AUTO_FULL_TEST' && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenSessionLogger()}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
+                                title="Mở biểu mẫu nhập kết quả làm đề Full Test"
+                              >
+                                <span>Nhập điểm</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {task.type === 'AUTO_STUDY_TIME' && (
+                              <button
+                                type="button"
+                                onClick={() => onNavigateToTimer ? onNavigateToTimer() : onOpenSessionLogger({ sessionType: 'PART_PRACTICE' })}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
+                                title="Chuyển đến Đồng hồ phòng thi để bấm giờ học"
+                              >
+                                <span>Bật đồng hồ</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {task.type === 'AUTO_PART_PRACTICE' && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenSessionLogger({ sessionType: 'PART_PRACTICE', partNumber: task.partNumber })}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
+                                title={`Ghi kết quả luyện tập Part ${task.partNumber || 5}`}
+                              >
+                                <span>Ghi kết quả</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {task.type === 'CUSTOM' && (
+                              <button type="button" onClick={() => handleOpenEditModal(task)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">
+                                Đổi theo dõi
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Nút Chỉnh sửa & Xóa — hiển thị tinh tế trên hover */}
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-100 md:opacity-60 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity pl-1.5 border-l border-slate-200 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(task)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer"
+                          title="Chỉnh sửa mục tiêu"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                          title="Xóa mục tiêu"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+              );
+  };
+
   const is100Percent = summary.totalTasks > 0 && summary.completedTasks >= summary.totalTasks;
 
   return (
-    <div className="space-y-4 animate-fade-in pb-10">
+    <div className="plan-view space-y-4 animate-fade-in pb-10">
       {saveError && !isModalOpen && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{saveError}</p>}
 
       {/* ================= 1. THANH TIÊU ĐỀ & ĐIỀU HƯỚNG TUẦN ================= */}
@@ -520,7 +739,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
           </div>
 
           <button
-            onClick={onOpenSessionLogger}
+            onClick={() => onOpenSessionLogger()}
             className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold shadow-[1.5px_1.5px_0px_#0f172a] flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -530,10 +749,10 @@ export const PlanView: React.FC<PlanViewProps> = ({
       </div>
 
       {/* ================= 2. DẢI RIBBON TIẾN ĐỘ LIỀN KHỐI (UNIFIED PROGRESS RIBBON) ================= */}
-      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 divide-y md:divide-y-0 md:divide-x-2 divide-slate-200 dark:divide-slate-800">
+      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 divide-y lg:divide-y-0 lg:divide-x-2 divide-slate-200 dark:divide-slate-800">
         
         {/* Khối 1: Tiến độ tuần & Thanh năng lượng */}
-        <div className="flex-1 flex items-center gap-3.5 pr-0 md:pr-5">
+        <div className="flex-1 flex items-center gap-3.5 pr-0 lg:pr-5">
           <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 border-slate-900 bg-indigo-500 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-2xs">
             <Target className="w-5 h-5 stroke-[2.5]" />
           </div>
@@ -548,6 +767,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
             </div>
             <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-900 dark:border-slate-700 overflow-hidden mt-1.5 shadow-2xs">
               <div
+                data-plan-progress
                 className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${Math.max(summary.completedTasks > 0 ? 5 : 0, Math.min(100, summary.completionPercent))}%` }}
               />
@@ -556,7 +776,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
         </div>
 
         {/* Khối 2: Thời lượng tích luỹ */}
-        <div className="flex items-center gap-3 px-0 md:px-5 pt-3 md:pt-0 shrink-0">
+        <div className="flex items-center gap-3 px-0 lg:px-5 pt-3 lg:pt-0 shrink-0">
           <div className="w-9 h-9 rounded-xl border-2 border-slate-900 bg-teal-300 text-teal-950 flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
             <span className="text-base select-none">⏰</span>
           </div>
@@ -571,7 +791,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
         </div>
 
         {/* Khối 3: Chuyên cần & Kỳ thi */}
-        <div className="flex items-center gap-3 pl-0 md:pl-5 pt-3 md:pt-0 shrink-0">
+        <div className="flex items-center gap-3 pl-0 lg:pl-5 pt-3 lg:pt-0 shrink-0">
           <div className="w-9 h-9 rounded-xl border-2 border-slate-900 bg-rose-300 text-rose-950 flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
             <span className="text-base select-none">🔥</span>
           </div>
@@ -581,54 +801,12 @@ export const PlanView: React.FC<PlanViewProps> = ({
             </div>
             <div className="text-sm sm:text-base font-black tabular-nums text-rose-600 dark:text-rose-400">
               {summary.daysStudiedThisWeek}/7 ngày
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-1.5">
-                • {summary.daysUntilExam !== null ? (summary.daysUntilExam >= 0 ? `D-${summary.daysUntilExam}` : 'Đã qua') : (
-                  <button onClick={onOpenSettings} className="inline-flex items-center gap-1 underline hover:text-amber-700">
-                    <Settings className="w-3 h-3" />
-                    Đặt ngày thi
-                  </button>
-                )}
-              </span>
+
             </div>
           </div>
         </div>
 
       </div>
-
-      {/* ================= 3. BANNER GỢI Ý THÔNG MINH 1-CLICK ================= */}
-      {summary.recommendation && (
-        <div className="p-4 rounded-2xl bg-linear-to-r from-blue-50/80 via-indigo-50/50 to-purple-50/40 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-purple-950/20 border border-blue-200/80 dark:border-blue-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-start gap-3 min-w-0">
-            <span className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-              <Lightbulb className="w-5 h-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-sm">
-                <span>Gợi ý cho tuần này: {summary.recommendation.title}</span>
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                {summary.recommendation.reason}.{' '}
-                <button
-                  type="button"
-                  onClick={onNavigateToMistakes}
-                  className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer inline-flex items-center gap-0.5"
-                >
-                  Xem sổ tay bắt bẫy →
-                </button>
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleAcceptRecommendation}
-            className="self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Nhận mục tiêu này
-          </button>
-        </div>
-      )}
 
       {/* ================= 4. DANH SÁCH MỤC TIÊU SMART (LINEAR / STRIPE STYLE) ================= */}
       <div className={`${CARD} overflow-hidden !p-0`}>
@@ -654,6 +832,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                   <button
                     key={tab}
                     onClick={() => setTaskFilter(tab)}
+                    aria-pressed={taskFilter === tab}
                     className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer ${
                       taskFilter === tab
                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-[1px_1px_0px_#0f172a]'
@@ -690,10 +869,10 @@ export const PlanView: React.FC<PlanViewProps> = ({
             {/* Nút Thêm mục tiêu */}
             <button
               onClick={handleOpenAddModal}
-              disabled={isWipLimitReached}
+              aria-haspopup="dialog"
               className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border-2 text-xs font-black transition ${
                 isWipLimitReached
-                  ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                  ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer'
                   : 'border-slate-900 bg-indigo-600 hover:bg-indigo-700 text-white shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer'
               }`}
               title={isWipLimitReached ? 'Đã đạt tối đa 6 việc cần làm. Hãy hoàn thành bớt mục tiêu để thêm mới!' : 'Thêm mục tiêu tuần'}
@@ -777,502 +956,37 @@ export const PlanView: React.FC<PlanViewProps> = ({
           </div>
         ) : (
           <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-900/60 space-y-2 sm:space-y-2.5">
-            {filteredTasks.map((task, index) => {
-              const isAuto = task.type !== 'CUSTOM';
-              const theme = getTaskTheme(task);
-              const isDragging = draggedTaskId === task.id;
-              const isDragOver = dragOverTaskId === task.id && !isDragging;
-              const isFirstCompleted = task.isComplete && (index === 0 || !filteredTasks[index - 1].isComplete);
-
-              return (
-                <React.Fragment key={task.id}>
-                  {/* Đường phân cách việc đã hoàn thành khi ở tab Tất cả */}
-                  {taskFilter === 'ALL' && isFirstCompleted && incompleteTasks.length > 0 && (
-                    <div className="pt-2 pb-0.5 px-1 flex items-center justify-between">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
-                        Đã hoàn thành ({completedTasks.length})
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 hidden sm:inline">
-                        Tự động chuyển xuống đáy
-                      </span>
-                    </div>
-                  )}
-
-                  <div
-                    draggable={draggableTaskId === task.id}
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    onDragOver={(e) => handleDragOver(e, task.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, task.id)}
-                    onDragEnd={handleDragEnd}
-                    className={`p-3 sm:px-4 sm:py-3.5 rounded-xl border-2 transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 group ${
-                      isDragging
-                        ? 'opacity-40 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[0.99] border-2 border-dashed border-indigo-400'
-                        : task.isComplete
-                        ? 'bg-emerald-50/60 hover:bg-emerald-50/90 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border-emerald-500/80 dark:border-emerald-800/60 shadow-[2px_2px_0px_#cbd5e1] dark:shadow-[2px_2px_0px_#0f172a]'
-                        : 'bg-white dark:bg-[#151f32] hover:bg-slate-50/90 dark:hover:bg-slate-800/80 border-slate-900 dark:border-slate-700 shadow-[2px_2px_0px_#0f172a] hover:shadow-[3px_3px_0px_#0f172a] hover:-translate-y-0.5'
-                    } ${
-                      isDragOver && dropPosition === 'above'
-                        ? 'border-t-2 !border-t-indigo-600 dark:!border-t-indigo-400 shadow-[0_-3px_0px_#4f46e5]'
-                        : ''
-                    } ${
-                      isDragOver && dropPosition === 'below'
-                        ? 'border-b-2 !border-b-indigo-600 dark:!border-b-indigo-400 shadow-[0_3px_0px_#4f46e5]'
-                        : ''
-                    }`}
-                  >
-                    {/* Dải vạch màu nội bộ cho việc đang làm dở */}
-                    {!task.isComplete && task.done > 0 && (
-                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${theme.progressBar} pointer-events-none`} />
-                    )}
-
-                    {/* CỘT TRÁI: Grip kéo thả + Checkbox + Tiêu đề + 1 Badge loại bài duy nhất (chiếm 50% hàng) */}
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 md:w-1/2 flex-1">
-                      {/* Grip Kéo Thả */}
-                      <div
-                        className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-300 dark:text-slate-600 hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none shrink-0"
-                        onMouseEnter={() => setDraggableTaskId(task.id)}
-                        onMouseLeave={() => setDraggableTaskId(null)}
-                        onTouchStart={() => setDraggableTaskId(task.id)}
-                        title="Kéo thả để sắp xếp lại thứ tự ưu tiên"
-                      >
-                        <GripVertical className="w-4 h-4 stroke-[2.5]" />
-                      </div>
-
-                      {/* Checkbox tương tác cho TẤT CẢ các task */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleTask(task)}
-                        className="transition cursor-pointer shrink-0 group/check"
-                        title={
-                          task.isComplete
-                            ? 'Bấm để đánh dấu chưa hoàn thành'
-                            : isAuto
-                            ? 'Bấm để đánh dấu đã hoàn thành'
-                            : 'Đánh dấu đã hoàn thành'
-                        }
-                      >
-                        {task.isComplete ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[2.5] hover:scale-110 transition-transform animate-check-pop" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover/check:text-emerald-600 dark:group-hover/check:text-emerald-400 stroke-[2] hover:scale-110 transition-all" />
-                        )}
-                      </button>
-
-                      {/* Tên Task + Phân loại */}
-                      <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-sm sm:text-base font-black truncate max-w-full ${
-                            task.isComplete
-                              ? 'line-through text-slate-400 dark:text-slate-500'
-                              : 'text-slate-900 dark:text-white'
-                          }`}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </span>
-
-                        {/* Badge phân loại duy nhất */}
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border border-slate-900/30 dark:border-slate-700 shadow-2xs shrink-0 ${theme.badge}`}>
-                          {isAuto
-                            ? (task.type === 'AUTO_FULL_TEST' ? 'Full Test' : task.type === 'AUTO_STUDY_TIME' ? 'Thời gian học' : `Part ${task.partNumber || 5}`)
-                            : 'Việc cá nhân'}
-                        </span>
-
-                        {task.type === 'CUSTOM' && task.notes && !task.isComplete && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400 italic hidden sm:inline shrink-0 truncate max-w-xs" title={task.notes}>
-                            ({task.notes})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* CỘT PHẢI: Mini Progress Bar + Nút CTA gom cụm chặt chẽ (chiếm 50% hàng) */}
-                    <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 md:w-1/2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
-                      {/* Mini Progress Bar */}
-                      <div className="flex items-center gap-2 w-36 sm:w-40 lg:w-44 shrink-0">
-                        <div className="flex-1 h-2 rounded-full border border-slate-900 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/60 overflow-hidden shadow-2xs">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              task.isComplete ? 'bg-emerald-500' : theme.progressBar
-                            }`}
-                            style={{ width: `${Math.max(task.done > 0 ? 3 : 0, Math.min(100, task.percent))}%` }}
-                          />
-                        </div>
-                        <div className="flex items-baseline gap-1 shrink-0 text-xs">
-                          <span
-                            className={`font-black tabular-nums ${
-                              task.isComplete
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                          >
-                            {task.done}/{task.target}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                            {task.unit}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Nút Hành Động Nhanh (CTA) hoặc Trạng thái Hoàn thành */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {task.isComplete ? (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-800/80 select-none">
-                            <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Đã xong</span>
-                          </div>
-                        ) : (
-                          <>
-                            {task.type === 'AUTO_FULL_TEST' && (
-                              <button
-                                type="button"
-                                onClick={onOpenSessionLogger}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
-                                title="Mở biểu mẫu nhập kết quả làm đề Full Test"
-                              >
-                                <span>Nhập điểm</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {task.type === 'AUTO_STUDY_TIME' && (
-                              <button
-                                type="button"
-                                onClick={onNavigateToTimer || onOpenSessionLogger}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
-                                title="Chuyển đến Đồng hồ phòng thi để bấm giờ học"
-                              >
-                                <span>Bật đồng hồ</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {task.type === 'AUTO_PART_PRACTICE' && (
-                              <button
-                                type="button"
-                                onClick={onOpenSessionLogger}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
-                                title={`Ghi kết quả luyện tập Part ${task.partNumber || 5}`}
-                              >
-                                <span>Ghi kết quả</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {task.type === 'CUSTOM' && (
-                              <span className="hidden sm:inline-block text-xs font-bold text-slate-400 dark:text-slate-500 italic pr-1">
-                                Tick để xong
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {/* Nút Chỉnh sửa & Xóa — hiển thị tinh tế trên hover */}
-                      <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity pl-1.5 border-l border-slate-200 dark:border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditModal(task)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer"
-                          title="Chỉnh sửa mục tiêu"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-                          title="Xóa mục tiêu"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </React.Fragment>
-              );
-            })}
+            {taskFilter === 'ALL' ? (
+              <>
+                {incompleteTasks.map(renderTask)}
+                {completedTasks.length > 0 && (
+                  <details key={selectedWeek} data-completed-goals className="group/completed">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-1 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white [&::-webkit-details-marker]:hidden">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                      Đã hoàn thành ({completedTasks.length})
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-open/completed:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="mt-2 space-y-2 sm:space-y-2.5">{completedTasks.map(renderTask)}</div>
+                  </details>
+                )}
+              </>
+            ) : filteredTasks.map(renderTask)}
           </div>
         )}
       </div>
 
-      {/* ================= 5. MODAL THÊM MỤC TIÊU ================= */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            {/* Modal Header */}
-            {saveError && <p role="alert" className="p-4 text-sm text-rose-700 dark:text-rose-300">{saveError}</p>}
-            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  {editingTaskId ? 'Chỉnh Sửa Mục Tiêu SMART' : 'Thêm Mục Tiêu Tuần SMART'}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Tuần {formatVnDate(summary.weekStart)} – {formatVnDate(summary.weekEnd)}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {isModalOpen && <PlanTaskModal editing={Boolean(editingTaskId)} weekLabel={`Tuần ${formatVnDate(summary.weekStart)} – ${formatVnDate(summary.weekEnd)}`} value={{ title: taskTitle, type: taskType, target: taskTarget, unit: taskUnit, part: taskPart, notes: taskNotes, color: taskColor }} colors={TASK_COLOR_OPTIONS} error={saveError} onClose={closeTaskModal} onSubmit={handleSaveModal} onPreset={applyQuickPreset} onChange={(patch: Partial<PlanTaskDraft>) => {
+        if (patch.title !== undefined) setTaskTitle(patch.title);
+        if (patch.target !== undefined) setTaskTarget(patch.target);
+        if (patch.unit !== undefined) setTaskUnit(patch.unit);
+        if (patch.notes !== undefined) setTaskNotes(patch.notes);
+        if (patch.color !== undefined) setTaskColor(patch.color);
+        if (patch.part !== undefined) { setTaskPart(patch.part); setTaskColor(getDefaultTaskColor('AUTO_PART_PRACTICE', patch.part)); }
+        if (patch.type !== undefined) { setTaskType(patch.type); setTaskUnit(patch.type === 'AUTO_FULL_TEST' ? 'đề' : patch.type === 'AUTO_STUDY_TIME' ? 'phút' : patch.type === 'AUTO_PART_PRACTICE' ? 'bài' : 'lần'); setTaskTarget(patch.type === 'AUTO_STUDY_TIME' ? (profile.dailyMinGoalMinutes || 30) * 7 : patch.type === 'AUTO_PART_PRACTICE' ? 2 : 1); setTaskColor(getDefaultTaskColor(patch.type, taskPart)); }
+      }} />}
 
-            {/* Modal Body */}
-            <form onSubmit={handleSaveModal} className="p-4 sm:p-5 space-y-4">
-              {/* Chọn nhanh Preset */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Chọn nhanh mục tiêu mẫu (Quick Presets)
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => applyQuickPreset('FULL_TEST')}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 transition cursor-pointer"
-                  >
-                    📝 1 Đề Full Test
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyQuickPreset('MINUTES')}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 transition cursor-pointer"
-                  >
-                    ⏱️ Giờ học tuần
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyQuickPreset('PART_5')}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 transition cursor-pointer"
-                  >
-                    🎯 Luyện Part 5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyQuickPreset('PART_7')}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 transition cursor-pointer"
-                  >
-                    🎯 Luyện Part 7
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyQuickPreset('CUSTOM_REVIEW')}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 transition cursor-pointer"
-                  >
-                    ⚡ Ôn từ vựng / Bẫy sai
-                  </button>
-                </div>
-              </div>
-
-              {/* Tên mục tiêu */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tên mục tiêu / Công việc <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ví dụ: Làm 1 đề Full Test, Luyện 30 câu Part 5..."
-                  value={taskTitle}
-                  onChange={e => setTaskTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Loại theo dõi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Hình thức theo dõi
-                  </label>
-                  <select
-                    value={taskType}
-                    onChange={e => {
-                      const val = e.target.value as SmartTaskType;
-                      setTaskType(val);
-                      if (val === 'AUTO_FULL_TEST') {
-                        setTaskUnit('đề');
-                        setTaskTarget(1);
-                        setTaskColor('blue');
-                      } else if (val === 'AUTO_STUDY_TIME') {
-                        setTaskUnit('phút');
-                        setTaskTarget((profile.dailyMinGoalMinutes || 30) * 7);
-                        setTaskColor('indigo');
-                      } else if (val === 'AUTO_PART_PRACTICE') {
-                        setTaskUnit('bài');
-                        setTaskTarget(2);
-                        setTaskColor(taskPart === 7 ? 'amber' : (taskPart <= 4 ? 'rose' : 'sky'));
-                      } else {
-                        setTaskUnit('lần');
-                        setTaskTarget(1);
-                        setTaskColor('purple');
-                      }
-                    }}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="CUSTOM">Việc cá nhân (Tick tay hoàn thành)</option>
-                    <option value="AUTO_FULL_TEST">Tự động đếm đề Full Test</option>
-                    <option value="AUTO_PART_PRACTICE">Tự động đếm bài luyện Part</option>
-                    <option value="AUTO_STUDY_TIME">Tự động đếm phút học</option>
-                  </select>
-                </div>
-
-                {taskType === 'AUTO_PART_PRACTICE' ? (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Chọn Part luyện tập
-                    </label>
-                    <select
-                      value={taskPart}
-                      onChange={e => {
-                        const p = Number(e.target.value);
-                        setTaskPart(p);
-                        setTaskColor(p === 7 ? 'amber' : (p <= 4 ? 'rose' : 'sky'));
-                      }}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7].map(p => (
-                        <option key={p} value={p}>Part {p}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Chỉ tiêu (Target)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={taskTarget}
-                        onChange={e => setTaskTarget(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Đơn vị
-                      </label>
-                      <input
-                        type="text"
-                        value={taskUnit}
-                        onChange={e => setTaskUnit(e.target.value)}
-                        placeholder="đề, phút, lần..."
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Bộ chọn màu nhận diện thẻ (Color Picker 6 màu) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-                  <span>Màu sắc nhận diện thẻ</span>
-                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                    Tự động theo loại hoặc tự chọn
-                  </span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {TASK_COLOR_OPTIONS.map(opt => {
-                    const isSelected = taskColor === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setTaskColor(opt.id)}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border-2 transition cursor-pointer text-left ${
-                          isSelected
-                            ? 'border-slate-900 bg-slate-100 dark:bg-slate-800 shadow-[1.5px_1.5px_0px_#0f172a]'
-                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
-                        title={opt.label}
-                      >
-                        <span className={`w-3.5 h-3.5 rounded-full ${opt.bg} border border-slate-900 shrink-0 ${isSelected ? 'ring-2 ring-offset-1 ' + opt.ring : ''}`} />
-                        <span className={`text-xs font-black truncate ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>
-                          {opt.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Ghi chú */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Ghi chú / Động lực hoàn thành (Không bắt buộc)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: Nhắm vào bẫy từ vựng hay sai..."
-                  value={taskNotes}
-                  onChange={e => setTaskNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Modal Footer */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl btn-linear-primary text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer shadow-[1.5px_1.5px_0px_#0f172a] border border-slate-900"
-                >
-                  <Check className="w-4 h-4" />
-                  {editingTaskId ? 'Lưu Thay Đổi' : 'Lưu Mục Tiêu'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Cảnh báo Giới hạn 6 Task (WIP Limit) */}
-      {wipLimitAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-slate-900 p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 border-2 border-slate-900 flex items-center justify-center text-xl shrink-0 shadow-[1.5px_1.5px_0px_#0f172a]">
-                📌
-              </span>
-              <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Đã Đạt Giới Hạn 6 Việc Cần Làm
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Quy luật tập trung cao độ (WIP Limit)
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-              Bạn hiện đang có <strong className="text-rose-600 dark:text-rose-400">6 mục tiêu chưa hoàn thành</strong> trong tuần này. Để đảm bảo không bị quá tải và tập trung dứt điểm từng việc, hãy hoàn thành hoặc dọn dẹp bớt mục tiêu cũ trước khi tạo thêm nhé!
-            </p>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setWipLimitAlert(false)}
-                className="px-4 py-2 rounded-xl border-2 border-slate-900 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer"
-              >
-                Đã hiểu, tôi sẽ hoàn thành trước
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {wipLimitAlert && <PlanLimitDialog onClose={closeLimitDialog} />}
+      <div role="status" aria-live="polite" className="sr-only">{saveFeedback}</div>
 
     </div>
   );
