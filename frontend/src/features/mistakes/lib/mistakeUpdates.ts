@@ -4,7 +4,11 @@ import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 
 function stable(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
-  if (value && typeof value === 'object') return JSON.stringify(Object.keys(value).sort().map(key => [key, stable((value as Record<string, unknown>)[key])]));
+  if (value && typeof value === 'object') {
+    const fields = value as Record<string, unknown>;
+    // JSON storage omits undefined object fields; their absence is not an external edit.
+    return JSON.stringify(Object.keys(fields).filter(key => fields[key] !== undefined).sort().map(key => [key, stable(fields[key])]));
+  }
   return JSON.stringify(value) ?? 'undefined';
 }
 

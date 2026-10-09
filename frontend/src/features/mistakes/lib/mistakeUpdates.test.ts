@@ -7,6 +7,12 @@ import { getTodayDateString } from '@/shared/data/storage';
 const card: MistakeEntry = { id: 'm1', part: 5, questionContext: 'Reports ____ submitted.', options: ['(A) are', '(B) be'],
   correctAnswer: '(B) be', userMistake: '(A) are', category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: '2026-10-01T00:00:00Z' };
 describe('reviewing and editing latest data', () => {
+  it('treats omitted optional JSON fields as unchanged without ignoring actual content edits', () => {
+    const snapshot = { ...card, userChoice: undefined, trapTip: undefined, explanation: undefined, optionNotes: undefined };
+    const stored = JSON.parse(JSON.stringify(snapshot)) as MistakeEntry;
+    expect(mergeMistakeEdit(stored, snapshot, { ...snapshot, tags: ['updated'] }).tags).toEqual(['updated']);
+    expect(() => mergeMistakeEdit({ ...stored, trapTip: 'New remote explanation' }, snapshot, snapshot)).toThrow('nơi khác');
+  });
   it('uses the latest review progress and retains fields not owned by review', () => {
     const latest = { ...card, reviewStage: 2, reviewCount: 4, nextReviewDate: getTodayDateString(), userReason: 'Updated elsewhere' };
     const result = gradeLatestMistake(latest, card, true);

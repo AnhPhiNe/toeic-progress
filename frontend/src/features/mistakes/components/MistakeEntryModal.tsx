@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Sparkles, X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -15,6 +15,7 @@ import { PartBadge, splitQuestion } from '@/features/mistakes/components/Mistake
 import { normalizeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { ScrollableModalBody } from '@/shared/components/ScrollableModalBody';
+import { SuccessMark } from '@/shared/ui/SuccessMark';
 
 interface Props {
   original: MistakeEntry | null;
@@ -24,6 +25,7 @@ interface Props {
   onUpdate: (entry: MistakeEntry, original: MistakeEntry) => void;
   onClose: () => void;
   onReload: () => void;
+  onSaved?: (message: string) => void;
 }
 
 const inputClass = 'w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 font-sans text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
@@ -41,8 +43,9 @@ function storedDraft(entry: MistakeEntry): AIMistakeParseResult {
 
 const letterOf = (option: string, index: number): ChoiceLetter => optionLetter(option) || CHOICE_LETTERS[index];
 
-export function MistakeEntryModal({ original, sourceSuggestions = [], initialSourceName = '', onAdd, onUpdate, onClose, onReload }: Props) {
+export function MistakeEntryModal({ original, sourceSuggestions = [], initialSourceName = '', onAdd, onUpdate, onClose, onReload, onSaved }: Props) {
   const [step, setStep] = useState<'input' | 'preview' | 'saved'>('input');
+  const [saveMoreReceipt, setSaveMoreReceipt] = useState(false);
   const [raw, setRaw] = useState(original ? [original.questionContext, ...(original.options ?? [])].join('\n') : '');
   const [context, setContext] = useState('');
   const [part, setPart] = useState<MistakeEntry['part'] | null>(original?.part ?? null);
@@ -66,6 +69,12 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [changed, setChanged] = useState(false);
+  useEffect(() => {
+    if (!saveMoreReceipt) return;
+    if (changed) { setSaveMoreReceipt(false); return; }
+    const timeout = window.setTimeout(() => setSaveMoreReceipt(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [saveMoreReceipt, changed]);
   const [category, setCategory] = useState<ErrorCategory>(original?.category ?? 'OTHER');
   const [tags, setTags] = useState(original?.tags.join(', ') ?? '');
   const requestEpoch = useRef(0);
@@ -190,7 +199,8 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       saved.current = true;
       if (addAnother && !original) {
         resetEntry();
-      } else if (quick && !original) { setDraft(value); setStep('saved'); } else onClose();
+        setSaveMoreReceipt(true);
+      } else if (quick && !original) { setDraft(value); setStep('saved'); } else { onSaved?.(original ? 'Đã lưu thay đổi' : 'Đã lưu ghi chú'); onClose(); }
     } catch (value) { setError(value instanceof Error ? value.message : 'Chưa lưu được. Nội dung đang nhập được giữ.'); }
     finally { saving.current = false; }
   };
@@ -216,7 +226,8 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   return <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 sm:items-center sm:p-4" onClick={event => { if (event.target === event.currentTarget && event.detail <= 1) close(); }}>
     <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="mistake-entry-title" className="flex max-h-[100dvh] w-full flex-col border-2 border-slate-900 bg-white text-slate-900 dark:border-slate-200 dark:bg-[#111A2C] dark:text-slate-100 sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-2xl sm:shadow-[6px_6px_0px_#0f172a] dark:sm:shadow-[6px_6px_0px_#cbd5e1]">
       <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3.5 dark:border-slate-700 sm:px-6">
-        <h2 id="mistake-entry-title" className="text-xl font-extrabold"><span className="shadow-[inset_0_-7px_0_#fef08a] dark:shadow-[inset_0_-7px_0_#57431c]">{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa lỗi sai' : 'Thêm lỗi sai'}</span></h2>
+        <h2 id="mistake-entry-title" className="text-xl font-extrabold">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
+          : <span className="shadow-[inset_0_-7px_0_#fef08a] dark:shadow-[inset_0_-7px_0_#57431c]">{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa lỗi sai' : 'Thêm lỗi sai'}</span>}</h2>
         <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
       </header>
       <ScrollableModalBody resetKey={step}>
@@ -244,7 +255,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           <div><label htmlFor="mistake-reason" className="mb-2 block text-sm font-bold text-amber-800 dark:text-amber-300">Lý do chọn <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(nếu muốn)</span></label><textarea id="mistake-reason" maxLength={2000} rows={1} value={reason} onChange={event => { setReason(event.target.value); event.currentTarget.style.height = 'auto'; event.currentTarget.style.height = `${Math.max(48, Math.min(120, event.currentTarget.scrollHeight))}px`; setChanged(true); }} placeholder="Mình chọn vì…" className={twMerge(inputClass, 'min-h-12 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-[#292319]')} /></div>
           {original && original.userReason === undefined && original.userMistake && <details className="text-sm"><summary className="cursor-pointer font-semibold">Ghi chú cũ</summary><p className="mt-2 whitespace-pre-line text-base leading-relaxed">{original.userMistake}</p></details>}
           <details open={contextOpen} onToggle={event => setContextOpen(event.currentTarget.open)} className="text-[13px] text-slate-600 dark:text-slate-300"><summary className="cursor-pointer py-1 font-semibold">Thêm đoạn đọc · Part 6/7</summary><label className="mt-2 block text-sm font-semibold">Đoạn đọc bổ sung<textarea spellCheck={false} className={`${inputClass} mt-1`} rows={3} maxLength={4000} value={context} placeholder="Chỉ thêm nếu câu đã dán chưa đủ ngữ cảnh." onChange={event => { setContext(event.target.value); setChanged(true); }} /></label></details>
-        </fieldset> : step === 'saved' ? <div role="status" className="flex flex-col items-center gap-3 py-5 text-center"><span className="rounded-full bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"><Check className="h-6 w-6" aria-hidden="true" /></span><p className="text-lg font-bold">Đã lưu lỗi sai</p>{sourceTestName && <p className="text-sm text-slate-500 dark:text-slate-400">{sourceTestName}</p>}<p className="text-sm text-slate-500 dark:text-slate-400">{draft?.correctAnswer ? `${draft.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án đã lưu'}: ${draft.correctAnswer}` : 'Chưa có đáp án · bổ sung trước khi ôn'}</p></div> : draft && <>
+        </fieldset> : step === 'saved' ? <div role="status" className="flex flex-col items-center gap-3 py-5 text-center"><SuccessMark /><p className="text-lg font-bold">Đã lưu lỗi sai</p>{sourceTestName && <p className="text-sm text-slate-500 dark:text-slate-400">{sourceTestName}</p>}<p className="text-sm text-slate-500 dark:text-slate-400">{draft?.correctAnswer ? `${draft.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án đã lưu'}: ${draft.correctAnswer}` : 'Chưa có đáp án · bổ sung trước khi ôn'}</p></div> : draft && <>
           <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2">{draft.part !== null ? <PartBadge part={draft.part} /> : <span className="text-sm text-rose-600">Chọn Part trước khi lưu</span>}{sourceTestName && <span className="truncate text-xs text-slate-500 dark:text-slate-400" title={sourceTestName}>{sourceTestName}</span>}</div><button type="button" className={linkClass} onClick={() => { setStep('input'); setEditor(true); setError(''); }}>Sửa</button></div>
           <p className="whitespace-pre-line text-base font-bold leading-relaxed">{draftQuestion.question}</p>{draftQuestion.context && <p className="whitespace-pre-line border-l-2 border-slate-300 pl-3 text-base leading-relaxed text-slate-600 dark:text-slate-300">{draftQuestion.context}</p>}
           <OptionList options={quiz.options} large chosen={input.userChoice} correctLabel={draft.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : answerProvidedBy === 'LEARNER' ? 'Đáp án đã nhập' : 'Đáp án từ đề'} />

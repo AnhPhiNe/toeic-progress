@@ -17,9 +17,13 @@ function validSection(score: number | undefined): score is number {
 
 /** One test, one scored attempt; notebook notes remain grouped by source name. */
 export function analyticsScopeData(sessions: StudySession[], mistakes: MistakeEntry[], sourceKey?: string | null, attemptId?: string | null) {
-  const results = sessions.filter(session => !session.deletedAt && session.skillType === 'LR' && session.sessionType === 'FULL_TEST')
-    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || '') || b.id.localeCompare(a.id));
-  const names = collectTestNames(sessions, mistakes);
+  const fullTests = sessions.filter(session => !session.deletedAt && session.skillType === 'LR' && session.sessionType === 'FULL_TEST');
+  const results = [...fullTests].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || '') || b.id.localeCompare(a.id));
+  const fullTestKeys = new Set(results.map(session => testNameKey(session.testName)));
+  const otherSourceKeys = new Set(sessions.filter(session => !session.deletedAt
+    && (session.skillType !== 'LR' || session.sessionType !== 'FULL_TEST')).map(session => testNameKey(session.testName)));
+  // Known practice-only sources do not belong in Full Test analysis. A shared name with a Full Test remains eligible.
+  const names = collectTestNames(fullTests, mistakes).filter(name => fullTestKeys.has(testNameKey(name)) || !otherSourceKeys.has(testNameKey(name)));
   const source = names.find(name => testNameKey(name) === sourceKey) ?? results[0]?.testName ?? names[0] ?? '';
   const key = testNameKey(source);
   // Unnamed legacy tests remain independent; unassigned notes are not assumed to belong to them.

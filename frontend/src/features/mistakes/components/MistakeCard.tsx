@@ -71,30 +71,29 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
   );
 
   return (
-    <div className={expanded ? 'bg-slate-50/60 dark:bg-slate-800/20' : ''}>
-      <div className="flex items-start gap-2 px-3.5 sm:px-5 py-3">
+    <div className={`notebook-card ${expanded ? 'bg-slate-50/60 dark:bg-slate-800/20' : ''}`}>
+      <div className="notebook-row grid grid-cols-[minmax(0,1fr)_32px] items-start gap-2 px-3.5 py-3 sm:items-center sm:px-5">
         <button type="button" onClick={onToggle} aria-expanded={expanded}
           aria-label={`${expanded ? 'Thu gọn' : 'Mở'} câu: ${question}`}
-          className="flex min-w-0 flex-1 cursor-pointer flex-col gap-1.5 text-left sm:flex-row sm:items-start sm:gap-3">
-          <span className="flex items-center gap-2 sm:contents">
+          className="notebook-row-toggle grid min-h-11 min-w-0 cursor-pointer grid-cols-1 gap-1.5 text-left sm:grid-cols-[32px_minmax(0,1fr)_160px] sm:items-center sm:gap-3">
+          <span className="notebook-row-meta flex min-h-8 items-center gap-2 sm:contents">
             <PartBadge part={mistake.part} />
             <span className={`ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold sm:hidden ${style.text}`}>
               {style.dot && <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />}{status.label}
             </span>
           </span>
-          <span className={`min-w-0 flex-1 text-[15px] leading-snug text-slate-900 dark:text-white ${
-            expanded ? 'font-bold' : 'font-semibold line-clamp-2'
-          }`}>{question}
+          <span className="min-w-0 text-[15px] leading-snug text-slate-900 dark:text-white">
+            <span className={expanded ? 'block font-bold' : 'block font-semibold line-clamp-2'}>{question}</span>
             {mistake.sourceTestName && <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">{mistake.sourceTestName}</span>}
           </span>
-          <span className={`hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap pt-0.5 text-[13px] font-semibold ${style.text}`}>
+          <span className={`hidden items-center gap-1.5 whitespace-nowrap text-[13px] font-semibold sm:inline-flex sm:justify-self-end ${style.text}`}>
             {style.dot && <span className={`h-2 w-2 rounded-full ${style.dot}`} />}{status.label}
           </span>
         </button>
         <div ref={menuRef} className="relative shrink-0">
           <button type="button" onClick={() => setMenuOpen(value => !value)} aria-haspopup="menu" aria-expanded={menuOpen}
-            aria-label="Tùy chọn thẻ" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer">
-            <MoreHorizontal className="h-5 w-5" />
+            aria-label="Tùy chọn thẻ" className="notebook-menu-trigger flex min-h-8 min-w-8 items-center justify-center rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer">
+            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
           </button>
           {menuOpen && (
             <div role="menu" className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border-2 border-slate-900 bg-white py-1 shadow-[3px_3px_0px_#0f172a] dark:border-slate-600 dark:bg-[#121A2B]">

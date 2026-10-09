@@ -8,6 +8,7 @@ import { PartBadge, splitQuestion } from '@/features/mistakes/components/Mistake
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { reviewResultText } from '@/features/mistakes/lib/review';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
+import { SuccessMark } from '@/shared/ui/SuccessMark';
 
 interface ReviewModalProps {
   /** Cards to review, fixed when the session opens */
@@ -28,6 +29,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
   const [result, setResult] = useState<Result | null>(null);
   const [flipped, setFlipped] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const [scheduleUpdatedCount, setScheduleUpdatedCount] = useState(0);
   const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState('');
   const [reloaded, setReloaded] = useState<MistakeEntry | null>(null);
@@ -43,6 +45,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
     if (!card || result) return;
     try {
       const { before, after } = onGrade(card, correct);
+      if (after !== before) setScheduleUpdatedCount(value => value + 1);
       setReloaded(after);
       if (correct) setCorrectCount(value => value + 1);
       setResult({ correct, picked, text: reviewResultText(before, after, correct, picked) });
@@ -65,7 +68,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
         <div className="flex items-center gap-4 px-4 pt-4 pb-3 sm:px-6 sm:pt-5">
           <h2 id="review-title" className="text-[17px] font-extrabold text-slate-900 dark:text-white">Ôn tập</h2>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" aria-hidden="true">
-            <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(Math.min(index + (result ? 1 : 0), cards.length) / Math.max(cards.length, 1)) * 100}%` }} />
+            <div className="h-full bg-emerald-400 transition-[width] duration-200 motion-reduce:transition-none" style={{ width: `${(Math.min(index + (result ? 1 : 0), cards.length) / Math.max(cards.length, 1)) * 100}%` }} />
           </div>
           <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">{Math.min(index + 1, cards.length)} / {cards.length}</span>
           <button type="button" onClick={onClose} aria-label="Đóng phiên ôn tập" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
@@ -75,9 +78,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
 
         {finished || !card ? (
           <div className="space-y-4 px-4 pb-6 pt-6 text-center sm:px-6">
-            <p className="text-lg font-bold text-slate-900 dark:text-white">Xong {cards.length - skipped} thẻ</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Trả lời đúng {correctCount}/{cards.length - skipped}. Lịch ôn đã được cập nhật.{skipped > 0 && ` Bỏ qua ${skipped} thẻ không còn ôn được.`}</p>
-            <button type="button" onClick={onClose} className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-slate-900 cursor-pointer">Đóng</button>
+            <div role="status" className="space-y-3">
+              {cards.length > skipped && <SuccessMark />}
+              <p className="text-xl font-bold text-slate-900 dark:text-white">{cards.length > skipped ? `Xong ${cards.length - skipped} thẻ` : 'Chưa có thẻ nào được ôn'}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{cards.length > skipped ? `Trả lời đúng ${correctCount}/${cards.length - skipped}. ${scheduleUpdatedCount ? 'Lịch ôn đã được cập nhật.' : 'Lịch ôn giữ nguyên.'}` : 'Không có lịch ôn nào được cập nhật.'}{skipped > 0 && ` Bỏ qua ${skipped} thẻ không còn ôn được.`}</p>
+            </div>
+            <button type="button" onClick={onClose} autoFocus className="min-h-11 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-slate-900 cursor-pointer">Đóng</button>
           </div>
         ) : (
           <>

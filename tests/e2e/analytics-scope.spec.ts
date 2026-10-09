@@ -38,6 +38,29 @@ test('test selector searches, supports keyboard, and carries the complete source
   await expect(page.getByLabel('Đề', { exact: true })).toHaveValue('test:ets test 1');
 });
 
+test('Full Test selector excludes practice-only sources while shared names keep their Full Test', async ({ page }) => {
+  await seed(page);
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const base = data.sessions[0];
+    data.sessions.push({ ...base, id: 'practice-only', testName: 'Cày Part 5 & 6', sessionType: 'PART_PRACTICE' });
+    data.sessions.push({ ...base, id: 'shared-practice', sessionType: 'PART_PRACTICE' });
+    data.sessions.push({ ...base, id: 'speaking-only', testName: 'SW only', skillType: 'SW' });
+    data.mistakes.push({ ...data.mistakes[0], id: 'practice-note', sourceTestName: 'Cày Part 5 & 6' });
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: /^Đề:/ }).click();
+  const list = page.getByRole('listbox', { name: 'Chọn đề', exact: true });
+  await expect(list.getByRole('option', { name: 'Cày Part 5 & 6', exact: true })).toHaveCount(0);
+  await expect(list.getByRole('option', { name: 'SW only', exact: true })).toHaveCount(0);
+  await list.getByRole('option', { name: 'ETS Test 1', exact: true }).click();
+  await expect(page.getByText('350/495', { exact: true })).toHaveCount(2);
+  await expect(page.getByLabel('Lần làm', { exact: true }).locator('option')).toHaveCount(1);
+  const data = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
+  expect(data.sessions.some((row: { id: string }) => row.id === 'practice-only')).toBe(true);
+});
+
 test('notes-only sources show missing scores and keep notebook reset available', async ({ page }) => {
   await seed(page);
   await page.getByRole('button', { name: /^Đề:/ }).click();

@@ -1,0 +1,29 @@
+.notebook-view .notebook-row-toggle { overflow-wrap: anywhere; }
+.notebook-view .notebook-card:last-child { border-radius: 0 0 14px 14px; }
+.notebook-view .notebook-row { transition: background-color 150ms ease-out; }
+.notebook-view .notebook-row:hover, .notebook-view .notebook-row:focus-within { background-color: #f8fafc; }
+.dark .notebook-view .notebook-row:hover, .dark .notebook-view .notebook-row:focus-within { background-color: #1e293b40; }
+.notebook-view button:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+.dark .notebook-view button:focus-visible { outline-color: #60a5fa; }
+.notebook-view .notebook-page-button { min-height: 44px; padding: 4px 10px; border: 1px solid #bfdbfe; border-radius: 8px; background: #fff; color: #1d4ed8; font-weight: 600; cursor: pointer; }
+.notebook-view .notebook-page-button:hover:not(:disabled) { background: #eff6ff; }
+.notebook-view .notebook-page-button:disabled { border-color: #e2e8f0; background: transparent; color: #94a3b8; cursor: default; }
+.dark .notebook-view .notebook-page-button { border-color: #1e40af; background: #121a2b; color: #93c5fd; }
+.dark .notebook-view .notebook-page-button:hover:not(:disabled) { background: #172554; }
+.dark .notebook-view .notebook-page-button:disabled { border-color: #334155; background: transparent; color: #64748b; }
+.notebook-feedback-region { position: fixed; bottom: 20px; right: 20px; width: min(360px, calc(100vw - 40px)); z-index: 40; pointer-events: none; }
+.notebook-feedback { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid #0f172a; border-radius: 12px; background: #fff; color: #0f172a; box-shadow: 3px 3px 0 #0f172a; pointer-events: auto; }
+.notebook-feedback .study-success-mark { width: 32px; height: 32px; border-radius: 9px; }
+.notebook-feedback .study-success-mark svg { width: 19px; height: 19px; }
+.notebook-feedback.is-error { color: #be123c; }
+.dark .notebook-feedback { border-color: #cbd5e1; background: #121a2b; color: #f1f5f9; box-shadow: 3px 3px 0 #cbd5e1; }
+.dark .notebook-feedback.is-error { color: #fda4af; }
+@media (pointer: coarse) {
+  .notebook-view .notebook-menu-trigger { min-width: 44px; min-height: 44px; }
+  .notebook-view .notebook-row { grid-template-columns: minmax(0, 1fr) 44px; }
+  .notebook-view .notebook-row-meta { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notebook-view, .notebook-view .notebook-row, .notebook-view button { animation: none; transition: none; }
+  .notebook-view button:active { transform: none; }
+}

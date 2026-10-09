@@ -10,6 +10,23 @@ const note = (id: string, patch: Partial<MistakeEntry> = {}): MistakeEntry => ({
   userMistake: '', correctAnswer: '(B) be', category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: '2026-10-01T00:00:00Z', ...patch });
 
 describe('analytics test and attempt selection', () => {
+  it('excludes practice-only and SW-only sources without removing a shared Full Test or unknown notes-only source', () => {
+    const full = session('1', { testName: 'ETS Full' });
+    const practice = session('2', { testName: 'Practice only', sessionType: 'PART_PRACTICE' });
+    const shared = session('3', { testName: '  ｅｔｓ Full ', sessionType: 'PART_PRACTICE' });
+    const speaking = session('4', { testName: 'SW only', skillType: 'SW' });
+    const rows = [full, practice, shared, speaking];
+    const notes = [note('practice', { sourceTestName: 'Practice only' }), note('legacy-practice', { sessionId: practice.id }),
+      note('shared', { sourceTestName: 'ETS Full' }), note('notes-only', { sourceTestName: 'Notes only' })];
+    const snapshot = JSON.stringify({ rows, notes });
+    const data = analyticsScopeData(rows, notes, 'practice only');
+    expect(data.names).toEqual(['ETS Full', 'Notes only']);
+    expect(data.source).toBe('ETS Full');
+    expect(data.attempts.map(row => row.session.id)).toEqual(['1']);
+    expect(data.notes.map(row => row.id)).toEqual(['shared']);
+    expect(JSON.stringify({ rows, notes })).toBe(snapshot);
+    expect(analyticsScopeData([practice], [notes[0]]).names).toEqual([]);
+  });
   it('does not label a perfect Part as weak when all seven are correct', () => {
     const perfect = session('1', { partScores: { part1: 6, part2: 25, part3: 39, part4: 30, part5: 30, part6: 16, part7: 54 } });
     const data = analyticsScopeData([perfect], [note('1', { sourceTestName: perfect.testName })]);
