@@ -81,7 +81,9 @@ const pacingRun = z.object({
 }).passthrough();
 
 const checklistItem = z.object({ id: z.string().min(1), checked: z.boolean(), ...metadata });
-const vocabLog = z.object({ id: z.string().min(1), date, count: z.number().int().positive(), ...metadata });
+const vocabLog = z.object({ id: z.string().min(1), date, count: z.number().int().min(1).max(10000),
+  sourceName: z.string().max(300).optional(),
+  parts: z.array(partNumber).max(7).refine(parts => new Set(parts).size === parts.length, 'Part bị trùng').optional(), ...metadata }).passthrough();
 const shieldDay = z.object({ id: z.string().min(1), date, ...metadata });
 const weeklyPlan = z.object({
   id: date, weekKey: date, ...metadata,

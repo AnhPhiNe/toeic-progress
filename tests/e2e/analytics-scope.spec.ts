@@ -18,23 +18,18 @@ async function seed(page: Page) {
   await expect(page.locator('.analytics-bar-labels text')).toHaveCount(7);
 }
 
-test('scope selector searches, supports keyboard, counts every result, and carries source filter to notebook', async ({ page }) => {
+test('test selector searches, supports keyboard, and carries the complete source notebook', async ({ page }) => {
   await seed(page);
-  await expect(page.getByRole('button', { name: 'Phạm vi phân tích: Đề gần nhất · ETS Test 7', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Đề: ETS Test 7', exact: true })).toBeVisible();
   await expect(page.getByText('380/495', { exact: true })).toHaveCount(2);
   await expect(page.getByRole('img', { name: /^1 lỗi đã ghi:/ })).toBeVisible();
-  await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
-  await page.getByRole('option', { name: 'Tất cả · 7 lượt làm', exact: true }).click();
-  await expect(page.getByText('Dữ liệu 7 lượt làm', { exact: true })).toBeVisible();
-  await expect(page.getByText('Tỷ lệ đúng trung bình · 7 lượt có chi tiết Part', { exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: /^4 lỗi đã ghi:/ })).toBeVisible();
-  await expect(page.getByText('TB 365/495', { exact: true })).toHaveCount(2);
-  await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
-  const search = page.getByRole('combobox', { name: 'Tìm đề hoặc phạm vi' });
+  await page.getByRole('button', { name: /^Đề:/ }).click();
+  await expect(page.getByRole('option', { name: /^Tất cả|^5 lượt/ })).toHaveCount(0);
+  const search = page.getByRole('combobox', { name: 'Tìm đề' });
   await search.fill('test 1');
-  await expect(page.getByRole('option')).toHaveCount(1);
+  await expect(page.getByRole('listbox', { name: 'Chọn đề', exact: true }).getByRole('option')).toHaveCount(1);
   await search.press('Enter');
-  await expect(page.getByRole('button', { name: 'Phạm vi phân tích: ETS Test 1', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Đề: ETS Test 1', exact: true })).toBeFocused();
   await expect(page.getByText('350/495', { exact: true })).toHaveCount(2);
   await page.getByRole('button', { name: 'Mở Sổ tay của đề', exact: true }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
@@ -43,38 +38,38 @@ test('scope selector searches, supports keyboard, counts every result, and carri
   await expect(page.getByLabel('Đề', { exact: true })).toHaveValue('test:ets test 1');
 });
 
-test('notes-only sources show missing data and recent sources scope notebook without losing reset', async ({ page }) => {
+test('notes-only sources show missing scores and keep notebook reset available', async ({ page }) => {
   await seed(page);
-  await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
+  await page.getByRole('button', { name: /^Đề:/ }).click();
   await page.getByRole('option', { name: 'Notes only', exact: true }).click();
   await expect(page.getByText('Chưa nhập kết quả', { exact: true })).toBeVisible();
   await expect(page.getByText('Chưa ghi', { exact: true })).toHaveCount(2);
+  await expect(page.getByLabel('Lần làm', { exact: true })).toBeDisabled();
+  await expect(page.getByLabel('Lần làm', { exact: true }).locator('option')).toHaveText(['Chưa có lượt làm']);
   await expect(page.getByRole('img', { name: /^Tỷ lệ đúng theo Part/ })).toHaveCount(0);
   await expect(page.getByRole('img', { name: /^1 lỗi đã ghi:/ })).toBeVisible();
-  await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
-  await page.getByRole('option', { name: 'Tổng quan 5 lượt gần nhất', exact: true }).click();
-  await expect(page.getByText('Dữ liệu 5 lượt làm', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Mở Sổ tay', exact: true }).click();
+  await page.getByRole('button', { name: 'Mở Sổ tay của đề', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
-  await expect(page.getByLabel('Đề', { exact: true })).toHaveValue('SCOPE');
   await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(4);
 });
 
-test('latest without any scored result carries an empty scope, not unassigned notes', async ({ page }) => {
+test('no named test leaves an empty source scope instead of assigning unlinked notes', async ({ page }) => {
   await seed(page);
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     data.sessions = [];
+    data.mistakes = data.mistakes.slice(-1);
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
+  await expect(page.getByRole('button', { name: 'Đề: Chưa có đề', exact: true })).toBeDisabled();
   await expect(page.getByRole('img', { name: /lỗi đã ghi:/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Mở Sổ tay của đề', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).click();
-  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(4);
+  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
 });
 
 test('analytics fits small and desktop viewports in both themes', async ({ page }, testInfo) => {
@@ -92,15 +87,15 @@ test('analytics fits small and desktop viewports in both themes', async ({ page 
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('heading', { name: 'Độ chính xác 7 Part' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
-    await expect(page.getByRole('combobox', { name: 'Tìm đề hoặc phạm vi' })).toBeVisible();
+    await page.getByRole('button', { name: /^Đề:/ }).click();
+    await expect(page.getByRole('combobox', { name: 'Tìm đề' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.getByRole('combobox', { name: 'Tìm đề hoặc phạm vi' }).press('Escape');
+    await page.getByRole('combobox', { name: 'Tìm đề' }).press('Escape');
   }
   await page.screenshot({ path: testInfo.outputPath('analytics-light.png'), fullPage: true });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Lỗi thường gặp trong Sổ tay' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Lỗi đã ghi của đề' })).toBeVisible();
   await expect.poll(() => page.locator('.analytics-panel').first().evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(17, 26, 44)');
   await page.screenshot({ path: testInfo.outputPath('analytics-dark.png'), fullPage: true });
 });
@@ -142,7 +137,7 @@ test('chart marks animate once and interpolate filters while labels stay fixed; 
   expect(await barHeight()).toBe(settledHeight);
   expect(await donut.evaluateAll(elements => elements.map(element => element.getAttribute('d')))).toEqual(settledPie);
 
-  await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
+  await page.getByRole('button', { name: /^Đề:/ }).click();
   await page.getByRole('option', { name: 'ETS Test 1', exact: true }).click();
   await page.clock.runFor(100);
   const midHeight = await barHeight();
@@ -155,7 +150,7 @@ test('chart marks animate once and interpolate filters while labels stay fixed; 
   expect(await labelPositions()).toEqual(nextLabels);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.getByRole('button', { name: /^Phạm vi phân tích:/ }).click();
+  await page.getByRole('button', { name: /^Đề:/ }).click();
   await page.getByRole('option', { name: 'ETS Test 7', exact: true }).click();
   expect(await barHeight()).toBe(settledHeight);
   const staticPie = await donut.evaluateAll(elements => elements.map(element => element.getAttribute('d')));

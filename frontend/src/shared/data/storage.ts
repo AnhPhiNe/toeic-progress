@@ -219,18 +219,34 @@ export function loadVocabLog(): VocabLog[] {
   return live(readDataBundle().vocabLog);
 }
 
-export function upsertVocabLog(date: string, count: number): VocabLog[] {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(count) || count <= 0) {
-    throw new Error('Ngày và số từ vựng phải hợp lệ; số từ phải lớn hơn 0.');
+export function upsertVocabLog(date: string, count: number, details?: { sourceName?: string; parts?: number[] }): VocabLog[] {
+  const parsed = Date.parse(date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(parsed)
+    || new Date(parsed).toISOString().slice(0, 10) !== date || Number(date.slice(0, 4)) < 1
+    || !Number.isInteger(count) || count <= 0 || count > 10000) {
+    throw new Error('Nhập ngày hợp lệ và số từ nguyên từ 1 đến 10000.');
+  }
+  if (details && ((details.sourceName?.trim().length ?? 0) > 300
+    || (details.parts?.length ?? 0) > 7
+    || (details.parts ?? []).some(part => !Number.isInteger(part) || part < 1 || part > 7))) {
+    throw new Error('Nguồn học tối đa 300 ký tự; Part phải từ 1 đến 7.');
   }
   const id = `vocab:${date}`;
-  const next = updateDataBundle(current => ({
-    ...current,
-    vocabLog: [
-      ...current.vocabLog.filter(item => item.id !== id),
-      { id, date, count, updatedAt: nextUpdatedAt(current.vocabLog.find(item => item.id === id)?.updatedAt), deletedAt: null }
-    ]
-  }));
+  const next = updateDataBundle(current => {
+    const previous = current.vocabLog.find(item => item.id === id);
+    const liveDay = current.vocabLog.filter(item => !item.deletedAt && item.date === date);
+    const sourceName = details ? details.sourceName?.trim() : [...new Set(liveDay.map(item => item.sourceName?.trim()).filter(Boolean))].join(' · ');
+    const parts = [...new Set(details ? details.parts ?? [] : liveDay.flatMap(item => item.parts ?? []))].sort((a, b) => a - b);
+    if ((sourceName?.length ?? 0) > 300) throw new Error('Nguồn học quá dài. Rút gọn nguồn trước khi cập nhật.');
+    return { ...current, vocabLog: [
+      ...current.vocabLog.filter(item => item.id !== id).map(item => {
+        if (item.date !== date || item.deletedAt) return item;
+        const updatedAt = nextUpdatedAt(item.updatedAt);
+        return { ...item, updatedAt, deletedAt: updatedAt };
+      }),
+      { ...previous, id, date, count, sourceName: sourceName || undefined, parts, updatedAt: nextUpdatedAt(previous?.updatedAt), deletedAt: null }
+    ] };
+  });
   return live(next.vocabLog);
 }
 
@@ -238,7 +254,7 @@ export function deleteVocabLog(id: string): VocabLog[] {
   const next = updateDataBundle(current => ({
     ...current,
     vocabLog: current.vocabLog.map(item => {
-      if (item.id !== id) return item;
+      if (item.id !== id && !(id.startsWith('vocab:') && item.date === id.slice(6))) return item;
       const updatedAt = nextUpdatedAt(item.updatedAt);
       return { ...item, updatedAt, deletedAt: updatedAt };
     })

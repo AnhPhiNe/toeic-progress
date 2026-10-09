@@ -176,6 +176,15 @@ class Vocabulary(Payload):
     id: str
     date: date
     count: int = Field(ge=1, le=10000, strict=True)
+    sourceName: str | None = Field(default=None, max_length=300)
+    parts: list[Part] | None = Field(default=None, max_length=7)
+
+    @field_validator("parts")
+    @classmethod
+    def distinct_parts(cls, value):
+        if value is not None and len(set(value)) != len(value):
+            raise ValueError("Part từ vựng bị trùng")
+        return value
 
 
 class Shield(Payload):

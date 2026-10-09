@@ -165,6 +165,23 @@ def test_valid_json_payload_dates_survive_strict_validation(api):
         assert rpc[2]["p_records"][0]["payload"]["date"] == "2026-09-23"
 
 
+def test_vocabulary_source_and_multiple_parts_survive_sync_validation(api):
+    with api() as (client, calls):
+        record = {
+            "entity_type": "vocabLog", "record_id": "v1",
+            "payload": {"id": "v1", "date": "2026-09-23", "count": 20,
+                        "sourceName": "ETS 2024 Test 04", "parts": [5, 7]},
+            "updated_at": "2026-09-23T00:00:00Z", "deleted_at": None,
+        }
+        assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 200
+        rpc = next(call for call in calls if call[1].endswith("/sync_account_records"))
+        assert rpc[2]["p_records"][0]["payload"]["sourceName"] == "ETS 2024 Test 04"
+        assert rpc[2]["p_records"][0]["payload"]["parts"] == [5, 7]
+        for parts in ([8], [5, 5], [1.5]):
+            record["payload"]["parts"] = parts
+            assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 422
+
+
 def test_modern_secret_key_is_not_sent_as_a_bearer_jwt(api):
     with api(backend_key="sb_secret_test") as (client, calls):
         assert client.post("/api/v1/sync", json={}).status_code == 200

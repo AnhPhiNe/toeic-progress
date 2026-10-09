@@ -37,7 +37,7 @@ const pacing = row('pacingRuns', {
   finishedNaturally: false, createdAt: stamp, phases: [{ name: 'Reading', plannedMinutes: 75, actualMinutes: 80, overrunMinutes: 5, marker: 'late' }]
 });
 const fixtures = [profile, full, practice, mistake, orphan, plan, pacing,
-  row('vocabLog', { id: 'v1', date: '2026-10-06', count: 12 }), row('checklist', { id: 'exam-slip', checked: false }),
+  row('vocabLog', { id: 'v1', date: '2026-10-06', count: 12, sourceName: 'ETS 2024 Test 04', parts: [5,7] }), row('checklist', { id: 'exam-slip', checked: false }),
   row('shieldDays', { id: 'shield:2026-10-04', date: '2026-10-04' })];
 const sync = async (owner, records = [], cursor = 0, replace = false) => (await db.query(
   'select public.sync_account_records($1::uuid,$2::jsonb,$3::bigint,$4::boolean) as result', [owner, JSON.stringify(records), cursor, replace]
@@ -90,6 +90,15 @@ try {
   assert.equal(totalPayload.totalScore, 800);
   for (const field of ['scaledListening','scaledReading','rawListening','rawReading','partScores']) assert.ok(!(field in totalPayload), `${field} must remain absent for total-only entry`);
   assert.equal((await db.query("select scaled_listening from public.study_sessions where id='manual-score'")).rows[0].scaled_listening, null);
+
+  const vocabPayload = get(await sync(alice), 'v1').payload;
+  assert.equal(vocabPayload.sourceName, 'ETS 2024 Test 04');
+  assert.deepEqual(vocabPayload.parts, [5,7]);
+  await db.query("update public.vocabulary_logs set word_count=15 where user_id=$1 and id='v1'", [alice]);
+  const editedVocab = get(await sync(alice), 'v1').payload;
+  assert.equal(editedVocab.count, 15);
+  assert.equal(editedVocab.sourceName, 'ETS 2024 Test 04');
+  assert.deepEqual(editedVocab.parts, [5,7]);
 
   const readAs = (owner, anonymous, query) => db.transaction(async tx => {
     await tx.exec('set local role authenticated');

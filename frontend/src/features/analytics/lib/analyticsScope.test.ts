@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { analyticsScopeData } from './analyticsScope';
+import { analyticsScopeData, analyticsAttemptLabel } from './analyticsScope';
 import type { StudySession, MistakeEntry } from '@/shared/types';
 
 const session = (id: string, patch: Partial<StudySession> = {}): StudySession => ({ id, testName: `ETS Test ${id}`,
@@ -9,61 +9,80 @@ const session = (id: string, patch: Partial<StudySession> = {}): StudySession =>
 const note = (id: string, patch: Partial<MistakeEntry> = {}): MistakeEntry => ({ id, part: 5, questionContext: 'Reports should ____ submitted.',
   userMistake: '', correctAnswer: '(B) be', category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: '2026-10-01T00:00:00Z', ...patch });
 
-describe('analytics presentation scope', () => {
-  it('uses the latest result of the normalized test name, including retakes, and all notes for that source', () => {
-    const first = session('1', { testName: 'ETS Test 1' });
-    const latest = session('2', { testName: '  ets   test 1  ', attemptNumber: 2, scaledListening: 400 });
-    const notes = [note('old', { sessionId: first.id }), note('new', { sourceTestName: 'ＥＴＳ Test 1' }), note('clear', { sessionId: first.id, sourceTestName: '' }), note('deleted', { sourceTestName: first.testName, deletedAt: 'x' })];
-    const data = analyticsScopeData([first, latest], notes, 'test:ets test 1');
-    expect(data.selected.map(row => row.id)).toEqual(['2']);
-    expect(data.listening.value).toBe(400);
-    expect(data.notes.map(row => row.id)).toEqual(['old', 'new']);
-    expect(data.parts[0].correct).toBe(5);
-    expect(data.parts[0].accuracy).toBeCloseTo(83.3333);
-  });
-  it('all uses more than five results; recent selects five before separately counting available Part and section data', () => {
-    const rows = Array.from({ length: 7 }, (_, index) => session(String(index + 1)));
-    rows[6] = { ...rows[6], partScores: undefined, scaledListening: undefined, scaledReading: undefined, scoreSource: 'MANUAL_TOTAL' };
-    const notes = [note('early', { sourceTestName: rows[0].testName }), note('late', { sourceTestName: rows[6].testName }), note('unlinked')];
-    const all = analyticsScopeData(rows, notes, 'all');
-    expect(all.selected).toHaveLength(7);
-    expect(all.partResults).toHaveLength(6);
-    expect(all.notes).toHaveLength(3);
-    expect(all.listening.count).toBe(6);
-    const recent = analyticsScopeData(rows, notes, 'recent');
-    expect(recent.selected.map(row => row.id)).toEqual(['7', '6', '5', '4', '3']);
-    expect(recent.partResults).toHaveLength(4);
-    expect(recent.notes.map(row => row.id)).toEqual(['late']);
-    expect(recent.notebookSources).toHaveLength(5);
-  });
-  it('does not substitute an older result when the newest one lacks Part/section details', () => {
-    const first = session('1');
-    const latest = session('2', { testName: first.testName, partScores: undefined, scaledListening: undefined, scaledReading: 395 });
-    const data = analyticsScopeData([first, latest], [], 'latest');
-    expect(data.parts).toEqual([]);
-    expect(data.listening.value).toBeNull();
-    expect(data.reading.value).toBe(395);
-  });
-  it('supports notes-only and partial-practice names without treating missing results as zero', () => {
-    const rows = [session('1', { sessionType: 'PART_PRACTICE' }), session('2', { deletedAt: 'x' })];
-    const data = analyticsScopeData(rows, [note('1', { sourceTestName: 'Notes only' })], 'test:notes only');
-    expect(data.resultCount).toBe(0);
-    expect(data.names).toEqual(['ETS Test 1', 'Notes only']);
-    expect(data.parts).toEqual([]);
-    expect(data.listening.value).toBeNull();
+describe('analytics test and attempt selection', () => {
+  it('does not label a perfect Part as weak when all seven are correct', () => {
+    const perfect = session('1', { partScores: { part1: 6, part2: 25, part3: 39, part4: 30, part5: 30, part6: 16, part7: 54 } });
+    const data = analyticsScopeData([perfect], [note('1', { sourceTestName: perfect.testName })]);
+    expect(data.parts.every(part => part.accuracy === 100)).toBe(true);
+    expect(data.weakest).toBeNull();
     expect(data.notes).toHaveLength(1);
-    const latest = analyticsScopeData(rows, [note('unlinked')], 'latest');
-    expect(latest.notes).toEqual([]);
-    expect(latest.notebookSources).toEqual([]);
   });
-  it('rejects malformed Part values, preserves zero correct answers, and never mutates inputs', () => {
+  it('defaults to the latest LR test, normalizes source names, and keeps notes across attempts', () => {
+    const first = session('1', { testName: 'ETS A', date: '2026-09-13' });
+    const retake = session('2', { testName: '  ｅｔｓ  A  ', date: '2026-10-05', scaledListening: 400 });
+    const other = session('3', { testName: 'ETS B', date: '2026-10-08' });
+    const notes = [note('old', { sessionId: first.id }), note('new', { sourceTestName: 'ETS A', status: 'MASTERED' }),
+      note('clear', { sessionId: first.id, sourceTestName: '' }), note('deleted', { sourceTestName: 'ETS A', deletedAt: 'x' })];
+    expect(analyticsScopeData([first, retake, other], notes).source).toBe('ETS B');
+    const latest = analyticsScopeData([first, retake, other], notes, 'ets a');
+    expect(latest.attempt?.id).toBe('2');
+    expect(latest.attemptNumber).toBe(2);
+    expect(latest.listening.value).toBe(400);
+    const old = analyticsScopeData([first, retake, other], notes, 'ets a', '1');
+    expect(old.attemptNumber).toBe(1);
+    expect(old.listening.value).toBe(350);
+    expect(old.notes.map(row => row.id)).toEqual(['old', 'new']);
+    expect(old.notes).toEqual(latest.notes);
+    expect(old.notebookSources).toEqual(['ETS A']);
+  });
+  it('never borrows Part or section scores when the selected attempt only contains a total', () => {
+    const first = session('1');
+    const latest = session('2', { testName: first.testName, partScores: undefined, scaledListening: undefined, scaledReading: undefined, scoreSource: 'MANUAL_TOTAL' });
+    const data = analyticsScopeData([first, latest], []);
+    expect(data.parts).toEqual([]);
+    expect(data.listening.value).toBeNull();
+    expect(data.reading.value).toBeNull();
+    expect(analyticsScopeData([first, latest], [], 'ets test 1', first.id).parts).toHaveLength(7);
+  });
+  it('orders same-day attempts deterministically and shares numbering with History without mixing SW or practice', () => {
+    const early = session('1', { testName: 'ETS A', date: '2026-10-05', createdAt: '2026-10-05T09:00:00Z', attemptNumber: 3 });
+    const late = session('2', { testName: 'ETS A', date: early.date, createdAt: '2026-10-05T10:00:00Z' });
+    const rows = [late, session('3', { testName: 'ETS A', skillType: 'SW' }), early,
+      session('4', { testName: 'ETS A', sessionType: 'PART_PRACTICE' }), session('5', { testName: 'ETS A', deletedAt: 'x' })];
+    const before = JSON.stringify(rows), data = analyticsScopeData(rows, [], 'ets a');
+    expect(data.attempts.map(row => [row.session.id, row.number])).toEqual([['2', 4], ['1', 3]]);
+    expect(data.latestAttempt).toBe(true);
+    expect(analyticsAttemptLabel(4, late.date, true)).toBe('Lần 4 · 05/10/2026 · Mới nhất');
+    expect(JSON.stringify(rows)).toBe(before);
+  });
+  it('ignores a stale or other-test attempt id and returns to the latest available attempt', () => {
+    const rows = [session('1', { testName: 'ETS A' }), session('2', { testName: 'ETS A' }), session('3', { testName: 'ETS B' })];
+    expect(analyticsScopeData(rows, [], 'ets a', '3').attempt?.id).toBe('2');
+    expect(analyticsScopeData(rows, [], 'ets a', 'deleted-id').attempt?.id).toBe('2');
+    expect(analyticsScopeData(rows.filter(row => row.id !== '2'), [], 'ets a', '2').attempt?.id).toBe('1');
+    expect(analyticsScopeData(rows, [], 'removed-test').source).toBe('ETS B');
+  });
+  it('supports notes-only sources and never assigns unlinked notes to an unnamed result', () => {
+    const data = analyticsScopeData([], [note('1', { sourceTestName: 'Notes only' }), note('other')], 'notes only');
+    expect(data.attempts).toEqual([]);
+    expect(data.parts).toEqual([]);
+    expect(data.listening.value).toBeNull();
+    expect(data.notes.map(row => row.id)).toEqual(['1']);
+    const unnamed = analyticsScopeData([session('1', { testName: '' }), session('2', { testName: '' })], [note('unlinked')]);
+    expect(unnamed.attempts).toHaveLength(1);
+    expect(unnamed.notes).toEqual([]);
+    expect(unnamed.notebookSources).toEqual([]);
+    expect(analyticsScopeData([], [note('unlinked')]).attempt).toBeNull();
+  });
+  it('rejects malformed selected detail and section values, while keeping valid zero correct answers', () => {
     const valid = session('1'); valid.partScores!.part4 = 0;
-    const invalid = session('2'); invalid.partScores!.part1 = 7;
-    const rows = [valid, invalid], snapshot = JSON.stringify(rows);
-    const data = analyticsScopeData(rows, [], 'all');
-    expect(data.partResults).toHaveLength(1);
-    expect(data.weakest?.key).toBe('part4');
-    expect(data.weakest?.accuracy).toBe(0);
-    expect(JSON.stringify(rows)).toBe(snapshot);
+    const invalid = session('2', { testName: valid.testName, scaledListening: 0, scaledReading: 500 }); invalid.partScores!.part1 = 7;
+    const data = analyticsScopeData([valid, invalid], []);
+    expect(data.parts).toEqual([]);
+    expect(data.listening.value).toBeNull();
+    expect(data.reading.value).toBeNull();
+    const old = analyticsScopeData([valid, invalid], [], 'ets test 1', '1');
+    expect(old.weakest?.key).toBe('part4');
+    expect(old.weakest?.accuracy).toBe(0);
   });
 });

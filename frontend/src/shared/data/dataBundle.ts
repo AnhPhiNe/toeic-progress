@@ -11,6 +11,8 @@ export interface VocabLog extends SyncMeta {
   id: string;
   date: string;
   count: number;
+  sourceName?: string;
+  parts?: number[];
 }
 
 export interface ShieldDay extends SyncMeta {

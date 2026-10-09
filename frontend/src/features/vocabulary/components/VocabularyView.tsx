@@ -1,444 +1,134 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import {
-  BookMarked,
-  Trash2,
-  CheckCircle2,
-  Calendar,
-  BarChart3,
-  BookOpen
-} from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LabelList
-} from 'recharts';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BookMarked, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, Customized, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { VocabLog } from '@/shared/data/dataBundle';
-import { getTodayDateString } from '@/shared/data/storage';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
+import { getTodayDateString, loadVocabLog } from '@/shared/data/storage';
+import { useChartMotion } from '@/shared/hooks/useChartMotion';
+import { uniqueTestNames } from '@/shared/domain/testNames';
+import { formatVocabDate, groupVocabDays, summarizeVocabDays, validVocabDate, vocabDayIndex, vocabDaySignature, vocabPreset, vocabYAxis, type VocabDay, type VocabDetails, type VocabRange } from '../lib/vocabularyModel';
+import { VocabChartLabels } from './VocabChartLabels';
+import { DateRangePicker } from '@/shared/components/DateRangePicker';
+import { VocabEditModal } from './VocabEditModal';
+import './vocabulary.css';
 
-interface VocabularyViewProps {
+interface Props {
   vocabLog: VocabLog[];
   theme: 'light' | 'dark';
-  onSaveVocab: (date: string, count: number) => void;
+  sourceNames?: string[];
+  onSaveVocab: (date: string, count: number, details?: VocabDetails) => void;
   onDeleteVocab?: (id: string) => void;
-  onOpenSessionLogger?: (prefill?: { sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => void;
 }
 
-const formatVnDate = (iso: string) => {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-};
-
-export const VocabularyView: React.FC<VocabularyViewProps> = ({
-  vocabLog,
-  theme,
-  onSaveVocab,
-  onDeleteVocab
-}) => {
-  const [isDomDark, setIsDomDark] = useState(() => 
-    typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false
-  );
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const observer = new MutationObserver(() => {
-      setIsDomDark(document.documentElement.classList.contains('dark'));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  const isDark = theme === 'dark' || isDomDark;
+export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab, onDeleteVocab }: Props) {
   const today = getTodayDateString();
+  const isDark = theme === 'dark';
+  const owner = useRef(getActiveAccountId());
+  const days = useMemo(() => groupVocabDays(vocabLog), [vocabLog]);
+  const total = days.length ? days[days.length - 1].cumulative : 0;
+  const [range, setRange] = useState<VocabRange>(() => vocabPreset(today, 14));
+  const selected = useMemo(() => days.filter(day => day.date >= range.from && day.date <= range.to), [days, range]);
+  const summary = useMemo(() => summarizeVocabDays(selected), [selected]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(selected.length / 5));
+  const page = Math.min(historyPage, pageCount);
+  const visible = [...selected].reverse().slice((page - 1) * 5, page * 5);
+  useEffect(() => { setHistoryPage(current => Math.min(current, pageCount)); }, [pageCount]);
 
-  // Form ghi nhanh số từ vựng
   const [quickDate, setQuickDate] = useState(today);
-  const [quickCount, setQuickCount] = useState<number>(20);
-  
-  // Trạng thái đã lưu phản hồi trực tiếp trên nút (chống giật khung)
-  const [isJustSaved, setIsJustSaved] = useState(false);
+  const [quickCount, setQuickCount] = useState(() => String(days.find(day => day.date === today)?.count ?? 20));
+  const baseline = useRef(vocabDaySignature(vocabLog, today));
+  const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState<{ day: VocabDay; signature: string } | null>(null);
+  const closeEdit = useCallback(() => setEditing(null), []);
+  useEffect(() => {
+    if (!saved) return;
+    const timeout = window.setTimeout(() => setSaved(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [saved]);
+  const existing = days.find(day => day.date === quickDate);
+  const suggestions = useMemo(() => uniqueTestNames([...sourceNames, ...days.flatMap(day => day.sourceNames)]), [sourceNames, days]);
 
-  // Lọc các bản ghi hợp lệ (chưa bị xóa mềm)
-  const activeLogs = useMemo(() => {
-    return vocabLog.filter(item => !item.deletedAt && item.count > 0);
-  }, [vocabLog]);
-
-  // Gom nhóm dữ liệu theo ngày để hiển thị biểu đồ cột
-  const chartData = useMemo(() => {
-    if (activeLogs.length === 0) return [];
-
-    const dailyMap: Record<string, number> = {};
-    for (const log of activeLogs) {
-      dailyMap[log.date] = (dailyMap[log.date] || 0) + log.count;
-    }
-
-    const sortedDates = Object.keys(dailyMap).sort();
-    let cumulative = 0;
-
-    return sortedDates.map(dateStr => {
-      const daily = dailyMap[dateStr];
-      cumulative += daily;
-      const [, m, d] = dateStr.split('-');
-      return {
-        date: dateStr,
-        displayDate: `${d}/${m}`,
-        daily,
-        cumulative
-      };
-    });
-  }, [activeLogs]);
-
-  // Tổng số từ đã tích lũy
-  const totalVocabCount = useMemo(() => {
-    return chartData.length > 0
-      ? chartData[chartData.length - 1].cumulative
-      : 0;
-  }, [chartData]);
-
-  // Danh sách lịch sử sắp xếp từ mới nhất xuống cũ nhất
-  const sortedLogsDesc = useMemo(() => {
-    return [...activeLogs].sort((a, b) => b.date.localeCompare(a.date));
-  }, [activeLogs]);
-
-  // Thống kê tóm tắt cho card lịch sử (Kỷ lục & Trung bình)
-  const maxDayLog = useMemo(() => {
-    if (chartData.length === 0) return null;
-    return chartData.reduce((max, curr) => (curr.daily > max.daily ? curr : max), chartData[0]);
-  }, [chartData]);
-
-  const avgDailyWords = useMemo(() => {
-    if (chartData.length === 0) return 0;
-    const total = chartData.reduce((sum, item) => sum + item.daily, 0);
-    return Math.round((total / chartData.length) * 10) / 10;
-  }, [chartData]);
-
-  // Xử lý lưu từ vựng (phản hồi tại nút, 0px layout shift)
-  const handleQuickSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickDate || quickCount <= 0) return;
-    onSaveVocab(quickDate, Number(quickCount));
-    setIsJustSaved(true);
-    setTimeout(() => setIsJustSaved(false), 1800);
+  const saveDay = (date: string, count: number, signature: string, details?: VocabDetails): string | null => {
+    try {
+      if (!validVocabDate(date) || date > today || !Number.isInteger(count) || count < 1 || count > 10000) throw new Error('Nhập ngày hợp lệ và số từ nguyên từ 1 đến 10000.');
+      if (owner.current !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Hãy mở lại trang.');
+      if (signature !== vocabDaySignature(loadVocabLog(), date)) throw new Error('Ngày này vừa được sửa ở nơi khác. Chọn lại ngày trước khi cập nhật.');
+      onSaveVocab(date, count, details);
+      if (quickDate === date) { baseline.current = vocabDaySignature(loadVocabLog(), date); setQuickCount(String(count)); }
+      setError(''); setSaved(quickDate === date);
+      setFeedback(`Đã lưu ${count.toLocaleString('vi-VN')} từ cho ngày ${formatVocabDate(date)}.${date < range.from || date > range.to ? ' Ngày này nằm ngoài khoảng đang chọn.' : ''}`);
+      return null;
+    } catch (reason) { return reason instanceof Error ? reason.message : 'Chưa lưu được ghi nhận.'; }
+  };
+  const quickSave = (event: React.FormEvent) => { event.preventDefault(); const message = saveDay(quickDate, Number(quickCount), baseline.current); if (message) setError(message); };
+  const chooseDate = (date: string) => { setQuickDate(date); setQuickCount(String(days.find(day => day.date === date)?.count ?? 20)); baseline.current = vocabDaySignature(vocabLog, date); setError(''); setSaved(false); };
+  const removeDay = (day: VocabDay) => {
+    if (!onDeleteVocab || !window.confirm(`Xóa ghi nhận ${day.count} từ ngày ${formatVocabDate(day.date)}?`)) return;
+    try {
+      if (owner.current !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Hãy mở lại trang.');
+      if (vocabDaySignature(vocabLog, day.date) !== vocabDaySignature(loadVocabLog(), day.date)) throw new Error('Ngày này vừa được sửa ở nơi khác. Tải lại trang trước khi xóa.');
+      onDeleteVocab(day.id);
+      if (quickDate === day.date) { baseline.current = vocabDaySignature(loadVocabLog(), day.date); setQuickCount('20'); }
+      setError(''); setFeedback(`Đã xóa ghi nhận ngày ${formatVocabDate(day.date)}.`);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa xóa được ghi nhận.'); }
   };
 
-  return (
-    <div className="space-y-4 animate-fade-in pb-4 w-full flex-1 flex flex-col min-h-0">
-      
-      {/* ================= 1. THANH TIÊU ĐỀ & FORM NHẬP INLINE GỌN GÀNG ================= */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-        
-        {/* Vế trái: Tiêu đề + Huy hiệu tổng từ */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
-            <BookMarked className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black text-slate-950 dark:text-white tracking-tight">
-                Vốn Từ Vựng TOEIC
-              </h1>
-              <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-950 dark:text-purple-300 font-mono font-black text-xs border border-slate-900 shadow-[1px_1px_0px_#0f172a]">
-                {totalVocabCount} từ tích lũy
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-              Nhập số từ bạn đã học để vẽ biểu đồ tiến độ mỗi ngày
-            </p>
-          </div>
-        </div>
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(800);
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const observer = new ResizeObserver(entries => setChartWidth(entries[0].contentRect.width));
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
+  const barMotion = useChartMotion(500);
+  const plotted = useMemo(() => selected.map(day => ({ ...day, dayIndex: vocabDayIndex(day.date) })), [selected]);
+  const firstDay = vocabDayIndex(range.from), lastDay = vocabDayIndex(range.to);
+  const span = lastDay - firstDay + 1;
+  const tickCount = Math.min(span, chartWidth < 500 ? 3 : 6);
+  const dateTicks = [...new Set(Array.from({ length: tickCount }, (_, index) => firstDay + Math.round(index * (span - 1) / Math.max(1, tickCount - 1))))];
+  const yAxis = vocabYAxis(selected);
 
-        {/* Vế phải: Form nhập từ vựng 1 dòng - Chuẩn Neo-Brutalism */}
-        <form onSubmit={handleQuickSubmit} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          {/* Chọn ngày */}
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-slate-900 dark:text-slate-300 shrink-0" />
-            <input
-              type="date"
-              aria-label="Ngày học từ vựng"
-              required
-              max={today}
-              value={quickDate}
-              onChange={e => setQuickDate(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-950 dark:text-white font-bold shadow-[2px_2px_0px_#0f172a] dark:shadow-[2px_2px_0px_#cbd5e1] focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          {/* Ô nhập số lượng từ */}
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              aria-label="Số từ đã học"
-              min="1"
-              max="999"
-              required
-              value={quickCount}
-              onChange={e => setQuickCount(Math.max(1, Number(e.target.value)))}
-              className="w-16 px-2 py-1.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-950 dark:text-white text-center font-mono font-black shadow-[2px_2px_0px_#0f172a] dark:shadow-[2px_2px_0px_#cbd5e1] focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-            <span className="text-xs font-black text-slate-900 dark:text-white">từ</span>
-          </div>
-
-          {/* Nút lưu - phản hồi trạng thái ngay trên nút (0px layout shift) */}
-          <button
-            type="submit"
-            className={`px-4 py-1.5 rounded-xl font-black text-xs border-2 border-slate-900 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              isJustSaved
-                ? 'bg-emerald-400 text-slate-950 shadow-[2px_2px_0px_#0f172a] scale-105'
-                : 'bg-yellow-300 hover:bg-yellow-200 text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
-            }`}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>{isJustSaved ? 'Đã lưu!' : 'Lưu từ vựng'}</span>
-          </button>
-        </form>
+  return <div className="vocabulary-view">
+    <header className="vocab-page-header">
+      <div className="flex items-center gap-3 min-w-0"><span className="vocab-page-icon"><BookMarked size={20} aria-hidden="true" /></span><div><div className="flex flex-wrap items-center gap-2"><h1 className="text-base sm:text-lg font-black">Vốn Từ Vựng TOEIC</h1><span className="vocab-total">{total.toLocaleString('vi-VN')} từ tích lũy</span></div><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Mỗi ngày lưu một tổng số từ. Cập nhật sẽ thay số cũ.</p></div></div>
+      <form onSubmit={quickSave} className="vocab-quick-form"><Calendar size={16} aria-hidden="true" /><input type="date" aria-label="Ngày học từ vựng" required min="0001-01-01" max={today} value={quickDate} onChange={event => chooseDate(event.target.value)} className="vocab-quick-date" /><input type="number" aria-label="Số từ đã học" required min={1} max={10000} step={1} value={quickCount} onChange={event => { setQuickCount(event.target.value); setSaved(false); }} className="vocab-quick-count" /><span className="text-xs font-bold">từ</span><button type="submit" className={`vocab-button is-yellow ${saved ? 'is-saved' : ''}`}><CheckCircle2 size={16} aria-hidden="true" />{saved ? 'Đã lưu!' : existing ? 'Cập nhật' : 'Lưu từ vựng'}</button></form>
+    </header>
+    {error && <p role="alert" className="vocab-error">{error}</p>}
+    <section className="vocab-panel vocab-chart-panel" aria-label="Biểu đồ từ vựng">
+      <div className="vocab-panel-header"><h2 className="text-sm sm:text-base font-black">Từ đã học theo ngày</h2><DateRangePicker value={range} today={today} onChange={value => { setRange(value); setHistoryPage(1); }} /></div>
+      <div ref={chartRef} className="vocab-chart" role="img" aria-label={`${selected.length} ngày có ghi nhận trong khoảng ${formatVocabDate(range.from)} đến ${formatVocabDate(range.to)}.`}>
+        {plotted.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={plotted} margin={{ top: 26, right: 16, left: 0, bottom: 6 }}>
+          <CartesianGrid strokeDasharray="3 4" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} />
+          <XAxis dataKey="dayIndex" type="number" scale="linear" domain={[firstDay - 0.5, lastDay + 0.5]} ticks={dateTicks} tickFormatter={day => formatVocabDate(new Date(Number(day) * 86400000).toISOString().slice(0, 10)).slice(0, 5)} tick={{ fontSize: 12, fill: isDark ? '#cbd5e1' : '#475569' }} tickLine={false} axisLine={{ stroke: isDark ? '#475569' : '#cbd5e1' }} allowDataOverflow />
+          <YAxis domain={[0, yAxis.ceiling]} ticks={yAxis.ticks} tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
+          <Tooltip shared={false} cursor={false} content={({ active, payload }) => {
+            const day = payload?.[0]?.payload as VocabDay | undefined;
+            if (!active || !day) return null;
+            return <div className="vocab-tooltip"><p className="font-bold">{formatVocabDate(day.date)}</p><p className="mt-1 font-black text-purple-700 dark:text-purple-300">{day.count.toLocaleString('vi-VN')} từ</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Tổng tích lũy tới ngày này: {day.cumulative.toLocaleString('vi-VN')} từ</p></div>;
+          }} />
+          <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={Math.max(0.5, Math.min(48, (chartWidth - 56) / span * 0.68))} isAnimationActive={barMotion.enabled} animationBegin={0} animationDuration={barMotion.duration} animationEasing="ease-out" onAnimationEnd={barMotion.finish}>
+            {plotted.map(day => <Cell key={day.date} fill={day.date === today ? (isDark ? '#34d399' : '#059669') : (isDark ? '#a5a3ff' : '#6366f1')} stroke={isDark ? '#64748b' : '#0f172a'} strokeWidth={1.5} />)}
+          </Bar><Customized component={<VocabChartLabels isDark={isDark} />} />
+        </BarChart></ResponsiveContainer> : <div className="vocab-empty">Chưa có ghi nhận trong khoảng này.</div>}
       </div>
-
-      {/* ================= 2. KHU VỰC CHÍNH: BIỂU ĐỒ CỘT (70%) + LỊCH SỬ (30%) ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 lg:h-[calc(100vh-210px)] lg:min-h-[460px] lg:max-h-[600px] min-h-0">
-        
-        {/* Cột 1: Biểu đồ cột từ vựng (Chiếm 8/12 cột, tỷ lệ rộng - cao cân đối, không nén) */}
-        <div className="lg:col-span-8 p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col h-full min-h-[360px]">
-          
-          {/* Header biểu đồ */}
-          <div className="flex items-center justify-between gap-2 flex-wrap pb-2.5 border-b-2 border-slate-900 dark:border-slate-700 shrink-0">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 stroke-[2.5]" />
-              <h2 className="text-sm sm:text-base font-black text-slate-950 dark:text-white">
-                Biểu Đồ Cột Từ Vựng Đã Học
-              </h2>
-              <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-300 font-mono border border-slate-900">
-                {chartData.length} ngày
-              </span>
-            </div>
-
-            {/* Chú thích màu cột chuẩn Neo-Brutalism */}
-            <div className="flex items-center gap-2 text-xs font-black">
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-200 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-200 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] text-[11px]">
-                <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 border border-slate-900"></span>
-                <span>Hôm nay</span>
-              </span>
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-200 dark:bg-indigo-950/80 text-indigo-950 dark:text-indigo-200 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] text-[11px]">
-                <span className="w-2.5 h-2.5 rounded-xs bg-indigo-500 border border-slate-900"></span>
-                <span>Ngày trước</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Vùng vẽ biểu đồ cột - Tự co giãn theo chiều cao container (Thoáng mắt, rõ nét) */}
-          {chartData.length > 0 ? (
-            <div className="flex-1 w-full pt-3 min-h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 26, right: 16, left: 0, bottom: 6 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#E2E8F0'} />
-                  <XAxis
-                    dataKey="displayDate"
-                    tick={{ fontSize: 11.5, fill: isDark ? '#CBD5E1' : '#334155', fontWeight: 800 }}
-                    tickLine={false}
-                    axisLine={{ stroke: isDark ? '#475569' : '#0F172A', strokeWidth: 2 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: isDark ? '#94A3B8' : '#64748B', fontWeight: 700, fontFamily: 'monospace' }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload || !payload.length) return null;
-                      const d = payload[0].payload;
-                      return (
-                        <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-slate-900 text-slate-950 dark:text-white border-2 border-slate-900 shadow-[3px_3px_0px_#0f172a] text-xs space-y-0.5 z-30">
-                          <div className="text-slate-700 dark:text-slate-300 font-bold">{formatVnDate(d.date)}</div>
-                          <div className="font-mono font-black text-emerald-700 dark:text-emerald-400 text-sm">
-                            +{d.daily} từ
-                          </div>
-                          <div className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">
-                            Tổng tích lũy: <strong className="text-purple-700 dark:text-purple-300 font-mono font-black">{d.cumulative} từ</strong>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar
-                    dataKey="daily"
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={48}
-                    isAnimationActive={false}
-                  >
-                    <LabelList
-                      dataKey="daily"
-                      position="top"
-                      content={(props: any) => {
-                        const { x, y, width, value } = props;
-                        if (value === undefined || value === null || value === 0) return null;
-                        return (
-                          <text
-                            x={Number(x) + Number(width) / 2}
-                            y={Number(y) - 6}
-                            textAnchor="middle"
-                            fill={isDark ? '#F8FAFC' : '#0F172A'}
-                            fontSize={11.5}
-                            fontWeight={900}
-                            fontFamily="ui-monospace, monospace"
-                          >
-                            +{value}
-                          </text>
-                        );
-                      }}
-                    />
-                    {chartData.map((entry, idx) => {
-                      const isToday = entry.date === today;
-                      return (
-                        <Cell
-                          key={`vocab-bar-${idx}`}
-                          fill={isToday 
-                            ? (isDark ? '#10B981' : '#059669') 
-                            : (isDark ? '#818CF8' : '#6366F1')
-                          }
-                          stroke="#0F172A"
-                          strokeWidth={2}
-                          className="transition-all hover:opacity-90 cursor-pointer"
-                        />
-                      );
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-14 px-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-center space-y-2">
-              <BookOpen className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                Chưa có dữ liệu từ vựng
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                Nhập số từ bạn vừa học ở thanh trên để bắt đầu vẽ biểu đồ cột!
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Cột 2: Lịch sử nạp từ vựng - Chuẩn 100% Neo-Brutalism */}
-        <div className="lg:col-span-4 p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] flex flex-col h-full min-h-[360px] justify-between">
-          
-          {/* Header lịch sử */}
-          <div className="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-slate-900 dark:border-slate-700 shrink-0">
-            <h2 className="text-sm sm:text-base font-black text-slate-950 dark:text-white">
-              Lịch Sử Ghi Nhận
-            </h2>
-            <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-purple-200 dark:bg-purple-950/80 text-purple-950 dark:text-purple-300 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]">
-              {sortedLogsDesc.length} lượt
-            </span>
-          </div>
-
-          {/* Danh sách các lần nạp dạng Mini-Card Neo-Brutalism có viền đen 2px và đổ bóng sắc nét */}
-          {sortedLogsDesc.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                Chưa có lượt ghi nhận từ vựng nào.
-              </p>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 min-h-0 pt-2.5">
-              {sortedLogsDesc.map(log => {
-                const isToday = log.date === today;
-                return (
-                  <div
-                    key={log.id}
-                    className={`p-2.5 rounded-xl border-2 border-slate-900 dark:border-slate-700 flex items-center justify-between transition-all ${
-                      isToday
-                        ? 'bg-emerald-100 dark:bg-emerald-950/60 shadow-[2.5px_2.5px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_#cbd5e1]'
-                        : 'bg-white dark:bg-slate-900 shadow-[2px_2px_0px_#0f172a] dark:shadow-[2px_2px_0px_#cbd5e1] hover:bg-slate-50 dark:hover:bg-slate-800/80'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={`w-2.5 h-2.5 rounded-xs border-1.5 border-slate-900 shrink-0 ${
-                          isToday ? 'bg-emerald-500' : 'bg-indigo-500'
-                        }`}
-                      />
-                      <span className="text-xs font-black text-slate-950 dark:text-white font-mono">
-                        {formatVnDate(log.date)}
-                      </span>
-                      {isToday && (
-                        <span className="px-1.5 py-0.2 rounded-md text-[9.5px] font-black bg-emerald-300 text-slate-950 border border-slate-900 shadow-[1px_1px_0px_#0f172a] shrink-0">
-                          Hôm nay
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`font-mono font-black text-xs px-2.5 py-0.5 rounded-lg border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] ${
-                          isToday
-                            ? 'bg-emerald-300 text-slate-950'
-                            : 'bg-purple-200 text-slate-950'
-                        }`}
-                      >
-                        +{log.count} từ
-                      </span>
-                      {onDeleteVocab && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm(`Xóa bản ghi +${log.count} từ ngày ${formatVnDate(log.date)}?`)) {
-                              onDeleteVocab(log.id);
-                            }
-                          }}
-                          className="p-1 rounded-lg border-1.5 border-slate-900 bg-white dark:bg-slate-800 hover:bg-rose-200 dark:hover:bg-rose-950 text-slate-700 hover:text-rose-950 transition-all shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
-                          title="Xóa bản ghi này"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Thẻ thống kê tóm tắt chân trang - Chuẩn phong cách Neo-Brutalism */}
-          {chartData.length > 0 && (
-            <div className="mt-3 pt-2.5 border-t-2 border-slate-900 dark:border-slate-700 shrink-0">
-              <div className="p-2.5 rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-amber-100/70 dark:bg-slate-900/90 shadow-[2.5px_2.5px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_#cbd5e1] grid grid-cols-2 gap-2.5">
-                <div className="p-2 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[1.5px_1.5px_0px_#0f172a]">
-                  <div className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    🏆 Kỷ lục ngày
-                  </div>
-                  <div className="font-mono font-black text-sm text-indigo-700 dark:text-indigo-400 mt-0.5">
-                    +{maxDayLog?.daily || 0} từ{' '}
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans font-bold">
-                      ({maxDayLog?.displayDate})
-                    </span>
-                  </div>
-                </div>
-                <div className="p-2 rounded-xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[1.5px_1.5px_0px_#0f172a]">
-                  <div className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    ⚡ Trung bình
-                  </div>
-                  <div className="font-mono font-black text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    ~{avgDailyWords} từ
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans font-bold">
-                      /ngày
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-
-      </div>
-
-    </div>
-  );
-};
+      <div className="vocab-stats-strip"><span className="text-xs text-slate-500 dark:text-slate-400">{formatVocabDate(range.from)} – {formatVocabDate(range.to)} · {selected.length} ngày có ghi nhận</span><div className="vocab-summary-values"><span>Kỷ lục: <strong>{summary.record ? `${summary.record.count.toLocaleString('vi-VN')} từ (${formatVocabDate(summary.record.date).slice(0, 5)})` : '—'}</strong></span><span><span>TB mỗi ngày ghi nhận</span>: <strong>{summary.average === null ? '—' : `${summary.average.toLocaleString('vi-VN')} từ/ngày`}</strong></span></div></div>
+    </section>
+    <section className="vocab-panel" aria-label="Lịch sử từ vựng">
+      <div className="vocab-panel-header"><h2 className="text-sm sm:text-base font-black">Lịch sử ghi nhận</h2><span className="vocab-total">{selected.length} ngày</span></div>
+      <table className="vocab-history-table"><caption className="sr-only">Lịch sử ghi nhận theo khoảng ngày đã chọn</caption><colgroup><col style={{ width: '16%' }} /><col style={{ width: '36%' }} /><col style={{ width: '16%' }} /><col style={{ width: '12%' }} /><col style={{ width: '20%' }} /></colgroup><thead><tr><th scope="col">Ngày</th><th scope="col">Nguồn học</th><th scope="col">Part</th><th scope="col">Số từ</th><th scope="col">Thao tác</th></tr></thead><tbody>
+        {visible.length ? visible.map(day => <tr key={day.date} data-vocab-day={day.date}><td>{formatVocabDate(day.date)}</td><td>{day.sourceNames.length ? day.sourceNames.join(' · ') : <span className="text-slate-500 dark:text-slate-400">Chưa ghi nguồn</span>}</td><td><div className="vocab-parts">{day.parts.length ? day.parts.map(part => <span className="vocab-part" data-part={part} key={part}>P{part}</span>) : <span className="text-slate-500 dark:text-slate-400">—</span>}</div></td><td className="vocab-quantity">{day.count.toLocaleString('vi-VN')} từ</td><td><div className="vocab-row-actions"><button type="button" aria-label={`Sửa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => setEditing({ day, signature: vocabDaySignature(vocabLog, day.date) })} className="vocab-action"><Pencil size={14} aria-hidden="true" /><span>Sửa</span></button>{onDeleteVocab && <button type="button" aria-label={`Xóa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => removeDay(day)} className="vocab-action is-delete"><Trash2 size={14} aria-hidden="true" /><span>Xóa</span></button>}</div></td></tr>) : <tr><td colSpan={5} className="vocab-empty">Chưa có ghi nhận trong khoảng này.</td></tr>}
+      </tbody></table>
+      {pageCount > 1 && <nav aria-label="Trang lịch sử từ vựng" className="vocab-pagination"><button type="button" disabled={page === 1} onClick={() => setHistoryPage(page - 1)}><ChevronLeft size={16} aria-hidden="true" />Trước</button><span>Trang {page}/{pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setHistoryPage(page + 1)}>Sau<ChevronRight size={16} aria-hidden="true" /></button></nav>}
+    </section>
+    <p role="status" aria-live="polite" className="vocab-feedback">{feedback}</p>
+    {editing && <VocabEditModal day={editing.day} suggestions={suggestions} onClose={closeEdit} onSave={(count, details) => {
+      const message = saveDay(editing.day.date, count, editing.signature, details);
+      if (!message) closeEdit();
+      return message;
+    }} />}
+  </div>;
+}

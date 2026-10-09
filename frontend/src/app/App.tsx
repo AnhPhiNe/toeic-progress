@@ -43,6 +43,8 @@ import {
 import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
+import { collectTestNames } from '@/shared/domain/testNames';
+import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -177,14 +179,15 @@ export const App: React.FC = () => {
     setProfile(loadUserProfile());
   }, []);
 
-  const handleSaveVocab = (date: string, count: number) => {
-    setVocabLog(upsertVocabLog(date, count));
+  const handleSaveVocab = (date: string, count: number, details?: VocabDetails) => {
+    setVocabLog(upsertVocabLog(date, count, details));
     dismissOnboarding();
     setProfile(recordDailyActivity(profile, date));
   };
 
   const handleDeleteVocab = (id: string) => {
     setVocabLog(deleteVocabLog(id));
+    setProfile(loadUserProfile());
   };
 
   /**
@@ -377,6 +380,7 @@ export const App: React.FC = () => {
 
           {activeTab === 'analytics' && (
             <AnalyticsView
+              key={activeOwner ?? 'guest'}
               profile={profile}
               sessions={sessions}
               mistakes={mistakes}
@@ -384,6 +388,7 @@ export const App: React.FC = () => {
               theme={theme}
               onOpenSessionLogger={openSessionLogger}
               onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
+              onEditSession={openSessionEditor}
               onNavigateToTimer={(part = 'POMODORO') => navigateToPacing(part)}
             />
           )}
@@ -415,11 +420,12 @@ export const App: React.FC = () => {
 
           {activeTab === 'vocabulary' && (
             <VocabularyView
+              key={activeOwner ?? 'guest'}
               vocabLog={vocabLog}
               theme={theme}
               onSaveVocab={handleSaveVocab}
               onDeleteVocab={handleDeleteVocab}
-              onOpenSessionLogger={openSessionLogger}
+              sourceNames={collectTestNames(sessions, mistakes)}
             />
           )}
 
