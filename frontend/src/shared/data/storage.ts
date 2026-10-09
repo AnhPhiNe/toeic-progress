@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun, WeeklyPlanRecord } from '@/shared/types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '@/shared/data/demoData';
-import { DEFAULT_CHECKLIST, canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
+import { DEFAULT_CHECKLIST, canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, retainedSessionSources, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { deriveStreak } from '@/shared/domain/streak';
 import { testNameKey } from '@/shared/domain/testNames';
@@ -94,10 +94,15 @@ export function saveStudySessions(sessions: StudySession[]): void {
  * replaceCollection sẽ đánh dấu xóa các buổi đó.
  */
 export function updateStudySessions(update: (current: StudySession[]) => StudySession[]): StudySession[] {
-  const next = updateDataBundle(current => ({
-    ...current,
-    sessions: replaceCollection(current.sessions, update(live(current.sessions)))
-  }));
+  const next = updateDataBundle(current => {
+    const sessions = replaceCollection(current.sessions, update(live(current.sessions)));
+    const removedSessions = new Set(sessions.filter(session => session.deletedAt).map(session => session.id));
+    const removedPairs = new Set(sessions.filter(session => session.deletedAt && session.id.startsWith('pacing-v2-')).map(session => session.id));
+    return { ...current, sessions, mistakes: retainedSessionSources(current, removedSessions), pacingRuns: current.pacingRuns.map(run => {
+      if (run.deletedAt || !removedPairs.has(run.id)) return run;
+      const updatedAt = nextUpdatedAt(run.updatedAt); return { ...run, updatedAt, deletedAt: updatedAt };
+    }) };
+  });
   return live(next.sessions);
 }
 

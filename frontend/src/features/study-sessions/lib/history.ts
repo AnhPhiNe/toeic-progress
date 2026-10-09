@@ -27,3 +27,6 @@ export function historyDate(date: string): string {
   const [year, month, day] = date.split('-');
   return day ? `${day}/${month}/${year}` : date;
 }
+export function historyDuration(minutes: number): string {
+  return minutes < 1 ? `${Math.round(minutes * 60)} giây` : `${minutes.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} phút`;
+}

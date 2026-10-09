@@ -1,5 +1,6 @@
 import type { MistakeEntry, PacingRun, StudySession, UserProfile, WeeklyPlanRecord } from '@/shared/types';
 import { normalizeMistakeRecord } from '@/shared/data/mistakeFields';
+import { normalizeTestName } from '@/shared/domain/testNames';
 
 export interface SyncMeta {
   updatedAt: string;
@@ -232,6 +233,15 @@ export function updateDataBundle(update: (current: DataBundle) => DataBundle): D
 export function live<T extends SyncMeta>(records: T[]): T[] {
   return records.filter(record => !record.deletedAt);
 }
+/** A note's source survives deletion of the study record it inherited that source from. */
+export function retainedSessionSources(current: DataBundle, removed: ReadonlySet<string>): DataBundle['mistakes'] {
+  const names = new Map(current.sessions.filter(session => !session.deletedAt && removed.has(session.id)).map(session => [session.id, normalizeTestName(session.testName ?? '')]));
+  return current.mistakes.map(mistake => {
+    const name = names.get(mistake.sessionId ?? '');
+    if (mistake.deletedAt || typeof mistake.sourceTestName === 'string' || !name || name.length > 300) return mistake;
+    return { ...mistake, sourceTestName: name, updatedAt: nextUpdatedAt(mistake.updatedAt) };
+  });
+}
 
 /** Deleted records only need identity/version to prevent stale devices reviving them. */
 export function compactDeletedRecords(bundle: DataBundle): DataBundle {
@@ -245,6 +255,7 @@ export function compactDeletedRecords(bundle: DataBundle): DataBundle {
 
 /** Clear retired copies only for the scope the user explicitly reset. */
 export function clearRetiredCopies(userId: string | null): void {
+  localStorage.removeItem(`toeic_pacing_draft_v1_${userId ?? 'guest'}`);
   if (userId) localStorage.removeItem(`toeic_progress_account_${userId}_v2`);
   else {
     localStorage.removeItem(OLD_BUNDLE_KEY);

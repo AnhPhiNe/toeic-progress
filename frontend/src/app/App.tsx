@@ -16,6 +16,9 @@ import { RelapseAlert } from '@/features/dashboard/components/RelapseAlert';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
 import { CARD } from '@/shared/ui/surfaces';
+import { clearTimer, readTimer } from '@/features/pacing/services/pacingStorage';
+import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
+import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
 import { useCloudAccount } from '@/features/account/hooks/useCloudAccount';
 import { useRouteTab } from '@/app/routing/useRouteTab';
 import { getActiveAccountId, readDataBundle } from '@/shared/data/dataBundle';
@@ -24,7 +27,8 @@ import { hasPersonalData } from '@/shared/data/syncMerge';
 import { 
   loadUserProfile, 
   saveUserProfile, 
-  loadStudySessions, 
+  loadStudySessions,
+  loadPacingRuns,
   updateStudySessions,
   addStudySession,
   loadMistakes,
@@ -37,7 +41,7 @@ import {
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
-import { StudySession, MistakeEntry, UserProfile, ReadingPartType } from '@/shared/types';
+import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 
@@ -68,15 +72,25 @@ export const App: React.FC = () => {
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') setNotebookSourceFilter(null); }, [activeTab]);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
+  const navigateToPacing = (part: ReadingPartType) => {
+    const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
+    if (draft && (draft.mode !== target || target === 'POMODORO' && draft.phase !== 'WORK')) {
+      if (draft.status !== 'ready' && !window.confirm(`Phiên ${PRESETS[draft.mode].name} đang được giữ trên máy. Làm mới để luyện ${PRESETS[target].name}?`)) return;
+      clearTimer(owner, draft.id);
+    }
+    setPacingInitialPart(part); setActiveTab('exam-mode');
+  };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
   const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' } | undefined>(undefined);
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const [editingPacing, setEditingPacing] = useState<{ run: PacingRun; owner: string | null } | null>(null);
+  const closePacingEditor = useCallback(() => setEditingPacing(null), []);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); }, [activeOwner]);
+  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setEditingPacing(null); }, [activeOwner]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -107,7 +121,7 @@ export const App: React.FC = () => {
       ) {
         return;
       }
-      if (isSessionModalOpen || isSettingsModalOpen) return;
+      if (isSessionModalOpen || isSettingsModalOpen || editingPacing) return;
 
       if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -117,7 +131,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSessionModalOpen, isSettingsModalOpen]);
+  }, [isSessionModalOpen, isSettingsModalOpen, editingPacing]);
 
   // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
   const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => {
@@ -128,6 +142,8 @@ export const App: React.FC = () => {
 
   // Mở cùng form Nhập Điểm ở chế độ sửa một bản ghi có sẵn
   const openSessionEditor = (session: StudySession) => {
+    const pair = session.id.startsWith('pacing-v2-') ? loadPacingRuns().find(run => run.id === session.id) : undefined;
+    if (pair) { setEditingPacing({ run: pair, owner: getActiveAccountId() }); return; }
     setSessionPrefill(undefined);
     setEditingSession(session);
     setIsSessionModalOpen(true);
@@ -158,6 +174,7 @@ export const App: React.FC = () => {
   // Phòng Thi tự ghi buổi học vào bộ nhớ; đọc lại để state không bị cũ
   const handleSessionsChangedElsewhere = useCallback(() => {
     setSessions(loadStudySessions());
+    setMistakes(loadMistakes());
     setProfile(loadUserProfile());
   }, []);
 
@@ -196,6 +213,7 @@ export const App: React.FC = () => {
   // Xóa session
   const handleDeleteSession = (sessionId: string) => {
     setSessions(updateStudySessions(current => current.filter(s => s.id !== sessionId)));
+    setMistakes(loadMistakes());
     setProfile(loadUserProfile());
   };
 
@@ -353,6 +371,7 @@ export const App: React.FC = () => {
           {activeTab === 'history' && (
             <ExamHistoryView
               sessions={sessions}
+              pacingRuns={loadPacingRuns()}
               mistakes={mistakes}
               theme={theme}
               onDeleteSession={handleDeleteSession}
@@ -371,15 +390,13 @@ export const App: React.FC = () => {
               theme={theme}
               onOpenSessionLogger={openSessionLogger}
               onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
-              onNavigateToTimer={(part = 'POMODORO') => {
-                setPacingInitialPart(part);
-                setActiveTab('exam-mode');
-              }}
+              onNavigateToTimer={(part = 'POMODORO') => navigateToPacing(part)}
             />
           )}
 
           {activeTab === 'exam-mode' && (
             <ReadingPacingView
+              resultDialogBlocked={isSessionModalOpen || isSettingsModalOpen || editingPacing !== null || reviewCards !== null || Boolean(account.pendingTransfer)}
               onOpenSessionLogger={openSessionLogger}
               onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
@@ -426,10 +443,7 @@ export const App: React.FC = () => {
               onOpenSettings={() => setIsSettingsModalOpen(true)}
               onOpenSessionLogger={() => openSessionLogger()}
               onNavigateToMistakes={() => setActiveTab('mistakes')}
-              onNavigateToTimer={() => {
-                setPacingInitialPart('POMODORO');
-                setActiveTab('exam-mode');
-              }}
+              onNavigateToTimer={() => navigateToPacing('POMODORO')}
             />
           )}
         </main>
@@ -437,6 +451,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Modals */}
+      {editingPacing && editingPacing.owner === activeOwner && <PacingResultEditor run={editingPacing.run} owner={editingPacing.owner} onClose={closePacingEditor} onSaved={handleSessionsChangedElsewhere} />}
       <SessionLoggerModal
         isOpen={isSessionModalOpen}
         onClose={closeSessionLogger}

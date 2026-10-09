@@ -214,20 +214,21 @@ Nhịp thực tế 8đ/tuần — đang đi trước kế hoạch.
 
 ### 4.3. Phòng Thi — Bộ Đếm Nhịp Làm Bài (Pacing Trainer)
 
-> *Tính năng này không có trong v1. Nó được xây ở đợt ba và v2 ghi nhận chính thức.*
+**Bản duyệt 09/10/2026:** ba tab Luyện tập/Lịch sử/Thống kê; giữ top bar ứng dụng. Đồng hồ và nút thao tác nằm gọn trong màn hình, mẹo luyện thu gọn; không lặp nhãn mục tiêu hoặc animation gây xao nhãng.
 
-Đây **không phải** đồng hồ đếm ngược thông thường — các web luyện đề đã có sẵn. Giá trị nằm ở **mốc nhịp theo từng Part kèm chiến thuật**, thứ các web đó không cung cấp:
+- **Đồng hồ gọn:** Reading và Pomodoro cùng dùng thanh thời gian còn lại, đầy khi bắt đầu và giảm về 0; không dùng vòng tròn. Bỏ nhãn “Sẵn sàng”, chỉ hiện thời gian đã dùng khi lớn hơn 0. Nút thống nhất “Bắt đầu”/“Tạm dừng”/“Tiếp tục”. Reading giữ tên Part, số câu và mục tiêu giây/câu. Pomodoro không lặp tên pha/thời lượng dưới nhóm chọn pha; nút “Điều chỉnh” có chữ, ở cạnh nhóm trên màn hình rộng và chuyển xuống dưới khi khung hẹp. Nhóm pha căn giữa theo trục đồng hồ, không bị nút điều chỉnh kéo lệch và không dịch trục khi bắt đầu chạy. Bỏ ô biểu tượng đứng riêng; dòng tên Part/số câu cùng cỡ chữ, chỉ tên Part nhấn đậm. Màu pha phân biệt tập trung (hồng đỏ), nghỉ ngắn (mint), nghỉ dài (xanh trời); Reading giữ vàng. Thống kê hôm nay chỉ hiện khi có phút tập trung thực, không ghi “0 phiên”. Thanh chuyển tiếp nhẹ, tôn trọng reduced motion.
 
-- **Năm chế độ:** Full Test 120 phút · Sprint Reading 75 phút · Tốc độ phản xạ Part 5 trong 12 phút · Sức bền Part 7 trong 55 phút · Pomodoro 25 phút.
-- Mỗi chế độ chia thành các pha gắn với khoảng câu hỏi cụ thể (ví dụ *Part 5, câu 101–130, 12 phút, tối đa 25–30 giây mỗi câu*), kèm lời nhắc chiến thuật riêng cho từng pha.
-- **Phục vụ hai nhóm:** người luyện đề giấy từ sách, vốn không có timer sẵn; và người muốn tập riêng kỷ luật phân bổ thời gian.
-
-**Đã lưu lượt Phòng Thi:** khi Nộp Bài, thời gian thật được truyền sang Nhập Điểm và các pha đã đánh dấu "xong pha" được lưu để phân tích. Tiếp tục dùng dữ liệu này cho:
-
-1. Khi Nộp Bài, chuyển **thời gian thật đã dùng** sang form Nhập Điểm.
-2. Ghi lại **pha nào vượt giờ và vượt bao nhiêu**, để dựng đường cong mệt mỏi (mục 1.4 điểm 3) mà người dùng không phải gõ thêm gì.
-
-Chỉ hiển thị xu hướng vượt giờ khi có ít nhất ba lượt cùng chế độ đã bấm "xong pha"; dưới ngưỡng thì hướng dẫn người học thao tác.
+- **Chế độ:** Part 5 (30 câu/12 phút), Part 6 (16/8), Part 7 đoạn đơn (29/25), đôi/ba (25/30), toàn Part 7 (54/55), Reading (100/75) và Pomodoro. Cho điều chỉnh thời gian/số câu khi chưa bắt đầu. Pomodoro giữ thiết lập tập trung, nghỉ ngắn, nghỉ dài và số phiên trước nghỉ dài.
+- **Mục tiêu luyện:** thời gian gợi ý của ứng dụng, không gọi là “Chuẩn ETS” cho từng Part. Full Reading mặc định 75 phút, nhưng lượt luyện này không phải Full Test L&R và không được tự quy đổi thành điểm TOEIC.
+- **Vòng đời đồng hồ:** tính theo mốc thời gian, không dựa vào số lần callback. Tạm dừng không tăng thời gian đã dùng; tab ngủ chỉ tính tới hạn định, không ghi toàn bộ thời gian vắng mặt. Bản nháp được giữ theo tài khoản trên máy, khôi phục khi đổi trang/tải lại; đổi chế độ hoặc làm lại khi có phiên chưa lưu cần xác nhận. Không mất phiên khi chuyển giữa ba tab. Space là bắt đầu/tạm dừng, không tự nộp bài hoặc tác động khi đang nhập form.
+- **Kết quả:** tên đề dùng picker chung; không thêm tiền tố `[Tốc độ]` vào tên nguồn. Ô số câu đúng để trống, chỉ nhận số nguyên hợp lệ, không điền sẵn 80% hoặc tự kẹp số sai vào khoảng. Có thể lưu thời gian chưa chấm rồi bổ sung/chỉnh kết quả từ lịch sử; chưa chấm không thành 0% và không vào biểu đồ độ chính xác.
+- **Lưu nhất quán:** lượt mới dùng cùng ID dành riêng trong collection `pacingRuns` và `sessions`, ghi hai collection qua một giao dịch localStorage. Lưu lại cùng ID không tạo bản ghi trùng; bản bị xóa không được phục hồi từ draft cũ. Thời gian buổi học là thời gian thực, không làm tròn lên ít nhất một phút. Bổ sung điểm cập nhật bản liên quan, từ chối ghi đè phiên đã sửa/xóa ở nơi khác.
+- **Pomodoro:** kết thúc sớm lưu thời gian thực, không tăng số phiên hoàn thành; phiên đủ thời gian được ghi một lần và có nút chuyển sang nghỉ/tập trung mới. Lượt nghỉ có lịch sử riêng nhưng không tính là buổi học, phút tập trung hoặc streak. Dữ liệu cũ giữ nguyên, không tự đoán lại các phiên đã ghi trước đây.
+- **Xóa:** hỏi xác nhận, xóa cả lượt và buổi học khi có liên kết chắc chắn. Lượt cũ chỉ ghép qua ID phát sinh/thời điểm/loại/tên nguồn phù hợp duy nhất; không đoán ghép nhiều bản ghi. Nếu không xác định được thì ghi rõ chỉ xóa lượt.
+- **Lịch sử chính:** kết quả đã đo được sửa qua cùng form kết quả, giữ thời gian đo và cập nhật hai bản ghi cùng phiên bản. Xóa buổi học ghép đôi từ Lịch sử chính cũng xóa lượt đo; lỗi Sổ tay kế thừa tên nguồn được giữ lại, không bị mất nguồn khi buổi học bị xóa. Kiểm tra cả phiên bản lượt và buổi học khi sửa, không ghi đè thay đổi mới ở tab khác.
+- **Lịch sử:** không hiện bộ lọc toàn số 0 khi chưa có dữ liệu; năm lượt/trang, tìm/lọc toàn bộ dữ liệu. Desktop dùng bảng có tiêu đề cột, khung hẹp chuyển thành thẻ; nhãn loại lượt dùng màu nhẹ Reading/tập trung/nghỉ, không lặp tên Part dưới tiêu đề. Kết quả chỉ hiện số câu đúng/tổng câu; phần trăm nằm trong tab Thống kê. Đơn vị gọn `s`, `s/câu`, giữ số và đơn vị cùng dòng. Thời gian dưới một giây hiển thị `<1 s`, tốc độ dương dưới 0,1 hiển thị `<0,1 s/câu`; không làm tròn thành 0. Lượt chưa chấm ghi rõ, phiên Pomodoro chỉ báo hoàn thành khi có bằng chứng `finishedNaturally`. Lịch sử buổi học đọc kết quả tổng Reading từ lượt ghép đôi, không bịa chi tiết từng Part. Bảng và hộp chi tiết cùng đọc kết quả tổng từ lượt ghép đôi. Bài tùy chỉnh vượt số câu của một Part vẫn giữ kết quả tổng ở lượt đo, không tạo `practiceParts` vượt giới hạn schema.
+- **Thống kê:** hai biểu đồ tốc độ và độ chính xác, chọn Part/phạm vi; năm gần nhất hoặc toàn bộ, không âm thầm giới hạn 15 khi chọn tất cả. Bộ lọc lần đầu/tốt nhất gom theo tên nguồn chuẩn hóa và số câu; lượt chưa có tên là các bài riêng. Tốt nhất ưu tiên độ chính xác đã chấm, rồi tốc độ. Giữ 0 câu đúng là kết quả thật; loại thời gian/số câu không hợp lệ thay vì thay bằng 0. Trục X dùng thứ tự lượt luyện trong toàn bộ dữ liệu hợp lệ của Part, giữ số thứ tự khi đổi phạm vi; đây là nhãn hiển thị, không phải số lần làm đề. Trục Y là s/câu (từ 0) và % đúng (0–100). Ngày đầy đủ, tên đề, số câu đúng nằm trong tooltip. Biểu đồ cột hiện số trên tất cả cột khi có tối đa năm lượt; khi nhiều hơn chỉ nhấn cột mới nhất. Biểu đồ đường chỉ nhấn lượt mới nhất có điểm. Chừa khoảng trống mép để không cắt nhãn. Đường nét đứt có chú thích mục tiêu gợi ý ngay trong thẻ tốc độ, không lặp ở chân trang. Thẻ độ chính xác ghi số lượt đã chấm/tổng lượt; lượt chưa chấm giữ khoảng khuyết, tooltip ghi rõ. Khi chỉ có một lượt hoặc một lượt đã chấm, thông báo chưa đủ dữ liệu theo dõi xu hướng. Giá trị tốc độ dương dưới 0,1 ghi `<0,1`, không làm tròn thành 0.
+- **Giới hạn:** không thêm bảng DB/endpoint; lịch phiên trên máy không đồng bộ giữa thiết bị. API, RLS và đồng bộ trên dịch vụ thật vẫn cần kiểm chứng riêng. Không hiển thị phân tích vượt giờ từng pha khi lượt mới chưa thu thập dấu mốc pha; dữ liệu `phases` cũ được giữ để tương thích.
 
 ### 4.4. Nhập Điểm (Session Logger — modal)
 
@@ -520,7 +521,7 @@ Mục này tồn tại để khỏi phải tranh luận lại. Mỗi dòng kèm 
 3. Đồng bộ prompt/grounding với phạm vi một câu; sửa giới hạn văn bản ghép, bổ sung kiểm thử cho các tình huống đã xác minh. Không gọi provider tính phí trong test tự động.
 4. Đã chạy typecheck/lint, frontend/backend/database tests, Playwright và build cho triển khai local. Test AI dùng transport giả, test đồng bộ API/SQL không thay thế kiểm chứng Supabase thật. Còn kiểm chứng provider thực tế, staging và tình huống nội dung thực dài trước khi công bố public.
 
-Các việc đã thống nhất cho đợt ổn định dùng cá nhân (Pomodoro ghi thời gian thực/tách bộ đếm theo danh tính, cửa sổ đề mới và gợi ý Part, launcher kế thừa `backend/.env`) giữ trong backlog sau khi chốt Sổ tay. Tối ưu bundle, kiểm chứng dịch vụ thật và chuẩn bị public là đợt riêng.
+Pomodoro ghi thời gian thực và tách bộ đếm theo danh tính đã hoàn tất ở mục 4.3. Cửa sổ đề mới/gợi ý Part và launcher kế thừa `backend/.env` còn trong backlog. Tối ưu bundle, kiểm chứng dịch vụ thật và chuẩn bị public là đợt riêng.
 
 ### Đã hoàn thành
 

@@ -1,15 +1,16 @@
 import { X, Pencil, ArrowRight } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import type { MistakeEntry, SessionAttemptMeta, StudySession } from '@/shared/types';
+import type { MistakeEntry, PacingRun, SessionAttemptMeta, StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { getPracticeParts, PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { normalizeTestName } from '@/shared/domain/testNames';
-import { historyDate, sourceMistakes } from '@/features/study-sessions/lib/history';
+import { historyDate, historyDuration, sourceMistakes } from '@/features/study-sessions/lib/history';
 import { scoreSourceLabel } from '@/features/study-sessions/lib/fullTestScore';
 import { ScoreComparison, historyPrimary } from '@/features/study-sessions/components/HistoryResult';
 
 interface Props {
   session: StudySession;
+  pacingRun?: PacingRun;
   sessions: StudySession[];
   mistakes: MistakeEntry[];
   attempt?: SessionAttemptMeta;
@@ -19,11 +20,14 @@ interface Props {
   onNavigateToMistakes?: (names: string[]) => void;
 }
 
-export function SessionDetailModal({ session, sessions, mistakes, attempt, previous, onClose, onEdit, onNavigateToMistakes }: Props) {
+export function SessionDetailModal({ session, pacingRun, sessions, mistakes, attempt, previous, onClose, onEdit, onNavigateToMistakes }: Props) {
   const ref = useModalA11y(true, onClose);
   const full = session.sessionType === 'FULL_TEST';
   const practice = getPracticeParts(session);
   const correct = practice.reduce((sum, part) => sum + part.correct, 0), total = practice.reduce((sum, part) => sum + part.total, 0);
+  const pairedTotal = !full && !total && pacingRun && Number.isInteger(pacingRun.totalQuestions) && pacingRun.totalQuestions! > 0 ? pacingRun.totalQuestions! : 0;
+  const pairedCorrect = pairedTotal && Number.isInteger(pacingRun?.correctAnswers) && pacingRun!.correctAnswers! >= 0 && pacingRun!.correctAnswers! <= pairedTotal ? pacingRun!.correctAnswers : undefined;
+  const resultTotal = total || pairedTotal, resultCorrect = total ? correct : pairedCorrect;
   const rows = full && session.partScores ? (Object.keys(PART_MAX_QUESTIONS) as Array<keyof typeof PART_MAX_QUESTIONS>).map(key => ({ part: Number(key.slice(4)), correct: session.partScores![key], total: PART_MAX_QUESTIONS[key] })) : full ? [] : practice;
   const notes = sourceMistakes(session, sessions, mistakes);
   const source = normalizeTestName(session.testName);
@@ -35,13 +39,13 @@ export function SessionDetailModal({ session, sessions, mistakes, attempt, previ
     ['Tổng điểm', score(session.totalScore), 'text-slate-900 dark:text-white'],
     ['Listening', score(session.scaledListening), 'text-indigo-600 dark:text-indigo-300'],
     ['Reading', score(session.scaledReading), 'text-teal-700 dark:text-teal-300']
-  ] : [['Đúng', total ? `${correct}/${total}` : 'Chưa ghi', 'text-slate-900 dark:text-white'],
-    ['Chính xác', total ? `${(correct / total * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%` : 'Chưa ghi', 'text-teal-700 dark:text-teal-300'],
-    ['Thời gian', `${session.durationMinutes} phút`, 'text-slate-900 dark:text-white']];
+  ] : [['Đúng', resultCorrect !== undefined && resultTotal ? `${resultCorrect}/${resultTotal}` : 'Chưa ghi', 'text-slate-900 dark:text-white'],
+    ['Chính xác', resultCorrect !== undefined && resultTotal ? `${(resultCorrect / resultTotal * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%` : 'Chưa ghi', 'text-teal-700 dark:text-teal-300'],
+    ['Thời gian', `${historyDuration(session.durationMinutes)}`, 'text-slate-900 dark:text-white']];
 
   return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-2 sm:p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="session-detail-title" className="flex max-h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-100 dark:shadow-[4px_4px_0px_#cbd5e1]">
-      <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5 dark:border-slate-700"><div className="min-w-0"><h3 id="session-detail-title" className="break-words text-lg font-black">{session.testName || 'Chưa đặt tên đề'}</h3><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{historyDate(session.date)} · {full ? `Lần ${attempt?.attemptNumber ?? 1}` : 'Luyện Part'} · {session.durationMinutes} phút</p></div>
+      <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5 dark:border-slate-700"><div className="min-w-0"><h3 id="session-detail-title" className="break-words text-lg font-black">{session.testName || 'Chưa đặt tên đề'}</h3><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{historyDate(session.date)} · {full ? `Lần ${attempt?.attemptNumber ?? 1}` : 'Luyện Part'} · {historyDuration(session.durationMinutes)}</p></div>
         <button type="button" onClick={onClose} aria-label="Đóng chi tiết" className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X className="h-5 w-5" aria-hidden="true" /></button>
       </header>
       <div className="min-h-0 space-y-4 overflow-y-auto px-4 py-4 [scrollbar-gutter:stable] sm:px-5">
