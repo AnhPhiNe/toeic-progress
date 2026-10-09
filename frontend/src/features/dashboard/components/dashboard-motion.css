@@ -1,0 +1,20 @@
+.overview-dashboard button {
+  transition-property: background-color, border-color, color, transform, box-shadow;
+  transition-duration: 140ms;
+}
+
+.overview-dashboard button:active {
+  transform: translate(1px, 1px);
+}
+
+.overview-dashboard button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-dashboard, .overview-dashboard * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

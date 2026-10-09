@@ -1,0 +1,92 @@
+import { test, expect } from '@playwright/test';
+
+test('overview preserves the original layout with only the requested label and copy cleanup', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const stamp = new Date().toISOString();
+    const date = stamp.slice(0, 10);
+    const base = { skillType: 'LR', sessionType: 'FULL_TEST', date, durationMinutes: 120, updatedAt: stamp, deletedAt: null };
+    data.sessions = [
+      { ...base, id: 'first', testName: 'ETS 2024 Test 01', totalScore: 825, scaledListening: 430, scaledReading: 395, createdAt: '2026-08-15T09:00:00Z' },
+      { ...base, id: 'latest', testName: 'ETS 2024 Test 03', totalScore: 400, scaledListening: 250, scaledReading: 150, createdAt: stamp }
+    ];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await expect(page.getByText('SO VỚI BÀI ĐẦU', { exact: true })).toBeVisible();
+  await expect(page.getByText('PHONG ĐỘ ⚡', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/^Cần ôn tập:/)).toHaveCount(0);
+  await expect(page.getByText(/trần điểm|để chạm trần/)).toHaveCount(0);
+  await expect(page.getByText('250/495', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('150/495', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Bài Thi Gần Nhất', exact: true })).toBeVisible();
+  const before = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
+  for (const width of [320, 375, 768, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 850 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px`).toBe(true);
+  }
+  for (const height of [730, 850, 1080]) {
+    await page.setViewportSize({ width: 1440, height });
+    await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => Math.abs(grid.getBoundingClientRect().bottom - (innerHeight - 29)))).toBeLessThan(3);
+    const columns = await page.locator('[data-overview-grid]').evaluate(grid => Array.from(grid.children).map(column => column.getBoundingClientRect().bottom));
+    expect(Math.abs(columns[0] - columns[1])).toBeLessThan(2);
+  }
+  await page.setViewportSize({ width: 1280, height: 730 });
+  await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => Math.abs(grid.getBoundingClientRect().bottom - (innerHeight - 29)))).toBeLessThan(3);
+  await page.evaluate(() => { document.documentElement.style.zoom = '125%'; });
+  await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => {
+    const columns = Array.from(grid.children).map(column => column.getBoundingClientRect().bottom);
+    return Math.abs(columns[0] - columns[1]);
+  })).toBeLessThan(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => (grid as HTMLElement).style.minHeight)).toBe('');
+  await page.setViewportSize({ width: 1440, height: 850 });
+  await page.screenshot({ path: testInfo.outputPath('overview-original-cleanup.png'), fullPage: true, animations: 'disabled' });
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    data.sessions[1].rawListening = 0;
+    data.sessions[1].rawReading = 20;
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await expect(page.getByText('0/100 câu', { exact: true })).toBeVisible();
+  await expect(page.getByText('20/100 câu', { exact: true })).toBeVisible();
+  expect(JSON.parse(before!).sessions[1].totalScore).toBe(400);
+});
+
+
+test('latest skills stay compact and the goal summary follows the latest score and profile target', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const stamp = new Date().toISOString();
+    data.profile.targetScore = 990;
+    data.sessions = [{ id: 'latest', skillType: 'LR', sessionType: 'FULL_TEST', date: stamp.slice(0,10), testName: 'ETS 2024 Test 04', totalScore: 960, scaledListening: 495, scaledReading: 465, rawListening: 97, rawReading: 94, durationMinutes: 112, createdAt: stamp, updatedAt: stamp, deletedAt: null }];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.setViewportSize({ width: 1440, height: 850 });
+  await page.reload();
+  await expect(page.locator('[data-latest-goal]')).toContainText('Còn 30 điểm để đạt mục tiêu 990');
+  const latest = page.getByRole('heading', { name: 'Bài Thi Gần Nhất', exact: true }).locator('..').locator('..').locator('..').locator('..');
+  const heights = await latest.locator('.space-y-2').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  await expect.poll(async () => latest.locator('.space-y-2').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().height)))).toEqual(heights.map(height => Math.round(height)));
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    data.profile.targetScore = 900;
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await expect(page.locator('[data-latest-goal]')).toContainText('Đã đạt mục tiêu 900 điểm');
+  await expect(page.getByRole('button', { name: 'Xem Ma Trận 7 Part Chi Tiết', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    data.sessions = [];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await expect(page.locator('[data-latest-goal]')).toHaveCount(0);
+});

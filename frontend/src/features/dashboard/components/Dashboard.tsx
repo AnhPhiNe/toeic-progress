@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   CheckCircle2,
   ArrowRight,
@@ -17,17 +17,23 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  CartesianGrid
+  CartesianGrid,
+  Customized
 } from 'recharts';
-import { StudySession, UserProfile } from '@/shared/types';
+import { StudySession, UserProfile, PacingRun } from '@/shared/types';
+import type { VocabLog } from '@/shared/data/dataBundle';
+import { actualStudyDates } from '@/shared/domain/streak';
 import { getTodayDateString, computeSessionAttemptMap } from '@/shared/data/storage';
 import { CARD } from '@/shared/ui/surfaces';
+import { useChartMotion } from '@/shared/hooks/useChartMotion';
+import { OverviewChartLabels } from './OverviewChartLabels';
+import './dashboard-motion.css';
 
 interface DashboardProps {
-  /** Cảnh báo tái phạm, đặt ngay đầu trang khi có (SPEC mục 4.6) */
-  relapseSlot?: React.ReactNode;
   profile: UserProfile;
   sessions: StudySession[];
+  vocabLog: VocabLog[];
+  pacingRuns: PacingRun[];
   theme: 'light' | 'dark';
   onOpenSessionLogger: () => void;
   onNavigateToAnalytics: () => void;
@@ -41,29 +47,63 @@ const formatShortDate = (iso: string) => {
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({
-  relapseSlot,
   profile,
   sessions,
+  vocabLog,
+  pacingRuns,
   theme,
   onOpenSessionLogger,
   onNavigateToAnalytics
 }) => {
   const today = getTodayDateString();
   const isDark = theme === 'dark';
+  const chartMotion = useChartMotion(700);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
   const [mounted, setMounted] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const main = grid.closest('main');
+    const media = window.matchMedia('(min-width: 1280px)');
+    const resize = () => {
+      if (!media.matches) {
+        grid.style.minHeight = '';
+        return;
+      }
+      const bounds = grid.getBoundingClientRect();
+      // DOM rectangles include CSS zoom; min-height uses layout pixels.
+      const scale = grid.offsetWidth > 0 ? bounds.width / grid.offsetWidth : 1;
+      const bottomPadding = main ? parseFloat(getComputedStyle(main).paddingBottom) : 24;
+      const available = (window.innerHeight - bounds.top) / scale - bottomPadding - 5;
+      const height = `${Math.max(0, Math.floor(available))}px`;
+      if (grid.style.minHeight !== height) grid.style.minHeight = height;
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(grid);
+    if (main) observer.observe(main);
+    if (grid.parentElement?.parentElement) observer.observe(grid.parentElement.parentElement);
+    window.addEventListener('resize', resize);
+    media.addEventListener('change', resize);
+    resize();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', resize);
+      media.removeEventListener('change', resize);
+    };
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 40);
     return () => clearTimeout(t);
   }, []);
 
-  const hasStudiedToday = useMemo(() => {
-    return sessions.some(s => s.date === today) || profile.lastStudyDate === today;
-  }, [sessions, profile.lastStudyDate, today]);
+  const studiedDates = useMemo(() => actualStudyDates({ sessions, vocabLog, pacingRuns }, today), [sessions, vocabLog, pacingRuns, today]);
+  const hasStudiedToday = studiedDates.has(today);
 
   const fullTests = useMemo(
-    () => sessions.filter(s => s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0),
+    () => sessions.filter(s => !s.deletedAt && s.skillType === 'LR' && s.sessionType === 'FULL_TEST' && Number.isFinite(s.totalScore) && (s.totalScore || 0) > 0 && (s.totalScore || 0) <= 990),
     [sessions]
   );
 
@@ -135,7 +175,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Trục Y bám theo dải điểm thực tế, trần là mục tiêu của người dùng
   const yAxisConfig = useMemo(() => {
     if (chartData.length === 0) {
-      const floor = Math.max(200, Math.min(400, targetScore - 400));
+      const floor = Math.max(0, Math.min(400, targetScore - 400));
       const ticks: number[] = [];
       for (let t = floor; t < targetScore; t += 100) ticks.push(t);
       ticks.push(targetScore);
@@ -153,10 +193,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let step: number;
 
     if (range >= 180) {
-      floor = Math.max(100, Math.floor((minScore - 30) / 100) * 100);
+      floor = Math.max(0, Math.floor((minScore - 30) / 100) * 100);
       step = 100;
     } else {
-      floor = Math.max(200, Math.floor((minScore - 25) / 50) * 50);
+      floor = Math.max(0, Math.floor((minScore - 25) / 50) * 50);
       step = 50;
     }
 
@@ -182,9 +222,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const toIso = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    const studiedDates = new Set(sessions.map(s => s.date));
-    if (profile.lastStudyDate) studiedDates.add(profile.lastStudyDate);
-
     return labels.map((label, index) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + index);
@@ -196,13 +233,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         isMissed: iso < today && !studiedDates.has(iso)
       };
     });
-  }, [sessions, profile.lastStudyDate, today]);
+  }, [studiedDates, today]);
 
   // Kỹ năng HIỆN TẠI lấy từ bài Full Test gần nhất, không phải bài cao nhất
   const latestTest = stats ? fullTests.find(s => s.id === stats.latest.id) || bestTest : bestTest;
-  const hasSkillScores = latestTest?.scaledListening !== undefined && latestTest?.scaledReading !== undefined;
-  const listeningScore = latestTest?.scaledListening || 0;
-  const readingScore = latestTest?.scaledReading || 0;
+  const hasSkillScores = latestTest?.scaledListening !== undefined || latestTest?.scaledReading !== undefined;
+  const listeningScore = latestTest?.scaledListening;
+  const readingScore = latestTest?.scaledReading;
 
 
   const diff = stats?.diff ?? 0;
@@ -226,10 +263,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const highestPercent = targetScore > 0 ? Math.min(100, Math.round(((highestScore || 0) / targetScore) * 100)) : 0;
 
   return (
-    <div className="w-full space-y-3 sm:space-y-4 animate-fade-in">
-      {relapseSlot}
+    <div className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in">
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 xl:gap-6 items-stretch">
+      <div ref={gridRef} data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 xl:gap-6 items-stretch">
 
         {/* ================= CỘT TRÁI (3 KPI Game Hóa Thành Tích & Biểu đồ tiến độ) ================= */}
         <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
@@ -238,7 +274,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
             
             {/* THẺ 1: HUY HIỆU CẤP BẬC & KỶ LỤC CÁ NHÂN */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-3 sm:p-3.5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 hover:shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,0.28)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn Kỷ Lục Gọn bên trái, % Đích bên phải */}
               <div className="flex items-center justify-between gap-1.5">
                 <span
@@ -259,7 +295,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {/* Middle: Điểm to rõ bên trái, Khối Icon dập nổi bên phải */}
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl sm:text-3xl font-black tabular-nums leading-none tracking-tight text-amber-600 dark:text-amber-400">
+                  <span className="text-2xl sm:text-3xl xl:text-4xl font-black tabular-nums leading-none tracking-tight text-amber-600 dark:text-amber-400">
                     {highestScore || 0}
                   </span>
                   {targetScore > 0 && (
@@ -269,8 +305,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
 
-                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 bg-amber-400 text-slate-950 shadow-2xs transition-transform duration-200 group-hover:scale-105">
-                  <Crown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:rotate-12" />
+                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 bg-amber-400 text-slate-950 shadow-2xs transition-transform duration-200 ">
+                  <Crown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 " />
                 </div>
               </div>
 
@@ -283,7 +319,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* THẺ 2: ĐIỂM TRUNG BÌNH (TRÁNH LẶP LẠI VỚI BÀI GẦN NHẤT) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-3 sm:p-3.5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 hover:shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,0.28)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Trung bình Badge bên trái, Tổng số đề bên phải */}
               <div className="flex items-center justify-between gap-1.5">
                 <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
@@ -300,7 +336,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {/* Middle: Điểm trung bình bên trái, Khối Icon dập nổi bên phải */}
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl sm:text-3xl font-black tabular-nums leading-none tracking-tight text-blue-600 dark:text-blue-400">
+                  <span className="text-2xl sm:text-3xl xl:text-4xl font-black tabular-nums leading-none tracking-tight text-blue-600 dark:text-blue-400">
                     {stats?.avgScore || 0}
                   </span>
                   {targetScore > 0 && (
@@ -310,8 +346,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
 
-                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-sky-200 text-blue-950 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105">
-                  <Target className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:rotate-45" />
+                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-sky-200 text-blue-950 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 ">
+                  <Target className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 " />
                 </div>
               </div>
 
@@ -324,7 +360,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* THẺ 3: XUNG LỰC PHONG ĐỘ & ĐÀ TIẾN BỘ (CHUYỂN MÀU ĐỘNG THEO DIFF) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-3 sm:p-3.5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 hover:shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,0.28)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn đổi màu theo số dương (xanh lá) / số âm (hồng) bên trái, Trạng thái bên phải */}
               <div className="flex items-center justify-between gap-1.5">
                 <span className={`px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
@@ -336,7 +372,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     ? 'bg-rose-200 text-slate-950 border-rose-950/20'
                     : 'bg-sky-200 text-slate-950 border-sky-950/20'
                 }`}>
-                  PHONG ĐỘ ⚡
+                  SO VỚI BÀI ĐẦU
                 </span>
                 <span className={`text-[10px] sm:text-[10.5px] font-black px-1.5 py-0.5 rounded-md border ${
                   !hasDiff
@@ -354,7 +390,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {/* Middle: Con số thay đổi bên trái, Khối Icon dập nổi bên phải */}
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <div className="flex items-baseline gap-1">
-                  <span className={`text-2xl sm:text-3xl font-black tabular-nums leading-none tracking-tight ${
+                  <span className={`text-2xl sm:text-3xl xl:text-4xl font-black tabular-nums leading-none tracking-tight ${
                     !hasDiff
                       ? 'text-slate-400 dark:text-slate-500'
                       : diff >= 0
@@ -370,7 +406,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
 
-                <div className={`w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 ${
+                <div className={`w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200  ${
                   !hasDiff
                     ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     : diff > 0
@@ -382,7 +418,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   {!hasDiff ? (
                     <Activity className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:scale-110" />
                   ) : diff > 0 ? (
-                    <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5 group-" />
                   ) : diff < 0 ? (
                     <TrendingDown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
                   ) : (
@@ -525,45 +561,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       }}
                     />
                     <Area
+                      className="overview-score-area"
                       type="linear"
                       dataKey="total"
                       stroke="#2563EB"
                       strokeWidth={2.5}
                       fill="url(#scoreFill)"
-                      isAnimationActive={false}
-                      dot={(props: any) => {
-                        const { cx, cy, payload, index } = props;
-                        if (!cx || !cy) return <g key={props?.key || 'empty'} />;
-                        const isLast = index === chartData.length - 1;
-                        const score = payload?.total || 0;
-                        const ceiling = yAxisConfig.domain[1];
-                        const isNearCeiling = ceiling - score <= 20;
-                        return (
-                          <g key={`dot-${payload?.id || cx}`}>
-                            <text
-                              x={cx}
-                              y={isNearCeiling ? cy + 18 : cy - 12}
-                              textAnchor="middle"
-                              fontSize={12}
-                              fontWeight={800}
-                              fontFamily="Plus Jakarta Sans, sans-serif"
-                              fill={isDark ? '#F1F5F9' : '#0F172A'}
-                            >
-                              {payload?.total}
-                            </text>
-                            <circle
-                              cx={cx}
-                              cy={cy}
-                              r={isLast ? 6 : 4}
-                              fill={isLast ? '#2563EB' : isDark ? '#0F172A' : '#FFFFFF'}
-                              stroke={isLast ? (isDark ? '#93C5FD' : '#0F172A') : '#2563EB'}
-                              strokeWidth={2}
-                            />
-                          </g>
-                        );
-                      }}
+                      isAnimationActive={chartMotion.enabled}
+                      animationBegin={0}
+                      animationDuration={chartMotion.duration}
+                      animationEasing="ease-out"
+                      onAnimationEnd={chartMotion.finish}
+                      dot={false}
                       activeDot={{ r: 6.5, fill: '#2563EB', stroke: isDark ? '#FFFFFF' : '#0F172A', strokeWidth: 2 }}
                     />
+                    <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} />} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -592,7 +604,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
           {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT (CHUẨN NEO-BRUTALISM) */}
-          <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-3.5 sm:p-4 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#0f172a] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
+          <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
             {/* Header: Đuốc kem bơ tĩnh + Title sắc nét + Streak Badge */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -694,7 +706,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* 6. BÀI THI GẦN NHẤT - Phong cách Neo-Clean Hierarchy (Chuẩn UI/UX) */}
-          <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] p-3.5 sm:p-4 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] hover:-translate-y-0.5 hover:shadow-[4.5px_4.5px_0px_0px_#0f172a] dark:hover:shadow-[4.5px_4.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
+          <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
             {/* Header: Sét Neo + Tiêu đề + Chip Tổng điểm Neo */}
             <div className="flex items-center justify-between pb-2.5 border-b-2 border-slate-900 dark:border-slate-700">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -719,7 +731,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 title={`Tổng điểm bài thi gần nhất${latestTest ? `: ${latestTest.testName}` : ''}`}
               >
                 <span className="text-sm sm:text-base font-black text-blue-950 leading-none tracking-tight tabular-nums">
-                  {latestTest ? (latestTest.totalScore || listeningScore + readingScore) : 0}
+                  {latestTest ? (latestTest.totalScore || (listeningScore ?? 0) + (readingScore ?? 0)) : 0}
                 </span>
                 <span className="text-[10px] sm:text-[10.5px] font-bold text-slate-700 opacity-90 leading-none">/ 990đ</span>
                 <span className="text-xs">🎯</span>
@@ -729,7 +741,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {!hasSkillScores && latestTest && <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>}
             {hasSkillScores && <>
             {/* LISTENING BOX: Viền đen 2px, Nền pastel Indigo, không đổ bóng lặp lại */}
-            <div className="p-3 sm:p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
+            <div className="p-3 sm:p-3.5 xl:p-4 flex flex-col rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600 text-white border border-slate-900 flex items-center justify-center text-xs font-black shrink-0 select-none">
@@ -739,46 +751,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     Listening
                   </span>
                   {/* Badge số câu: Nền trắng, viền đen sắc nét */}
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
-                    {latestTest?.rawListening !== undefined
-                      ? `${latestTest.rawListening}/100 câu`
-                      : `${listeningScore}/495`}
-                  </span>
+                  {latestTest?.rawListening !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
+                    {latestTest.rawListening}/100 câu
+                  </span>}
                 </div>
 
                 <div className="text-right shrink-0">
                   <span className="text-sm sm:text-base font-black text-indigo-700 dark:text-indigo-400 leading-none tabular-nums">
-                    {listeningScore}
+                    {listeningScore ?? 'Chưa ghi'}
                   </span>
-                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400"> / 495đ</span>
+                  {listeningScore !== undefined && <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400"> / 495đ</span>}
                 </div>
               </div>
 
               {/* Continuous Smooth Bar */}
-              <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 overflow-hidden">
+              {listeningScore !== undefined && <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 overflow-hidden">
                 <div
                   className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-700 ease-out"
                   style={{ width: mounted ? `${Math.min(100, Math.max(0, (listeningScore / 495) * 100))}%` : '0%' }}
                 />
-              </div>
-
-              {/* Chú thích tiến độ liền mạch */}
-              <div className="flex justify-between items-center text-[10px] font-bold text-slate-600 dark:text-slate-400 pt-0.5">
-                {listeningScore >= 495 ? (
-                  <span className="text-emerald-700 dark:text-emerald-400 font-black">✓ Đạt điểm tối đa kỹ năng</span>
-                ) : (
-                  <span>
-                    Thiếu <strong className="text-slate-900 dark:text-slate-200">{495 - listeningScore} điểm</strong> để chạm trần
-                  </span>
-                )}
-                <span className="tabular-nums font-bold">
-                  {Math.round((listeningScore / 495) * 100)}% trần điểm
-                </span>
-              </div>
+              </div>}
             </div>
 
             {/* READING BOX: Viền đen 2px, Nền pastel Mint, không đổ bóng lặp lại */}
-            <div className="p-3 sm:p-3.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
+            <div className="p-3 sm:p-3.5 xl:p-4 flex flex-col rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-teal-600 text-white border border-slate-900 flex items-center justify-center text-xs font-black shrink-0 select-none">
@@ -788,44 +784,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     Reading
                   </span>
                   {/* Badge số câu: Nền trắng, viền đen sắc nét */}
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-teal-950 dark:text-teal-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
-                    {latestTest?.rawReading !== undefined
-                      ? `${latestTest.rawReading}/100 câu`
-                      : `${readingScore}/495`}
-                  </span>
+                  {latestTest?.rawReading !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-teal-950 dark:text-teal-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
+                    {latestTest.rawReading}/100 câu
+                  </span>}
                 </div>
 
                 <div className="text-right shrink-0">
                   <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-400 leading-none tabular-nums">
-                    {readingScore}
+                    {readingScore ?? 'Chưa ghi'}
                   </span>
-                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400"> / 495đ</span>
+                  {readingScore !== undefined && <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400"> / 495đ</span>}
                 </div>
               </div>
 
               {/* Continuous Smooth Bar */}
-              <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 overflow-hidden">
+              {readingScore !== undefined && <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 overflow-hidden">
                 <div
                   className="h-full bg-teal-600 dark:bg-teal-500 transition-all duration-700 ease-out"
                   style={{ width: mounted ? `${Math.min(100, Math.max(0, (readingScore / 495) * 100))}%` : '0%' }}
                 />
-              </div>
-
-              {/* Chú thích tiến độ liền mạch */}
-              <div className="flex justify-between items-center text-[10px] font-bold text-slate-600 dark:text-slate-400 pt-0.5">
-                {readingScore >= 495 ? (
-                  <span className="text-emerald-700 dark:text-emerald-400 font-black">✓ Đạt điểm tối đa kỹ năng</span>
-                ) : (
-                  <span>
-                    Thiếu <strong className="text-slate-900 dark:text-slate-200">{495 - readingScore} điểm</strong> để chạm trần
-                  </span>
-                )}
-                <span className="tabular-nums font-bold">
-                  {Math.round((readingScore / 495) * 100)}% trần điểm
-                </span>
-              </div>
+              </div>}
             </div>
 
+            </>}
+            {latestTest && (
+              <p data-latest-goal className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                <Target className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <span>{(latestTest.totalScore || 0) >= targetScore
+                  ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore} điểm</strong></>
+                  : <>Còn <strong className="text-amber-700 dark:text-amber-400">{targetScore - (latestTest.totalScore || 0)} điểm</strong> để đạt mục tiêu <strong>{targetScore}</strong></>}
+                </span>
+              </p>
+            )}
             {/* NÚT BẤM CTA ĐỒNG BỘ CHUẨN NEO-BRUTALISM */}
             <button
               onClick={onNavigateToAnalytics}
@@ -834,7 +824,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>Xem Ma Trận 7 Part Chi Tiết</span>
               <ArrowRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-1 transition-transform" />
             </button>
-            </>}
           </div>
         </div>
       </div>

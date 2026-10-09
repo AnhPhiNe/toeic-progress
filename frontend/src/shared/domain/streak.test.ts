@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultProfile, type DataBundle } from '@/shared/data/dataBundle';
-import { deriveStreak } from '@/shared/domain/streak';
+import { actualStudyDates, deriveStreak } from '@/shared/domain/streak';
 
 const now = '2026-09-24T00:00:00.000Z';
 const empty = (): DataBundle => ({
@@ -10,6 +10,17 @@ const empty = (): DataBundle => ({
 });
 
 describe('streak derivation', () => {
+  it('exposes real study dates without old profile markers, shields, deleted data or future activity', () => {
+    const data = empty();
+    data.profile.lastStudyDate = '2026-09-24';
+    data.shieldDays.push({ id: 'shield', date: '2026-09-24', updatedAt: now, deletedAt: null });
+    data.vocabLog.push({ id: 'v1', date: '2026-09-21', count: 3, updatedAt: now, deletedAt: null });
+    data.vocabLog.push({ id: 'v2', date: '2026-09-22', count: 2, updatedAt: now, deletedAt: null });
+    data.vocabLog.push({ id: 'deleted', date: '2026-09-23', count: 4, updatedAt: now, deletedAt: now });
+    data.vocabLog.push({ id: 'future', date: '2026-09-25', count: 4, updatedAt: now, deletedAt: null });
+    data.vocabLog.push({ id: 'zero', date: '2026-09-24', count: 0, updatedAt: now, deletedAt: null });
+    expect([...actualStudyDates(data, '2026-09-24')]).toEqual(['2026-09-21', '2026-09-22']);
+  });
   it('combines sessions, vocabulary and shield dates without treating a shield as study', () => {
     const data = empty();
     data.sessions.push({ id: 's', skillType: 'LR', sessionType: 'PART_PRACTICE', testName: 'Part 5', date: '2026-09-21', durationMinutes: 30, createdAt: now, updatedAt: now, deletedAt: null });

@@ -1,15 +1,21 @@
-import type { DataBundle } from '@/shared/data/dataBundle';
+import type { DataBundle, VocabLog } from '@/shared/data/dataBundle';
+import type { StudySession, PacingRun } from '@/shared/types';
 
 function dayNumber(date: string): number {
   const [year, month, day] = date.split('-').map(Number);
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
 }
 
-export function deriveStreak(bundle: DataBundle, today: string) {
+export function actualStudyDates(bundle: { sessions: StudySession[]; vocabLog: VocabLog[]; pacingRuns: PacingRun[] }, today: string) {
   const actual = new Set<string>();
   for (const session of bundle.sessions) if (!session.deletedAt && session.date <= today) actual.add(session.date);
   for (const log of bundle.vocabLog) if (!log.deletedAt && log.count > 0 && log.date <= today) actual.add(log.date);
   for (const run of bundle.pacingRuns) if (!run.deletedAt && (run.actualMinutes > 0 || (run.actualSeconds || 0) > 0) && run.date <= today) actual.add(run.date);
+  return actual;
+}
+
+export function deriveStreak(bundle: DataBundle, today: string) {
+  const actual = actualStudyDates(bundle, today);
   const shieldDates = new Set(bundle.shieldDays.filter(item => !item.deletedAt && item.date <= today).map(item => item.date));
   const covered = [...new Set([...actual, ...shieldDates])].sort();
   let longest = 0;

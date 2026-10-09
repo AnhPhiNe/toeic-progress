@@ -12,7 +12,6 @@ import { VocabularyView } from '@/features/vocabulary/components/VocabularyView'
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
-import { RelapseAlert } from '@/features/dashboard/components/RelapseAlert';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
 import { CARD } from '@/shared/ui/surfaces';
@@ -349,18 +348,13 @@ export const App: React.FC = () => {
         {/* Body Container */}
         <main key={activeTab === 'mistakes' ? `mistakes:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 flex flex-col min-h-0">
           {activeTab === 'dashboard' && (
-            <div className="w-full space-y-3 sm:space-y-4 my-auto">
+            <div className="w-full space-y-3 sm:space-y-4">
               {showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
               <Dashboard
-                relapseSlot={
-                  <RelapseAlert
-                    mistakes={mistakes}
-                    onReopenCards={handleReopenCards}
-                    onNavigateToMistakes={() => setActiveTab('mistakes')}
-                  />
-                }
                 profile={profile}
                 sessions={sessions}
+                vocabLog={vocabLog}
+                pacingRuns={loadPacingRuns()}
                 theme={theme}
                 onOpenSessionLogger={() => openSessionLogger()}
                 onNavigateToAnalytics={() => setActiveTab('analytics')}
