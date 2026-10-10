@@ -4,6 +4,7 @@ import { createBackupSnapshot, resetToCleanSlate, updateStudySessions } from '@/
 import { parseBackup } from '@/shared/data/backup';
 import { finishTimer, freshTimer, startTimer } from '@/features/pacing/lib/pacingModel';
 import { associatedStudyId, linkedStudyVersion, persistTimer, readTimer, removePacingResult, savePacingResult, timerKey, updatePacingResult } from './pacingStorage';
+import type { PacingMode } from '@/features/pacing/lib/pacingModel';
 
 const values = new Map<string, string>();
 const setItem = vi.fn((key: string, value: string) => { values.set(key, value); });
@@ -117,4 +118,26 @@ describe('atomic pacing result storage', () => {
     resetToCleanSlate();
     expect(values.has(timerKey(null))).toBe(false);
   });
+  it.each([['PART_7_SINGLE', 'Part 7A'], ['PART_7_MULTI', 'Part 7B'], ['PART_7', 'Part 7']] as const)(
+    'keeps anonymous legacy %s paired through grading, renaming and deletion', (mode: PacingMode, legacyName: string) => {
+      const now = Date.now(), timer = finishTimer(startTimer(freshTimer(null, mode), now - 6500), now);
+      savePacingResult(timer);
+      const bundle = readDataBundle(), stamp = Date.parse(bundle.pacingRuns[0].createdAt);
+      const run = { ...bundle.pacingRuns[0], id: `pacing-${stamp}`, testName: undefined };
+      const session = { ...bundle.sessions[0], id: `session-pacing-${stamp + 1}`, testName: `[Luyện tốc độ] ${legacyName}` };
+      writeDataBundle({ ...bundle, pacingRuns: [run], sessions: [session] });
+      expect(associatedStudyId(run, [session])).toBe(session.id);
+      expect(associatedStudyId(run, [{ ...session, testName: 'Unrelated' }])).toBeUndefined();
+      updatePacingResult(run, null, '', '0', linkedStudyVersion(run));
+      const graded = readDataBundle().pacingRuns[0];
+      expect(readDataBundle().sessions[0].practiceParts).toEqual([{ part: 7, correct: 0, total: timer.questions }]);
+      expect(associatedStudyId(graded, readDataBundle().sessions)).toBe(session.id);
+      updatePacingResult(graded, null, 'Renamed legacy source', '1', linkedStudyVersion(graded));
+      const renamed = readDataBundle().pacingRuns[0];
+      expect(readDataBundle().sessions[0].testName).toBe('Renamed legacy source');
+      expect(associatedStudyId(renamed, readDataBundle().sessions)).toBe(session.id);
+      removePacingResult(run.id, null);
+      expect(readDataBundle().pacingRuns[0].deletedAt).toBeTruthy();
+      expect(readDataBundle().sessions[0].deletedAt).toBeTruthy();
+    });
 });

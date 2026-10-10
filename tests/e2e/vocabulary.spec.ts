@@ -10,6 +10,7 @@ async function seed(page: Page) {
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
+  await page.locator('.vocab-history-summary').click();
 }
 
 test('daily totals edit by date, replace instead of add, paginate five rows and stay saved after reload', async ({ page }) => {

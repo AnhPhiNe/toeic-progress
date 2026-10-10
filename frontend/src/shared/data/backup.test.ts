@@ -154,7 +154,10 @@ describe('backup restore', () => {
     const sessions = [
       { ...base, scoreSource: 'MANUAL_TOTAL', totalScore: 800 },
       { ...base, id: 's2', scoreSource: 'MANUAL_SECTIONS', scaledListening: 445, scaledReading: 350, totalScore: 795 },
-      { ...base, id: 's3', totalScore: 801 }
+      { ...base, id: 's3', totalScore: 801 },
+      { ...base, id: 's4', scoreSource: 'ESTIMATED', rawListening: 100, rawReading: 100,
+        scaledListening: 495, scaledReading: 495, totalScore: 990, scoreConversionVersion: 'iibc-mock-2023-perfect-v2',
+        partScores: { part1: 6, part2: 25, part3: 39, part4: 30, part5: 30, part6: 16, part7: 54 } }
     ];
     const parsed = parseBackup(JSON.stringify({ profile: defaultProfile(), sessions, mistakes: [] }));
     expect(parsed.ok).toBe(true);

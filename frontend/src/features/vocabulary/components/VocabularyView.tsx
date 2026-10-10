@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookMarked, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Customized, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { VocabLog } from '@/shared/data/dataBundle';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
@@ -30,6 +30,9 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
   const selected = useMemo(() => days.filter(day => day.date >= range.from && day.date <= range.to), [days, range]);
   const summary = useMemo(() => summarizeVocabDays(selected), [selected]);
   const [historyPage, setHistoryPage] = useState(1);
+  const [historyOpen, setHistoryOpen] = useState(() => {
+    try { return localStorage.getItem('toeic_vocab_history_open_v1') === 'true'; } catch { return false; }
+  });
   const pageCount = Math.max(1, Math.ceil(selected.length / 5));
   const page = Math.min(historyPage, pageCount);
   const visible = [...selected].reverse().slice((page - 1) * 5, page * 5);
@@ -94,8 +97,8 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
 
   return <div className="vocabulary-view">
     <header className="vocab-page-header">
-      <div className="flex items-center gap-3 min-w-0"><span className="vocab-page-icon"><BookMarked size={20} aria-hidden="true" /></span><div><div className="flex flex-wrap items-center gap-2"><h1 className="text-base sm:text-lg font-black">Vốn Từ Vựng TOEIC</h1><span className="vocab-total">{total.toLocaleString('vi-VN')} từ tích lũy</span></div><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Mỗi ngày lưu một tổng số từ. Cập nhật sẽ thay số cũ.</p></div></div>
-      <form onSubmit={quickSave} className="vocab-quick-form"><Calendar size={16} aria-hidden="true" /><input type="date" aria-label="Ngày học từ vựng" required min="0001-01-01" max={today} value={quickDate} onChange={event => chooseDate(event.target.value)} className="vocab-quick-date" /><input type="number" aria-label="Số từ đã học" required min={1} max={10000} step={1} value={quickCount} onChange={event => { setQuickCount(event.target.value); setSaved(false); }} className="vocab-quick-count" /><span className="text-xs font-bold">từ</span><button type="submit" className={`vocab-button is-yellow ${saved ? 'is-saved' : ''}`}><CheckCircle2 size={16} aria-hidden="true" />{saved ? 'Đã lưu!' : existing ? 'Cập nhật' : 'Lưu từ vựng'}</button></form>
+      <div className="flex flex-wrap items-center gap-2 min-w-0"><h1 className="text-base sm:text-lg font-black">Từ vựng</h1><span className="vocab-total">{total.toLocaleString('vi-VN')} từ tích lũy</span></div>
+      <form onSubmit={quickSave} className="vocab-quick-form"><input type="date" aria-label="Ngày học từ vựng" required min="0001-01-01" max={today} value={quickDate} onChange={event => chooseDate(event.target.value)} className="vocab-quick-date" /><div className="vocab-quick-quantity"><input type="number" aria-label="Số từ đã học" aria-describedby={existing ? 'vocab-update-help' : undefined} required min={1} max={10000} step={1} value={quickCount} onChange={event => { setQuickCount(event.target.value); setSaved(false); }} className="vocab-quick-count" /><span className="text-xs font-bold">từ</span></div><button type="submit" className={`vocab-button is-yellow ${saved ? 'is-saved' : ''}`}><CheckCircle2 size={16} aria-hidden="true" />{saved ? 'Đã lưu!' : existing ? 'Cập nhật' : 'Lưu từ vựng'}</button>{existing && <p id="vocab-update-help" className="vocab-update-help">Cập nhật sẽ thay số cũ.</p>}</form>
     </header>
     {error && <p role="alert" className="vocab-error">{error}</p>}
     <section className="vocab-panel vocab-chart-panel" aria-label="Biểu đồ từ vựng">
@@ -117,13 +120,19 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
       </div>
       <div className="vocab-stats-strip"><span className="text-xs text-slate-500 dark:text-slate-400">{formatVocabDate(range.from)} – {formatVocabDate(range.to)} · {selected.length} ngày có ghi nhận</span><div className="vocab-summary-values"><span>Kỷ lục: <strong>{summary.record ? `${summary.record.count.toLocaleString('vi-VN')} từ (${formatVocabDate(summary.record.date).slice(0, 5)})` : '—'}</strong></span><span><span>TB mỗi ngày ghi nhận</span>: <strong>{summary.average === null ? '—' : `${summary.average.toLocaleString('vi-VN')} từ/ngày`}</strong></span></div></div>
     </section>
-    <section className="vocab-panel" aria-label="Lịch sử từ vựng">
-      <div className="vocab-panel-header"><h2 className="text-sm sm:text-base font-black">Lịch sử ghi nhận</h2><span className="vocab-total">{selected.length} ngày</span></div>
+    <details className="vocab-panel vocab-history-panel" open={historyOpen} onToggle={event => {
+      const open = event.currentTarget.open;
+      setHistoryOpen(open);
+      try { localStorage.setItem('toeic_vocab_history_open_v1', String(open)); } catch { /* preference remains usable without storage */ }
+    }}>
+      <summary className="vocab-history-summary" aria-controls="vocab-history-content"><h2 className="text-sm sm:text-base font-black">Lịch sử ghi nhận</h2><span className="vocab-total">{selected.length} ngày</span><ChevronDown size={18} aria-hidden="true" /></summary>
+      {historyOpen && <section id="vocab-history-content" className="vocab-history-content" aria-label="Lịch sử từ vựng">
       <table className="vocab-history-table"><caption className="sr-only">Lịch sử ghi nhận theo khoảng ngày đã chọn</caption><colgroup><col style={{ width: '16%' }} /><col style={{ width: '36%' }} /><col style={{ width: '16%' }} /><col style={{ width: '12%' }} /><col style={{ width: '20%' }} /></colgroup><thead><tr><th scope="col">Ngày</th><th scope="col">Nguồn học</th><th scope="col">Part</th><th scope="col">Số từ</th><th scope="col">Thao tác</th></tr></thead><tbody>
         {visible.length ? visible.map(day => <tr key={day.date} data-vocab-day={day.date}><td>{formatVocabDate(day.date)}</td><td>{day.sourceNames.length ? day.sourceNames.join(' · ') : <span className="text-slate-500 dark:text-slate-400">Chưa ghi nguồn</span>}</td><td><div className="vocab-parts">{day.parts.length ? day.parts.map(part => <span className="vocab-part" data-part={part} key={part}>P{part}</span>) : <span className="text-slate-500 dark:text-slate-400">—</span>}</div></td><td className="vocab-quantity">{day.count.toLocaleString('vi-VN')} từ</td><td><div className="vocab-row-actions"><button type="button" aria-label={`Sửa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => setEditing({ day, signature: vocabDaySignature(vocabLog, day.date) })} className="vocab-action"><Pencil size={14} aria-hidden="true" /><span>Sửa</span></button>{onDeleteVocab && <button type="button" aria-label={`Xóa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => removeDay(day)} className="vocab-action is-delete"><Trash2 size={14} aria-hidden="true" /><span>Xóa</span></button>}</div></td></tr>) : <tr><td colSpan={5} className="vocab-empty">Chưa có ghi nhận trong khoảng này.</td></tr>}
       </tbody></table>
       {pageCount > 1 && <nav aria-label="Trang lịch sử từ vựng" className="vocab-pagination"><button type="button" disabled={page === 1} onClick={() => setHistoryPage(page - 1)}><ChevronLeft size={16} aria-hidden="true" />Trước</button><span>Trang {page}/{pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setHistoryPage(page + 1)}>Sau<ChevronRight size={16} aria-hidden="true" /></button></nav>}
-    </section>
+      </section>}
+    </details>
     <p role="status" aria-live="polite" className="vocab-feedback">{feedback}</p>
     {editing && <VocabEditModal day={editing.day} suggestions={suggestions} onClose={closeEdit} onSave={(count, details) => {
       const message = saveDay(editing.day.date, count, editing.signature, details);

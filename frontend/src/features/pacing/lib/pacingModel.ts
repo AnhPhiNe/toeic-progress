@@ -3,9 +3,9 @@ import type { ReadingPartType } from '@/shared/types';
 export const PRESETS = {
   PART_5: { name: 'Part 5', minutes: 12, questions: 30, part: 5, tip: 'Với câu hỏi từ loại, kiểm tra cấu trúc quanh chỗ trống trước. Với câu hỏi từ vựng, đọc đủ ngữ cảnh để chọn nghĩa phù hợp.' },
   PART_6: { name: 'Part 6', minutes: 8, questions: 16, part: 6, tip: 'Đọc đủ ngữ cảnh để xác định thì, từ nối và quan hệ giữa các câu.' },
-  PART_7_SINGLE: { name: 'Part 7 · Đơn', minutes: 25, questions: 29, part: 7, tip: 'Đọc câu hỏi để định vị thông tin; đối chiếu từ khóa với cách diễn đạt trong đoạn văn.' },
+  PART_7: { name: 'Part 7 · Toàn bộ', minutes: 55, questions: 54, part: 7, tip: 'Phân bổ thời gian cho cả đoạn đơn và đoạn đôi/ba; chuyển câu khi chưa tìm được bằng chứng.' },
+  PART_7_SINGLE: { name: 'Part 7 · Đoạn đơn', minutes: 25, questions: 29, part: 7, tip: 'Đọc câu hỏi để định vị thông tin; đối chiếu từ khóa với cách diễn đạt trong đoạn văn.' },
   PART_7_MULTI: { name: 'Part 7 · Đôi/ba', minutes: 30, questions: 25, part: 7, tip: 'Với câu hỏi chéo, kiểm tra thông tin từ các văn bản liên quan trước khi chọn.' },
-  PART_7: { name: 'Part 7', minutes: 55, questions: 54, part: 7, tip: 'Phân bổ thời gian cho cả đoạn đơn và đoạn đôi/ba; chuyển câu khi chưa tìm được bằng chứng.' },
   FULL_READING: { name: 'Reading', minutes: 75, questions: 100, part: null, tip: 'Phân bổ thời gian theo tiến độ; đánh dấu câu khó để quay lại nếu còn thời gian.' },
   POMODORO: { name: 'Pomodoro', minutes: 25, questions: 0, part: null, tip: 'Tập trung vào một việc trong phiên này; nghỉ ngắn khi hoàn thành.' }
 } as const;
@@ -39,6 +39,13 @@ export function freshTimer(owner: string | null, mode: PacingMode, settings = DE
   const minutes = mode !== 'POMODORO' ? PRESETS[mode].minutes : phase === 'WORK' ? settings.workMinutes : phase === 'SHORT_BREAK' ? settings.shortBreakMinutes : settings.longBreakMinutes;
   return { version: 1, id: `pacing-v2-${crypto.randomUUID()}`, owner, mode, phase, status: 'ready', plannedSeconds: minutes * 60,
     questions: PRESETS[mode].questions, elapsedMs: 0, runningSince: null, startedAt: null, endedAt: null, name: '', correct: '' };
+}
+export const hasFlexibleQuestions = (mode: PacingMode) => mode === 'PART_7_SINGLE' || mode === 'PART_7_MULTI';
+export function configureTimer(timer: TimerSnapshot, plannedMinutes: number, requestedQuestions: number): TimerSnapshot | null {
+  if (timer.status !== 'ready' || !Number.isInteger(plannedMinutes) || plannedMinutes < 1 || plannedMinutes > 180) return null;
+  const questions = hasFlexibleQuestions(timer.mode) ? requestedQuestions : PRESETS[timer.mode].questions;
+  if (!Number.isInteger(questions) || questions < (timer.mode === 'POMODORO' ? 0 : 1) || questions > PRESETS[timer.mode].questions) return null;
+  return { ...timer, plannedSeconds: plannedMinutes * 60, questions };
 }
 export function elapsedMs(timer: TimerSnapshot, now = Date.now()): number {
   return Math.min(timer.plannedSeconds * 1000, Math.max(0, timer.elapsedMs + (timer.status === 'running' && timer.runningSince !== null ? Math.max(0, now - timer.runningSince) : 0)));

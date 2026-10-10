@@ -64,11 +64,18 @@ export function associatedStudyId(run: PacingRun, sessions: StudySession[]): str
   const stamp = /^pacing(?:-pomodoro)?-(\d+)$/.exec(run.id)?.[1];
   if (!stamp || Math.abs(Date.parse(run.createdAt) - Number(stamp)) > 2000) return undefined;
   const prefix = run.partType === 'POMODORO' ? 'session-pomodoro-' : 'session-pacing-';
-  const legacyMode = run.partType === 'FULL_READING' ? 'Full Reading' : run.partType && run.partType in PRESETS ? PRESETS[run.partType as keyof typeof PRESETS].name.replace(' · Đơn', 'A').replace(' · Đôi/ba', 'B') : run.presetName;
-  const expectedName = run.partType === 'POMODORO' ? 'Pomodoro: Tập trung chuyên sâu' : run.testName?.trim() ? `[Tốc độ] ${run.testName.trim()}` : `[Luyện tốc độ] ${legacyMode}`;
+  // Stored historical labels must not depend on today's display wording.
+  const legacyNames: Partial<Record<PacingMode, string>> = { PART_5: 'Part 5', PART_6: 'Part 6',
+    PART_7_SINGLE: 'Part 7A', PART_7_MULTI: 'Part 7B', PART_7: 'Part 7', FULL_READING: 'Full Reading' };
+  const config = run.partType && run.partType in PRESETS ? PRESETS[run.partType as PacingMode] : undefined;
+  const legacyMode = legacyNames[run.partType as PacingMode] ?? run.presetName;
+  const name = run.testName?.trim();
+  const expectedNames = new Set((run.partType === 'POMODORO'
+    ? ['Pomodoro: Tập trung chuyên sâu', name || 'Pomodoro: tập trung']
+    : name ? [`[Tốc độ] ${name}`, name] : [`[Luyện tốc độ] ${legacyMode}`, `Luyện ${config?.name ?? run.presetName}`]).map(normalizeTestName));
   const matches = sessions.filter(session => !session.deletedAt && session.sessionType === 'PART_PRACTICE' && session.id.startsWith(prefix)
     && /^\d+$/.test(session.id.slice(prefix.length)) && Math.abs(Number(session.id.slice(prefix.length)) - Number(stamp)) <= 2000
-    && session.date === run.date && normalizeTestName(session.testName) === normalizeTestName(expectedName)
+    && session.date === run.date && expectedNames.has(normalizeTestName(session.testName))
     && Math.abs(session.durationMinutes - run.actualMinutes) < 0.0001
     && Math.abs(Date.parse(session.createdAt) - Date.parse(run.createdAt)) <= 2000);
   return matches.length === 1 ? matches[0].id : undefined;

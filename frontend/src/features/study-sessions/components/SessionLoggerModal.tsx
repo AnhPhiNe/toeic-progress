@@ -204,6 +204,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   // Tính điểm trực tiếp từ partScores
   const calculated = calculateFromPartScores(partScores);
   const resolveScores = () => resolveFullTestScore({
+    previous: editingSession,
     source: scoreSource,
     partScores: scoreSource === 'ESTIMATED' || includePartDetails ? partScores : undefined,
     listening: manualListening.trim() ? Number(manualListening) : undefined,
@@ -501,7 +502,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   </div>
                 </div>
               </div>
-              {scoreSource === 'ESTIMATED' && <p className="text-xs text-slate-500 dark:text-slate-400">Bảng tham khảo của app chưa được hiệu chuẩn cho từng đề. Điểm thực tế có thể khác; nếu đề có bảng điểm hoặc kết quả sẵn, hãy nhập trực tiếp.</p>}
+              {scoreSource === 'ESTIMATED' && <p className="text-xs text-slate-500 dark:text-slate-400">Ước tính mới dùng cận dưới khoảng tham khảo IIBC 2023; đúng 100/100 quy ước 495đ mỗi kỹ năng. Chưa hiệu chuẩn cho đề của bạn. Bản ghi cũ giữ điểm khi số câu không đổi. Nếu đề có bảng điểm hoặc kết quả sẵn, hãy nhập trực tiếp.</p>}
 
               {/* Part 1-7 Inputs Grid */}
               {(scoreSource === 'ESTIMATED' || includePartDetails) && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

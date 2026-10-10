@@ -1,9 +1,11 @@
 import { LRPartScore, PracticePartResult } from '@/shared/types';
 
 /**
- * Bảng ma trận quy đổi điểm Raw Score (0 - 100) sang Scaled Score (5 - 495)
- * Bảng tham khảo cũ của app, chưa có nguồn gắn với từng đề cụ thể.
- * ETS equates điểm theo độ khó của từng đề, không thể dùng bảng này làm điểm chính thức.
+ * Legacy tables are retained only to recognize/preserve existing estimates.
+ * New estimates use the lower endpoint of the IIBC March 2023 mock test ranges.
+ * The app assigns its maximum 495 to a perfect 100/100 section as a training
+ * convention. This endpoint override is not an official ETS conversion claim.
+ * Those ranges describe one mock test, not an ETS conversion for every form.
  */
 
 // Bảng Listening: Index đại diện cho số câu đúng (0 -> 100)
@@ -40,19 +42,42 @@ const READING_CONVERSION_TABLE: number[] = [
  * Quy đổi số câu đúng Listening sang Scaled Score
  */
 export function convertRawToListeningScore(raw: number): number {
-  assertRawScore(raw);
-  return LISTENING_CONVERSION_TABLE[raw];
+  return getPracticeScoreRange('listening', raw).min;
 }
 
 /**
  * Quy đổi số câu đúng Reading sang Scaled Score
  */
 export function convertRawToReadingScore(raw: number): number {
-  assertRawScore(raw);
-  return READING_CONVERSION_TABLE[raw];
+  return getPracticeScoreRange('reading', raw).min;
 }
 
-export const SCORE_CONVERSION_VERSION = 'legacy-reference-v1';
+export const SCORE_CONVERSION_VERSION = 'iibc-mock-2023-perfect-v2';
+export const PRACTICE_SCORE_SOURCE = 'https://www.iibc-global.org/hubfs/library/default/toeic/special/job/u-trial202303/pdf/utrial_score.pdf?hsLang=ja';
+
+// Each tuple is [minimum raw count, lower score, upper score], transcribed from
+// page 3 of the source. A band is constant; do not invent within-band precision.
+const PRACTICE_SCORE_RANGES: Record<'listening' | 'reading', readonly (readonly [number, number, number])[]> = {
+  listening: [[0,5,35],[1,5,50],[6,5,60],[11,5,70],[16,30,90],[21,60,115],[26,85,145],[31,105,175],[36,130,205],[41,160,230],[46,190,255],[51,215,280],[56,240,310],[61,265,335],[66,290,360],[71,320,390],[76,345,420],[81,370,450],[86,405,470],[91,435,495],[96,475,495]],
+  reading: [[0,5,15],[1,5,30],[6,10,40],[11,30,55],[16,45,75],[21,60,95],[26,75,120],[31,95,150],[36,115,180],[41,140,215],[46,170,245],[51,200,275],[56,230,310],[61,255,340],[66,285,370],[71,310,390],[76,340,415],[81,375,440],[86,400,465],[91,425,490],[96,460,495]],
+};
+
+export function getPracticeScoreRange(skill: 'listening' | 'reading', raw: number): { min: number; max: number } {
+  const published = getPublishedMockScoreRange(skill, raw);
+  // The grouped 96–100 range has no perfect-score endpoint; the app supplies
+  // one, while retaining the original lookup for v1 record handling.
+  return raw === 100 ? { min: 495, max: 495 } : published;
+}
+
+function getPublishedMockScoreRange(skill: 'listening' | 'reading', raw: number): { min: number; max: number } {
+  assertRawScore(raw);
+  const bands = PRACTICE_SCORE_RANGES[skill];
+  for (let index = bands.length - 1; index >= 0; index--) {
+    const [minimumRaw, min, max] = bands[index];
+    if (raw >= minimumRaw) return { min, max };
+  }
+  throw new Error('Không tìm được khoảng điểm tham khảo.');
+}
 function assertRawScore(raw: number): void {
   if (!Number.isInteger(raw) || raw < 0 || raw > 100) throw new Error('Số câu đúng phải là số nguyên từ 0 đến 100.');
 }
@@ -60,7 +85,7 @@ function assertRawScore(raw: number): void {
 /**
  * Cộng số câu đúng và ước tính điểm tham khảo từ chi tiết Part 1 - 7.
  */
-export function calculateFromPartScores(partScores: LRPartScore) {
+export function calculateFromPartScores(partScores: LRPartScore, version = SCORE_CONVERSION_VERSION) {
   for (const [part, max] of Object.entries(PART_MAX_QUESTIONS)) {
     const count = partScores[part as keyof LRPartScore];
     if (!Number.isInteger(count) || count < 0 || count > max) throw new Error(`${part}: số câu đúng phải là số nguyên từ 0 đến ${max}.`);
@@ -80,8 +105,9 @@ export function calculateFromPartScores(partScores: LRPartScore) {
     (partScores.part7 || 0)
   );
 
-  const scaledListening = convertRawToListeningScore(rawListening);
-  const scaledReading = convertRawToReadingScore(rawReading);
+  if (![SCORE_CONVERSION_VERSION, 'iibc-mock-2023-lower-v1', 'legacy-reference-v1'].includes(version)) throw new Error('Bảng quy đổi không được hỗ trợ.');
+  const scaledListening = version === 'legacy-reference-v1' ? LISTENING_CONVERSION_TABLE[rawListening] : version === 'iibc-mock-2023-lower-v1' ? getPublishedMockScoreRange('listening', rawListening).min : convertRawToListeningScore(rawListening);
+  const scaledReading = version === 'legacy-reference-v1' ? READING_CONVERSION_TABLE[rawReading] : version === 'iibc-mock-2023-lower-v1' ? getPublishedMockScoreRange('reading', rawReading).min : convertRawToReadingScore(rawReading);
   const totalScore = scaledListening + scaledReading;
 
   return {
@@ -130,124 +156,53 @@ export function calculatePartAccuracy(partScores: LRPartScore): Record<keyof LRP
 }
 
 /**
- * Thang quy đổi chứng chỉ quốc tế tương đương
- * Dựa trên Khung tham chiếu CEFR, Thông tư 01/2014/TT-BGDĐT (VSTEP) và bảng đối sánh ETS / IELTS.
+ * Independent references through CEFR; these are not direct test-score conversions.
+ * TOEIC cut scores apply separately to Listening and Reading, never to a total alone.
  */
+export const SCORE_REFERENCE_SOURCES = {
+  toeic: 'https://www.ets.org/pdfs/toeic/toeic-mapping-cefr-reference.pdf',
+  ielts: 'https://www.britishcouncil.org.tr/exam/ielts/blog/know-your-english-level',
+  ieltsLimits: 'https://ielts.org/organisations/ielts-for-organisations/compare-ielts/ielts-and-the-cefr',
+  toefl: 'https://www.ets.org/toefl/institutions/ibt/score-scale-update.html',
+  vstep: 'https://vstep.vnu.edu.vn/the-administration-plan-for-vietnamese-standardized-test-of-english-proficiency-vstep-3-5-exam-date-on-14-december-2025/'
+};
 export interface InternationalConcordanceTier {
-  minScore: number;
-  maxScore: number;
+  minListening: number | null;
+  minReading: number | null;
   toeicRange: string;
-  cefr: string;
+  cefr: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
   cefrLevelName: string;
   ielts: string;
   vstep: string;
-  vstepTier: string;
   toeflIbt: string;
+  toeflLegacy: string;
   badgeBg: string;
   badgeText: string;
-  academicStandard: string;
-  description: string;
 }
-
 export const CONCORDANCE_TIERS: InternationalConcordanceTier[] = [
-  {
-    minScore: 0,
-    maxScore: 250,
-    toeicRange: '0 – 250',
-    cefr: 'A1',
-    cefrLevelName: 'Căn bản (Breakthrough)',
-    ielts: '< 3.0',
-    vstep: 'Bậc 1',
-    vstepTier: 'Sơ cấp',
-    toeflIbt: '0 – 31',
-    badgeBg: 'bg-slate-100 dark:bg-slate-800',
-    badgeText: 'text-slate-600 dark:text-slate-400',
-    academicStandard: 'Căn bản / Mới bắt đầu',
-    description: 'Hiểu và sử dụng các cấu trúc quen thuộc hàng ngày, từ ngữ rất cơ bản.'
-  },
-  {
-    minScore: 255,
-    maxScore: 400,
-    toeicRange: '255 – 400',
-    cefr: 'A2',
-    cefrLevelName: 'Sơ cấp (Waystage)',
-    ielts: '3.0 – 3.5',
-    vstep: 'Bậc 2',
-    vstepTier: 'Sơ cấp nâng cao',
-    toeflIbt: '32 – 45',
-    badgeBg: 'bg-amber-50 dark:bg-amber-950/40',
-    badgeText: 'text-amber-700 dark:text-amber-400',
-    academicStandard: 'Giao tiếp tình huống đơn giản',
-    description: 'Giao tiếp trong các tình huống đơn giản, trao đổi thông tin quen thuộc.'
-  },
-  {
-    minScore: 405,
-    maxScore: 600,
-    toeicRange: '405 – 600',
-    cefr: 'B1',
-    cefrLevelName: 'Trung cấp (Threshold)',
-    ielts: '4.0 – 5.0',
-    vstep: 'Bậc 3',
-    vstepTier: 'Trung cấp',
-    toeflIbt: '46 – 64',
-    badgeBg: 'bg-blue-50 dark:bg-blue-950/40',
-    badgeText: 'text-blue-700 dark:text-blue-400',
-    academicStandard: 'Chuẩn tốt nghiệp Đại học đa số trường',
-    description: 'Xử lý hầu hết các tình huống phát sinh khi đi du lịch hoặc làm việc cơ bản.'
-  },
-  {
-    minScore: 605,
-    maxScore: 780,
-    toeicRange: '605 – 780',
-    cefr: 'B2',
-    cefrLevelName: 'Trung cấp trên (Vantage)',
-    ielts: '5.5 – 6.5',
-    vstep: 'Bậc 4',
-    vstepTier: 'Trung cấp trên',
-    toeflIbt: '65 – 94',
-    badgeBg: 'bg-indigo-50 dark:bg-indigo-950/40',
-    badgeText: 'text-indigo-700 dark:text-indigo-400',
-    academicStandard: 'Chuẩn Thạc sĩ / Tuyển dụng FDI, Ngân hàng lớn',
-    description: 'Giao tiếp trôi chảy với người bản xứ, nắm bắt ý chính các văn bản chuyên môn.'
-  },
-  {
-    minScore: 785,
-    maxScore: 900,
-    toeicRange: '785 – 900',
-    cefr: 'C1',
-    cefrLevelName: 'Cao cấp (Effective Operational)',
-    ielts: '7.0 – 7.5',
-    vstep: 'Bậc 5',
-    vstepTier: 'Cao cấp',
-    toeflIbt: '95 – 114',
-    badgeBg: 'bg-purple-50 dark:bg-purple-950/40',
-    badgeText: 'text-purple-700 dark:text-purple-400',
-    academicStandard: 'Chuẩn Giảng dạy tiếng Anh / Du học sau Đại học',
-    description: 'Sử dụng ngôn ngữ linh hoạt, hiệu quả trong học thuật và công việc cấp cao.'
-  },
-  {
-    minScore: 905,
-    maxScore: 990,
-    toeicRange: '905 – 990',
-    cefr: 'C2',
-    cefrLevelName: 'Thành thạo (Mastery)',
-    ielts: '8.0 – 9.0',
-    vstep: 'Bậc 6',
-    vstepTier: 'Thành thạo tối đa',
-    toeflIbt: '115 – 120',
-    badgeBg: 'bg-emerald-50 dark:bg-emerald-950/40',
-    badgeText: 'text-emerald-700 dark:text-emerald-400',
-    academicStandard: 'Tiệm cận bản ngữ / Chuyên gia ngôn ngữ quốc tế',
-    description: 'Hiểu hoàn toàn mọi ngữ cảnh phức tạp, diễn đạt tự nhiên và sắc sảo như bản ngữ.'
-  }
+  { minListening: 60, minReading: 60, toeicRange: '120đ', cefr: 'A1', cefrLevelName: 'Căn bản (Breakthrough)', ielts: '3.0', vstep: '—', toeflIbt: '1–1.5', toeflLegacy: '0–23', badgeBg: 'bg-slate-100 dark:bg-slate-800', badgeText: 'text-slate-600 dark:text-slate-400' },
+  { minListening: 110, minReading: 115, toeicRange: '225đ', cefr: 'A2', cefrLevelName: 'Sơ cấp (Waystage)', ielts: '3.5', vstep: '—', toeflIbt: '2–2.5', toeflLegacy: '24–43', badgeBg: 'bg-amber-50 dark:bg-amber-950/40', badgeText: 'text-amber-700 dark:text-amber-400' },
+  { minListening: 275, minReading: 275, toeicRange: '550đ', cefr: 'B1', cefrLevelName: 'Trung cấp (Threshold)', ielts: '4.0–5.0', vstep: 'Bậc 3', toeflIbt: '3–3.5', toeflLegacy: '44–71', badgeBg: 'bg-blue-50 dark:bg-blue-950/40', badgeText: 'text-blue-700 dark:text-blue-400' },
+  { minListening: 400, minReading: 385, toeicRange: '785đ', cefr: 'B2', cefrLevelName: 'Trung cấp trên (Vantage)', ielts: '5.5–6.5', vstep: 'Bậc 4', toeflIbt: '4–4.5', toeflLegacy: '72–94', badgeBg: 'bg-indigo-50 dark:bg-indigo-950/40', badgeText: 'text-indigo-700 dark:text-indigo-400' },
+  { minListening: 490, minReading: 455, toeicRange: '945đ', cefr: 'C1', cefrLevelName: 'Cao cấp (Effective Operational)', ielts: '7.0–8.0', vstep: 'Bậc 5', toeflIbt: '5–5.5', toeflLegacy: '95–113', badgeBg: 'bg-purple-50 dark:bg-purple-950/40', badgeText: 'text-purple-700 dark:text-purple-400' },
+  { minListening: null, minReading: null, toeicRange: '—', cefr: 'C2', cefrLevelName: 'Thành thạo (Mastery)', ielts: '8.5–9.0', vstep: '—', toeflIbt: '6', toeflLegacy: '114–120', badgeBg: 'bg-emerald-50 dark:bg-emerald-950/40', badgeText: 'text-emerald-700 dark:text-emerald-400' }
 ];
-
-export function getConcordanceByToeic(score: number): InternationalConcordanceTier {
-  const clamped = Math.max(0, Math.min(990, Math.round(score)));
-  const found = CONCORDANCE_TIERS.find(t => clamped >= t.minScore && clamped <= t.maxScore);
-  return found || CONCORDANCE_TIERS[0];
+const validScaledScore = (score: number) => Number.isInteger(score) && score >= 5 && score <= 495;
+export function getToeicSectionReference(skill: 'listening' | 'reading', score: number): InternationalConcordanceTier | null {
+  if (!validScaledScore(score)) return null;
+  const eligible = CONCORDANCE_TIERS.filter(tier => {
+    const minimum = skill === 'listening' ? tier.minListening : tier.minReading;
+    return minimum !== null && score >= minimum;
+  });
+  return eligible[eligible.length - 1] ?? null;
 }
-
+/** Conservative shared reference: both receptive skills must meet the row's thresholds. */
+export function getConcordanceByToeic(listening: number, reading: number): InternationalConcordanceTier | null {
+  if (!validScaledScore(listening) || !validScaledScore(reading)) return null;
+  const eligible = CONCORDANCE_TIERS.filter(tier => tier.minListening !== null && tier.minReading !== null
+    && listening >= tier.minListening && reading >= tier.minReading);
+  return eligible[eligible.length - 1] ?? null;
+}
 
 /**
  * Lấy kết quả luyện từng Part của một buổi học.

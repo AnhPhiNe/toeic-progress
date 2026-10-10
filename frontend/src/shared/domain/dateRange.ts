@@ -13,5 +13,6 @@ export function dateRangeError(range: DateRange, today: string): string {
   if (!validCalendarDate(range.from) || !validCalendarDate(range.to)) return 'Nhập đủ hai ngày hợp lệ.';
   if (range.from > range.to) return 'Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.';
   if (range.to > today) return 'Ngày kết thúc không vượt quá hôm nay.';
+  if (calendarDayIndex(range.to) - calendarDayIndex(range.from) + 1 > 30) return 'Chọn khoảng tối đa 30 ngày, tính cả ngày bắt đầu và kết thúc.';
   return '';
 }

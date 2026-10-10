@@ -18,7 +18,7 @@ test('manual section scores override the estimate and survive reload and editing
   await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual sections');
   for (const [index, count] of [5, 20, 35, 27, 25, 12, 33].entries()) await dialog.getByLabel(`Số câu đúng Part ${index + 1}`, { exact: true }).fill(String(count));
   await expect(dialog.getByText('Ước tính tham khảo', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('855', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('690', { exact: true })).toBeVisible();
   await dialog.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
   await dialog.getByLabel('Điểm Listening /495').fill('445');
   await dialog.getByLabel('Điểm Reading /495').fill('350');
@@ -77,4 +77,42 @@ test('total-only entry validates limits and can later add or remove section scor
   expect(changed).toMatchObject({ totalScore: 805, scoreSource: 'MANUAL_TOTAL' });
   expect(changed).not.toHaveProperty('scaledListening');
   expect(changed).not.toHaveProperty('scaledReading');
+});
+
+
+test('old estimates retain their version on metadata edits and switch only when raw counts change', async ({ page }) => {
+  await page.goto('/lich-su');
+  await page.evaluate(() => {
+    const bundle=JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    bundle.sessions=[{id:'legacy-estimate',skillType:'LR',sessionType:'FULL_TEST',testName:'Legacy estimate',date:'2026-10-09',durationMinutes:120,createdAt:'2026-10-09T09:00:00Z',partScores:{part1:5,part2:20,part3:35,part4:27,part5:25,part6:12,part7:33},rawListening:87,rawReading:70,scaledListening:490,scaledReading:365,totalScore:855,scoreSource:'ESTIMATED',scoreConversionVersion:'legacy-reference-v1'}];
+    localStorage.setItem('toeic_progress_bundle_v3',JSON.stringify(bundle));
+  });
+  await page.reload();
+  await page.getByRole('button',{name:'Sửa bản ghi Legacy estimate'}).click();
+  const dialog=page.getByRole('dialog');
+  await expect(dialog.getByText('855',{exact:true})).toBeVisible();
+  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Legacy renamed');
+  await dialog.getByRole('button',{name:'Lưu thay đổi'}).click();
+  await expect(dialog).not.toBeVisible();
+  expect(await savedSession(page)).toMatchObject({totalScore:855,scoreConversionVersion:'legacy-reference-v1'});
+  await page.getByRole('button',{name:'Sửa bản ghi Legacy renamed'}).click();
+  await dialog.getByLabel('Số câu đúng Part 3',{exact:true}).fill('39');
+  await expect(dialog.getByText('720',{exact:true})).toBeVisible();
+  await dialog.getByRole('button',{name:'Lưu thay đổi'}).click();
+  await expect(dialog).not.toBeVisible();
+  expect(await savedSession(page)).toMatchObject({totalScore:720,scoreConversionVersion:'iibc-mock-2023-perfect-v2'});
+});
+
+
+test('a newly saved perfect Full Test receives 495 per section and 990 total', async ({ page }) => {
+  const dialog = await openLogger(page);
+  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Perfect estimate');
+  for (const [index,count] of [6,25,39,30,30,16,54].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1), {exact:true}).fill(String(count));
+  await expect(dialog.getByText('990',{exact:true})).toBeVisible();
+  await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('53');
+  await expect(dialog.getByText('955',{exact:true})).toBeVisible();
+  await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('54');
+  await dialog.getByRole('button',{name:'Lưu & Giữ Streak'}).click();
+  await expect(dialog).not.toBeVisible();
+  expect(await savedSession(page)).toMatchObject({rawListening:100,rawReading:100,scaledListening:495,scaledReading:495,totalScore:990,scoreSource:'ESTIMATED',scoreConversionVersion:'iibc-mock-2023-perfect-v2'});
 });

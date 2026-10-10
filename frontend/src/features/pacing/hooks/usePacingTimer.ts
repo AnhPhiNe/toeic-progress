@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { elapsedMs, finishTimer, freshTimer, pauseTimer, startTimer, type PacingMode, type PomodoroPhase, type PomodoroSettings, type TimerSnapshot } from '@/features/pacing/lib/pacingModel';
+import { configureTimer, elapsedMs, finishTimer, freshTimer, pauseTimer, startTimer, type PacingMode, type PomodoroPhase, type PomodoroSettings, type TimerSnapshot } from '@/features/pacing/lib/pacingModel';
 import { assertPacingOwner, clearTimer, persistTimer, PacingOwnerChangedError, readTimer, timerKey } from '@/features/pacing/services/pacingStorage';
 import { pacingError } from '@/features/pacing/lib/pacingErrors';
 
@@ -52,9 +52,8 @@ export function usePacingTimer(owner: string | null, initialMode: PacingMode, se
   }, [commit]);
   const reset = (mode = ref.current.mode, phase: PomodoroPhase = 'WORK') => commit(freshTimer(owner, mode, settings, phase));
   const configure = (plannedMinutes: number, questions: number) => {
-    if (ref.current.status !== 'ready' || !Number.isInteger(plannedMinutes) || plannedMinutes < 1 || plannedMinutes > 180
-      || !Number.isInteger(questions) || (ref.current.mode === 'POMODORO' ? questions !== 0 : questions < 1 || questions > 100)) return false;
-    return commit({ ...ref.current, plannedSeconds: plannedMinutes * 60, questions });
+    const next = configureTimer(ref.current, plannedMinutes, questions);
+    return next ? commit(next) : false;
   };
   const patchResult = (patch: Partial<Pick<TimerSnapshot, 'name' | 'correct'>>) => commit({ ...ref.current, ...patch }, false);
   const returnToClock = useCallback(() => commit({ ...ref.current, status: 'paused', endedAt: elapsedMs(ref.current) >= ref.current.plannedSeconds * 1000 ? ref.current.endedAt : null }, false), [commit]);

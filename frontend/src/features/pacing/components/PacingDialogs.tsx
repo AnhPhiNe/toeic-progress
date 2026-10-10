@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
-import { DEFAULT_POMODORO, formatClock, formatNumber, type PomodoroPhase, type PomodoroSettings } from '@/features/pacing/lib/pacingModel';
+import { DEFAULT_POMODORO, formatClock, formatNumber, hasFlexibleQuestions, PRESETS, type PacingMode, type PomodoroPhase, type PomodoroSettings } from '@/features/pacing/lib/pacingModel';
 
 export const pacingPrimary = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-emerald-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-[2px_2px_0px_#0f172a] hover:bg-emerald-300 disabled:opacity-40';
 export const pacingSecondary = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-[2px_2px_0px_#0f172a] dark:border-slate-300 dark:text-white dark:shadow-[2px_2px_0px_#cbd5e1]';
@@ -34,6 +34,20 @@ export function PacingResultModal({ title, seconds, questions, name, correct, su
         {savedPomodoro && settings && onNextPhase && <div className="grid grid-cols-2 gap-3">{phase === 'WORK' ? <><button type="button" className={pacingPrimary} onClick={() => onNextPhase(longBreakDue ? 'LONG_BREAK' : 'SHORT_BREAK')}>Nghỉ {longBreakDue ? `dài ${settings.longBreakMinutes}` : `ngắn ${settings.shortBreakMinutes}`}p</button><button type="button" className={pacingSecondary} onClick={() => onNextPhase('WORK')}>Tập trung mới</button></> : <button type="button" className={`${pacingPrimary} col-span-2`} onClick={() => onNextPhase('WORK')}>Tập trung {settings.workMinutes} phút</button>}</div>}
         {error && <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{error}</p>}
       </div><footer className="flex shrink-0 justify-end gap-3 border-t border-slate-200 px-4 py-3 dark:border-slate-700"><button type="button" className="min-h-11 cursor-pointer px-2 text-sm font-semibold text-slate-500 dark:text-slate-400" disabled={saving} onClick={onClose}>{savedPomodoro ? 'Đóng' : 'Quay lại'}</button>{!savedPomodoro && <button type="submit" disabled={saving || seconds <= 0} className={`${pacingSecondary} !border-slate-900 !bg-blue-600 !text-white`}>{saving ? 'Đang lưu…' : correct.trim() === '' ? 'Lưu thời gian' : 'Lưu kết quả'}</button>}</footer>
+    </form>
+  </DialogFrame>;
+}
+
+export function ReadingSettingsModal({ mode, minutes, questions, error, onSave, onClose }: { mode: PacingMode; minutes: number; questions: number; error: string; onSave: (minutes: number, questions: number) => void; onClose: () => void }) {
+  const [value, setValue] = useState({ minutes, questions });
+  const flexible = hasFlexibleQuestions(mode), config = PRESETS[mode];
+  return <DialogFrame title={flexible ? 'Điều chỉnh lượt luyện' : 'Điều chỉnh thời gian'} onClose={onClose}>
+    <form className="min-h-0 overflow-y-auto" onSubmit={event => { event.preventDefault(); onSave(value.minutes, flexible ? value.questions : config.questions); }}>
+      <div className="space-y-4 p-4"><p className="text-sm text-slate-500 dark:text-slate-400">{config.name} · {questions} câu</p>
+        <label className="block text-sm font-semibold">Thời gian (phút)<input aria-label="Thời gian luyện (phút)" type="number" required min={1} max={180} step={1} value={value.minutes} onChange={event => setValue(previous => ({ ...previous, minutes: Number(event.target.value) }))} className={inputClass} /></label>
+        {flexible && <><label className="block text-sm font-semibold">Số câu luyện<input aria-describedby="pacing-question-help" type="number" required min={1} max={config.questions} step={1} value={value.questions} onChange={event => setValue(previous => ({ ...previous, questions: Number(event.target.value) }))} className={inputClass} /></label><p id="pacing-question-help" className="text-xs text-slate-500 dark:text-slate-400">Mặc định {config.questions} câu cho cả phần. Khi luyện một phần, nhập số câu thực tế (1–{config.questions}).</p></>}
+        {error && <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{error}</p>}
+      </div><footer className="flex justify-end gap-3 border-t border-slate-200 px-4 py-3 dark:border-slate-700"><button type="button" className="min-h-11 cursor-pointer px-2 text-sm font-semibold text-slate-500 dark:text-slate-400" onClick={onClose}>Đóng</button><button type="submit" className={pacingPrimary}>Áp dụng</button></footer>
     </form>
   </DialogFrame>;
 }

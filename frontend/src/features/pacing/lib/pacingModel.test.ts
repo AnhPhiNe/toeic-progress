@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { elapsedMs, finishTimer, freshTimer, parseTimer, pauseTimer, startTimer } from './pacingModel';
+import { configureTimer, elapsedMs, finishTimer, freshTimer, parseTimer, pauseTimer, startTimer, type PacingMode } from './pacingModel';
 
 describe('timestamp pacing timer', () => {
+  it('locks whole-part counts and allows only smaller single/multiple Part 7 exercises', () => {
+    const counts: [PacingMode, number][] = [['PART_5', 30], ['PART_6', 16], ['PART_7', 54], ['FULL_READING', 100], ['POMODORO', 0]];
+    for (const [mode, questions] of counts) expect(configureTimer(freshTimer(null, mode), 10, 60)).toMatchObject({ plannedSeconds: 600, questions });
+    for (const mode of ['PART_7_SINGLE', 'PART_7_MULTI'] as const) {
+      const timer = freshTimer(null, mode);
+      expect(configureTimer(timer, 9, 10)).toMatchObject({ plannedSeconds: 540, questions: 10 });
+      for (const questions of [0, -1, 2.5, timer.questions + 1, Infinity]) expect(configureTimer(timer, 9, questions)).toBeNull();
+      expect(configureTimer(startTimer(timer), 9, 10)).toBeNull();
+      for (const minutes of [0, 181, 1.5, NaN]) expect(configureTimer(timer, minutes, 10)).toBeNull();
+    }
+  });
   it('includes real running time, excludes pauses and resumes without drift', () => {
     let timer = freshTimer(null, 'PART_5');
     timer = startTimer(timer, 1000);

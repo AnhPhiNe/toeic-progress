@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-async function seed(page: Page) {
+async function seed(page: Page, expandHistory = true) {
   await page.clock.install({ time: new Date('2026-10-09T09:00:00Z') });
   await page.goto('/tu-vung');
   await page.evaluate(() => {
@@ -15,10 +15,42 @@ async function seed(page: Page) {
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
+  if (expandHistory) await page.locator('.vocab-history-summary').click();
 }
 
+test('history starts collapsed, toggles by keyboard, remembers the choice and retains five-row paging', async ({ page }) => {
+  await seed(page, false);
+  const summary = page.locator('.vocab-history-summary');
+  await expect(summary).toContainText('Lịch sử ghi nhận');
+  await expect(summary).toContainText('3 ngày');
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(0);
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(3);
+  await page.reload();
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(3);
+  await summary.focus();
+  await page.keyboard.press('Space');
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(0);
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    data.vocabLog = Array.from({ length: 8 }, (_, index) => ({ id: `vocab:2026-10-0${index + 1}`, date: `2026-10-0${index + 1}`, count: 20, updatedAt: '2026-10-09T09:00:00Z', deletedAt: null }));
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await summary.click();
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(5);
+  await page.getByRole('navigation', { name: 'Trang lịch sử từ vựng' }).getByRole('button', { name: 'Sau', exact: true }).click();
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(3);
+  await summary.click();
+  await summary.click();
+  await expect(page.getByText('Trang 2/2', { exact: true })).toBeVisible();
+});
+
 async function openRange(page: Page) {
-  await page.getByRole('button', { name: /ngày gần nhất|\d{2}\/\d{2}\/\d{4} –/ }).click();
+  await page.getByLabel('Phạm vi từ vựng', { exact: true }).selectOption('CUSTOM');
   return page.getByRole('dialog', { name: 'Khoảng thời gian', exact: true });
 }
 
@@ -34,13 +66,13 @@ test('calendar ranges filter history, chart and statistics together while lifeti
   }
   await expect(page.getByRole('region', { name: 'Biểu đồ từ vựng', exact: true })).toContainText('20 từ (03/10)');
   let dialog = await openRange(page);
-  await dialog.getByRole('button', { name: '7 ngày', exact: true }).click();
+  await dialog.getByLabel('Từ ngày', { exact: true }).fill('2026-10-03');
   await expect(page.locator('[data-vocab-day]')).toHaveCount(3);
   await dialog.getByRole('button', { name: 'Hủy', exact: true }).click();
-  await expect(page.getByRole('button', { name: '14 ngày gần nhất', exact: true })).toBeFocused();
-  dialog = await openRange(page);
-  await dialog.getByRole('button', { name: '7 ngày', exact: true }).click();
-  await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
+  await expect(page.getByLabel('Phạm vi từ vựng', { exact: true })).toBeFocused();
+  await expect(page.getByLabel('Phạm vi từ vựng', { exact: true })).toHaveValue('14');
+  await page.getByLabel('Phạm vi từ vựng', { exact: true }).selectOption('7');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('[data-vocab-day]')).toHaveCount(2);
   await expect(page.getByRole('region', { name: 'Biểu đồ từ vựng', exact: true })).toContainText('17,5 từ/ngày');
   await expect(page.getByText('80 từ tích lũy', { exact: true })).toBeVisible();
@@ -50,7 +82,8 @@ test('calendar ranges filter history, chart and statistics together while lifeti
   await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await expect(page.locator('[data-vocab-day]')).toHaveCount(2);
   await expect(page.getByRole('region', { name: 'Biểu đồ từ vựng', exact: true })).toContainText('22,5 từ/ngày');
-  await expect(page.getByRole('button', { name: '24/09/2026 – 26/09/2026', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Phạm vi từ vựng', { exact: true })).toHaveValue('CUSTOM_APPLIED');
+  await expect(page.getByLabel('Phạm vi từ vựng', { exact: true }).locator('option:checked')).toHaveText('24/09/2026 – 26/09/2026');
   dialog = await openRange(page);
   await dialog.getByLabel('Từ ngày', { exact: true }).fill('2026-10-08');
   await dialog.getByLabel('Đến ngày', { exact: true }).fill('2026-10-08');
@@ -65,9 +98,9 @@ test('date validation, popup keyboard, mobile and zoom leave filters intact unti
   const dialog = await openRange(page);
   await dialog.getByLabel('Từ ngày', { exact: true }).fill('2026-10-08');
   await dialog.getByLabel('Đến ngày', { exact: true }).fill('2026-10-07');
-  await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('Ngày bắt đầu');
-  await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).focus();
+  await expect(dialog.getByRole('button', { name: 'Áp dụng', exact: true })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Hủy', exact: true }).focus();
   await page.keyboard.press('Tab');
   await expect(dialog.getByRole('button', { name: 'Đóng bộ lọc', exact: true })).toBeFocused();
   await page.keyboard.press('n');
@@ -100,6 +133,36 @@ test('date validation, popup keyboard, mobile and zoom leave filters intact unti
   await page.setViewportSize({ width: 1024, height: 812 });
   await page.evaluate(() => { document.documentElement.style.zoom = '125%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('range menu shows date fields only for custom ranges and blocks more than 30 inclusive days immediately', async ({ page }) => {
+  await seed(page);
+  const scope = page.getByLabel('Phạm vi từ vựng', { exact: true });
+  await expect(scope).toHaveValue('14');
+  await expect(scope.locator('option:not([hidden])')).toHaveText(['7 ngày gần nhất', '14 ngày gần nhất', '30 ngày gần nhất', 'Chọn khoảng ngày…']);
+  await expect(page.getByLabel('Từ ngày', { exact: true })).toHaveCount(0);
+  const dialog = await openRange(page);
+  await dialog.getByLabel('Từ ngày', { exact: true }).fill('2026-09-09');
+  await expect(dialog.getByRole('alert')).toContainText('tối đa 30 ngày');
+  await expect(dialog.getByRole('button', { name: 'Áp dụng', exact: true })).toBeDisabled();
+  await expect(dialog.getByLabel('Đến ngày', { exact: true })).toHaveAttribute('max', '2026-10-08');
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(3);
+  await dialog.getByLabel('Từ ngày', { exact: true }).fill('2026-09-10');
+  await expect(dialog.getByRole('alert')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Áp dụng', exact: true })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(4);
+  await expect(scope.locator('option:checked')).toHaveText('10/09/2026 – 09/10/2026');
+  const reopened = await openRange(page);
+  await expect(reopened.getByLabel('Từ ngày', { exact: true })).toHaveValue('2026-09-10');
+  await reopened.getByLabel('Đến ngày', { exact: true }).fill('2026-10-10');
+  await expect(reopened.getByRole('alert')).toContainText('hôm nay');
+  await expect(reopened.getByRole('button', { name: 'Áp dụng', exact: true })).toBeDisabled();
+  await reopened.getByRole('button', { name: 'Hủy', exact: true }).click();
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(4);
+  await scope.selectOption('7');
+  await expect(page.getByLabel('Từ ngày', { exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-vocab-day]')).toHaveCount(2);
 });
 
 test('optional source and multiple Parts persist after editing, quick count updates and reload', async ({ page }) => {

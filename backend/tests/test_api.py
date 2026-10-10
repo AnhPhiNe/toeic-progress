@@ -219,6 +219,16 @@ def score_record(**scores):
         {"scoreSource": "MANUAL_SECTIONS", "scaledListening": 445, "scaledReading": 350, "totalScore": 795},
         {
             "scoreSource": "ESTIMATED",
+            "scaledListening": 495,
+            "scaledReading": 495,
+            "totalScore": 990,
+            "rawListening": 100,
+            "rawReading": 100,
+            "scoreConversionVersion": "iibc-mock-2023-perfect-v2",
+            "partScores": {"part1": 6, "part2": 25, "part3": 39, "part4": 30, "part5": 30, "part6": 16, "part7": 54},
+        },
+        {
+            "scoreSource": "ESTIMATED",
             "scaledListening": 490,
             "scaledReading": 365,
             "totalScore": 855,
