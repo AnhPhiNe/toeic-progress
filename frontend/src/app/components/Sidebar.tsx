@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import type { NavTabId, StudySession, UserProfile } from '@/shared/types';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 
 export interface SidebarProps {
   activeTab: NavTabId;
@@ -53,6 +54,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen = false,
   onCloseMobile
 }) => {
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const closeMobile = useCallback(() => onCloseMobile?.(), [onCloseMobile]);
+  const mobileDialogRef = useModalA11y(isMobileOpen && isMobileViewport, closeMobile);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobileViewport(query.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+  useEffect(() => {
+    if (isMobileOpen && !isMobileViewport) closeMobile();
+  }, [isMobileOpen, isMobileViewport, closeMobile]);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       return localStorage.getItem('toeic_sidebar_collapsed') === 'true';
@@ -75,7 +88,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isMobileOpen) onCloseMobile?.();
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'b') return;
       const target = event.target as HTMLElement | null;
       if (target?.closest('input, textarea, [contenteditable="true"]')) return;
@@ -84,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMobileOpen, onCloseMobile, toggleCollapse]);
+  }, [toggleCollapse]);
 
   const displayName = profile.name?.trim() || 'Học viên';
   const nameParts = displayName.split(/\s+/).filter(Boolean);
@@ -247,10 +259,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 border-r-2 border-slate-900 bg-white p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100 md:block ' + (isCollapsed ? 'w-[72px]' : 'w-[264px]')}>
       {renderContent(false, isCollapsed)}
     </aside>
-    {isMobileOpen && (
-      <div className="fixed inset-0 z-50 flex md:hidden" role="dialog" aria-modal="true" aria-label="Điều hướng">
+    {isMobileOpen && isMobileViewport && (
+      <div className="fixed inset-0 z-50 flex md:hidden">
         <button type="button" className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onCloseMobile} aria-label="Đóng menu điều hướng" />
-        <div className="relative h-full w-[280px] max-w-[86vw] border-r-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#0B132B] p-4 shadow-2xl text-slate-800 dark:text-slate-100">
+        <div ref={mobileDialogRef} role="dialog" aria-modal="true" aria-label="Điều hướng" tabIndex={-1} className="relative h-full w-[280px] max-w-[86vw] border-r-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#0B132B] p-4 shadow-2xl text-slate-800 dark:text-slate-100">
           {renderContent(true, false)}
         </div>
       </div>

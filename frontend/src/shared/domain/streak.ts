@@ -6,11 +6,20 @@ function dayNumber(date: string): number {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
 }
 
+/** Shared by study dates and time badges: rest periods are never study activity. */
+export function studyPacingSeconds(run: PacingRun): number | null {
+  const preset = (run.presetId ?? '').toUpperCase();
+  const pomodoro = run.partType === 'POMODORO' || preset.startsWith('POMODORO');
+  if (run.deletedAt || pomodoro && preset.includes('BREAK')) return null;
+  const seconds = run.actualSeconds ?? run.actualMinutes * 60;
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+}
+
 export function actualStudyDates(bundle: { sessions: StudySession[]; vocabLog: VocabLog[]; pacingRuns: PacingRun[] }, today: string) {
   const actual = new Set<string>();
   for (const session of bundle.sessions) if (!session.deletedAt && session.date <= today) actual.add(session.date);
   for (const log of bundle.vocabLog) if (!log.deletedAt && log.count > 0 && log.date <= today) actual.add(log.date);
-  for (const run of bundle.pacingRuns) if (!run.deletedAt && (run.actualMinutes > 0 || (run.actualSeconds || 0) > 0) && run.date <= today) actual.add(run.date);
+  for (const run of bundle.pacingRuns) if (studyPacingSeconds(run) !== null && run.date <= today) actual.add(run.date);
   return actual;
 }
 

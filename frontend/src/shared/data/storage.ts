@@ -3,7 +3,7 @@ import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionA
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '@/shared/data/demoData';
 import { DEFAULT_CHECKLIST, canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, retainedSessionSources, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
-import { deriveStreak } from '@/shared/domain/streak';
+import { actualStudyDates, deriveStreak } from '@/shared/domain/streak';
 import { testNameKey } from '@/shared/domain/testNames';
 
 export function getTodayDateString(): string {
@@ -35,10 +35,7 @@ export function loadUserProfile(): UserProfile {
   const yesterday = getPreviousDateString(today);
   const dayBefore = getPreviousDateString(yesterday);
   const bundle = readDataBundle();
-  const activityDates = new Set([
-    ...live(bundle.sessions).map(item => item.date),
-    ...live(bundle.vocabLog).filter(item => item.count > 0).map(item => item.date)
-  ]);
+  const activityDates = actualStudyDates(bundle, today);
   const alreadyShielded = live(bundle.shieldDays).some(item => item.date === yesterday);
   let current = bundle;
   if ((!getActiveAccountId() || canWriteAccount()) && activityDates.has(dayBefore) && !activityDates.has(yesterday) && !alreadyShielded && deriveStreak(bundle, today).streakFreezes > 0) {

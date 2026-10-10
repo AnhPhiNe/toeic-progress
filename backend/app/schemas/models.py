@@ -81,6 +81,8 @@ class Session(Payload):
 
     @model_validator(mode="after")
     def check_score_source(self):
+        if self.practiceParts is not None and len({item.part for item in self.practiceParts}) != len(self.practiceParts):
+            raise ValueError("Part luyện tập bị trùng")
         # Preserve legacy imports without changing or re-estimating their scores.
         if self.scoreSource is None:
             return self
@@ -165,6 +167,27 @@ class Pacing(Payload):
     finishedNaturally: bool
     phases: list[PacingPhase] = Field(max_length=100)
     createdAt: AwareDatetime
+    partType: Literal["PART_5", "PART_6", "PART_7", "PART_7_SINGLE", "PART_7_MULTI", "FULL_READING", "POMODORO", "CUSTOM"] | None = None
+    testName: str | None = Field(default=None, max_length=300)
+    totalQuestions: int | None = Field(default=None, ge=1, le=100, strict=True)
+    correctAnswers: int | None = Field(default=None, ge=0, le=100, strict=True)
+    actualSeconds: Number | None = None
+    speedSecPerQuestion: Number | None = None
+    accuracyPercent: float | None = Field(default=None, ge=0, le=100)
+
+    @field_validator("partType", "testName", "totalQuestions", "correctAnswers", "actualSeconds", "speedSecPerQuestion", "accuracyPercent", mode="before")
+    @classmethod
+    def reject_explicit_null(cls, value):
+        if value is None:
+            raise ValueError("Trường luyện tốc độ đã cung cấp không được để null")
+        return value
+
+    @model_validator(mode="after")
+    def check_result(self):
+        # Older runs may omit these fields or use a custom question count.
+        if self.correctAnswers is not None and (self.totalQuestions is None or self.correctAnswers > self.totalQuestions):
+            raise ValueError("Số câu đúng phải có tổng câu và không vượt tổng câu")
+        return self
 
 
 class Checklist(Payload):

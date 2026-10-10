@@ -45,6 +45,7 @@ import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mis
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
+import { mergeSessionEdit } from '@/features/study-sessions/lib/sessionUpdates';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -91,7 +92,7 @@ export const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setEditingPacing(null); }, [activeOwner]);
+  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -195,8 +196,11 @@ export const App: React.FC = () => {
    * một buổi cũ không phải là hoạt động học hôm nay, nên streak và pháo giấy
    * kỷ lục không được kích hoạt.
    */
-  const handleUpdateSession = (session: StudySession, newMistakes?: MistakeEntry[]) => {
-    setSessions(updateStudySessions(current => current.map(s => (s.id === session.id ? session : s))));
+  const handleUpdateSession = (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => {
+    setSessions(updateStudySessions(current => {
+      const merged = mergeSessionEdit(current.find(s => s.id === original.id), original, session);
+      return current.map(s => s.id === original.id ? merged : s);
+    }));
     setProfile(loadUserProfile());
 
     if (newMistakes && newMistakes.length > 0) {
@@ -499,7 +503,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {getActiveAccountId() && ['loading', 'disconnected', 'error'].includes(account.status) && (
+      {(getActiveAccountId() || account.hasAccountSession) && ['loading', 'disconnected', 'error'].includes(account.status) && (
         <div className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/65 p-4" role="alertdialog" aria-modal="true" aria-label="Trạng thái kết nối">
           <div className={`${CARD} w-full max-w-sm space-y-3 text-center`}>
             <h2 className="text-lg font-bold">{account.status === 'loading' ? 'Đang kết nối tài khoản' : 'Chưa kết nối'}</h2>

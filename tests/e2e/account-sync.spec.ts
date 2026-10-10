@@ -72,7 +72,7 @@ async function setupAccount(page: Page) {
   await expect(page.getByRole('alertdialog', { name: 'Trạng thái kết nối' })).toHaveCount(0);
   return {
     accounts, uploads, userChecks: () => userChecks, syncRequests: () => syncRequests,
-    setFailure: () => { failSync = true; },
+    setFailure: (value = true) => { failSync = value; },
     hold: () => { let release!: () => void; holdSync = new Promise<void>(resolve => { release = resolve; }); return () => { holdSync = undefined; release(); }; }
   };
 }
@@ -131,4 +131,30 @@ test('failed background sync keeps the connection error visible', async ({ page 
   await expect(error).toBeVisible();
   await expect(error).toContainText('Test backend unavailable');
   await expect(error.getByRole('button', { name: 'Thử lại', exact: true })).toBeVisible();
+});
+
+test('failed initialization of a different account detaches the previous owner without deleting its bundle', async ({ page }) => {
+  const state = await setupAccount(page);
+  state.accounts.alice.vocabLog = [{ id: 'alice-private', date: '2026-10-06', count: 23, updatedAt: new Date().toISOString(), deletedAt: null }];
+  await confirmSession(page);
+  await expect(page.getByText('23 từ tích lũy', { exact: true })).toBeVisible();
+  state.setFailure();
+  const checksBefore = state.userChecks();
+  await confirmSession(page, 'bob');
+  await expect.poll(state.userChecks).toBeGreaterThan(checksBefore);
+  const error = page.getByRole('alertdialog', { name: 'Trạng thái kết nối' });
+  await expect(error).toContainText('Test backend unavailable');
+  await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Alice' })).toHaveCount(0);
+  await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('toeic_active_account_v1'))).toBeNull();
+  const preserved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!));
+  expect(preserved.profile.name).toBe('Alice');
+  expect(preserved.vocabLog).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'alice-private', count: 23 })]));
+  await expect(error.getByRole('button', { name: 'Thử lại', exact: true })).toBeVisible();
+  state.setFailure(false);
+  await error.getByRole('button', { name: 'Thử lại', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Bob' })).toBeVisible();
+  await expect(error).toHaveCount(0);
+  await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!).profile.name)).toBe('Alice');
 });

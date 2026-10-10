@@ -21,7 +21,9 @@ Frontend: sao chép `frontend/.env.example` thành `frontend/.env.local`, điề
 
 ## Supabase
 
-1. Tạo project Free riêng cho staging và dữ liệu thật. Áp dụng năm migration theo thứ tự tên trong `supabase/migrations/`. Project đã chạy migration 4 chỉ cần thêm `20261006020000_api_rate_limits.sql` rồi bật `API_LIMITS_ENABLED=true`. Migration 4 (`20261006010000_purge_deleted_content.sql`) xóa nội dung đã đánh dấu xóa trước đó; dữ liệu đang hiệu lực được giữ. Xem docs/DEPLOYMENT.md để cấu hình đúng thứ tự.
+Chuyển project: xem [hướng dẫn chuyển kết nối](../docs/SUPABASE_RECONNECT.md). Giữ migration/RLS/code đồng bộ; thay cấu hình theo project sau khi kiểm chứng staging.
+
+1. Tạo project Free riêng cho staging và dữ liệu thật. Repo có sáu migration: năm file đầu dành cho tracker/OpenAI, file thứ sáu dành cho Gemini pool. Project mới áp dụng theo thứ tự tên; có thể áp đủ sáu để chuẩn bị cả hai provider. Project đã chạy migration 4 chỉ cần thêm `20261006020000_api_rate_limits.sql` rồi bật `API_LIMITS_ENABLED=true`. Migration 4 (`20261006010000_purge_deleted_content.sql`) xóa nội dung đã đánh dấu xóa trước đó; dữ liệu đang hiệu lực được giữ. Xem docs/DEPLOYMENT.md để cấu hình đúng thứ tự.
 2. Điền `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`), `SUPABASE_SECRET_KEY` (`sb_secret_...`) vào `backend/.env`. URL/publishable key của frontend phải thuộc cùng project. Secret key chỉ ở backend. Biến `SUPABASE_SERVICE_ROLE_KEY` vẫn được hỗ trợ cho cấu hình cũ dùng JWT; cấu hình mới dùng secret key.
 3. Bật Google OAuth, Site URL và Redirect URLs cho localhost và domain frontend. Bản đầu ẩn email OTP; chỉ bật `VITE_ENABLE_EMAIL_OTP=true` sau khi cấu hình SMTP riêng.
 4. Bật Anonymous Sign-Ins và Turnstile CAPTCHA trong Auth. Khách chỉ được tạo phiên ẩn danh khi dùng AI; phiên này không kích hoạt đồng bộ dữ liệu học.

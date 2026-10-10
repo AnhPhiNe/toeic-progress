@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -27,6 +27,7 @@ import { collectTestNames, normalizeTestName, testNameKey } from '@/shared/domai
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ interface SessionLoggerModalProps {
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
    */
   editingSession?: StudySession | null;
-  onUpdateSession?: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
+  onUpdateSession?: (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => void;
 }
 
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
@@ -71,6 +72,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
   const [scoreError, setScoreError] = useState('');
+  const draftOwner = useRef(getActiveAccountId());
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
   const previousAttemptsForTest = useMemo(() => {
@@ -172,6 +174,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
    */
   useEffect(() => {
     if (!isOpen) return;
+    draftOwner.current = getActiveAccountId();
     const e = editingSession;
     setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
     setTestName(e?.testName ?? '');
@@ -243,78 +246,84 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      if (draftOwner.current !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Nội dung đang nhập được giữ để bạn sao chép; hãy mở lại form trước khi lưu.');
+      setScoreError('');
 
-    if (sessionType === 'VOCAB') {
-      onSaveVocab(date, vocabCount);
+      if (sessionType === 'VOCAB') {
+        onSaveVocab(date, vocabCount);
+        onClose();
+        return;
+      }
+
+      const sessionId = editingSession?.id ?? `session-${Date.now()}`;
+      const createdAt = editingSession?.createdAt ?? new Date().toISOString();
+      let newSession: StudySession;
+
+      if (sessionType === 'FULL_TEST') {
+        let resolved: ReturnType<typeof resolveFullTestScore>;
+        try { resolved = resolveScores(); setScoreError(''); }
+        catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
+        newSession = {
+          id: sessionId,
+          skillType: 'LR',
+          sessionType: 'FULL_TEST',
+          testName: canonicalTestName || 'ETS Test',
+          attemptNumber: isEditing && editingSession
+            ? computeSessionAttemptMap(sessions ?? loadStudySessions())[editingSession.id]?.attemptNumber ?? editingSession.attemptNumber ?? 1
+            : isExistingTest ? nextAttemptNumber : 1,
+          date,
+          durationMinutes: Number(durationMinutes) || 120,
+          ...resolved,
+          notes,
+          createdAt
+        };
+      } else {
+        const cleanRows = practiceRows.filter(r => r.total > 0);
+        const partLabel = cleanRows.length === 1
+          ? `Luyện Part ${cleanRows[0].part}`
+          : `Luyện ${cleanRows.length} Part`;
+
+        newSession = {
+          id: sessionId,
+          skillType: 'LR',
+          sessionType: 'PART_PRACTICE',
+          testName: canonicalTestName || partLabel,
+          date,
+          durationMinutes: Number(durationMinutes) || 30,
+          // Buổi luyện lẻ KHÔNG có raw score của đề đầy đủ - để trống thay vì
+          // nhét số câu Part lẻ vào ô vốn nghĩa là "đúng bao nhiêu trên 100 câu"
+          totalScore: 0,
+          practiceParts: cleanRows,
+          notes,
+          createdAt
+        };
+      }
+
+      // Chuyển đổi quick mistakes
+      const formattedMistakes: MistakeEntry[] = quickMistakes.map((m, idx) => ({
+        id: `mistake-${Date.now()}-${idx}`,
+        sessionId,
+        sourceTestName: newSession.testName,
+        part: m.part,
+        questionContext: m.questionContext,
+        userMistake: m.userMistake,
+        correctAnswer: m.correctAnswer,
+        category: m.category,
+        tags: m.tags.split(',').map(t => t.trim()).filter(Boolean),
+        status: 'NEEDS_REVIEW',
+        createdAt: new Date().toISOString()
+      }));
+
+      if (editingSession && onUpdateSession) {
+        onUpdateSession(newSession, editingSession, formattedMistakes);
+      } else {
+        onSaveSession(newSession, formattedMistakes);
+      }
       onClose();
-      return;
+    } catch (reason) {
+      setScoreError(reason instanceof Error ? reason.message : 'Chưa lưu được buổi học. Nội dung đang nhập vẫn được giữ.');
     }
-
-    const sessionId = editingSession?.id ?? `session-${Date.now()}`;
-    const createdAt = editingSession?.createdAt ?? new Date().toISOString();
-    let newSession: StudySession;
-
-    if (sessionType === 'FULL_TEST') {
-      let resolved: ReturnType<typeof resolveFullTestScore>;
-      try { resolved = resolveScores(); setScoreError(''); }
-      catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
-      newSession = {
-        id: sessionId,
-        skillType: 'LR',
-        sessionType: 'FULL_TEST',
-        testName: canonicalTestName || 'ETS Test',
-        attemptNumber: isEditing && editingSession
-          ? computeSessionAttemptMap(sessions ?? loadStudySessions())[editingSession.id]?.attemptNumber ?? editingSession.attemptNumber ?? 1
-          : isExistingTest ? nextAttemptNumber : 1,
-        date,
-        durationMinutes: Number(durationMinutes) || 120,
-        ...resolved,
-        notes,
-        createdAt
-      };
-    } else {
-      const cleanRows = practiceRows.filter(r => r.total > 0);
-      const partLabel = cleanRows.length === 1
-        ? `Luyện Part ${cleanRows[0].part}`
-        : `Luyện ${cleanRows.length} Part`;
-
-      newSession = {
-        id: sessionId,
-        skillType: 'LR',
-        sessionType: 'PART_PRACTICE',
-        testName: canonicalTestName || partLabel,
-        date,
-        durationMinutes: Number(durationMinutes) || 30,
-        // Buổi luyện lẻ KHÔNG có raw score của đề đầy đủ - để trống thay vì
-        // nhét số câu Part lẻ vào ô vốn nghĩa là "đúng bao nhiêu trên 100 câu"
-        totalScore: 0,
-        practiceParts: cleanRows,
-        notes,
-        createdAt
-      };
-    }
-
-    // Chuyển đổi quick mistakes
-    const formattedMistakes: MistakeEntry[] = quickMistakes.map((m, idx) => ({
-      id: `mistake-${Date.now()}-${idx}`,
-      sessionId,
-      sourceTestName: newSession.testName,
-      part: m.part,
-      questionContext: m.questionContext,
-      userMistake: m.userMistake,
-      correctAnswer: m.correctAnswer,
-      category: m.category,
-      tags: m.tags.split(',').map(t => t.trim()).filter(Boolean),
-      status: 'NEEDS_REVIEW',
-      createdAt: new Date().toISOString()
-    }));
-
-    if (isEditing && onUpdateSession) {
-      onUpdateSession(newSession, formattedMistakes);
-    } else {
-      onSaveSession(newSession, formattedMistakes);
-    }
-    onClose();
   };
 
   return (
@@ -342,6 +351,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Đóng form ghi nhận buổi học"
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -397,8 +407,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
+              <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
               <input
+                id="session-date"
                 type="date"
                 required
                 value={date}
@@ -407,8 +418,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Làm (Phút)</label>
+              <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Làm (Phút)</label>
               <input
+                id="session-duration"
                 type="number"
                 min="5"
                 max="240"
@@ -918,10 +930,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
           {/* Session Notes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="session-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Ghi Chú Buổi Học
             </label>
             <textarea
+              id="session-notes"
               rows={2}
               value={notes}
               onChange={e => setNotes(e.target.value)}

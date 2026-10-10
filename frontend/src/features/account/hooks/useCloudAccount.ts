@@ -12,6 +12,7 @@ interface PendingTransfer { userId: string; device: DataBundle; account: DataBun
 export function useCloudAccount(onDataChanged: () => void) {
   const [status, setStatus] = useState<AccountStatus>(apiAvailable ? 'loading' : 'guest');
   const [email, setEmail] = useState<string | null>(null);
+  const [hasAccountSession, setHasAccountSession] = useState(false);
   const [error, setError] = useState('');
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null);
   const userId = useRef<string | null>(null);
@@ -56,6 +57,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     if (resetting.current) return;
     const run = ++generation.current;
     if (!cloud || !apiAvailable) {
+      setHasAccountSession(false);
       if (getActiveAccountId()) { deactivateAccount(); onDataChanged(); }
       return;
     }
@@ -63,20 +65,35 @@ export function useCloudAccount(onDataChanged: () => void) {
     setAccountWriteEnabled(false);
     initialized.current = false;
     userId.current = null;
+    setPendingTransfer(null);
+    const detachDifferentOwner = (id: string) => {
+      const active = getActiveAccountId();
+      if (active && active !== id) {
+        // Keep the previous owner's stored bundle, but stop rendering it as
+        // the new identity even if authentication or its first sync fails.
+        deactivateAccount();
+        setEmail(null);
+        onDataChanged();
+      }
+    };
     try {
       const session = await cloud.auth.getSession();
       if (run !== generation.current) return;
       if (!session.data.session || session.data.session.user.is_anonymous) {
+        setHasAccountSession(false);
         if (getActiveAccountId()) { deactivateAccount(); onDataChanged(); }
         setPendingTransfer(null);
         setEmail(null);
         setStatus('guest');
         return;
       }
+      setHasAccountSession(true);
+      detachDifferentOwner(session.data.session.user.id);
       const { data, error: authError } = await cloud.auth.getUser();
       if (run !== generation.current) return;
       if (authError) throw authError;
       if (!data.user || data.user.is_anonymous) {
+        setHasAccountSession(false);
         if (getActiveAccountId()) { deactivateAccount(); onDataChanged(); }
         userId.current = null;
         setEmail(null);
@@ -84,6 +101,7 @@ export function useCloudAccount(onDataChanged: () => void) {
         return;
       }
       const id = data.user.id;
+      detachDifferentOwner(id);
       userId.current = id;
       setEmail(data.user.email || 'Tài khoản');
       const local = readAccountBundle(id);
@@ -208,6 +226,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     initialized.current = false;
     setPendingTransfer(null);
     setEmail(null);
+    setHasAccountSession(false);
     setStatus('guest');
     setError('');
     onDataChanged();
@@ -221,6 +240,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       initialized.current = false;
       setPendingTransfer(null);
       setEmail(null);
+      setHasAccountSession(false);
       setStatus('guest');
       setError('');
       onDataChanged();
@@ -265,5 +285,5 @@ export function useCloudAccount(onDataChanged: () => void) {
     }
   };
 
-  return { available: apiAvailable, status, email, error, pendingTransfer, chooseTransfer, signInGoogle, sendOtp, verifyOtp, signOut, deleteAccount, resetLearningData, retry: () => userId.current && initialized.current ? sync() : bootstrap() };
+  return { available: apiAvailable, hasAccountSession, status, email, error, pendingTransfer, chooseTransfer, signInGoogle, sendOtp, verifyOtp, signOut, deleteAccount, resetLearningData, retry: () => userId.current && initialized.current ? sync() : bootstrap() };
 }

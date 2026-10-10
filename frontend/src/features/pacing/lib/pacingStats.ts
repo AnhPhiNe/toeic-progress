@@ -1,5 +1,6 @@
 import type { PacingRun } from '@/shared/types';
 import { localDate, PRESETS, type PacingMode } from './pacingModel';
+import { studyPacingSeconds } from '@/shared/domain/streak';
 
 export function runSeconds(run: PacingRun): number | null {
   const seconds = run.actualSeconds ?? (run.actualMinutes === undefined ? undefined : run.actualMinutes * 60);
@@ -15,8 +16,7 @@ export function runSpeed(run: PacingRun): number | null {
   return seconds !== null && Number.isInteger(run.totalQuestions) && run.totalQuestions! > 0 ? seconds / run.totalQuestions! : null;
 }
 export function studySecondsForDay(runs: PacingRun[], date: string): number {
-  return runs.reduce((sum, run) => !run.deletedAt && run.date === date && !(run.partType === 'POMODORO' && run.presetId.includes('BREAK'))
-    ? sum + (runSeconds(run) ?? 0) : sum, 0);
+  return runs.reduce((sum, run) => run.date === date ? sum + (studyPacingSeconds(run) ?? 0) : sum, 0);
 }
 export function studyTimeLabel(seconds: number): string {
   if (seconds > 0 && seconds < 60) return 'Dưới 1 phút';

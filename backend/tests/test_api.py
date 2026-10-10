@@ -212,6 +212,58 @@ def score_record(**scores):
     }
 
 
+@pytest.mark.parametrize("parts", [
+    [{"part": 5, "correct": 1.5, "total": 30}],
+    [{"part": 5, "correct": 0, "total": 0}],
+    [{"part": 5, "correct": 31, "total": 30}],
+    [{"part": 6, "correct": 1, "total": 17}],
+    [{"part": 5, "correct": 1, "total": 30}, {"part": 5, "correct": 2, "total": 30}],
+])
+def test_invalid_practice_counts_never_reach_database(api, parts):
+    record = score_record(practiceParts=parts)
+    record["payload"]["sessionType"] = "PART_PRACTICE"
+    with api() as (client, calls):
+        assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 422
+        assert not any(call[1].endswith("/sync_account_records") for call in calls)
+
+
+def pacing_record(**fields):
+    return {"entity_type": "pacingRuns", "record_id": "pacing-test",
+            "updated_at": "2026-10-05T00:00:00Z", "deleted_at": None,
+            "payload": {"id": "pacing-test", "presetId": "PART_5", "presetName": "Part 5",
+                        "date": "2026-10-05", "plannedMinutes": 12, "actualMinutes": 1,
+                        "finishedNaturally": False, "phases": [], "createdAt": "2026-10-05T00:00:00Z", **fields}}
+
+
+@pytest.mark.parametrize("fields", [
+    {"totalQuestions": 30, "correctAnswers": 31}, {"correctAnswers": 1},
+    {"totalQuestions": 0}, {"totalQuestions": 101}, {"totalQuestions": 1.5},
+    {"totalQuestions": 30, "correctAnswers": 1.5}, {"actualSeconds": -2},
+    {"actualSeconds": "60"}, {"actualSeconds": None}, {"partType": "INVALID"},
+    {"accuracyPercent": 101}, {"speedSecPerQuestion": -1},
+])
+def test_invalid_pacing_fields_never_reach_database(api, fields):
+    with api() as (client, calls):
+        assert client.post("/api/v1/sync", json={"records": [pacing_record(**fields)]}).status_code == 422
+        assert not any(call[1].endswith("/sync_account_records") for call in calls)
+
+
+@pytest.mark.parametrize("fields", [
+    {}, {"partType": "POMODORO", "actualSeconds": 60},
+    {"partType": "PART_5", "totalQuestions": 60, "correctAnswers": 0, "accuracyPercent": 0, "actualSeconds": 60},
+    {"partType": "CUSTOM", "totalQuestions": 100, "correctAnswers": 100},
+])
+def test_legacy_and_custom_pacing_fields_survive_sync(api, fields):
+    with api() as (client, calls):
+        assert client.post("/api/v1/sync", json={"records": [pacing_record(**fields)]}).status_code == 200
+        rpc = next(call for call in calls if call[1].endswith("/sync_account_records"))
+        payload = rpc[2]["p_records"][0]["payload"]
+        for key, value in fields.items():
+            assert payload[key] == value
+        if not fields:
+            assert "partType" not in payload and "totalQuestions" not in payload
+
+
 @pytest.mark.parametrize(
     "scores",
     [

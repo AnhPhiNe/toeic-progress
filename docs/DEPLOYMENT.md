@@ -2,9 +2,11 @@
 
 Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI sau khi có key OpenAI/Gemini, Turnstile và đã kiểm thử provider thật. Render Free có thể ngủ; beta cần chấp nhận thời gian chờ, chưa có cam kết uptime hay sức chịu tải.
 
+Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md). Giữ project/config cũ tới khi staging mới được kiểm chứng.
+
 ## 1. Chuẩn bị database
 
-Xuất backup dữ liệu đang dùng. Project đã áp dụng bốn migration trước: chạy nguyên file `supabase/migrations/20261006020000_api_rate_limits.sql` một lần trong Supabase SQL Editor. Project mới chạy đủ năm file theo thứ tự tên. Migration mới tạo bộ đếm API, không đổi nội dung học.
+Xuất backup dữ liệu đang dùng. Project đã áp dụng bốn migration trước: chạy nguyên file `supabase/migrations/20261006020000_api_rate_limits.sql` một lần trong Supabase SQL Editor. Repo có sáu migration: project mới chạy năm file nền tảng theo thứ tự tên; file thứ sáu (Gemini provider pool) cần trước khi bật Gemini và có thể áp ngay để chuẩn bị fallback. Migration mới tạo bộ đếm API, không đổi nội dung học.
 
 Giữ `API_LIMITS_ENABLED=false` ở local tới khi migration này đã được áp dụng; staging/production bắt buộc `true`. Xem Security Advisor và đối chiếu RLS. Dùng project staging riêng cho test tài khoản và test tải.
 

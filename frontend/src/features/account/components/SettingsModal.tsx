@@ -17,9 +17,12 @@ import {
   Trash2
 } from 'lucide-react';
 import { UserProfile } from '@/shared/types';
-import { exportDataAsJSON, restoreBackup } from '@/shared/data/storage';
+import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/storage';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { getActiveAccountId, live, readDataBundle } from '@/shared/data/dataBundle';
+import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
+
+interface SettingsSession { owner: string | null; cycle: number; profile: UserProfile }
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -44,59 +47,102 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<UserProfile>({ ...profile });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [backupPreview, setBackupPreview] = useState<BackupPreview | null>(null);
+  const [ownedPreview, setOwnedPreview] = useState<{ preview: BackupPreview; owner: string | null; cycle: number } | null>(null);
   const [backupErrors, setBackupErrors] = useState<string[]>([]);
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState('');
-
-  const handleReset = async () => {
-    const message = getActiveAccountId()
-      ? 'Xóa nội dung học của tài khoản này trên server và máy đang dùng? Máy chủ chỉ giữ mã bản ghi và dấu xóa để đồng bộ. Không thể phục hồi nếu chưa xuất bản sao lưu. Dữ liệu khách riêng và tệp backup đã tải không bị xóa.'
-      : 'Xóa nội dung học khách trên trình duyệt này? Không thể phục hồi nếu chưa xuất bản sao lưu. Dữ liệu tài khoản và tệp backup đã tải không bị xóa.';
-    if (!onResetData || resetBusy || !window.confirm(message)) return;
-    setResetBusy(true);
-    setResetError('');
-    try {
-      await onResetData();
-      onClose();
-    } catch (reason) {
-      setResetError(reason instanceof Error ? reason.message : 'Chưa xác nhận được kết quả xóa. Vui lòng kết nối và thử lại.');
-    } finally {
-      setResetBusy(false);
-    }
+  const sessionRef = useRef<SettingsSession | null>(null);
+  const cycleRef = useRef(0);
+  const readRequest = useRef(0);
+  const openRef = useRef(isOpen);
+  openRef.current = isOpen;
+  const activeOwner = getActiveAccountId();
+  const backupPreview = ownedPreview && ownedPreview.owner === activeOwner && ownedPreview.cycle === sessionRef.current?.cycle ? ownedPreview.preview : null;
+  const sessionIsCurrent = (session: SettingsSession) => openRef.current && sessionRef.current === session && getActiveAccountId() === session.owner;
+  const requireSession = (expected?: SettingsSession) => {
+    const session = sessionRef.current;
+    if (!session || expected && session !== expected || !sessionIsCurrent(session)) throw new Error('Tài khoản đã thay đổi. Đóng và mở lại Cài đặt trước khi tiếp tục.');
+    return session;
   };
 
   useEffect(() => {
-    if (isOpen) {
-      setFormData({ ...profile });
+    if (!isOpen) { setOwnedPreview(null); setBackupErrors([]); return; }
+    const initial = loadUserProfile();
+    sessionRef.current = { owner: getActiveAccountId(), cycle: ++cycleRef.current, profile: initial };
+    setFormData({ ...initial });
+    setOwnedPreview(null);
+    setBackupErrors([]);
+    setResetError('');
+    setResetBusy(false);
+    return () => { sessionRef.current = null; readRequest.current += 1; };
+  }, [isOpen]);
+  useEffect(() => {
+    if (!isOpen || sessionRef.current?.owner === activeOwner) return;
+    sessionRef.current = null;
+    readRequest.current += 1;
+    setOwnedPreview(null);
+    setBackupErrors([]);
+    setResetError('Tài khoản đã thay đổi. Đóng và mở lại Cài đặt trước khi tiếp tục.');
+  }, [isOpen, activeOwner]);
+
+  const handleReset = async () => {
+    if (!onResetData || resetBusy) return;
+    setResetError('');
+    let session: SettingsSession | null = null;
+    try {
+      session = requireSession();
+      const message = session.owner
+        ? 'Xóa nội dung học của tài khoản này trên server và máy đang dùng? Máy chủ chỉ giữ mã bản ghi và dấu xóa để đồng bộ. Không thể phục hồi nếu chưa xuất bản sao lưu. Dữ liệu khách riêng và tệp backup đã tải không bị xóa.'
+        : 'Xóa nội dung học khách trên trình duyệt này? Không thể phục hồi nếu chưa xuất bản sao lưu. Dữ liệu tài khoản và tệp backup đã tải không bị xóa.';
+      if (!window.confirm(message)) return;
+      requireSession(session);
+      setResetBusy(true);
+      await onResetData();
+      if (sessionIsCurrent(session)) onClose();
+    } catch (reason) {
+      if (!session || sessionIsCurrent(session)) setResetError(reason instanceof Error ? reason.message : 'Chưa xác nhận được kết quả xóa. Vui lòng kết nối và thử lại.');
+    } finally {
+      if (!session || sessionIsCurrent(session)) setResetBusy(false);
     }
-  }, [isOpen, profile]);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const session = requireSession(), request = ++readRequest.current;
+      setOwnedPreview(null);
+      setBackupErrors([]);
       const reader = new FileReader();
       reader.onload = (event) => {
+        if (request !== readRequest.current || !sessionIsCurrent(session)) return;
         const content = event.target?.result as string;
         const result = parseBackup(content || '');
-        setBackupPreview(result.ok ? result.preview : null);
+        setOwnedPreview(result.ok ? { preview: result.preview, owner: session.owner, cycle: session.cycle } : null);
         setBackupErrors(result.ok ? [] : result.errors);
       };
-      reader.onerror = () => setBackupErrors(['Tệp: không thể đọc tệp sao lưu']);
+      reader.onerror = () => {
+        if (request === readRequest.current && sessionIsCurrent(session)) setBackupErrors(['Tệp: không thể đọc tệp sao lưu']);
+      };
       reader.readAsText(file);
-      e.target.value = '';
+    } catch (reason) {
+      setBackupErrors([reason instanceof Error ? reason.message : 'Tệp: không thể đọc tệp sao lưu']);
     }
   };
 
   const handleRestore = () => {
-    if (!backupPreview || !window.confirm('Thay thế dữ liệu bằng bản sao lưu đã xem trước? Dữ liệu hiện tại sẽ bị ghi đè.')) return;
     try {
+      const session = requireSession();
+      if (!backupPreview || ownedPreview?.owner !== session.owner || ownedPreview.cycle !== session.cycle) return;
+      if (!window.confirm('Thay thế dữ liệu bằng bản sao lưu đã xem trước? Dữ liệu hiện tại sẽ bị ghi đè.')) return;
+      requireSession(session);
       restoreBackup(backupPreview);
-      setBackupPreview(null);
+      setOwnedPreview(null);
       onImportSuccess?.();
       onClose();
-    } catch {
-      setBackupErrors(['Không thể ghi dữ liệu. Dữ liệu hiện tại vẫn được giữ nguyên.']);
+    } catch (reason) {
+      setBackupErrors([reason instanceof Error ? reason.message : 'Không thể ghi dữ liệu. Dữ liệu hiện tại vẫn được giữ nguyên.']);
     }
   };
 
@@ -107,8 +153,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveProfile(formData);
-    onClose();
+    setResetError('');
+    try {
+      const session = requireSession();
+      const merged = mergeProfileEdit(loadUserProfile(), session.profile, formData);
+      requireSession(session);
+      onSaveProfile(merged);
+      onClose();
+    } catch (reason) {
+      setResetError(reason instanceof Error ? reason.message : 'Chưa lưu được cấu hình. Nội dung đang nhập được giữ nguyên.');
+    }
   };
 
   return (
@@ -144,12 +198,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           
           {/* User Name */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+            <label htmlFor="settings-name" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
               <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Họ & Tên Học Viên</span>
             </label>
             <input
+              id="settings-name"
               type="text"
+              required
               placeholder="Ví dụ: Minh Tuấn"
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -160,12 +216,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Target Score & Exam Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+              <label htmlFor="settings-target" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
                 <Target className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Mục Tiêu Điểm Số</span>
               </label>
               <input
+                id="settings-target"
                 type="number"
+                required
                 min="10"
                 max="990"
                 step="5"
@@ -176,11 +234,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+              <label htmlFor="settings-exam-date" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
                 <Calendar className="w-3.5 h-3.5 text-cyan-500" />
                 <span>Ngày Thi Thực Tế</span>
               </label>
               <input
+                id="settings-exam-date"
                 type="date"
                 value={formData.examDate}
                 onChange={e => setFormData({ ...formData, examDate: e.target.value })}
@@ -192,12 +251,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Daily Goal & Streak Freezes */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+              <label htmlFor="settings-daily-minutes" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
                 <Clock className="w-3.5 h-3.5 text-amber-500" />
                 <span>Học Tối Thiểu (Phút)</span>
               </label>
               <input
+                id="settings-daily-minutes"
                 type="number"
+                required
                 min="5"
                 max="300"
                 value={formData.dailyMinGoalMinutes}
@@ -207,12 +268,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+              <label htmlFor="settings-shields" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Khiên Cứu Chuỗi</span>
               </label>
               <input
+                id="settings-shields"
                 type="number"
+                required
                 min="0"
                 max="5"
                 value={formData.streakFreezes}
@@ -224,11 +287,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* Motto */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+            <label htmlFor="settings-motto" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
               <Sparkles className="w-3.5 h-3.5 text-yellow-500" />
               <span>Châm Ngôn Kỷ Luật Cá Nhân</span>
             </label>
             <textarea
+              id="settings-motto"
               rows={2}
               value={formData.motto}
               onChange={e => setFormData({ ...formData, motto: e.target.value })}
@@ -323,9 +387,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm('Bạn có muốn nạp dữ liệu mẫu Demo (bao gồm các lần làm bài thi mẫu và danh sách bẫy)?')) {
+                    try {
+                      const session = requireSession();
+                      if (!window.confirm('Bạn có muốn nạp dữ liệu mẫu Demo (bao gồm các lần làm bài thi mẫu và danh sách bẫy)?')) return;
+                      requireSession(session);
                       onLoadDemo();
                       onClose();
+                    } catch (reason) {
+                      setResetError(reason instanceof Error ? reason.message : 'Chưa nạp được dữ liệu mẫu.');
                     }
                   }}
                   className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold flex items-center space-x-1 cursor-pointer"

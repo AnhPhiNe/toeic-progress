@@ -38,6 +38,42 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('backup restore', () => {
+  it.each([
+    [{ part: 5, correct: 1.5, total: 30 }], [{ part: 5, correct: 0, total: 0 }],
+    [{ part: 5, correct: 31, total: 30 }], [{ part: 6, correct: 1, total: 17 }],
+    [{ part: 5, correct: 1, total: 30 }, { part: 5, correct: 2, total: 30 }]
+  ].map(parts => ({ parts })))('rejects practice counts that would fail account sync: %j', ({ parts }) => {
+    const data = bundle();
+    const record = { id: 'practice', skillType: 'LR', sessionType: 'PART_PRACTICE', testName: 'Practice',
+      date: '2026-09-23', durationMinutes: 1, createdAt: data.profile.updatedAt, practiceParts: parts };
+    expect(parseBackup(JSON.stringify({ profile: defaultProfile(), sessions: [record], mistakes: [] })).ok).toBe(false);
+    expect(values.size).toBe(0);
+  });
+
+  it.each([
+    { totalQuestions: 30, correctAnswers: 31 }, { correctAnswers: 1 }, { totalQuestions: 0 },
+    { totalQuestions: 101 }, { totalQuestions: 1.5 }, { totalQuestions: 30, correctAnswers: 1.5 },
+    { actualSeconds: -2 }, { actualSeconds: '60' }, { actualSeconds: null }, { partType: 'INVALID' },
+    { accuracyPercent: 101 }, { speedSecPerQuestion: -1 }
+  ])('rejects malformed pacing fields before restore: %j', fields => {
+    const data = bundle();
+    const pacingRuns = [{ ...data.pacingRuns[0], ...fields }];
+    expect(parseBackup(JSON.stringify({ ...data, pacingRuns, exportDate: data.profile.updatedAt })).ok).toBe(false);
+    expect(values.size).toBe(0);
+  });
+
+  it('retains legacy runs without new fields and custom question counts', () => {
+    const data = bundle();
+    data.pacingRuns.push({ ...data.pacingRuns[0], id: 'custom', partType: 'CUSTOM', totalQuestions: 60,
+      correctAnswers: 0, actualSeconds: 60, accuracyPercent: 0 });
+    const parsed = parseBackup(JSON.stringify({ ...data, exportDate: data.profile.updatedAt }));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    restoreBackup(parsed.preview);
+    expect(readDataBundle().pacingRuns[0]).not.toHaveProperty('totalQuestions');
+    expect(readDataBundle().pacingRuns[1]).toMatchObject({ partType: 'CUSTOM', totalQuestions: 60, correctAnswers: 0 });
+  });
+
   it('round-trips an actual review and preserves learner fields through legacy date normalization', async () => {
     const { gradeReview } = await import('@/features/mistakes/lib/review');
     const { recordsFromBundle, bundleFromRecords } = await import('@/features/account/services/cloud');

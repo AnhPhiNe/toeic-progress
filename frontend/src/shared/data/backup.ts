@@ -27,13 +27,16 @@ const partScores = z.object({
   part7: z.number().int().min(0).max(54)
 });
 
+const practicePart = z.object({ part: partNumber, correct: z.number().int().nonnegative(), total: z.number().int().positive() })
+  .refine(value => value.correct <= value.total && value.total <= [6, 25, 39, 30, 30, 16, 54][value.part - 1], 'số câu đúng/tổng câu không hợp lệ');
+
 const session = z.object({
   id: z.string().min(1), skillType: z.enum(['LR', 'SW']),
   sessionType: z.enum(['FULL_TEST', 'PART_PRACTICE']), testName: z.string().min(1),
-  date, durationMinutes: nonnegative, rawListening: z.number().min(0).max(100).optional(),
-  rawReading: z.number().min(0).max(100).optional(), scaledListening: z.number().min(0).max(495).optional(),
-  scaledReading: z.number().min(0).max(495).optional(), totalScore: z.number().min(0).max(990).optional(),
-  partScores: partScores.optional(), practiceParts: z.array(z.object({ part: partNumber, correct: nonnegative, total: nonnegative })).optional(),
+  date, durationMinutes: nonnegative, rawListening: z.number().int().min(0).max(100).optional(),
+  rawReading: z.number().int().min(0).max(100).optional(), scaledListening: z.number().int().min(0).max(495).optional(),
+  scaledReading: z.number().int().min(0).max(495).optional(), totalScore: z.number().int().min(0).max(990).optional(),
+  partScores: partScores.optional(), practiceParts: z.array(practicePart).max(7).refine(parts => new Set(parts.map(part => part.part)).size === parts.length, 'Part luyện tập bị trùng').optional(),
   scoreSource: z.enum(['ESTIMATED','MANUAL_SECTIONS','MANUAL_TOTAL']).optional(),
   scoreConversionVersion: z.string().max(100).optional(),
   notes: z.string().optional(), attemptNumber: z.number().int().positive().optional(), createdAt: timestamp,
@@ -77,8 +80,12 @@ const pacingRun = z.object({
   id: z.string().min(1), presetId: z.string(), presetName: z.string(), date,
   plannedMinutes: nonnegative, actualMinutes: nonnegative, finishedNaturally: z.boolean(),
   phases: z.array(z.object({ name: z.string(), plannedMinutes: nonnegative, actualMinutes: nonnegative, overrunMinutes: z.number().finite() })),
+  partType: z.enum(['PART_5', 'PART_6', 'PART_7', 'PART_7_SINGLE', 'PART_7_MULTI', 'FULL_READING', 'POMODORO', 'CUSTOM']).optional(),
+  testName: z.string().max(300).optional(), totalQuestions: z.number().int().min(1).max(100).optional(),
+  correctAnswers: z.number().int().min(0).max(100).optional(), actualSeconds: nonnegative.optional(),
+  speedSecPerQuestion: nonnegative.optional(), accuracyPercent: z.number().finite().min(0).max(100).optional(),
   createdAt: timestamp, ...metadata
-}).passthrough();
+}).passthrough().refine(value => value.correctAnswers === undefined || (value.totalQuestions !== undefined && value.correctAnswers <= value.totalQuestions), 'số câu đúng phải có tổng câu và không vượt tổng câu');
 
 const checklistItem = z.object({ id: z.string().min(1), checked: z.boolean(), ...metadata });
 const vocabLog = z.object({ id: z.string().min(1), date, count: z.number().int().min(1).max(10000),

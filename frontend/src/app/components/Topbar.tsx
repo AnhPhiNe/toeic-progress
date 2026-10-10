@@ -132,7 +132,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               onClick={onOpenSettings}
               className={`h-9 flex items-center space-x-1.5 px-3 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] text-xs font-bold transition-all cursor-pointer group active:translate-x-[1px] active:translate-y-[1px] active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                 isExamUrgent
-                  ? 'bg-[#FECDD3] text-slate-950 animate-pulse'
+                  ? 'bg-[#FECDD3] text-slate-950 animate-pulse motion-reduce:animate-none'
                   : 'bg-[#BAE6FD] text-slate-950 hover:bg-[#7dd3fc]'
               }`}
               title="Đếm ngược ngày thi chính thức (Bấm để đổi ngày thi trong Cài đặt)"
