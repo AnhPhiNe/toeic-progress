@@ -8,6 +8,7 @@ import time
 
 import httpx
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.core.runtime import request_id_context
@@ -22,6 +23,22 @@ from app.services.toeic_prompt import (
 )
 
 logger = logging.getLogger("toeic.runtime")
+
+
+def schema_issues(error: ValidationError) -> list[dict]:
+    """Log only known field names/error codes, never source values or raw messages."""
+    fields = set(OpenAIPasteOutput.model_fields) | {"label", "pos", "meaning", "quickTip", "translation",
+        "questionType", "evidence", "paraphrase", "analysis", "keyVocabulary"}
+    rules = {
+        "Value error, AI options must have an A-D label and nonempty text": "option_labels",
+        "Value error, AI option labels must be unique": "duplicate_option_labels",
+        "Value error, Each AI option must have exactly one meaning": "option_meaning_coverage",
+        "Value error, AI option meanings must not be blank": "empty_option_meanings",
+    }
+    return [{"field": ".".join(str(value) if isinstance(value, int) or value in fields else "unknown_field"
+                               for value in issue["loc"]) or "draft",
+             "code": issue["type"], "rule": rules.get(issue["msg"], "field_validation")}
+            for issue in error.errors(include_input=False, include_context=False)[:8]]
 
 
 class OpenAIProvider:
@@ -173,7 +190,8 @@ class OpenAIProvider:
                                 source_answer=source_answer, image_source=bool(images), persistent_images=persistent_images)
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             logger.warning(json.dumps({"event": "openai_invalid_draft", "request_id": request_id_context.get(),
-                                       "phase": phase, "error_type": type(error).__name__}))
+                                       "phase": phase, "error_type": type(error).__name__,
+                                       **({"issues": schema_issues(error)} if isinstance(error, ValidationError) else {})}))
             if phase == "source_verification":
                 raise HTTPException(502, "Câu hỏi hoặc phương án AI trích chưa khớp nguyên văn nội dung đã dán. "
                                     "Chưa tạo bản nháp; nội dung được giữ để thử lại hoặc chỉnh thủ công.") from error

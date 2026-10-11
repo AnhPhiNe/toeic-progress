@@ -138,6 +138,26 @@ def test_timeout_does_not_duplicate_billed_requests_or_log_keys(caplog):
     assert not any("private-openai-key" in record.message for record in caplog.records)
 
 
+def test_invalid_schema_logs_only_safe_field_names_codes_and_rules(caplog):
+    secret = "private-question-content-do-not-log"
+    response = completed(output=[{"type": "message", "role": "assistant", "status": "completed",
+                                 "content": [{"type": "output_text", "text": json.dumps({**DRAFT, secret: secret})}]}])
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert result.status_code == 502 and len(calls) == 1
+    event = next(json.loads(record.message) for record in caplog.records if "openai_invalid_draft" in record.message)
+    assert event["issues"] == [{"field": "unknown_field", "code": "extra_forbidden", "rule": "field_validation"}]
+    assert not any(secret in record.message or TEXT in record.message for record in caplog.records)
+
+
+def test_option_meaning_coverage_failure_has_a_safe_diagnostic_rule(caplog):
+    response = completed(output=[{"type": "message", "role": "assistant", "status": "completed",
+                                 "content": [{"type": "output_text", "text": json.dumps({**DRAFT, "optionNotes": []})}]}])
+    result, _ = run_provider(lambda _request: httpx.Response(200, json=response))
+    assert result.status_code == 502
+    event = next(json.loads(record.message) for record in caplog.records if "openai_invalid_draft" in record.message)
+    assert event["issues"][0]["rule"] == "option_meaning_coverage"
+
+
 def test_ai_configuration_has_one_provider_and_requires_its_key():
     settings = Settings(
         _env_file=None, openai_api_key="private-openai-key",

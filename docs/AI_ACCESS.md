@@ -44,4 +44,4 @@ Khi chế độ được bật, bảng này là nguồn quyền duy nhất; `AI_
 
 Ngày 11/10/2026: đã áp dụng migration qua SQL Editor vào dự án `nztodqxtteqromszwwfg`, xác minh RLS/grants/trigger và quyền tài khoản chủ; backend local đã bật `AI_ACCESS_MANAGED=true`, `/ready` đạt. Lần áp dụng đầu chỉ tạo mới trigger (không dùng hai lệnh DROP trigger dành cho chạy lại); schema cuối cùng tương đương migration trong repo. Dự án hiện chưa có bảng lịch sử Supabase CLI migrations; lần áp dụng này được ghi nhận tại đây.
 
-Bản Render/Vercel chưa deploy các thay đổi này. Trước beta online: deploy code mới, bật `AI_ACCESS_MANAGED=true` trên Render và kiểm tra `/ready`, quyền tài khoản chủ, trạng thái pending của tester trên website online.
+Ngày 11/10/2026: bản `f66d23c` đã deploy trên Render/Vercel; `AI_ACCESS_MANAGED=true` và `SOURCE_IMAGES_ENABLED=true` trên Render. `/ready` đạt, proxy frontend đọc được capability mới và tài khoản pending nhận đúng thông báo trên online. Mỗi lần nâng phiên bản tiếp theo vẫn cần kiểm tra readiness, quyền AI và luồng ảnh trên môi trường đích.
