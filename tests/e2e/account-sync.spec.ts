@@ -131,8 +131,10 @@ test('failed background sync keeps the connection error visible', async ({ page 
   const state = await setupAccount(page);
   state.setFailure();
   await confirmSession(page);
-  const error = page.getByRole('alertdialog', { name: 'Trạng thái kết nối' });
+  // A non-blocking banner, not a full-screen dialog: the rest of the app stays usable.
+  const error = page.getByRole('alert').filter({ hasText: 'Test backend unavailable' });
   await expect(error).toBeVisible();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(error).toContainText('Test backend unavailable');
   await expect(error.getByRole('button', { name: 'Thử lại', exact: true })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Trạng thái đồng bộ' })).toHaveText('Đồng bộ lỗi');
@@ -151,7 +153,7 @@ test('failed initialization of a different account detaches the previous owner w
   const checksBefore = state.userChecks();
   await confirmSession(page, 'bob');
   await expect.poll(state.userChecks).toBeGreaterThan(checksBefore);
-  const error = page.getByRole('alertdialog', { name: 'Trạng thái kết nối' });
+  const error = page.getByRole('alert').filter({ hasText: 'Test backend unavailable' });
   await expect(error).toContainText('Test backend unavailable');
   await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Alice' })).toHaveCount(0);
   await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);

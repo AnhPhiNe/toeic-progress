@@ -108,9 +108,11 @@ export function useCloudAccount(onDataChanged: () => void) {
       userId.current = id;
       setEmail(data.user.email || 'Tài khoản');
       const local = readAccountBundle(id);
-      const remote = await fetchCloudBundle(id);
-      if (run !== generation.current) return;
       if (!local) {
+        // A full snapshot is only needed for the first sign-in on this device; otherwise the
+        // incremental sync below is enough and saves one request during a server cold start.
+        const remote = await fetchCloudBundle(id);
+        if (run !== generation.current) return;
         const device = readGuestBundle();
         if (hasPersonalData(device) && hasPersonalData(remote.bundle)) {
           deactivateAccount();

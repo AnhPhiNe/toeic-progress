@@ -21,7 +21,8 @@ import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
 import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
 import { useCloudAccount } from '@/features/account/hooks/useCloudAccount';
 import { useRouteTab } from '@/app/routing/useRouteTab';
-import { getActiveAccountId, readDataBundle } from '@/shared/data/dataBundle';
+import { getActiveAccountId, readDataBundle, StorageWriteError } from '@/shared/data/dataBundle';
+import { ConnectionBanner } from '@/app/components/ConnectionBanner';
 import { hasPersonalData } from '@/shared/data/syncMerge';
 
 import { 
@@ -70,6 +71,25 @@ export const App: React.FC = () => {
     setDataVersion(value => value + 1);
   }, []);
   const account = useCloudAccount(refreshFromStorage);
+
+  // Saves throw StorageWriteError when the account is not connected or storage is full.
+  // Handlers do not each catch it, so surface it here instead of failing silently.
+  const [writeNotice, setWriteNotice] = useState('');
+  useEffect(() => {
+    const show = (event: ErrorEvent | PromiseRejectionEvent) => {
+      const reason = event instanceof ErrorEvent ? event.error : event.reason;
+      if (!(reason instanceof StorageWriteError)) return;
+      event.preventDefault();
+      setWriteNotice(reason.message);
+    };
+    window.addEventListener('error', show);
+    window.addEventListener('unhandledrejection', show);
+    return () => {
+      window.removeEventListener('error', show);
+      window.removeEventListener('unhandledrejection', show);
+    };
+  }, []);
+  useEffect(() => { if (account.status === 'synced') setWriteNotice(''); }, [account.status]);
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
@@ -371,6 +391,16 @@ export const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsModalOpen(true)} onRetry={account.retry} />}
         />
 
+        <ConnectionBanner
+          accountActive={Boolean(getActiveAccountId() || account.hasAccountSession)}
+          status={account.status}
+          error={account.error}
+          writeNotice={writeNotice}
+          onDismissNotice={() => setWriteNotice('')}
+          onRetry={() => void account.retry()}
+          onUseGuest={() => void account.signOut()}
+        />
+
         {/* Body Container */}
         <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 flex flex-col min-h-0">
           {activeTab === 'dashboard' && (
@@ -525,18 +555,6 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {(getActiveAccountId() || account.hasAccountSession) && ['loading', 'disconnected', 'error'].includes(account.status) && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/65 p-4" role="alertdialog" aria-modal="true" aria-label="Trạng thái kết nối">
-          <div className={`${CARD} w-full max-w-sm space-y-3 text-center`}>
-            <h2 className="text-lg font-bold">{account.status === 'loading' ? 'Đang kết nối tài khoản' : 'Chưa kết nối'}</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300">{account.error || 'Dữ liệu tài khoản tạm thời chỉ xem được. Kết nối lại để tiếp tục ghi và đồng bộ.'}</p>
-            {account.status !== 'loading' && <div className="flex justify-center gap-2">
-              <button type="button" onClick={() => void account.retry()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Thử lại</button>
-              <button type="button" onClick={() => void account.signOut()} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-600">Dùng chế độ khách</button>
-            </div>}
-          </div>
-        </div>
-      )}
 
     </div>
   );
