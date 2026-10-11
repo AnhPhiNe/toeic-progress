@@ -59,7 +59,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>();
-  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string } | null>(null);
+  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[] } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean } | null>(null);
   const feedbackSequence = useRef(0);
@@ -257,8 +257,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
               onToggle={() => toggleRow(mistake.id)}
               onReview={() => onStartReview([mistake.id])}
               onEdit={() => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake)}
-              onReuseReading={mistake.part === 7 && typeof mistake.question === 'string' && mistake.context?.trim() ? () => {
-                setReusedReading({ text: mistake.context!, sourceName: mistake.sourceTestName ?? '' }); setEntry(null);
+              onReuseReading={mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
+                setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds }); setEntry(null);
               } : undefined}
               onDelete={() => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); }}
               onMarkMastered={() => markMastered(mistake.id)}
@@ -301,6 +301,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? defaultSourceName}
         initialReading={reusedReading?.text}
+        initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
     </div>

@@ -57,6 +57,9 @@ def api():
         auth_statuses=None,
         quota_counters=None,
         counters_status=200,
+        ai_grant=None,
+        ai_grant_status=200,
+        ai_grants=None,
     ):
         calls = []
 
@@ -76,6 +79,9 @@ def api():
                 return httpx.Response(200, json=api_reservation or {"allowed": True})
             if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles"):
                 return httpx.Response(readiness_status, json=[])
+            if request.url.path == "/rest/v1/ai_access_grants":
+                rows = ai_grants.pop(0) if ai_grants else [] if ai_grant is None else [ai_grant]
+                return httpx.Response(ai_grant_status, json=rows)
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
             if request.url.path.endswith("/get_ai_usage"):

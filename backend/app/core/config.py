@@ -10,6 +10,9 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "staging", "production"] = "development"
     ai_enabled: bool = True
+    ai_access_managed: bool = False  # Enable after applying ai_access_grants migration.
+    source_images_enabled: bool = False
+    source_image_account_limit: int = Field(default=200, ge=3, le=1000)
     openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
     openai_model: Literal["gpt-6-luna"] = "gpt-6-luna"
     openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"

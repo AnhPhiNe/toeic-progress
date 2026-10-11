@@ -26,6 +26,9 @@ ROUTES = {
     "/api/v1/ai/extract": "ai",
     "/api/v1/account": "destructive",
     "/api/v1/data/reset": "destructive",
+    "/api/v1/mistake-images": "sync",
+    "/api/v1/mistake-images/urls": "sync",
+    "/api/v1/mistake-images/cleanup": "destructive",
 }
 
 

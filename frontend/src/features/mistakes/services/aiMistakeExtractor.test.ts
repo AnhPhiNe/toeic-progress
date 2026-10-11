@@ -16,6 +16,18 @@ beforeEach(() => {
 });
 
 describe('backend AI extraction', () => {
+  it('keeps managed approval status and a custom monthly cap from the backend', async () => {
+    const usage = { remaining: 23, limit: 27, guest: false, enabled: true, accessStatus: 'active', accessMessage: '', unlimited: false };
+    mocks.backendRequest.mockResolvedValue(usage);
+    expect(await getAIUsage()).toEqual(usage);
+  });
+  it('sends freeform paste unchanged in one request with learner metadata separate', async () => {
+    const input = { rawText: '**Câu hỏi**\n178\nA mixed copy from the website', question: '', options: [], context: '', part: 7 as const,
+      userChoice: 'D' as const, userChoiceState: 'CHOSEN' as const, userReason: 'I chose D.', sourceAnswer: '' as const };
+    await extractMistakeWithAI(JSON.stringify(input), vi.fn(), input);
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input }), 'account-id');
+  });
   it('sends the learner fields separately without folding their reason into a source answer', async () => {
     const input = { question: 'Reports ____ submitted.', options: ['(A) are', '(B) be'], context: '', part: 5 as const,
       userChoice: '' as const, userChoiceState: 'UNKNOWN' as const, userReason: 'Đáp án chuẩn: A là lời mình ghi lại', sourceAnswer: 'B' as const };

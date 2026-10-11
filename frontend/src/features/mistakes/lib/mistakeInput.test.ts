@@ -3,6 +3,25 @@ import { parsePastedQuestion, learnerMistake, PART1_QUESTION } from './mistakeIn
 
 const question = 'The latest ____ of decorations in stock indicates adequate preparation.';
 describe('pasted single question', () => {
+  it('accepts copied website headings, a separate question number, Markdown and HTML spaces', () => {
+    const stem = 'What is suggested about the students in a creative writing class?';
+    const parsed = parsePastedQuestion(`**Câu hỏi**\n**178**\n**${stem}**\n(A) They have read Rome: Mystery in a Minor Key.&#x20;\n(B) They are beginning writers.&#x20;\n(C) They are planning to travel to Rome.&#x20;\n(D) They are enrolled in an evening class.\u00a0`, 7);
+    expect(parsed.error).toBe(''); expect(parsed.part).toBe(7); expect(parsed.question).toBe(stem);
+    expect(parsed.options).toEqual(['(A) They have read Rome: Mystery in a Minor Key.', '(B) They are beginning writers.',
+      '(C) They are planning to travel to Rome.', '(D) They are enrolled in an evening class.']);
+  });
+  it('keeps wrapped question/option wording and source numbers inside a passage', () => {
+    const stem = 'What does the price of\n100 dollars include?';
+    const parsed = parsePastedQuestion(`## Question 178\n${stem}\n**(A)** Food &amp; drinks.\n**(B)** Admission to\ntwo events.\n**(C)** Bus tickets.\n**(D)** Hotel stays.`, 7);
+    expect(parsed.error).toBe(''); expect(parsed.question).toBe(stem);
+    expect(parsed.options).toEqual(['(A) Food & drinks.', '(B) Admission to\ntwo events.', '(C) Bus tickets.', '(D) Hotel stays.']);
+    const context = 'Shipping table\n178\nPrice in dollars\nWhat is the price?';
+    expect(parsePastedQuestion(`${context}\n(A) $10\n(B) $20\n(C) $30\n(D) $40`, 7).question).toBe(context);
+  });
+  it('rejects multiple copied questions even when their numbers are on separate lines', () => {
+    expect(parsePastedQuestion('Câu hỏi\n178\nFirst question?\n179\nSecond question?\n(A) One\n(B) Two\n(C) Three\n(D) Four', 7).error).toContain('một câu');
+    expect(parsePastedQuestion('Câu hỏi\n178\n(A) One\n(B) Two\n(C) Three\n(D) Four', 7).error).toContain('trống');
+  });
   it('Part 1 accepts four spoken descriptions without inventing a written stem', () => {
     for (const text of ['(A) A man is seated.\n(B) A man is walking.\n(C) A car is parked.\n(D) A door is closed.',
       'A man is seated.\nA man is walking.\nA car is parked.\nA door is closed.']) {

@@ -7,7 +7,7 @@ const choices = ['(A) Project Planning.', '(B) Business Writing.', '(C) Data Bas
 const question = (number: number) => `Which workshop is free for registered members (question ${number})?`;
 
 async function mockAnalysis(page: Page) {
-  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts', route => route.fulfill({ contentType: 'application/javascript', body: `
+  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
     export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, part7Images: true }; }
     export async function extractMistakeWithAI(text, captcha, input, images) {
       window.__readingCalls = [...(window.__readingCalls || []), { input, imageCount: images.length }];
@@ -25,6 +25,7 @@ test('five questions reuse three images once and preserve the full source withou
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Reuse');
   await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question(1) + '\n' + choices.join('\n'));
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   await modal.getByLabel('Lý do chọn').fill('First question only.');
@@ -33,6 +34,8 @@ test('five questions reuse three images once and preserve the full source withou
     resolve('tests/fixtures/part7-notice.png'), resolve('tests/fixtures/part7-table-question.png'), resolve('tests/fixtures/part7-notice.png')
   ]);
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
+  await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
+  await expect(modal.getByText(passage, { exact: true })).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('after-ai-same-reading-desktop.png') });
@@ -53,8 +56,8 @@ test('five questions reuse three images once and preserve the full source withou
     await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(0);
     await modal.getByLabel('Câu hỏi + phương án').fill(question(number) + '\n' + choices.join('\n'));
     if (number === 2) {
-      await modal.getByText('Xem bài đọc', { exact: true }).click();
-      await expect(modal.getByText(passage, { exact: true })).toBeVisible();
+      await expect(modal.getByText('Xem bài đọc', { exact: true })).toHaveCount(0);
+      await expect(modal.getByText(passage, { exact: true })).toHaveCount(0);
       await modal.getByText('Đối chiếu ảnh (3)', { exact: true }).click();
       await expect(modal.getByRole('img', { name: 'Ảnh nguồn Part 7 3', exact: true })).toBeVisible();
       for (const width of [375, 1440]) {
@@ -62,7 +65,7 @@ test('five questions reuse three images once and preserve the full source withou
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       }
       await page.screenshot({ path: testInfo.outputPath('reused-reading.png') });
-      await modal.getByText('Xem bài đọc', { exact: true }).click();
+      await modal.getByText('Đối chiếu ảnh (3)', { exact: true }).click();
       for (const width of [375, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.screenshot({ path: testInfo.outputPath(`reused-reading-compact-${width}.png`) });
@@ -123,6 +126,7 @@ test('a saved source can start a new question after reload; changing source, Par
       await page.getByRole('option', { name: '+ Thêm tên đề “ETS Other”', exact: true }).click();
     } else await modal.getByRole('button', { name: 'Đổi bài đọc', exact: true }).click();
     await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
+    await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
     await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(1);
     page.once('dialog', dialog => dialog.accept()); await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
   }

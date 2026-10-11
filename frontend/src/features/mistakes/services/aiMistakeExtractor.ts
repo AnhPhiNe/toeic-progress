@@ -21,8 +21,9 @@ const draftSchema = z.object({
   explanation: explanationSchema.nullable().default(null)
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
-export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
-export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean }
+export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean;
+  enabled?: boolean; accessStatus?: 'active' | 'pending' | 'blocked' | 'login_required'; accessMessage?: string }
+export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; freeformInput?: boolean; managedAccess?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean; persistentImages?: boolean }
 
 export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!apiAvailable) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
@@ -62,9 +63,12 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (value.ai_provider !== 'openai') throw new Error('Cấu hình AI chưa hợp lệ. Backend cần hỗ trợ OpenAI.');
   return { provider: 'openai',
     ...(value.structured_mistake_input === true ? { structuredInput: true } : {}),
+    ...(value.freeform_mistake_input === true ? { freeformInput: true } : {}),
+    ...(value.managed_ai_access === true ? { managedAccess: true } : {}),
     ...(value.part7_context_images === true ? { part7Images: true } : {}),
     ...(value.part1_picture_input === true ? { part1Images: true } : {}),
-    ...(value.learner_error_category === true ? { learnerCategory: true } : {}) };
+    ...(value.learner_error_category === true ? { learnerCategory: true } : {}),
+    ...(value.persistent_source_images === true ? { persistentImages: true } : {}) };
 }
 
 export async function getAIUsage(): Promise<AIUsage | null> {
@@ -77,7 +81,7 @@ export async function getAIUsage(): Promise<AIUsage | null> {
 }
 
 export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, input?: MistakeInput,
-  images: PreparedImage[] = []): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
+  images: PreparedImage[] = [], sourceImageIds: string[] = []): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
   if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
   let { data: { session } } = await cloud.auth.getSession();
@@ -91,7 +95,8 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ draft: unknown; usage: AIUsage }>('/api/v1/ai/extract', 'POST', {
     text: rawInput.trim(), request_id: crypto.randomUUID(), consent: true, captcha_token: captchaToken,
-    provider: 'openai', ...(input ? { input } : {}), ...(images.length ? { images: images.map(image => ({ dataUrl: image.dataUrl })) } : {})
+    provider: 'openai', ...(input ? { input } : {}), ...(images.length ? { images: images.map(image => ({ dataUrl: image.dataUrl })) } : {}),
+    ...(sourceImageIds.length ? { sourceImageIds } : {})
   }, session.user.id);
   const parsed = draftSchema.safeParse(value.draft);
   if (!parsed.success) throw new Error('Bản nháp AI chưa hợp lệ. Vui lòng nhập thủ công hoặc thử lại sau.');

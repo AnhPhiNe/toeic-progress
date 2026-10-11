@@ -25,7 +25,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   const modal = page.getByRole('dialog');
   await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('3');
-  await modal.getByLabel('Transcript + câu hỏi + A–D').fill(
+  await modal.getByLabel('Câu hỏi + phương án').fill(
     'Questions 53 through 55 refer to the following conversation.\n' + transcript + '\n\n' + question + '\n' + options.join('\n')
   );
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
@@ -74,7 +74,8 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   await expect(page.getByRole('button', { name: `Mở câu: ${question}`, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
-  await expect(page.getByRole('dialog').getByLabel('Transcript + câu hỏi + A–D')).toHaveValue(question + '\n\n' + transcript + '\n' + options.join('\n'));
+  await expect(page.getByRole('dialog').getByLabel('Câu hỏi + phương án')).toHaveValue(question + '\n' + options.join('\n'));
+  await expect(page.getByRole('dialog').getByLabel('Transcript', { exact: true })).toHaveValue(transcript);
   await page.getByRole('dialog').getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   const edited = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(edited.question).toBe(question); expect(edited.context).toBe(transcript);

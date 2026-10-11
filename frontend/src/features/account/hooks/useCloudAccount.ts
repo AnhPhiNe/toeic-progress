@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import { activateAccount, clearRetiredCopies, deactivateAccount, getActiveAccountId, readAccountBundle, readGuestBundle, setAccountWriteEnabled, writeAccountBundle } from '@/shared/data/dataBundle';
-import { bundleFromRecords, cloud, deleteCloudAccount, fetchCloudBundle, rememberSync, resetCloudLearningData } from '@/features/account/services/cloud';
+import { bundleFromRecords, cleanupResetImages, cloud, deleteCloudAccount, fetchCloudBundle, rememberSync, resetCloudLearningData } from '@/features/account/services/cloud';
 import { finishAccountTransfer, synchronizeAccount } from '@/features/account/services/cloudSync';
 import { hasPersonalData, type TransferChoice } from '@/shared/data/syncMerge';
 import type { AccountStatus } from '@/features/account/components/AccountPanel';
@@ -33,6 +33,9 @@ export function useCloudAccount(onDataChanged: () => void) {
       dirty.current = false;
       setStatus('syncing');
       try {
+        const cleanupKey = `toeic_source_image_cleanup_${id}`;
+        const cleanupBefore = localStorage.getItem(cleanupKey);
+        if (cleanupBefore) { await cleanupResetImages(id, cleanupBefore); localStorage.removeItem(cleanupKey); }
         const changed = await synchronizeAccount(id, () => run === generation.current && userId.current === id && !resetting.current);
         if (run !== generation.current || userId.current !== id) break;
         setAccountWriteEnabled(navigator.onLine);
@@ -271,6 +274,11 @@ export function useCloudAccount(onDataChanged: () => void) {
       setError('');
       setStatus(navigator.onLine ? 'synced' : 'disconnected');
       onDataChanged();
+      if (reply.sourceImageCleanupBefore) {
+        localStorage.setItem(`toeic_source_image_cleanup_${id}`, reply.sourceImageCleanupBefore);
+        setError('Dữ liệu học đã xóa; ảnh nguồn chưa dọn hết. Bấm thử kết nối lại để hoàn tất dọn ảnh.');
+        setStatus('error');
+      }
     } catch (reason) {
       if (run === generation.current) {
         // Recovery must fetch a full canonical snapshot; never re-upload a stale

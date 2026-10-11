@@ -11,16 +11,21 @@ router = APIRouter()
 @router.get("/api/v1/ai/usage")
 async def usage(request: Request, user=Depends(identity)):
     settings = request.app.state.settings
-    if settings.unlimited_ai_for(user):
-        return {"remaining": None, "limit": None, "guest": False, "unlimited": True}
-    return await request.app.state.gateway.rpc(
+    access = request.state.ai_access
+    extra = access.usage_fields() if settings.ai_access_managed else {}
+    if not access.enabled:
+        return {"remaining": 0, "limit": access.limit, "guest": user["is_anonymous"], **extra}
+    if access.unlimited:
+        return {"remaining": None, "limit": None, "guest": False, "unlimited": True, **extra}
+    result = await request.app.state.gateway.rpc(
         "get_ai_usage",
         {
             "p_owner_id": user["id"],
             "p_guest": user["is_anonymous"],
-            "p_limit": settings.ai_guest_limit if user["is_anonymous"] else settings.ai_account_monthly_limit,
+            "p_limit": access.limit,
         },
     )
+    return {**result, **extra}
 
 
 @router.post("/api/v1/ai/extract")
@@ -29,12 +34,20 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     if not settings.ai_ready:
         message = "Chức năng phân tích AI đang được tắt." if not settings.ai_enabled else "Cấu hình dịch vụ phân tích AI chưa đầy đủ."
         raise HTTPException(503, message + " Bạn vẫn có thể lưu thủ công.")
+    access = request.state.ai_access
+    if not access.enabled:
+        raise HTTPException(403, access.message)
     gateway = request.app.state.gateway
+    source_images = [image.dataUrl for image in body.images]
+    if body.sourceImageIds:
+        if user["is_anonymous"]:
+            raise HTTPException(403, "Đăng nhập Google để lưu và dùng lại ảnh nguồn.")
+        source_images = await gateway.source_images.load(user["id"], body.sourceImageIds)
     extraction_text = body.input.as_text() if body.input is not None else body.text
     input_hash = hashlib.sha256(extraction_text.encode())
-    for image in body.images:
-        input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
-    unlimited = settings.unlimited_ai_for(user)
+    for image in source_images:
+        input_hash.update(b"\0" + hashlib.sha256(image.encode()).digest())
+    unlimited = access.unlimited
     if user["is_anonymous"]:
         await gateway.verify_captcha(body.captcha_token)
     reservation = await gateway.rpc(
@@ -47,9 +60,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             "p_ip_hash": gateway.ip_hash(request.client.host if request.client else "unknown"),
             # These RPC parameters are service-role only. NULL leaves the
             # corresponding cap unset while still recording usage/idempotency.
-            "p_user_limit": None if unlimited else (
-                settings.ai_guest_limit if user["is_anonymous"] else settings.ai_account_monthly_limit
-            ),
+            "p_user_limit": access.limit,
             "p_day_limit": None if unlimited else settings.ai_global_daily_limit,
             "p_minute_limit": None if unlimited else settings.ai_global_minute_limit,
             "p_ip_limit": None if unlimited else settings.ai_ip_daily_limit,
@@ -61,6 +72,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             raise HTTPException(409, "Yêu cầu này đã được tiếp nhận trước đó. Kiểm tra bản nháp đã có trước khi gửi lại.")
         explanation = await gateway.explain_ai_limit(
             user["id"], user["is_anonymous"], gateway.ip_hash(request.client.host if request.client else "unknown"),
+            access.limit,
         )
         detail, delay = explanation or (
             "Ứng dụng đã chặn yêu cầu do giới hạn lượt phân tích AI, nhưng chưa đọc được hạn mức cụ thể. "
@@ -74,7 +86,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     if body.input is not None:
         result = await gateway.generate(extraction_text, user["id"],
                                         source_options=body.input.options or None, source_answer=body.input.sourceAnswer,
-                                        images=[image.dataUrl for image in body.images])
+                                        images=source_images, persistent_images=bool(body.sourceImageIds))
     else:
         result = await gateway.generate(extraction_text, user["id"])
     draft = result.model_dump()
@@ -95,5 +107,6 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             "limit": None if unlimited else reservation["limit"],
             "guest": user["is_anonymous"],
             "unlimited": unlimited,
+            **(access.usage_fields() if settings.ai_access_managed else {}),
         },
     }

@@ -10,7 +10,7 @@ const notice = resolve('tests/fixtures/part7-notice.png');
 const table = resolve('tests/fixtures/part7-table-question.png');
 
 async function mockAI(page: Page, capable = true) {
-  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts', route => route.fulfill({
+  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
     contentType: 'application/javascript', body: `
       export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, part7Images: ${capable} }; }
       export async function extractMistakeWithAI(text, captcha, input, images) {
@@ -28,6 +28,7 @@ async function mockAI(page: Page, capable = true) {
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   await chooseNoteSource(page.getByRole('dialog'));
   await page.getByLabel('Part', { exact: true }).selectOption('7');
+  await page.getByRole('button', { name: 'Ảnh', exact: true }).click();
 }
 
 test('Part 7 requires pasted text and uses images solely for context while saving an image-free card', async ({ page }, testInfo) => {
@@ -45,6 +46,8 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
   await expect(modal.getByText(question, { exact: true })).toBeVisible();
+  await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
+  await expect(modal.getByText(context, { exact: true })).toHaveCount(0);
   await expect(modal.getByText('AI đề xuất', { exact: true })).toBeVisible();
   await modal.getByText('Đối chiếu ảnh (2)', { exact: true }).click();
   await expect(modal.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeVisible();

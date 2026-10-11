@@ -7,7 +7,7 @@ export { cloud } from '@/shared/api/supabaseClient';
 type EntityType = 'profile' | 'sessions' | 'mistakes' | 'pacingRuns' | 'checklist' | 'vocabLog' | 'shieldDays' | 'weeklyPlans';
 const COLLECTIONS: Exclude<EntityType, 'profile'>[] = ['sessions', 'mistakes', 'pacingRuns', 'checklist', 'vocabLog', 'shieldDays', 'weeklyPlans'];
 export interface CloudRow { entity_type: EntityType; record_id: string; payload: Record<string, unknown>; updated_at: string; deleted_at: string | null }
-export interface SyncReply { cursor: number; records: CloudRow[]; hasRecords: boolean; resetBarrier?: boolean }
+export interface SyncReply { cursor: number; records: CloudRow[]; hasRecords: boolean; resetBarrier?: boolean; sourceImageCleanupBefore?: string }
 export interface SyncState { cursor: number; acknowledged: Record<string, string> }
 const syncKey = (id: string) => `toeic_sync_cursor_${id}_v3`;
 const identity = (row: CloudRow) => `${row.entity_type}:${row.record_id}`;
@@ -81,4 +81,8 @@ export async function resetCloudLearningData(userId: string): Promise<SyncReply>
     throw new Error('Máy chủ chưa xác nhận dữ liệu sau khi xóa. Vui lòng thử đồng bộ lại.');
   }
   return reply;
+}
+
+export async function cleanupResetImages(userId: string, before: string): Promise<void> {
+  await backendRequest('/api/v1/mistake-images/cleanup', 'POST', { before }, userId);
 }

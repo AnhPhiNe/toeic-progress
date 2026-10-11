@@ -579,6 +579,16 @@ Pomodoro ghi thời gian thực và tách bộ đếm theo danh tính đã hoàn
 
 *Tài liệu này là nguồn sự thật cho quyết định sản phẩm. Khi code và spec lệch nhau, sửa một trong hai — đừng để lệch.*
 
+**Dán tự do — duyệt 11/10/2026:**
+- Form tách ô Câu hỏi/phương án ở trên và một khu vực ngữ cảnh ở dưới: Tranh (Part 1), Transcript (Part 2–4), Ngữ cảnh tùy chọn thu gọn (Part 5), Đoạn đọc (Part 6–7). Part 7 chọn Văn bản hoặc Ảnh trong cùng khung; giữ bản đang nhập của hai chế độ nhưng chỉ gửi/lưu nguồn đang chọn. Nhãn/số câu/định dạng lẫn trong ô trên vẫn được Luna xử lý.
+
+**Quyền AI beta — duyệt 11/10/2026:** bảng riêng `ai_access_grants` gắn ID Auth, email/tên chỉ để tìm; admin sửa pending/active/blocked và monthly_limit. Người dùng không được truy cập bảng bằng role trình duyệt. Backend đọc quyền mỗi yêu cầu AI, chặn trước ảnh/quota/provider khi chưa duyệt/khóa; quota riêng dùng bộ đếm tháng hiện có, không reset khi đổi quyền hoặc xóa trắng nội dung học. Tài khoản chủ Google đã xác minh được bootstrap miễn hạn mức. Chỉ bật `AI_ACCESS_MANAGED` sau migration; khi bật không dùng allowlist email cũ. Giao diện báo rõ chờ duyệt/khóa/cần đăng nhập, kiểm tra lại quyền và vẫn cho lưu thủ công. Hướng dẫn vận hành ở `docs/AI_ACCESS.md`.
+- Thẻ cũ có question/context rõ ràng mở sửa ở hai ô riêng. Thêm câu cùng bài giữ ngữ cảnh, Part và Đề; đổi Đề/Part của nguồn đang dùng hoặc Đổi bài đọc xóa nguồn và kết quả AI cũ. Ngữ cảnh chữ có thể gồm nhiều văn bản; tổng request AI vẫn tối đa 8.000 ký tự, dữ liệu thủ công/thẻ cũ giữ giới hạn lưu hiện có.
+- Giữ bắt buộc Part và Đề. Phân tích AI gửi nguyên khối `rawText` cùng ngữ cảnh/ảnh nguồn và thông tin người học riêng; không cần frontend tách thành công câu hỏi/phương án trước khi gửi. Một lần gọi Luna vừa tách vừa giải; không có bước LLM/OCR phụ.
+- Luna nhận nhãn giao diện, số câu, Markdown/khoảng trắng HTML, phương án nhiều dòng hoặc nhãn khác thứ tự; giữ nguyên từ ngữ và liên kết nhãn–phương án. Backend xác minh câu hỏi/phương án trích có trong nguồn và không đổi nhãn đã có; ảnh chỉ cung cấp ngữ cảnh.
+- Nhiều câu, thiếu câu hỏi hoặc thiếu phương án trả thông báo cụ thể và giữ bản đang nhập. Thiếu bài đọc quyết định đáp án vẫn cho xem phần trích với MISSING. Không tự chọn một câu hoặc bịa đáp án/phương án; đáp án nguồn vẫn nhập riêng.
+- Bộ tách frontend phục vụ lưu thủ công và tương thích backend cũ. Sau AI, bản nháp dùng câu hỏi/phương án đã trích để lưu, sửa hoặc thêm câu cùng bài. Backend công bố capability `freeform_mistake_input`.
+
 
 **Điều chỉnh AI local 11/10/2026:**
 - Tách thông báo hạn mức phiên khách/tháng tài khoản/ngày hệ thống/phút hệ thống/ngày kết nối mạng. Chỉ khi reservation bị từ chối mới đọc các counter hiện hành của đúng phạm vi, không gọi provider, không đặt lại lượt. Thời điểm reset hiển thị giờ Việt Nam; nếu không đọc được counter thì nói rõ chưa xác định được hạn mức cụ thể, không tự quy là OpenAI bận. Không cần migration.
@@ -601,3 +611,6 @@ Pomodoro ghi thời gian thực và tách bộ đếm theo danh tính đã hoàn
 
 
 **Kế hoạch tuần — chốt 11/10/2026:** Giữ nguyên phong cách và bố cục hiện tại, chưa triển khai khối Hôm nay/dải 7 ngày. Đổi nhãn Tiến độ tuần này thành Mục tiêu đã hoàn thành (hiển thị số mục tiêu đạt/tổng và phần trăm); đổi Chuyên cần tuần X/7 ngày thành Đã học X ngày. Giữ nguyên cách tính, dữ liệu và hành động.
+
+
+**Ảnh nguồn lưu lâu dài — cập nhật 11/10/2026:** Cách cũ trích toàn bộ ngữ cảnh ảnh được thay khi backend bật persistent_source_images. Part 1/7 gửi ảnh lên bucket private `mistake-sources`, thẻ lưu sourceImageIds dạng hash, không nhúng base64/URL có token. AI đọc lại bộ ảnh của chủ sở hữu cho mỗi câu, trả context rỗng và bằng chứng/giải thích ngắn. Ảnh hiện trực tiếp (chọn Ảnh 1–3, mở ảnh lớn) ở preview, thẻ và ôn; thẻ chữ cũ giữ cách xem cũ. Các câu cùng bài dùng chung bộ ID sau tải lại; khách không lưu ảnh trên cloud. Không tự bổ sung ảnh cho thẻ cũ đã mất ảnh tạm. Xóa thẻ không xóa ảnh dùng chung; reset/xóa tài khoản có luồng dọn ảnh, bảo vệ ảnh mới và tham chiếu còn dùng. Backup JSON chỉ chứa ID ảnh. Bản này đang trên nhánh codex/part7-source-images, chưa push/deploy.

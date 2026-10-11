@@ -7,7 +7,9 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.integrations.openai_provider import OpenAIProvider
+from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
+from app.services.ai_access import AIAccess
 from app.services.ai_limits import explain_limit, limit_buckets
 
 
@@ -16,6 +18,7 @@ class Gateway:
         self.settings = settings
         self.client = client
         self.openai = OpenAIProvider(settings, client)
+        self.source_images = SourceImages(self)
 
     async def readiness(self) -> bool:
         if not self.settings.database_ready:
@@ -30,6 +33,14 @@ class Gateway:
             )
             if not response.is_success:
                 return False
+            if self.settings.ai_access_managed:
+                access = await self.client.get(
+                    f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_access_grants",
+                    params={"select": "user_id,status,monthly_limit", "limit": "0"},
+                    headers=self.admin_headers(), timeout=3,
+                )
+                if not access.is_success:
+                    return False
             return True
         except httpx.HTTPError:
             return False
@@ -71,9 +82,39 @@ class Gateway:
     def ip_hash(self, address: str) -> str:
         return hmac.new(self.settings.rate_limit_secret.encode(), address.encode(), hashlib.sha256).hexdigest()
 
-    async def explain_ai_limit(self, owner_id: str, guest: bool, ip_hash: str):
+    async def ai_access(self, user: dict) -> AIAccess:
+        guest = user["is_anonymous"]
+        if not self.settings.ai_access_managed:
+            limit = None if self.settings.unlimited_ai_for(user) else (
+                self.settings.ai_guest_limit if guest else self.settings.ai_account_monthly_limit
+            )
+            return AIAccess("active", limit, guest)
+        if guest:
+            return AIAccess("login_required", 0, True)
+        try:
+            response = await self.client.get(
+                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_access_grants", headers=self.admin_headers(), timeout=5,
+                params={"select": "status,monthly_limit", "user_id": "eq." + user["id"], "limit": "1"},
+            )
+            if not response.is_success:
+                raise ValueError("AI access table unavailable")
+            rows = response.json()
+            if not isinstance(rows, list) or len(rows) > 1:
+                raise ValueError("Invalid AI access response")
+            if not rows:
+                return AIAccess("pending", 0)
+            row = rows[0]
+            status, limit = row["status"], row["monthly_limit"]
+            if status not in ("pending", "active", "blocked") or (limit is not None and
+                    (not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 10000)):
+                raise ValueError("Invalid AI access grant")
+            return AIAccess(status, limit)
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
+            raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới OpenAI; hãy thử lại hoặc lưu thủ công.") from error
+
+    async def explain_ai_limit(self, owner_id: str, guest: bool, ip_hash: str, user_limit: int | None = None):
         now = datetime.now(timezone.utc)
-        buckets = limit_buckets(self.settings, owner_id, guest, ip_hash, now)
+        buckets = limit_buckets(self.settings, owner_id, guest, ip_hash, now, user_limit)
         try:
             response = await self.client.get(
                 f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_usage_counters",
@@ -105,11 +146,15 @@ class Gateway:
             raise HTTPException(403, "Xác minh đã hết hạn. Vui lòng thử lại.")
 
     async def generate(self, text: str, user_id: str | None = None, *, source_options: list[str] | None = None,
-                       source_answer: str | None = None, images: list[str] | None = None) -> MistakeDraft:
+                       source_answer: str | None = None, images: list[str] | None = None,
+                       persistent_images: bool = False) -> MistakeDraft:
         return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None,
-                                          source_options=source_options, source_answer=source_answer, images=images)
+                                          source_options=source_options, source_answer=source_answer, images=images,
+                                          persistent_images=persistent_images)
 
     async def delete_account(self, user_id: str):
+        if self.settings.source_images_enabled:
+            await self.source_images.purge(user_id)
         response = await self.client.delete(
             f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
             headers=self.admin_headers(),

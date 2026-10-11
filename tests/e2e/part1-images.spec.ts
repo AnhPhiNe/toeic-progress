@@ -6,7 +6,7 @@ const options = ['(A) A man is standing.', '(B) A man is seated at a table.', '(
 const description = 'Một người đang ngồi trước bàn; có một chiếc cốc trên bàn.';
 
 test('Part 1 uses one picture and four pasted options, saves a labelled AI description, and remains reviewable', async ({ page }, testInfo) => {
-  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts', route => route.fulfill({ contentType: 'application/javascript', body: `
+  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
     export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, part1Images: true }; }
     export async function extractMistakeWithAI(text, captcha, input, images) {
       window.__pictureRequest = { input, count: images.length };
@@ -30,8 +30,8 @@ test('Part 1 uses one picture and four pasted options, saves a labelled AI descr
   await expect(modal.getByRole('button', { name: 'Thêm ảnh', exact: true })).toBeDisabled();
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await expect(modal.getByText('Part 1 · Mô tả tranh', { exact: true })).toBeVisible();
-  await modal.getByText('Mô tả tranh · AI', { exact: true }).click();
-  await expect(modal.getByText(description, { exact: true })).toBeVisible();
+  await expect(modal.getByText('Mô tả tranh · AI', { exact: true })).toHaveCount(0);
+  await expect(modal.getByText(description, { exact: true })).toHaveCount(0);
   await modal.getByText('Đối chiếu ảnh (1)', { exact: true }).click();
   await expect(modal.getByRole('img', { name: 'Ảnh nguồn Part 1 1', exact: true })).toBeVisible();
   for (const width of [375, 1440]) {

@@ -11,9 +11,15 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.core.runtime import request_id_context
-from app.schemas.models import MistakeDraft, OpenAIDraftOutput
-from app.services.ai_grounding import ground_draft
-from app.services.toeic_prompt import OPENAI_TOEIC_PROMPT, PART1_IMAGE_INSTRUCTIONS, PART7_IMAGE_INSTRUCTIONS
+from app.schemas.models import MistakeDraft, OpenAIDraftOutput, OpenAIPasteOutput
+from app.services.ai_grounding import ground_draft, ground_pasted_draft
+from app.services.toeic_prompt import (
+    FREEFORM_INPUT_INSTRUCTIONS,
+    OPENAI_TOEIC_PROMPT,
+    PART1_IMAGE_INSTRUCTIONS,
+    PART7_IMAGE_INSTRUCTIONS,
+    PERSISTENT_IMAGE_INSTRUCTIONS,
+)
 
 logger = logging.getLogger("toeic.runtime")
 
@@ -24,16 +30,20 @@ class OpenAIProvider:
 
     async def generate(self, text: str, safety_identifier: str | None = None, *,
                        source_options: list[str] | None = None, source_answer: str | None = None,
-                       images: list[str] | None = None) -> MistakeDraft:
+                       images: list[str] | None = None, persistent_images: bool = False) -> MistakeDraft:
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
-        schema = OpenAIDraftOutput.ai_schema()
-        if source_options is not None:
-            try:
-                source = json.loads(text)
-            except ValueError:
-                source = {}
+        try:
+            source = json.loads(text)
+        except ValueError:
+            source = {}
+        if not isinstance(source, dict):
+            source = {}
+        freeform = isinstance(source.get("rawText"), str)
+        output_model = OpenAIPasteOutput if freeform else OpenAIDraftOutput
+        schema = output_model.ai_schema()
+        if source_options is not None or freeform:
             if isinstance(source, dict) and isinstance(source.get("part"), int) and not isinstance(source["part"], bool) and 1 <= source["part"] <= 7:
                 schema["properties"]["part"] = {"type": "integer", "enum": [source["part"]]}
             if isinstance(source, dict) and source.get("errorCategory") in schema["properties"]["category"]["enum"]:
@@ -41,20 +51,25 @@ class OpenAIProvider:
         if source_options is not None:
             # Select an exact source option rather than regenerating its wording/punctuation.
             # Empty remains available when the question lacks decisive context.
-            schema["properties"]["correctAnswer"]["enum"] = ["", *source_options]
+            # Strict output string literals cannot contain newlines/tabs. Fold
+            # formatting whitespace; grounding restores the original source option.
+            schema["properties"]["correctAnswer"]["enum"] = ["", *(" ".join(option.split()) for option in source_options)]
         if images:
-            source = json.loads(text)
             if source.get("part") not in (1, 7) or (source.get("part") == 1 and len(images) != 1):
                 raise HTTPException(422, "Ảnh chỉ hỗ trợ Part 1 (một tranh) hoặc Part 7.")
-            if source_options is None or len(source_options) != 4 or not isinstance(source.get("question"), str) or not source["question"].strip():
+            if not freeform and (source_options is None or len(source_options) != 4 or not isinstance(source.get("question"), str) or not source["question"].strip()):
                 raise HTTPException(422, "Dán câu hỏi và đủ A–D; ảnh chỉ cung cấp ngữ cảnh.")
-            schema["properties"]["question"]["enum"] = [source["question"].strip()]
+            if not freeform:
+                schema["properties"]["question"]["enum"] = [" ".join(source["question"].split())]
         image_instructions = (PART1_IMAGE_INSTRUCTIONS if images and source["part"] == 1 else PART7_IMAGE_INSTRUCTIONS) if images else ""
+        if persistent_images:
+            schema["properties"]["context"]["enum"] = [""]
+            image_instructions += PERSISTENT_IMAGE_INSTRUCTIONS
         content = [{"type": "input_text", "text": text}]
         content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in (images or []))
         payload = {
             "model": self.settings.openai_model,
-            "instructions": OPENAI_TOEIC_PROMPT + image_instructions,
+            "instructions": OPENAI_TOEIC_PROMPT + image_instructions + (FREEFORM_INPUT_INSTRUCTIONS if freeform else ""),
             "input": [{"role": "user", "content": content}],
             "reasoning": {"effort": self.settings.openai_reasoning_effort},
             "text": {"format": {
@@ -116,6 +131,7 @@ class OpenAIProvider:
                 raise HTTPException(503, "Dịch vụ OpenAI tạm gặp sự cố. Hãy thử lại sau hoặc lưu thủ công.")
             raise HTTPException(503, "OpenAI từ chối yêu cầu phân tích. "
                                 "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
+        phase = "response"
         try:
             value = response.json()
             usage = value.get("usage") or {}
@@ -140,9 +156,26 @@ class OpenAIProvider:
                         chunks.append(block["text"])
             if not chunks:
                 raise ValueError("Missing output")
-            draft = OpenAIDraftOutput.model_validate_json("".join(chunks)).to_draft()
+            phase = "schema"
+            output = output_model.model_validate_json("".join(chunks))
+            if isinstance(output, OpenAIPasteOutput) and output.inputIssue:
+                message = {
+                    "MULTIPLE_QUESTIONS": "Nội dung có nhiều câu hỏi. Giữ lại một câu cần ghi lỗi rồi phân tích lại.",
+                    "MISSING_QUESTION": "Chưa tìm thấy câu hỏi trong nội dung đã dán. Bổ sung câu cần phân tích.",
+                    "MISSING_OPTIONS": "Chưa đọc được đủ phương án của câu hỏi. Dán thêm nội dung các phương án từ đề.",
+                }[output.inputIssue]
+                raise HTTPException(422, message + " Nội dung đang nhập vẫn được giữ.")
+            draft = output.to_draft()
+            phase = "source_verification"
+            if freeform:
+                return ground_pasted_draft(source, draft, image_source=bool(images), persistent_images=persistent_images)
             return ground_draft(text, draft, allow_ai_answer=True, source_options=source_options,
-                                source_answer=source_answer, image_source=bool(images))
+                                source_answer=source_answer, image_source=bool(images), persistent_images=persistent_images)
         except (ValueError, KeyError, TypeError, AttributeError) as error:
+            logger.warning(json.dumps({"event": "openai_invalid_draft", "request_id": request_id_context.get(),
+                                       "phase": phase, "error_type": type(error).__name__}))
+            if phase == "source_verification":
+                raise HTTPException(502, "Câu hỏi hoặc phương án AI trích chưa khớp nguyên văn nội dung đã dán. "
+                                    "Chưa tạo bản nháp; nội dung được giữ để thử lại hoặc chỉnh thủ công.") from error
             raise HTTPException(502, "Kết quả OpenAI trả về chưa đủ hoặc không đúng định dạng nên chưa tạo được bản nháp. "
                                 "Nội dung đang nhập vẫn được giữ; hãy thử lại hoặc lưu thủ công.") from error

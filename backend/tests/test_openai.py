@@ -254,6 +254,28 @@ def test_request_specific_answer_constraints_do_not_leak_to_legacy_requests():
     assert "enum" not in json.loads(calls[0].content)["text"]["format"]["schema"]["properties"]["correctAnswer"]
 
 
+def test_image_question_and_wrapped_options_have_valid_strict_literals_without_changing_source_wording():
+    question = "What is suggested about the students\nin a creative writing class?"
+    options = ["(A) They have read Rome:\nMystery in a Minor Key.", "(B) They are beginning\twriters.",
+               "(C) They are planning to travel to Rome.", "(D) They are enrolled in an evening class."]
+    folded = [" ".join(option.split()) for option in options]
+    draft = {**DRAFT, "part": 7, "question": " ".join(question.split()), "context": "", "options": folded,
+             "correctAnswer": folded[0], "answerSource": "AI_PROPOSED", "userChoice": "",
+             "optionNotes": [{"label": label, "pos": "", "meaning": "Phương án " + label} for label in "ABCD"]}
+    response = completed(output=[{"type": "message", "role": "assistant", "status": "completed",
+                                 "content": [{"type": "output_text", "text": json.dumps(draft)}]}])
+    source = json.dumps({"question": question, "options": options, "part": 7, "context": ""})
+    result, calls = run_provider(lambda _request: httpx.Response(200, json=response), text=source,
+                                generate_kwargs={"source_options": options, "source_answer": "",
+                                                 "images": ["data:image/jpeg;base64,fixture"], "persistent_images": True})
+    assert len(calls) == 1 and not isinstance(result, HTTPException)
+    assert result.question == " ".join(question.split()) and result.context == ""
+    assert result.options == options and result.correctAnswer == options[0]
+    properties = json.loads(calls[0].content)["text"]["format"]["schema"]["properties"]
+    assert properties["question"]["enum"] == [" ".join(question.split())]
+    assert properties["correctAnswer"]["enum"] == ["", *folded]
+
+
 def test_listening_stem_and_transcript_share_one_request_and_invalid_extraction_is_not_retried():
     question = "What problem does the man mention?"
     transcript = "(M-Cn) The order is incomplete.\n(W-Am) We can wait until tomorrow."

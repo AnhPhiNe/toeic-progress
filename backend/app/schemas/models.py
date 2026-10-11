@@ -105,6 +105,9 @@ class Session(Payload):
         return self
 
 
+SourceImageId = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$", min_length=64, max_length=64)]
+
+
 class Mistake(Payload):
     id: str
     part: Part
@@ -113,6 +116,7 @@ class Mistake(Payload):
     questionContext: str = Field(max_length=16000)
     question: str | None = Field(default=None, max_length=16000)
     context: str | None = Field(default=None, max_length=16000)
+    sourceImageIds: list[SourceImageId] = Field(default_factory=list, max_length=3)
     userMistake: str = Field(max_length=4000)
     correctAnswer: str = Field(max_length=2000)
     answerSource: AnswerSource | None = None
@@ -142,6 +146,9 @@ class Mistake(Payload):
 
     @model_validator(mode="after")
     def check_learner_choice(self):
+        if self.sourceImageIds and (self.part not in (1, 7) or (self.part == 1 and len(self.sourceImageIds) != 1)
+                                    or len(set(self.sourceImageIds)) != len(self.sourceImageIds)):
+            raise ValueError("Ảnh nguồn chỉ dùng cho Part 1 (một ảnh) hoặc Part 7")
         if self.userChoiceState is None:
             match = re.match(r"^\s*\(([A-D])\)", self.userMistake, re.IGNORECASE)
             self.userChoice = self.userChoice or (match[1].upper() if match else None)
@@ -310,9 +317,10 @@ class SyncRequest(BaseModel):
 
 class MistakeInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    question: str = Field(min_length=1, max_length=4000)
-    options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(min_length=2, max_length=4)
-    context: str = Field(default="", max_length=4000)
+    question: str = Field(default="", max_length=4000)
+    options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(default_factory=list, max_length=4)
+    rawText: str | None = Field(default=None, min_length=1, max_length=8000)
+    context: str = Field(default="", max_length=8000)
     part: Part
     userChoiceState: Literal["CHOSEN", "UNKNOWN", "BLANK"]
     userChoice: UserChoice = ""
@@ -322,6 +330,18 @@ class MistakeInput(BaseModel):
 
     @model_validator(mode="after")
     def check_input(self):
+        if self.rawText is not None:
+            if not self.rawText.strip() or self.question or self.options:
+                raise ValueError("Nội dung dán tự do không kèm câu hỏi/phương án đã tách")
+            if self.userChoiceState != "CHOSEN" and self.userChoice:
+                raise ValueError("Không nhớ/bỏ trống không có phương án đã chọn")
+            if self.userChoiceState == "CHOSEN" and not self.userChoice:
+                raise ValueError("Cần phương án đã chọn")
+            if self.part == 2 and (self.userChoice == "D" or self.sourceAnswer == "D"):
+                raise ValueError("Part 2 chỉ có A–C")
+            if len(self.as_text()) > 8000:
+                raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
+            return self
         labels = []
         for option in self.options:
             match = re.match(r"^\(([A-D])\)\s+\S", option)
@@ -338,7 +358,7 @@ class MistakeInput(BaseModel):
             raise ValueError("Không nhớ/bỏ trống không có phương án đã chọn")
         if self.sourceAnswer and self.sourceAnswer not in labels:
             raise ValueError("Đáp án nguồn chưa khớp phương án")
-        if not self.question.strip() or has_multiple_questions(self.question + "\n" + self.context):
+        if len(labels) < 2 or not self.question.strip() or has_multiple_questions(self.question + "\n" + self.context):
             raise ValueError("Mỗi lần nhập một câu hỏi")
         if len(self.as_text()) > 8000:
             raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
@@ -364,6 +384,33 @@ class ImageAttachment(BaseModel):
         return len(encoded) * 3 // 4 - (len(encoded) - len(encoded.rstrip("=")))
 
 
+class SourceImageIds(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    sourceImageIds: list[SourceImageId] = Field(min_length=1, max_length=3)
+
+    @model_validator(mode="after")
+    def distinct_images(self):
+        if len(set(self.sourceImageIds)) != len(self.sourceImageIds):
+            raise ValueError("Ảnh nguồn bị trùng")
+        return self
+
+
+class UploadSourceImages(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+
+    @model_validator(mode="after")
+    def total_bytes(self):
+        if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        return self
+
+
+class CleanupSourceImages(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    before: AwareDatetime
+
+
 class ExtractRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str = Field(max_length=8000)
@@ -373,24 +420,29 @@ class ExtractRequest(BaseModel):
     captcha_token: str | None = Field(default=None, max_length=2048)
     input: MistakeInput | None = None
     images: list[ImageAttachment] = Field(default_factory=list, max_length=3, repr=False)
+    sourceImageIds: list[SourceImageId] = Field(default_factory=list, max_length=3)
 
     @model_validator(mode="after")
     def single_question(self):
-        if self.input is not None and self.input.part == 1 and not self.images:
+        if len(set(self.sourceImageIds)) != len(self.sourceImageIds):
+            raise ValueError("Ảnh nguồn bị trùng")
+        if self.images and self.sourceImageIds:
+            raise ValueError("Chỉ dùng một bộ ảnh nguồn trong mỗi yêu cầu")
+        if self.input is not None and self.input.part == 1 and not (self.images or self.sourceImageIds):
             raise ValueError("Cần ảnh tranh để phân tích Part 1")
-        if self.images:
+        if self.images or self.sourceImageIds:
             if self.input is None or self.input.part not in (1, 7):
                 raise ValueError("Ảnh chỉ hỗ trợ Part 1/7 với input có cấu trúc")
-            if self.input.part == 1 and len(self.images) != 1:
+            if self.input.part == 1 and len(self.images or self.sourceImageIds) != 1:
                 raise ValueError("Mỗi câu Part 1 dùng một ảnh tranh")
-            if len(self.input.options) != 4:
+            if self.input.rawText is None and len(self.input.options) != 4:
                 raise ValueError("Dán đủ bốn phương án A–D; ảnh chỉ cung cấp ngữ cảnh")
             if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
                 raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
         else:
             if len(self.text.strip()) < 20:
                 raise ValueError("Nội dung tối thiểu 20 ký tự")
-            if self.input is not None and (not self.input.question.strip() or len(self.input.options) < 2):
+            if self.input is not None and self.input.rawText is None and (not self.input.question.strip() or len(self.input.options) < 2):
                 raise ValueError("Cần câu hỏi và ít nhất hai phương án")
         if self.input is None and has_multiple_questions(self.text):
             raise ValueError("Mỗi lần nhập một câu hỏi")
@@ -536,5 +588,22 @@ class OpenAIDraftOutput(DraftCore):
 
     def to_draft(self) -> MistakeDraft:
         draft = MistakeDraft(**self.model_dump(), trapTip="")
+        draft.compose_trap_tip()
+        return draft
+
+
+class OpenAIPasteOutput(OpenAIDraftOutput):
+    inputIssue: Literal["", "MULTIPLE_QUESTIONS", "MISSING_QUESTION", "MISSING_OPTIONS"]
+
+    @model_validator(mode="before")
+    @classmethod
+    def issue_without_a_question(cls, value):
+        # An issue is reported before creating a draft; permit an empty stem.
+        if isinstance(value, dict) and value.get("inputIssue") and not value.get("question"):
+            return {**value, "questionContext": "Chưa tách được câu hỏi", "question": None}
+        return value
+
+    def to_draft(self) -> MistakeDraft:
+        draft = MistakeDraft(**self.model_dump(exclude={"inputIssue"}), trapTip="")
         draft.compose_trap_tip()
         return draft

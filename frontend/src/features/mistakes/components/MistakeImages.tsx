@@ -1,13 +1,16 @@
 import { useRef, useState } from 'react';
 import { ImagePlus, Image as ImageIcon, X } from 'lucide-react';
 import { MAX_CONTEXT_IMAGES, type PreparedImage } from '@/features/mistakes/lib/imageInput';
+import { Part7ImageNote } from '@/features/mistakes/components/Part7ImageNote';
 
-export function MistakeImages({ images, busy, part, onAdd, onRemove }: {
+export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent = false, embedded = false }: {
   images: PreparedImage[];
   busy: boolean;
   part: number | null;
   onAdd: (files: File[]) => void;
   onRemove: (id: string) => void;
+  persistent?: boolean;
+  embedded?: boolean;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
@@ -16,7 +19,7 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove }: {
   const maximum = picture ? 1 : MAX_CONTEXT_IMAGES;
   const label = picture ? 'Ảnh tranh Part 1' : 'Ảnh ngữ cảnh · Part 7';
   const unavailable = busy || part === null || images.length >= maximum;
-  return <div className={`space-y-2 rounded-xl border px-3 py-2.5 ${dragging ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30' : 'border-slate-200 dark:border-slate-700'}`}
+  return <div className={`space-y-2 ${embedded ? '' : 'rounded-xl border px-3 py-2.5'} ${dragging ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30' : 'border-slate-200 dark:border-slate-700'}`}
     role="group" aria-label={label}
     onDragEnter={event => {
       if (!event.dataTransfer.types.includes('Files')) return;
@@ -40,7 +43,7 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove }: {
       if (files.length) { event.preventDefault(); if (!busy && part !== null) onAdd(files); }
     }}>
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <span className="text-sm font-semibold">{label} <span className="text-xs font-normal text-slate-500">{images.length}/{maximum}</span></span>
+      <span className="text-sm font-semibold">{!embedded && label} <span className="text-xs font-normal text-slate-500">{images.length}/{maximum} ảnh</span></span>
       <button type="button" disabled={busy || part === null || images.length >= maximum} onClick={() => fileInput.current?.click()}
         className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-950">
         <ImagePlus className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang xử lý ảnh…' : 'Thêm ảnh'}
@@ -50,6 +53,7 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove }: {
           onAdd(Array.from(event.target.files ?? [])); event.target.value = '';
         }} />
     </div>
+    {!picture && <Part7ImageNote />}
     <button type="button" disabled={unavailable} aria-label={`Vùng thêm ảnh Part ${part ?? 7}`}
       onClick={() => fileInput.current?.click()}
       className={`flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-3 py-3 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -66,8 +70,8 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove }: {
         className="absolute -right-1 -top-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-rose-50 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"><X className="h-4 w-4" aria-hidden="true" /></button>
       <p className="mt-1 truncate text-xs text-slate-500" title={image.name}>{image.name}</p>
     </div>)}</div>}
-    <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{picture ? 'Chụp riêng một tranh. Dán nội dung bốn phương án nghe A–D vào ô phía trên.' : 'Chỉ chụp bài đọc, email, bảng hoặc biểu đồ. Dán câu hỏi và A–D vào ô phía trên.'}</p>
-    {images.length > 0 && <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">Ảnh chỉ dùng để phân tích; thẻ lưu văn bản trích xuất. Đáp án đúng nhập ở “Đáp án đúng từ đề”.</p>}
+    {picture && <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Chụp riêng một tranh. Dán nội dung bốn phương án nghe A–D vào ô phía trên.</p>}
+    {images.length > 0 && <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">{persistent ? 'Ảnh nguồn được lưu riêng tư cùng tài khoản Google để xem lại và dùng chung cho các câu cùng bài.' : 'Ảnh chỉ dùng để phân tích; thẻ lưu văn bản trích xuất.'} Đáp án đúng nhập ở “Đáp án đúng từ đề”.</p>}
   </div>;
 }
 

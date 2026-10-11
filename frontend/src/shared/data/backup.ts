@@ -60,6 +60,7 @@ const mistake = z.object({
   sourceTestName: z.string().max(300).nullable().optional(),
   questionContext: z.string(), userMistake: z.string(), correctAnswer: z.string(),
   question: z.string().max(16000).optional(), context: z.string().max(16000).optional(),
+  sourceImageIds: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(3).optional(),
   answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']).optional(),
   userChoice: z.enum(['A', 'B', 'C', 'D']).optional(),
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),

@@ -11,6 +11,7 @@ import { reviewResultText } from '@/features/mistakes/lib/review';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { QuestionContext } from '@/features/mistakes/components/QuestionContext';
+import { SourceImageViewer } from '@/features/mistakes/components/SourceImageViewer';
 
 interface ReviewModalProps {
   /** Cards to review, fixed when the session opens */
@@ -95,7 +96,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
               <p className="text-base font-bold leading-snug text-slate-900 dark:text-white sm:text-[16px]">
                 <span className="mr-2 align-middle"><PartBadge part={card.part} /></span>{question}
               </p>
-              <QuestionContext key={card.id} context={context} part={card.part} initiallyOpen />
+              <SourceImageViewer key={card.id + ':images'} ids={card.sourceImageIds} part={card.part} />
+              {!card.sourceImageIds?.length && <QuestionContext key={card.id} context={context} part={card.part} initiallyOpen />}
 
               {quizMode && quiz ? (
                 <OptionList options={quiz.options} large revealed={Boolean(result)} chosen={result?.picked} showMeanings={card.part !== 7}

@@ -38,6 +38,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('backup restore', () => {
+  it('keeps private image references through export/restore and cloud conversion without image bytes or URLs', async () => {
+    const { recordsFromBundle, bundleFromRecords } = await import('@/features/account/services/cloud');
+    const data = bundle(); const stamp = data.profile.updatedAt;
+    data.mistakes = [{ id: 'image-note', part: 7, questionContext: 'What is the delivery time?', question: 'What is the delivery time?', context: '',
+      sourceImageIds: ['a'.repeat(64), 'b'.repeat(64)], userMistake: '', correctAnswer: '(B) Three days.',
+      category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: stamp, updatedAt: stamp, deletedAt: null }];
+    const text = JSON.stringify({ ...data, exportDate: stamp });
+    expect(text).not.toContain('data:image'); expect(text).not.toContain('token=');
+    const parsed = parseBackup(text); expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    restoreBackup(parsed.preview);
+    expect(readDataBundle().mistakes[0].sourceImageIds).toEqual(data.mistakes[0].sourceImageIds);
+    expect(bundleFromRecords(recordsFromBundle(data)).mistakes[0].sourceImageIds).toEqual(data.mistakes[0].sourceImageIds);
+    data.mistakes[0].sourceImageIds = ['https://other.example/image.jpg'];
+    expect(parseBackup(JSON.stringify({ ...data, exportDate: stamp })).ok).toBe(false);
+  });
   it.each([
     [{ part: 5, correct: 1.5, total: 30 }], [{ part: 5, correct: 0, total: 0 }],
     [{ part: 5, correct: 31, total: 30 }], [{ part: 6, correct: 1, total: 17 }],

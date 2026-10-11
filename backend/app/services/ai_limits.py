@@ -3,14 +3,14 @@
 from datetime import datetime, timedelta, timezone
 
 
-def limit_buckets(settings, owner_id: str, guest: bool, ip_hash: str, now: datetime):
+def limit_buckets(settings, owner_id: str, guest: bool, ip_hash: str, now: datetime, user_limit: int | None = None):
     day_end = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     month_end = day_end.replace(day=1)
     if month_end.month == now.month:
         month_end = (month_end + timedelta(days=32)).replace(day=1)
     return [
         (f"user:{owner_id}:" + ("guest" if guest else now.strftime("%Y-%m")),
-         settings.ai_guest_limit if guest else settings.ai_account_monthly_limit,
+         user_limit if user_limit is not None else settings.ai_guest_limit if guest else settings.ai_account_monthly_limit,
          "guest" if guest else "month", None if guest else month_end),
         ("day:" + now.strftime("%Y-%m-%d"), settings.ai_global_daily_limit, "day", day_end),
         ("minute:" + now.strftime("%Y-%m-%d-%H-%M"), settings.ai_global_minute_limit, "minute",

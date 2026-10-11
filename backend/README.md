@@ -1,5 +1,15 @@
 # TOEIC Progress — Python/FastAPI
 
+## Ảnh nguồn riêng tư
+
+Tạo bucket `mistake-sources` qua Storage API/Dashboard, private, chỉ MIME `image/jpeg`, tối đa 1 MiB/tệp. Không tạo policy đọc/ghi trực tiếp cho anon/authenticated; backend dùng secret key và dẫn xuất thư mục từ danh tính Auth đã xác minh. Sau đó đặt `SOURCE_IMAGES_ENABLED=true`. Mặc định tắt để deploy backend trước khi bật tính năng. `SOURCE_IMAGE_ACCOUNT_LIMIT=200` giới hạn số tệp mỗi tài khoản; đây là kiểm tra trước upload, không phải quota giao dịch toàn project. Theo dõi Storage usage khi public.
+
+Frontend chỉ lưu `sourceImageIds` (hash) trong thẻ/backup/Supabase; ảnh nằm trong Storage. Các câu cùng bài dùng chung ID. Link ký 10 phút chỉ giữ trong bộ nhớ và được tạo lại khi mở ảnh; không ghi link có token vào database/backup/log. AI tải ảnh từ thư mục của chính tài khoản và gửi bytes trực tiếp cho OpenAI, không tải URL tùy ý. Với ảnh đã lưu, context AI rỗng; chỉ giữ bằng chứng/giải thích ngắn. Thẻ cũ và form chữ vẫn hoạt động.
+
+`POST /api/v1/mistake-images`: tối đa 3 ảnh, 2 MiB tổng; JPEG được tái mã hóa để bỏ metadata. `POST /api/v1/mistake-images/urls`: tạo link đọc ảnh của người sở hữu. Endpoint này không tính lượt AI. Lưu ảnh lâu dài yêu cầu tài khoản thường; khách không được upload vào bucket.
+
+Xóa một thẻ không xóa ảnh dùng chung. Xóa trắng dọn ảnh cũ không còn được tham chiếu; xóa tài khoản dọn toàn bộ thư mục ảnh trước khi xóa Auth. Nếu dọn ảnh sau reset bị gián đoạn, backend trả cutoff để frontend thử dọn lại mà không reset lần nữa hoặc xóa ảnh mới. Ảnh chưa gắn thẻ do đóng form/lưu thất bại có thể còn trong kho và tính dung lượng cho tới lúc reset hoặc dọn có chủ đích. Backup JSON chỉ chứa liên kết ảnh, không chứa tệp; chuyển project/tài khoản cần xuất ảnh riêng.
+
 Backend nghiệp vụ dùng FastAPI + Pydantic. Supabase cung cấp PostgreSQL và Auth; OpenAI chỉ được gọi từ backend. Frontend không giữ khóa AI hay service-role key.
 
 Lộ trình beta, migration vận hành, biến deploy, staging tests và backup/restore: [hướng dẫn beta](../docs/DEPLOYMENT.md). Backend có chống spam trước xác thực, bộ đếm API dùng chung qua PostgreSQL, log JSON có mã request, Trusted Host, kiểm tra cấu hình deploy và `/ready` kiểm tra database. Cần cấu hình hosting và kiểm chứng thực tế trước khi mời người dùng.
@@ -131,6 +141,8 @@ Render Free có thể ngủ sau 15 phút không có traffic và mất khoảng m
 
 ## Vận hành
 
+Duyệt tester và quota riêng: xem [hướng dẫn quyền AI](../docs/AI_ACCESS.md). Sau migration `20261011000000_ai_access_grants.sql`, bật `AI_ACCESS_MANAGED=true` để dùng bảng `public.ai_access_grants`. Tài khoản mới chờ duyệt; `status=active` và `monthly_limit` cấp lượt tháng riêng, `NULL` miễn hạn mức ứng dụng. Trong chế độ này, bảng là nguồn quyền duy nhất và danh sách email miễn cũ không ghi đè quyết định tạm khóa. Chưa áp dụng migration thì giữ cờ false; readiness sẽ không đạt nếu bật khi thiếu bảng.
+
 Supabase Free không gồm sao lưu tự động: giữ chức năng export JSON cho người dùng và tạo bản dump database trước migration. Chạy `python -m app.commands.maintenance` từ `backend` để dọn counter hết hạn và request hash cũ. Guest counter được giữ theo danh tính; cần dọn Auth user ẩn danh không còn dùng bằng công cụ quản trị trước khi mở quy mô lớn. Không log token, khóa dịch vụ hoặc nguyên văn câu hỏi.
 
 Beta miễn phí, AI có giới hạn; gói nâng cao có thể thu phí khi ra mắt chính thức. Các cờ/hạn mức đã được cấu hình riêng để thay đổi về sau; chưa tích hợp thanh toán.
@@ -141,4 +153,4 @@ Form sổ tay bắt buộc chọn Part 1–7 trước khi phân tích hoặc lư
 
 Local development: tài khoản được Supabase xác thực có thể gọi AI khi thiếu Turnstile secret, miễn OpenAI/database/rate-limit secret đã cấu hình. Guest vẫn bắt buộc CAPTCHA và bị chặn trước quota/provider nếu thiếu secret. Staging/production vẫn yêu cầu cấu hình Turnstile đầy đủ khi bật AI. Không có bỏ xác thực hoặc miễn quota do chạy local.
 
-Form gọn: Part bắt buộc và Đề tùy chọn cùng hàng; câu hỏi, transcript/đoạn đọc và A–D dán trong một ô nguồn, không có ô ngữ cảnh bổ sung trùng lặp. Lựa chọn người học là tùy chọn: không chọn A–D gửi UNKNOWN, bấm lại để bỏ chọn. Nút Không nhớ/Bỏ trống đã bỏ; dữ liệu BLANK cũ được giữ khi mở sửa không đổi lựa chọn. Thẻ cũ có context riêng được đưa nguyên văn vào ô nguồn, giữ trường AI đã trích khi không sửa nội dung. Đáp án nguồn vẫn nhập riêng.
+Form gọn: Part và Đề bắt buộc cùng hàng; câu hỏi, transcript/đoạn đọc và phương án dán trong một ô nguồn. Backend nhận `input.rawText` không kèm câu hỏi/phương án đã tách; Luna tách và giải trong cùng lần gọi. Trường lựa chọn, lý do và đáp án nguồn vẫn riêng. `inputIssue` phân biệt nhiều câu, thiếu câu hỏi và thiếu phương án; server trả 422 cụ thể, giữ nội dung người dùng. Nguồn trích được kiểm tra trước khi tạo bản nháp; không tự retry LLM khi output chưa hợp lệ. Capability `freeform_mistake_input` giúp frontend cũ/new tương thích. Luồng `input.question/options` cũ vẫn hỗ trợ.

@@ -9,6 +9,7 @@ import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { QuestionContext } from '@/features/mistakes/components/QuestionContext';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
+import { SourceImageViewer } from '@/features/mistakes/components/SourceImageViewer';
 
 const STATUS_STYLE: Record<ReviewStatusKind, { text: string; dot?: string }> = {
   overdue: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' },
@@ -107,7 +108,8 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
 
       {expanded && (
         <div className="space-y-3 px-3.5 pb-4 sm:pl-[60px] sm:pr-6">
-          <QuestionContext context={context} part={mistake.part} />
+          <SourceImageViewer ids={mistake.sourceImageIds} part={mistake.part} />
+          {!mistake.sourceImageIds?.length && <QuestionContext context={context} part={mistake.part} />}
           {quiz.options.length > 0 ? (
             <OptionList options={quiz.options} chosen={getUserChoice(mistake)} correctLabel={correctLabel} showMeanings={mistake.part !== 7} />
           ) : mistake.correctAnswer && (

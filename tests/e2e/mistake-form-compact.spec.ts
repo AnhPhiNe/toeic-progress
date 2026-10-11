@@ -83,14 +83,15 @@ test('editing preserves explicit context and historical blank choice without dup
   await page.reload(); await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await expect(modal.getByLabel('Transcript + câu hỏi + A–D')).toHaveValue('What does the man need?\n\n(M) I need the report today.\n(A) A report.\n(B) A car.');
+  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('What does the man need?\n(A) A report.\n(B) A car.');
+  await expect(modal.getByLabel('Transcript', { exact: true })).toHaveValue('(M) I need the report today.');
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.question).toBe('What does the man need?'); expect(saved.context).toBe('(M) I need the report today.');
   expect(saved.userChoiceState).toBe('BLANK');
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
-  await modal.getByLabel('Transcript + câu hỏi + A–D').fill('What does the man need?\n\n(M) I need the report tomorrow.\n(A) A report.\n(B) A car.');
+  await modal.getByLabel('Transcript', { exact: true }).fill('(M) I need the report tomorrow.');
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.questionContext).toContain('tomorrow'); expect(saved.context ?? '').not.toContain('today');

@@ -52,7 +52,7 @@ test('empty answers are visible but disabled, source key is separate and Part te
   await expect(modal.getByRole('button', { name: 'Đáp án từ đề: A', exact: true })).toBeDisabled();
   await modal.getByLabel('Part', { exact: true }).selectOption('2');
   await expect(modal.getByRole('button', { name: 'Bạn chọn D', exact: true })).toHaveCount(0);
-  await modal.getByLabel('Transcript + phản hồi A–C').fill('Where is the meeting?\n(A) In room five.\n(B) Next week.\n(C) Yes, I did.');
+  await modal.getByLabel('Câu hỏi + phản hồi A–C').fill('Where is the meeting?\n(A) In room five.\n(B) Next week.\n(C) Yes, I did.');
   const chosen = modal.getByRole('button', { name: 'Bạn chọn B', exact: true });
   await expect(chosen).toBeEnabled(); await chosen.click();
   await modal.getByRole('button', { name: 'Đáp án từ đề: A', exact: true }).click();

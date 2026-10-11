@@ -1,8 +1,46 @@
 import json
 import re
+from html import unescape
 
 from app.core.text_input import has_multiple_questions
 from app.schemas.models import MistakeDraft
+
+
+def pasted_source(value: str) -> str:
+    """Normalize copy formatting, never parse or execute markup."""
+    return unescape(value).replace("**", "").replace("\ufeff", "")
+
+
+def ground_pasted_draft(source: dict, draft: MistakeDraft, *, image_source: bool, persistent_images: bool) -> MistakeDraft:
+    """Check extracted source spans after the single LLM call, without guessing their positions."""
+    fields = [" ".join(pasted_source(source.get(name, "")).split()) for name in ("rawText", "context")]
+    question = " ".join((draft.question or "").split())
+    picture = source["part"] == 1 and image_source
+    if picture:
+        if question != "Part 1 · Mô tả tranh":
+            raise ValueError("AI changed the Part 1 source label")
+    elif not question or not any(question in field for field in fields):
+        raise ValueError("AI question is not a verbatim source span")
+    expected = 3 if source["part"] == 2 else 4
+    if len(draft.options) != expected or not all(option.startswith(f"({label}) ") for label, option in zip("ABCD"[:expected], draft.options, strict=True)):
+        raise ValueError("AI omitted or relabeled source options")
+    for option in draft.options:
+        content = " ".join(option[4:].split())
+        if not content or not re.search(r"(?<!\w)" + re.escape(content) + r"(?!\w)", fields[0]):
+            raise ValueError("AI option is not a verbatim pasted span")
+        label = option[1]
+        label_pattern = r"(?:^|\s)(?:\(" + label + r"\)|" + label + r"[.):])\s*"
+        if re.search(label_pattern, fields[0]) and not re.search(label_pattern + re.escape(content) + r"(?!\w)", fields[0]):
+            raise ValueError("AI changed a source option label")
+    if not image_source and draft.context:
+        for paragraph in re.split(r"\n\s*\n", draft.context.strip()):
+            if not any(" ".join(paragraph.split()) in field for field in fields):
+                raise ValueError("AI context is not a verbatim source span")
+    # Reuse the established key/answer contract with the verified extraction.
+    canonical = {"question": question, "context": draft.context or ""}
+    return ground_draft(json.dumps(canonical), draft, allow_ai_answer=True, source_options=draft.options,
+                        source_answer=source.get("sourceAnswer", ""), image_source=image_source,
+                        persistent_images=persistent_images)
 
 
 def normalized(value: str) -> str:
@@ -28,7 +66,7 @@ def source_option(answer: str, options: list[str]) -> str | None:
 
 def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = False,
                  source_options: list[str] | None = None, source_answer: str | None = None,
-                 image_source: bool = False) -> MistakeDraft:
+                 image_source: bool = False, persistent_images: bool = False) -> MistakeDraft:
     """Verify source fields/options; admit labeled AI proposals without claiming a source key."""
     source = normalized(text)
     options = []
@@ -75,7 +113,7 @@ def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = Fals
                 raise ValueError("AI changed the source question")
             if re.match(r"^Questions?\s+\d+.*\brefer\b", question, re.IGNORECASE):
                 raise ValueError("AI used a group instruction instead of the question")
-            context = re.sub(r"\n[ \t]*(?:\n[ \t]*)+", "\n\n", context.strip())
+            context = "" if persistent_images else re.sub(r"\n[ \t]*(?:\n[ \t]*)+", "\n\n", context.strip())
             separator = "\n\n" if len(question) + len(context) + 2 <= 4000 else "\n"
             draft.questionContext = question + (separator + context if context else "")
             if draft.question is not None:
@@ -94,8 +132,9 @@ def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = Fals
     draft.optionNotes = [notes[label] for label in sorted(notes)]
     draft.compose_trap_tip()
     if image_source:
-        draft.missingInformation.append("Mô tả tranh do AI viết; đối chiếu với tranh trước khi lưu." if draft.part == 1
-                                       else "Ngữ cảnh trích từ ảnh; kiểm tra chữ và số trong đoạn đọc trước khi lưu.")
+        if not persistent_images:
+            draft.missingInformation.append("Mô tả tranh do AI viết; đối chiếu với tranh trước khi lưu." if draft.part == 1
+                                           else "Ngữ cảnh trích từ ảnh; kiểm tra chữ và số trong đoạn đọc trước khi lưu.")
         labels_in_order = []
         for option in options:
             match = re.match(r"^\(([A-D])\)", option, re.IGNORECASE)
