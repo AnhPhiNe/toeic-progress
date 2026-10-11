@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from '@/app/components/Sidebar';
 import { Topbar } from '@/app/components/Topbar';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
@@ -292,15 +292,23 @@ export const App: React.FC = () => {
     setProfile(loadUserProfile());
   };
 
-  // Nạp lại demo data
+  // Dữ liệu mẫu thay toàn bộ buổi học/lỗi sai (bản cũ bị đánh dấu xóa và đồng bộ đi),
+  // nên chỉ cho nạp khi máy chưa có dữ liệu cá nhân và đang ở chế độ khách.
+  const canLoadDemo = useMemo(
+    () => !getActiveAccountId() && !hasPersonalData(readDataBundle()),
+    // Đánh giá lại khi dữ liệu hoặc hộp Cài đặt thay đổi
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sessions, mistakes, vocabLog, profile, dataVersion, isSettingsModalOpen]
+  );
+
+  // Hộp Cài đặt đã hỏi xác nhận trước khi gọi
   const handleLoadDemo = () => {
-    if (confirm('Nạp lại dữ liệu mẫu Demo? (Dữ liệu sẽ được cập nhật bộ đề mẫu)')) {
-      const demo = loadDemoData();
-      setProfile(loadUserProfile());
-      setSessions(demo.sessions);
-      setMistakes(demo.mistakes);
-      setVocabLog(loadVocabLog());
-    }
+    if (!canLoadDemo) return;
+    const demo = loadDemoData();
+    setProfile(loadUserProfile());
+    setSessions(demo.sessions);
+    setMistakes(demo.mistakes);
+    setVocabLog(loadVocabLog());
   };
 
   // Xóa trắng
@@ -494,7 +502,7 @@ export const App: React.FC = () => {
         profile={profile}
         onSaveProfile={handleSaveProfile}
         onResetData={handleResetData}
-        onLoadDemo={handleLoadDemo}
+        onLoadDemo={canLoadDemo ? handleLoadDemo : undefined}
         onImportSuccess={handleImportSuccess}
         accountPanel={<AccountPanel available={account.available} status={account.status} email={account.email} error={account.error}
           onGoogle={account.signInGoogle} onSendOtp={account.sendOtp} onVerifyOtp={account.verifyOtp}
