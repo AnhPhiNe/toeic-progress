@@ -595,6 +595,28 @@ class OpenAIDraftOutput(DraftCore):
 class OpenAIPasteOutput(OpenAIDraftOutput):
     inputIssue: Literal["", "MULTIPLE_QUESTIONS", "MISSING_QUESTION", "MISSING_OPTIONS"]
 
+    @classmethod
+    def ai_schema(cls) -> dict:
+        schema = super().ai_schema()
+        # The generation contract constrains output formatting; users can
+        # still paste any supported source label style in rawText.
+        schema["properties"]["options"]["items"]["pattern"] = r"^\([A-D]\) .+"
+        return schema
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_extracted_option_labels(cls, value):
+        if not isinstance(value, dict) or not isinstance(value.get("options"), list):
+            return value
+        options = []
+        for option in value["options"]:
+            match = re.match(r"^\s*(?:\(([A-D])\)|([A-D])[.):\-])\s*(\S.*)$", option,
+                             re.IGNORECASE | re.DOTALL) if isinstance(option, str) else None
+            # Change only an explicit label's punctuation/case. Never assign
+            # letters by array position or alter the answer text.
+            options.append(f"({(match[1] or match[2]).upper()}) {match[3].strip()}" if match else option)
+        return {**value, "options": options}
+
     @model_validator(mode="before")
     @classmethod
     def issue_without_a_question(cls, value):

@@ -44,6 +44,23 @@ def test_raw_paste_reaches_one_provider_call_and_source_labels_are_kept_instead_
     props = payload["text"]["format"]["schema"]["properties"]
     assert props["part"]["enum"] == [7] and "enum" not in props["question"] and "enum" not in props["correctAnswer"]
     assert "inputIssue" in props
+    assert props["options"]["items"]["pattern"] == r"^\([A-D]\) .+"
+
+
+@pytest.mark.parametrize("format", ["{label}. {text}", "{label}) {text}", "{label}: {text}", "{label}- {text}", "({label}) {text}"])
+def test_freeform_output_normalizes_explicit_label_format_without_changing_source_text(format):
+    extracted = [format.format(label=option[1].lower(), text=option[4:]) for option in OPTIONS]
+    result, calls = run(source(), output(options=extracted), images=[image_url()], persistent_images=True)
+    assert len(calls) == 1 and not isinstance(result, HTTPException)
+    assert result.options == OPTIONS and result.correctAnswer == OPTIONS[2]
+
+
+def test_output_without_labels_is_not_guessed_and_explicit_label_swaps_remain_rejected():
+    for options in ([option[4:] for option in OPTIONS],
+                    ["A. Planning.", "B. Writing.", "C. Data Basics.", "D. Leadership."],
+                    ["A. Invented content.", *OPTIONS[1:]]):
+        result, calls = run(source(), output(options=options))
+        assert len(calls) == 1 and result.status_code == 502
 
 
 @pytest.mark.parametrize("issue, message", [("MULTIPLE_QUESTIONS", "nhiều câu"),

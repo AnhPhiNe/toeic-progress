@@ -29,7 +29,7 @@ def ground_pasted_draft(source: dict, draft: MistakeDraft, *, image_source: bool
         if not content or not re.search(r"(?<!\w)" + re.escape(content) + r"(?!\w)", fields[0]):
             raise ValueError("AI option is not a verbatim pasted span")
         label = option[1]
-        label_pattern = r"(?:^|\s)(?:\(" + label + r"\)|" + label + r"[.):])\s*"
+        label_pattern = r"(?:^|\s)(?:\(" + label + r"\)|" + label + r"[.):\-])\s*"
         if re.search(label_pattern, fields[0]) and not re.search(label_pattern + re.escape(content) + r"(?!\w)", fields[0]):
             raise ValueError("AI changed a source option label")
     if not image_source and draft.context:
