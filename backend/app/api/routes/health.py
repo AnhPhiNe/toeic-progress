@@ -3,6 +3,8 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from app.core.runtime import client_address, header_value
+
 router = APIRouter()
 
 
@@ -21,6 +23,24 @@ async def health(request: Request):
         "part1_picture_input": True,
         "learner_error_category": True,
         "persistent_source_images": settings.source_images_enabled,
+    }
+
+
+@router.get("/debug/client-ip", include_in_schema=False)
+async def debug_client_ip(request: Request):
+    """Operator check for CLIENT_IP_HEADER: compare with your public IP, then retry with forged headers."""
+    settings = request.app.state.settings
+    if not settings.client_ip_debug:
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    scope = request.scope
+    return {
+        "socket": (scope.get("client") or ("unknown", 0))[0],
+        "configured_header": settings.client_ip_header or None,
+        "configured_header_value": header_value(scope, settings.client_ip_header) if settings.client_ip_header else None,
+        "cf_connecting_ip": header_value(scope, "cf-connecting-ip"),
+        "true_client_ip": header_value(scope, "true-client-ip"),
+        "x_forwarded_for": header_value(scope, "x-forwarded-for"),
+        "used_for_limits": client_address(scope, settings),
     }
 
 

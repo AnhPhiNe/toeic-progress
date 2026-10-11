@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import math
@@ -30,6 +31,32 @@ ROUTES = {
     "/api/v1/mistake-images/urls": "sync",
     "/api/v1/mistake-images/cleanup": "destructive",
 }
+
+
+def header_value(scope, name: str) -> str | None:
+    wanted = name.lower().encode("latin-1")
+    for key, value in scope.get("headers") or []:
+        if key.lower() == wanted:
+            return value.decode("latin-1").strip()
+    return None
+
+
+def client_address(scope, settings: Settings) -> str:
+    """Client IP for per-IP limits.
+
+    Only the configured edge header is trusted, and only when it holds exactly one valid IP;
+    otherwise the socket peer is used. X-Forwarded-For is never read because the hosting
+    proxy appends to a client-supplied value instead of replacing it.
+    """
+    socket_ip = (scope.get("client") or ("unknown", 0))[0]
+    if settings.client_ip_header:
+        candidate = header_value(scope, settings.client_ip_header)
+        if candidate:
+            try:
+                return str(ipaddress.ip_address(candidate))
+            except ValueError:
+                pass
+    return socket_ip
 
 
 def configure_logging():
@@ -120,7 +147,7 @@ class RuntimeMiddleware:
                 # Drop expired windows before admitting new addresses; bound memory under IP churn.
                 while self.ip_windows and next(iter(self.ip_windows.values()))[0] <= now:
                     self.ip_windows.popitem(last=False)
-                address = (scope.get("client") or ("unknown", 0))[0]
+                address = client_address(scope, self.settings)
                 current = self.ip_windows.get(address)
                 if current is None:
                     if len(self.ip_windows) >= 4096:

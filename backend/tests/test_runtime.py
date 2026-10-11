@@ -2,10 +2,11 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.core.middleware import BodyLimitMiddleware
-from app.core.runtime import RuntimeMiddleware
+from app.core.runtime import RuntimeMiddleware, client_address
 from app.main import create_app
 
 
@@ -136,3 +137,56 @@ def test_slow_body_is_rejected_before_application():
         assert messages[0]["status"] == 408
 
     asyncio.run(run())
+
+
+def _with_header(name, value):
+    request = scope()
+    request["client"] = ("10.0.0.1", 0)  # the hosting proxy
+    request["headers"] = [(name.encode(), value.encode())]
+    return request
+
+
+def test_client_address_ignores_forwarded_headers_unless_configured():
+    settings = Settings(_env_file=None)
+    assert client_address(_with_header("cf-connecting-ip", "203.0.113.7"), settings) == "10.0.0.1"
+    assert client_address(_with_header("x-forwarded-for", "203.0.113.7"), settings) == "10.0.0.1"
+
+
+def test_client_address_uses_only_a_valid_configured_edge_header():
+    settings = Settings(_env_file=None, client_ip_header="cf-connecting-ip")
+    assert client_address(_with_header("CF-Connecting-IP", "203.0.113.7"), settings) == "203.0.113.7"
+    assert client_address(_with_header("cf-connecting-ip", "203.0.113.7, 198.51.100.1"), settings) == "10.0.0.1"
+    assert client_address(_with_header("cf-connecting-ip", "not-an-ip"), settings) == "10.0.0.1"
+    assert client_address(_with_header("x-forwarded-for", "203.0.113.7"), settings) == "10.0.0.1"
+
+
+def test_users_behind_one_proxy_get_separate_ingress_windows():
+    async def run():
+        statuses = []
+
+        async def app(_scope, _receive, send):
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"{}"})
+
+        async def receive():
+            return {"type": "http.request", "body": b""}
+
+        async def send(message):
+            if message["type"] == "http.response.start":
+                statuses.append(message["status"])
+
+        middleware = RuntimeMiddleware(app, Settings(_env_file=None, ingress_ip_minute_limit=1, client_ip_header="cf-connecting-ip"))
+        await middleware(_with_header("cf-connecting-ip", "203.0.113.7"), receive, send)
+        await middleware(_with_header("cf-connecting-ip", "198.51.100.1"), receive, send)
+        await middleware(_with_header("cf-connecting-ip", "203.0.113.7"), receive, send)
+        assert statuses == [200, 200, 429]
+
+    asyncio.run(run())
+
+
+def test_client_ip_debug_route_is_off_by_default():
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        assert client.get("/debug/client-ip").status_code == 404
+    with TestClient(create_app(Settings(_env_file=None, client_ip_debug=True, client_ip_header="cf-connecting-ip"))) as client:
+        body = client.get("/debug/client-ip", headers={"CF-Connecting-IP": "203.0.113.7"}).json()
+        assert body["used_for_limits"] == "203.0.113.7" and body["configured_header"] == "cf-connecting-ip"

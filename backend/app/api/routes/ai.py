@@ -3,6 +3,7 @@ import hashlib
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import identity
+from app.core.runtime import client_address
 from app.schemas.models import ExtractRequest
 
 router = APIRouter()
@@ -57,7 +58,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
             "p_guest": user["is_anonymous"],
             "p_request_id": str(body.request_id),
             "p_input_hash": input_hash.hexdigest(),
-            "p_ip_hash": gateway.ip_hash(request.client.host if request.client else "unknown"),
+            "p_ip_hash": gateway.ip_hash(client_address(request.scope, settings)),
             # These RPC parameters are service-role only. NULL leaves the
             # corresponding cap unset while still recording usage/idempotency.
             "p_user_limit": access.limit,
@@ -71,7 +72,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
         if duplicate:
             raise HTTPException(409, "Yêu cầu này đã được tiếp nhận trước đó. Kiểm tra bản nháp đã có trước khi gửi lại.")
         explanation = await gateway.explain_ai_limit(
-            user["id"], user["is_anonymous"], gateway.ip_hash(request.client.host if request.client else "unknown"),
+            user["id"], user["is_anonymous"], gateway.ip_hash(client_address(request.scope, settings)),
             access.limit,
         )
         detail, delay = explanation or (

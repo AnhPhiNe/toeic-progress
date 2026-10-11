@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     allowed_hosts: list[str] = []
     render_external_hostname: str = ""
     ingress_ip_minute_limit: int = Field(default=120, ge=1, le=10000)
+    # Behind a hosting proxy every request arrives from the proxy's address, so per-IP limits
+    # would be shared by all users. Name a header the edge overwrites (e.g. cf-connecting-ip)
+    # only after verifying on staging that clients cannot set it; empty uses the socket address.
+    client_ip_header: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9-]*$")
+    # Temporarily exposes /debug/client-ip so the operator can verify the header above.
+    client_ip_debug: bool = False
     max_concurrent_requests: int = Field(default=8, ge=1, le=128)
     body_timeout_seconds: float = Field(default=10, ge=1, le=30)
     api_account_minute_limit: int = Field(default=60, ge=1, le=10000)

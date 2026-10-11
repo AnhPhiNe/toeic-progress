@@ -86,6 +86,12 @@ Log JSON có mã request, route cố định, status, thời gian, loại except
 
 Chỉ tin proxy của hosting. Không đọc tùy ý `X-Forwarded-For`; không đặt `FORWARDED_ALLOW_IPS=*` khi request có thể tới trực tiếp hoặc headers chưa được proxy lọc. Xác minh IP đúng trên staging trước khi dựa vào hạn mức IP.
 
+**IP người dùng sau proxy Render.** Mặc định backend dùng địa chỉ kết nối; trên Render đó là proxy, nên mọi người dùng chung một hạn mức IP (120 request/phút, `AI_IP_DAILY_LIMIT` lượt AI/ngày). Render chỉ nối thêm vào `X-Forwarded-For` mà không xóa giá trị client gửi, nên backend không bao giờ đọc header này. Cách bật đúng IP:
+
+1. Trên staging đặt `CLIENT_IP_DEBUG=true`, mở `https://<api>/debug/client-ip` và so `cf_connecting_ip`/`true_client_ip` với IP công khai của bạn.
+2. Gửi lại với header giả: `curl -H "CF-Connecting-IP: 1.2.3.4" -H "True-Client-IP: 1.2.3.4" https://<api>/debug/client-ip`. Chỉ chọn header vẫn hiện IP thật (edge đã ghi đè giá trị giả).
+3. Đặt `CLIENT_IP_HEADER=<tên header đó>`, kiểm tra `used_for_limits`, rồi tắt `CLIENT_IP_DEBUG`. Header thiếu hoặc không phải một IP hợp lệ thì backend tự quay về địa chỉ kết nối.
+
 Bật thông báo deploy/health lỗi trên Render và theo dõi 5xx/429/thời gian phản hồi. Tích hợp cảnh báo ngoài ứng dụng cần cấu hình tài khoản hosting; log trong code không tự gửi thông báo.
 
 ## 7. Backup, bảo trì và rollback
