@@ -22,6 +22,11 @@ const FOCUSABLE_SELECTOR = [
 export function useModalA11y(isOpen: boolean, onClose: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  // onClose often changes while the modal is open (e.g. it depends on unsaved input).
+  // Reading it through a ref keeps the focus setup below from re-running mid-typing,
+  // which used to move focus to the first button and drop the next keystroke.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,7 +50,7 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
         // The first Escape dismisses a combobox's popup; the next closes the modal.
         if (e.target instanceof Element && e.target.closest('[role="combobox"][aria-expanded="true"]')) return;
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -85,7 +90,7 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
       document.body.style.overflow = previousOverflow;
       previouslyFocused.current?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return containerRef;
 }
