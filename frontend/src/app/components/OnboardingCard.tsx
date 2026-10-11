@@ -31,7 +31,7 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
       onClick={e => {
         if (e.target === e.currentTarget) onDismiss();
       }}
@@ -53,7 +53,7 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
 
         {/* Tiêu đề & Lời chào */}
         <div className="flex items-start gap-4 pr-8">
-          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/25">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0">
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
@@ -117,7 +117,7 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
             <button
               type="button"
               onClick={handleGoalClick}
-              className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              className="whitespace-nowrap px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Target className="w-4 h-4 text-amber-500" />
               Đặt mục tiêu
@@ -126,7 +126,7 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
             <button
               type="button"
               onClick={handleRecordClick}
-              className="px-4 py-2.5 rounded-xl btn-linear-primary text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+              className="whitespace-nowrap px-4 py-2.5 rounded-xl btn-linear-primary text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
               Ghi buổi đầu
               <ArrowRight className="w-4 h-4" />
@@ -136,7 +136,7 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
           <button
             type="button"
             onClick={onDismiss}
-            className="px-3 py-2 text-xs font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition text-center cursor-pointer"
+            className="whitespace-nowrap px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition text-center cursor-pointer"
           >
             Khám phá Dashboard ngay
           </button>
