@@ -49,44 +49,52 @@ export const Topbar: React.FC<TopbarProps> = ({
     return diff >= 0 ? diff : null;
   }, [profile.examDate]);
 
-  const tabConfig: Record<NavTabId, { title: string; category: string; icon: React.ElementType }> = {
+  const tabConfig: Record<NavTabId, { title: string; short: string; category: string; icon: React.ElementType }> = {
     dashboard: {
       title: 'Tổng Quan',
+      short: 'Tổng quan',
       category: 'Hành trình',
       icon: LayoutDashboard
     },
     plan: {
       title: 'Kế Hoạch Ôn Thi',
+      short: 'Kế hoạch',
       category: 'Hành trình',
       icon: Target
     },
     'exam-mode': {
       title: 'Đồng Hồ Phòng Thi',
+      short: 'Đồng hồ',
       category: 'Hành trình',
       icon: Timer
     },
     history: {
       title: 'Lịch Sử Đề Thi',
+      short: 'Lịch sử',
       category: 'Đo lường & Chẩn đoán',
       icon: History
     },
     analytics: {
       title: 'Phân Tích Điểm Số',
+      short: 'Phân tích',
       category: 'Đo lường & Chẩn đoán',
       icon: TrendingUp
     },
     mistakes: {
       title: 'Sổ Tay Bẫy Sai',
+      short: 'Sổ tay',
       category: 'Đo lường & Chẩn đoán',
       icon: BookOpen
     },
     vocabulary: {
       title: 'Vốn Từ Vựng',
+      short: 'Từ vựng',
       category: 'Đo lường & Chẩn đoán',
       icon: BookMarked
     },
     resources: {
       title: 'Quy Đổi Điểm Số',
+      short: 'Quy đổi',
       category: 'Đo lường & Chẩn đoán',
       icon: Calculator
     }
@@ -100,7 +108,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   return (
     <header className="sticky top-0 z-20 w-full bg-white dark:bg-[#0B132B] border-b-2 border-slate-900 dark:border-slate-700 transition-colors">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-3 xl:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 sm:gap-x-3">
           
           {/* 1. Left: Mobile menu toggle & Single-line Clean Page Title */}
           <div className="flex min-h-14 items-center space-x-2.5 sm:min-h-15 sm:space-x-3 min-w-0">
@@ -113,14 +121,16 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
 
             <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hidden sm:flex items-center justify-center shrink-0">
                 <TabIcon className="w-4 h-4 stroke-[2.5]" />
               </div>
-              <div className="flex items-center space-x-1.5 min-w-0 text-sm">
-                <span className="text-slate-500 dark:text-slate-400 font-bold hidden sm:inline">{currentTab.category}</span>
-                <span className="text-slate-400 dark:text-slate-600 font-bold hidden sm:inline">/</span>
+              {/* Một dòng: nhóm chỉ hiện khi đủ rộng, tên trang co lại thay vì xuống dòng */}
+              <div className="flex items-center space-x-1.5 min-w-0 text-sm whitespace-nowrap">
+                <span className="text-slate-500 dark:text-slate-400 font-bold hidden xl:inline">{currentTab.category}</span>
+                <span className="text-slate-400 dark:text-slate-600 font-bold hidden xl:inline">/</span>
                 <span className="font-black text-slate-950 dark:text-white truncate tracking-tight">
-                  {currentTab.title}
+                  <span className="sm:hidden">{currentTab.short}</span>
+                  <span className="hidden sm:inline">{currentTab.title}</span>
                 </span>
               </div>
             </div>
@@ -165,7 +175,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             {/* Theme Toggle Button: Neo-Brutalist Box */}
             <button
               onClick={toggleTheme}
-              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-200 text-slate-900 dark:text-slate-100 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              className="w-9 h-9 rounded-xl hidden md:flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-200 text-slate-900 dark:text-slate-100 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
               title={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
               aria-label={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
             >
@@ -177,7 +187,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           </div>
 
-          {syncIndicator && <div className="col-span-2 flex min-h-8 items-center justify-end pb-1 xl:col-span-1 xl:pb-0">{syncIndicator}</div>}
+          {syncIndicator && <div className="flex min-h-8 items-center justify-end">{syncIndicator}</div>}
         </div>
       </div>
     </header>

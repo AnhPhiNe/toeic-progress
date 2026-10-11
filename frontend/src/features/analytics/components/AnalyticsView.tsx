@@ -144,7 +144,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
       </div>
     </div>
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-slate-900 bg-amber-50 p-4 shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-amber-950/25 dark:shadow-[3px_3px_0px_#cbd5e1]">
-      <div className="min-w-0 flex-1"><h3 className="text-base font-black text-slate-950 dark:text-white">Ưu tiên luyện tiếp</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{priority}</p></div>
+      <div className="min-w-[min(100%,16rem)] flex-1"><h3 className="text-base font-black text-slate-950 dark:text-white">Ưu tiên luyện tiếp</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{priority}</p></div>
       <div className="flex flex-wrap gap-3">
         {onNavigateToTimer && data.weakest && <button type="button" className={actionClass} onClick={() => onNavigateToTimer(Number(data.weakest!.key.slice(4)) < 5 ? 'POMODORO' : `PART_${data.weakest!.key.slice(4)}` as ReadingPartType)}><Timer className="h-4 w-4" aria-hidden="true" />{Number(data.weakest.key.slice(4)) < 5 ? 'Phiên tập trung' : `Bấm giờ ${data.weakest.code}`}</button>}
         {onNavigateToMistakes && <button type="button" className={`${actionClass} bg-blue-600 text-white hover:bg-blue-700`} onClick={() => onNavigateToMistakes(data.notebookSources)}>Mở Sổ tay của đề<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}

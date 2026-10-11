@@ -274,16 +274,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
             
             {/* THẺ 1: HUY HIỆU CẤP BẬC & KỶ LỤC CÁ NHÂN */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn Kỷ Lục Gọn bên trái, % Đích bên phải */}
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <span
-                  className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-950/20 bg-amber-300 text-slate-950 shadow-2xs cursor-default"
+                  className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-950/20 bg-amber-300 text-slate-950 shadow-2xs cursor-default"
                   title={`${toeicTier.tier} (${toeicTier.rank})`}
                 >
                   KỶ LỤC 🏆
                 </span>
-                <span className="text-[10px] sm:text-[10.5px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md border border-amber-300/40">
+                <span className="text-[10px] sm:text-[10.5px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-amber-300/40">
                   {pointsRemaining === 0 && (highestScore || 0) > 0
                     ? 'Đạt đích 🎯'
                     : pointsRemaining > 0
@@ -319,14 +319,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* THẺ 2: ĐIỂM TRUNG BÌNH (TRÁNH LẶP LẠI VỚI BÀI GẦN NHẤT) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Trung bình Badge bên trái, Tổng số đề bên phải */}
-              <div className="flex items-center justify-between gap-1.5">
-                <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
+                <span className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
                   TRUNG BÌNH 📊
                 </span>
                 <span
-                  className="text-[10px] sm:text-[10.5px] font-black text-blue-700 dark:text-blue-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md border border-sky-300/40"
+                  className="text-[10px] sm:text-[10.5px] font-black text-blue-700 dark:text-blue-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-sky-300/40"
                   title="Tổng số bài thi đã hoàn thành"
                 >
                   {stats ? `${stats.totalTests} Đề Thi` : '0 Đề'}
@@ -360,10 +360,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* THẺ 3: XUNG LỰC PHONG ĐỘ & ĐÀ TIẾN BỘ (CHUYỂN MÀU ĐỘNG THEO DIFF) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn đổi màu theo số dương (xanh lá) / số âm (hồng) bên trái, Trạng thái bên phải */}
-              <div className="flex items-center justify-between gap-1.5">
-                <span className={`px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
+              <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
+                <span className={`px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
                   !hasDiff
                     ? 'bg-slate-200 text-slate-800 border-slate-900/20'
                     : diff > 0
@@ -374,7 +374,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 }`}>
                   SO VỚI BÀI ĐẦU
                 </span>
-                <span className={`text-[10px] sm:text-[10.5px] font-black px-1.5 py-0.5 rounded-md border ${
+                <span className={`text-[10px] sm:text-[10.5px] font-black px-1.5 py-0.5 rounded-md whitespace-nowrap border ${
                   !hasDiff
                     ? 'text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
                     : diff > 0
@@ -604,16 +604,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
           {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT (CHUẨN NEO-BRUTALISM) */}
-          <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
+          <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
             {/* Header: Đuốc kem bơ tĩnh + Title sắc nét + Streak Badge */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-slate-900 flex items-center justify-center text-base shrink-0 select-none">
                   <span className="text-base sm:text-lg leading-none select-none">
                     {profile.currentStreak > 0 ? '🔥' : '🕯️'}
                   </span>
                 </span>
-                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">
+                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
                   Chuỗi Ngày Học
                 </h2>
               </div>
@@ -706,15 +706,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* 6. BÀI THI GẦN NHẤT - Phong cách Neo-Clean Hierarchy (Chuẩn UI/UX) */}
-          <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
+          <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
             {/* Header: Sét Neo + Tiêu đề + Chip Tổng điểm Neo */}
-            <div className="flex items-center justify-between pb-2.5 border-b-2 border-slate-900 dark:border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b-2 border-slate-900 dark:border-slate-700">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="w-8 h-8 rounded-xl bg-amber-300 text-slate-950 border-2 border-slate-900 flex items-center justify-center text-sm shrink-0 select-none">
                   ⚡
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none truncate">
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none whitespace-nowrap">
                     Bài Thi Gần Nhất
                   </h2>
                   {latestTest && (
@@ -742,7 +742,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {hasSkillScores && <>
             {/* LISTENING BOX: Viền đen 2px, Nền pastel Indigo, không đổ bóng lặp lại */}
             <div className="p-3 sm:p-3.5 xl:p-4 flex flex-col rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600 text-white border border-slate-900 flex items-center justify-center text-xs font-black shrink-0 select-none">
                     🎧
@@ -751,7 +751,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     Listening
                   </span>
                   {/* Badge số câu: Nền trắng, viền đen sắc nét */}
-                  {latestTest?.rawListening !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
+                  {latestTest?.rawListening !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md whitespace-nowrap bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
                     {latestTest.rawListening}/100 câu
                   </span>}
                 </div>
@@ -775,7 +775,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* READING BOX: Viền đen 2px, Nền pastel Mint, không đổ bóng lặp lại */}
             <div className="p-3 sm:p-3.5 xl:p-4 flex flex-col rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-teal-600 text-white border border-slate-900 flex items-center justify-center text-xs font-black shrink-0 select-none">
                     📖
@@ -784,7 +784,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     Reading
                   </span>
                   {/* Badge số câu: Nền trắng, viền đen sắc nét */}
-                  {latestTest?.rawReading !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-teal-950 dark:text-teal-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
+                  {latestTest?.rawReading !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md whitespace-nowrap bg-white dark:bg-slate-800 text-teal-950 dark:text-teal-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
                     {latestTest.rawReading}/100 câu
                   </span>}
                 </div>

@@ -26,14 +26,18 @@ export function AccountSyncIndicator({ available, status, onOpenSettings, onRetr
     try { await onRetry(); } finally { setRetrying(false); }
   };
 
-  return <div className={`flex flex-wrap items-center gap-2 text-xs ${color}`}>
+  // Trên màn hẹp chỉ còn icon trong cùng hàng với thanh trên; chữ hiện khi đủ rộng.
+  return <div className={`flex items-center gap-2 whitespace-nowrap text-xs ${color}`}>
     <div role="status" aria-label="Trạng thái đồng bộ" aria-live="polite" aria-atomic="true">
       <button type="button" onClick={onOpenSettings} aria-label={`Tài khoản và đồng bộ: ${label}`}
-        title="Mở cài đặt tài khoản và đồng bộ" className="inline-flex min-h-8 items-center gap-1.5 rounded-md px-1 font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-blue-500">
-        <Icon className={`h-3.5 w-3.5 ${waiting ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden="true" />{label}
+        title={label} className="inline-flex min-h-8 min-w-8 items-center justify-center gap-1.5 rounded-md px-1 font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-blue-500">
+        <Icon className={`h-4 w-4 xl:h-3.5 xl:w-3.5 ${waiting ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden="true" />
+        <span className="hidden xl:inline">{label}</span>
       </button>
     </div>
     {failed && <button type="button" onClick={() => void retry()} disabled={retrying}
-      className="min-h-8 rounded-md px-1 font-bold underline disabled:cursor-wait disabled:opacity-50">{retrying ? 'Đang thử lại…' : 'Thử đồng bộ lại'}</button>}
+      className="min-h-8 rounded-md px-1 font-bold underline disabled:cursor-wait disabled:opacity-50">
+      {retrying ? 'Đang thử…' : <><span className="xl:hidden">Thử lại</span><span className="hidden xl:inline">Thử đồng bộ lại</span></>}
+    </button>}
   </div>;
 }

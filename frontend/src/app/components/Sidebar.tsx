@@ -5,9 +5,11 @@ import {
   Calculator,
   History,
   LayoutDashboard,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  Sun,
   Target,
   Timer,
   TrendingUp,
@@ -50,6 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   profile,
   pendingMistakesCount,
+  theme,
+  toggleTheme,
   onOpenSettings,
   isMobileOpen = false,
   onCloseMobile
@@ -66,6 +70,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     if (isMobileOpen && !isMobileViewport) closeMobile();
   }, [isMobileOpen, isMobileViewport, closeMobile]);
+  // Tablet (768–1023px): thanh bên đầy đủ chiếm 1/3 màn hình, nên luôn thu gọn thành cột icon.
+  const tabletQuery = '(min-width: 768px) and (max-width: 1023px)';
+  const [isTabletViewport, setIsTabletViewport] = useState(() => window.matchMedia(tabletQuery).matches);
+  useEffect(() => {
+    const query = window.matchMedia(tabletQuery);
+    const onChange = () => setIsTabletViewport(query.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       return localStorage.getItem('toeic_sidebar_collapsed') === 'true';
@@ -166,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <X size={16} aria-hidden="true" />
             </button>
-          ) : (
+          ) : isTabletViewport ? null : (
             <button
               type="button"
               onClick={toggleCollapse}
@@ -235,6 +248,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className={'shrink-0 border-t-2 border-slate-900 dark:border-slate-700 pt-3 ' + (compact ? 'mt-4' : 'mt-5')}>
+        {/* Trên điện thoại nút sáng/tối nằm trong menu để thanh trên đủ chỗ cho tên trang */}
+        {mobile && toggleTheme && (
+          <button type="button" onClick={toggleTheme}
+            className="mb-2 flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-left text-[13px] font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer">
+            {theme === 'dark' ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}
+            {theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => openSettings(mobile)}
@@ -256,8 +277,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return <>
-    <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 border-r-2 border-slate-900 bg-white p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100 md:block ' + (isCollapsed ? 'w-[72px]' : 'w-[264px]')}>
-      {renderContent(false, isCollapsed)}
+    <aside className={'sticky top-0 z-30 hidden h-screen shrink-0 border-r-2 border-slate-900 bg-white p-3.5 text-slate-800 transition-[width] duration-200 motion-reduce:transition-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100 md:block ' + (isCollapsed || isTabletViewport ? 'w-[72px]' : 'w-[264px]')}>
+      {renderContent(false, isCollapsed || isTabletViewport)}
     </aside>
     {isMobileOpen && isMobileViewport && (
       <div className="fixed inset-0 z-50 flex md:hidden">
