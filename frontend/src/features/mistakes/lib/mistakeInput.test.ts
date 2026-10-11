@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { parsePastedQuestion, learnerMistake } from './mistakeInput';
+import { parsePastedQuestion, learnerMistake, PART1_QUESTION } from './mistakeInput';
 
 const question = 'The latest ____ of decorations in stock indicates adequate preparation.';
 describe('pasted single question', () => {
+  it('Part 1 accepts four spoken descriptions without inventing a written stem', () => {
+    for (const text of ['(A) A man is seated.\n(B) A man is walking.\n(C) A car is parked.\n(D) A door is closed.',
+      'A man is seated.\nA man is walking.\nA car is parked.\nA door is closed.']) {
+      const value = parsePastedQuestion(text, 1);
+      expect(value.error).toBe(''); expect(value.question).toBe(PART1_QUESTION); expect(value.options).toHaveLength(4);
+    }
+    expect(parsePastedQuestion('(A) First.\n(B) Second.\n(C) Third.', 1).error).not.toBe('');
+  });
   it.each(['(A) proposal (B) inventory (C) consideration (D) commitment',
     'A. proposal\nB. inventory\nC. consideration\nD. commitment',
     'A) proposal\nB) inventory\nC) consideration\nD) commitment',

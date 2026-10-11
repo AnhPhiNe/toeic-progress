@@ -7,6 +7,8 @@ import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { reviewStatus, type ReviewStatusKind } from '@/features/mistakes/lib/review';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
+import { QuestionContext } from '@/features/mistakes/components/QuestionContext';
+import { readQuestion } from '@/features/mistakes/lib/questionText';
 
 const STATUS_STYLE: Record<ReviewStatusKind, { text: string; dot?: string }> = {
   overdue: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' },
@@ -22,31 +24,27 @@ export const PartBadge: React.FC<{ part: number }> = ({ part }) => (
   }`}>P{part}</span>
 );
 
-/** First line is the question; any following lines (Part 7 excerpts, Part 6 context) are shown when expanded. */
-export function splitQuestion(questionContext: string): { question: string; context: string } {
-  const [question, ...rest] = questionContext.trim().split(/\r?\n/);
-  return { question: question.trim(), context: rest.join('\n').trim() };
-}
-
 interface MistakeCardProps {
   mistake: MistakeEntry;
   expanded: boolean;
   onToggle: () => void;
   onReview: () => void;
   onEdit: () => void;
+  onReuseReading?: () => void;
   onDelete: () => void;
   onMarkMastered: () => void;
   onReopen: () => void;
 }
 
 export const MistakeCard: React.FC<MistakeCardProps> = ({
-  mistake, expanded, onToggle, onReview, onEdit, onDelete, onMarkMastered, onReopen
+  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const status = reviewStatus(mistake);
   const style = STATUS_STYLE[status.kind];
-  const { question, context } = splitQuestion(mistake.questionContext);
+  const { question: stem, context } = readQuestion(mistake);
+  const question = stem || 'Chưa trích được câu hỏi';
   const quiz = resolveQuizOptions(mistake);
   const correctLabel = mistake.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : mistake.answerProvidedBy === 'LEARNER' ? 'Đáp án đã nhập' : 'Đáp án từ đề';
 
@@ -99,6 +97,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             <div role="menu" className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border-2 border-slate-900 bg-white py-1 shadow-[3px_3px_0px_#0f172a] dark:border-slate-600 dark:bg-[#121A2B]">
               {menuItem('Ôn câu này', onReview, false, !canReview(mistake))}
               {menuItem('Sửa', onEdit)}
+              {onReuseReading && menuItem('Thêm câu cùng bài đọc', onReuseReading)}
               {mistake.status === 'MASTERED' ? menuItem('Ôn lại từ đầu', onReopen) : menuItem('Đánh dấu đã thuộc', onMarkMastered, false, !canReview(mistake))}
               {menuItem('Xóa', onDelete, true)}
             </div>
@@ -107,16 +106,15 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
       </div>
 
       {expanded && (
-        <div className="space-y-3.5 px-3.5 pb-5 sm:pl-[60px] sm:pr-6">
-          {context && (
-            <p className="whitespace-pre-line border-l-[3px] border-slate-300 pl-3 text-sm leading-relaxed text-slate-600 dark:border-slate-600 dark:text-slate-300">{context}</p>
-          )}
+        <div className="space-y-3 px-3.5 pb-4 sm:pl-[60px] sm:pr-6">
+          <QuestionContext context={context} part={mistake.part} />
           {quiz.options.length > 0 ? (
-            <OptionList options={quiz.options} chosen={getUserChoice(mistake)} correctLabel={correctLabel} />
+            <OptionList options={quiz.options} chosen={getUserChoice(mistake)} correctLabel={correctLabel} showMeanings={mistake.part !== 7} />
           ) : mistake.correctAnswer && (
             <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">{correctLabel}:</span> {mistake.correctAnswer}</p>
           )}
           <ExplanationView
+            optionMeanings={mistake.part === 7 ? quiz.options : undefined}
             explanation={mistake.explanation}
             trapTip={mistake.trapTip}
             extra={[

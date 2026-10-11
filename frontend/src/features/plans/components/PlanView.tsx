@@ -759,10 +759,10 @@ export const PlanView: React.FC<PlanViewProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                Tiến Độ Tuần Này
+                Mục tiêu đã hoàn thành
               </span>
               <span className="text-xs font-black tabular-nums text-indigo-600 dark:text-indigo-400">
-                {summary.completedTasks}/{summary.totalTasks} Việc ({summary.completionPercent}%)
+                {summary.completedTasks}/{summary.totalTasks} ({summary.completionPercent}%)
               </span>
             </div>
             <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-900 dark:border-slate-700 overflow-hidden mt-1.5 shadow-2xs">
@@ -797,10 +797,10 @@ export const PlanView: React.FC<PlanViewProps> = ({
           </div>
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Chuyên Cần Tuần
+              Đã học
             </div>
             <div className="text-sm sm:text-base font-black tabular-nums text-rose-600 dark:text-rose-400">
-              {summary.daysStudiedThisWeek}/7 ngày
+              {summary.daysStudiedThisWeek} ngày
 
             </div>
           </div>

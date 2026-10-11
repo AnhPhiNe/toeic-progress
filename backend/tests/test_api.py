@@ -1,9 +1,12 @@
+import base64
 import json
 from contextlib import contextmanager
+from io import BytesIO
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from app.core.config import Settings
 from app.main import create_app
@@ -12,7 +15,7 @@ USER_ID = "11111111-1111-4111-8111-111111111111"
 DRAFT = {
     "part": 5,
     "category": "ADVANCED_GRAMMAR",
-    "questionContext": "Reports must be submitted.",
+    "questionContext": "Reports should ____ submitted.",
     "userMistake": "",
     "correctAnswer": "(B) be",
     "trapTip": "Kiểm tra cấu trúc giả định.",
@@ -42,22 +45,22 @@ def api():
         auth_status=200,
         reservation=None,
         captcha_host="localhost",
-        gemini_status=200,
+        provider_status=200,
         draft=None,
-        finish="STOP",
+        finish="completed",
         backend_key="server-secret",
         api_reservation=None,
         readiness_status=200,
         settings_overrides=None,
         auth_user=None,
-        gemini_error=None,
+        provider_error=None,
         auth_statuses=None,
+        quota_counters=None,
+        counters_status=200,
     ):
         calls = []
-        provider_blocked = False
 
         def respond(request):
-            nonlocal provider_blocked
             body = (
                 json.loads(request.content)
                 if request.content and request.headers.get("content-type") == "application/json"
@@ -71,40 +74,27 @@ def api():
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
                 return httpx.Response(200, json=api_reservation or {"allowed": True})
-            if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles", "/rest/v1/ai_provider_state"):
+            if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles"):
                 return httpx.Response(readiness_status, json=[])
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
             if request.url.path.endswith("/get_ai_usage"):
                 return httpx.Response(200, json={"remaining": 3, "limit": 3, "guest": guest})
-            if request.url.path.endswith("/reserve_gemini_attempt"):
-                if provider_blocked:
-                    return httpx.Response(200, json={"allowed": False, "code": "quota", "retry_after": 60})
-                project = body["p_projects"][0]
-                return httpx.Response(200, json={
-                    "allowed": True, "project_id": project["id"], "key_id": project["key_ids"][0],
-                })
-            if request.url.path.endswith("/finish_gemini_attempt"):
-                provider_blocked = provider_blocked or body["p_scope"] == "project"
-                return httpx.Response(200, json=None)
+            if request.url.path == "/rest/v1/ai_usage_counters":
+                buckets = request.url.params["bucket"][4:-1].split(",")
+                return httpx.Response(counters_status, json=[
+                    {"bucket": bucket, "used": count} for bucket in buckets
+                    for prefix, count in (quota_counters or {}).items() if bucket.startswith(prefix)
+                ])
             if request.url.path.endswith("/reset_learning_data"):
                 return httpx.Response(200, json={"cursor": 10, "records": [], "hasRecords": True, "resetBarrier": True})
             if request.url.host == "challenges.cloudflare.com":
                 return httpx.Response(200, json={"success": True, "hostname": captcha_host, "action": "toeic-ai"})
-            if request.url.host == "generativelanguage.googleapis.com":
-                if gemini_error:
-                    raise gemini_error("must not log Gemini key or input", request=request)
-                return httpx.Response(
-                    gemini_status,
-                    json={
-                        "candidates": [
-                            {"finishReason": finish, "content": {"parts": [{"text": json.dumps(draft or DRAFT)}]}}
-                        ]
-                    },
-                )
             if request.url.host == "api.openai.com":
-                return httpx.Response(200, json={
-                    "status": "completed", "output": [{
+                if provider_error:
+                    raise provider_error("must not log API key or input", request=request)
+                return httpx.Response(provider_status, json={
+                    "status": finish, "output": [{
                         "type": "message", "role": "assistant", "status": "completed",
                         "content": [{"type": "output_text", "text": json.dumps(draft or OPENAI_DRAFT)}],
                     }],
@@ -113,16 +103,12 @@ def api():
                 return httpx.Response(200, json={})
             raise AssertionError(f"Unexpected request: {request.url}")
 
-        settings = Settings(
-            _env_file=None,
-            supabase_url="https://database.example",
-            supabase_publishable_key="public-key",
-            supabase_secret_key=backend_key,
-            gemini_api_key="gemini-secret",
-            rate_limit_secret="rate-secret",
-            turnstile_secret_key="captcha-secret",
+        settings = Settings(_env_file=None, **{
+            "supabase_url": "https://database.example", "supabase_publishable_key": "public-key",
+            "supabase_secret_key": backend_key, "openai_api_key": "openai-secret",
+            "rate_limit_secret": "rate-secret", "turnstile_secret_key": "captcha-secret",
             **(settings_overrides or {}),
-        )
+        })
         with TestClient(create_app(settings, httpx.MockTransport(respond))) as client:
             client.headers["Authorization"] = "Bearer user-token"
             yield client, calls
@@ -131,7 +117,7 @@ def api():
 
 
 def extraction(**extra):
-    return {"text": TEXT, "consent": True, "request_id": "22222222-2222-4222-8222-222222222222", **extra}
+    return {"text": TEXT, "consent": True, "provider": "openai", "request_id": "22222222-2222-4222-8222-222222222222", **extra}
 
 
 def test_unconfigured_backend_starts_and_reports_readiness():
@@ -405,6 +391,19 @@ def test_guest_requires_captcha_before_reserving_quota(api):
         assert not any("reserve_ai" in call[1] for call in calls)
 
 
+def test_authenticated_ai_works_without_local_captcha_config_but_guest_never_bypasses_it(api):
+    with api(settings_overrides={"turnstile_secret_key": ""}) as (client, calls):
+        assert client.get('/health').json()['ai_configured'] is True
+        response = client.post('/api/v1/ai/extract', json=extraction())
+        assert response.status_code == 200
+        assert sum(call[0] == 'api.openai.com' for call in calls) == 1
+        assert any(call[1].endswith('reserve_ai_request') for call in calls)
+        assert not any(call[0] == 'challenges.cloudflare.com' for call in calls)
+    with api(guest=True, settings_overrides={"turnstile_secret_key": ""}) as (client, calls):
+        assert client.post('/api/v1/ai/extract', json=extraction(captcha_token='fake-token')).status_code == 403
+        assert not any(call[1].endswith('reserve_ai_request') or call[0] == 'api.openai.com' for call in calls)
+
+
 def test_captcha_from_another_hostname_is_rejected(api):
     with api(guest=True, captcha_host="attacker.example") as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction(captcha_token="token")).status_code == 403
@@ -418,31 +417,57 @@ def test_guest_reserves_quota_before_exactly_one_provider_request(api):
         assert response.json()["usage"]["remaining"] == 2
         assert response.json()["draft"]["correctAnswer"] == "(B) be"
         rpc_index = next(i for i, call in enumerate(calls) if "reserve_ai" in call[1])
-        ai_indices = [i for i, call in enumerate(calls) if call[0] == "generativelanguage.googleapis.com"]
+        ai_indices = [i for i, call in enumerate(calls) if call[0] == "api.openai.com"]
         assert len(ai_indices) == 1 and rpc_index < ai_indices[0]
-        assert calls[ai_indices[0]][3]["x-goog-api-key"] == "gemini-secret"
+        assert calls[ai_indices[0]][3]["authorization"] == "Bearer openai-secret"
         assert calls[rpc_index][2]["p_guest"] is True
         assert len(calls[rpc_index][2]["p_ip_hash"]) == 64
         assert "testclient" not in json.dumps(calls[rpc_index][2])
 
 
 @pytest.mark.parametrize("code,status", [("quota", 429), ("duplicate", 409)])
-def test_rejected_reservation_never_calls_gemini(api, code, status):
+def test_rejected_reservation_never_calls_openai(api, code, status):
     with api(reservation={"allowed": False, "code": code}) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == status
-        assert not any(call[0] == "generativelanguage.googleapis.com" for call in calls)
+        assert not any(call[0] == "api.openai.com" for call in calls)
 
 
-def test_unknown_provider_quota_does_not_rotate_into_the_same_project(api):
-    with api(gemini_status=429) as (client, calls):
+@pytest.mark.parametrize("guest,counters,text,delay", [
+    (False, {"user:": 10}, "10 lượt phân tích AI trong tháng", False),
+    (True, {"user:": 3}, "Phiên khách đã dùng hết 3", False),
+    (False, {"day:": 20}, "Hệ thống đã dùng hết 20", False),
+    (False, {"minute:": 2}, "2 lượt phân tích AI/phút", True),
+    (False, {"ip:": 5}, "Kết nối mạng này đã dùng hết 5", False),
+])
+def test_quota_errors_name_the_actual_app_limit_without_calling_openai(api, guest, counters, text, delay):
+    with api(guest=guest, reservation={"allowed": False, "code": "quota"}, quota_counters=counters) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction(captcha_token="token"))
+        assert response.status_code == 429 and text in response.json()["detail"]
+        assert "AI đang bận" not in response.json()["detail"]
+        assert ("Retry-After" in response.headers) is delay
+        if not guest and not delay:
+            assert "giờ Việt Nam" in response.json()["detail"]
+        assert not any(call[0] == "api.openai.com" for call in calls)
+        assert sum(call[1].endswith("reserve_ai_request") for call in calls) == 1
+
+
+def test_counter_lookup_failure_keeps_the_quota_denial_and_does_not_claim_provider_failure(api):
+    with api(reservation={"allowed": False, "code": "quota"}, counters_status=503) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction())
+        assert response.status_code == 429 and "chưa đọc được hạn mức cụ thể" in response.json()["detail"]
+        assert "OpenAI" not in response.json()["detail"]
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_provider_quota_error_does_not_retry_or_reserve_another_app_request(api):
+    with api(provider_status=429) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 429
-        assert sum(call[0] == "generativelanguage.googleapis.com" for call in calls) == 1
-        finish = next(call for call in calls if call[1].endswith("finish_gemini_attempt"))
-        assert finish[2]["p_scope"] == "project" and finish[2]["p_seconds"] == 60
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
+        assert sum(call[1].endswith("reserve_ai_request") for call in calls) == 1
 
 
 def test_truncated_provider_output_is_not_saved_as_a_draft(api):
-    with api(finish="MAX_TOKENS") as (client, _calls):
+    with api(finish="incomplete") as (client, _calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 502
 
 
@@ -450,6 +475,9 @@ def test_missing_consent_and_oversized_input_do_not_call_provider(api):
     with api() as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction(consent=False)).status_code == 422
         assert client.post("/api/v1/ai/extract", json=extraction(text="a" * 8001)).status_code == 422
+        without_recipient = extraction()
+        without_recipient.pop("provider")
+        assert client.post("/api/v1/ai/extract", json=without_recipient).status_code == 422
         assert not any("reserve_ai" in call[1] for call in calls)
 
 
@@ -509,8 +537,8 @@ def test_readiness_probes_database_with_zero_rows_and_caches_result(api):
     with api(settings_overrides={"api_limits_enabled": True}) as (client, calls):
         assert client.get("/ready").status_code == 200
         assert client.get("/ready").json()["database_reachable"] is True
-        assert len(calls) == 2
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/ai_provider_state"]
+        assert len(calls) == 1
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
 
 
 def test_readiness_fails_when_required_migration_is_missing(api):
@@ -522,7 +550,7 @@ def test_readiness_fails_when_required_migration_is_missing(api):
 def test_tracker_only_mode_never_calls_ai(api):
     with api(settings_overrides={"ai_enabled": False}) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 503
-        assert not any("reserve_ai" in call[1] or call[0] == "generativelanguage.googleapis.com" for call in calls)
+        assert not any("reserve_ai" in call[1] or call[0] == "api.openai.com" for call in calls)
 
 
 def test_request_logs_and_headers_exclude_secrets_and_raw_inputs(api, caplog):
@@ -570,7 +598,7 @@ def test_google_verified_allowlisted_user_has_unlimited_usage_and_retains_provid
         assert quota["p_user_limit"] is None and quota["p_day_limit"] is None and quota["p_ip_limit"] is None
         assert quota["p_minute_limit"] is None
         assert not any(call[1].endswith("/reserve_api_request") for call in calls)
-        assert any(call[1].endswith("/reserve_gemini_attempt") for call in calls)
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
         assert not any(call[1].endswith("/get_ai_usage") for call in calls)
 
 
@@ -593,17 +621,17 @@ def test_email_metadata_or_unverified_identity_cannot_bypass_ai_limits(api, auth
 
 
 @pytest.mark.parametrize("error_type", [httpx.ReadTimeout, httpx.ConnectError])
-def test_gemini_transport_logs_correlate_with_support_id_without_secrets(api, caplog, error_type):
-    with api(gemini_error=error_type) as (client, calls):
+def test_openai_transport_logs_correlate_with_support_id_without_secrets(api, caplog, error_type):
+    with api(provider_error=error_type) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction())
         assert response.status_code == 503
-        assert ("quá lâu" in response.json()["detail"]) is (error_type is httpx.ReadTimeout)
+        assert ("quá thời gian chờ" if error_type is httpx.ReadTimeout else "Kết nối tới OpenAI bị gián đoạn") in response.json()["detail"]
         events = [json.loads(record.message) for record in caplog.records if record.name == "toeic.runtime"]
-        event = next(event for event in events if event.get("event") == "gemini_transport_error")
+        event = next(event for event in events if event.get("event") == "openai_transport_error")
         assert event["request_id"] == response.headers["x-request-id"]
         assert event["error_type"] == error_type.__name__
-        assert sum(call[0] == "generativelanguage.googleapis.com" for call in calls) == 1
-        assert "must not log" not in json.dumps(events) and "gemini-secret" not in json.dumps(events)
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
+        assert "must not log" not in json.dumps(events) and "openai-secret" not in json.dumps(events)
 
 
 def test_unlimited_ai_account_bypasses_ai_throttling_and_retains_deduplication(api):
@@ -617,20 +645,20 @@ def test_unlimited_ai_account_bypasses_ai_throttling_and_retains_deduplication(a
         assert client.post("/api/v1/sync", json={}).status_code == 429
     with api(**trusted, reservation={"allowed": False, "code": "duplicate"}) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 409
-        assert not any(call[0] == "generativelanguage.googleapis.com" for call in calls)
+        assert not any(call[0] == "api.openai.com" for call in calls)
 
 
-@pytest.mark.parametrize("provider", [None, "gemini"])
-def test_provider_change_requires_new_recipient_consent_before_reserving_or_generating(api, provider):
-    with api(settings_overrides={"ai_provider": "openai", "openai_api_key": "openai-key"}) as (client, calls):
+@pytest.mark.parametrize("provider", [None, "gemini", "unknown"])
+def test_unsupported_provider_is_rejected_before_reserving_or_generating(api, provider):
+    with api(settings_overrides={"openai_api_key": "openai-key"}) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction(provider=provider))
-        assert response.status_code == 409
+        assert response.status_code == 422
         assert not any("reserve_ai_request" in call[1] or call[0] == "api.openai.com" for call in calls)
 
 
-def test_openai_exempt_account_has_no_app_quota_and_never_calls_gemini(api):
+def test_openai_exempt_account_has_no_app_quota_and_uses_one_generation(api):
     with api(auth_user=trusted_user(), settings_overrides={
-        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
     }) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction(provider="openai"))
         assert response.status_code == 200 and response.json()["usage"]["unlimited"] is True
@@ -640,13 +668,13 @@ def test_openai_exempt_account_has_no_app_quota_and_never_calls_gemini(api):
         provider = next(call for call in calls if call[0] == "api.openai.com")
         assert provider[3]["authorization"] == "Bearer openai-key"
         assert len(provider[2]["safety_identifier"]) == 64 and USER_ID not in provider[2]["safety_identifier"]
-        assert not any("gemini" in call[1] or call[0] == "generativelanguage.googleapis.com" for call in calls)
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
         assert client.get("/health").json()["ai_provider"] == "openai"
 
 
-def test_openai_readiness_skips_gemini_state_and_only_checks_required_database(api):
+def test_openai_readiness_only_checks_required_database(api):
     with api(settings_overrides={
-        "ai_provider": "openai", "openai_api_key": "openai-key", "api_limits_enabled": True,
+        "openai_api_key": "openai-key", "api_limits_enabled": True,
     }) as (client, calls):
         assert client.get("/ready").json()["ai_provider"] == "openai"
         assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
@@ -654,7 +682,7 @@ def test_openai_readiness_skips_gemini_state_and_only_checks_required_database(a
 
 def test_verified_privileged_ai_traffic_does_not_trigger_ingress_spam_limit(api):
     with api(auth_user=trusted_user(), settings_overrides={
-        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
         "api_limits_enabled": True, "ingress_ip_minute_limit": 2,
     }) as (client, calls):
         for number in range(6):
@@ -667,7 +695,7 @@ def test_verified_privileged_ai_traffic_does_not_trigger_ingress_spam_limit(api)
 
 def test_unverified_email_cannot_obtain_spam_exemption(api):
     with api(auth_user=trusted_user(identities=[]), settings_overrides={
-        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
         "ingress_ip_minute_limit": 2,
     }) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 200
@@ -678,7 +706,7 @@ def test_unverified_email_cannot_obtain_spam_exemption(api):
 
 def test_cached_privilege_only_skips_ingress_and_never_skips_fresh_authentication(api):
     with api(auth_user=trusted_user(), auth_statuses=[200, 200, 200, 200, 401], settings_overrides={
-        "ai_provider": "openai", "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
+        "openai_api_key": "openai-key", "ai_unlimited_emails": ["owner@gmail.com"],
         "api_limits_enabled": True, "ingress_ip_minute_limit": 2,
     }) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction(provider="openai")).status_code == 200
@@ -714,7 +742,7 @@ def test_structured_input_owns_learner_fields_and_source_key_even_when_reason_me
     fields = {"question": "Reports should ____ submitted.", "options": ["(A) are", "(B) be"], "context": "",
               "part": 5, "userChoiceState": state, "userChoice": "A" if state == "CHOSEN" else "",
               "userReason": reason, "sourceAnswer": "B"}
-    with api(settings_overrides={"ai_provider": "openai", "openai_api_key": "private-openai-key"},
+    with api(settings_overrides={"openai_api_key": "private-openai-key"},
              draft={**OPENAI_DRAFT, "userChoice": "B"}) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction(provider="openai", input=fields))
         assert response.status_code == 200
@@ -725,12 +753,13 @@ def test_structured_input_owns_learner_fields_and_source_key_even_when_reason_me
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
         provider = next(call for call in calls if call[0] == "api.openai.com")
         assert json.loads(provider[2]["input"][0]["content"][0]["text"])["sourceAnswer"] == "B"
+        assert provider[2]["text"]["format"]["schema"]["properties"]["part"] == {"type": "integer", "enum": [5]}
 
 
 def test_structured_reason_cannot_promote_an_ai_proposal_to_a_provided_answer(api):
     fields = {"question": "Reports should ____ submitted.", "options": ["(A) are", "(B) be"],
-              "userChoiceState": "UNKNOWN", "userReason": "Đáp án chuẩn: A", "sourceAnswer": ""}
-    with api(settings_overrides={"ai_provider": "openai", "openai_api_key": "private-openai-key"},
+              "part": 5, "userChoiceState": "UNKNOWN", "userReason": "Đáp án chuẩn: A", "sourceAnswer": ""}
+    with api(settings_overrides={"openai_api_key": "private-openai-key"},
              draft={**OPENAI_DRAFT, "answerSource": "AI_PROPOSED"}) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction(provider="openai", input=fields))
         assert response.status_code == 200
@@ -738,11 +767,104 @@ def test_structured_reason_cannot_promote_an_ai_proposal_to_a_provided_answer(ap
         assert response.json()["draft"]["answerSource"] == "AI_PROPOSED"
 
 
+def test_learner_selected_error_category_is_sent_constrained_and_preserved(api):
+    fields = {"question": "Reports should ____ submitted.", "options": ["(A) are", "(B) be"], "part": 5,
+              "userChoiceState": "UNKNOWN", "errorCategory": "TIME_PRESSURE"}
+    with api() as (client, calls):
+        response = client.post('/api/v1/ai/extract', json=extraction(input=fields))
+        assert response.status_code == 200
+        assert response.json()['draft']['category'] == 'TIME_PRESSURE'
+        provider = next(call[2] for call in calls if call[0] == 'api.openai.com')
+        assert json.loads(provider['input'][0]['content'][0]['text'])['errorCategory'] == 'TIME_PRESSURE'
+        assert provider['text']['format']['schema']['properties']['category']['enum'] == ['TIME_PRESSURE']
+
+
 def test_multi_question_request_is_rejected_before_ai_quota_or_provider(api):
     with api() as (client, calls):
         text = "Câu 131:\n(A) first (B) next\nAnswer: A\nCâu 132:\n(A) last (B) other\nAnswer: B"
         assert client.post("/api/v1/ai/extract", json=extraction(text=text)).status_code == 422
-        assert not any(call[1].endswith("reserve_ai_request") or call[0] in ("api.openai.com", "generativelanguage.googleapis.com") for call in calls)
+        assert not any(call[1].endswith("reserve_ai_request") or call[0] == "api.openai.com" for call in calls)
+
+
+def test_part7_images_use_one_generation_keep_learner_fields_and_affect_deduplication(api, caplog):
+    def picture(color):
+        stream = BytesIO()
+        Image.new("RGB", (120, 80), color).save(stream, format="PNG")
+        return "data:image/png;base64," + base64.b64encode(stream.getvalue()).decode()
+
+    options = ["(A) Cancel a meeting.", "(B) Send a document.", "(C) Book a room.", "(D) Call a colleague."]
+    output = {**OPENAI_DRAFT, "part": 7, "question": "What should employees do?", "context": "Please send the document.",
+              "options": options, "correctAnswer": options[2], "answerSource": "AI_PROPOSED", "userChoice": "D",
+              "optionNotes": [{"label": label, "pos": "", "meaning": "Nghĩa phương án"} for label in "ABCD"]}
+    fields = {"question": "What should employees do?", "options": options, "context": "", "part": 7,
+              "userChoiceState": "CHOSEN", "userChoice": "A", "sourceAnswer": "B", "userReason": "Mình chọn A."}
+    hashes = []
+    with api(draft=output) as (client, calls):
+        assert client.get("/health").json()["part7_image_input"] is True
+        assert client.get("/health").json()["part7_context_images"] is True
+        for index, color in enumerate(["white", "blue"]):
+            url = picture(color)
+            response = client.post("/api/v1/ai/extract", json=extraction(text="", input=fields,
+                images=[{"dataUrl": url}], request_id=f"22222222-2222-4222-8222-{index:012d}"))
+            assert response.status_code == 200
+            draft = response.json()["draft"]
+            assert draft["question"] == "What should employees do?" and draft["options"] == options
+            assert draft["userChoice"] == "A" and draft["userMistake"] == options[0] + " - Mình chọn A."
+            assert draft["correctAnswer"] == options[1] and draft["answerSource"] == "PROVIDED"
+            content = [call for call in calls if call[0] == "api.openai.com"][-1][2]["input"][0]["content"]
+            assert content[0]["type"] == "input_text" and content[1] == {"type": "input_image", "image_url": url, "detail": "high"}
+            schema = [call for call in calls if call[0] == "api.openai.com"][-1][2]["text"]["format"]["schema"]
+            assert schema["properties"]["question"]["enum"] == [fields["question"]]
+            assert schema["properties"]["correctAnswer"]["enum"] == ["", *options]
+        hashes = [call[2]["p_input_hash"] for call in calls if call[1].endswith("reserve_ai_request")]
+        assert len(set(hashes)) == 2
+        assert sum(call[0] == "api.openai.com" for call in calls) == 2
+        events = "\n".join(record.message for record in caplog.records if record.name == "toeic.runtime")
+        assert "data:image" not in events and "Mình chọn A." not in events
+
+
+def test_invalid_images_never_consume_ai_quota_or_reach_openai(api):
+    with api() as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction(images=[{"dataUrl": "https://private.example/image.png"}]))
+        assert response.status_code == 422
+        assert not any(call[1].endswith("reserve_ai_request") or call[0] == "api.openai.com" for call in calls)
+
+
+@pytest.mark.parametrize("part", [None, 0, 8, "5"])
+def test_structured_extraction_requires_a_valid_explicit_part_before_ai_quota(api, part):
+    fields = {"question": "Reports should ____ submitted.", "options": ["(A) are", "(B) be"],
+              "part": part, "userChoiceState": "UNKNOWN"}
+    with api() as (client, calls):
+        assert client.post('/api/v1/ai/extract', json=extraction(input=fields)).status_code == 422
+        assert not any(call[1].endswith("reserve_ai_request") or call[0] == 'api.openai.com' for call in calls)
+        fields.pop('part')
+        assert client.post('/api/v1/ai/extract', json=extraction(input=fields)).status_code == 422
+
+
+def test_part1_picture_pipeline_preserves_options_and_does_not_infer_a_listening_failure(api):
+    stream = BytesIO()
+    Image.new("RGB", (120, 80), "white").save(stream, format="PNG")
+    url = "data:image/png;base64," + base64.b64encode(stream.getvalue()).decode()
+    options = ["(A) A man is standing.", "(B) A man is seated.", "(C) Two people are talking.", "(D) A woman is cooking."]
+    fields = {"question": "Part 1 · Mô tả tranh", "options": options, "context": "", "part": 1,
+              "userChoiceState": "CHOSEN", "userChoice": "A", "sourceAnswer": ""}
+    output = {**OPENAI_DRAFT, "question": fields["question"], "part": 1, "context": "Một người ngồi trước bàn.",
+              "options": options, "correctAnswer": options[1], "answerSource": "AI_PROPOSED", "category": "OTHER",
+              "optionNotes": [{"label": label, "pos": "", "meaning": "Mô tả"} for label in "ABCD"]}
+    with api(draft=output) as (client, calls):
+        assert client.get("/health").json()["part1_picture_input"] is True
+        response = client.post('/api/v1/ai/extract', json=extraction(input=fields))
+        assert response.status_code == 422
+        assert not any(call[1].endswith("reserve_ai_request") for call in calls)
+        response = client.post('/api/v1/ai/extract', json=extraction(input=fields, images=[{"dataUrl": url}]))
+        assert response.status_code == 200
+        result = response.json()["draft"]
+        assert result["part"] == 1 and result["question"] == fields["question"] and result["options"] == options
+        assert result["userChoice"] == "A" and result["category"] == "OTHER"
+        assert any("Mô tả tranh do AI" in text for text in result["missingInformation"])
+        body = next(call[2] for call in calls if call[0] == 'api.openai.com')
+        assert 'PART 1 — TRANH' in body['instructions'] and 'ẢNH CHỈ CUNG CẤP NGỮ CẢNH PART 7' not in body['instructions']
+        assert sum(call[0] == 'api.openai.com' for call in calls) == 1
 
 
 @pytest.mark.parametrize("reviewed", ["2026-10-07", "2026-10-07T10:30:00Z"])

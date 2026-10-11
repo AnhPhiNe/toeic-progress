@@ -80,6 +80,7 @@ describe('backup restore', () => {
     const now = new Date().toISOString();
     const data = bundle();
     data.mistakes = [{ id: 'reviewed', part: 5, questionContext: 'Reports ____ submitted.', userMistake: 'Bỏ trống',
+      question: 'Reports ____ submitted.', context: 'The office is closed today.',
       userChoiceState: 'BLANK', userReason: 'Không kịp đọc\nTôi chưa biết đáp án.', correctAnswer: '(B) be',
       sourceTestName: 'ETS 2024 Test 03',
       answerSource: 'AI_PROPOSED', category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: now, updatedAt: now, deletedAt: null }];
@@ -87,7 +88,8 @@ describe('backup restore', () => {
     let result = parseBackup(JSON.stringify({ ...data, exportDate: now }));
     expect(result.ok).toBe(true);
     const cloud = bundleFromRecords(recordsFromBundle(data));
-    expect(cloud.mistakes[0]).toMatchObject({ userChoiceState: 'BLANK', userReason: data.mistakes[0].userReason, sourceTestName: 'ETS 2024 Test 03' });
+    expect(cloud.mistakes[0]).toMatchObject({ question: data.mistakes[0].question, context: data.mistakes[0].context,
+      userChoiceState: 'BLANK', userReason: data.mistakes[0].userReason, sourceTestName: 'ETS 2024 Test 03' });
     data.mistakes[0].lastReviewedAt = '2026-10-07';
     result = parseBackup(JSON.stringify({ ...data, exportDate: now }));
     expect(result.ok).toBe(true);
@@ -97,6 +99,8 @@ describe('backup restore', () => {
     expect(readDataBundle().mistakes[0].lastReviewedAt).toBe('2026-10-07T00:00:00.000Z');
     expect(readDataBundle().mistakes[0].userReason).toBe(data.mistakes[0].userReason);
     expect(readDataBundle().mistakes[0].sourceTestName).toBe('ETS 2024 Test 03');
+    expect(readDataBundle().mistakes[0].question).toBe(data.mistakes[0].question);
+    expect(readDataBundle().mistakes[0].context).toBe(data.mistakes[0].context);
   });
   it('retains AI answer provenance when exporting/importing a saved note', () => {
     const data = bundle();

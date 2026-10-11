@@ -59,6 +59,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>();
+  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean } | null>(null);
   const feedbackSequence = useRef(0);
@@ -76,9 +77,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã đánh dấu Thông suốt');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
-  const closeEntry = useCallback(() => setEntry(undefined), []);
-  const openCreate = () => setEntry(null);
-  const openEdit = (value: MistakeEntry) => setEntry(value);
+  const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); }, []);
+  const openCreate = () => { setReusedReading(null); setEntry(null); };
+  const openEdit = (value: MistakeEntry) => { setReusedReading(null); setEntry(value); };
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const sourceNames = useMemo(() => uniqueTestNames(sourcedMistakes.map(m => m.sourceTestName)), [sourcedMistakes]);
@@ -256,6 +257,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
               onToggle={() => toggleRow(mistake.id)}
               onReview={() => onStartReview([mistake.id])}
               onEdit={() => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake)}
+              onReuseReading={mistake.part === 7 && typeof mistake.question === 'string' && mistake.context?.trim() ? () => {
+                setReusedReading({ text: mistake.context!, sourceName: mistake.sourceTestName ?? '' }); setEntry(null);
+              } : undefined}
               onDelete={() => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); }}
               onMarkMastered={() => markMastered(mistake.id)}
               onReopen={() => onReopenCards([mistake.id])}
@@ -295,7 +299,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       </div>
 
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
-        sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : defaultSourceName}
+        sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? defaultSourceName}
+        initialReading={reusedReading?.text}
         onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
     </div>

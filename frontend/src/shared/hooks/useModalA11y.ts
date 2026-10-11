@@ -55,7 +55,7 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
       if (!node) return;
 
       const focusables = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-        .filter(el => el.offsetParent !== null || el === document.activeElement);
+        .filter(el => el.tabIndex >= 0 && (el.offsetParent !== null || el === document.activeElement));
 
       if (focusables.length === 0) {
         e.preventDefault();

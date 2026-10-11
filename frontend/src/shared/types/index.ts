@@ -63,6 +63,9 @@ export interface MistakeEntry {
   sourceTestName?: string | null;
   part: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   questionContext: string; // Nội dung câu hỏi hoặc vị trí câu (vd: Câu 134 Part 5)
+  /** Explicit source stem and reference text; older records only have questionContext. */
+  question?: string;
+  context?: string;
   userMistake: string;     // Lỗi sai mình mắc phải hoặc đáp án chọn nhầm
   correctAnswer: string;   // Đáp án đúng (vd: (B) be)
   answerSource?: 'PROVIDED' | 'AI_PROPOSED' | 'MISSING';

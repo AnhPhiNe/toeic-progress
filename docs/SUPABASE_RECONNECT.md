@@ -33,9 +33,9 @@ Chạy từng file đầy đủ theo thứ tự dưới đây, một lần. Khô
 3. `20261006000000_domain_tables.sql`
 4. `20261006010000_purge_deleted_content.sql`
 5. `20261006020000_api_rate_limits.sql`
-6. `20261007000000_gemini_provider_pool.sql`
+6. `20261010000000_retire_gemini_provider.sql`
 
-Năm file đầu đủ tracker/OpenAI. File 6 cần trước khi bật Gemini pool; có thể áp đủ sáu để chuẩn bị cả hai provider. Staging/production giữ `API_LIMITS_ENABLED=true` sau migration 5. Bắt đầu bằng `AI_ENABLED=false` để kiểm chứng tracker trước.
+Năm file đầu đủ tracker/OpenAI. Migration pool ngày 07/10 chỉ giữ làm lịch sử, không cần chạy trên project trống. File retire hỗ trợ cả project có/không có pool; chỉ chạy trên project đang dùng sau khi deploy backend OpenAI mới. Staging/production giữ `API_LIMITS_ENABLED=true` sau migration 5. Bắt đầu bằng `AI_ENABLED=false` để kiểm chứng tracker trước.
 
 Nếu giữ tài khoản/data server cũ, chọn phương án migrate riêng trước. Backup JSON của app chứa dữ liệu học, không chứa mật khẩu hay toàn bộ Supabase Auth. Xem [migration giữa các project](https://supabase.com/docs/guides/platform/migrating-within-supabase) và [migrate Auth users](https://supabase.com/docs/guides/troubleshooting/migrating-auth-users-between-projects).
 

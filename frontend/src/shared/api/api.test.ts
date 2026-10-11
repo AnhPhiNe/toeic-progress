@@ -11,6 +11,17 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.clearAllMocks(); });
 
 describe('backend request feedback', () => {
+  it('keeps the AI failure reason and formats longer provider cooldowns without retrying', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: 'OpenAI đang giới hạn tốc độ xử lý.' }), {
+      status: 429, headers: { 'Retry-After': '3600' }
+    }));
+    vi.stubGlobal('fetch', fetch);
+    const { backendRequest } = await import('@/shared/api/api');
+    await expect(backendRequest('/api/v1/ai/extract', 'POST', {})).rejects.toMatchObject({
+      message: 'OpenAI đang giới hạn tốc độ xử lý. Thử lại sau 60 phút.', retryAfter: 3600
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it('returns a structured throttle error without automatically retrying', async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: 'Chờ rồi thử lại.' }), {
       status: 429, headers: { 'Retry-After': '12', 'X-Request-ID': '11111111-1111-4111-8111-111111111111' }

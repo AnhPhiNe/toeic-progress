@@ -4,11 +4,13 @@ import type { MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { OptionList } from '@/features/mistakes/components/OptionList';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
-import { PartBadge, splitQuestion } from '@/features/mistakes/components/MistakeCard';
+import { PartBadge } from '@/features/mistakes/components/MistakeCard';
+import { readQuestion } from '@/features/mistakes/lib/questionText';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { reviewResultText } from '@/features/mistakes/lib/review';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
+import { QuestionContext } from '@/features/mistakes/components/QuestionContext';
 
 interface ReviewModalProps {
   /** Cards to review, fixed when the session opens */
@@ -39,7 +41,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
   const card = reloaded || cards[Math.min(index, cards.length - 1)];
   const quiz = card ? resolveQuizOptions(card) : null;
   const quizMode = Boolean(quiz && quiz.correctIndex >= 0 && quiz.options.length >= 2);
-  const { question, context } = card ? splitQuestion(card.questionContext) : { question: '', context: '' };
+  const { question, context } = card ? readQuestion(card) : { question: '', context: '' };
 
   const grade = (correct: boolean, picked = '') => {
     if (!card || result) return;
@@ -90,15 +92,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
             <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 sm:px-6">
               {error && <div className="space-y-2 text-sm text-rose-600 dark:text-rose-300" role="alert"><p>{error}</p>
                 <button type="button" onClick={() => { const latest = onReload(card.id); if (latest) { setReloaded(latest); setFlipped(false); setResult(null); setError(''); } else { setSkipped(value => value + 1); next(); } }} className="font-bold underline">Tải lại thẻ</button></div>}
-              {context && (
-                <p className="whitespace-pre-line rounded-xl bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:bg-slate-900/60 dark:text-slate-300">{context}</p>
-              )}
               <p className="text-base font-bold leading-snug text-slate-900 dark:text-white sm:text-[16px]">
                 <span className="mr-2 align-middle"><PartBadge part={card.part} /></span>{question}
               </p>
+              <QuestionContext key={card.id} context={context} part={card.part} initiallyOpen />
 
               {quizMode && quiz ? (
-                <OptionList options={quiz.options} large revealed={Boolean(result)} chosen={result?.picked}
+                <OptionList options={quiz.options} large revealed={Boolean(result)} chosen={result?.picked} showMeanings={card.part !== 7}
                   chosenLabel="" correctLabel={card.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án'}
                   onSelect={result ? undefined : selected => grade(selected === quiz.correctIndex, quiz.options[selected].letter)} />
               ) : !flipped ? (
@@ -120,7 +120,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
               )}
 
               {(result || (flipped && !quizMode)) && (
-                <ExplanationView explanation={card.explanation} trapTip={card.trapTip}
+                <ExplanationView explanation={card.explanation} trapTip={card.trapTip} optionMeanings={card.part === 7 ? quiz?.options : undefined}
                   extra={[['Lần trước bạn chọn', quizMode ? getUserChoice(card) : '']]} />
               )}
             </div>

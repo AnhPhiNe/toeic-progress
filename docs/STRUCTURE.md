@@ -23,7 +23,7 @@
 | Xác thực và phân quyền endpoint | `backend/app/api/dependencies.py` |
 | Cấu hình, ingress guard, log | `backend/app/core/` |
 | Ràng buộc dữ liệu | `backend/app/schemas/models.py` |
-| Gọi Supabase/Gemini | `backend/app/integrations/gateway.py` |
+| Gọi Supabase/OpenAI | `backend/app/integrations/gateway.py` |
 | Kiểm tra bản nháp AI theo đầu vào | `backend/app/services/ai_grounding.py` |
 | Bảo trì | `backend/app/commands/maintenance.py` |
 | RLS, giao dịch đồng bộ và quota | `supabase/migrations/` |

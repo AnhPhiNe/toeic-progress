@@ -35,34 +35,37 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await page.goto('/so-tay');
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   let modal = page.getByRole('dialog');
-  await modal.getByRole('button', { name: 'Gắn đề', exact: true }).click();
-  await modal.getByRole('combobox').fill('ETS 2024 Test 03');
+  await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
+  await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('ETS 2024 Test 03');
   await page.getByRole('option', { name: '+ Thêm tên đề “ETS 2024 Test 03”', exact: true }).click();
+  await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill(question);
-  await modal.getByRole('button', { name: 'Không nhớ', exact: true }).click();
-  await modal.getByText('Có đáp án từ đề', { exact: true }).click();
+
+  await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
   await modal.getByRole('button', { name: 'Đáp án từ đề: B' }).click();
   await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
   await modal.getByRole('button', { name: 'Thêm lỗi tiếp' }).click();
   await expect(modal.getByText('ETS 2024 Test 03', { exact: true })).toBeVisible();
-  await modal.getByRole('button', { name: 'Đổi', exact: true }).click();
+  await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
-  await modal.getByRole('combobox').fill('  ets 2024   test 03  ');
+  await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('  ets 2024   test 03  ');
   await page.getByRole('option', { name: 'ETS 2024 Test 03', exact: true }).click();
+  await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill(question.replace('Reports', 'Forms'));
-  await modal.getByRole('button', { name: 'Bỏ trống', exact: true }).click();
+
   await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
 
-  for (const sourceName of ['ETS 2023 Test 02', '']) {
+  for (const sourceName of ['ETS 2023 Test 02', 'ETS 2021 Test 01']) {
     await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
     modal = page.getByRole('dialog');
-    await modal.getByRole('button', { name: 'Gắn đề', exact: true }).click();
-    await modal.getByRole('combobox').fill(sourceName);
-    await page.getByRole('option', { name: sourceName ? `+ Thêm tên đề “${sourceName}”` : 'Chưa gắn đề', exact: true }).click();
+    await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
+    await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill(sourceName);
+    await page.getByRole('option', { name: `+ Thêm tên đề “${sourceName}”`, exact: true }).click();
+  await modal.getByLabel('Part', { exact: true }).selectOption('5');
     await modal.getByLabel('Câu hỏi + phương án').fill(question);
-    await modal.getByRole('button', { name: 'Không nhớ', exact: true }).click();
-    await modal.getByText('Có đáp án từ đề', { exact: true }).click();
+
+    await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
     await modal.getByRole('button', { name: 'Đáp án từ đề: B' }).click();
     await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
     await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
@@ -70,7 +73,7 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await page.reload();
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
   const examFilter = page.getByLabel('Đề', { exact: true });
-  await expect(examFilter.getByRole('option')).toHaveCount(4);
+  await expect(examFilter.getByRole('option')).toHaveCount(5);
   await examFilter.selectOption({ label: 'ETS 2024 Test 03' });
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(2);
   await expect(page.getByRole('button', { name: 'Tất cả 2', exact: true })).toBeVisible();
@@ -83,14 +86,14 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await page.getByRole('dialog', { name: 'Ôn tập' }).getByRole('button', { name: 'Đóng phiên ôn tập', exact: true }).click();
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
   await examFilter.selectOption('NONE');
-  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
-  await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).first().click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(4);
   const names = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.map((m: { sourceTestName: string }) => m.sourceTestName));
   expect(names.filter((name: string) => name === 'ETS 2024 Test 03')).toHaveLength(2);
 });
 
-test('legacy linked mistakes inherit the test name, and clearing it survives reload and keeps the review schedule', async ({ page }) => {
+test('legacy linked mistakes inherit a required source and retain their review schedule', async ({ page }) => {
   await page.goto('/so-tay');
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
@@ -108,14 +111,15 @@ test('legacy linked mistakes inherit the test name, and clearing it survives rel
   await page.getByRole('button', { name: 'Tùy chọn thẻ' }).click();
   await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await modal.getByRole('button', { name: 'Đổi', exact: true }).click();
+  await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   await expect(page.getByRole('option', { name: 'ETS 2022 Test 01', exact: true })).toBeVisible();
-  await page.getByRole('option', { name: 'Chưa gắn đề', exact: true }).click();
+  await expect(page.getByRole('option', { name: 'Chưa gắn đề', exact: true })).toHaveCount(0);
+  await page.getByRole('option', { name: 'ETS 2022 Test 01', exact: true }).click();
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await page.reload();
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
-  await page.getByLabel('Đề', { exact: true }).selectOption('NONE');
+  await page.getByLabel('Đề', { exact: true }).selectOption({ label: 'ETS 2022 Test 01' });
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
-  expect(saved).toMatchObject({ sessionId: 'legacy-session', sourceTestName: '', reviewStage: 3, reviewCount: 4, nextReviewDate: '2099-01-01' });
+  expect(saved).toMatchObject({ sessionId: 'legacy-session', sourceTestName: 'ETS 2022 Test 01', reviewStage: 3, reviewCount: 4, nextReviewDate: '2099-01-01' });
 });

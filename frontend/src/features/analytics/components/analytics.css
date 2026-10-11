@@ -3,7 +3,18 @@
 .analytics-result-date { max-width:100%; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:600; }
 .dark .analytics-result-date { border-color:#334b71; background:#172640; color:#93c5fd; }
 .analytics-errors { --donut-size: 240px; display: grid; grid-template-columns: var(--donut-size) minmax(0, 1fr); align-items: center; gap: 14px; min-height: 285px; }
-.analytics-donut { width: var(--donut-size); height: var(--donut-size); }
+.analytics-donut { width: var(--donut-size); }
+.analytics-donut-chart { height: var(--donut-size); }
+/* SVG focus rectangles cut through the ring; keyboard focus follows the shape instead. */
+.analytics-donut :is(.recharts-pie, .recharts-pie-sector, .recharts-sector):focus { outline: none; }
+.analytics-donut .recharts-pie:focus-visible,
+.analytics-donut .recharts-pie:has(:focus-visible) { filter: drop-shadow(0 0 3px #2563eb); }
+.analytics-donut .recharts-pie-sector:focus-visible path,
+.analytics-donut .recharts-sector:focus-visible { stroke: #2563eb; stroke-width: 3px; }
+.dark .analytics-donut .recharts-pie:focus-visible,
+.dark .analytics-donut .recharts-pie:has(:focus-visible) { filter: drop-shadow(0 0 3px #93c5fd); }
+.dark .analytics-donut .recharts-pie-sector:focus-visible path,
+.dark .analytics-donut .recharts-sector:focus-visible { stroke: #93c5fd; }
 .analytics-error-list { display: grid; grid-template-columns: minmax(0, max-content) max-content; justify-content: start; align-items: center; gap: 14px 28px; }
 .analytics-view .recharts-bar-rectangle path,
 .analytics-view .recharts-pie-sector path { transition: filter 120ms ease-out; }

@@ -12,7 +12,12 @@ async def health(request: Request):
     return {
         "status": "ok", "database_configured": settings.database_ready,
         "ai_configured": settings.ai_ready, "ai_provider": settings.ai_provider,
+        "ai_enabled": settings.ai_enabled,
         "structured_mistake_input": True,
+        "part7_image_input": True,
+        "part7_context_images": True,
+        "part1_picture_input": True,
+        "learner_error_category": True,
     }
 
 

@@ -1,12 +1,12 @@
 # Đưa TOEIC Progress vào beta
 
-Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI sau khi có key OpenAI/Gemini, Turnstile và đã kiểm thử provider thật. Render Free có thể ngủ; beta cần chấp nhận thời gian chờ, chưa có cam kết uptime hay sức chịu tải.
+Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI sau khi có key OpenAI, Turnstile và đã kiểm thử provider thật. Render Free có thể ngủ; beta cần chấp nhận thời gian chờ, chưa có cam kết uptime hay sức chịu tải.
 
 Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md). Giữ project/config cũ tới khi staging mới được kiểm chứng.
 
 ## 1. Chuẩn bị database
 
-Xuất backup dữ liệu đang dùng. Project đã áp dụng bốn migration trước: chạy nguyên file `supabase/migrations/20261006020000_api_rate_limits.sql` một lần trong Supabase SQL Editor. Repo có sáu migration: project mới chạy năm file nền tảng theo thứ tự tên; file thứ sáu (Gemini provider pool) cần trước khi bật Gemini và có thể áp ngay để chuẩn bị fallback. Migration mới tạo bộ đếm API, không đổi nội dung học.
+Xuất backup trước migration. Project đã áp dụng bốn migration nền tảng chạy file `20261006020000_api_rate_limits.sql` một lần. Project mới chạy năm file nền tảng theo thứ tự tên, rồi `20261010000000_retire_gemini_provider.sql`; OpenAI không cần migration pool ngày 07/10. Project đã có pool chạy migration retire sau khi deploy backend OpenAI mới. Giữ nguyên các migration đã áp dụng.
 
 Giữ `API_LIMITS_ENABLED=false` ở local tới khi migration này đã được áp dụng; staging/production bắt buộc `true`. Xem Security Advisor và đối chiếu RLS. Dùng project staging riêng cho test tài khoản và test tải.
 
@@ -41,13 +41,13 @@ Health check path: `/ready`. Blueprint `backend/render.yaml` có cùng cấu hì
 
 `RENDER_EXTERNAL_HOSTNAME` được Render cung cấp và dùng làm hostname API. Nếu có custom domain, đặt `ALLOWED_HOSTS` là mảng JSON các hostname API chính xác, gồm hostname mà Render dùng health check. Không dùng wildcard.
 
-Gemini/Turnstile có thể để trống khi `AI_ENABLED=false`. Không đặt secret key, token hoặc database password vào `VITE_*`, repo, screenshot hoặc tin nhắn.
+OpenAI/Turnstile có thể để trống khi `AI_ENABLED=false`. Không đặt secret key, token hoặc database password vào `VITE_*`, repo, screenshot hoặc tin nhắn.
 
 ## 4. Nối Google và kiểm thử staging
 
 Supabase Auth: Site URL là frontend; thêm redirect URL chính xác mà app sử dụng. Cấu hình Google OAuth cho domain mới, kiểm tra đối tượng người dùng/test users trong Google Console trước khi mời người ngoài.
 
-- `/health` báo tiến trình chạy. `/ready` phải trả HTTP 200 và `database_reachable=true`; probe database timeout 3 giây, cache 15 giây, không gọi Gemini.
+- `/health` báo tiến trình chạy. `/ready` phải trả HTTP 200 và `database_reachable=true`; probe database timeout 3 giây, cache 15 giây, không gọi AI.
 - Đăng nhập cùng tài khoản trên laptop/điện thoại; tạo và sửa buổi học, lỗi sai, từ vựng, mục tiêu. Thiết bị kia nhận đúng.
 - Tài khoản khác không đọc được dữ liệu tài khoản đầu. `npm run test:rls` dùng biến staging ghi ở đầu script, tạo rồi xóa hai tài khoản test. Không chạy trên project chứa dữ liệu thật.
 - Thử mất mạng, đổi tài khoản, nhập backup và xóa trắng; thiết bị có dữ liệu cũ phải nhận reset. Dùng tài khoản test cho các thao tác xóa.
@@ -64,17 +64,17 @@ Script cần `SUPABASE_STAGING_API_URL` và `SUPABASE_STAGING_USER_TOKEN`; đồ
 
 ## 5. Bật AI sau khi tracker ổn
 
-OpenAI đã được chọn cho cấu hình mới: tạo key trên OpenAI Platform, tài khoản API có tín dụng. Trên Render đặt `AI_PROVIDER=openai`, `OPENAI_API_KEY` là một chuỗi key, `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`. Giữ `AI_ENABLED=false` nếu chưa có key, và lưu cả cấu hình trước khi bật AI. Tạo Turnstile site và thêm hostname frontend; bật Anonymous Sign-Ins và CAPTCHA trong Supabase Auth.
+OpenAI đã được chọn cho cấu hình mới: tạo key trên OpenAI Platform, tài khoản API có tín dụng. Trên Render đặt `OPENAI_API_KEY` là một chuỗi key, `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`. Giữ `AI_ENABLED=false` nếu chưa có key, và lưu cả cấu hình trước khi bật AI. Tạo Turnstile site và thêm hostname frontend; bật Anonymous Sign-Ins và CAPTCHA trong Supabase Auth.
 
-Backend: điền key provider, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đổi `AI_ENABLED=true`. Frontend: điền `VITE_TURNSTILE_SITE_KEY` và redeploy. Không cần biến OpenAI trong Vercel. `/ready` phải báo `ai_provider=openai`, `ai_configured=true` sau khi chuyển. Không cần migration mới khi chuyển từ Gemini. Backend cũ đang chạy Gemini tiếp tục dùng provider đó tới khi đổi biến `AI_PROVIDER`.
+Backend: điền key provider, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đổi `AI_ENABLED=true`. Frontend: điền `VITE_TURNSTILE_SITE_KEY` và redeploy. Không cần biến OpenAI trong Vercel. `/ready` phải báo `ai_provider=openai`, `ai_configured=true` sau khi chuyển. Backend chỉ dùng OpenAI. Không còn cấu hình chọn hoặc chuyển provider.
 
 Website production `toeictracking.vercel.app` với API Render hiện tại dùng `/api/ai-status` cùng origin để đọc cấu hình provider. Rewrite trong `frontend/vercel.json` chuyển đúng endpoint đó tới `/health` trên Render, trước SPA fallback; không cache. Request này không có token/câu hỏi và không gọi provider AI. Các API đồng bộ/extraction vẫn gọi URL backend đã cấu hình. Local/preview hoặc staging API khác vẫn đọc `/health` trực tiếp. Nếu đổi domain hoặc backend production, cập nhật cả route rewrite và điều kiện trong `getAIConfiguration` cùng một lần.
 
-Với backend mới có cân bằng Gemini, chạy thêm migration `20261007000000_gemini_provider_pool.sql` trước khi bật AI. Cách dùng đã chốt: mỗi key có quota độc lập, nhập `GEMINI_API_KEYS=["KEY_1","KEY_2",...]`, để `GEMINI_PROJECTS=[]` và `GEMINI_API_KEY` trống; không cần project ID. Chuỗi mặc định: 3.8 Flash → 3.7 Flash → 3.6 Flash → 3.5 Flash. Xem [backend/README.md](../backend/README.md#cân-bằng-key-và-fallback) cho JSON mẫu, hạn mức, cooldown 60 giây/24 giờ và kiểm thử staging. Không tăng giới hạn toàn app theo số key. Migration đã áp dụng không cần chạy lại khi đổi cách nhập key.
+Sau khi deploy backend mới, gỡ `AI_PROVIDER` và các biến `GEMINI_*` khỏi Render; chạy `20261010000000_retire_gemini_provider.sql` để dọn bảng/RPC cũ. Migration không thay dữ liệu học hoặc quota AI chung. Không rollback về backend phụ thuộc pool sau bước này.
 
-Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức cam kết của Google.
+Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức của OpenAI.
 
-Tùy chọn miễn toàn bộ hạn mức AI app: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail được Google xác minh trong Supabase Auth được miễn cap tháng/ngày/phút và spam theo tài khoản/IP cho AI; không thêm quyền database. Để `[]` để tắt. Không cần migration mới. Vẫn ghi counter, chống gửi trùng và giữ giới hạn tài nguyên/provider. Phí OpenAI vẫn áp dụng; giám sát ngân sách đã chọn trên OpenAI Platform. Khi còn dùng Gemini từ cấu hình cũ, đặt `GEMINI_ATTEMPT_TIMEOUT_SECONDS=30`, `GEMINI_TOTAL_TIMEOUT_SECONDS=60`.
+Tùy chọn miễn toàn bộ hạn mức AI app: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail được Google xác minh trong Supabase Auth được miễn cap tháng/ngày/phút và spam theo tài khoản/IP cho AI; không thêm quyền database. Để `[]` để tắt. Không cần migration mới. Vẫn ghi counter, chống gửi trùng và giữ giới hạn tài nguyên/provider. Phí OpenAI vẫn áp dụng; giám sát ngân sách đã chọn trên OpenAI Platform.
 
 ## 6. Giới hạn, log và proxy
 

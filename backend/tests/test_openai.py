@@ -38,7 +38,7 @@ def completed(**changes):
 def run_provider(responder, text=TEXT, generate_kwargs=None, **changes):
     async def run():
         calls = []
-        settings = Settings(_env_file=None, ai_provider="openai", openai_api_key="private-openai-key", **changes)
+        settings = Settings(_env_file=None, openai_api_key="private-openai-key", **changes)
         def transport(request):
             calls.append(request)
             return responder(request)
@@ -65,7 +65,8 @@ def test_official_responses_api_uses_medium_and_strict_schema_without_sampling_o
     schema = body["text"]["format"]["schema"]
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"])
-    assert {"userChoice", "optionNotes", "explanation"} <= set(schema["required"]) and "trapTip" not in schema["properties"]
+    assert {"question", "context", "userChoice", "optionNotes", "explanation"} <= set(schema["required"])
+    assert "trapTip" not in schema["properties"] and "questionContext" not in schema["properties"]
     assert result.userChoice == "A" and [note.label for note in result.optionNotes] == ["A", "B"]
 
 
@@ -111,6 +112,21 @@ def test_rate_limits_and_billing_are_distinct_without_key_rotation(billing):
     assert result.status_code == (503 if billing else 429) and len(calls) == 1
     if not billing:
         assert result.headers["Retry-After"] == "75"
+        assert "OpenAI đang giới hạn tốc độ" in result.detail
+    else:
+        assert "không phải giới hạn lượt của tài khoản" in result.detail
+
+
+@pytest.mark.parametrize("status,text", [
+    (401, "chưa được OpenAI cho phép"),
+    (403, "chưa được OpenAI cho phép"),
+    (400, "OpenAI từ chối yêu cầu"),
+    (500, "OpenAI tạm gặp sự cố"),
+])
+def test_provider_errors_explain_the_recovery_without_exposing_raw_errors(status, text):
+    result, calls = run_provider(lambda _request: httpx.Response(status, json={"error": "private upstream details"}))
+    assert result.status_code == 503 and text in result.detail and len(calls) == 1
+    assert "private upstream details" not in result.detail
 
 
 def test_timeout_does_not_duplicate_billed_requests_or_log_keys(caplog):
@@ -122,13 +138,15 @@ def test_timeout_does_not_duplicate_billed_requests_or_log_keys(caplog):
     assert not any("private-openai-key" in record.message for record in caplog.records)
 
 
-def test_openai_configuration_does_not_depend_on_gemini_credentials():
+def test_ai_configuration_has_one_provider_and_requires_its_key():
     settings = Settings(
-        _env_file=None, ai_provider="openai", openai_api_key="private-openai-key",
+        _env_file=None, openai_api_key="private-openai-key",
         supabase_url="https://database.example", supabase_publishable_key="public", supabase_secret_key="server",
         turnstile_secret_key="turnstile", rate_limit_secret="rate",
     )
-    assert settings.ai_ready and not settings.effective_gemini_projects
+    assert settings.ai_ready and settings.ai_provider == "openai"
+    assert settings.model_copy(update={"turnstile_secret_key": ""}).ai_ready
+    assert "ai_provider" not in Settings.model_fields
     assert "private-openai-key" not in repr(settings) and "private-openai-key" not in settings.model_dump_json()
     assert not settings.model_copy(update={"openai_api_key": Settings(_env_file=None).openai_api_key}).ai_ready
 
@@ -234,6 +252,29 @@ def test_request_specific_answer_constraints_do_not_leak_to_legacy_requests():
                  generate_kwargs={"source_options": DRAFT["options"], "source_answer": "B"})
     _result, calls = run_provider(lambda _request: httpx.Response(200, json=completed()))
     assert "enum" not in json.loads(calls[0].content)["text"]["format"]["schema"]["properties"]["correctAnswer"]
+
+
+def test_listening_stem_and_transcript_share_one_request_and_invalid_extraction_is_not_retried():
+    question = "What problem does the man mention?"
+    transcript = "(M-Cn) The order is incomplete.\n(W-Am) We can wait until tomorrow."
+    source = json.dumps({"question": "Questions 53 through 55 refer to the following conversation.\n"
+                         + transcript + "\n" + question, "context": ""})
+    for stem, expected_status in [(question, None), ("What issue does the man mention?", 502)]:
+        draft = {**DRAFT, "part": 3, "question": stem, "context": transcript}
+        draft.pop("questionContext")
+        response = completed(output=[{
+            "type": "message", "role": "assistant", "status": "completed",
+            "content": [{"type": "output_text", "text": json.dumps(draft)}],
+        }])
+        result, calls = run_provider(lambda _request, value=response: httpx.Response(200, json=value), text=source,
+                                    generate_kwargs={"source_options": DRAFT["options"], "source_answer": "B"})
+        assert len(calls) == 1
+        if expected_status:
+            assert isinstance(result, HTTPException) and result.status_code == expected_status
+        else:
+            assert result.question == question and result.context == transcript
+            assert result.questionContext == question + "\n\n" + transcript
+            assert result.correctAnswer == "(B) be" and result.answerSource == "PROVIDED"
 
 
 @pytest.mark.parametrize("notes", [

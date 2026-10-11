@@ -12,6 +12,8 @@ interface OptionListProps {
   chosenLabel?: string;
   /** Colour the correct and chosen options and show meanings. Review keeps this off until answered. */
   revealed?: boolean;
+  /** Part 7 places the longer translations in the explanation instead. */
+  showMeanings?: boolean;
   /** Makes options buttons (review before answering) */
   onSelect?: (index: number) => void;
   large?: boolean;
@@ -19,7 +21,7 @@ interface OptionListProps {
 
 /** A–D options with the correct answer, the learner's choice and, once revealed, each option's meaning. */
 export const OptionList: React.FC<OptionListProps> = ({
-  options, chosen, correctLabel = '', chosenLabel = 'Bạn chọn', revealed = true, onSelect, large = false
+  options, chosen, correctLabel = '', chosenLabel = 'Bạn chọn', revealed = true, showMeanings = true, onSelect, large = false
 }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
     {options.map((option, index) => {
@@ -33,7 +35,7 @@ export const OptionList: React.FC<OptionListProps> = ({
           }`}>{option.letter}</span>
           <span className="min-w-0 flex-1 break-words">
             <span className={tone === 'right' ? 'font-semibold' : ''}>{option.text}</span>
-            {revealed && option.note?.meaning && (
+            {revealed && showMeanings && option.note?.meaning && (
               <span className={`text-[12.5px] ${
                 tone === 'right' ? 'text-emerald-700 dark:text-emerald-300' : tone === 'wrong' ? 'text-rose-700 dark:text-rose-300' : 'text-slate-500 dark:text-slate-400'
               }`}>

@@ -1,3 +1,4 @@
+import json
 import re
 
 from app.core.text_input import has_multiple_questions
@@ -26,8 +27,9 @@ def source_option(answer: str, options: list[str]) -> str | None:
 
 
 def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = False,
-                 source_options: list[str] | None = None, source_answer: str | None = None) -> MistakeDraft:
-    """Ground options; optionally admit labeled AI proposals without claiming a source key."""
+                 source_options: list[str] | None = None, source_answer: str | None = None,
+                 image_source: bool = False) -> MistakeDraft:
+    """Verify source fields/options; admit labeled AI proposals without claiming a source key."""
     source = normalized(text)
     options = []
     canonical_options = {normalized(option): option for option in source_options} if source_options is not None else None
@@ -42,6 +44,42 @@ def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = Fals
         draft.missingInformation.append("Đã bỏ phương án không tìm thấy trong nội dung gốc.")
     if source_options is not None and (len(options) != len(source_options) or len(set(options)) != len(options)):
         raise ValueError("AI omitted or changed source options")
+    # The LLM extracts the stem; this only verifies a verbatim source span, without
+    # guessing its location or making a second provider request. Legacy plain-text
+    # callers have no isolated question field and keep their compatibility path.
+    if source_options is not None:
+        try:
+            original = json.loads(text)
+        except ValueError:
+            original = None
+        if isinstance(original, dict) and isinstance(original.get("question"), str):
+            # New outputs carry the stem explicitly. Splitting remains solely for
+            # cached drafts created before the provider contract was extended.
+            if draft.question is not None:
+                question, context = draft.question, draft.context or ""
+            else:
+                question, _, context = draft.questionContext.strip().partition("\n")
+            question = " ".join(question.split())
+            if image_source and question != " ".join(original["question"].split()):
+                raise ValueError("AI changed the source question")
+            # Check the two source fields independently so that text from learner
+            # narration/options or a fabricated span across field boundaries cannot qualify.
+            source_fields = [" ".join(original[name].split()) for name in (("question",) if image_source else ("question", "context"))
+                             if isinstance(original.get(name), str)]
+            if not question and draft.question is not None:
+                draft.correctAnswer, draft.answerSource = "", "MISSING"
+                draft.missingInformation = list(dict.fromkeys([
+                    *draft.missingInformation, "Chưa có câu hỏi riêng. Hãy bổ sung câu hỏi và các phương án từ đề."
+                ]))[:8]
+            elif not question or not any(question in field for field in source_fields):
+                raise ValueError("AI changed the source question")
+            if re.match(r"^Questions?\s+\d+.*\brefer\b", question, re.IGNORECASE):
+                raise ValueError("AI used a group instruction instead of the question")
+            context = re.sub(r"\n[ \t]*(?:\n[ \t]*)+", "\n\n", context.strip())
+            separator = "\n\n" if len(question) + len(context) + 2 <= 4000 else "\n"
+            draft.questionContext = question + (separator + context if context else "")
+            if draft.question is not None:
+                draft.question, draft.context = question, context
     draft.options = options
     labels = set()
     for option in options:
@@ -55,6 +93,23 @@ def ground_draft(text: str, draft: MistakeDraft, *, allow_ai_answer: bool = Fals
     notes = {note.label: note for note in draft.optionNotes if note.label in labels}
     draft.optionNotes = [notes[label] for label in sorted(notes)]
     draft.compose_trap_tip()
+    if image_source:
+        draft.missingInformation.append("Mô tả tranh do AI viết; đối chiếu với tranh trước khi lưu." if draft.part == 1
+                                       else "Ngữ cảnh trích từ ảnh; kiểm tra chữ và số trong đoạn đọc trước khi lưu.")
+        labels_in_order = []
+        for option in options:
+            match = re.match(r"^\(([A-D])\)", option, re.IGNORECASE)
+            labels_in_order.append(match[1].upper() if match else "")
+        if len(options) != 4 or labels_in_order != list("ABCD"):
+            draft.correctAnswer, draft.answerSource = "", "MISSING"
+            draft.missingInformation = list(dict.fromkeys([
+                *draft.missingInformation, "Dán đủ bốn phương án A–D; ảnh chỉ cung cấp ngữ cảnh."
+            ]))[:8]
+            return draft
+    if draft.question == "":
+        draft.correctAnswer, draft.answerSource = "", "MISSING"
+        draft.missingInformation = list(dict.fromkeys(draft.missingInformation))[:8]
+        return draft
     if source_options is None and has_multiple_questions(text):
         draft.correctAnswer, draft.answerSource = "", "MISSING"
         draft.missingInformation = list(dict.fromkeys([*draft.missingInformation, "Mỗi lần nhập một câu. Không lấy đáp án của câu khác."]))[:8]

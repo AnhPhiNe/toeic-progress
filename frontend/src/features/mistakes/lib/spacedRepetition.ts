@@ -9,7 +9,7 @@ export const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14, 30] as const;
 export const MAX_REVIEW_STAGE = REVIEW_INTERVALS_DAYS.length - 1;
 
 export function canReview(mistake: MistakeEntry): boolean {
-  return !mistake.deletedAt && mistake.answerSource !== 'MISSING' && Boolean(mistake.correctAnswer.trim());
+  return !mistake.deletedAt && mistake.question?.trim() !== '' && mistake.answerSource !== 'MISSING' && Boolean(mistake.correctAnswer.trim());
 }
 
 function addDays(dateStr: string, days: number): string {

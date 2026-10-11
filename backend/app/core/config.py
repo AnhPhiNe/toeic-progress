@@ -1,25 +1,8 @@
-import hashlib
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class GeminiProject(BaseModel):
-    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    project_id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{2,62}$")
-    api_keys: list[SecretStr] = Field(min_length=1, max_length=16, repr=False)
-    rpm_limit: int = Field(default=5, ge=1, le=10000)
-    tpm_limit: int = Field(default=250000, ge=1, le=10000000)
-    rpd_limit: int = Field(default=20, ge=1, le=100000)
-
-    @field_validator("api_keys")
-    @classmethod
-    def check_keys(cls, keys: list[SecretStr]) -> list[SecretStr]:
-        if any(not key.get_secret_value().strip() for key in keys):
-            raise ValueError("Project keys must not be empty")
-        return [SecretStr(key.get_secret_value().strip()) for key in keys]
 
 
 class Settings(BaseSettings):
@@ -27,8 +10,6 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "staging", "production"] = "development"
     ai_enabled: bool = True
-    # Existing deployments keep their provider until the operator explicitly switches.
-    ai_provider: Literal["gemini", "openai"] = "gemini"
     openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
     openai_model: Literal["gpt-6-luna"] = "gpt-6-luna"
     openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"
@@ -51,23 +32,6 @@ class Settings(BaseSettings):
     supabase_secret_key: str = ""
     # Compatibility for existing deployments using a legacy JWT key.
     supabase_service_role_key: str = ""
-    gemini_api_key: str = Field(default="", repr=False)
-    # Simple mode: the operator guarantees these keys have independent project
-    # quotas (one key per account/project). Shared-project keys use gemini_projects.
-    gemini_api_keys: list[SecretStr] = Field(default_factory=list, max_length=8, repr=False)
-    gemini_projects: list[GeminiProject] = Field(default_factory=list, max_length=8, repr=False)
-    gemini_model: str = Field(default="gemini-3.8-flash", pattern=r"^gemini-[a-zA-Z0-9.-]+$")
-    gemini_fallback_models: list[str] = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
-    gemini_rpm_limit: int = Field(default=5, ge=1, le=10000)
-    gemini_tpm_limit: int = Field(default=250000, ge=1, le=10000000)
-    gemini_rpd_limit: int = Field(default=20, ge=1, le=100000)
-    gemini_max_concurrent: int = Field(default=2, ge=1, le=16)
-    gemini_key_max_concurrent: int = Field(default=1, ge=1, le=8)
-    gemini_max_attempts: int = Field(default=8, ge=1, le=16)
-    gemini_attempt_timeout_seconds: float = Field(default=30, ge=1, le=30)
-    gemini_total_timeout_seconds: float = Field(default=60, ge=5, le=60)
-    gemini_rpm_cooldown_seconds: int = Field(default=60, ge=60, le=3600)
-    gemini_rpd_cooldown_seconds: int = Field(default=86400, ge=86400, le=604800)
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     turnstile_secret_key: str = ""
     turnstile_hostnames: list[str] = ["localhost", "127.0.0.1"]
@@ -112,69 +76,9 @@ class Settings(BaseSettings):
                 return True
         return False
 
-    @field_validator("gemini_api_keys")
-    @classmethod
-    def clean_gemini_keys(cls, keys: list[SecretStr]) -> list[SecretStr]:
-        values = [key.get_secret_value().strip() for key in keys]
-        if any(not value for value in values) or len(set(values)) != len(values):
-            raise ValueError("GEMINI_API_KEYS must contain distinct non-empty keys")
-        return [SecretStr(value) for value in values]
-
-    @field_validator("gemini_fallback_models")
-    @classmethod
-    def check_gemini_models(cls, models: list[str]) -> list[str]:
-        import re
-
-        if len(models) > 7 or len(set(models)) != len(models) or any(
-            not re.fullmatch(r"gemini-[a-zA-Z0-9.-]+", model) for model in models
-        ):
-            raise ValueError("GEMINI_FALLBACK_MODELS must contain distinct Gemini model IDs (maximum 7)")
-        return models
-
     @property
-    def effective_gemini_keys(self) -> list[str]:
-        # The legacy variable remains compatible; never mix it into an explicit pool.
-        return [key.get_secret_value() for key in self.gemini_api_keys] or (
-            [self.gemini_api_key.strip()] if self.gemini_api_key.strip() else []
-        )
-
-    @model_validator(mode="after")
-    def distinct_gemini_projects(self):
-        project_ids = [project.project_id for project in self.gemini_projects]
-        keys = [key.get_secret_value() for project in self.gemini_projects for key in project.api_keys]
-        if len(set(project_ids)) != len(project_ids) or len(set(keys)) != len(keys):
-            raise ValueError("Gemini project IDs and keys must be distinct across the configured pool")
-        if self.gemini_projects and (self.gemini_api_key.strip() or self.gemini_api_keys):
-            raise ValueError("Use GEMINI_PROJECTS or the legacy key variables, not both")
-        return self
-
-    @property
-    def effective_gemini_projects(self) -> list[GeminiProject]:
-        if self.gemini_projects:
-            return self.gemini_projects
-        if self.gemini_api_keys:
-            # Stable, opaque group IDs keep each key's counters/cooldowns intact
-            # when the list is reordered or the API worker restarts. No project
-            # IDs need to be entered for the independent-account key pool.
-            return [GeminiProject(
-                project_id="key-" + hashlib.sha256(key.get_secret_value().encode()).hexdigest()[:48],
-                api_keys=[key],
-                rpm_limit=self.gemini_rpm_limit,
-                tpm_limit=self.gemini_tpm_limit,
-                rpd_limit=self.gemini_rpd_limit,
-            ) for key in self.gemini_api_keys]
-        keys = self.effective_gemini_keys
-        return [GeminiProject(
-            project_id="legacy-project",
-            api_keys=[SecretStr(key) for key in keys],
-            rpm_limit=self.gemini_rpm_limit,
-            tpm_limit=self.gemini_tpm_limit,
-            rpd_limit=self.gemini_rpd_limit,
-        )] if keys else []
-
-    @property
-    def effective_gemini_models(self) -> list[str]:
-        return list(dict.fromkeys([self.gemini_model, *self.gemini_fallback_models]))
+    def ai_provider(self) -> Literal["openai"]:
+        return "openai"
 
     @property
     def admin_key(self) -> str:
@@ -189,9 +93,8 @@ class Settings(BaseSettings):
         return (
             self.ai_enabled
             and self.database_ready
-            and bool(self.rate_limit_secret and self.turnstile_secret_key)
-            and (bool(self.openai_api_key.get_secret_value().strip()) if self.ai_provider == "openai"
-                 else bool(self.effective_gemini_projects))
+            and bool(self.rate_limit_secret)
+            and bool(self.openai_api_key.get_secret_value().strip())
         )
 
     @property
@@ -239,6 +142,7 @@ class Settings(BaseSettings):
             missing.append("CORS_ORIGINS")
         if self.ai_enabled and (
             not self.ai_ready
+            or not self.turnstile_secret_key
             or not self.turnstile_hostnames
             or any(
                 not host or "*" in host or "/" in host or ":" in host or host in ("localhost", "127.0.0.1")

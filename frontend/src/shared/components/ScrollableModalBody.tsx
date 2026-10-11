@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown } from 'lucide-react';
 
-export function ScrollableModalBody({ children, resetKey }: { children: ReactNode; resetKey: string }) {
+export function ScrollableModalBody({ children, resetKey, compact = false }: { children: ReactNode; resetKey: string; compact?: boolean }) {
   const viewport = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const tooltipId = useId();
@@ -20,7 +20,7 @@ export function ScrollableModalBody({ children, resetKey }: { children: ReactNod
   }, [resetKey]);
   return <div className="relative flex min-h-0 flex-col">
     <div ref={viewport} tabIndex={-1} role="region" aria-label="Nội dung ghi lỗi sai" className="min-h-0 overflow-y-auto [scrollbar-gutter:stable]">
-      <div ref={content} className="space-y-4 px-4 pt-4 pb-16 sm:px-6">{children}</div>
+      <div ref={content} className={`px-4 pt-4 sm:px-6 ${compact ? 'space-y-3 pb-5' : 'space-y-4 pb-16'}`}>{children}</div>
     </div>
     {hasMore && <div className="group absolute bottom-3 left-1/2 -translate-x-1/2">
       <span id={tooltipId} role="tooltip" className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs whitespace-nowrap text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 dark:bg-slate-100 dark:text-slate-900">Còn nội dung bên dưới</span>

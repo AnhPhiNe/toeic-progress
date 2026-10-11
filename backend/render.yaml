@@ -14,8 +14,6 @@ services:
         value: staging
       - key: AI_ENABLED
         value: "false"
-      - key: AI_PROVIDER
-        value: openai
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
@@ -30,18 +28,6 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_API_KEYS
-        sync: false
-      - key: GEMINI_MODEL
-        value: gemini-3.8-flash
-      - key: GEMINI_FALLBACK_MODELS
-        value: '["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash"]'
-      - key: GEMINI_ATTEMPT_TIMEOUT_SECONDS
-        value: "30"
-      - key: GEMINI_TOTAL_TIMEOUT_SECONDS
-        value: "60"
       - key: AI_UNLIMITED_EMAILS
         sync: false
       - key: TURNSTILE_SECRET_KEY

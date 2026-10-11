@@ -34,6 +34,7 @@ interface AnalyticsViewProps {
 export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onNavigateToTimer }: AnalyticsViewProps) {
   const [sourceKey, setSourceKey] = useState<string | null>(null);
   const [attemptChoice, setAttemptChoice] = useState<{ source: string; id: string } | null>(null);
+  const [activeError, setActiveError] = useState<ErrorCategory | null>(null);
   const attemptPickerId = useId();
   const barMotion = useChartMotion(500);
   const donutMotion = useChartMotion(600);
@@ -46,6 +47,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
   // Recharts 2 interpolates sectors by index. Keep category identities fixed across filters.
   const donutData = useMemo(() => (Object.keys(ERROR_NAMES) as ErrorCategory[]).map(category =>
     data.errors.find(row => row.category === category) ?? { category, count: 0, percent: 0 }), [data.errors]);
+  const highlightedError = data.errors.find(row => row.category === activeError);
   const commonError = data.errors[0] ? ERROR_NAMES[data.errors[0].category].toLocaleLowerCase('vi') : null;
   const priority = data.weakest ? `Ưu tiên Part ${data.weakest.key.slice(4)} (${Math.round(data.weakest.accuracy)}%)${commonError ? ` và ${commonError}` : ''}.`
     : data.parts.length ? `Cả 7 Part đạt 100% trong lượt này.${commonError ? ` Sổ tay ghi nhiều lỗi nhất ở nhóm ${commonError}.` : ''}`
@@ -114,20 +116,23 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
         <h2 id="analytics-errors-heading" className="mb-3 flex items-center gap-2 text-lg font-black text-slate-950 dark:text-white"><BookOpen className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />Lỗi đã ghi của đề</h2>
         {data.notes.length ? <div className="analytics-errors flex-1">
           <div className="analytics-donut relative" role="img" aria-describedby="analytics-errors-scope" aria-label={`${data.notes.length} lỗi đã ghi: ${data.errors.map(row => `${ERROR_NAMES[row.category]} ${row.count} lỗi`).join(', ')}`}>
+            <div className="analytics-donut-chart relative">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart data={donutData}><Tooltip content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const row = payload[0].payload as typeof data.errors[number];
-                return <div className={tooltipClass}>{ERROR_NAMES[row.category]}: <strong>{row.count} lỗi ({Math.round(row.percent)}%)</strong></div>;
-              }} />
+              <PieChart data={donutData}>
                 <Pie data={donutData} dataKey="count" nameKey="category" cx="50%" cy="50%" innerRadius="58%" outerRadius="83%"
                   startAngle={90} endAngle={-270} paddingAngle={2} stroke="none" isAnimationActive={donutMotion.enabled}
+                  onMouseEnter={row => setActiveError(row.category)} onMouseLeave={() => setActiveError(null)}
+                  onFocus={row => setActiveError(row.category)} onBlur={() => setActiveError(null)}
                   animationBegin={0} animationDuration={donutMotion.duration} animationEasing="ease-out" onAnimationEnd={donutMotion.finish}>
                   {donutData.map(row => <Cell key={row.category} fill={ERROR_CATEGORY_LABELS[row.category].color} />)}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><strong className="text-4xl font-black tabular-nums text-slate-950 dark:text-white">{data.notes.length}</strong><span className="mt-1 text-xs text-slate-500 dark:text-slate-400">lỗi đã ghi</span></div>
+            </div>
+            <div className="analytics-donut-detail min-h-11 pt-1 text-center text-xs leading-4 text-slate-600 dark:text-slate-300" aria-hidden="true">
+              {highlightedError && <><p className="font-semibold text-slate-900 dark:text-white">{ERROR_NAMES[highlightedError.category]}</p><p>{highlightedError.count} lỗi · {Math.round(highlightedError.percent)}%</p></>}
+            </div>
           </div>
           <dl className="analytics-error-list">
             {data.errors.map(row => <div className="contents" key={row.category}><dt className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-900 dark:text-slate-100"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: ERROR_CATEGORY_LABELS[row.category].color }} aria-hidden="true" /><span>{ERROR_NAMES[row.category]}</span></dt>

@@ -2,6 +2,7 @@ import React, { useId, useState } from 'react';
 import { ChevronDown, Lightbulb } from 'lucide-react';
 import type { MistakeExplanation } from '@/shared/types';
 import { analysisLines } from '@/features/mistakes/lib/analysisLines';
+import type { ParsedOption } from '@/features/mistakes/lib/quizOptions';
 
 const SECTIONS: Array<[keyof MistakeExplanation, string]> = [
   ['questionType', 'Dạng câu hỏi'],
@@ -18,6 +19,8 @@ interface ExplanationViewProps {
   trapTip?: string;
   /** Extra lines shown first in the details, e.g. the learner's own note */
   extra?: Array<[string, string]>;
+  /** Longer option translations, shown only after expanding the explanation. */
+  optionMeanings?: ParsedOption[];
   /** false shows the details without a toggle (draft review before saving) */
   collapsible?: boolean;
   /** Shown on the right of the toggle row, e.g. a "Ôn câu này" button */
@@ -26,7 +29,7 @@ interface ExplanationViewProps {
 
 /** The 10-second tip as the one highlighted element, with the rest of the explanation behind a toggle. */
 export const ExplanationView: React.FC<ExplanationViewProps> = ({
-  explanation, trapTip = '', extra = [], collapsible = true, actions
+  explanation, trapTip = '', extra = [], optionMeanings = [], collapsible = true, actions
 }) => {
   const [open, setOpen] = useState(!collapsible);
   const detailsId = useId();
@@ -38,7 +41,8 @@ export const ExplanationView: React.FC<ExplanationViewProps> = ({
       : [])
   ];
   const legacyText = explanation ? '' : trapTip.trim();
-  const hasDetails = sections.length > 0 || Boolean(legacyText);
+  const meanings = optionMeanings.filter(option => option.note?.meaning.trim());
+  const hasDetails = sections.length > 0 || Boolean(legacyText) || meanings.length > 0;
 
   return (
     <div className="space-y-3">
@@ -62,6 +66,13 @@ export const ExplanationView: React.FC<ExplanationViewProps> = ({
       ) : null}
       {open && hasDetails && (
         <div id={detailsId} className="space-y-2.5 text-base leading-relaxed text-slate-700 dark:text-slate-300">
+          {meanings.length > 0 && <section aria-label="Nghĩa các phương án" className="space-y-1.5">
+            <p className="font-bold text-slate-900 dark:text-white">Nghĩa các phương án:</p>
+            {meanings.map(option => <p key={option.letter} className="flex gap-2">
+              <span className="w-5 shrink-0 font-semibold text-slate-900 dark:text-white">{option.letter}.</span>
+              <span className="min-w-0 whitespace-pre-line break-words">{option.note!.meaning}</span>
+            </p>)}
+          </section>}
           {sections.map(([label, value]) => label === 'Phân tích' ? (
             <div key={label}><p className="font-bold text-slate-900 dark:text-white">{label}:</p>
               <div className="mt-1.5 space-y-1.5">{analysisLines(value).map((line, index) => <p key={index} className="whitespace-pre-line break-words">{line}</p>)}</div>

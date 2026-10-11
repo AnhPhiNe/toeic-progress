@@ -19,7 +19,7 @@ describe('backend AI extraction', () => {
   it('sends the learner fields separately without folding their reason into a source answer', async () => {
     const input = { question: 'Reports ____ submitted.', options: ['(A) are', '(B) be'], context: '', part: 5 as const,
       userChoice: '' as const, userChoiceState: 'UNKNOWN' as const, userReason: 'Đáp án chuẩn: A là lời mình ghi lại', sourceAnswer: 'B' as const };
-    await extractMistakeWithAI(JSON.stringify(input), vi.fn(), 'openai', input);
+    await extractMistakeWithAI(JSON.stringify(input), vi.fn(), input);
     expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input, consent: true, provider: 'openai' }), 'account-id');
     expect(mocks.backendRequest).toHaveBeenCalledTimes(1);
   });
@@ -27,6 +27,16 @@ describe('backend AI extraction', () => {
     await expect(extractMistakeWithAI('', vi.fn())).rejects.toThrow('20 đến');
     await expect(extractMistakeWithAI('a'.repeat(8001), vi.fn())).rejects.toThrow('20 đến');
     expect(mocks.getSession).not.toHaveBeenCalled();
+  });
+  it('sends image bytes only, without local filenames/IDs, in the same extraction request', async () => {
+    const input = { question: 'What should employees do?', options: ['(A) Call.', '(B) Write.', '(C) Wait.', '(D) Leave.'], context: '', part: 7 as const,
+      userChoice: 'A' as const, userChoiceState: 'CHOSEN' as const, userReason: '', sourceAnswer: '' as const };
+    const images = [{ id: 'local-only', name: 'private-filename.png', dataUrl: 'data:image/jpeg;base64,example' }];
+    await extractMistakeWithAI(JSON.stringify(input), vi.fn(), input, images);
+    expect(mocks.backendRequest).toHaveBeenCalledTimes(1);
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({
+      input, images: [{ dataUrl: images[0].dataUrl }], consent: true, provider: 'openai'
+    }), 'account-id');
   });
   it('uses different single-use captcha tokens for anonymous sign-up and extraction', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: null } });
@@ -67,7 +77,7 @@ describe('backend AI extraction', () => {
   it('preserves multiline translations without changing quiz option text', async () => {
     const demo = getDemoSampleInput();
     mocks.backendRequest.mockResolvedValue({ draft: demo.result, usage: { remaining: 9, limit: 10, guest: false } });
-    const { draft } = await extractMistakeWithAI(demo.input, vi.fn(), 'openai');
+    const { draft } = await extractMistakeWithAI(demo.input, vi.fn());
     expect(draft.trapTip).toBe(demo.result.trapTip);
     expect(draft.trapTip.split('\n\n')).toHaveLength(5);
     expect(draft.options).toEqual(['(A) are', '(B) be', '(C) were', '(D) will be']);
@@ -79,7 +89,7 @@ describe('backend AI extraction', () => {
   it('accepts drafts from backends without structured fields', async () => {
     const { optionNotes: _notes, explanation: _explanation, userChoice: _choice, ...older } = getDemoSampleInput().result;
     mocks.backendRequest.mockResolvedValue({ draft: older, usage: {} });
-    const { draft } = await extractMistakeWithAI(getDemoSampleInput().input, vi.fn(), 'gemini');
+    const { draft } = await extractMistakeWithAI(getDemoSampleInput().input, vi.fn());
     expect(draft.optionNotes).toEqual([]);
     expect(draft.explanation).toBeNull();
     expect(draft.userChoice).toBe('');
@@ -87,7 +97,7 @@ describe('backend AI extraction', () => {
 
   it('keeps an explicitly marked AI proposal instead of erasing the answer', async () => {
     mocks.backendRequest.mockResolvedValue({ draft: { ...getDemoSampleInput().result, answerSource: 'AI_PROPOSED' }, usage: {} });
-    const { draft } = await extractMistakeWithAI(getDemoSampleInput().input, vi.fn(), 'openai');
+    const { draft } = await extractMistakeWithAI(getDemoSampleInput().input, vi.fn());
     expect(draft.answerSource).toBe('AI_PROPOSED');
     expect(draft.correctAnswer).toBe('(B) be');
   });
@@ -123,19 +133,29 @@ describe('AI recipient configuration', () => {
   beforeEach(() => vi.stubEnv('VITE_API_URL', 'https://api.example'));
   afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
+  it.each([
+    [false, 'Chức năng phân tích AI đang được tắt.'],
+    [true, 'Cấu hình dịch vụ phân tích AI chưa đầy đủ.'],
+    [undefined, 'Dịch vụ phân tích AI chưa sẵn sàng.'],
+  ])('distinguishes AI disabled from incomplete configuration (%s)', async (enabled, message) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: false, ai_enabled: enabled }) }));
+    await expect(getAIConfiguration()).rejects.toThrow(message);
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+
   it('loads the recipient without creating or authenticating a guest identity', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) });
     vi.stubGlobal('fetch', fetch);
-    expect(await getAIConfiguration()).toEqual({ provider: 'openai', requireProviderConsent: true });
+    expect(await getAIConfiguration()).toEqual({ provider: 'openai' });
     expect(mocks.getSession).not.toHaveBeenCalled();
     expect(mocks.signInAnonymously).not.toHaveBeenCalled();
-    await extractMistakeWithAI(getDemoSampleInput().input, vi.fn(), 'openai');
+    await extractMistakeWithAI(getDemoSampleInput().input, vi.fn());
     expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ provider: 'openai' }), 'account-id');
   });
 
-  it('keeps the legacy Gemini request contract compatible during deployment', async () => {
+  it('does not assume a provider when an older backend omits its identity', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true }) }));
-    expect(await getAIConfiguration()).toEqual({ provider: 'gemini', requireProviderConsent: false });
+    await expect(getAIConfiguration()).rejects.toThrow('Backend cần hỗ trợ OpenAI');
   });
 
   it('does not permit consent to an unknown provider', async () => {
@@ -150,7 +170,7 @@ describe('AI recipient configuration', () => {
     vi.stubGlobal('fetch', fetch);
     const pending = getAIConfiguration();
     await vi.advanceTimersByTimeAsync(1000);
-    expect(await pending).toEqual({ provider: 'openai', requireProviderConsent: true });
+    expect(await pending).toEqual({ provider: 'openai' });
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch.mock.calls.every(([url]) => url === 'https://api.example/health')).toBe(true);
     expect(mocks.backendRequest).not.toHaveBeenCalled();

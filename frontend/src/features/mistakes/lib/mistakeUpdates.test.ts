@@ -22,6 +22,8 @@ describe('reviewing and editing latest data', () => {
   it('blocks a changed or deleted review question until explicitly reloaded', () => {
     expect(() => gradeLatestMistake({ ...card, correctAnswer: '(A) are' }, card, true)).toThrow('thay đổi');
     expect(() => gradeLatestMistake(undefined, card, true)).toThrow('xóa');
+    expect(() => gradeLatestMistake({ ...card, question: 'Changed explicit stem' }, card, true)).toThrow('thay đổi');
+    expect(() => gradeLatestMistake({ ...card, context: 'Changed evidence' }, card, true)).toThrow('thay đổi');
   });
   it('retains newer schedules when editing content and detects concurrent content edits', () => {
     const latest = { ...card, reviewStage: 3, reviewCount: 8 };
@@ -32,5 +34,6 @@ describe('reviewing and editing latest data', () => {
     const incomplete = { ...card, answerSource: 'MISSING' as const };
     expect(canReview(incomplete)).toBe(false); expect(getDueMistakes([incomplete])).toEqual([]);
     expect(canReview({ ...card, correctAnswer: '' })).toBe(false);
+    expect(canReview({ ...card, question: '' })).toBe(false);
   });
 });

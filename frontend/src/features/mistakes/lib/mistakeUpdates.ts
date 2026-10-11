@@ -13,7 +13,7 @@ function stable(value: unknown): string {
 }
 
 export function reviewContentKey(entry: MistakeEntry): string {
-  return stable([entry.part, entry.questionContext, entry.options, entry.correctAnswer, entry.answerSource]);
+  return stable([entry.part, entry.questionContext, entry.question, entry.context, entry.options, entry.correctAnswer, entry.answerSource]);
 }
 
 export function gradeLatestMistake(latest: MistakeEntry | undefined, snapshot: MistakeEntry, correct: boolean): MistakeEntry {

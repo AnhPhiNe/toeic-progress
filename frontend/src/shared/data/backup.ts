@@ -59,6 +59,7 @@ const mistake = z.object({
   id: z.string().min(1), sessionId: z.string().optional(), part: partNumber,
   sourceTestName: z.string().max(300).nullable().optional(),
   questionContext: z.string(), userMistake: z.string(), correctAnswer: z.string(),
+  question: z.string().max(16000).optional(), context: z.string().max(16000).optional(),
   answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']).optional(),
   userChoice: z.enum(['A', 'B', 'C', 'D']).optional(),
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),

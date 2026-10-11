@@ -3,15 +3,17 @@ import { backendRequest, apiAvailable } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 import { explanationSchema, optionNoteSchema } from '@/shared/data/mistakeFields';
 import type { MistakeInput } from '@/features/mistakes/lib/mistakeInput';
+import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
 
 const draftSchema = z.object({
   part: z.number().int().min(1).max(7).nullable(),
   category: z.enum(['VOCABULARY_TRAP', 'ADVANCED_GRAMMAR', 'LISTENING_SPEED', 'TIME_PRESSURE', 'CARELESS_DISTRACTION', 'OTHER']),
   questionContext: z.string().min(1).max(4000), userMistake: z.string().max(4000),
+  question: z.string().max(4000).nullish(), context: z.string().max(4000).nullish(),
   correctAnswer: z.string().max(1000), trapTip: z.string().max(4000),
   options: z.array(z.string().max(1000)).max(4), tags: z.array(z.string().max(50)).max(5),
   missingInformation: z.array(z.string().max(300)).max(8), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']),
-  // Older backends and Gemini drafts omit the learner's choice and the structured fields.
+  // Older saved drafts may omit the learner's choice and structured fields.
   userChoice: z.enum(['A', 'B', 'C', 'D', '']).default(''),
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
   userReason: z.string().max(2000).optional(),
@@ -20,12 +22,11 @@ const draftSchema = z.object({
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean }
-export type AIProvider = 'openai' | 'gemini';
-export interface AIConfiguration { provider: AIProvider; requireProviderConsent: boolean; structuredInput?: boolean }
+export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean }
 
 export async function getAIConfiguration(): Promise<AIConfiguration> {
-  if (!apiAvailable) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
-  const message = 'Chưa kết nối được AI. Vui lòng thử kết nối lại hoặc nhập thủ công.';
+  if (!apiAvailable) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
+  const message = 'Chưa kết nối được máy chủ phân tích AI. Hãy thử kết nối lại; bạn vẫn có thể lưu thủ công.';
   const apiBase = import.meta.env.VITE_API_URL!.replace(/\/$/, '');
   // The deployed site's public health probe is proxied by Vercel. A browser
   // that can open Render but cannot read its cross-origin response can still
@@ -53,13 +54,17 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!response?.ok) throw new Error(message);
   const value = await response.json().catch(() => null);
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Cấu hình AI chưa hợp lệ.');
-  if (!value.ai_configured) throw new Error('AI đang tạm tắt. Bạn vẫn có thể nhập thủ công hoặc xem mẫu minh họa.');
-  // Older Gemini deployments have no provider field. This also keeps a rolling
-  // frontend/backend deployment compatible without sending unknown JSON fields.
-  if (value.ai_provider === undefined) return { provider: 'gemini', requireProviderConsent: false };
-  if (value.ai_provider !== 'openai' && value.ai_provider !== 'gemini') throw new Error('Cấu hình AI chưa hợp lệ.');
-  return { provider: value.ai_provider, requireProviderConsent: true,
-    ...(value.structured_mistake_input === true ? { structuredInput: true } : {}) };
+  if (!value.ai_configured) {
+    const reason = value.ai_enabled === false ? 'Chức năng phân tích AI đang được tắt.'
+      : value.ai_enabled === true ? 'Cấu hình dịch vụ phân tích AI chưa đầy đủ.' : 'Dịch vụ phân tích AI chưa sẵn sàng.';
+    throw new Error(`${reason} Bạn vẫn có thể lưu thủ công.`);
+  }
+  if (value.ai_provider !== 'openai') throw new Error('Cấu hình AI chưa hợp lệ. Backend cần hỗ trợ OpenAI.');
+  return { provider: 'openai',
+    ...(value.structured_mistake_input === true ? { structuredInput: true } : {}),
+    ...(value.part7_context_images === true ? { part7Images: true } : {}),
+    ...(value.part1_picture_input === true ? { part1Images: true } : {}),
+    ...(value.learner_error_category === true ? { learnerCategory: true } : {}) };
 }
 
 export async function getAIUsage(): Promise<AIUsage | null> {
@@ -71,9 +76,10 @@ export async function getAIUsage(): Promise<AIUsage | null> {
   return current?.user.id === session.user.id ? usage : null;
 }
 
-export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, provider?: AIProvider, input?: MistakeInput): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
+export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, input?: MistakeInput,
+  images: PreparedImage[] = []): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
   if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
-  if (!apiAvailable || !cloud) throw new Error('AI thật chưa được cấu hình. Bạn có thể nhập thủ công hoặc xem mẫu minh họa.');
+  if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
   let { data: { session } } = await cloud.auth.getSession();
   if (!session) {
     const token = await getCaptcha();
@@ -85,7 +91,7 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ draft: unknown; usage: AIUsage }>('/api/v1/ai/extract', 'POST', {
     text: rawInput.trim(), request_id: crypto.randomUUID(), consent: true, captcha_token: captchaToken,
-    ...(provider ? { provider } : {}), ...(input ? { input } : {})
+    provider: 'openai', ...(input ? { input } : {}), ...(images.length ? { images: images.map(image => ({ dataUrl: image.dataUrl })) } : {})
   }, session.user.id);
   const parsed = draftSchema.safeParse(value.draft);
   if (!parsed.success) throw new Error('Bản nháp AI chưa hợp lệ. Vui lòng nhập thủ công hoặc thử lại sau.');

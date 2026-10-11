@@ -1,3 +1,4 @@
+import { chooseNoteSource } from './helpers/noteSource';
 import { test, expect, type Page } from '@playwright/test';
 
 async function seed(page: Page, count = 2) {
@@ -52,9 +53,10 @@ test('save confirmation appears only after persistence, respects reduced motion 
   await seed(page, 1);
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   const editor = page.getByRole('dialog');
+  await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
   await editor.getByLabel('Câu hỏi + phương án').fill('Part 5:\nForms should ____ submitted.\n(A) are\n(B) be');
-  await editor.getByRole('button', { name: 'Không nhớ', exact: true }).click();
-  await editor.getByText('Có đáp án từ đề', { exact: true }).click();
+
+  await editor.getByText('Đáp án đúng từ đề', { exact: false }).click();
   await editor.getByRole('button', { name: 'Đáp án từ đề: B', exact: true }).click();
   await failWrites(page);
   await editor.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
@@ -137,7 +139,7 @@ test('a correct early review reports completed practice while keeping its existi
 test('save-and-add-next confirms inside the existing header and keeps the next form ready', async ({ page }) => {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts', route => route.fulfill({ contentType: 'application/javascript', body: `
     export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true }; }
-    export async function extractMistakeWithAI(text, captcha, provider, input) {
+    export async function extractMistakeWithAI(text, captcha, input) {
       return { usage: {}, draft: { part: 5, questionContext: input.question, options: input.options,
         correctAnswer: input.options[1], answerSource: 'AI_PROPOSED', userMistake: '', category: 'OTHER',
         tags: [], trapTip: '', optionNotes: [], explanation: null, missingInformation: [] } };
@@ -148,14 +150,16 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
   const editor = page.getByRole('dialog');
   const heading = editor.getByRole('heading');
   const before = await heading.boundingBox();
+  await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
   await editor.getByLabel('Câu hỏi + phương án').fill('Part 5:\nForms should ____ submitted.\n(A) are\n(B) be');
-  await editor.getByRole('button', { name: 'Không nhớ', exact: true }).click();
+
   await editor.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await editor.getByRole('button', { name: 'Lưu & thêm tiếp', exact: true }).click();
   await expect(editor.getByRole('status')).toHaveText('Đã lưu ghi chú');
   expect((await heading.boundingBox())!.height).toBe(before!.height);
   await expect(editor.getByLabel('Câu hỏi + phương án')).toHaveValue('');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.length)).toBe(1);
+  await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
   await editor.getByLabel('Câu hỏi + phương án').fill('Next question');
   await expect(editor.getByRole('status')).toHaveCount(0);
 });

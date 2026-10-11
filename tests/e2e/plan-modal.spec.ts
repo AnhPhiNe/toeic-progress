@@ -19,8 +19,10 @@ test('the classic plan layout stays, while the recommendation and duplicate exam
   await seed(page);
   await expect(page.getByRole('heading', { name: /Việc Cần Làm Tuần Này/ })).toBeVisible();
   await expect(page.getByText(/^Gợi ý cho tuần này:/)).toHaveCount(0);
-  const attendance = page.getByText('Chuyên Cần Tuần', { exact: true }).locator('..');
-  await expect(attendance).toContainText('1/7 ngày');
+  const attendance = page.getByText('Đã học', { exact: true }).locator('..');
+  await expect(attendance).toContainText('1 ngày');
+  await expect(attendance).not.toContainText('/7');
+  await expect(page.getByText('Mục tiêu đã hoàn thành', { exact: true })).toBeVisible();
   await expect(attendance).not.toContainText(/D-\d+/);
   await expect(page.locator('[data-task-id="full"]')).toContainText('Đã xong');
   for (const width of [320, 375, 768, 1440]) {

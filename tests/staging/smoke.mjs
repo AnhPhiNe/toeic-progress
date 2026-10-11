@@ -1,4 +1,4 @@
-// Runs only read operations against a staging API; never calls Gemini or resets data.
+// Runs only read operations against a staging API; never calls AI or resets data.
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 

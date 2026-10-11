@@ -1,6 +1,6 @@
 # TOEIC Progress
 
-Ứng dụng tiếng Việt để ghi kết quả luyện TOEIC, theo dõi tiến bộ, lưu lỗi sai, ôn tập, từ vựng và kế hoạch. Frontend dùng React/Vite/TypeScript; backend Python/FastAPI; Supabase cung cấp PostgreSQL/Auth; OpenAI/Gemini được gọi từ backend.
+Ứng dụng tiếng Việt để ghi kết quả luyện TOEIC, theo dõi tiến bộ, lưu lỗi sai, ôn tập, từ vựng và kế hoạch. Frontend dùng React/Vite/TypeScript; backend Python/FastAPI; Supabase cung cấp PostgreSQL/Auth; OpenAI được gọi từ backend.
 
 ## Cấu trúc source
 
@@ -14,7 +14,7 @@ backend/        FastAPI, cấu hình Render và kiểm thử Python
   app/core/     Cấu hình, middleware và lớp bảo vệ vận hành
   app/schemas/  Kiểm tra payload đầu vào
   app/services/ Logic xử lý nghiệp vụ
-  app/integrations/ Giao tiếp Supabase/OpenAI/Gemini
+  app/integrations/ Giao tiếp Supabase/OpenAI
   app/commands/ Công cụ bảo trì
 supabase/       Migration database đã được đánh phiên bản
 tests/          Kiểm thử trình duyệt, database và staging
@@ -48,7 +48,7 @@ Copy-Item backend/.env.example backend/.env
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --env-file backend/.env --reload --port 8000
 ```
 
-Giữ secret key/API key AI ở `backend/.env`. Để dùng OpenAI trực tiếp: `AI_PROVIDER=openai`, `OPENAI_API_KEY` là một chuỗi, `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`. Google login bật đồng bộ; khách vẫn lưu trên thiết bị. Các khóa localStorage và giao thức đồng bộ được giữ nguyên. Xem [backend/README.md](backend/README.md) cho xác thực, schema và quota.
+Giữ secret key/API key AI ở `backend/.env`. Để dùng OpenAI trực tiếp: `OPENAI_API_KEY` là một chuỗi, `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`. Google login bật đồng bộ; khách vẫn lưu trên thiết bị. Các khóa localStorage và giao thức đồng bộ được giữ nguyên. Xem [backend/README.md](backend/README.md) cho xác thực, schema và quota.
 
 ## Kiểm tra
 
@@ -69,6 +69,6 @@ Vitest ở frontend và test Python ở backend. Test SQL dùng PostgreSQL trong
 
 Vercel: **Root Directory `frontend`**, framework Vite, build `npm run build`, output `dist`. Cấu hình route/security headers nằm ở `frontend/vercel.json`. Render: Root Directory `backend`, Blueprint `backend/render.yaml`.
 
-Beta bắt đầu với tracker, `AI_ENABLED=false`. Áp dụng năm migration đầu trước khi bật API limits. Chế độ Gemini dùng thêm migration `20261007000000_gemini_provider_pool.sql` cho cân bằng project/key và cooldown; OpenAI không cần migration này. [Hướng dẫn triển khai](docs/DEPLOYMENT.md) có biến môi trường, Google login, backup/restore và kiểm thử staging.
+Beta bắt đầu với tracker, `AI_ENABLED=false`. Áp dụng năm migration đầu trước khi bật API limits. AI chỉ dùng OpenAI. Sau khi deploy backend mới, migration `20261010000000_retire_gemini_provider.sql` dọn bảng/RPC riêng của provider đã bỏ; không thay dữ liệu học hay quota AI chung. [Hướng dẫn triển khai](docs/DEPLOYMENT.md) có biến môi trường, Google login, backup/restore và kiểm thử staging.
 
 Full Test có thể ước tính theo số câu đúng hoặc nhập điểm L/R/chỉ tổng. Điểm nhập được ưu tiên; bảng quy đổi chỉ là tham khảo chưa hiệu chuẩn cho từng đề. Hiện chưa có thanh toán hay kết quả kiểm thử sức chứa cộng đồng.

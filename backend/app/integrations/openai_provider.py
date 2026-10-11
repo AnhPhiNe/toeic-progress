@@ -13,7 +13,7 @@ from app.core.config import Settings
 from app.core.runtime import request_id_context
 from app.schemas.models import MistakeDraft, OpenAIDraftOutput
 from app.services.ai_grounding import ground_draft
-from app.services.toeic_prompt import OPENAI_TOEIC_PROMPT
+from app.services.toeic_prompt import OPENAI_TOEIC_PROMPT, PART1_IMAGE_INSTRUCTIONS, PART7_IMAGE_INSTRUCTIONS
 
 logger = logging.getLogger("toeic.runtime")
 
@@ -23,19 +23,39 @@ class OpenAIProvider:
         self.settings, self.client = settings, client
 
     async def generate(self, text: str, safety_identifier: str | None = None, *,
-                       source_options: list[str] | None = None, source_answer: str | None = None) -> MistakeDraft:
+                       source_options: list[str] | None = None, source_answer: str | None = None,
+                       images: list[str] | None = None) -> MistakeDraft:
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
-        schema = OpenAIDraftOutput.model_json_schema()
+        schema = OpenAIDraftOutput.ai_schema()
+        if source_options is not None:
+            try:
+                source = json.loads(text)
+            except ValueError:
+                source = {}
+            if isinstance(source, dict) and isinstance(source.get("part"), int) and not isinstance(source["part"], bool) and 1 <= source["part"] <= 7:
+                schema["properties"]["part"] = {"type": "integer", "enum": [source["part"]]}
+            if isinstance(source, dict) and source.get("errorCategory") in schema["properties"]["category"]["enum"]:
+                schema["properties"]["category"]["enum"] = [source["errorCategory"]]
         if source_options is not None:
             # Select an exact source option rather than regenerating its wording/punctuation.
             # Empty remains available when the question lacks decisive context.
             schema["properties"]["correctAnswer"]["enum"] = ["", *source_options]
+        if images:
+            source = json.loads(text)
+            if source.get("part") not in (1, 7) or (source.get("part") == 1 and len(images) != 1):
+                raise HTTPException(422, "Ảnh chỉ hỗ trợ Part 1 (một tranh) hoặc Part 7.")
+            if source_options is None or len(source_options) != 4 or not isinstance(source.get("question"), str) or not source["question"].strip():
+                raise HTTPException(422, "Dán câu hỏi và đủ A–D; ảnh chỉ cung cấp ngữ cảnh.")
+            schema["properties"]["question"]["enum"] = [source["question"].strip()]
+        image_instructions = (PART1_IMAGE_INSTRUCTIONS if images and source["part"] == 1 else PART7_IMAGE_INSTRUCTIONS) if images else ""
+        content = [{"type": "input_text", "text": text}]
+        content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in (images or []))
         payload = {
             "model": self.settings.openai_model,
-            "instructions": OPENAI_TOEIC_PROMPT,
-            "input": [{"role": "user", "content": [{"type": "input_text", "text": text}]}],
+            "instructions": OPENAI_TOEIC_PROMPT + image_instructions,
+            "input": [{"role": "user", "content": content}],
             "reasoning": {"effort": self.settings.openai_reasoning_effort},
             "text": {"format": {
                 "type": "json_schema", "name": "toeic_mistake", "strict": True,
@@ -62,8 +82,13 @@ class OpenAIProvider:
                 "duration_ms": round((time.monotonic() - started) * 1000, 2),
             }))
             # A timed-out request may already be generating a billed result.
-            # Never automatically retry, change keys, or send it to Gemini.
-            raise HTTPException(503, "AI phản hồi chậm hoặc kết nối bị gián đoạn. Vui lòng thử lại sau.") from error
+            # Never automatically retry a possibly billed generation or change keys.
+            message = (
+                "OpenAI phản hồi quá thời gian chờ; chưa nhận được kết quả phân tích."
+                if isinstance(error, (httpx.TimeoutException, TimeoutError))
+                else "Kết nối tới OpenAI bị gián đoạn; chưa nhận được kết quả phân tích."
+            )
+            raise HTTPException(503, message + " Nội dung đang nhập vẫn được giữ. Bạn có thể thử lại hoặc lưu thủ công.") from error
         logger.info(json.dumps({
             "event": "openai_attempt", "request_id": request_id_context.get(), "model": self.settings.openai_model,
             "status": response.status_code, "duration_ms": round((time.monotonic() - started) * 1000, 2),
@@ -76,13 +101,21 @@ class OpenAIProvider:
                 except (ValueError, AttributeError):
                     billing = False
                 if billing:
-                    raise HTTPException(503, "AI tạm hết ngân sách. Bạn có thể nhập thủ công.")
+                    raise HTTPException(503, "Dịch vụ OpenAI đã hết ngân sách hoặc hạn mức thanh toán. "
+                                        "Đây không phải giới hạn lượt của tài khoản bạn. Bạn vẫn có thể lưu thủ công.")
                 try:
                     delay = max(1, min(86400, math.ceil(float(response.headers.get("Retry-After", "60")))))
                 except (ValueError, OverflowError):
                     delay = 60
-                raise HTTPException(429, "AI đang bận. Vui lòng thử lại sau.", headers={"Retry-After": str(delay)})
-            raise HTTPException(503, "OpenAI chưa xử lý được yêu cầu. Bạn có thể nhập thủ công.")
+                raise HTTPException(429, "OpenAI đang giới hạn tốc độ xử lý. Nội dung đang nhập vẫn được giữ.",
+                                    headers={"Retry-After": str(delay)})
+            if response.status_code in (401, 403):
+                raise HTTPException(503, "Ứng dụng chưa được OpenAI cho phép xử lý yêu cầu. "
+                                    "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
+            if response.status_code >= 500:
+                raise HTTPException(503, "Dịch vụ OpenAI tạm gặp sự cố. Hãy thử lại sau hoặc lưu thủ công.")
+            raise HTTPException(503, "OpenAI từ chối yêu cầu phân tích. "
+                                "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
         try:
             value = response.json()
             usage = value.get("usage") or {}
@@ -100,14 +133,16 @@ class OpenAIProvider:
                     continue
                 if item.get("status") != "completed":
                     raise ValueError("Incomplete message")
-                for content in item.get("content", []):
-                    if content.get("type") == "refusal":
+                for block in item.get("content", []):
+                    if block.get("type") == "refusal":
                         raise ValueError("Refused output")
-                    if content.get("type") == "output_text":
-                        chunks.append(content["text"])
+                    if block.get("type") == "output_text":
+                        chunks.append(block["text"])
             if not chunks:
                 raise ValueError("Missing output")
             draft = OpenAIDraftOutput.model_validate_json("".join(chunks)).to_draft()
-            return ground_draft(text, draft, allow_ai_answer=True, source_options=source_options, source_answer=source_answer)
+            return ground_draft(text, draft, allow_ai_answer=True, source_options=source_options,
+                                source_answer=source_answer, image_source=bool(images))
         except (ValueError, KeyError, TypeError, AttributeError) as error:
-            raise HTTPException(502, "AI trả bản nháp chưa hoàn chỉnh hoặc chưa hợp lệ. Hãy nhập thủ công hoặc bổ sung nội dung.") from error
+            raise HTTPException(502, "Kết quả OpenAI trả về chưa đủ hoặc không đúng định dạng nên chưa tạo được bản nháp. "
+                                "Nội dung đang nhập vẫn được giữ; hãy thử lại hoặc lưu thủ công.") from error

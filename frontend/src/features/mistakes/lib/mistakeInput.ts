@@ -1,6 +1,8 @@
-import type { MistakeEntry } from '@/shared/types';
+import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 
 export const CHOICE_LETTERS = ['A', 'B', 'C', 'D'] as const;
+/** Part 1 has spoken options and a photograph, rather than a written question stem. */
+export const PART1_QUESTION = 'Part 1 · Mô tả tranh';
 export type ChoiceLetter = typeof CHOICE_LETTERS[number];
 export type ChoiceState = NonNullable<MistakeEntry['userChoiceState']>;
 export interface MistakeInput {
@@ -12,6 +14,7 @@ export interface MistakeInput {
   userChoice: ChoiceLetter | '';
   userReason: string;
   sourceAnswer: ChoiceLetter | '';
+  errorCategory?: ErrorCategory;
 }
 
 export function inferPart(text: string): MistakeEntry['part'] | null {
@@ -54,19 +57,20 @@ export function parsePastedQuestion(raw: string, partOverride?: MistakeEntry['pa
   let options: string[];
   if (matches.length >= 2) {
     const labels = matches.map(match => (match[1] || match[2]).toUpperCase());
-    if (labels.length > 4 || new Set(labels).size !== labels.length) return failed('Có nhiều nhóm phương án hoặc nhãn trùng. Bấm Sửa để giữ một câu.');
-    if (labels.some((label, index) => label !== CHOICE_LETTERS[index])) return failed('Các phương án cần theo thứ tự A–D. Bấm Sửa để chỉnh lại.');
+    if (labels.length > 4 || new Set(labels).size !== labels.length) return failed('Có nhiều nhóm phương án hoặc nhãn trùng. Giữ lại một câu trong ô nhập.');
+    if (labels.some((label, index) => label !== CHOICE_LETTERS[index])) return failed('Các phương án cần theo thứ tự A–D. Chỉnh trực tiếp trong ô nhập.');
     question = text.slice(0, matches[0].index).trim();
     options = matches.map((match, index) => formatOptionSlot(labels[index], text.slice((match.index ?? 0) + match[0].length, matches[index + 1]?.index ?? text.length)));
   } else {
     const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     const count = part === 2 ? 3 : 4;
-    if (lines.length <= count || lines.slice(-count).some(line => line.length > 500)) return failed('Chưa tách được phương án. Không có nhãn thì mỗi phương án một dòng; hoặc bấm Sửa.');
+    if (lines.length < count || (lines.length === count && part !== 1) || lines.slice(-count).some(line => line.length > 500)) return failed('Chưa tách được phương án. Không có nhãn thì mỗi phương án một dòng; hoặc thêm nhãn A–D.');
     question = lines.slice(0, -count).join('\n');
     options = lines.slice(-count).map((line, index) => `(${CHOICE_LETTERS[index]}) ${line}`);
   }
   question = question.split('\n').filter(line => !/^\s*(?:Câu\s+\d+\s*(?:Part\s+[1-7])?|Part\s+[1-7])\s*[:.]?\s*$/i.test(line)).join('\n').trim();
-  if (!question || options.some(option => !option)) return failed('Câu hỏi hoặc phương án đang trống. Bấm Sửa để bổ sung.');
+  if (part === 1 && !question && options.length === 4) question = PART1_QUESTION;
+  if (!question || options.some(option => !option)) return failed('Câu hỏi hoặc phương án đang trống. Bổ sung trực tiếp trong ô nhập.');
   if (part === 2 && options.length > 3) return failed('Part 2 chỉ có ba phương án A–C.');
   return { question, options, part, error: '' };
 }

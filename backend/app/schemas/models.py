@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core.image_input import MAX_DATA_URL_LENGTH, MAX_TOTAL_IMAGE_BYTES, image_bytes
 from app.core.text_input import has_multiple_questions
 
 Number = Annotated[float, Field(ge=0, allow_inf_nan=False)]
@@ -110,6 +111,8 @@ class Mistake(Payload):
     category: Category
     status: Literal["NEEDS_REVIEW", "MASTERED"]
     questionContext: str = Field(max_length=16000)
+    question: str | None = Field(default=None, max_length=16000)
+    context: str | None = Field(default=None, max_length=16000)
     userMistake: str = Field(max_length=4000)
     correctAnswer: str = Field(max_length=2000)
     answerSource: AnswerSource | None = None
@@ -310,11 +313,12 @@ class MistakeInput(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(min_length=2, max_length=4)
     context: str = Field(default="", max_length=4000)
-    part: Part | None = None
+    part: Part
     userChoiceState: Literal["CHOSEN", "UNKNOWN", "BLANK"]
     userChoice: UserChoice = ""
     userReason: str = Field(default="", max_length=2000)
     sourceAnswer: UserChoice = ""
+    errorCategory: Category | None = None
 
     @model_validator(mode="after")
     def check_input(self):
@@ -326,6 +330,8 @@ class MistakeInput(BaseModel):
             labels.append(match[1])
         if labels != list("ABCD"[:len(labels)]) or (self.part == 2 and len(labels) > 3):
             raise ValueError("Phương án cần theo thứ tự A-D; Part 2 chỉ có A-C")
+        if self.part == 1 and len(labels) != 4:
+            raise ValueError("Part 1 cần đủ bốn phương án A–D")
         if self.userChoiceState == "CHOSEN" and self.userChoice not in labels:
             raise ValueError("Lựa chọn chưa khớp phương án")
         if self.userChoiceState != "CHOSEN" and self.userChoice:
@@ -342,17 +348,50 @@ class MistakeInput(BaseModel):
         return json.dumps(self.model_dump(), ensure_ascii=False, separators=(",", ":"))
 
 
+class ImageAttachment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dataUrl: str = Field(max_length=MAX_DATA_URL_LENGTH, repr=False)
+
+    @field_validator("dataUrl")
+    @classmethod
+    def validate_image(cls, value):
+        image_bytes(value)
+        return value
+
+    @property
+    def byte_count(self) -> int:
+        encoded = self.dataUrl.split(",", 1)[1]
+        return len(encoded) * 3 // 4 - (len(encoded) - len(encoded.rstrip("=")))
+
+
 class ExtractRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    text: str = Field(min_length=20, max_length=8000)
+    text: str = Field(max_length=8000)
     request_id: UUID
     consent: Literal[True]
-    provider: Literal["gemini", "openai"] | None = None
+    provider: Literal["openai"]
     captcha_token: str | None = Field(default=None, max_length=2048)
     input: MistakeInput | None = None
+    images: list[ImageAttachment] = Field(default_factory=list, max_length=3, repr=False)
 
     @model_validator(mode="after")
     def single_question(self):
+        if self.input is not None and self.input.part == 1 and not self.images:
+            raise ValueError("Cần ảnh tranh để phân tích Part 1")
+        if self.images:
+            if self.input is None or self.input.part not in (1, 7):
+                raise ValueError("Ảnh chỉ hỗ trợ Part 1/7 với input có cấu trúc")
+            if self.input.part == 1 and len(self.images) != 1:
+                raise ValueError("Mỗi câu Part 1 dùng một ảnh tranh")
+            if len(self.input.options) != 4:
+                raise ValueError("Dán đủ bốn phương án A–D; ảnh chỉ cung cấp ngữ cảnh")
+            if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
+                raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        else:
+            if len(self.text.strip()) < 20:
+                raise ValueError("Nội dung tối thiểu 20 ký tự")
+            if self.input is not None and (not self.input.question.strip() or len(self.input.options) < 2):
+                raise ValueError("Cần câu hỏi và ít nhất hai phương án")
         if self.input is None and has_multiple_questions(self.text):
             raise ValueError("Mỗi lần nhập một câu hỏi")
         return self
@@ -396,26 +435,43 @@ class DraftCore(BaseModel):
     part: Part | None
     category: Category
     questionContext: str = Field(min_length=1, max_length=4000)
+    # Optional only for older cached/provider drafts; new provider schemas require
+    # these fields. questionContext is composed by the API for older clients.
+    question: str | None = Field(default=None, max_length=4000)
+    context: str | None = Field(default=None, max_length=4000)
     userMistake: str = Field(max_length=2000)
     correctAnswer: str = Field(max_length=1000)
     options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
     tags: list[Annotated[str, Field(max_length=50)]] = Field(max_length=5)
     missingInformation: list[Annotated[str, Field(max_length=300)]] = Field(max_length=8)
     answerSource: AnswerSource
-    # Letter the learner chose. Gemini drafts may omit it; the OpenAI output requires it.
+    # Older drafts may omit the learner's choice; new OpenAI output requires it.
     userChoice: UserChoice = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def compose_question_context(cls, value):
+        if isinstance(value, dict) and isinstance(value.get("question"), str) and isinstance(value.get("context"), str):
+            value = {**value, "questionContext": "\n\n".join(
+                field.strip() for field in (value["question"], value["context"]) if field.strip()
+            )}
+        return value
+
+    @classmethod
+    def ai_schema(cls) -> dict:
+        schema = cls.model_json_schema()
+        properties = schema["properties"]
+        properties.pop("questionContext")
+        for name in ("question", "context"):
+            properties[name] = {"type": "string", "maxLength": 4000}
+        schema["required"] = list(properties)
+        return schema
 
     @model_validator(mode="after")
     def clear_missing_answer(self):
         if self.answerSource == "MISSING":
             self.correctAnswer = ""
         return self
-
-
-class GeminiDraftOutput(DraftCore):
-    """Gemini compatibility mode: one free-text explanation."""
-
-    trapTip: str = Field(max_length=4000)
 
 
 class MistakeDraft(DraftCore):
@@ -426,7 +482,7 @@ class MistakeDraft(DraftCore):
     explanation: Explanation | None = None
 
     def compose_trap_tip(self) -> None:
-        """Write trapTip from the structured sections with fixed labels; Gemini drafts keep their own text."""
+        """Write trapTip from structured sections; older drafts keep their existing text."""
         if self.explanation is None:
             return
         notes = "; ".join(

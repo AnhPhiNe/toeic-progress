@@ -21,6 +21,7 @@ const practice = row('sessions', {
 const mistake = row('mistakes', {
   id: 'm1', sessionId: 'full1', part: 5, category: 'ADVANCED_GRAMMAR', status: 'NEEDS_REVIEW',
   questionContext: 'Reports ____ submitted.', userMistake: '(A) are', correctAnswer: '(B) be', answerSource: 'AI_PROPOSED', trapTip: 'Subjunctive',
+  question: 'Reports ____ submitted.', context: 'The office is closed today.',
   options: ['(A) are','(B) be','(C) were','(D) been'], tags: ['grammar'], createdAt: stamp, reviewStage: 0, nextReviewDate: '2026-10-08',
   userChoice: 'A', userChoiceState: 'CHOSEN', userReason: 'Reports số nhiều\nMình chọn are.', answerProvidedBy: 'SOURCE',
   sourceTestName: 'ETS Test 1',
