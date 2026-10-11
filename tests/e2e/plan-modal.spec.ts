@@ -225,7 +225,7 @@ test('time summary follows the edited target and motion turns off immediately wi
   expect(await modal.evaluate(node => getComputedStyle(node).animationName)).toBe('none');
   await modal.getByLabel('Chỉ tiêu', { exact: false }).fill('480');
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu kế hoạch');
+  await expect(page.getByRole('status').filter({ hasText: 'Đã lưu kế hoạch' })).toContainText('Đã lưu kế hoạch');
   await expect(page.getByText('Thời Lượng Học', { exact: true }).locator('..')).toContainText('/ 480p');
   await expect(page.locator('[data-task-id="time"]')).toContainText('120/480');
   for (const progress of await page.locator('[data-plan-progress]').all()) {
@@ -299,7 +299,7 @@ test('reordering also works by tapping or keyboard and stays inside the pending 
   await order.focus();
   await page.keyboard.press('ArrowDown');
   await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-task-id', 'time');
-  await expect(page.getByRole('status')).toContainText('Đã đổi thứ tự');
+  await expect(page.getByRole('status').filter({ hasText: 'Đã đổi thứ tự' })).toContainText('Đã đổi thứ tự');
   await expect(page.locator('[data-task-id]').last()).toHaveAttribute('data-task-id', 'full');
 });
 

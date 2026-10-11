@@ -85,11 +85,11 @@ test('upload failure preserves the selected image and manual save can retry with
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles(fixture);
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('Chưa lưu được ảnh nguồn');
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.length)).toBe(0);
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('status')).toContainText('Đã lưu lỗi sai');
   expect(await page.evaluate(() => '__imageCalls' in window)).toBe(false);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);

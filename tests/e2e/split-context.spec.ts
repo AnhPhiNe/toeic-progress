@@ -75,7 +75,7 @@ test('Part 5 context is optional and collapsed; Part 6 manual save keeps the que
   await modal.getByLabel('Part', { exact: true }).selectOption('6');
   await modal.getByLabel('Câu hỏi + phương án').fill('The workshop is ____.\n' + options.join('\n'));
   await modal.getByLabel('Đoạn đọc', { exact: true }).fill(passage);
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.question).toBe('The workshop is ____.'); expect(saved.context).toBe(passage);
 });

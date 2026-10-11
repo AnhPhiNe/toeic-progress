@@ -41,7 +41,7 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   await expect(modal.getByRole('button', { name: 'Bạn chọn A', exact: true })).toBeDisabled();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('Phân tích ảnh trước khi lưu');
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
@@ -66,7 +66,7 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   expect(call.value.images.every(image => image.dataUrl.startsWith('data:image/jpeg;base64,'))).toBe(true);
   // An OCR warning requires checking the preview, not opening the manual answer editor.
   await modal.getByRole('button', { name: 'Quay lại', exact: true }).click();
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
   await expect(modal.getByText('Chỉnh đáp án / lời giải', { exact: true })).toHaveCount(0);
   await expect(modal.getByLabel('Giải thích / mẹo ghi nhớ', { exact: true })).toHaveCount(0);
@@ -103,7 +103,7 @@ test('invalid files and too many images retain the current attachments; changing
   await modal.getByRole('button', { name: 'Bỏ ảnh 1', exact: true }).click();
   await picker.setInputFiles(table);
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('Phân tích ảnh trước khi lưu');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toEqual([]);
 });

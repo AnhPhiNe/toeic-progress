@@ -28,7 +28,14 @@ for (const [status, message] of [
     await modal.getByRole('button', { name: 'Kiểm tra quyền AI', exact: true }).click();
     await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeEnabled();
     await expect(modal.getByText(message, { exact: true })).toHaveCount(0);
-    await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+    for (const width of [375, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeInViewport();
+      await expect(modal.getByRole('button', { name: 'Lưu thủ công', exact: true })).toBeInViewport();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      if (status === 'pending') await page.screenshot({ path: info.outputPath(`ai-approved-actions-${width}.png`) });
+    }
+    await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
     await expect(modal.getByRole('status')).toContainText('Đã lưu lỗi sai');
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toHaveLength(1);
   });

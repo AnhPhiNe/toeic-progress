@@ -77,7 +77,7 @@ test('an open guest logger cannot write its draft into a newly active account', 
     database.activateAccount('audit-other-owner');
     database.setAccountWriteEnabled(true);
   });
-  await editor.getByRole('button', { name: 'Lưu & Giữ Streak', exact: true }).click();
+  await editor.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();
   await expect(editor.getByRole('alert')).toContainText('Tài khoản đã thay đổi');
   await expect(editor.getByLabel('Tên Đề Thi / Nguồn')).toHaveValue('Guest draft');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_audit-other-owner_v3')!).sessions)).toHaveLength(0);

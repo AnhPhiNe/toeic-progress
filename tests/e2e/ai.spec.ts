@@ -21,7 +21,7 @@ for (const message of [
   await expect(modal.getByRole('alert')).toHaveText(message);
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue(raw);
   await expect(modal.getByRole('button', { name: 'Bạn chọn D', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('status')).toContainText('Đã lưu lỗi sai');
   expect(await page.evaluate(() => (window as Window & { __failedCalls: number }).__failedCalls)).toBe(1);
 });
@@ -66,7 +66,7 @@ test('quick save needs no preview or AI; missing answers stay out of review unti
   await expect(modal.getByRole('button', { name: 'Đáp án từ đề: B', exact: true })).not.toBeVisible();
 
   await modal.getByLabel('Lý do chọn').fill('Chưa chắc nghĩa inventory.\nMình không nhớ đã chọn gì.');
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).dblclick();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).dblclick();
   await expect(modal.getByRole('status')).toContainText('Chưa có đáp án');
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toHaveCount(0);
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
@@ -109,11 +109,11 @@ test('compact typography fits mobile, desktop, dark mode and zoom with spellchec
     await expect(textarea).toHaveAttribute('spellcheck', 'false');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
     await page.evaluate(() => document.documentElement.classList.add('dark'));
-    await expect(modal.getByRole('button', { name: 'Lưu nhanh' })).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Lưu thủ công' })).toBeVisible();
     if (width === 1024) {
       await page.evaluate(() => { document.documentElement.style.zoom = '125%'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
-      await expect(modal.getByRole('button', { name: 'Lưu nhanh' })).toBeVisible();
+      await expect(modal.getByRole('button', { name: 'Lưu thủ công' })).toBeVisible();
       await page.evaluate(() => { document.documentElement.style.zoom = ''; });
     }
     await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
@@ -137,16 +137,16 @@ test('Part and source are required before quick save; category is optional', asy
   await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('');
 
   await modal.getByText('Đáp án đúng từ đề', { exact: false }).click(); await modal.getByRole('button', { name: 'Đáp án từ đề: B', exact: true }).click();
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click(); await expect(modal.getByRole('alert')).toContainText('Chọn Part');
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click(); await expect(modal.getByRole('alert')).toContainText('Chọn Part');
   await expect(modal.getByLabel('Part', { exact: true })).toBeFocused();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toEqual([]);
   await modal.getByLabel('Part', { exact: true }).selectOption('5');
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('Chọn hoặc thêm tên đề');
   await expect(modal.getByRole('button', { name: 'Chọn đề', exact: true })).toBeFocused();
   await expect(modal.getByText('Ghi chú bổ sung', { exact: true })).toHaveCount(0);
   await chooseNoteSource(modal);
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click(); await expect(modal.getByRole('status')).toContainText('(B) inventory');
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click(); await expect(modal.getByRole('status')).toContainText('(B) inventory');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.correctAnswer).toBe('(B) inventory'); expect(saved.category).toBe('OTHER');
 });
@@ -179,7 +179,7 @@ test('AI receives structured input and the learner data survives the preview and
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible(); await expect(modal.getByText('AI đề xuất', { exact: true })).toBeVisible();
   await modal.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await expect(modal.getByRole('button', { name: 'Bạn chọn A', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.userChoice).toBe('A'); expect(saved.userChoiceState).toBe('CHOSEN'); expect(saved.userReason).toBe(reason); expect(saved.answerSource).toBe('AI_PROPOSED');
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();

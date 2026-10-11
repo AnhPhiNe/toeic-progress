@@ -75,7 +75,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill('Part 5:\nReports should ____ submitted.\n(A) are\n(B) be\n(C) were\n(D) been');
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
   await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
   modal = page.getByRole('dialog');
@@ -88,7 +88,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
   await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await modal.getByLabel('Tổng điểm TOEIC /990').fill('750');
-  await modal.getByRole('button', { name: 'Lưu & Giữ Streak' }).click();
+  await modal.getByRole('button', { name: 'Lưu kết quả' }).click();
   await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
   modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: /Luyện Từng Part/ }).click();
@@ -133,7 +133,7 @@ test('the picker can be canceled by Escape and the floating cue exposes the lowe
   await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill('Part 5:\nReports should ____ submitted.\n(A) are\n(B) be\n(C) were\n(D) been');
 
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('status')).toContainText('Chưa có đáp án');
   await expect(cue).toHaveCount(0);
 });

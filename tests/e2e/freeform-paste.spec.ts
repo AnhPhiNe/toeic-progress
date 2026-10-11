@@ -37,7 +37,7 @@ test('freeform paste bypasses the manual parser, keeps learner metadata and save
     userChoice: 'D', userReason: 'I thought it required being.', sourceAnswer: '' });
   await modal.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue(raw);
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.question).toBe(question); expect(saved.options).toEqual(options); expect(saved.correctAnswer).toBe('(B) be');
   expect(saved.userChoice).toBe('D'); expect(saved.userMistake).toContain('(D) being');

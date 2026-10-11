@@ -65,7 +65,7 @@ test('a same-named SW result does not count as an earlier LR attempt', async ({ 
   await modal.getByLabel('Tên Đề Thi / Nguồn').fill('Shared source');
   await page.getByRole('option', { name: 'Shared source', exact: true }).click();
   await expect(modal.getByText('Lần 4', { exact: true })).toHaveCount(0);
-  await modal.getByRole('button', { name: 'Lưu & Giữ Streak', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();
   await expect(modal).not.toBeVisible();
   const result = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.find((session: { skillType: string }) => session.skillType === 'LR'));
   expect(result).toMatchObject({ testName: 'Shared source', attemptNumber: 1 });

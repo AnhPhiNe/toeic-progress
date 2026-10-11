@@ -50,6 +50,7 @@ test('five questions reuse three images once and preserve the full source withou
     await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('7');
     await expect(modal.getByRole('button', { name: 'Chọn đề', exact: true })).toHaveText('ETS Reuse');
     await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
+    await expect(modal.getByLabel('Câu hỏi + phương án')).toBeFocused();
     await expect(modal.getByLabel('Lý do chọn')).toHaveValue('');
     await expect(modal.getByLabel('Lỗi sai', { exact: true })).toHaveValue('');
     await expect(modal.getByRole('button', { name: 'Bạn chọn A', exact: true })).toHaveAttribute('aria-pressed', 'false');
@@ -71,7 +72,7 @@ test('five questions reuse three images once and preserve the full source withou
         await page.screenshot({ path: testInfo.outputPath(`reused-reading-compact-${width}.png`) });
       }
       // Verified text can be saved manually without reading the images again.
-      await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+      await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
       await expect(modal.getByRole('status')).toContainText('Chưa có đáp án');
       await modal.getByRole('button', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
     } else {

@@ -13,6 +13,7 @@ import { SessionLoggerModal } from '@/features/study-sessions/components/Session
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
+import { AccountSyncIndicator } from '@/features/account/components/AccountSyncIndicator';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
 import { CARD } from '@/shared/ui/surfaces';
 import { clearTimer, readTimer } from '@/features/pacing/services/pacingStorage';
@@ -72,7 +73,8 @@ export const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
-  useEffect(() => { if (activeTab !== 'mistakes') setNotebookSourceFilter(null); }, [activeTab]);
+  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName: string; sessionId: string } | null>(null);
+  useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   const navigateToPacing = (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
@@ -92,7 +94,7 @@ export const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
+  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
@@ -155,6 +157,13 @@ export const App: React.FC = () => {
     setIsSessionModalOpen(false);
     setSessionPrefill(undefined);
     setEditingSession(null);
+  };
+
+  const openSessionMistake = (session: StudySession) => {
+    const owner = getActiveAccountId();
+    setNotebookSourceFilter({ owner, names: [session.testName] });
+    setSessionMistakeRequest({ id: crypto.randomUUID(), owner, sourceName: session.testName, sessionId: session.id });
+    setActiveTab('mistakes');
   };
 
   const toggleTheme = () => {
@@ -350,6 +359,8 @@ export const App: React.FC = () => {
           onOpenSessionLogger={() => openSessionLogger()}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
+          syncIndicator={<AccountSyncIndicator available={account.available} status={account.status}
+            onOpenSettings={() => setIsSettingsModalOpen(true)} onRetry={account.retry} />}
         />
 
         {/* Body Container */}
@@ -409,6 +420,8 @@ export const App: React.FC = () => {
 
           {activeTab === 'mistakes' && (
             <MistakeNotebookView
+              key={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest.id : 'notebook'}
+              createRequest={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest : undefined}
               initialSourceNames={notebookSourceFilter?.owner === activeOwner ? notebookSourceFilter.names : undefined}
               sessions={sessions}
               dueCount={dueMistakesCount}
@@ -467,6 +480,7 @@ export const App: React.FC = () => {
         prefill={sessionPrefill}
         editingSession={editingSession}
         onUpdateSession={handleUpdateSession}
+        onAddMistakeForSession={openSessionMistake}
       />
 
       {reviewCards && (

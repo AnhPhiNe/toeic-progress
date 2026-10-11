@@ -37,6 +37,7 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
   initialSourceNames?: string[];
+  createRequest?: { sourceName: string; sessionId: string };
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
@@ -46,7 +47,7 @@ interface MistakeNotebookViewProps {
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
 }
 
-export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, dueCount, onStartReview, onAddMistake,
+export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
@@ -58,7 +59,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
-  const [entry, setEntry] = useState<MistakeEntry | null | undefined>();
+  const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest ? null : undefined);
+  const [sessionSource, setSessionSource] = useState(createRequest);
   const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[] } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean } | null>(null);
@@ -77,9 +79,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã đánh dấu Thông suốt');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
-  const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); }, []);
-  const openCreate = () => { setReusedReading(null); setEntry(null); };
-  const openEdit = (value: MistakeEntry) => { setReusedReading(null); setEntry(value); };
+  const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); setSessionSource(undefined); }, []);
+  const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setEntry(null); };
+  const openEdit = (value: MistakeEntry) => { setReusedReading(null); setSessionSource(undefined); setEntry(value); };
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const sourceNames = useMemo(() => uniqueTestNames(sourcedMistakes.map(m => m.sourceTestName)), [sourcedMistakes]);
@@ -299,7 +301,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       </div>
 
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
-        sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? defaultSourceName}
+        sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
+        initialSessionId={sessionSource?.sessionId}
         initialReading={reusedReading?.text}
         initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}

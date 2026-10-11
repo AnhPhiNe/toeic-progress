@@ -23,7 +23,7 @@ test('daily totals edit by date, replace instead of add, paginate five rows and 
   await expect(edit.getByLabel('Số từ đã học')).toHaveValue('20');
   await edit.getByLabel('Số từ đã học').fill('25');
   await edit.getByRole('button', { name: 'Cập nhật', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu 25 từ');
+  await expect(page.getByRole('status').filter({ hasText: 'Đã lưu 25 từ' })).toContainText('Đã lưu 25 từ');
   await page.reload();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).vocabLog.filter((log: {date:string;deletedAt:string|null}) => log.date === '2026-10-05' && !log.deletedAt));
   expect(saved).toHaveLength(1);

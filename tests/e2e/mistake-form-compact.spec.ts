@@ -63,7 +63,7 @@ test('Part and test share a row, one source textbox replaces extra context and c
   expect(Math.abs((await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).boundingBox())!.y - (await source.boundingBox())!.y)).toBeLessThan(3);
   expect((await source.boundingBox())!.width).toBeLessThanOrEqual(310);
   await page.screenshot({ path: testInfo.outputPath('compact-note-form-desktop.png'), fullPage: true });
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.category).toBe('TIME_PRESSURE'); expect(saved.part).toBe(5); expect(saved.sourceTestName).toBe('ETS Compact');
   expect(saved.userChoiceState).toBe('UNKNOWN'); expect(saved.userChoice).toBeUndefined();

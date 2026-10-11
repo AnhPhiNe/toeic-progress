@@ -109,7 +109,7 @@ test('new data updates an untouched calculator and preserves explicit simulation
     const dialog=page.getByRole('dialog',{name:'Ghi Nhận Kết Quả Buổi Học'});
     await dialog.getByLabel('Tên Đề Thi / Nguồn').fill(name);
     for(const [index,count] of [6,25,39,30,30,16,part7].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1),{exact:true}).fill(String(count));
-    await dialog.getByRole('button',{name:'Lưu & Giữ Streak'}).click();
+    await dialog.getByRole('button',{name:'Lưu kết quả'}).click();
     await expect(dialog).not.toBeVisible();
   }
   await saveParts('New latest perfect',54);

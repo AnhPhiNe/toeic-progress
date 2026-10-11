@@ -41,7 +41,12 @@ test('Part 1 uses one picture and four pasted options, saves a labelled AI descr
   await page.screenshot({ path: testInfo.outputPath('part1-picture-preview.png'), fullPage: true });
   const sent = await page.evaluate(() => (window as Window & { __pictureRequest: { input: { part: number; question: string; options: string[] }; count: number } }).__pictureRequest);
   expect(sent.count).toBe(1); expect(sent.input.part).toBe(1); expect(sent.input.options).toEqual(options);
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu & thêm tiếp', exact: true }).click();
+  await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('1');
+  await expect(modal.getByLabel('Phương án nghe A–D')).toBeFocused();
+  await expect(modal.getByLabel('Phương án nghe A–D')).toHaveValue('');
+  await expect(modal.getByLabel('Chọn ảnh Part 1')).toBeAttached();
+  await expect(modal.getByRole('img', { name: 'Ảnh Part 1 1', exact: true })).toHaveCount(0);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.part).toBe(1); expect(saved.context).toBe(description); expect(saved.userChoice).toBe('A'); expect(saved.options).toEqual(options);
   expect(JSON.stringify(saved)).not.toContain('data:image');

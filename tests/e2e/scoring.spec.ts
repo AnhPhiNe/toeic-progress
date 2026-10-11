@@ -23,7 +23,7 @@ test('manual section scores override the estimate and survive reload and editing
   await dialog.getByLabel('Điểm Listening /495').fill('445');
   await dialog.getByLabel('Điểm Reading /495').fill('350');
   await expect(dialog.getByText('795', { exact: true })).toBeVisible();
-  await dialog.getByRole('button', { name: 'Lưu & Giữ Streak' }).click();
+  await dialog.getByRole('button', { name: 'Lưu kết quả' }).click();
   await expect(dialog).not.toBeVisible();
   const original = await savedSession(page);
   expect(original).toMatchObject({ totalScore: 795, scaledListening: 445, scaledReading: 350, rawListening: 87, rawReading: 70, scoreSource: 'MANUAL_SECTIONS' });
@@ -47,12 +47,12 @@ test('total-only entry validates limits and can later add or remove section scor
   await expect(dialog.getByLabel('Số câu đúng Part 1', { exact: true })).not.toBeVisible();
   const total = dialog.getByLabel('Tổng điểm TOEIC /990');
   await total.fill('995');
-  await dialog.getByRole('button', { name: 'Lưu & Giữ Streak' }).click();
+  await dialog.getByRole('button', { name: 'Lưu kết quả' }).click();
   await expect(dialog).toBeVisible();
   expect(await total.evaluate(input => (input as HTMLInputElement).validity.rangeOverflow)).toBe(true);
   await total.fill('800');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
-  await dialog.getByRole('button', { name: 'Lưu & Giữ Streak' }).click();
+  await dialog.getByRole('button', { name: 'Lưu kết quả' }).click();
   await expect(dialog).not.toBeVisible();
   expect(await savedSession(page)).toMatchObject({ totalScore: 800, scoreSource: 'MANUAL_TOTAL' });
   for (const field of ['scaledListening', 'scaledReading', 'partScores', 'rawListening', 'rawReading']) expect(await savedSession(page)).not.toHaveProperty(field);
@@ -112,7 +112,7 @@ test('a newly saved perfect Full Test receives 495 per section and 990 total', a
   await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('53');
   await expect(dialog.getByText('955',{exact:true})).toBeVisible();
   await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('54');
-  await dialog.getByRole('button',{name:'Lưu & Giữ Streak'}).click();
+  await dialog.getByRole('button',{name:'Lưu kết quả'}).click();
   await expect(dialog).not.toBeVisible();
   expect(await savedSession(page)).toMatchObject({rawListening:100,rawReading:100,scaledListening:495,scaledReading:495,totalScore:990,scoreSource:'ESTIMATED',scoreConversionVersion:'iibc-mock-2023-perfect-v2'});
 });

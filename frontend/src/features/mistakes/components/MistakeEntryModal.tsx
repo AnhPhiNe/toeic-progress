@@ -29,6 +29,7 @@ interface Props {
   original: MistakeEntry | null;
   sourceSuggestions?: string[];
   initialSourceName?: string;
+  initialSessionId?: string;
   initialReading?: string;
   initialSourceImageIds?: string[];
   onAdd: (entry: MistakeEntry) => void;
@@ -64,7 +65,7 @@ function originalQuestion(entry: MistakeEntry, separateReading = false): string 
   return entry.question !== undefined ? [entry.question, entry.context].filter(Boolean).join('\n\n') : entry.questionContext;
 }
 
-export function MistakeEntryModal({ original, sourceSuggestions = [], initialSourceName = '', initialReading = '', initialSourceImageIds = [], onAdd, onUpdate, onClose, onReload, onSaved }: Props) {
+export function MistakeEntryModal({ original, sourceSuggestions = [], initialSourceName = '', initialSessionId, initialReading = '', initialSourceImageIds = [], onAdd, onUpdate, onClose, onReload, onSaved }: Props) {
   const initialImages = original?.sourceImageIds ?? initialSourceImageIds;
   const initialContext = initialImages.length ? '' : typeof original?.question === 'string' ? original.context ?? '' : initialReading;
   const hasInitialReading = (original?.part ?? 7) === 7 && (Boolean(initialContext.trim()) || Boolean(initialImages.length));
@@ -282,18 +283,20 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   };
 
   const resetEntry = (reuse = false, value = draft) => {
+    const nextPart = part;
     const text = reuse && value?.part === 7 ? context || value.context || '' : '';
     const retainedIds = reuse && value?.part === 7 ? sourceImageIds : [];
     const retainedImages = reuse && value?.part === 7 && contextMode === 'image' ? images.length ? images : reading?.images ?? [] : [];
     const hasReading = Boolean(text.trim()) || retainedIds.length > 0;
     setReading(hasReading ? { text: retainedIds.length ? '' : text, images: retainedIds.length ? [] : retainedImages } : null);
-    setContextText(retainedIds.length ? '' : text); setContextMode(retainedIds.length || retainedImages.length ? 'image' : 'text');
+    setContextText(retainedIds.length ? '' : text); setContextMode(retainedIds.length || retainedImages.length || nextPart === 1 ? 'image' : 'text');
     setSourceImageIds(retainedIds); uploadedImageKey.current = '';
-    setRaw(''); setPart(hasReading ? 7 : null); setChoice(''); setReason(''); setSource(''); setCorrected(null);
+    setRaw(''); setPart(nextPart); setChoice(''); setReason(''); setSource(''); setCorrected(null);
     setImages([]); draftImages.current = '';
     setDraft(null); setStep('input'); setChanged(false); setAnswerProvidedBy(undefined);
     setCategory('OTHER'); setSelectedCategory(''); setTags(''); setError(''); setKeyOpen(false);
     entryId.current = crypto.randomUUID(); draftInput.current = ''; saved.current = false;
+    requestAnimationFrame(() => ref.current?.querySelector<HTMLTextAreaElement>('#mistake-paste')?.focus());
   };
 
   const clearReading = () => {
@@ -321,6 +324,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       const entry: MistakeEntry = { ...(original ?? {}), id: original?.id ?? entryId.current,
         createdAt: original?.createdAt ?? new Date().toISOString(), status: original?.status ?? 'NEEDS_REVIEW',
         sourceTestName,
+        sessionId: original?.sessionId ?? (testNameKey(sourceTestName) === testNameKey(initialSourceName) ? initialSessionId : undefined),
         part: value.part as MistakeEntry['part'], questionContext: storedIds.length ? value.question ?? readQuestion(value).question : value.questionContext, options: value.options.length ? value.options : undefined,
         question: value.question ?? undefined, context: storedIds.length ? '' : value.context ?? undefined,
         sourceImageIds: storedIds.length ? storedIds : undefined,
@@ -364,6 +368,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   };
 
   const draftQuestion = draft ? readQuestion(draft) : { question: '', context: '' };
+  const aiAvailable = !configBusy && Boolean(config?.structuredInput) && aiAccess?.enabled !== false;
   const previewImages = contextMode === 'image' ? images.length ? images : reading?.images ?? [] : [];
   const canReuseReading = draft?.part === 7 && (sourceImageIds.length > 0 || Boolean((reading?.text || draft.context)?.trim()));
   const quiz = resolveQuizOptions({ questionContext: draft?.questionContext ?? '', options: draft?.options,
@@ -450,7 +455,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         {step === 'input' && <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />}
       </ScrollableModalBody>
       <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3.5 dark:border-slate-700 dark:bg-[#111A2C] sm:px-6">
-        {step === 'input' ? <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${linkClass} inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} className={`${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`}>{original ? 'Lưu thay đổi' : 'Lưu nhanh'}</button></>
+        {step === 'input' ? <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-violet-600 text-white hover:bg-violet-500` : linkClass} inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} className={aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`}>{original ? 'Lưu thay đổi' : 'Lưu thủ công'}</button></>
           : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm lỗi tiếp'}</button></div></>
           : <><button type="button" disabled={persisting} onClick={() => { setStep('input'); setError(''); }} className={linkClass}>Quay lại</button><div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">{!original && <button type="button" disabled={persisting} onClick={() => void save(true, draft, false, canReuseReading)} className={`${primaryClass} min-h-11 bg-amber-200 text-slate-950 hover:bg-amber-100`}>{canReuseReading ? 'Lưu & thêm câu cùng bài' : 'Lưu & thêm tiếp'}</button>}<button type="button" disabled={persisting} onClick={() => void save()} className={`${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`}>{persisting ? 'Đang lưu…' : original ? 'Lưu thay đổi' : 'Lưu lỗi sai'}</button></div></>}
       </footer>

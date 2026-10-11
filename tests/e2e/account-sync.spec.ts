@@ -87,6 +87,8 @@ async function confirmSession(page: Page, id = 'alice') {
 
 test('returning to an existing session syncs in the background and preserves edits', async ({ page }) => {
   const state = await setupAccount(page);
+  const indicator = page.getByRole('status', { name: 'Trạng thái đồng bộ' });
+  await expect(indicator).toHaveText('Đã đồng bộ');
   const checksBefore = state.userChecks();
   const requestsBefore = state.syncRequests();
   const release = state.hold();
@@ -94,6 +96,7 @@ test('returning to an existing session syncs in the background and preserves edi
   await input.fill('21');
   await confirmSession(page);
   await expect.poll(state.syncRequests).toBe(requestsBefore + 1);
+  await expect(indicator).toHaveText('Đang đồng bộ');
   await expect(page.getByRole('alertdialog', { name: 'Trạng thái kết nối' })).toHaveCount(0);
   await expect(input).toHaveValue('21');
   await expect(input).toBeFocused();
@@ -102,6 +105,7 @@ test('returning to an existing session syncs in the background and preserves edi
   await expect(page.getByText('21 từ tích lũy', { exact: true })).toBeVisible();
   release();
   await expect.poll(() => state.uploads.some(row => row.entity_type === 'vocabLog' && row.payload.count === 21)).toBe(true);
+  await expect(indicator).toHaveText('Đã đồng bộ');
   expect(state.userChecks()).toBe(checksBefore);
 });
 
@@ -131,6 +135,11 @@ test('failed background sync keeps the connection error visible', async ({ page 
   await expect(error).toBeVisible();
   await expect(error).toContainText('Test backend unavailable');
   await expect(error.getByRole('button', { name: 'Thử lại', exact: true })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Trạng thái đồng bộ' })).toHaveText('Đồng bộ lỗi');
+  state.setFailure(false);
+  await error.getByRole('button', { name: 'Thử lại', exact: true }).click();
+  await expect(page.getByRole('status', { name: 'Trạng thái đồng bộ' })).toHaveText('Đã đồng bộ');
+  await expect(error).toHaveCount(0);
 });
 
 test('failed initialization of a different account detaches the previous owner without deleting its bundle', async ({ page }) => {

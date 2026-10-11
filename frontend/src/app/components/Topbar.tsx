@@ -26,6 +26,7 @@ export interface TopbarProps {
   onOpenSessionLogger: () => void;
   onOpenSettings: () => void;
   onToggleMobileMenu: () => void;
+  syncIndicator?: React.ReactNode;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
@@ -36,7 +37,8 @@ export const Topbar: React.FC<TopbarProps> = ({
   toggleTheme,
   onOpenSessionLogger,
   onOpenSettings,
-  onToggleMobileMenu
+  onToggleMobileMenu,
+  syncIndicator
 }) => {
   // Tính D-Day ngày thi
   const daysUntilExam = useMemo(() => {
@@ -98,10 +100,10 @@ export const Topbar: React.FC<TopbarProps> = ({
   return (
     <header className="sticky top-0 z-20 w-full bg-white dark:bg-[#0B132B] border-b-2 border-slate-900 dark:border-slate-700 transition-colors">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-15 gap-2 sm:gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-3 xl:grid-cols-[minmax(0,1fr)_auto_auto]">
           
           {/* 1. Left: Mobile menu toggle & Single-line Clean Page Title */}
-          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+          <div className="flex min-h-14 items-center space-x-2.5 sm:min-h-15 sm:space-x-3 min-w-0">
             <button
               onClick={onToggleMobileMenu}
               className="md:hidden p-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
@@ -175,6 +177,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           </div>
 
+          {syncIndicator && <div className="col-span-2 flex min-h-8 items-center justify-end pb-1 xl:col-span-1 xl:pb-0">{syncIndicator}</div>}
         </div>
       </div>
     </header>

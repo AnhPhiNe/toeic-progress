@@ -59,12 +59,12 @@ test('save confirmation appears only after persistence, respects reduced motion 
   await editor.getByText('Đáp án đúng từ đề', { exact: false }).click();
   await editor.getByRole('button', { name: 'Đáp án từ đề: B', exact: true }).click();
   await failWrites(page);
-  await editor.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await editor.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(editor.getByRole('alert')).toBeVisible();
   await expect(editor.locator('.study-success-mark')).toHaveCount(0);
   await expect(editor.getByLabel('Câu hỏi + phương án')).toHaveValue(/Forms should/);
   await restoreWrites(page);
-  await editor.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await editor.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(editor.getByRole('status')).toContainText('Đã lưu lỗi sai');
   expect(await editor.locator('.study-success-mark').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await editor.getByRole('button', { name: 'Đóng', exact: true }).last().click();
@@ -158,8 +158,10 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
   await expect(editor.getByRole('status')).toHaveText('Đã lưu ghi chú');
   expect((await heading.boundingBox())!.height).toBe(before!.height);
   await expect(editor.getByLabel('Câu hỏi + phương án')).toHaveValue('');
+  await expect(editor.getByLabel('Câu hỏi + phương án')).toBeFocused();
+  await expect(editor.getByLabel('Part', { exact: true })).toHaveValue('5');
+  await expect(editor.getByRole('button', { name: 'Chọn đề', exact: true })).toHaveText('ETS Test 1');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.length)).toBe(1);
-  await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
   await editor.getByLabel('Câu hỏi + phương án').fill('Next question');
   await expect(editor.getByRole('status')).toHaveCount(0);
 });

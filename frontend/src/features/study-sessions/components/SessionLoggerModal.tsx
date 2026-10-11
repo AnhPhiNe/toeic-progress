@@ -13,8 +13,6 @@ import {
   StudySession, 
   LRPartScore, 
   MistakeEntry, 
-  ErrorCategory, 
-  ERROR_CATEGORY_LABELS,
   PracticePartResult
 } from '@/shared/types';
 import {
@@ -43,6 +41,7 @@ interface SessionLoggerModalProps {
    */
   editingSession?: StudySession | null;
   onUpdateSession?: (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => void;
+  onAddMistakeForSession?: (session: StudySession) => void;
 }
 
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
@@ -55,7 +54,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   sessions,
   prefill,
   editingSession,
-  onUpdateSession
+  onUpdateSession,
+  onAddMistakeForSession
 }) => {
   const isEditing = !!editingSession;
   const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'>('FULL_TEST');
@@ -73,6 +73,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [includePartDetails, setIncludePartDetails] = useState(true);
   const [scoreError, setScoreError] = useState('');
   const draftOwner = useRef(getActiveAccountId());
+  const savedSession = useRef(false);
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
   const previousAttemptsForTest = useMemo(() => {
@@ -147,26 +148,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPracticeRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== index));
   };
 
-  // Quick Mistakes to add alongside session
-  const [quickMistakes, setQuickMistakes] = useState<Array<{
-    part: 1 | 2 | 3 | 4 | 5 | 6 | 7;
-    questionContext: string;
-    userMistake: string;
-    correctAnswer: string;
-    category: ErrorCategory;
-    tags: string;
-  }>>([]);
-
-  const [showAddMistake, setShowAddMistake] = useState(false);
-  const [tempMistake, setTempMistake] = useState({
-    part: 5 as 1 | 2 | 3 | 4 | 5 | 6 | 7,
-    questionContext: '',
-    userMistake: '',
-    correctAnswer: '',
-    category: 'VOCABULARY_TRAP' as ErrorCategory,
-    tags: ''
-  });
-
   /**
    * Nạp lại form MỖI LẦN mở. Component không bị gỡ khi đóng (chỉ trả null),
    * nên trước đây lần mở sau còn nguyên số của lần nhập trước - và với chế
@@ -175,6 +156,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     draftOwner.current = getActiveAccountId();
+    savedSession.current = false;
     const e = editingSession;
     setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
     setTestName(e?.testName ?? '');
@@ -196,8 +178,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
     setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
-    setQuickMistakes([]);
-    setShowAddMistake(false);
   }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
 
   const modalRef = useModalA11y(isOpen, onClose);
@@ -223,35 +203,18 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPartScores(prev => ({ ...prev, [partKey]: clamped }));
   };
 
-  const handleAddTempMistake = () => {
-    if (!tempMistake.questionContext.trim()) {
-      alert('Vui lòng nhập câu hỏi hoặc vị trí câu sai!');
-      return;
-    }
-    setQuickMistakes(prev => [...prev, { ...tempMistake }]);
-    setTempMistake({
-      part: 5,
-      questionContext: '',
-      userMistake: '',
-      correctAnswer: '',
-      category: 'VOCABULARY_TRAP',
-      tags: ''
-    });
-    setShowAddMistake(false);
-  };
-
-  const handleRemoveQuickMistake = (index: number) => {
-    setQuickMistakes(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (savedSession.current) return;
+    const submitter = (e.nativeEvent as SubmitEvent).submitter;
+    const addMistakeAfterSave = submitter instanceof HTMLButtonElement && submitter.value === 'mistake';
     try {
       if (draftOwner.current !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Nội dung đang nhập được giữ để bạn sao chép; hãy mở lại form trước khi lưu.');
       setScoreError('');
 
       if (sessionType === 'VOCAB') {
         onSaveVocab(date, vocabCount);
+        savedSession.current = true;
         onClose();
         return;
       }
@@ -300,27 +263,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         };
       }
 
-      // Chuyển đổi quick mistakes
-      const formattedMistakes: MistakeEntry[] = quickMistakes.map((m, idx) => ({
-        id: `mistake-${Date.now()}-${idx}`,
-        sessionId,
-        sourceTestName: newSession.testName,
-        part: m.part,
-        questionContext: m.questionContext,
-        userMistake: m.userMistake,
-        correctAnswer: m.correctAnswer,
-        category: m.category,
-        tags: m.tags.split(',').map(t => t.trim()).filter(Boolean),
-        status: 'NEEDS_REVIEW',
-        createdAt: new Date().toISOString()
-      }));
-
       if (editingSession && onUpdateSession) {
-        onUpdateSession(newSession, editingSession, formattedMistakes);
+        onUpdateSession(newSession, editingSession);
       } else {
-        onSaveSession(newSession, formattedMistakes);
+        onSaveSession(newSession);
       }
+      savedSession.current = true;
       onClose();
+      if (addMistakeAfterSave) onAddMistakeForSession?.(newSession);
     } catch (reason) {
       setScoreError(reason instanceof Error ? reason.message : 'Chưa lưu được buổi học. Nội dung đang nhập vẫn được giữ.');
     }
@@ -359,7 +309,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} onKeyDown={event => {
+          if (event.key !== 'Enter' || event.defaultPrevented || !(event.target instanceof HTMLInputElement)) return;
+          event.preventDefault();
+          const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
+          if (primary) event.currentTarget.requestSubmit(primary);
+        }} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5 sm:p-6">
           
           {/* Mode Switcher */}
           <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
@@ -808,126 +764,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
-          {/* Optional: Add Quick Mistakes */}
-          <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Ghi Nhanh Lỗi Sai Vào Sổ Tay ({quickMistakes.length})
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowAddMistake(!showAddMistake)}
-                className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center space-x-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Thêm câu sai</span>
-              </button>
-            </div>
-
-            {showAddMistake && (
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-slate-600 dark:text-slate-400 mb-1">Part</label>
-                    <select
-                      value={tempMistake.part}
-                      onChange={e => setTempMistake({ ...tempMistake, part: Number(e.target.value) as any })}
-                      className="w-full p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7].map(p => (
-                        <option key={p} value={p}>Part {p}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 dark:text-slate-400 mb-1">Nhóm nguyên nhân</label>
-                    <select
-                      value={tempMistake.category}
-                      onChange={e => setTempMistake({ ...tempMistake, category: e.target.value as ErrorCategory })}
-                      className="w-full p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                    >
-                      {Object.entries(ERROR_CATEGORY_LABELS).map(([cat, val]) => (
-                        <option key={cat} value={cat}>{val.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-600 dark:text-slate-400 mb-1">Vị trí / Ngữ cảnh câu</label>
-                  <input
-                    type="text"
-                    placeholder="vd: Câu 124 Part 5..."
-                    value={tempMistake.questionContext}
-                    onChange={e => setTempMistake({ ...tempMistake, questionContext: e.target.value })}
-                    className="w-full p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-slate-600 dark:text-slate-400 mb-1">Lỗi đã chọn</label>
-                    <input
-                      type="text"
-                      placeholder="vd: Chọn nhầm B"
-                      value={tempMistake.userMistake}
-                      onChange={e => setTempMistake({ ...tempMistake, userMistake: e.target.value })}
-                      className="w-full p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 dark:text-slate-400 mb-1">Đáp án đúng & Bài học</label>
-                    <input
-                      type="text"
-                      placeholder="vd: Đáp án C"
-                      value={tempMistake.correctAnswer}
-                      onChange={e => setTempMistake({ ...tempMistake, correctAnswer: e.target.value })}
-                      className="w-full p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddMistake(false)}
-                    className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAddTempMistake}
-                    className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer transition active:scale-95"
-                  >
-                    Lưu
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* List of pending quick mistakes */}
-            {quickMistakes.length > 0 && (
-              <div className="space-y-1">
-                {quickMistakes.map((m, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
-                    <div className="space-x-1.5">
-                      <span className="font-bold text-blue-600 dark:text-blue-400">P{m.part}:</span>
-                      <span className="text-slate-700 dark:text-slate-300">{m.questionContext}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveQuickMistake(idx)}
-                      className="text-slate-400 hover:text-rose-500 cursor-pointer p-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Session Notes */}
           <div>
             <label htmlFor="session-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -956,23 +792,31 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
+          </div>
+          <div className="shrink-0 space-y-2 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#121A2B] sm:px-6">
           {/* Submit Button */}
           {scoreError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
-          <div className="pt-2 flex justify-end space-x-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="mr-auto min-h-11 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy
             </button>
+            {sessionType !== 'VOCAB' && onAddMistakeForSession && <button type="submit" name="afterSave" value="mistake"
+              className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+              Lưu & thêm câu sai
+            </button>}
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
+              name="afterSave" value="close"
+              className="min-h-11 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : 'Lưu & Giữ Streak'}</span>
+              <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : 'Lưu kết quả'}</span>
             </button>
+          </div>
           </div>
 
         </form>

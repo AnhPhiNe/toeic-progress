@@ -43,8 +43,11 @@ test('source names survive repeated entry, filter with other criteria, and scope
 
   await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
   await modal.getByRole('button', { name: 'Đáp án từ đề: B' }).click();
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await modal.getByRole('button', { name: 'Thêm lỗi tiếp' }).click();
+  await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('5');
+  await expect(modal.getByLabel('Câu hỏi + phương án')).toBeFocused();
+  await expect(modal.locator('button[aria-label="Đáp án từ đề: B"]')).toHaveAttribute('aria-pressed', 'false');
   await expect(modal.getByText('ETS 2024 Test 03', { exact: true })).toBeVisible();
   await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
@@ -53,12 +56,13 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill(question.replace('Reports', 'Forms'));
 
-  await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
 
   for (const sourceName of ['ETS 2023 Test 02', 'ETS 2021 Test 01']) {
     await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
     modal = page.getByRole('dialog');
+    await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('');
     await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
     await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill(sourceName);
     await page.getByRole('option', { name: `+ Thêm tên đề “${sourceName}”`, exact: true }).click();
@@ -67,7 +71,7 @@ test('source names survive repeated entry, filter with other criteria, and scope
 
     await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
     await modal.getByRole('button', { name: 'Đáp án từ đề: B' }).click();
-    await modal.getByRole('button', { name: 'Lưu nhanh', exact: true }).click();
+    await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
     await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
   }
   await page.reload();
