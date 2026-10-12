@@ -26,7 +26,9 @@ import { actualStudyDates } from '@/shared/domain/streak';
 import { getTodayDateString, computeSessionAttemptMap } from '@/shared/data/storage';
 import { CARD } from '@/shared/ui/surfaces';
 import { useChartMotion } from '@/shared/hooks/useChartMotion';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { OverviewChartLabels } from './OverviewChartLabels';
+import { PhoneStreak, PhoneSummary } from './PhoneOverview';
 import './dashboard-motion.css';
 
 interface DashboardProps {
@@ -58,6 +60,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const today = getTodayDateString();
   const isDark = theme === 'dark';
   const chartMotion = useChartMotion(700);
+  // Phones render PhoneSummary/PhoneStreak instead of the desktop cards; only one version is ever in the DOM.
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
   const [mounted, setMounted] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -260,6 +264,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [highestScore]);
 
   const hasDiff = Boolean(stats && stats.totalTests > 1);
+  const latestTotal = latestTest ? (latestTest.totalScore || (listeningScore ?? 0) + (readingScore ?? 0)) : 0;
+  const previousTotal = allChartData.length > 1 ? allChartData[allChartData.length - 2].total : undefined;
   const highestPercent = targetScore > 0 ? Math.min(100, Math.round(((highestScore || 0) / targetScore) * 100)) : 0;
 
   return (
@@ -270,8 +276,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* ================= CỘT TRÁI (3 KPI Game Hóa Thành Tích & Biểu đồ tiến độ) ================= */}
         <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
-          {/* 1. DẢI 3 THẺ CHỈ SỐ — GAME HÓA THÀNH TÍCH TINH GỌN & CÂN ĐỐI */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
+          {isPhone && <PhoneSummary latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
+            listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
+            highestScore={highestScore} bestTestName={bestTest?.testName} avgScore={stats?.avgScore}
+            totalTests={stats?.totalTests ?? 0} diff={diff} hasDiff={hasDiff} firstTotal={stats?.first.total}
+            onOpenSessionLogger={onOpenSessionLogger} onNavigateToAnalytics={onNavigateToAnalytics} />}
+
+          {/* 1. DẢI 3 THẺ CHỈ SỐ — từ tablet trở lên; điện thoại dùng PhoneSummary ở trên */}
+          {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
             
             {/* THẺ 1: HUY HIỆU CẤP BẬC & KỶ LỤC CÁ NHÂN */}
             <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
@@ -439,13 +451,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-          </div>
+          </div>}
 
           {/* 3. BIỂU ĐỒ TIẾN BỘ */}
-          <div className={`${CARD} flex-1 flex flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
+          {/* Điện thoại: khi chưa có đề, thẻ PhoneSummary đã mời ghi điểm nên ẩn biểu đồ trống */}
+          <div className={`${CARD} flex-1 ${isPhone && allChartData.length === 0 ? 'hidden' : 'flex'} flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                Tiến bộ qua từng bài thi
+              <h2 className="text-[15px] md:text-sm font-black text-slate-900 dark:text-white">
+                <span className="md:hidden">Tiến bộ</span><span className="hidden md:inline">Tiến bộ qua từng bài thi</span>
               </h2>
               <div className="flex items-center gap-1.5">
                 <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="tablist">
@@ -603,8 +616,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* ================= CỘT PHẢI (Khoảng cách cân đối, kích thước vừa vặn không bị tràn màn hình) ================= */}
         <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
+          {isPhone && <PhoneStreak streak={profile.currentStreak} hasStudiedToday={hasStudiedToday} weekDays={weekDays} />}
+
           {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT (CHUẨN NEO-BRUTALISM) */}
-          <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
+          {!isPhone && <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
             {/* Header: Đuốc kem bơ tĩnh + Title sắc nét + Streak Badge */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -704,10 +719,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               ))}
             </div>
 
-          </div>
+          </div>}
 
           {/* 6. BÀI THI GẦN NHẤT - Phong cách Neo-Clean Hierarchy (Chuẩn UI/UX) */}
-          <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
+          {!isPhone && <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
             {/* Header: Sét Neo + Tiêu đề + Chip Tổng điểm Neo */}
             <div className="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-slate-900 dark:border-slate-700">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -732,7 +747,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 title={`Tổng điểm bài thi gần nhất${latestTest ? `: ${latestTest.testName}` : ''}`}
               >
                 <span className="text-sm sm:text-base font-black text-blue-950 leading-none tracking-tight tabular-nums">
-                  {latestTest ? (latestTest.totalScore || (listeningScore ?? 0) + (readingScore ?? 0)) : 0}
+                  {latestTotal}
                 </span>
                 <span className="text-[10px] sm:text-[10.5px] font-bold text-slate-700 opacity-90 leading-none">/ 990đ</span>
                 <span className="text-xs">🎯</span>
@@ -825,7 +840,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>Xem Ma Trận 7 Part Chi Tiết</span>
               <ArrowRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-1 transition-transform" />
             </button>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
