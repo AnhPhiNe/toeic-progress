@@ -14,7 +14,7 @@ interface SummaryProps {
   readingScore?: number;
   targetScore: number;
   highestScore: number;
-  bestTestName?: string;
+  bestTestDate?: string;
   avgScore?: number;
   totalTests: number;
   diff: number;
@@ -28,7 +28,7 @@ interface SummaryProps {
  * so it leads; record, average and progress follow as three small tiles in one row.
  */
 export function PhoneSummary({ latestTest, latestTotal, previousTotal, listeningScore, readingScore, targetScore, highestScore,
-  bestTestName, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger }: SummaryProps) {
+  bestTestDate, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger }: SummaryProps) {
   if (!latestTest) {
     return (
       <section className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
@@ -54,18 +54,16 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
           <span className="min-w-0 truncate">{latestTest.testName}</span>
           <span className="shrink-0 tabular-nums">{formatShortDate(latestTest.date)}</span>
         </div>
-        <div className="mt-1.5 flex items-end justify-between gap-3">
-          <p className="flex items-baseline gap-1.5">
-            <span className="text-[44px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
-            <span className="text-[15px] font-bold text-slate-400">/ 990</span>
-          </p>
+        <p className="mt-1.5 flex items-baseline gap-1.5">
+          <span className="text-[44px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
+          <span className="text-[15px] font-bold text-slate-400">/ 990</span>
           {change !== undefined && change !== 0 && (
-            <span className={'pb-1 text-[15px] font-black tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}
+            <span className={'ml-1 text-[15px] font-black tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}
               title="So với bài Full Test trước">
               {change > 0 ? '+' : ''}{change}
             </span>
           )}
-        </div>
+        </p>
         {listeningScore === undefined && readingScore === undefined
           ? <p className="mt-1.5 text-[13px] text-slate-500 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>
           : <p className="mt-1.5 flex gap-3 text-[13.5px] font-black tabular-nums">
@@ -81,7 +79,7 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
       </section>
 
       <div className="grid grid-cols-3 gap-2">
-        <Tile label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={bestTestName ?? '—'} />
+        <Tile label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={bestTestDate ? `Ngày ${formatShortDate(bestTestDate)}` : '—'} />
         <Tile label="Trung bình" value={avgScore ?? '—'} color="text-blue-600 dark:text-blue-400" hint={`${totalTests} đề`} />
         <Tile label="Từ bài đầu" value={hasDiff ? `${diff > 0 ? '+' : ''}${diff}` : '—'} color={diffColor}
           hint={hasDiff && firstTotal !== undefined ? `${firstTotal} → ${latestTotal}` : 'Cần từ 2 đề'} />

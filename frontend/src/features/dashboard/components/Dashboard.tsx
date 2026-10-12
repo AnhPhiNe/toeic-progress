@@ -159,7 +159,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // "Lần đầu" loại các lượt làm lại - điểm làm lại đề cũ bị thổi phồng vì nhớ đáp án
   const chartData = useMemo(
     () => {
-      const filtered = chartFilter === 'FIRST' ? allChartData.filter(d => !d.isRetest) : allChartData;
+      // Điện thoại không có nút lọc; lần làm lại được đánh dấu thẳng trên biểu đồ.
+      const filtered = chartFilter === 'FIRST' && !isPhone ? allChartData.filter(d => !d.isRetest) : allChartData;
       // Điện thoại chỉ đủ chỗ cho 4 điểm có nhãn; xem toàn bộ ở trang Phân tích.
       return isPhone ? filtered.slice(-PHONE_CHART_POINTS) : filtered;
     },
@@ -287,9 +288,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {isPhone && <PhoneSummary latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
-            highestScore={highestScore} bestTestName={bestTest?.testName} avgScore={stats?.avgScore}
+            highestScore={highestScore} avgScore={stats?.avgScore}
             totalTests={stats?.totalTests ?? 0} diff={diff} hasDiff={hasDiff} firstTotal={stats?.first.total}
-            onOpenSessionLogger={onOpenSessionLogger} />}
+            bestTestDate={bestTest?.date} onOpenSessionLogger={onOpenSessionLogger} />}
 
           {/* 1. DẢI 3 THẺ CHỈ SỐ — từ tablet trở lên; điện thoại dùng PhoneSummary ở trên */}
           {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
@@ -470,7 +471,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="md:hidden">Tiến bộ{allChartData.length > PHONE_CHART_POINTS && <span className="font-semibold text-slate-500 dark:text-slate-400"> · {PHONE_CHART_POINTS} đề</span>}</span><span className="hidden md:inline">Tiến bộ qua từng bài thi</span>
               </h2>
               <div className="flex items-center gap-1.5">
-                <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="tablist">
+                {!isPhone && <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="tablist">
                   {([['ALL', 'Tất cả'], ['FIRST', 'Lần đầu']] as const).map(([key, label]) => (
                     <button
                       key={key}
@@ -486,7 +487,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       {label}
                     </button>
                   ))}
-                </div>
+                </div>}
 
                 <button
                   onClick={onNavigateToAnalytics}
@@ -598,7 +599,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       dot={false}
                       activeDot={{ r: 6.5, fill: '#2563EB', stroke: isDark ? '#FFFFFF' : '#0F172A', strokeWidth: 2 }}
                     />
-                    <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} />} />
+                    <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} markRetests={isPhone} />} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -619,6 +620,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               )}
               </div>
             </div>
+            {isPhone && chartData.some(d => d.isRetest) && (
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="h-2.5 w-2.5 rounded-full border-2 border-slate-400 dark:border-slate-500" aria-hidden="true" />Làm lại đề cũ
+              </p>
+            )}
           </div>
 
         </div>

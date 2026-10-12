@@ -37,7 +37,7 @@ export function StreakChip({ streak, longestStreak, studiedDates, today }: Strea
     <button ref={chipRef} type="button" aria-haspopup="dialog" aria-expanded={anchor !== null} aria-label={`Chuỗi học ${streak} ngày, xem tuần này`}
       onClick={() => setAnchor(chipRef.current?.getBoundingClientRect() ?? null)}
       className={'flex h-9 items-center gap-1 rounded-xl border-2 border-slate-900 px-2 text-[13px] font-black tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer '
-        + (lit ? 'bg-amber-100 text-slate-950' : 'bg-slate-100 text-slate-500')
+        + (lit ? 'bg-amber-100 text-slate-950' : 'bg-slate-100 text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400')
         + (anchor ? ' ring-[3px] ring-orange-300 ring-offset-1' : '')}>
       <Flame size={16} strokeWidth={2.5} className={lit ? 'text-orange-600' : 'text-slate-400'} aria-hidden="true" />
       {streak}
