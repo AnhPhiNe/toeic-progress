@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { 
-  Menu, 
   PlusCircle, 
   Calendar, 
   Sun, 
@@ -25,8 +24,9 @@ export interface TopbarProps {
   toggleTheme: () => void;
   onOpenSessionLogger: () => void;
   onOpenSettings: () => void;
-  onToggleMobileMenu: () => void;
   syncIndicator?: React.ReactNode;
+  /** Phone-only avatar that opens settings and carries the sync status dot. */
+  accountButton?: React.ReactNode;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
@@ -37,8 +37,8 @@ export const Topbar: React.FC<TopbarProps> = ({
   toggleTheme,
   onOpenSessionLogger,
   onOpenSettings,
-  onToggleMobileMenu,
-  syncIndicator
+  syncIndicator,
+  accountButton
 }) => {
   // Tính D-Day ngày thi
   const daysUntilExam = useMemo(() => {
@@ -110,18 +110,10 @@ export const Topbar: React.FC<TopbarProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 sm:gap-x-3">
           
-          {/* 1. Left: Mobile menu toggle & Single-line Clean Page Title */}
+          {/* 1. Left: Single-line page title (phones show it large; navigation lives in the bottom bar) */}
           <div className="flex min-h-14 items-center space-x-2.5 sm:min-h-15 sm:space-x-3 min-w-0">
-            <button
-              onClick={onToggleMobileMenu}
-              className="md:hidden p-2 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              aria-label="Mở menu điều hướng"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
             <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hidden sm:flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hidden md:flex items-center justify-center shrink-0">
                 <TabIcon className="w-4 h-4 stroke-[2.5]" />
               </div>
               {/* Một dòng: nhóm chỉ hiện khi đủ rộng, tên trang co lại thay vì xuống dòng */}
@@ -129,8 +121,8 @@ export const Topbar: React.FC<TopbarProps> = ({
                 <span className="text-slate-500 dark:text-slate-400 font-bold hidden xl:inline">{currentTab.category}</span>
                 <span className="text-slate-400 dark:text-slate-600 font-bold hidden xl:inline">/</span>
                 <span className="font-black text-slate-950 dark:text-white truncate tracking-tight">
-                  <span className="sm:hidden">{currentTab.short}</span>
-                  <span className="hidden sm:inline">{currentTab.title}</span>
+                  <span className="md:hidden text-[22px] leading-none">{currentTab.short}</span>
+                  <span className="hidden md:inline">{currentTab.title}</span>
                 </span>
               </div>
             </div>
@@ -160,13 +152,12 @@ export const Topbar: React.FC<TopbarProps> = ({
             {/* Global Primary Action CTA: High Contrast Neo-Brutalist Slate - Clean & Non-glaring */}
             <button
               onClick={onOpenSessionLogger}
-              className="h-9 flex items-center space-x-1.5 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-black text-xs border-2 border-slate-900 dark:border-white shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              className="h-9 hidden md:flex items-center space-x-1.5 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-black text-xs border-2 border-slate-900 dark:border-white shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
               title="Ghi nhận điểm thi mới (Phím tắt: N)"
               aria-label="Nhập kết quả đề thi mới, phím tắt N"
             >
               <PlusCircle className="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
-              <span className="hidden sm:inline">Nhập Điểm</span>
-              <span className="sm:hidden">Nhập</span>
+              <span>Nhập Điểm</span>
               <kbd className="hidden lg:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-900 rounded border border-slate-700 dark:border-slate-300 leading-none ml-0.5">
                 N
               </kbd>
@@ -185,9 +176,10 @@ export const Topbar: React.FC<TopbarProps> = ({
                 <Moon className="w-4 h-4 text-slate-900 hover:-rotate-12 transition-transform duration-300" />
               )}
             </button>
+            {accountButton && <div className="md:hidden">{accountButton}</div>}
           </div>
 
-          {syncIndicator && <div className="flex min-h-8 items-center justify-end">{syncIndicator}</div>}
+          {syncIndicator && <div className="hidden min-h-8 items-center justify-end md:flex">{syncIndicator}</div>}
         </div>
       </div>
     </header>

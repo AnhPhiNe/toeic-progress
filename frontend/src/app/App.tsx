@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from '@/app/components/Sidebar';
 import { Topbar } from '@/app/components/Topbar';
+import { MobileNav } from '@/app/components/MobileNav';
+import { profileInitials } from '@/app/components/profileInitials';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { AnalyticsView } from '@/features/analytics/components/AnalyticsView';
 import { ExamHistoryView } from '@/features/study-sessions/components/ExamHistoryView';
@@ -14,6 +16,7 @@ import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
 import { AccountSyncIndicator } from '@/features/account/components/AccountSyncIndicator';
+import { AccountAvatarButton } from '@/features/account/components/AccountAvatarButton';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
 import { CARD } from '@/shared/ui/surfaces';
 import { clearTimer, readTimer } from '@/features/pacing/services/pacingStorage';
@@ -93,7 +96,7 @@ export const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
-  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName: string; sessionId: string } | null>(null);
+  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   const navigateToPacing = (part: ReadingPartType) => {
@@ -115,7 +118,6 @@ export const App: React.FC = () => {
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const activeOwner = getActiveAccountId();
   useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
   // Đọc lại từ chính class đó để React luôn khớp với những gì người dùng đã nhìn thấy.
@@ -183,6 +185,14 @@ export const App: React.FC = () => {
     const owner = getActiveAccountId();
     setNotebookSourceFilter({ owner, names: [session.testName] });
     setSessionMistakeRequest({ id: crypto.randomUUID(), owner, sourceName: session.testName, sessionId: session.id });
+    setActiveTab('mistakes');
+  };
+
+  // Nút + trên điện thoại: mở form thêm lỗi trống ở Sổ tay, không lọc theo đề nào.
+  const openNewMistake = () => {
+    const owner = getActiveAccountId();
+    setNotebookSourceFilter(null);
+    setSessionMistakeRequest({ id: crypto.randomUUID(), owner });
     setActiveTab('mistakes');
   };
 
@@ -362,15 +372,7 @@ export const App: React.FC = () => {
         pendingMistakesCount={dueMistakesCount}
         sessions={sessions}
         hasStudiedToday={hasStudiedToday}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
-        onResetData={handleResetData}
-        onLoadDemo={handleLoadDemo}
-        onImportSuccess={handleImportSuccess}
-        isMobileOpen={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* 2. Main Content View Area (Right) */}
@@ -386,9 +388,10 @@ export const App: React.FC = () => {
           toggleTheme={toggleTheme}
           onOpenSessionLogger={() => openSessionLogger()}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
-          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
           syncIndicator={<AccountSyncIndicator available={account.available} status={account.status}
             onOpenSettings={() => setIsSettingsModalOpen(true)} onRetry={account.retry} />}
+          accountButton={<AccountAvatarButton initials={profileInitials(profile.name)} available={account.available} status={account.status}
+            onOpenSettings={() => setIsSettingsModalOpen(true)} />}
         />
 
         <ConnectionBanner
@@ -402,7 +405,7 @@ export const App: React.FC = () => {
         />
 
         {/* Body Container */}
-        <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 flex flex-col min-h-0">
+        <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 lg:pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-5 lg:pb-6 flex flex-col min-h-0">
           {activeTab === 'dashboard' && (
             <div className="w-full space-y-3 sm:space-y-4">
               {showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
@@ -506,6 +509,18 @@ export const App: React.FC = () => {
         </main>
 
       </div>
+
+      <MobileNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        dueMistakesCount={dueMistakesCount}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onRecordSession={() => openSessionLogger()}
+        onRecordMistake={openNewMistake}
+        onRecordVocab={() => openSessionLogger({ sessionType: 'VOCAB' })}
+      />
 
       {/* Modals */}
       {editingPacing && editingPacing.owner === activeOwner && <PacingResultEditor run={editingPacing.run} owner={editingPacing.owner} onClose={closePacingEditor} onSaved={handleSessionsChangedElsewhere} />}

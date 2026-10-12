@@ -8,7 +8,13 @@ async function openSession(page: Page, practice = false) {
     `
   }));
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
+  // Phones record through the bottom bar's "+" sheet; the top-bar button is for tablet and desktop.
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
+  } else {
+    await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
+  }
   const modal = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học' });
   if (practice) await modal.getByRole('button', { name: 'Luyện Từng Part Lẻ (Mini Practice)', exact: true }).click();
   await modal.getByLabel('Tên Đề Thi / Nguồn').fill(practice ? 'ETS Practice' : 'ETS Handoff');

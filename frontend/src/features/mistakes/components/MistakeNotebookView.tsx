@@ -37,7 +37,7 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
   initialSourceNames?: string[];
-  createRequest?: { sourceName: string; sessionId: string };
+  createRequest?: { sourceName?: string; sessionId?: string };
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
