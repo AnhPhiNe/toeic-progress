@@ -46,7 +46,7 @@ interface DashboardProps {
 // Trên điện thoại chỉ thẻ điểm giữ viền đậm; biểu đồ dùng viền mảnh để không tranh chú ý.
 const PHONE_PANEL = 'rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#111A2C]';
 
-const PHONE_CHART_POINTS = 5;
+const PHONE_CHART_POINTS = 4;
 
 const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
@@ -160,7 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const chartData = useMemo(
     () => {
       const filtered = chartFilter === 'FIRST' ? allChartData.filter(d => !d.isRetest) : allChartData;
-      // Điện thoại chỉ đủ chỗ cho 5 điểm có nhãn; xem toàn bộ ở trang Phân tích.
+      // Điện thoại chỉ đủ chỗ cho 4 điểm có nhãn; xem toàn bộ ở trang Phân tích.
       return isPhone ? filtered.slice(-PHONE_CHART_POINTS) : filtered;
     },
     [allChartData, chartFilter, isPhone]
