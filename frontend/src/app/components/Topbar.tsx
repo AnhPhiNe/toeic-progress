@@ -27,6 +27,8 @@ export interface TopbarProps {
   syncIndicator?: React.ReactNode;
   /** Phone-only avatar that opens settings and carries the sync status dot. */
   accountButton?: React.ReactNode;
+  /** Phone-only streak flame shown before the exam countdown. */
+  streakButton?: React.ReactNode;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
@@ -38,7 +40,8 @@ export const Topbar: React.FC<TopbarProps> = ({
   onOpenSessionLogger,
   onOpenSettings,
   syncIndicator,
-  accountButton
+  accountButton,
+  streakButton
 }) => {
   // Tính D-Day ngày thi
   const daysUntilExam = useMemo(() => {
@@ -131,6 +134,8 @@ export const Topbar: React.FC<TopbarProps> = ({
           {/* 2. Right: D-Day Countdown, Primary Action & Utilities */}
           <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
             
+            {streakButton && <div className="md:hidden">{streakButton}</div>}
+
             {/* D-Day Countdown Chip - Neo Brutalism */}
             <button
               onClick={onOpenSettings}

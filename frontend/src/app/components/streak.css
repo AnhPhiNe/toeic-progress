@@ -1,0 +1,32 @@
+/* Flame flares up, then the card shrinks toward the streak chip in the top-right corner. */
+.streak-celebration {
+  background: rgba(15, 23, 42, 0.45);
+  animation: streak-dim 2600ms ease forwards;
+}
+.streak-celebration-card {
+  transform-origin: 85% 0;
+  animation: streak-card 2600ms cubic-bezier(.2, .8, .2, 1) forwards;
+}
+.streak-celebration-glow {
+  background: radial-gradient(circle, #fed7aa 0, #fde68a 45%, rgba(253, 230, 138, 0) 70%);
+  animation: streak-glow 900ms ease-out 2;
+}
+.streak-celebration-flame {
+  transform-origin: 50% 90%;
+  animation: streak-flare 900ms cubic-bezier(.3, 1.6, .5, 1) both, streak-flicker 450ms ease-in-out 900ms 3 alternate;
+}
+
+@keyframes streak-dim { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes streak-card {
+  0% { transform: scale(.6); opacity: 0; }
+  14% { transform: scale(1.04); opacity: 1; }
+  22%, 72% { transform: scale(1); opacity: 1; }
+  100% { transform: translate(110px, -330px) scale(.12); opacity: 0; }
+}
+@keyframes streak-glow { 0% { transform: scale(.6); opacity: .4; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: .85; } }
+@keyframes streak-flare { 0% { transform: scale(.3) rotate(-8deg); } 60% { transform: scale(1.25) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes streak-flicker { from { transform: scale(1) rotate(-2deg); } to { transform: scale(1.06) rotate(2deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-celebration, .streak-celebration-card, .streak-celebration-glow, .streak-celebration-flame { animation: none; }
+}

@@ -28,7 +28,7 @@ import { CARD } from '@/shared/ui/surfaces';
 import { useChartMotion } from '@/shared/hooks/useChartMotion';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { OverviewChartLabels } from './OverviewChartLabels';
-import { PhoneStreak, PhoneSummary } from './PhoneOverview';
+import { PhoneSummary } from './PhoneOverview';
 import './dashboard-motion.css';
 
 interface DashboardProps {
@@ -42,6 +42,9 @@ interface DashboardProps {
 }
 
 // Bề mặt thẻ dùng chung với các màn hình khác (xem surfaces.ts)
+
+// Trên điện thoại chỉ thẻ điểm giữ viền đậm; biểu đồ dùng viền mảnh để không tranh chú ý.
+const PHONE_PANEL = 'rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#111A2C]';
 
 const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
@@ -60,7 +63,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const today = getTodayDateString();
   const isDark = theme === 'dark';
   const chartMotion = useChartMotion(700);
-  // Phones render PhoneSummary/PhoneStreak instead of the desktop cards; only one version is ever in the DOM.
+  // Phones render PhoneSummary instead of the KPI and latest-test cards (streak lives in the top-bar chip); only one version is ever in the DOM.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
   const [mounted, setMounted] = useState(false);
@@ -280,7 +283,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
             highestScore={highestScore} bestTestName={bestTest?.testName} avgScore={stats?.avgScore}
             totalTests={stats?.totalTests ?? 0} diff={diff} hasDiff={hasDiff} firstTotal={stats?.first.total}
-            onOpenSessionLogger={onOpenSessionLogger} onNavigateToAnalytics={onNavigateToAnalytics} />}
+            onOpenSessionLogger={onOpenSessionLogger} />}
 
           {/* 1. DẢI 3 THẺ CHỈ SỐ — từ tablet trở lên; điện thoại dùng PhoneSummary ở trên */}
           {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
@@ -455,7 +458,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {/* 3. BIỂU ĐỒ TIẾN BỘ */}
           {/* Điện thoại: khi chưa có đề, thẻ PhoneSummary đã mời ghi điểm nên ẩn biểu đồ trống */}
-          <div className={`${CARD} flex-1 ${isPhone && allChartData.length === 0 ? 'hidden' : 'flex'} flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
+          <div className={`${isPhone ? PHONE_PANEL : CARD} flex-1 ${isPhone && allChartData.length === 0 ? 'hidden' : 'flex'} flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-[15px] md:text-sm font-black text-slate-900 dark:text-white">
                 <span className="md:hidden">Tiến bộ</span><span className="hidden md:inline">Tiến bộ qua từng bài thi</span>
@@ -490,7 +493,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="relative w-full h-[160px] sm:h-[180px] xl:h-auto xl:flex-1 xl:min-h-[160px]">
+            {/* Điện thoại: biểu đồ lấp phần màn hình còn lại thay vì để trống phía dưới */}
+            <div className="relative w-full h-[max(220px,calc(100dvh-520px))] md:h-[180px] xl:h-auto xl:flex-1 xl:min-h-[160px]">
               <div className="absolute inset-0">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -616,7 +620,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* ================= CỘT PHẢI (Khoảng cách cân đối, kích thước vừa vặn không bị tràn màn hình) ================= */}
         <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
-          {isPhone && <PhoneStreak streak={profile.currentStreak} hasStudiedToday={hasStudiedToday} weekDays={weekDays} />}
 
           {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT (CHUẨN NEO-BRUTALISM) */}
           {!isPhone && <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">

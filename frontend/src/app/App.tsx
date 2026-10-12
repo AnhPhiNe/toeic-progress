@@ -3,6 +3,8 @@ import { Sidebar } from '@/app/components/Sidebar';
 import { Topbar } from '@/app/components/Topbar';
 import { MobileNav } from '@/app/components/MobileNav';
 import { profileInitials } from '@/app/components/profileInitials';
+import { StreakCelebration, StreakChip } from '@/app/components/StreakChip';
+import { actualStudyDates } from '@/shared/domain/streak';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { AnalyticsView } from '@/features/analytics/components/AnalyticsView';
 import { ExamHistoryView } from '@/features/study-sessions/components/ExamHistoryView';
@@ -359,7 +361,8 @@ export const App: React.FC = () => {
   // Badge điều hướng chỉ việc cần làm HÔM NAY, không phải toàn bộ tồn đọng
   const dueMistakesCount = getDueMistakes(mistakes).length;
   const today = getTodayDateString();
-  const hasStudiedToday = sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
+  const studiedDates = actualStudyDates({ sessions, vocabLog, pacingRuns: loadPacingRuns() }, today);
+  const hasStudiedToday = studiedDates.has(today) || sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
@@ -392,6 +395,7 @@ export const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsModalOpen(true)} onRetry={account.retry} />}
           accountButton={<AccountAvatarButton initials={profileInitials(profile.name)} available={account.available} status={account.status}
             onOpenSettings={() => setIsSettingsModalOpen(true)} />}
+          streakButton={<StreakChip streak={profile.currentStreak} studiedDates={studiedDates} today={today} />}
         />
 
         <ConnectionBanner
@@ -509,6 +513,8 @@ export const App: React.FC = () => {
         </main>
 
       </div>
+
+      <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} />
 
       <MobileNav
         activeTab={activeTab}

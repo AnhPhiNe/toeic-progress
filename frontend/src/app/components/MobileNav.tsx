@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BookMarked,
   BookOpen,
@@ -144,9 +145,10 @@ export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, to
   </>;
 }
 
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   const ref = useModalA11y(true, onClose);
-  return (
+  // Portal to <body> so a sheet opened from the sticky top bar still covers the bottom bar.
+  return createPortal(
     <div className="fixed inset-0 z-50 md:hidden">
       <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-slate-950/50 cursor-default" />
       <div ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
@@ -155,6 +157,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         <h2 className="mb-2 text-lg font-black tracking-tight">{title}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

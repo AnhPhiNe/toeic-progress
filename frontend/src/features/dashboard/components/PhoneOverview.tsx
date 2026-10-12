@@ -1,4 +1,4 @@
-import { ArrowRight, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
 
 const formatShortDate = (iso: string) => {
@@ -21,7 +21,6 @@ interface SummaryProps {
   hasDiff: boolean;
   firstTotal?: number;
   onOpenSessionLogger: () => void;
-  onNavigateToAnalytics: () => void;
 }
 
 /**
@@ -29,7 +28,7 @@ interface SummaryProps {
  * so it leads; record, average and progress follow as three small tiles in one row.
  */
 export function PhoneSummary({ latestTest, latestTotal, previousTotal, listeningScore, readingScore, targetScore, highestScore,
-  bestTestName, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger, onNavigateToAnalytics }: SummaryProps) {
+  bestTestName, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger }: SummaryProps) {
   if (!latestTest) {
     return (
       <section className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
@@ -50,42 +49,35 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
 
   return (
     <div className="flex flex-col gap-3">
-      <section aria-label="Bài thi gần nhất" className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
+      <section aria-label="Bài thi gần nhất" className="rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
         <div className="flex items-baseline justify-between gap-3 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-          <span className="min-w-0 truncate">Bài gần nhất · {latestTest.testName}</span>
+          <span className="min-w-0 truncate">{latestTest.testName}</span>
           <span className="shrink-0 tabular-nums">{formatShortDate(latestTest.date)}</span>
         </div>
-        <p className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-[44px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
-          <span className="text-[15px] font-bold text-slate-400">/ 990</span>
-        </p>
-        {listeningScore === undefined && readingScore === undefined && (
-          <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>
-        )}
-        <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-black tabular-nums empty:hidden">
-          {listeningScore !== undefined && <span className="text-indigo-600 dark:text-indigo-400">L {listeningScore}</span>}
-          {readingScore !== undefined && <span className="text-teal-700 dark:text-teal-400">R {readingScore}</span>}
+        <div className="mt-1.5 flex items-end justify-between gap-3">
+          <p className="flex items-baseline gap-1.5">
+            <span className="text-[44px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
+            <span className="text-[15px] font-bold text-slate-400">/ 990</span>
+          </p>
           {change !== undefined && change !== 0 && (
-            <span className={change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-              {change > 0 ? '+' : ''}{change} so với lần trước
+            <span className={'pb-1 text-[15px] font-black tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}
+              title="So với bài Full Test trước">
+              {change > 0 ? '+' : ''}{change}
             </span>
           )}
-        </p>
-        <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
-          <div className="flex items-baseline justify-between gap-3 text-[13px] font-semibold text-slate-700 dark:text-slate-300">
-            <span>{remaining === 0
-              ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore}</strong></>
-              : <>Còn <strong className="text-amber-700 dark:text-amber-400">{remaining} điểm</strong> tới mục tiêu {targetScore}</>}</span>
-            <span className="tabular-nums text-slate-500 dark:text-slate-400">{percent}%</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
-            <div className="h-full rounded-full bg-slate-900 dark:bg-slate-200" style={{ width: `${percent}%` }} />
-          </div>
         </div>
-        <button type="button" onClick={onNavigateToAnalytics}
-          className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-[13px] font-black text-indigo-700 dark:text-indigo-300 cursor-pointer">
-          Xem phân tích theo Part <ArrowRight size={15} aria-hidden="true" />
-        </button>
+        {listeningScore === undefined && readingScore === undefined
+          ? <p className="mt-1.5 text-[13px] text-slate-500 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>
+          : <p className="mt-1.5 flex gap-3 text-[13.5px] font-black tabular-nums">
+              {listeningScore !== undefined && <span className="text-indigo-600 dark:text-indigo-400">L {listeningScore}</span>}
+              {readingScore !== undefined && <span className="text-teal-700 dark:text-teal-400">R {readingScore}</span>}
+            </p>}
+        <p className="mt-3 text-[13.5px] font-semibold text-slate-700 dark:text-slate-300">{remaining === 0
+          ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore}</strong></>
+          : <>Còn <strong className="text-amber-700 dark:text-amber-400">{remaining} điểm</strong> tới {targetScore}</>}</p>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
+          <div className="h-full rounded-full bg-slate-900 dark:bg-slate-200" style={{ width: `${percent}%` }} />
+        </div>
       </section>
 
       <div className="grid grid-cols-3 gap-2">
@@ -100,44 +92,10 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
 
 function Tile({ label, value, color, hint }: { label: string; value: number | string; color: string; hint: string }) {
   return (
-    <div className="min-w-0 rounded-2xl border-[1.5px] border-slate-300 bg-white px-2.5 py-2.5 dark:border-slate-700 dark:bg-[#111A2C]">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-2.5 py-2.5 dark:border-slate-700 dark:bg-[#111A2C]">
       <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`mt-0.5 text-[22px] font-black leading-tight tracking-tight tabular-nums ${color}`}>{value}</p>
       <p className="truncate text-[11.5px] font-semibold text-slate-500 dark:text-slate-400" title={hint}>{hint}</p>
     </div>
-  );
-}
-
-interface StreakProps {
-  streak: number;
-  hasStudiedToday: boolean;
-  weekDays: Array<{ label: string; isCompleted: boolean; isCurrent: boolean }>;
-}
-
-/** Phones: the week as one quiet strip instead of a full card of large tiles. */
-export function PhoneStreak({ streak, hasStudiedToday, weekDays }: StreakProps) {
-  const studied = weekDays.filter(day => day.isCompleted).length;
-  return (
-    <section role="group" aria-label={`Chuỗi học ${streak} ngày`}
-      className="rounded-2xl border-[1.5px] border-slate-300 bg-white px-3.5 py-3 dark:border-slate-700 dark:bg-[#111A2C]">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-black text-slate-950 dark:text-white">Chuỗi {streak} ngày</h2>
-        <span className={'text-[13px] font-semibold ' + (hasStudiedToday ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400')}>
-          {hasStudiedToday ? 'Đã học hôm nay' : 'Chưa học hôm nay'} · {studied}/7
-        </span>
-      </div>
-      <ol className="mt-2.5 grid grid-cols-7 gap-1.5" aria-label="Tuần này">
-        {weekDays.map(day => (
-          <li key={day.label} aria-label={`${day.label}: ${day.isCompleted ? 'Đã học' : day.isCurrent ? 'Hôm nay, chưa học' : 'Chưa học'}`}
-            className={'flex h-8 items-center justify-center rounded-lg text-[11px] font-black ' + (day.isCompleted
-              ? 'bg-amber-400 text-slate-950'
-              : day.isCurrent
-                ? 'border-[1.5px] border-dashed border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500')}>
-            {day.label}
-          </li>
-        ))}
-      </ol>
-    </section>
   );
 }
