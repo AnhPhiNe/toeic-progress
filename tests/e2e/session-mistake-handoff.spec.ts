@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { choosePractice, sessionDialog, useOfficialScore } from './helpers/sessionForm';
 
 async function openSession(page: Page, practice = false) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
@@ -15,11 +16,11 @@ async function openSession(page: Page, practice = false) {
   } else {
     await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
   }
-  const modal = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học' });
-  if (practice) await modal.getByRole('button', { name: 'Luyện Từng Part Lẻ (Mini Practice)', exact: true }).click();
+  const modal = sessionDialog(page);
+  if (practice) await choosePractice(modal);
   await modal.getByLabel('Tên Đề Thi / Nguồn').fill(practice ? 'ETS Practice' : 'ETS Handoff');
   if (!practice) {
-    await modal.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
+    await useOfficialScore(modal);
     await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
     await modal.getByLabel('Tổng điểm TOEIC /990').fill('800');
   }

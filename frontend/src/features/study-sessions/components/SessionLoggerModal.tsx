@@ -26,6 +26,8 @@ import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -58,6 +60,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   onAddMistakeForSession
 }) => {
   const isEditing = !!editingSession;
+  // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'>('FULL_TEST');
   const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
@@ -180,6 +184,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
   }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
 
+  // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
+  useEffect(() => {
+    if (sessionType === 'PART_PRACTICE') setDurationMinutes(current => current === 120 ? 30 : current);
+    if (sessionType === 'FULL_TEST') setDurationMinutes(current => current === 30 ? 120 : current);
+  }, [sessionType]);
+
   const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
@@ -277,24 +287,26 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto max-md:items-stretch max-md:p-0 max-md:overflow-hidden">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className="relative w-full max-w-3xl my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        className="relative w-full max-w-3xl my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none">
         
         {/* Header Modal */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+        <div className="flex items-center justify-between p-5 max-md:px-4 max-md:py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+            <div className="max-md:hidden p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{sessionType === 'VOCAB' ? 'Ghi Số Từ Vựng Đã Học' : isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học'}</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone
+                ? (sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm')
+                : (sessionType === 'VOCAB' ? 'Ghi Số Từ Vựng Đã Học' : isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học')}</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-md:hidden">
                 {sessionType === 'VOCAB' ? 'Theo dõi riêng theo ngày và giữ chuỗi học' : isEditing ? 'Giữ điểm đã nhập hoặc đổi cách ghi điểm · không ảnh hưởng Streak' : 'Ước tính tham khảo hoặc nhập điểm từ kết quả đề'}
               </p>
             </div>
@@ -302,7 +314,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Đóng form ghi nhận buổi học"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -315,7 +327,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
           if (primary) event.currentTarget.requestSubmit(primary);
         }} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5 sm:p-6">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5 sm:p-6 max-md:p-4">
           
           {/* Mode Switcher */}
           <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
@@ -328,7 +340,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <span>Full Test (200 Câu chuẩn ETS)</span>
+              <span className="md:hidden">Full Test</span><span className="hidden md:inline">Full Test (200 Câu chuẩn ETS)</span>
             </button>
             <button
               type="button"
@@ -339,7 +351,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <span>Luyện Từng Part Lẻ (Mini Practice)</span>
+              <span className="md:hidden">Luyện Part</span><span className="hidden md:inline">Luyện Từng Part Lẻ (Mini Practice)</span>
             </button>
             {!isEditing && (
               <button type="button" onClick={() => setSessionType('VOCAB')}
@@ -349,7 +361,30 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             )}
           </div>
 
-          {sessionType !== 'VOCAB' && (<>
+          {isPhone && sessionType === 'FULL_TEST' && (
+            <PhoneFullTestBody testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              retest={isExistingTest ? { attempt: nextAttemptNumber, best: bestPreviousScore } : undefined}
+              partScores={partScores} onPart={handlePartScoreChange} preview={scorePreview}
+              scoreSource={scoreSource} manualMode={manualMode}
+              useManual={on => {
+                setScoreSource(on ? manualMode : 'ESTIMATED');
+                if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
+                setScoreError('');
+              }}
+              setManualMode={mode => { setScoreSource(mode); setManualMode(mode); setScoreError(''); }}
+              manualListening={manualListening} setManualListening={setManualListening}
+              manualReading={manualReading} setManualReading={setManualReading}
+              manualTotal={manualTotal} setManualTotal={setManualTotal}
+              includePartDetails={includePartDetails} setIncludePartDetails={setIncludePartDetails}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={setDurationMinutes} notes={notes} setNotes={setNotes} />
+          )}
+          {isPhone && sessionType === 'PART_PRACTICE' && (
+            <PhonePracticeBody testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              rows={practiceRows} setRows={setPracticeRows} sessions={sessions ?? []} editingId={editingSession?.id}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={setDurationMinutes} notes={notes} setNotes={setNotes} />
+          )}
+
+          {sessionType !== 'VOCAB' && !isPhone && (<>
           {/* General Info Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -793,25 +828,26 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           )}
 
           </div>
-          <div className="shrink-0 space-y-2 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#121A2B] sm:px-6">
+          <div className="shrink-0 space-y-2 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#121A2B] sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {/* Submit Button */}
           {scoreError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 max-md:flex-nowrap">
+            {/* Điện thoại: đã có nút X ở đầu form, nên bỏ "Hủy" để hai nút lưu đủ rộng */}
             <button
               type="button"
               onClick={onClose}
-              className="mr-auto min-h-11 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="max-md:hidden mr-auto min-h-11 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy
             </button>
             {sessionType !== 'VOCAB' && onAddMistakeForSession && <button type="submit" name="afterSave" value="mistake"
-              className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+              className="min-h-11 max-md:min-h-12 max-md:flex-1 max-md:text-sm rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
               Lưu & thêm câu sai
             </button>}
             <button
               type="submit"
               name="afterSave" value="close"
-              className="min-h-11 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
+              className="min-h-11 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : 'Lưu kết quả'}</span>

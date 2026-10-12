@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Trash2
 } from 'lucide-react';
+import { PHONE_SHEET_BACKDROP, PHONE_SHEET_FOOTER, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
 import { UserProfile } from '@/shared/types';
 import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/storage';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
@@ -166,19 +167,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${PHONE_SHEET_BACKDROP}`}>
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-modal-title"
         tabIndex={-1}
-        className="w-full max-w-md rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        className={`w-full max-w-md rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col ${PHONE_SHEET_PANEL}`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 shrink-0">
+        <div className="flex items-center justify-between p-5 max-md:px-4 max-md:py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 shrink-0">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+            <div className="max-md:hidden p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
               <Settings className="w-5 h-5" />
             </div>
             <div>
@@ -186,13 +187,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <p className="text-xs text-slate-500 dark:text-slate-400">Tùy chỉnh thông số cá nhân và kỳ thi</p>
             </div>
           </div>
-          <button onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
+          <button onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="p-1 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body (Scrollable) */}
-        <form onSubmit={handleSubmit} aria-busy={resetBusy} className="p-5 text-xs overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} aria-busy={resetBusy} className="p-5 max-md:px-4 max-md:pb-0 text-xs overflow-y-auto flex-1">
           <fieldset disabled={resetBusy} className="space-y-4">
           {accountPanel}
           
@@ -420,17 +421,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* Footer Actions */}
           {resetError && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{resetError}</p>}
-          <div className="pt-3 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
+          {/* Điện thoại: chân form dính đáy màn hình trong vùng cuộn; nút X đã thay "Hủy" */}
+          <div className={`pt-3 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-800 shrink-0 max-md:sticky max-md:bottom-0 max-md:-mx-4 max-md:px-4 max-md:bg-white max-md:dark:bg-[#121A2B] ${PHONE_SHEET_FOOTER}`}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+              className="max-md:hidden px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center space-x-1.5 shadow-sm shadow-blue-600/25 cursor-pointer transition active:scale-95"
+              className="px-5 py-2 max-md:min-h-12 max-md:flex-1 max-md:justify-center max-md:text-sm rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center space-x-1.5 shadow-sm shadow-blue-600/25 cursor-pointer transition active:scale-95"
             >
               <Save className="w-4 h-4" />
               <span>Lưu Cấu Hình</span>

@@ -16,6 +16,15 @@
     @apply font-sans bg-[#FDFBF7] text-slate-900 dark:bg-[#0B111E] dark:text-slate-100 transition-colors duration-200;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  /* iOS Safari zooms into any field under 16px; phones get 16px text in every input. */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Custom modern scrollbar */

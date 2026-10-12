@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { DEFAULT_POMODORO, formatClock, formatNumber, hasFlexibleQuestions, PRESETS, type PacingMode, type PomodoroPhase, type PomodoroSettings } from '@/features/pacing/lib/pacingModel';
@@ -11,8 +12,8 @@ const inputClass = 'mt-1.5 w-full rounded-xl border border-slate-300 bg-white px
 
 function DialogFrame({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   const ref = useModalA11y(true, onClose);
-  return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-2 sm:p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="pacing-dialog-title" className="flex max-h-[94dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-[4px_4px_0px_#cbd5e1]">
+  return createPortal(<div className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-2 sm:p-4 ${PHONE_SHEET_BACKDROP}`} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="pacing-dialog-title" className={`flex max-h-[94dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-[4px_4px_0px_#cbd5e1] ${PHONE_SHEET_PANEL} max-md:[&>form]:flex-1 max-md:[&>form>footer]:mt-auto`}>
       <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-700"><h3 id="pacing-dialog-title" className="text-lg font-black">{title}</h3><button type="button" aria-label="Đóng hộp thoại" onClick={onClose} className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X className="h-4 w-4" aria-hidden="true" /></button></header>{children}
     </div>
   </div>, document.body);

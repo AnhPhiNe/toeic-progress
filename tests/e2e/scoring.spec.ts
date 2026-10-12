@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { sessionDialog, useOfficialScore } from './helpers/sessionForm';
 
 test.setTimeout(60_000);
 
@@ -6,7 +7,7 @@ async function openLogger(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
   await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
-  return page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học' });
+  return sessionDialog(page);
 }
 
 async function savedSession(page: Page) {
@@ -42,7 +43,7 @@ test('total-only entry validates limits and can later add or remove section scor
   let dialog = await openLogger(page);
   await page.setViewportSize({ width: 375, height: 900 });
   await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual total');
-  await dialog.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
+  await useOfficialScore(dialog);
   await dialog.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await expect(dialog.getByLabel('Số câu đúng Part 1', { exact: true })).not.toBeVisible();
   const total = dialog.getByLabel('Tổng điểm TOEIC /990');
