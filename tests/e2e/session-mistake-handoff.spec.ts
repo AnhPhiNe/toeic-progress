@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { choosePart, expectPart, openAnswerKey } from './helpers/mistakeForm';
 import { choosePractice, sessionDialog, useOfficialScore } from './helpers/sessionForm';
 
 async function openSession(page: Page, practice = false) {
@@ -42,13 +43,13 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   await expect(sessionModal).toHaveCount(0);
   const source = practice ? 'ETS Practice' : 'ETS Handoff';
   await expect(note.getByRole('button', { name: 'Chọn đề', exact: true })).toHaveText(source);
-  await expect(note.getByLabel('Part', { exact: true })).toHaveValue('');
+  await expectPart(note, '');
   const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions);
   expect(sessions).toHaveLength(1);
   expect(sessions[0]).toMatchObject({ testName: source, sessionType: practice ? 'PART_PRACTICE' : 'FULL_TEST' });
-  await note.getByLabel('Part', { exact: true }).selectOption('5');
+  await choosePart(note, '5');
   await note.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
-  await note.getByText('Đáp án đúng từ đề', { exact: false }).click();
+  await openAnswerKey(note);
   await note.getByRole('button', { name: 'Đáp án từ đề: B', exact: true }).click();
   await note.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await note.getByRole('button', { name: 'Thêm lỗi tiếp', exact: true }).click();
@@ -61,7 +62,7 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   for (const card of mistakes) expect(card).toMatchObject({ sessionId: sessions[0].id, sourceTestName: source, part: 5 });
   // A later standalone note must not silently inherit the saved session link.
   await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
-  await note.getByLabel('Part', { exact: true }).selectOption('5');
+  await choosePart(note, '5');
   await note.getByLabel('Câu hỏi + phương án').fill('Another form should ____ submitted.\n(A) are\n(B) be');
   await note.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   mistakes = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes);

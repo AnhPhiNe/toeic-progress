@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { choosePart, expectPart } from './helpers/mistakeForm';
 import { resolve } from 'node:path';
 import { chooseNoteSource } from './helpers/noteSource';
 
@@ -47,11 +48,12 @@ test('five questions reuse three images once and preserve the full source withou
   await modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true }).click();
   for (let number = 2; number <= 5; number++) {
     await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toBeVisible();
-    await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('7');
+    await expectPart(modal, '7');
     await expect(modal.getByRole('button', { name: 'Chọn đề', exact: true })).toHaveText('ETS Reuse');
     await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
     await expect(modal.getByLabel('Câu hỏi + phương án')).toBeFocused();
-    await expect(modal.getByLabel('Lý do chọn')).toHaveValue('');
+    // Phones show the reason field only after an answer is chosen; when present it must start empty.
+    if (await modal.getByLabel('Lý do chọn').count()) await expect(modal.getByLabel('Lý do chọn')).toHaveValue('');
     await expect(modal.getByLabel('Lỗi sai', { exact: true })).toHaveValue('');
     await expect(modal.getByRole('button', { name: 'Bạn chọn A', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(0);

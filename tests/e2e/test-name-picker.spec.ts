@@ -1,4 +1,5 @@
 import { chooseNoteSource } from './helpers/noteSource';
+import { choosePart, openAnswerKey } from './helpers/mistakeForm';
 import { test, expect } from '@playwright/test';
 
 test('search stays inside the dropdown, keeps the field stable and marks the selected source', async ({ page }, testInfo) => {
@@ -48,7 +49,7 @@ test('empty answers are visible but disabled, source key is separate and Part te
   }
   for (const letter of ['A', 'B', 'C', 'D']) await expect(modal.getByRole('button', { name: `Bạn chọn ${letter}`, exact: true })).toBeDisabled();
   await expect(modal.getByText('Dán câu hỏi để chọn phương án.', { exact: true })).toBeVisible();
-  await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
+  await openAnswerKey(modal);
   await expect(modal.getByRole('button', { name: 'Đáp án từ đề: A', exact: true })).toBeDisabled();
   await modal.getByLabel('Part', { exact: true }).selectOption('2');
   await expect(modal.getByRole('button', { name: 'Bạn chọn D', exact: true })).toHaveCount(0);
@@ -72,7 +73,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await source.press('Enter');
   await expect(modal.getByText('ETS 2025 Test 03', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.length)).toBe(0);
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await choosePart(modal, '5');
   await modal.getByLabel('Câu hỏi + phương án').fill('Part 5:\nReports should ____ submitted.\n(A) are\n(B) be\n(C) were\n(D) been');
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
@@ -124,13 +125,13 @@ test('the picker can be canceled by Escape and the floating cue exposes the lowe
   expect(await cue.locator('svg').evaluate(element => getComputedStyle(element).animationName)).toBe('none');
   await cue.click();
   await expect(cue).toHaveCount(0);
-  await expect(modal.getByLabel('Lý do chọn')).toBeInViewport();
+  await expect(modal.locator('summary').filter({ hasText: 'Đáp án, loại lỗi' })).toBeInViewport();
   await expect(modal.getByText('Thêm transcript / đoạn đọc')).toHaveCount(0);
   const region = modal.getByRole('region', { name: 'Nội dung ghi lỗi sai' });
   await region.evaluate(element => { element.scrollTop = 0; });
   await expect(cue).toBeVisible();
   await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await choosePart(modal, '5');
   await modal.getByLabel('Câu hỏi + phương án').fill('Part 5:\nReports should ____ submitted.\n(A) are\n(B) be\n(C) were\n(D) been');
 
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();

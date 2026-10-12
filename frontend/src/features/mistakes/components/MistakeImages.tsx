@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { ImagePlus, Image as ImageIcon, X } from 'lucide-react';
+import { Camera, ImagePlus, Image as ImageIcon, X } from 'lucide-react';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MAX_CONTEXT_IMAGES, type PreparedImage } from '@/features/mistakes/lib/imageInput';
 import { Part7ImageNote } from '@/features/mistakes/components/Part7ImageNote';
 
@@ -13,6 +14,9 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
   embedded?: boolean;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  // Phones have no drag-and-drop or Ctrl+V: offer the camera and the photo library instead.
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const dragDepth = useRef(0);
   const [dragging, setDragging] = useState(false);
   const picture = part === 1;
@@ -45,7 +49,7 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
     <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="text-sm font-semibold">{!embedded && label} <span className="text-xs font-normal text-slate-500">{images.length}/{maximum} ảnh</span></span>
       <button type="button" disabled={busy || part === null || images.length >= maximum} onClick={() => fileInput.current?.click()}
-        className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-950">
+        className="max-md:hidden inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-950">
         <ImagePlus className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang xử lý ảnh…' : 'Thêm ảnh'}
       </button>
       <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple={!picture} disabled={busy || part === null}
@@ -53,8 +57,19 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
           onAdd(Array.from(event.target.files ?? [])); event.target.value = '';
         }} />
     </div>
+      <input ref={cameraInput} type="file" accept="image/*" capture="environment" disabled={busy || part === null}
+        aria-label={picture ? 'Chụp tranh Part 1' : 'Chụp trang Part 7'} className="sr-only" tabIndex={-1} onChange={event => {
+          onAdd(Array.from(event.target.files ?? [])); event.target.value = '';
+        }} />
     {!picture && <Part7ImageNote />}
-    <button type="button" disabled={unavailable} aria-label={`Vùng thêm ảnh Part ${part ?? 7}`}
+    {isPhone ? !unavailable && <div className="grid grid-cols-2 gap-2">
+      {([['camera', picture ? 'Chụp tranh' : 'Chụp trang', Camera], ['library', 'Chọn ảnh', ImageIcon]] as const).map(([kind, text, Icon]) => (
+        <button key={kind} type="button" disabled={unavailable} onClick={() => (kind === 'camera' ? cameraInput : fileInput).current?.click()}
+          className="flex min-h-[76px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 text-[13.5px] font-black text-blue-700 disabled:opacity-40 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+          <Icon className="h-6 w-6" aria-hidden="true" />{text}
+        </button>
+      ))}
+    </div> : <button type="button" disabled={unavailable} aria-label={`Vùng thêm ảnh Part ${part ?? 7}`}
       onClick={() => fileInput.current?.click()}
       className={`flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-3 py-3 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50 ${
         dragging ? 'border-blue-500 bg-blue-100/70 dark:border-blue-400 dark:bg-blue-950/60' : 'border-blue-200 bg-blue-50/60 hover:border-blue-400 hover:bg-blue-50 dark:border-slate-600 dark:bg-slate-900/50 dark:hover:border-blue-400'
@@ -63,14 +78,14 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
       <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{dragging ? 'Thả ảnh để thêm' : unavailable && !busy ? 'Đã đủ số ảnh' : 'Kéo ảnh vào đây'}</span>
       {!unavailable && <span className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Bấm để chọn ảnh · Tab đến vùng này rồi Ctrl+V để dán</span>}
       {!images.length && <span className="text-[11px] text-slate-500 dark:text-slate-400">PNG, JPG, WebP · Tối đa 5 MB/ảnh</span>}
-    </button>
+    </button>}
     {images.length > 0 && <div className="flex flex-wrap gap-2">{images.map((image, index) => <div key={image.id} className="relative w-24">
       <img src={image.dataUrl} alt={`Ảnh Part ${picture ? 1 : 7} ${index + 1}`} className="h-20 w-24 rounded-lg border border-slate-200 bg-white object-contain dark:border-slate-700" />
       <button type="button" disabled={busy} aria-label={`Bỏ ảnh ${index + 1}`} onClick={() => onRemove(image.id)}
         className="absolute -right-1 -top-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-rose-50 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"><X className="h-4 w-4" aria-hidden="true" /></button>
       <p className="mt-1 truncate text-xs text-slate-500" title={image.name}>{image.name}</p>
     </div>)}</div>}
-    {picture && <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Chụp riêng một tranh. Dán nội dung bốn phương án nghe A–D vào ô phía trên.</p>}
+    {picture && !isPhone && <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Chụp riêng một tranh. Dán nội dung bốn phương án nghe A–D vào ô phía trên.</p>}
     {images.length > 0 && <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">{persistent ? 'Ảnh nguồn được lưu riêng tư cùng tài khoản Google để xem lại và dùng chung cho các câu cùng bài.' : 'Ảnh chỉ dùng để phân tích; thẻ lưu văn bản trích xuất.'} Đáp án đúng nhập ở “Đáp án đúng từ đề”.</p>}
   </div>;
 }

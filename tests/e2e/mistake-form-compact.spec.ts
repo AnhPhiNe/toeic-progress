@@ -36,7 +36,8 @@ for (const { selected, capable } of [
 });
 
 test('Part and test share a row, one source textbox replaces extra context and choices are optional', async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 375, height: 820 });
+  // Tablet layout keeps Part and the test on one row; phones stack them (phone-mistake-form.spec.ts).
+  await page.setViewportSize({ width: 768, height: 820 });
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
   const modal = page.getByRole('dialog');
   const part = modal.getByLabel('Part', { exact: true });
