@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { switchToDarkOnMobile } from './helpers/theme';
 
 async function open(page: Page) {
   await page.clock.install({ time: new Date('2026-10-09T09:00:00Z') });
@@ -465,7 +466,7 @@ test('pacing layout, settings and result dialog fit small screens and dark mode'
   await expect(modal.getByRole('button', { name: 'Lưu thời gian', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('pacing-result-mobile.png'), fullPage: true });
   await modal.getByRole('button', { name: 'Đóng hộp thoại' }).click();
-  await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
+  await switchToDarkOnMobile(page);
   await page.clock.runFor(250);
   await expect.poll(() => page.locator('#root > div').first().evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(7, 12, 22)');
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -516,7 +517,7 @@ test('compact history preserves tiny durations and zero grades, filters across p
   await page.screenshot({ path: testInfo.outputPath('pacing-history-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 375, height: 900 });
   await page.screenshot({ path: testInfo.outputPath('pacing-history-mobile.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
+  await switchToDarkOnMobile(page);
   await page.clock.runFor(250);
   await expect.poll(() => page.locator('#root > div').first().evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(7, 12, 22)');
   await page.setViewportSize({ width: 1440, height: 900 });

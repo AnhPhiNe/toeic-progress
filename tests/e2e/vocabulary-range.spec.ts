@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { switchToDarkOnMobile } from './helpers/theme';
 
 async function seed(page: Page, expandHistory = true) {
   await page.clock.install({ time: new Date('2026-10-09T09:00:00Z') });
@@ -127,7 +128,7 @@ test('date validation, popup keyboard, mobile and zoom leave filters intact unti
   expect(shortBox!.y + shortBox!.height).toBeLessThanOrEqual(600);
   await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
+  await switchToDarkOnMobile(page);
   await page.clock.runFor(700);
   await page.screenshot({ path: testInfo.outputPath('vocabulary-wide-mobile.png'), fullPage: true, animations: 'disabled' });
   await page.setViewportSize({ width: 1024, height: 812 });

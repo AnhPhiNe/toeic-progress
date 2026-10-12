@@ -210,7 +210,7 @@ export function readDataBundle(): DataBundle {
 
 /** A save the learner should be told about: the account is not connected or browser storage is full. */
 export class StorageWriteError extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly reason: 'disconnected' | 'quota') {
     super(message);
     this.name = 'StorageWriteError';
   }
@@ -219,7 +219,7 @@ export class StorageWriteError extends Error {
 export function writeDataBundle(bundle: DataBundle): void {
   const accountId = getActiveAccountId();
   if (accountId && !canWriteAccount()) {
-    throw new StorageWriteError('Chưa kết nối tài khoản nên thay đổi chưa được lưu. Hãy thử lại khi thanh trạng thái báo đã kết nối.');
+    throw new StorageWriteError('Chưa kết nối tài khoản nên thay đổi chưa được lưu. Hãy thử lại khi thanh trạng thái báo đã kết nối.', 'disconnected');
   }
   const key = accountId ? accountKey(accountId) : BUNDLE_KEY;
   const previous = localStorage.getItem(key);
@@ -232,7 +232,7 @@ export function writeDataBundle(bundle: DataBundle): void {
       else localStorage.setItem(key, previous);
     }
     if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
-      throw new StorageWriteError('Bộ nhớ trình duyệt đã đầy nên thay đổi chưa được lưu. Hãy xuất bản sao lưu trong Cài đặt rồi xóa bớt dữ liệu cũ.');
+      throw new StorageWriteError('Bộ nhớ trình duyệt đã đầy nên thay đổi chưa được lưu. Hãy xuất bản sao lưu trong Cài đặt rồi xóa bớt dữ liệu cũ.', 'quota');
     }
     throw error;
   }

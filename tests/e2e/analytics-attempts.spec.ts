@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { switchToDarkOnMobile } from './helpers/theme';
 
 async function seed(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -137,7 +138,7 @@ test('test and attempt controls fit mobile and desktop in both themes, with sear
   await page.getByLabel('Lần làm',{exact:true}).focus();
   await page.keyboard.press('ArrowDown');
   await expect(page.getByLabel('Lần làm',{exact:true})).toHaveValue('old');
-  await page.getByRole('button',{name:'Chuyển sang giao diện Tối',exact:true}).click();
+  await switchToDarkOnMobile(page);
   await expect.poll(() => page.locator('.analytics-panel').first().evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(17, 26, 44)');
   await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(animation => animation.effect?.getComputedTiming().endTime !== Infinity).map(animation => animation.finished.catch(() => {}))); });
   await page.screenshot({path:testInfo.outputPath('analytics-attempts-mobile.png'),fullPage:true});
