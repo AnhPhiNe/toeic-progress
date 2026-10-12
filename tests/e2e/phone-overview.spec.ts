@@ -22,6 +22,16 @@ test('phone overview plots the four latest tests, marks retakes instead of offer
   await expect(page.locator('.overview-chart-labels [data-retest]')).toHaveCount(1);
   await expect(page.getByText('Làm lại đề cũ', { exact: true })).toBeVisible();
   await expect(page.getByText('Ngày 04/09', { exact: true })).toBeVisible();
+  const goalBar = page.locator('[data-goal-bar]');
+  await expect(goalBar).toHaveClass(/bg-blue-600/);
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    data.profile.targetScore = 850;
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await expect(page.getByText('Đã đạt mục tiêu')).toBeVisible();
+  await expect(goalBar).toHaveClass(/bg-emerald-500/);
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.getByRole('tab', { name: 'Lần đầu' })).toBeVisible();

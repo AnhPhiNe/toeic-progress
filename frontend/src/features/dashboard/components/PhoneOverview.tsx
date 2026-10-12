@@ -73,8 +73,8 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
         <p className="mt-3 text-[13.5px] font-semibold text-slate-700 dark:text-slate-300">{remaining === 0
           ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore}</strong></>
           : <>Còn <strong className="text-amber-700 dark:text-amber-400">{remaining} điểm</strong> tới {targetScore}</>}</p>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
-          <div className="h-full rounded-full bg-slate-900 dark:bg-slate-200" style={{ width: `${percent}%` }} />
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
+          <div data-goal-bar className={'h-full rounded-full ' + (remaining === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-600 dark:bg-blue-500')} style={{ width: `${percent}%` }} />
         </div>
       </section>
 
