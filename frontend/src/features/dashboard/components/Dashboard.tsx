@@ -46,6 +46,8 @@ interface DashboardProps {
 // Trên điện thoại chỉ thẻ điểm giữ viền đậm; biểu đồ dùng viền mảnh để không tranh chú ý.
 const PHONE_PANEL = 'rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#111A2C]';
 
+const PHONE_CHART_POINTS = 5;
+
 const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
   return `${d}/${m}`;
@@ -156,8 +158,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // "Lần đầu" loại các lượt làm lại - điểm làm lại đề cũ bị thổi phồng vì nhớ đáp án
   const chartData = useMemo(
-    () => (chartFilter === 'FIRST' ? allChartData.filter(d => !d.isRetest) : allChartData),
-    [allChartData, chartFilter]
+    () => {
+      const filtered = chartFilter === 'FIRST' ? allChartData.filter(d => !d.isRetest) : allChartData;
+      // Điện thoại chỉ đủ chỗ cho 5 điểm có nhãn; xem toàn bộ ở trang Phân tích.
+      return isPhone ? filtered.slice(-PHONE_CHART_POINTS) : filtered;
+    },
+    [allChartData, chartFilter, isPhone]
   );
 
   const stats = useMemo(() => {
@@ -461,7 +467,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className={`${isPhone ? PHONE_PANEL : CARD} flex-1 ${isPhone && allChartData.length === 0 ? 'hidden' : 'flex'} flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-[15px] md:text-sm font-black text-slate-900 dark:text-white">
-                <span className="md:hidden">Tiến bộ</span><span className="hidden md:inline">Tiến bộ qua từng bài thi</span>
+                <span className="md:hidden">Tiến bộ{allChartData.length > PHONE_CHART_POINTS && <span className="font-semibold text-slate-500 dark:text-slate-400"> · {PHONE_CHART_POINTS} đề</span>}</span><span className="hidden md:inline">Tiến bộ qua từng bài thi</span>
               </h2>
               <div className="flex items-center gap-1.5">
                 <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="tablist">
