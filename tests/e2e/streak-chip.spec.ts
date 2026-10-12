@@ -17,7 +17,7 @@ test('phone streak chip lights up and the flame celebrates only the first study 
   // The overlay never blocks input while it plays.
   await page.getByRole('button', { name: 'Chuỗi học 1 ngày, xem tuần này', exact: true }).click();
   const week = page.getByRole('dialog', { name: 'Chuỗi 1 ngày', exact: true });
-  await expect(week.getByText('Đã học hôm nay. Học tiếp ngày mai để giữ lửa.')).toBeVisible();
+  await expect(week.getByText('Hôm nay đã học. Mai học tiếp để giữ lửa.')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(celebration).toHaveCount(0, { timeout: 5000 });
 

@@ -395,7 +395,7 @@ export const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsModalOpen(true)} onRetry={account.retry} />}
           accountButton={<AccountAvatarButton initials={profileInitials(profile.name)} available={account.available} status={account.status}
             onOpenSettings={() => setIsSettingsModalOpen(true)} />}
-          streakButton={<StreakChip streak={profile.currentStreak} studiedDates={studiedDates} today={today} />}
+          streakButton={<StreakChip streak={profile.currentStreak} longestStreak={profile.longestStreak || 0} studiedDates={studiedDates} today={today} />}
         />
 
         <ConnectionBanner
