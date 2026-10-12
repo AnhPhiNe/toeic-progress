@@ -13,7 +13,12 @@ test('phone Full Test entry walks through every Part from one run of digits and 
   await dialog.locator('#session-test-name').fill('ETS Phone');
   await dialog.getByLabel('Số câu đúng Part 1').click();
   // 6 | 23 | 36 | 27 | 28 | 15 | 45: each box hands over once no further digit fits.
-  await page.keyboard.type('6233627281545');
+  await page.keyboard.type('623362');
+  // Listening only: Reading and the total wait instead of showing the scale floor.
+  const card = dialog.locator('[aria-live="polite"]').first();
+  await expect(card).toContainText('R —');
+  await expect(card.getByText('—', { exact: true }).first()).toBeVisible();
+  await page.keyboard.type('7281545');
   await expect(dialog.getByLabel('Số câu đúng Part 7')).toHaveValue('45');
   await expect(dialog.getByText('92 / 100', { exact: true })).toBeVisible();
   await expect(dialog.getByText('88 / 100', { exact: true })).toBeVisible();

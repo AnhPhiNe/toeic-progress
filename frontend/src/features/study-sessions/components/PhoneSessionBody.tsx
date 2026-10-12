@@ -90,8 +90,15 @@ interface FullTestProps {
 export function PhoneFullTestBody(props: FullTestProps) {
   const { partScores, onPart, preview, scoreSource } = props;
   const manual = scoreSource !== 'ESTIMATED';
-  // Nothing typed yet: show dashes instead of the 10/990 floor the estimator returns for zero answers.
-  const shown = manual || Object.values(partScores).some(count => count > 0) ? preview : null;
+  // An empty section would show the scale's floor (R 5) and a misleadingly low total while the learner is
+  // still typing; each section waits for its first answer and the total waits for both.
+  const listeningTyped = manual || partScores.part1 + partScores.part2 + partScores.part3 + partScores.part4 > 0;
+  const readingTyped = manual || partScores.part5 + partScores.part6 + partScores.part7 > 0;
+  const shown = {
+    totalScore: listeningTyped && readingTyped ? preview?.totalScore : undefined,
+    scaledListening: listeningTyped ? preview?.scaledListening : undefined,
+    scaledReading: readingTyped ? preview?.scaledReading : undefined
+  };
   const showParts = !manual || props.includePartDetails;
   const section = (title: string, parts: PartNumber[], raw: number) => (
     <div className={'overflow-hidden rounded-2xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#111A2C]'}>
@@ -134,11 +141,11 @@ export function PhoneFullTestBody(props: FullTestProps) {
       <div className={`${LIVE_CARD} sticky top-0 z-10 flex items-center gap-4 px-4 py-3`} aria-live="polite">
         <div className="shrink-0">
           <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
-          <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown?.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
+          <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
-          <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown?.scaledListening ?? '—'}</span>{bar(shown?.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
-          <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown?.scaledReading ?? '—'}</span>{bar(shown?.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
+          <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown.scaledListening ?? '—'}</span>{bar(shown.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
+          <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown.scaledReading ?? '—'}</span>{bar(shown.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
         </div>
       </div>
 
