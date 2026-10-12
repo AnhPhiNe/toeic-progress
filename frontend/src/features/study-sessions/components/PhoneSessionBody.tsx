@@ -21,7 +21,7 @@ function focusNextScore(current: HTMLInputElement) {
 
 function ScoreBox({ value, max, label, onChange, muted = false }: { value: number; max: number; label: string; onChange: (value: number) => void; muted?: boolean }) {
   return (
-    <input data-phone-score type="text" inputMode="numeric" pattern="[0-9]*" enterKeyHint="next" aria-label={label}
+    <input data-phone-score data-large-text type="text" inputMode="numeric" pattern="[0-9]*" enterKeyHint="next" aria-label={label}
       value={value === 0 ? '' : String(value)} placeholder="0"
       onFocus={event => event.currentTarget.select()}
       onChange={event => {
@@ -162,14 +162,14 @@ export function PhoneFullTestBody(props: FullTestProps) {
           {scoreSource === 'MANUAL_SECTIONS'
             ? <div className="grid grid-cols-2 gap-3">
                 <label className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Điểm Listening /495
-                  <input type="number" inputMode="numeric" min="5" max="495" step="5" required value={props.manualListening} onChange={event => props.setManualListening(event.target.value)} className={manualInput} />
+                  <input type="number" inputMode="numeric" min="5" max="495" step="5" required value={props.manualListening} onChange={event => props.setManualListening(event.target.value)} data-large-text className={manualInput} />
                 </label>
                 <label className="text-[13px] font-bold text-teal-700 dark:text-teal-300">Điểm Reading /495
-                  <input type="number" inputMode="numeric" min="5" max="495" step="5" required value={props.manualReading} onChange={event => props.setManualReading(event.target.value)} className={manualInput} />
+                  <input type="number" inputMode="numeric" min="5" max="495" step="5" required value={props.manualReading} onChange={event => props.setManualReading(event.target.value)} data-large-text className={manualInput} />
                 </label>
               </div>
             : <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">Tổng điểm TOEIC /990
-                <input type="number" inputMode="numeric" min="10" max="990" step="5" required value={props.manualTotal} onChange={event => props.setManualTotal(event.target.value)} className={manualInput} />
+                <input type="number" inputMode="numeric" min="10" max="990" step="5" required value={props.manualTotal} onChange={event => props.setManualTotal(event.target.value)} data-large-text className={manualInput} />
               </label>}
           <label className="flex min-h-10 items-center gap-2.5 text-[13.5px] font-semibold text-slate-700 dark:text-slate-200">
             <input type="checkbox" className="h-5 w-5" checked={props.includePartDetails} onChange={event => props.setIncludePartDetails(event.target.checked)} />

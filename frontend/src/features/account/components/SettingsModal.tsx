@@ -22,6 +22,8 @@ import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { getActiveAccountId, live, readDataBundle } from '@/shared/data/dataBundle';
 import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { PhoneSettings, type PhoneSettingsField } from './PhoneSettings';
 
 interface SettingsSession { owner: string | null; cycle: number; profile: UserProfile }
 
@@ -34,6 +36,8 @@ interface SettingsModalProps {
   onLoadDemo?: () => void;
   onImportSuccess?: () => void;
   accountPanel?: React.ReactNode;
+  /** Phone account card subtitle, e.g. "Chỉ lưu trên máy". */
+  syncLabel?: string;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -44,7 +48,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetData,
   onLoadDemo,
   onImportSuccess,
-  accountPanel
+  accountPanel,
+  syncLabel
 }) => {
   const [formData, setFormData] = useState<UserProfile>({ ...profile });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,6 +57,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [backupErrors, setBackupErrors] = useState<string[]>([]);
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState('');
+  // Phones show a grouped list; one row at a time opens a sheet that saves just that field.
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const [phoneEditing, setPhoneEditing] = useState<PhoneSettingsField | null>(null);
   const sessionRef = useRef<SettingsSession | null>(null);
   const cycleRef = useRef(0);
   const readRequest = useRef(0);
@@ -75,6 +83,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setBackupErrors([]);
     setResetError('');
     setResetBusy(false);
+    setPhoneEditing(null);
     return () => { sessionRef.current = null; readRequest.current += 1; };
   }, [isOpen]);
   useEffect(() => {
@@ -147,10 +156,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const closeWhenIdle = useCallback(() => { if (!resetBusy) onClose(); }, [resetBusy, onClose]);
+  // Escape (or the X) closes an open phone edit sheet first, then the whole dialog.
+  const closeWhenIdle = useCallback(() => {
+    if (phoneEditing) { setPhoneEditing(null); return; }
+    if (!resetBusy) onClose();
+  }, [resetBusy, onClose, phoneEditing]);
   const modalRef = useModalA11y(isOpen, closeWhenIdle);
 
   if (!isOpen) return null;
+
+  const savePhoneField = (patch: Partial<UserProfile>): string | null => {
+    setResetError('');
+    try {
+      const session = requireSession();
+      const edited = { ...formData, ...patch };
+      const merged = mergeProfileEdit(loadUserProfile(), session.profile, edited);
+      requireSession(session);
+      onSaveProfile(merged);
+      setFormData(edited);
+      return null;
+    } catch (reason) {
+      return reason instanceof Error ? reason.message : 'Chưa lưu được. Hãy thử lại.';
+    }
+  };
+
+  const loadDemo = () => {
+    try {
+      const session = requireSession();
+      if (!window.confirm('Bạn có muốn nạp dữ liệu mẫu Demo (bao gồm các lần làm bài thi mẫu và danh sách bẫy)?')) return;
+      requireSession(session);
+      onLoadDemo?.();
+      onClose();
+    } catch (reason) {
+      setResetError(reason instanceof Error ? reason.message : 'Chưa nạp được dữ liệu mẫu.');
+    }
+  };
+
+  const renderDataNotice = () => <>
+            {backupErrors.length > 0 && (
+              <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+                <p className="font-semibold">Không thể khôi phục tệp</p>
+                <ul className="mt-1 list-disc pl-4 space-y-0.5">{backupErrors.slice(0, 10).map((error, index) => <li key={index}>{error}</li>)}</ul>
+              </div>
+            )}
+
+            {backupPreview && (() => {
+              const current = readDataBundle();
+              const currentCounts: Record<string, number> = {
+                sessions: live(current.sessions).length,
+                mistakes: live(current.mistakes).length,
+                pacingRuns: live(current.pacingRuns).length,
+                checklist: live(current.checklist).length,
+                vocabLog: live(current.vocabLog).length,
+                  shieldDays: live(current.shieldDays).length,
+                  weeklyPlans: live(current.weeklyPlans).length
+              };
+              const labels: Record<string, string> = {
+                sessions: 'Buổi học', mistakes: 'Lỗi sai', pacingRuns: 'Lượt Phòng Thi',
+                  checklist: 'Checklist', vocabLog: 'Ngày từ vựng', shieldDays: 'Ngày dùng khiên', weeklyPlans: 'Kế hoạch tuần'
+              };
+              return (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 dark:border-slate-700 dark:bg-slate-900" aria-label="Xem trước bản sao lưu">
+                  <p className="font-semibold">Xem trước tệp sao lưu v{backupPreview.version}</p>
+                  <div className="space-y-1">
+                    {Object.entries(labels).map(([key, label]) => (
+                      <p key={key} className="flex justify-between gap-2"><span>{label}</span><span className="font-semibold">{backupPreview.counts[key] ?? '—'} trong tệp · {currentCounts[key]} hiện có</span></p>
+                    ))}
+                  </div>
+                  {backupPreview.preserved.map(label => <p key={label} className="text-amber-700 dark:text-amber-300">Tệp này không có {label} — giữ nguyên dữ liệu hiện tại.</p>)}
+                  {backupPreview.corrections.length > 0 && (
+                    <details><summary>Đã chuẩn hóa {backupPreview.corrections.length} trường</summary><ul className="mt-1 list-disc pl-4">{backupPreview.corrections.map((item, index) => <li key={index}>{item}</li>)}</ul></details>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={exportDataAsJSON} className="rounded-lg border border-slate-300 px-3 py-2 font-semibold dark:border-slate-600">Xuất bản hiện tại trước</button>
+                    <button type="button" onClick={handleRestore} className="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white">Thay thế</button>
+                  </div>
+                </div>
+              );
+            })()}
+    {isPhone && resetError && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{resetError}</p>}
+  </>;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,8 +268,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h3 id="settings-modal-title" className="text-base font-bold text-slate-900 dark:text-white">Cài Đặt Mục Tiêu & Kỷ Luật</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Tùy chỉnh thông số cá nhân và kỳ thi</p>
+              <h3 id="settings-modal-title" className="text-base font-bold text-slate-900 dark:text-white">{isPhone ? 'Cài đặt' : 'Cài Đặt Mục Tiêu & Kỷ Luật'}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-md:hidden">Tùy chỉnh thông số cá nhân và kỳ thi</p>
             </div>
           </div>
           <button onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="p-1 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
@@ -192,7 +277,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Form Body (Scrollable) */}
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+
+        {isPhone ? (
+          <div className="min-h-0 flex-1 overflow-y-auto bg-[#FDFBF7] dark:bg-[#0B132B]" aria-busy={resetBusy}>
+            <PhoneSettings profile={formData} syncLabel={syncLabel} editing={phoneEditing} setEditing={setPhoneEditing}
+              onSaveField={savePhoneField} accountPanel={accountPanel}
+              onExport={exportDataAsJSON} onPickBackup={() => fileInputRef.current?.click()}
+              onLoadDemo={onLoadDemo ? loadDemo : undefined} onReset={onResetData ? () => void handleReset() : undefined} resetBusy={resetBusy}
+              dataNotice={(backupErrors.length > 0 || backupPreview || resetError) ? renderDataNotice() : undefined} />
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} aria-busy={resetBusy} className="p-5 max-md:px-4 max-md:pb-0 text-xs overflow-y-auto flex-1">
           <fieldset disabled={resetBusy} className="space-y-4">
           {accountPanel}
@@ -332,72 +427,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>Khôi Phục Dữ Liệu</span>
               </button>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".json"
-                className="hidden"
-              />
             </div>
 
-            {backupErrors.length > 0 && (
-              <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
-                <p className="font-semibold">Không thể khôi phục tệp</p>
-                <ul className="mt-1 list-disc pl-4 space-y-0.5">{backupErrors.slice(0, 10).map((error, index) => <li key={index}>{error}</li>)}</ul>
-              </div>
-            )}
-
-            {backupPreview && (() => {
-              const current = readDataBundle();
-              const currentCounts: Record<string, number> = {
-                sessions: live(current.sessions).length,
-                mistakes: live(current.mistakes).length,
-                pacingRuns: live(current.pacingRuns).length,
-                checklist: live(current.checklist).length,
-                vocabLog: live(current.vocabLog).length,
-                  shieldDays: live(current.shieldDays).length,
-                  weeklyPlans: live(current.weeklyPlans).length
-              };
-              const labels: Record<string, string> = {
-                sessions: 'Buổi học', mistakes: 'Lỗi sai', pacingRuns: 'Lượt Phòng Thi',
-                  checklist: 'Checklist', vocabLog: 'Ngày từ vựng', shieldDays: 'Ngày dùng khiên', weeklyPlans: 'Kế hoạch tuần'
-              };
-              return (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 dark:border-slate-700 dark:bg-slate-900" aria-label="Xem trước bản sao lưu">
-                  <p className="font-semibold">Xem trước tệp sao lưu v{backupPreview.version}</p>
-                  <div className="space-y-1">
-                    {Object.entries(labels).map(([key, label]) => (
-                      <p key={key} className="flex justify-between gap-2"><span>{label}</span><span className="font-semibold">{backupPreview.counts[key] ?? '—'} trong tệp · {currentCounts[key]} hiện có</span></p>
-                    ))}
-                  </div>
-                  {backupPreview.preserved.map(label => <p key={label} className="text-amber-700 dark:text-amber-300">Tệp này không có {label} — giữ nguyên dữ liệu hiện tại.</p>)}
-                  {backupPreview.corrections.length > 0 && (
-                    <details><summary>Đã chuẩn hóa {backupPreview.corrections.length} trường</summary><ul className="mt-1 list-disc pl-4">{backupPreview.corrections.map((item, index) => <li key={index}>{item}</li>)}</ul></details>
-                  )}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <button type="button" onClick={exportDataAsJSON} className="rounded-lg border border-slate-300 px-3 py-2 font-semibold dark:border-slate-600">Xuất bản hiện tại trước</button>
-                    <button type="button" onClick={handleRestore} className="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white">Thay thế</button>
-                  </div>
-                </div>
-              );
-            })()}
+            {renderDataNotice()}
 
             <div className="flex items-center justify-between pt-1 text-[11px]">
               {onLoadDemo && (
                 <button
                   type="button"
-                  onClick={() => {
-                    try {
-                      const session = requireSession();
-                      if (!window.confirm('Bạn có muốn nạp dữ liệu mẫu Demo (bao gồm các lần làm bài thi mẫu và danh sách bẫy)?')) return;
-                      requireSession(session);
-                      onLoadDemo();
-                      onClose();
-                    } catch (reason) {
-                      setResetError(reason instanceof Error ? reason.message : 'Chưa nạp được dữ liệu mẫu.');
-                    }
-                  }}
+                  onClick={loadDemo}
                   className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold flex items-center space-x-1 cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -441,6 +479,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           </fieldset>
         </form>
+        )}
 
       </div>
     </div>

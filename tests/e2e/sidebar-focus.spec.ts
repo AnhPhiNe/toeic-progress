@@ -46,7 +46,7 @@ test('phone bottom bar navigates, traps focus in its sheets, restores it and han
 
   await more.click();
   await sheet.getByRole('button', { name: 'Cài đặt', exact: true }).click();
-  const settings = page.getByRole('dialog', { name: 'Cài Đặt Mục Tiêu & Kỷ Luật', exact: true });
+  const settings = page.getByRole('dialog', { name: 'Cài đặt', exact: true });
   await expect(settings).toBeVisible();
   await expect(settings.getByRole('button', { name: 'Đóng cài đặt', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');

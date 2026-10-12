@@ -17,7 +17,7 @@ import { SessionLoggerModal } from '@/features/study-sessions/components/Session
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
-import { AccountSyncIndicator } from '@/features/account/components/AccountSyncIndicator';
+import { AccountSyncIndicator, describeSync } from '@/features/account/components/AccountSyncIndicator';
 import { AccountAvatarButton } from '@/features/account/components/AccountAvatarButton';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
 import { CARD } from '@/shared/ui/surfaces';
@@ -555,6 +555,7 @@ export const App: React.FC = () => {
         onResetData={handleResetData}
         onLoadDemo={canLoadDemo ? handleLoadDemo : undefined}
         onImportSuccess={handleImportSuccess}
+        syncLabel={describeSync(account.available, account.status).label}
         accountPanel={<AccountPanel available={account.available} status={account.status} email={account.email} error={account.error}
           onGoogle={account.signInGoogle} onSendOtp={account.sendOtp} onVerifyOtp={account.verifyOtp}
           onRetry={() => void account.retry()} onSignOut={account.signOut} onDelete={account.deleteAccount} />}

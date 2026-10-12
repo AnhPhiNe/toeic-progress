@@ -19,7 +19,8 @@
 
   /* iOS Safari zooms into any field under 16px; phones get 16px text in every input. */
   @media (max-width: 767px) {
-    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    /* data-large-text: fields that are deliberately bigger than 16px already avoid the zoom. */
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([data-large-text]),
     select,
     textarea {
       font-size: 16px !important;
