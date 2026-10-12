@@ -90,6 +90,8 @@ interface FullTestProps {
 export function PhoneFullTestBody(props: FullTestProps) {
   const { partScores, onPart, preview, scoreSource } = props;
   const manual = scoreSource !== 'ESTIMATED';
+  // Nothing typed yet: show dashes instead of the 10/990 floor the estimator returns for zero answers.
+  const shown = manual || Object.values(partScores).some(count => count > 0) ? preview : null;
   const showParts = !manual || props.includePartDetails;
   const section = (title: string, parts: PartNumber[], raw: number) => (
     <div className={'overflow-hidden rounded-2xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#111A2C]'}>
@@ -102,16 +104,10 @@ export function PhoneFullTestBody(props: FullTestProps) {
       {parts.map(part => {
         const key = `part${part}` as keyof LRPartScore;
         const max = partMax(part);
-        const percent = Math.round((partScores[key] / max) * 100);
         return (
           <div key={part} className="flex items-center gap-3 border-t border-slate-100 px-4 py-2 dark:border-slate-800">
             <PartBadge part={part} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100">{PART_NAMES[part]}</p>
-              <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" aria-hidden="true">
-                <span className={'block h-full rounded-full transition-[width] duration-200 ' + (isListening(part) ? 'bg-indigo-400' : 'bg-teal-400')} style={{ width: `${percent}%` }} />
-              </span>
-            </div>
+            <p className="min-w-0 flex-1 text-[14px] font-bold text-slate-900 dark:text-slate-100">{PART_NAMES[part]}</p>
             <ScoreBox value={partScores[key]} max={max} label={`Số câu đúng Part ${part}`} onChange={value => onPart(key, value)} />
             <span className="w-7 text-[13px] font-bold tabular-nums text-slate-400">/{max}</span>
           </div>
@@ -138,11 +134,11 @@ export function PhoneFullTestBody(props: FullTestProps) {
       <div className={`${LIVE_CARD} sticky top-0 z-10 flex items-center gap-4 px-4 py-3`} aria-live="polite">
         <div className="shrink-0">
           <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
-          <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{preview?.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
+          <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown?.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
-          <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {preview?.scaledListening ?? '—'}</span>{bar(preview?.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
-          <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {preview?.scaledReading ?? '—'}</span>{bar(preview?.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
+          <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown?.scaledListening ?? '—'}</span>{bar(shown?.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
+          <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown?.scaledReading ?? '—'}</span>{bar(shown?.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
         </div>
       </div>
 
@@ -265,9 +261,9 @@ export function PhonePracticeBody(props: PracticeProps) {
         <div className="min-w-0">
           <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400">Kết quả</p>
           <p className="mt-0.5 leading-none"><span className="text-[28px] font-black tabular-nums text-slate-950 dark:text-white">{correct}</span><span className="text-[14px] font-bold text-slate-400"> / {total} câu</span></p>
-          <p className={'mt-1.5 text-[12.5px] font-bold ' + (comparison?.startsWith('Thấp') ? 'text-rose-600 dark:text-rose-400' : comparison?.startsWith('Cao') ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400')}>
-            {comparison ?? rows.map(row => `Part ${row.part}`).join(' + ')}
-          </p>
+          {comparison && <p className={'mt-1.5 text-[12.5px] font-bold ' + (comparison.startsWith('Thấp') ? 'text-rose-600 dark:text-rose-400' : comparison.startsWith('Cao') ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400')}>
+            {comparison}
+          </p>}
         </div>
       </div>
 
