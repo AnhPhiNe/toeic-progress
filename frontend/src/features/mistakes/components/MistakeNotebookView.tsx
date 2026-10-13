@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Brain, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
+import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
@@ -12,6 +13,8 @@ import { SuccessMark } from '@/shared/ui/SuccessMark';
 import './notebook.css';
 
 const NOTEBOOK_PAGE_SIZE = 5;
+/** Phones list each status group in steps of this many rows. */
+const PHONE_GROUP_STEP = 10;
 const STATUS_FILTER_STYLE = {
   ALL: {
     active: 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-400 dark:text-slate-950 dark:hover:bg-blue-300',
@@ -57,6 +60,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     : initialSourceNames.length === 1 ? initialSourceNames[0] ? `test:${testNameKey(initialSourceNames[0])}` : 'NONE' : 'SCOPE');
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
+  // Phones: the list is grouped by status instead of the Tất cả / Đến hạn / Thông suốt filter.
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, number>>({ due: PHONE_GROUP_STEP });
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest ? null : undefined);
@@ -118,17 +125,75 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
   }, [filterOpen]);
 
+  const cardProps = (mistake: (typeof sourcedMistakes)[number]) => ({
+    mistake,
+    expanded: expandedIds.has(mistake.id),
+    onToggle: () => toggleRow(mistake.id),
+    onReview: () => onStartReview([mistake.id]),
+    onEdit: () => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake),
+    onReuseReading: mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
+      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds }); setEntry(null);
+    } : undefined,
+    onDelete: () => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); },
+    onMarkMastered: () => markMastered(mistake.id),
+    onReopen: () => onReopenCards([mistake.id])
+  });
+
+  const renderPhoneGroups = () => {
+    const groups = [
+      { id: 'due', label: 'Cần ôn', dot: 'bg-orange-600', items: matchingMistakes.filter(m => isDueForReview(m)), showStatus: false },
+      { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
+      { id: 'mastered', label: 'Đã thuộc', dot: 'bg-emerald-600', items: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)), showStatus: false }
+    ].filter(group => group.items.length > 0);
+    if (!groups.length) return (
+      <div className="space-y-2 px-4 py-10 text-center text-sm">
+        <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp tìm kiếm.</p>
+        <button type="button" onClick={resetFilters} className="min-h-11 cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
+      </div>
+    );
+    return <div className="notebook-list">{groups.map((group, index) => {
+      const shown = openGroups[group.id] ?? 0;
+      return (
+        <section key={group.id} aria-label={`${group.label} · ${group.items.length}`}>
+          <div className="flex min-h-11 items-center justify-between px-4 pb-1.5 pt-3">
+            <h3 className="flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+              <span className={`h-2 w-2 rounded-full ${group.dot}`} aria-hidden="true" />{group.label} · {group.items.length}
+            </h3>
+            {index === 0 && <button type="button" aria-label={phoneSearchOpen ? 'Ẩn tìm kiếm' : 'Tìm trong sổ tay'} aria-pressed={phoneSearchOpen}
+              onClick={() => setPhoneSearchOpen(value => !value)}
+              className={'flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ' + (phoneSearchOpen || activeFilterCount ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 dark:text-slate-400')}>
+              <Search className="h-[18px] w-[18px]" aria-hidden="true" />
+            </button>}
+          </div>
+          {shown > 0 ? <>
+            <div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-slate-800 dark:border-slate-800">
+              {group.items.slice(0, shown).map(mistake => <MistakeCard key={mistake.id} {...cardProps(mistake)} compact showStatus={group.showStatus} />)}
+            </div>
+            {group.items.length > shown && <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: shown + PHONE_GROUP_STEP }))}
+              className="mx-4 mt-3 flex min-h-11 w-[calc(100%-2rem)] items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-[14px] font-bold text-slate-700 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              Xem thêm {Math.min(PHONE_GROUP_STEP, group.items.length - shown)} câu
+            </button>}
+          </> : <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: PHONE_GROUP_STEP }))}
+            className="flex min-h-[52px] w-full items-center justify-between border-y border-stone-200 bg-white px-4 text-left text-[14.5px] font-bold text-slate-800 cursor-pointer dark:border-slate-800 dark:bg-[#111A2C] dark:text-slate-100">
+            Xem {group.items.length} câu {group.label.toLowerCase()}<ChevronDown className="h-4 w-4 text-slate-400" aria-hidden="true" />
+          </button>}
+        </section>
+      );
+    })}</div>;
+  };
+
   return (
-    <div className="notebook-view animate-fade-in pb-10">
-      <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1]">
-      <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-4 sm:px-5">
-        <h2 id="notebook-heading" className="flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay bắt bẫy</h2>
-        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex">
+    <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-24' : '')}>
+      <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-4 sm:px-5 max-md:p-0">
+        <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay bắt bẫy</h2>
+        {/* Phones: the review button lives in a bar above the bottom navigation, within thumb reach. */}
+        <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
           <button
             type="button"
             onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
             disabled={reviewCount === 0}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-all ${
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-all max-md:min-h-[54px] max-md:rounded-2xl max-md:text-base ${
               reviewCount > 0
                 ? 'cursor-pointer border-2 border-slate-900 bg-emerald-400 text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
                 : 'cursor-not-allowed border-2 border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
@@ -136,22 +201,22 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           >
             <Brain className="h-4 w-4 shrink-0" aria-hidden="true" />
             {reviewCount > 0
-              ? <span>Ôn {reviewCount} thẻ</span>
+              ? <span>{isPhone ? `Ôn ${reviewCount} câu đến hạn` : `Ôn ${reviewCount} thẻ`}</span>
               : <span>Chưa có thẻ<span className="hidden sm:inline"> đến hạn</span></span>}
           </button>
           <button
             type="button"
             onClick={openCreate}
-            className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-300 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-yellow-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-300 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-yellow-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" aria-hidden="true" />
             <span>Ghi Chú Bẫy</span>
           </button>
         </div>
       </header>
-      {mistakes.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-4 sm:px-5 dark:border-slate-700">
-          <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#121A2B]" role="group" aria-label="Lọc theo trạng thái">
+      {mistakes.length > 0 && (!isPhone || phoneSearchOpen) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-4 sm:px-5 dark:border-slate-700 max-md:border-0 max-md:px-4 max-md:pb-2">
+          <div className="max-md:hidden inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#121A2B]" role="group" aria-label="Lọc theo trạng thái">
             {([['ALL', 'Tất cả', stats.total], ['DUE', 'Đến hạn', stats.due], ['MASTERED', 'Thông suốt', stats.mastered]] as const).map(([value, label, count]) => (
               <button
                 key={value}
@@ -247,9 +312,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         <div className="space-y-2 px-4 py-12 text-center">
           <BookOpen className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
           <p className="font-semibold text-slate-700 dark:text-slate-200">Chưa có lỗi sai nào</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Bấm “Ghi Chú Bẫy”, dán câu bạn làm sai và AI sẽ soạn ghi chú.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{isPhone ? 'Bấm nút ＋ ở dưới, chọn “Câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.' : 'Bấm “Ghi Chú Bẫy”, dán câu bạn làm sai và AI sẽ soạn ghi chú.'}</p>
         </div>
-      ) : (
+      ) : isPhone ? renderPhoneGroups() : (
         <div className="notebook-list divide-y divide-slate-200 dark:divide-slate-800">
           {visibleMistakes.map(mistake => (
             <MistakeCard

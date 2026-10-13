@@ -1,10 +1,10 @@
 import { chooseNoteSource } from './helpers/noteSource';
-import { choosePart, openAnswerKey } from './helpers/mistakeForm';
+import { choosePart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
 import { test, expect } from '@playwright/test';
 
 test('search stays inside the dropdown, keeps the field stable and marks the selected source', async ({ page }, testInfo) => {
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await openNoteForm(page);
   const modal = page.getByRole('dialog');
   await chooseNoteSource(modal, 'ETS 2025 Test 03');
   const trigger = modal.getByRole('button', { name: 'Chọn đề', exact: true });
@@ -64,7 +64,7 @@ test('empty answers are visible but disabled, source key is separate and Part te
 
 test('adding a source from notes creates no score, and total/part forms reuse one canonical name', async ({ page }) => {
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await openNoteForm(page);
   let modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   const source = modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true });
@@ -107,7 +107,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
 test('the picker can be canceled by Escape and the floating cue exposes the lower content', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 620 });
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await openNoteForm(page);
   const modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('Canceled source');

@@ -64,7 +64,8 @@ test('deleting the final card returns to a populated page and notebook paginatio
   });
   await page.reload();
   const pagination = page.getByRole('navigation', { name: 'Trang Sổ tay', exact: true });
-  for (const width of [320, 375, 768, 1440]) {
+  // Paging is for tablet and desktop; phones group the list and load more (phone-notebook.spec.ts).
+  for (const width of [768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await pagination.getByRole('button', { name: 'Sau', exact: true }).click();
@@ -72,7 +73,7 @@ test('deleting the final card returns to a populated page and notebook paginatio
     await pagination.getByRole('button', { name: 'Trước', exact: true }).click();
   }
   await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
-  await page.setViewportSize({ width: 375, height: 900 });
+  await page.setViewportSize({ width: 768, height: 900 });
   await expect.poll(() => page.locator('.notebook-view > section').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(18, 26, 43)');
   await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(a => a.effect?.getComputedTiming().endTime !== Infinity).map(a => a.finished.catch(() => {}))); });
   await page.screenshot({ path: testInfo.outputPath('notebook-pagination-mobile.png'), fullPage: true });

@@ -96,14 +96,14 @@ test('review completion reports actual results and an interrupted session shows 
   await page.screenshot({ path: testInfo.outputPath('review-completion-mobile.png'), fullPage: true });
   await review.getByRole('button', { name: 'Đóng', exact: true }).click();
   await seed(page, 1);
-  await page.getByRole('button', { name: 'Ôn 1 thẻ', exact: true }).click();
+  await page.getByRole('button', { name: /^Ôn 1 (thẻ|câu đến hạn)$/ }).click();
   await review.getByRole('button', { name: 'Đóng phiên ôn tập', exact: true }).click();
   await expect(page.getByText(/^Xong \d+ thẻ/)).toHaveCount(0);
 });
 
 test('skipping an unavailable card does not celebrate or report a schedule update', async ({ page }) => {
   await seed(page, 1);
-  await page.getByRole('button', { name: 'Ôn 1 thẻ', exact: true }).click();
+  await page.getByRole('button', { name: /^Ôn 1 (thẻ|câu đến hạn)$/ }).click();
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     data.mistakes[0].deletedAt = new Date().toISOString();

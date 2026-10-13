@@ -1,4 +1,5 @@
 import { chooseNoteSource } from './helpers/noteSource';
+import { openNoteForm } from './helpers/mistakeForm';
 import { test, expect, type Page } from '@playwright/test';
 
 const raw = 'Part 5:\nThe latest ____ of decorations in stock indicates adequate preparation.\nproposal\ninventory\nconsideration\ncommitment';
@@ -101,9 +102,10 @@ test('dirty input can be retained and unconfigured AI never substitutes a sample
 test('compact typography fits mobile, desktop, dark mode and zoom with spellcheck disabled', async ({ page }) => {
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 }); await page.goto('/so-tay');
-    await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+    await openNoteForm(page);
     const modal = page.getByRole('dialog'), textarea = modal.getByLabel('Câu hỏi + phương án');
-    expect((await textarea.boundingBox())!.height).toBeGreaterThanOrEqual(144);
+    // Phones keep the paste box a little shorter so the A–D choices stay on the first screen.
+    expect((await textarea.boundingBox())!.height).toBeGreaterThanOrEqual(width < 768 ? 120 : 144);
     expect((await textarea.boundingBox())!.height).toBeLessThan(210);
     expect(await textarea.evaluate(element => getComputedStyle(element).fontSize)).toBe('16px');
     await expect(textarea).toHaveAttribute('spellcheck', 'false');

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Trash2 } from 'lucide-react';
 import { ERROR_CATEGORY_LABELS, type MistakeEntry } from '@/shared/types';
 import { OptionList } from '@/features/mistakes/components/OptionList';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
@@ -35,10 +35,14 @@ interface MistakeCardProps {
   onDelete: () => void;
   onMarkMastered: () => void;
   onReopen: () => void;
+  /** Phones: one-line row without the ⋮ menu; the actions live in the expanded card. */
+  compact?: boolean;
+  /** Status line shown on compact rows outside the "Cần ôn" group (e.g. "Ôn sau 3 ngày"). */
+  showStatus?: boolean;
 }
 
 export const MistakeCard: React.FC<MistakeCardProps> = ({
-  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen
+  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -68,6 +72,54 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
         danger ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'
       } disabled:cursor-not-allowed disabled:opacity-40`}>{label}</button>
   );
+
+  if (compact) {
+    // The list already groups by status, so the number prefix and status text are dropped from the row.
+    const shortQuestion = question.replace(/^(?:câu|question|q)\s*\d+\s*(?:\([^)]*\)\s*)?[:.)-]\s*/i, '');
+    const subline = [mistake.sourceTestName, showStatus || status.kind === 'overdue' ? status.label : ''].filter(Boolean).join(' · ');
+    const action = 'min-h-11 whitespace-nowrap rounded-xl border-[1.5px] border-stone-300 bg-white px-3 text-[14px] font-bold text-slate-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+    return (
+      <div className="notebook-card bg-white dark:bg-[#111A2C]">
+        <button type="button" onClick={onToggle} aria-expanded={expanded} aria-label={`${expanded ? 'Thu gọn' : 'Mở'} câu: ${question}`}
+          className="flex min-h-[60px] w-full items-center gap-3 px-4 py-2.5 text-left cursor-pointer">
+          <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-black text-white ' + (mistake.part <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>P{mistake.part}</span>
+          <span className="min-w-0 flex-1">
+            <span className={'block text-[15px] font-bold text-slate-900 dark:text-white ' + (expanded ? '' : 'truncate')}>{expanded ? question : shortQuestion}</span>
+            {subline && <span className={`mt-0.5 block truncate text-[12px] font-semibold ${status.kind === 'overdue' ? style.text : 'text-slate-400 dark:text-slate-500'}`}>{subline}</span>}
+          </span>
+          <ChevronDown className={'h-5 w-5 shrink-0 text-slate-300 transition-transform dark:text-slate-600 ' + (expanded ? 'rotate-180' : '-rotate-90')} aria-hidden="true" />
+        </button>
+        {expanded && (
+          <div className="space-y-3 px-4 pb-4">
+            <SourceImageViewer ids={mistake.sourceImageIds} part={mistake.part} />
+            {!mistake.sourceImageIds?.length && <QuestionContext context={context} part={mistake.part} />}
+            {quiz.options.length > 0 ? (
+              <OptionList options={quiz.options} chosen={getUserChoice(mistake)} correctLabel={correctLabel} showMeanings={mistake.part !== 7} />
+            ) : mistake.correctAnswer && (
+              <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">{correctLabel}:</span> {mistake.correctAnswer}</p>
+            )}
+            <ExplanationView optionMeanings={mistake.part === 7 ? quiz.options : undefined} explanation={mistake.explanation} trapTip={mistake.trapTip}
+              extra={[
+                ['Lý do bạn đã chọn', mistake.userReason ?? (mistake.userMistake === '(Không ghi nhận đáp án nhầm)' ? '' : mistake.userMistake)],
+                ['Nhóm lỗi', ERROR_CATEGORY_LABELS[mistake.category]?.label ?? '']
+              ]} />
+            {onReuseReading && <button type="button" onClick={onReuseReading} className="min-h-11 w-full rounded-xl border-[1.5px] border-dashed border-stone-300 text-[14px] font-bold text-blue-700 cursor-pointer dark:border-slate-600 dark:text-blue-300">＋ Câu khác cùng bài đọc</button>}
+            {/* One row that never wraps at 320px: short labels, delete as an icon. */}
+            <div className="flex gap-2" role="group" aria-label="Thao tác với thẻ">
+              <button type="button" onClick={onReview} disabled={!canReview(mistake)} aria-label="Ôn câu này"
+                className="min-h-11 flex-1 rounded-xl border-2 border-slate-900 bg-emerald-400 px-3 text-[14px] font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-200 dark:shadow-none">Ôn</button>
+              <button type="button" onClick={onEdit} className={action + ' flex-1'}>Sửa</button>
+              {mistake.status === 'MASTERED'
+                ? <button type="button" onClick={onReopen} aria-label="Ôn lại từ đầu" className={action + ' flex-1'}>Ôn lại</button>
+                : <button type="button" onClick={onMarkMastered} disabled={!canReview(mistake)} aria-label="Đánh dấu đã thuộc" className={action + ' flex-1'}>Đã thuộc</button>}
+              <button type="button" onClick={onDelete} aria-label="Xóa" title="Xóa"
+                className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-rose-600 cursor-pointer dark:border-slate-600 dark:bg-slate-900 dark:text-rose-400"><Trash2 className="h-[18px] w-[18px]" aria-hidden="true" /></button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`notebook-card ${expanded ? 'bg-slate-50/60 dark:bg-slate-800/20' : ''}`}>

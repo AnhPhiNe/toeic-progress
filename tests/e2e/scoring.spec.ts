@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { sessionDialog, useOfficialScore } from './helpers/sessionForm';
+import { openHistoryEdit, sessionDialog, useOfficialScore } from './helpers/sessionForm';
 
 test.setTimeout(60_000);
 
@@ -60,7 +60,7 @@ test('total-only entry validates limits and can later add or remove section scor
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.')).toBeVisible();
   await page.goto('/lich-su', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Sửa bản ghi Manual total' }).click();
+  await openHistoryEdit(page, 'Manual total');
   dialog = page.getByRole('dialog');
   await expect(dialog.getByLabel('Tổng điểm TOEIC /990')).toHaveValue('800');
   await dialog.getByRole('button', { name: 'Listening + Reading', exact: true }).click();
@@ -69,7 +69,7 @@ test('total-only entry validates limits and can later add or remove section scor
   await dialog.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(dialog).not.toBeVisible();
   expect(await savedSession(page)).toMatchObject({ scaledListening: 450, scaledReading: 350, totalScore: 800 });
-  await page.getByRole('button', { name: 'Sửa bản ghi Manual total' }).click();
+  await openHistoryEdit(page, 'Manual total');
   await dialog.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await dialog.getByLabel('Tổng điểm TOEIC /990').fill('805');
   await dialog.getByRole('button', { name: 'Lưu thay đổi' }).click();

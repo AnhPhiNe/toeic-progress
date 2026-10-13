@@ -1,4 +1,4 @@
-import { X, Pencil, ArrowRight } from 'lucide-react';
+import { X, Pencil, ArrowRight, Trash2 } from 'lucide-react';
 import { PHONE_SHEET_BACKDROP, PHONE_SHEET_FOOTER, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
 import { createPortal } from 'react-dom';
 import type { MistakeEntry, PacingRun, SessionAttemptMeta, StudySession } from '@/shared/types';
@@ -18,10 +18,11 @@ interface Props {
   previous?: StudySession;
   onClose: () => void;
   onEdit: (session: StudySession) => void;
+  onDelete?: () => void;
   onNavigateToMistakes?: (names: string[]) => void;
 }
 
-export function SessionDetailModal({ session, pacingRun, sessions, mistakes, attempt, previous, onClose, onEdit, onNavigateToMistakes }: Props) {
+export function SessionDetailModal({ session, pacingRun, sessions, mistakes, attempt, previous, onClose, onEdit, onDelete, onNavigateToMistakes }: Props) {
   const ref = useModalA11y(true, onClose);
   const full = session.sessionType === 'FULL_TEST';
   const practice = getPracticeParts(session);
@@ -58,7 +59,7 @@ export function SessionDetailModal({ session, pacingRun, sessions, mistakes, att
         {session.notes && <details><summary className="cursor-pointer text-sm font-bold">Ghi chú</summary><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-600 dark:text-slate-300">{session.notes}</p></details>}
         <div className="rounded-xl bg-amber-50 px-3 py-3 dark:bg-amber-950/25"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{notes.length} lỗi đã ghi {source ? 'của đề này' : 'của bản ghi này'}</strong>{source && onNavigateToMistakes && <button type="button" className="inline-flex min-h-10 cursor-pointer items-center gap-1 text-sm font-bold text-blue-600 dark:text-blue-400" onClick={() => { onClose(); onNavigateToMistakes([source]); }}>Mở Sổ tay<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}</div><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{source ? 'Gom lỗi theo tên đề, qua mọi lần làm.' : 'Chỉ tính lỗi còn liên kết với bản ghi chưa có tên đề.'}</p></div>
       </div>
-      <footer className={`flex shrink-0 justify-end gap-3 border-t border-slate-200 px-4 py-3 sm:px-5 dark:border-slate-700 ${PHONE_SHEET_FOOTER}`}><button type="button" onClick={onClose} className="max-md:hidden min-h-11 cursor-pointer rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold dark:border-slate-600">Đóng</button><button type="button" className={historyPrimary} onClick={() => { onClose(); onEdit(session); }}><Pencil className="h-4 w-4" aria-hidden="true" />Sửa kết quả</button></footer>
+      <footer className={`flex shrink-0 justify-end gap-3 border-t border-slate-200 px-4 py-3 sm:px-5 dark:border-slate-700 ${PHONE_SHEET_FOOTER}`}>{onDelete && <button type="button" onClick={onDelete} className="mr-auto inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"><Trash2 className="h-4 w-4" aria-hidden="true" />Xóa</button>}<button type="button" onClick={onClose} className="max-md:hidden min-h-11 cursor-pointer rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold dark:border-slate-600">Đóng</button><button type="button" className={historyPrimary} onClick={() => { onClose(); onEdit(session); }}><Pencil className="h-4 w-4" aria-hidden="true" />Sửa kết quả</button></footer>
     </div>
   </div>, document.body);
 }

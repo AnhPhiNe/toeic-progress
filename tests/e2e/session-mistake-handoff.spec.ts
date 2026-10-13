@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { choosePart, expectPart, openAnswerKey } from './helpers/mistakeForm';
+import { chooseNoteSource } from './helpers/noteSource';
+import { choosePart, expectPart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
 import { choosePractice, sessionDialog, useOfficialScore } from './helpers/sessionForm';
 
 async function openSession(page: Page, practice = false) {
@@ -61,7 +62,9 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   expect(mistakes).toHaveLength(2);
   for (const card of mistakes) expect(card).toMatchObject({ sessionId: sessions[0].id, sourceTestName: source, part: 5 });
   // A later standalone note must not silently inherit the saved session link.
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await openNoteForm(page);
+  // Phones open a blank note from "+"; desktop pre-fills the test from the notebook's current filter.
+  await chooseNoteSource(note, source);
   await choosePart(note, '5');
   await note.getByLabel('Câu hỏi + phương án').fill('Another form should ____ submitted.\n(A) are\n(B) be');
   await note.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();

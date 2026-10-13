@@ -13,3 +13,11 @@ export async function useOfficialScore(dialog: Locator) {
   if (await checkbox.count()) await checkbox.check();
   else await dialog.getByRole('button', { name: 'Chỉ có điểm chính thức? Nhập điểm L/R trực tiếp', exact: true }).click();
 }
+
+/** Rows carry a pencil on larger screens; on phones the edit lives in the session detail. */
+export async function openHistoryEdit(page: Page, testName: string) {
+  const pencil = page.getByRole('button', { name: `Sửa bản ghi ${testName}` });
+  if (await pencil.isVisible()) { await pencil.click(); return; }
+  await page.getByRole('button', { name: new RegExp(`^Xem chi tiết ${testName}`) }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Sửa kết quả', exact: true }).click();
+}
