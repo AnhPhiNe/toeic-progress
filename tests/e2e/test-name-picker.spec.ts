@@ -10,6 +10,8 @@ test('search stays inside the dropdown, keeps the field stable and marks the sel
   const trigger = modal.getByRole('button', { name: 'Chọn đề', exact: true });
   for (const width of [320, 375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
+    // Crossing the phone breakpoint swaps the form layout; measure once the picker is back.
+    await expect(trigger).toBeVisible();
     const before = (await trigger.boundingBox())!;
     await trigger.click();
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');

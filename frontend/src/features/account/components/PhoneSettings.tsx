@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Calendar, ChevronRight, Cloud, Database, Download, Minus, Plus, Quote, RotateCcw, ShieldCheck, Target, Timer, Trash2, Upload } from 'lucide-react';
 import type { UserProfile } from '@/shared/types';
+import { useOverlayHistory } from '@/shared/hooks/overlayHistory';
 import { profileDisplayName, profileInitials } from '@/app/components/profileInitials';
 
 export type PhoneSettingsField = 'account' | 'targetScore' | 'examDate' | 'dailyMinGoalMinutes' | 'streakFreezes' | 'motto';
@@ -119,6 +120,7 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
   const [text, setText] = useState(field === 'account' ? profile.name : field === 'motto' ? profile.motto ?? '' : field === 'examDate' ? profile.examDate ?? '' : '');
   const [error, setError] = useState('');
   const sheetRef = useRef<HTMLDivElement>(null);
+  useOverlayHistory(true, onClose);
   useEffect(() => {
     const first = sheetRef.current?.querySelector<HTMLElement>('input, textarea, button');
     first?.focus();

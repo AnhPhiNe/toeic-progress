@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useOverlayHistory } from './overlayHistory';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -27,6 +28,8 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
   // which used to move focus to the first button and drop the next keystroke.
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  // The device Back button closes the dialog too (see overlayHistory).
+  useOverlayHistory(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
