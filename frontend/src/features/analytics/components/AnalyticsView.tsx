@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { BarChart3, BookOpen, ArrowRight, Timer, Layers } from 'lucide-react';
+import { BarChart3, BookOpen, ArrowRight, Timer, Layers, ChevronDown, ChevronRight } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Customized, PieChart, Pie } from 'recharts';
 import type { StudySession, MistakeEntry, UserProfile, ErrorCategory, ReadingPartType } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -8,6 +8,9 @@ import { CARD } from '@/shared/ui/surfaces';
 import { AnalyticsScopePicker } from '@/features/analytics/components/AnalyticsScopePicker';
 import { useChartMotion } from '@/features/analytics/components/useChartMotion';
 import { analyticsScopeData, analyticsAttemptLabel, formatAnalyticsNumber as number } from '@/features/analytics/lib/analyticsScope';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { testNameKey } from '@/shared/domain/testNames';
+import { Sheet } from '@/app/components/MobileNav';
 import './analytics.css';
 
 const ERROR_NAMES: Record<ErrorCategory, string> = {
@@ -36,6 +39,11 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
   const [attemptChoice, setAttemptChoice] = useState<{ source: string; id: string } | null>(null);
   const [activeError, setActiveError] = useState<ErrorCategory | null>(null);
   const attemptPickerId = useId();
+  // Phones: horizontal Part bars, one-line mistake summary, the practice button above the bottom bar.
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Widening past the phone breakpoint drops the sheet so it does not reappear on the next narrow resize.
+  if (!isPhone && pickerOpen) setPickerOpen(false);
   const barMotion = useChartMotion(500);
   const donutMotion = useChartMotion(600);
   const data = useMemo(() => analyticsScopeData(sessions, mistakes, sourceKey,
@@ -54,19 +62,82 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
       : commonError ? `Sổ tay ghi nhiều lỗi nhất ở nhóm ${commonError}. ${data.attempt ? 'Bổ sung chi tiết Part của lượt này để xác định Part cần luyện.' : 'Ghi kết quả đề để xác định Part cần luyện.'}`
         : 'Ghi kết quả đề để xác định Part cần luyện; vẫn có thể xem các lỗi đã lưu.';
 
+  const scopePickers = <>
+    <div role="group" aria-label="Đề" className="min-w-0 max-w-full space-y-2">
+      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Đề</p>
+      <AnalyticsScopePicker value={data.sourceKey} onChange={key => { setSourceKey(key); setAttemptChoice(null); }} names={data.names} />
+    </div>
+    <div className="min-w-0 max-w-full space-y-2">
+      <label htmlFor={attemptPickerId} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">Lần làm</label>
+      <select id={attemptPickerId} value={data.attempt?.id ?? ''} disabled={!data.attempts.length} onChange={event => { setSourceKey(data.sourceKey); setAttemptChoice({ source: data.sourceKey, id: event.target.value }); }} className="min-h-11 max-w-full cursor-pointer rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:bg-[#111A2C] dark:text-white">
+        {!data.attempts.length && <option value="">Chưa có lượt làm</option>}
+        {data.attempts.map(row => <option key={row.session.id} value={row.session.id}>{analyticsAttemptLabel(row.number, row.session.date, row.latest)}</option>)}
+      </select>
+    </div>
+  </>;
+
+  if (isPhone) {
+    const sourceName = data.names.find(name => testNameKey(name) === data.sourceKey) ?? 'Chưa có đề';
+    const weakPart = data.weakest ? Number(data.weakest.key.slice(4)) : null;
+    const errorLine = data.errors.slice(0, 3).map(row => `${ERROR_NAMES[row.category]} ${row.count}`).join(' · ');
+    return <div className="analytics-view space-y-4 pb-24 text-slate-800 dark:text-slate-200">
+      <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog" aria-label={`Chọn đề và lần làm: ${sourceName}, ${resultStatus}`}
+        className="flex min-h-[50px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 text-left dark:border-slate-700 dark:bg-[#111A2C]">
+        <span className="min-w-0 truncate"><span className="text-[15px] font-black text-slate-950 dark:text-white">{sourceName}</span><span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400"> · {resultStatus}</span></span>
+        <ChevronDown className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+      </button>
+
+      <section aria-labelledby="analytics-parts-heading" className="analytics-panel rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="analytics-parts-heading" className="text-[15px] font-black text-slate-950 dark:text-white">Độ chính xác 7 Part</h2>
+          <span className="text-[13px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+            {data.listening.value === null && data.reading.value === null ? '' : `L ${data.listening.value === null ? '—' : number(data.listening.value)} · R ${data.reading.value === null ? '—' : number(data.reading.value)}`}
+          </span>
+        </div>
+        {data.parts.length ? <ol className="mt-3 space-y-1.5" aria-label={`Tỷ lệ đúng theo Part, ${chartLabel}`}>
+          {data.parts.map(part => {
+            const n = Number(part.key.slice(4)), weak = part.key === data.weakest?.key;
+            const tone = weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400';
+            return <li key={part.key} className={'flex items-center gap-3 rounded-xl py-1 ' + (weak ? '-mx-2 bg-rose-50 px-2 dark:bg-rose-950/40' : '')}
+              title={`Part ${n}: ${PART_NAMES[n - 1]} · đúng ${number(part.correct)}/${part.max} câu`}>
+              <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-black text-white ' + (weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>{part.code}</span>
+              <span className="block h-2 flex-1 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-800" aria-hidden="true"><span className={'block h-full rounded-full ' + tone} style={{ width: `${Math.min(100, part.accuracy)}%` }} /></span>
+              <span className={'w-11 shrink-0 text-right text-[14px] font-black tabular-nums ' + (weak ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white')}>{Math.round(part.accuracy)}%</span>
+            </li>;
+          })}
+        </ol> : <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p>{data.attempt ? 'Lượt này chưa có chi tiết Part.' : 'Chưa nhập kết quả của đề này.'}</p>
+          {data.attempt && onEditSession ? <button type="button" onClick={() => onEditSession(data.attempt!)} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Bổ sung chi tiết</button>
+            : !data.attempt && onOpenSessionLogger && <button type="button" onClick={() => onOpenSessionLogger({ sessionType: 'FULL_TEST' })} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Nhập kết quả</button>}
+        </div>}
+      </section>
+
+      <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources)} disabled={!onNavigateToMistakes}
+        className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 py-3 text-left dark:border-slate-700 dark:bg-[#111A2C]">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold text-slate-900 dark:text-white">{data.notes.length ? `${data.notes.length} lỗi đã ghi của đề` : 'Chưa có lỗi nào gắn với đề này'}</span>
+          {errorLine && <span className="mt-0.5 block truncate text-[13px] font-semibold text-slate-500 dark:text-slate-400">{errorLine}</span>}
+        </span>
+        <span className="flex shrink-0 items-center text-[13.5px] font-black text-blue-600 dark:text-blue-400">Sổ tay<ChevronRight className="h-4 w-4" aria-hidden="true" /></span>
+      </button>
+
+      {/* The next practice step sits above the bottom navigation, within thumb reach. */}
+      {onNavigateToTimer && weakPart !== null && <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
+        <button type="button" onClick={() => onNavigateToTimer(weakPart < 5 ? 'POMODORO' : `PART_${weakPart}` as ReadingPartType)}
+          className="flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-yellow-300 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
+          <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} yếu nhất` : `Luyện ${data.weakest!.code} · yếu nhất`}
+        </button>
+      </div>}
+
+      {pickerOpen && <Sheet title="Chọn đề và lần làm" onClose={() => setPickerOpen(false)}>
+        <div className="space-y-4 pb-2">{scopePickers}</div>
+      </Sheet>}
+    </div>;
+  }
+
   return <div className="analytics-view mx-auto w-full max-w-6xl space-y-5 pb-6 text-slate-800 dark:text-slate-200">
     <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
-      <div role="group" aria-label="Đề" className="min-w-0 max-w-full space-y-2">
-        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Đề</p>
-        <AnalyticsScopePicker value={data.sourceKey} onChange={key => { setSourceKey(key); setAttemptChoice(null); }} names={data.names} />
-      </div>
-      <div className="min-w-0 max-w-full space-y-2">
-        <label htmlFor={attemptPickerId} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">Lần làm</label>
-        <select id={attemptPickerId} value={data.attempt?.id ?? ''} disabled={!data.attempts.length} onChange={event => { setSourceKey(data.sourceKey); setAttemptChoice({ source: data.sourceKey, id: event.target.value }); }} className="min-h-11 max-w-full cursor-pointer rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:bg-[#111A2C] dark:text-white">
-          {!data.attempts.length && <option value="">Chưa có lượt làm</option>}
-          {data.attempts.map(row => <option key={row.session.id} value={row.session.id}>{analyticsAttemptLabel(row.number, row.session.date, row.latest)}</option>)}
-        </select>
-      </div>
+      {scopePickers}
     </div>
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

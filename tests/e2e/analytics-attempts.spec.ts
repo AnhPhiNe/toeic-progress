@@ -28,6 +28,15 @@ async function chooseTest(page: Page, name: string) {
   await page.getByRole('option',{name,exact:true}).click();
 }
 
+/** Phones keep the test and attempt pickers in a sheet opened from one summary row. */
+async function openScopeControls(page: import('@playwright/test').Page) {
+  // Decide by width: right after a resize the previous layout can still be on screen.
+  if (page.viewportSize()!.width >= 768) return;
+  const sheet = page.getByRole('dialog', { name: 'Chọn đề và lần làm' });
+  if (!(await sheet.count())) await page.getByRole('button', { name: /^Chọn đề và lần làm/ }).click();
+  await expect(sheet).toBeVisible();
+}
+
 test('latest test defaults to its latest attempt; selecting an older attempt changes scores but keeps all source notes', async ({ page }) => {
   await seed(page);
   await expect(page.getByRole('button',{name:'Đề: ETS B',exact:true})).toBeVisible();
@@ -123,6 +132,7 @@ test('test and attempt controls fit mobile and desktop in both themes, with sear
   await chooseTest(page,'ETS A');
   for(const width of [320,375,768,1440]) {
     await page.setViewportSize({width,height:812});
+    await openScopeControls(page);
     await page.getByRole('button',{name:'Đề: ETS A',exact:true}).click();
     const search=page.getByRole('combobox',{name:'Tìm đề',exact:true});
     await search.fill('ETS A');
@@ -135,9 +145,11 @@ test('test and attempt controls fit mobile and desktop in both themes, with sear
   }
   await page.screenshot({path:testInfo.outputPath('analytics-attempts-desktop.png'),fullPage:true});
   await page.setViewportSize({width:375,height:812});
+  await openScopeControls(page);
   await page.getByLabel('Lần làm',{exact:true}).focus();
   await page.keyboard.press('ArrowDown');
   await expect(page.getByLabel('Lần làm',{exact:true})).toHaveValue('old');
+  await page.keyboard.press('Escape');
   await switchToDarkOnMobile(page);
   await expect.poll(() => page.locator('.analytics-panel').first().evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(17, 26, 44)');
   await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(animation => animation.effect?.getComputedTiming().endTime !== Infinity).map(animation => animation.finished.catch(() => {}))); });

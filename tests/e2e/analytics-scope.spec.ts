@@ -110,6 +110,8 @@ test('analytics fits small and desktop viewports in both themes', async ({ page 
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('heading', { name: 'Độ chính xác 7 Part' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const scopeRow = page.getByRole('button', { name: /^Chọn đề và lần làm/ });
+    if (width < 768 && !(await page.getByRole('dialog', { name: 'Chọn đề và lần làm' }).count())) await scopeRow.click();
     await page.getByRole('button', { name: /^Đề:/ }).click();
     await expect(page.getByRole('combobox', { name: 'Tìm đề' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -17,7 +17,8 @@ test('donut hover and keyboard details stay below the ring without rectangular f
   await page.reload();
   const donut = page.locator('.analytics-donut'); const caption = donut.locator('.analytics-donut-detail');
   await expect(donut).toHaveAttribute('aria-label', /^3 lỗi đã ghi:/);
-  for (const width of [375, 1440]) {
+  // Phones list errors as one line instead of the donut (phone-analytics in analytics-attempts.spec.ts).
+  for (const width of [768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const segment = donut.locator('.recharts-sector[fill="#F59E0B"]');
     const segmentBounds = (await segment.boundingBox())!;
