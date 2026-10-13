@@ -102,4 +102,20 @@ describe('analytics test and attempt selection', () => {
     expect(old.weakest?.key).toBe('part4');
     expect(old.weakest?.accuracy).toBe(0);
   });
+
+  it('picks the Part that lost the most questions, not the lowest percentage', () => {
+    // P1 4/6 is the lowest accuracy (67%) but loses 2 questions; P7 38/54 (70%) loses 16.
+    const row = session('1', { partScores: { part1: 4, part2: 19, part3: 31, part4: 24, part5: 22, part6: 13, part7: 38 } });
+    const data = analyticsScopeData([row], []);
+    expect(data.weakest?.key).toBe('part7');
+    expect(data.weakest?.lost).toBe(16);
+    expect(data.parts.find(part => part.key === 'part1')?.lost).toBe(2);
+  });
+
+  it('breaks a tie in lost questions by lower accuracy and has no weakest Part when nothing is lost', () => {
+    const tie = session('1', { partScores: { part1: 6, part2: 25, part3: 39, part4: 30, part5: 27, part6: 13, part7: 54 } });
+    expect(analyticsScopeData([tie], []).weakest?.key).toBe('part6');
+    const perfect = session('2', { partScores: { part1: 6, part2: 25, part3: 39, part4: 30, part5: 30, part6: 16, part7: 54 } });
+    expect(analyticsScopeData([perfect], []).weakest).toBeNull();
+  });
 });

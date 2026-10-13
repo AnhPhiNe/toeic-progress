@@ -37,9 +37,12 @@ export function analyticsScopeData(sessions: StudySession[], mistakes: MistakeEn
     && testNameKey(mistakeTestName(mistake, linkedNames)) === key);
   const parts = attempt && hasParts(attempt) ? PART_KEYS.map(partKey => {
     const correct = attempt.partScores![partKey];
-    return { key: partKey, code: partKey.replace('part', 'P'), correct, max: PART_MAX_QUESTIONS[partKey], accuracy: correct / PART_MAX_QUESTIONS[partKey] * 100 };
+    return { key: partKey, code: partKey.replace('part', 'P'), correct, max: PART_MAX_QUESTIONS[partKey], lost: PART_MAX_QUESTIONS[partKey] - correct, accuracy: correct / PART_MAX_QUESTIONS[partKey] * 100 };
   }) : [];
-  const weakest = parts.filter(part => part.accuracy < 100).reduce<typeof parts[number] | null>((lowest, part) => !lowest || part.accuracy < lowest.accuracy ? part : lowest, null);
+  // Parts differ in size (P1 has 6 questions, P7 has 54), so the Part to practise is the one that lost the most questions;
+  // a lower accuracy breaks ties.
+  const weakest = parts.filter(part => part.lost > 0).reduce<typeof parts[number] | null>((top, part) =>
+    !top || part.lost > top.lost || (part.lost === top.lost && part.accuracy < top.accuracy) ? part : top, null);
   const section = (score: number | undefined) => ({ value: validSection(score) ? score : null });
   const counts = new Map<ErrorCategory, number>();
   for (const note of notes) {

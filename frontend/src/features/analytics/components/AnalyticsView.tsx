@@ -57,7 +57,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
     data.errors.find(row => row.category === category) ?? { category, count: 0, percent: 0 }), [data.errors]);
   const highlightedError = data.errors.find(row => row.category === activeError);
   const commonError = data.errors[0] ? ERROR_NAMES[data.errors[0].category].toLocaleLowerCase('vi') : null;
-  const priority = data.weakest ? `Ưu tiên Part ${data.weakest.key.slice(4)} (${Math.round(data.weakest.accuracy)}%)${commonError ? ` và ${commonError}` : ''}.`
+  const priority = data.weakest ? `Ưu tiên Part ${data.weakest.key.slice(4)} (mất ${data.weakest.lost} câu)${commonError ? ` và ${commonError}` : ''}.`
     : data.parts.length ? `Cả 7 Part đạt 100% trong lượt này.${commonError ? ` Sổ tay ghi nhiều lỗi nhất ở nhóm ${commonError}.` : ''}`
       : commonError ? `Sổ tay ghi nhiều lỗi nhất ở nhóm ${commonError}. ${data.attempt ? 'Bổ sung chi tiết Part của lượt này để xác định Part cần luyện.' : 'Ghi kết quả đề để xác định Part cần luyện.'}`
         : 'Ghi kết quả đề để xác định Part cần luyện; vẫn có thể xem các lỗi đã lưu.';
@@ -79,7 +79,12 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
   if (isPhone) {
     const sourceName = data.names.find(name => testNameKey(name) === data.sourceKey) ?? 'Chưa có đề';
     const weakPart = data.weakest ? Number(data.weakest.key.slice(4)) : null;
-    const errorLine = data.errors.slice(0, 3).map(row => `${ERROR_NAMES[row.category]} ${row.count}`).join(' · ');
+    // One category keeps the row to two lines however many notes the test has; the notebook lists the rest.
+    const errorLine = data.errors[0] ? `Hay sai nhất: ${ERROR_NAMES[data.errors[0].category]} (${data.errors[0].count})` : '';
+    const lostRows = [...data.parts].sort((a, b) => b.lost - a.lost || a.accuracy - b.accuracy);
+    const mostLost = Math.max(1, lostRows[0]?.lost ?? 0);
+    const lostIn = (from: number, to: number) => data.parts.filter(part => { const n = Number(part.key.slice(4)); return n >= from && n <= to; }).reduce((sum, part) => sum + part.lost, 0);
+    const totalLost = lostIn(1, 7), totalMax = data.parts.reduce((sum, part) => sum + part.max, 0);
     return <div className="analytics-view space-y-4 pb-24 text-slate-800 dark:text-slate-200">
       <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog" aria-label={`Chọn đề và lần làm: ${sourceName}, ${resultStatus}`}
         className="flex min-h-[50px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 text-left dark:border-slate-700 dark:bg-[#111A2C]">
@@ -89,20 +94,24 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
 
       <section aria-labelledby="analytics-parts-heading" className="analytics-panel rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 id="analytics-parts-heading" className="text-[15px] font-black text-slate-950 dark:text-white">Độ chính xác 7 Part</h2>
-          <span className="text-[13px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">
-            {data.listening.value === null && data.reading.value === null ? '' : `L ${data.listening.value === null ? '—' : number(data.listening.value)} · R ${data.reading.value === null ? '—' : number(data.reading.value)}`}
-          </span>
+          <h2 id="analytics-parts-heading" className="text-[15px] font-black text-slate-950 dark:text-white">Mất điểm ở đâu</h2>
+          {data.parts.length > 0 && <span className="text-[13px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">Sai {totalLost} / {totalMax} câu</span>}
         </div>
-        {data.parts.length ? <ol className="mt-3 space-y-1.5" aria-label={`Tỷ lệ đúng theo Part, ${chartLabel}`}>
-          {data.parts.map(part => {
+        {data.parts.length > 0 && <p className="mt-0.5 text-[12px] font-bold tabular-nums">
+          <span className="text-indigo-600 dark:text-indigo-400">● Listening {lostIn(1, 4)}</span><span className="ml-3 text-teal-600 dark:text-teal-400">● Reading {lostIn(5, 7)}</span>
+        </p>}
+        {data.parts.length ? <ol className="mt-2.5 space-y-1" aria-label={`Số câu sai theo Part, ${chartLabel}`}>
+          {lostRows.map(part => {
             const n = Number(part.key.slice(4)), weak = part.key === data.weakest?.key;
             const tone = weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400';
-            return <li key={part.key} className={'flex items-center gap-3 rounded-xl py-1 ' + (weak ? '-mx-2 bg-rose-50 px-2 dark:bg-rose-950/40' : '')}
-              title={`Part ${n}: ${PART_NAMES[n - 1]} · đúng ${number(part.correct)}/${part.max} câu`}>
+            return <li key={part.key} className={'flex items-center gap-3 rounded-xl py-1 ' + (weak ? '-mx-2 bg-rose-50 px-2 py-1.5 dark:bg-rose-950/40' : '')}
+              title={`Part ${n}: ${PART_NAMES[n - 1]}`}>
               <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-black text-white ' + (weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>{part.code}</span>
-              <span className="block h-2 flex-1 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-800" aria-hidden="true"><span className={'block h-full rounded-full ' + tone} style={{ width: `${Math.min(100, part.accuracy)}%` }} /></span>
-              <span className={'w-11 shrink-0 text-right text-[14px] font-black tabular-nums ' + (weak ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white')}>{Math.round(part.accuracy)}%</span>
+              <span className="block h-2 flex-1" aria-hidden="true">{part.lost > 0 && <span className={'block h-full rounded-full ' + tone} style={{ width: `${part.lost / mostLost * 100}%` }} />}</span>
+              <span className="w-[76px] shrink-0 text-right leading-tight">
+                <span className={'block text-[14px] font-black tabular-nums ' + (weak ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white')}>{part.lost} câu</span>
+                <span className="block text-[11px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">{number(part.correct)}/{part.max} đúng</span>
+              </span>
             </li>;
           })}
         </ol> : <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -125,7 +134,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
       {onNavigateToTimer && weakPart !== null && <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
         <button type="button" onClick={() => onNavigateToTimer(weakPart < 5 ? 'POMODORO' : `PART_${weakPart}` as ReadingPartType)}
           className="flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-yellow-300 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
-          <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} yếu nhất` : `Luyện ${data.weakest!.code} · yếu nhất`}
+          <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} mất ${data.weakest!.lost} câu` : `Luyện ${data.weakest!.code} · mất ${data.weakest!.lost} câu`}
         </button>
       </div>}
 
