@@ -288,7 +288,8 @@ test('reordering also works by tapping or keyboard and stays inside the pending 
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
   });
   await page.reload();
-  await page.setViewportSize({ width: 375, height: 812 });
+  // Tap/keyboard ordering is the tablet and desktop control; phones use "Đưa lên đầu" (checked below).
+  await page.setViewportSize({ width: 768, height: 812 });
   const order = page.getByRole('button', { name: 'Sắp xếp Luyện Part 7', exact: true });
   await order.click();
   await page.getByRole('button', { name: 'Di chuyển lên', exact: true }).click();
@@ -301,6 +302,12 @@ test('reordering also works by tapping or keyboard and stays inside the pending 
   await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-task-id', 'time');
   await expect(page.getByRole('status').filter({ hasText: 'Đã đổi thứ tự' })).toContainText('Đã đổi thứ tự');
   await expect(page.locator('[data-task-id]').last()).toHaveAttribute('data-task-id', 'full');
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.locator('[data-task-id="part"]').click();
+  await page.getByRole('dialog', { name: 'Luyện Part 7', exact: true }).getByRole('button', { name: 'Đưa lên đầu', exact: true }).click();
+  await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-task-id', 'part');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 

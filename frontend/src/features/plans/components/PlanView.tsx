@@ -31,6 +31,8 @@ import { buildWeeklyStudyPlan } from '@/features/plans/lib/studyPlan';
 import { assertPlanFitsSync } from '@/features/plans/lib/planLimits';
 import { getTodayDateString, getWeekMonday, addDays, loadWeeklyPlans, saveWeeklyPlans, getOrCreateWeeklyPlan } from '@/shared/data/storage';
 import { CARD } from '@/shared/ui/surfaces';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { PhonePlan } from './PhonePlan';
 import type { VocabLog } from '@/shared/data/dataBundle';
 
 interface PlanViewProps {
@@ -140,6 +142,8 @@ export const PlanView: React.FC<PlanViewProps> = ({
 }) => {
   const today = getTodayDateString();
   const currentWeekMonday = getWeekMonday(today);
+  // Phones get PhonePlan: rows and a sheet per goal instead of drag handles and inline icons.
+  const isPhone = useMediaQuery(PHONE_QUERY);
 
   // Tuần đang xem
   const [selectedWeek, setSelectedWeek] = useState<string>(currentWeekMonday);
@@ -284,6 +288,18 @@ export const PlanView: React.FC<PlanViewProps> = ({
     const to = tasks.findIndex(item => item.id === neighbor.id);
     [tasks[from], tasks[to]] = [tasks[to], tasks[from]];
     if (updateCurrentWeekTasks(tasks)) setSaveFeedback('Đã đổi thứ tự mục tiêu.');
+  };
+
+  // Phones reorder with "Đưa lên đầu": the goal moves before the first goal of its group (to do / done).
+  const moveTaskToTop = (taskId: string) => {
+    const task = summary.tasks.find(item => item.id === taskId);
+    const first = summary.tasks.find(item => item.isComplete === task?.isComplete);
+    if (!task || !first || first.id === taskId) return;
+    const tasks = activePlanRecord.tasks.filter(item => item.id !== taskId);
+    const moving = activePlanRecord.tasks.find(item => item.id === taskId);
+    if (!moving) return;
+    tasks.splice(tasks.findIndex(item => item.id === first.id), 0, moving);
+    if (updateCurrentWeekTasks(tasks)) setSaveFeedback('Đã đưa mục tiêu lên đầu.');
   };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -685,6 +701,30 @@ export const PlanView: React.FC<PlanViewProps> = ({
   };
 
   const is100Percent = summary.totalTasks > 0 && summary.completedTasks >= summary.totalTasks;
+
+  if (isPhone) return (
+    <div className="plan-view animate-fade-in">
+      {saveError && !isModalOpen && <p role="alert" className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{saveError}</p>}
+      <PhonePlan summary={summary} barClass={task => getTaskTheme(task).progressBar} canCopyPrevWeek={canCopyPrevWeek} prevWeekCount={prevWeekTasks.length}
+        wipLimitReached={isWipLimitReached} onPrevWeek={handlePrevWeek} onNextWeek={handleNextWeek} onCurrentWeek={handleCurrentWeek}
+        onCopyPrevWeek={handleCopyPrevWeek} onAdd={handleOpenAddModal} onEdit={handleOpenEditModal} onDelete={handleDeleteTask}
+        onMoveToTop={moveTaskToTop} onRecordFullTest={() => onOpenSessionLogger()}
+        onRecordPart={part => onOpenSessionLogger({ sessionType: 'PART_PRACTICE', partNumber: part })}
+        onOpenTimer={() => onNavigateToTimer ? onNavigateToTimer() : onOpenSessionLogger({ sessionType: 'PART_PRACTICE' })} />
+      {isModalOpen && <PlanTaskModal editing={Boolean(editingTaskId)} weekLabel={`Tuần ${formatVnDate(summary.weekStart)} – ${formatVnDate(summary.weekEnd)}`} value={{ title: taskTitle, type: taskType, target: taskTarget, unit: taskUnit, part: taskPart, notes: taskNotes, color: taskColor }} colors={TASK_COLOR_OPTIONS} error={saveError} onClose={closeTaskModal} onSubmit={handleSaveModal} onPreset={applyQuickPreset} onChange={(patch: Partial<PlanTaskDraft>) => {
+        if (patch.title !== undefined) setTaskTitle(patch.title);
+        if (patch.target !== undefined) setTaskTarget(patch.target);
+        if (patch.unit !== undefined) setTaskUnit(patch.unit);
+        if (patch.notes !== undefined) setTaskNotes(patch.notes);
+        if (patch.color !== undefined) setTaskColor(patch.color);
+        if (patch.part !== undefined) { setTaskPart(patch.part); setTaskColor(getDefaultTaskColor('AUTO_PART_PRACTICE', patch.part)); }
+        if (patch.type !== undefined) { setTaskType(patch.type); setTaskUnit(patch.type === 'AUTO_FULL_TEST' ? 'đề' : patch.type === 'AUTO_STUDY_TIME' ? 'phút' : patch.type === 'AUTO_PART_PRACTICE' ? 'bài' : 'lần'); setTaskTarget(patch.type === 'AUTO_STUDY_TIME' ? (profile.dailyMinGoalMinutes || 30) * 7 : patch.type === 'AUTO_PART_PRACTICE' ? 2 : 1); setTaskColor(getDefaultTaskColor(patch.type, taskPart)); }
+      }} />}
+
+      {wipLimitAlert && <PlanLimitDialog onClose={closeLimitDialog} />}
+      <div role="status" aria-live="polite" className="sr-only">{saveFeedback}</div>
+    </div>
+  );
 
   return (
     <div className="plan-view space-y-4 animate-fade-in pb-10">
