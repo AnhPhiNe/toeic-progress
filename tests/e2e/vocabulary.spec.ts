@@ -13,6 +13,42 @@ async function seed(page: Page) {
   await page.locator('.vocab-history-summary').click();
 }
 
+test('phones log today with presets and steppers, then edit and delete from the history sheet', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.install({ time: new Date('2026-10-09T09:00:00Z') });
+  await page.goto('/tu-vung');
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    data.vocabLog = [{ id: 'vocab:2026-10-05', date: '2026-10-05', count: 20, updatedAt: '2026-10-09T09:00:00Z', deletedAt: null }];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  const count = page.getByLabel('Số từ đã học', { exact: true });
+  await expect(count).toHaveValue('20');
+  await page.getByRole('button', { name: '30', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm 5 từ', exact: true }).click();
+  await expect(count).toHaveValue('35');
+  await page.getByRole('button', { name: 'Bớt 5 từ', exact: true }).click();
+  await page.getByRole('button', { name: 'Lưu 30 từ', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Đã lưu 30 từ' })).toContainText('cho ngày 09/10/2026');
+  await expect(page.getByText('Đã ghi 30 từ cho ngày này', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '14 ngày qua', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Lịch sử ghi nhận/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Lịch sử ghi nhận', exact: true });
+  await expect(sheet.locator('[data-vocab-day]')).toHaveCount(2);
+  await sheet.getByRole('button', { name: 'Sửa ghi nhận ngày 05/10/2026', exact: true }).click();
+  const edit = page.getByRole('dialog', { name: 'Sửa ghi nhận', exact: true });
+  await edit.getByLabel('Số từ đã học').fill('25');
+  await edit.getByRole('button', { name: 'Cập nhật', exact: true }).click();
+  await expect(edit).toHaveCount(0);
+  await expect(sheet.locator('[data-vocab-day="2026-10-05"]')).toContainText('25 từ');
+  page.once('dialog', dialog => dialog.accept());
+  await sheet.getByRole('button', { name: 'Xóa ghi nhận ngày 05/10/2026', exact: true }).click();
+  await expect(sheet.locator('[data-vocab-day]')).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test('daily totals edit by date, replace instead of add, paginate five rows and stay saved after reload', async ({ page }) => {
   await seed(page);
   await expect(page.locator('[data-vocab-day]')).toHaveCount(5);
@@ -82,6 +118,8 @@ test('compact layout fits widths and themes; bars grow while numeric labels rema
   await page.getByRole('button',{name:'Chuyển sang giao diện Tối',exact:true}).click();
   await page.setViewportSize({width:375,height:812});
   await page.screenshot({path:testInfo.outputPath('vocabulary-mobile-dark.png'), fullPage:true, animations:'disabled'});
+  // The animated recharts chart is tablet/desktop only; phones show a fixed 14-day strip.
+  await page.setViewportSize({width:768,height:900});
   await page.emulateMedia({reducedMotion:'no-preference'});
   await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 1000));
   await page.reload();

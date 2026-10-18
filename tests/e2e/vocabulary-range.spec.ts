@@ -109,7 +109,8 @@ test('date validation, popup keyboard, mobile and zoom leave filters intact unti
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
   await expect(page.locator('[data-vocab-day]')).toHaveCount(3);
-  for (const width of [320, 375, 768, 1024, 1440]) {
+  // Phones show a fixed 14-day strip without the range picker.
+  for (const width of [768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 812 });
     const range = await openRange(page);
     const box = await range.boundingBox();
@@ -120,8 +121,7 @@ test('date validation, popup keyboard, mobile and zoom leave filters intact unti
     if (width === 1440) await page.screenshot({ path: testInfo.outputPath('vocabulary-filter-desktop.png'), fullPage: true, animations: 'disabled' });
     await page.keyboard.press('Escape');
   }
-  await page.setViewportSize({ width: 375, height: 812 });
-  await page.setViewportSize({ width: 375, height: 600 });
+  await page.setViewportSize({ width: 768, height: 600 });
   const shortPopup = await openRange(page);
   const shortBox = await shortPopup.boundingBox();
   expect(shortBox!.y).toBeGreaterThanOrEqual(0);

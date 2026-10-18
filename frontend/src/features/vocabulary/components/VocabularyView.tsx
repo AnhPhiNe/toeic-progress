@@ -10,6 +10,8 @@ import { formatVocabDate, groupVocabDays, summarizeVocabDays, validVocabDate, vo
 import { VocabChartLabels } from './VocabChartLabels';
 import { DateRangePicker } from '@/shared/components/DateRangePicker';
 import { VocabEditModal } from './VocabEditModal';
+import { PhoneVocabulary } from './PhoneVocabulary';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import './vocabulary.css';
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
 export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab, onDeleteVocab }: Props) {
   const today = getTodayDateString();
   const isDark = theme === 'dark';
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const owner = useRef(getActiveAccountId());
   const days = useMemo(() => groupVocabDays(vocabLog), [vocabLog]);
   const total = days.length ? days[days.length - 1].cumulative : 0;
@@ -95,6 +98,19 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
   const dateTicks = [...new Set(Array.from({ length: tickCount }, (_, index) => firstDay + Math.round(index * (span - 1) / Math.max(1, tickCount - 1))))];
   const yAxis = vocabYAxis(selected);
 
+  const editModal = editing && <VocabEditModal day={editing.day} suggestions={suggestions} onClose={closeEdit} onSave={(count, details) => {
+    const message = saveDay(editing.day.date, count, editing.signature, details);
+    if (!message) closeEdit();
+    return message;
+  }} />;
+  const startEdit = (day: VocabDay) => setEditing({ day, signature: vocabDaySignature(vocabLog, day.date) });
+
+  if (isPhone) return <>
+    <PhoneVocabulary today={today} days={days} total={total} date={quickDate} count={quickCount} existing={existing} saved={saved} error={error} feedback={feedback}
+      onDate={chooseDate} onCount={value => { setQuickCount(value); setSaved(false); }} onSubmit={quickSave} onEdit={startEdit} onDelete={onDeleteVocab ? removeDay : undefined} />
+    {editModal}
+  </>;
+
   return <div className="vocabulary-view">
     <header className="vocab-page-header">
       <div className="flex flex-wrap items-center gap-2 min-w-0"><h1 className="text-base sm:text-lg font-black">Từ vựng</h1><span className="vocab-total">{total.toLocaleString('vi-VN')} từ tích lũy</span></div>
@@ -128,16 +144,12 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
       <summary className="vocab-history-summary" aria-controls="vocab-history-content"><h2 className="text-sm sm:text-base font-black">Lịch sử ghi nhận</h2><span className="vocab-total">{selected.length} ngày</span><ChevronDown size={18} aria-hidden="true" /></summary>
       {historyOpen && <section id="vocab-history-content" className="vocab-history-content" aria-label="Lịch sử từ vựng">
       <table className="vocab-history-table"><caption className="sr-only">Lịch sử ghi nhận theo khoảng ngày đã chọn</caption><colgroup><col style={{ width: '16%' }} /><col style={{ width: '36%' }} /><col style={{ width: '16%' }} /><col style={{ width: '12%' }} /><col style={{ width: '20%' }} /></colgroup><thead><tr><th scope="col">Ngày</th><th scope="col">Nguồn học</th><th scope="col">Part</th><th scope="col">Số từ</th><th scope="col">Thao tác</th></tr></thead><tbody>
-        {visible.length ? visible.map(day => <tr key={day.date} data-vocab-day={day.date}><td>{formatVocabDate(day.date)}</td><td>{day.sourceNames.length ? day.sourceNames.join(' · ') : <span className="text-slate-500 dark:text-slate-400">Chưa ghi nguồn</span>}</td><td><div className="vocab-parts">{day.parts.length ? day.parts.map(part => <span className="vocab-part" data-part={part} key={part}>P{part}</span>) : <span className="text-slate-500 dark:text-slate-400">—</span>}</div></td><td className="vocab-quantity">{day.count.toLocaleString('vi-VN')} từ</td><td><div className="vocab-row-actions"><button type="button" aria-label={`Sửa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => setEditing({ day, signature: vocabDaySignature(vocabLog, day.date) })} className="vocab-action"><Pencil size={14} aria-hidden="true" /><span>Sửa</span></button>{onDeleteVocab && <button type="button" aria-label={`Xóa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => removeDay(day)} className="vocab-action is-delete"><Trash2 size={14} aria-hidden="true" /><span>Xóa</span></button>}</div></td></tr>) : <tr><td colSpan={5} className="vocab-empty">Chưa có ghi nhận trong khoảng này.</td></tr>}
+        {visible.length ? visible.map(day => <tr key={day.date} data-vocab-day={day.date}><td>{formatVocabDate(day.date)}</td><td>{day.sourceNames.length ? day.sourceNames.join(' · ') : <span className="text-slate-500 dark:text-slate-400">Chưa ghi nguồn</span>}</td><td><div className="vocab-parts">{day.parts.length ? day.parts.map(part => <span className="vocab-part" data-part={part} key={part}>P{part}</span>) : <span className="text-slate-500 dark:text-slate-400">—</span>}</div></td><td className="vocab-quantity">{day.count.toLocaleString('vi-VN')} từ</td><td><div className="vocab-row-actions"><button type="button" aria-label={`Sửa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => startEdit(day)} className="vocab-action"><Pencil size={14} aria-hidden="true" /><span>Sửa</span></button>{onDeleteVocab && <button type="button" aria-label={`Xóa ghi nhận ngày ${formatVocabDate(day.date)}`} onClick={() => removeDay(day)} className="vocab-action is-delete"><Trash2 size={14} aria-hidden="true" /><span>Xóa</span></button>}</div></td></tr>) : <tr><td colSpan={5} className="vocab-empty">Chưa có ghi nhận trong khoảng này.</td></tr>}
       </tbody></table>
       {pageCount > 1 && <nav aria-label="Trang lịch sử từ vựng" className="vocab-pagination"><button type="button" disabled={page === 1} onClick={() => setHistoryPage(page - 1)}><ChevronLeft size={16} aria-hidden="true" />Trước</button><span>Trang {page}/{pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setHistoryPage(page + 1)}>Sau<ChevronRight size={16} aria-hidden="true" /></button></nav>}
       </section>}
     </details>
     <p role="status" aria-live="polite" className="vocab-feedback">{feedback}</p>
-    {editing && <VocabEditModal day={editing.day} suggestions={suggestions} onClose={closeEdit} onSave={(count, details) => {
-      const message = saveDay(editing.day.date, count, editing.signature, details);
-      if (!message) closeEdit();
-      return message;
-    }} />}
+    {editModal}
   </div>;
 }
