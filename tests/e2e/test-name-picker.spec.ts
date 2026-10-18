@@ -41,12 +41,12 @@ test('empty answers are visible but disabled, source key is separate and Part te
   const modal = page.getByRole('dialog');
   for (const width of [320, 375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    const fits = await modal.getByLabel('Part', { exact: true }).evaluate(element => {
+    // Poll: right after a resize the previous layout can still be measured.
+    await expect.poll(() => modal.getByLabel('Part', { exact: true }).evaluate(element => {
       const style = getComputedStyle(element), canvas = document.createElement('canvas');
       const context = canvas.getContext('2d')!; context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
       return context.measureText('Chọn Part').width <= element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    });
-    expect(fits).toBe(true);
+    })).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   for (const letter of ['A', 'B', 'C', 'D']) await expect(modal.getByRole('button', { name: `Bạn chọn ${letter}`, exact: true })).toBeDisabled();

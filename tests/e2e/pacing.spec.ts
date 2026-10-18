@@ -431,6 +431,14 @@ test('pacing layout, settings and result dialog fit small screens and dark mode'
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('button', { name: 'Bắt đầu', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    // Wait for the layout of this width; right after a resize the previous one can still be on screen.
+    await expect(page.locator('.pacing-view')).toHaveClass(width < 768 ? /is-phone/ : /^(?!.*is-phone)/);
+    if (width < 768) {
+      // Phones keep the modes on one scrolling row.
+      const tops = await page.locator('.pacing-modes > *').evaluateAll(items => new Set(items.map(item => Math.round(item.getBoundingClientRect().top))).size);
+      expect(tops).toBe(1);
+      continue;
+    }
     const centered = await page.locator('.pacing-modes').evaluate(group => {
       const clock = document.querySelector('.pacing-clock')!.getBoundingClientRect();
       const rows = new Map<number, { left: number; right: number }>();
