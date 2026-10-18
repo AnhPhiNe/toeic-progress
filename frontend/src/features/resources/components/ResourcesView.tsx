@@ -19,6 +19,8 @@ import {
 } from '@/shared/domain/etsScoring';
 import { StudySession } from '@/shared/types';
 import { ScoreSkillControl } from './ScoreSkillControl';
+import { PhoneResources } from './PhoneResources';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 
 interface ResourcesViewProps {
   /** Toàn bộ buổi học, dùng để lấy số câu đúng của bài Full Test gần nhất làm điểm khởi tạo */
@@ -29,6 +31,7 @@ interface ResourcesViewProps {
 
 export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetScore }) => {
   const goal = Math.max(10, Math.min(990, targetScore || 990));
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [activeTab, setActiveTab] = useState<'calc' | 'matrix'>('calc');
   const matrixTabRef = useRef<HTMLButtonElement>(null);
 
@@ -76,6 +79,11 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
   const readingRange = getPracticeScoreRange('reading', rawReading);
   const listeningLevel = getToeicSectionReference('listening', scaledListening)?.cefr ?? 'Dưới A1';
   const readingLevel = getToeicSectionReference('reading', scaledReading)?.cefr ?? 'Dưới A1';
+
+  if (isPhone) return <PhoneResources rawListening={rawListening} rawReading={rawReading} onListening={setRawListening} onReading={setRawReading}
+    scaledListening={scaledListening} scaledReading={scaledReading} total={totalEstimated} rangeMax={listeningRange.max + readingRange.max}
+    cefr={concordance?.cefr ?? 'Dưới A1'} goal={goal} onRestore={resetToLatestTest}
+    restore={latestFullTest && !isShowingRealResult ? { listening: latestFullTest.rawListening!, reading: latestFullTest.rawReading! } : null} />;
 
   return (
     <div className="space-y-3.5 max-w-6xl mx-auto w-full flex-1 flex flex-col min-h-0 pb-2">

@@ -130,3 +130,24 @@ test('new data updates an untouched calculator and preserves explicit simulation
   await expect(matrixButton).toBeFocused();
   await expect(matrixButton).toHaveAttribute('aria-pressed','true');
 });
+
+test('phones put the estimate first, step each skill and restore the latest test', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  const total = page.getByRole('region', { name: 'Tổng điểm dự kiến', exact: true });
+  await expect(total.getByTestId('estimated-total')).toHaveText('900');
+  await expect(page.getByRole('button', { name: /^Lấy từ bài thi gần nhất/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Giảm số câu Listening', exact: true }).click();
+  await expect(page.getByLabel('Số câu đúng Listening', { exact: true })).toHaveValue('96');
+  await expect(page.getByRole('region', { name: 'Ước tính Listening', exact: true })).toContainText('Sai 4 câu');
+  await page.getByLabel('Số câu đúng Reading', { exact: true }).fill('60');
+  await expect(total.getByTestId('estimated-total')).not.toHaveText('900');
+  await page.getByRole('button', { name: /^Lấy từ bài thi gần nhất/ }).click();
+  await expect(total.getByTestId('estimated-total')).toHaveText('900');
+  await page.getByRole('button', { name: 'Cách ước tính điểm', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Cách ước tính điểm', exact: true })).toContainText('IIBC 2023');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Bảng đối chiếu', exact: true }).click();
+  await expect(page.locator('[aria-current="true"]')).toContainText('B2');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
