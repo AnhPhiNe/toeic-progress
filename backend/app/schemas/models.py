@@ -11,6 +11,13 @@ from app.core.text_input import has_multiple_questions
 
 Number = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 Part = Annotated[int, Field(ge=1, le=7, strict=True)]
+QuestionNumber = Annotated[int, Field(ge=1, le=200, strict=True)]
+# Last question number of each Part in a TOEIC Listening & Reading test.
+PART_LAST_QUESTION = (6, 31, 70, 100, 130, 146, 200)
+
+
+def part_of_question(number: int) -> int:
+    return next(index + 1 for index, last in enumerate(PART_LAST_QUESTION) if number <= last)
 Category = Literal[
     "VOCABULARY_TRAP", "ADVANCED_GRAMMAR", "LISTENING_SPEED", "TIME_PRESSURE", "CARELESS_DISTRACTION", "OTHER"
 ]
@@ -79,9 +86,22 @@ class Session(Payload):
     attemptNumber: int | None = Field(default=None, ge=1)
     scoreSource: Literal["ESTIMATED", "MANUAL_SECTIONS", "MANUAL_TOTAL"] | None = None
     scoreConversionVersion: str | None = Field(default=None, max_length=100)
+    wrongQuestions: list[QuestionNumber] | None = Field(default=None, max_length=200)
 
     @model_validator(mode="after")
     def check_score_source(self):
+        if self.wrongQuestions is not None:
+            if self.sessionType != "FULL_TEST":
+                raise ValueError("Danh sách câu sai chỉ dùng cho Full Test")
+            if any(b <= a for a, b in zip(self.wrongQuestions, self.wrongQuestions[1:])):
+                raise ValueError("Danh sách câu sai phải tăng dần, không trùng")
+            if self.partScores is not None:
+                wrong = [0] * 7
+                for number in self.wrongQuestions:
+                    wrong[part_of_question(number) - 1] += 1
+                sizes = [6, 25, 39, 30, 30, 16, 54]
+                if [getattr(self.partScores, f"part{index + 1}") for index in range(7)] != [size - count for size, count in zip(sizes, wrong)]:
+                    raise ValueError("Số câu đúng từng Part không khớp danh sách câu sai")
         if self.practiceParts is not None and len({item.part for item in self.practiceParts}) != len(self.practiceParts):
             raise ValueError("Part luyện tập bị trùng")
         # Preserve legacy imports without changing or re-estimating their scores.
@@ -111,6 +131,7 @@ SourceImageId = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$", min_length=64, m
 class Mistake(Payload):
     id: str
     part: Part
+    questionNumber: QuestionNumber | None = None
     category: Category
     status: Literal["NEEDS_REVIEW", "MASTERED"]
     questionContext: str = Field(max_length=16000)
@@ -146,6 +167,8 @@ class Mistake(Payload):
 
     @model_validator(mode="after")
     def check_learner_choice(self):
+        if self.questionNumber is not None and part_of_question(self.questionNumber) != self.part:
+            raise ValueError("Số câu không thuộc Part đã chọn")
         if self.sourceImageIds and (self.part not in (1, 7) or (self.part == 1 and len(self.sourceImageIds) != 1)
                                     or len(set(self.sourceImageIds)) != len(self.sourceImageIds)):
             raise ValueError("Ảnh nguồn chỉ dùng cho Part 1 (một ảnh) hoặc Part 7")

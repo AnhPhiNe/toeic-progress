@@ -27,3 +27,17 @@ export function collectTestNames(sessions: StudySession[], mistakes: MistakeEntr
       ? mistake.sourceTestName : linkedNames.get(mistake.sessionId ?? '') ?? '')
   ]);
 }
+
+/**
+ * The test a learner most likely did next: the latest Full Test's name with its trailing number raised by one
+ * ("ETS 2024 Test 03" -> "ETS 2024 Test 04"). Empty when there is no numbered name or that test is already logged.
+ */
+export function suggestNextTestName(sessions: StudySession[]): string {
+  const fullTests = sessions.filter(session => !session.deletedAt && session.sessionType === 'FULL_TEST' && normalizeTestName(session.testName));
+  const latest = [...fullTests].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''))[0];
+  const match = latest && /^(.*?)(\d+)(\D*)$/.exec(normalizeTestName(latest.testName));
+  if (!match) return '';
+  const next = String(Number(match[2]) + 1).padStart(match[2].length, '0');
+  const name = `${match[1]}${next}${match[3]}`;
+  return fullTests.some(session => testNameKey(session.testName) === testNameKey(name)) || name.length > 300 ? '' : name;
+}

@@ -155,6 +155,25 @@ describe('backup restore', () => {
     expect(values.size).toBe(0);
   });
 
+  it('keeps wrong-question lists and draft cards, and rejects numbers that do not match their Part', () => {
+    const now = '2026-10-19T00:00:00.000Z';
+    const session = { id: 's1', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'ETS Test 4', date: '2026-10-19', durationMinutes: 120,
+      createdAt: now, updatedAt: now, deletedAt: null, wrongQuestions: [3, 104], partScores: { part1: 5, part2: 25, part3: 39, part4: 30, part5: 29, part6: 16, part7: 54 } };
+    const draft = { id: 'draft:s1:104', sessionId: 's1', part: 5, questionNumber: 104, questionContext: '', question: '', userMistake: '', correctAnswer: '',
+      answerSource: 'MISSING', userChoiceState: 'UNKNOWN', category: 'OTHER', tags: [], status: 'NEEDS_REVIEW', createdAt: now, updatedAt: now, deletedAt: null };
+    const valid = parseBackup(JSON.stringify({ ...bundle(), exportDate: now, sessions: [session], mistakes: [draft] }));
+    expect(valid.ok).toBe(true);
+    if (valid.ok) {
+      expect(valid.preview.data.sessions[0].wrongQuestions).toEqual([3, 104]);
+      expect(valid.preview.data.mistakes[0].questionNumber).toBe(104);
+    }
+    for (const broken of [
+      { sessions: [{ ...session, wrongQuestions: [104, 3] }], mistakes: [] },
+      { sessions: [{ ...session, partScores: { ...session.partScores, part5: 30 } }], mistakes: [] },
+      { sessions: [], mistakes: [{ ...draft, part: 6 }] }
+    ]) expect(parseBackup(JSON.stringify({ ...bundle(), exportDate: now, ...broken })).ok).toBe(false);
+  });
+
   it('rejects a backup from a newer app version', () => {
     const result = parseBackup(JSON.stringify({ schemaVersion: 4 }));
     expect(result.ok).toBe(false);

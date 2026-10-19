@@ -62,6 +62,8 @@ export interface MistakeEntry {
   /** Name of the source test; empty explicitly clears a legacy session reference. */
   sourceTestName?: string | null;
   part: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  /** Số câu 1-200 trong đề Full Test; thẻ tạo từ danh sách câu sai luôn có, thẻ nhập lẻ có thể thiếu */
+  questionNumber?: number;
   questionContext: string; // Nội dung câu hỏi hoặc vị trí câu (vd: Câu 134 Part 5)
   /** Explicit source stem and reference text; older records only have questionContext. */
   question?: string;
@@ -118,6 +120,8 @@ export interface StudySession {
   scoreSource?: 'ESTIMATED' | 'MANUAL_SECTIONS' | 'MANUAL_TOTAL';
   scoreConversionVersion?: string; // Bảng xấp xỉ dùng khi tính; không phải bảng chấm chính thức ETS.
   partScores?: LRPartScore;
+  /** Full Test ghi bằng danh sách câu sai (1-200, tăng dần); partScores được suy ra từ danh sách này */
+  wrongQuestions?: number[];
 
   /**
    * Dành cho buổi LUYỆN PART LẺ: kết quả từng Part đã luyện trong buổi.
