@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { CHOICE_LETTERS, learnerMistake, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
@@ -19,7 +19,7 @@ type Choice = ChoiceLetter | 'BLANK' | '';
 
 /**
  * Fills in mistake cards that came from a wrong-question list, one after another:
- * ① the question (pasted), ② what the learner chose, ③ the correct answer, ④ why it went wrong.
+ * the question (pasted), what the learner chose, the correct answer, and why it went wrong.
  * Test, Part and question number are already on the card.
  */
 export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props) {
@@ -46,7 +46,7 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
 
   const save = () => {
     if (parsed?.error) { setError(parsed.error); return; }
-    if (choice && choice === answer) { setError('Đáp án bạn chọn trùng đáp án đúng. Kiểm tra lại ② hoặc ③.'); return; }
+    if (choice && choice === answer) { setError('Đáp án bạn chọn trùng đáp án đúng.'); return; }
     if (!choice && !answer && !category && !parsed) { setError('Điền ít nhất một mục, hoặc bấm Bỏ qua.'); return; }
     const options = parsed?.options ?? card.options ?? [];
     const question = parsed?.question ?? card.question ?? '';
@@ -89,7 +89,7 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
         <div data-flow-body className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
           <section>
             <div className="flex items-baseline justify-between gap-2">
-              <label htmlFor="detail-question" className="text-[14px] font-black">① Câu hỏi <span className="font-semibold text-slate-400">(không bắt buộc)</span></label>
+              <label htmlFor="detail-question" className="text-[14px] font-black">Câu hỏi <span className="font-semibold text-slate-400">(không bắt buộc)</span></label>
               <button type="button" onClick={() => onOpenFull(card)} className="min-h-9 cursor-pointer text-[13px] font-bold text-blue-700 dark:text-blue-300">Form đầy đủ (AI)</button>
             </div>
             <textarea id="detail-question" rows={4} value={raw} onChange={event => { setRaw(event.target.value); setError(''); }}
@@ -99,19 +99,19 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
           </section>
 
           <section role="group" aria-labelledby="detail-choice">
-            <p id="detail-choice" className="text-[14px] font-black text-rose-700 dark:text-rose-300">② ✗ Bạn chọn</p>
+            <p id="detail-choice" className="flex items-center gap-2 text-[14px] font-black"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-white" aria-hidden="true"><X className="h-3 w-3" strokeWidth={3.5} /></span>Bạn chọn</p>
             <div className="mt-2 flex gap-2">{letters.map(letter => letterButton(letter, choice === letter, 'wrong', () => setChoice(choice === letter ? '' : letter)))}</div>
             <button type="button" aria-pressed={choice === 'BLANK'} onClick={() => setChoice(choice === 'BLANK' ? '' : 'BLANK')}
               className={'mt-1.5 min-h-9 cursor-pointer text-[13px] font-bold ' + (choice === 'BLANK' ? 'text-rose-700 underline dark:text-rose-300' : 'text-slate-500 dark:text-slate-400')}>Mình bỏ trống câu này</button>
           </section>
 
           <section role="group" aria-labelledby="detail-answer">
-            <p id="detail-answer" className="text-[14px] font-black text-emerald-700 dark:text-emerald-300">③ ✓ Đáp án đúng</p>
+            <p id="detail-answer" className="flex items-center gap-2 text-[14px] font-black"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white" aria-hidden="true"><Check className="h-3 w-3" strokeWidth={3.5} /></span>Đáp án đúng</p>
             <div className="mt-2 flex gap-2">{letters.map(letter => letterButton(letter, answer === letter, 'right', () => setAnswer(answer === letter ? '' : letter)))}</div>
           </section>
 
           <section role="group" aria-labelledby="detail-category">
-            <p id="detail-category" className="text-[14px] font-black">④ Vì sao sai</p>
+            <p id="detail-category" className="text-[14px] font-black">Vì sao sai</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {(Object.keys(CATEGORY_CHOICES) as ErrorCategory[]).map(value => (
                 <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(category === value ? '' : value)}

@@ -28,7 +28,7 @@ test('wrong questions are filled in one after another and leave the pending grou
   await flow.getByRole('button', { name: 'Bỏ qua', exact: true }).click();
 
   await expect(flow.getByText('Câu 107 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
-  await flow.getByLabel(/① Câu hỏi/).fill('She has exceeded her targets every quarter _____ transferring.\n(A) until\n(B) since\n(C) upon\n(D) onto');
+  await flow.getByLabel(/^Câu hỏi/).fill('She has exceeded her targets every quarter _____ transferring.\n(A) until\n(B) since\n(C) upon\n(D) onto');
   await expect(flow.getByText('✓ Đã tách 4 phương án', { exact: true })).toBeVisible();
   const chose = flow.getByRole('group', { name: /Bạn chọn/ }), right = flow.getByRole('group', { name: /Đáp án đúng/ });
   await chose.getByRole('button', { name: 'B', exact: true }).click();
