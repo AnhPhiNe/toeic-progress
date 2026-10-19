@@ -99,7 +99,7 @@ export const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
-  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string } | null>(null);
+  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   const navigateToPacing = (part: ReadingPartType) => {
@@ -193,7 +193,9 @@ export const App: React.FC = () => {
 
   // Sau khi ghi đề bằng câu sai: mở Sổ tay đúng đề đó để ghi chi tiết các thẻ vừa tạo.
   const openSessionDrafts = (session: StudySession) => {
-    setNotebookSourceFilter({ owner: getActiveAccountId(), names: [session.testName] });
+    const owner = getActiveAccountId();
+    setNotebookSourceFilter({ owner, names: [session.testName] });
+    setSessionMistakeRequest({ id: crypto.randomUUID(), owner, detailSessionId: session.id });
     setActiveTab('mistakes');
   };
 

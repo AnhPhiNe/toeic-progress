@@ -25,6 +25,7 @@ import { mistakeInstructions } from '@/features/mistakes/lib/mistakeInstructions
 import { SourceImageViewer } from '@/features/mistakes/components/SourceImageViewer';
 import { sourceImageAccount, uploadSourceImages } from '@/features/mistakes/services/sourceImages';
 import { MistakeContextInput } from '@/features/mistakes/components/MistakeContextInput';
+import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 
 interface Props {
   original: MistakeEntry | null;
@@ -43,11 +44,7 @@ interface Props {
 const inputClass = 'w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 font-sans text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
 const linkClass = 'cursor-pointer text-[13px] font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300';
 const primaryClass = 'cursor-pointer rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-extrabold shadow-[3px_3px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40';
-const categoryChoices: Record<ErrorCategory, string> = {
-  VOCABULARY_TRAP: 'Từ vựng / Paraphrase', ADVANCED_GRAMMAR: 'Ngữ pháp',
-  LISTENING_SPEED: 'Nghe / Nối âm', TIME_PRESSURE: 'Thiếu thời gian',
-  CARELESS_DISTRACTION: 'Mất tập trung / Đọc ẩu', OTHER: 'Khác',
-};
+const categoryChoices = CATEGORY_CHOICES;
 
 function storedDraft(entry: MistakeEntry): AIMistakeParseResult {
   return { part: entry.part, questionContext: entry.questionContext, category: entry.category,

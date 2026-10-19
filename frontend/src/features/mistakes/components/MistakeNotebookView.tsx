@@ -2,7 +2,9 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
-import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
+import { MistakeCard, PartBadge } from '@/features/mistakes/components/MistakeCard';
+import { MistakeDetailFlow } from '@/features/mistakes/components/MistakeDetailFlow';
+import { needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
@@ -40,7 +42,8 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
   initialSourceNames?: string[];
-  createRequest?: { sourceName?: string; sessionId?: string };
+  /** Opens the note form for a test, or with `detailSessionId` the detail flow for that test's draft cards. */
+  createRequest?: { sourceName?: string; sessionId?: string; detailSessionId?: string };
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
@@ -63,10 +66,15 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   // Phones: the list is grouped by status instead of the Tất cả / Đến hạn / Thông suốt filter.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, number>>({ due: PHONE_GROUP_STEP });
+  const [openGroups, setOpenGroups] = useState<Record<string, number>>({ pending: PHONE_GROUP_STEP, due: PHONE_GROUP_STEP });
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
-  const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest ? null : undefined);
+  const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest && !createRequest.detailSessionId ? null : undefined);
+  // Cards being filled in one after another (the "Ghi chi tiết câu sai" flow), kept as ids so saves show the latest version.
+  const [detailIds, setDetailIds] = useState<string[] | null>(() => {
+    const ids = createRequest?.detailSessionId ? sessionDrafts(createRequest.detailSessionId, mistakes).map(mistake => mistake.id) : [];
+    return ids.length ? ids : null;
+  });
   const [sessionSource, setSessionSource] = useState(createRequest);
   const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[] } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
@@ -139,10 +147,41 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     onReopen: () => onReopenCards([mistake.id])
   });
 
+  const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>
+    (a.sourceTestName ?? '').localeCompare(b.sourceTestName ?? '', 'vi', { numeric: true }) || (a.questionNumber ?? 999) - (b.questionNumber ?? 999)
+      || a.createdAt.localeCompare(b.createdAt)), [matchingMistakes]);
+  const startDetail = (fromId?: string) => {
+    const ids = pendingCards.map(card => card.id), start = fromId ? ids.indexOf(fromId) : 0;
+    setDetailIds([...ids.slice(Math.max(0, start)), ...ids.slice(0, Math.max(0, start))]);
+  };
+  const detailCards = detailIds?.map(id => mistakes.find(mistake => mistake.id === id)).filter((card): card is MistakeEntry => Boolean(card)) ?? [];
+
+  // Pending cards are sorted by test, so the test name is shown once above its cards instead of on every row.
+  const renderPendingRows = (items: MistakeEntry[]) => items.map((mistake, index) => {
+    const test = mistake.sourceTestName ?? '';
+    const heading = index === 0 || test !== (items[index - 1].sourceTestName ?? '');
+    return <div key={mistake.id}>
+      {heading && <p className="bg-stone-50 px-4 py-1.5 text-[12.5px] font-bold text-slate-500 dark:bg-slate-900/60 dark:text-slate-400">{test || 'Chưa ghi đề'}</p>}
+      {renderPendingRow(mistake)}
+    </div>;
+  });
+  const renderPendingRow = (mistake: MistakeEntry) => (
+    <button type="button" onClick={() => startDetail(mistake.id)}
+      aria-label={`Ghi chi tiết ${mistake.questionNumber ? `câu ${mistake.questionNumber}` : 'câu'} Part ${mistake.part}${mistake.sourceTestName ? `, ${mistake.sourceTestName}` : ''}`}
+      className="flex min-h-[52px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
+      <PartBadge part={mistake.part} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{mistake.questionNumber ? `Câu ${mistake.questionNumber}` : mistake.question?.trim() || mistake.questionContext || `Part ${mistake.part}`}</span>
+      </span>
+      <ChevronDown className="h-4 w-4 -rotate-90 text-slate-400" aria-hidden="true" />
+    </button>
+  );
+
   const renderPhoneGroups = () => {
     const groups = [
+      { id: 'pending', label: 'Chưa ghi chi tiết', dot: 'bg-amber-500', items: pendingCards, showStatus: false },
       { id: 'due', label: 'Cần ôn', dot: 'bg-orange-600', items: matchingMistakes.filter(m => isDueForReview(m)), showStatus: false },
-      { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
+      { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !needsSupplement(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
       { id: 'mastered', label: 'Đã thuộc', dot: 'bg-emerald-600', items: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)), showStatus: false }
     ].filter(group => group.items.length > 0);
     if (!groups.length) return (
@@ -156,9 +195,11 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       return (
         <section key={group.id} aria-label={`${group.label} · ${group.items.length}`}>
           <div className="flex min-h-11 items-center justify-between px-4 pb-1.5 pt-3">
-            <h3 className="flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+            <h3 className="flex items-center gap-2 whitespace-nowrap text-[12.5px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
               <span className={`h-2 w-2 rounded-full ${group.dot}`} aria-hidden="true" />{group.label} · {group.items.length}
             </h3>
+            {group.id === 'pending' && <button type="button" onClick={() => startDetail()}
+              className="ml-auto mr-1 min-h-10 shrink-0 cursor-pointer whitespace-nowrap rounded-full border-2 border-slate-900 bg-yellow-300 px-3.5 text-[13px] font-black text-slate-950 dark:border-slate-200">Ghi chi tiết</button>}
             {index === 0 && <button type="button" aria-label={phoneSearchOpen ? 'Ẩn tìm kiếm' : 'Tìm trong sổ tay'} aria-pressed={phoneSearchOpen}
               onClick={() => setPhoneSearchOpen(value => !value)}
               className={'flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ' + (phoneSearchOpen || activeFilterCount ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 dark:text-slate-400')}>
@@ -167,7 +208,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           </div>
           {shown > 0 ? <>
             <div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-slate-800 dark:border-slate-800">
-              {group.items.slice(0, shown).map(mistake => <MistakeCard key={mistake.id} {...cardProps(mistake)} compact showStatus={group.showStatus} />)}
+              {group.id === 'pending' ? renderPendingRows(group.items.slice(0, shown))
+                : group.items.slice(0, shown).map(mistake => <MistakeCard key={mistake.id} {...cardProps(mistake)} compact showStatus={group.showStatus} />)}
             </div>
             {group.items.length > shown && <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: shown + PHONE_GROUP_STEP }))}
               className="mx-4 mt-3 flex min-h-11 w-[calc(100%-2rem)] items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-[14px] font-bold text-slate-700 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
@@ -365,6 +407,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         </div>}
       </div>
 
+      {detailCards.length > 0 && <MistakeDetailFlow cards={detailCards} onSave={onUpdateMistake}
+        onOpenFull={card => { setDetailIds(null); openEdit(card); }}
+        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}
