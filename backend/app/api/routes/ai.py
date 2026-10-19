@@ -1,10 +1,11 @@
 import hashlib
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import identity
 from app.core.runtime import client_address
-from app.schemas.models import ExtractRequest
+from app.schemas.models import ExtractRequest, PageExtractRequest
 
 router = APIRouter()
 
@@ -48,16 +49,51 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     input_hash = hashlib.sha256(extraction_text.encode())
     for image in source_images:
         input_hash.update(b"\0" + hashlib.sha256(image.encode()).digest())
+    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
+    # Reservation is committed before generation, including failed attempts.
+    # OpenAI posts one request and does not retry ambiguous billed generations.
+    if body.input is not None:
+        result = await gateway.generate(extraction_text, user["id"],
+                                        source_options=body.input.options or None, source_answer=body.input.sourceAnswer,
+                                        images=source_images, persistent_images=bool(body.sourceImageIds))
+    else:
+        result = await gateway.generate(extraction_text, user["id"])
+    draft = result.model_dump()
+    if body.input is not None:
+        learner = body.input
+        selected = next((option for option in result.options if option.startswith(f"({learner.userChoice})")), "")
+        description = selected if learner.userChoiceState == "CHOSEN" else "Bỏ trống" if learner.userChoiceState == "BLANK" else "Không nhớ"
+        draft.update(userChoice=learner.userChoice, userChoiceState=learner.userChoiceState,
+                     userReason=learner.userReason, userMistake=description + (" - " + learner.userReason if learner.userReason.strip() else ""))
+        if learner.part is not None:
+            draft["part"] = learner.part
+        if learner.errorCategory is not None:
+            draft["category"] = learner.errorCategory
+    return {
+        "draft": draft,
+        "usage": {
+            "remaining": None if unlimited else reservation["remaining"],
+            "limit": None if unlimited else reservation["limit"],
+            "guest": user["is_anonymous"],
+            "unlimited": unlimited,
+            **(access.usage_fields() if settings.ai_access_managed else {}),
+        },
+    }
+
+
+async def reserve_ai(request: Request, user: dict, access, request_id, captcha_token: str | None, input_hash: str):
+    """Count one AI request against every quota before generation; a refused request raises."""
+    settings, gateway = request.app.state.settings, request.app.state.gateway
     unlimited = access.unlimited
     if user["is_anonymous"]:
-        await gateway.verify_captcha(body.captcha_token)
+        await gateway.verify_captcha(captcha_token)
     reservation = await gateway.rpc(
         "reserve_ai_request",
         {
             "p_owner_id": user["id"],
             "p_guest": user["is_anonymous"],
-            "p_request_id": str(body.request_id),
-            "p_input_hash": input_hash.hexdigest(),
+            "p_request_id": str(request_id),
+            "p_input_hash": input_hash,
             "p_ip_hash": gateway.ip_hash(client_address(request.scope, settings)),
             # These RPC parameters are service-role only. NULL leaves the
             # corresponding cap unset while still recording usage/idempotency.
@@ -82,27 +118,29 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
         raise HTTPException(
             429, detail, headers={"Retry-After": str(delay)} if delay else None,
         )
-    # Reservation is committed before generation, including failed attempts.
-    # OpenAI posts one request and does not retry ambiguous billed generations.
-    if body.input is not None:
-        result = await gateway.generate(extraction_text, user["id"],
-                                        source_options=body.input.options or None, source_answer=body.input.sourceAnswer,
-                                        images=source_images, persistent_images=bool(body.sourceImageIds))
-    else:
-        result = await gateway.generate(extraction_text, user["id"])
-    draft = result.model_dump()
-    if body.input is not None:
-        learner = body.input
-        selected = next((option for option in result.options if option.startswith(f"({learner.userChoice})")), "")
-        description = selected if learner.userChoiceState == "CHOSEN" else "Bỏ trống" if learner.userChoiceState == "BLANK" else "Không nhớ"
-        draft.update(userChoice=learner.userChoice, userChoiceState=learner.userChoiceState,
-                     userReason=learner.userReason, userMistake=description + (" - " + learner.userReason if learner.userReason.strip() else ""))
-        if learner.part is not None:
-            draft["part"] = learner.part
-        if learner.errorCategory is not None:
-            draft["category"] = learner.errorCategory
+    return reservation, unlimited
+
+
+@router.post("/api/v1/ai/extract-page")
+async def extract_page(body: PageExtractRequest, request: Request, user=Depends(identity)):
+    """Read several wrong questions from screenshots of an on-screen test; one request counts as one AI use."""
+    settings = request.app.state.settings
+    if not settings.ai_ready:
+        message = "Chức năng phân tích AI đang được tắt." if not settings.ai_enabled else "Cấu hình dịch vụ phân tích AI chưa đầy đủ."
+        raise HTTPException(503, message + " Bạn vẫn có thể ghi tay.")
+    access = request.state.ai_access
+    if not access.enabled:
+        raise HTTPException(403, access.message)
+    questions = [question.model_dump() for question in body.questions]
+    input_hash = hashlib.sha256(json.dumps(questions, separators=(",", ":")).encode())
+    for image in body.images:
+        input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
+    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
+    found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"])
     return {
-        "draft": draft,
+        "items": [{"number": number, "draft": {**draft.model_dump(),
+                   "userChoiceState": "CHOSEN" if draft.userChoice else "UNKNOWN"}} for number, draft in found],
+        "missing": missing,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],

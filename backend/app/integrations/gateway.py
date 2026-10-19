@@ -152,6 +152,9 @@ class Gateway:
                                           source_options=source_options, source_answer=source_answer, images=images,
                                           persistent_images=persistent_images)
 
+    async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None):
+        return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None)
+
     async def delete_account(self, user_id: str):
         if self.settings.source_images_enabled:
             await self.source_images.purge(user_id)

@@ -93,14 +93,14 @@ class Session(Payload):
         if self.wrongQuestions is not None:
             if self.sessionType != "FULL_TEST":
                 raise ValueError("Danh sách câu sai chỉ dùng cho Full Test")
-            if any(b <= a for a, b in zip(self.wrongQuestions, self.wrongQuestions[1:])):
+            if any(b <= a for a, b in zip(self.wrongQuestions, self.wrongQuestions[1:], strict=False)):
                 raise ValueError("Danh sách câu sai phải tăng dần, không trùng")
             if self.partScores is not None:
                 wrong = [0] * 7
                 for number in self.wrongQuestions:
                     wrong[part_of_question(number) - 1] += 1
                 sizes = [6, 25, 39, 30, 30, 16, 54]
-                if [getattr(self.partScores, f"part{index + 1}") for index in range(7)] != [size - count for size, count in zip(sizes, wrong)]:
+                if [getattr(self.partScores, f"part{index + 1}") for index in range(7)] != [size - count for size, count in zip(sizes, wrong, strict=True)]:
                     raise ValueError("Số câu đúng từng Part không khớp danh sách câu sai")
         if self.practiceParts is not None and len({item.part for item in self.practiceParts}) != len(self.practiceParts):
             raise ValueError("Part luyện tập bị trùng")
@@ -652,3 +652,67 @@ class OpenAIPasteOutput(OpenAIDraftOutput):
         draft = MistakeDraft(**self.model_dump(exclude={"inputIssue"}), trapTip="")
         draft.compose_trap_tip()
         return draft
+
+
+MAX_PAGE_ITEMS = 6
+
+
+class PageQuestion(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    number: QuestionNumber
+    part: Part
+
+    @model_validator(mode="after")
+    def number_in_part(self):
+        if part_of_question(self.number) != self.part:
+            raise ValueError("Số câu không thuộc Part đã chọn")
+        return self
+
+
+class PageExtractRequest(BaseModel):
+    """Screenshots of an on-screen test and the learner's wrong questions to look for in them."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    consent: Literal[True]
+    provider: Literal["openai"]
+    captcha_token: str | None = Field(default=None, max_length=2048)
+    questions: list[PageQuestion] = Field(min_length=1, max_length=200)
+    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+
+    @model_validator(mode="after")
+    def check_page(self):
+        numbers = [question.number for question in self.questions]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError("Số câu bị trùng")
+        if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        return self
+
+
+class OpenAIPageItem(OpenAIDraftOutput):
+    """One wrong question found on the screenshots; `number` is the question number printed there."""
+
+    number: int
+
+    def to_draft(self) -> MistakeDraft:
+        draft = MistakeDraft(**self.model_dump(exclude={"number"}), trapTip="")
+        draft.compose_trap_tip()
+        return draft
+
+
+def page_output_schema(numbers: list[int]) -> dict:
+    """Strict schema for a page: up to MAX_PAGE_ITEMS questions, each numbered from the requested list."""
+    item = OpenAIPageItem.ai_schema()
+    definitions = item.pop("$defs", {})
+    item["properties"]["number"] = {"type": "integer", "enum": sorted(numbers)}
+    return {
+        "type": "object", "additionalProperties": False, "required": ["items"],
+        "properties": {"items": {"type": "array", "items": item, "maxItems": MAX_PAGE_ITEMS}},
+        **({"$defs": definitions} if definitions else {}),
+    }
+
+
+class OpenAIPageOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[OpenAIPageItem] = Field(max_length=MAX_PAGE_ITEMS)

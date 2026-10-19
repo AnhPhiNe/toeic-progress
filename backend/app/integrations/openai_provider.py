@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import math
+import re
 import time
 
 import httpx
@@ -12,11 +13,19 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.core.runtime import request_id_context
-from app.schemas.models import MistakeDraft, OpenAIDraftOutput, OpenAIPasteOutput
+from app.schemas.models import (
+    MistakeDraft,
+    OpenAIDraftOutput,
+    OpenAIPageOutput,
+    OpenAIPasteOutput,
+    page_output_schema,
+    part_of_question,
+)
 from app.services.ai_grounding import ground_draft, ground_pasted_draft
 from app.services.toeic_prompt import (
     FREEFORM_INPUT_INSTRUCTIONS,
     OPENAI_TOEIC_PROMPT,
+    PAGE_EXTRACTION_INSTRUCTIONS,
     PART1_IMAGE_INSTRUCTIONS,
     PART7_IMAGE_INSTRUCTIONS,
     PERSISTENT_IMAGE_INSTRUCTIONS,
@@ -44,6 +53,82 @@ def schema_issues(error: ValidationError) -> list[dict]:
 class OpenAIProvider:
     def __init__(self, settings: Settings, client: httpx.AsyncClient):
         self.settings, self.client = settings, client
+
+    async def _respond(self, key: str, payload: dict, timeout: float) -> str:
+        """One billed attempt: send the request and return the joined output text. Never retried."""
+        started = time.monotonic()
+        try:
+            async with asyncio.timeout(timeout):
+                response = await self.client.post(
+                    "https://api.openai.com/v1/responses",
+                    headers={"Authorization": f"Bearer {key}"}, json=payload,
+                    timeout=timeout,
+                )
+        except (httpx.HTTPError, TimeoutError) as error:
+            logger.warning(json.dumps({
+                "event": "openai_transport_error", "request_id": request_id_context.get(),
+                "model": self.settings.openai_model, "error_type": type(error).__name__,
+                "duration_ms": round((time.monotonic() - started) * 1000, 2),
+            }))
+            # A timed-out request may already be generating a billed result.
+            # Never automatically retry a possibly billed generation or change keys.
+            message = (
+                "OpenAI phản hồi quá thời gian chờ; chưa nhận được kết quả phân tích."
+                if isinstance(error, (httpx.TimeoutException, TimeoutError))
+                else "Kết nối tới OpenAI bị gián đoạn; chưa nhận được kết quả phân tích."
+            )
+            raise HTTPException(503, message + " Nội dung đang nhập vẫn được giữ. Bạn có thể thử lại hoặc lưu thủ công.") from error
+        logger.info(json.dumps({
+            "event": "openai_attempt", "request_id": request_id_context.get(), "model": self.settings.openai_model,
+            "status": response.status_code, "duration_ms": round((time.monotonic() - started) * 1000, 2),
+        }))
+        if not response.is_success:
+            if response.status_code == 429:
+                try:
+                    quota = response.json().get("error", {})
+                    billing = quota.get("code") in ("insufficient_quota", "billing_hard_limit_reached", "budget_exceeded")
+                except (ValueError, AttributeError):
+                    billing = False
+                if billing:
+                    raise HTTPException(503, "Dịch vụ OpenAI đã hết ngân sách hoặc hạn mức thanh toán. "
+                                        "Đây không phải giới hạn lượt của tài khoản bạn. Bạn vẫn có thể lưu thủ công.")
+                try:
+                    delay = max(1, min(86400, math.ceil(float(response.headers.get("Retry-After", "60")))))
+                except (ValueError, OverflowError):
+                    delay = 60
+                raise HTTPException(429, "OpenAI đang giới hạn tốc độ xử lý. Nội dung đang nhập vẫn được giữ.",
+                                    headers={"Retry-After": str(delay)})
+            if response.status_code in (401, 403):
+                raise HTTPException(503, "Ứng dụng chưa được OpenAI cho phép xử lý yêu cầu. "
+                                    "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
+            if response.status_code >= 500:
+                raise HTTPException(503, "Dịch vụ OpenAI tạm gặp sự cố. Hãy thử lại sau hoặc lưu thủ công.")
+            raise HTTPException(503, "OpenAI từ chối yêu cầu phân tích. "
+                                "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
+        value = response.json()
+        usage = value.get("usage") or {}
+        # Record counts only. No raw output, prompt, key, email or headers.
+        logger.info(json.dumps({
+            "event": "openai_usage", "request_id": request_id_context.get(),
+            **{name: usage[name] for name in ("input_tokens", "output_tokens")
+               if isinstance(usage.get(name), int) and not isinstance(usage[name], bool)},
+        }))
+        if value.get("status") != "completed":
+            raise ValueError("Incomplete output")
+        chunks = []
+        for item in value.get("output", []):
+            if item.get("type") != "message" or item.get("role") != "assistant":
+                continue
+            if item.get("status") != "completed":
+                raise ValueError("Incomplete message")
+            for block in item.get("content", []):
+                if block.get("type") == "refusal":
+                    raise ValueError("Refused output")
+                if block.get("type") == "output_text":
+                    chunks.append(block["text"])
+        if not chunks:
+            raise ValueError("Missing output")
+        return "".join(chunks)
 
     async def generate(self, text: str, safety_identifier: str | None = None, *,
                        source_options: list[str] | None = None, source_answer: str | None = None,
@@ -99,82 +184,11 @@ class OpenAIProvider:
         }
         if safety_identifier:
             payload["safety_identifier"] = safety_identifier
-        started = time.monotonic()
-        try:
-            async with asyncio.timeout(self.settings.openai_timeout_seconds):
-                response = await self.client.post(
-                    "https://api.openai.com/v1/responses",
-                    headers={"Authorization": f"Bearer {key}"}, json=payload,
-                    timeout=self.settings.openai_timeout_seconds,
-                )
-        except (httpx.HTTPError, TimeoutError) as error:
-            logger.warning(json.dumps({
-                "event": "openai_transport_error", "request_id": request_id_context.get(),
-                "model": self.settings.openai_model, "error_type": type(error).__name__,
-                "duration_ms": round((time.monotonic() - started) * 1000, 2),
-            }))
-            # A timed-out request may already be generating a billed result.
-            # Never automatically retry a possibly billed generation or change keys.
-            message = (
-                "OpenAI phản hồi quá thời gian chờ; chưa nhận được kết quả phân tích."
-                if isinstance(error, (httpx.TimeoutException, TimeoutError))
-                else "Kết nối tới OpenAI bị gián đoạn; chưa nhận được kết quả phân tích."
-            )
-            raise HTTPException(503, message + " Nội dung đang nhập vẫn được giữ. Bạn có thể thử lại hoặc lưu thủ công.") from error
-        logger.info(json.dumps({
-            "event": "openai_attempt", "request_id": request_id_context.get(), "model": self.settings.openai_model,
-            "status": response.status_code, "duration_ms": round((time.monotonic() - started) * 1000, 2),
-        }))
-        if not response.is_success:
-            if response.status_code == 429:
-                try:
-                    quota = response.json().get("error", {})
-                    billing = quota.get("code") in ("insufficient_quota", "billing_hard_limit_reached", "budget_exceeded")
-                except (ValueError, AttributeError):
-                    billing = False
-                if billing:
-                    raise HTTPException(503, "Dịch vụ OpenAI đã hết ngân sách hoặc hạn mức thanh toán. "
-                                        "Đây không phải giới hạn lượt của tài khoản bạn. Bạn vẫn có thể lưu thủ công.")
-                try:
-                    delay = max(1, min(86400, math.ceil(float(response.headers.get("Retry-After", "60")))))
-                except (ValueError, OverflowError):
-                    delay = 60
-                raise HTTPException(429, "OpenAI đang giới hạn tốc độ xử lý. Nội dung đang nhập vẫn được giữ.",
-                                    headers={"Retry-After": str(delay)})
-            if response.status_code in (401, 403):
-                raise HTTPException(503, "Ứng dụng chưa được OpenAI cho phép xử lý yêu cầu. "
-                                    "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
-            if response.status_code >= 500:
-                raise HTTPException(503, "Dịch vụ OpenAI tạm gặp sự cố. Hãy thử lại sau hoặc lưu thủ công.")
-            raise HTTPException(503, "OpenAI từ chối yêu cầu phân tích. "
-                                "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
         phase = "response"
         try:
-            value = response.json()
-            usage = value.get("usage") or {}
-            # Record counts only. No raw output, prompt, key, email or headers.
-            logger.info(json.dumps({
-                "event": "openai_usage", "request_id": request_id_context.get(),
-                **{name: usage[name] for name in ("input_tokens", "output_tokens")
-                   if isinstance(usage.get(name), int) and not isinstance(usage[name], bool)},
-            }))
-            if value.get("status") != "completed":
-                raise ValueError("Incomplete output")
-            chunks = []
-            for item in value.get("output", []):
-                if item.get("type") != "message" or item.get("role") != "assistant":
-                    continue
-                if item.get("status") != "completed":
-                    raise ValueError("Incomplete message")
-                for block in item.get("content", []):
-                    if block.get("type") == "refusal":
-                        raise ValueError("Refused output")
-                    if block.get("type") == "output_text":
-                        chunks.append(block["text"])
-            if not chunks:
-                raise ValueError("Missing output")
+            text_output = await self._respond(key, payload, self.settings.openai_timeout_seconds)
             phase = "schema"
-            output = output_model.model_validate_json("".join(chunks))
+            output = output_model.model_validate_json(text_output)
             if isinstance(output, OpenAIPasteOutput) and output.inputIssue:
                 message = {
                     "MULTIPLE_QUESTIONS": "Nội dung có nhiều câu hỏi. Giữ lại một câu cần ghi lỗi rồi phân tích lại.",
@@ -197,3 +211,72 @@ class OpenAIProvider:
                                     "Chưa tạo bản nháp; nội dung được giữ để thử lại hoặc chỉnh thủ công.") from error
             raise HTTPException(502, "Kết quả OpenAI trả về chưa đủ hoặc không đúng định dạng nên chưa tạo được bản nháp. "
                                 "Nội dung đang nhập vẫn được giữ; hãy thử lại hoặc lưu thủ công.") from error
+
+    async def generate_page(self, questions: list[dict], images: list[str],
+                            safety_identifier: str | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int]]:
+        """Read the learner's wrong questions from screenshots. Returns (number, draft) pairs and numbers not found."""
+        key = self.settings.openai_api_key.get_secret_value().strip()
+        if not key:
+            raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
+        numbers = [question["number"] for question in questions]
+        content = [{"type": "input_text", "text": json.dumps({"questions": questions}, ensure_ascii=False, separators=(",", ":"))}]
+        content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in images)
+        payload = {
+            "model": self.settings.openai_model,
+            "instructions": OPENAI_TOEIC_PROMPT + PAGE_EXTRACTION_INSTRUCTIONS,
+            "input": [{"role": "user", "content": content}],
+            "reasoning": {"effort": self.settings.openai_reasoning_effort},
+            "text": {"format": {"type": "json_schema", "name": "toeic_page", "strict": True, "schema": page_output_schema(numbers)}},
+            "max_output_tokens": self.settings.openai_page_max_output_tokens,
+            "store": False,
+            "service_tier": "default",
+        }
+        if safety_identifier:
+            payload["safety_identifier"] = safety_identifier
+        phase = "response"
+        try:
+            text_output = await self._respond(key, payload, self.settings.openai_page_timeout_seconds)
+            phase = "schema"
+            output = OpenAIPageOutput.model_validate_json(text_output)
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            logger.warning(json.dumps({"event": "openai_invalid_page", "request_id": request_id_context.get(),
+                                       "phase": phase, "error_type": type(error).__name__,
+                                       **({"issues": schema_issues(error)} if isinstance(error, ValidationError) else {})}))
+            raise HTTPException(502, "Kết quả OpenAI trả về chưa đủ hoặc không đúng định dạng nên chưa đọc được ảnh. "
+                                "Các câu vẫn được giữ; hãy thử lại hoặc ghi tay.") from error
+        found: list[tuple[int, MistakeDraft]] = []
+        rejected = 0
+        for item in output.items:
+            if item.number not in numbers or any(number == item.number for number, _ in found):
+                rejected += 1
+                continue
+            draft = page_item_draft(item)
+            if draft is None:
+                rejected += 1
+                continue
+            found.append((item.number, draft))
+        if rejected:
+            logger.warning(json.dumps({"event": "openai_page_items_rejected", "request_id": request_id_context.get(), "count": rejected}))
+        seen = {number for number, _ in found}
+        return sorted(found, key=lambda pair: pair[0]), [number for number in numbers if number not in seen]
+
+
+def page_item_draft(item) -> MistakeDraft | None:
+    """Check one item read from a screenshot; an item that does not fit its question is left for another try."""
+    part = part_of_question(item.number)
+    labels = [re.match(r"^\s*\(([A-Da-d])\)", option)[1].upper() for option in item.options]
+    if item.options and labels != list("ABCD"[:3 if part == 2 else 4]):
+        return None
+    folded = {" ".join(option.split()): option for option in item.options}
+    draft = item.to_draft()
+    draft.part = part
+    if draft.answerSource != "MISSING":
+        option = folded.get(" ".join(draft.correctAnswer.split()))
+        if option is None:
+            draft.answerSource, draft.correctAnswer = "MISSING", ""
+        else:
+            draft.correctAnswer = option
+    if draft.userChoice not in labels:
+        draft.userChoice = ""
+    draft.userMistake = next((option for option in item.options if option.startswith(f"({draft.userChoice})")), "") if draft.userChoice else ""
+    return draft
