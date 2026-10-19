@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 
@@ -5,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import identity
 from app.core.runtime import client_address
-from app.schemas.models import ExtractRequest, PageExtractRequest, ResultsReadRequest
+from app.schemas.models import ExplainBatchRequest, ExtractRequest, PageExtractRequest, ResultsReadRequest
+from app.services import explain_tickets
 
 router = APIRouter()
 
@@ -137,10 +139,16 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
     found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"])
+    # The explanations for these questions are written next, without counting another use.
+    ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
+        number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")
+        for number, draft in found if draft.part != 1 and draft.question and len(draft.options) >= 2
+    }) if settings.rate_limit_secret and found else None
     return {
         "items": [{"number": number, "draft": {**draft.model_dump(),
                    "userChoiceState": "CHOSEN" if draft.userChoice else "UNKNOWN"}} for number, draft in found],
         "missing": missing,
+        "explainTicket": ticket,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],
@@ -176,3 +184,41 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
             **(access.usage_fields() if settings.ai_access_managed else {}),
         },
     }
+
+
+@router.post("/api/v1/ai/explain-batch")
+async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depends(identity)):
+    """Explain questions a screenshot reading already counted; the ticket stands in for a new AI use."""
+    settings = request.app.state.settings
+    if not settings.ai_ready or not settings.rate_limit_secret:
+        raise HTTPException(503, "Chức năng phân tích AI đang tắt hoặc chưa cấu hình.")
+    access = request.state.ai_access
+    if not access.enabled:
+        raise HTTPException(403, access.message)
+    ticket = explain_tickets.verify(settings.rate_limit_secret, body.ticket, user["id"])
+    if ticket is None:
+        raise HTTPException(403, "Lượt viết lời giải kèm ảnh đã hết hạn. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.")
+    for item in body.items:
+        digest = explain_tickets.item_digest(item.number, item.input.question, item.input.options, item.input.context)
+        if ticket["d"].get(str(item.number)) != digest:
+            raise HTTPException(403, "Nội dung câu đã khác với lúc đọc ảnh. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.")
+    if not request.app.state.ticket_uses.consume(ticket["i"], ticket["e"]):
+        raise HTTPException(429, "Lời giải cho ảnh này đã được viết lại nhiều lần. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.")
+    gateway = request.app.state.gateway
+    # One explanation per question, all at once: the same analysis as a single question, in about the same time.
+    results = await asyncio.gather(*(gateway.generate(item.input.as_text(), user["id"], source_options=item.input.options,
+                                                      source_answer=item.input.sourceAnswer) for item in body.items), return_exceptions=True)
+    items, failed = [], []
+    for item, result in zip(body.items, results, strict=True):
+        if isinstance(result, BaseException):
+            if not isinstance(result, HTTPException):
+                raise result
+            failed.append(item.number)
+            continue
+        learner = item.input
+        draft = result.model_dump()
+        selected = next((option for option in result.options if option.startswith(f"({learner.userChoice})")), "")
+        draft.update(part=learner.part, userChoice=learner.userChoice, userChoiceState=learner.userChoiceState, userReason=learner.userReason,
+                     userMistake=selected if learner.userChoiceState == "CHOSEN" else "Bỏ trống" if learner.userChoiceState == "BLANK" else "Không nhớ")
+        items.append({"number": item.number, "draft": draft})
+    return {"items": items, "failed": failed}

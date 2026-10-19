@@ -757,3 +757,33 @@ class OpenAIResultsOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     wrong: list[int] = Field(max_length=200)
     skipped: list[int] = Field(max_length=200)
+
+
+class ExplainItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    number: QuestionNumber
+    input: MistakeInput
+
+    @model_validator(mode="after")
+    def written_question(self):
+        if self.input.rawText is not None or part_of_question(self.number) != self.input.part or self.input.part == 1:
+            raise ValueError("Chỉ giải thích câu đã đọc từ ảnh, đúng Part, có câu hỏi và phương án")
+        return self
+
+
+class ExplainBatchRequest(BaseModel):
+    """Explanations for questions a screenshot reading already counted, authorised by its ticket."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    consent: Literal[True]
+    provider: Literal["openai"]
+    ticket: str = Field(min_length=20, max_length=2048)
+    items: list[ExplainItem] = Field(min_length=1, max_length=MAX_PAGE_ITEMS)
+
+    @model_validator(mode="after")
+    def distinct_numbers(self):
+        numbers = [item.number for item in self.items]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError("Số câu bị trùng")
+        return self

@@ -15,6 +15,7 @@ from app.core.config import Settings
 from app.core.middleware import BodyLimitMiddleware
 from app.core.runtime import RuntimeMiddleware, configure_logging
 from app.integrations.gateway import Gateway
+from app.services.explain_tickets import TicketUses
 
 
 def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
@@ -39,6 +40,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         openapi_url="/openapi.json" if settings.environment == "development" else None,
     )
     app.state.settings = settings
+    app.state.ticket_uses = TicketUses()
     app.add_middleware(BodyLimitMiddleware, timeout=settings.body_timeout_seconds)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.effective_allowed_hosts, www_redirect=False)
     app.add_middleware(RuntimeMiddleware, settings=settings)

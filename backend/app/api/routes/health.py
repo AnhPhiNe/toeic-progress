@@ -24,6 +24,7 @@ async def health(request: Request):
         "learner_error_category": True,
         "page_image_extraction": True,
         "result_image_reading": True,
+        "explain_tickets": bool(settings.rate_limit_secret),
         "persistent_source_images": settings.source_images_enabled,
     }
 
