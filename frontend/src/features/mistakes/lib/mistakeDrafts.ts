@@ -42,8 +42,16 @@ export function syncDraftMistakes(session: Pick<StudySession, 'id' | 'testName' 
   return { add, removeIds };
 }
 
-/** The drafts of one session in question order, for the "bổ sung" flow. */
+/** The drafts of one session in question order, for the "ghi chi tiết" flow. */
 export function sessionDrafts(sessionId: string, mistakes: MistakeEntry[]): MistakeEntry[] {
   return mistakes.filter(mistake => mistake.sessionId === sessionId && mistake.questionNumber !== undefined && needsSupplement(mistake))
     .sort((a, b) => a.questionNumber! - b.questionNumber!);
+}
+
+/** The notebook after `syncDraftMistakes`: new drafts first, untouched drafts that are no longer wrong dropped. */
+export function applyDraftSync(session: Pick<StudySession, 'id' | 'testName' | 'wrongQuestions'>, mistakes: MistakeEntry[], now?: string): MistakeEntry[] {
+  const { add, removeIds } = syncDraftMistakes(session, mistakes, now);
+  if (!add.length && !removeIds.length) return mistakes;
+  const removed = new Set(removeIds);
+  return [...add, ...mistakes.filter(mistake => !removed.has(mistake.id))];
 }

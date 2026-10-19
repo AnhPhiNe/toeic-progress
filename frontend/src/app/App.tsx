@@ -49,6 +49,7 @@ import {
 } from '@/shared/data/storage';
 import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
+import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
@@ -190,6 +191,12 @@ export const App: React.FC = () => {
     setActiveTab('mistakes');
   };
 
+  // Sau khi ghi đề bằng câu sai: mở Sổ tay đúng đề đó để ghi chi tiết các thẻ vừa tạo.
+  const openSessionDrafts = (session: StudySession) => {
+    setNotebookSourceFilter({ owner: getActiveAccountId(), names: [session.testName] });
+    setActiveTab('mistakes');
+  };
+
   // Nút + trên điện thoại: mở form thêm lỗi trống ở Sổ tay, không lọc theo đề nào.
   const openNewMistake = () => {
     const owner = getActiveAccountId();
@@ -212,6 +219,8 @@ export const App: React.FC = () => {
     if (newMistakes && newMistakes.length > 0) {
       setMistakes(updateMistakes(current => [...newMistakes, ...current]));
     }
+    // Each wrong question becomes a draft card in the notebook.
+    if (session.wrongQuestions) setMistakes(updateMistakes(current => applyDraftSync(session, current)));
   };
 
   // Phòng Thi tự ghi buổi học vào bộ nhớ; đọc lại để state không bị cũ
@@ -247,6 +256,7 @@ export const App: React.FC = () => {
     if (newMistakes && newMistakes.length > 0) {
       setMistakes(updateMistakes(current => [...newMistakes, ...current]));
     }
+    if (session.wrongQuestions) setMistakes(updateMistakes(current => applyDraftSync(session, current)));
   };
 
   // Thay nội dung một thẻ lỗi sai (trạng thái & lịch ôn đã được giữ ở form)
@@ -260,7 +270,8 @@ export const App: React.FC = () => {
   // Xóa session
   const handleDeleteSession = (sessionId: string) => {
     setSessions(updateStudySessions(current => current.filter(s => s.id !== sessionId)));
-    setMistakes(loadMistakes());
+    // Drafts nobody has filled in go with their test; cards with content stay in the notebook.
+    setMistakes(updateMistakes(current => applyDraftSync({ id: sessionId, testName: '', wrongQuestions: [] }, current)));
     setProfile(loadUserProfile());
   };
 
@@ -540,6 +551,7 @@ export const App: React.FC = () => {
         editingSession={editingSession}
         onUpdateSession={handleUpdateSession}
         onAddMistakeForSession={openSessionMistake}
+        onOpenSessionDrafts={openSessionDrafts}
       />
 
       {reviewCards && (

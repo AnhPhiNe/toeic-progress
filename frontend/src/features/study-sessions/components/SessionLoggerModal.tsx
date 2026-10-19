@@ -21,13 +21,14 @@ import {
   getPracticeParts
 } from '@/shared/domain/etsScoring';
 import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
-import { collectTestNames, normalizeTestName, testNameKey } from '@/shared/domain/testNames';
+import { collectTestNames, normalizeTestName, suggestNextTestName, testNameKey } from '@/shared/domain/testNames';
+import { normalizeQuestionList, partScoresFromWrong } from '@/shared/domain/questionNumbers';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
+import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ interface SessionLoggerModalProps {
   editingSession?: StudySession | null;
   onUpdateSession?: (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => void;
   onAddMistakeForSession?: (session: StudySession) => void;
+  /** After a test is logged by its wrong questions: open those draft cards. */
+  onOpenSessionDrafts?: (session: StudySession) => void;
 }
 
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
@@ -57,7 +60,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   prefill,
   editingSession,
   onUpdateSession,
-  onAddMistakeForSession
+  onAddMistakeForSession,
+  onOpenSessionDrafts
 }) => {
   const isEditing = !!editingSession;
   // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
@@ -75,6 +79,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualReading, setManualReading] = useState('');
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
+  // Phones log a Full Test by its wrong questions; per-Part counts and official scores stay as alternatives.
+  const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
+  const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
+  const [savedResult, setSavedResult] = useState<StudySession | null>(null);
+  const suggestedName = useRef('');
   const [scoreError, setScoreError] = useState('');
   const draftOwner = useRef(getActiveAccountId());
   const savedSession = useRef(false);
@@ -163,7 +172,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     savedSession.current = false;
     const e = editingSession;
     setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
-    setTestName(e?.testName ?? '');
+    // A new Full Test on a phone starts with the next numbered test after the latest one (Test 3 -> Test 4).
+    const phone = typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
+    suggestedName.current = !e && phone && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
+    setTestName(e?.testName ?? suggestedName.current);
+    setEntry(e?.partScores && !e.wrongQuestions ? 'counts' : 'wrong');
+    setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
+    setSavedResult(null);
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
@@ -187,6 +202,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
     if (sessionType === 'PART_PRACTICE') setDurationMinutes(current => current === 120 ? 30 : current);
+    if (sessionType !== 'FULL_TEST') setTestName(current => current && current === suggestedName.current ? '' : current);
     if (sessionType === 'FULL_TEST') setDurationMinutes(current => current === 30 ? 120 : current);
   }, [sessionType]);
 
@@ -194,12 +210,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   if (!isOpen) return null;
 
+  const wrongEntry = isPhone && sessionType === 'FULL_TEST' && scoreSource === 'ESTIMATED' && entry === 'wrong';
+  const effectiveParts = wrongEntry ? partScoresFromWrong(wrongQuestions) : partScores;
   // Tính điểm trực tiếp từ partScores
-  const calculated = calculateFromPartScores(partScores);
+  const calculated = calculateFromPartScores(effectiveParts);
   const resolveScores = () => resolveFullTestScore({
     previous: editingSession,
     source: scoreSource,
-    partScores: scoreSource === 'ESTIMATED' || includePartDetails ? partScores : undefined,
+    partScores: scoreSource === 'ESTIMATED' || includePartDetails ? effectiveParts : undefined,
     listening: manualListening.trim() ? Number(manualListening) : undefined,
     reading: manualReading.trim() ? Number(manualReading) : undefined,
     total: manualTotal.trim() ? Number(manualTotal) : undefined
@@ -234,6 +252,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       let newSession: StudySession;
 
       if (sessionType === 'FULL_TEST') {
+        if (wrongEntry && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
         let resolved: ReturnType<typeof resolveFullTestScore>;
         try { resolved = resolveScores(); setScoreError(''); }
         catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
@@ -248,6 +267,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           date,
           durationMinutes: Number(durationMinutes) || 120,
           ...resolved,
+          ...(wrongEntry ? { wrongQuestions: normalizeQuestionList(wrongQuestions) } : {}),
           notes,
           createdAt
         };
@@ -279,6 +299,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         onSaveSession(newSession);
       }
       savedSession.current = true;
+      if (!isEditing && newSession.wrongQuestions?.length) { setSavedResult(newSession); return; }
       onClose();
       if (addMistakeAfterSave) onAddMistakeForSession?.(newSession);
     } catch (reason) {
@@ -304,7 +325,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
             <div>
               <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone
-                ? (sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm')
+                ? (savedResult ? 'Đã lưu' : sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm')
                 : (sessionType === 'VOCAB' ? 'Ghi Số Từ Vựng Đã Học' : isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học')}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-md:hidden">
                 {sessionType === 'VOCAB' ? 'Theo dõi riêng theo ngày và giữ chuỗi học' : isEditing ? 'Giữ điểm đã nhập hoặc đổi cách ghi điểm · không ảnh hưởng Streak' : 'Ước tính tham khảo hoặc nhập điểm từ kết quả đề'}
@@ -321,7 +342,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} onKeyDown={event => {
+        {savedResult ? <PhoneSavedResult session={savedResult} onClose={onClose} onDetails={() => { onClose(); onOpenSessionDrafts?.(savedResult); }} />
+        : <form onSubmit={handleSubmit} onKeyDown={event => {
           if (event.key !== 'Enter' || event.defaultPrevented || !(event.target instanceof HTMLInputElement)) return;
           event.preventDefault();
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
@@ -364,11 +386,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {isPhone && sessionType === 'FULL_TEST' && (
             <PhoneFullTestBody testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
               retest={isExistingTest ? { attempt: nextAttemptNumber, best: bestPreviousScore } : undefined}
-              partScores={partScores} onPart={handlePartScoreChange} preview={scorePreview}
+              partScores={effectiveParts} onPart={handlePartScoreChange} preview={scorePreview}
+              entry={entry} onEntry={mode => { if (mode === 'counts') setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES }); setEntry(mode); }}
+              wrongQuestions={wrongQuestions} onWrong={setWrongQuestions}
               scoreSource={scoreSource} manualMode={manualMode}
               useManual={on => {
                 setScoreSource(on ? manualMode : 'ESTIMATED');
-                if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
+                if (on && entry === 'wrong') { setPartScores(wrongQuestions.length ? effectiveParts : { ...EMPTY_PART_SCORES }); setIncludePartDetails(wrongQuestions.length > 0); }
+                else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
                 setScoreError('');
               }}
               setManualMode={mode => { setScoreSource(mode); setManualMode(mode); setScoreError(''); }}
@@ -840,7 +865,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             >
               Hủy
             </button>
-            {sessionType !== 'VOCAB' && onAddMistakeForSession && <button type="submit" name="afterSave" value="mistake"
+            {sessionType !== 'VOCAB' && !wrongEntry && onAddMistakeForSession && <button type="submit" name="afterSave" value="mistake"
               className="min-h-11 max-md:min-h-12 max-md:flex-1 max-md:text-sm rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
               Lưu & thêm câu sai
             </button>}
@@ -850,12 +875,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               className="min-h-11 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : 'Lưu kết quả'}</span>
+              <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
             </button>
           </div>
           </div>
 
-        </form>
+        </form>}
 
       </div>
     </div>

@@ -4,6 +4,7 @@ import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString } from '@/shared/data/storage';
 import type { ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
+import { WrongQuestionGrid } from './WrongQuestionGrid';
 
 type PartNumber = PracticePartResult['part'];
 const PART_NAMES: Record<PartNumber, string> = {
@@ -76,6 +77,8 @@ interface FullTestProps {
   testName: string; setTestName: (value: string) => void; suggestions: string[];
   retest?: { attempt: number; best: number };
   partScores: LRPartScore; onPart: (key: keyof LRPartScore, value: number) => void;
+  entry: 'wrong' | 'counts'; onEntry: (entry: 'wrong' | 'counts') => void;
+  wrongQuestions: number[]; onWrong: (wrong: number[]) => void;
   preview: { totalScore?: number; scaledListening?: number; scaledReading?: number; rawListening?: number; rawReading?: number } | null;
   scoreSource: ScoreSource; manualMode: 'MANUAL_SECTIONS' | 'MANUAL_TOTAL';
   useManual: (on: boolean) => void; setManualMode: (mode: 'MANUAL_SECTIONS' | 'MANUAL_TOTAL') => void;
@@ -90,16 +93,19 @@ interface FullTestProps {
 export function PhoneFullTestBody(props: FullTestProps) {
   const { partScores, onPart, preview, scoreSource } = props;
   const manual = scoreSource !== 'ESTIMATED';
+  const fromWrong = !manual && props.entry === 'wrong';
   // An empty section would show the scale's floor (R 5) and a misleadingly low total while the learner is
   // still typing; each section waits for its first answer and the total waits for both.
-  const listeningTyped = manual || partScores.part1 + partScores.part2 + partScores.part3 + partScores.part4 > 0;
-  const readingTyped = manual || partScores.part5 + partScores.part6 + partScores.part7 > 0;
+  // Logging by wrong questions shows a score once the first question is marked (a perfect test is confirmed on save).
+  const marked = fromWrong && props.wrongQuestions.length > 0;
+  const listeningTyped = manual || (fromWrong ? marked : partScores.part1 + partScores.part2 + partScores.part3 + partScores.part4 > 0);
+  const readingTyped = manual || (fromWrong ? marked : partScores.part5 + partScores.part6 + partScores.part7 > 0);
   const shown = {
     totalScore: listeningTyped && readingTyped ? preview?.totalScore : undefined,
     scaledListening: listeningTyped ? preview?.scaledListening : undefined,
     scaledReading: readingTyped ? preview?.scaledReading : undefined
   };
-  const showParts = !manual || props.includePartDetails;
+  const showParts = manual ? props.includePartDetails : !fromWrong;
   const section = (title: string, parts: PartNumber[], raw: number) => (
     <div className={'overflow-hidden rounded-2xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#111A2C]'}>
       <div className={'flex items-center justify-between px-4 py-2.5 text-[13.5px] font-black ' + (title === 'Listening'
@@ -142,6 +148,7 @@ export function PhoneFullTestBody(props: FullTestProps) {
         <div className="shrink-0">
           <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
           <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
+          {marked && <p className="mt-1 text-[12px] font-black tabular-nums text-rose-600 dark:text-rose-400">{props.wrongQuestions.length} câu sai</p>}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
           <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown.scaledListening ?? '—'}</span>{bar(shown.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
@@ -178,14 +185,22 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       )}
 
+      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onChange={props.onWrong} />}
+
       {showParts && <>
         {section('Listening', [1, 2, 3, 4], listeningRaw)}
         {section('Reading', [5, 6, 7], readingRaw)}
       </>}
 
-      <button type="button" onClick={() => props.useManual(!manual)} className="block min-h-10 w-full text-center text-[13.5px] font-bold text-blue-700 dark:text-blue-300">
-        {manual ? 'Quay lại ước tính từ số câu đúng' : 'Chỉ có điểm chính thức? Nhập điểm L/R trực tiếp'}
-      </button>
+      {/* Other ways to enter the same test, on one line. */}
+      <div className="flex flex-wrap items-center justify-center gap-x-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+        {manual
+          ? <button type="button" onClick={() => props.useManual(false)} className="min-h-10 font-bold text-blue-700 dark:text-blue-300">Quay lại ước tính điểm</button>
+          : <>Cách khác:
+            <button type="button" onClick={() => props.onEntry(fromWrong ? 'counts' : 'wrong')} className="min-h-10 px-1 font-bold text-blue-700 dark:text-blue-300">{fromWrong ? 'Số câu đúng mỗi Part' : 'Đánh dấu câu sai'}</button>·
+            <button type="button" onClick={() => props.useManual(true)} className="min-h-10 px-1 font-bold text-blue-700 dark:text-blue-300">Điểm chính thức</button>
+          </>}
+      </div>
 
       <DetailsRow date={props.date} setDate={props.setDate} duration={props.duration} setDuration={props.setDuration} notes={props.notes} setNotes={props.setNotes} />
     </div>
@@ -295,6 +310,41 @@ export function PhonePracticeBody(props: PracticeProps) {
       </div>
 
       <DetailsRow date={props.date} setDate={props.setDate} duration={props.duration} setDuration={props.setDuration} notes={props.notes} setNotes={props.setNotes} />
+    </div>
+  );
+}
+
+/** After a test is logged by its wrong questions: the score, correct answers per Part, and where the mistakes went. */
+export function PhoneSavedResult({ session, onClose, onDetails }: { session: StudySession; onClose: () => void; onDetails: () => void }) {
+  const parts = session.partScores, wrong = session.wrongQuestions?.length ?? 0;
+  const correct = parts ? Object.values(parts).reduce((sum, value) => sum + value, 0) : 0;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        <div className={`${LIVE_CARD} px-4 py-4 text-center`}>
+          <p className="truncate text-[13px] font-semibold text-slate-500 dark:text-slate-400">{session.testName}</p>
+          <p className="text-[44px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">{session.totalScore}</p>
+          <p className="text-[13.5px] font-black tabular-nums"><span className="text-indigo-600 dark:text-indigo-300">L {session.scaledListening}</span> · <span className="text-teal-700 dark:text-teal-300">R {session.scaledReading}</span></p>
+        </div>
+        {parts && <section aria-labelledby="saved-parts-heading" className="rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#111A2C]">
+          <div className="mb-1 flex items-baseline justify-between"><h3 id="saved-parts-heading" className="text-[14.5px] font-black text-slate-950 dark:text-white">Số câu đúng</h3><span className="text-[12.5px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">{correct}/200</span></div>
+          <ul>
+            {([1, 2, 3, 4, 5, 6, 7] as const).map(part => {
+              const value = parts[`part${part}` as keyof LRPartScore], max = partMax(part);
+              return <li key={part} className="flex items-center gap-3 py-1.5">
+                <PartBadge part={part} />
+                <span className="block h-2 flex-1 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-800" aria-hidden="true"><span className={'block h-full rounded-full ' + (isListening(part) ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400')} style={{ width: `${value / max * 100}%` }} /></span>
+                <span className="w-12 text-right text-[14px] font-black tabular-nums text-slate-950 dark:text-white">{value}/{max}</span>
+              </li>;
+            })}
+          </ul>
+        </section>}
+        <p className="text-[14px] font-bold text-slate-800 dark:text-slate-100">{wrong} câu sai đã vào Sổ tay.</p>
+      </div>
+      <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-[#121A2B]">
+        <button type="button" onClick={onClose} className="min-h-12 w-[34%] cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[15px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Để sau</button>
+        <button type="button" onClick={onDetails} className="min-h-12 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-yellow-300 text-[15px] font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">Ghi chi tiết câu sai ›</button>
+      </div>
     </div>
   );
 }

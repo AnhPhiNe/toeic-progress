@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MistakeEntry } from '@/shared/types';
-import { createDraftMistake, draftMistakeId, needsSupplement, sessionDrafts, syncDraftMistakes } from './mistakeDrafts';
+import { applyDraftSync, createDraftMistake, draftMistakeId, needsSupplement, sessionDrafts, syncDraftMistakes } from './mistakeDrafts';
 import { getDueMistakes } from './spacedRepetition';
 
 const NOW = '2026-10-19T09:00:00.000Z';
@@ -48,5 +48,17 @@ describe('draft mistakes from a wrong-question list', () => {
     const cards = syncDraftMistakes(session, [], NOW).add.reverse();
     const done: MistakeEntry = { ...cards[0], question: 'Q', questionContext: 'Q', correctAnswer: '(A)', answerSource: 'PROVIDED' };
     expect(sessionDrafts('s1', [done, ...cards.slice(1)]).map(card => card.questionNumber)).toEqual([3, 104]);
+  });
+
+  it('applies a save, an edit and a deleted test to the notebook', () => {
+    const other: MistakeEntry = { ...createDraftMistake({ id: 's2', testName: 'Other' }, 5, NOW) };
+    const saved = applyDraftSync(session, [other], NOW);
+    expect(saved.map(card => card.id)).toEqual(['draft:s1:3', 'draft:s1:104', 'draft:s1:151', other.id]);
+    const worked = saved.map(card => card.id === 'draft:s1:151' ? { ...card, userChoice: 'B' as const, userChoiceState: 'CHOSEN' as const } : card);
+    const edited = applyDraftSync({ ...session, wrongQuestions: [104] }, worked, NOW);
+    expect(edited.map(card => card.id)).toEqual(['draft:s1:104', 'draft:s1:151', other.id]);
+    const deleted = applyDraftSync({ id: 's1', testName: '', wrongQuestions: [] }, edited, NOW);
+    expect(deleted.map(card => card.id)).toEqual(['draft:s1:151', other.id]);
+    expect(applyDraftSync(session, saved, NOW)).toBe(saved);
   });
 });
