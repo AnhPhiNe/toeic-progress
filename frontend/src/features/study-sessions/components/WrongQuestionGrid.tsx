@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { formatQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
+import { useEffect, useRef, useState } from 'react';
+import { ImagePlus } from 'lucide-react';
+import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
+import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
+import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
+import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 
 const listening = (part: PartNumber) => part <= 4;
 
@@ -20,6 +24,12 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
 
   return (
     <div className="space-y-3">
+      <ResultImageButton onRead={numbers => {
+        // Marks from the screenshot are added to any taps; the grid opens on the first marked Part.
+        const merged = normalizeQuestionList([...wrong, ...numbers]);
+        onChange(merged);
+        if (numbers.length) setPart(PART_NUMBERS.find(item => questionsOfPart(item).includes(Math.min(...numbers))) ?? 1);
+      }} />
       <p className="text-[14.5px] font-black text-slate-900 dark:text-white">Chạm vào câu bạn làm sai</p>
       <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="Part">
         {PART_NUMBERS.map(item => {
@@ -60,6 +70,54 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
             </div>
           </div>
         : <button type="button" onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }} className="min-h-10 cursor-pointer text-[13.5px] font-bold text-blue-700 dark:text-blue-300">Gõ số câu thay vì chạm</button>}
+    </div>
+  );
+}
+
+/**
+ * Optional: a screenshot of the test's result page lets AI mark the wrong and skipped questions on the grid.
+ * Shown only when the backend offers it; the learner checks the marks before saving.
+ */
+function ResultImageButton({ onRead }: { onRead: (numbers: number[]) => void }) {
+  const [available, setAvailable] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const [error, setError] = useState('');
+  const input = useRef<HTMLInputElement>(null);
+  const { containerRef, getToken, remove } = useTurnstile();
+  useEffect(() => {
+    let cancelled = false;
+    void aiService.getAIConfiguration().then(config => { if (!cancelled) setAvailable(Boolean(config.resultImages)); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  if (!available) return null;
+  const read = async (files: File[]) => {
+    if (busy || !files.length) return;
+    if (files.length > MAX_CONTEXT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_CONTEXT_IMAGES} ảnh.`); return; }
+    setBusy(true); setError(''); setNote('');
+    try {
+      const images = [];
+      for (const file of files) images.push(await prepareImage(file));
+      const result = await aiService.readResultsWithAI(images, getToken);
+      const count = result.wrong.length + result.skipped.length;
+      onRead([...result.wrong, ...result.skipped]);
+      setNote(count ? `AI đã tô ${count} câu${result.skipped.length ? ` (${result.skipped.length} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
+        : 'Không thấy câu sai nào trong ảnh. Chạm vào các câu sai bên dưới.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Chạm vào các câu sai bên dưới.');
+    } finally { setBusy(false); remove(); }
+  };
+  return (
+    <div onPaste={event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}>
+      <button type="button" disabled={busy} onClick={() => input.current?.click()}
+        className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
+        <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />{busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả'}<span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">(không bắt buộc)</span>
+      </button>
+      <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh kết quả"
+        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />
+      {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
+      {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
+      <div ref={containerRef} aria-label="Xác minh yêu cầu AI" />
     </div>
   );
 }

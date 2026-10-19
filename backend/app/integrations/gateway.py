@@ -6,7 +6,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import Settings
-from app.integrations.openai_provider import OpenAIProvider
+from app.integrations.openai_provider import OpenAIProvider, read_results
 from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
 from app.services.ai_access import AIAccess
@@ -154,6 +154,9 @@ class Gateway:
 
     async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None):
         return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None)
+
+    async def read_results(self, images: list[str], user_id: str | None = None):
+        return await read_results(self.openai, images, self.ip_hash(user_id) if user_id else None)
 
     async def delete_account(self, user_id: str):
         if self.settings.source_images_enabled:

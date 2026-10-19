@@ -118,4 +118,37 @@ def test_malformed_page_output_is_not_retried(api):  # noqa: F811
 
 def test_health_announces_page_extraction(api):  # noqa: F811
     with api() as (client, _calls):
-        assert client.get("/health").json()["page_image_extraction"] is True
+        health = client.get("/health").json()
+        assert health["page_image_extraction"] is True and health["result_image_reading"] is True
+
+
+def results(**extra):
+    return {"request_id": REQUEST_ID, "consent": True, "provider": "openai", "images": [{"dataUrl": picture()}], **extra}
+
+
+def test_a_result_page_gives_sorted_wrong_and_skipped_numbers(api):  # noqa: F811
+    with api(draft={"wrong": [115, 107, 113, 107, 0, 250], "skipped": [117, 113, 128]}) as (client, calls):
+        response = client.post("/api/v1/ai/read-results", json=results())
+        assert response.status_code == 200
+        body = response.json()
+        # Invalid numbers are dropped and a number marked wrong is not also skipped.
+        assert body["wrong"] == [107, 113, 115] and body["skipped"] == [117, 128]
+        assert body["usage"]["remaining"] == 2
+        assert sum(call[1].endswith("reserve_ai_request") for call in calls) == 1
+        request = next(call[2] for call in calls if call[0] == "api.openai.com")
+        assert request["text"]["format"]["name"] == "toeic_results" and request["reasoning"] == {"effort": "low"}
+        assert [part["type"] for part in request["input"][0]["content"]] == ["input_image"]
+
+
+@pytest.mark.parametrize("change", [{"images": []}, {"images": [{"dataUrl": "data:image/png;base64,YmFk"}]}, {"consent": False}])
+def test_invalid_result_requests_never_reserve_or_call_openai(api, change):  # noqa: F811
+    with api() as (client, calls):
+        assert client.post("/api/v1/ai/read-results", json=results(**change)).status_code == 422
+        assert not any(call[1].endswith("reserve_ai_request") or call[0] == "api.openai.com" for call in calls)
+
+
+def test_unreadable_result_output_is_reported_without_retry(api):  # noqa: F811
+    with api(draft={"wrong": "107"}) as (client, calls):
+        response = client.post("/api/v1/ai/read-results", json=results())
+        assert response.status_code == 502 and "chạm vào các câu sai" in response.json()["detail"]
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1

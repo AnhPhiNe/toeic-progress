@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import identity
 from app.core.runtime import client_address
-from app.schemas.models import ExtractRequest, PageExtractRequest
+from app.schemas.models import ExtractRequest, PageExtractRequest, ResultsReadRequest
 
 router = APIRouter()
 
@@ -141,6 +141,33 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         "items": [{"number": number, "draft": {**draft.model_dump(),
                    "userChoiceState": "CHOSEN" if draft.userChoice else "UNKNOWN"}} for number, draft in found],
         "missing": missing,
+        "usage": {
+            "remaining": None if unlimited else reservation["remaining"],
+            "limit": None if unlimited else reservation["limit"],
+            "guest": user["is_anonymous"],
+            "unlimited": unlimited,
+            **(access.usage_fields() if settings.ai_access_managed else {}),
+        },
+    }
+
+
+@router.post("/api/v1/ai/read-results")
+async def read_results(body: ResultsReadRequest, request: Request, user=Depends(identity)):
+    """Read which questions a result page marks wrong or skipped; one request counts as one AI use."""
+    settings = request.app.state.settings
+    if not settings.ai_ready:
+        raise HTTPException(503, "Chức năng phân tích AI đang tắt hoặc chưa cấu hình. Bạn vẫn có thể chạm vào các câu sai.")
+    access = request.state.ai_access
+    if not access.enabled:
+        raise HTTPException(403, access.message)
+    input_hash = hashlib.sha256(b"results")
+    for image in body.images:
+        input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
+    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
+    wrong, skipped = await request.app.state.gateway.read_results([image.dataUrl for image in body.images], user["id"])
+    return {
+        "wrong": wrong,
+        "skipped": skipped,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],

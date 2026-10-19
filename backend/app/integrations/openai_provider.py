@@ -14,10 +14,12 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.core.runtime import request_id_context
 from app.schemas.models import (
+    RESULTS_OUTPUT_SCHEMA,
     MistakeDraft,
     OpenAIDraftOutput,
     OpenAIPageOutput,
     OpenAIPasteOutput,
+    OpenAIResultsOutput,
     page_output_schema,
     part_of_question,
 )
@@ -29,6 +31,7 @@ from app.services.toeic_prompt import (
     PART1_IMAGE_INSTRUCTIONS,
     PART7_IMAGE_INSTRUCTIONS,
     PERSISTENT_IMAGE_INSTRUCTIONS,
+    RESULTS_READING_PROMPT,
 )
 
 logger = logging.getLogger("toeic.runtime")
@@ -280,3 +283,31 @@ def page_item_draft(item) -> MistakeDraft | None:
         draft.userChoice = ""
     draft.userMistake = next((option for option in item.options if option.startswith(f"({draft.userChoice})")), "") if draft.userChoice else ""
     return draft
+
+
+async def read_results(provider: OpenAIProvider, images: list[str], safety_identifier: str | None = None) -> tuple[list[int], list[int]]:
+    """Read wrong and skipped question numbers from result-page screenshots; returns sorted, disjoint lists."""
+    key = provider.settings.openai_api_key.get_secret_value().strip()
+    if not key:
+        raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
+    payload = {
+        "model": provider.settings.openai_model,
+        "instructions": RESULTS_READING_PROMPT,
+        "input": [{"role": "user", "content": [{"type": "input_image", "image_url": image, "detail": "high"} for image in images]}],
+        "reasoning": {"effort": "low"},
+        "text": {"format": {"type": "json_schema", "name": "toeic_results", "strict": True, "schema": RESULTS_OUTPUT_SCHEMA}},
+        "max_output_tokens": 4096,
+        "store": False,
+        "service_tier": "default",
+    }
+    if safety_identifier:
+        payload["safety_identifier"] = safety_identifier
+    try:
+        output = OpenAIResultsOutput.model_validate_json(await provider._respond(key, payload, provider.settings.openai_timeout_seconds))
+    except (ValueError, KeyError, TypeError, AttributeError) as error:
+        logger.warning(json.dumps({"event": "openai_invalid_results", "request_id": request_id_context.get(), "error_type": type(error).__name__}))
+        raise HTTPException(502, "Chưa đọc được bảng kết quả từ ảnh. Hãy thử lại hoặc chạm vào các câu sai.") from error
+    valid = range(1, 201)
+    wrong = sorted({number for number in output.wrong if number in valid})
+    skipped = sorted({number for number in output.skipped if number in valid} - set(wrong))
+    return wrong, skipped

@@ -716,3 +716,33 @@ def page_output_schema(numbers: list[int]) -> dict:
 class OpenAIPageOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     items: list[OpenAIPageItem] = Field(max_length=MAX_PAGE_ITEMS)
+
+
+class ResultsReadRequest(BaseModel):
+    """Screenshots of a test's result page (numbered questions marked right, wrong or skipped)."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    consent: Literal[True]
+    provider: Literal["openai"]
+    captcha_token: str | None = Field(default=None, max_length=2048)
+    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+
+    @model_validator(mode="after")
+    def total_bytes(self):
+        if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        return self
+
+
+QUESTION_LIST_SCHEMA = {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 200}, "maxItems": 200}
+RESULTS_OUTPUT_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["wrong", "skipped"],
+    "properties": {"wrong": QUESTION_LIST_SCHEMA, "skipped": QUESTION_LIST_SCHEMA},
+}
+
+
+class OpenAIResultsOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    wrong: list[int] = Field(max_length=200)
+    skipped: list[int] = Field(max_length=200)
