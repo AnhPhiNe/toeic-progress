@@ -17,6 +17,7 @@ from app.schemas.models import (
     RESULTS_OUTPUT_SCHEMA,
     MistakeDraft,
     OpenAIDraftOutput,
+    OpenAIPageItem,
     OpenAIPageOutput,
     OpenAIPasteOutput,
     OpenAIResultsOutput,
@@ -249,7 +250,12 @@ class OpenAIProvider:
                                 "Các câu vẫn được giữ; hãy thử lại hoặc ghi tay.") from error
         found: list[tuple[int, MistakeDraft]] = []
         rejected = 0
-        for item in output.items:
+        for raw in output.items:
+            try:
+                item = OpenAIPageItem.model_validate(raw)
+            except ValidationError:
+                rejected += 1
+                continue
             if item.number not in numbers or any(number == item.number for number, _ in found):
                 rejected += 1
                 continue

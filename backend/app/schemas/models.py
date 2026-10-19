@@ -714,8 +714,15 @@ def page_output_schema(numbers: list[int]) -> dict:
 
 
 class OpenAIPageOutput(BaseModel):
+    """Items stay raw here: each is checked on its own, so one unreadable question does not lose the others."""
+
     model_config = ConfigDict(extra="forbid")
-    items: list[OpenAIPageItem] = Field(max_length=MAX_PAGE_ITEMS)
+    items: list[dict] = Field(max_length=MAX_PAGE_ITEMS)
+
+
+MAX_RESULT_IMAGES = 8
+# Base64 of 2.5 MiB plus the JSON envelope stays under the 4 MiB request body limit.
+MAX_RESULT_IMAGE_BYTES = 5 * 512 * 1024
 
 
 class ResultsReadRequest(BaseModel):
@@ -726,12 +733,13 @@ class ResultsReadRequest(BaseModel):
     consent: Literal[True]
     provider: Literal["openai"]
     captcha_token: str | None = Field(default=None, max_length=2048)
-    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+    # A whole result page often takes several screenshots; reading numbers is light work, so one request takes up to 8.
+    images: list[ImageAttachment] = Field(min_length=1, max_length=MAX_RESULT_IMAGES, repr=False)
 
     @model_validator(mode="after")
     def total_bytes(self):
-        if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
-            raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        if sum(image.byte_count for image in self.images) > MAX_RESULT_IMAGE_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 2,5 MiB")
         return self
 
 

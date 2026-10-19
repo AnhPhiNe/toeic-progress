@@ -110,7 +110,7 @@ def test_refused_reservation_never_reads_the_page(api):  # noqa: F811
 
 
 def test_malformed_page_output_is_not_retried(api):  # noqa: F811
-    with api(draft={"items": [{"number": 131}]}) as (client, calls):
+    with api(draft={"items": "131"}) as (client, calls):
         response = client.post("/api/v1/ai/extract-page", json=page())
         assert response.status_code == 502 and "ghi tay" in response.json()["detail"]
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
@@ -151,4 +151,16 @@ def test_unreadable_result_output_is_reported_without_retry(api):  # noqa: F811
     with api(draft={"wrong": "107"}) as (client, calls):
         response = client.post("/api/v1/ai/read-results", json=results())
         assert response.status_code == 502 and "chạm vào các câu sai" in response.json()["detail"]
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
+
+
+def test_an_unreadable_item_does_not_lose_the_others(api):  # noqa: F811
+    output = {"items": [item(131, question="", context=""), item(132)]}
+    with api(draft=output) as (client, _calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+    assert [entry["number"] for entry in body["items"]] == [132]
+    assert body["missing"] == [131, 107]
+    with api(draft={"items": [{"number": 131}]}) as (client, calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+        assert body["items"] == [] and body["missing"] == [131, 132, 107]
         assert sum(call[0] == "api.openai.com" for call in calls) == 1

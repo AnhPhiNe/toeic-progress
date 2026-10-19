@@ -185,7 +185,7 @@ const resultsSchema = z.object({ wrong: questionList, skipped: questionList });
 
 /** Read which questions a result-page screenshot marks wrong or skipped; one call counts as one AI use. */
 export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () => Promise<string>): Promise<{ wrong: number[]; skipped: number[]; usage: AIUsage }> {
-  if (!images.length || images.length > 3) throw new Error('Chọn 1 đến 3 ảnh kết quả.');
+  if (!images.length || images.length > 8) throw new Error('Chọn 1 đến 8 ảnh kết quả.');
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể chạm vào các câu sai.');
   let { data: { session } } = await cloud.auth.getSession();
   if (!session) {

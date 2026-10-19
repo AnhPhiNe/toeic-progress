@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
-import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
+import { prepareImage, MAX_RESULT_IMAGES, RESULT_IMAGE_OPTIONS } from '@/features/mistakes/lib/imageInput';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
@@ -93,11 +93,11 @@ function ResultImageButton({ onRead }: { onRead: (numbers: number[]) => void }) 
   if (!available) return null;
   const read = async (files: File[]) => {
     if (busy || !files.length) return;
-    if (files.length > MAX_CONTEXT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_CONTEXT_IMAGES} ảnh.`); return; }
+    if (files.length > MAX_RESULT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_RESULT_IMAGES} ảnh.`); return; }
     setBusy(true); setError(''); setNote('');
     try {
       const images = [];
-      for (const file of files) images.push(await prepareImage(file));
+      for (const file of files) images.push(await prepareImage(file, RESULT_IMAGE_OPTIONS));
       const result = await aiService.readResultsWithAI(images, getToken);
       const count = result.wrong.length + result.skipped.length;
       onRead([...result.wrong, ...result.skipped]);
