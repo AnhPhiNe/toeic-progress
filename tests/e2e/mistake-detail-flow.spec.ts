@@ -57,7 +57,7 @@ test('wrong questions are filled in one after another and leave the pending grou
   // A row opens the flow at that card; the full form is one tap away.
   await pending.getByRole('button', { name: 'Ghi chi tiết câu 151 Part 7, ETS Detail', exact: true }).click();
   await expect(flow.getByText('Câu 151 · Part 7 · ETS Detail', { exact: true })).toBeVisible();
-  await flow.getByRole('button', { name: 'Form đầy đủ (AI)', exact: true }).click();
+  await flow.getByRole('button', { name: 'Form đầy đủ', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.locator('#mistake-paste')).toBeVisible();
 });

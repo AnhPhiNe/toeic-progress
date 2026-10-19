@@ -28,7 +28,7 @@ export async function backendRequest<T>(path: string, method = 'GET', body?: unk
     const headerId = response.headers.get('X-Request-ID') || '';
     const requestId = /^[a-f0-9-]{36}$/i.test(headerId) ? headerId : undefined;
     const seconds = Number(response.headers.get('Retry-After'));
-    const maxDelay = path === '/api/v1/ai/extract' ? 86400 : 300;
+    const maxDelay = path.startsWith('/api/v1/ai/extract') ? 86400 : 300;
     const retryAfter = Number.isInteger(seconds) && seconds > 0 && seconds <= maxDelay ? seconds : undefined;
     let message = typeof value?.detail === 'string' ? value.detail : 'Máy chủ chưa xử lý được yêu cầu.';
     if (retryAfter) message += ` Thử lại sau ${retryAfter < 60 ? `${retryAfter} giây` : `${Math.ceil(retryAfter / 60)} phút`}.`;

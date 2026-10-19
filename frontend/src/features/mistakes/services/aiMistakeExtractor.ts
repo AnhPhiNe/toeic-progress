@@ -23,7 +23,7 @@ const draftSchema = z.object({
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean;
   enabled?: boolean; accessStatus?: 'active' | 'pending' | 'blocked' | 'login_required'; accessMessage?: string }
-export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; freeformInput?: boolean; managedAccess?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean; persistentImages?: boolean }
+export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; freeformInput?: boolean; managedAccess?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean; persistentImages?: boolean; pageImages?: boolean }
 
 export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!apiAvailable) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
@@ -68,7 +68,8 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
     ...(value.part7_context_images === true ? { part7Images: true } : {}),
     ...(value.part1_picture_input === true ? { part1Images: true } : {}),
     ...(value.learner_error_category === true ? { learnerCategory: true } : {}),
-    ...(value.persistent_source_images === true ? { persistentImages: true } : {}) };
+    ...(value.persistent_source_images === true ? { persistentImages: true } : {}),
+    ...(value.page_image_extraction === true ? { pageImages: true } : {}) };
 }
 
 export async function getAIUsage(): Promise<AIUsage | null> {
@@ -146,4 +147,34 @@ Mẹo 10s: Gặp "request that" → động từ nguyên thể; chủ ngữ nh�
       }
     }
   };
+}
+
+const pageSchema = z.object({
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: draftSchema })).max(6),
+  missing: z.array(z.number().int().min(1).max(200)).max(200)
+});
+export type PageItem = z.infer<typeof pageSchema>['items'][number];
+
+/** Read the learner's wrong questions from 1–3 screenshots; one call counts as one AI use. */
+export async function extractPageWithAI(questions: { number: number; part: number }[], images: PreparedImage[], getCaptcha: () => Promise<string>)
+  : Promise<{ items: PageItem[]; missing: number[]; usage: AIUsage }> {
+  if (!questions.length) throw new Error('Không còn câu sai nào để tìm trong ảnh.');
+  if (!images.length || images.length > 3) throw new Error('Chọn 1 đến 3 ảnh màn hình.');
+  if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể ghi tay.');
+  let { data: { session } } = await cloud.auth.getSession();
+  if (!session) {
+    const token = await getCaptcha();
+    const { data, error } = await cloud.auth.signInAnonymously({ options: { captchaToken: token } });
+    if (error || !data.session) throw new Error('Chưa tạo được phiên khách. Vui lòng thử lại hoặc đăng nhập Google.');
+    session = data.session;
+  }
+  const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
+  const value = await backendRequest<{ items: unknown; missing: unknown; usage: AIUsage }>('/api/v1/ai/extract-page', 'POST', {
+    request_id: crypto.randomUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
+    questions, images: images.map(image => ({ dataUrl: image.dataUrl }))
+  }, session.user.id);
+  const parsed = pageSchema.safeParse(value);
+  if (!parsed.success) throw new Error('Kết quả AI chưa hợp lệ. Hãy thử lại hoặc ghi tay.');
+  for (const item of parsed.data.items) if (item.draft.answerSource === 'MISSING') item.draft.correctAnswer = '';
+  return { ...parsed.data, usage: value.usage };
 }
