@@ -42,6 +42,8 @@ interface MistakeCardProps {
   /** Asks AI for the explanation of a card that has its question but none yet (cards read from a screenshot). */
   onExplain?: () => void;
   explaining?: boolean;
+  /** "Viết lời giải" when a screenshot reading already paid for it, "Giải thích với AI" otherwise. */
+  explainLabel?: string;
 }
 
 /** A card can be explained once it has a written question and its options; Part 1 needs its picture, which is not kept. */
@@ -50,7 +52,7 @@ export function canExplain(mistake: MistakeEntry): boolean {
 }
 
 export const MistakeCard: React.FC<MistakeCardProps> = ({
-  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false, onExplain, explaining = false
+  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false, onExplain, explaining = false, explainLabel = 'Giải thích với AI'
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -108,7 +110,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             )}
             {onExplain && canExplain(mistake) && <button type="button" onClick={onExplain} disabled={explaining}
               className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'AI đang giải thích…' : 'Giải thích với AI'}</button>}
+              <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'Đang viết lời giải…' : explainLabel}</button>}
             <ExplanationView optionMeanings={mistake.part === 7 ? quiz.options : undefined} explanation={mistake.explanation} trapTip={mistake.trapTip}
               extra={[
                 ['Lý do bạn đã chọn', mistake.userReason ?? (mistake.userMistake === '(Không ghi nhận đáp án nhầm)' ? '' : mistake.userMistake)],
@@ -180,7 +182,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           )}
           {onExplain && canExplain(mistake) && <button type="button" onClick={onExplain} disabled={explaining}
             className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'AI đang giải thích…' : 'Giải thích với AI'}</button>}
+            <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'Đang viết lời giải…' : explainLabel}</button>}
           <ExplanationView
             optionMeanings={mistake.part === 7 ? quiz.options : undefined}
             explanation={mistake.explanation}

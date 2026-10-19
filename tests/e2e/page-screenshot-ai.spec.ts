@@ -9,6 +9,7 @@ const draft = (question: string, options: string[], correct: string, choice: str
   correctAnswer: correct, answerSource: 'PROVIDED', userChoice: choice, userChoiceState: 'CHOSEN', userMistake: '', trapTip: '',
   tags: [], missingInformation: [], optionNotes: [], explanation: null
 });
+export const TIP = 'Trước phân từ financed cần trạng từ.';
 export const PAGE = {
   items: [
     { number: 131, draft: draft('--(131)--. Its main reading room has been enlarged.', ['(A) A used-book sale will be held.', '(B) The library will close early.', '(C) A nearby center underwent similar work.', '(D) The renovation has transformed nearly every part of the building.'], '(D) The renovation has transformed nearly every part of the building.', 'C') },
@@ -26,7 +27,20 @@ export async function mockPageAI(page: Page) {
       export async function extractMistakeWithAI() { throw new Error('not used'); }
       export async function extractPageWithAI(questions, images) {
         window.__pageCall = { questions, images: images.length };
-        return { ...${JSON.stringify(PAGE)}, usage: {} };
+        const body = btoa(JSON.stringify({ e: Math.floor(Date.now() / 1000) + 86400 })).replace(/=+$/, '');
+        return { ...${JSON.stringify(PAGE)}, explainTicket: body + '.signature', usage: {} };
+      }
+      // Explanations arrive after a short delay, or fail when window.__explainFails is set.
+      export async function explainBatchWithAI(ticket, items) {
+        (window.__explainCalls = window.__explainCalls || []).push(items.map(item => item.number));
+        await new Promise(resolve => setTimeout(resolve, window.__explainDelay ?? 300));
+        window.__explainFinished = (window.__explainFinished || 0) + 1;
+        if (window.__explainFails) throw new Error('offline');
+        return { failed: [], items: items.map(({ number, input }) => ({ number, draft: { part: input.part, category: 'ADVANCED_GRAMMAR',
+          question: input.question, context: input.context, questionContext: input.question, options: input.options,
+          correctAnswer: input.options[3], answerSource: 'PROVIDED', userChoice: input.userChoice, userMistake: '', tags: ['adverb'],
+          missingInformation: [], trapTip: 'Mẹo 10s: ' + ${JSON.stringify(TIP)}, optionNotes: [],
+          explanation: { quickTip: ${JSON.stringify(TIP)}, translation: '', questionType: '', evidence: '', paraphrase: '', analysis: 'Dấu hiệu: ____ trước financed.', keyVocabulary: '' } } })) };
       }`
   }));
 }
@@ -66,11 +80,15 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
   await flow.getByRole('button', { name: /^Đoạn văn: Library Reopens/ }).click();
   await expect(flow.getByText(/following a renovation/)).toBeVisible();
 
+  // The explanation is written in the background while the learner checks, with the reading's ticket.
+  await expect(flow.getByText(TIP)).toBeVisible();
+  expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132]]);
   await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
   await expect(flow.getByText('The entire project was ____ financed through municipal funds.', { exact: true })).toBeVisible();
   // The learner corrects a choice the screenshot showed differently.
   await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'A', exact: true }).click();
-  await flow.getByRole('button', { name: 'Ngữ pháp', exact: true }).click();
+  // The explanation suggested the error type.
+  await expect(flow.getByRole('button', { name: 'Ngữ pháp', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
 
   // The flow goes on with the question the screenshot did not show.
@@ -81,7 +99,8 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
   expect(q132).toMatchObject({ part: 6, context: passage, options: ['(A) larger', '(B) largeness', '(C) large', '(D) largely'],
     userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(D) largely', answerSource: 'PROVIDED', answerProvidedBy: 'SOURCE',
     category: 'ADVANCED_GRAMMAR' });
-  expect(q132.explanation ?? null).toBeNull();
+  expect(q132.explanation.quickTip).toBe(TIP);
+  expect(q132.tags).toEqual(['adverb']);
   expect(q132.question).toBe('The entire project was ____ financed through municipal funds.');
   const q107 = cards.find((card: { questionNumber: number }) => card.questionNumber === 107);
   expect(q107.question).toBe('');
@@ -101,4 +120,26 @@ test('a corrected answer is kept as the learner’s, and a skipped tab stays for
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 131))
     .toMatchObject({ correctAnswer: '(B) The library will close early.', answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' });
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 132).question).toBe('');
+});
+
+test('an explanation that never arrived is asked for again on the card without a new AI use', async ({ page }) => {
+  const flow = await openFlow(page);
+  await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = true; });
+  await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
+  await expect(flow.getByText('Đang viết lời giải…')).toBeVisible();
+  await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
+  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await page.waitForFunction(() => (window as Window & { __explainFinished?: number }).__explainFinished === 1);
+  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
+
+  await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = false; });
+  await page.getByRole('button', { name: /The entire project was/ }).first().click();
+  const retry = page.getByRole('button', { name: 'Viết lời giải', exact: true });
+  await retry.click();
+  await expect(page.getByText(TIP).first()).toBeVisible();
+  await expect(retry).toHaveCount(0);
+  expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132], [132]]);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
+    .find((card: { questionNumber: number; sourceTestName?: string }) => card.questionNumber === 132 && card.sourceTestName === 'ETS Screen'));
+  expect(stored.explanation.quickTip).toBe(TIP);
 });

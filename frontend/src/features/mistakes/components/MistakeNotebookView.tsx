@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -6,9 +6,11 @@ import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
 import { MistakeDetailFlow } from '@/features/mistakes/components/MistakeDetailFlow';
 import { needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
-import { extractMistakeWithAI } from '@/features/mistakes/services/aiMistakeExtractor';
+import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
+import { mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
+import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
@@ -148,17 +150,15 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
-      const { draft } = await extractMistakeWithAI(inputText(input), getToken, input);
+      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input);
       const latest = loadMistakes().find(value => value.id === card.id) ?? card;
-      const answer = latest.answerSource === 'MISSING' || !latest.correctAnswer.trim()
-        ? draft.answerSource === 'MISSING' ? {} : { correctAnswer: draft.correctAnswer, answerSource: draft.answerSource } : {};
-      onUpdateMistake({ ...latest, explanation: draft.explanation ?? undefined, optionNotes: draft.optionNotes, trapTip: draft.trapTip,
-        tags: latest.tags.length ? latest.tags : draft.tags, category: latest.category === 'OTHER' ? draft.category : latest.category, ...answer }, latest);
+      onUpdateMistake(mergeExplanation(latest, draft), latest);
       notify('Đã thêm giải thích');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
     finally { setExplainingId(''); removeCaptcha(); }
   };
 
+  useSyncExternalStore(subscribeExplanations, explanationsVersion);
   const cardProps = (mistake: (typeof sourcedMistakes)[number]) => ({
     mistake,
     expanded: expandedIds.has(mistake.id),
@@ -171,8 +171,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     onDelete: () => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); },
     onMarkMastered: () => markMastered(mistake.id),
     onReopen: () => onReopenCards([mistake.id]),
-    onExplain: () => { void explain(mistakes.find(value => value.id === mistake.id) ?? mistake); },
-    explaining: explainingId === mistake.id
+    // A card read from a screenshot asks again with its ticket (no new AI use); otherwise one AI use.
+    onExplain: () => {
+      if (canRetryFree(mistake.id)) { if (retryExplanation(mistake.id)) notify('Đang viết lời giải…'); return; }
+      void explain(mistakes.find(value => value.id === mistake.id) ?? mistake);
+    },
+    explainLabel: canRetryFree(mistake.id) ? 'Viết lời giải' : 'Giải thích với AI',
+    explaining: explainingId === mistake.id || isExplaining(mistake.id)
   });
 
   const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>

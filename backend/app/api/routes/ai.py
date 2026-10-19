@@ -207,7 +207,8 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
     gateway = request.app.state.gateway
     # One explanation per question, all at once: the same analysis as a single question, in about the same time.
     results = await asyncio.gather(*(gateway.generate(item.input.as_text(), user["id"], source_options=item.input.options,
-                                                      source_answer=item.input.sourceAnswer) for item in body.items), return_exceptions=True)
+                                                      source_answer=item.input.sourceAnswer, pin_question=True) for item in body.items),
+                             return_exceptions=True)
     items, failed = [], []
     for item, result in zip(body.items, results, strict=True):
         if isinstance(result, BaseException):

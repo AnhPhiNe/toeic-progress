@@ -50,6 +50,7 @@ import {
 import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
 import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
+import { MISTAKES_CHANGED_EVENT } from '@/features/mistakes/services/explanationQueue';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
@@ -226,6 +227,13 @@ export const App: React.FC = () => {
   };
 
   // Phòng Thi tự ghi buổi học vào bộ nhớ; đọc lại để state không bị cũ
+  // Explanations written in the background update stored cards; show them.
+  useEffect(() => {
+    const reload = () => setMistakes(loadMistakes());
+    window.addEventListener(MISTAKES_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(MISTAKES_CHANGED_EVENT, reload);
+  }, []);
+
   const handleSessionsChangedElsewhere = useCallback(() => {
     setSessions(loadStudySessions());
     setMistakes(loadMistakes());

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ImagePlus, Sparkles, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
@@ -10,6 +10,8 @@ import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageI
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import type { AIConfiguration, AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
+import type { MistakeInput } from '@/features/mistakes/lib/mistakeInput';
+import { enqueueExplanations, explanationsVersion, isExplaining, setExplanationInterceptor, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 
 interface Props {
   /** Cards to fill in, in order. */
@@ -24,6 +26,14 @@ type Choice = ChoiceLetter | 'BLANK' | '';
 /** What the learner has filled in for one card; `ai` holds what a screenshot reading returned. */
 interface CardForm { raw: string; choice: Choice; answer: ChoiceLetter | ''; category: ErrorCategory | ''; ai?: AIMistakeParseResult }
 const EMPTY: CardForm = { raw: '', choice: '', answer: '', category: '' };
+
+/** What the explanation request sends for a question read from a screenshot (must match what was read). */
+function explainInput(draft: AIMistakeParseResult, part: MistakeEntry['part']): MistakeInput {
+  const choice = draft.userChoice || '';
+  return { question: draft.question ?? '', options: draft.options, context: draft.context ?? '', part,
+    userChoiceState: choice ? 'CHOSEN' : 'UNKNOWN', userChoice: choice, userReason: '',
+    sourceAnswer: draft.answerSource === 'PROVIDED' ? optionLetter(draft.correctAnswer) : '' };
+}
 
 function fromAI(draft: AIMistakeParseResult): CardForm {
   const answer = draft.answerSource === 'MISSING' ? '' : optionLetter(draft.correctAnswer);
@@ -67,6 +77,26 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
   }, []);
 
   const byId = useMemo(() => new Map(cards.map(card => [card.id, card])), [cards]);
+  useSyncExternalStore(subscribeExplanations, explanationsVersion);
+  // Explanations that arrive for cards not saved yet go into their forms, so saving keeps them.
+  const queueRef = useRef(queue);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => {
+    setExplanationInterceptor((cardId, draft) => {
+      if (!queueRef.current.includes(cardId)) return false;
+      setForms(value => {
+        const current = value[cardId];
+        if (!current?.ai) return value;
+        const answer = current.answer || (draft.answerSource === 'MISSING' ? '' : optionLetter(draft.correctAnswer));
+        const pageAnswer = current.ai.answerSource !== 'MISSING';
+        return { ...value, [cardId]: { ...current, category: current.category || draft.category, answer,
+          ai: { ...current.ai, explanation: draft.explanation, optionNotes: draft.optionNotes, trapTip: draft.trapTip, tags: draft.tags,
+            ...(pageAnswer ? {} : { correctAnswer: draft.correctAnswer, answerSource: draft.answerSource }) } } };
+      });
+      return true;
+    });
+    return () => setExplanationInterceptor(null);
+  }, []);
   const card = byId.get(currentId);
   const form = forms[currentId] ?? EMPTY;
   const parsed = useMemo(() => !form.ai && form.raw.trim() ? parsePastedQuestion(form.raw, card?.part) : null, [form.ai, form.raw, card?.part]);
@@ -148,6 +178,10 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
       setForms(value => ({ ...value, ...Object.fromEntries(found.map(({ item, id }) => [id, fromAI(item.draft)])) }));
       const ids = found.map(entry => entry.id);
       setBatch(ids); goTo(ids[0]);
+      // The explanations are written while the learner checks these cards; this reading already counted the AI use.
+      if (result.explainTicket) enqueueExplanations(result.explainTicket, found
+        .filter(({ item, id }) => byId.get(id)!.part !== 1 && item.draft.question?.trim() && item.draft.options.length >= 2)
+        .map(({ item, id }) => ({ cardId: id, number: item.number, input: explainInput(item.draft, byId.get(id)!.part) })));
       setNote(`Ảnh có ${ids.length} câu sai của bạn: ${found.map(entry => entry.item.number).join(', ')}.`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại hoặc ghi tay.');
@@ -255,6 +289,7 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
               ))}
             </div>
           </section>
+          {!tip && form.ai && isExplaining(currentId) && <p className="flex items-center gap-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300"><Sparkles className="h-4 w-4" aria-hidden="true" />Đang viết lời giải…</p>}
           {tip && <p className="rounded-xl border-[1.5px] border-amber-300 bg-amber-50 px-3 py-2.5 text-[13px] leading-relaxed text-slate-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><b>Mẹo: </b>{tip}</p>}
           {error && <p role="alert" className="text-[13.5px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
           <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />

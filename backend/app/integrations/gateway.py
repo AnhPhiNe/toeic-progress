@@ -147,10 +147,10 @@ class Gateway:
 
     async def generate(self, text: str, user_id: str | None = None, *, source_options: list[str] | None = None,
                        source_answer: str | None = None, images: list[str] | None = None,
-                       persistent_images: bool = False) -> MistakeDraft:
+                       persistent_images: bool = False, pin_question: bool = False) -> MistakeDraft:
         return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None,
                                           source_options=source_options, source_answer=source_answer, images=images,
-                                          persistent_images=persistent_images)
+                                          persistent_images=persistent_images, pin_question=pin_question)
 
     async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None):
         return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None)

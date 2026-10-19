@@ -136,7 +136,7 @@ class OpenAIProvider:
 
     async def generate(self, text: str, safety_identifier: str | None = None, *,
                        source_options: list[str] | None = None, source_answer: str | None = None,
-                       images: list[str] | None = None, persistent_images: bool = False) -> MistakeDraft:
+                       images: list[str] | None = None, persistent_images: bool = False, pin_question: bool = False) -> MistakeDraft:
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
@@ -167,6 +167,9 @@ class OpenAIProvider:
                 raise HTTPException(422, "Dán câu hỏi và đủ A–D; ảnh chỉ cung cấp ngữ cảnh.")
             if not freeform:
                 schema["properties"]["question"]["enum"] = [" ".join(source["question"].split())]
+        if pin_question and not freeform and isinstance(source.get("question"), str) and source["question"].strip():
+            # The question was already read exactly (from a screenshot); the explanation must not retype it.
+            schema["properties"]["question"]["enum"] = [" ".join(source["question"].split())]
         image_instructions = (PART1_IMAGE_INSTRUCTIONS if images and source["part"] == 1 else PART7_IMAGE_INSTRUCTIONS) if images else ""
         if persistent_images:
             schema["properties"]["context"]["enum"] = [""]

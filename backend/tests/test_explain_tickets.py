@@ -53,6 +53,9 @@ def test_a_ticket_explains_without_counting_another_use(api):  # noqa: F811
         assert draft["correctAnswer"] == "(B) be" and draft["explanation"] and draft["userChoice"] == "A" and draft["userMistake"] == "(A) are"
         assert not any(call[1].endswith("reserve_ai_request") for call in calls)
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
+        # The question was read exactly already, so the explanation may not retype it.
+        request = next(call[2] for call in calls if call[0] == "api.openai.com")
+        assert request["text"]["format"]["schema"]["properties"]["question"]["enum"] == [QUESTION]
 
 
 @pytest.mark.parametrize("token,changes,status", [
