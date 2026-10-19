@@ -51,12 +51,14 @@ test('wrong questions are filled in one after another and leave the pending grou
   await expect(page.getByRole('status').filter({ hasText: 'Đã ghi chi tiết' })).toContainText('Đã ghi chi tiết 1 câu');
   const pending = page.getByRole('region', { name: 'Chưa ghi chi tiết · 2' });
   await expect(pending).toBeVisible();
-  await expect(pending.getByText('ETS Detail', { exact: true })).toHaveCount(1);
+  // One row per test, not one per question.
+  await expect(pending.getByRole('button', { name: /^Ghi chi tiết/ })).toHaveCount(1);
+  await expect(pending.getByText('2 câu chưa ghi chi tiết', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Cần ôn · 1' })).toBeVisible();
 
-  // A row opens the flow at that card; the full form is one tap away.
-  await pending.getByRole('button', { name: 'Ghi chi tiết câu 151 Part 7, ETS Detail', exact: true }).click();
-  await expect(flow.getByText('Câu 151 · Part 7 · ETS Detail', { exact: true })).toBeVisible();
+  // The test's row opens the flow at its first pending card; the full form is one tap away.
+  await pending.getByRole('button', { name: 'Ghi chi tiết 2 câu, ETS Detail', exact: true }).click();
+  await expect(flow.getByText('Câu 3 · Part 1 · ETS Detail', { exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Form đầy đủ', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.locator('#mistake-paste')).toBeVisible();
@@ -65,7 +67,7 @@ test('wrong questions are filled in one after another and leave the pending grou
 test('the pending group starts the flow for all its cards', async ({ page }) => {
   const flow = await logTest(page);
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết', exact: true }).click();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
   await expect(flow.getByRole('heading', { name: 'Ghi câu sai · 1/3' })).toBeVisible();
   await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'Mình bỏ trống câu này', exact: true }).click();
   await flow.getByRole('group', { name: /Đáp án đúng/ }).getByRole('button', { name: 'C', exact: true }).click();

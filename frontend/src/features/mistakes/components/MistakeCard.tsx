@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Sparkles, Trash2 } from 'lucide-react';
 import { ERROR_CATEGORY_LABELS, type MistakeEntry } from '@/shared/types';
 import { OptionList } from '@/features/mistakes/components/OptionList';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
@@ -39,10 +39,18 @@ interface MistakeCardProps {
   compact?: boolean;
   /** Status line shown on compact rows outside the "Cần ôn" group (e.g. "Ôn sau 3 ngày"). */
   showStatus?: boolean;
+  /** Asks AI for the explanation of a card that has its question but none yet (cards read from a screenshot). */
+  onExplain?: () => void;
+  explaining?: boolean;
+}
+
+/** A card can be explained once it has a written question and its options; Part 1 needs its picture, which is not kept. */
+export function canExplain(mistake: MistakeEntry): boolean {
+  return !mistake.explanation && !mistake.trapTip?.trim() && mistake.part !== 1 && Boolean(mistake.question?.trim()) && (mistake.options?.length ?? 0) >= 2;
 }
 
 export const MistakeCard: React.FC<MistakeCardProps> = ({
-  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false
+  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false, onExplain, explaining = false
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,6 +106,9 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             ) : mistake.correctAnswer && (
               <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">{correctLabel}:</span> {mistake.correctAnswer}</p>
             )}
+            {onExplain && canExplain(mistake) && <button type="button" onClick={onExplain} disabled={explaining}
+              className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'AI đang giải thích…' : 'Giải thích với AI'}</button>}
             <ExplanationView optionMeanings={mistake.part === 7 ? quiz.options : undefined} explanation={mistake.explanation} trapTip={mistake.trapTip}
               extra={[
                 ['Lý do bạn đã chọn', mistake.userReason ?? (mistake.userMistake === '(Không ghi nhận đáp án nhầm)' ? '' : mistake.userMistake)],
@@ -167,6 +178,9 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           ) : mistake.correctAnswer && (
             <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">{correctLabel}:</span> {mistake.correctAnswer}</p>
           )}
+          {onExplain && canExplain(mistake) && <button type="button" onClick={onExplain} disabled={explaining}
+            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'AI đang giải thích…' : 'Giải thích với AI'}</button>}
           <ExplanationView
             optionMeanings={mistake.part === 7 ? quiz.options : undefined}
             explanation={mistake.explanation}

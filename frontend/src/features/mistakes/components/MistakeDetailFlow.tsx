@@ -27,7 +27,7 @@ const EMPTY: CardForm = { raw: '', choice: '', answer: '', category: '' };
 
 function fromAI(draft: AIMistakeParseResult): CardForm {
   const answer = draft.answerSource === 'MISSING' ? '' : optionLetter(draft.correctAnswer);
-  return { raw: '', choice: draft.userChoiceState === 'CHOSEN' && draft.userChoice ? draft.userChoice : '', answer: answer || '', category: draft.category, ai: draft };
+  return { raw: '', choice: draft.userChoiceState === 'CHOSEN' && draft.userChoice ? draft.userChoice : '', answer: answer || '', category: draft.explanation ? draft.category : '', ai: draft };
 }
 
 /**
@@ -44,6 +44,14 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  // Seconds since a screenshot was sent, so a long read does not look frozen.
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!busy) return;
+    setElapsed(0);
+    const timer = window.setInterval(() => setElapsed(value => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [busy]);
   const [showContext, setShowContext] = useState(false);
   const [config, setConfig] = useState<AIConfiguration | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -207,18 +215,19 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
                 {form.ai.options.length > 0 && <ul className="mt-1.5 space-y-0.5 text-[13px] text-slate-600 dark:text-slate-300">{form.ai.options.map(option => <li key={option}>{option}</li>)}</ul>}
               </div>
             </div> : <>
-              <textarea id="detail-question" rows={3} value={form.raw} onChange={event => update({ raw: event.target.value })} placeholder="Dán câu hỏi và 4 phương án"
-                className="mt-2 w-full rounded-xl border-[1.5px] border-stone-300 bg-white px-3 py-2.5 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
-              {parsed && !parsed.error && parsed.options.length > 0 && <p className="mt-1.5 text-[13px] font-bold text-emerald-700 dark:text-emerald-300">✓ Đã tách {parsed.options.length} phương án</p>}
               {config?.pageImages && <>
                 <button type="button" disabled={busy} onClick={() => fileInput.current?.click()}
                   className="mt-2 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
-                  <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />{busy ? 'AI đang đọc ảnh…' : 'Chọn ảnh màn hình đề'}
+                  <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />{busy ? `Đang đọc ảnh · ${elapsed} giây` : 'Chọn ảnh màn hình đề'}
                 </button>
-                <p className="mt-1 text-center text-[12px] font-semibold text-slate-500 dark:text-slate-400">Một ảnh có thể chứa nhiều câu · trên máy tính: Ctrl+V</p>
+                <p className="mt-1 text-center text-[12px] font-semibold text-slate-500 dark:text-slate-400">{busy ? 'Thường mất khoảng 10 giây' : 'Một ảnh có thể chứa nhiều câu · trên máy tính: Ctrl+V'}</p>
                 <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh màn hình đề"
                   onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void readImages(files); }} />
+                <p className="mt-3 text-[12.5px] font-bold text-slate-500 dark:text-slate-400">hoặc dán chữ</p>
               </>}
+              <textarea id="detail-question" rows={3} value={form.raw} onChange={event => update({ raw: event.target.value })} placeholder="Dán câu hỏi và 4 phương án"
+                className="mt-2 w-full rounded-xl border-[1.5px] border-stone-300 bg-white px-3 py-2.5 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+              {parsed && !parsed.error && parsed.options.length > 0 && <p className="mt-1.5 text-[13px] font-bold text-emerald-700 dark:text-emerald-300">✓ Đã tách {parsed.options.length} phương án</p>}
             </>}
           </section>
 

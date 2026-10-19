@@ -3,11 +3,11 @@ import { resolve } from 'node:path';
 
 const screenshot = resolve('tests/fixtures/part7-notice.png');
 const passage = 'Library Reopens\n(14 March) The Ashcombe Public Library welcomed residents back on Monday, 11 March, following a renovation...';
-const explanation = { quickTip: 'Trước tính từ/phân từ cần trạng từ bổ nghĩa.', translation: '', questionType: '', evidence: '', paraphrase: '', analysis: 'Dấu hiệu: was ____ financed.', keyVocabulary: '' };
 const draft = (question: string, options: string[], correct: string, choice: string) => ({
-  part: 6, category: 'ADVANCED_GRAMMAR', question, context: passage, questionContext: question + '\n\n' + passage, options,
-  correctAnswer: correct, answerSource: 'PROVIDED', userChoice: choice, userChoiceState: 'CHOSEN', userMistake: '', trapTip: 'Mẹo: trạng từ.',
-  tags: ['adverb'], missingInformation: [], optionNotes: [], explanation
+  // Reading a screenshot copies the page only; the explanation is asked for later on the card.
+  part: 6, category: 'OTHER', question, context: passage, questionContext: question + '\n\n' + passage, options,
+  correctAnswer: correct, answerSource: 'PROVIDED', userChoice: choice, userChoiceState: 'CHOSEN', userMistake: '', trapTip: '',
+  tags: [], missingInformation: [], optionNotes: [], explanation: null
 });
 export const PAGE = {
   items: [
@@ -62,7 +62,7 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
   await expect(flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'C', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(flow.getByRole('group', { name: /Đáp án đúng/ }).getByRole('button', { name: 'D', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(flow.getByText('theo đề', { exact: true })).toBeVisible();
-  await expect(flow.getByRole('button', { name: 'Ngữ pháp', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(flow.locator('[aria-labelledby="detail-category"] [aria-pressed="true"]')).toHaveCount(0);
   await flow.getByRole('button', { name: /^Đoạn văn: Library Reopens/ }).click();
   await expect(flow.getByText(/following a renovation/)).toBeVisible();
 
@@ -70,6 +70,7 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
   await expect(flow.getByText('The entire project was ____ financed through municipal funds.', { exact: true })).toBeVisible();
   // The learner corrects a choice the screenshot showed differently.
   await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'A', exact: true }).click();
+  await flow.getByRole('button', { name: 'Ngữ pháp', exact: true }).click();
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
 
   // The flow goes on with the question the screenshot did not show.
@@ -79,7 +80,8 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
   const q132 = cards.find((card: { questionNumber: number }) => card.questionNumber === 132);
   expect(q132).toMatchObject({ part: 6, context: passage, options: ['(A) larger', '(B) largeness', '(C) large', '(D) largely'],
     userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(D) largely', answerSource: 'PROVIDED', answerProvidedBy: 'SOURCE',
-    category: 'ADVANCED_GRAMMAR', explanation });
+    category: 'ADVANCED_GRAMMAR' });
+  expect(q132.explanation ?? null).toBeNull();
   expect(q132.question).toBe('The entire project was ____ financed through municipal funds.');
   const q107 = cards.find((card: { questionNumber: number }) => card.questionNumber === 107);
   expect(q107.question).toBe('');

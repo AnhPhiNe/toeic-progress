@@ -28,7 +28,7 @@ from app.services.ai_grounding import ground_draft, ground_pasted_draft
 from app.services.toeic_prompt import (
     FREEFORM_INPUT_INSTRUCTIONS,
     OPENAI_TOEIC_PROMPT,
-    PAGE_EXTRACTION_INSTRUCTIONS,
+    PAGE_READING_PROMPT,
     PART1_IMAGE_INSTRUCTIONS,
     PART7_IMAGE_INSTRUCTIONS,
     PERSISTENT_IMAGE_INSTRUCTIONS,
@@ -227,9 +227,10 @@ class OpenAIProvider:
         content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in images)
         payload = {
             "model": self.settings.openai_model,
-            "instructions": OPENAI_TOEIC_PROMPT + PAGE_EXTRACTION_INSTRUCTIONS,
+            "instructions": PAGE_READING_PROMPT,
             "input": [{"role": "user", "content": content}],
-            "reasoning": {"effort": self.settings.openai_reasoning_effort},
+            # Copying text off a screenshot needs little reasoning; the explanation is written later, per card.
+            "reasoning": {"effort": "low"},
             "text": {"format": {"type": "json_schema", "name": "toeic_page", "strict": True, "schema": page_output_schema(numbers)}},
             "max_output_tokens": self.settings.openai_page_max_output_tokens,
             "store": False,
@@ -270,25 +271,31 @@ class OpenAIProvider:
         return sorted(found, key=lambda pair: pair[0]), [number for number in numbers if number not in seen]
 
 
-def page_item_draft(item) -> MistakeDraft | None:
-    """Check one item read from a screenshot; an item that does not fit its question is left for another try."""
+def page_item_draft(item: OpenAIPageItem) -> MistakeDraft | None:
+    """Check one question copied from a screenshot; one that does not fit its question is left for another try."""
     part = part_of_question(item.number)
-    labels = [re.match(r"^\s*\(([A-Da-d])\)", option)[1].upper() for option in item.options]
+    labels = []
+    for option in item.options:
+        match = re.match(r"^\s*\(([A-Da-d])\)\s*\S", option)
+        if not match:
+            return None
+        labels.append(match[1].upper())
     if item.options and labels != list("ABCD"[:3 if part == 2 else 4]):
         return None
+    question = item.question.strip()
+    if not question and not item.context.strip():
+        return None
+    # The stored question and passage share one 4,000 character field.
+    context = item.context.strip()[:max(0, 3998 - len(question))]
     folded = {" ".join(option.split()): option for option in item.options}
-    draft = item.to_draft()
-    draft.part = part
-    if draft.answerSource != "MISSING":
-        option = folded.get(" ".join(draft.correctAnswer.split()))
-        if option is None:
-            draft.answerSource, draft.correctAnswer = "MISSING", ""
-        else:
-            draft.correctAnswer = option
-    if draft.userChoice not in labels:
-        draft.userChoice = ""
-    draft.userMistake = next((option for option in item.options if option.startswith(f"({draft.userChoice})")), "") if draft.userChoice else ""
-    return draft
+    correct = folded.get(" ".join(item.correctAnswer.split())) if item.answerSource == "PROVIDED" else None
+    choice = item.userChoice if item.userChoice in labels else ""
+    return MistakeDraft(
+        part=part, category="OTHER", question=question, context=context, options=item.options,
+        correctAnswer=correct or "", answerSource="PROVIDED" if correct else "MISSING", userChoice=choice,
+        userMistake=next((option for option in item.options if option.startswith(f"({choice})")), "") if choice else "",
+        tags=[], missingInformation=[], trapTip="", optionNotes=[], explanation=None,
+    )
 
 
 async def read_results(provider: OpenAIProvider, images: list[str], safety_identifier: str | None = None) -> tuple[list[int], list[int]]:

@@ -2,9 +2,13 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
-import { MistakeCard, PartBadge } from '@/features/mistakes/components/MistakeCard';
+import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
 import { MistakeDetailFlow } from '@/features/mistakes/components/MistakeDetailFlow';
 import { needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
+import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
+import { extractMistakeWithAI } from '@/features/mistakes/services/aiMistakeExtractor';
+import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
+import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
@@ -133,6 +137,28 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
   }, [filterOpen]);
 
+  // Cards read from a screenshot have no explanation yet; the learner asks for one on the card (one AI use).
+  const [explainingId, setExplainingId] = useState('');
+  const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
+  const explain = async (card: MistakeEntry) => {
+    if (explainingId) return;
+    const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
+    const input: MistakeInput = { question: card.question ?? '', options: card.options ?? [], context: card.context ?? '', part: card.part,
+      userChoiceState: card.userChoiceState ?? 'UNKNOWN', userChoice: card.userChoiceState === 'CHOSEN' ? card.userChoice ?? '' : '',
+      userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
+    setExplainingId(card.id);
+    try {
+      const { draft } = await extractMistakeWithAI(inputText(input), getToken, input);
+      const latest = loadMistakes().find(value => value.id === card.id) ?? card;
+      const answer = latest.answerSource === 'MISSING' || !latest.correctAnswer.trim()
+        ? draft.answerSource === 'MISSING' ? {} : { correctAnswer: draft.correctAnswer, answerSource: draft.answerSource } : {};
+      onUpdateMistake({ ...latest, explanation: draft.explanation ?? undefined, optionNotes: draft.optionNotes, trapTip: draft.trapTip,
+        tags: latest.tags.length ? latest.tags : draft.tags, category: latest.category === 'OTHER' ? draft.category : latest.category, ...answer }, latest);
+      notify('Đã thêm giải thích');
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
+    finally { setExplainingId(''); removeCaptcha(); }
+  };
+
   const cardProps = (mistake: (typeof sourcedMistakes)[number]) => ({
     mistake,
     expanded: expandedIds.has(mistake.id),
@@ -144,38 +170,36 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     } : undefined,
     onDelete: () => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); },
     onMarkMastered: () => markMastered(mistake.id),
-    onReopen: () => onReopenCards([mistake.id])
+    onReopen: () => onReopenCards([mistake.id]),
+    onExplain: () => { void explain(mistakes.find(value => value.id === mistake.id) ?? mistake); },
+    explaining: explainingId === mistake.id
   });
 
   const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>
     (a.sourceTestName ?? '').localeCompare(b.sourceTestName ?? '', 'vi', { numeric: true }) || (a.questionNumber ?? 999) - (b.questionNumber ?? 999)
       || a.createdAt.localeCompare(b.createdAt)), [matchingMistakes]);
-  const startDetail = (fromId?: string) => {
-    const ids = pendingCards.map(card => card.id), start = fromId ? ids.indexOf(fromId) : 0;
-    setDetailIds([...ids.slice(Math.max(0, start)), ...ids.slice(0, Math.max(0, start))]);
+  /** Opens the detail flow for one test's pending cards (all pending cards when no test is given). */
+  const startDetail = (test?: string) => {
+    const ids = pendingCards.filter(card => test === undefined || (card.sourceTestName ?? '') === test).map(card => card.id);
+    if (ids.length) setDetailIds(ids);
   };
   const detailCards = detailIds?.map(id => mistakes.find(mistake => mistake.id === id)).filter((card): card is MistakeEntry => Boolean(card)) ?? [];
 
-  // Pending cards are sorted by test, so the test name is shown once above its cards instead of on every row.
-  const renderPendingRows = (items: MistakeEntry[]) => items.map((mistake, index) => {
-    const test = mistake.sourceTestName ?? '';
-    const heading = index === 0 || test !== (items[index - 1].sourceTestName ?? '');
-    return <div key={mistake.id}>
-      {heading && <p className="bg-stone-50 px-4 py-1.5 text-[12.5px] font-bold text-slate-500 dark:bg-slate-900/60 dark:text-slate-400">{test || 'Chưa ghi đề'}</p>}
-      {renderPendingRow(mistake)}
-    </div>;
-  });
-  const renderPendingRow = (mistake: MistakeEntry) => (
-    <button type="button" onClick={() => startDetail(mistake.id)}
-      aria-label={`Ghi chi tiết ${mistake.questionNumber ? `câu ${mistake.questionNumber}` : 'câu'} Part ${mistake.part}${mistake.sourceTestName ? `, ${mistake.sourceTestName}` : ''}`}
-      className="flex min-h-[52px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
-      <PartBadge part={mistake.part} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{mistake.questionNumber ? `Câu ${mistake.questionNumber}` : mistake.question?.trim() || mistake.questionContext || `Part ${mistake.part}`}</span>
-      </span>
-      <ChevronDown className="h-4 w-4 -rotate-90 text-slate-400" aria-hidden="true" />
-    </button>
-  );
+  // One row per test instead of one per question: a test with 50 wrong answers stays one line.
+  const renderPendingTests = (items: MistakeEntry[]) => {
+    const tests = new Map<string, number>();
+    for (const card of items) tests.set(card.sourceTestName ?? '', (tests.get(card.sourceTestName ?? '') ?? 0) + 1);
+    return [...tests].map(([test, count]) => (
+      <button key={test || 'none'} type="button" onClick={() => startDetail(test)} aria-label={`Ghi chi tiết ${count} câu, ${test || 'chưa ghi đề'}`}
+        className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{test || 'Chưa ghi đề'}</span>
+          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu chưa ghi chi tiết</span>
+        </span>
+        <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
+      </button>
+    ));
+  };
 
   const renderPhoneGroups = () => {
     const groups = [
@@ -198,8 +222,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <h3 className="flex items-center gap-2 whitespace-nowrap text-[12.5px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
               <span className={`h-2 w-2 rounded-full ${group.dot}`} aria-hidden="true" />{group.label} · {group.items.length}
             </h3>
-            {group.id === 'pending' && <button type="button" onClick={() => startDetail()}
-              className="ml-auto mr-1 min-h-10 shrink-0 cursor-pointer whitespace-nowrap rounded-full border-2 border-slate-900 bg-yellow-300 px-3.5 text-[13px] font-black text-slate-950 dark:border-slate-200">Ghi chi tiết</button>}
             {index === 0 && <button type="button" aria-label={phoneSearchOpen ? 'Ẩn tìm kiếm' : 'Tìm trong sổ tay'} aria-pressed={phoneSearchOpen}
               onClick={() => setPhoneSearchOpen(value => !value)}
               className={'flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ' + (phoneSearchOpen || activeFilterCount ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 dark:text-slate-400')}>
@@ -208,10 +230,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           </div>
           {shown > 0 ? <>
             <div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-slate-800 dark:border-slate-800">
-              {group.id === 'pending' ? renderPendingRows(group.items.slice(0, shown))
+              {group.id === 'pending' ? renderPendingTests(group.items)
                 : group.items.slice(0, shown).map(mistake => <MistakeCard key={mistake.id} {...cardProps(mistake)} compact showStatus={group.showStatus} />)}
             </div>
-            {group.items.length > shown && <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: shown + PHONE_GROUP_STEP }))}
+            {group.id !== 'pending' && group.items.length > shown && <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: shown + PHONE_GROUP_STEP }))}
               className="mx-4 mt-3 flex min-h-11 w-[calc(100%-2rem)] items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-[14px] font-bold text-slate-700 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
               Xem thêm {Math.min(PHONE_GROUP_STEP, group.items.length - shown)} câu
             </button>}
@@ -407,6 +429,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         </div>}
       </div>
 
+      <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
       {detailCards.length > 0 && <MistakeDetailFlow cards={detailCards} onSave={onUpdateMistake}
         onOpenFull={card => { setDetailIds(null); openEdit(card); }}
         onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}

@@ -9,19 +9,14 @@ from app.schemas.models import page_output_schema
 from tests.test_api import api  # noqa: F401 - shared fixture
 
 REQUEST_ID = "33333333-3333-4333-8333-333333333333"
-NOTES = [{"label": label, "pos": "", "meaning": meaning} for label, meaning in
-         (("A", "một đợt bán sách cũ"), ("B", "đóng cửa sớm"), ("C", "trung tâm gần đó"), ("D", "thay đổi gần như mọi phần"))]
-EXPLANATION = {"quickTip": "Đọc câu trước và sau chỗ trống.", "translation": "", "questionType": "", "evidence": "",
-               "paraphrase": "", "analysis": "Dấu hiệu: câu trước nói về việc cải tạo.", "keyVocabulary": ""}
 PASSAGE = "Library Reopens\n(14 March) The Ashcombe Public Library welcomed residents back..."
 
 
 def item(number, **changes):
     value = {
-        "number": number, "part": 6, "category": "OTHER", "question": f"The entire project was ____ financed ({number}).",
-        "context": PASSAGE, "userMistake": "", "correctAnswer": "(D) largely", "answerSource": "PROVIDED",
-        "options": ["(A) larger", "(B) largeness", "(C) large", "(D) largely"], "tags": ["adverb"], "missingInformation": [],
-        "userChoice": "B", "optionNotes": [{**note, "meaning": note["meaning"]} for note in NOTES], "explanation": EXPLANATION,
+        "number": number, "question": f"The entire project was ____ financed ({number}).", "context": PASSAGE,
+        "options": ["(A) larger", "(B) largeness", "(C) large", "(D) largely"],
+        "userChoice": "B", "correctAnswer": "(D) largely", "answerSource": "PROVIDED",
     }
     return {**value, **changes}
 
@@ -43,7 +38,8 @@ def test_page_schema_only_allows_the_requested_question_numbers():
     entry = schema["properties"]["items"]["items"]
     assert entry["properties"]["number"] == {"type": "integer", "enum": [107, 132]}
     assert schema["properties"]["items"]["maxItems"] == 6
-    assert "number" in entry["required"] and "questionContext" not in entry["properties"]
+    assert set(entry["required"]) == {"number", "question", "context", "options", "userChoice", "correctAnswer", "answerSource"}
+    assert entry["additionalProperties"] is False
 
 
 def test_one_screenshot_fills_every_wrong_question_found_and_reports_the_rest(api):  # noqa: F811
@@ -57,7 +53,9 @@ def test_one_screenshot_fills_every_wrong_question_found_and_reports_the_rest(ap
         first = body["items"][1]["draft"]
         assert first["part"] == 6 and first["userChoice"] == "B" and first["userChoiceState"] == "CHOSEN"
         assert first["userMistake"] == "(B) largeness" and first["correctAnswer"] == "(D) largely"
-        assert first["context"] == PASSAGE and first["trapTip"]
+        assert first["context"] == PASSAGE
+        # Reading copies the page only; the explanation is asked for later, per card.
+        assert first["explanation"] is None and first["optionNotes"] == [] and first["trapTip"] == "" and first["category"] == "OTHER"
         assert body["missing"] == [107]
         assert body["usage"]["remaining"] == 2
         # One reservation and one OpenAI call for the whole page.
@@ -66,15 +64,15 @@ def test_one_screenshot_fills_every_wrong_question_found_and_reports_the_rest(ap
         assert request["text"]["format"]["name"] == "toeic_page"
         assert json.loads(request["input"][0]["content"][0]["text"]) == {"questions": page()["questions"]}
         assert request["input"][0]["content"][1]["type"] == "input_image"
-        assert "NHIỀU CÂU TRONG MỘT LẦN" in request["instructions"]
+        assert "KHÔNG giải thích" in request["instructions"] and request["reasoning"] == {"effort": "low"}
 
 
 def test_items_that_do_not_fit_their_question_are_left_for_another_try(api):  # noqa: F811
     output = {"items": [
         item(132, correctAnswer="(E) invented", userChoice="D"),
-        item(131, options=["(A) one", "(B) two"], optionNotes=NOTES[:2]),
-        item(107, part=6, question="Ms. Delacroix ____ transferring.", context="", userChoice="",
-             options=["(A) until", "(B) since", "(C) upon", "(D) onto"], correctAnswer="(B) since", answerSource="AI_PROPOSED"),
+        item(131, options=["(A) one", "(B) two"]),
+        item(107, question="Ms. Delacroix ____ transferring.", context="", userChoice="",
+             options=["(A) until", "(B) since", "(C) upon", "(D) onto"], correctAnswer="", answerSource="MISSING"),
         item(132),
     ]}
     with api(draft=output) as (client, _calls):
@@ -83,7 +81,7 @@ def test_items_that_do_not_fit_their_question_are_left_for_another_try(api):  # 
     assert numbers == [107, 132] and body["missing"] == [131]
     p5, p6 = body["items"]
     assert p5["draft"]["part"] == 5 and p5["draft"]["userChoiceState"] == "UNKNOWN" and p5["draft"]["userMistake"] == ""
-    assert p5["draft"]["answerSource"] == "AI_PROPOSED" and p5["draft"]["correctAnswer"] == "(B) since"
+    assert p5["draft"]["answerSource"] == "MISSING" and p5["draft"]["correctAnswer"] == ""
     # An answer that is not one of the options is dropped instead of saved.
     assert p6["draft"]["answerSource"] == "MISSING" and p6["draft"]["correctAnswer"] == ""
 
@@ -164,3 +162,10 @@ def test_an_unreadable_item_does_not_lose_the_others(api):  # noqa: F811
         body = client.post("/api/v1/ai/extract-page", json=page()).json()
         assert body["items"] == [] and body["missing"] == [131, 132, 107]
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
+
+
+def test_a_long_passage_is_shortened_to_fit_the_stored_card(api):  # noqa: F811
+    with api(draft={"items": [item(132, context="Long passage. " * 300)]}) as (client, _calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+    draft = body["items"][0]["draft"]
+    assert len(draft["questionContext"]) <= 4000 and draft["context"].startswith("Long passage.")

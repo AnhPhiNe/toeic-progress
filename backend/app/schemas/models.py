@@ -690,26 +690,29 @@ class PageExtractRequest(BaseModel):
         return self
 
 
-class OpenAIPageItem(OpenAIDraftOutput):
-    """One wrong question found on the screenshots; `number` is the question number printed there."""
+class OpenAIPageItem(BaseModel):
+    """One wrong question copied from the screenshots. No explanation: that is written later, on request."""
 
+    model_config = ConfigDict(extra="forbid")
     number: int
-
-    def to_draft(self) -> MistakeDraft:
-        draft = MistakeDraft(**self.model_dump(exclude={"number"}), trapTip="")
-        draft.compose_trap_tip()
-        return draft
+    question: str = Field(max_length=4000)
+    # A long passage is accepted and shortened to the card's limit rather than losing the question.
+    context: str = Field(max_length=8000)
+    options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
+    userChoice: UserChoice
+    correctAnswer: str = Field(max_length=1000)
+    answerSource: Literal["PROVIDED", "MISSING"]
 
 
 def page_output_schema(numbers: list[int]) -> dict:
     """Strict schema for a page: up to MAX_PAGE_ITEMS questions, each numbered from the requested list."""
-    item = OpenAIPageItem.ai_schema()
-    definitions = item.pop("$defs", {})
+    item = OpenAIPageItem.model_json_schema()
+    item.pop("title", None)
     item["properties"]["number"] = {"type": "integer", "enum": sorted(numbers)}
+    item["required"] = list(item["properties"])
     return {
         "type": "object", "additionalProperties": False, "required": ["items"],
         "properties": {"items": {"type": "array", "items": item, "maxItems": MAX_PAGE_ITEMS}},
-        **({"$defs": definitions} if definitions else {}),
     }
 
 
