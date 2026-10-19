@@ -126,7 +126,7 @@ test('an explanation that never arrived is asked for again on the card without a
   const flow = await openFlow(page);
   await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = true; });
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
-  await expect(flow.getByText('Đang viết lời giải…')).toBeVisible();
+  await expect(flow.getByRole('status')).toContainText('Đang viết lời giải…');
   await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
   await page.waitForFunction(() => (window as Window & { __explainFinished?: number }).__explainFinished === 1);

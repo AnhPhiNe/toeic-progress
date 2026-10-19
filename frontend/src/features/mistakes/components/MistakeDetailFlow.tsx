@@ -198,6 +198,8 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
   const batchIndex = inBatch ? batch!.indexOf(currentId) : -1;
   const nextInBatch = inBatch && batchIndex < batch!.length - 1 ? byId.get(batch![batchIndex + 1]) : undefined;
   const tip = form.ai?.explanation?.quickTip?.trim();
+  // Shown at the top, where it stays in view while the learner checks the cards.
+  const writing = Boolean(batch?.some(id => isExplaining(id)));
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/60 md:items-center md:p-4">
@@ -218,7 +220,8 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
         </header>
 
         <div data-flow-body className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
-          {note && <p role="status" className="flex items-start gap-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300"><Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{note}</p>}
+          {note && <p role="status" className="flex items-start gap-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300"><Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{note}{writing && <span className="block font-semibold text-violet-600 dark:text-violet-300/80">Đang viết lời giải…</span>}</span></p>}
           {inBatch && <div role="tablist" aria-label="Câu trong ảnh" className="flex gap-2 overflow-x-auto pb-1">
             {batch!.map(id => {
               const item = byId.get(id)!, value = forms[id] ?? EMPTY, on = id === currentId;
@@ -289,7 +292,6 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
               ))}
             </div>
           </section>
-          {!tip && form.ai && isExplaining(currentId) && <p className="flex items-center gap-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300"><Sparkles className="h-4 w-4" aria-hidden="true" />Đang viết lời giải…</p>}
           {tip && <p className="rounded-xl border-[1.5px] border-amber-300 bg-amber-50 px-3 py-2.5 text-[13px] leading-relaxed text-slate-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><b>Mẹo: </b>{tip}</p>}
           {error && <p role="alert" className="text-[13.5px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
           <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
