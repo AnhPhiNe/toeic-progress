@@ -5,6 +5,8 @@ import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { CHOICE_LETTERS, learnerMistake, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
+import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
+import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
@@ -292,7 +294,9 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
               ))}
             </div>
           </section>
-          {tip && <p className="rounded-xl border-[1.5px] border-amber-300 bg-amber-50 px-3 py-2.5 text-[13px] leading-relaxed text-slate-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><b>Mẹo: </b>{tip}</p>}
+          {/* The same explanation block as the notebook: the tip, and the full explanation behind "Xem giải thích". */}
+          {tip && form.ai && <ExplanationView explanation={form.ai.explanation} trapTip={form.ai.trapTip}
+            optionMeanings={resolveQuizOptions({ ...card, options: form.ai.options, optionNotes: form.ai.optionNotes, correctAnswer: form.ai.correctAnswer }).options} />}
           {error && <p role="alert" className="text-[13.5px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
           <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
         </div>

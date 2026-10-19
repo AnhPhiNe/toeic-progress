@@ -82,6 +82,9 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
 
   // The explanation is written in the background while the learner checks, with the reading's ticket.
   await expect(flow.getByText(TIP)).toBeVisible();
+  // The full explanation is one tap away, as in the notebook.
+  await flow.getByRole('button', { name: 'Xem giải thích', exact: true }).click();
+  await expect(flow.getByText('Dấu hiệu: ____ trước financed.')).toBeVisible();
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132]]);
   await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
   await expect(flow.getByText('The entire project was ____ financed through municipal funds.', { exact: true })).toBeVisible();
