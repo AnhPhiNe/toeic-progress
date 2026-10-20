@@ -52,4 +52,9 @@ export function pacingChartRuns(runs: PacingRun[], mode: PacingMode, scope: Paci
   const to = new Date(lastDay).toISOString().slice(0, 10);
   return selected.filter(run => dayTime(run.date) !== null && run.date >= from && run.date <= to);
 }
-export function runLabel(run: PacingRun): string { return run.presetName || (run.partType && run.partType in PRESETS ? PRESETS[run.partType as PacingMode].name : 'Lượt luyện'); }
+export function runLabel(run: PacingRun): string {
+  if (run.partType && run.partType in PRESETS && run.partType !== 'POMODORO') {
+    return PRESETS[run.partType as PacingMode].name;
+  }
+  return run.presetName || (run.partType && run.partType in PRESETS ? PRESETS[run.partType as PacingMode].name : 'Lượt luyện');
+}
