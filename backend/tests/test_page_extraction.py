@@ -9,7 +9,7 @@ from app.schemas.models import page_output_schema
 from tests.test_api import api  # noqa: F401 - shared fixture
 
 REQUEST_ID = "33333333-3333-4333-8333-333333333333"
-PASSAGE = "Library Reopens\n(14 March) The Ashcombe Public Library welcomed residents back..."
+PASSAGE = "Library Reopens\n(14 March) The library welcomed residents back. —131—. The entire project was —132— financed..."
 
 
 def item(number, **changes):
@@ -165,7 +165,19 @@ def test_an_unreadable_item_does_not_lose_the_others(api):  # noqa: F811
 
 
 def test_a_long_passage_is_shortened_to_fit_the_stored_card(api):  # noqa: F811
-    with api(draft={"items": [item(132, context="Long passage. " * 300)]}) as (client, _calls):
+    with api(draft={"items": [item(132, context="Long passage —132—. " * 300)]}) as (client, _calls):
         body = client.post("/api/v1/ai/extract-page", json=page()).json()
     draft = body["items"][0]["draft"]
-    assert len(draft["questionContext"]) <= 4000 and draft["context"].startswith("Long passage.")
+    assert len(draft["questionContext"]) <= 4000 and draft["context"].startswith("Long passage —132—.")
+
+
+def test_a_part6_passage_without_the_question_number_is_not_kept(api):  # noqa: F811
+    other = "Curci Appointed CEO\nMr. Curci shares our —139.— to excellence. “I —141.— thrilled,” said Mr. Curci."
+    output = {"items": [item(131, context=other), item(132, context="")]}
+    with api(draft=output) as (client, _calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+    # 131 came with another text's passage (a mix-up between screenshots): left for another try, not saved wrong.
+    # 132 has no passage at all, which is incomplete but not wrong, so it is kept.
+    assert [entry["number"] for entry in body["items"]] == [132]
+    assert body["missing"] == [131, 107]
+    assert body["items"][0]["draft"]["context"] == ""

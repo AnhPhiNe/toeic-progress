@@ -280,6 +280,8 @@ Input JSON là {"questions": [{"number": số câu, "part": Part}]}: các câu n
   Không thấy chữ phương án (chỉ có audio) thì options=[].
 - context: Part 6/7 chép toàn bộ đoạn/văn bản liên quan thấy trên ảnh (tiêu đề, đoạn văn, email, bảng, chú thích) theo thứ tự;
   bảng chuyển thành văn bản rõ từng hàng với nhãn cột. Các câu cùng một đoạn dùng context GIỐNG HỆT nhau.
+  Part 6: giữ nguyên số câu ở mỗi chỗ trống trong context đúng như trên ảnh (ví dụ '—135—'), không đổi thành '____';
+  chỉ chép đoạn văn có chứa số câu đó, không lấy đoạn văn của bài khác trên ảnh khác.
   Part 3/4 chép transcript nếu ảnh có. Còn lại ''. question+context tối đa 3.998 ký tự.
   Không bịa chữ/số; chỗ mờ thì bỏ trống phần đó.
 - userChoice: chữ cái phương án mà ảnh cho thấy rõ người học đã chọn (nút được chọn, ô được tô/đánh dấu); không rõ thì ''.

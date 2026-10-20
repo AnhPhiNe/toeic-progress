@@ -294,6 +294,10 @@ def page_item_draft(item: OpenAIPageItem) -> MistakeDraft | None:
     question = item.question.strip()
     if not question and not item.context.strip():
         return None
+    # A Part 6 passage marks each blank with its number; a passage without this question's number belongs to another
+    # text on another screenshot, and a card with the wrong passage would teach the wrong reading.
+    if part == 6 and item.context.strip() and not re.search(rf"(?<!\d){item.number}(?!\d)", item.context):
+        return None
     # The stored question and passage share one 4,000 character field.
     context = item.context.strip()[:max(0, 3998 - len(question))]
     folded = {" ".join(option.split()): option for option in item.options}
