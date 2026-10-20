@@ -204,9 +204,9 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
             }}
             className="flex h-11 min-w-0 cursor-pointer items-center gap-3 pl-4 text-left">
             <span className="w-[72px] shrink-0 text-[14px] font-black">Câu {card.questionNumber}</span>
+            {/* One line of the question first, so the learner recognises it; then what was chosen and what was right. */}
+            <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-slate-600 dark:text-slate-300">{value.ai?.question?.trim().split('\n')[0] ?? ''}</span>
             <span className="w-[128px] shrink-0">{marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} />}</span>
-            {/* One line of the question, so the learner recognises it without opening the row. */}
-            <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-slate-500 dark:text-slate-400">{value.ai?.question?.trim().split('\n')[0] ?? ''}</span>
           </button>
           {/* The pill shows the short name; the native menu underneath lists the keys 1–6 with each reason. */}
           <label className={'relative inline-flex h-[30px] cursor-pointer items-center gap-1 justify-self-start rounded-full pl-3 pr-2 text-[13px] font-bold focus-within:ring-2 focus-within:ring-indigo-500 ' + (value.category
