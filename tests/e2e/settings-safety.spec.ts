@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const title = 'Cài Đặt Mục Tiêu & Kỷ Luật';
+const title = 'Cài đặt';
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', route => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
 });
@@ -16,10 +16,10 @@ async function backup(page: Page) {
 
 test('settings fields are labelled, preserve a draft across background activity and merge current profile data', async ({ page }) => {
   const modal = await open(page);
-  for (const name of ['Họ & Tên Học Viên', 'Mục Tiêu Điểm Số', 'Ngày Thi Thực Tế', 'Học Tối Thiểu (Phút)', 'Khiên Cứu Chuỗi', 'Châm Ngôn Kỷ Luật Cá Nhân']) {
+  for (const name of ['Tên của bạn', 'Điểm mục tiêu', 'Ngày thi', 'Học mỗi ngày (phút)', 'Khiên cứu chuỗi', 'Châm ngôn']) {
     await expect(modal.getByLabel(name, { exact: true })).toHaveCount(1);
   }
-  await modal.getByLabel('Họ & Tên Học Viên', { exact: true }).fill('Draft learner');
+  await modal.getByLabel('Tên của bạn', { exact: true }).fill('Draft learner');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     bundle.profile.motto = 'Synced elsewhere';
@@ -27,8 +27,8 @@ test('settings fields are labelled, preserve a draft across background activity 
     // A background activity update exercises App's current profile props while the modal stays open.
     [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.trim() === 'Lưu từ vựng')!.click();
   });
-  await expect(modal.getByLabel('Họ & Tên Học Viên', { exact: true })).toHaveValue('Draft learner');
-  await modal.getByRole('button', { name: 'Lưu Cấu Hình', exact: true }).click();
+  await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveValue('Draft learner');
+  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
   await expect(modal).toHaveCount(0);
   const bundle = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
   expect(bundle.profile.name).toBe('Draft learner');
@@ -39,19 +39,19 @@ test('settings fields are labelled, preserve a draft across background activity 
 
 test('same-field conflicts and storage failures preserve the draft with an error', async ({ page }) => {
   const modal = await open(page);
-  await modal.getByLabel('Họ & Tên Học Viên', { exact: true }).fill('My draft');
+  await modal.getByLabel('Tên của bạn', { exact: true }).fill('My draft');
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     data.profile.name = 'Another device';
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
-  await modal.getByRole('button', { name: 'Lưu Cấu Hình', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('thay đổi ở nơi khác');
-  await expect(modal.getByLabel('Họ & Tên Học Viên', { exact: true })).toHaveValue('My draft');
+  await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveValue('My draft');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).profile.name)).toBe('Another device');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
-  await modal.getByLabel('Họ & Tên Học Viên', { exact: true }).fill('Retry draft');
+  await modal.getByLabel('Tên của bạn', { exact: true }).fill('Retry draft');
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     (window as typeof window & { restoreSettingsWrites?: () => void }).restoreSettingsWrites = () => { Storage.prototype.setItem = original; };
@@ -60,11 +60,11 @@ test('same-field conflicts and storage failures preserve the draft with an error
       return original.call(this, key, value);
     };
   });
-  await modal.getByRole('button', { name: 'Lưu Cấu Hình', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
   await expect(modal.getByRole('alert')).toBeVisible();
-  await expect(modal.getByLabel('Họ & Tên Học Viên', { exact: true })).toHaveValue('Retry draft');
+  await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveValue('Retry draft');
   await page.evaluate(() => (window as typeof window & { restoreSettingsWrites?: () => void }).restoreSettingsWrites?.());
-  await modal.getByRole('button', { name: 'Lưu Cấu Hình', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
   await expect(modal).toHaveCount(0);
 });
 
@@ -91,7 +91,7 @@ test('backup previews and late file reads cannot survive closing and reopening s
 
 test('an owner switch blocks both a stale profile draft and backup restore before mutation', async ({ page }) => {
   const modal = await open(page);
-  await modal.getByLabel('Họ & Tên Học Viên', { exact: true }).fill('Old owner draft');
+  await modal.getByLabel('Tên của bạn', { exact: true }).fill('Old owner draft');
   await modal.locator('input[type="file"]').setInputFiles(await backup(page));
   await expect(modal.getByText('Xem trước tệp sao lưu v3', { exact: true })).toBeVisible();
   const before = await page.evaluate(() => {
@@ -103,11 +103,11 @@ test('an owner switch blocks both a stale profile draft and backup restore befor
   // No auth or refresh event: the stale controls themselves must guard current storage ownership.
   await modal.getByRole('button', { name: 'Thay thế', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('Tài khoản đã thay đổi');
-  await modal.getByRole('button', { name: 'Lưu Cấu Hình', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
   await expect(modal).toBeVisible();
   let confirmations = 0;
   page.on('dialog', async dialog => { confirmations += 1; await dialog.dismiss(); });
-  await modal.getByRole('button', { name: 'Xóa trắng dữ liệu', exact: true }).click();
+  await modal.getByRole('button', { name: 'Xóa toàn bộ dữ liệu', exact: true }).click();
   await modal.getByRole('button', { name: 'Nạp dữ liệu mẫu', exact: true }).click();
   expect(confirmations).toBe(0);
   await expect(modal.getByRole('alert')).toContainText('Tài khoản đã thay đổi');

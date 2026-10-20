@@ -16,7 +16,7 @@ test('typing into the mistake entry keeps focus and every character', async ({ p
 test('typing into the settings form keeps focus and every character', async ({ page }) => {
   await page.goto('/tu-vung');
   await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
-  const name = page.getByRole('dialog').getByLabel('Họ & Tên Học Viên', { exact: true });
+  const name = page.getByRole('dialog').getByLabel('Tên của bạn', { exact: true });
   await name.click();
   await name.press('Control+a');
   await page.keyboard.type('Minh Anh');

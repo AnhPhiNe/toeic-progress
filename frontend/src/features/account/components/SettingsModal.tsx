@@ -1,22 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
-import { 
-  X, 
-  Settings, 
-  Save, 
-  Target, 
-  Calendar, 
-  Clock, 
-  Sparkles, 
-  ShieldCheck,
-  User,
-  Database,
-  Download,
-  Upload,
-  RotateCcw,
-  Trash2
-} from 'lucide-react';
-import { PHONE_SHEET_BACKDROP, PHONE_SHEET_FOOTER, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
+import { X, Download, Upload, RotateCcw, Trash2 } from 'lucide-react';
+import { profileInitials } from '@/app/components/profileInitials';
+import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
 import { UserProfile } from '@/shared/types';
 import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/storage';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
@@ -251,6 +237,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const daysLeft = formData.examDate ? Math.ceil((Date.parse(`${formData.examDate}T00:00:00`) - new Date(new Date().toDateString()).getTime()) / 86_400_000) : null;
+  const row = 'flex min-h-[52px] items-center justify-between gap-4 px-4 py-2 text-sm font-bold text-slate-800 dark:text-slate-100';
+  const fieldBase = 'rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white';
+  const field = fieldBase + ' w-40 text-right';
+  const group = 'divide-y divide-slate-100 overflow-hidden rounded-2xl border-[1.5px] border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-[#121A2B]';
+  const eyebrow = 'mb-2 text-[11px] font-extrabold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400';
+  const dataButton = 'flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3.5 text-sm font-black text-slate-900 shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none';
+
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${PHONE_SHEET_BACKDROP}`}>
       <div
@@ -259,19 +253,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         aria-modal="true"
         aria-labelledby="settings-modal-title"
         tabIndex={-1}
-        className={`w-full max-w-md rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col ${PHONE_SHEET_PANEL}`}>
-        
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 max-md:px-4 max-md:py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 shrink-0">
-          <div className="flex items-center space-x-2.5">
-            <div className="max-md:hidden p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-              <Settings className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 id="settings-modal-title" className="text-base font-bold text-slate-900 dark:text-white">{isPhone ? 'Cài đặt' : 'Cài Đặt Mục Tiêu & Kỷ Luật'}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-md:hidden">Tùy chỉnh thông số cá nhân và kỳ thi</p>
-            </div>
-          </div>
+        className={`w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col rounded-3xl border-2 border-slate-900 bg-white shadow-[6px_6px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#121A2B] dark:shadow-[6px_6px_0_0_#cbd5e1] ${PHONE_SHEET_PANEL}`}>
+
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4 max-md:px-4 max-md:py-3 dark:border-slate-800">
+          <h3 id="settings-modal-title" className="text-xl font-black text-slate-900 max-md:text-base max-md:font-bold dark:text-white">Cài đặt</h3>
           <button onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="p-1 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -288,196 +273,88 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               dataNotice={(backupErrors.length > 0 || backupPreview || resetError) ? renderDataNotice() : undefined} />
           </div>
         ) : (
-        <form onSubmit={handleSubmit} aria-busy={resetBusy} className="p-5 max-md:px-4 max-md:pb-0 text-xs overflow-y-auto flex-1">
-          <fieldset disabled={resetBusy} className="space-y-4">
-          {accountPanel}
-          
-          {/* User Name */}
-          <div>
-            <label htmlFor="settings-name" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
-              <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Họ & Tên Học Viên</span>
-            </label>
-            <input
-              id="settings-name"
-              type="text"
-              required
-              placeholder="Ví dụ: Minh Tuấn"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 shadow-2xs"
-            />
-          </div>
+        // Computers: a profile card on the left (who, exam countdown, goal), grouped settings on the right, save always in view.
+        <form onSubmit={handleSubmit} aria-busy={resetBusy} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1">
+            <aside className="flex w-[260px] shrink-0 flex-col gap-4 overflow-y-auto border-r-2 border-slate-900 bg-[#FFFDF7] p-5 dark:border-slate-700 dark:bg-[#0B132B]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-slate-900 bg-[#DDD6FE] text-xl font-black text-slate-950 dark:border-slate-300" aria-hidden="true">{profileInitials(formData.name)}</div>
+              <p className="-mt-1 text-lg font-black leading-tight text-slate-900 dark:text-white">{formData.name.trim() || 'Học viên'}</p>
+              <div className="rounded-2xl border-2 border-slate-900 bg-sky-200 px-4 py-3 text-slate-950 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">
+                <p className="text-xs font-bold text-sky-900">{formData.examDate ? `Ngày thi ${formData.examDate.split('-').reverse().join('/')}` : 'Chưa đặt ngày thi'}</p>
+                <p className="text-3xl font-black tabular-nums">{daysLeft === null ? '—' : daysLeft >= 0 ? `D-${daysLeft}` : 'Đã thi'}</p>
+              </div>
+              <div className="rounded-2xl border-2 border-slate-900 bg-white px-4 py-3 dark:border-slate-300 dark:bg-slate-900">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Mục tiêu</p>
+                <p className="text-3xl font-black tabular-nums text-slate-900 dark:text-white">{formData.targetScore || '—'}</p>
+              </div>
+              {accountPanel && <div className="text-xs">{accountPanel}</div>}
+            </aside>
 
-          {/* Target Score & Exam Date */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="settings-target" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
-                <Target className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Mục Tiêu Điểm Số</span>
-              </label>
-              <input
-                id="settings-target"
-                type="number"
-                required
-                min="10"
-                max="990"
-                step="5"
-                value={formData.targetScore}
-                onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 shadow-2xs"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="settings-exam-date" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
-                <Calendar className="w-3.5 h-3.5 text-cyan-500" />
-                <span>Ngày Thi Thực Tế</span>
-              </label>
-              <input
-                id="settings-exam-date"
-                type="date"
-                value={formData.examDate}
-                onChange={e => setFormData({ ...formData, examDate: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 shadow-2xs"
-              />
-            </div>
-          </div>
-
-          {/* Daily Goal & Streak Freezes */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="settings-daily-minutes" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-500" />
-                <span>Học Tối Thiểu (Phút)</span>
-              </label>
-              <input
-                id="settings-daily-minutes"
-                type="number"
-                required
-                min="5"
-                max="300"
-                value={formData.dailyMinGoalMinutes}
-                onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 shadow-2xs"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="settings-shields" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Khiên Cứu Chuỗi</span>
-              </label>
-              <input
-                id="settings-shields"
-                type="number"
-                required
-                min="0"
-                max="5"
-                value={formData.streakFreezes}
-                onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 shadow-2xs"
-              />
+            <div className="min-w-0 flex-1 overflow-y-auto p-5 text-xs">
+              <fieldset disabled={resetBusy} className="min-w-0 space-y-5">
+              <section>
+                <h4 className={eyebrow}>Hồ sơ</h4>
+                <div className={group}>
+                  <label htmlFor="settings-name" className={row}>Tên của bạn
+                    <input id="settings-name" type="text" required placeholder="Ví dụ: Minh Tuấn" value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })} className={fieldBase + ' w-56'} />
+                  </label>
+                </div>
+              </section>
+              <section>
+                <h4 className={eyebrow}>Mục tiêu</h4>
+                <div className={group}>
+                  <label htmlFor="settings-target" className={row}>Điểm mục tiêu
+                    <input id="settings-target" type="number" required min="10" max="990" step="5" value={formData.targetScore}
+                      onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })} className={field} />
+                  </label>
+                  <label htmlFor="settings-exam-date" className={row}>Ngày thi
+                    <input id="settings-exam-date" type="date" value={formData.examDate}
+                      onChange={e => setFormData({ ...formData, examDate: e.target.value })} className={field} />
+                  </label>
+                  <label htmlFor="settings-daily-minutes" className={row}>Học mỗi ngày (phút)
+                    <input id="settings-daily-minutes" type="number" required min="5" max="300" value={formData.dailyMinGoalMinutes}
+                      onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })} className={field} />
+                  </label>
+                </div>
+              </section>
+              <section>
+                <h4 className={eyebrow}>Chuỗi học</h4>
+                <div className={group}>
+                  <label htmlFor="settings-shields" className={row}>Khiên cứu chuỗi
+                    <input id="settings-shields" type="number" required min="0" max="5" value={formData.streakFreezes}
+                      onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })} className={field} />
+                  </label>
+                  <label htmlFor="settings-motto" className={row + ' items-start py-3'}>Châm ngôn
+                    <textarea id="settings-motto" rows={2} value={formData.motto}
+                      onChange={e => setFormData({ ...formData, motto: e.target.value })} className={fieldBase + ' w-64'} />
+                  </label>
+                </div>
+              </section>
+              <section className="space-y-2.5">
+                <h4 className={eyebrow}>Dữ liệu</h4>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button type="button" onClick={exportDataAsJSON} className={dataButton} title="Tải bản sao lưu JSON về máy"><Download className="h-4 w-4" aria-hidden="true" />Sao lưu ra tệp</button>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className={dataButton} title="Khôi phục dữ liệu từ tệp JSON"><Upload className="h-4 w-4" aria-hidden="true" />Khôi phục từ tệp</button>
+                </div>
+                {renderDataNotice()}
+                <div className="flex items-center justify-between pt-1 text-[13px]">
+                  {onLoadDemo ? <button type="button" onClick={loadDemo} className="flex cursor-pointer items-center gap-1.5 font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Nạp dữ liệu mẫu</button> : <span />}
+                  {onResetData && <button type="button" onClick={() => void handleReset()} disabled={resetBusy}
+                    className="flex cursor-pointer items-center gap-1.5 font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}</button>}
+                </div>
+              </section>
+              </fieldset>
             </div>
           </div>
-
-          {/* Motto */}
-          <div>
-            <label htmlFor="settings-motto" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-500" />
-              <span>Châm Ngôn Kỷ Luật Cá Nhân</span>
-            </label>
-            <textarea
-              id="settings-motto"
-              rows={2}
-              value={formData.motto}
-              onChange={e => setFormData({ ...formData, motto: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 shadow-2xs"
-            />
+          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t-2 border-slate-900 bg-white px-6 py-3.5 dark:border-slate-700 dark:bg-[#121A2B]">
+            {resetError && <p role="alert" className="mr-auto text-sm text-rose-600 dark:text-rose-400">{resetError}</p>}
+            <button type="button" onClick={onClose} className="min-h-11 cursor-pointer rounded-xl px-4 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Hủy</button>
+            <button type="submit" disabled={resetBusy}
+              className="min-h-11 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 px-5 text-sm font-black text-white shadow-[3px_3px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 dark:border-slate-200 dark:shadow-none">Lưu cài đặt</button>
           </div>
-
-          {/* Data Management Section */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-            <div className="flex items-center space-x-1.5 font-semibold text-slate-700 dark:text-slate-300">
-              <Database className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Quản Lý Dữ Liệu Luyện Thi</span>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Chế độ khách lưu trên máy này; khi đăng nhập, dữ liệu tài khoản được đồng bộ. Bạn có thể xuất tệp JSON hoặc khôi phục bất cứ lúc nào.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={exportDataAsJSON}
-                className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                title="Tải bản sao lưu JSON về máy"
-              >
-                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Xuất Tệp Sao Lưu</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                title="Khôi phục dữ liệu từ tệp JSON"
-              >
-                <Upload className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Khôi Phục Dữ Liệu</span>
-              </button>
-
-            </div>
-
-            {renderDataNotice()}
-
-            <div className="flex items-center justify-between pt-1 text-[11px]">
-              {onLoadDemo && (
-                <button
-                  type="button"
-                  onClick={loadDemo}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold flex items-center space-x-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Nạp dữ liệu mẫu</span>
-                </button>
-              )}
-
-              {onResetData && (
-                <button
-                  type="button"
-                  onClick={() => void handleReset()}
-                  disabled={resetBusy}
-                  className="text-rose-500 hover:text-rose-600 dark:text-rose-400 font-semibold flex items-center space-x-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa trắng dữ liệu'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          {resetError && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{resetError}</p>}
-          {/* Điện thoại: chân form dính đáy màn hình trong vùng cuộn; nút X đã thay "Hủy" */}
-          <div className={`pt-3 flex justify-end space-x-2 border-t border-slate-100 dark:border-slate-800 shrink-0 max-md:sticky max-md:bottom-0 max-md:-mx-4 max-md:px-4 max-md:bg-white max-md:dark:bg-[#121A2B] ${PHONE_SHEET_FOOTER}`}>
-            <button
-              type="button"
-              onClick={onClose}
-              className="max-md:hidden px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 max-md:min-h-12 max-md:flex-1 max-md:justify-center max-md:text-sm rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center space-x-1.5 shadow-sm shadow-blue-600/25 cursor-pointer transition active:scale-95"
-            >
-              <Save className="w-4 h-4" />
-              <span>Lưu Cấu Hình</span>
-            </button>
-          </div>
-
-          </fieldset>
         </form>
         )}
 
