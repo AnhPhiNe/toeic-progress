@@ -23,7 +23,7 @@ export interface ExamHistoryViewProps {
 type SortField = 'date' | 'testName' | 'scaledListening' | 'scaledReading' | 'totalScore';
 type Kind = 'ALL' | 'FULL_TEST' | 'PART_PRACTICE';
 type Attempt = 'ALL' | 'FIRST_ONLY' | 'RETEST_ONLY';
-const HISTORY_PAGE_SIZE = 10;
+const HISTORY_PAGE_SIZE = 6;
 /** Phones load the list in steps of this many rows instead of paging. */
 const PHONE_HISTORY_STEP = 10;
 function PracticeResult({ session, pacingRun }: { session: StudySession; pacingRun?: PacingRun }) {
@@ -31,9 +31,9 @@ function PracticeResult({ session, pacingRun }: { session: StudySession; pacingR
   if (!total && pacingRun && Number.isInteger(pacingRun.totalQuestions) && pacingRun.totalQuestions! > 0) {
     const answered = pacingRun.correctAnswers, count = pacingRun.totalQuestions!;
     return typeof answered !== 'number' || !Number.isInteger(answered) || answered < 0 || answered > count ? <span className="text-sm text-slate-500 dark:text-slate-400">Chưa chấm · {count} câu</span>
-      : <span className="text-sm">Đúng <strong>{answered}/{count}</strong> câu · <strong className="text-teal-700 dark:text-teal-300">{(answered / count * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%</strong></span>;
+      : <span className="text-sm tabular-nums"><strong className="font-extrabold text-slate-900 dark:text-white">{answered}/{count}</strong><span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span><strong className="font-extrabold text-teal-700 dark:text-teal-300">{(answered / count * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%</strong></span>;
   }
-  return total ? <span className="text-sm">Đúng <strong>{correct}/{total}</strong> câu · <strong className="text-teal-700 dark:text-teal-300">{(correct / total * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%</strong></span>
+  return total ? <span className="text-sm tabular-nums"><strong className="font-extrabold text-slate-900 dark:text-white">{correct}/{total}</strong><span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span><strong className="font-extrabold text-teal-700 dark:text-teal-300">{(correct / total * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%</strong></span>
     : <span className="text-sm text-slate-500 dark:text-slate-400">Chưa ghi số câu</span>;
 }
 
@@ -174,7 +174,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
 
   return <div className="history-view space-y-5 pb-16 sm:pb-20 text-slate-800 dark:text-slate-200">
     <section className="overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent max-md:dark:shadow-none" aria-label="Lịch sử thi">
-      {isPhone ? renderPhoneFilters() : <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-3 sm:px-5 dark:border-slate-700">
+      {isPhone ? renderPhoneFilters() : <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 py-3 sm:px-5 sm:py-3.5 dark:border-slate-700">
         <div role="group" aria-label="Loại bài làm" className="history-kind-filter inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#111A2C]">{([['ALL', 'Tất cả'], ['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part']] as const).map(([value, label]) =>
           <button type="button" key={value} aria-pressed={kind === value} onClick={() => { setKind(value); setAttempt('ALL'); setPage(1); }} className={`inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-1.5 ${kind === value ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-400 dark:text-slate-950 dark:hover:bg-blue-300' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'}`}>
             {label}{' '}<span className={`inline-flex min-w-5 items-center justify-center rounded-md px-1.5 py-0.5 text-xs tabular-nums ${kind === value ? 'bg-white/20 text-white dark:bg-slate-950/10 dark:text-slate-950' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{value === 'ALL' ? active.length : active.filter(session => session.sessionType === value).length}</span>
@@ -185,7 +185,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
       </div>}
       {isPhone ? renderPhoneList() : <>
       <table className="history-table w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: '13%' }} /><col style={{ width: '30%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '11%' }} /><col style={{ width: '16%' }} /><col style={{ width: '10%' }} /></colgroup><thead className="bg-slate-50 text-sm font-semibold text-slate-600 dark:bg-slate-900/40 dark:text-slate-300"><tr>{sortHeader('date', 'Ngày')}{sortHeader('testName', 'Tên đề', false)}{sortHeader('scaledListening', 'Listening')}{sortHeader('scaledReading', 'Reading')}{sortHeader('totalScore', 'Tổng')}<th scope="col" className="text-center">So với bài trước</th><th scope="col"><span className="sr-only">Thao tác</span></th></tr></thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">{visible.map(session => <tr key={session.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50"><td className="whitespace-nowrap text-center text-sm tabular-nums text-slate-600 dark:text-slate-300">{historyDate(session.date)}</td><td>{nameButton(session)}<p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{meta(session)}</p></td>
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">{visible.map(session => <tr key={session.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50"><td className="whitespace-nowrap text-center text-sm tabular-nums text-slate-600 dark:text-slate-300">{historyDate(session.date)}</td><td><div className="flex flex-wrap items-center gap-1.5">{nameButton(session)}{session.sessionType === 'FULL_TEST' && (attempts[session.id]?.attemptNumber ?? 1) > 1 && <span className="shrink-0 rounded-md border border-violet-200/80 bg-violet-50 px-1.5 py-0.5 text-[11px] font-extrabold text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300">Lần {attempts[session.id]?.attemptNumber}</span>}{session.sessionType === 'PART_PRACTICE' && <span className="shrink-0 rounded-md border border-teal-200/80 bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300">{getPracticeParts(session).map(part => `P${part.part}`).join(' & ') || pairedRuns.get(session.id)?.presetName || 'Part'}</span>}</div><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{historyDuration(session.durationMinutes)}</p></td>
           {session.sessionType === 'FULL_TEST' ? <><td className="text-center text-base font-semibold tabular-nums text-indigo-600 dark:text-indigo-300">{session.scaledListening ?? '—'}</td><td className="text-center text-base font-semibold tabular-nums text-teal-700 dark:text-teal-300">{session.scaledReading ?? '—'}</td><td className="text-center text-xl font-extrabold tabular-nums">{session.totalScore ?? '—'}</td></> : <td colSpan={3} className="text-center"><PracticeResult session={session} pacingRun={pairedRuns.get(session.id)} /></td>}
           <td className="text-center"><ScoreComparison session={session} previous={previous.get(session.id)} /></td><td>{actions(session)}</td></tr>)}</tbody>
       </table>
@@ -198,7 +198,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
           <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} className="min-h-10 cursor-pointer rounded-lg border border-blue-200 bg-white px-2 font-semibold text-blue-700 transition-colors duration-150 hover:bg-blue-50 disabled:cursor-default disabled:border-slate-200 disabled:bg-transparent disabled:text-slate-400 disabled:hover:bg-transparent motion-reduce:transition-none dark:border-blue-800 dark:bg-[#111A2C] dark:text-blue-300 dark:hover:bg-blue-950/40 dark:disabled:border-slate-700 dark:disabled:bg-transparent dark:disabled:text-slate-500 dark:disabled:hover:bg-transparent">Trước</button>
           <span className="whitespace-nowrap tabular-nums"><strong className="font-bold text-blue-700 dark:text-blue-300">{currentPage}</strong>{' / '}{pages}</span>
           <button type="button" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)} className="min-h-10 cursor-pointer rounded-lg border border-blue-200 bg-white px-2 font-semibold text-blue-700 transition-colors duration-150 hover:bg-blue-50 disabled:cursor-default disabled:border-slate-200 disabled:bg-transparent disabled:text-slate-400 disabled:hover:bg-transparent motion-reduce:transition-none dark:border-blue-800 dark:bg-[#111A2C] dark:text-blue-300 dark:hover:bg-blue-950/40 dark:disabled:border-slate-700 dark:disabled:bg-transparent dark:disabled:text-slate-500 dark:disabled:hover:bg-transparent">Sau</button>
-        </nav> : <span>{sort === 'date' ? descending ? 'Ngày mới nhất trước' : 'Ngày cũ nhất trước' : 'Đang sắp xếp theo cột'}</span>}
+        </nav> : null}
       </div>
       </>}
     </section>
