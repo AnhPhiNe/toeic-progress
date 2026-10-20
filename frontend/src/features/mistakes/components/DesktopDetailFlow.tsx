@@ -194,16 +194,19 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
     const marks = chosen || value.answer;
     return (
       <div key={card.id} className="border-t border-stone-100 first:border-t-0 dark:border-slate-800">
-        <div className={'grid grid-cols-[250px_1fr_auto] items-center gap-3 pr-4 ' + (open ? 'bg-indigo-50 dark:bg-indigo-950/40' : needsCheck(card) ? 'bg-amber-50 dark:bg-amber-950/30' : '')}>
+        <div className={'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 pr-3 ' + (open ? 'bg-indigo-50 dark:bg-indigo-950/40' : needsCheck(card) ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-stone-50 dark:hover:bg-slate-900/60')}>
           <button type="button" data-row-toggle aria-expanded={open} onClick={() => setOpenId(open ? '' : card.id)}
+            aria-label={`Câu ${card.questionNumber}${marks ? ` ${sheetLabel(chosen, value.answer)}` : ''}`}
             onKeyDown={event => {
               const digit = Number(event.key);
               if (digit >= 1 && digit <= CATEGORIES.length) { event.preventDefault(); update(card.id, { category: CATEGORIES[digit - 1] }); }
               else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); moveFocus(event.currentTarget, event.key === 'ArrowDown' ? 1 : -1); }
             }}
-            className="flex h-11 cursor-pointer items-center gap-3 pl-4 text-left">
+            className="flex h-11 min-w-0 cursor-pointer items-center gap-3 pl-4 text-left">
             <span className="w-[72px] shrink-0 text-[14px] font-black">Câu {card.questionNumber}</span>
-            {marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} />}
+            <span className="w-[128px] shrink-0">{marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} />}</span>
+            {/* One line of the question, so the learner recognises it without opening the row. */}
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-slate-500 dark:text-slate-400">{value.ai?.question?.trim().split('\n')[0] ?? ''}</span>
           </button>
           {/* The pill shows the short name; the native menu underneath lists the keys 1–6 with each reason. */}
           <label className={'relative inline-flex h-[30px] cursor-pointer items-center gap-1 justify-self-start rounded-full pl-3 pr-2 text-[13px] font-bold focus-within:ring-2 focus-within:ring-indigo-500 ' + (value.category
@@ -215,7 +218,13 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
               {CATEGORIES.map((category, index) => <option key={category} value={category}>{index + 1} · {CATEGORY_CHOICES[category]}</option>)}
             </select>
           </label>
-          {isExplaining(card.id) ? <span role="img" aria-label="Đang viết lời giải" className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" /> : <span />}
+          <span className="flex w-8 items-center justify-center">
+            {isExplaining(card.id)
+              ? <span role="img" aria-label="Đang viết lời giải" className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+              : <button type="button" tabIndex={-1} aria-hidden="true" onClick={() => setOpenId(open ? '' : card.id)} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white">
+                  <ChevronDown className={'h-4 w-4 transition-transform ' + (open ? 'rotate-180' : '')} />
+                </button>}
+          </span>
         </div>
         {open && <RowDetail card={card} value={value} letters={letters} onChange={patch => update(card.id, patch)} onOpenFull={() => onOpenFull(card)} />}
       </div>
@@ -316,10 +325,11 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
 }
 
 /** Like an answer sheet: the learner's choice in red, the right answer in green with a ✓ (readable without colour). */
+const sheetLabel = (chosen: string, answer: string) => [chosen && `Bạn chọn ${chosen}`, answer ? `đáp án ${answer}` : 'chưa có đáp án'].filter(Boolean).join(', ');
+
 function AnswerSheet({ letters, chosen, answer }: { letters: readonly ChoiceLetter[]; chosen: string; answer: string }) {
-  const label = [chosen && `Bạn chọn ${chosen}`, answer ? `đáp án ${answer}` : 'chưa có đáp án'].filter(Boolean).join(', ');
   return (
-    <span className="flex gap-[5px]" role="img" aria-label={label}>
+    <span className="flex gap-[5px]" role="img" aria-label={sheetLabel(chosen, answer)}>
       {letters.map(letter => {
         const wrong = letter === chosen, right = letter === answer;
         return (
