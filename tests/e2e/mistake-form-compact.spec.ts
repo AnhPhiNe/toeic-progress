@@ -28,7 +28,7 @@ for (const { selected, capable } of [
   const sent = await page.evaluate(() => (window as Window & { __categoryInput: { errorCategory?: string; sourceTestName?: string } }).__categoryInput);
   expect(sent.errorCategory).toBe(selected && capable ? selected : undefined);
   expect(sent.sourceTestName).toBeUndefined();
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   await page.reload();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.category).toBe(selected || 'ADVANCED_GRAMMAR');

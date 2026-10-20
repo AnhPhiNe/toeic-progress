@@ -52,7 +52,7 @@ test('Part 7 retains source images after save/reload/review and reuses them for 
   await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(0);
   await modal.getByLabel('Câu hỏi + phương án').fill('How can members register?\n' + options.join('\n'));
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   const calls = await page.evaluate(() => {
     const fixture = window as Window & { __imageCalls: Array<{ images: unknown[]; sourceImageIds: string[]; input: { context: string } }>; __uploads: number };
     return { __imageCalls: fixture.__imageCalls, __uploads: fixture.__uploads };

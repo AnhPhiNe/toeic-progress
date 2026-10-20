@@ -44,7 +44,7 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
   await modal.getByRole('button', { name: 'Đáp án từ đề: B' }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
-  await modal.getByRole('button', { name: 'Thêm lỗi tiếp' }).click();
+  await modal.getByRole('button', { name: 'Thêm câu tiếp' }).click();
   await expect(modal.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(modal.getByLabel('Câu hỏi + phương án')).toBeFocused();
   await expect(modal.locator('button[aria-label="Đáp án từ đề: B"]')).toHaveAttribute('aria-pressed', 'false');

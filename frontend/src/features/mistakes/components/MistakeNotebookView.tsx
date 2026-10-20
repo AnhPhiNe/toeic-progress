@@ -296,7 +296,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           <button
             type="button"
             onClick={openCreate}
-            className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-300 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-yellow-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none dark:hover:bg-slate-800 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" aria-hidden="true" />
             <span>Thêm câu sai</span>

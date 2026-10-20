@@ -25,7 +25,7 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
   await modal.getByRole('button', { name: 'Xem giải thích', exact: true }).click();
   for (const meaning of meanings) await expect(modal.getByRole('region', { name: 'Nghĩa các phương án' }).getByText(meaning, { exact: true })).toBeVisible();
   await expect(modal.getByText('It takes three business days.', { exact: true }).locator('..')).not.toContainText(meanings[1]);
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   await page.reload();
   await page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }).click();
   const card = page.locator('.notebook-card');

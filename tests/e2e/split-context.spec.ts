@@ -53,7 +53,7 @@ test('the shared context area retains text and pictures across mode changes and 
   await page.screenshot({ path: info.outputPath('split-context-form.png') });
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   const result = await page.evaluate(() => ({ saved: JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes,
     calls: (window as Window & { __sources: Array<{input: {context: string}; images: unknown[]; sourceImageIds: string[]}> }).__sources }));
   expect(result.calls).toHaveLength(2);

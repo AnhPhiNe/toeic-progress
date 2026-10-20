@@ -23,7 +23,7 @@ export function SavedTestNotice({ session, onDetails, onClose }: { session: Stud
         Đã lưu <span className="font-black">{session.testName}</span> · {wrong} câu Reading sai vào Sổ tay
       </p>
       <button type="button" onClick={onDetails}
-        className="min-h-10 shrink-0 cursor-pointer rounded-xl border-2 border-slate-900 bg-emerald-400 px-4 text-[14px] font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">
+        className="min-h-10 shrink-0 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 px-4 text-[14px] font-black text-white shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">
         Ghi chi tiết ›
       </button>
       <button type="button" aria-label="Đóng thông báo" onClick={onClose}

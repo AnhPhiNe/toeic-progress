@@ -70,7 +70,7 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
   await expect(modal.getByText('Chỉnh đáp án / lời giải', { exact: true })).toHaveCount(0);
   await expect(modal.getByLabel('Giải thích / mẹo ghi nhớ', { exact: true })).toHaveCount(0);
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.question).toBe(question); expect(saved.context).toBe(context); expect(saved.options).toEqual(options);
   expect(saved.userChoice).toBe('A'); expect(saved.userMistake).toBe(options[0]); expect(saved.correctAnswer).toBe(options[2]);

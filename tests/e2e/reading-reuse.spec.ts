@@ -42,7 +42,7 @@ test('five questions reuse three images once and preserve the full source withou
   await page.screenshot({ path: testInfo.outputPath('after-ai-same-reading-desktop.png') });
   await page.setViewportSize({ width: 375, height: 820 });
   await expect(modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true })).toBeInViewport();
-  await expect(modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true })).toBeInViewport();
+  await expect(modal.getByRole('button', { name: 'Lưu câu sai', exact: true })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('after-ai-same-reading-mobile.png') });
   await modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true }).click();
@@ -80,7 +80,7 @@ test('five questions reuse three images once and preserve the full source withou
     } else {
       await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
       if (number < 5) await modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true }).click();
-      else await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+      else await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
     }
   }
   const calls = await page.evaluate(() => (window as Window & { __readingCalls: Array<{ input: { question: string; context: string }; imageCount: number }> }).__readingCalls);

@@ -307,7 +307,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
     : checkCount ? <p className="text-amber-700 dark:text-amber-300">{checkCount} câu cần xem</p> : null;
   const saveButton = (
     <button type="button" onClick={save} disabled={!filled.length || reading}
-      className={'cursor-pointer rounded-xl border-2 border-slate-900 bg-emerald-400 font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-200 dark:shadow-none '
+      className={'cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 font-black text-white shadow-[2px_2px_0_0_#0f172a] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-200 dark:shadow-none '
         + (phone ? 'min-h-[50px] flex-1 text-[15px]' : 'min-h-11 shrink-0 px-5 text-[14.5px]')}>
       {filled.length ? `Lưu ${filled.length} câu` : 'Lưu'}
     </button>

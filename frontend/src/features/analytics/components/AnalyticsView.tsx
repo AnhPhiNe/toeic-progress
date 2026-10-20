@@ -133,7 +133,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
       {/* The next practice step sits above the bottom navigation, within thumb reach. */}
       {onNavigateToTimer && weakPart !== null && <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
         <button type="button" onClick={() => onNavigateToTimer(weakPart < 5 ? 'POMODORO' : `PART_${weakPart}` as ReadingPartType)}
-          className="flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-yellow-300 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
+          className="flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-emerald-400 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
           <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} mất ${data.weakest!.lost} câu` : `Luyện ${data.weakest!.code} · mất ${data.weakest!.lost} câu`}
         </button>
       </div>}

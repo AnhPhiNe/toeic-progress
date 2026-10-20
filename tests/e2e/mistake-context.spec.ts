@@ -47,7 +47,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   expect(calls.input.question).toContain(transcript);
   expect(calls.input.question).toContain(question);
   expect(calls.input.options).toEqual(options);
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   const row = page.getByRole('button', { name: `Mở câu: ${question}`, exact: true });
   await expect(row).toBeVisible();
   await row.click();

@@ -53,7 +53,7 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   await openAnswerKey(note);
   await note.getByRole('button', { name: 'Đáp án từ đề: B', exact: true }).click();
   await note.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
-  await note.getByRole('button', { name: 'Thêm lỗi tiếp', exact: true }).click();
+  await note.getByRole('button', { name: 'Thêm câu tiếp', exact: true }).click();
   await expect(note.getByLabel('Câu hỏi + phương án')).toBeFocused();
   await note.getByLabel('Câu hỏi + phương án').fill('Forms should ____ submitted.\n(A) are\n(B) be');
   await note.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
