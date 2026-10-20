@@ -27,8 +27,8 @@ interface SummaryProps {
 
 /**
  * Phones (<768px): the latest score is the one number a learner opens the app for,
- * so it leads with Listening/Reading beside it; record, average and progress follow
- * as one row of columns inside the same card rather than three separate tiles.
+ * so it leads, laid out like a TOEIC score report: the total, a Listening | Reading band
+ * in their section colours, the goal, then record, average and progress as the footer.
  */
 export function PhoneSummary({ latestTest, latestTotal, previousTotal, listeningScore, readingScore, targetScore, highestScore,
   bestTestDate, latestIsBest, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger }: SummaryProps) {
@@ -51,52 +51,63 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
   const diffColor = !hasDiff ? 'text-slate-400 dark:text-slate-500' : diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
 
   const hasSections = listeningScore !== undefined || readingScore !== undefined;
-  const recordHint = latestIsBest ? 'Bài này' : bestTestDate ? `Ngày ${formatShortDate(bestTestDate)}` : '—';
+  // One test is trivially its own record, so the stamp waits for a second one.
+  const newRecord = Boolean(latestIsBest) && totalTests > 1;
 
   return (
-    <section aria-label="Bài thi gần nhất" className="rounded-2xl border-2 border-slate-900 bg-white px-4 pb-3.5 pt-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
-      <p className="truncate text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-        {latestTest.testName} · <span className="tabular-nums">{formatShortDate(latestTest.date)}</span>
-      </p>
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex items-baseline gap-1.5">
-            <span className="text-[52px] font-black leading-[0.95] tracking-tight tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
-            <span className="text-base font-bold text-slate-400">/ 990</span>
+    <section aria-label="Bài thi gần nhất" className="relative overflow-hidden rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] shadow-[4px_4px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[4px_4px_0_0_#cbd5e1]">
+      <div className="px-[18px] pb-3.5 pt-4">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">Kết quả gần nhất</p>
+        <p className={'mt-0.5 truncate text-[15px] font-extrabold text-slate-900 dark:text-white ' + (newRecord ? 'pr-20' : '')}>
+          {latestTest.testName} <span className="font-bold tabular-nums text-slate-400">· {formatShortDate(latestTest.date)}</span>
+        </p>
+        {newRecord && (
+          <p className="absolute right-4 top-3.5 rotate-[8deg] rounded-xl border-[2.5px] border-amber-600 px-2 py-1 text-center text-xs font-extrabold leading-tight text-amber-600 dark:border-amber-400 dark:text-amber-400">
+            KỶ LỤC<br /><span className="text-[10px]">mới</span>
           </p>
-          {change !== undefined && change !== 0 && (
-            <p className="mt-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-              <span className={'font-black tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-                {change > 0 ? '+' : '−'}{Math.abs(change)}
-              </span> so với lần trước
-            </p>
-          )}
-        </div>
-        {hasSections && (
-          <dl className="flex shrink-0 flex-col gap-1.5 text-right">
-            {listeningScore !== undefined && <div><dt className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">Listening</dt>
-              <dd className="text-xl font-black leading-tight tabular-nums text-indigo-600 dark:text-indigo-400">{listeningScore}</dd></div>}
-            {readingScore !== undefined && <div><dt className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">Reading</dt>
-              <dd className="text-xl font-black leading-tight tabular-nums text-teal-700 dark:text-teal-400">{readingScore}</dd></div>}
-          </dl>
         )}
+        <p className="mt-2.5 flex items-baseline gap-2">
+          <span className="text-[58px] font-extrabold leading-none tracking-[-0.04em] tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
+          <span className="text-base font-bold text-slate-400">/ 990</span>
+          {change !== undefined && change !== 0 && (
+            <span className={'ml-1 text-sm font-extrabold tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}
+              title="So với bài Full Test trước">
+              {change > 0 ? '▲' : '▼'} {Math.abs(change)}
+            </span>
+          )}
+        </p>
       </div>
-      {!hasSections && <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>}
 
-      <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
-        <p className="text-[14px] font-semibold text-slate-700 dark:text-slate-300">{remaining === 0
-          ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore}</strong></>
-          : <>Còn <strong className="text-amber-700 dark:text-amber-400">{remaining} điểm</strong> tới mục tiêu {targetScore}</>}</p>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
+      {hasSections
+        ? <dl className="grid grid-cols-2 border-y-2 border-slate-900 text-white dark:border-slate-200">
+            <div className="bg-indigo-600 px-4 py-2.5">
+              <dt className="text-[11.5px] font-bold uppercase opacity-85">Listening</dt>
+              <dd className="text-2xl font-extrabold tabular-nums">{listeningScore ?? '—'}</dd>
+            </div>
+            <div className="border-l-2 border-slate-900 bg-teal-600 px-4 py-2.5 dark:border-slate-200">
+              <dt className="text-[11.5px] font-bold uppercase opacity-85">Reading</dt>
+              <dd className="text-2xl font-extrabold tabular-nums">{readingScore ?? '—'}</dd>
+            </div>
+          </dl>
+        : <p className="border-t border-slate-200 px-[18px] pt-3 text-[13px] text-slate-500 dark:border-slate-700 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>}
+
+      <div className="px-[18px] py-3">
+        <p className="flex justify-between gap-3 text-[13.5px] font-bold text-slate-800 dark:text-slate-200">
+          <span>Mục tiêu {targetScore}</span>
+          {remaining === 0
+            ? <span className="text-emerald-700 dark:text-emerald-400">Đã đạt mục tiêu</span>
+            : <span className="text-amber-700 dark:text-amber-400">còn {remaining} điểm</span>}
+        </p>
+        <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
           <div data-goal-bar className={'h-full rounded-full ' + (remaining === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-600 dark:bg-blue-500')} style={{ width: `${percent}%` }} />
         </div>
       </div>
 
-      <dl className="mt-4 grid grid-cols-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-        <Stat label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={recordHint} />
+      <dl className="grid grid-cols-3 border-t-[1.5px] border-dashed border-slate-300 px-[18px] pb-3.5 pt-2.5 dark:border-slate-700">
+        <Stat label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={bestTestDate ? `Ngày ${formatShortDate(bestTestDate)}` : '—'} />
         <Stat label="Trung bình" value={avgScore ?? '—'} color="text-blue-600 dark:text-blue-400" hint={`${totalTests} đề`} />
         <Stat label="Từ bài đầu" value={hasDiff ? `${diff > 0 ? '+' : ''}${diff}` : '—'} color={diffColor}
-          hint={hasDiff && firstTotal !== undefined ? `${firstTotal} → ${latestTotal}` : 'Cần từ 2 đề'} />
+          hint={hasDiff && firstTotal !== undefined ? `từ ${firstTotal}` : 'Cần từ 2 đề'} />
       </dl>
     </section>
   );
@@ -104,10 +115,10 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
 
 function Stat({ label, value, color, hint }: { label: string; value: number | string; color: string; hint: string }) {
   return (
-    <div className="min-w-0 border-slate-100 pl-3 first:pl-0 [&+&]:border-l dark:border-slate-800">
+    <div className="min-w-0">
       <dt className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd className={`mt-0.5 text-xl font-black leading-tight tracking-tight tabular-nums ${color}`}>{value}</dd>
-      <dd className="truncate text-[11.5px] font-semibold text-slate-500 dark:text-slate-400" title={hint}>{hint}</dd>
+      <dd className={`text-[19px] font-extrabold leading-tight tabular-nums ${color}`}>{value}</dd>
+      <dd className="truncate text-[11px] font-semibold text-slate-400 dark:text-slate-500" title={hint}>{hint}</dd>
     </div>
   );
 }
