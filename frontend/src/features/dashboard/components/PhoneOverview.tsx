@@ -46,7 +46,7 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
     // One test is trivially its own record, so the stamp waits for a second one.
     <ScoreReportCard latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal} listeningScore={listeningScore}
       readingScore={readingScore} targetScore={targetScore} newRecord={Boolean(latestIsBest) && totalTests > 1}>
-      <dl className="grid grid-cols-3 border-t-[1.5px] border-dashed border-slate-300 px-[18px] pb-3.5 pt-2.5 dark:border-slate-700">
+      <dl className="grid grid-cols-3 px-[18px] pb-3.5 pt-3">
         <Stat label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={bestTestDate ? `Ngày ${formatShortDate(bestTestDate)}` : '—'} />
         <Stat label="Trung bình" value={avgScore ?? '—'} color="text-blue-600 dark:text-blue-400" hint={`${totalTests} đề`} />
         <Stat label="Từ bài đầu" value={hasDiff ? `${diff > 0 ? '+' : ''}${diff}` : '—'} color={diffColor}
@@ -65,3 +65,4 @@ function Stat({ label, value, color, hint }: { label: string; value: number | st
     </div>
   );
 }
+
