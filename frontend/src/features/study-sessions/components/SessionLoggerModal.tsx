@@ -31,16 +31,6 @@ import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneS
 import { DesktopFullTestBody } from './DesktopFullTestBody';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
-const PART_LABELS: Record<PracticePartResult['part'], string> = {
-  1: 'Part 1 — Mô tả tranh (6 câu)',
-  2: 'Part 2 — Hỏi & Đáp (25 câu)',
-  3: 'Part 3 — Hội thoại (39 câu)',
-  4: 'Part 4 — Bài nói (30 câu)',
-  5: 'Part 5 — Điền câu (30 câu)',
-  6: 'Part 6 — Điền đoạn văn (16 câu)',
-  7: 'Part 7 — Đọc hiểu (54 câu)',
-};
-
 interface SessionLoggerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -794,7 +784,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                           className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
                         >
                           {([1, 2, 3, 4, 5, 6, 7] as const).map(p => (
-                            <option key={p} value={p}>{PART_LABELS[p]}</option>
+                            <option key={p} value={p}>Part {p}</option>
                           ))}
                         </select>
                       </div>
