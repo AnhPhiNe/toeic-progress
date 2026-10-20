@@ -78,7 +78,7 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
  * Optional: a screenshot of the test's result page lets AI mark the wrong and skipped questions on the grid.
  * Shown only when the backend offers it; the learner checks the marks before saving.
  */
-function ResultImageButton({ onRead }: { onRead: (numbers: number[]) => void }) {
+export function ResultImageButton({ onRead, desktop = false }: { onRead: (numbers: number[]) => void; desktop?: boolean }) {
   const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
@@ -90,7 +90,6 @@ function ResultImageButton({ onRead }: { onRead: (numbers: number[]) => void }) 
     void aiService.getAIConfiguration().then(config => { if (!cancelled) setAvailable(Boolean(config.resultImages)); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
-  if (!available) return null;
   const read = async (files: File[]) => {
     if (busy || !files.length) return;
     if (files.length > MAX_RESULT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_RESULT_IMAGES} ảnh.`); return; }
@@ -107,11 +106,26 @@ function ResultImageButton({ onRead }: { onRead: (numbers: number[]) => void }) 
       setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Chạm vào các câu sai bên dưới.');
     } finally { setBusy(false); remove(); }
   };
+  const latestRead = useRef(read);
+  latestRead.current = read;
+  // On a computer the screenshot can be pasted with Ctrl+V anywhere in the form, not only on the button.
+  useEffect(() => {
+    if (!desktop || !available) return;
+    const onPaste = (event: ClipboardEvent) => {
+      const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
+      if (files.length) { event.preventDefault(); void latestRead.current(files); }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [desktop, available]);
+  if (!available) return null;
   return (
-    <div onPaste={event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}>
+    <div onPaste={desktop ? undefined : event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}>
       <button type="button" disabled={busy} onClick={() => input.current?.click()}
-        className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
-        <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />{busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả'}<span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">(không bắt buộc)</span>
+        className={desktop
+          ? 'flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white text-[14px] font-black text-slate-950 hover:bg-violet-50 disabled:cursor-wait disabled:opacity-60 dark:border-slate-300 dark:bg-slate-900 dark:text-white'
+          : 'flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white'}>
+        <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />{busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả'}{!desktop && <span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">(không bắt buộc)</span>}
       </button>
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh kết quả"
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />

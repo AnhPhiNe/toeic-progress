@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { usePartCounts } from './helpers/sessionForm';
 
 async function open(page: Page) {
   await page.goto('/quy-doi');
@@ -108,6 +109,7 @@ test('new data updates an untouched calculator and preserves explicit simulation
     await page.getByRole('button',{name:'Nhập kết quả đề thi mới, phím tắt N'}).click();
     const dialog=page.getByRole('dialog',{name:'Ghi Nhận Kết Quả Buổi Học'});
     await dialog.getByLabel('Tên Đề Thi / Nguồn').fill(name);
+    await usePartCounts(dialog);
     for(const [index,count] of [6,25,39,30,30,16,part7].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1),{exact:true}).fill(String(count));
     await dialog.getByRole('button',{name:'Lưu kết quả'}).click();
     await expect(dialog).not.toBeVisible();

@@ -1,6 +1,7 @@
 import { chooseNoteSource } from './helpers/noteSource';
 import { choosePart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
 import { test, expect } from '@playwright/test';
+import { useOfficialScore } from './helpers/sessionForm';
 
 test('search stays inside the dropdown, keeps the field stable and marks the selected source', async ({ page }, testInfo) => {
   await page.goto('/so-tay');
@@ -88,7 +89,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await expect(page.getByRole('option', { name: /Thêm tên đề/ })).toHaveCount(0);
   await scoreSource.press('Enter');
   await expect(scoreSource).toHaveValue('ETS 2025 Test 03');
-  await modal.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
+  await useOfficialScore(modal);
   await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await modal.getByLabel('Tổng điểm TOEIC /990').fill('750');
   await modal.getByRole('button', { name: 'Lưu kết quả' }).click();

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { useOfficialScore } from './helpers/sessionForm';
 
 async function seed(page: Page, practice = false) {
   await page.goto('/lich-su');
@@ -66,7 +67,7 @@ test('an open guest logger cannot write its draft into a newly active account', 
   await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
   await editor.getByLabel('Tên Đề Thi / Nguồn', { exact: true }).fill('Guest draft');
-  await editor.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
+  await useOfficialScore(editor);
   await editor.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await editor.getByLabel('Tổng điểm TOEIC /990').fill('800');
   // Replace identity only; exercise the real draft guard and local storage writers.

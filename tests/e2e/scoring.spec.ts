@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openHistoryEdit, sessionDialog, useOfficialScore } from './helpers/sessionForm';
+import { openHistoryEdit, sessionDialog, useOfficialScore, usePartCounts } from './helpers/sessionForm';
 
 test.setTimeout(60_000);
 
@@ -17,6 +17,7 @@ async function savedSession(page: Page) {
 test('manual section scores override the estimate and survive reload and editing', async ({ page }) => {
   let dialog = await openLogger(page);
   await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual sections');
+  await usePartCounts(dialog);
   for (const [index, count] of [5, 20, 35, 27, 25, 12, 33].entries()) await dialog.getByLabel(`Số câu đúng Part ${index + 1}`, { exact: true }).fill(String(count));
   await expect(dialog.getByText('Ước tính tham khảo', { exact: true })).toBeVisible();
   await expect(dialog.getByText('690', { exact: true })).toBeVisible();
@@ -108,6 +109,7 @@ test('old estimates retain their version on metadata edits and switch only when 
 test('a newly saved perfect Full Test receives 495 per section and 990 total', async ({ page }) => {
   const dialog = await openLogger(page);
   await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Perfect estimate');
+  await usePartCounts(dialog);
   for (const [index,count] of [6,25,39,30,30,16,54].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1), {exact:true}).fill(String(count));
   await expect(dialog.getByText('990',{exact:true})).toBeVisible();
   await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('53');

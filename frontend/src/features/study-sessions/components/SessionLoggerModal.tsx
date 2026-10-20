@@ -29,6 +29,7 @@ import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
+import { DesktopFullTestBody } from './DesktopFullTestBody';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualReading, setManualReading] = useState('');
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
-  // Phones log a Full Test by its wrong questions; per-Part counts and official scores stay as alternatives.
+  // A Full Test is logged by its wrong questions; per-Part counts and official scores stay as alternatives.
   const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
   const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
   const [savedResult, setSavedResult] = useState<StudySession | null>(null);
@@ -210,7 +211,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   if (!isOpen) return null;
 
-  const wrongEntry = isPhone && sessionType === 'FULL_TEST' && scoreSource === 'ESTIMATED' && entry === 'wrong';
+  const wrongEntry = sessionType === 'FULL_TEST' && scoreSource === 'ESTIMATED' && entry === 'wrong';
   const effectiveParts = wrongEntry ? partScoresFromWrong(wrongQuestions) : partScores;
   // Tính điểm trực tiếp từ partScores
   const calculated = calculateFromPartScores(effectiveParts);
@@ -224,6 +225,18 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   });
   let scorePreview: ReturnType<typeof resolveFullTestScore> | null = null;
   try { scorePreview = resolveScores(); } catch { /* Incomplete manual fields stay empty in the preview. */ }
+
+  const changeEntry = (mode: 'wrong' | 'counts') => {
+    if (mode === 'counts') setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES });
+    setEntry(mode);
+  };
+  // Official scores keep the marked questions as per-Part detail.
+  const switchManual = (on: boolean) => {
+    setScoreSource(on ? manualMode : 'ESTIMATED');
+    if (on && entry === 'wrong') { setPartScores(wrongQuestions.length ? effectiveParts : { ...EMPTY_PART_SCORES }); setIncludePartDetails(wrongQuestions.length > 0); }
+    else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
+    setScoreError('');
+  };
 
   const handlePartScoreChange = (partKey: keyof LRPartScore, value: number) => {
     const maxVal = PART_MAX_QUESTIONS[partKey];
@@ -315,7 +328,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className="relative w-full max-w-3xl my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none">
+        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1080px]' : 'max-w-3xl'} my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none`}>
         
         {/* Header Modal */}
         <div className="flex items-center justify-between p-5 max-md:px-4 max-md:py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
@@ -349,7 +362,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
           if (primary) event.currentTarget.requestSubmit(primary);
         }} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5 sm:p-6 max-md:p-4">
+          <div className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-4 p-5' : 'space-y-5 p-5 sm:p-6'} overflow-y-auto max-md:p-4`}>
           
           {/* Mode Switcher */}
           <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
@@ -387,15 +400,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <PhoneFullTestBody testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
               retest={isExistingTest ? { attempt: nextAttemptNumber, best: bestPreviousScore } : undefined}
               partScores={effectiveParts} onPart={handlePartScoreChange} preview={scorePreview}
-              entry={entry} onEntry={mode => { if (mode === 'counts') setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES }); setEntry(mode); }}
+              entry={entry} onEntry={changeEntry}
               wrongQuestions={wrongQuestions} onWrong={setWrongQuestions}
               scoreSource={scoreSource} manualMode={manualMode}
-              useManual={on => {
-                setScoreSource(on ? manualMode : 'ESTIMATED');
-                if (on && entry === 'wrong') { setPartScores(wrongQuestions.length ? effectiveParts : { ...EMPTY_PART_SCORES }); setIncludePartDetails(wrongQuestions.length > 0); }
-                else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
-                setScoreError('');
-              }}
+              useManual={switchManual}
               setManualMode={mode => { setScoreSource(mode); setManualMode(mode); setScoreError(''); }}
               manualListening={manualListening} setManualListening={setManualListening}
               manualReading={manualReading} setManualReading={setManualReading}
@@ -465,17 +473,22 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
+          {wrongEntry && (
+            <DesktopFullTestBody wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
+              onCounts={() => changeEntry('counts')} onOfficial={() => switchManual(true)} notes={notes} setNotes={setNotes} />
+          )}
+
           {/* FULL TEST MODE */}
-          {sessionType === 'FULL_TEST' && (
+          {sessionType === 'FULL_TEST' && !wrongEntry && (
             <div className="space-y-4">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                <input type="checkbox" checked={scoreSource !== 'ESTIMATED'} onChange={event => {
-                  setScoreSource(event.target.checked ? manualMode : 'ESTIMATED');
-                  if (event.target.checked) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
-                  setScoreError('');
-                }} />
-                Nhập điểm từ kết quả đề (tùy chọn)
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  <input type="checkbox" checked={scoreSource !== 'ESTIMATED'} onChange={event => switchManual(event.target.checked)} />
+                  Nhập điểm từ kết quả đề (tùy chọn)
+                </label>
+                {scoreSource === 'ESTIMATED' && <button type="button" onClick={() => changeEntry('wrong')}
+                  className="cursor-pointer text-sm font-bold text-blue-700 dark:text-blue-300">Đánh dấu câu sai</button>}
+              </div>
 
               {scoreSource !== 'ESTIMATED' && <div className="rounded-xl border border-slate-200 p-4 space-y-3 dark:border-slate-700">
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Cách nhập điểm trực tiếp">
@@ -824,8 +837,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
-          {/* Session Notes */}
-          <div>
+          {/* Session Notes (the wrong-question layout keeps its own, folded) */}
+          {!wrongEntry && <div>
             <label htmlFor="session-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Ghi Chú Buổi Học
             </label>
@@ -837,7 +850,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               placeholder="vd: Part 7 bài đọc đôi quản lý thời gian tốt hơn..."
               className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
             />
-          </div>
+          </div>}
           </>)}
 
           {sessionType === 'VOCAB' && (
