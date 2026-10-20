@@ -15,7 +15,7 @@ interface ScoreReportProps {
   targetScore: number;
   /** Marks the latest test as a new record (only meaningful from the second test on) */
   newRecord: boolean;
-  /** Computer: a roomier card about the height of the old latest-test card, with a bar per skill */
+  /** Computer: a roomier card, about the height of the old latest-test card */
   roomy?: boolean;
   children?: ReactNode;
 }
@@ -84,15 +84,10 @@ export function ScoreReportCard({ latestTest, latestTotal, previousTotal, listen
 
 function Section({ label, score, raw, roomy, className }: { label: string; score?: number; raw?: number; roomy?: boolean; className: string }) {
   return (
-    <div className={'px-4 ' + (roomy ? 'py-4 ' : 'py-2.5 ') + className}>
+    <div className={'px-4 ' + (roomy ? 'py-5 ' : 'py-2.5 ') + className}>
       <dt className="text-[11.5px] font-bold uppercase opacity-85">{label}</dt>
-      <dd className="text-2xl font-extrabold tabular-nums">{score ?? '—'}</dd>
-      {raw !== undefined && <dd className="text-[11.5px] font-semibold tabular-nums opacity-85">{raw}/100 câu đúng</dd>}
-      {roomy && score !== undefined && (
-        <dd className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/25" aria-hidden="true">
-          <div className="h-full rounded-full bg-white" style={{ width: `${Math.min(100, (score / 495) * 100)}%` }} />
-        </dd>
-      )}
+      <dd className={'font-extrabold tabular-nums ' + (roomy ? 'text-[30px] leading-tight' : 'text-2xl')}>{score ?? '—'}</dd>
+      {raw !== undefined && <dd className="text-[11.5px] font-semibold tabular-nums opacity-85">{raw}/100 câu</dd>}
     </div>
   );
 }

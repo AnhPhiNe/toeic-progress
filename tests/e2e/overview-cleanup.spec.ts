@@ -53,8 +53,8 @@ test('overview preserves the original layout with only the requested label and c
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await expect(page.getByText('0/100 câu đúng', { exact: true })).toBeVisible();
-  await expect(page.getByText('20/100 câu đúng', { exact: true })).toBeVisible();
+  await expect(page.getByText('0/100 câu', { exact: true })).toBeVisible();
+  await expect(page.getByText('20/100 câu', { exact: true })).toBeVisible();
   expect(JSON.parse(before!).sessions[1].totalScore).toBe(400);
 });
 
