@@ -31,6 +31,16 @@ import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneS
 import { DesktopFullTestBody } from './DesktopFullTestBody';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
+const PART_LABELS: Record<PracticePartResult['part'], string> = {
+  1: 'Part 1 — Mô tả tranh (6 câu)',
+  2: 'Part 2 — Hỏi & Đáp (25 câu)',
+  3: 'Part 3 — Hội thoại (39 câu)',
+  4: 'Part 4 — Bài nói (30 câu)',
+  5: 'Part 5 — Điền câu (30 câu)',
+  6: 'Part 6 — Điền đoạn văn (16 câu)',
+  7: 'Part 7 — Đọc hiểu (54 câu)',
+};
+
 interface SessionLoggerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -149,6 +159,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPracticeRows(prev => prev.map((row, i) => {
       if (i !== index) return row;
       const next = { ...row, ...patch };
+      next.total = PART_MAX_QUESTIONS[`part${next.part}` as keyof typeof PART_MAX_QUESTIONS];
       // Số câu đúng không bao giờ vượt quá số câu đã làm
       if (next.correct > next.total) next.correct = next.total;
       return next;
@@ -200,7 +211,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
-    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
+    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p, total: PART_MAX_QUESTIONS[`part${p.part}` as keyof typeof PART_MAX_QUESTIONS] })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
   }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
@@ -288,7 +299,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           createdAt
         };
       } else {
-        const cleanRows = practiceRows.filter(r => r.total > 0);
+        const cleanRows = practiceRows
+          .map(r => ({ ...r, total: PART_MAX_QUESTIONS[`part${r.part}` as keyof typeof PART_MAX_QUESTIONS] }))
+          .filter(r => r.total > 0);
         const partLabel = cleanRows.length === 1
           ? `Luyện Part ${cleanRows[0].part}`
           : `Luyện ${cleanRows.length} Part`;
@@ -337,10 +350,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1080px]' : 'max-w-3xl'} my-8 rounded-2xl bg-white dark:bg-[#121A2B] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none`}>
+        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1080px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none`}>
         
         {/* Header Modal */}
-        <div className="flex items-center justify-between p-5 max-md:px-4 max-md:py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+        <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
           <div className="flex items-center space-x-3">
             <div>
               <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone && savedResult ? 'Đã lưu' : sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
@@ -363,14 +376,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
           if (primary) event.currentTarget.requestSubmit(primary);
         }} className="flex min-h-0 flex-1 flex-col">
-          <div className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-4 p-5' : 'space-y-5 p-5 sm:p-6'} overflow-y-auto max-md:p-4`}>
+          <div className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-3 p-4 sm:px-5 sm:py-3.5' : 'space-y-4 p-5'} overflow-y-auto max-md:p-4`}>
           
           {/* Mode Switcher */}
           <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
             <button
               type="button"
               onClick={() => setSessionType('FULL_TEST')}
-              className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
+              className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
                 sessionType === 'FULL_TEST'
                   ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -381,7 +394,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="button"
               onClick={() => setSessionType('PART_PRACTICE')}
-              className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
+              className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
                 sessionType === 'PART_PRACTICE'
                   ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -391,7 +404,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </button>
             {!isEditing && (
               <button type="button" onClick={() => setSessionType('VOCAB')}
-                className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer ${sessionType === 'VOCAB' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
+                className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer ${sessionType === 'VOCAB' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
                 Từ vựng
               </button>
             )}
@@ -420,8 +433,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
           {sessionType !== 'VOCAB' && !isPhone && (<>
           {/* General Info Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+            <div className="sm:col-span-6">
               <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Tên Đề Thi / Nguồn
                 {sessionType === 'PART_PRACTICE' && (
@@ -431,7 +444,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <TestNamePicker id="session-test-name" label="Tên Đề Thi / Nguồn" required={sessionType === 'FULL_TEST'}
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
-            <div>
+            <div className="sm:col-span-3">
               <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
               <input
                 id="session-date"
@@ -439,10 +452,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
+                className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
-            <div>
+            <div className="sm:col-span-3">
               <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Làm (Phút)</label>
               <input
                 id="session-duration"
@@ -452,7 +465,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 required
                 value={durationMinutes}
                 onChange={e => setDurationMinutes(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
+                className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
           </div>
@@ -753,7 +766,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   Các Part Đã Luyện
                 </span>
                 {practiceTotals.total > 0 && (
-                  <span className="text-xs font-bold text-blue-700 dark:text-blue-300 whitespace-nowrap shrink-0">
+                  <span className={`px-2.5 py-0.5 rounded-md border text-xs font-black tabular-nums whitespace-nowrap shrink-0 ${
+                    practiceAccuracy >= 80
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      : practiceAccuracy >= 60
+                      ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                      : 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                  }`}>
                     {practiceTotals.correct}/{practiceTotals.total} câu · {practiceAccuracy}%
                   </span>
                 )}
@@ -761,7 +780,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
               <div className="space-y-2">
                 {practiceRows.map((row, index) => {
-                  const rowAccuracy = row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
+                  const maxQuestions = PART_MAX_QUESTIONS[`part${row.part}` as keyof typeof PART_MAX_QUESTIONS];
+                  const rowAccuracy = maxQuestions > 0 ? Math.round((row.correct / maxQuestions) * 100) : 0;
                   return (
                     <div key={index} className="flex flex-wrap items-end gap-2">
                       <div className="flex-1 min-w-[140px]">
@@ -774,39 +794,32 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                           className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
                         >
                           {([1, 2, 3, 4, 5, 6, 7] as const).map(p => (
-                            <option key={p} value={p}>Part {p}</option>
+                            <option key={p} value={p}>{PART_LABELS[p]}</option>
                           ))}
                         </select>
                       </div>
 
-                      <div className="w-[88px] shrink-0">
-                        {index === 0 && (
-                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Số câu làm</label>
-                        )}
-                        <input
-                          type="number"
-                          min="1"
-                          value={row.total}
-                          onChange={e => updatePracticeRow(index, { total: Math.max(0, Number(e.target.value) || 0) })}
-                          className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums"
-                        />
-                      </div>
-
-                      <div className="w-[88px] shrink-0">
+                      <div className="shrink-0">
                         {index === 0 && (
                           <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Số câu đúng</label>
                         )}
-                        <input
-                          type="number"
-                          min="0"
-                          max={row.total}
-                          value={row.correct}
-                          onChange={e => updatePracticeRow(index, { correct: Math.max(0, Number(e.target.value) || 0) })}
-                          className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums"
-                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max={maxQuestions}
+                            value={row.correct}
+                            aria-label={`Số câu đúng Part ${row.part}`}
+                            onChange={e => updatePracticeRow(index, { correct: Math.max(0, Number(e.target.value) || 0) })}
+                            className="w-20 px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums text-center font-bold"
+                          />
+                          <span className="text-xs font-bold tabular-nums text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                            / {maxQuestions} câu
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0 pb-1.5">
+                      <div className="h-[38px] flex items-center gap-1.5 shrink-0">
                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums w-10 text-right">
                           {rowAccuracy}%
                         </span>
@@ -855,19 +868,40 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </>)}
 
           {sessionType === 'VOCAB' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Ngày học
-                <input type="date" required max={getTodayDateString()} value={date} onChange={e => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
-              </label>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Số từ đã học
-                <input type="number" min="1" step="1" required value={vocabCount} onChange={e => setVocabCount(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
-              </label>
-              <p className="sm:col-span-2 text-xs text-slate-500 dark:text-slate-400">Ghi riêng theo ngày; không tạo buổi thi hay cộng điểm TOEIC.</p>
+            <div className="space-y-3.5 rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Ngày học
+                  <input type="date" required max={getTodayDateString()} value={date} onChange={e => setDate(e.target.value)} className="mt-1 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                </label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Số từ đã học
+                  <input type="number" min="1" step="1" required value={vocabCount} onChange={e => setVocabCount(Number(e.target.value))} className="mt-1 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-black text-blue-600 tabular-nums dark:border-slate-700 dark:bg-slate-950 dark:text-blue-400" />
+                </label>
+              </div>
+              <div className="space-y-1.5">
+                <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Chọn nhanh số từ hôm nay:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[5, 10, 15, 20, 30, 50].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setVocabCount(preset)}
+                      className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs tabular-nums transition ${
+                        vocabCount === preset
+                          ? 'border-2 border-slate-900 bg-blue-600 font-black text-white shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-200'
+                          : 'border border-slate-300 bg-white font-bold text-slate-700 hover:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300'
+                      }`}
+                    >
+                      +{preset} từ
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="border-t border-slate-200/80 pt-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">Ghi riêng theo ngày; không tạo buổi thi hay cộng điểm TOEIC.</p>
             </div>
           )}
 
           </div>
-          <div className="shrink-0 space-y-2 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#121A2B] sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <div className="shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {/* Submit Button */}
           {scoreError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
           <div className="flex flex-wrap items-center justify-end gap-2 max-md:flex-nowrap">
@@ -875,18 +909,24 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="max-md:hidden mr-auto min-h-11 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy
             </button>
-            {sessionType !== 'VOCAB' && !wrongEntry && onAddMistakeForSession && <button type="submit" name="afterSave" value="mistake"
-              className="min-h-11 max-md:min-h-12 max-md:flex-1 max-md:text-sm rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-              Lưu & thêm câu sai
-            </button>}
+            {sessionType !== 'VOCAB' && !wrongEntry && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
+              <button
+                type="submit"
+                name="afterSave"
+                value="mistake"
+                className="min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Lưu & thêm câu sai
+              </button>
+            )}
             <button
               type="submit"
               name="afterSave" value="close"
-              className="min-h-11 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm shadow-blue-600/25 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
+              className="min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-[3px_3px_0_0_#0f172a] dark:shadow-none flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>

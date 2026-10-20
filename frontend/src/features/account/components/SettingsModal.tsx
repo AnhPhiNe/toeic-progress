@@ -324,19 +324,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="grid grid-cols-2 gap-2.5">
                     <label htmlFor="settings-target" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
                       <span>Điểm mục tiêu</span>
-                      <input id="settings-target" type="number" required min="10" max="990" step="5" value={formData.targetScore} onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })} className={fieldBase + ' w-24 text-right tabular-nums'} />
+                      <input id="settings-target" type="number" required min="10" max="990" step="5" value={formData.targetScore} onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })} className={fieldBase + ' w-24 text-center tabular-nums'} />
                     </label>
                     <label htmlFor="settings-exam-date" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
                       <span>Ngày thi</span>
-                      <input id="settings-exam-date" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} className={fieldBase + ' w-36 text-right tabular-nums'} />
+                      <input id="settings-exam-date" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} className={fieldBase + ' w-36 text-center tabular-nums'} />
                     </label>
                     <label htmlFor="settings-daily-minutes" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
                       <span>Học mỗi ngày (phút)</span>
-                      <input id="settings-daily-minutes" type="number" required min="5" max="300" value={formData.dailyMinGoalMinutes} onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })} className={fieldBase + ' w-20 text-right tabular-nums'} />
+                      <input id="settings-daily-minutes" type="number" required min="5" max="300" value={formData.dailyMinGoalMinutes} onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })} className={fieldBase + ' w-20 text-center tabular-nums'} />
                     </label>
                     <label htmlFor="settings-shields" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
                       <span>Khiên cứu chuỗi</span>
-                      <input id="settings-shields" type="number" required min="0" max="5" value={formData.streakFreezes} onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })} className={fieldBase + ' w-20 text-right tabular-nums'} />
+                      <input id="settings-shields" type="number" required min="0" max="5" value={formData.streakFreezes} onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })} className={fieldBase + ' w-20 text-center tabular-nums'} />
                     </label>
                   </div>
                 </section>

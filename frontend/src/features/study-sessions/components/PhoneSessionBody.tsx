@@ -228,7 +228,7 @@ export function PhonePracticeBody(props: PracticeProps) {
   };
   const update = (part: PartNumber, patch: Partial<PracticePartResult>) => setRows(rows.map(row => {
     if (row.part !== part) return row;
-    const next = { ...row, ...patch };
+    const next = { ...row, ...patch, total: partMax(part) };
     if (next.correct > next.total) next.correct = next.total;
     return next;
   }));
@@ -298,9 +298,8 @@ export function PhonePracticeBody(props: PracticeProps) {
               <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100">{PART_NAMES[row.part]}</p>
               <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{row.total ? `${Math.round((row.correct / row.total) * 100)}%` : 'Số câu đúng'}</p>
             </div>
-            <ScoreBox value={row.correct} max={row.total} label={`Số câu đúng Part ${row.part}`} onChange={value => update(row.part, { correct: value })} />
-            <span className="text-[15px] font-bold text-slate-300" aria-hidden="true">/</span>
-            <ScoreBox value={row.total} max={partMax(row.part)} label={`Số câu đã làm Part ${row.part}`} muted onChange={value => update(row.part, { total: value })} />
+            <ScoreBox value={row.correct} max={partMax(row.part)} label={`Số câu đúng Part ${row.part}`} onChange={value => update(row.part, { correct: value })} />
+            <span className="w-8 text-[15px] font-bold tabular-nums text-slate-400 dark:text-slate-500">/{partMax(row.part)}</span>
           </div>
         ))}
       </div>
