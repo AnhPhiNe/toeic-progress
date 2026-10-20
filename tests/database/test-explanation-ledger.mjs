@@ -6,7 +6,7 @@ import { PGlite } from '@electric-sql/pglite';
 const db = new PGlite();
 const owner = randomUUID(), other = randomUUID(), ticket = randomUUID();
 const expires = new Date(Date.now() + 23 * 3600_000).toISOString();
-const migration = await readFile(new URL('../../supabase/migrations/20261020104827_durable_explanation_tickets.sql', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../../supabase/migrations/20261020110041_durable_explanation_tickets.sql', import.meta.url), 'utf8');
 const claim = async (number, request, lease, extra = {}) => {
   const p = { owner, ticket, number, binding: 'a'.repeat(64), expires, request, lease, ...extra };
   return (await db.query('select public.claim_explanation_question($1,$2,$3,$4,$5,$6,$7) as value',

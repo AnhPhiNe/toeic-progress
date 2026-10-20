@@ -12,7 +12,7 @@ Giữ `API_LIMITS_ENABLED=false` ở local tới khi migration này đã đượ
 
 ### Cập nhật luồng đọc nhiều câu từ ảnh
 
-Trước khi deploy backend có ticket bền vững, áp dụng riêng migration mới `20261020104827_durable_explanation_tickets.sql` lên project đang phục vụ. Không chạy lại toàn bộ migration nền tảng trên database đã có dữ liệu. Migration thêm hai bảng vận hành và RPC chỉ service role được gọi, cùng xử lý xóa cache khi người học xóa trắng dữ liệu; không đổi nội dung thẻ hay điểm hiện có.
+Trước khi deploy backend có ticket bền vững, áp dụng riêng migration mới `20261020110041_durable_explanation_tickets.sql` lên project đang phục vụ. Không chạy lại toàn bộ migration nền tảng trên database đã có dữ liệu. Migration thêm hai bảng vận hành và RPC chỉ service role được gọi, cùng xử lý xóa cache khi người học xóa trắng dữ liệu; không đổi nội dung thẻ hay điểm hiện có.
 
 Xác nhận `explanation_ledger_ready()` trả `version=1`, `tables=true`; kiểm tra RLS và quyền execute của `anon`/`authenticated` đều bị thu hồi. Backend `/ready` kiểm tra ledger trước khi nhận luồng AI tương ứng. Triển khai backend sau migration, rồi frontend; giữ nguyên signing secret và các cấu hình AI/quyền hiện tại. Không áp dụng lại giá trị mặc định `AI_ENABLED=false` trong Blueprint lên service đang bật AI.
 
