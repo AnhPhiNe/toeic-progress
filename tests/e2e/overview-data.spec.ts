@@ -24,7 +24,7 @@ test('LR statistics keep low scores and exclude SW/deleted results; the chart do
   await expect(page.getByText('825', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('418', { exact: true })).toBeVisible();
   await expect(page.getByText('-815', { exact: true })).toBeVisible();
-  const latest = page.getByRole('heading', { name: 'Bài Thi Gần Nhất', exact: true }).locator('..').locator('..').locator('..').locator('..');
+  const latest = page.getByRole('region', { name: 'Kết quả gần nhất' });
   await expect(latest).toContainText('Low score');
   await expect(page.locator('.overview-chart-labels text')).toHaveCount(2);
   const bottom = await page.locator('.overview-chart-labels circle').last().evaluate(node => {
@@ -33,7 +33,7 @@ test('LR statistics keep low scores and exclude SW/deleted results; the chart do
     return { point: point.bottom, chart: chart.bottom };
   });
   expect(bottom.point).toBeLessThanOrEqual(bottom.chart);
-  await expect(page.getByText('980 điểm', { exact: true })).toBeVisible();
+  await expect(latest.getByText('còn 980 điểm', { exact: true })).toBeVisible();
 });
 
 test('partial legacy scores show the known skill and keep the missing skill unknown', async ({ page }) => {
@@ -44,7 +44,8 @@ test('partial legacy scores show the known skill and keep the missing skill unkn
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await expect(page.getByText('Chưa ghi', { exact: true })).toBeVisible();
+  const latest = page.getByRole('region', { name: 'Kết quả gần nhất' });
+  await expect(latest.getByText('—', { exact: true })).toBeVisible();
   await expect(page.getByText('Reading', { exact: true })).toBeVisible();
   await expect(page.getByText('Listening', { exact: true })).toBeVisible();
   await expect(page.getByText('5', { exact: true })).toBeVisible();

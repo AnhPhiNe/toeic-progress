@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useMemo, useState, useLayoutEffect, useRef } from 'react';
 import {
   CheckCircle2,
   ArrowRight,
@@ -29,6 +29,7 @@ import { useChartMotion } from '@/shared/hooks/useChartMotion';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { OverviewChartLabels } from './OverviewChartLabels';
 import { PhoneSummary } from './PhoneOverview';
+import { ScoreReportCard } from './ScoreReportCard';
 import './dashboard-motion.css';
 
 interface DashboardProps {
@@ -68,7 +69,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Phones render PhoneSummary instead of the KPI and latest-test cards (streak lives in the top-bar chip); only one version is ever in the DOM.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
-  const [mounted, setMounted] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -101,11 +101,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       window.removeEventListener('resize', resize);
       media.removeEventListener('change', resize);
     };
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 40);
-    return () => clearTimeout(t);
   }, []);
 
   const studiedDates = useMemo(() => actualStudyDates({ sessions, vocabLog, pacingRuns }, today), [sessions, vocabLog, pacingRuns, today]);
@@ -251,7 +246,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Kỹ năng HIỆN TẠI lấy từ bài Full Test gần nhất, không phải bài cao nhất
   const latestTest = stats ? fullTests.find(s => s.id === stats.latest.id) || bestTest : bestTest;
-  const hasSkillScores = latestTest?.scaledListening !== undefined || latestTest?.scaledReading !== undefined;
   const listeningScore = latestTest?.scaledListening;
   const readingScore = latestTest?.scaledReading;
 
@@ -736,126 +730,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           </div>}
 
-          {/* 6. BÀI THI GẦN NHẤT - Phong cách Neo-Clean Hierarchy (Chuẩn UI/UX) */}
-          {!isPhone && <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3.5px_3.5px_0px_0px_#0f172a] dark:shadow-[3.5px_3.5px_0px_0px_#cbd5e1] transition-all duration-200 flex flex-col gap-3 sm:gap-3.5">
-            {/* Header: Sét Neo + Tiêu đề + Chip Tổng điểm Neo */}
-            <div className="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-slate-900 dark:border-slate-700">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-8 h-8 rounded-xl bg-amber-300 text-slate-950 border-2 border-slate-900 flex xl:hidden 2xl:flex items-center justify-center text-sm shrink-0 select-none">
-                  ⚡
-                </span>
-                <div className="min-w-0">
-                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none whitespace-nowrap">
-                    Bài Thi Gần Nhất
-                  </h2>
-                  {latestTest && (
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 block truncate">
-                      {latestTest.testName} • {formatShortDate(latestTest.date)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Chip điểm Neo: Viền đen cứng, bóng đổ góc */}
-              <span
-                className="px-2.5 py-1 rounded-xl bg-sky-200 text-slate-950 border-2 border-slate-900 font-black text-xs flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0f172a] shrink-0"
-                title={`Tổng điểm bài thi gần nhất${latestTest ? `: ${latestTest.testName}` : ''}`}
-              >
-                <span className="text-sm sm:text-base font-black text-blue-950 leading-none tracking-tight tabular-nums">
-                  {latestTotal}
-                </span>
-                <span className="text-[10px] sm:text-[10.5px] font-bold text-slate-700 opacity-90 leading-none">/ 990đ</span>
-                <span className="text-xs">🎯</span>
-              </span>
+          {/* 6. PHIẾU KẾT QUẢ GẦN NHẤT — cùng thẻ với điện thoại; kỷ lục, trung bình và tiến bộ đã nằm ở 3 thẻ trên */}
+          {!isPhone && latestTest && <ScoreReportCard latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
+            listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
+            newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}>
+            <div className="px-[18px] pb-4">
+              <button type="button" onClick={onNavigateToAnalytics}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white py-2.5 text-sm font-black text-indigo-700 shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group">
+                <span>Xem 7 Part chi tiết</span>
+                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+              </button>
             </div>
-
-            {!hasSkillScores && latestTest && <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>}
-            {hasSkillScores && <>
-            {/* LISTENING BOX: Viền đen 2px, Nền pastel Indigo, không đổ bóng lặp lại */}
-            <div className="p-3 sm:p-3.5 xl:p-4 flex flex-col rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
-              <div className="flex items-center justify-between gap-1.5">
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600 text-white border border-slate-900 flex xl:hidden 2xl:flex items-center justify-center text-xs font-black shrink-0 select-none">
-                    🎧
-                  </span>
-                  <span className="text-xs sm:text-sm font-black uppercase tracking-wider xl:tracking-normal 2xl:tracking-wider text-slate-950 dark:text-white leading-none shrink-0">
-                    Listening
-                  </span>
-                  {/* Badge số câu: Nền trắng, viền đen sắc nét */}
-                  {latestTest?.rawListening !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md whitespace-nowrap bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
-                    {latestTest.rawListening}/100<span className="xl:hidden 2xl:inline">&nbsp;câu</span>
-                  </span>}
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-sm sm:text-base font-black text-indigo-700 dark:text-indigo-400 leading-none tabular-nums">
-                    {listeningScore ?? 'Chưa ghi'}
-                  </span>
-                  {listeningScore !== undefined && <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400"> / 495đ</span>}
-                </div>
-              </div>
-
-              {/* Continuous Smooth Bar */}
-              {listeningScore !== undefined && <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 overflow-hidden">
-                <div
-                  className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-700 ease-out"
-                  style={{ width: mounted ? `${Math.min(100, Math.max(0, (listeningScore / 495) * 100))}%` : '0%' }}
-                />
-              </div>}
-            </div>
-
-            {/* READING BOX: Viền đen 2px, Nền pastel Mint, không đổ bóng lặp lại */}
-            <div className="p-3 sm:p-3.5 xl:p-4 flex flex-col rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border-2 border-slate-900 dark:border-slate-300 space-y-2">
-              <div className="flex items-center justify-between gap-1.5">
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-teal-600 text-white border border-slate-900 flex xl:hidden 2xl:flex items-center justify-center text-xs font-black shrink-0 select-none">
-                    📖
-                  </span>
-                  <span className="text-xs sm:text-sm font-black uppercase tracking-wider xl:tracking-normal 2xl:tracking-wider text-slate-950 dark:text-white leading-none shrink-0">
-                    Reading
-                  </span>
-                  {/* Badge số câu: Nền trắng, viền đen sắc nét */}
-                  {latestTest?.rawReading !== undefined && <span className="inline-flex items-center px-1.5 py-0.5 rounded-md whitespace-nowrap bg-white dark:bg-slate-800 text-teal-950 dark:text-teal-200 border-2 border-slate-900 dark:border-slate-300 font-black text-[10px] sm:text-[11px] tabular-nums shrink-0">
-                    {latestTest.rawReading}/100<span className="xl:hidden 2xl:inline">&nbsp;câu</span>
-                  </span>}
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-400 leading-none tabular-nums">
-                    {readingScore ?? 'Chưa ghi'}
-                  </span>
-                  {readingScore !== undefined && <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400"> / 495đ</span>}
-                </div>
-              </div>
-
-              {/* Continuous Smooth Bar */}
-              {readingScore !== undefined && <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-700 overflow-hidden">
-                <div
-                  className="h-full bg-teal-600 dark:bg-teal-500 transition-all duration-700 ease-out"
-                  style={{ width: mounted ? `${Math.min(100, Math.max(0, (readingScore / 495) * 100))}%` : '0%' }}
-                />
-              </div>}
-            </div>
-
-            </>}
-            {latestTest && (
-              <p data-latest-goal className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                <Target className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                <span>{(latestTest.totalScore || 0) >= targetScore
-                  ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore} điểm</strong></>
-                  : <>Còn <strong className="text-amber-700 dark:text-amber-400">{targetScore - (latestTest.totalScore || 0)} điểm</strong> để đạt mục tiêu <strong>{targetScore}</strong></>}
-                </span>
-              </p>
-            )}
-            {/* NÚT BẤM CTA ĐỒNG BỘ CHUẨN NEO-BRUTALISM */}
-            <button
-              onClick={onNavigateToAnalytics}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-700 text-xs sm:text-sm font-black text-indigo-700 dark:text-indigo-300 shadow-[1.5px_1.5px_0px_#0f172a] dark:shadow-[1.5px_1.5px_0px_#000] flex items-center justify-center gap-2 cursor-pointer transition active:translate-x-0.5 active:translate-y-0.5 group"
-            >
-              <span>Xem Ma Trận 7 Part Chi Tiết</span>
-              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>}
+          </ScoreReportCard>}
         </div>
       </div>
     </div>
