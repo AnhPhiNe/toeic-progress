@@ -38,7 +38,7 @@ test('search stays inside the dropdown, keeps the field stable and marks the sel
 });
 
 test('empty answers are visible but disabled, source key is separate and Part text fits', async ({ page }, testInfo) => {
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   for (const width of [320, 375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -81,7 +81,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
   modal = page.getByRole('dialog');
   const scoreSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
   await scoreSource.fill('  ets 2025   test 03  ');
@@ -93,9 +93,9 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await modal.getByLabel('Tổng điểm TOEIC /990').fill('750');
   await modal.getByRole('button', { name: 'Lưu kết quả' }).click();
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
   modal = page.getByRole('dialog');
-  await modal.getByRole('button', { name: /Luyện Từng Part/ }).click();
+  await modal.getByRole('button', { name: 'Luyện Part', exact: true }).click();
   const partSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
   await partSource.fill('ETS 2025');
   await expect(page.getByRole('option', { name: 'ETS 2025 Test 03', exact: true })).toHaveCount(1);

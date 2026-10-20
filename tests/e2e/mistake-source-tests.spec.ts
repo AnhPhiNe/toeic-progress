@@ -33,7 +33,7 @@ const question = 'Part 5:\nReports should ____ submitted.\n(A) are\n(B) be\n(C) 
 
 test('source names survive repeated entry, filter with other criteria, and scope the due review', async ({ page }) => {
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   let modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('ETS 2024 Test 03');
@@ -60,7 +60,7 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
 
   for (const sourceName of ['ETS 2023 Test 02', 'ETS 2021 Test 01']) {
-    await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+    await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
     modal = page.getByRole('dialog');
     await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('');
     await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();

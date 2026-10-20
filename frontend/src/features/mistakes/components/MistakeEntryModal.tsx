@@ -414,7 +414,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="mistake-entry-title" className="flex max-h-[100dvh] w-full flex-col max-md:h-[100dvh] max-md:border-0 border-2 border-slate-900 bg-white text-slate-900 dark:border-slate-200 dark:bg-[#111A2C] dark:text-slate-100 sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-2xl sm:shadow-[6px_6px_0px_#0f172a] dark:sm:shadow-[6px_6px_0px_#cbd5e1]">
       <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3.5 dark:border-slate-700 sm:px-6">
         <h2 id="mistake-entry-title" className="text-xl font-extrabold">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
-          : <span className="shadow-[inset_0_-7px_0_#fef08a] dark:shadow-[inset_0_-7px_0_#57431c]">{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa lỗi sai' : 'Thêm lỗi sai'}</span>}</h2>
+          : <span className="shadow-[inset_0_-7px_0_#fef08a] dark:shadow-[inset_0_-7px_0_#57431c]">{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa câu sai' : 'Thêm câu sai'}</span>}</h2>
         <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
       </header>
       <ScrollableModalBody resetKey={step} compact>

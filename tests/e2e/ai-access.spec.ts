@@ -16,7 +16,7 @@ for (const [status, message] of [
       }
       export async function extractMistakeWithAI() { throw new Error('AI must not be called by this test'); }
     ` }));
-    await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+    await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
     const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
     await modal.getByLabel('Part', { exact: true }).selectOption('5');
     await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');

@@ -637,7 +637,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
                                 title="Mở biểu mẫu nhập kết quả làm đề Full Test"
                               >
-                                <span>Nhập điểm</span>
+                                <span>Ghi điểm</span>
                                 <ArrowRight className="w-3.5 h-3.5" />
                               </button>
                             )}
@@ -734,7 +734,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            Kế Hoạch Ôn Thi
+            Kế hoạch
             {summary.isCurrentWeek && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                 Tuần này
@@ -777,14 +777,6 @@ export const PlanView: React.FC<PlanViewProps> = ({
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
-          <button
-            onClick={() => onOpenSessionLogger()}
-            className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold shadow-[1.5px_1.5px_0px_#0f172a] flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            Ghi Kết Quả
-          </button>
         </div>
       </div>
 

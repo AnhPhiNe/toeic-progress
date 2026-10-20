@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, History, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import type { MistakeEntry, PacingRun, StudySession } from '@/shared/types';
 import { computeSessionAttemptMap } from '@/shared/data/storage';
@@ -172,8 +172,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
   };
 
   return <div className="history-view space-y-5 pb-16 sm:pb-20 text-slate-800 dark:text-slate-200">
-    <section className="overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent" aria-label="Lịch sử luyện đề">
-      <div className="flex items-center justify-between gap-3 px-3 pb-2 pt-3 sm:px-5 max-md:hidden"><h2 className="flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><History className="h-5 w-5 shrink-0" aria-hidden="true" />Lịch sử luyện đề</h2><button type="button" onClick={onOpenSessionLogger} className={historyPrimary}><Plus className="h-4 w-4" aria-hidden="true" />Ghi điểm</button></div>
+    <section className="overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent" aria-label="Lịch sử thi">
       {isPhone ? renderPhoneFilters() : <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-3 sm:px-5 dark:border-slate-700">
         <div role="group" aria-label="Loại bài làm" className="history-kind-filter inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#111A2C]">{([['ALL', 'Tất cả'], ['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part']] as const).map(([value, label]) =>
           <button type="button" key={value} aria-pressed={kind === value} onClick={() => { setKind(value); setAttempt('ALL'); setPage(1); }} className={`inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-1.5 ${kind === value ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-400 dark:text-slate-950 dark:hover:bg-blue-300' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'}`}>

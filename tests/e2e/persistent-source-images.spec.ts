@@ -32,7 +32,7 @@ async function mockImages(page: Page, failure = false) {
 
 test('Part 7 retains source images after save/reload/review and reuses them for each new question without OCR', async ({ page }, testInfo) => {
   await mockImages(page); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Images');
   await modal.getByLabel('Part', { exact: true }).selectOption('7');
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
@@ -79,7 +79,7 @@ test('Part 7 retains source images after save/reload/review and reuses them for 
 
 test('upload failure preserves the selected image and manual save can retry without an AI call', async ({ page }) => {
   await mockImages(page, true); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
   await modal.getByLabel('Part', { exact: true }).selectOption('7');
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();

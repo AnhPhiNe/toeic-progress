@@ -14,7 +14,7 @@ for (const { selected, capable } of [
         correctAnswer: input.options[1], answerSource: 'AI_PROPOSED', userMistake: '', category: 'ADVANCED_GRAMMAR',
         tags: ['passive'], trapTip: 'Use the infinitive.', optionNotes: [], explanation: null, missingInformation: [] } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
@@ -38,7 +38,7 @@ for (const { selected, capable } of [
 test('Part and test share a row, one source textbox replaces extra context and choices are optional', async ({ page }, testInfo) => {
   // Tablet layout keeps Part and the test on one row; phones stack them (phone-mistake-form.spec.ts).
   await page.setViewportSize({ width: 768, height: 820 });
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   const part = modal.getByLabel('Part', { exact: true });
   const source = modal.getByRole('button', { name: 'Chọn đề', exact: true });

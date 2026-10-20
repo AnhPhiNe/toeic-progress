@@ -16,7 +16,7 @@ test('Part 1 uses one picture and four pasted options, saves a labelled AI descr
         tags: [], trapTip: 'Phân biệt seated với standing.', optionNotes: [], explanation: null,
         missingInformation: ['Mô tả tranh do AI viết; đối chiếu với tranh trước khi lưu.'] } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('1');
   await modal.getByLabel('Phương án nghe A–D').fill(options.join('\n'));

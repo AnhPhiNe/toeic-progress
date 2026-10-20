@@ -13,7 +13,7 @@ for (const message of [
     export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true }; }
     export async function extractMistakeWithAI() { window.__failedCalls = (window.__failedCalls || 0) + 1; throw new Error(${JSON.stringify(message)}); }
   ` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
   await modal.getByLabel('Part', { exact: true }).selectOption('5');
   await modal.getByLabel('Câu hỏi + phương án').fill(raw);
@@ -58,7 +58,7 @@ test('review reveals meanings after answering and saves a real timestamp', async
 });
 
 test('quick save needs no preview or AI; missing answers stay out of review until a source key is added', async ({ page }) => {
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   let modal = page.getByRole('dialog');
   await expect(modal.getByText('Đáp án đúng từ đề', { exact: false })).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Xem mẫu minh họa' })).toHaveCount(0);
@@ -88,7 +88,7 @@ test('quick save needs no preview or AI; missing answers stay out of review unti
 });
 
 test('dirty input can be retained and unconfigured AI never substitutes a sample', async ({ page }) => {
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('5'); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await expect(modal.getByRole('button', { name: 'Phân tích với AI' })).toBeDisabled();
   await expect(modal.getByRole('checkbox')).toHaveCount(0);
@@ -134,7 +134,7 @@ test('review cannot overwrite a newer question stored elsewhere', async ({ page 
 });
 
 test('Part and source are required before quick save; category is optional', async ({ page }) => {
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('');
 
@@ -172,7 +172,7 @@ test('AI receives structured input and the learner data survives the preview and
         correctAnswer: input.options[1], answerSource: 'AI_PROPOSED', userChoice: 'D', userReason: 'Invented reason',
         userMistake: 'Invented narration', category: 'OTHER', tags: [], trapTip: '', optionNotes: [], explanation: null, missingInformation: [] } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('5'); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   const reason = 'Mình chưa chắc nghĩa proposal.\nĐáp án chuẩn: A là ghi chú riêng.';

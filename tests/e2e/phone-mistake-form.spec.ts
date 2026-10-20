@@ -5,7 +5,7 @@ test('phone mistake form: Part buttons, reading above the question, reason after
   await page.goto('/lich-su');
   await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
   await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Câu sai/ }).click();
-  const modal = page.getByRole('dialog', { name: 'Thêm lỗi sai', exact: true });
+  const modal = page.getByRole('dialog', { name: 'Thêm câu sai', exact: true });
   await expect(modal.getByRole('combobox', { name: 'Part', exact: true })).toHaveCount(0);
 
   await modal.getByRole('button', { name: 'Part 7', exact: true }).click();

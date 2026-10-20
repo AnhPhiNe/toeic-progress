@@ -15,7 +15,7 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
         userMistake: '', category: 'OTHER', tags: [], trapTip: '', explanation: null, missingInformation: [],
         optionNotes: meanings.map((meaning, index) => ({ label: 'ABCD'[index], pos: '', meaning })) } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
   await modal.getByLabel('Part', { exact: true }).selectOption('7');
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));

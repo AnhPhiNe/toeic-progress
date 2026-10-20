@@ -44,10 +44,10 @@ export async function openDesktopFlow(page: Page) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await mockTurnsAI(page);
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N', exact: true }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.locator('#session-test-name').fill('ETS Table');
-  await form.getByRole('heading', { name: 'Ghi Nhận Kết Quả Buổi Học' }).click();
+  await form.getByRole('heading', { name: 'Ghi điểm' }).click();
   await form.getByRole('button', { name: 'Gõ số câu', exact: true }).click();
   await form.getByLabel('Số câu sai').fill('3 104 112 131');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();

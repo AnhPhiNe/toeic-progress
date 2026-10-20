@@ -22,7 +22,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
       }`
   }));
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('3');
   await modal.getByLabel('Câu hỏi + phương án').fill(

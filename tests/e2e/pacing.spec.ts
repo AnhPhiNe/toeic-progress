@@ -160,7 +160,7 @@ test('running and paused drafts survive navigation/reload; switching paused mode
   await page.clock.fastForward(5000);
   await expect(page.getByText('11:55', { exact: true })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Thời gian còn lại' })).toHaveAttribute('aria-valuenow', '99');
-  await page.getByRole('button', { name: 'Lịch Sử Đề Thi', exact: true }).click();
+  await page.getByRole('button', { name: 'Lịch sử thi', exact: true }).click();
   await page.clock.fastForward(5000);
   await page.goto('/luyen-toc-do');
   await expect(page.getByText('11:50', { exact: true })).toBeVisible();
@@ -276,8 +276,8 @@ test('expiry preserves results but waits for an existing logger dialog to close'
   await page.getByLabel('Thời gian luyện (phút)', { exact: true }).fill('1');
   await page.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N', exact: true }).click();
-  const logger = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  const logger = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await expect(logger).toBeVisible();
   await page.clock.fastForward(61000);
   await expect(page.getByRole('dialog')).toHaveCount(1);
@@ -363,7 +363,7 @@ test('Reading 75p remains practice and its aggregate result is visible in main h
   expect(bundle.sessions[0].sessionType).toBe('PART_PRACTICE');
   expect(bundle.sessions[0]).not.toHaveProperty('partScores');
   expect(bundle.sessions[0]).not.toHaveProperty('totalScore');
-  await page.getByRole('button', { name: 'Lịch Sử Đề Thi', exact: true }).click();
+  await page.getByRole('button', { name: 'Lịch sử thi', exact: true }).click();
   await expect(page.getByText(/80\/100/).filter({ visible: true })).toBeVisible();
   await page.getByRole('button', { name: /^Xem chi tiết Luyện Reading/ }).filter({ visible: true }).click();
   const detail = page.getByRole('dialog', { name: 'Luyện Reading', exact: true });
@@ -400,7 +400,7 @@ test('a legacy custom Part draft keeps its recorded count without creating inval
   const bundle = await data(page);
   expect(bundle.pacingRuns[0]).toMatchObject({ totalQuestions: 60, correctAnswers: 50 });
   expect(bundle.sessions[0]).not.toHaveProperty('practiceParts');
-  await page.getByRole('button', { name: 'Lịch Sử Đề Thi', exact: true }).click();
+  await page.getByRole('button', { name: 'Lịch sử thi', exact: true }).click();
   await page.getByRole('button', { name: /^Xem chi tiết Luyện Part 5/ }).filter({ visible: true }).click();
   const detail = page.getByRole('dialog', { name: 'Luyện Part 5', exact: true });
   await expect(detail.getByText('50/60', { exact: true })).toBeVisible();

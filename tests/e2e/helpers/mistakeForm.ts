@@ -24,7 +24,7 @@ export async function openAnswerKey(modal: Locator) {
 
 /** Desktop opens the note form from the notebook header; phones go through the bottom bar's "+" sheet. */
 export async function openNoteForm(page: import('@playwright/test').Page) {
-  const header = page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true });
+  const header = page.getByRole('button', { name: 'Thêm câu sai', exact: true });
   if (await header.isVisible()) { await header.click(); return; }
   await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
   await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Câu sai/ }).click();

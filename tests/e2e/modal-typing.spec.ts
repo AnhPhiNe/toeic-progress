@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 
 test('typing into the mistake entry keeps focus and every character', async ({ page }) => {
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const paste = page.locator('#mistake-paste');
   await paste.click();
   await page.keyboard.type('Reports should be');

@@ -23,7 +23,7 @@ async function mockAnalysis(page: Page) {
 
 test('five questions reuse three images once and preserve the full source without carrying answers or explanations', async ({ page }, testInfo) => {
   await mockAnalysis(page); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Reuse');
   await modal.getByLabel('Part', { exact: true }).selectOption('7');
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();

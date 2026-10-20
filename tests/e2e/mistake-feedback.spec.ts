@@ -51,7 +51,7 @@ test('marking mastered confirms a real save without moving the list and failure 
 test('save confirmation appears only after persistence, respects reduced motion and editing uses a dismissible timed receipt', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await seed(page, 1);
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const editor = page.getByRole('dialog');
   await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
   await editor.getByLabel('Câu hỏi + phương án').fill('Part 5:\nForms should ____ submitted.\n(A) are\n(B) be');
@@ -146,7 +146,7 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
     }
   ` }));
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const editor = page.getByRole('dialog');
   const heading = editor.getByRole('heading');
   const before = await heading.boundingBox();

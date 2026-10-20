@@ -61,7 +61,7 @@ test('a same-named SW result does not count as an earlier LR attempt', async ({ 
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi điểm', exact: true }).click();
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
   const modal = page.getByRole('dialog');
   await modal.getByLabel('Tên Đề Thi / Nguồn').fill('Shared source');
   await page.getByRole('option', { name: 'Shared source', exact: true }).click();

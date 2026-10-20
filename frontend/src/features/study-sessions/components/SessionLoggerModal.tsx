@@ -4,7 +4,6 @@ import {
   CheckCircle2, 
   Headphones, 
   BookOpen, 
-  Zap, 
   Plus, 
   Trash2,
   RotateCcw
@@ -343,16 +342,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         {/* Header Modal */}
         <div className="flex items-center justify-between p-5 max-md:px-4 max-md:py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
           <div className="flex items-center space-x-3">
-            <div className="max-md:hidden p-2 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-              <Zap className="w-5 h-5" />
-            </div>
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone
-                ? (savedResult ? 'Đã lưu' : sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm')
-                : (sessionType === 'VOCAB' ? 'Ghi Số Từ Vựng Đã Học' : isEditing ? 'Sửa Buổi Học' : 'Ghi Nhận Kết Quả Buổi Học')}</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-md:hidden">
-                {sessionType === 'VOCAB' ? 'Theo dõi riêng theo ngày và giữ chuỗi học' : isEditing ? 'Giữ điểm đã nhập hoặc đổi cách ghi điểm · không ảnh hưởng Streak' : 'Ước tính tham khảo hoặc nhập điểm từ kết quả đề'}
-              </p>
+              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone && savedResult ? 'Đã lưu' : sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
             </div>
           </div>
           <button
@@ -385,7 +376,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <span className="md:hidden">Full Test</span><span className="hidden md:inline">Full Test (200 Câu chuẩn ETS)</span>
+              <span>Full Test</span>
             </button>
             <button
               type="button"
@@ -396,7 +387,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <span className="md:hidden">Luyện Part</span><span className="hidden md:inline">Luyện Từng Part Lẻ (Mini Practice)</span>
+              <span>Luyện Part</span>
             </button>
             {!isEditing && (
               <button type="button" onClick={() => setSessionType('VOCAB')}

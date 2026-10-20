@@ -25,7 +25,7 @@ async function mockAI(page: Page, capable = true) {
       }`
   }));
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   await chooseNoteSource(page.getByRole('dialog'));
   await page.getByLabel('Part', { exact: true }).selectOption('7');
   await page.getByRole('button', { name: 'Ảnh', exact: true }).click();

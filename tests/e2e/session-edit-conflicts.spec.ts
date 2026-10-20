@@ -14,7 +14,7 @@ async function seed(page: Page, practice = false) {
   }, practice);
   await page.reload();
   await page.getByRole('button', { name: 'Sửa bản ghi Audit session', exact: true }).click();
-  return page.getByRole('dialog', { name: 'Sửa Buổi Học', exact: true });
+  return page.getByRole('dialog', { name: 'Sửa kết quả', exact: true });
 }
 
 test('a metadata edit cannot overwrite a score updated while the editor was open', async ({ page }) => {
@@ -64,8 +64,8 @@ test('a Part practice change made elsewhere stays intact', async ({ page }) => {
 
 test('an open guest logger cannot write its draft into a newly active account', async ({ page }) => {
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await editor.getByLabel('Tên Đề Thi / Nguồn', { exact: true }).fill('Guest draft');
   await useOfficialScore(editor);
   await editor.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();

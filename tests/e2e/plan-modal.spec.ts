@@ -77,7 +77,7 @@ test('Part targets accept a visible custom quantity, retain colors/notes and sur
   goal = (await data(page)).weeklyPlans[0].tasks.find((task: { id: string }) => task.id === goal.id);
   expect(goal).toMatchObject({ target: 4, color: 'indigo', notes: 'Giữ ghi chú này' });
   await row.getByRole('button', { name: 'Ghi kết quả', exact: true }).click();
-  const logger = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
+  const logger = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await expect(logger.locator('select').filter({ has: page.getByRole('option', { name: 'Part 7', exact: true }) }).first()).toHaveValue('7');
 });
 

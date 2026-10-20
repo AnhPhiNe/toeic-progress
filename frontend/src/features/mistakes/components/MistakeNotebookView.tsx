@@ -271,7 +271,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-24' : '')}>
       <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent">
       <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-4 sm:px-5 max-md:p-0">
-        <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay bắt bẫy</h2>
+        <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay</h2>
         {/* Phones: the review button lives in a bar above the bottom navigation, within thumb reach. */}
         <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
           <button
@@ -295,7 +295,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-300 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-yellow-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" aria-hidden="true" />
-            <span>Ghi Chú Bẫy</span>
+            <span>Thêm câu sai</span>
           </button>
         </div>
       </header>
@@ -397,7 +397,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         <div className="space-y-2 px-4 py-12 text-center">
           <BookOpen className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
           <p className="font-semibold text-slate-700 dark:text-slate-200">Chưa có lỗi sai nào</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{isPhone ? 'Bấm nút ＋ ở dưới, chọn “Câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.' : 'Bấm “Ghi Chú Bẫy”, dán câu bạn làm sai và AI sẽ soạn ghi chú.'}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{isPhone ? 'Bấm nút ＋ ở dưới, chọn “Câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.' : 'Bấm “Thêm câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.'}</p>
         </div>
       ) : isPhone ? renderPhoneGroups() : (
         <div className="notebook-list divide-y divide-slate-200 dark:divide-slate-800">

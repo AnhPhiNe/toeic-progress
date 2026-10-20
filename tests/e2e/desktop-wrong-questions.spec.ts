@@ -7,10 +7,10 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
   await page.setViewportSize({ width: 1280, height: 800 });
   await mockResultsAI(page);
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N', exact: true }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.locator('#session-test-name').fill('ETS Desktop');
-  await form.getByRole('heading', { name: 'Ghi Nhận Kết Quả Buổi Học' }).click();
+  await form.getByRole('heading', { name: 'Ghi điểm' }).click();
 
   // All 200 questions fit on one screen without scrolling the form.
   await expect(form.getByRole('button', { name: 'Câu 200', exact: true })).toBeInViewport();
@@ -57,8 +57,8 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
 test('a computer can still log per-Part counts or an official score', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N', exact: true }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi Nhận Kết Quả Buổi Học', exact: true });
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.getByRole('button', { name: 'Câu 5', exact: true }).click();
   await form.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true }).click();
   // The marks carry over as counts.

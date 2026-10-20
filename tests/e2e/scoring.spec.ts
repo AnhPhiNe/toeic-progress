@@ -6,7 +6,7 @@ test.setTimeout(60_000);
 async function openLogger(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
-  await page.getByRole('button', { name: 'Nhập kết quả đề thi mới, phím tắt N' }).click();
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
   return sessionDialog(page);
 }
 

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('the Part control is always available and persistent instructions distinguish transcript, picture and Reading input', async ({ page }) => {
   // Tablet and desktop layout; the phone form is covered in phone-mistake-form.spec.ts.
   await page.setViewportSize({ width: 768, height: 820 });
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'), part = modal.getByRole('combobox', { name: 'Part', exact: true });
   await expect(part).toBeInViewport();
   await expect(modal.getByRole('combobox', { name: 'Loại ảnh', exact: true })).toHaveCount(0);

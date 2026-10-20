@@ -69,5 +69,5 @@ test('phone "+" sheet opens each recording form', async ({ page }) => {
   await plus.click();
   await sheet.getByRole('button', { name: /^Câu sai/ }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
-  await expect(page.getByRole('heading', { name: 'Thêm lỗi sai' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Thêm câu sai' })).toBeVisible();
 });
