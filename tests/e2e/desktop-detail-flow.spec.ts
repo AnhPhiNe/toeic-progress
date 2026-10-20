@@ -32,6 +32,9 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   // Opening a row shows the question, the pickers and the tip; the learner fills the missing answer.
   await expect(flow.getByRole('button', { name: 'Câu 112 Bạn chọn B, đáp án A', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: /^Câu 112/ }).click();
+  // The options already show the answers; the pickers open only to change them.
+  await expect(flow.getByRole('group', { name: 'Đáp án' })).toHaveCount(0);
+  await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await flow.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'D', exact: true }).click();
   await expect(flow.getByRole('button', { name: 'Câu 112 Bạn chọn B, đáp án D', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: /^Câu 131/ }).click();

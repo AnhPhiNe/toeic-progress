@@ -349,6 +349,7 @@ function RowDetail({ card, value, letters, onChange, onOpenFull }: {
   card: MistakeEntry; value: CardForm; letters: readonly ChoiceLetter[]; onChange: (patch: Partial<CardForm>) => void; onOpenFull: () => void;
 }) {
   const [showPassage, setShowPassage] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const ai = value.ai;
   const chosen = value.choice && value.choice !== 'BLANK' ? value.choice : '';
   const picker = (label: string, current: string, tone: 'wrong' | 'right', set: (letter: ChoiceLetter | '') => void) => (
@@ -362,39 +363,42 @@ function RowDetail({ card, value, letters, onChange, onOpenFull }: {
       ))}
     </div>
   );
+  // The answers are already shown on the options; the pickers appear only to change them or when one is missing.
+  const editing = editOpen || !ai || !value.answer;
+  const question = ai?.question?.trim() ?? '';
+  const link = 'cursor-pointer font-bold text-blue-700 hover:underline dark:text-blue-300';
   return (
-    <div className="grid grid-cols-2 gap-5 border-t border-indigo-100 bg-[#F8FAFF] px-4 pb-4 pt-3 dark:border-indigo-900/50 dark:bg-indigo-950/20">
-      <div className="min-w-0 space-y-2.5">
-        {ai?.context?.trim() && card.part >= 6 && (
-          <div className="rounded-xl border-[1.5px] border-stone-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-            <button type="button" aria-expanded={showPassage} onClick={() => setShowPassage(open => !open)} className="flex w-full cursor-pointer items-center justify-between gap-2 text-left text-[13px] font-bold">
-              <span className="min-w-0 truncate">Đoạn văn: {ai.context.trim().split('\n')[0]}</span><ChevronDown className={'h-4 w-4 shrink-0 transition-transform ' + (showPassage ? 'rotate-180' : '')} aria-hidden="true" />
-            </button>
-            {showPassage && <p className="mt-1 max-h-60 overflow-y-auto whitespace-pre-line text-[13px] leading-relaxed text-slate-700 dark:text-slate-300">{ai.context}</p>}
-          </div>
-        )}
-        {ai?.question?.trim() && <p className="whitespace-pre-line text-[14px] font-bold leading-relaxed">{ai.question}</p>}
-        {ai && ai.options.length > 0 && <ul className="space-y-0.5 text-[13.5px]">
-          {ai.options.map(option => {
-            const letter = optionLetter(option), right = letter === value.answer, wrong = letter === chosen;
-            return <li key={option} className={right ? 'font-bold text-emerald-700 dark:text-emerald-300' : wrong ? 'font-bold text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-300'}>
-              {right ? '✓ ' : wrong ? '✕ ' : ''}{option}
-            </li>;
-          })}
-        </ul>}
-        <div className="space-y-1.5 pt-1">
-          {picker('Bạn chọn', chosen, 'wrong', letter => onChange({ choice: letter }))}
-          {picker('Đáp án', value.answer, 'right', letter => onChange({ answer: letter }))}
-        </div>
-        <button type="button" onClick={onOpenFull} className="cursor-pointer text-[12.5px] font-bold text-blue-700 dark:text-blue-300">Form đầy đủ</button>
-      </div>
-      <div className="min-w-0">
-        {ai?.explanation?.quickTip?.trim()
-          ? <ExplanationView explanation={ai.explanation} trapTip={ai.trapTip}
-              optionMeanings={resolveQuizOptions({ ...card, options: ai.options, optionNotes: ai.optionNotes, correctAnswer: ai.correctAnswer }).options} />
-          : isExplaining(card.id) ? <p className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Đang viết lời giải…</p>
-          : !ai && <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">{card.part <= 2 ? 'Part này không có chữ để chụp; chọn lý do là đủ.' : 'Câu này chưa có trong ảnh nào. Dán thêm ảnh hoặc chỉ chọn lý do.'}</p>}
-      </div>
+    <div className="space-y-3 border-t border-indigo-100 bg-[#F8FAFF] py-3.5 pl-[100px] pr-6 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+      {ai?.context?.trim() && card.part >= 6 && <div>
+        <button type="button" aria-expanded={showPassage} onClick={() => setShowPassage(open => !open)}
+          className="flex max-w-full cursor-pointer items-center gap-1.5 text-left text-[13px] font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+          <ChevronDown className={'h-3.5 w-3.5 shrink-0 transition-transform ' + (showPassage ? 'rotate-180' : '')} aria-hidden="true" />
+          <span className="truncate">Đoạn văn: {ai.context.trim().split('\n')[0]}</span>
+        </button>
+        {showPassage && <p className="mt-1.5 max-h-60 overflow-y-auto whitespace-pre-line rounded-xl bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-700 dark:bg-slate-900 dark:text-slate-300">{ai.context}</p>}
+      </div>}
+      {question.length > 80 && <p className="whitespace-pre-line text-[14px] font-bold leading-relaxed">{question}</p>}
+      {ai && ai.options.length > 0 && <ul className="space-y-1 text-[14px]">
+        {ai.options.map(option => {
+          const letter = optionLetter(option), right = letter === value.answer, wrong = letter === chosen;
+          return <li key={option} className={'flex gap-2 ' + (right ? 'font-bold text-emerald-700 dark:text-emerald-300' : wrong ? 'font-bold text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-300')}>
+            <span className="w-4 shrink-0 text-center" aria-hidden="true">{right ? '✓' : wrong ? '✕' : ''}</span>{option}
+          </li>;
+        })}
+      </ul>}
+      {!ai && <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Câu này chưa có trong ảnh nào. Dán thêm ảnh, chọn đáp án bên dưới, hoặc chỉ chọn lý do.</p>}
+      {editing && <div className="space-y-1.5">
+        {picker('Bạn chọn', chosen, 'wrong', letter => onChange({ choice: letter }))}
+        {picker('Đáp án', value.answer, 'right', letter => onChange({ answer: letter }))}
+      </div>}
+      {ai?.explanation?.quickTip?.trim()
+        ? <div className="max-w-[620px]"><ExplanationView explanation={ai.explanation} trapTip={ai.trapTip}
+            optionMeanings={resolveQuizOptions({ ...card, options: ai.options, optionNotes: ai.optionNotes, correctAnswer: ai.correctAnswer }).options} /></div>
+        : isExplaining(card.id) && <p className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Đang viết lời giải…</p>}
+      <p className="text-[12.5px] text-slate-400">
+        {!editing && <><button type="button" onClick={() => setEditOpen(true)} className={link}>Sửa đáp án</button>{' · '}</>}
+        <button type="button" onClick={onOpenFull} className={link}>Form đầy đủ</button>
+      </p>
     </div>
   );
 }
