@@ -18,12 +18,14 @@ const draftSchema = z.object({
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
   userReason: z.string().max(2000).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).default([]),
-  explanation: explanationSchema.nullable().default(null)
+  explanation: explanationSchema.nullable().default(null),
+  // Set when AI solved the question differently from the page's answer: the page may be wrong.
+  answerDoubt: z.enum(['A', 'B', 'C', 'D', '']).optional()
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean;
   enabled?: boolean; accessStatus?: 'active' | 'pending' | 'blocked' | 'login_required'; accessMessage?: string }
-export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; freeformInput?: boolean; managedAccess?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean; persistentImages?: boolean }
+export interface AIConfiguration { provider: 'openai'; structuredInput?: boolean; freeformInput?: boolean; managedAccess?: boolean; part7Images?: boolean; part1Images?: boolean; learnerCategory?: boolean; persistentImages?: boolean; pageImages?: boolean; resultImages?: boolean }
 
 export async function getAIConfiguration(): Promise<AIConfiguration> {
   if (!apiAvailable) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
@@ -68,7 +70,9 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
     ...(value.part7_context_images === true ? { part7Images: true } : {}),
     ...(value.part1_picture_input === true ? { part1Images: true } : {}),
     ...(value.learner_error_category === true ? { learnerCategory: true } : {}),
-    ...(value.persistent_source_images === true ? { persistentImages: true } : {}) };
+    ...(value.persistent_source_images === true ? { persistentImages: true } : {}),
+    ...(value.page_image_extraction === true ? { pageImages: true } : {}),
+    ...(value.result_image_reading === true ? { resultImages: true } : {}) };
 }
 
 export async function getAIUsage(): Promise<AIUsage | null> {
@@ -146,4 +150,92 @@ Mẹo 10s: Gặp "request that" → động từ nguyên thể; chủ ngữ nh�
       }
     }
   };
+}
+
+// A page may contain several full passages. The ticket-only explanation API
+// preserves that source; the ordinary single-question contract stays unchanged.
+const pageDraftSchema = draftSchema.extend({
+  questionContext: z.string().min(1).max(12002),
+  context: z.string().max(8000).nullish()
+});
+const pageSchema = z.object({
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
+  missing: z.array(z.number().int().min(1).max(200)).max(200),
+  explainTicket: z.string().max(2048).nullish()
+});
+export type PageItem = z.infer<typeof pageSchema>['items'][number];
+
+/** Read the learner's wrong questions from 1–3 screenshots; one call counts as one AI use. */
+export async function extractPageWithAI(questions: { number: number; part: number }[], images: PreparedImage[], getCaptcha: () => Promise<string>)
+  : Promise<{ items: PageItem[]; missing: number[]; explainTicket?: string | null; usage: AIUsage }> {
+  if (!questions.length) throw new Error('Không còn câu sai nào để tìm trong ảnh.');
+  if (!images.length || images.length > 3) throw new Error('Chọn 1 đến 3 ảnh màn hình.');
+  if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể ghi tay.');
+  let { data: { session } } = await cloud.auth.getSession();
+  if (!session) {
+    const token = await getCaptcha();
+    const { data, error } = await cloud.auth.signInAnonymously({ options: { captchaToken: token } });
+    if (error || !data.session) throw new Error('Chưa tạo được phiên khách. Vui lòng thử lại hoặc đăng nhập Google.');
+    session = data.session;
+  }
+  const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
+  const value = await backendRequest<{ items: unknown; missing: unknown; explainTicket?: unknown; usage: AIUsage }>('/api/v1/ai/extract-page', 'POST', {
+    request_id: crypto.randomUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
+    questions, images: images.map(image => ({ dataUrl: image.dataUrl }))
+  }, session.user.id);
+  const parsed = pageSchema.safeParse(value);
+  if (!parsed.success) throw new Error('Kết quả AI chưa hợp lệ. Hãy thử lại hoặc ghi tay.');
+  for (const item of parsed.data.items) if (item.draft.answerSource === 'MISSING') item.draft.correctAnswer = '';
+  return { ...parsed.data, usage: value.usage };
+}
+
+const questionList = z.array(z.number().int().min(1).max(200)).max(200);
+const resultsSchema = z.object({ wrong: questionList, skipped: questionList });
+
+/** Read which questions a result-page screenshot marks wrong or skipped; one call counts as one AI use. */
+export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () => Promise<string>): Promise<{ wrong: number[]; skipped: number[]; usage: AIUsage }> {
+  if (!images.length || images.length > 8) throw new Error('Chọn 1 đến 8 ảnh kết quả.');
+  if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể chạm vào các câu sai.');
+  let { data: { session } } = await cloud.auth.getSession();
+  if (!session) {
+    const token = await getCaptcha();
+    const { data, error } = await cloud.auth.signInAnonymously({ options: { captchaToken: token } });
+    if (error || !data.session) throw new Error('Chưa tạo được phiên khách. Vui lòng thử lại hoặc đăng nhập Google.');
+    session = data.session;
+  }
+  const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
+  const value = await backendRequest<{ wrong: unknown; skipped: unknown; usage: AIUsage }>('/api/v1/ai/read-results', 'POST', {
+    request_id: crypto.randomUUID(), consent: true, provider: 'openai', captcha_token: captchaToken, images: images.map(image => ({ dataUrl: image.dataUrl }))
+  }, session.user.id);
+  const parsed = resultsSchema.safeParse(value);
+  if (!parsed.success) throw new Error('Kết quả AI chưa hợp lệ. Hãy thử lại hoặc chạm vào các câu sai.');
+  return { ...parsed.data, usage: value.usage };
+}
+
+const explainSchema = z.object({
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
+  failed: z.array(z.number().int().min(1).max(200)).max(6),
+  retry: z.array(z.object({
+    number: z.number().int().min(1).max(200),
+    status: z.enum(['retryable', 'completed', 'exhausted']),
+    remainingAttempts: z.number().int().min(0).max(3)
+  })).max(6).default([])
+});
+
+/** Explanations for questions a screenshot reading already counted; the ticket from that reading stands in for a new AI use. */
+export async function explainBatchWithAI(ticket: string, items: { number: number; input: MistakeInput }[], expectedOwner?: string | null)
+  : Promise<{ items: PageItem[]; failed: number[]; retry: z.infer<typeof explainSchema>['retry'] }> {
+  if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này.');
+  const { data: { session } } = await cloud.auth.getSession();
+  if (!session) throw new Error('Phiên đã hết. Mở lại thẻ và bấm Giải thích với AI.');
+  if (expectedOwner !== undefined && (expectedOwner === null ? !session.user.is_anonymous : session.user.id !== expectedOwner)) {
+    throw new Error('Tài khoản đã thay đổi. Chưa gửi yêu cầu viết lời giải.');
+  }
+  const value = await backendRequest<unknown>('/api/v1/ai/explain-batch', 'POST', {
+    request_id: crypto.randomUUID(), consent: true, provider: 'openai', ticket, items
+  }, session.user.id);
+  const parsed = explainSchema.safeParse(value);
+  if (!parsed.success) throw new Error('Lời giải AI trả về chưa hợp lệ.');
+  for (const item of parsed.data.items) if (item.draft.answerSource === 'MISSING') item.draft.correctAnswer = '';
+  return parsed.data;
 }

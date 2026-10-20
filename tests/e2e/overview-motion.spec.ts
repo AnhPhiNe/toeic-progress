@@ -56,13 +56,13 @@ test('overview draws once on entry, keeps labels visible, and respects fast filt
   await page.clock.runFor(1000);
   expect(await curve.getAttribute('d')).toBe(staticCurve);
   await expect(clip).toHaveCount(0);
-  await page.getByRole('button', { name: 'Kế Hoạch', exact: true }).click();
-  await page.getByRole('button', { name: 'Tổng Quan', exact: true }).click();
+  await page.getByRole('button', { name: 'Kế hoạch', exact: true }).click();
+  await page.getByRole('button', { name: 'Tổng quan', exact: true }).click();
   await expect(labels).toHaveCount(3);
   await expect(clip).toHaveCount(0);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.getByRole('button', { name: 'Kế Hoạch', exact: true }).click();
-  await page.getByRole('button', { name: 'Tổng Quan', exact: true }).click();
+  await page.getByRole('button', { name: 'Kế hoạch', exact: true }).click();
+  await page.getByRole('button', { name: 'Tổng quan', exact: true }).click();
   await page.clock.runFor(120);
   await expect(labels).toHaveCount(3);
   await expect(clip).toHaveCount(1);

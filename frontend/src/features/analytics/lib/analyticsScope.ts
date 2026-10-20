@@ -4,6 +4,7 @@ import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { collectTestNames, testNameKey } from '@/shared/domain/testNames';
 import { computeSessionAttemptMap } from '@/shared/data/storage';
 import { mistakeTestName } from '@/features/mistakes/lib/sourceTests';
+import { isBlankDraft } from '@/features/mistakes/lib/mistakeDrafts';
 
 export const PART_KEYS = ['part1', 'part2', 'part3', 'part4', 'part5', 'part6', 'part7'] as const;
 
@@ -33,7 +34,8 @@ export function analyticsScopeData(sessions: StudySession[], mistakes: MistakeEn
   const selected = attempts.find(row => row.session.id === attemptId) ?? attempts[0];
   const attempt = selected?.session ?? null;
   const linkedNames = new Map(sessions.filter(session => !session.deletedAt).map(session => [session.id, session.testName]));
-  const notes = mistakes.filter(mistake => !mistake.deletedAt && Boolean(key)
+  // A blank draft from logging the test says nothing about why a question went wrong.
+  const notes = mistakes.filter(mistake => !mistake.deletedAt && !isBlankDraft(mistake) && Boolean(key)
     && testNameKey(mistakeTestName(mistake, linkedNames)) === key);
   const parts = attempt && hasParts(attempt) ? PART_KEYS.map(partKey => {
     const correct = attempt.partScores![partKey];

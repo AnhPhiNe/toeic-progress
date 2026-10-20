@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ getSession: vi.fn(), signInAnonymously: vi.fn(
 vi.mock('@/shared/api/api', () => ({ apiAvailable: true, backendRequest: mocks.backendRequest }));
 vi.mock('@/shared/api/supabaseClient', () => ({ cloud: { auth: { getSession: mocks.getSession, signInAnonymously: mocks.signInAnonymously } } }));
 
-import { extractMistakeWithAI, getDemoSampleInput, getAIUsage, getAIConfiguration } from './aiMistakeExtractor';
+import { extractMistakeWithAI, extractPageWithAI, explainBatchWithAI, getDemoSampleInput, getAIUsage, getAIConfiguration } from './aiMistakeExtractor';
 
 const guest = { user: { id: 'guest-id', is_anonymous: true }, access_token: 'guest-token' };
 const account = { user: { id: 'account-id', is_anonymous: false }, access_token: 'account-token' };
@@ -16,6 +16,43 @@ beforeEach(() => {
 });
 
 describe('backend AI extraction', () => {
+  it('does not send queued explanations through a different account or a guest that has signed in', async () => {
+    await expect(explainBatchWithAI('signed-ticket', [], 'other-owner')).rejects.toThrow('Tài khoản đã thay đổi');
+    await expect(explainBatchWithAI('signed-ticket', [], null)).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+    mocks.getSession.mockResolvedValue({ data: { session: guest } });
+    mocks.backendRequest.mockResolvedValue({ items: [], failed: [] });
+    await expect(explainBatchWithAI('signed-ticket', [], null)).resolves.toMatchObject({ items: [], failed: [] });
+  });
+  it('preserves a full page passage and its trailing evidence through reading and ticket explanation', async () => {
+    const context = 'x '.repeat(2400) + 'Delivery fee: $19.';
+    const draft = { ...getDemoSampleInput().result, part: 7, question: 'What is the delivery fee?', context,
+      questionContext: 'What is the delivery fee?\n\n' + context };
+    const items = [{ number: 158, draft }];
+    mocks.backendRequest.mockResolvedValueOnce({ items, missing: [], explainTicket: 'signed-test-ticket', usage: {} });
+    const read = await extractPageWithAI([{ number: 158, part: 7 }], [{ id: 'local', name: 'page.png', dataUrl: 'data:image/png;base64,test' }], vi.fn());
+    expect(read.items[0].draft.context).toBe(context);
+    const retry = [{ number: 158, status: 'completed', remainingAttempts: 2 }];
+    mocks.backendRequest.mockResolvedValueOnce({ items, failed: [], retry });
+    const explained = await explainBatchWithAI('signed-test-ticket', [{ number: 158, input: {
+      question: draft.question, options: draft.options, context, part: 7,
+      userChoiceState: 'UNKNOWN', userChoice: '', sourceAnswer: '', userReason: ''
+    } }]);
+    expect(explained.items[0].draft.context).toBe(context);
+    expect(explained.retry).toEqual(retry);
+  });
+  it('does not expand ordinary single-question output limits when page passages get longer', async () => {
+    const context = 'x'.repeat(4001);
+    mocks.backendRequest.mockResolvedValue({ draft: { ...getDemoSampleInput().result, context }, usage: {} });
+    await expect(extractMistakeWithAI(getDemoSampleInput().input, vi.fn())).rejects.toThrow('chưa hợp lệ');
+  });
+  it('keeps compatibility with older explanation responses while exposing per-question retry exhaustion', async () => {
+    mocks.backendRequest.mockResolvedValueOnce({ items: [], failed: [158] });
+    expect((await explainBatchWithAI('signed-ticket', [])).retry).toEqual([]);
+    const retry = [{ number: 158, status: 'exhausted', remainingAttempts: 0 }];
+    mocks.backendRequest.mockResolvedValueOnce({ items: [], failed: [158], retry });
+    expect((await explainBatchWithAI('signed-ticket', [])).retry).toEqual(retry);
+  });
   it('keeps managed approval status and a custom monthly cap from the backend', async () => {
     const usage = { remaining: 23, limit: 27, guest: false, enabled: true, accessStatus: 'active', accessMessage: '', unlimited: false };
     mocks.backendRequest.mockResolvedValue(usage);

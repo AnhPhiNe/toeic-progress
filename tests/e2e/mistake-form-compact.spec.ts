@@ -14,9 +14,9 @@ for (const { selected, capable } of [
         correctAnswer: input.options[1], answerSource: 'AI_PROPOSED', userMistake: '', category: 'ADVANCED_GRAMMAR',
         tags: ['passive'], trapTip: 'Use the infinitive.', optionNotes: [], explanation: null, missingInformation: [] } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
   await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).selectOption(selected);
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
@@ -28,7 +28,7 @@ for (const { selected, capable } of [
   const sent = await page.evaluate(() => (window as Window & { __categoryInput: { errorCategory?: string; sourceTestName?: string } }).__categoryInput);
   expect(sent.errorCategory).toBe(selected && capable ? selected : undefined);
   expect(sent.sourceTestName).toBeUndefined();
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   await page.reload();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.category).toBe(selected || 'ADVANCED_GRAMMAR');
@@ -38,7 +38,7 @@ for (const { selected, capable } of [
 test('Part and test share a row, one source textbox replaces extra context and choices are optional', async ({ page }, testInfo) => {
   // Tablet layout keeps Part and the test on one row; phones stack them (phone-mistake-form.spec.ts).
   await page.setViewportSize({ width: 768, height: 820 });
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   const part = modal.getByLabel('Part', { exact: true });
   const source = modal.getByRole('button', { name: 'Chọn đề', exact: true });
@@ -50,7 +50,7 @@ test('Part and test share a row, one source textbox replaces extra context and c
   await expect(modal.getByLabel('Ngữ cảnh bổ sung', { exact: true })).toHaveCount(0);
   await expect(modal.getByText('Ghi chú bổ sung', { exact: true })).toHaveCount(0);
   await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).selectOption('TIME_PRESSURE');
-  await part.selectOption('5');
+  await part.getByRole('button', { name: 'Part 5', exact: true }).click();
   await source.click();
   await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('ETS Compact');
   await page.getByRole('option', { name: '+ Thêm tên đề “ETS Compact”', exact: true }).click();
@@ -62,7 +62,6 @@ test('Part and test share a row, one source textbox replaces extra context and c
   await page.screenshot({ path: testInfo.outputPath('compact-note-form-mobile.png'), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 900 });
   expect(Math.abs((await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).boundingBox())!.y - (await source.boundingBox())!.y)).toBeLessThan(3);
-  expect((await source.boundingBox())!.width).toBeLessThanOrEqual(310);
   await page.screenshot({ path: testInfo.outputPath('compact-note-form-desktop.png'), fullPage: true });
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);

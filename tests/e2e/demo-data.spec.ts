@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const settings = 'Cài Đặt Mục Tiêu & Kỷ Luật';
+const settings = 'Cài đặt';
 const openSettings = async (page: import('@playwright/test').Page) => {
   await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
   return page.getByRole('dialog', { name: settings, exact: true });

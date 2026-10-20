@@ -25,6 +25,7 @@ import { mistakeInstructions } from '@/features/mistakes/lib/mistakeInstructions
 import { SourceImageViewer } from '@/features/mistakes/components/SourceImageViewer';
 import { sourceImageAccount, uploadSourceImages } from '@/features/mistakes/services/sourceImages';
 import { MistakeContextInput } from '@/features/mistakes/components/MistakeContextInput';
+import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 
 interface Props {
   original: MistakeEntry | null;
@@ -43,11 +44,7 @@ interface Props {
 const inputClass = 'w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 font-sans text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
 const linkClass = 'cursor-pointer text-[13px] font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300';
 const primaryClass = 'cursor-pointer rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-extrabold shadow-[3px_3px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40';
-const categoryChoices: Record<ErrorCategory, string> = {
-  VOCABULARY_TRAP: 'Từ vựng / Paraphrase', ADVANCED_GRAMMAR: 'Ngữ pháp',
-  LISTENING_SPEED: 'Nghe / Nối âm', TIME_PRESSURE: 'Thiếu thời gian',
-  CARELESS_DISTRACTION: 'Mất tập trung / Đọc ẩu', OTHER: 'Khác',
-};
+const categoryChoices = CATEGORY_CHOICES;
 
 function storedDraft(entry: MistakeEntry): AIMistakeParseResult {
   return { part: entry.part, questionContext: entry.questionContext, category: entry.category,
@@ -126,6 +123,8 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const options = corrected?.options.filter(Boolean) ?? parsed.options;
   const context = contextMode === 'text' ? contextText : config?.persistentImages && (images.length || sourceImageIds.length) ? '' : reading?.text ?? '';
   const effectivePart = part;
+  // New notes are Reading only (Part 5–7), matching the Full Test flow; an older Listening card keeps its own Part when edited.
+  const partChoices = (original && original.part <= 4 ? [original.part, 5, 6, 7] : [5, 6, 7]) as MistakeEntry['part'][];
   const instructions = mistakeInstructions(effectivePart);
   const choiceLetters = CHOICE_LETTERS.slice(0, effectivePart === 2 ? 3 : 4);
   const freeformReady = Boolean(config?.freeformInput && raw.trim());
@@ -162,7 +161,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
 
   const validate = (ai = false) => {
     if (part === null) {
-      ref.current?.querySelector<HTMLSelectElement>('select[aria-label="Part"]')?.focus();
+      ref.current?.querySelector<HTMLButtonElement>('[role="group"][aria-label="Part"] button')?.focus();
       return 'Chọn Part trước khi phân tích hoặc lưu.';
     }
     if (!sourceTestName) {
@@ -381,12 +380,22 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     setContextMode(nextPart === 1 || nextPart === 7 && (imageDrafts.length > 0 || imageIdsDraft.length > 0) ? 'image' : 'text');
     setPart(nextPart); setChanged(true);
   };
+  const partButtons = (
+            <div className="flex gap-1.5" role="group" aria-label="Part">
+              {partChoices.map(value => <button key={value} type="button" aria-pressed={effectivePart === value} aria-label={`Part ${value}`}
+                onClick={() => choosePart(value)}
+                className={'h-11 min-w-11 cursor-pointer rounded-xl border-2 px-3 text-[15px] font-black max-md:flex-1 ' + (effectivePart === value
+                  ? (value <= 4 ? 'border-slate-900 bg-indigo-600 text-white' : 'border-slate-900 bg-teal-600 text-white') + ' shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none'
+                  : (value <= 4 ? 'border-indigo-200 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300' : 'border-teal-200 text-teal-700 dark:border-teal-800 dark:text-teal-300') + ' bg-white dark:bg-slate-900')}>{value}</button>)}
+            </div>
+  );
+  const optional = <span className="ml-1 text-xs font-semibold text-slate-400 dark:text-slate-500">không bắt buộc</span>;
   const canReadClipboard = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.readText);
 
   const choiceButton = (letter: ChoiceLetter) => {
     const option = options.find(value => value.startsWith(`(${letter})`));
     return <button type="button" key={letter} disabled={!choicesReady || (!freeformReady && !option)} aria-pressed={choice === letter} aria-label={`Bạn chọn ${letter}`} title={option?.replace(/^\([A-D]\)\s*/, '')}
-      onClick={() => { setChoice(value => value === letter ? '' : letter); setChanged(true); }} className={`min-h-11 min-w-11 rounded-lg border px-3 py-2 text-base font-extrabold max-md:h-[50px] max-md:flex-1 max-md:rounded-xl max-md:border-2 max-md:text-lg disabled:cursor-not-allowed disabled:opacity-40 ${choice === letter ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-500' : 'border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900/50'}`}>{letter}</button>;
+      onClick={() => { setChoice(value => value === letter ? '' : letter); setChanged(true); }} className={`h-11 w-11 cursor-pointer rounded-full border-2 text-base font-extrabold max-md:h-[50px] max-md:w-auto max-md:flex-1 max-md:rounded-xl max-md:text-lg disabled:cursor-not-allowed disabled:opacity-40 ${choice === letter ? 'border-slate-900 bg-rose-500 text-white dark:border-slate-200' : 'border-slate-300 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-300'}`}>{letter}</button>;
   };
 
   const contextBlock = (
@@ -402,11 +411,11 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                 onAdd={files => void addImages(files)} onRemove={id => { setImages(value => value.filter(image => image.id !== id)); setSourceImageIds([]); uploadedImageKey.current = ''; invalidateContext(); }} />} />
   );
   const answerDetails = (
-<details open={isPhone || keyOpen} onToggle={event => { if (!isPhone) setKeyOpen(event.currentTarget.open); }} className="text-sm text-slate-600 dark:text-slate-300"><summary className="min-h-11 cursor-pointer py-2 font-semibold">{source ? `Đáp án từ đề: ${source}` : <>Đáp án đúng từ đề <span className="text-xs font-normal text-slate-500">(tùy chọn)</span></>}</summary><fieldset className="mt-1"><legend className="sr-only">Đáp án từ đề</legend><div className="flex flex-wrap gap-2">{choiceLetters.map(letter => { const option = options.find(value => value.startsWith(`(${letter})`)); return <button type="button" key={letter} disabled={!choicesReady || (!freeformReady && !option)} aria-label={`Đáp án từ đề: ${letter}`} aria-pressed={source === letter} onClick={() => { setSource(value => value === letter ? '' : letter); setChanged(true); }} className={`min-h-11 min-w-11 rounded-lg border text-base font-extrabold disabled:cursor-not-allowed disabled:opacity-40 ${source === letter ? 'border-slate-900 bg-slate-200 ring-1 ring-slate-900 dark:border-slate-200 dark:bg-slate-700' : 'border-slate-300 dark:border-slate-700'}`}>{letter}</button>; })}</div></fieldset>{!choicesReady && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Dán câu hỏi để chọn đáp án từ đề.</p>}{source && <button type="button" className="mt-1 py-1 text-xs text-slate-500 dark:text-slate-400" onClick={() => { setSource(''); setChanged(true); }}>Bỏ chọn</button>}</details>
+<details open={isPhone || keyOpen} onToggle={event => { if (!isPhone) setKeyOpen(event.currentTarget.open); }} className="text-sm text-slate-600 dark:text-slate-300"><summary className="min-h-11 cursor-pointer py-2 font-semibold">{source ? `Đáp án từ đề: ${source}` : <>Đáp án đúng từ đề{optional}</>}</summary><fieldset className="mt-1"><legend className="sr-only">Đáp án từ đề</legend><div className="flex flex-wrap gap-2">{choiceLetters.map(letter => { const option = options.find(value => value.startsWith(`(${letter})`)); return <button type="button" key={letter} disabled={!choicesReady || (!freeformReady && !option)} aria-label={`Đáp án từ đề: ${letter}`} aria-pressed={source === letter} onClick={() => { setSource(value => value === letter ? '' : letter); setChanged(true); }} className={`min-h-11 min-w-11 rounded-lg border text-base font-extrabold disabled:cursor-not-allowed disabled:opacity-40 ${source === letter ? 'border-slate-900 bg-slate-200 ring-1 ring-slate-900 dark:border-slate-200 dark:bg-slate-700' : 'border-slate-300 dark:border-slate-700'}`}>{letter}</button>; })}</div></fieldset>{!choicesReady && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Dán câu hỏi để chọn đáp án từ đề.</p>}{source && <button type="button" className="mt-1 py-1 text-xs text-slate-500 dark:text-slate-400" onClick={() => { setSource(''); setChanged(true); }}>Bỏ chọn</button>}</details>
   );
   const categorySelect = (
-          <label className="col-span-2 min-w-0 text-sm font-bold sm:col-span-1">Lỗi sai <span className="text-xs font-normal text-slate-500">(tùy chọn)</span>
-            <select aria-label="Lỗi sai" className="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base font-normal dark:border-slate-700 dark:bg-slate-900"
+          <label className="w-[200px] shrink-0 text-sm font-bold max-md:col-span-2 max-md:w-full">Lỗi sai{optional}
+            <select aria-label="Lỗi sai" className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-base font-normal dark:border-slate-700 dark:bg-slate-900"
               value={selectedCategory} onChange={event => { setSelectedCategory(event.target.value as ErrorCategory | ''); setChanged(true); }}>
               <option value="">Chưa chọn</option>{Object.entries(categoryChoices).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
@@ -417,20 +426,14 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="mistake-entry-title" className="flex max-h-[100dvh] w-full flex-col max-md:h-[100dvh] max-md:border-0 border-2 border-slate-900 bg-white text-slate-900 dark:border-slate-200 dark:bg-[#111A2C] dark:text-slate-100 sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-2xl sm:shadow-[6px_6px_0px_#0f172a] dark:sm:shadow-[6px_6px_0px_#cbd5e1]">
       <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3.5 dark:border-slate-700 sm:px-6">
         <h2 id="mistake-entry-title" className="text-xl font-extrabold">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
-          : <span className="shadow-[inset_0_-7px_0_#fef08a] dark:shadow-[inset_0_-7px_0_#57431c]">{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa lỗi sai' : 'Thêm lỗi sai'}</span>}</h2>
+          : <span>{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa câu sai' : 'Thêm câu sai'}</span>}</h2>
         <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
       </header>
       <ScrollableModalBody resetKey={step} compact>
         {step === 'input' ? <fieldset disabled={busy || imageBusy || persisting} className="space-y-3 border-0 p-0">
           {isPhone ? <>
           <div><p className="mb-2 text-[13.5px] font-black text-slate-700 dark:text-slate-200">Part <span className="text-rose-600" aria-hidden="true">*</span></p>
-            <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="Part">
-              {([1, 2, 3, 4, 5, 6, 7] as const).map(value => <button key={value} type="button" aria-pressed={effectivePart === value} aria-label={`Part ${value}`}
-                onClick={() => choosePart(value)}
-                className={'h-11 rounded-xl border-2 text-[15px] font-black ' + (effectivePart === value
-                  ? (value <= 4 ? 'border-slate-900 bg-indigo-600 text-white' : 'border-slate-900 bg-teal-600 text-white') + ' shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none'
-                  : 'border-stone-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300')}>{value}</button>)}
-            </div>
+            {partButtons}
           </div>
           <div><span className="mb-2 block text-[13.5px] font-black text-slate-700 dark:text-slate-200">Đề <span className="text-rose-600" aria-hidden="true">*</span></span>
             <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={busy}
@@ -438,37 +441,32 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           </div>
           {contextBlock}
           </> : <>
-          <div className="grid w-full max-w-[640px] grid-cols-[144px_minmax(0,1fr)] items-end gap-3 sm:grid-cols-[144px_minmax(0,230px)_minmax(0,230px)]">
-          <label className="block text-sm font-bold">Part <span className="text-rose-600" aria-hidden="true">*</span>
-            <span className="relative mt-1.5 block"><select aria-label="Part" required className="min-h-11 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-9 text-base font-semibold dark:border-slate-700 dark:bg-slate-900"
-              value={effectivePart ?? ''} onChange={event => choosePart(Number(event.target.value) as MistakeEntry['part'] || null)}>
-              <option value="" disabled>Chọn Part</option>{[1,2,3,4,5,6,7].map(value => <option key={value} value={value}>Part {value}</option>)}
-            </select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden="true" /></span>
-          </label>
-          <div className="min-w-0"><span className="mb-1.5 block text-sm font-bold">Đề <span className="text-rose-600" aria-hidden="true">*</span></span>
+          <div className="flex w-full items-end gap-4">
+          <div><span className="mb-1.5 block text-sm font-bold">Part</span>{partButtons}</div>
+          <div className="min-w-0 flex-1"><span className="mb-1.5 block text-sm font-bold">Đề</span>
           <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={busy}
             onChange={name => { if ((reading || imageIdsDraft.length) && testNameKey(name) !== testNameKey(sourceTestName)) clearReading(); setSourceTest(name); setChanged(true); }} />
           </div>
           {categorySelect}
           </div>
           </>}
-          <div><div className="mb-2"><label htmlFor="mistake-paste" className="text-sm font-bold text-blue-600 dark:text-blue-400">{instructions.label} <span className="text-rose-600">*</span></label></div>
+          <div><div className="mb-2"><label htmlFor="mistake-paste" className="text-sm font-bold">{instructions.label}</label></div>
             <p id="mistake-input-hint" className="mb-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300 max-md:sr-only">{reading ? sourceImageIds.length ? 'Dán câu mới kèm phương án. Dùng lại ảnh bài đọc, không cần thêm lại.' : 'Dán câu mới kèm phương án; bài đọc được dùng lại.' : isPhone ? instructions.hint.replace('bên dưới', 'bên trên') : instructions.hint}</p>
             <div className="relative"><textarea id="mistake-paste" aria-describedby="mistake-input-hint" maxLength={8000} spellCheck={false} value={raw} onChange={event => { setRaw(event.target.value); setCorrected(null); setChanged(true); }} rows={5}
               onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length) { event.preventDefault(); void addImages(files); } }}
               placeholder={effectivePart === 1 ? 'Dán bốn mô tả nghe A–D…' : effectivePart === 2 ? 'Dán câu hỏi và ba phản hồi A–C…' : 'Dán một câu hỏi và các phương án…'}
-              className={twMerge(inputClass, 'min-h-[144px] resize-y border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-[#102139] max-md:min-h-[128px] max-md:pb-12')} />
+              className={twMerge(inputClass, 'min-h-[144px] resize-y border-2 border-slate-900 bg-[#FFFDF7] dark:border-slate-300 dark:bg-slate-900 max-md:min-h-[128px] max-md:pb-12')} />
             {isPhone && canReadClipboard && !raw && <button type="button" onClick={() => void navigator.clipboard.readText().then(text => { if (text) { setRaw(text); setCorrected(null); setChanged(true); } }).catch(() => undefined)}
               className="absolute bottom-2.5 right-2.5 flex h-9 items-center gap-1.5 rounded-xl border-[1.5px] border-blue-200 bg-white px-3 text-[13px] font-black text-blue-700 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300">
               <ClipboardPaste className="h-4 w-4" aria-hidden="true" />Dán</button>}</div>
             {!config?.freeformInput && !corrected && raw && parsed.error && <p role="alert" className="mt-2 text-sm text-rose-600 dark:text-rose-300">{parsed.error}</p>}
           </div>
           {!isPhone && contextBlock}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><fieldset><legend className="mb-2 text-sm font-bold">Bạn đã chọn <span className="text-xs font-normal text-slate-500">(nếu nhớ)</span></legend><div className="flex flex-wrap gap-2 max-md:flex-nowrap">{choiceLetters.map(choiceButton)}</div><p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{choicesReady ? 'Không chọn nếu chưa nhớ. Bấm lại để bỏ chọn.' : 'Dán câu hỏi để chọn phương án.'}</p></fieldset>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><fieldset><legend className="mb-2 text-sm font-bold">Bạn đã chọn{optional}</legend><div className="flex flex-wrap gap-2 max-md:flex-nowrap">{choiceLetters.map(choiceButton)}</div><p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{choicesReady ? 'Không chọn nếu chưa nhớ. Bấm lại để bỏ chọn.' : 'Dán câu hỏi để chọn phương án.'}</p></fieldset>
             {!isPhone && answerDetails}
           </div>
           {(!isPhone || choice || reason) && <>
-          <div><label htmlFor="mistake-reason" className="mb-2 block text-sm font-bold text-amber-800 dark:text-amber-300">Lý do chọn <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(nếu muốn)</span></label><textarea id="mistake-reason" maxLength={2000} rows={1} value={reason} onChange={event => { setReason(event.target.value); event.currentTarget.style.height = 'auto'; event.currentTarget.style.height = `${Math.max(48, Math.min(120, event.currentTarget.scrollHeight))}px`; setChanged(true); }} placeholder="Mình chọn vì…" className={twMerge(inputClass, 'min-h-12 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-[#292319]')} /></div>
+          <div><label htmlFor="mistake-reason" className="mb-2 block text-sm font-bold">Lý do chọn{optional}</label><textarea id="mistake-reason" maxLength={2000} rows={1} value={reason} onChange={event => { setReason(event.target.value); event.currentTarget.style.height = 'auto'; event.currentTarget.style.height = `${Math.max(48, Math.min(120, event.currentTarget.scrollHeight))}px`; setChanged(true); }} placeholder="Mình chọn vì…" className={twMerge(inputClass, 'min-h-12 border-2 border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-900')} /></div>
           </>}
           {isPhone && <details className="group rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 dark:border-slate-700 dark:bg-slate-900">
             <summary className="flex min-h-[50px] cursor-pointer list-none items-center justify-between text-[14px] font-bold [&::-webkit-details-marker]:hidden">Đáp án, loại lỗi<span className="flex items-center gap-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{source ? `Đáp án ${source}` : 'Tùy chọn'}<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" /></span></summary>
@@ -491,7 +489,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           </div></details>}
           {!draft.correctAnswer && <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có đáp án · bổ sung để ôn.</p>}
           {draft.missingInformation.length > 0 && <div className="text-sm text-amber-800 dark:text-amber-300" role="status">{draft.missingInformation.map((message, index) => <p key={index}>{message}</p>)}</div>}
-          {draft.part === null && <label className="block text-sm font-semibold">Part<select aria-label="Part" className={`${inputClass} mt-1`} value="" onChange={event => { const value = Number(event.target.value) as MistakeEntry['part']; setDraft({ ...draft, part: value || null }); setPart(value || null); draftInput.current = inputText({ ...input, part: value || null }); setChanged(true); }}><option value="">Chọn Part</option>{[1,2,3,4,5,6,7].map(value => <option key={value} value={value}>Part {value}</option>)}</select></label>}
+          {draft.part === null && <label className="block text-sm font-semibold">Part<select aria-label="Part" className={`${inputClass} mt-1`} value="" onChange={event => { const value = Number(event.target.value) as MistakeEntry['part']; setDraft({ ...draft, part: value || null }); setPart(value || null); draftInput.current = inputText({ ...input, part: value || null }); setChanged(true); }}><option value="">Chọn Part</option>{partChoices.map(value => <option key={value} value={value}>Part {value}</option>)}</select></label>}
         </>}
         {step === 'input' && aiAccess?.enabled === false && <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
           <p>{aiAccess.accessMessage}</p><button type="button" disabled={configBusy} onClick={() => setConfigAttempt(value => value + 1)} className="min-h-10 font-semibold underline">Kiểm tra quyền AI</button>
@@ -501,9 +499,9 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         {step === 'input' && <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />}
       </ScrollableModalBody>
       <footer className={`flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3.5 dark:border-slate-700 dark:bg-[#111A2C] sm:px-6 max-md:pb-[calc(0.875rem+env(safe-area-inset-bottom))] ${step === 'input' ? 'max-md:flex-nowrap' : ''}`}>
-        {step === 'input' ? <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-violet-600 text-white hover:bg-violet-500 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
-          : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm lỗi tiếp'}</button></div></>
-          : <><button type="button" disabled={persisting} onClick={() => { setStep('input'); setError(''); }} className={linkClass}>Quay lại</button><div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">{!original && <button type="button" disabled={persisting} onClick={() => void save(true, draft, false, canReuseReading)} className={`${primaryClass} min-h-11 bg-amber-200 text-slate-950 hover:bg-amber-100`}>{canReuseReading ? 'Lưu & thêm câu cùng bài' : 'Lưu & thêm tiếp'}</button>}<button type="button" disabled={persisting} onClick={() => void save()} className={`${primaryClass} bg-emerald-400 text-slate-950 hover:bg-emerald-300`}>{persisting ? 'Đang lưu…' : original ? 'Lưu thay đổi' : 'Lưu lỗi sai'}</button></div></>}
+        {step === 'input' ? <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
+          : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm câu tiếp'}</button></div></>
+          : <><button type="button" disabled={persisting} onClick={() => { setStep('input'); setError(''); }} className={linkClass}>Quay lại</button><div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">{!original && <button type="button" disabled={persisting} onClick={() => void save(true, draft, false, canReuseReading)} className={`${primaryClass} min-h-11 bg-white text-slate-950 hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white`}>{canReuseReading ? 'Lưu & thêm câu cùng bài' : 'Lưu & thêm tiếp'}</button>}<button type="button" disabled={persisting} onClick={() => void save()} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{persisting ? 'Đang lưu…' : original ? 'Lưu thay đổi' : 'Lưu câu sai'}</button></div></>}
       </footer>
     </div>
   </div>;

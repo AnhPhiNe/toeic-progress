@@ -33,19 +33,19 @@ const question = 'Part 5:\nReports should ____ submitted.\n(A) are\n(B) be\n(C) 
 
 test('source names survive repeated entry, filter with other criteria, and scope the due review', async ({ page }) => {
   await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   let modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
   await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('ETS 2024 Test 03');
   await page.getByRole('option', { name: '+ Thêm tên đề “ETS 2024 Test 03”', exact: true }).click();
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question);
 
   await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();
   await modal.getByRole('button', { name: 'Đáp án từ đề: B' }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
-  await modal.getByRole('button', { name: 'Thêm lỗi tiếp' }).click();
-  await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('5');
+  await modal.getByRole('button', { name: 'Thêm câu tiếp' }).click();
+  await expect(modal.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(modal.getByLabel('Câu hỏi + phương án')).toBeFocused();
   await expect(modal.locator('button[aria-label="Đáp án từ đề: B"]')).toHaveAttribute('aria-pressed', 'false');
   await expect(modal.getByText('ETS 2024 Test 03', { exact: true })).toBeVisible();
@@ -53,20 +53,20 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
   await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('  ets 2024   test 03  ');
   await page.getByRole('option', { name: 'ETS 2024 Test 03', exact: true }).click();
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question.replace('Reports', 'Forms'));
 
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
 
   for (const sourceName of ['ETS 2023 Test 02', 'ETS 2021 Test 01']) {
-    await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+    await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
     modal = page.getByRole('dialog');
-    await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('');
+    await expect(modal.getByRole('group', { name: 'Part', exact: true }).locator('[aria-pressed=\"true\"]')).toHaveCount(0);
     await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
     await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill(sourceName);
     await page.getByRole('option', { name: `+ Thêm tên đề “${sourceName}”`, exact: true }).click();
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
     await modal.getByLabel('Câu hỏi + phương án').fill(question);
 
     await modal.getByText('Đáp án đúng từ đề', { exact: false }).click();

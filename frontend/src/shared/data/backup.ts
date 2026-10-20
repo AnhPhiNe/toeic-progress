@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import { explanationSchema, optionNoteSchema, normalizeReviewTimestamp, normalizeMistakeRecord } from '@/shared/data/mistakeFields';
+import { partOfQuestion, partScoresFromWrong } from '@/shared/domain/questionNumbers';
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'phải là ngày YYYY-MM-DD')
   .refine(value => Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value && Number(value.slice(0, 4)) > 0, 'ngày không tồn tại');
 const timestamp = z.string().min(1, 'thiếu thời điểm')
   .refine(value => /T.+(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value)), 'thời điểm không hợp lệ hoặc thiếu múi giờ');
 const metadata = { updatedAt: timestamp, deletedAt: timestamp.nullable() };
+const questionNumber = z.number().int().min(1).max(200);
 const partNumber = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]);
 const category = z.enum(['VOCABULARY_TRAP', 'ADVANCED_GRAMMAR', 'LISTENING_SPEED', 'TIME_PRESSURE', 'CARELESS_DISTRACTION', 'OTHER']);
 const nonnegative = z.number().finite().nonnegative();
@@ -39,9 +41,15 @@ const session = z.object({
   partScores: partScores.optional(), practiceParts: z.array(practicePart).max(7).refine(parts => new Set(parts.map(part => part.part)).size === parts.length, 'Part luyện tập bị trùng').optional(),
   scoreSource: z.enum(['ESTIMATED','MANUAL_SECTIONS','MANUAL_TOTAL']).optional(),
   scoreConversionVersion: z.string().max(100).optional(),
+  wrongQuestions: z.array(questionNumber).max(200).refine(list => list.every((value, index) => index === 0 || value > list[index - 1]), 'danh sách câu sai phải tăng dần, không trùng').optional(),
   notes: z.string().optional(), attemptNumber: z.number().int().positive().optional(), createdAt: timestamp,
   ...metadata
 }).passthrough().superRefine((value, context) => {
+  if (value.wrongQuestions) {
+    if (value.sessionType !== 'FULL_TEST') context.addIssue({ code: 'custom', path: ['wrongQuestions'], message: 'danh sách câu sai chỉ dùng cho Full Test' });
+    else if (value.partScores && Object.entries(partScoresFromWrong(value.wrongQuestions)).some(([key, correct]) => value.partScores![key as keyof typeof value.partScores] !== correct))
+      context.addIssue({ code: 'custom', path: ['wrongQuestions'], message: 'số câu đúng từng Part không khớp danh sách câu sai' });
+  }
   if (!value.scoreSource) return;
   const issue = (message: string) => context.addIssue({ code: 'custom', path:['scoreSource'], message });
   if (value.sessionType !== 'FULL_TEST') issue('nguồn điểm chỉ áp dụng cho bài Full Test');
@@ -56,7 +64,7 @@ const session = z.object({
 });
 
 const mistake = z.object({
-  id: z.string().min(1), sessionId: z.string().optional(), part: partNumber,
+  id: z.string().min(1), sessionId: z.string().optional(), part: partNumber, questionNumber: questionNumber.optional(),
   sourceTestName: z.string().max(300).nullable().optional(),
   questionContext: z.string(), userMistake: z.string(), correctAnswer: z.string(),
   question: z.string().max(16000).optional(), context: z.string().max(16000).optional(),
@@ -66,6 +74,7 @@ const mistake = z.object({
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
   userReason: z.string().max(2000).optional(),
   answerProvidedBy: z.enum(['SOURCE', 'LEARNER']).optional(),
+  answerDoubt: z.enum(['A', 'B', 'C', 'D']).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).optional(),
   explanation: explanationSchema.optional(),
   trapTip: z.string().optional(),
@@ -74,6 +83,7 @@ const mistake = z.object({
   createdAt: timestamp, nextReviewDate: date.optional(), reviewStage: nonnegative.optional(),
   reviewCount: nonnegative.optional(), lastReviewedAt: timestamp.optional(), ...metadata
 }).passthrough().superRefine((value, context) => {
+  if (value.questionNumber !== undefined && partOfQuestion(value.questionNumber) !== value.part) context.addIssue({ code: 'custom', path: ['questionNumber'], message: 'số câu không thuộc Part đã chọn' });
   if (value.userChoiceState === 'CHOSEN' && !value.userChoice) context.addIssue({ code: 'custom', path: ['userChoice'], message: 'thiếu phương án đã chọn' });
   if (value.userChoiceState && value.userChoiceState !== 'CHOSEN' && value.userChoice) context.addIssue({ code: 'custom', path: ['userChoice'], message: 'Không nhớ/Bỏ trống không có phương án đã chọn' });
 });

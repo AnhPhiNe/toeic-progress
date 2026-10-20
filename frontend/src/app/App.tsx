@@ -14,6 +14,7 @@ import { PlanView } from '@/features/plans/components/PlanView';
 import { ResourcesView } from '@/features/resources/components/ResourcesView';
 import { VocabularyView } from '@/features/vocabulary/components/VocabularyView';
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
+import { SavedTestNotice } from '@/features/study-sessions/components/SavedTestNotice';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
@@ -49,6 +50,8 @@ import {
 } from '@/shared/data/storage';
 import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
+import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
+import { MISTAKES_CHANGED_EVENT } from '@/features/mistakes/services/explanationQueue';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
@@ -98,7 +101,7 @@ export const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
-  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string } | null>(null);
+  const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   const navigateToPacing = (part: ReadingPartType) => {
@@ -118,8 +121,10 @@ export const App: React.FC = () => {
   const closePacingEditor = useCallback(() => setEditingPacing(null), []);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
+  const [savedTest, setSavedTest] = useState<StudySession | null>(null);
+  const closeSavedTest = useCallback(() => setSavedTest(null), []);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
+  useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
   // Đọc lại từ chính class đó để React luôn khớp với những gì người dùng đã nhìn thấy.
@@ -190,6 +195,14 @@ export const App: React.FC = () => {
     setActiveTab('mistakes');
   };
 
+  // Sau khi ghi đề bằng câu sai: mở Sổ tay đúng đề đó để ghi chi tiết các thẻ vừa tạo.
+  const openSessionDrafts = (session: StudySession) => {
+    const owner = getActiveAccountId();
+    setNotebookSourceFilter({ owner, names: [session.testName] });
+    setSessionMistakeRequest({ id: crypto.randomUUID(), owner, detailSessionId: session.id });
+    setActiveTab('mistakes');
+  };
+
   // Nút + trên điện thoại: mở form thêm lỗi trống ở Sổ tay, không lọc theo đề nào.
   const openNewMistake = () => {
     const owner = getActiveAccountId();
@@ -212,9 +225,18 @@ export const App: React.FC = () => {
     if (newMistakes && newMistakes.length > 0) {
       setMistakes(updateMistakes(current => [...newMistakes, ...current]));
     }
+    // Each wrong question becomes a draft card in the notebook.
+    if (session.wrongQuestions) setMistakes(updateMistakes(current => applyDraftSync(session, current)));
   };
 
   // Phòng Thi tự ghi buổi học vào bộ nhớ; đọc lại để state không bị cũ
+  // Explanations written in the background update stored cards; show them.
+  useEffect(() => {
+    const reload = () => setMistakes(loadMistakes());
+    window.addEventListener(MISTAKES_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(MISTAKES_CHANGED_EVENT, reload);
+  }, []);
+
   const handleSessionsChangedElsewhere = useCallback(() => {
     setSessions(loadStudySessions());
     setMistakes(loadMistakes());
@@ -247,6 +269,7 @@ export const App: React.FC = () => {
     if (newMistakes && newMistakes.length > 0) {
       setMistakes(updateMistakes(current => [...newMistakes, ...current]));
     }
+    if (session.wrongQuestions) setMistakes(updateMistakes(current => applyDraftSync(session, current)));
   };
 
   // Thay nội dung một thẻ lỗi sai (trạng thái & lịch ôn đã được giữ ở form)
@@ -260,7 +283,8 @@ export const App: React.FC = () => {
   // Xóa session
   const handleDeleteSession = (sessionId: string) => {
     setSessions(updateStudySessions(current => current.filter(s => s.id !== sessionId)));
-    setMistakes(loadMistakes());
+    // Drafts nobody has filled in go with their test; cards with content stay in the notebook.
+    setMistakes(updateMistakes(current => applyDraftSync({ id: sessionId, testName: '', wrongQuestions: [] }, current)));
     setProfile(loadUserProfile());
   };
 
@@ -477,6 +501,7 @@ export const App: React.FC = () => {
               onReopenCards={handleReopenCards}
               onDeleteMistake={handleDeleteMistake}
               onUpdateMistake={handleUpdateMistake}
+              onOpenSessionLogger={() => openSessionLogger()}
             />
           )}
 
@@ -540,7 +565,11 @@ export const App: React.FC = () => {
         editingSession={editingSession}
         onUpdateSession={handleUpdateSession}
         onAddMistakeForSession={openSessionMistake}
+        onOpenSessionDrafts={openSessionDrafts}
+        onSavedWrongTest={setSavedTest}
       />
+      {savedTest && <SavedTestNotice session={savedTest} onClose={closeSavedTest}
+        onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }} />}
 
       {reviewCards && (
         <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}

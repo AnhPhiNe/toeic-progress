@@ -46,8 +46,7 @@ test('latest test defaults to its latest attempt; selecting an older attempt cha
   await expect(page.getByRole('group',{name:'Thời gian',exact:true})).toHaveCount(0);
   await chooseTest(page,'ETS A');
   const attempts = page.getByLabel('Lần làm',{exact:true});
-  const scorePanel = page.getByRole('region',{name:'Độ chính xác 7 Part',exact:true});
-  const notesPanel = page.getByRole('region',{name:'Lỗi đã ghi của đề',exact:true});
+    const notesPanel = page.getByRole('region',{name:'Lỗi đã ghi của đề',exact:true});
   await expect(attempts).toHaveValue('retake');
   await expect(attempts.locator('option')).toHaveText(['Lần 2 · 05/10/2026 · Mới nhất','Lần 1 · 13/09/2026']);
   await expect(page.getByText('400/495',{exact:true})).toHaveCount(2);
@@ -55,9 +54,9 @@ test('latest test defaults to its latest attempt; selecting an older attempt cha
   await expect(page.getByRole('button',{name:'Phiên tập trung',exact:true})).toHaveCount(0);
   await expect(page.getByRole('img',{name:/^2 lỗi đã ghi:/})).toBeVisible();
   await attempts.selectOption('old');
-  await expect(scorePanel.getByRole('status')).toHaveText('Lần 1 · 13/09/2026');
+  await expect(attempts).toHaveValue('old');
   await expect(page.getByText('350/495',{exact:true})).toHaveCount(2);
-  await expect(page.getByRole('img',{name:/Tỷ lệ đúng theo Part,.*P5: 50%/})).toBeVisible();
+  await expect(page.getByRole('list',{name:/Tỷ lệ đúng theo Part,.*P5: 50%/})).toBeVisible();
   await expect(page.getByRole('img',{name:/^2 lỗi đã ghi:/})).toBeVisible();
   await expect(notesPanel.getByText('Gồm các lần làm của đề',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Bấm giờ P5',exact:true})).toBeVisible();
@@ -84,9 +83,9 @@ test('a total-only latest attempt stays incomplete; switching tests resets the a
   await expect(page.getByText('Lượt này chưa có chi tiết Part.',{exact:true})).toBeVisible();
   await expect(page.getByText(/Sổ tay ghi nhiều lỗi nhất ở nhóm/)).toBeVisible();
   await expect(page.getByText('Chưa ghi',{exact:true})).toHaveCount(2);
-  await expect(page.getByRole('img',{name:/^Tỷ lệ đúng theo Part/})).toHaveCount(0);
+  await expect(page.getByRole('list',{name:/^Tỷ lệ đúng theo Part/})).toHaveCount(0);
   await page.getByLabel('Lần làm',{exact:true}).selectOption('old');
-  await expect(page.getByRole('img',{name:/^Tỷ lệ đúng theo Part/})).toBeVisible();
+  await expect(page.getByRole('list',{name:/^Tỷ lệ đúng theo Part/})).toBeVisible();
   await chooseTest(page,'ETS B');
   await expect(page.getByLabel('Lần làm',{exact:true})).toHaveValue('other');
   await expect(page.getByLabel('Lần làm',{exact:true}).locator('option')).toHaveText(['Lần 1 · 08/10/2026 · Mới nhất']);

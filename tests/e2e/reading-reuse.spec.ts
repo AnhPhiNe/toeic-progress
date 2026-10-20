@@ -23,9 +23,9 @@ async function mockAnalysis(page: Page) {
 
 test('five questions reuse three images once and preserve the full source without carrying answers or explanations', async ({ page }, testInfo) => {
   await mockAnalysis(page); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Reuse');
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question(1) + '\n' + choices.join('\n'));
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
@@ -42,7 +42,7 @@ test('five questions reuse three images once and preserve the full source withou
   await page.screenshot({ path: testInfo.outputPath('after-ai-same-reading-desktop.png') });
   await page.setViewportSize({ width: 375, height: 820 });
   await expect(modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true })).toBeInViewport();
-  await expect(modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true })).toBeInViewport();
+  await expect(modal.getByRole('button', { name: 'Lưu câu sai', exact: true })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('after-ai-same-reading-mobile.png') });
   await modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true }).click();
@@ -80,7 +80,7 @@ test('five questions reuse three images once and preserve the full source withou
     } else {
       await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
       if (number < 5) await modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true }).click();
-      else await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+      else await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
     }
   }
   const calls = await page.evaluate(() => (window as Window & { __readingCalls: Array<{ input: { question: string; context: string }; imageCount: number }> }).__readingCalls);
@@ -112,9 +112,9 @@ test('a saved source can start a new question after reload; changing source, Par
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('7');
+  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
   page.once('dialog', dialog => dialog.accept());
   await modal.getByRole('button', { name: 'Đóng', exact: true }).click();

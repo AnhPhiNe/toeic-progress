@@ -15,6 +15,7 @@ from app.core.config import Settings
 from app.core.middleware import BodyLimitMiddleware
 from app.core.runtime import RuntimeMiddleware, configure_logging
 from app.integrations.gateway import Gateway
+from app.services.explain_tickets import TicketUses
 
 
 def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
@@ -26,6 +27,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         configure_logging()
         async with httpx.AsyncClient(timeout=35, transport=transport) as client:
             app.state.gateway = Gateway(settings, client)
+            app.state.ticket_uses = TicketUses(app.state.gateway.rpc)
             app.state.readiness_lock = asyncio.Lock()
             app.state.readiness = None
             yield
@@ -48,7 +50,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         allow_origins=settings.cors_origins,
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
-        expose_headers=["X-Request-ID", "Retry-After"],
+        expose_headers=["X-Request-ID", "Retry-After", "X-Error-Code"],
     )
 
     @app.exception_handler(RequestValidationError)

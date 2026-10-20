@@ -15,7 +15,7 @@
 .vocab-quick-date, .vocab-quick-count { border: 2px solid var(--vocab-border); background: var(--vocab-panel); color: var(--vocab-ink); padding: 6px 9px; border-radius: 10px; min-height: 38px; font-size: 14px; font-weight: 700; }
 .vocab-quick-date { width: 154px; }.vocab-quick-count { width: 72px; text-align: center; }
 .vocab-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; border: 1px solid var(--vocab-line); border-radius: 9px; padding: 6px 12px; font-size: 13px; font-weight: 700; background: var(--vocab-panel); color: var(--vocab-ink); cursor: pointer; }
-.vocab-button:hover { background: var(--vocab-soft); }.vocab-button.is-yellow { border: 2px solid #0f172a; background: #ffde46; color: #0f172a; box-shadow: 2px 2px 0 #0f172a; }.vocab-button.is-saved { background: #6ee7b7; }
+.vocab-button:hover { background: var(--vocab-soft); }.vocab-button.is-save { border: 2px solid #0f172a; background: #2563eb; color: #fff; box-shadow: 2px 2px 0 #0f172a; }.vocab-button.is-save:hover { background: #1d4ed8; }.vocab-button.is-saved { background: #6ee7b7; color: #0f172a; }
 .vocab-button.is-primary { border-color: var(--vocab-border); background: var(--vocab-purple); color: var(--vocab-panel); }
 .vocab-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--vocab-line); }
 .vocab-chart-panel { position: relative; }

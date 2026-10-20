@@ -6,7 +6,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import Settings
-from app.integrations.openai_provider import OpenAIProvider
+from app.integrations.openai_provider import OpenAIProvider, read_results
 from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
 from app.services.ai_access import AIAccess
@@ -41,8 +41,15 @@ class Gateway:
                 )
                 if not access.is_success:
                     return False
+            if self.settings.ai_ready and self.settings.rate_limit_secret:
+                ledger = await self.client.post(
+                    f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/explanation_ledger_ready",
+                    json={}, headers=self.admin_headers(), timeout=3,
+                )
+                if not ledger.is_success or ledger.json() != {"version": 1, "tables": True}:
+                    return False
             return True
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ValueError, TypeError):
             return False
 
     async def authenticate(self, token: str) -> dict:
@@ -147,10 +154,16 @@ class Gateway:
 
     async def generate(self, text: str, user_id: str | None = None, *, source_options: list[str] | None = None,
                        source_answer: str | None = None, images: list[str] | None = None,
-                       persistent_images: bool = False) -> MistakeDraft:
+                       persistent_images: bool = False, pin_question: bool = False) -> MistakeDraft:
         return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None,
                                           source_options=source_options, source_answer=source_answer, images=images,
-                                          persistent_images=persistent_images)
+                                          persistent_images=persistent_images, pin_question=pin_question)
+
+    async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None):
+        return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None)
+
+    async def read_results(self, images: list[str], user_id: str | None = None):
+        return await read_results(self.openai, images, self.ip_hash(user_id) if user_id else None)
 
     async def delete_account(self, user_id: str):
         if self.settings.source_images_enabled:

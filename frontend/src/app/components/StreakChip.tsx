@@ -106,7 +106,8 @@ const CELEBRATED_KEY = 'toeic_streak_celebrated_v1';
 
 /**
  * The first study recorded today makes the flame flare up once, then it shrinks back toward the chip.
- * It never blocks input and skips the motion when the system asks for reduced motion.
+ * It never blocks input, steps aside as soon as the learner taps or types (so it never sits over the
+ * next form), and skips the motion when the system asks for reduced motion.
  */
 export function StreakCelebration({ streak, studiedToday, today }: { streak: number; studiedToday: boolean; today: string }) {
   const [visible, setVisible] = useState(false);
@@ -125,6 +126,14 @@ export function StreakCelebration({ streak, studiedToday, today }: { streak: num
     const timer = window.setTimeout(() => setVisible(false), 2600);
     return () => window.clearTimeout(timer);
   }, [studiedToday, streak, today]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const hide = () => setVisible(false);
+    window.addEventListener('pointerdown', hide, true);
+    window.addEventListener('keydown', hide, true);
+    return () => { window.removeEventListener('pointerdown', hide, true); window.removeEventListener('keydown', hide, true); };
+  }, [visible]);
 
   if (!visible) return null;
   return (

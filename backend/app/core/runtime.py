@@ -19,12 +19,17 @@ from app.core.config import Settings
 
 logger = logging.getLogger("toeic.runtime")
 request_id_context: ContextVar[str | None] = ContextVar("request_id", default=None)
+# Paths that read the learner's AI access and count against AI quotas.
+AI_PATHS = ("/api/v1/ai/usage", "/api/v1/ai/extract", "/api/v1/ai/extract-page", "/api/v1/ai/read-results", "/api/v1/ai/explain-batch")
 ROUTES = {
     "/health": "health",
     "/ready": "ready",
     "/api/v1/sync": "sync",
     "/api/v1/ai/usage": "usage",
     "/api/v1/ai/extract": "ai",
+    "/api/v1/ai/extract-page": "ai",
+    "/api/v1/ai/read-results": "ai",
+    "/api/v1/ai/explain-batch": "ai",
     "/api/v1/account": "destructive",
     "/api/v1/data/reset": "destructive",
     "/api/v1/mistake-images": "sync",
@@ -159,7 +164,7 @@ class RuntimeMiddleware:
                 current[1] += 1
                 ip_window = current
                 known_ai_exempt = (
-                    path in ("/api/v1/ai/usage", "/api/v1/ai/extract")
+                    path in AI_PATHS
                     and token_hash in self.ai_exempt_tokens
                 )
                 if current[1] > self.settings.ingress_ip_minute_limit and not known_ai_exempt:

@@ -6,14 +6,18 @@ const TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 export interface PreparedImage { id: string; name: string; dataUrl: string }
 
 /** Decode/re-encode locally, preserving readable text within the existing API body limit. */
-export async function prepareImage(file: File): Promise<PreparedImage> {
+/** Result pages are read for numbers and marks only, so they are sent smaller and several fit in one request. */
+export const RESULT_IMAGE_OPTIONS = { maxSide: 1600, maxBytes: 300 * 1024 };
+export const MAX_RESULT_IMAGES = 8;
+
+export async function prepareImage(file: File, { maxSide = 2048, maxBytes = MAX_PREPARED_BYTES } = {}): Promise<PreparedImage> {
   if (!TYPES.includes(file.type)) throw new Error('Chỉ nhận ảnh PNG, JPG hoặc WebP.');
   if (!file.size || file.size > MAX_UPLOAD_BYTES) throw new Error('Mỗi ảnh chọn tối đa 5 MB.');
   let bitmap: ImageBitmap;
   try { bitmap = await createImageBitmap(file); } catch { throw new Error('Không đọc được ảnh. Chọn ảnh khác.'); }
   try {
     if (!bitmap.width || !bitmap.height || bitmap.width * bitmap.height > 20_000_000) throw new Error('Ảnh quá lớn. Cắt phần bài đọc/câu hỏi cần dùng.');
-    const scale = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -21,9 +25,9 @@ export async function prepareImage(file: File): Promise<PreparedImage> {
     if (!context) throw new Error('Trình duyệt chưa xử lý được ảnh.');
     context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    for (const quality of [0.9, 0.8, 0.7]) {
+    for (const quality of [0.9, 0.8, 0.7, 0.6]) {
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      if (Math.ceil((dataUrl.length - dataUrl.indexOf(',') - 1) * 3 / 4) <= MAX_PREPARED_BYTES) {
+      if (Math.ceil((dataUrl.length - dataUrl.indexOf(',') - 1) * 3 / 4) <= maxBytes) {
         return { id: crypto.randomUUID(), name: file.name || 'Ảnh đã dán', dataUrl };
       }
     }

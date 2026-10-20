@@ -1,10 +1,6 @@
 import { Plus } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
-
-const formatShortDate = (iso: string) => {
-  const [, m, d] = iso.split('-');
-  return `${d}/${m}`;
-};
+import { formatShortDate, ScoreReportCard } from './ScoreReportCard';
 
 interface SummaryProps {
   latestTest: StudySession | null;
@@ -15,6 +11,8 @@ interface SummaryProps {
   targetScore: number;
   highestScore: number;
   bestTestDate?: string;
+  /** The latest test is also the record, so the card shows the record stamp */
+  latestIsBest?: boolean;
   avgScore?: number;
   totalTests: number;
   diff: number;
@@ -24,11 +22,11 @@ interface SummaryProps {
 }
 
 /**
- * Phones (<768px): the latest score is the one number a learner opens the app for,
- * so it leads; record, average and progress follow as three small tiles in one row.
+ * Phones (<768px): the latest score is the one number a learner opens the app for, so the
+ * score report leads, with record, average and progress as its footer instead of separate tiles.
  */
 export function PhoneSummary({ latestTest, latestTotal, previousTotal, listeningScore, readingScore, targetScore, highestScore,
-  bestTestDate, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger }: SummaryProps) {
+  bestTestDate, latestIsBest, avgScore, totalTests, diff, hasDiff, firstTotal, onOpenSessionLogger }: SummaryProps) {
   if (!latestTest) {
     return (
       <section className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
@@ -42,58 +40,28 @@ export function PhoneSummary({ latestTest, latestTotal, previousTotal, listening
     );
   }
 
-  const remaining = Math.max(0, targetScore - latestTotal);
-  const percent = Math.min(100, Math.round((latestTotal / targetScore) * 100));
-  const change = previousTotal !== undefined ? latestTotal - previousTotal : undefined;
   const diffColor = !hasDiff ? 'text-slate-400 dark:text-slate-500' : diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
 
   return (
-    <div className="flex flex-col gap-3">
-      <section aria-label="Bài thi gần nhất" className="rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
-        <div className="flex items-baseline justify-between gap-3 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-          <span className="min-w-0 truncate">{latestTest.testName}</span>
-          <span className="shrink-0 tabular-nums">{formatShortDate(latestTest.date)}</span>
-        </div>
-        <p className="mt-1.5 flex items-baseline gap-1.5">
-          <span className="text-[44px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">{latestTotal}</span>
-          <span className="text-[15px] font-bold text-slate-400">/ 990</span>
-          {change !== undefined && change !== 0 && (
-            <span className={'ml-1 text-[15px] font-black tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}
-              title="So với bài Full Test trước">
-              {change > 0 ? '+' : ''}{change}
-            </span>
-          )}
-        </p>
-        {listeningScore === undefined && readingScore === undefined
-          ? <p className="mt-1.5 text-[13px] text-slate-500 dark:text-slate-400">Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>
-          : <p className="mt-1.5 flex gap-3 text-[13.5px] font-black tabular-nums">
-              {listeningScore !== undefined && <span className="text-indigo-600 dark:text-indigo-400">L {listeningScore}</span>}
-              {readingScore !== undefined && <span className="text-teal-700 dark:text-teal-400">R {readingScore}</span>}
-            </p>}
-        <p className="mt-3 text-[13.5px] font-semibold text-slate-700 dark:text-slate-300">{remaining === 0
-          ? <>Đã đạt mục tiêu <strong className="text-emerald-700 dark:text-emerald-400">{targetScore}</strong></>
-          : <>Còn <strong className="text-amber-700 dark:text-amber-400">{remaining} điểm</strong> tới {targetScore}</>}</p>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
-          <div data-goal-bar className={'h-full rounded-full ' + (remaining === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-600 dark:bg-blue-500')} style={{ width: `${percent}%` }} />
-        </div>
-      </section>
-
-      <div className="grid grid-cols-3 gap-2">
-        <Tile label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={bestTestDate ? `Ngày ${formatShortDate(bestTestDate)}` : '—'} />
-        <Tile label="Trung bình" value={avgScore ?? '—'} color="text-blue-600 dark:text-blue-400" hint={`${totalTests} đề`} />
-        <Tile label="Từ bài đầu" value={hasDiff ? `${diff > 0 ? '+' : ''}${diff}` : '—'} color={diffColor}
-          hint={hasDiff && firstTotal !== undefined ? `${firstTotal} → ${latestTotal}` : 'Cần từ 2 đề'} />
-      </div>
-    </div>
+    // One test is trivially its own record, so the stamp waits for a second one.
+    <ScoreReportCard latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal} listeningScore={listeningScore}
+      readingScore={readingScore} targetScore={targetScore} newRecord={Boolean(latestIsBest) && totalTests > 1}>
+      <dl className="grid grid-cols-3 border-t-[1.5px] border-dashed border-slate-300 px-[18px] pb-3.5 pt-2.5 dark:border-slate-700">
+        <Stat label="Kỷ lục" value={highestScore} color="text-amber-600 dark:text-amber-400" hint={bestTestDate ? `Ngày ${formatShortDate(bestTestDate)}` : '—'} />
+        <Stat label="Trung bình" value={avgScore ?? '—'} color="text-blue-600 dark:text-blue-400" hint={`${totalTests} đề`} />
+        <Stat label="Từ bài đầu" value={hasDiff ? `${diff > 0 ? '+' : ''}${diff}` : '—'} color={diffColor}
+          hint={hasDiff && firstTotal !== undefined ? `từ ${firstTotal}` : 'Cần từ 2 đề'} />
+      </dl>
+    </ScoreReportCard>
   );
 }
 
-function Tile({ label, value, color, hint }: { label: string; value: number | string; color: string; hint: string }) {
+function Stat({ label, value, color, hint }: { label: string; value: number | string; color: string; hint: string }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-2.5 py-2.5 dark:border-slate-700 dark:bg-[#111A2C]">
-      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{label}</p>
-      <p className={`mt-0.5 text-[22px] font-black leading-tight tracking-tight tabular-nums ${color}`}>{value}</p>
-      <p className="truncate text-[11.5px] font-semibold text-slate-500 dark:text-slate-400" title={hint}>{hint}</p>
+    <div className="min-w-0">
+      <dt className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className={`text-[19px] font-extrabold leading-tight tabular-nums ${color}`}>{value}</dd>
+      <dd className="truncate text-[11px] font-semibold text-slate-400 dark:text-slate-500" title={hint}>{hint}</dd>
     </div>
   );
 }

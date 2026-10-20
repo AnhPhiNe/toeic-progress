@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"
     openai_max_output_tokens: int = Field(default=8192, ge=2048, le=16384)
     openai_timeout_seconds: float = Field(default=45, ge=5, le=60)
+    # Reading a screenshot with several questions writes several explanations in one response.
+    # The app waits 90 s for any request, so a page stays below that.
+    openai_page_max_output_tokens: int = Field(default=16384, ge=4096, le=32768)
+    openai_page_timeout_seconds: float = Field(default=80, ge=5, le=85)
     api_limits_enabled: bool = False  # Enable after applying the runtime migration; required when deployed.
     allowed_hosts: list[str] = []
     render_external_hostname: str = ""

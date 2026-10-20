@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import date, datetime, timedelta, timezone
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -11,6 +11,13 @@ from app.core.text_input import has_multiple_questions
 
 Number = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 Part = Annotated[int, Field(ge=1, le=7, strict=True)]
+QuestionNumber = Annotated[int, Field(ge=1, le=200, strict=True)]
+# Last question number of each Part in a TOEIC Listening & Reading test.
+PART_LAST_QUESTION = (6, 31, 70, 100, 130, 146, 200)
+
+
+def part_of_question(number: int) -> int:
+    return next(index + 1 for index, last in enumerate(PART_LAST_QUESTION) if number <= last)
 Category = Literal[
     "VOCABULARY_TRAP", "ADVANCED_GRAMMAR", "LISTENING_SPEED", "TIME_PRESSURE", "CARELESS_DISTRACTION", "OTHER"
 ]
@@ -79,9 +86,22 @@ class Session(Payload):
     attemptNumber: int | None = Field(default=None, ge=1)
     scoreSource: Literal["ESTIMATED", "MANUAL_SECTIONS", "MANUAL_TOTAL"] | None = None
     scoreConversionVersion: str | None = Field(default=None, max_length=100)
+    wrongQuestions: list[QuestionNumber] | None = Field(default=None, max_length=200)
 
     @model_validator(mode="after")
     def check_score_source(self):
+        if self.wrongQuestions is not None:
+            if self.sessionType != "FULL_TEST":
+                raise ValueError("Danh sách câu sai chỉ dùng cho Full Test")
+            if any(b <= a for a, b in zip(self.wrongQuestions, self.wrongQuestions[1:], strict=False)):
+                raise ValueError("Danh sách câu sai phải tăng dần, không trùng")
+            if self.partScores is not None:
+                wrong = [0] * 7
+                for number in self.wrongQuestions:
+                    wrong[part_of_question(number) - 1] += 1
+                sizes = [6, 25, 39, 30, 30, 16, 54]
+                if [getattr(self.partScores, f"part{index + 1}") for index in range(7)] != [size - count for size, count in zip(sizes, wrong, strict=True)]:
+                    raise ValueError("Số câu đúng từng Part không khớp danh sách câu sai")
         if self.practiceParts is not None and len({item.part for item in self.practiceParts}) != len(self.practiceParts):
             raise ValueError("Part luyện tập bị trùng")
         # Preserve legacy imports without changing or re-estimating their scores.
@@ -111,6 +131,7 @@ SourceImageId = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$", min_length=64, m
 class Mistake(Payload):
     id: str
     part: Part
+    questionNumber: QuestionNumber | None = None
     category: Category
     status: Literal["NEEDS_REVIEW", "MASTERED"]
     questionContext: str = Field(max_length=16000)
@@ -146,6 +167,8 @@ class Mistake(Payload):
 
     @model_validator(mode="after")
     def check_learner_choice(self):
+        if self.questionNumber is not None and part_of_question(self.questionNumber) != self.part:
+            raise ValueError("Số câu không thuộc Part đã chọn")
         if self.sourceImageIds and (self.part not in (1, 7) or (self.part == 1 and len(self.sourceImageIds) != 1)
                                     or len(set(self.sourceImageIds)) != len(self.sourceImageIds)):
             raise ValueError("Ảnh nguồn chỉ dùng cho Part 1 (một ảnh) hoặc Part 7")
@@ -317,6 +340,7 @@ class SyncRequest(BaseModel):
 
 class MistakeInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    max_analysis_length: ClassVar[int] = 8000
     question: str = Field(default="", max_length=4000)
     options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(default_factory=list, max_length=4)
     rawText: str | None = Field(default=None, min_length=1, max_length=8000)
@@ -339,8 +363,8 @@ class MistakeInput(BaseModel):
                 raise ValueError("Cần phương án đã chọn")
             if self.part == 2 and (self.userChoice == "D" or self.sourceAnswer == "D"):
                 raise ValueError("Part 2 chỉ có A–C")
-            if len(self.as_text()) > 8000:
-                raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
+            if len(self.as_text()) > self.max_analysis_length:
+                raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
             return self
         labels = []
         for option in self.options:
@@ -360,8 +384,8 @@ class MistakeInput(BaseModel):
             raise ValueError("Đáp án nguồn chưa khớp phương án")
         if len(labels) < 2 or not self.question.strip() or has_multiple_questions(self.question + "\n" + self.context):
             raise ValueError("Mỗi lần nhập một câu hỏi")
-        if len(self.as_text()) > 8000:
-            raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
+        if len(self.as_text()) > self.max_analysis_length:
+            raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
         return self
 
     def as_text(self) -> str:
@@ -530,6 +554,8 @@ class MistakeDraft(DraftCore):
     """Draft returned to the app. trapTip is plain text for older clients, search and backups."""
 
     trapTip: str = Field(max_length=4000)
+    # The option AI judged correct when it differs from the source's answer, so the learner can check the source.
+    answerDoubt: Literal["", "A", "B", "C", "D"] = ""
     optionNotes: list[OptionNote] = Field(default_factory=list, max_length=4)
     explanation: Explanation | None = None
 
@@ -567,6 +593,8 @@ class OpenAIDraftOutput(DraftCore):
     userChoice: UserChoice
     optionNotes: list[OptionNote] = Field(max_length=4)
     explanation: Explanation
+    # AI's own answer from the question alone; compared with the source answer, never shown as the answer itself.
+    ownAnswer: str = Field(default="", max_length=1000)
 
     @model_validator(mode="after")
     def check_option_notes(self):
@@ -587,7 +615,7 @@ class OpenAIDraftOutput(DraftCore):
         return self
 
     def to_draft(self) -> MistakeDraft:
-        draft = MistakeDraft(**self.model_dump(), trapTip="")
+        draft = MistakeDraft(**self.model_dump(exclude={"ownAnswer"}), trapTip="")
         draft.compose_trap_tip()
         return draft
 
@@ -626,6 +654,172 @@ class OpenAIPasteOutput(OpenAIDraftOutput):
         return value
 
     def to_draft(self) -> MistakeDraft:
-        draft = MistakeDraft(**self.model_dump(exclude={"inputIssue"}), trapTip="")
+        draft = MistakeDraft(**self.model_dump(exclude={"inputIssue", "ownAnswer"}), trapTip="")
         draft.compose_trap_tip()
         return draft
+
+
+class PageMistakeDraft(MistakeDraft):
+    """Screenshot passages stay complete; ordinary single-question limits stay unchanged."""
+
+    questionContext: str = Field(min_length=1, max_length=12002)
+    context: str | None = Field(default=None, max_length=8000)
+
+
+class OpenAIPageExplanationOutput(OpenAIDraftOutput):
+    questionContext: str = Field(min_length=1, max_length=12002)
+    context: str | None = Field(default=None, max_length=8000)
+
+    @classmethod
+    def ai_schema(cls) -> dict:
+        schema = super().ai_schema()
+        schema["properties"]["context"] = {"type": "string", "maxLength": 8000}
+        return schema
+
+    def to_draft(self) -> PageMistakeDraft:
+        draft = PageMistakeDraft(**self.model_dump(exclude={"ownAnswer"}), trapTip="")
+        draft.compose_trap_tip()
+        return draft
+
+
+MAX_PAGE_ITEMS = 6
+
+
+class PageQuestion(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    number: QuestionNumber
+    part: Part
+
+    @model_validator(mode="after")
+    def number_in_part(self):
+        if part_of_question(self.number) != self.part:
+            raise ValueError("Số câu không thuộc Part đã chọn")
+        return self
+
+
+class PageExtractRequest(BaseModel):
+    """Screenshots of an on-screen test and the learner's wrong questions to look for in them."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    consent: Literal[True]
+    provider: Literal["openai"]
+    captcha_token: str | None = Field(default=None, max_length=2048)
+    questions: list[PageQuestion] = Field(min_length=1, max_length=200)
+    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+
+    @model_validator(mode="after")
+    def check_page(self):
+        numbers = [question.number for question in self.questions]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError("Số câu bị trùng")
+        if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        return self
+
+
+class OpenAIPageItem(BaseModel):
+    """One wrong question copied from the screenshots. No explanation: that is written later, on request."""
+
+    model_config = ConfigDict(extra="forbid")
+    number: int
+    question: str = Field(max_length=4000)
+    # Never shorten a passage silently: an oversized item is reported as missing.
+    context: str = Field(max_length=8000)
+    options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
+    userChoice: UserChoice
+    correctAnswer: str = Field(max_length=1000)
+    answerSource: Literal["PROVIDED", "MISSING"]
+
+
+def page_output_schema(numbers: list[int]) -> dict:
+    """Strict schema for a page: up to MAX_PAGE_ITEMS questions, each numbered from the requested list."""
+    item = OpenAIPageItem.model_json_schema()
+    item.pop("title", None)
+    item["properties"]["number"] = {"type": "integer", "enum": sorted(numbers)}
+    item["required"] = list(item["properties"])
+    return {
+        "type": "object", "additionalProperties": False, "required": ["items"],
+        "properties": {"items": {"type": "array", "items": item, "maxItems": MAX_PAGE_ITEMS}},
+    }
+
+
+class OpenAIPageOutput(BaseModel):
+    """Items stay raw here: each is checked on its own, so one unreadable question does not lose the others."""
+
+    model_config = ConfigDict(extra="forbid")
+    items: list[dict] = Field(max_length=MAX_PAGE_ITEMS)
+
+
+MAX_RESULT_IMAGES = 8
+# Base64 of 2.5 MiB plus the JSON envelope stays under the 4 MiB request body limit.
+MAX_RESULT_IMAGE_BYTES = 5 * 512 * 1024
+
+
+class ResultsReadRequest(BaseModel):
+    """Screenshots of a test's result page (numbered questions marked right, wrong or skipped)."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    consent: Literal[True]
+    provider: Literal["openai"]
+    captcha_token: str | None = Field(default=None, max_length=2048)
+    # A whole result page often takes several screenshots; reading numbers is light work, so one request takes up to 8.
+    images: list[ImageAttachment] = Field(min_length=1, max_length=MAX_RESULT_IMAGES, repr=False)
+
+    @model_validator(mode="after")
+    def total_bytes(self):
+        if sum(image.byte_count for image in self.images) > MAX_RESULT_IMAGE_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 2,5 MiB")
+        return self
+
+
+QUESTION_LIST_SCHEMA = {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 200}, "maxItems": 200}
+RESULTS_OUTPUT_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["wrong", "skipped"],
+    "properties": {"wrong": QUESTION_LIST_SCHEMA, "skipped": QUESTION_LIST_SCHEMA},
+}
+
+
+class OpenAIResultsOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    wrong: list[int] = Field(max_length=200)
+    skipped: list[int] = Field(max_length=200)
+
+
+class PageExplanationInput(MistakeInput):
+    # Only signed screenshot follow-ups accept a full 8k passage plus the question,
+    # options and learner metadata; ordinary extract/freeform limits remain 8k.
+    # Existing per-field bounds limit real text to about 18k. Allow JSON's worst
+    # case escaping without rejecting a valid 8k passage containing line breaks.
+    max_analysis_length: ClassVar[int] = 120000
+
+
+class ExplainItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    number: QuestionNumber
+    input: PageExplanationInput
+
+    @model_validator(mode="after")
+    def written_question(self):
+        if self.input.rawText is not None or part_of_question(self.number) != self.input.part or self.input.part == 1:
+            raise ValueError("Chỉ giải thích câu đã đọc từ ảnh, đúng Part, có câu hỏi và phương án")
+        return self
+
+
+class ExplainBatchRequest(BaseModel):
+    """Explanations for questions a screenshot reading already counted, authorised by its ticket."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    consent: Literal[True]
+    provider: Literal["openai"]
+    ticket: str = Field(min_length=20, max_length=2048)
+    items: list[ExplainItem] = Field(min_length=1, max_length=MAX_PAGE_ITEMS)
+
+    @model_validator(mode="after")
+    def distinct_numbers(self):
+        numbers = [item.number for item in self.items]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError("Số câu bị trùng")
+        return self

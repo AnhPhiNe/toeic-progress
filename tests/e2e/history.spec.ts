@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { usePartCounts } from './helpers/sessionForm';
 
 async function seed(page: Page, count = 4) {
   await page.goto('/lich-su');
@@ -60,11 +61,12 @@ test('a same-named SW result does not count as an earlier LR attempt', async ({ 
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi điểm', exact: true }).click();
+  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
   const modal = page.getByRole('dialog');
   await modal.getByLabel('Tên Đề Thi / Nguồn').fill('Shared source');
   await page.getByRole('option', { name: 'Shared source', exact: true }).click();
   await expect(modal.getByText('Lần 4', { exact: true })).toHaveCount(0);
+  await usePartCounts(modal);
   await modal.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();
   await expect(modal).not.toBeVisible();
   const result = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.find((session: { skillType: string }) => session.skillType === 'LR'));
@@ -91,7 +93,7 @@ test('editing a legacy first attempt keeps its inferred order instead of assigni
 
 test('deleting the last row on the final page returns to a populated page and cancel preserves data', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await seed(page, 6);
+  await seed(page, 11);
   await page.getByRole('button', { name: 'Sau', exact: true }).click();
   const remove = page.getByRole('button', { name: /^Xóa bản ghi/ });
   await expect(remove).toHaveCount(1);
@@ -99,23 +101,24 @@ test('deleting the last row on the final page returns to a populated page and ca
   await remove.click(); await expect(remove).toHaveCount(1);
   page.once('dialog', dialog => dialog.accept());
   await remove.click();
-  await expect(page.getByRole('button', { name: /^Xem chi tiết/ })).toHaveCount(5);
-  await expect(page.getByText('5 bài làm', { exact: true })).toBeVisible();
-  await page.reload(); await expect(page.getByRole('button', { name: /^Xem chi tiết/ })).toHaveCount(5);
+  await expect(page.getByRole('button', { name: /^Xem chi tiết/ })).toHaveCount(10);
+  await expect(page.getByText('10 bài làm', { exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByRole('button', { name: /^Xem chi tiết/ })).toHaveCount(10);
 });
 
-test('history shows five rows at a time and searches the hidden older records', async ({ page }) => {
+test('history shows ten rows at a time and searches the hidden older records', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await seed(page, 7);
+  await seed(page, 12);
   const rows = page.getByRole('button', { name: /^Xem chi tiết/ });
-  await expect(rows).toHaveCount(5);
-  await expect(page.getByText('1–5 / 7 bài làm', { exact: true })).toBeVisible();
+  await expect(rows).toHaveCount(10);
+  await expect(page.getByText('1–10 / 12 bài làm', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sau', exact: true }).click();
   await expect(rows).toHaveCount(2);
-  await expect(page.getByText('6–7 / 7 bài làm', { exact: true })).toBeVisible();
+  await expect(page.getByText('11–12 / 12 bài làm', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Trước', exact: true }).click();
   await page.getByLabel('Tìm tên đề hoặc ghi chú').fill('ets test 1');
-  await expect(rows).toHaveCount(2);
+  // Both spellings of ETS Test 1 plus Tests 10–12.
+  await expect(rows).toHaveCount(5);
   await expect(page.getByRole('button', { name: 'Sau', exact: true })).toHaveCount(0);
 });
 

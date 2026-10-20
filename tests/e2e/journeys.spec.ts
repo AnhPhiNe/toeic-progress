@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('direct routes and public legal pages are available without an account', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
-  await page.getByRole('button', { name: 'Phân Tích Điểm Số' }).click();
+  await page.getByRole('button', { name: 'Phân tích điểm' }).click();
   await expect(page).toHaveURL(/\/phan-tich$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);

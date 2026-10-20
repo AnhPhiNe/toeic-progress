@@ -54,51 +54,51 @@ export const Topbar: React.FC<TopbarProps> = ({
 
   const tabConfig: Record<NavTabId, { title: string; short: string; category: string; icon: React.ElementType }> = {
     dashboard: {
-      title: 'Tổng Quan',
+      title: 'Tổng quan',
       short: 'Tổng quan',
       category: 'Hành trình',
       icon: LayoutDashboard
     },
     plan: {
-      title: 'Kế Hoạch Ôn Thi',
+      title: 'Kế hoạch',
       short: 'Kế hoạch',
       category: 'Hành trình',
       icon: Target
     },
     'exam-mode': {
-      title: 'Đồng Hồ Phòng Thi',
+      title: 'Đồng hồ phòng thi',
       short: 'Đồng hồ',
       category: 'Hành trình',
       icon: Timer
     },
     history: {
-      title: 'Lịch Sử Đề Thi',
+      title: 'Lịch sử thi',
       short: 'Lịch sử',
-      category: 'Đo lường & Chẩn đoán',
+      category: 'Đo lường & chẩn đoán',
       icon: History
     },
     analytics: {
-      title: 'Phân Tích Điểm Số',
+      title: 'Phân tích điểm',
       short: 'Phân tích',
-      category: 'Đo lường & Chẩn đoán',
+      category: 'Đo lường & chẩn đoán',
       icon: TrendingUp
     },
     mistakes: {
-      title: 'Sổ Tay Bẫy Sai',
+      title: 'Sổ tay',
       short: 'Sổ tay',
-      category: 'Đo lường & Chẩn đoán',
+      category: 'Đo lường & chẩn đoán',
       icon: BookOpen
     },
     vocabulary: {
-      title: 'Vốn Từ Vựng',
+      title: 'Từ vựng',
       short: 'Từ vựng',
-      category: 'Đo lường & Chẩn đoán',
+      category: 'Đo lường & chẩn đoán',
       icon: BookMarked
     },
     resources: {
-      title: 'Quy Đổi Điểm Số',
+      title: 'Quy đổi điểm',
       short: 'Quy đổi',
-      category: 'Đo lường & Chẩn đoán',
+      category: 'Đo lường & chẩn đoán',
       icon: Calculator
     }
   };
@@ -157,13 +157,13 @@ export const Topbar: React.FC<TopbarProps> = ({
             {/* Global Primary Action CTA: High Contrast Neo-Brutalist Slate - Clean & Non-glaring */}
             <button
               onClick={onOpenSessionLogger}
-              className="h-9 hidden md:flex items-center space-x-1.5 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-black text-xs border-2 border-slate-900 dark:border-white shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              title="Ghi nhận điểm thi mới (Phím tắt: N)"
-              aria-label="Nhập kết quả đề thi mới, phím tắt N"
+              className="h-9 hidden md:flex items-center space-x-1.5 px-3.5 sm:px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs border-2 border-slate-900 dark:border-slate-200 shadow-[2.5px_2.5px_0px_0px_#0f172a] dark:shadow-[2.5px_2.5px_0px_0px_#cbd5e1] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              title="Ghi điểm (phím tắt N)"
+              aria-label="Ghi điểm, phím tắt N"
             >
               <PlusCircle className="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
-              <span>Nhập Điểm</span>
-              <kbd className="hidden lg:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-900 rounded border border-slate-700 dark:border-slate-300 leading-none ml-0.5">
+              <span>Ghi điểm</span>
+              <kbd className="hidden lg:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black bg-blue-800 text-blue-50 rounded border border-blue-400 leading-none ml-0.5">
                 N
               </kbd>
             </button>

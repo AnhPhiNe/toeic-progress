@@ -166,6 +166,6 @@ test('legacy duplicate dates show one daily total and editing/deleting keeps tot
   await page.getByRole('button',{name:'Xóa ghi nhận ngày 09/10/2026',exact:true}).click();
   await expect(page.getByText('0 từ tích lũy',{exact:true})).toBeVisible();
   await expect(page.locator('[data-vocab-day]')).toHaveCount(0);
-  await page.getByRole('button',{name:'Tổng Quan',exact:true}).click();
+  await page.getByRole('button',{name:'Tổng quan',exact:true}).click();
   await expect(page.getByRole('group',{name:'Chuỗi học 0 ngày',exact:true})).toBeVisible();
 });

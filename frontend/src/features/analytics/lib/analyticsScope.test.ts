@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { analyticsScopeData, analyticsAttemptLabel } from './analyticsScope';
 import type { StudySession, MistakeEntry } from '@/shared/types';
+import { createDraftMistake } from '@/features/mistakes/lib/mistakeDrafts';
 
 const session = (id: string, patch: Partial<StudySession> = {}): StudySession => ({ id, testName: `ETS Test ${id}`,
   skillType: 'LR', sessionType: 'FULL_TEST', date: `2026-10-${id.padStart(2, '0')}`, createdAt: '2026-10-01T00:00:00Z',
@@ -10,6 +11,15 @@ const note = (id: string, patch: Partial<MistakeEntry> = {}): MistakeEntry => ({
   userMistake: '', correctAnswer: '(B) be', category: 'OTHER', status: 'NEEDS_REVIEW', tags: [], createdAt: '2026-10-01T00:00:00Z', ...patch });
 
 describe('analytics test and attempt selection', () => {
+  it('does not count a blank draft from logging the test as a mistake reason', () => {
+    const test = session('1', { testName: 'ETS A' });
+    const blank = createDraftMistake(test, 104, '2026-10-01T00:00:00Z');
+    const written = { ...createDraftMistake(test, 112, '2026-10-01T00:00:00Z'), category: 'ADVANCED_GRAMMAR' as const };
+    const data = analyticsScopeData([test], [blank, written], 'ets a');
+    expect(data.notes.map(row => row.id)).toEqual([written.id]);
+    expect(data.errors).toEqual([{ category: 'ADVANCED_GRAMMAR', count: 1, percent: 100 }]);
+  });
+
   it('excludes practice-only and SW-only sources without removing a shared Full Test or unknown notes-only source', () => {
     const full = session('1', { testName: 'ETS Full' });
     const practice = session('2', { testName: 'Practice only', sessionType: 'PART_PRACTICE' });

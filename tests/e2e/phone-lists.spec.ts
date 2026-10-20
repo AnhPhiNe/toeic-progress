@@ -16,7 +16,7 @@ test('phone notebook groups cards by status, keeps review above the bottom bar a
 
   await expect(page.getByRole('region', { name: 'Cần ôn · 2' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Xem 1 câu đã thuộc' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Thêm câu sai', exact: true })).toBeHidden();
   // The number prefix is dropped from the row.
   await expect(page.getByText('Reports a should ____ submitted.', { exact: true })).toBeVisible();
 

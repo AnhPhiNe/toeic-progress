@@ -1,8 +1,17 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
+import { DetailListFlow } from '@/features/mistakes/components/DetailListFlow';
+import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
+import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
+import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
+import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
+import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
+import { optionLetter } from '@/features/mistakes/lib/userChoice';
+import { mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
+import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
@@ -12,7 +21,7 @@ import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import './notebook.css';
 
-const NOTEBOOK_PAGE_SIZE = 5;
+const NOTEBOOK_PAGE_SIZE = 10;
 /** Phones list each status group in steps of this many rows. */
 const PHONE_GROUP_STEP = 10;
 const STATUS_FILTER_STYLE = {
@@ -40,7 +49,8 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
   initialSourceNames?: string[];
-  createRequest?: { sourceName?: string; sessionId?: string };
+  /** Opens the note form for a test, or with `detailSessionId` the detail flow for that test's draft cards. */
+  createRequest?: { sourceName?: string; sessionId?: string; detailSessionId?: string };
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
@@ -48,10 +58,15 @@ interface MistakeNotebookViewProps {
   onReopenCards: (ids: string[]) => void;
   onDeleteMistake: (id: string) => void;
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
+  /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
+  onOpenSessionLogger?: () => void;
 }
 
+/** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
+const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
+
 export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
-  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: MistakeNotebookViewProps) {
+  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
@@ -60,13 +75,18 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     : initialSourceNames.length === 1 ? initialSourceNames[0] ? `test:${testNameKey(initialSourceNames[0])}` : 'NONE' : 'SCOPE');
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
-  // Phones: the list is grouped by status instead of the Tất cả / Đến hạn / Thông suốt filter.
+  // Phones: the list is grouped by status instead of the Tất cả / Cần ôn / Đã thuộc filter.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, number>>({ due: PHONE_GROUP_STEP });
+  const [openGroups, setOpenGroups] = useState<Record<string, number>>({ pending: PHONE_GROUP_STEP, due: PHONE_GROUP_STEP });
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
-  const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest ? null : undefined);
+  const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest && !createRequest.detailSessionId ? null : undefined);
+  // Cards being filled in one after another (the "Ghi chi tiết câu sai" flow), kept as ids so saves show the latest version.
+  const [detailIds, setDetailIds] = useState<string[] | null>(() => {
+    const ids = createRequest?.detailSessionId ? sessionDrafts(createRequest.detailSessionId, mistakes).map(mistake => mistake.id) : [];
+    return ids.length ? ids : null;
+  });
   const [sessionSource, setSessionSource] = useState(createRequest);
   const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[] } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
@@ -83,14 +103,14 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     try {
       onMarkMastered(id);
       const saved = loadMistakes().find(mistake => mistake.id === id);
-      if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã đánh dấu Thông suốt');
+      if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã chuyển sang Đã thuộc');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
   const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); setSessionSource(undefined); }, []);
   const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setEntry(null); };
   const openEdit = (value: MistakeEntry) => { setReusedReading(null); setSessionSource(undefined); setEntry(value); };
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
-  const sourcedMistakes = useMemo(() => mistakes.map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
+  const sourcedMistakes = useMemo(() => mistakes.filter(m => !isRetiredDraft(m)).map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const sourceNames = useMemo(() => uniqueTestNames(sourcedMistakes.map(m => m.sourceTestName)), [sourcedMistakes]);
   const scopeKeys = useMemo(() => new Set((initialSourceNames ?? []).map(testNameKey)), [initialSourceNames]);
   const filterSourceNames = useMemo(() => uniqueTestNames([...sourceNames, ...(initialSourceNames ?? [])]), [sourceNames, initialSourceNames]);
@@ -103,10 +123,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         : selectedTest === 'NONE' ? !m.sourceTestName : `test:${testNameKey(m.sourceTestName)}` === selectedTest))
       && (selectedCategory === 'ALL' || m.category === selectedCategory));
   }, [sourcedMistakes, searchTerm, selectedPart, selectedTest, selectedCategory, scopeKeys]);
-  const stats = useMemo(() => ({ total: matchingMistakes.length, due: matchingMistakes.filter(m => isDueForReview(m)).length,
-    mastered: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [matchingMistakes]);
-  const filteredMistakes = useMemo(() => matchingMistakes.filter(m => selectedStatus === 'ALL' ||
-    (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED' && canReview(m))), [matchingMistakes, selectedStatus]);
+  // Computers list a logged test's wrong questions still to be filled in as one row per test above the list,
+  // so the filter counts leave them out and match the cards below.
+  const listedMistakes = useMemo(() => matchingMistakes.filter(m => isPhone || !(needsSupplement(m) && fromLoggedTest(m))), [matchingMistakes, isPhone]);
+  const stats = useMemo(() => ({ total: listedMistakes.length, due: listedMistakes.filter(m => isDueForReview(m)).length,
+    mastered: listedMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [listedMistakes]);
+  const filteredMistakes = useMemo(() => listedMistakes.filter(m => selectedStatus === 'ALL' ||
+    (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED' && canReview(m))), [listedMistakes, selectedStatus]);
   const pageCount = Math.max(1, Math.ceil(filteredMistakes.length / NOTEBOOK_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleMistakes = filteredMistakes.slice((currentPage - 1) * NOTEBOOK_PAGE_SIZE, currentPage * NOTEBOOK_PAGE_SIZE);
@@ -125,6 +148,26 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
   }, [filterOpen]);
 
+  // Cards read from a screenshot have no explanation yet; the learner asks for one on the card (one AI use).
+  const [explainingId, setExplainingId] = useState('');
+  const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
+  const explain = async (card: MistakeEntry) => {
+    if (explainingId) return;
+    const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
+    const input: MistakeInput = { question: card.question ?? '', options: card.options ?? [], context: card.context ?? '', part: card.part,
+      userChoiceState: card.userChoiceState ?? 'UNKNOWN', userChoice: card.userChoiceState === 'CHOSEN' ? card.userChoice ?? '' : '',
+      userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
+    setExplainingId(card.id);
+    try {
+      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input);
+      const latest = loadMistakes().find(value => value.id === card.id) ?? card;
+      onUpdateMistake(mergeExplanation(latest, draft), latest);
+      notify('Đã thêm giải thích');
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
+    finally { setExplainingId(''); removeCaptcha(); }
+  };
+
+  useSyncExternalStore(subscribeExplanations, explanationsVersion);
   const cardProps = (mistake: (typeof sourcedMistakes)[number]) => ({
     mistake,
     expanded: expandedIds.has(mistake.id),
@@ -136,13 +179,59 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     } : undefined,
     onDelete: () => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); },
     onMarkMastered: () => markMastered(mistake.id),
-    onReopen: () => onReopenCards([mistake.id])
+    onReopen: () => onReopenCards([mistake.id]),
+    // A card read from a screenshot asks again with its ticket (no new AI use); otherwise one AI use.
+    onExplain: () => {
+      if (canRetryFree(mistake.id)) { if (retryExplanation(mistake.id)) notify('Đang viết lời giải…'); return; }
+      void explain(mistakes.find(value => value.id === mistake.id) ?? mistake);
+    },
+    explainLabel: canRetryFree(mistake.id) ? 'Viết lời giải' : 'Giải thích với AI',
+    explaining: explainingId === mistake.id || isExplaining(mistake.id),
+    onResolveDoubt: (switchToAI: boolean) => {
+      const latest = mistakes.find(value => value.id === mistake.id) ?? mistake;
+      const option = latest.options?.find(value => optionLetter(value) === latest.answerDoubt);
+      // Switching makes the learner the one who set the answer; keeping it just closes the question.
+      onUpdateMistake({ ...latest, answerDoubt: undefined, ...(switchToAI && option ? { correctAnswer: option, answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' } : {}) }, latest);
+      notify(switchToAI ? `Đã đổi đáp án sang ${latest.answerDoubt}` : 'Đã giữ đáp án trang đề');
+    }
   });
+
+  const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>
+    (a.sourceTestName ?? '').localeCompare(b.sourceTestName ?? '', 'vi', { numeric: true }) || (a.questionNumber ?? 999) - (b.questionNumber ?? 999)
+      || a.createdAt.localeCompare(b.createdAt)), [matchingMistakes]);
+  const desktopPending = useMemo(() => pendingCards.filter(fromLoggedTest), [pendingCards]);
+  /** One attempt owns one question-number namespace. Manual notes use their full editor. */
+  const startDetail = (cards: MistakeEntry[]) => {
+    const ids = cards.map(card => card.id);
+    if (ids.length) setDetailIds(ids);
+  };
+  const detailCards = detailIds?.map(id => mistakes.find(mistake => mistake.id === id)).filter((card): card is MistakeEntry => Boolean(card)) ?? [];
+
+  // One row per attempt: retakes of the same test must never share their numbered questions.
+  const renderPendingTests = (items: MistakeEntry[]) => {
+    const groups = groupDetailAttempts(items, sessions);
+    return groups.map(group => {
+      const count = group.cards.length, reading = group.cards.every(card => card.part >= 5);
+      const repeated = groups.some(other => other.id !== group.id && testNameKey(other.title) === testNameKey(group.title));
+      return (
+      <button key={group.id} type="button" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}
+        aria-label={`Ghi chi tiết ${count} câu, ${group.title === 'Chưa ghi đề' ? 'chưa ghi đề' : group.title}${repeated ? `, ${group.attempt}` : ''}`}
+        className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{group.title}</span>
+          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{group.attempt}</span>
+          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu {reading ? 'Reading ' : ''}sai</span>
+        </span>
+        <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
+      </button>
+    ); });
+  };
 
   const renderPhoneGroups = () => {
     const groups = [
+      { id: 'pending', label: 'Chưa ghi chi tiết', dot: 'bg-amber-500', items: pendingCards, showStatus: false },
       { id: 'due', label: 'Cần ôn', dot: 'bg-orange-600', items: matchingMistakes.filter(m => isDueForReview(m)), showStatus: false },
-      { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
+      { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !needsSupplement(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
       { id: 'mastered', label: 'Đã thuộc', dot: 'bg-emerald-600', items: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)), showStatus: false }
     ].filter(group => group.items.length > 0);
     if (!groups.length) return (
@@ -156,7 +245,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       return (
         <section key={group.id} aria-label={`${group.label} · ${group.items.length}`}>
           <div className="flex min-h-11 items-center justify-between px-4 pb-1.5 pt-3">
-            <h3 className="flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+            <h3 className="flex items-center gap-2 whitespace-nowrap text-[12.5px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
               <span className={`h-2 w-2 rounded-full ${group.dot}`} aria-hidden="true" />{group.label} · {group.items.length}
             </h3>
             {index === 0 && <button type="button" aria-label={phoneSearchOpen ? 'Ẩn tìm kiếm' : 'Tìm trong sổ tay'} aria-pressed={phoneSearchOpen}
@@ -167,9 +256,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           </div>
           {shown > 0 ? <>
             <div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-slate-800 dark:border-slate-800">
-              {group.items.slice(0, shown).map(mistake => <MistakeCard key={mistake.id} {...cardProps(mistake)} compact showStatus={group.showStatus} />)}
+              {group.id === 'pending' ? renderPendingTests(group.items)
+                : group.items.slice(0, shown).map(mistake => <MistakeCard key={mistake.id} {...cardProps(mistake)} compact showStatus={group.showStatus} />)}
             </div>
-            {group.items.length > shown && <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: shown + PHONE_GROUP_STEP }))}
+            {group.id !== 'pending' && group.items.length > shown && <button type="button" onClick={() => setOpenGroups(value => ({ ...value, [group.id]: shown + PHONE_GROUP_STEP }))}
               className="mx-4 mt-3 flex min-h-11 w-[calc(100%-2rem)] items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-[14px] font-bold text-slate-700 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
               Xem thêm {Math.min(PHONE_GROUP_STEP, group.items.length - shown)} câu
             </button>}
@@ -184,11 +274,11 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   return (
     <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-24' : '')}>
-      <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent">
+      <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent max-md:dark:shadow-none">
       <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-4 sm:px-5 max-md:p-0">
-        <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay bắt bẫy</h2>
+        <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay</h2>
         {/* Phones: the review button lives in a bar above the bottom navigation, within thumb reach. */}
-        <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
+        <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (mistakes.length === 0 ? '!hidden ' : '') + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
           <button
             type="button"
             onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
@@ -207,17 +297,17 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           <button
             type="button"
             onClick={openCreate}
-            className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-yellow-300 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-yellow-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none dark:hover:bg-slate-800 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" aria-hidden="true" />
-            <span>Ghi Chú Bẫy</span>
+            <span>Thêm câu sai</span>
           </button>
         </div>
       </header>
       {mistakes.length > 0 && (!isPhone || phoneSearchOpen) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-4 sm:px-5 dark:border-slate-700 max-md:border-0 max-md:px-4 max-md:pb-2">
           <div className="max-md:hidden inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#121A2B]" role="group" aria-label="Lọc theo trạng thái">
-            {([['ALL', 'Tất cả', stats.total], ['DUE', 'Đến hạn', stats.due], ['MASTERED', 'Thông suốt', stats.mastered]] as const).map(([value, label, count]) => (
+            {([['ALL', 'Tất cả', stats.total], ['DUE', 'Cần ôn', stats.due], ['MASTERED', 'Đã thuộc', stats.mastered]] as const).map(([value, label, count]) => (
               <button
                 key={value}
                 type="button"
@@ -309,30 +399,31 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       )}
 
       {mistakes.length === 0 ? (
-        <div className="space-y-2 px-4 py-12 text-center">
-          <BookOpen className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <p className="font-semibold text-slate-700 dark:text-slate-200">Chưa có lỗi sai nào</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{isPhone ? 'Bấm nút ＋ ở dưới, chọn “Câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.' : 'Bấm “Ghi Chú Bẫy”, dán câu bạn làm sai và AI sẽ soạn ghi chú.'}</p>
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-3 px-4 py-10 text-center max-md:pt-12">
+          <EmptyCards />
+          <p className="mt-2 text-lg font-black text-slate-900 dark:text-white">Sổ tay đang trống</p>
+          <p className="text-sm font-semibold leading-relaxed text-slate-500 dark:text-slate-400">Mỗi câu làm sai thành một thẻ ôn. Ghi điểm một đề Full Test, các câu Reading sai sẽ tự vào đây.</p>
+          <div className="mt-3 flex w-full flex-col gap-2.5">
+            {onOpenSessionLogger && <button type="button" onClick={onOpenSessionLogger}
+              className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-blue-600 px-4 text-sm font-black text-white shadow-[3px_3px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:shadow-[3px_3px_0_0_#cbd5e1]">Ghi điểm đề Full Test</button>}
+            <button type="button" onClick={openCreate}
+              className="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-white px-4 text-sm font-black text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-white">Thêm câu sai</button>
+          </div>
         </div>
       ) : isPhone ? renderPhoneGroups() : (
         <div className="notebook-list divide-y divide-slate-200 dark:divide-slate-800">
+          {selectedStatus === 'ALL' && desktopPending.length > 0 && (
+            <section aria-label={`Chưa ghi chi tiết · ${desktopPending.length}`} className="[&>button]:px-5">
+              <h3 className="flex items-center gap-2 px-5 pb-1 pt-3 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+                <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />Chưa ghi chi tiết
+              </h3>
+              {renderPendingTests(desktopPending)}
+            </section>
+          )}
           {visibleMistakes.map(mistake => (
-            <MistakeCard
-              key={mistake.id}
-              mistake={mistake}
-              expanded={expandedIds.has(mistake.id)}
-              onToggle={() => toggleRow(mistake.id)}
-              onReview={() => onStartReview([mistake.id])}
-              onEdit={() => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake)}
-              onReuseReading={mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
-                setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds }); setEntry(null);
-              } : undefined}
-              onDelete={() => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); }}
-              onMarkMastered={() => markMastered(mistake.id)}
-              onReopen={() => onReopenCards([mistake.id])}
-            />
+            <MistakeCard key={mistake.id} {...cardProps(mistake)} />
           ))}
-          {filteredMistakes.length === 0 && (
+          {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
             <div className="space-y-2 px-4 py-10 text-center text-sm">
               <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp bộ lọc.</p>
               <button type="button" onClick={resetFilters} className="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
@@ -365,6 +456,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         </div>}
       </div>
 
+      <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
+      {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone={isPhone} onSave={onUpdateMistake}
+        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}
@@ -372,6 +466,25 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
+    </div>
+  );
+}
+
+/** Empty notebook: a small stack of review cards, the front one with a Part chip and an answer row. */
+function EmptyCards() {
+  return (
+    <div className="relative h-28 w-40" aria-hidden="true">
+      <div className="absolute left-3 top-5 h-20 w-32 -rotate-[8deg] rounded-2xl border-2 border-slate-900 bg-teal-100 dark:border-slate-300 dark:bg-teal-950" />
+      <div className="absolute left-5 top-3 h-20 w-32 rotate-[5deg] rounded-2xl border-2 border-slate-900 bg-indigo-100 dark:border-slate-300 dark:bg-indigo-950" />
+      <div className="absolute left-4 top-4 h-20 w-32 rounded-2xl border-2 border-slate-900 bg-white p-2.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-slate-900 dark:shadow-[3px_3px_0_0_#cbd5e1]">
+        <span className="block h-4 w-7 rounded-md bg-teal-600" />
+        <span className="mt-2 block h-1.5 rounded bg-slate-200 dark:bg-slate-700" />
+        <span className="mt-1 block h-1.5 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+        <span className="mt-2 flex gap-1">
+          <i className="h-3 w-3 rounded-full border-2 border-slate-300" /><i className="h-3 w-3 rounded-full border-2 border-slate-900 bg-rose-500" />
+          <i className="h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-500" /><i className="h-3 w-3 rounded-full border-2 border-slate-300" />
+        </span>
+      </div>
     </div>
   );
 }

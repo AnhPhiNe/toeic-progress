@@ -14,7 +14,7 @@ test('guest reset removes content and retired copies with one confirmation', asy
   await page.getByRole('button',{name:'Cài đặt hồ sơ Học viên'}).click();
   let confirmations=0;
   page.on('dialog',async dialog => { confirmations++; await dialog.accept(); });
-  await page.getByRole('button',{name:'Xóa trắng dữ liệu'}).click();
+  await page.getByRole('button',{name:'Xóa toàn bộ dữ liệu'}).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
   expect(confirmations).toBe(1);
   const result = await page.evaluate(() => {
@@ -37,7 +37,7 @@ test('canceling reset retains guest content', async ({ page }) => {
   const before=await page.evaluate(()=>localStorage.getItem('toeic_progress_bundle_v3'));
   await page.getByRole('button',{name:'Cài đặt hồ sơ Học viên'}).click();
   page.once('dialog',dialog=>dialog.dismiss());
-  await page.getByRole('button',{name:'Xóa trắng dữ liệu'}).click();
+  await page.getByRole('button',{name:'Xóa toàn bộ dữ liệu'}).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   expect(await page.evaluate(()=>localStorage.getItem('toeic_progress_bundle_v3'))).toBe(before);
 });

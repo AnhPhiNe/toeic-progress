@@ -29,6 +29,18 @@ Khi chế độ được bật, bảng này là nguồn quyền duy nhất; `AI_
 
 ## Cách đếm lượt và các giới hạn còn lại
 
+### Đọc nhiều câu từ ảnh và viết lời giải kèm theo
+
+- Một lần đọc ảnh câu hỏi (`extract-page`, tối đa 3 ảnh / 6 câu tìm thấy) tính một lượt quota ứng dụng. Lời giải tiếp theo cho các câu đó dùng ticket đã ký, gắn owner và nội dung, có hiệu lực 24 giờ. Ban đầu có tối đa sáu request OpenAI viết lời giải; tính cả hai lần thử lại cho mỗi câu thì có thể tới 18 request lời giải, ngoài request đọc ảnh. Một lượt quota ứng dụng không đồng nghĩa một request trả phí.
+- Mỗi câu có tối đa ba lần viết lời giải trong một ticket; câu khác không bị mất quyền thử lại vì một câu lỗi. Kết quả thành công được dùng lại trong cùng tiến trình. Request trùng ID hoặc cùng câu đang chạy không tạo thêm generation. Backend trả trạng thái `completed` / `retryable` / `exhausted` và số lần còn lại cho từng câu.
+- Ticket hết hạn/nội dung thay đổi có mã lỗi riêng. Tài khoản tạm chờ duyệt hoặc bị khóa không đồng nghĩa ticket bị hủy; quyền AI vẫn được kiểm tra ở mỗi request.
+- Sổ tay chỉ nhận lời giải nếu câu hỏi, phương án, ngữ cảnh và đầu vào người học còn khớp lúc gửi. Chỉnh tay hoặc chuyển tài khoản không khiến kết quả cũ ghi đè nội dung mới. Các lần làm lại được mở riêng theo session; cùng số câu ở hai lượt không dùng chung lựa chọn.
+- Ngữ cảnh đọc từ ảnh được giữ đủ trong phạm vi 8.000 ký tự; ticket-only explanation nhận hợp đồng dài hơn để không phải cắt nguồn. Hợp đồng nhập một câu thông thường không đổi. Vượt giới hạn phải báo/để câu cần bổ sung; không tự cắt bài rồi giải như đủ dữ liệu. Luồng này giữ văn bản trích xuất; ảnh nguồn của form ảnh riêng vẫn theo cơ chế `sourceImageIds` hiện có.
+- Bộ đếm, request ID và kết quả ticket được lưu ở Supabase bằng migration `20261020110041_durable_explanation_tickets.sql`. Các worker dùng cùng một ledger; restart không đặt lại ba lần thử của mỗi câu. Chỉ backend service role truy cập được bảng/RPC này. Chưa có migration hoặc database gián đoạn thì không gửi generation chưa được giữ lượt tới OpenAI.
+- Mỗi generation giữ lease 120 giây. Nếu worker mất giữa chừng, cùng request ID không tự gọi OpenAI lại; người học chỉ có thể chủ động thử bằng request mới với phần ngân sách còn lại sau khi lease hết hạn. Lỗi lưu kết quả sau khi OpenAI đã xử lý có thể mất lời giải, nhưng không hoàn lượt đã dùng. Không tự retry generation trong nền.
+- Cache chỉ dùng trong thời hạn ticket 24 giờ; dữ liệu hết hạn được dọn theo lô khi có claim mới hoặc chạy maintenance. Đây không phải cam kết xóa vật lý đúng giây thứ 24 giờ. Xóa trắng dữ liệu học xóa nội dung cache và chặn kết quả từ ticket cũ khôi phục nội dung, đồng thời giữ bộ đếm; xóa tài khoản Auth xóa ledger qua khóa ngoại. Xóa riêng một thẻ không xóa ngay cache vận hành của ticket.
+- Không đổi `RATE_LIMIT_SECRET` tùy tiện vì ticket đã phát hành sẽ hết hiệu lực. Khi rollback code, giữ migration ledger và bộ đếm hiện có.
+
 - Dùng lại `ai_usage_counters`. Sửa `monthly_limit`, tạm khóa/mở lại hoặc xóa trắng dữ liệu học không đặt lại số lượt đã dùng. Giảm hạn mức thấp hơn số đã dùng thì yêu cầu tiếp theo bị chặn; tăng hạn mức cho phép dùng phần còn lại.
 - Hạn mức theo tháng UTC, lượt tháng mới bắt đầu 07:00 ngày đầu tháng theo giờ Việt Nam. Yêu cầu đã được reserve vẫn tính lượt nếu provider lỗi; request trùng ID bị chặn, không tự gọi lại OpenAI.
 - Tài khoản có hạn mức vẫn chịu `AI_GLOBAL_DAILY_LIMIT`, `AI_GLOBAL_MINUTE_LIMIT`, `AI_IP_DAILY_LIMIT` và các giới hạn API. `monthly_limit=NULL` miễn các hạn mức AI ứng dụng theo cơ chế cũ, không miễn ngân sách/hạn mức của OpenAI hoặc giới hạn dung lượng ảnh.

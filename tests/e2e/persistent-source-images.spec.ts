@@ -32,9 +32,9 @@ async function mockImages(page: Page, failure = false) {
 
 test('Part 7 retains source images after save/reload/review and reuses them for each new question without OCR', async ({ page }, testInfo) => {
   await mockImages(page); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Images');
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('**Câu hỏi**\n**178**\n**' + question + '**\n' + options.join('&#x20;\n') + '\u00a0');
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles([fixture, resolve('tests/fixtures/part7-table-question.png')]);
@@ -52,7 +52,7 @@ test('Part 7 retains source images after save/reload/review and reuses them for 
   await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(0);
   await modal.getByLabel('Câu hỏi + phương án').fill('How can members register?\n' + options.join('\n'));
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   const calls = await page.evaluate(() => {
     const fixture = window as Window & { __imageCalls: Array<{ images: unknown[]; sourceImageIds: string[]; input: { context: string } }>; __uploads: number };
     return { __imageCalls: fixture.__imageCalls, __uploads: fixture.__uploads };
@@ -79,9 +79,9 @@ test('Part 7 retains source images after save/reload/review and reuses them for 
 
 test('upload failure preserves the selected image and manual save can retry without an AI call', async ({ page }) => {
   await mockImages(page, true); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles(fixture);

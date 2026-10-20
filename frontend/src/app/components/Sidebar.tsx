@@ -92,25 +92,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'HÀNH TRÌNH',
       items: [
-        { id: 'dashboard', label: 'Tổng quan', fullLabel: 'Tổng Quan', icon: LayoutDashboard },
-        { id: 'plan', label: 'Kế hoạch', fullLabel: 'Kế Hoạch', icon: Target },
-        { id: 'exam-mode', label: 'Đồng hồ phòng thi', fullLabel: 'Đồng Hồ Phòng Thi', icon: Timer }
+        { id: 'dashboard', label: 'Tổng quan', fullLabel: 'Tổng quan', icon: LayoutDashboard },
+        { id: 'plan', label: 'Kế hoạch', fullLabel: 'Kế hoạch', icon: Target },
+        { id: 'exam-mode', label: 'Đồng hồ phòng thi', fullLabel: 'Đồng hồ phòng thi', icon: Timer }
       ]
     },
     {
       title: 'ĐO LƯỜNG & CHẨN ĐOÁN',
       items: [
-        { id: 'history', label: 'Lịch sử thi', fullLabel: 'Lịch Sử Đề Thi', icon: History },
-        { id: 'analytics', label: 'Phân tích điểm', fullLabel: 'Phân Tích Điểm Số', icon: TrendingUp },
+        { id: 'history', label: 'Lịch sử thi', fullLabel: 'Lịch sử thi', icon: History },
+        { id: 'analytics', label: 'Phân tích điểm', fullLabel: 'Phân tích điểm', icon: TrendingUp },
         {
           id: 'mistakes',
-          label: 'Sổ tay bẫy sai',
-          fullLabel: 'Sổ Tay Bẫy Sai',
+          label: 'Sổ tay',
+          fullLabel: 'Sổ tay',
           icon: BookOpen,
           badge: pendingMistakesCount > 0 ? pendingMistakesCount : undefined
         },
-        { id: 'vocabulary', label: 'Vốn từ vựng', fullLabel: 'Vốn Từ Vựng TOEIC', icon: BookMarked },
-        { id: 'resources', label: 'Quy đổi điểm số', fullLabel: 'Thang Quy Đổi ETS', icon: Calculator }
+        { id: 'vocabulary', label: 'Từ vựng', fullLabel: 'Từ vựng', icon: BookMarked },
+        { id: 'resources', label: 'Quy đổi điểm', fullLabel: 'Quy đổi điểm', icon: Calculator }
       ]
     }
   ];

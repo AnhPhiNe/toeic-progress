@@ -10,6 +10,7 @@ from PIL import Image
 
 from app.core.config import Settings
 from app.main import create_app
+from tests.explanation_ledger_mock import ExplanationLedgerMock
 
 USER_ID = "11111111-1111-4111-8111-111111111111"
 DRAFT = {
@@ -60,8 +61,12 @@ def api():
         ai_grant=None,
         ai_grant_status=200,
         ai_grants=None,
+        ledger_status=200,
+        ledger_mock=None,
+        ledger_malformed=False,
     ):
         calls = []
+        ledger = ledger_mock or ExplanationLedgerMock()
 
         def respond(request):
             body = (
@@ -77,6 +82,14 @@ def api():
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
                 return httpx.Response(200, json=api_reservation or {"allowed": True})
+            if request.url.path.rsplit("/", 1)[-1] in {
+                "claim_explanation_question", "finish_explanation_question", "explanation_ledger_ready"
+            }:
+                if ledger_status != 200:
+                    return httpx.Response(ledger_status, json={"message": "Ledger unavailable"})
+                if ledger_malformed:
+                    return httpx.Response(200, text="not-json")
+                return httpx.Response(200, json=ledger.respond(request.url.path.rsplit("/", 1)[-1], body))
             if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles"):
                 return httpx.Response(readiness_status, json=[])
             if request.url.path == "/rest/v1/ai_access_grants":
@@ -543,8 +556,8 @@ def test_readiness_probes_database_with_zero_rows_and_caches_result(api):
     with api(settings_overrides={"api_limits_enabled": True}) as (client, calls):
         assert client.get("/ready").status_code == 200
         assert client.get("/ready").json()["database_reachable"] is True
-        assert len(calls) == 1
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
+        assert len(calls) == 2
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/rpc/explanation_ledger_ready"]
 
 
 def test_readiness_fails_when_required_migration_is_missing(api):
@@ -683,7 +696,13 @@ def test_openai_readiness_only_checks_required_database(api):
         "openai_api_key": "openai-key", "api_limits_enabled": True,
     }) as (client, calls):
         assert client.get("/ready").json()["ai_provider"] == "openai"
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/rpc/explanation_ledger_ready"]
+
+
+def test_readiness_fails_closed_for_a_malformed_ledger_probe(api):
+    with api(ledger_malformed=True) as (client, calls):
+        assert client.get("/ready").status_code == 503
+        assert not any(call[0] == "api.openai.com" for call in calls)
 
 
 def test_verified_privileged_ai_traffic_does_not_trigger_ingress_spam_limit(api):
@@ -889,3 +908,40 @@ def test_review_dates_and_learner_fields_reach_sync_rpc(api, reviewed):
         assert "T" in output["lastReviewedAt"] and output["lastReviewedAt"].endswith("Z")
         assert output["userChoiceState"] == "BLANK" and output["userReason"] == payload["userReason"]
         assert output["sourceTestName"] == payload["sourceTestName"]
+
+
+def draft_mistake(**fields):
+    return {"entity_type": "mistakes", "record_id": "draft:s1:104", "updated_at": "2026-10-19T00:00:00Z", "deleted_at": None,
+            "payload": {"id": "draft:s1:104", "sessionId": "s1", "sourceTestName": "ETS Test 4", "part": 5,
+                        "questionNumber": 104, "questionContext": "", "question": "", "userMistake": "",
+                        "correctAnswer": "", "answerSource": "MISSING", "userChoiceState": "UNKNOWN",
+                        "category": "OTHER", "tags": [], "status": "NEEDS_REVIEW",
+                        "createdAt": "2026-10-19T00:00:00Z", **fields}}
+
+
+def test_wrong_question_list_and_draft_cards_survive_sync(api):
+    wrong = [3, 15, 104, 200]
+    parts = {"part1": 5, "part2": 24, "part3": 39, "part4": 30, "part5": 29, "part6": 16, "part7": 53}
+    with api() as (client, calls):
+        records = [score_record(wrongQuestions=wrong, partScores=parts), draft_mistake()]
+        assert client.post("/api/v1/sync", json={"records": records}).status_code == 200
+        rpc = next(call for call in calls if call[1].endswith("/sync_account_records"))
+        session, mistake = (item["payload"] for item in rpc[2]["p_records"])
+        assert session["wrongQuestions"] == wrong and session["partScores"] == parts
+        assert mistake["questionNumber"] == 104 and mistake["question"] == ""
+
+
+@pytest.mark.parametrize("record", [
+    score_record(wrongQuestions=[15, 3]),
+    score_record(wrongQuestions=[3, 3]),
+    score_record(wrongQuestions=[0]),
+    score_record(wrongQuestions=[201]),
+    score_record(wrongQuestions=[3], partScores={"part1": 6, "part2": 25, "part3": 39, "part4": 30, "part5": 30, "part6": 16, "part7": 54}),
+    score_record(wrongQuestions=[3], sessionType="PART_PRACTICE"),
+    draft_mistake(questionNumber=104, part=6),
+    draft_mistake(questionNumber=0),
+])
+def test_inconsistent_question_numbers_are_rejected(api, record):
+    with api() as (client, calls):
+        assert client.post("/api/v1/sync", json={"records": [record]}).status_code == 422
+        assert not any(call[1].endswith("/sync_account_records") for call in calls)

@@ -83,7 +83,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
     </button>}
 
     <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
-      <button type="submit" form="vocab-phone-form" className={'flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none ' + (saved ? 'bg-emerald-300' : 'bg-yellow-300')}>
+      <button type="submit" form="vocab-phone-form" className={'flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 text-base font-black shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none ' + (saved ? 'bg-emerald-300 text-slate-950' : 'bg-blue-600 text-white')}>
         <CheckCircle2 className="h-5 w-5" aria-hidden="true" />{saved ? 'Đã lưu!' : !valid ? 'Lưu từ vựng' : existing ? `Cập nhật · ${value.toLocaleString('vi-VN')} từ` : `Lưu ${value.toLocaleString('vi-VN')} từ`}
       </button>
     </div>

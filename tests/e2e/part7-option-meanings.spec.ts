@@ -15,9 +15,9 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
         userMistake: '', category: 'OTHER', tags: [], trapTip: '', explanation: null, missingInformation: [],
         optionNotes: meanings.map((meaning, index) => ({ label: 'ABCD'[index], pos: '', meaning })) } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Ghi Chú Bẫy', exact: true }).click();
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   for (const meaning of meanings) await expect(modal.getByText(meaning, { exact: true })).toHaveCount(0);
@@ -25,7 +25,7 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
   await modal.getByRole('button', { name: 'Xem giải thích', exact: true }).click();
   for (const meaning of meanings) await expect(modal.getByRole('region', { name: 'Nghĩa các phương án' }).getByText(meaning, { exact: true })).toBeVisible();
   await expect(modal.getByText('It takes three business days.', { exact: true }).locator('..')).not.toContainText(meanings[1]);
-  await modal.getByRole('button', { name: 'Lưu lỗi sai', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
   await page.reload();
   await page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }).click();
   const card = page.locator('.notebook-card');

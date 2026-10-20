@@ -1,5 +1,4 @@
 import React from 'react';
-import { Check, X } from 'lucide-react';
 import type { ParsedOption } from '@/features/mistakes/lib/quizOptions';
 
 interface OptionListProps {
@@ -45,12 +44,12 @@ export const OptionList: React.FC<OptionListProps> = ({
           </span>
           {right && (
             <span className="shrink-0 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-              <Check className="w-3.5 h-3.5" />{correctLabel}
+              {correctLabel}
             </span>
           )}
-          {wrong && (
+          {wrong && chosenLabel && (
             <span className="shrink-0 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-rose-700 dark:text-rose-300">
-              <X className="w-3.5 h-3.5" />{chosenLabel}
+              {chosenLabel}
             </span>
           )}
         </>

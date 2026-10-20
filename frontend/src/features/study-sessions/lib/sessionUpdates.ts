@@ -18,7 +18,7 @@ export function mergeSessionEdit(latest: StudySession | undefined, original: Stu
   // A total-only edit must remove old section scores; unknown imported metadata survives.
   const retained = { ...latest };
   for (const key of ['skillType', 'sessionType', 'testName', 'date', 'durationMinutes', 'attemptNumber', 'notes', 'partScores', 'practiceParts',
-    'rawListening', 'rawReading', 'scaledListening', 'scaledReading', 'totalScore', 'scoreSource', 'scoreConversionVersion'] as const) {
+    'rawListening', 'rawReading', 'scaledListening', 'scaledReading', 'totalScore', 'scoreSource', 'scoreConversionVersion', 'wrongQuestions'] as const) {
     delete (retained as Partial<StudySession>)[key];
   }
   return { ...retained, ...edited, id: latest.id, createdAt: latest.createdAt };
