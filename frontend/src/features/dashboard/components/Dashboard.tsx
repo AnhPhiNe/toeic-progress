@@ -734,7 +734,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {!isPhone && latestTest && <ScoreReportCard roomy latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
             newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}>
-            <div className="px-5 py-3.5">
+            <div className="px-5 pt-3.5 pb-4">
               <button type="button" onClick={onNavigateToAnalytics}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white py-2.5 text-sm font-black text-indigo-700 shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group">
                 <span>Xem 7 Part chi tiết</span>
