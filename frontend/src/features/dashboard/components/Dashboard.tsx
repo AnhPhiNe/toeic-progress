@@ -290,7 +290,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
             highestScore={highestScore} avgScore={stats?.avgScore}
             totalTests={stats?.totalTests ?? 0} diff={diff} hasDiff={hasDiff} firstTotal={stats?.first.total}
-            bestTestDate={bestTest?.date} onOpenSessionLogger={onOpenSessionLogger} />}
+            bestTestDate={bestTest?.date} latestIsBest={Boolean(bestTest) && bestTest?.id === latestTest?.id} onOpenSessionLogger={onOpenSessionLogger} />}
 
           {/* 1. DẢI 3 THẺ CHỈ SỐ — từ tablet trở lên; điện thoại dùng PhoneSummary ở trên */}
           {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">

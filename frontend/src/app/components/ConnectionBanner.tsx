@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloudOff, RefreshCw, X } from 'lucide-react';
+import { CloudOff, X } from 'lucide-react';
 import type { AccountStatus } from '@/features/account/components/AccountPanel';
 
 interface ConnectionBannerProps {
@@ -17,13 +17,14 @@ interface ConnectionBannerProps {
 /**
  * Non-blocking connection and save feedback under the top bar. The account's data stays
  * readable while the server wakes up or a sync fails; only saving waits for the connection.
+ * Connecting gets no banner: the sync indicator (avatar dot on phones) already shows it, and
+ * a banner on every page load pushed the content down.
  */
 export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
   accountActive, status, error, writeNotice, onDismissNotice, onRetry, onUseGuest
 }) => {
-  const connecting = accountActive && status === 'loading';
   const failed = accountActive && (status === 'error' || status === 'disconnected');
-  if (!writeNotice && !connecting && !failed) return null;
+  if (!writeNotice && !failed) return null;
 
   return (
     <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 space-y-2">
@@ -34,12 +35,6 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
           <button type="button" onClick={onDismissNotice} aria-label="Đóng thông báo" className="shrink-0 rounded p-0.5 hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
-        </div>
-      )}
-      {connecting && (
-        <div role="status" className="flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-          <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-          <p className="min-w-0 flex-1">Đang kết nối tài khoản… Bạn vẫn xem được dữ liệu; thay đổi sẽ lưu được khi kết nối xong.</p>
         </div>
       )}
       {failed && (
