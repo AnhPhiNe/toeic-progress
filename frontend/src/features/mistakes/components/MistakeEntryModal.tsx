@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ClipboardPaste, Sparkles, X } from 'lucide-react';
+import { ChevronDown, ClipboardPaste, ImagePlus, Sparkles, Trash2, X } from 'lucide-react';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { twMerge } from 'tailwind-merge';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
@@ -26,6 +26,18 @@ import { SourceImageViewer } from '@/features/mistakes/components/SourceImageVie
 import { sourceImageAccount, uploadSourceImages } from '@/features/mistakes/services/sourceImages';
 import { MistakeContextInput } from '@/features/mistakes/components/MistakeContextInput';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
+import { partOfQuestion, parseQuestionList } from '@/shared/domain/questionNumbers';
+import { enqueueExplanations } from '@/features/mistakes/services/explanationQueue';
+import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
+
+interface BatchExtractedItem {
+  id: string;
+  number: number;
+  part: MistakeEntry['part'];
+  draft: aiService.AIMistakeParseResult;
+  category: ErrorCategory;
+  ticket?: string | null;
+}
 
 interface Props {
   original: MistakeEntry | null;
@@ -75,6 +87,13 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const uploadedImageKey = useRef('');
   const [persisting, setPersisting] = useState(false);
   const [step, setStep] = useState<'input' | 'preview' | 'saved'>('input');
+  const [entryMode, setEntryMode] = useState<'single' | 'batch'>('single');
+  const [batchNumbersText, setBatchNumbersText] = useState('');
+  const [batchItems, setBatchItems] = useState<BatchExtractedItem[]>([]);
+  const batchItemsRef = useRef(batchItems);
+  batchItemsRef.current = batchItems;
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const batchFileInput = useRef<HTMLInputElement>(null);
   const [saveMoreReceipt, setSaveMoreReceipt] = useState(false);
   const [raw, setRaw] = useState(original ? [originalQuestion(original, Boolean(initialContext.trim()) || Boolean(initialImages.length)), ...(original.options ?? [])].join('\n') : '');
   const [part, setPart] = useState<MistakeEntry['part'] | null>(original?.part ?? (hasInitialReading ? 7 : null));
@@ -154,9 +173,9 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   useEffect(() => () => { requestEpoch.current++; }, []);
   const close = useCallback(() => {
     if (saving.current) return;
-    if (changed && !saved.current && !window.confirm('Bỏ nội dung chưa lưu?')) return;
+    if ((changed || (entryMode === 'batch' && batchItems.length > 0)) && !saved.current && !window.confirm('Bỏ nội dung chưa lưu?')) return;
     requestEpoch.current++; removeCaptcha(); onClose();
-  }, [changed, onClose, removeCaptcha]);
+  }, [changed, entryMode, batchItems.length, onClose, removeCaptcha]);
   const ref = useModalA11y(true, close);
 
   const validate = (ai = false) => {
@@ -218,6 +237,178 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     } catch (value) {
       if (epoch === requestEpoch.current) setError(value instanceof Error ? value.message : 'Không đọc được ảnh.');
     } finally { if (epoch === requestEpoch.current) setImageBusy(false); }
+  };
+
+  const handleBatchFiles = useCallback(async (files: File[]) => {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+    if (batchProgress) return;
+
+    let targetQuestions: { number: number; part: MistakeEntry['part'] }[] = [];
+    if (batchNumbersText.trim()) {
+      const { questions, invalid } = parseQuestionList(batchNumbersText);
+      if (invalid.length) {
+        setError(`Không đọc được số câu: ${invalid.join(', ')}`);
+        return;
+      }
+      if (!questions.length) {
+        setError('Không có số câu hợp lệ (1–200).');
+        return;
+      }
+      targetQuestions = questions.map(number => ({
+        number,
+        part: (partOfQuestion(number) ?? 5) as MistakeEntry['part']
+      }));
+    }
+
+    setError('');
+    const chunks: File[][] = [];
+    for (let i = 0; i < imageFiles.length; i += MAX_CONTEXT_IMAGES) {
+      chunks.push(imageFiles.slice(i, i + MAX_CONTEXT_IMAGES));
+    }
+
+    let doneCount = 0;
+    try {
+      for (const chunk of chunks) {
+        setBatchProgress({ done: doneCount, total: imageFiles.length });
+        const existingNumbers = new Set(batchItemsRef.current.map(it => it.number));
+        const questionsToSend = targetQuestions.length
+          ? targetQuestions.filter(q => !existingNumbers.has(q.number))
+          : Array.from({ length: 100 }, (_, i) => 101 + i)
+              .filter(num => !existingNumbers.has(num))
+              .map(number => ({
+                number,
+                part: (partOfQuestion(number) ?? 5) as MistakeEntry['part']
+              }));
+
+        if (!questionsToSend.length) break;
+
+        const prepared: PreparedImage[] = [];
+        for (const file of chunk) {
+          prepared.push(await prepareImage(file));
+        }
+
+        const result = await aiService.extractPageWithAI(questionsToSend, prepared, getToken);
+        if (result.items.length) {
+          const updated = [...batchItemsRef.current];
+          for (const item of result.items) {
+            const itemPart = (partOfQuestion(item.number) ?? item.draft.part ?? 5) as MistakeEntry['part'];
+            const category: ErrorCategory = selectedCategory || (item.draft.category !== 'OTHER' ? item.draft.category : 'OTHER');
+            const idx = updated.findIndex(it => it.number === item.number);
+            const entry: BatchExtractedItem = {
+              id: idx >= 0 ? updated[idx].id : crypto.randomUUID(),
+              number: item.number,
+              part: itemPart,
+              draft: item.draft,
+              category,
+              ticket: result.explainTicket ?? null
+            };
+            if (idx >= 0) {
+              updated[idx] = entry;
+            } else {
+              updated.push(entry);
+            }
+          }
+          updated.sort((a, b) => a.number - b.number);
+          batchItemsRef.current = updated;
+          setBatchItems(updated);
+        }
+        doneCount += chunk.length;
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại hoặc chọn ảnh khác.');
+    } finally {
+      removeCaptcha();
+      setBatchProgress(null);
+    }
+  }, [batchProgress, batchNumbersText, selectedCategory, getToken, removeCaptcha]);
+
+  const handleBatchFilesRef = useRef(handleBatchFiles);
+  handleBatchFilesRef.current = handleBatchFiles;
+
+  useEffect(() => {
+    if (step !== 'input' || entryMode !== 'batch') return;
+    const onPaste = (event: ClipboardEvent) => {
+      const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
+      if (files.length) {
+        event.preventDefault();
+        void handleBatchFilesRef.current(files);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [step, entryMode]);
+
+  const saveBatch = () => {
+    if (!batchItems.length || batchProgress) return;
+    if (!sourceTestName) { setError('Chọn hoặc thêm tên đề trước khi lưu.'); return; }
+    setError('');
+
+    const explainBatches = new Map<string, { cardId: string; number: number; input: MistakeInput }[]>();
+
+    for (const item of batchItems) {
+      const cardId = item.id;
+      const effectivePart = item.part;
+      const itemDraft = item.draft;
+      const choice = itemDraft.userChoice || '';
+      const userChoiceState = itemDraft.userChoiceState ?? (choice ? 'CHOSEN' : 'UNKNOWN');
+
+      const mistakeInput: MistakeInput = {
+        question: itemDraft.question ?? '',
+        options: itemDraft.options ?? [],
+        context: itemDraft.context ?? '',
+        part: effectivePart,
+        userChoiceState,
+        userChoice: choice,
+        userReason: itemDraft.userReason ?? '',
+        sourceAnswer: itemDraft.answerSource === 'PROVIDED' ? optionLetter(itemDraft.correctAnswer) : ''
+      };
+
+      const entry: MistakeEntry = {
+        id: cardId,
+        createdAt: new Date().toISOString(),
+        status: 'NEEDS_REVIEW',
+        sourceTestName,
+        sessionId: testNameKey(sourceTestName) === testNameKey(initialSourceName) ? initialSessionId : undefined,
+        questionNumber: item.number,
+        part: effectivePart,
+        question: itemDraft.question ?? undefined,
+        context: itemDraft.context ?? undefined,
+        questionContext: itemDraft.questionContext ?? (itemDraft.question || `Câu ${item.number}`),
+        options: itemDraft.options?.length ? itemDraft.options : undefined,
+        userChoice: choice || undefined,
+        userChoiceState,
+        userReason: itemDraft.userReason || undefined,
+        userMistake: itemDraft.userMistake || learnerMistake(mistakeInput),
+        correctAnswer: itemDraft.correctAnswer,
+        answerSource: itemDraft.correctAnswer ? itemDraft.answerSource ?? 'PROVIDED' : 'MISSING',
+        category: item.category,
+        tags: itemDraft.tags ?? [],
+        trapTip: itemDraft.trapTip || undefined,
+        optionNotes: itemDraft.optionNotes?.length ? itemDraft.optionNotes : undefined,
+        explanation: itemDraft.explanation ?? undefined
+      };
+
+      onAdd(entry);
+
+      if (item.ticket && canExplainRead(itemDraft, effectivePart)) {
+        const explainItem = {
+          cardId,
+          number: item.number,
+          input: explainInput(itemDraft, effectivePart)
+        };
+        const list = explainBatches.get(item.ticket) ?? [];
+        list.push(explainItem);
+        explainBatches.set(item.ticket, list);
+      }
+    }
+
+    for (const [ticket, list] of explainBatches) {
+      enqueueExplanations(ticket, list);
+    }
+
+    onSaved?.(`Đã lưu ${batchItems.length} câu sai`);
+    onClose();
   };
 
   const manualDraft = (): AIMistakeParseResult => {
@@ -297,6 +488,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     setImages([]); draftImages.current = '';
     setDraft(null); setStep('input'); setChanged(false); setAnswerProvidedBy(undefined);
     setCategory('OTHER'); setSelectedCategory(''); setTags(''); setError(''); setKeyOpen(false);
+    setBatchItems([]); setBatchNumbersText(''); setBatchProgress(null);
     entryId.current = crypto.randomUUID(); draftInput.current = ''; saved.current = false;
     requestAnimationFrame(() => ref.current?.querySelector<HTMLTextAreaElement>('#mistake-paste')?.focus());
   };
@@ -424,13 +616,166 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 sm:items-center sm:p-4" onClick={event => { if (event.target === event.currentTarget && event.detail <= 1) close(); }}>
     <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="mistake-entry-title" className="flex max-h-[100dvh] w-full flex-col max-md:h-[100dvh] max-md:border-0 border-2 border-slate-900 bg-white text-slate-900 dark:border-slate-200 dark:bg-[#111A2C] dark:text-slate-100 sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-2xl sm:shadow-[6px_6px_0px_#0f172a] dark:sm:shadow-[6px_6px_0px_#cbd5e1]">
-      <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
-        <h2 id="mistake-entry-title" className="text-xl font-extrabold">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
-          : <span>{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa câu sai' : 'Thêm câu sai'}</span>}</h2>
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <h2 id="mistake-entry-title" className="shrink-0 text-lg font-extrabold sm:text-xl">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
+            : <span>{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa câu sai' : 'Thêm câu sai'}</span>}</h2>
+          {!original && step === 'input' && (
+            <div role="tablist" aria-label="Chế độ thêm câu sai" className="flex shrink-0 items-center rounded-xl bg-slate-100 p-0.5 text-xs font-bold dark:bg-slate-800 sm:text-[13px]">
+              <button type="button" role="tab" aria-selected={entryMode === 'single'} onClick={() => { setEntryMode('single'); setError(''); }}
+                className={'cursor-pointer rounded-lg px-2 py-1 transition-all ' + (entryMode === 'single' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white')}>
+                ✍️ Nhập 1 câu
+              </button>
+              <button type="button" role="tab" aria-selected={entryMode === 'batch'} onClick={() => { setEntryMode('batch'); setError(''); }}
+                className={'cursor-pointer rounded-lg px-2 py-1 transition-all ' + (entryMode === 'batch' ? 'bg-white text-violet-700 shadow-sm dark:bg-slate-900 dark:text-violet-300' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white')}>
+                📸 Quét nhiều ảnh AI
+              </button>
+            </div>
+          )}
+        </div>
         <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
       </header>
       <ScrollableModalBody resetKey={step} compact>
-        {step === 'input' ? <fieldset disabled={busy || imageBusy || persisting} className="space-y-2 border-0 p-0">
+        {step === 'input' ? (
+          entryMode === 'batch' ? (
+            <div className="space-y-3">
+              {/* Hàng 1: Chọn Đề & Số câu tùy chọn */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <span className="mb-1.5 block text-sm font-bold">Đề <span className="text-rose-600" aria-hidden="true">*</span></span>
+                  <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={Boolean(batchProgress)}
+                    onChange={name => { setSourceTest(name); setChanged(true); }} />
+                </div>
+                <div className="w-full sm:w-[260px]">
+                  <label htmlFor="batch-numbers-input" className="mb-1.5 block text-sm font-bold">
+                    Số câu sai <span className="text-xs font-semibold text-slate-400">không bắt buộc</span>
+                  </label>
+                  <input
+                    id="batch-numbers-input"
+                    type="text"
+                    value={batchNumbersText}
+                    disabled={Boolean(batchProgress)}
+                    onChange={event => { setBatchNumbersText(event.target.value); setError(''); }}
+                    placeholder="Để trống = tự dò câu 101–200, hoặc gõ: 107 131"
+                    className={twMerge(inputClass, 'min-h-11 py-2 text-sm border-2 border-slate-300 dark:border-slate-700')}
+                  />
+                </div>
+              </div>
+
+              {/* Hàng 2: Khung Kéo thả / Chọn nhiều ảnh */}
+              <div
+                onDragOver={event => event.preventDefault()}
+                onDrop={event => {
+                  event.preventDefault();
+                  const files = [...event.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+                  if (files.length) void handleBatchFiles(files);
+                }}
+                className="flex flex-col items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/40 px-4 py-3.5 text-center dark:border-violet-800 dark:bg-violet-950/20 sm:flex-row sm:text-left">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-900/60 dark:text-violet-300">
+                    <ImagePlus className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      Thả hoặc dán nhiều ảnh màn hình đề <kbd className="ml-1 rounded border border-b-2 border-slate-300 bg-white px-1.5 py-0.5 text-[11px] font-black text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Ctrl+V</kbd>
+                    </p>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      Tự động nhận diện Part & đáp án
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {batchProgress ? (
+                    <div className="flex items-center gap-2 text-sm font-bold text-violet-700 dark:text-violet-300" role="status">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-300 border-t-violet-700" aria-hidden="true" />
+                      Đang quét ảnh {Math.min(batchProgress.done + 1, batchProgress.total)}/{batchProgress.total}…
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => batchFileInput.current?.click()}
+                      className="min-h-10 cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-4 text-sm font-black text-slate-900 shadow-[2px_2px_0px_#0f172a] hover:bg-slate-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:bg-slate-900 dark:text-white dark:shadow-none">
+                      Chọn nhiều ảnh…
+                    </button>
+                  )}
+                  <input
+                    ref={batchFileInput}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    hidden
+                    aria-label="Ảnh màn hình câu sai"
+                    onChange={event => {
+                      const files = [...(event.target.files ?? [])];
+                      event.target.value = '';
+                      if (files.length) void handleBatchFiles(files);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Hàng 3: Danh sách câu đã bóc tách */}
+              {batchItems.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                    <span>Đã quét được {batchItems.length} câu:</span>
+                    <button
+                      type="button"
+                      onClick={() => setBatchItems([])}
+                      className="text-rose-600 hover:underline dark:text-rose-400">
+                      Xóa tất cả
+                    </button>
+                  </div>
+                  <div className="max-h-[240px] overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-slate-900">
+                    {batchItems.map(item => {
+                      const choiceLetter = item.draft.userChoice || '—';
+                      const answerLetter = optionLetter(item.draft.correctAnswer) || (item.draft.correctAnswer ? item.draft.correctAnswer : '—');
+                      const questionText = item.draft.question || item.draft.questionContext || `Câu ${item.number}`;
+                      return (
+                        <div key={item.id} className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 text-sm sm:flex-nowrap">
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <PartBadge part={item.part} />
+                            <span className="shrink-0 font-extrabold text-slate-900 dark:text-slate-100">Câu {item.number}</span>
+                            <span className="truncate text-xs font-medium text-slate-600 dark:text-slate-400" title={questionText}>
+                              {questionText}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                              Bạn chọn {choiceLetter}
+                            </span>
+                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                              Đáp án {answerLetter}
+                            </span>
+                            <select
+                              aria-label={`Lỗi sai câu ${item.number}`}
+                              value={item.category}
+                              onChange={event => {
+                                const cat = event.target.value as ErrorCategory;
+                                setBatchItems(items => items.map(it => it.id === item.id ? { ...it, category: cat } : it));
+                              }}
+                              className="h-8 rounded-lg border border-slate-300 bg-slate-50 px-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-800">
+                              {Object.entries(CATEGORY_CHOICES).map(([value, label]) => (
+                                <option key={value} value={value}>{label}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              aria-label={`Xóa câu ${item.number}`}
+                              onClick={() => setBatchItems(items => items.filter(it => it.id !== item.id))}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <fieldset disabled={busy || imageBusy || persisting} className="space-y-2 border-0 p-0">
           {isPhone ? <>
           <div><p className="mb-2 text-[13.5px] font-black text-slate-700 dark:text-slate-200">Part <span className="text-rose-600" aria-hidden="true">*</span></p>
             {partButtons}
@@ -455,7 +800,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
             <div className="relative"><textarea id="mistake-paste" aria-describedby="mistake-input-hint" maxLength={8000} spellCheck={false} value={raw} onChange={event => { setRaw(event.target.value); setCorrected(null); setChanged(true); }} rows={3}
               onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length) { event.preventDefault(); void addImages(files); } }}
               placeholder={effectivePart === 1 ? 'Dán bốn mô tả nghe A–D…' : effectivePart === 2 ? 'Dán câu hỏi và ba phản hồi A–C…' : 'Dán một câu hỏi và các phương án…'}
-              className={twMerge(inputClass, 'min-h-[84px] resize-y border-2 border-slate-900 bg-[#FFFDF7] dark:border-slate-300 dark:bg-slate-900 max-md:min-h-[128px] max-md:pb-12')} />
+              className={twMerge(inputClass, 'min-h-[148px] resize-y border-2 border-slate-900 bg-[#FFFDF7] dark:border-slate-300 dark:bg-slate-900 max-md:min-h-[128px] max-md:pb-12')} />
             {isPhone && canReadClipboard && !raw && <button type="button" onClick={() => void navigator.clipboard.readText().then(text => { if (text) { setRaw(text); setCorrected(null); setChanged(true); } }).catch(() => undefined)}
               className="absolute bottom-2.5 right-2.5 flex h-9 items-center gap-1.5 rounded-xl border-[1.5px] border-blue-200 bg-white px-3 text-[13px] font-black text-blue-700 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300">
               <ClipboardPaste className="h-4 w-4" aria-hidden="true" />Dán</button>}</div>
@@ -473,7 +818,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
             <div className="space-y-3 border-t border-stone-200 py-3 dark:border-slate-700">{answerDetails}{categorySelect}</div>
           </details>}
           {original && original.userReason === undefined && original.userMistake && <details className="text-sm"><summary className="cursor-pointer font-semibold">Ghi chú cũ</summary><p className="mt-2 whitespace-pre-line text-base leading-relaxed">{original.userMistake}</p></details>}
-        </fieldset> : step === 'saved' ? <div role="status" className="flex flex-col items-center gap-3 py-5 text-center"><SuccessMark /><p className="text-lg font-bold">Đã lưu lỗi sai</p>{sourceTestName && <p className="text-sm text-slate-500 dark:text-slate-400">{sourceTestName}</p>}<p className="text-sm text-slate-500 dark:text-slate-400">{draft?.correctAnswer ? `${draft.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án đã lưu'}: ${draft.correctAnswer}` : 'Chưa có đáp án · bổ sung trước khi ôn'}</p></div> : draft && <>
+        </fieldset>)) : step === 'saved' ? <div role="status" className="flex flex-col items-center gap-3 py-5 text-center"><SuccessMark /><p className="text-lg font-bold">Đã lưu lỗi sai</p>{sourceTestName && <p className="text-sm text-slate-500 dark:text-slate-400">{sourceTestName}</p>}<p className="text-sm text-slate-500 dark:text-slate-400">{draft?.correctAnswer ? `${draft.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án đã lưu'}: ${draft.correctAnswer}` : 'Chưa có đáp án · bổ sung trước khi ôn'}</p></div> : draft && <>
           <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2">{draft.part !== null ? <PartBadge part={draft.part} /> : <span className="text-sm text-rose-600">Chọn Part trước khi lưu</span>}{sourceTestName && <span className="truncate text-xs text-slate-500 dark:text-slate-400" title={sourceTestName}>{sourceTestName}</span>}</div><button type="button" className={linkClass} onClick={() => { setStep('input'); setError(''); requestAnimationFrame(() => ref.current?.querySelector<HTMLTextAreaElement>('#mistake-paste')?.focus()); }}>Chỉnh nội dung</button></div>
           <p className="whitespace-pre-line text-base font-bold leading-relaxed">{draftQuestion.question || 'Chưa trích được câu hỏi'}</p>
           {sourceImageIds.length ? <SourceImageViewer ids={sourceImageIds} part={draft.part} /> : <>
@@ -499,7 +844,29 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         {step === 'input' && <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />}
       </ScrollableModalBody>
       <footer className={`flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-[#111A2C] sm:px-6 max-md:pb-[calc(0.875rem+env(safe-area-inset-bottom))] ${step === 'input' ? 'max-md:flex-nowrap' : ''}`}>
-        {step === 'input' ? <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
+        {step === 'input' ? (
+          entryMode === 'batch' ? (
+            <>
+              <div className="max-w-[50%] truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề và tải lên 1 hoặc nhiều ảnh chụp màn hình câu sai'}
+              </div>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={close} className={linkClass}>
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={saveBatch}
+                  disabled={!batchItems.length || Boolean(batchProgress)}
+                  className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>
+                  {`Lưu ${batchItems.length ? `${batchItems.length} ` : ''}câu sai`}
+                </button>
+              </div>
+            </>
+          ) : (
+            <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
+          )
+        )
           : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm câu tiếp'}</button></div></>
           : <><button type="button" disabled={persisting} onClick={() => { setStep('input'); setError(''); }} className={linkClass}>Quay lại</button><div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">{!original && <button type="button" disabled={persisting} onClick={() => void save(true, draft, false, canReuseReading)} className={`${primaryClass} min-h-11 bg-white text-slate-950 hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white`}>{canReuseReading ? 'Lưu & thêm câu cùng bài' : 'Lưu & thêm tiếp'}</button>}<button type="button" disabled={persisting} onClick={() => void save()} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{persisting ? 'Đang lưu…' : original ? 'Lưu thay đổi' : 'Lưu câu sai'}</button></div></>}
       </footer>
