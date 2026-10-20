@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('the notebook paginates ten cards while searching, filtering and reviewing the complete matching set', async ({ page }) => {
+test('the notebook paginates cards while searching, filtering and reviewing the complete matching set', async ({ page }) => {
   await page.goto('/so-tay');
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
@@ -16,9 +16,9 @@ test('the notebook paginates ten cards while searching, filtering and reviewing 
   });
   await page.reload();
   const rows = page.getByRole('button', { name: /^Mở câu:/ });
-  await expect(rows).toHaveCount(10);
+  await expect(rows).toHaveCount(6);
   await expect(page.getByRole('button', { name: 'Tất cả 23', exact: true })).toBeVisible();
-  await expect(page.getByText('1–10 / 23 thẻ', { exact: true })).toBeVisible();
+  await expect(page.getByText('1–6 / 23 thẻ', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Ôn 23 thẻ', exact: true }).click();
   const review = page.getByRole('dialog', { name: 'Ôn tập' });
   await expect(review.getByText('1 / 23', { exact: true })).toBeVisible();
@@ -26,23 +26,26 @@ test('the notebook paginates ten cards while searching, filtering and reviewing 
   const pagination = page.getByRole('navigation', { name: 'Trang Sổ tay', exact: true });
   await expect(pagination.getByRole('button', { name: 'Trước', exact: true })).toBeDisabled();
   await pagination.getByRole('button', { name: 'Sau', exact: true }).click();
-  await expect(rows).toHaveCount(10);
-  await expect(page.getByText('11–20 / 23 thẻ', { exact: true })).toBeVisible();
+  await expect(rows).toHaveCount(6);
+  await expect(page.getByText('7–12 / 23 thẻ', { exact: true })).toBeVisible();
   await pagination.getByRole('button', { name: 'Sau', exact: true }).click();
-  await expect(rows).toHaveCount(3);
-  await expect(page.getByText('21–23 / 23 thẻ', { exact: true })).toBeVisible();
+  await expect(rows).toHaveCount(6);
+  await expect(page.getByText('13–18 / 23 thẻ', { exact: true })).toBeVisible();
+  await pagination.getByRole('button', { name: 'Sau', exact: true }).click();
+  await expect(rows).toHaveCount(5);
+  await expect(page.getByText('19–23 / 23 thẻ', { exact: true })).toBeVisible();
   await expect(pagination.getByRole('button', { name: 'Sau', exact: true })).toBeDisabled();
   await pagination.getByRole('button', { name: 'Trước', exact: true }).click();
-  await expect(page.getByText('11–20 / 23 thẻ', { exact: true })).toBeVisible();
+  await expect(page.getByText('13–18 / 23 thẻ', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
   await page.getByLabel('Đề', { exact: true }).selectOption({ label: 'ETS Test 1' });
-  await expect(rows).toHaveCount(10);
-  await expect(page.getByText('1–10 / 20 thẻ', { exact: true })).toBeVisible();
+  await expect(rows).toHaveCount(6);
+  await expect(page.getByText('1–6 / 20 thẻ', { exact: true })).toBeVisible();
   await page.getByLabel('Đề', { exact: true }).selectOption({ label: 'ETS Test 2' });
   await expect(rows).toHaveCount(3);
   await expect(pagination).toHaveCount(0);
   await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).click();
-  await expect(rows).toHaveCount(10);
+  await expect(rows).toHaveCount(6);
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
   await page.getByLabel('Tìm trong sổ tay').filter({ visible: true }).fill('Hidden needle');
   await expect(rows).toHaveCount(1);
@@ -57,7 +60,7 @@ test('deleting the final card returns to a populated page and notebook paginatio
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const now = new Date().toISOString();
-    data.mistakes = Array.from({ length: 11 }, (_, index) => ({ id: `page-${index}`, part: 5, category: 'OTHER', status: 'NEEDS_REVIEW',
+    data.mistakes = Array.from({ length: 7 }, (_, index) => ({ id: `page-${index}`, part: 5, category: 'OTHER', status: 'NEEDS_REVIEW',
       questionContext: `Reports ${index + 1} should ____ submitted.`, options: ['(A) are', '(B) be'], correctAnswer: '(B) be',
       answerSource: 'PROVIDED', userMistake: '', tags: [], sourceTestName: 'ETS Test 1', createdAt: now, updatedAt: now, deletedAt: null }));
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
@@ -69,7 +72,7 @@ test('deleting the final card returns to a populated page and notebook paginatio
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await pagination.getByRole('button', { name: 'Sau', exact: true }).click();
-    await expect(page.getByText('11–11 / 11 thẻ', { exact: true })).toBeVisible();
+    await expect(page.getByText('7–7 / 7 thẻ', { exact: true })).toBeVisible();
     await pagination.getByRole('button', { name: 'Trước', exact: true }).click();
   }
   await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
@@ -81,13 +84,13 @@ test('deleting the final card returns to a populated page and notebook paginatio
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   page.once('dialog', dialog => dialog.dismiss());
   await page.getByRole('menuitem', { name: 'Xóa', exact: true }).click();
-  await expect(page.getByText('11–11 / 11 thẻ', { exact: true })).toBeVisible();
+  await expect(page.getByText('7–7 / 7 thẻ', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('menuitem', { name: 'Xóa', exact: true }).click();
-  await expect(page.getByText('1–10 / 10 thẻ', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(10);
+  await expect(page.getByText('1–6 / 6 thẻ', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(6);
   await expect(pagination).toHaveCount(0);
   await page.reload();
-  await expect(page.getByText('1–10 / 10 thẻ', { exact: true })).toBeVisible();
+  await expect(page.getByText('1–6 / 6 thẻ', { exact: true })).toBeVisible();
 });

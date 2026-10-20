@@ -21,7 +21,7 @@ import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import './notebook.css';
 
-const NOTEBOOK_PAGE_SIZE = 10;
+const NOTEBOOK_PAGE_SIZE = 6;
 /** Phones list each status group in steps of this many rows. */
 const PHONE_GROUP_STEP = 10;
 const STATUS_FILTER_STYLE = {
@@ -213,18 +213,36 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return groups.map(group => {
       const count = group.cards.length, reading = group.cards.every(card => card.part >= 5);
       const repeated = groups.some(other => other.id !== group.id && testNameKey(other.title) === testNameKey(group.title));
+      if (isPhone) {
+        return (
+          <button key={group.id} type="button" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}
+            aria-label={`Ghi chi tiết ${count} câu, ${group.title === 'Chưa ghi đề' ? 'chưa ghi đề' : group.title}${repeated ? `, ${group.attempt}` : ''}`}
+            className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{group.title}</span>
+              <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{group.attempt}</span>
+              <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu {reading ? 'Reading ' : ''}sai</span>
+            </span>
+            <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
+          </button>
+        );
+      }
       return (
-      <button key={group.id} type="button" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}
-        aria-label={`Ghi chi tiết ${count} câu, ${group.title === 'Chưa ghi đề' ? 'chưa ghi đề' : group.title}${repeated ? `, ${group.attempt}` : ''}`}
-        className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{group.title}</span>
-          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{group.attempt}</span>
-          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu {reading ? 'Reading ' : ''}sai</span>
-        </span>
-        <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
-      </button>
-    ); });
+        <button key={group.id} type="button" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}
+          aria-label={`Ghi chi tiết ${count} câu, ${group.title === 'Chưa ghi đề' ? 'chưa ghi đề' : group.title}${repeated ? `, ${group.attempt}` : ''}`}
+          className="flex min-h-[46px] w-full cursor-pointer items-center justify-between gap-3 px-5 py-2 text-left transition-colors hover:bg-amber-100/50 dark:hover:bg-amber-950/40">
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />Chưa ghi chi tiết
+            </span>
+            <span className="truncate text-[13.5px] font-extrabold text-slate-900 dark:text-slate-100">{group.title}</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">· {group.attempt}</span>
+            <span className="rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:border-amber-800 dark:bg-slate-900 dark:text-amber-300">{count} câu {reading ? 'Reading ' : ''}sai</span>
+          </span>
+          <span className="shrink-0 rounded-lg bg-blue-600 px-3 py-1 text-xs font-extrabold text-white shadow-sm">Ghi chi tiết ›</span>
+        </button>
+      );
+    });
   };
 
   const renderPhoneGroups = () => {
@@ -413,10 +431,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       ) : isPhone ? renderPhoneGroups() : (
         <div className="notebook-list divide-y divide-slate-200 dark:divide-slate-800">
           {selectedStatus === 'ALL' && desktopPending.length > 0 && (
-            <section aria-label={`Chưa ghi chi tiết · ${desktopPending.length}`} className="[&>button]:px-5">
-              <h3 className="flex items-center gap-2 px-5 pb-1 pt-3 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
-                <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />Chưa ghi chi tiết
-              </h3>
+            <section aria-label={`Chưa ghi chi tiết · ${desktopPending.length}`} className="divide-y divide-amber-200/60 border-b border-amber-200/80 bg-amber-50/70 dark:divide-amber-800/40 dark:border-amber-800/50 dark:bg-amber-950/20">
+              <h3 className="sr-only">Chưa ghi chi tiết</h3>
+
+
               {renderPendingTests(desktopPending)}
             </section>
           )}

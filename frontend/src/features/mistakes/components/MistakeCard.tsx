@@ -144,7 +144,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
 
   return (
     <div className={`notebook-card ${expanded ? 'bg-slate-50/60 dark:bg-slate-800/20' : ''}`}>
-      <div className="notebook-row grid grid-cols-[minmax(0,1fr)_32px] items-start gap-2 px-3.5 py-3 sm:items-center sm:px-5">
+      <div className="notebook-row grid grid-cols-[minmax(0,1fr)_32px] items-start gap-2 px-3.5 py-2.5 sm:items-center sm:px-5">
         <button type="button" onClick={onToggle} aria-expanded={expanded}
           aria-label={`${expanded ? 'Thu gọn' : 'Mở'} câu: ${question}`}
           className="notebook-row-toggle grid min-h-11 min-w-0 cursor-pointer grid-cols-1 gap-1.5 text-left sm:grid-cols-[32px_minmax(0,1fr)_160px] sm:items-center sm:gap-3">
@@ -156,10 +156,20 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           </span>
           <span className="min-w-0 text-[15px] leading-snug text-slate-900 dark:text-white">
             <span className={expanded ? 'block font-bold' : 'block font-semibold line-clamp-2'}>{question}</span>
-            {mistake.sourceTestName && <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">{mistake.sourceTestName}</span>}
+            {(mistake.sourceTestName || mistake.category !== 'OTHER') && (
+              <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                {mistake.sourceTestName && <span>{mistake.sourceTestName}</span>}
+                {mistake.sourceTestName && mistake.category !== 'OTHER' && <span aria-hidden="true">·</span>}
+                {mistake.category !== 'OTHER' && (
+                  <span className="font-semibold" style={{ color: ERROR_CATEGORY_LABELS[mistake.category]?.color }}>
+                    {ERROR_CATEGORY_LABELS[mistake.category]?.label}
+                  </span>
+                )}
+              </span>
+            )}
           </span>
-          <span className={`hidden items-center gap-1.5 whitespace-nowrap text-[13px] font-semibold sm:inline-flex sm:justify-self-end ${style.text}`}>
-            {style.dot && <span className={`h-2 w-2 rounded-full ${style.dot}`} />}{status.label}
+          <span className={`hidden items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold sm:inline-flex sm:justify-self-end ${style.text} ${status.kind === 'due' ? 'bg-amber-50 dark:bg-amber-950/40' : status.kind === 'mastered' ? 'bg-emerald-50 dark:bg-emerald-950/40' : status.kind === 'overdue' ? 'bg-rose-50 dark:bg-rose-950/40' : 'bg-slate-100 dark:bg-slate-800'}`}>
+            {style.dot && <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />}{status.label}
           </span>
         </button>
         <div ref={menuRef} className="relative shrink-0">
