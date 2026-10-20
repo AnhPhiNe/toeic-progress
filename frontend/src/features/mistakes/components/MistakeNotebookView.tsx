@@ -205,14 +205,18 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   // One row per test instead of one per question: a test with 50 wrong answers stays one line.
   const renderPendingTests = (items: MistakeEntry[]) => {
-    const tests = new Map<string, number>();
-    for (const card of items) tests.set(card.sourceTestName ?? '', (tests.get(card.sourceTestName ?? '') ?? 0) + 1);
-    return [...tests].map(([test, count]) => (
+    const tests = new Map<string, { count: number; reading: boolean }>();
+    for (const card of items) {
+      const key = card.sourceTestName ?? '', current = tests.get(key) ?? { count: 0, reading: true };
+      tests.set(key, { count: current.count + 1, reading: current.reading && card.part >= 5 });
+    }
+    // Same words as the note after saving a test ("… câu Reading sai"); a hand-written note may be from any Part.
+    return [...tests].map(([test, { count, reading }]) => (
       <button key={test || 'none'} type="button" onClick={() => startDetail(test)} aria-label={`Ghi chi tiết ${count} câu, ${test || 'chưa ghi đề'}`}
         className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{test || 'Chưa ghi đề'}</span>
-          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu sai</span>
+          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu {reading ? 'Reading ' : ''}sai</span>
         </span>
         <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
       </button>
