@@ -53,7 +53,7 @@ test('save confirmation appears only after persistence, respects reduced motion 
   await seed(page, 1);
   await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const editor = page.getByRole('dialog');
-  await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
+  await chooseNoteSource(editor); await editor.getByRole('button', { name: 'Part 5', exact: true }).click();
   await editor.getByLabel('Câu hỏi + phương án').fill('Part 5:\nForms should ____ submitted.\n(A) are\n(B) be');
 
   await editor.getByText('Đáp án đúng từ đề', { exact: false }).click();
@@ -150,7 +150,7 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
   const editor = page.getByRole('dialog');
   const heading = editor.getByRole('heading');
   const before = await heading.boundingBox();
-  await chooseNoteSource(editor); await editor.getByLabel('Part', { exact: true }).selectOption('5');
+  await chooseNoteSource(editor); await editor.getByRole('button', { name: 'Part 5', exact: true }).click();
   await editor.getByLabel('Câu hỏi + phương án').fill('Part 5:\nForms should ____ submitted.\n(A) are\n(B) be');
 
   await editor.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
@@ -159,7 +159,7 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
   expect((await heading.boundingBox())!.height).toBe(before!.height);
   await expect(editor.getByLabel('Câu hỏi + phương án')).toHaveValue('');
   await expect(editor.getByLabel('Câu hỏi + phương án')).toBeFocused();
-  await expect(editor.getByLabel('Part', { exact: true })).toHaveValue('5');
+  await expect(editor.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(editor.getByRole('button', { name: 'Chọn đề', exact: true })).toHaveText('ETS Test 1');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.length)).toBe(1);
   await editor.getByLabel('Câu hỏi + phương án').fill('Next question');

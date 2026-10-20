@@ -18,7 +18,7 @@ for (const [status, message] of [
     ` }));
     await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
     const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-    await modal.getByLabel('Part', { exact: true }).selectOption('5');
+    await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
     await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
     await expect(modal.getByRole('status')).toContainText(message);
     await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeDisabled();

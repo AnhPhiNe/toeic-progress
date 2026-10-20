@@ -27,7 +27,7 @@ test('the shared context area retains text and pictures across mode changes and 
   ` }));
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('Which workshop is free?\n' + options.join('\n'));
   await modal.getByLabel('Đoạn đọc', { exact: true }).fill(passage);
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
@@ -68,11 +68,11 @@ test('the shared context area retains text and pictures across mode changes and 
 test('Part 5 context is optional and collapsed; Part 6 manual save keeps the question and reading separate', async ({ page }) => {
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await expect(modal.getByLabel('Ngữ cảnh', { exact: true })).toBeHidden();
-  await modal.getByText('Ngữ cảnh (tùy chọn)', { exact: true }).click();
+  await modal.locator('summary', { hasText: 'Ngữ cảnh' }).click();
   await expect(modal.getByLabel('Ngữ cảnh', { exact: true })).toBeVisible();
-  await modal.getByLabel('Part', { exact: true }).selectOption('6');
+  await modal.getByRole('button', { name: 'Part 6', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('The workshop is ____.\n' + options.join('\n'));
   await modal.getByLabel('Đoạn đọc', { exact: true }).fill(passage);
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();

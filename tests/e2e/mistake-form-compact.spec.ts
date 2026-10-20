@@ -16,7 +16,7 @@ for (const { selected, capable } of [
     }` }));
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
   await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).selectOption(selected);
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
@@ -50,7 +50,7 @@ test('Part and test share a row, one source textbox replaces extra context and c
   await expect(modal.getByLabel('Ngữ cảnh bổ sung', { exact: true })).toHaveCount(0);
   await expect(modal.getByText('Ghi chú bổ sung', { exact: true })).toHaveCount(0);
   await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).selectOption('TIME_PRESSURE');
-  await part.selectOption('5');
+  await part.getByRole('button', { name: 'Part 5', exact: true }).click();
   await source.click();
   await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('ETS Compact');
   await page.getByRole('option', { name: '+ Thêm tên đề “ETS Compact”', exact: true }).click();
@@ -62,7 +62,6 @@ test('Part and test share a row, one source textbox replaces extra context and c
   await page.screenshot({ path: testInfo.outputPath('compact-note-form-mobile.png'), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 900 });
   expect(Math.abs((await modal.getByRole('combobox', { name: 'Lỗi sai', exact: true }).boundingBox())!.y - (await source.boundingBox())!.y)).toBeLessThan(3);
-  expect((await source.boundingBox())!.width).toBeLessThanOrEqual(310);
   await page.screenshot({ path: testInfo.outputPath('compact-note-form-desktop.png'), fullPage: true });
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);

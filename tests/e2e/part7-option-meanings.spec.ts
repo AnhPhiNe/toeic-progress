@@ -17,7 +17,7 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
     }` }));
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   for (const meaning of meanings) await expect(modal.getByText(meaning, { exact: true })).toHaveCount(0);

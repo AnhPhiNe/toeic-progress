@@ -13,7 +13,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
         window.__analysisCount = (window.__analysisCount || 0) + 1;
         window.__lastAIInput = input;
         return { usage: {}, draft: {
-          part: 3, questionContext: ${JSON.stringify(question + '\n\n' + transcript)}, options: input.options,
+          part: 7, questionContext: ${JSON.stringify(question + '\n\n' + transcript)}, options: input.options,
           question: ${JSON.stringify(question)}, context: ${JSON.stringify(transcript)},
           correctAnswer: input.options[2], answerSource: 'AI_PROPOSED', userChoice: 'D', userMistake: '',
           category: 'OTHER', tags: [], trapTip: 'Check the missing containers.', optionNotes: [],
@@ -24,7 +24,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   await page.goto('/so-tay');
   await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('3');
+  await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(
     'Questions 53 through 55 refer to the following conversation.\n' + transcript + '\n\n' + question + '\n' + options.join('\n')
   );
@@ -33,7 +33,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
   await expect(modal.getByText(question, { exact: true })).toBeVisible();
   await expect(modal.getByText(transcript, { exact: true })).not.toBeVisible();
-  const context = modal.locator('details').filter({ has: page.locator('summary', { hasText: /^Transcript$/ }) });
+  const context = modal.locator('details').filter({ has: page.locator('summary', { hasText: /^Đoạn đọc \/ ngữ cảnh$/ }) });
   await context.locator('summary').focus();
   await page.keyboard.press('Enter');
   await expect(modal.getByText(transcript, { exact: true })).toBeVisible();
@@ -75,7 +75,7 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
   await expect(page.getByRole('dialog').getByLabel('Câu hỏi + phương án')).toHaveValue(question + '\n' + options.join('\n'));
-  await expect(page.getByRole('dialog').getByLabel('Transcript', { exact: true })).toHaveValue(transcript);
+  await expect(page.getByRole('dialog').getByLabel('Đoạn đọc', { exact: true })).toHaveValue(transcript);
   await page.getByRole('dialog').getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   const edited = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(edited.question).toBe(question); expect(edited.context).toBe(transcript);

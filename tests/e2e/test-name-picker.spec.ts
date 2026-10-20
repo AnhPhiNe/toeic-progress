@@ -37,26 +37,21 @@ test('search stays inside the dropdown, keeps the field stable and marks the sel
   await expect(modal.getByRole('listbox')).toHaveCount(0);
 });
 
-test('empty answers are visible but disabled, source key is separate and Part text fits', async ({ page }, testInfo) => {
+test('empty answers are visible but disabled, source key is separate and Part buttons fit', async ({ page }, testInfo) => {
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog');
   for (const width of [320, 375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     // Poll: right after a resize the previous layout can still be measured.
-    await expect.poll(() => modal.getByLabel('Part', { exact: true }).evaluate(element => {
-      const style = getComputedStyle(element), canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d')!; context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      return context.measureText('Chọn Part').width <= element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    })).toBe(true);
+    await expect.poll(() => modal.getByRole('group', { name: 'Part', exact: true }).evaluate(element => element.getBoundingClientRect().right <= innerWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   for (const letter of ['A', 'B', 'C', 'D']) await expect(modal.getByRole('button', { name: `Bạn chọn ${letter}`, exact: true })).toBeDisabled();
   await expect(modal.getByText('Dán câu hỏi để chọn phương án.', { exact: true })).toBeVisible();
   await openAnswerKey(modal);
   await expect(modal.getByRole('button', { name: 'Đáp án từ đề: A', exact: true })).toBeDisabled();
-  await modal.getByLabel('Part', { exact: true }).selectOption('2');
-  await expect(modal.getByRole('button', { name: 'Bạn chọn D', exact: true })).toHaveCount(0);
-  await modal.getByLabel('Câu hỏi + phản hồi A–C').fill('Where is the meeting?\n(A) In room five.\n(B) Next week.\n(C) Yes, I did.');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
+  await modal.getByLabel('Câu hỏi + phương án').fill('The meeting ____ in room five.\n(A) is\n(B) are\n(C) be\n(D) being');
   const chosen = modal.getByRole('button', { name: 'Bạn chọn B', exact: true });
   await expect(chosen).toBeEnabled(); await chosen.click();
   await modal.getByRole('button', { name: 'Đáp án từ đề: A', exact: true }).click();

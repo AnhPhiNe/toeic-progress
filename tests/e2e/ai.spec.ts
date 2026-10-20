@@ -15,7 +15,7 @@ for (const message of [
   ` }));
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await modal.getByRole('button', { name: 'Bạn chọn D', exact: true }).click();
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
@@ -62,7 +62,7 @@ test('quick save needs no preview or AI; missing answers stay out of review unti
   let modal = page.getByRole('dialog');
   await expect(modal.getByText('Đáp án đúng từ đề', { exact: false })).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Xem mẫu minh họa' })).toHaveCount(0);
-  await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await expect(modal.getByRole('button', { name: 'Đáp án từ đề: B', exact: true })).not.toBeVisible();
 
@@ -89,7 +89,7 @@ test('quick save needs no preview or AI; missing answers stay out of review unti
 
 test('dirty input can be retained and unconfigured AI never substitutes a sample', async ({ page }) => {
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('5'); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
+  const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 5', exact: true }).click(); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await expect(modal.getByRole('button', { name: 'Phân tích với AI' })).toBeDisabled();
   await expect(modal.getByRole('checkbox')).toHaveCount(0);
   page.once('dialog', dialog => dialog.dismiss()); await page.keyboard.press('Escape');
@@ -136,13 +136,13 @@ test('review cannot overwrite a newer question stored elsewhere', async ({ page 
 test('Part and source are required before quick save; category is optional', async ({ page }) => {
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
-  await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('');
+  await expect(modal.getByRole('group', { name: 'Part', exact: true }).locator('[aria-pressed=\"true\"]')).toHaveCount(0);
 
   await modal.getByText('Đáp án đúng từ đề', { exact: false }).click(); await modal.getByRole('button', { name: 'Đáp án từ đề: B', exact: true }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click(); await expect(modal.getByRole('alert')).toContainText('Chọn Part');
-  await expect(modal.getByLabel('Part', { exact: true })).toBeFocused();
+  await expect(modal.getByRole('button', { name: 'Part 5', exact: true })).toBeFocused();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toEqual([]);
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await expect(modal.getByRole('alert')).toContainText('Chọn hoặc thêm tên đề');
   await expect(modal.getByRole('button', { name: 'Chọn đề', exact: true })).toBeFocused();
@@ -173,7 +173,7 @@ test('AI receives structured input and the learner data survives the preview and
         userMistake: 'Invented narration', category: 'OTHER', tags: [], trapTip: '', optionNotes: [], explanation: null, missingInformation: [] } };
     }` }));
   await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('5'); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
+  const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 5', exact: true }).click(); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   const reason = 'Mình chưa chắc nghĩa proposal.\nĐáp án chuẩn: A là ghi chú riêng.';
   await modal.getByLabel('Lý do chọn').fill(reason);
@@ -192,7 +192,7 @@ test('AI receives structured input and the learner data survives the preview and
 test('reason-only edits preserve explanations and request review before saving', async ({ page }) => {
   await seedCard(page); const original = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   await page.getByRole('button', { name: 'Tùy chọn thẻ' }).click(); await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByLabel('Part', { exact: true }).selectOption('5'); await modal.getByLabel('Lý do chọn').fill('Mình chỉ ghi thêm lý do.');
+  const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 5', exact: true }).click(); await modal.getByLabel('Lý do chọn').fill('Mình chỉ ghi thêm lý do.');
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
   await expect(modal.getByLabel('Giải thích / mẹo ghi nhớ')).not.toBeVisible();

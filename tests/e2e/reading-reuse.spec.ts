@@ -25,7 +25,7 @@ test('five questions reuse three images once and preserve the full source withou
   await mockAnalysis(page); await page.goto('/so-tay');
   await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Reuse');
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question(1) + '\n' + choices.join('\n'));
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
@@ -112,9 +112,9 @@ test('a saved source can start a new question after reload; changing source, Par
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
   const modal = page.getByRole('dialog');
-  await expect(modal.getByLabel('Part', { exact: true })).toHaveValue('7');
+  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
-  await modal.getByLabel('Part', { exact: true }).selectOption('5');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
   page.once('dialog', dialog => dialog.accept());
   await modal.getByRole('button', { name: 'Đóng', exact: true }).click();

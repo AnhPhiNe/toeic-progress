@@ -34,7 +34,7 @@ test('Part 7 retains source images after save/reload/review and reuses them for 
   await mockImages(page); await page.goto('/so-tay');
   await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Images');
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('**Câu hỏi**\n**178**\n**' + question + '**\n' + options.join('&#x20;\n') + '\u00a0');
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles([fixture, resolve('tests/fixtures/part7-table-question.png')]);
@@ -81,7 +81,7 @@ test('upload failure preserves the selected image and manual save can retry with
   await mockImages(page, true); await page.goto('/so-tay');
   await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
-  await modal.getByLabel('Part', { exact: true }).selectOption('7');
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles(fixture);
