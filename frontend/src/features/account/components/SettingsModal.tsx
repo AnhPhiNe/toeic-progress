@@ -238,12 +238,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const daysLeft = formData.examDate ? Math.ceil((Date.parse(`${formData.examDate}T00:00:00`) - new Date(new Date().toDateString()).getTime()) / 86_400_000) : null;
-  const row = 'flex min-h-[52px] items-center justify-between gap-4 px-4 py-2 text-sm font-bold text-slate-800 dark:text-slate-100';
   const fieldBase = 'rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white';
-  const field = fieldBase + ' w-40 text-right';
   const group = 'divide-y divide-slate-100 overflow-hidden rounded-2xl border-[1.5px] border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-[#121A2B]';
-  const eyebrow = 'mb-2 text-[11px] font-extrabold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400';
-  const dataButton = 'flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3.5 text-sm font-black text-slate-900 shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none';
+  const eyebrow = 'mb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400';
+  const dataButton = 'flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-900 shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none';
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${PHONE_SHEET_BACKDROP}`}>
@@ -253,9 +251,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         aria-modal="true"
         aria-labelledby="settings-modal-title"
         tabIndex={-1}
-        className={`w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col rounded-3xl border-2 border-slate-900 bg-white shadow-[6px_6px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#121A2B] dark:shadow-[6px_6px_0_0_#cbd5e1] ${PHONE_SHEET_PANEL}`}>
+        className={`w-full max-w-[820px] overflow-hidden max-h-[90vh] flex flex-col rounded-3xl border-2 border-slate-900 bg-white shadow-[6px_6px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#121A2B] dark:shadow-[6px_6px_0_0_#cbd5e1] ${PHONE_SHEET_PANEL}`}>
 
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4 max-md:px-4 max-md:py-3 dark:border-slate-800">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-3.5 max-md:px-4 max-md:py-3 dark:border-slate-800">
           <h3 id="settings-modal-title" className="text-xl font-black text-slate-900 max-md:text-base max-md:font-bold dark:text-white">Cài đặt</h3>
           <button onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="p-1 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
             <X className="w-5 h-5" />
@@ -276,84 +274,102 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         // Computers: a profile card on the left (who, exam countdown, goal), grouped settings on the right, save always in view.
         <form onSubmit={handleSubmit} aria-busy={resetBusy} className="flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1">
-            <aside className="flex w-[260px] shrink-0 flex-col gap-4 overflow-y-auto border-r-2 border-slate-900 bg-[#FFFDF7] p-5 dark:border-slate-700 dark:bg-[#0B132B]">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-slate-900 bg-[#DDD6FE] text-xl font-black text-slate-950 dark:border-slate-300" aria-hidden="true">{profileInitials(formData.name)}</div>
-              <p className="-mt-1 text-lg font-black leading-tight text-slate-900 dark:text-white">{formData.name.trim() || 'Học viên'}</p>
-              <div className="rounded-2xl border-2 border-slate-900 bg-sky-200 px-4 py-3 text-slate-950 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">
-                <p className="text-xs font-bold text-sky-900">{formData.examDate ? `Ngày thi ${formData.examDate.split('-').reverse().join('/')}` : 'Chưa đặt ngày thi'}</p>
-                <p className="text-3xl font-black tabular-nums">{daysLeft === null ? '—' : daysLeft >= 0 ? `D-${daysLeft}` : 'Đã thi'}</p>
-              </div>
-              <div className="rounded-2xl border-2 border-slate-900 bg-white px-4 py-3 dark:border-slate-300 dark:bg-slate-900">
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Mục tiêu</p>
-                <p className="text-3xl font-black tabular-nums text-slate-900 dark:text-white">{formData.targetScore || '—'}</p>
+            <aside className="flex w-[255px] shrink-0 flex-col justify-between gap-3.5 overflow-y-auto border-r-2 border-slate-900 bg-[#FFFDF7] p-4 dark:border-slate-700 dark:bg-[#0B132B]">
+              <div className="space-y-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-slate-900 bg-[#DDD6FE] text-base font-black text-slate-950 dark:border-slate-300" aria-hidden="true">
+                    {profileInitials(formData.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-black leading-tight text-slate-900 dark:text-white">{formData.name.trim() || 'Học viên'}</p>
+                    <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">Học viên TOEIC</p>
+                  </div>
+                </div>
+                <div className="rounded-2xl border-2 border-slate-900 bg-sky-200 px-3.5 py-2.5 text-slate-950 shadow-[2.5px_2.5px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">
+                  <p className="text-[11px] font-bold text-sky-900">{formData.examDate ? `Ngày thi ${formData.examDate.split('-').reverse().join('/')}` : 'Chưa đặt ngày thi'}</p>
+                  <p className="mt-0.5 text-2xl font-black leading-tight tabular-nums">{daysLeft === null ? '—' : daysLeft >= 0 ? `D-${daysLeft}` : 'Đã thi'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-2xl border-2 border-slate-900 bg-white px-3 py-2 dark:border-slate-300 dark:bg-slate-900">
+                    <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">Mục tiêu</p>
+                    <p className="text-xl font-black tabular-nums text-slate-900 dark:text-white">{formData.targetScore || '—'}</p>
+                  </div>
+                  <div className="rounded-2xl border-2 border-slate-900 bg-white px-3 py-2 dark:border-slate-300 dark:bg-slate-900">
+                    <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">Mỗi ngày</p>
+                    <p className="text-xl font-black tabular-nums text-slate-900 dark:text-white">{formData.dailyMinGoalMinutes ? `${formData.dailyMinGoalMinutes}p` : '—'}</p>
+                  </div>
+                </div>
               </div>
               {accountPanel && <div className="text-xs">{accountPanel}</div>}
             </aside>
 
-            <div className="min-w-0 flex-1 overflow-y-auto p-5 text-xs">
-              <fieldset disabled={resetBusy} className="min-w-0 space-y-5">
-              <section>
-                <h4 className={eyebrow}>Hồ sơ</h4>
-                <div className={group}>
-                  <label htmlFor="settings-name" className={row}>Tên của bạn
-                    <input id="settings-name" type="text" required placeholder="Ví dụ: Minh Tuấn" value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })} className={fieldBase + ' w-56'} />
-                  </label>
-                </div>
-              </section>
-              <section>
-                <h4 className={eyebrow}>Mục tiêu</h4>
-                <div className={group}>
-                  <label htmlFor="settings-target" className={row}>Điểm mục tiêu
-                    <input id="settings-target" type="number" required min="10" max="990" step="5" value={formData.targetScore}
-                      onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })} className={field} />
-                  </label>
-                  <label htmlFor="settings-exam-date" className={row}>Ngày thi
-                    <input id="settings-exam-date" type="date" value={formData.examDate}
-                      onChange={e => setFormData({ ...formData, examDate: e.target.value })} className={field} />
-                  </label>
-                  <label htmlFor="settings-daily-minutes" className={row}>Học mỗi ngày (phút)
-                    <input id="settings-daily-minutes" type="number" required min="5" max="300" value={formData.dailyMinGoalMinutes}
-                      onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })} className={field} />
-                  </label>
-                </div>
-              </section>
-              <section>
-                <h4 className={eyebrow}>Chuỗi học</h4>
-                <div className={group}>
-                  <label htmlFor="settings-shields" className={row}>Khiên cứu chuỗi
-                    <input id="settings-shields" type="number" required min="0" max="5" value={formData.streakFreezes}
-                      onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })} className={field} />
-                  </label>
-                  <label htmlFor="settings-motto" className={row + ' items-start py-3'}>Châm ngôn
-                    <textarea id="settings-motto" rows={2} value={formData.motto}
-                      onChange={e => setFormData({ ...formData, motto: e.target.value })} className={fieldBase + ' w-64'} />
-                  </label>
-                </div>
-              </section>
-              <section className="space-y-2.5">
-                <h4 className={eyebrow}>Dữ liệu</h4>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <button type="button" onClick={exportDataAsJSON} className={dataButton} title="Tải bản sao lưu JSON về máy"><Download className="h-4 w-4" aria-hidden="true" />Sao lưu ra tệp</button>
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className={dataButton} title="Khôi phục dữ liệu từ tệp JSON"><Upload className="h-4 w-4" aria-hidden="true" />Khôi phục từ tệp</button>
-                </div>
-                {renderDataNotice()}
-                <div className="flex items-center justify-between pt-1 text-[13px]">
-                  {onLoadDemo ? <button type="button" onClick={loadDemo} className="flex cursor-pointer items-center gap-1.5 font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                    <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Nạp dữ liệu mẫu</button> : <span />}
-                  {onResetData && <button type="button" onClick={() => void handleReset()} disabled={resetBusy}
-                    className="flex cursor-pointer items-center gap-1.5 font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400">
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}</button>}
-                </div>
-              </section>
+            <div className="min-w-0 flex-1 overflow-y-auto p-4 text-xs">
+              <fieldset disabled={resetBusy} className="min-w-0 space-y-3.5">
+                <section>
+                  <h4 className={eyebrow}>Hồ sơ & Động lực</h4>
+                  <div className={group}>
+                    <label htmlFor="settings-name" className="grid grid-cols-12 items-center gap-3 px-3.5 py-2 text-[13px] font-bold text-slate-800 dark:text-slate-100">
+                      <span className="col-span-4">Tên của bạn</span>
+                      <input id="settings-name" type="text" required placeholder="Ví dụ: Minh Tuấn" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className={fieldBase + ' col-span-8 w-full'} />
+                    </label>
+                    <label htmlFor="settings-motto" className="grid grid-cols-12 items-center gap-3 px-3.5 py-2 text-[13px] font-bold text-slate-800 dark:text-slate-100">
+                      <span className="col-span-4">Châm ngôn</span>
+                      <input id="settings-motto" type="text" value={formData.motto} onChange={e => setFormData({ ...formData, motto: e.target.value })} className={fieldBase + ' col-span-8 w-full'} />
+                    </label>
+                  </div>
+                </section>
+
+                <section>
+                  <h4 className={eyebrow}>Mục tiêu & Chuỗi học</h4>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <label htmlFor="settings-target" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
+                      <span>Điểm mục tiêu</span>
+                      <input id="settings-target" type="number" required min="10" max="990" step="5" value={formData.targetScore} onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })} className={fieldBase + ' w-24 text-right tabular-nums'} />
+                    </label>
+                    <label htmlFor="settings-exam-date" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
+                      <span>Ngày thi</span>
+                      <input id="settings-exam-date" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} className={fieldBase + ' w-36 text-right tabular-nums'} />
+                    </label>
+                    <label htmlFor="settings-daily-minutes" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
+                      <span>Học mỗi ngày (phút)</span>
+                      <input id="settings-daily-minutes" type="number" required min="5" max="300" value={formData.dailyMinGoalMinutes} onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })} className={fieldBase + ' w-20 text-right tabular-nums'} />
+                    </label>
+                    <label htmlFor="settings-shields" className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 dark:border-slate-700 dark:bg-[#121A2B] dark:text-slate-100">
+                      <span>Khiên cứu chuỗi</span>
+                      <input id="settings-shields" type="number" required min="0" max="5" value={formData.streakFreezes} onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })} className={fieldBase + ' w-20 text-right tabular-nums'} />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="space-y-2">
+                  <h4 className={eyebrow}>Dữ liệu</h4>
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button type="button" onClick={exportDataAsJSON} className={dataButton} title="Tải bản sao lưu JSON về máy"><Download className="h-4 w-4" aria-hidden="true" />Sao lưu ra tệp</button>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className={dataButton} title="Khôi phục dữ liệu từ tệp JSON"><Upload className="h-4 w-4" aria-hidden="true" />Khôi phục từ tệp</button>
+                      {onLoadDemo && (
+                        <button type="button" onClick={loadDemo} className="flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/40">
+                          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Nạp dữ liệu mẫu
+                        </button>
+                      )}
+                    </div>
+                    {onResetData && (
+                      <button type="button" onClick={() => void handleReset()} disabled={resetBusy}
+                        className="flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40">
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}
+                      </button>
+                    )}
+                  </div>
+                  {renderDataNotice()}
+                </section>
               </fieldset>
             </div>
           </div>
-          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t-2 border-slate-900 bg-white px-6 py-3.5 dark:border-slate-700 dark:bg-[#121A2B]">
+          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t-2 border-slate-900 bg-white px-6 py-3 dark:border-slate-700 dark:bg-[#121A2B]">
             {resetError && <p role="alert" className="mr-auto text-sm text-rose-600 dark:text-rose-400">{resetError}</p>}
-            <button type="button" onClick={onClose} className="min-h-11 cursor-pointer rounded-xl px-4 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Hủy</button>
+            <button type="button" onClick={onClose} className="min-h-10 cursor-pointer rounded-xl px-4 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Hủy</button>
             <button type="submit" disabled={resetBusy}
-              className="min-h-11 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 px-5 text-sm font-black text-white shadow-[3px_3px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 dark:border-slate-200 dark:shadow-none">Lưu cài đặt</button>
+              className="min-h-10 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 px-5 text-sm font-black text-white shadow-[3px_3px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 dark:border-slate-200 dark:shadow-none">Lưu cài đặt</button>
           </div>
         </form>
         )}
