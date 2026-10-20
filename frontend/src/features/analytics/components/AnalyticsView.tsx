@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
-import { BarChart3, BookOpen, ArrowRight, Timer, Layers, ChevronDown, ChevronRight } from 'lucide-react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Customized, PieChart, Pie } from 'recharts';
+import { BookOpen, ArrowRight, Timer, Layers, ChevronDown, ChevronRight } from 'lucide-react';
+import { ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { StudySession, MistakeEntry, UserProfile, ErrorCategory, ReadingPartType } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import type { VocabLog } from '@/shared/data/dataBundle';
@@ -18,7 +18,6 @@ const ERROR_NAMES: Record<ErrorCategory, string> = {
   CARELESS_DISTRACTION: 'Đọc lướt / nhìn nhầm', LISTENING_SPEED: 'Tốc độ nghe & nối âm', OTHER: 'Khác'
 };
 const PART_NAMES = ['Mô tả tranh', 'Hỏi & đáp', 'Hội thoại', 'Bài nói ngắn', 'Điền câu', 'Điền đoạn văn', 'Đọc hiểu văn bản'];
-const tooltipClass = 'rounded-xl border-2 border-slate-900 bg-white p-3 text-sm text-slate-900 shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-white';
 const actionClass = 'flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-3 py-2 text-sm font-bold shadow-[2px_2px_0px_#0f172a] dark:border-slate-300 disabled:opacity-40';
 
 interface AnalyticsViewProps {
@@ -34,7 +33,7 @@ interface AnalyticsViewProps {
   onNavigateToTimer?: (part?: ReadingPartType) => void;
 }
 
-export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onNavigateToTimer }: AnalyticsViewProps) {
+export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onNavigateToTimer }: AnalyticsViewProps) {
   const [sourceKey, setSourceKey] = useState<string | null>(null);
   const [attemptChoice, setAttemptChoice] = useState<{ source: string; id: string } | null>(null);
   const [activeError, setActiveError] = useState<ErrorCategory | null>(null);
@@ -44,12 +43,9 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
   const [pickerOpen, setPickerOpen] = useState(false);
   // Widening past the phone breakpoint drops the sheet so it does not reappear on the next narrow resize.
   if (!isPhone && pickerOpen) setPickerOpen(false);
-  const barMotion = useChartMotion(500);
   const donutMotion = useChartMotion(600);
   const data = useMemo(() => analyticsScopeData(sessions, mistakes, sourceKey,
     attemptChoice?.source === sourceKey ? attemptChoice?.id : undefined), [sessions, mistakes, sourceKey, attemptChoice]);
-  const isDark = theme === 'dark';
-  const partColors = { lc: isDark ? '#818cf8' : '#4f46e5', rc: isDark ? '#2dd4bf' : '#0d9488', weak: isDark ? '#fb7185' : '#f43f5e' };
   const resultStatus = data.attempt ? analyticsAttemptLabel(data.attemptNumber!, data.attempt.date) : 'Chưa nhập kết quả';
   const chartLabel = data.parts.map(part => `${part.code}: ${Math.round(part.accuracy)}%`).join(', ');
   // Recharts 2 interpolates sectors by index. Keep category identities fixed across filters.
@@ -57,7 +53,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
     data.errors.find(row => row.category === category) ?? { category, count: 0, percent: 0 }), [data.errors]);
   const highlightedError = data.errors.find(row => row.category === activeError);
   const commonError = data.errors[0] ? ERROR_NAMES[data.errors[0].category].toLocaleLowerCase('vi') : null;
-  const priority = data.weakest ? `Ưu tiên Part ${data.weakest.key.slice(4)} (mất ${data.weakest.lost} câu)${commonError ? ` và ${commonError}` : ''}.`
+  const priority = data.weakest ? `Ưu tiên Part ${data.weakest.key.slice(4)} (còn ${data.weakest.lost} câu ≈ ${data.weakest.lost * 5} điểm)${commonError ? ` và ${commonError}` : ''}.`
     : data.parts.length ? `Cả 7 Part đạt 100% trong lượt này.${commonError ? ` Sổ tay ghi nhiều lỗi nhất ở nhóm ${commonError}.` : ''}`
       : commonError ? `Sổ tay ghi nhiều lỗi nhất ở nhóm ${commonError}. ${data.attempt ? 'Bổ sung chi tiết Part của lượt này để xác định Part cần luyện.' : 'Ghi kết quả đề để xác định Part cần luyện.'}`
         : 'Ghi kết quả đề để xác định Part cần luyện; vẫn có thể xem các lỗi đã lưu.';
@@ -110,7 +106,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
               <span className="block h-2 flex-1" aria-hidden="true">{part.lost > 0 && <span className={'block h-full rounded-full ' + tone} style={{ width: `${part.lost / mostLost * 100}%` }} />}</span>
               <span className="w-[76px] shrink-0 text-right leading-tight">
                 <span className={'block text-[14px] font-black tabular-nums ' + (weak ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white')}>{part.lost} câu</span>
-                <span className="block text-[11px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">{number(part.correct)}/{part.max} đúng</span>
+                <span className="block text-[11px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">đúng {Math.round(part.accuracy)}%</span>
               </span>
             </li>;
           })}
@@ -134,7 +130,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
       {onNavigateToTimer && weakPart !== null && <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
         <button type="button" onClick={() => onNavigateToTimer(weakPart < 5 ? 'POMODORO' : `PART_${weakPart}` as ReadingPartType)}
           className="flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-emerald-400 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
-          <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} mất ${data.weakest!.lost} câu` : `Luyện ${data.weakest!.code} · mất ${data.weakest!.lost} câu`}
+          <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} còn ${data.weakest!.lost} câu` : `Luyện ${data.weakest!.code} · còn ${data.weakest!.lost} câu`}
         </button>
       </div>}
 
@@ -144,43 +140,38 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
     </div>;
   }
 
-  return <div className="analytics-view mx-auto w-full max-w-6xl space-y-5 pb-6 text-slate-800 dark:text-slate-200">
+  const lostRows = [...data.parts].sort((a, b) => b.lost - a.lost || a.accuracy - b.accuracy);
+  const mostLost = Math.max(1, lostRows[0]?.lost ?? 0);
+  const perfect = data.parts.filter(part => part.lost === 0).map(part => part.code);
+  const wrongQuestions = data.attempt?.sessionType === 'FULL_TEST' ? data.attempt.wrongQuestions : undefined;
+
+  return <div className="analytics-view mx-auto w-full max-w-6xl space-y-4 pb-6 text-slate-800 dark:text-slate-200">
     <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
       {scopePickers}
     </div>
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-      <section aria-labelledby="analytics-parts-heading" className={`${CARD} analytics-panel flex flex-col !p-5`}>
-        <div className="analytics-chart-header mb-3">
-          <h2 id="analytics-parts-heading" className="flex items-center gap-2 text-lg font-black text-slate-950 dark:text-white"><BarChart3 className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />Độ chính xác 7 Part</h2>
-          <span role="status" className="analytics-result-date">{resultStatus}</span>
-        </div>
-        {data.parts.length ? <div className="h-[285px] w-full" role="img" aria-label={`Tỷ lệ đúng theo Part, ${chartLabel}`}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.parts} margin={{ top: 24, right: 5, left: -20, bottom: 8 }} accessibilityLayer>
-              <CartesianGrid strokeDasharray="3 4" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} />
-              <XAxis dataKey="code" tick={{ fontSize: 12, fill: isDark ? '#f1f5f9' : '#0f172a', fontWeight: 700 }} tickLine={false} axisLine={{ stroke: isDark ? '#475569' : '#cbd5e1' }} interval={0} />
-              <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} unit="%" tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }} tickLine={false} axisLine={false} />
-              <Tooltip cursor={{ fill: isDark ? '#ffffff08' : '#0f172a05' }} content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const part = payload[0].payload as typeof data.parts[number];
-                return <div className={tooltipClass}><strong>Part {part.key.slice(4)}: {PART_NAMES[Number(part.key.slice(4)) - 1]}</strong>
-                  <p>Độ chính xác: {number(part.accuracy)}%</p><p>Đúng: {number(part.correct)}/{part.max} câu</p></div>;
-              }} />
-              <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} barSize={34} isAnimationActive={barMotion.enabled}
-                animationBegin={0} animationDuration={barMotion.duration} animationEasing="ease-out" onAnimationEnd={barMotion.finish}>
-                {data.parts.map(part => <Cell key={part.key} fill={part.key === data.weakest?.key ? partColors.weak : Number(part.key.slice(4)) <= 4 ? partColors.lc : partColors.rc} />)}
-              </Bar>
-              <Customized component={({ xAxisMap, yAxisMap }: { xAxisMap?: Record<string, { scale: ((value: string) => number) & { bandwidth: () => number } }>; yAxisMap?: Record<string, { scale: (value: number) => number }> }) => {
-                const x = xAxisMap?.[0]?.scale, y = yAxisMap?.[0]?.scale;
-                if (!x || !y) return null;
-                // Target labels stay visible and stationary while only the columns move.
-                return <g className="analytics-bar-labels" pointerEvents="none">{data.parts.map(part =>
-                  <text key={part.key} x={x(part.code) + x.bandwidth() / 2} y={y(part.accuracy) - 8} textAnchor="middle" fill={isDark ? '#f1f5f9' : '#0f172a'} fontSize={12} fontWeight={700}>{Math.round(part.accuracy)}%</text>)}</g>;
-              }} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div> : <div className="flex min-h-[285px] flex-col items-center justify-center gap-3 text-center text-sm text-slate-500 dark:text-slate-400">
+    {/* Only a test logged by its wrong questions knows where they sit; others skip the map. */}
+    {wrongQuestions && <QuestionMap wrong={wrongQuestions} />}
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section aria-labelledby="analytics-parts-heading" className={`${CARD} analytics-panel flex flex-col !px-5 !py-4`}>
+        <h2 id="analytics-parts-heading" className="mb-2 text-lg font-black text-slate-950 dark:text-white">Mất điểm ở đâu</h2>
+        {data.parts.length ? <>
+          <ol className="space-y-0.5" aria-label={`Tỷ lệ đúng theo Part, ${chartLabel}`}>
+            {lostRows.filter(part => part.lost > 0).map(part => {
+              const n = Number(part.key.slice(4)), weak = part.key === data.weakest?.key;
+              return <li key={part.key} className={'flex items-center gap-3 rounded-xl px-2 py-1 ' + (weak ? 'bg-rose-50 dark:bg-rose-950/40' : '')} title={`Part ${n}: ${PART_NAMES[n - 1]}`}>
+                <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg border-2 border-slate-900 text-[12px] font-black text-white dark:border-slate-300 ' + (weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>{part.code}</span>
+                <span className="block h-3 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" aria-hidden="true">
+                  <span className={'block h-full rounded-full ' + (weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400')} style={{ width: `${part.lost / mostLost * 100}%` }} />
+                </span>
+                <span className="w-[72px] shrink-0 text-right leading-tight">
+                  <span className={'block text-[14px] font-black tabular-nums ' + (weak ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white')}>{part.lost} câu</span>
+                  <span className="block text-[11px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">đúng {Math.round(part.accuracy)}%</span>
+                </span>
+              </li>;
+            })}
+          </ol>
+          {perfect.length > 0 && <p className="mt-2 px-2 text-xs font-semibold text-slate-500 dark:text-slate-400">{perfect.join(', ')}: đúng hết</p>}
+        </> : <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center text-sm text-slate-500 dark:text-slate-400">
           <p>{data.attempt ? 'Lượt này chưa có chi tiết Part.' : 'Chưa nhập kết quả của đề này.'}</p>
           {data.attempt && onEditSession ? <button type="button" onClick={() => onEditSession(data.attempt!)} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Bổ sung chi tiết</button>
             : !data.attempt && onOpenSessionLogger && <button type="button" onClick={() => onOpenSessionLogger({ sessionType: 'FULL_TEST' })} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Nhập kết quả</button>}
@@ -192,7 +183,7 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
             </span>)}
         </div>
       </section>
-      <section aria-labelledby="analytics-errors-heading" className={`${CARD} analytics-panel flex flex-col !p-5`}>
+      <section aria-labelledby="analytics-errors-heading" className={`${CARD} analytics-panel flex flex-col !px-5 !py-4`}>
         <h2 id="analytics-errors-heading" className="mb-3 flex items-center gap-2 text-lg font-black text-slate-950 dark:text-white"><BookOpen className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />Lỗi đã ghi của đề</h2>
         {data.notes.length ? <div className="analytics-errors flex-1">
           <div className="analytics-donut relative" role="img" aria-describedby="analytics-errors-scope" aria-label={`${data.notes.length} lỗi đã ghi: ${data.errors.map(row => `${ERROR_NAMES[row.category]} ${row.count} lỗi`).join(', ')}`}>
@@ -221,7 +212,6 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
         </div> : <div className="flex min-h-[285px] flex-1 items-center justify-center text-center text-sm text-slate-500 dark:text-slate-400">Chưa có lỗi nào được gắn với đề này.</div>}
         <p id="analytics-errors-scope" className="mt-auto flex items-center gap-2 border-t border-slate-200 pt-3 text-sm font-semibold text-amber-800 dark:border-slate-700 dark:text-amber-200"><Layers className="h-4 w-4 shrink-0" aria-hidden="true" />Gồm các lần làm của đề</p>
       </section>
-      </div>
     </div>
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-slate-900 bg-amber-50 p-4 shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-amber-950/25 dark:shadow-[3px_3px_0px_#cbd5e1]">
       <div className="min-w-[min(100%,16rem)] flex-1"><h3 className="text-base font-black text-slate-950 dark:text-white">Ưu tiên luyện tiếp</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{priority}</p></div>
@@ -231,4 +221,34 @@ export function AnalyticsView({ sessions, mistakes, theme, onOpenSessionLogger, 
       </div>
     </section>
   </div>;
+}
+
+const MAP_PARTS: Array<[number, number, number]> = [[1, 1, 6], [2, 7, 31], [3, 32, 70], [4, 71, 100], [5, 101, 130], [6, 131, 146], [7, 147, 200]];
+
+/** Where in the 200 questions the wrong answers sit: one band per Part, a red mark per wrong question. */
+function QuestionMap({ wrong }: { wrong: number[] }) {
+  const listening = wrong.filter(q => q <= 100).length;
+  return <section aria-labelledby="analytics-map-heading" className={`${CARD} !px-5 !py-4`}>
+    <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h2 id="analytics-map-heading" className="text-lg font-black text-slate-950 dark:text-white">Bản đồ 200 câu</h2>
+      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">sai {wrong.length} câu</span>
+      <span className="ml-auto flex gap-4 text-xs font-bold">
+        <span className="text-indigo-600 dark:text-indigo-400">● Listening {listening}</span>
+        <span className="text-teal-600 dark:text-teal-400">● Reading {wrong.length - listening}</span>
+      </span>
+    </div>
+    <div role="img" aria-label={wrong.length ? `Câu sai: ${wrong.join(', ')}` : 'Không sai câu nào'}>
+      <div className="flex h-10 overflow-hidden rounded-xl border-2 border-slate-900 dark:border-slate-300">
+        {MAP_PARTS.map(([part, first, last]) => <div key={part} style={{ flex: last - first + 1 }}
+          className={'relative border-slate-900 dark:border-slate-300 ' + (part > 1 ? 'border-l-2 ' : '') + (part <= 4 ? 'bg-indigo-100 dark:bg-indigo-950' : 'bg-teal-100 dark:bg-teal-950')}>
+          {wrong.filter(q => q >= first && q <= last).map(q => <span key={q} title={`Câu ${q}`}
+            className="absolute inset-y-1 w-1.5 -translate-x-1/2 rounded-full bg-rose-600 ring-1 ring-white dark:ring-slate-900" style={{ left: `${(q - first + 0.5) / (last - first + 1) * 100}%` }} />)}
+        </div>)}
+      </div>
+      <div className="mt-1.5 flex text-xs font-black" aria-hidden="true">
+        {MAP_PARTS.map(([part, first, last]) => <span key={part} style={{ flex: last - first + 1 }}
+          className={'min-w-0 truncate pl-1 ' + (part <= 4 ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-600 dark:text-teal-400')}>P{part}</span>)}
+      </div>
+    </div>
+  </section>;
 }
