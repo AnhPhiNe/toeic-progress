@@ -553,6 +553,8 @@ class MistakeDraft(DraftCore):
     """Draft returned to the app. trapTip is plain text for older clients, search and backups."""
 
     trapTip: str = Field(max_length=4000)
+    # The option AI judged correct when it differs from the source's answer, so the learner can check the source.
+    answerDoubt: Literal["", "A", "B", "C", "D"] = ""
     optionNotes: list[OptionNote] = Field(default_factory=list, max_length=4)
     explanation: Explanation | None = None
 
@@ -590,6 +592,8 @@ class OpenAIDraftOutput(DraftCore):
     userChoice: UserChoice
     optionNotes: list[OptionNote] = Field(max_length=4)
     explanation: Explanation
+    # AI's own answer from the question alone; compared with the source answer, never shown as the answer itself.
+    ownAnswer: str = Field(default="", max_length=1000)
 
     @model_validator(mode="after")
     def check_option_notes(self):
@@ -610,7 +614,7 @@ class OpenAIDraftOutput(DraftCore):
         return self
 
     def to_draft(self) -> MistakeDraft:
-        draft = MistakeDraft(**self.model_dump(), trapTip="")
+        draft = MistakeDraft(**self.model_dump(exclude={"ownAnswer"}), trapTip="")
         draft.compose_trap_tip()
         return draft
 
@@ -649,7 +653,7 @@ class OpenAIPasteOutput(OpenAIDraftOutput):
         return value
 
     def to_draft(self) -> MistakeDraft:
-        draft = MistakeDraft(**self.model_dump(exclude={"inputIssue"}), trapTip="")
+        draft = MistakeDraft(**self.model_dump(exclude={"inputIssue", "ownAnswer"}), trapTip="")
         draft.compose_trap_tip()
         return draft
 

@@ -3,6 +3,8 @@ import { ChevronDown, MoreHorizontal, Sparkles, Trash2 } from 'lucide-react';
 import { ERROR_CATEGORY_LABELS, type MistakeEntry } from '@/shared/types';
 import { OptionList } from '@/features/mistakes/components/OptionList';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
+import { AnswerDoubtNote } from '@/features/mistakes/components/AnswerDoubtNote';
+import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { reviewStatus, type ReviewStatusKind } from '@/features/mistakes/lib/review';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
@@ -44,6 +46,8 @@ interface MistakeCardProps {
   explaining?: boolean;
   /** "Viết lời giải" when a screenshot reading already paid for it, "Giải thích với AI" otherwise. */
   explainLabel?: string;
+  /** Settles a doubt about the page's answer: switch to AI's option, or keep the page's. */
+  onResolveDoubt?: (switchToAI: boolean) => void;
 }
 
 /** A card can be explained once it has a written question and its options; Part 1 needs its picture, which is not kept. */
@@ -52,7 +56,7 @@ export function canExplain(mistake: MistakeEntry): boolean {
 }
 
 export const MistakeCard: React.FC<MistakeCardProps> = ({
-  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false, onExplain, explaining = false, explainLabel = 'Giải thích với AI'
+  mistake, expanded, onToggle, onReview, onEdit, onReuseReading, onDelete, onMarkMastered, onReopen, compact = false, showStatus = false, onExplain, explaining = false, explainLabel = 'Giải thích với AI', onResolveDoubt
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -61,6 +65,9 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
   const { question: stem, context } = readQuestion(mistake);
   const question = stem || 'Chưa trích được câu hỏi';
   const quiz = resolveQuizOptions(mistake);
+  const doubtNote = mistake.answerDoubt && onResolveDoubt && optionLetter(mistake.correctAnswer) !== mistake.answerDoubt
+    ? <AnswerDoubtNote doubt={mistake.answerDoubt} current={optionLetter(mistake.correctAnswer)} onSwitch={() => onResolveDoubt(true)} onKeep={() => onResolveDoubt(false)} />
+    : null;
   const correctLabel = mistake.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : mistake.answerProvidedBy === 'LEARNER' ? 'Đáp án đã nhập' : 'Đáp án từ đề';
 
   useEffect(() => {
@@ -108,6 +115,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             ) : mistake.correctAnswer && (
               <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">{correctLabel}:</span> {mistake.correctAnswer}</p>
             )}
+            {doubtNote}
             {onExplain && canExplain(mistake) && <button type="button" onClick={onExplain} disabled={explaining}
               className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
               <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'Đang viết lời giải…' : explainLabel}</button>}
@@ -180,6 +188,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           ) : mistake.correctAnswer && (
             <p className="text-sm text-slate-700 dark:text-slate-300"><span className="font-bold text-slate-900 dark:text-white">{correctLabel}:</span> {mistake.correctAnswer}</p>
           )}
+          {doubtNote}
           {onExplain && canExplain(mistake) && <button type="button" onClick={onExplain} disabled={explaining}
             className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white">
             <Sparkles className="h-4 w-4" aria-hidden="true" />{explaining ? 'Đang viết lời giải…' : explainLabel}</button>}

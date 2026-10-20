@@ -26,6 +26,14 @@ describe('adding an AI explanation to a card', () => {
     expect(mergeExplanation(given, draft)).toMatchObject({ correctAnswer: '(A) posting', answerSource: 'PROVIDED', category: 'CARELESS_DISTRACTION', tags: ['mine'], explanation });
   });
 
+  it('marks a doubt when AI solves the question differently from the page, and only then', () => {
+    const given: MistakeEntry = { ...card, correctAnswer: '(A) posting', answerSource: 'PROVIDED' };
+    expect(mergeExplanation(given, { ...draft, answerDoubt: 'B' })).toMatchObject({ correctAnswer: '(A) posting', answerDoubt: 'B' });
+    expect(mergeExplanation(given, { ...draft, answerDoubt: '' }).answerDoubt).toBeUndefined();
+    // Without a page answer AI's own answer simply fills it; there is nothing to doubt.
+    expect(mergeExplanation(card, { ...draft, answerDoubt: 'B' }).answerDoubt).toBeUndefined();
+  });
+
   it('leaves a missing answer missing when AI could not decide either', () => {
     expect(mergeExplanation(card, { ...draft, correctAnswer: '', answerSource: 'MISSING' })).toMatchObject({ correctAnswer: '', answerSource: 'MISSING' });
   });

@@ -37,8 +37,16 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await flow.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'D', exact: true }).click();
   await expect(flow.getByRole('button', { name: 'Câu 112 Bạn chọn B, đáp án D', exact: true })).toBeVisible();
+  // AI solved 131 differently from the page: the row is flagged until the learner decides.
+  const p6 = flow.getByRole('region', { name: 'Part 6' });
+  await expect(p6).toContainText('Nghi đáp án');
+  await expect(p6).toContainText('● 1 cần xem');
   await flow.getByRole('button', { name: /^Câu 131/ }).click();
   await expect(flow.getByText(TIP)).toBeVisible();
+  await expect(flow.getByRole('note')).toContainText('AI giải ra C, khác đáp án trang đề (A).');
+  await flow.getByRole('button', { name: 'Đổi sang C', exact: true }).click();
+  await expect(p6).not.toContainText('Nghi đáp án');
+  await expect(flow.getByRole('button', { name: 'Câu 131 Bạn chọn B, đáp án C', exact: true })).toBeVisible();
   // No way out to the full form here: it would drop the rows read but not saved yet.
   await expect(flow.getByRole('button', { name: 'Form đầy đủ' })).toHaveCount(0);
 
@@ -52,7 +60,7 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   expect(saved).toEqual([
     [104, 'C', '(A) accommodates', 'VOCABULARY_TRAP', TIP],
     [112, 'B', '(D) to accommodate', 'ADVANCED_GRAMMAR', TIP],
-    [131, 'B', '(A) accommodates', 'ADVANCED_GRAMMAR', TIP]
+    [131, 'B', '(C) accommodation', 'ADVANCED_GRAMMAR', TIP]
   ]);
 });
 
@@ -62,4 +70,23 @@ test('closing the list with filled rows asks first', async ({ page }) => {
   page.once('dialog', dialog => { expect(dialog.message()).toBe('Đóng mà không lưu 1 câu đã điền?'); void dialog.dismiss(); });
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toBeVisible();
+});
+
+test('a doubt left open when saving stays on the notebook card until the learner decides', async ({ page }) => {
+  const flow = await openDesktopFlow(page);
+  await flow.getByLabel('Ảnh màn hình đề').setInputFiles([screenshot, screenshot, screenshot, screenshot]);
+  await expect(flow.getByRole('region', { name: 'Part 6' })).toContainText('Nghi đáp án');
+  await flow.getByRole('button', { name: 'Lưu 3 câu', exact: true }).click();
+  await expect(flow).toHaveCount(0);
+
+  const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
+    .find((card: { questionNumber?: number; sourceTestName?: string }) => card.questionNumber === 131 && card.sourceTestName === 'ETS Table'));
+  expect(await stored()).toMatchObject({ correctAnswer: '(A) accommodates', answerDoubt: 'C' });
+  await page.getByRole('button', { name: /The new reading room/ }).first().click();
+  await expect(page.getByRole('note')).toContainText('AI giải ra C, khác đáp án trang đề (A).');
+  await page.getByRole('button', { name: 'Giữ A', exact: true }).click();
+  await expect(page.getByRole('note')).toHaveCount(0);
+  const kept = await stored();
+  expect(kept.correctAnswer).toBe('(A) accommodates');
+  expect(kept.answerDoubt).toBeUndefined();
 });

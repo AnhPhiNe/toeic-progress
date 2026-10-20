@@ -33,8 +33,14 @@ export function withArrivedExplanation(current: CardForm, draft: AIMistakeParseR
   const answer = current.answer || (draft.answerSource === 'MISSING' ? '' : optionLetter(draft.correctAnswer));
   const pageAnswer = current.ai.answerSource !== 'MISSING';
   return { ...current, category: current.category || draft.category, answer,
-    ai: { ...current.ai, explanation: draft.explanation, optionNotes: draft.optionNotes, trapTip: draft.trapTip, tags: draft.tags,
+    ai: { ...current.ai, explanation: draft.explanation, optionNotes: draft.optionNotes, trapTip: draft.trapTip, tags: draft.tags, answerDoubt: draft.answerDoubt,
       ...(pageAnswer ? {} : { correctAnswer: draft.correctAnswer, answerSource: draft.answerSource }) } };
+}
+
+/** AI's different answer while the learner still has the page's one; cleared by switching or by keeping the page's. */
+export function openDoubt(value: CardForm): ChoiceLetter | '' {
+  const doubt = value.ai?.answerDoubt;
+  return doubt && value.answer && doubt !== value.answer ? doubt : '';
 }
 
 /** Nothing filled in yet, so saving would not change the card. */
@@ -65,6 +71,7 @@ export function buildDetailEntry(target: MistakeEntry, value: CardForm): Mistake
     userMistake: learnerMistake({ userChoiceState: state, userChoice: chosen ?? target.userChoice ?? '', userReason: target.userReason ?? '', options }),
     ...answerFields,
     ...(value.ai ? { optionNotes: value.ai.optionNotes, explanation: value.ai.explanation ?? undefined, trapTip: value.ai.trapTip, tags: value.ai.tags } : {}),
+    answerDoubt: openDoubt(value) || undefined,
     category: value.category || target.category
   };
 }

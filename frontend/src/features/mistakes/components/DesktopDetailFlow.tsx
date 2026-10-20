@@ -8,7 +8,8 @@ import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
-import { buildDetailEntry, canExplainRead, EMPTY_FORM, explainInput, fromAI, isEmptyForm, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { buildDetailEntry, canExplainRead, EMPTY_FORM, explainInput, fromAI, isEmptyForm, openDoubt, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { AnswerDoubtNote } from '@/features/mistakes/components/AnswerDoubtNote';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -179,7 +180,8 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
     close(entries.length);
   };
 
-  const needsCheck = (card: MistakeEntry) => Boolean(forms[card.id]?.ai) && !forms[card.id]!.answer;
+  // A question needs a look when the page gave no answer, or AI solved it differently from the page.
+  const needsCheck = (card: MistakeEntry) => Boolean(forms[card.id]?.ai) && (!forms[card.id]!.answer || Boolean(openDoubt(forms[card.id]!)));
   const done = (card: MistakeEntry) => { const value = forms[card.id] ?? EMPTY_FORM; return Boolean(value.category) && !needsCheck(card); };
   const inSection = (key: Section) => ordered.filter(card => sectionOf(card.part) === key);
   const anyRead = Object.values(forms).some(value => value.ai);
@@ -207,6 +209,7 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
             <span className="w-[72px] shrink-0 text-[14px] font-black">Câu {card.questionNumber}</span>
             {/* One line of the question first, so the learner recognises it; then what was chosen and what was right. */}
             <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-slate-600 dark:text-slate-300">{value.ai?.question?.trim().split('\n')[0] ?? ''}</span>
+            {openDoubt(value) && <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-black text-amber-800 dark:bg-amber-950 dark:text-amber-200">Nghi đáp án</span>}
             <span className="w-[128px] shrink-0">{marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} />}</span>
           </button>
           {/* The pill shows the short name; the native menu underneath lists the keys 1–6 with each reason. */}
@@ -379,6 +382,8 @@ function RowDetail({ card, value, letters, onChange }: {
         {showPassage && <p className="mt-1.5 max-h-60 overflow-y-auto whitespace-pre-line rounded-xl bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-700 dark:bg-slate-900 dark:text-slate-300">{ai.context}</p>}
       </div>}
       {question.length > 80 && <p className="whitespace-pre-line text-[14px] font-bold leading-relaxed">{question}</p>}
+      {ai && openDoubt(value) && <div className="max-w-[620px]"><AnswerDoubtNote doubt={openDoubt(value)} current={value.answer}
+        onSwitch={() => onChange({ answer: openDoubt(value) })} onKeep={() => onChange({ ai: { ...ai, answerDoubt: '' } })} /></div>}
       {ai && ai.options.length > 0 && <ul className="space-y-1 text-[14px]">
         {ai.options.map(option => {
           const letter = optionLetter(option), right = letter === value.answer, wrong = letter === chosen;

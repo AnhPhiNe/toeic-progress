@@ -79,6 +79,8 @@ export interface MistakeEntry {
   /** Nguyên văn lý do người học nhập; AI không thay thế trường này. */
   userReason?: string;
   answerProvidedBy?: 'SOURCE' | 'LEARNER';
+  /** AI giải ra phương án khác đáp án của trang đề; còn đến khi người học đổi đáp án hoặc chọn giữ nguyên. */
+  answerDoubt?: 'A' | 'B' | 'C' | 'D';
   /** Nghĩa và từ loại từng phương án do AI trả về; bản ghi cũ hoặc nhập tay không có */
   optionNotes?: OptionNote[];
   /** Giải thích theo từng mục do AI trả về; không có thì hiển thị trapTip dạng văn bản */

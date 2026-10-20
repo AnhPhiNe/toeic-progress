@@ -182,7 +182,14 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       void explain(mistakes.find(value => value.id === mistake.id) ?? mistake);
     },
     explainLabel: canRetryFree(mistake.id) ? 'Viết lời giải' : 'Giải thích với AI',
-    explaining: explainingId === mistake.id || isExplaining(mistake.id)
+    explaining: explainingId === mistake.id || isExplaining(mistake.id),
+    onResolveDoubt: (switchToAI: boolean) => {
+      const latest = mistakes.find(value => value.id === mistake.id) ?? mistake;
+      const option = latest.options?.find(value => optionLetter(value) === latest.answerDoubt);
+      // Switching makes the learner the one who set the answer; keeping it just closes the question.
+      onUpdateMistake({ ...latest, answerDoubt: undefined, ...(switchToAI && option ? { correctAnswer: option, answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' } : {}) }, latest);
+      notify(switchToAI ? `Đã đổi đáp án sang ${latest.answerDoubt}` : 'Đã giữ đáp án trang đề');
+    }
   });
 
   const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>
@@ -400,20 +407,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             </section>
           )}
           {visibleMistakes.map(mistake => (
-            <MistakeCard
-              key={mistake.id}
-              mistake={mistake}
-              expanded={expandedIds.has(mistake.id)}
-              onToggle={() => toggleRow(mistake.id)}
-              onReview={() => onStartReview([mistake.id])}
-              onEdit={() => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake)}
-              onReuseReading={mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
-                setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds }); setEntry(null);
-              } : undefined}
-              onDelete={() => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); }}
-              onMarkMastered={() => markMastered(mistake.id)}
-              onReopen={() => onReopenCards([mistake.id])}
-            />
+            <MistakeCard key={mistake.id} {...cardProps(mistake)} />
           ))}
           {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
             <div className="space-y-2 px-4 py-10 text-center text-sm">

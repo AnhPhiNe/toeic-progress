@@ -4,7 +4,8 @@ import { Check, ImagePlus, Sparkles, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { CHOICE_LETTERS, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
-import { buildDetailEntry, canExplainRead, EMPTY_FORM as EMPTY, explainInput, fromAI, isEmptyForm, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { buildDetailEntry, canExplainRead, EMPTY_FORM as EMPTY, explainInput, fromAI, isEmptyForm, openDoubt, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { AnswerDoubtNote } from '@/features/mistakes/components/AnswerDoubtNote';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
@@ -236,6 +237,8 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
             <p id="detail-answer" className="flex items-center gap-2 text-[14px] font-black"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white" aria-hidden="true"><Check className="h-3 w-3" strokeWidth={3.5} /></span>Đáp án đúng
               {form.ai && form.answer && form.ai.answerSource !== 'MISSING' && optionLetter(form.ai.correctAnswer) === form.answer && <span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">{form.ai.answerSource === 'PROVIDED' ? 'theo đề' : 'AI đề xuất'}</span>}</p>
             <div className="mt-2 flex gap-2">{letters.map(letter => letterButton(letter, form.answer === letter, 'right', () => update({ answer: form.answer === letter ? '' : letter })))}</div>
+            {openDoubt(form) && <div className="mt-2"><AnswerDoubtNote doubt={openDoubt(form)} current={form.answer}
+              onSwitch={() => update({ answer: openDoubt(form) })} onKeep={() => update({ ai: { ...form.ai!, answerDoubt: '' } })} /></div>}
           </section>
 
           <section role="group" aria-labelledby="detail-category">

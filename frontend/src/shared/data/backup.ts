@@ -74,6 +74,7 @@ const mistake = z.object({
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
   userReason: z.string().max(2000).optional(),
   answerProvidedBy: z.enum(['SOURCE', 'LEARNER']).optional(),
+  answerDoubt: z.enum(['A', 'B', 'C', 'D']).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).optional(),
   explanation: explanationSchema.optional(),
   trapTip: z.string().optional(),

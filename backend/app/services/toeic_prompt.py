@@ -138,6 +138,10 @@ Giải thích cụ thể theo câu hỏi; không chỉ lặp lại 'đọc kỹ 
 - Thiếu phương án, thiếu ngữ cảnh quyết định hoặc nhiều phương án có thể đúng: correctAnswer='',
   answerSource='MISSING', ghi phần cần bổ sung trong missingInformation. Không đoán bừa.
 - Đáp án nguồn không khớp phương án: để MISSING, yêu cầu kiểm tra nguồn; không tự thay bằng AI_PROPOSED.
+- ownAnswer: phương án bạn tự giải là đúng CHỈ từ câu hỏi, phương án và ngữ cảnh, như thể không có sourceAnswer;
+  chép nguyên văn một phần tử trong options, hoặc '' khi không đủ căn cứ để chọn rõ một phương án.
+  Có sourceAnswer mà ownAnswer khác: vẫn để correctAnswer theo nguồn, nói rõ trong analysis vì sao nghi nguồn nhầm,
+  và tip/translation không được dạy ngược với correctAnswer mà không nhắc người học kiểm tra lại.
   Đáp án nguồn có vẻ sai: giữ nguồn, nói rõ điểm chưa khớp, yêu cầu kiểm tra lại.
 - userChoice: chữ cái A–D người học đã chọn, không có thì ''.
   userMistake: lựa chọn và lý do người học đã kể; thiếu lý do thì chỉ ghi lựa chọn; thiếu cả hai thì ''.

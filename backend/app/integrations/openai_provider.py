@@ -160,6 +160,7 @@ class OpenAIProvider:
             # Strict output string literals cannot contain newlines/tabs. Fold
             # formatting whitespace; grounding restores the original source option.
             schema["properties"]["correctAnswer"]["enum"] = ["", *(" ".join(option.split()) for option in source_options)]
+            schema["properties"]["ownAnswer"]["enum"] = schema["properties"]["correctAnswer"]["enum"]
         if images:
             if source.get("part") not in (1, 7) or (source.get("part") == 1 and len(images) != 1):
                 raise HTTPException(422, "Ảnh chỉ hỗ trợ Part 1 (một tranh) hoặc Part 7.")
@@ -207,8 +208,13 @@ class OpenAIProvider:
             phase = "source_verification"
             if freeform:
                 return ground_pasted_draft(source, draft, image_source=bool(images), persistent_images=persistent_images)
-            return ground_draft(text, draft, allow_ai_answer=True, source_options=source_options,
-                                source_answer=source_answer, image_source=bool(images), persistent_images=persistent_images)
+            grounded = ground_draft(text, draft, allow_ai_answer=True, source_options=source_options,
+                                    source_answer=source_answer, image_source=bool(images), persistent_images=persistent_images)
+            # AI solved the question itself and disagrees with the source's answer: the source may be wrong.
+            own = re.match(r"^\s*\(([A-D])\)", output.ownAnswer or "")
+            if source_answer and own and grounded.answerSource == "PROVIDED" and own[1] != source_answer.upper():
+                grounded.answerDoubt = own[1]
+            return grounded
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             logger.warning(json.dumps({"event": "openai_invalid_draft", "request_id": request_id_context.get(),
                                        "phase": phase, "error_type": type(error).__name__,

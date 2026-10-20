@@ -34,7 +34,7 @@ export async function mockTurnsAI(page: Page) {
         return { failed: [], items: items.map(({ number, input }) => ({ number, draft: { part: input.part, category: 'ADVANCED_GRAMMAR',
           question: input.question, context: input.context, questionContext: input.question, options: input.options,
           correctAnswer: input.options[0], answerSource: 'AI_PROPOSED', userChoice: input.userChoice, userMistake: '', tags: [],
-          missingInformation: [], trapTip: '', optionNotes: [],
+          missingInformation: [], trapTip: '', optionNotes: [], answerDoubt: number === 131 ? 'C' : '',
           explanation: { quickTip: ${JSON.stringify(TIP)}, translation: 'Phòng đọc mới đón gấp đôi khách.', questionType: '', evidence: '', paraphrase: '', analysis: '', keyVocabulary: '' } } })) };
       }`
   }));

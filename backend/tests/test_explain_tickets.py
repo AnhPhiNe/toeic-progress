@@ -92,3 +92,16 @@ def test_explanations_need_a_written_question_in_the_right_part(api, item_change
     with api() as (client, calls):
         assert client.post("/api/v1/ai/explain-batch", json=request).status_code == 422
         assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+@pytest.mark.parametrize("own,doubt", [("(A) are", "A"), ("(B) be", ""), ("", "")])
+def test_an_explanation_flags_a_page_answer_that_ai_disagrees_with(api, own, doubt):  # noqa: F811
+    from tests.test_api import OPENAI_DRAFT
+    with api(draft={**OPENAI_DRAFT, "ownAnswer": own}) as (client, calls):
+        body = client.post("/api/v1/ai/explain-batch", json=batch(ticket(ticket_id=f"page-doubt-{own[:3]}"))).json()
+        request = next(call[2] for call in calls if call[0] == "api.openai.com")
+    draft = body["items"][0]["draft"]
+    # The page's answer stays the answer; AI's own different answer only raises a doubt for the learner to check.
+    assert draft["correctAnswer"] == "(B) be" and draft["answerSource"] == "PROVIDED"
+    assert draft["answerDoubt"] == doubt
+    assert request["text"]["format"]["schema"]["properties"]["ownAnswer"]["enum"] == ["", "(A) are", "(B) be"]

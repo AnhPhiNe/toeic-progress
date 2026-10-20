@@ -18,7 +18,9 @@ const draftSchema = z.object({
   userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
   userReason: z.string().max(2000).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).default([]),
-  explanation: explanationSchema.nullable().default(null)
+  explanation: explanationSchema.nullable().default(null),
+  // Set when AI solved the question differently from the page's answer: the page may be wrong.
+  answerDoubt: z.enum(['A', 'B', 'C', 'D', '']).optional()
 });
 export type AIMistakeParseResult = z.infer<typeof draftSchema>;
 export interface AIUsage { remaining: number | null; limit: number | null; guest: boolean; unlimited?: boolean;
