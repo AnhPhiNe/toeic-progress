@@ -255,6 +255,10 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         setError('Không có số câu hợp lệ (1–200).');
         return;
       }
+      if (questions.some(q => q < 101)) {
+        setError('Chỉ hỗ trợ quét câu sai Reading Part 5–7 (câu 101–200), không chụp Part 1–4.');
+        return;
+      }
       targetQuestions = questions.map(number => ({
         number,
         part: (partOfQuestion(number) ?? 5) as MistakeEntry['part']
@@ -680,7 +684,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                       Thả hoặc dán nhiều ảnh màn hình đề <kbd className="ml-1 rounded border border-b-2 border-slate-300 bg-white px-1.5 py-0.5 text-[11px] font-black text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Ctrl+V</kbd>
                     </p>
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                      Tự động nhận diện Part & đáp án
+                      Chỉ quét Reading Part 5–7 (câu 101–200) · Không chụp Listening Part 1–4
                     </p>
                   </div>
                 </div>
@@ -787,7 +791,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           {contextBlock}
           </> : <>
           <div className="flex w-full items-end gap-4">
-          <div><span className="mb-1.5 block text-sm font-bold">Part</span>{partButtons}</div>
+          <div><span className="mb-1.5 block text-sm font-bold">Part <span className="ml-1 text-xs font-semibold text-slate-400 dark:text-slate-500">(Reading)</span></span>{partButtons}</div>
           <div className="min-w-0 flex-1"><span className="mb-1.5 block text-sm font-bold">Đề</span>
           <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={busy}
             onChange={name => { if ((reading || imageIdsDraft.length) && testNameKey(name) !== testNameKey(sourceTestName)) clearReading(); setSourceTest(name); setChanged(true); }} />
@@ -848,7 +852,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           entryMode === 'batch' ? (
             <>
               <div className="max-w-[50%] truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề và tải lên 1 hoặc nhiều ảnh chụp màn hình câu sai'}
+                {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề và tải ảnh chụp các câu sai Reading (Part 5–7, câu 101–200)'}
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={close} className={linkClass}>
