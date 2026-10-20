@@ -112,20 +112,20 @@ function Section({ label, score, raw, roomy, kind }: { label: string; score?: nu
   const labelClass = isListening ? 'text-indigo-800 dark:text-indigo-200' : 'text-teal-800 dark:text-teal-200';
   const dotClass = isListening ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400';
   const badgeClass = isListening
-    ? 'whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-indigo-700 shrink-0 dark:border-indigo-700 dark:bg-slate-900 dark:text-indigo-300'
-    : 'whitespace-nowrap rounded-lg border border-teal-200 bg-white px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-teal-700 shrink-0 dark:border-teal-700 dark:bg-slate-900 dark:text-teal-300';
+    ? 'whitespace-nowrap rounded-md border border-indigo-200 bg-white px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums shrink-0 dark:border-indigo-700 dark:bg-slate-900 dark:text-indigo-300'
+    : 'whitespace-nowrap rounded-md border border-teal-200 bg-white px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums shrink-0 dark:border-teal-700 dark:bg-slate-900 dark:text-teal-300';
 
   return (
-    <div className={'flex flex-col justify-between ' + (roomy ? 'gap-2 px-3.5 py-3 ' : 'gap-1.5 px-3 py-2.5 ') + cardClass}>
-      <div className="flex items-center justify-between gap-2">
+    <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2 px-2.5 py-2.5 ' : 'gap-1.5 px-2.5 py-2 ') + cardClass}>
+      <div className="flex items-center justify-between gap-1.5">
         <dt className={'flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider ' + labelClass}>
           <span className={'h-1.5 w-1.5 rounded-full ' + dotClass} aria-hidden="true" />
           {label}
         </dt>
         <Icon className={'h-4 w-4 shrink-0 ' + (isListening ? 'text-indigo-400 dark:text-indigo-400' : 'text-teal-400 dark:text-teal-400')} strokeWidth={2.2} aria-hidden="true" />
       </div>
-      <div className="flex items-end justify-between gap-2">
-        <dd className={'font-black tabular-nums leading-none ' + (roomy ? 'text-[28px]' : 'text-2xl')}>{score ?? '—'}</dd>
+      <div className="flex items-end justify-between gap-1">
+        <dd className={'font-black tabular-nums leading-none ' + (roomy ? 'text-[24px] tracking-tight' : 'text-[22px] tracking-tight')}>{score ?? '—'}</dd>
         {raw !== undefined && (
           <dd className={badgeClass}>
             {raw}/100 câu
