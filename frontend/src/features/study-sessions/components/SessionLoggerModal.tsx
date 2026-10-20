@@ -48,6 +48,8 @@ interface SessionLoggerModalProps {
   onAddMistakeForSession?: (session: StudySession) => void;
   /** After a test is logged by its wrong questions: open those draft cards. */
   onOpenSessionDrafts?: (session: StudySession) => void;
+  /** Computers: the form closes after such a save and the app offers the detail flow in a note. */
+  onSavedWrongTest?: (session: StudySession) => void;
 }
 
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
@@ -62,7 +64,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   editingSession,
   onUpdateSession,
   onAddMistakeForSession,
-  onOpenSessionDrafts
+  onOpenSessionDrafts,
+  onSavedWrongTest
 }) => {
   const isEditing = !!editingSession;
   // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
@@ -312,7 +315,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         onSaveSession(newSession);
       }
       savedSession.current = true;
-      if (!isEditing && newSession.wrongQuestions?.length) { setSavedResult(newSession); return; }
+      if (!isEditing && newSession.wrongQuestions?.length) {
+        if (isPhone || !onSavedWrongTest) { setSavedResult(newSession); return; }
+        onClose();
+        onSavedWrongTest(newSession);
+        return;
+      }
       onClose();
       if (addMistakeAfterSave) onAddMistakeForSession?.(newSession);
     } catch (reason) {

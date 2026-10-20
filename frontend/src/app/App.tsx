@@ -14,6 +14,7 @@ import { PlanView } from '@/features/plans/components/PlanView';
 import { ResourcesView } from '@/features/resources/components/ResourcesView';
 import { VocabularyView } from '@/features/vocabulary/components/VocabularyView';
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
+import { SavedTestNotice } from '@/features/study-sessions/components/SavedTestNotice';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
@@ -120,8 +121,10 @@ export const App: React.FC = () => {
   const closePacingEditor = useCallback(() => setEditingPacing(null), []);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
+  const [savedTest, setSavedTest] = useState<StudySession | null>(null);
+  const closeSavedTest = useCallback(() => setSavedTest(null), []);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
+  useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
   // Đọc lại từ chính class đó để React luôn khớp với những gì người dùng đã nhìn thấy.
@@ -562,7 +565,10 @@ export const App: React.FC = () => {
         onUpdateSession={handleUpdateSession}
         onAddMistakeForSession={openSessionMistake}
         onOpenSessionDrafts={openSessionDrafts}
+        onSavedWrongTest={setSavedTest}
       />
+      {savedTest && <SavedTestNotice session={savedTest} onClose={closeSavedTest}
+        onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }} />}
 
       {reviewCards && (
         <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}

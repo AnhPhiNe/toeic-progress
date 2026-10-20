@@ -53,7 +53,7 @@ test('wrong questions are filled in one after another and leave the pending grou
   await expect(pending).toBeVisible();
   // One row per test, not one per question.
   await expect(pending.getByRole('button', { name: /^Ghi chi tiết/ })).toHaveCount(1);
-  await expect(pending.getByText('2 câu chưa ghi chi tiết', { exact: true })).toBeVisible();
+  await expect(pending.getByText('2 câu sai', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Cần ôn · 1' })).toBeVisible();
 
   // The test's row opens the flow at its first pending card; the full form is one tap away.

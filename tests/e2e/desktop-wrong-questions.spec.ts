@@ -43,6 +43,15 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
     .find((item: { testName: string }) => item.testName === 'ETS Desktop'));
   expect(session.wrongQuestions).toEqual([3, 101, 102, 103, 107, 113, 115, 117, 128]);
   expect(session.partScores).toMatchObject({ part1: 5, part5: 22 });
+
+  // The form closes; a note offers to fill in the questions now, and the notebook keeps them as one row for the test.
+  await expect(form).toHaveCount(0);
+  const notice = page.getByRole('status').filter({ hasText: 'Đã lưu ETS Desktop · 9 câu sai vào Sổ tay' });
+  await notice.getByRole('button', { name: 'Ghi chi tiết ›', exact: true }).click();
+  const flow = page.getByRole('dialog', { name: /^Ghi câu sai/ });
+  await expect(flow).toBeVisible();
+  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Ghi chi tiết 9 câu, ETS Desktop', exact: true })).toBeVisible();
 });
 
 test('a computer can still log per-Part counts or an official score', async ({ page }) => {

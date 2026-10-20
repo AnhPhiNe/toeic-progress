@@ -59,6 +59,9 @@ interface MistakeNotebookViewProps {
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
 }
 
+/** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
+const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
+
 export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -119,8 +122,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   }, [sourcedMistakes, searchTerm, selectedPart, selectedTest, selectedCategory, scopeKeys]);
   const stats = useMemo(() => ({ total: matchingMistakes.length, due: matchingMistakes.filter(m => isDueForReview(m)).length,
     mastered: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [matchingMistakes]);
-  const filteredMistakes = useMemo(() => matchingMistakes.filter(m => selectedStatus === 'ALL' ||
-    (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED' && canReview(m))), [matchingMistakes, selectedStatus]);
+  // Computers list a logged test's wrong questions still to be filled in as one row per test above the list.
+  const filteredMistakes = useMemo(() => matchingMistakes.filter(m => (isPhone || !(needsSupplement(m) && fromLoggedTest(m))) && (selectedStatus === 'ALL' ||
+    (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED' && canReview(m)))), [matchingMistakes, selectedStatus, isPhone]);
   const pageCount = Math.max(1, Math.ceil(filteredMistakes.length / NOTEBOOK_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleMistakes = filteredMistakes.slice((currentPage - 1) * NOTEBOOK_PAGE_SIZE, currentPage * NOTEBOOK_PAGE_SIZE);
@@ -183,6 +187,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>
     (a.sourceTestName ?? '').localeCompare(b.sourceTestName ?? '', 'vi', { numeric: true }) || (a.questionNumber ?? 999) - (b.questionNumber ?? 999)
       || a.createdAt.localeCompare(b.createdAt)), [matchingMistakes]);
+  const desktopPending = useMemo(() => pendingCards.filter(fromLoggedTest), [pendingCards]);
   /** Opens the detail flow for one test's pending cards (all pending cards when no test is given). */
   const startDetail = (test?: string) => {
     const ids = pendingCards.filter(card => test === undefined || (card.sourceTestName ?? '') === test).map(card => card.id);
@@ -199,7 +204,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{test || 'Chưa ghi đề'}</span>
-          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu chưa ghi chi tiết</span>
+          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu sai</span>
         </span>
         <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
       </button>
@@ -385,6 +390,14 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         </div>
       ) : isPhone ? renderPhoneGroups() : (
         <div className="notebook-list divide-y divide-slate-200 dark:divide-slate-800">
+          {selectedStatus === 'ALL' && desktopPending.length > 0 && (
+            <section aria-label={`Chưa ghi chi tiết · ${desktopPending.length}`} className="[&>button]:px-5">
+              <h3 className="flex items-center gap-2 px-5 pb-1 pt-3 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+                <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />Chưa ghi chi tiết
+              </h3>
+              {renderPendingTests(desktopPending)}
+            </section>
+          )}
           {visibleMistakes.map(mistake => (
             <MistakeCard
               key={mistake.id}
@@ -401,7 +414,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
               onReopen={() => onReopenCards([mistake.id])}
             />
           ))}
-          {filteredMistakes.length === 0 && (
+          {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
             <div className="space-y-2 px-4 py-10 text-center text-sm">
               <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp bộ lọc.</p>
               <button type="button" onClick={resetFilters} className="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
