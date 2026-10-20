@@ -197,29 +197,39 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
         raise HTTPException(403, access.message)
     ticket = explain_tickets.verify(settings.rate_limit_secret, body.ticket, user["id"])
     if ticket is None:
-        raise HTTPException(403, "Lượt viết lời giải kèm ảnh đã hết hạn. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.")
+        raise HTTPException(403, "Lượt viết lời giải kèm ảnh đã hết hạn hoặc không hợp lệ. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",
+                            headers={"X-Error-Code": "EXPLAIN_TICKET_INVALID"})
+    ledger = request.app.state.ticket_uses
     for item in body.items:
         digest = explain_tickets.item_digest(item.number, item.input.question, item.input.options, item.input.context)
         if ticket["d"].get(str(item.number)) != digest:
-            raise HTTPException(403, "Nội dung câu đã khác với lúc đọc ảnh. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.")
-    if not request.app.state.ticket_uses.consume(ticket["i"], ticket["e"]):
-        raise HTTPException(429, "Lời giải cho ảnh này đã được viết lại nhiều lần. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.")
+            raise HTTPException(403, "Nội dung câu đã khác với lúc đọc ảnh. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",
+                                headers={"X-Error-Code": "EXPLAIN_TICKET_CONTENT_CHANGED"})
     gateway = request.app.state.gateway
-    # One explanation per question, all at once: the same analysis as a single question, in about the same time.
-    results = await asyncio.gather(*(gateway.generate(item.input.as_text(), user["id"], source_options=item.input.options,
-                                                      source_answer=item.input.sourceAnswer, pin_question=True) for item in body.items),
-                             return_exceptions=True)
-    items, failed = [], []
-    for item, result in zip(body.items, results, strict=True):
-        if isinstance(result, BaseException):
-            if not isinstance(result, HTTPException):
-                raise result
-            failed.append(item.number)
-            continue
+
+    async def generate(item):
         learner = item.input
+        try:
+            result = await gateway.generate(learner.as_text(), user["id"], source_options=learner.options,
+                                            source_answer=learner.sourceAnswer, pin_question=True)
+        except HTTPException:
+            return None
+        # Match the frontend's useful-explanation contract. An empty structured
+        # answer must remain retryable, not become a cached unusable success.
+        if result.explanation is None or not result.explanation.quickTip.strip():
+            return None
         draft = result.model_dump()
         selected = next((option for option in result.options if option.startswith(f"({learner.userChoice})")), "")
         draft.update(part=learner.part, userChoice=learner.userChoice, userChoiceState=learner.userChoiceState, userReason=learner.userReason,
                      userMistake=selected if learner.userChoiceState == "CHOSEN" else "Bỏ trống" if learner.userChoiceState == "BLANK" else "Không nhớ")
-        items.append({"number": item.number, "draft": draft})
-    return {"items": items, "failed": failed}
+        return draft
+
+    results = await asyncio.gather(*(ledger.run(
+        user["id"], ticket["i"], item.number, ticket["e"], str(body.request_id),
+        hashlib.sha256(item.input.as_text().encode()).hexdigest(), lambda item=item: generate(item),
+    ) for item in body.items))
+    return {
+        "items": [{"number": result["number"], "draft": result["draft"]} for result in results if result["draft"] is not None],
+        "failed": [result["number"] for result in results if result["draft"] is None],
+        "retry": [{key: result[key] for key in ("number", "status", "remainingAttempts")} for result in results],
+    }

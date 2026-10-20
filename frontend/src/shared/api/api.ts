@@ -2,7 +2,8 @@ import { cloud } from '@/shared/api/supabaseClient';
 export const apiAvailable = Boolean(import.meta.env.VITE_API_URL && cloud);
 
 export class ApiRequestError extends Error {
-  constructor(message: string, public readonly status: number, public readonly requestId?: string, public readonly retryAfter?: number) {
+  constructor(message: string, public readonly status: number, public readonly requestId?: string, public readonly retryAfter?: number,
+    public readonly code?: string) {
     super(message);
     this.name = 'ApiRequestError';
   }
@@ -33,7 +34,9 @@ export async function backendRequest<T>(path: string, method = 'GET', body?: unk
     let message = typeof value?.detail === 'string' ? value.detail : 'Máy chủ chưa xử lý được yêu cầu.';
     if (retryAfter) message += ` Thử lại sau ${retryAfter < 60 ? `${retryAfter} giây` : `${Math.ceil(retryAfter / 60)} phút`}.`;
     if (response.status >= 500 && requestId) message += ` Mã hỗ trợ: ${requestId}.`;
-    throw new ApiRequestError(message, response.status, requestId, retryAfter);
+    const errorCode = response.headers.get('X-Error-Code') || value?.code;
+    const code = typeof errorCode === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(errorCode) ? errorCode : undefined;
+    throw new ApiRequestError(message, response.status, requestId, retryAfter, code);
   }
   return value as T;
 }

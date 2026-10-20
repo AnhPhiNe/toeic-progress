@@ -84,11 +84,12 @@ test('on a phone one screenshot fills every wrong question on it, and the list i
   await expect(flow.getByText('Dấu hiệu: ____ trước financed.')).toBeVisible();
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132]]);
 
-  // The learner corrects a choice the screenshot showed differently; the explanation suggested the reason.
+  // Correcting the learner's choice invalidates the rationale written for the screenshot's earlier choice.
   await flow.getByRole('button', { name: /^Câu 132/ }).click();
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
-  await expect(flow.getByLabel('Vì sao sai câu 132')).toHaveValue('ADVANCED_GRAMMAR');
+  await expect(flow.getByLabel('Vì sao sai câu 132')).toHaveValue('');
+  await expect(flow.getByText(TIP, { exact: true })).toHaveCount(0);
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
   await expect(flow).toHaveCount(0);
 
@@ -96,9 +97,10 @@ test('on a phone one screenshot fills every wrong question on it, and the list i
   const q132 = cards.find((card: { questionNumber: number }) => card.questionNumber === 132);
   expect(q132).toMatchObject({ part: 6, context: passage, options: ['(A) larger', '(B) largeness', '(C) large', '(D) largely'],
     userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(D) largely', answerSource: 'PROVIDED', answerProvidedBy: 'SOURCE',
-    category: 'ADVANCED_GRAMMAR' });
-  expect(q132.explanation.quickTip).toBe(TIP);
-  expect(q132.tags).toEqual(['adverb']);
+    category: 'OTHER' });
+  expect(q132.explanation).toBeUndefined();
+  expect(q132.trapTip).toBe('');
+  expect(q132.tags).toEqual([]);
   expect(q132.question).toBe('The entire project was ____ financed through municipal funds.');
   // The question the screenshot did not show stays a draft for later.
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 107).question).toBe('');

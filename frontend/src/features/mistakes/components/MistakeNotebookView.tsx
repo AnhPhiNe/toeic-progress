@@ -5,6 +5,7 @@ import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
 import { DetailListFlow } from '@/features/mistakes/components/DetailListFlow';
 import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
+import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
@@ -199,31 +200,31 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     (a.sourceTestName ?? '').localeCompare(b.sourceTestName ?? '', 'vi', { numeric: true }) || (a.questionNumber ?? 999) - (b.questionNumber ?? 999)
       || a.createdAt.localeCompare(b.createdAt)), [matchingMistakes]);
   const desktopPending = useMemo(() => pendingCards.filter(fromLoggedTest), [pendingCards]);
-  /** Opens the detail flow for one test's pending cards (all pending cards when no test is given). */
-  const startDetail = (test?: string) => {
-    const ids = pendingCards.filter(card => test === undefined || (card.sourceTestName ?? '') === test).map(card => card.id);
+  /** One attempt owns one question-number namespace. Manual notes use their full editor. */
+  const startDetail = (cards: MistakeEntry[]) => {
+    const ids = cards.map(card => card.id);
     if (ids.length) setDetailIds(ids);
   };
   const detailCards = detailIds?.map(id => mistakes.find(mistake => mistake.id === id)).filter((card): card is MistakeEntry => Boolean(card)) ?? [];
 
-  // One row per test instead of one per question: a test with 50 wrong answers stays one line.
+  // One row per attempt: retakes of the same test must never share their numbered questions.
   const renderPendingTests = (items: MistakeEntry[]) => {
-    const tests = new Map<string, { count: number; reading: boolean }>();
-    for (const card of items) {
-      const key = card.sourceTestName ?? '', current = tests.get(key) ?? { count: 0, reading: true };
-      tests.set(key, { count: current.count + 1, reading: current.reading && card.part >= 5 });
-    }
-    // Same words as the note after saving a test ("… câu Reading sai"); a hand-written note may be from any Part.
-    return [...tests].map(([test, { count, reading }]) => (
-      <button key={test || 'none'} type="button" onClick={() => startDetail(test)} aria-label={`Ghi chi tiết ${count} câu, ${test || 'chưa ghi đề'}`}
+    const groups = groupDetailAttempts(items, sessions);
+    return groups.map(group => {
+      const count = group.cards.length, reading = group.cards.every(card => card.part >= 5);
+      const repeated = groups.some(other => other.id !== group.id && testNameKey(other.title) === testNameKey(group.title));
+      return (
+      <button key={group.id} type="button" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}
+        aria-label={`Ghi chi tiết ${count} câu, ${group.title === 'Chưa ghi đề' ? 'chưa ghi đề' : group.title}${repeated ? `, ${group.attempt}` : ''}`}
         className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 bg-white px-4 text-left dark:bg-[#111A2C]">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{test || 'Chưa ghi đề'}</span>
+          <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{group.title}</span>
+          <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{group.attempt}</span>
           <span className="block text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">{count} câu {reading ? 'Reading ' : ''}sai</span>
         </span>
         <span className="shrink-0 text-[13px] font-black text-blue-700 dark:text-blue-300">Ghi chi tiết ›</span>
       </button>
-    ));
+    ); });
   };
 
   const renderPhoneGroups = () => {

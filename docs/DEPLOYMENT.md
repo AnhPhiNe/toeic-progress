@@ -10,6 +10,14 @@ Xuất backup trước migration. Project đã áp dụng bốn migration nền 
 
 Giữ `API_LIMITS_ENABLED=false` ở local tới khi migration này đã được áp dụng; staging/production bắt buộc `true`. Xem Security Advisor và đối chiếu RLS. Dùng project staging riêng cho test tài khoản và test tải.
 
+### Cập nhật luồng đọc nhiều câu từ ảnh
+
+Trước khi deploy backend có ticket bền vững, áp dụng riêng migration mới `20261020104827_durable_explanation_tickets.sql` lên project đang phục vụ. Không chạy lại toàn bộ migration nền tảng trên database đã có dữ liệu. Migration thêm hai bảng vận hành và RPC chỉ service role được gọi, cùng xử lý xóa cache khi người học xóa trắng dữ liệu; không đổi nội dung thẻ hay điểm hiện có.
+
+Xác nhận `explanation_ledger_ready()` trả `version=1`, `tables=true`; kiểm tra RLS và quyền execute của `anon`/`authenticated` đều bị thu hồi. Backend `/ready` kiểm tra ledger trước khi nhận luồng AI tương ứng. Triển khai backend sau migration, rồi frontend; giữ nguyên signing secret và các cấu hình AI/quyền hiện tại. Không áp dụng lại giá trị mặc định `AI_ENABLED=false` trong Blueprint lên service đang bật AI.
+
+Ticket lưu cả bộ đếm và kết quả trong Supabase nên restart/nhiều worker không tạo lại ngân sách. Generation bị ngắt giữa chừng vẫn tính một lần thử; không tự gọi lại bằng cùng request ID. Chi tiết giới hạn/chi phí ở [AI_ACCESS.md](AI_ACCESS.md).
+
 ## 2. Tạo frontend trên Vercel
 
 Đưa các thay đổi đã xem xét lên repo của bạn, import vào Vercel; Root Directory là `frontend`, build `npm run build`, output `dist`.
@@ -105,6 +113,8 @@ Từ root: `python scripts/ops/backup-database.py`. Script tạo `.backups/*.dum
 Thử `pg_restore` vào database staging trống rồi kiểm tra schema, dữ liệu/RLS và các luồng đăng nhập/đồng bộ. Không restore vào database đang phục vụ để thử. Cấu hình lịch backup ở môi trường vận hành và kiểm tra kết quả thực tế.
 
 Chạy `python -m app.commands.maintenance` từ `backend` với đúng `.env` để dọn counter hết hạn; cấu hình lịch bảo trì sau deploy. API tự dọn các phút cũ của owner khi có request; maintenance dọn thêm owner không còn hoạt động.
+
+Maintenance cũng dọn tối đa 1.000 câu trong cache lời giải hết hạn mỗi lần. Claim mới dọn tối đa 100 câu hết hạn; khi không còn request, chạy maintenance theo lịch để cache không lưu lâu hơn cần thiết. Bản ghi của ticket còn hạn không bị xóa để tránh đặt lại ngân sách thử.
 
 Giữ bản deploy trước để rollback. Runtime migration thêm bảng, không xóa bảng học. Nếu rollback code, giữ migration và các dấu đồng bộ/tombstone; không xóa dữ liệu để rollback.
 

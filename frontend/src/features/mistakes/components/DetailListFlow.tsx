@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, ImagePlus, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
@@ -8,7 +8,9 @@ import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
-import { buildDetailEntry, canExplainRead, EMPTY_FORM, explainInput, fromAI, isEmptyForm, openDoubt, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { buildDetailEntry, canExplainRead, detailExplanationInput, editDetailForm, EMPTY_FORM, explainInput, isEmptyForm, openDoubt, savedDetailForm, withArrivedExplanation, withReadResult, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -54,7 +56,8 @@ function passageGroups(cards: MistakeEntry[], forms: Record<string, CardForm>): 
 export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props) {
   const ordered = useMemo(() => [...cards].sort((a, b) => (a.questionNumber ?? 999) - (b.questionNumber ?? 999)), [cards]);
   const byId = useMemo(() => new Map(cards.map(card => [card.id, card])), [cards]);
-  const [forms, setForms] = useState<Record<string, CardForm>>({});
+  const [forms, setForms] = useState<Record<string, CardForm>>(() => Object.fromEntries(cards.map(card => [card.id, savedDetailForm(card)])));
+  const dirtyIds = useRef(new Set<string>());
   const formsRef = useRef(forms);
   formsRef.current = forms;
   const [section, setSection] = useState<Section>(() => ordered.some(card => card.part >= 5) ? 'R' : 'L');
@@ -67,9 +70,10 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   const pending = useRef<File[][]>([]);
   const running = useRef(false);
   const closing = useRef(false);
+  const owner = useRef(getActiveAccountId());
   const fileInput = useRef<HTMLInputElement>(null);
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
-  const filled = ordered.filter(card => !isEmptyForm(forms[card.id] ?? EMPTY_FORM));
+  const filled = ordered.filter(card => dirtyIds.current.has(card.id) && !isEmptyForm(forms[card.id] ?? EMPTY_FORM));
   const reading = progress !== null;
 
   const close = (count = 0) => {
@@ -78,6 +82,13 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
     closing.current = true; pending.current = []; removeCaptcha(); onClose(count);
   };
   const ref = useModalA11y(true, () => close());
+
+  useEffect(() => {
+    closing.current = false;
+    return () => { closing.current = true; pending.current = []; };
+  }, []);
+
+  const activeFlow = useCallback(() => !closing.current && getActiveAccountId() === owner.current, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,15 +104,29 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
 
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
   useEffect(() => {
-    setExplanationInterceptor((cardId, draft) => {
-      if (closing.current || !byId.has(cardId)) return false;
-      setForms(value => value[cardId]?.ai ? { ...value, [cardId]: withArrivedExplanation(value[cardId], draft) } : value);
+    setExplanationInterceptor((cardId, draft, originalInput) => {
+      if (!activeFlow() || !byId.has(cardId)) return false;
+      const current = formsRef.current[cardId], card = byId.get(cardId)!;
+      // Only acknowledge a matching, usable result; otherwise the queue retains its persistent fallback.
+      const effective = current && detailExplanationInput(current, card.part);
+      if (!current?.ai || current.ai.explanation || current.ai.trapTip?.trim() || !effective || !sameExplanationInput(effective, originalInput)) return false;
+      const arrived = withArrivedExplanation(current, draft);
+      const candidate = buildDetailEntry(card, arrived);
+      if (typeof candidate === 'string') { setError(candidate); return false; }
+      const next = { ...formsRef.current, [cardId]: arrived };
+      dirtyIds.current.add(cardId);
+      formsRef.current = next;
+      setForms(next);
       return true;
     });
     return () => setExplanationInterceptor(null);
-  }, [byId]);
+  }, [byId, activeFlow]);
 
-  const update = (id: string, patch: Partial<CardForm>) => { setForms(value => ({ ...value, [id]: { ...(value[id] ?? EMPTY_FORM), ...patch } })); setError(''); };
+  const update = (id: string, patch: Partial<CardForm>) => {
+    dirtyIds.current.add(id);
+    const next = { ...formsRef.current, [id]: editDetailForm(formsRef.current[id] ?? EMPTY_FORM, patch) };
+    formsRef.current = next; setForms(next); setError('');
+  };
 
   /** Reads queued screenshots one turn at a time; each turn asks only for questions not read yet. */
   const drain = async () => {
@@ -109,26 +134,35 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
     running.current = true;
     let found = 0;
     try {
-      while (pending.current.length && !closing.current) {
+      while (pending.current.length && activeFlow()) {
         const chunk = pending.current.shift()!;
         const questions = ordered.filter(card => readable(card.part) && card.questionNumber !== undefined && !formsRef.current[card.id]?.ai)
           .map(card => ({ number: card.questionNumber!, part: card.part }));
         if (!questions.length) { pending.current = []; break; }
         try {
+          if (new Set(questions.map(question => question.number)).size !== questions.length
+            || new Set(ordered.map(card => card.sessionId ?? `manual:${card.id}`)).size > 1) {
+            throw new Error('Danh sách có câu thuộc nhiều lượt làm. Đóng và mở riêng từng lượt trong Sổ tay.');
+          }
           const images = [];
           for (const file of chunk) images.push(await prepareImage(file));
+          if (!activeFlow()) return;
           const result = await aiService.extractPageWithAI(questions, images, getToken);
-          if (closing.current) return;
+          if (!activeFlow()) return;
           const matches = result.items.map(item => ({ item, card: ordered.find(card => card.questionNumber === item.number && !formsRef.current[card.id]?.ai) }))
             .filter((entry): entry is { item: typeof entry.item; card: MistakeEntry } => Boolean(entry.card));
           found += matches.length;
-          setForms(value => {
-            const next = { ...value };
-            for (const { item, card } of matches) next[card.id] = { ...fromAI(item.draft), category: value[card.id]?.category || fromAI(item.draft).category };
-            formsRef.current = next;
-            return next;
-          });
-          if (result.explainTicket) enqueueExplanations(result.explainTicket, matches.filter(({ item, card }) => canExplainRead(item.draft, card.part))
+          const next = { ...formsRef.current };
+          for (const { item, card } of matches) {
+            next[card.id] = withReadResult(next[card.id] ?? EMPTY_FORM, item.draft);
+            dirtyIds.current.add(card.id);
+          }
+          formsRef.current = next;
+          setForms(next);
+          if (result.explainTicket) enqueueExplanations(result.explainTicket, matches.filter(({ item, card }) => {
+            const effective = detailExplanationInput(next[card.id], card.part);
+            return canExplainRead(item.draft, card.part) && effective && sameExplanationInput(effective, explainInput(item.draft, card.part));
+          })
             .map(({ item, card }) => ({ cardId: card.id, number: item.number, input: explainInput(item.draft, card.part) })));
         } catch (reason) {
           // Later screenshots wait for the learner instead of spending more uses on a failing request.
@@ -141,7 +175,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
       }
     } finally {
       running.current = false;
-      if (!closing.current) {
+      if (activeFlow()) {
         setProgress(null);
         setNote(found ? `AI đã điền ${found} câu. Kiểm tra lý do rồi bấm Lưu.` : 'Không thấy câu sai nào của đề này trong ảnh.');
       }
@@ -149,6 +183,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   };
 
   const addImages = (files: File[]) => {
+    if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng danh sách và mở lại để tiếp tục.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
     if (!images.length || !config?.pageImages) return;
     for (let index = 0; index < images.length; index += MAX_CONTEXT_IMAGES) pending.current.push(images.slice(index, index + MAX_CONTEXT_IMAGES));
@@ -170,6 +205,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   }, []);
 
   const save = () => {
+    if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng danh sách và mở lại để tiếp tục.'); return; }
     const entries: [MistakeEntry, MistakeEntry][] = [];
     for (const card of filled) {
       const entry = buildDetailEntry(card, forms[card.id]);
@@ -468,7 +504,8 @@ function RowDetail({ card, value, letters, phone, onChange }: {
       {ai?.explanation?.quickTip?.trim()
         ? <div className="max-w-[620px]"><ExplanationView explanation={ai.explanation} trapTip={ai.trapTip}
             optionMeanings={resolveQuizOptions({ ...card, options: ai.options, optionNotes: ai.optionNotes, correctAnswer: ai.correctAnswer }).options} /></div>
-        : isExplaining(card.id) && <p className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Đang viết lời giải…</p>}
+        : isExplaining(card.id) ? <p className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Đang viết lời giải…</p>
+          : ai && <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Chưa có lời giải phù hợp với thông tin hiện tại. Lưu thẻ rồi chọn Giải thích với AI.</p>}
       {/* Wider edits (the question's wording, images) happen on the saved card in the notebook, so nothing read here is lost. */}
       {!editing && !doubt && <button type="button" onClick={() => setEditOpen(true)} className={'text-[12.5px] ' + link}>Sửa đáp án</button>}
     </div>

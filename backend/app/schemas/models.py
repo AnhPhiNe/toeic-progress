@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import date, datetime, timedelta, timezone
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -340,6 +340,7 @@ class SyncRequest(BaseModel):
 
 class MistakeInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    max_analysis_length: ClassVar[int] = 8000
     question: str = Field(default="", max_length=4000)
     options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(default_factory=list, max_length=4)
     rawText: str | None = Field(default=None, min_length=1, max_length=8000)
@@ -362,8 +363,8 @@ class MistakeInput(BaseModel):
                 raise ValueError("Cần phương án đã chọn")
             if self.part == 2 and (self.userChoice == "D" or self.sourceAnswer == "D"):
                 raise ValueError("Part 2 chỉ có A–C")
-            if len(self.as_text()) > 8000:
-                raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
+            if len(self.as_text()) > self.max_analysis_length:
+                raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
             return self
         labels = []
         for option in self.options:
@@ -383,8 +384,8 @@ class MistakeInput(BaseModel):
             raise ValueError("Đáp án nguồn chưa khớp phương án")
         if len(labels) < 2 or not self.question.strip() or has_multiple_questions(self.question + "\n" + self.context):
             raise ValueError("Mỗi lần nhập một câu hỏi")
-        if len(self.as_text()) > 8000:
-            raise ValueError("Nội dung phân tích tối đa 8000 ký tự")
+        if len(self.as_text()) > self.max_analysis_length:
+            raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
         return self
 
     def as_text(self) -> str:
@@ -658,6 +659,29 @@ class OpenAIPasteOutput(OpenAIDraftOutput):
         return draft
 
 
+class PageMistakeDraft(MistakeDraft):
+    """Screenshot passages stay complete; ordinary single-question limits stay unchanged."""
+
+    questionContext: str = Field(min_length=1, max_length=12002)
+    context: str | None = Field(default=None, max_length=8000)
+
+
+class OpenAIPageExplanationOutput(OpenAIDraftOutput):
+    questionContext: str = Field(min_length=1, max_length=12002)
+    context: str | None = Field(default=None, max_length=8000)
+
+    @classmethod
+    def ai_schema(cls) -> dict:
+        schema = super().ai_schema()
+        schema["properties"]["context"] = {"type": "string", "maxLength": 8000}
+        return schema
+
+    def to_draft(self) -> PageMistakeDraft:
+        draft = PageMistakeDraft(**self.model_dump(exclude={"ownAnswer"}), trapTip="")
+        draft.compose_trap_tip()
+        return draft
+
+
 MAX_PAGE_ITEMS = 6
 
 
@@ -700,7 +724,7 @@ class OpenAIPageItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
     number: int
     question: str = Field(max_length=4000)
-    # A long passage is accepted and shortened to the card's limit rather than losing the question.
+    # Never shorten a passage silently: an oversized item is reported as missing.
     context: str = Field(max_length=8000)
     options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
     userChoice: UserChoice
@@ -763,10 +787,18 @@ class OpenAIResultsOutput(BaseModel):
     skipped: list[int] = Field(max_length=200)
 
 
+class PageExplanationInput(MistakeInput):
+    # Only signed screenshot follow-ups accept a full 8k passage plus the question,
+    # options and learner metadata; ordinary extract/freeform limits remain 8k.
+    # Existing per-field bounds limit real text to about 18k. Allow JSON's worst
+    # case escaping without rejecting a valid 8k passage containing line breaks.
+    max_analysis_length: ClassVar[int] = 120000
+
+
 class ExplainItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
     number: QuestionNumber
-    input: MistakeInput
+    input: PageExplanationInput
 
     @model_validator(mode="after")
     def written_question(self):

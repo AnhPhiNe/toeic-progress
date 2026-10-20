@@ -26,10 +26,13 @@ export async function mockTurnsAI(page: Page) {
       export async function extractPageWithAI(questions, images) {
         const calls = (window.__pageCalls = window.__pageCalls || []);
         calls.push({ questions: questions.map(item => item.number), images: images.length });
+        await new Promise(resolve => setTimeout(resolve, window.__pageDelay ?? 0));
+        window.__pageFinished = (window.__pageFinished || 0) + 1;
         const body = btoa(JSON.stringify({ e: Math.floor(Date.now() / 1000) + 86400 })).replace(/=+$/, '');
         return { items: ${JSON.stringify(TURNS)}[calls.length - 1] ?? [], missing: [], explainTicket: body + '.signature', usage: {} };
       }
       export async function explainBatchWithAI(ticket, items) {
+        (window.__explainCalls = window.__explainCalls || []).push(items.map(item => item.number));
         await new Promise(resolve => setTimeout(resolve, window.__explainDelay ?? 200));
         return { failed: [], items: items.map(({ number, input }) => ({ number, draft: { part: input.part, category: 'ADVANCED_GRAMMAR',
           question: input.question, context: input.context, questionContext: input.question, options: input.options,

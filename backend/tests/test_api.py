@@ -10,6 +10,7 @@ from PIL import Image
 
 from app.core.config import Settings
 from app.main import create_app
+from tests.explanation_ledger_mock import ExplanationLedgerMock
 
 USER_ID = "11111111-1111-4111-8111-111111111111"
 DRAFT = {
@@ -60,8 +61,12 @@ def api():
         ai_grant=None,
         ai_grant_status=200,
         ai_grants=None,
+        ledger_status=200,
+        ledger_mock=None,
+        ledger_malformed=False,
     ):
         calls = []
+        ledger = ledger_mock or ExplanationLedgerMock()
 
         def respond(request):
             body = (
@@ -77,6 +82,14 @@ def api():
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
                 return httpx.Response(200, json=api_reservation or {"allowed": True})
+            if request.url.path.rsplit("/", 1)[-1] in {
+                "claim_explanation_question", "finish_explanation_question", "explanation_ledger_ready"
+            }:
+                if ledger_status != 200:
+                    return httpx.Response(ledger_status, json={"message": "Ledger unavailable"})
+                if ledger_malformed:
+                    return httpx.Response(200, text="not-json")
+                return httpx.Response(200, json=ledger.respond(request.url.path.rsplit("/", 1)[-1], body))
             if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles"):
                 return httpx.Response(readiness_status, json=[])
             if request.url.path == "/rest/v1/ai_access_grants":
@@ -543,8 +556,8 @@ def test_readiness_probes_database_with_zero_rows_and_caches_result(api):
     with api(settings_overrides={"api_limits_enabled": True}) as (client, calls):
         assert client.get("/ready").status_code == 200
         assert client.get("/ready").json()["database_reachable"] is True
-        assert len(calls) == 1
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
+        assert len(calls) == 2
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/rpc/explanation_ledger_ready"]
 
 
 def test_readiness_fails_when_required_migration_is_missing(api):
@@ -683,7 +696,13 @@ def test_openai_readiness_only_checks_required_database(api):
         "openai_api_key": "openai-key", "api_limits_enabled": True,
     }) as (client, calls):
         assert client.get("/ready").json()["ai_provider"] == "openai"
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits"]
+        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/rpc/explanation_ledger_ready"]
+
+
+def test_readiness_fails_closed_for_a_malformed_ledger_probe(api):
+    with api(ledger_malformed=True) as (client, calls):
+        assert client.get("/ready").status_code == 503
+        assert not any(call[0] == "api.openai.com" for call in calls)
 
 
 def test_verified_privileged_ai_traffic_does_not_trigger_ingress_spam_limit(api):

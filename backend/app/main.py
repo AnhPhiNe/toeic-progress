@@ -27,6 +27,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         configure_logging()
         async with httpx.AsyncClient(timeout=35, transport=transport) as client:
             app.state.gateway = Gateway(settings, client)
+            app.state.ticket_uses = TicketUses(app.state.gateway.rpc)
             app.state.readiness_lock = asyncio.Lock()
             app.state.readiness = None
             yield
@@ -40,7 +41,6 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         openapi_url="/openapi.json" if settings.environment == "development" else None,
     )
     app.state.settings = settings
-    app.state.ticket_uses = TicketUses()
     app.add_middleware(BodyLimitMiddleware, timeout=settings.body_timeout_seconds)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.effective_allowed_hosts, www_redirect=False)
     app.add_middleware(RuntimeMiddleware, settings=settings)
@@ -50,7 +50,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         allow_origins=settings.cors_origins,
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
-        expose_headers=["X-Request-ID", "Retry-After"],
+        expose_headers=["X-Request-ID", "Retry-After", "X-Error-Code"],
     )
 
     @app.exception_handler(RequestValidationError)

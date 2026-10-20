@@ -41,8 +41,15 @@ class Gateway:
                 )
                 if not access.is_success:
                     return False
+            if self.settings.ai_ready and self.settings.rate_limit_secret:
+                ledger = await self.client.post(
+                    f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/explanation_ledger_ready",
+                    json={}, headers=self.admin_headers(), timeout=3,
+                )
+                if not ledger.is_success or ledger.json() != {"version": 1, "tables": True}:
+                    return False
             return True
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ValueError, TypeError):
             return False
 
     async def authenticate(self, token: str) -> dict:

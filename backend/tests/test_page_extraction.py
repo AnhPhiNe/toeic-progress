@@ -65,6 +65,9 @@ def test_one_screenshot_fills_every_wrong_question_found_and_reports_the_rest(ap
         assert json.loads(request["input"][0]["content"][0]["text"]) == {"questions": page()["questions"]}
         assert request["input"][0]["content"][1]["type"] == "input_image"
         assert "KHÔNG giải thích" in request["instructions"] and request["reasoning"] == {"effort": "low"}
+        assert "context tối đa 8.000 ký tự" in request["instructions"]
+        assert "Không cắt/rút gọn bài đọc" in request["instructions"]
+        assert "3.998" not in request["instructions"]
 
 
 def test_items_that_do_not_fit_their_question_are_left_for_another_try(api):  # noqa: F811
@@ -164,11 +167,23 @@ def test_an_unreadable_item_does_not_lose_the_others(api):  # noqa: F811
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
 
 
-def test_a_long_passage_is_shortened_to_fit_the_stored_card(api):  # noqa: F811
-    with api(draft={"items": [item(132, context="Long passage —132—. " * 300)]}) as (client, _calls):
+def test_a_long_passage_is_kept_in_full_with_its_tail_evidence(api):  # noqa: F811
+    context = ("Long passage —132—. " * 240) + "Final evidence: delivery fee is $19."
+    assert len(context) > 4800
+    with api(draft={"items": [item(132, context=context)]}) as (client, _calls):
         body = client.post("/api/v1/ai/extract-page", json=page()).json()
     draft = body["items"][0]["draft"]
-    assert len(draft["questionContext"]) <= 4000 and draft["context"].startswith("Long passage —132—.")
+    assert draft["context"] == context
+    assert draft["questionContext"] == item(132)["question"] + "\n\n" + context
+
+
+def test_oversized_context_is_reported_missing_instead_of_explaining_a_truncated_passage(api):  # noqa: F811
+    with api(draft={"items": [item(132, context="Long passage —132—. " * 401)]}) as (client, calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+    assert body["items"] == []
+    assert 132 in body["missing"]
+    assert not body["explainTicket"]
+    assert sum(call[0] == "api.openai.com" for call in calls) == 1
 
 
 def test_a_part6_passage_without_the_question_number_is_not_kept(api):  # noqa: F811

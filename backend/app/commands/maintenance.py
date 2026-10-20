@@ -13,8 +13,10 @@ async def main():
     if not settings.database_ready:
         raise SystemExit("Configure Supabase before running maintenance.")
     async with httpx.AsyncClient(timeout=30) as client:
-        await Gateway(settings, client).rpc("cleanup_ai_usage", {})
-    print("Expired AI counters and request hashes cleaned up.")
+        gateway = Gateway(settings, client)
+        await gateway.rpc("cleanup_ai_usage", {})
+        await gateway.rpc("cleanup_explanation_ledger", {"p_limit": 1000})
+    print("Expired AI counters, request hashes and explanation cache cleaned up.")
 
 
 if __name__ == "__main__":

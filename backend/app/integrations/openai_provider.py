@@ -17,10 +17,12 @@ from app.schemas.models import (
     RESULTS_OUTPUT_SCHEMA,
     MistakeDraft,
     OpenAIDraftOutput,
+    OpenAIPageExplanationOutput,
     OpenAIPageItem,
     OpenAIPageOutput,
     OpenAIPasteOutput,
     OpenAIResultsOutput,
+    PageMistakeDraft,
     page_output_schema,
     part_of_question,
 )
@@ -147,7 +149,7 @@ class OpenAIProvider:
         if not isinstance(source, dict):
             source = {}
         freeform = isinstance(source.get("rawText"), str)
-        output_model = OpenAIPasteOutput if freeform else OpenAIDraftOutput
+        output_model = OpenAIPasteOutput if freeform else OpenAIPageExplanationOutput if pin_question else OpenAIDraftOutput
         schema = output_model.ai_schema()
         if source_options is not None or freeform:
             if isinstance(source, dict) and isinstance(source.get("part"), int) and not isinstance(source["part"], bool) and 1 <= source["part"] <= 7:
@@ -171,6 +173,9 @@ class OpenAIProvider:
         if pin_question and not freeform and isinstance(source.get("question"), str) and source["question"].strip():
             # The question was already read exactly (from a screenshot); the explanation must not retype it.
             schema["properties"]["question"]["enum"] = [" ".join(source["question"].split())]
+            # The passage was already read from the screenshot: retain its full
+            # text rather than asking the model to summarize or retype it.
+            schema["properties"]["context"]["enum"] = [""]
         image_instructions = (PART1_IMAGE_INSTRUCTIONS if images and source["part"] == 1 else PART7_IMAGE_INSTRUCTIONS) if images else ""
         if persistent_images:
             schema["properties"]["context"]["enum"] = [""]
@@ -210,6 +215,10 @@ class OpenAIProvider:
                 return ground_pasted_draft(source, draft, image_source=bool(images), persistent_images=persistent_images)
             grounded = ground_draft(text, draft, allow_ai_answer=True, source_options=source_options,
                                     source_answer=source_answer, image_source=bool(images), persistent_images=persistent_images)
+            if pin_question:
+                grounded.question = source["question"]
+                grounded.context = source.get("context", "")
+                grounded.questionContext = "\n\n".join(field for field in (grounded.question, grounded.context) if field)
             # AI solved the question itself and disagrees with the source's answer: the source may be wrong.
             own = re.match(r"^\s*\(([A-D])\)", output.ownAnswer or "")
             if source_answer and own and grounded.answerSource == "PROVIDED" and own[1] != source_answer.upper():
@@ -298,12 +307,11 @@ def page_item_draft(item: OpenAIPageItem) -> MistakeDraft | None:
     # text on another screenshot, and a card with the wrong passage would teach the wrong reading.
     if part == 6 and item.context.strip() and not re.search(rf"(?<!\d){item.number}(?!\d)", item.context):
         return None
-    # The stored question and passage share one 4,000 character field.
-    context = item.context.strip()[:max(0, 3998 - len(question))]
+    context = item.context.strip()
     folded = {" ".join(option.split()): option for option in item.options}
     correct = folded.get(" ".join(item.correctAnswer.split())) if item.answerSource == "PROVIDED" else None
     choice = item.userChoice if item.userChoice in labels else ""
-    return MistakeDraft(
+    return PageMistakeDraft(
         part=part, category="OTHER", question=question, context=context, options=item.options,
         correctAnswer=correct or "", answerSource="PROVIDED" if correct else "MISSING", userChoice=choice,
         userMistake=next((option for option in item.options if option.startswith(f"({choice})")), "") if choice else "",

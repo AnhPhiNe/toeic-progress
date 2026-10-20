@@ -60,8 +60,9 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
     .sort((a: number[], b: number[]) => a[0] - b[0]));
   expect(saved).toEqual([
     [104, 'C', '(A) accommodates', 'VOCABULARY_TRAP', TIP],
-    [112, 'B', '(D) to accommodate', 'ADVANCED_GRAMMAR', TIP],
-    [131, 'B', '(C) accommodation', 'ADVANCED_GRAMMAR', TIP]
+    // Changing a key also invalidates the earlier rationale and its inferred reason.
+    [112, 'B', '(D) to accommodate', 'OTHER', ''],
+    [131, 'B', '(C) accommodation', 'OTHER', '']
   ]);
 });
 

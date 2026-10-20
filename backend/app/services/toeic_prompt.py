@@ -282,8 +282,9 @@ Input JSON là {"questions": [{"number": số câu, "part": Part}]}: các câu n
   bảng chuyển thành văn bản rõ từng hàng với nhãn cột. Các câu cùng một đoạn dùng context GIỐNG HỆT nhau.
   Part 6: giữ nguyên số câu ở mỗi chỗ trống trong context đúng như trên ảnh (ví dụ '—135—'), không đổi thành '____';
   chỉ chép đoạn văn có chứa số câu đó, không lấy đoạn văn của bài khác trên ảnh khác.
-  Part 3/4 chép transcript nếu ảnh có. Còn lại ''. question+context tối đa 3.998 ký tự.
-  Không bịa chữ/số; chỗ mờ thì bỏ trống phần đó.
+  Part 3/4 chép transcript nếu ảnh có. Còn lại ''. question tối đa 4.000 ký tự, context tối đa 8.000 ký tự.
+  Không cắt/rút gọn bài đọc để vừa giới hạn. Nếu văn bản liên quan dài quá giới hạn hoặc có phần không đọc rõ,
+  bỏ toàn bộ item đó để người học bổ sung ảnh; không trả một bài đọc thiếu như thể đã chép đủ. Không bịa chữ/số.
 - userChoice: chữ cái phương án mà ảnh cho thấy rõ người học đã chọn (nút được chọn, ô được tô/đánh dấu); không rõ thì ''.
 - correctAnswer: chỉ khi trang ghi rõ đáp án đúng của chính câu đó (ví dụ 'Đáp án đúng: D', 'Correct answer: D') hoặc
   đánh dấu rõ phương án đúng: chép nguyên văn phương án đó, answerSource='PROVIDED'. Không có thì correctAnswer='',

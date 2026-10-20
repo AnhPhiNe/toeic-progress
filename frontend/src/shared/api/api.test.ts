@@ -11,6 +11,14 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.clearAllMocks(); });
 
 describe('backend request feedback', () => {
+  it('distinguishes invalid explanation tickets from temporary permission failures', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ detail: 'Lượt kèm ảnh không còn hợp lệ.' }), {
+      status: 403, headers: { 'X-Error-Code': 'EXPLAIN_TICKET_INVALID' }
+    })).mockResolvedValueOnce(new Response(JSON.stringify({ detail: 'Tài khoản đang chờ duyệt.' }), { status: 403 })));
+    const { backendRequest } = await import('@/shared/api/api');
+    await expect(backendRequest('/api/v1/ai/explain-batch', 'POST', {})).rejects.toMatchObject({ status: 403, code: 'EXPLAIN_TICKET_INVALID' });
+    await expect(backendRequest('/api/v1/ai/explain-batch', 'POST', {})).rejects.toMatchObject({ status: 403, code: undefined });
+  });
   it('keeps the AI failure reason and formats longer provider cooldowns without retrying', async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: 'OpenAI đang giới hạn tốc độ xử lý.' }), {
       status: 429, headers: { 'Retry-After': '3600' }

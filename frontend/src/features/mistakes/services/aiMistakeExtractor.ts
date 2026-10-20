@@ -152,8 +152,14 @@ Mẹo 10s: Gặp "request that" → động từ nguyên thể; chủ ngữ nh�
   };
 }
 
+// A page may contain several full passages. The ticket-only explanation API
+// preserves that source; the ordinary single-question contract stays unchanged.
+const pageDraftSchema = draftSchema.extend({
+  questionContext: z.string().min(1).max(12002),
+  context: z.string().max(8000).nullish()
+});
 const pageSchema = z.object({
-  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: draftSchema })).max(6),
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
   missing: z.array(z.number().int().min(1).max(200)).max(200),
   explainTicket: z.string().max(2048).nullish()
 });
@@ -207,16 +213,24 @@ export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () 
 }
 
 const explainSchema = z.object({
-  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: draftSchema })).max(6),
-  failed: z.array(z.number().int().min(1).max(200)).max(6)
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
+  failed: z.array(z.number().int().min(1).max(200)).max(6),
+  retry: z.array(z.object({
+    number: z.number().int().min(1).max(200),
+    status: z.enum(['retryable', 'completed', 'exhausted']),
+    remainingAttempts: z.number().int().min(0).max(3)
+  })).max(6).default([])
 });
 
 /** Explanations for questions a screenshot reading already counted; the ticket from that reading stands in for a new AI use. */
-export async function explainBatchWithAI(ticket: string, items: { number: number; input: MistakeInput }[])
-  : Promise<{ items: PageItem[]; failed: number[] }> {
+export async function explainBatchWithAI(ticket: string, items: { number: number; input: MistakeInput }[], expectedOwner?: string | null)
+  : Promise<{ items: PageItem[]; failed: number[]; retry: z.infer<typeof explainSchema>['retry'] }> {
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này.');
   const { data: { session } } = await cloud.auth.getSession();
   if (!session) throw new Error('Phiên đã hết. Mở lại thẻ và bấm Giải thích với AI.');
+  if (expectedOwner !== undefined && (expectedOwner === null ? !session.user.is_anonymous : session.user.id !== expectedOwner)) {
+    throw new Error('Tài khoản đã thay đổi. Chưa gửi yêu cầu viết lời giải.');
+  }
   const value = await backendRequest<unknown>('/api/v1/ai/explain-batch', 'POST', {
     request_id: crypto.randomUUID(), consent: true, provider: 'openai', ticket, items
   }, session.user.id);
