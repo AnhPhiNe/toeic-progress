@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "toeic-progress-api",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--env-file", "backend/.env", "--reload", "--reload-dir", "backend", "--port", "8000"],
+      "env": {
+        "AI_ENABLED": "true",
+        "AI_PROVIDER": "openai",
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
+      },
+      "port": 8000,
+      "url": "http://localhost:8000"
     }
   ]
 }

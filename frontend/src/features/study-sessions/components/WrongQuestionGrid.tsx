@@ -79,7 +79,7 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
  * Shown only when the backend offers it; the learner checks the marks before saving.
  */
 export function ResultImageButton({ onRead, desktop = false }: { onRead: (numbers: number[]) => void; desktop?: boolean }) {
-  const [available, setAvailable] = useState(false);
+  const [available, setAvailable] = useState(true);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -87,7 +87,7 @@ export function ResultImageButton({ onRead, desktop = false }: { onRead: (number
   const { containerRef, getToken, remove } = useTurnstile();
   useEffect(() => {
     let cancelled = false;
-    void aiService.getAIConfiguration().then(config => { if (!cancelled) setAvailable(Boolean(config.resultImages)); }).catch(() => {});
+    void aiService.getAIConfiguration().then(config => { if (!cancelled) setAvailable(config.resultImages !== false); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
   const read = async (files: File[]) => {

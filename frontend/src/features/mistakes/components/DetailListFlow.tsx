@@ -75,6 +75,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
   const filled = ordered.filter(card => dirtyIds.current.has(card.id) && !isEmptyForm(forms[card.id] ?? EMPTY_FORM));
   const reading = progress !== null;
+  const canReadPageImages = phone ? Boolean(config?.pageImages) : config?.pageImages !== false;
 
   const close = (count = 0) => {
     if (closing.current) return;
@@ -185,7 +186,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   const addImages = (files: File[]) => {
     if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng danh sách và mở lại để tiếp tục.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
-    if (!images.length || !config?.pageImages) return;
+    if (!images.length || !canReadPageImages) return;
     for (let index = 0; index < images.length; index += MAX_CONTEXT_IMAGES) pending.current.push(images.slice(index, index + MAX_CONTEXT_IMAGES));
     setProgress(value => ({ done: value?.done ?? 0, total: (value?.total ?? 0) + images.length }));
     setError(''); setNote('');
@@ -328,7 +329,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
               </div>
             ))
           : items.map(row)}
-        {readable(part) && listening && config?.pageImages && <button type="button" onClick={() => fileInput.current?.click()}
+        {readable(part) && listening && canReadPageImages && <button type="button" onClick={() => fileInput.current?.click()}
           className="w-full cursor-pointer border-t border-stone-100 px-4 py-2 text-left text-[12.5px] font-bold text-blue-700 dark:border-slate-800 dark:text-blue-300">+ Dán ảnh transcript</button>}
       </section>
     );
@@ -352,7 +353,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   return createPortal(
     <div className={phone ? 'fixed inset-0 z-50 flex bg-[#FDFBF7] dark:bg-[#0B1220]' : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4'}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="detail-list-title" tabIndex={-1}
-        onDragOver={event => { if (config?.pageImages) event.preventDefault(); }}
+        onDragOver={event => { if (canReadPageImages) event.preventDefault(); }}
         onDrop={event => { event.preventDefault(); addImages([...event.dataTransfer.files]); }}
         className={phone ? 'flex h-[100dvh] w-full flex-col bg-[#FDFBF7] text-slate-900 dark:bg-[#0B1220] dark:text-white'
           : 'flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[22px] border-2 border-slate-900 bg-[#FDFBF7] text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#0B1220] dark:text-white dark:shadow-none'}>
@@ -383,7 +384,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
         </div>}
 
         <div className={'min-h-0 flex-1 space-y-3 overflow-y-auto ' + (phone ? 'px-3 py-3' : 'px-6 py-4')}>
-          {config?.pageImages && !anyRead && !reading && (phone
+          {canReadPageImages && !anyRead && !reading && (phone
             ? <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white px-4 py-4 text-center dark:border-slate-600 dark:bg-slate-900">
                 <p className="text-[15px] font-black">Chụp màn hình trang chữa bài</p>
                 <p className="mt-1 text-[13px] font-semibold leading-snug text-slate-500 dark:text-slate-400">Chọn hết ảnh của đề một lần. AI điền sẵn bạn chọn, đáp án và lời giải.</p>
@@ -413,7 +414,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
           : <footer className="flex shrink-0 items-center gap-3 border-t border-stone-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#111A2C]">
               <div className="min-w-0 flex-1 text-[13px] font-bold">{status}</div>
               {/* Before any screenshot the drop zone above is the way in; afterwards this adds more. */}
-              {config?.pageImages && (anyRead || reading) && <button type="button" onClick={() => fileInput.current?.click()} className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-stone-100 px-4 text-[14px] font-black text-slate-700 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-200">+ Thêm ảnh</button>}
+              {canReadPageImages && (anyRead || reading) && <button type="button" onClick={() => fileInput.current?.click()} className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-stone-100 px-4 text-[14px] font-black text-slate-700 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-200">+ Thêm ảnh</button>}
               {saveButton}
             </footer>}
         <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh màn hình đề"
