@@ -72,44 +72,44 @@ export const TASK_THEMES: Record<TaskColorKey, {
 }> = {
   indigo: {
     borderL: 'border-l-indigo-600',
-    badge: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border-indigo-300 dark:border-indigo-700',
+    badge: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800',
     progressBar: 'bg-indigo-600',
-    primaryBtn: 'bg-indigo-400 hover:bg-indigo-500 text-slate-950',
+    primaryBtn: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/70 dark:text-indigo-300 dark:border-indigo-800',
     accentText: 'text-indigo-600 dark:text-indigo-400'
   },
   blue: {
     borderL: 'border-l-blue-600',
-    badge: 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-700',
+    badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200/80 dark:border-blue-800',
     progressBar: 'bg-blue-600',
-    primaryBtn: 'bg-blue-400 hover:bg-blue-500 text-slate-950',
+    primaryBtn: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900/70 dark:text-blue-300 dark:border-blue-800',
     accentText: 'text-blue-600 dark:text-blue-400'
   },
   amber: {
     borderL: 'border-l-amber-500',
-    badge: 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border-amber-300 dark:border-amber-700',
+    badge: 'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/80 dark:border-amber-800',
     progressBar: 'bg-amber-500',
-    primaryBtn: 'bg-amber-400 hover:bg-amber-500 text-slate-950',
+    primaryBtn: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900/70 dark:text-amber-300 dark:border-amber-800',
     accentText: 'text-amber-600 dark:text-amber-400'
   },
   sky: {
     borderL: 'border-l-sky-500',
-    badge: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200 border-sky-300 dark:border-sky-700',
+    badge: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200/80 dark:border-sky-800',
     progressBar: 'bg-sky-500',
-    primaryBtn: 'bg-sky-400 hover:bg-sky-500 text-slate-950',
+    primaryBtn: 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-950/60 dark:hover:bg-sky-900/70 dark:text-sky-300 dark:border-sky-800',
     accentText: 'text-sky-600 dark:text-sky-400'
   },
   rose: {
     borderL: 'border-l-rose-500',
-    badge: 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200 border-rose-300 dark:border-rose-700',
+    badge: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/80 dark:border-rose-800',
     progressBar: 'bg-rose-500',
-    primaryBtn: 'bg-rose-400 hover:bg-rose-500 text-slate-950',
+    primaryBtn: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 dark:text-rose-300 dark:border-rose-800',
     accentText: 'text-rose-600 dark:text-rose-400'
   },
   purple: {
     borderL: 'border-l-purple-500',
-    badge: 'bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200 border-purple-300 dark:border-purple-700',
+    badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200/80 dark:border-purple-800',
     progressBar: 'bg-purple-500',
-    primaryBtn: 'bg-purple-400 hover:bg-purple-500 text-slate-950',
+    primaryBtn: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950/60 dark:hover:bg-purple-900/70 dark:text-purple-300 dark:border-purple-800',
     accentText: 'text-purple-600 dark:text-purple-400'
   }
 };
@@ -185,6 +185,22 @@ export const PlanView: React.FC<PlanViewProps> = ({
   const summary = useMemo(() => {
     return buildWeeklyStudyPlan(selectedWeek, profile, sessions, mistakes, vocabLog, activePlanRecord, pacingRuns);
   }, [selectedWeek, profile, sessions, mistakes, vocabLog, activePlanRecord, pacingRuns]);
+
+  // Tập hợp các ngày đã có buổi học hoặc từ vựng trong tuần
+  const studiedDatesSet = useMemo(() => {
+    return new Set([
+      ...sessions.filter(s => !s.deletedAt && s.date >= summary.weekStart && s.date <= summary.weekEnd).map(s => s.date),
+      ...vocabLog.filter(v => !v.deletedAt && v.count > 0 && v.date >= summary.weekStart && v.date <= summary.weekEnd).map(v => v.date)
+    ]);
+  }, [sessions, vocabLog, summary.weekStart, summary.weekEnd]);
+
+  // Danh sách 7 ngày trong tuần (T2 -> CN)
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => ({
+      date: addDays(summary.weekStart, i),
+      label: i === 6 ? 'CN' : `T${i + 2}`
+    }));
+  }, [summary.weekStart]);
 
   // Cập nhật kế hoạch tuần vào state & storage
   const updateCurrentWeekTasks = (newTasks: SmartWeeklyTask[]) => {
@@ -429,6 +445,30 @@ export const PlanView: React.FC<PlanViewProps> = ({
     }
   };
 
+  // Các mục tiêu mẫu chưa có trong danh sách tuần này (cho khay gợi ý nhanh)
+  const availableQuickPresets = useMemo(() => {
+    const existing = activePlanRecord.tasks;
+    const presets: { id: 'FULL_TEST' | 'MINUTES' | 'PART_5' | 'PART_7'; label: string }[] = [];
+    if (!existing.some(t => t.type === 'AUTO_FULL_TEST')) {
+      presets.push({ id: 'FULL_TEST', label: '+ 1 đề Full Test' });
+    }
+    if (!existing.some(t => t.type === 'AUTO_STUDY_TIME')) {
+      presets.push({ id: 'MINUTES', label: `+ Học ${(profile.dailyMinGoalMinutes || 30) * 7} phút` });
+    }
+    if (!existing.some(t => t.type === 'AUTO_PART_PRACTICE' && t.partNumber === 5)) {
+      presets.push({ id: 'PART_5', label: '+ Luyện 2 bài Part 5' });
+    }
+    if (!existing.some(t => t.type === 'AUTO_PART_PRACTICE' && t.partNumber === 7)) {
+      presets.push({ id: 'PART_7', label: '+ Luyện 2 bài Part 7' });
+    }
+    return presets;
+  }, [activePlanRecord.tasks, profile.dailyMinGoalMinutes]);
+
+  const handleQuickPresetChip = (preset: 'FULL_TEST' | 'MINUTES' | 'PART_5' | 'PART_7') => {
+    handleOpenAddModal();
+    applyQuickPreset(preset);
+  };
+
   // Lưu mục tiêu (thêm mới hoặc cập nhật sửa)
   const handleSaveModal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -514,28 +554,28 @@ export const PlanView: React.FC<PlanViewProps> = ({
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, task.id)}
                     onDragEnd={handleDragEnd}
-                    className={`p-3 sm:px-4 sm:py-3.5 rounded-xl border-2 transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 group ${
+                    className={`p-3 sm:px-4 sm:py-3.5 rounded-xl border transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 group ${
                       isDragging
-                        ? 'opacity-40 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[0.99] border-2 border-dashed border-indigo-400'
+                        ? 'opacity-40 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[0.99] border-dashed border-indigo-400'
                         : task.isComplete
-                        ? 'bg-emerald-50/60 hover:bg-emerald-50/90 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border-emerald-500/80 dark:border-emerald-800/60 '
-                        : 'bg-white dark:bg-[#151f32] hover:bg-slate-50/90 dark:hover:bg-slate-800/80 border-slate-900 dark:border-slate-700 '
+                        ? 'bg-emerald-50/60 hover:bg-emerald-50/90 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-800/80'
+                        : 'bg-white dark:bg-[#151f32] hover:bg-slate-50/90 dark:hover:bg-slate-800/80 border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600'
                     } ${
                       isDragOver && dropPosition === 'above'
-                        ? 'border-t-2 !border-t-indigo-600 dark:!border-t-indigo-400 '
+                        ? 'border-t-2 !border-t-indigo-600 dark:!border-t-indigo-400'
                         : ''
                     } ${
                       isDragOver && dropPosition === 'below'
-                        ? 'border-b-2 !border-b-indigo-600 dark:!border-b-indigo-400 '
+                        ? 'border-b-2 !border-b-indigo-600 dark:!border-b-indigo-400'
                         : ''
                     }`}
                   >
-                    {/* Dải vạch màu nội bộ cho việc đang làm dở */}
-                    {!task.isComplete && task.done > 0 && (
+                    {/* Dải vạch màu nội bộ cho việc chưa hoàn thành */}
+                    {!task.isComplete && (
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${theme.progressBar} pointer-events-none`} />
                     )}
 
-                    {/* CỘT TRÁI: Grip kéo thả + Tiêu đề + 1 Badge loại bài duy nhất (chiếm 50% hàng) */}
+                    {/* CỘT TRÁI: Grip kéo thả + Tiêu đề & Subtitle + 1 Badge loại bài */}
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 md:w-1/2 flex-1">
                       {/* Grip Kéo Thả */}
                       <button
@@ -564,31 +604,40 @@ export const PlanView: React.FC<PlanViewProps> = ({
                         </div>
                       )}
 
-                      {/* Tên Task + Phân loại */}
-                      <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-sm sm:text-base font-black truncate max-w-full ${
-                            task.isComplete
-                              ? 'line-through text-slate-400 dark:text-slate-500'
-                              : 'text-slate-900 dark:text-white'
-                          }`}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </span>
-
-                        {/* Badge phân loại duy nhất */}
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border border-slate-900/30 dark:border-slate-700 shadow-2xs shrink-0 ${theme.badge}`}>
-                          {isAuto
-                            ? (task.type === 'AUTO_FULL_TEST' ? 'Full Test' : task.type === 'AUTO_STUDY_TIME' ? 'Thời gian học' : `Part ${task.partNumber || 5}`)
-                            : 'Mục tiêu cũ'}
-                        </span>
-
-                        {task.type === 'CUSTOM' && task.notes && !task.isComplete && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400 italic hidden sm:inline shrink-0 truncate max-w-xs" title={task.notes}>
-                            ({task.notes})
+                      {/* Tên Task + Phân loại + Dòng phụ */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`text-sm sm:text-base font-black truncate max-w-full ${
+                              task.isComplete
+                                ? 'line-through text-slate-400 dark:text-slate-500'
+                                : 'text-slate-900 dark:text-white'
+                            }`}
+                            title={task.title}
+                          >
+                            {task.title}
                           </span>
-                        )}
+
+                          {/* Badge phân loại duy nhất */}
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${theme.badge}`}>
+                            {isAuto
+                              ? (task.type === 'AUTO_FULL_TEST' ? 'Full Test' : task.type === 'AUTO_STUDY_TIME' ? 'Thời gian học' : `Part ${task.partNumber || 5}`)
+                              : 'Mục tiêu cũ'}
+                          </span>
+                        </div>
+
+                        {/* Dòng phụ (Ghi chú / Hướng dẫn tự động) bên dưới tiêu đề cho MỌI loại mục tiêu */}
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-full">
+                          {task.notes
+                            ? task.notes.slice(0, 120)
+                            : task.type === 'AUTO_FULL_TEST'
+                            ? 'Rèn luyện phản xạ 200 câu · Tự động cộng khi lưu điểm đề thi'
+                            : task.type === 'AUTO_STUDY_TIME'
+                            ? 'Duy trì thói quen mỗi ngày · Tự động cộng thời gian từ mọi phiên học'
+                            : task.type === 'AUTO_PART_PRACTICE'
+                            ? `Tập trung cải thiện độ chính xác Part ${task.partNumber || 5} · Tự động cộng khi lưu bài luyện`
+                            : 'Mục tiêu tùy chỉnh'}
+                        </p>
                       </div>
                     </div>
 
@@ -596,7 +645,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                     <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 sm:gap-4 min-w-0 md:w-1/2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
                       {/* Mini Progress Bar */}
                       <div className="flex items-center gap-2 w-36 sm:w-40 lg:w-44 shrink-0">
-                        <div className="flex-1 h-2 rounded-full border border-slate-900 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/60 overflow-hidden shadow-2xs">
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
                           <div
                             data-plan-progress
                             className={`h-full rounded-full transition-all duration-500 ${
@@ -624,7 +673,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                       {/* Nút Hành Động Nhanh (CTA) hoặc Trạng thái Hoàn thành */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         {task.isComplete ? (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-800/80 select-none">
+                          <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800 sm:min-w-[112px] select-none">
                             <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
                             <span>Đã xong</span>
                           </div>
@@ -634,7 +683,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onOpenSessionLogger()}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${theme.primaryBtn} sm:min-w-[112px] transition cursor-pointer`}
                                 title="Mở biểu mẫu nhập kết quả làm đề Full Test"
                               >
                                 <span>Ghi điểm</span>
@@ -646,7 +695,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onNavigateToTimer ? onNavigateToTimer() : onOpenSessionLogger({ sessionType: 'PART_PRACTICE' })}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${theme.primaryBtn} sm:min-w-[112px] transition cursor-pointer`}
                                 title="Chuyển đến Đồng hồ phòng thi để bấm giờ học"
                               >
                                 <span>Bật đồng hồ</span>
@@ -658,7 +707,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onOpenSessionLogger({ sessionType: 'PART_PRACTICE', partNumber: task.partNumber })}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black ${theme.primaryBtn} border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer`}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${theme.primaryBtn} sm:min-w-[112px] transition cursor-pointer`}
                                 title={`Ghi kết quả luyện tập Part ${task.partNumber || 5}`}
                               >
                                 <span>Ghi kết quả</span>
@@ -741,9 +790,12 @@ export const PlanView: React.FC<PlanViewProps> = ({
               </span>
             )}
           </h1>
-          <div className="mt-1 flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <div className="mt-1 flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-wrap">
             <span className="font-semibold text-slate-700 dark:text-slate-300">
               {formatVnDate(summary.weekStart)} – {formatVnDate(summary.weekEnd)}
+            </span>
+            <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500">
+              • Tự động cập nhật tiến độ khi lưu đề hoặc bấm giờ
             </span>
             {!summary.isCurrentWeek && (
               <button
@@ -758,7 +810,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Cụm nút chuyển tuần */}
-          <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-0.5 shadow-xs">
+          <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 shadow-2xs">
             <button
               onClick={handlePrevWeek}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
@@ -766,8 +818,10 @@ export const PlanView: React.FC<PlanViewProps> = ({
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Chuyển tuần
+            <span className="px-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+              {summary.isCurrentWeek
+                ? 'Tuần này'
+                : `${formatVnDate(summary.weekStart).slice(0, 5)} – ${formatVnDate(summary.weekEnd).slice(0, 5)}`}
             </span>
             <button
               onClick={handleNextWeek}
@@ -781,23 +835,23 @@ export const PlanView: React.FC<PlanViewProps> = ({
       </div>
 
       {/* ================= 2. DẢI RIBBON TIẾN ĐỘ LIỀN KHỐI (UNIFIED PROGRESS RIBBON) ================= */}
-      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 divide-y lg:divide-y-0 lg:divide-x-2 divide-slate-200 dark:divide-slate-800">
+      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 dark:divide-slate-800">
         
         {/* Khối 1: Tiến độ tuần & Thanh năng lượng */}
-        <div className="flex-1 flex items-center gap-3.5 pr-0 lg:pr-5">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 border-slate-900 bg-indigo-500 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-2xs">
+        <div className="flex items-center gap-3.5 pr-0 lg:pr-5">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center shrink-0">
             <Target className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Mục tiêu đã hoàn thành
               </span>
               <span className="text-xs font-black tabular-nums text-indigo-600 dark:text-indigo-400">
                 {summary.completedTasks}/{summary.totalTasks} ({summary.completionPercent}%)
               </span>
             </div>
-            <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-900 dark:border-slate-700 overflow-hidden mt-1.5 shadow-2xs">
+            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
               <div
                 data-plan-progress
                 className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
@@ -808,32 +862,64 @@ export const PlanView: React.FC<PlanViewProps> = ({
         </div>
 
         {/* Khối 2: Thời lượng tích luỹ */}
-        <div className="flex items-center gap-3 px-0 lg:px-5 pt-3 lg:pt-0 shrink-0">
-          <div className="w-9 h-9 rounded-xl border-2 border-slate-900 bg-teal-300 text-teal-950 flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
+        <div className="flex items-center gap-3.5 px-0 lg:px-5 pt-3 lg:pt-0">
+          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-200/80 dark:border-teal-800 flex items-center justify-center shrink-0">
             <span className="text-base select-none">⏰</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Thời Lượng Học
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Thời Lượng Học
+              </span>
+              <span className="text-sm font-black tabular-nums text-teal-600 dark:text-teal-400">
+                {summary.minutesThisWeek} <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {summary.minutesGoalThisWeek || 210}p</span>
+              </span>
             </div>
-            <div className="text-sm sm:text-base font-black tabular-nums text-slate-900 dark:text-white">
-              {summary.minutesThisWeek} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ {summary.minutesGoalThisWeek || 210}p</span>
+            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
+              <div
+                data-plan-progress
+                className="h-full bg-teal-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${Math.max(summary.minutesThisWeek > 0 ? 5 : 0, Math.min(100, summary.minutesGoalThisWeek ? Math.round((summary.minutesThisWeek / summary.minutesGoalThisWeek) * 100) : 0))}%` }}
+              />
             </div>
           </div>
         </div>
 
-        {/* Khối 3: Chuyên cần & Kỳ thi */}
-        <div className="flex items-center gap-3 pl-0 lg:pl-5 pt-3 lg:pt-0 shrink-0">
-          <div className="w-9 h-9 rounded-xl border-2 border-slate-900 bg-rose-300 text-rose-950 flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
+        {/* Khối 3: Chuyên cần 7 ngày */}
+        <div className="flex items-center gap-3.5 pl-0 lg:pl-5 pt-3 lg:pt-0">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 flex items-center justify-center shrink-0">
             <span className="text-base select-none">🔥</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Đã học
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Đã học
+              </span>
+              <span className="text-sm font-black tabular-nums text-rose-600 dark:text-rose-400">
+                {summary.daysStudiedThisWeek} ngày
+              </span>
             </div>
-            <div className="text-sm sm:text-base font-black tabular-nums text-rose-600 dark:text-rose-400">
-              {summary.daysStudiedThisWeek} ngày
 
+            <div className="grid grid-cols-7 gap-1 mt-1.5" aria-hidden="true">
+              {weekDays.map(day => {
+                const isStudied = studiedDatesSet.has(day.date);
+                const isCurrentDay = day.date === today;
+                return (
+                  <div
+                    key={day.date}
+                    className={`h-5 flex items-center justify-center rounded text-[10px] tabular-nums transition-colors ${
+                      isStudied
+                        ? 'bg-emerald-500 text-white font-black'
+                        : isCurrentDay
+                        ? 'bg-rose-50 dark:bg-rose-950/60 ring-1 ring-rose-300 dark:ring-rose-700 text-rose-700 dark:text-rose-300 font-black'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold'
+                    }`}
+                    title={`${day.label} (${formatVnDate(day.date).slice(0, 5)}): ${isStudied ? 'Đã học' : isCurrentDay ? 'Hôm nay' : 'Chưa học'}`}
+                  >
+                    {day.label}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -848,7 +934,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
               Việc Cần Làm Tuần Này
               <span
-                className="text-xs font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-900 shadow-[1px_1px_0px_#0f172a]"
+                className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                 title={`${summary.completedTasks} trên ${summary.totalTasks} mục tiêu đã hoàn thành`}
               >
                 {summary.completedTasks}/{summary.totalTasks}
@@ -859,15 +945,15 @@ export const PlanView: React.FC<PlanViewProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             {/* Bộ lọc trạng thái: Tất cả / Cần làm / Đã xong */}
             {summary.tasks.length > 0 && (
-              <div className="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a]">
+              <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
                 {(['ALL', 'INCOMPLETE', 'COMPLETED'] as const).map(tab => (
                   <button
                     key={tab}
                     onClick={() => setTaskFilter(tab)}
                     aria-pressed={taskFilter === tab}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                       taskFilter === tab
-                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-[1px_1px_0px_#0f172a]'
+                        ? 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white shadow-2xs'
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
                     }`}
                   >
@@ -1003,6 +1089,26 @@ export const PlanView: React.FC<PlanViewProps> = ({
                 )}
               </>
             ) : filteredTasks.map(renderTask)}
+
+            {!isWipLimitReached && taskFilter !== 'COMPLETED' && summary.tasks.length > 0 && availableQuickPresets.length > 0 && (
+              <div className="pt-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  💡 Thêm nhanh mục tiêu:
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {availableQuickPresets.map(preset => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleQuickPresetChip(preset.id)}
+                      className="border border-dashed border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 hover:border-indigo-400 text-xs font-bold text-slate-600 dark:text-slate-300 px-3 py-1 rounded-lg transition cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
