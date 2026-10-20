@@ -4,7 +4,7 @@ import { Check, ImagePlus, Sparkles, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { CHOICE_LETTERS, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
-import { buildDetailEntry, canExplainRead, EMPTY_FORM as EMPTY, explainInput, fromAI, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { buildDetailEntry, canExplainRead, EMPTY_FORM as EMPTY, explainInput, fromAI, isEmptyForm, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
@@ -138,6 +138,13 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
     } finally { setBusy(false); removeCaptcha(); }
   };
 
+  // The full form replaces this screen; cards read or filled here but not saved yet would be lost.
+  const openFull = () => {
+    const unsaved = queue.filter(id => id !== currentId && !isEmptyForm(forms[id] ?? EMPTY)).length;
+    if (unsaved && !window.confirm(`Mở form đầy đủ sẽ bỏ ${unsaved} câu đã điền mà chưa lưu. Tiếp tục?`)) return;
+    onOpenFull(card);
+  };
+
   const letterButton = (letter: ChoiceLetter, on: boolean, tone: 'wrong' | 'right', pick: () => void) => (
     <button key={letter} type="button" aria-pressed={on} onClick={pick}
       className={'h-12 flex-1 cursor-pointer rounded-xl border-2 text-[16px] font-black ' + (on
@@ -188,7 +195,7 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
               <label htmlFor="detail-question" className="text-[14px] font-black">Câu hỏi {!form.ai && <span className="font-semibold text-slate-400">(không bắt buộc)</span>}</label>
               {form.ai
                 ? <button type="button" onClick={() => update({ ai: undefined, raw: '' })} className="min-h-9 cursor-pointer text-[13px] font-bold text-blue-700 dark:text-blue-300">Nhập lại</button>
-                : <button type="button" onClick={() => onOpenFull(card)} className="min-h-9 cursor-pointer text-[13px] font-bold text-blue-700 dark:text-blue-300">Form đầy đủ</button>}
+                : <button type="button" onClick={openFull} className="min-h-9 cursor-pointer text-[13px] font-bold text-blue-700 dark:text-blue-300">Form đầy đủ</button>}
             </div>
             {form.ai ? <div className="mt-2 space-y-2">
               {form.ai.context?.trim() && <div className="rounded-xl border-[1.5px] border-stone-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">

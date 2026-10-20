@@ -39,6 +39,8 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   await expect(flow.getByRole('button', { name: 'Câu 112 Bạn chọn B, đáp án D', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: /^Câu 131/ }).click();
   await expect(flow.getByText(TIP)).toBeVisible();
+  // No way out to the full form here: it would drop the rows read but not saved yet.
+  await expect(flow.getByRole('button', { name: 'Form đầy đủ' })).toHaveCount(0);
 
   await flow.getByRole('button', { name: 'Lưu 3 câu', exact: true }).click();
   await expect(flow).toHaveCount(0);

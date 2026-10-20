@@ -18,7 +18,8 @@ import { enqueueExplanations, explanationsVersion, isExplaining, setExplanationI
 interface Props {
   cards: MistakeEntry[];
   onSave: (entry: MistakeEntry, original: MistakeEntry) => void;
-  onOpenFull: (card: MistakeEntry) => void;
+  /** Not offered here: leaving for the full form would drop every row read but not saved yet. */
+  onOpenFull?: (card: MistakeEntry) => void;
   onClose: (saved: number) => void;
 }
 
@@ -48,7 +49,7 @@ function passageGroups(cards: MistakeEntry[], forms: Record<string, CardForm>): 
  * Screenshots of the test (as many as the learner has) are read in turns of up to three images; each row then
  * shows what was chosen, the right answer and a suggested reason, and one button saves every filled-in row.
  */
-export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props) {
+export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
   const ordered = useMemo(() => [...cards].sort((a, b) => (a.questionNumber ?? 999) - (b.questionNumber ?? 999)), [cards]);
   const byId = useMemo(() => new Map(cards.map(card => [card.id, card])), [cards]);
   const [forms, setForms] = useState<Record<string, CardForm>>({});
@@ -226,7 +227,7 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
                 </button>}
           </span>
         </div>
-        {open && <RowDetail card={card} value={value} letters={letters} onChange={patch => update(card.id, patch)} onOpenFull={() => onOpenFull(card)} />}
+        {open && <RowDetail card={card} value={value} letters={letters} onChange={patch => update(card.id, patch)} />}
       </div>
     );
   };
@@ -345,8 +346,8 @@ function AnswerSheet({ letters, chosen, answer }: { letters: readonly ChoiceLett
 }
 
 /** The opened row: the question as read, the answer pickers, and the explanation once written. */
-function RowDetail({ card, value, letters, onChange, onOpenFull }: {
-  card: MistakeEntry; value: CardForm; letters: readonly ChoiceLetter[]; onChange: (patch: Partial<CardForm>) => void; onOpenFull: () => void;
+function RowDetail({ card, value, letters, onChange }: {
+  card: MistakeEntry; value: CardForm; letters: readonly ChoiceLetter[]; onChange: (patch: Partial<CardForm>) => void;
 }) {
   const [showPassage, setShowPassage] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -395,10 +396,8 @@ function RowDetail({ card, value, letters, onChange, onOpenFull }: {
         ? <div className="max-w-[620px]"><ExplanationView explanation={ai.explanation} trapTip={ai.trapTip}
             optionMeanings={resolveQuizOptions({ ...card, options: ai.options, optionNotes: ai.optionNotes, correctAnswer: ai.correctAnswer }).options} /></div>
         : isExplaining(card.id) && <p className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Đang viết lời giải…</p>}
-      <p className="text-[12.5px] text-slate-400">
-        {!editing && <><button type="button" onClick={() => setEditOpen(true)} className={link}>Sửa đáp án</button>{' · '}</>}
-        <button type="button" onClick={onOpenFull} className={link}>Form đầy đủ</button>
-      </p>
+      {/* Wider edits (the question's wording, images) happen on the saved card in the notebook, so nothing read here is lost. */}
+      {!editing && <button type="button" onClick={() => setEditOpen(true)} className={'text-[12.5px] ' + link}>Sửa đáp án</button>}
     </div>
   );
 }

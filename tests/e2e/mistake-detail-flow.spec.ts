@@ -78,3 +78,14 @@ test('the pending group starts the flow for all its cards', async ({ page }) => 
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Chưa ghi chi tiết · 3' })).toBeVisible();
 });
+
+test('the full form asks first when other cards were filled in but not saved', async ({ page }) => {
+  const flow = await logTest(page);
+  await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'A', exact: true }).click();
+  await flow.getByRole('button', { name: 'Bỏ qua', exact: true }).click();
+  await expect(flow.getByText('Câu 107 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
+  page.once('dialog', dialog => { expect(dialog.message()).toBe('Mở form đầy đủ sẽ bỏ 1 câu đã điền mà chưa lưu. Tiếp tục?'); void dialog.dismiss(); });
+  await flow.getByRole('button', { name: 'Form đầy đủ', exact: true }).click();
+  await expect(flow).toBeVisible();
+  await expect(page.locator('#mistake-paste')).toHaveCount(0);
+});
