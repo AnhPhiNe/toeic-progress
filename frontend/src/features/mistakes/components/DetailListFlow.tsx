@@ -376,7 +376,8 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
             </footer>
           : <footer className="flex shrink-0 items-center gap-3 border-t border-stone-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#111A2C]">
               <div className="min-w-0 flex-1 text-[13px] font-bold">{status}</div>
-              {config?.pageImages && <button type="button" onClick={() => fileInput.current?.click()} className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-stone-100 px-4 text-[14px] font-black text-slate-700 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-200">+ Thêm ảnh</button>}
+              {/* Before any screenshot the drop zone above is the way in; afterwards this adds more. */}
+              {config?.pageImages && (anyRead || reading) && <button type="button" onClick={() => fileInput.current?.click()} className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-stone-100 px-4 text-[14px] font-black text-slate-700 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-200">+ Thêm ảnh</button>}
               {saveButton}
             </footer>}
         <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh màn hình đề"
@@ -447,7 +448,6 @@ function RowDetail({ card, value, letters, phone, onChange }: {
           {ai.options.map(option => {
             const letter = optionLetter(option), right = letter === value.answer, wrong = letter === chosen;
             return <li key={option} className={'flex items-center gap-2 ' + (right ? 'font-bold text-emerald-700 dark:text-emerald-300' : wrong ? 'font-bold text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-300')}>
-              <span className="w-4 shrink-0 text-center" aria-hidden="true">{right ? '✓' : wrong ? '✕' : ''}</span>
               <span className="min-w-0 flex-1">{option}</span>
               {/* AI solved it differently from the page: name both sides on their options instead of a separate warning. */}
               {doubt && letter === doubt && <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-700 ring-1 ring-inset ring-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600">AI chọn</span>}

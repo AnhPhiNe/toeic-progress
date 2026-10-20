@@ -61,9 +61,10 @@ export function scoreSourceForEditing(session?: StudySession | null): ScoreSourc
   return 'ESTIMATED';
 }
 
+/** How the score was entered; empty when an older record never said, since that tells the learner nothing. */
 export function scoreSourceLabel(session: StudySession): string {
   if (session.scoreSource === 'ESTIMATED') return 'Ước tính tham khảo';
   if (session.scoreSource === 'MANUAL_SECTIONS') return 'Điểm nhập L/R';
   if (session.scoreSource === 'MANUAL_TOTAL') return 'Tổng điểm nhập';
-  return 'Nguồn điểm chưa ghi';
+  return '';
 }
