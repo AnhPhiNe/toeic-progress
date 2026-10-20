@@ -12,11 +12,30 @@ export function draftMistakeId(sessionId: string, question: number): string {
   return `draft:${sessionId}:${question}`;
 }
 
+/**
+ * Only Reading questions get a draft card. Listening has no audio in the app, and its transcript alone answers the
+ * question, so a card would not train listening; its wrong answers still count in the score and per-Part results.
+ */
+export const DETAIL_FIRST_PART = 5;
+const wantsDraft = (question: number) => (partOfQuestion(question) ?? 0) >= DETAIL_FIRST_PART;
+/** The wrong questions of a test that get a card in the notebook. */
+export const draftQuestions = (session: Pick<StudySession, 'wrongQuestions'>) => normalizeQuestionList(session.wrongQuestions ?? []).filter(wantsDraft);
+
 /** Nothing has been added to the draft yet, so removing it loses no work. */
 function untouched(mistake: MistakeEntry): boolean {
   return !mistake.questionContext.trim() && !mistake.question?.trim() && !mistake.context?.trim() && !mistake.sourceImageIds?.length
     && !mistake.userChoice && !mistake.userMistake.trim() && !mistake.correctAnswer.trim() && !mistake.userReason?.trim()
     && !mistake.trapTip?.trim() && !mistake.options?.length && mistake.category === 'OTHER' && !mistake.reviewCount;
+}
+
+/** A draft created by logging a test that the learner has not filled in yet; it is not a recorded mistake. */
+export function isBlankDraft(mistake: MistakeEntry): boolean {
+  return Boolean(mistake.sessionId) && mistake.questionNumber !== undefined && untouched(mistake);
+}
+
+/** A blank Listening draft from before Listening stopped getting drafts; kept out of view until the test is saved again. */
+export function isRetiredDraft(mistake: MistakeEntry): boolean {
+  return isBlankDraft(mistake) && mistake.part < DETAIL_FIRST_PART;
 }
 
 export function createDraftMistake(session: Pick<StudySession, 'id' | 'testName'>, question: number, now: string): MistakeEntry {
@@ -34,7 +53,7 @@ export function createDraftMistake(session: Pick<StudySession, 'id' | 'testName'
  * for numbers that are no longer wrong are removed. Cards the learner has worked on are always kept.
  */
 export function syncDraftMistakes(session: Pick<StudySession, 'id' | 'testName' | 'wrongQuestions'>, mistakes: MistakeEntry[], now = new Date().toISOString()) {
-  const wrong = new Set(normalizeQuestionList(session.wrongQuestions ?? []));
+  const wrong = new Set(draftQuestions(session));
   const linked = mistakes.filter(mistake => !mistake.deletedAt && mistake.sessionId === session.id && mistake.questionNumber !== undefined);
   const covered = new Set(linked.map(mistake => mistake.questionNumber));
   const add = [...wrong].filter(question => !covered.has(question)).map(question => createDraftMistake(session, question, now));
@@ -44,7 +63,7 @@ export function syncDraftMistakes(session: Pick<StudySession, 'id' | 'testName' 
 
 /** The drafts of one session in question order, for the "ghi chi tiết" flow. */
 export function sessionDrafts(sessionId: string, mistakes: MistakeEntry[]): MistakeEntry[] {
-  return mistakes.filter(mistake => mistake.sessionId === sessionId && mistake.questionNumber !== undefined && needsSupplement(mistake))
+  return mistakes.filter(mistake => mistake.sessionId === sessionId && mistake.questionNumber !== undefined && needsSupplement(mistake) && !isRetiredDraft(mistake))
     .sort((a, b) => a.questionNumber! - b.questionNumber!);
 }
 

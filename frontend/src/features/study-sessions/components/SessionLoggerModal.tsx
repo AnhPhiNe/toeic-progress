@@ -30,6 +30,7 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
 import { DesktopFullTestBody } from './DesktopFullTestBody';
+import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -315,7 +316,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         onSaveSession(newSession);
       }
       savedSession.current = true;
-      if (!isEditing && newSession.wrongQuestions?.length) {
+      // Only Reading questions become notebook cards, so a test with no Reading mistakes has nothing to fill in.
+      if (!isEditing && draftQuestions(newSession).length) {
         if (isPhone || !onSavedWrongTest) { setSavedResult(newSession); return; }
         onClose();
         onSavedWrongTest(newSession);

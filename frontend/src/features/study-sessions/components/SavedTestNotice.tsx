@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
+import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
 const SHOWN_MS = 20_000;
 
@@ -14,12 +15,12 @@ export function SavedTestNotice({ session, onDetails, onClose }: { session: Stud
     const timeout = window.setTimeout(onClose, SHOWN_MS);
     return () => window.clearTimeout(timeout);
   }, [session.id, onClose]);
-  const wrong = session.wrongQuestions?.length ?? 0;
+  const wrong = draftQuestions(session).length;
   return (
     <div role="status" className="fixed bottom-6 right-6 z-40 flex max-w-[calc(100vw-3rem)] items-center gap-3 rounded-2xl border-2 border-slate-900 bg-white py-3 pl-4 pr-2 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
       <SuccessMark />
       <p className="min-w-0 text-[14px] font-bold text-slate-900 dark:text-slate-100">
-        Đã lưu <span className="font-black">{session.testName}</span> · {wrong} câu sai vào Sổ tay
+        Đã lưu <span className="font-black">{session.testName}</span> · {wrong} câu Reading sai vào Sổ tay
       </p>
       <button type="button" onClick={onDetails}
         className="min-h-10 shrink-0 cursor-pointer rounded-xl border-2 border-slate-900 bg-emerald-400 px-4 text-[14px] font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">

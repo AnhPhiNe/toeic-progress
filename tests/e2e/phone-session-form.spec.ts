@@ -64,14 +64,14 @@ test('phone Full Test is logged by its wrong questions, which become draft noteb
 
   const result = page.getByRole('dialog', { name: 'Đã lưu', exact: true });
   await expect(result.getByText('196/200', { exact: true })).toBeVisible();
-  await expect(result.getByText('4 câu sai đã vào Sổ tay.', { exact: true })).toBeVisible();
+  await expect(result.getByText('3 câu Reading sai đã vào Sổ tay.', { exact: true })).toBeVisible();
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
   const session = stored.sessions.find((item: { testName: string }) => item.testName === 'ETS 2024 Test 04');
   expect(session).toMatchObject({ wrongQuestions: [3, 151, 152, 153], scoreSource: 'ESTIMATED',
     partScores: { part1: 5, part2: 25, part3: 39, part4: 30, part5: 30, part6: 16, part7: 51 } });
   const drafts = stored.mistakes.filter((item: { sessionId?: string; deletedAt?: string | null }) => item.sessionId === session.id && !item.deletedAt);
   expect(drafts.map((item: { questionNumber: number; part: number }) => [item.questionNumber, item.part]).sort((a: number[], b: number[]) => a[0] - b[0]))
-    .toEqual([[3, 1], [151, 7], [152, 7], [153, 7]]);
+    .toEqual([[151, 7], [152, 7], [153, 7]]);
   await result.getByRole('button', { name: 'Để sau', exact: true }).click();
   await expect(result).toHaveCount(0);
 });

@@ -5,6 +5,7 @@ import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString } from '@/shared/data/storage';
 import type { ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { WrongQuestionGrid } from './WrongQuestionGrid';
+import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
 type PartNumber = PracticePartResult['part'];
 const PART_NAMES: Record<PartNumber, string> = {
@@ -316,7 +317,7 @@ export function PhonePracticeBody(props: PracticeProps) {
 
 /** After a test is logged by its wrong questions: the score, correct answers per Part, and where the mistakes went. */
 export function PhoneSavedResult({ session, onClose, onDetails }: { session: StudySession; onClose: () => void; onDetails: () => void }) {
-  const parts = session.partScores, wrong = session.wrongQuestions?.length ?? 0;
+  const parts = session.partScores, wrong = draftQuestions(session).length;
   const correct = parts ? Object.values(parts).reduce((sum, value) => sum + value, 0) : 0;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -339,7 +340,7 @@ export function PhoneSavedResult({ session, onClose, onDetails }: { session: Stu
             })}
           </ul>
         </section>}
-        <p className="text-[14px] font-bold text-slate-800 dark:text-slate-100">{wrong} câu sai đã vào Sổ tay.</p>
+        <p className="text-[14px] font-bold text-slate-800 dark:text-slate-100">{wrong} câu Reading sai đã vào Sổ tay.</p>
       </div>
       <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-[#121A2B]">
         <button type="button" onClick={onClose} className="min-h-12 w-[34%] cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[15px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Để sau</button>

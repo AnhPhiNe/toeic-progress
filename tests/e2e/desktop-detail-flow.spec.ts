@@ -3,7 +3,9 @@ import { openDesktopFlow, screenshot, TIP } from './helpers/detailAI';
 
 test('a computer reads all screenshots of a test in turns and saves the whole list at once', async ({ page }) => {
   const flow = await openDesktopFlow(page);
-  await expect(flow.getByRole('tab', { name: /Reading/ })).toHaveAttribute('aria-selected', 'true');
+  // Listening question 3 counts in the score but has no card, so the list is Reading only, without tabs.
+  await expect(flow.getByRole('tablist')).toHaveCount(0);
+  await expect(flow.getByRole('button', { name: /^Câu 3/ })).toHaveCount(0);
   await expect(flow.getByRole('region', { name: 'Part 5' })).toBeVisible();
 
   // Explanations take a moment, so the rows are first seen as read from the page.
@@ -35,11 +37,7 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   await flow.getByRole('button', { name: /^Câu 131/ }).click();
   await expect(flow.getByText(TIP)).toBeVisible();
 
-  // Part 1 only needs a reason.
-  await flow.getByRole('tab', { name: /Listening/ }).click();
-  await flow.getByLabel('Vì sao sai câu 3').selectOption('LISTENING_SPEED');
-
-  await flow.getByRole('button', { name: 'Lưu 4 câu', exact: true }).click();
+  await flow.getByRole('button', { name: 'Lưu 3 câu', exact: true }).click();
   await expect(flow).toHaveCount(0);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
     .filter((card: { sourceTestName?: string }) => card.sourceTestName === 'ETS Table')
@@ -47,7 +45,6 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
       [card.questionNumber, card.userChoice ?? '', card.correctAnswer, card.category, card.explanation?.quickTip ?? ''])
     .sort((a: number[], b: number[]) => a[0] - b[0]));
   expect(saved).toEqual([
-    [3, '', '', 'LISTENING_SPEED', ''],
     [104, 'C', '(A) accommodates', 'VOCABULARY_TRAP', TIP],
     [112, 'B', '(D) to accommodate', 'ADVANCED_GRAMMAR', TIP],
     [131, 'B', '(A) accommodates', 'ADVANCED_GRAMMAR', TIP]

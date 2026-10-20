@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-/** Logs "ETS Detail" on a phone with three wrong questions and opens the detail flow from the result screen. */
+/** Logs "ETS Detail" on a phone with one Listening and three Reading wrong questions; only the Reading ones get cards. */
 async function logTest(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/lich-su');
@@ -9,7 +9,7 @@ async function logTest(page: Page) {
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.locator('#session-test-name').fill('ETS Detail');
   await form.getByRole('button', { name: 'Gõ số câu thay vì chạm', exact: true }).click();
-  await form.getByLabel('Số câu sai', { exact: true }).fill('3 107 151');
+  await form.getByLabel('Số câu sai', { exact: true }).fill('3 103 107 151');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết câu sai ›', exact: true }).click();
@@ -22,7 +22,7 @@ const stored = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getIt
 test('wrong questions are filled in one after another and leave the pending group once complete', async ({ page }) => {
   const flow = await logTest(page);
   await expect(flow.getByRole('heading', { name: 'Ghi câu sai · 1/3' })).toBeVisible();
-  await expect(flow.getByText('Câu 3 · Part 1 · ETS Detail', { exact: true })).toBeVisible();
+  await expect(flow.getByText('Câu 103 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
   await expect(flow.getByRole('alert')).toContainText('Điền ít nhất một mục');
   await flow.getByRole('button', { name: 'Bỏ qua', exact: true }).click();
@@ -58,7 +58,7 @@ test('wrong questions are filled in one after another and leave the pending grou
 
   // The test's row opens the flow at its first pending card; the full form is one tap away.
   await pending.getByRole('button', { name: 'Ghi chi tiết 2 câu, ETS Detail', exact: true }).click();
-  await expect(flow.getByText('Câu 3 · Part 1 · ETS Detail', { exact: true })).toBeVisible();
+  await expect(flow.getByText('Câu 103 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Form đầy đủ', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.locator('#mistake-paste')).toBeVisible();
@@ -72,7 +72,7 @@ test('the pending group starts the flow for all its cards', async ({ page }) => 
   await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'Mình bỏ trống câu này', exact: true }).click();
   await flow.getByRole('group', { name: /Đáp án đúng/ }).getByRole('button', { name: 'C', exact: true }).click();
   await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
-  const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 3);
+  const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 103);
   // Answers alone keep the card pending until it has a question to review.
   expect(card).toMatchObject({ userChoiceState: 'BLANK', userMistake: 'Bỏ trống', correctAnswer: '(C)', answerSource: 'PROVIDED' });
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();

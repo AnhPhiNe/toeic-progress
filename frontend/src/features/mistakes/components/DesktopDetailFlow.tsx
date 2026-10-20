@@ -264,7 +264,7 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
           <button type="button" aria-label="Đóng" onClick={() => close()} className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X className="h-5 w-5" aria-hidden="true" /></button>
         </header>
 
-        <div role="tablist" aria-label="Phần thi" className="flex shrink-0 gap-2 px-6 pt-4">
+        {tabs.filter(([key]) => inSection(key).length).length > 1 && <div role="tablist" aria-label="Phần thi" className="flex shrink-0 gap-2 px-6 pt-4">
           {tabs.map(([key, label]) => {
             const items = inSection(key), on = section === key, alert = items.some(needsCheck);
             if (!items.length) return null;
@@ -278,7 +278,7 @@ export function DesktopDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
               </button>
             );
           })}
-        </div>
+        </div>}
 
         <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto px-6 py-4">
           {config?.pageImages && !anyRead && !reading && (

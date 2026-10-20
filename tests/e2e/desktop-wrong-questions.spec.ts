@@ -46,12 +46,12 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
 
   // The form closes; a note offers to fill in the questions now, and the notebook keeps them as one row for the test.
   await expect(form).toHaveCount(0);
-  const notice = page.getByRole('status').filter({ hasText: 'Đã lưu ETS Desktop · 9 câu sai vào Sổ tay' });
+  const notice = page.getByRole('status').filter({ hasText: 'Đã lưu ETS Desktop · 8 câu Reading sai vào Sổ tay' });
   await notice.getByRole('button', { name: 'Ghi chi tiết ›', exact: true }).click();
   const flow = page.getByRole('dialog', { name: /^Ghi câu sai/ });
   await expect(flow).toBeVisible();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Ghi chi tiết 9 câu, ETS Desktop', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ghi chi tiết 8 câu, ETS Desktop', exact: true })).toBeVisible();
 });
 
 test('a computer can still log per-Part counts or an official score', async ({ page }) => {
