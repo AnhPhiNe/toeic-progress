@@ -34,7 +34,7 @@ test('marking mastered confirms a real save without moving the list and failure 
   const before = await first.boundingBox();
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).first().click();
   await page.getByRole('menuitem', { name: 'Đánh dấu đã thuộc', exact: true }).click();
-  await expect(page.getByText('Đã đánh dấu Thông suốt', { exact: true })).toBeVisible();
+  await expect(page.getByText('Đã chuyển sang Đã thuộc', { exact: true })).toBeVisible();
   expect((await first.boundingBox())!.y).toBe(before!.y);
   const status = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0].status);
   expect(status).toBe('MASTERED');
@@ -43,7 +43,7 @@ test('marking mastered confirms a real save without moving the list and failure 
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).nth(1).click();
   await page.getByRole('menuitem', { name: 'Đánh dấu đã thuộc', exact: true }).click();
   await expect(page.locator('.notebook-feedback.is-error')).toBeVisible();
-  await expect(page.getByText('Đã đánh dấu Thông suốt', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Đã chuyển sang Đã thuộc', { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[1].status)).toBe('NEEDS_REVIEW');
   await restoreWrites(page);
 });

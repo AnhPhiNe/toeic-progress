@@ -23,7 +23,7 @@ export interface ExamHistoryViewProps {
 type SortField = 'date' | 'testName' | 'scaledListening' | 'scaledReading' | 'totalScore';
 type Kind = 'ALL' | 'FULL_TEST' | 'PART_PRACTICE';
 type Attempt = 'ALL' | 'FIRST_ONLY' | 'RETEST_ONLY';
-const HISTORY_PAGE_SIZE = 5;
+const HISTORY_PAGE_SIZE = 10;
 /** Phones load the list in steps of this many rows instead of paging. */
 const PHONE_HISTORY_STEP = 10;
 function PracticeResult({ session, pacingRun }: { session: StudySession; pacingRun?: PacingRun }) {
@@ -75,7 +75,8 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
   const visible = sorted.slice((currentPage - 1) * HISTORY_PAGE_SIZE, currentPage * HISTORY_PAGE_SIZE);
   const detail = active.find(session => session.id === detailId);
   const changeSort = (field: SortField) => { setDescending(sort === field ? !descending : field !== 'testName'); setSort(field); setPage(1); };
-  const meta = (session: StudySession) => `${session.sessionType === 'FULL_TEST' ? `Lần ${attempts[session.id]?.attemptNumber ?? 1}` : `Luyện ${getPracticeParts(session).map(part => `P${part.part}`).join(' & ') || pairedRuns.get(session.id)?.presetName || 'Part'}`} · ${historyDuration(session.durationMinutes)}`;
+  // A first attempt says nothing; only retakes are labelled, as on phones.
+  const meta = (session: StudySession) => { const attempt = attempts[session.id]?.attemptNumber ?? 1; const label = session.sessionType === 'FULL_TEST' ? (attempt > 1 ? `Lần ${attempt}` : '') : `Luyện ${getPracticeParts(session).map(part => `P${part.part}`).join(' & ') || pairedRuns.get(session.id)?.presetName || 'Part'}`; return [label, historyDuration(session.durationMinutes)].filter(Boolean).join(' · '); };
   const actions = (session: StudySession) => <div className="flex items-center justify-center gap-1">
     <button type="button" onClick={() => onEditSession(session)} aria-label={`Sửa bản ghi ${session.testName}`} title="Sửa kết quả"
       className="flex min-h-10 min-w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"><Pencil className="h-4 w-4" aria-hidden="true" /></button>
@@ -172,7 +173,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
   };
 
   return <div className="history-view space-y-5 pb-16 sm:pb-20 text-slate-800 dark:text-slate-200">
-    <section className="overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent" aria-label="Lịch sử thi">
+    <section className="overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent max-md:dark:shadow-none" aria-label="Lịch sử thi">
       {isPhone ? renderPhoneFilters() : <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-3 sm:px-5 dark:border-slate-700">
         <div role="group" aria-label="Loại bài làm" className="history-kind-filter inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#111A2C]">{([['ALL', 'Tất cả'], ['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part']] as const).map(([value, label]) =>
           <button type="button" key={value} aria-pressed={kind === value} onClick={() => { setKind(value); setAttempt('ALL'); setPage(1); }} className={`inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-1.5 ${kind === value ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-400 dark:text-slate-950 dark:hover:bg-blue-300' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'}`}>

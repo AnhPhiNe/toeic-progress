@@ -11,7 +11,7 @@ const card = (changes: Partial<MistakeEntry> = {}): MistakeEntry => ({
 
 describe('review status', () => {
   it('describes when the card is due', () => {
-    expect(reviewStatus(card(), TODAY).label).toBe('Ôn hôm nay');
+    expect(reviewStatus(card(), TODAY).label).toBe('Cần ôn');
     expect(reviewStatus(card({ nextReviewDate: '2026-10-05' }), TODAY)).toEqual({ kind: 'overdue', label: 'Quá hạn 2 ngày' });
     expect(reviewStatus(card({ nextReviewDate: '2026-10-08' }), TODAY).label).toBe('Ôn ngày mai');
     expect(reviewStatus(card({ nextReviewDate: '2026-10-10' }), TODAY)).toEqual({ kind: 'scheduled', label: 'Ôn sau 3 ngày' });

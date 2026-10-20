@@ -20,7 +20,7 @@ import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import './notebook.css';
 
-const NOTEBOOK_PAGE_SIZE = 5;
+const NOTEBOOK_PAGE_SIZE = 10;
 /** Phones list each status group in steps of this many rows. */
 const PHONE_GROUP_STEP = 10;
 const STATUS_FILTER_STYLE = {
@@ -57,13 +57,15 @@ interface MistakeNotebookViewProps {
   onReopenCards: (ids: string[]) => void;
   onDeleteMistake: (id: string) => void;
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
+  /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
+  onOpenSessionLogger?: () => void;
 }
 
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
 export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
-  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: MistakeNotebookViewProps) {
+  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
@@ -72,7 +74,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     : initialSourceNames.length === 1 ? initialSourceNames[0] ? `test:${testNameKey(initialSourceNames[0])}` : 'NONE' : 'SCOPE');
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
-  // Phones: the list is grouped by status instead of the Tất cả / Đến hạn / Thông suốt filter.
+  // Phones: the list is grouped by status instead of the Tất cả / Cần ôn / Đã thuộc filter.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, number>>({ pending: PHONE_GROUP_STEP, due: PHONE_GROUP_STEP });
@@ -100,7 +102,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     try {
       onMarkMastered(id);
       const saved = loadMistakes().find(mistake => mistake.id === id);
-      if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã đánh dấu Thông suốt');
+      if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã chuyển sang Đã thuộc');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
   const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); setSessionSource(undefined); }, []);
@@ -120,11 +122,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         : selectedTest === 'NONE' ? !m.sourceTestName : `test:${testNameKey(m.sourceTestName)}` === selectedTest))
       && (selectedCategory === 'ALL' || m.category === selectedCategory));
   }, [sourcedMistakes, searchTerm, selectedPart, selectedTest, selectedCategory, scopeKeys]);
-  const stats = useMemo(() => ({ total: matchingMistakes.length, due: matchingMistakes.filter(m => isDueForReview(m)).length,
-    mastered: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [matchingMistakes]);
-  // Computers list a logged test's wrong questions still to be filled in as one row per test above the list.
-  const filteredMistakes = useMemo(() => matchingMistakes.filter(m => (isPhone || !(needsSupplement(m) && fromLoggedTest(m))) && (selectedStatus === 'ALL' ||
-    (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED' && canReview(m)))), [matchingMistakes, selectedStatus, isPhone]);
+  // Computers list a logged test's wrong questions still to be filled in as one row per test above the list,
+  // so the filter counts leave them out and match the cards below.
+  const listedMistakes = useMemo(() => matchingMistakes.filter(m => isPhone || !(needsSupplement(m) && fromLoggedTest(m))), [matchingMistakes, isPhone]);
+  const stats = useMemo(() => ({ total: listedMistakes.length, due: listedMistakes.filter(m => isDueForReview(m)).length,
+    mastered: listedMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [listedMistakes]);
+  const filteredMistakes = useMemo(() => listedMistakes.filter(m => selectedStatus === 'ALL' ||
+    (selectedStatus === 'DUE' ? isDueForReview(m) : m.status === 'MASTERED' && canReview(m))), [listedMistakes, selectedStatus]);
   const pageCount = Math.max(1, Math.ceil(filteredMistakes.length / NOTEBOOK_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleMistakes = filteredMistakes.slice((currentPage - 1) * NOTEBOOK_PAGE_SIZE, currentPage * NOTEBOOK_PAGE_SIZE);
@@ -269,11 +273,11 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   return (
     <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-24' : '')}>
-      <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent">
+      <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent max-md:dark:shadow-none">
       <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-4 sm:px-5 max-md:p-0">
         <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay</h2>
         {/* Phones: the review button lives in a bar above the bottom navigation, within thumb reach. */}
-        <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
+        <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (mistakes.length === 0 ? '!hidden ' : '') + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
           <button
             type="button"
             onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
@@ -302,7 +306,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       {mistakes.length > 0 && (!isPhone || phoneSearchOpen) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-3 pb-4 sm:px-5 dark:border-slate-700 max-md:border-0 max-md:px-4 max-md:pb-2">
           <div className="max-md:hidden inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold sm:text-sm dark:border-slate-700 dark:bg-[#121A2B]" role="group" aria-label="Lọc theo trạng thái">
-            {([['ALL', 'Tất cả', stats.total], ['DUE', 'Đến hạn', stats.due], ['MASTERED', 'Thông suốt', stats.mastered]] as const).map(([value, label, count]) => (
+            {([['ALL', 'Tất cả', stats.total], ['DUE', 'Cần ôn', stats.due], ['MASTERED', 'Đã thuộc', stats.mastered]] as const).map(([value, label, count]) => (
               <button
                 key={value}
                 type="button"
@@ -394,10 +398,16 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       )}
 
       {mistakes.length === 0 ? (
-        <div className="space-y-2 px-4 py-12 text-center">
-          <BookOpen className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <p className="font-semibold text-slate-700 dark:text-slate-200">Chưa có lỗi sai nào</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{isPhone ? 'Bấm nút ＋ ở dưới, chọn “Câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.' : 'Bấm “Thêm câu sai”, dán câu bạn làm sai và AI sẽ soạn ghi chú.'}</p>
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-3 px-4 py-10 text-center max-md:pt-12">
+          <EmptyCards />
+          <p className="mt-2 text-lg font-black text-slate-900 dark:text-white">Sổ tay đang trống</p>
+          <p className="text-sm font-semibold leading-relaxed text-slate-500 dark:text-slate-400">Mỗi câu làm sai thành một thẻ ôn. Ghi điểm một đề Full Test, các câu Reading sai sẽ tự vào đây.</p>
+          <div className="mt-3 flex w-full flex-col gap-2.5">
+            {onOpenSessionLogger && <button type="button" onClick={onOpenSessionLogger}
+              className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-blue-600 px-4 text-sm font-black text-white shadow-[3px_3px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:shadow-[3px_3px_0_0_#cbd5e1]">Ghi điểm đề Full Test</button>}
+            <button type="button" onClick={openCreate}
+              className="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-white px-4 text-sm font-black text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-white">Thêm câu sai</button>
+          </div>
         </div>
       ) : isPhone ? renderPhoneGroups() : (
         <div className="notebook-list divide-y divide-slate-200 dark:divide-slate-800">
@@ -455,6 +465,25 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
+    </div>
+  );
+}
+
+/** Empty notebook: a small stack of review cards, the front one with a Part chip and an answer row. */
+function EmptyCards() {
+  return (
+    <div className="relative h-28 w-40" aria-hidden="true">
+      <div className="absolute left-3 top-5 h-20 w-32 -rotate-[8deg] rounded-2xl border-2 border-slate-900 bg-teal-100 dark:border-slate-300 dark:bg-teal-950" />
+      <div className="absolute left-5 top-3 h-20 w-32 rotate-[5deg] rounded-2xl border-2 border-slate-900 bg-indigo-100 dark:border-slate-300 dark:bg-indigo-950" />
+      <div className="absolute left-4 top-4 h-20 w-32 rounded-2xl border-2 border-slate-900 bg-white p-2.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-slate-900 dark:shadow-[3px_3px_0_0_#cbd5e1]">
+        <span className="block h-4 w-7 rounded-md bg-teal-600" />
+        <span className="mt-2 block h-1.5 rounded bg-slate-200 dark:bg-slate-700" />
+        <span className="mt-1 block h-1.5 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+        <span className="mt-2 flex gap-1">
+          <i className="h-3 w-3 rounded-full border-2 border-slate-300" /><i className="h-3 w-3 rounded-full border-2 border-slate-900 bg-rose-500" />
+          <i className="h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-500" /><i className="h-3 w-3 rounded-full border-2 border-slate-300" />
+        </span>
+      </div>
     </div>
   );
 }

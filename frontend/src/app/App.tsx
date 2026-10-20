@@ -501,6 +501,7 @@ export const App: React.FC = () => {
               onReopenCards={handleReopenCards}
               onDeleteMistake={handleDeleteMistake}
               onUpdateMistake={handleUpdateMistake}
+              onOpenSessionLogger={() => openSessionLogger()}
             />
           )}
 
