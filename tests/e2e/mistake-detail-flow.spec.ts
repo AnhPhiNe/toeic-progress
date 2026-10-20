@@ -19,73 +19,43 @@ async function logTest(page: Page) {
 const stored = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
   .filter((card: { sourceTestName?: string; deletedAt?: string | null }) => card.sourceTestName === 'ETS Detail' && !card.deletedAt));
 
-test('wrong questions are filled in one after another and leave the pending group once complete', async ({ page }) => {
+test('on a phone the wrong questions are one list; answers and reasons are filled in and saved together', async ({ page }) => {
   const flow = await logTest(page);
-  await expect(flow.getByRole('heading', { name: 'Ghi câu sai · 1/3' })).toBeVisible();
-  await expect(flow.getByText('Câu 103 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
-  await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
-  await expect(flow.getByRole('alert')).toContainText('Điền ít nhất một mục');
-  await flow.getByRole('button', { name: 'Bỏ qua', exact: true }).click();
+  await expect(flow.getByRole('heading', { name: 'Ghi câu sai', exact: true })).toBeVisible();
+  await expect(flow.getByText('ETS Detail · 3 câu Reading', { exact: true })).toBeVisible();
+  // Listening question 3 gets no card; the Reading ones are listed by Part.
+  await expect(flow.locator('[data-row-toggle]')).toHaveText(['Câu 103', 'Câu 107', 'Câu 151']);
+  await expect(flow.getByRole('button', { name: 'Lưu', exact: true })).toBeDisabled();
 
-  await expect(flow.getByText('Câu 107 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
-  await flow.getByLabel(/^Câu hỏi/).fill('She has exceeded her targets every quarter _____ transferring.\n(A) until\n(B) since\n(C) upon\n(D) onto');
-  await expect(flow.getByText('✓ Đã tách 4 phương án', { exact: true })).toBeVisible();
-  const chose = flow.getByRole('group', { name: /Bạn chọn/ }), right = flow.getByRole('group', { name: /Đáp án đúng/ });
-  await chose.getByRole('button', { name: 'B', exact: true }).click();
-  await right.getByRole('button', { name: 'B', exact: true }).click();
-  await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
-  await expect(flow.getByRole('alert')).toContainText('trùng đáp án đúng');
-  await chose.getByRole('button', { name: 'A', exact: true }).click();
-  await flow.getByRole('button', { name: 'Ngữ pháp', exact: true }).click();
-  await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
+  // Without a screenshot, opening a question offers the answer pickers.
+  await flow.getByRole('button', { name: 'Câu 107', exact: true }).click();
+  await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'B', exact: true }).click();
+  await flow.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'B', exact: true }).click();
+  await flow.getByLabel('Vì sao sai câu 107').selectOption('ADVANCED_GRAMMAR');
+  await flow.getByRole('button', { name: 'Lưu 1 câu', exact: true }).click();
+  await expect(flow.getByRole('alert')).toHaveText('Câu 107: Đáp án bạn chọn trùng đáp án đúng.');
+  await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
+  await expect(flow.getByRole('button', { name: 'Câu 107 Bạn chọn A, đáp án B', exact: true })).toBeVisible();
+  await flow.getByRole('button', { name: 'Lưu 1 câu', exact: true }).click();
 
-  await expect(flow.getByRole('heading', { name: 'Ghi câu sai · 3/3' })).toBeVisible();
-  await expect(flow.getByRole('button', { name: 'Lưu', exact: true })).toBeVisible();
-  const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
-  expect(card).toMatchObject({ part: 5, options: ['(A) until', '(B) since', '(C) upon', '(D) onto'], userChoice: 'A', userChoiceState: 'CHOSEN',
-    correctAnswer: '(B) since', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
-  expect(card.question).toContain('every quarter _____ transferring');
-
-  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Đã ghi chi tiết' })).toContainText('Đã ghi chi tiết 1 câu');
-  const pending = page.getByRole('region', { name: 'Chưa ghi chi tiết · 2' });
-  await expect(pending).toBeVisible();
-  // One row per test, not one per question.
+  const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
+  expect(card).toMatchObject({ part: 5, userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(B)', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
+  // Without its question the card waits in the pending group; one row per test, not one per question.
+  const pending = page.getByRole('region', { name: 'Chưa ghi chi tiết · 3' });
   await expect(pending.getByRole('button', { name: /^Ghi chi tiết/ })).toHaveCount(1);
-  await expect(pending.getByText('2 câu Reading sai', { exact: true })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Cần ôn · 1' })).toBeVisible();
-
-  // The test's row opens the flow at its first pending card; the full form is one tap away.
-  await pending.getByRole('button', { name: 'Ghi chi tiết 2 câu, ETS Detail', exact: true }).click();
-  await expect(flow.getByText('Câu 103 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
-  await flow.getByRole('button', { name: 'Form đầy đủ', exact: true }).click();
-  await expect(flow).toHaveCount(0);
-  await expect(page.locator('#mistake-paste')).toBeVisible();
+  await expect(pending.getByText('3 câu Reading sai', { exact: true })).toBeVisible();
 });
 
-test('the pending group starts the flow for all its cards', async ({ page }) => {
+test('the pending group opens the list again, and closing with filled rows asks first', async ({ page }) => {
   const flow = await logTest(page);
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
-  await expect(flow.getByRole('heading', { name: 'Ghi câu sai · 1/3' })).toBeVisible();
-  await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'Mình bỏ trống câu này', exact: true }).click();
-  await flow.getByRole('group', { name: /Đáp án đúng/ }).getByRole('button', { name: 'C', exact: true }).click();
-  await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
-  const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 103);
-  // Answers alone keep the card pending until it has a question to review.
-  expect(card).toMatchObject({ userChoiceState: 'BLANK', userMistake: 'Bỏ trống', correctAnswer: '(C)', answerSource: 'PROVIDED' });
+  await expect(flow.locator('[data-row-toggle]')).toHaveCount(3);
+  await flow.getByLabel('Vì sao sai câu 151').selectOption('TIME_PRESSURE');
+  page.once('dialog', dialog => { expect(dialog.message()).toBe('Đóng mà không lưu 1 câu đã điền?'); void dialog.dismiss(); });
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Chưa ghi chi tiết · 3' })).toBeVisible();
-});
-
-test('the full form asks first when other cards were filled in but not saved', async ({ page }) => {
-  const flow = await logTest(page);
-  await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'A', exact: true }).click();
-  await flow.getByRole('button', { name: 'Bỏ qua', exact: true }).click();
-  await expect(flow.getByText('Câu 107 · Part 5 · ETS Detail', { exact: true })).toBeVisible();
-  page.once('dialog', dialog => { expect(dialog.message()).toBe('Mở form đầy đủ sẽ bỏ 1 câu đã điền mà chưa lưu. Tiếp tục?'); void dialog.dismiss(); });
-  await flow.getByRole('button', { name: 'Form đầy đủ', exact: true }).click();
   await expect(flow).toBeVisible();
-  await expect(page.locator('#mistake-paste')).toHaveCount(0);
+  await expect(flow.getByLabel('Vì sao sai câu 151')).toHaveValue('TIME_PRESSURE');
 });

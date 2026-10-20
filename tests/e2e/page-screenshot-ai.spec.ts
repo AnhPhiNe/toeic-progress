@@ -61,43 +61,38 @@ async function openFlow(page: Page) {
   return page.getByRole('dialog', { name: /^Ghi câu sai/ });
 }
 
-test('one screenshot fills every wrong question on it; they are checked as tabs and saved together', async ({ page }) => {
+const stored = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
+  .filter((card: { sourceTestName?: string }) => card.sourceTestName === 'ETS Screen'));
+
+test('on a phone one screenshot fills every wrong question on it, and the list is saved together', async ({ page }) => {
   const flow = await openFlow(page);
-  await expect(flow.getByText('Câu 107 · Part 5 · ETS Screen', { exact: true })).toBeVisible();
+  await expect(flow.locator('[data-row-toggle]')).toHaveText(['Câu 107', 'Câu 131', 'Câu 132']);
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
 
-  await expect(flow.getByRole('status')).toContainText('Ảnh có 2 câu sai của bạn: 131, 132.');
+  await expect(flow.getByRole('status')).toHaveText('AI đã điền 2 câu. Kiểm tra lý do rồi bấm Lưu.');
   const call = await page.evaluate(() => (window as Window & { __pageCall: { questions: unknown; images: number } }).__pageCall);
   expect(call).toEqual({ questions: [{ number: 107, part: 5 }, { number: 131, part: 6 }, { number: 132, part: 6 }], images: 1 });
+  await expect(flow.getByRole('button', { name: 'Câu 131 Bạn chọn C, đáp án D', exact: true })).toBeVisible();
+  await expect(flow.getByRole('button', { name: 'Câu 132 Bạn chọn B, đáp án D', exact: true })).toBeVisible();
 
-  const tabs = flow.getByRole('tablist', { name: 'Câu trong ảnh' });
-  await expect(tabs.getByRole('tab')).toHaveCount(2);
-  await expect(flow.getByText('Câu 131 · Part 6 · ETS Screen', { exact: true })).toBeVisible();
-  await expect(flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'C', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(flow.getByRole('group', { name: /Đáp án đúng/ }).getByRole('button', { name: 'D', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(flow.getByText('theo đề', { exact: true })).toBeVisible();
-  await expect(flow.locator('[aria-labelledby="detail-category"] [aria-pressed="true"]')).toHaveCount(0);
+  await flow.getByRole('button', { name: /^Câu 131/ }).click();
   await flow.getByRole('button', { name: /^Đoạn văn: Library Reopens/ }).click();
   await expect(flow.getByText(/following a renovation/)).toBeVisible();
-
-  // The explanation is written in the background while the learner checks, with the reading's ticket.
+  // The explanation is written in the background with the reading's ticket; the full one is a tap away.
   await expect(flow.getByText(TIP)).toBeVisible();
-  // The full explanation is one tap away, as in the notebook.
   await flow.getByRole('button', { name: 'Xem giải thích', exact: true }).click();
   await expect(flow.getByText('Dấu hiệu: ____ trước financed.')).toBeVisible();
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132]]);
-  await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
-  await expect(flow.getByText('The entire project was ____ financed through municipal funds.', { exact: true })).toBeVisible();
-  // The learner corrects a choice the screenshot showed differently.
-  await flow.getByRole('group', { name: /Bạn chọn/ }).getByRole('button', { name: 'A', exact: true }).click();
-  // The explanation suggested the error type.
-  await expect(flow.getByRole('button', { name: 'Ngữ pháp', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
 
-  // The flow goes on with the question the screenshot did not show.
-  await expect(flow.getByText('Câu 107 · Part 5 · ETS Screen', { exact: true })).toBeVisible();
-  const cards = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
-    .filter((card: { sourceTestName?: string }) => card.sourceTestName === 'ETS Screen'));
+  // The learner corrects a choice the screenshot showed differently; the explanation suggested the reason.
+  await flow.getByRole('button', { name: /^Câu 132/ }).click();
+  await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
+  await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
+  await expect(flow.getByLabel('Vì sao sai câu 132')).toHaveValue('ADVANCED_GRAMMAR');
+  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await expect(flow).toHaveCount(0);
+
+  const cards = await stored(page);
   const q132 = cards.find((card: { questionNumber: number }) => card.questionNumber === 132);
   expect(q132).toMatchObject({ part: 6, context: passage, options: ['(A) larger', '(B) largeness', '(C) large', '(D) largely'],
     userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(D) largely', answerSource: 'PROVIDED', answerProvidedBy: 'SOURCE',
@@ -105,35 +100,33 @@ test('one screenshot fills every wrong question on it; they are checked as tabs 
   expect(q132.explanation.quickTip).toBe(TIP);
   expect(q132.tags).toEqual(['adverb']);
   expect(q132.question).toBe('The entire project was ____ financed through municipal funds.');
-  const q107 = cards.find((card: { questionNumber: number }) => card.questionNumber === 107);
-  expect(q107.question).toBe('');
+  // The question the screenshot did not show stays a draft for later.
+  expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 107).question).toBe('');
 });
 
-test('a corrected answer is kept as the learner’s, and a skipped tab stays for later', async ({ page }) => {
+test('a corrected answer is kept as the learner’s', async ({ page }) => {
   const flow = await openFlow(page);
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
-  await flow.getByRole('group', { name: /Đáp án đúng/ }).getByRole('button', { name: 'B', exact: true }).click();
-  await expect(flow.getByText('theo đề', { exact: true })).toHaveCount(0);
-  await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
-  await flow.getByRole('button', { name: 'Bỏ câu này', exact: true }).click();
-  await expect(flow.getByRole('tablist')).toHaveCount(0);
-  await flow.getByRole('button', { name: 'Lưu · câu tiếp ›', exact: true }).click();
-  const cards = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
-    .filter((card: { sourceTestName?: string }) => card.sourceTestName === 'ETS Screen'));
+  await flow.getByRole('button', { name: /^Câu 131/ }).click();
+  await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
+  await flow.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'B', exact: true }).click();
+  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  const cards = await stored(page);
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 131))
     .toMatchObject({ correctAnswer: '(B) The library will close early.', answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' });
-  expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 132).question).toBe('');
+  expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 132))
+    .toMatchObject({ correctAnswer: '(D) largely', answerProvidedBy: 'SOURCE' });
 });
 
 test('an explanation that never arrived is asked for again on the card without a new AI use', async ({ page }) => {
   const flow = await openFlow(page);
   await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = true; });
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
-  await expect(flow.getByRole('status')).toContainText('Đang viết lời giải…');
-  await flow.getByRole('button', { name: 'Tiếp: Câu 132 ›', exact: true }).click();
-  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await expect(flow.getByRole('img', { name: 'Đang viết lời giải' }).first()).toBeVisible();
   await page.waitForFunction(() => (window as Window & { __explainFinished?: number }).__explainFinished === 1);
-  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await expect(flow.getByRole('img', { name: 'Đang viết lời giải' })).toHaveCount(0);
+  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await expect(flow).toHaveCount(0);
 
   await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = false; });
   await page.getByRole('button', { name: /The entire project was/ }).first().click();
@@ -142,7 +135,6 @@ test('an explanation that never arrived is asked for again on the card without a
   await expect(page.getByText(TIP).first()).toBeVisible();
   await expect(retry).toHaveCount(0);
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132], [132]]);
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
-    .find((card: { questionNumber: number; sourceTestName?: string }) => card.questionNumber === 132 && card.sourceTestName === 'ETS Screen'));
-  expect(stored.explanation.quickTip).toBe(TIP);
+  const q132 = (await stored(page)).find((card: { questionNumber: number }) => card.questionNumber === 132);
+  expect(q132.explanation.quickTip).toBe(TIP);
 });

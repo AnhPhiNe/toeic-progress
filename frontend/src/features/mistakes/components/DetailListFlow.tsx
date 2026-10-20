@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, ImagePlus, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
@@ -9,7 +9,6 @@ import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
 import { buildDetailEntry, canExplainRead, EMPTY_FORM, explainInput, fromAI, isEmptyForm, openDoubt, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
-import { AnswerDoubtNote } from '@/features/mistakes/components/AnswerDoubtNote';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -22,11 +21,13 @@ interface Props {
   /** Not offered here: leaving for the full form would drop every row read but not saved yet. */
   onOpenFull?: (card: MistakeEntry) => void;
   onClose: (saved: number) => void;
+  /** Phones: full screen, two-line rows and the actions in a bar at the bottom. */
+  phone?: boolean;
 }
 
 type Section = 'L' | 'R';
 const PART_NAMES: Record<MistakeEntry['part'], string> = { 1: 'Tranh', 2: 'Hỏi – đáp', 3: 'Hội thoại', 4: 'Bài nói', 5: 'Điền câu', 6: 'Điền đoạn văn', 7: 'Đọc hiểu' };
-/** Short labels for the list; the full names are in the menu's tooltip and on the saved card. Keys 1–6 follow this order. */
+/** Short labels for the list; the menu lists the full names. Keys 1–6 follow this order. */
 const SHORT: Record<ErrorCategory, string> = { VOCABULARY_TRAP: 'Từ vựng', ADVANCED_GRAMMAR: 'Ngữ pháp', LISTENING_SPEED: 'Nghe', TIME_PRESSURE: 'Hết giờ', CARELESS_DISTRACTION: 'Ẩu', OTHER: 'Khác' };
 const CATEGORIES = Object.keys(CATEGORY_CHOICES) as ErrorCategory[];
 const sectionOf = (part: number): Section => part <= 4 ? 'L' : 'R';
@@ -46,11 +47,11 @@ function passageGroups(cards: MistakeEntry[], forms: Record<string, CardForm>): 
 }
 
 /**
- * Computers: a logged test's wrong questions in one list, split into Listening and Reading and then by Part.
- * Screenshots of the test (as many as the learner has) are read in turns of up to three images; each row then
- * shows what was chosen, the right answer and a suggested reason, and one button saves every filled-in row.
+ * A logged test's wrong questions in one list, by Part. Screenshots of the test (as many as the learner has) are read
+ * in turns of up to three images; each row then shows the question, what was chosen, the right answer and a suggested
+ * reason, and one button saves every filled-in row. The same list serves computers and phones.
  */
-export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
+export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props) {
   const ordered = useMemo(() => [...cards].sort((a, b) => (a.questionNumber ?? 999) - (b.questionNumber ?? 999)), [cards]);
   const byId = useMemo(() => new Map(cards.map(card => [card.id, card])), [cards]);
   const [forms, setForms] = useState<Record<string, CardForm>>({});
@@ -185,52 +186,86 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
   const done = (card: MistakeEntry) => { const value = forms[card.id] ?? EMPTY_FORM; return Boolean(value.category) && !needsCheck(card); };
   const inSection = (key: Section) => ordered.filter(card => sectionOf(card.part) === key);
   const anyRead = Object.values(forms).some(value => value.ai);
+  const checkCount = ordered.filter(needsCheck).length;
 
   const moveFocus = (from: HTMLElement, step: number) => {
     const rows = [...(ref.current?.querySelectorAll<HTMLButtonElement>('[data-row-toggle]') ?? [])];
     rows[rows.indexOf(from as HTMLButtonElement) + step]?.focus();
   };
 
+  const reasonPicker = (card: MistakeEntry, value: CardForm) => (
+    // The pill shows the short name; the native menu (the phone's own picker) lists the full reasons.
+    <label className={'relative inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full pl-3 pr-2 font-bold focus-within:ring-2 focus-within:ring-indigo-500 '
+      + (phone ? 'h-[34px] text-[13px] ' : 'h-[30px] text-[13px] ') + (value.category
+      ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100' : 'border-[1.5px] border-dashed border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-900')}>
+      <span aria-hidden="true">{value.category ? SHORT[value.category] : 'Vì sao sai?'}</span><ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+      <select aria-label={`Vì sao sai câu ${card.questionNumber}`} value={value.category} onChange={event => update(card.id, { category: event.target.value as ErrorCategory | '' })}
+        className="absolute inset-0 cursor-pointer opacity-0">
+        <option value="">Vì sao sai?</option>
+        {CATEGORIES.map((category, index) => <option key={category} value={category}>{phone ? '' : `${index + 1} · `}{CATEGORY_CHOICES[category]}</option>)}
+      </select>
+    </label>
+  );
+  const writingMark = (card: MistakeEntry) => isExplaining(card.id)
+    ? <span role="img" aria-label="Đang viết lời giải" className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" /> : null;
+  const doubtPill = (value: CardForm) => openDoubt(value)
+    ? <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-black text-amber-800 dark:bg-amber-950 dark:text-amber-200">Nghi đáp án</span> : null;
+
   const row = (card: MistakeEntry) => {
     const value = forms[card.id] ?? EMPTY_FORM, open = openId === card.id, letters = CHOICE_LETTERS.slice(0, card.part === 2 ? 3 : 4);
     const chosen = value.choice && value.choice !== 'BLANK' ? value.choice : '';
     const marks = chosen || value.answer;
+    const question = value.ai?.question?.trim().split('\n')[0] ?? '';
+    const tone = open ? 'bg-indigo-50 dark:bg-indigo-950/40' : needsCheck(card) ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-stone-50 dark:hover:bg-slate-900/60';
+    const toggle = () => setOpenId(open ? '' : card.id);
+    const toggleButton = (children: ReactNode, className: string) => (
+      <button type="button" data-row-toggle aria-expanded={open} onClick={toggle}
+        aria-label={`Câu ${card.questionNumber}${marks ? ` ${sheetLabel(chosen, value.answer)}` : ''}`}
+        onKeyDown={event => {
+          const digit = Number(event.key);
+          if (digit >= 1 && digit <= CATEGORIES.length) { event.preventDefault(); update(card.id, { category: CATEGORIES[digit - 1] }); }
+          else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); moveFocus(event.currentTarget, event.key === 'ArrowDown' ? 1 : -1); }
+        }}
+        className={'flex min-w-0 cursor-pointer items-center text-left ' + className}>{children}</button>
+    );
+    const chevron = <ChevronDown className={'h-4 w-4 shrink-0 text-slate-400 transition-transform ' + (open ? 'rotate-180' : '')} aria-hidden="true" />;
     return (
       <div key={card.id} className="border-t border-stone-100 first:border-t-0 dark:border-slate-800">
-        <div className={'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 pr-3 ' + (open ? 'bg-indigo-50 dark:bg-indigo-950/40' : needsCheck(card) ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-stone-50 dark:hover:bg-slate-900/60')}>
-          <button type="button" data-row-toggle aria-expanded={open} onClick={() => setOpenId(open ? '' : card.id)}
-            aria-label={`Câu ${card.questionNumber}${marks ? ` ${sheetLabel(chosen, value.answer)}` : ''}`}
-            onKeyDown={event => {
-              const digit = Number(event.key);
-              if (digit >= 1 && digit <= CATEGORIES.length) { event.preventDefault(); update(card.id, { category: CATEGORIES[digit - 1] }); }
-              else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); moveFocus(event.currentTarget, event.key === 'ArrowDown' ? 1 : -1); }
-            }}
-            className="flex h-11 min-w-0 cursor-pointer items-center gap-3 pl-4 text-left">
-            <span className="w-[72px] shrink-0 text-[14px] font-black">Câu {card.questionNumber}</span>
-            {/* One line of the question first, so the learner recognises it; then what was chosen and what was right. */}
-            <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-slate-600 dark:text-slate-300">{value.ai?.question?.trim().split('\n')[0] ?? ''}</span>
-            {openDoubt(value) && <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-black text-amber-800 dark:bg-amber-950 dark:text-amber-200">Nghi đáp án</span>}
-            <span className="w-[128px] shrink-0">{marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} />}</span>
-          </button>
-          {/* The pill shows the short name; the native menu underneath lists the keys 1–6 with each reason. */}
-          <label className={'relative inline-flex h-[30px] cursor-pointer items-center gap-1 justify-self-start rounded-full pl-3 pr-2 text-[13px] font-bold focus-within:ring-2 focus-within:ring-indigo-500 ' + (value.category
-            ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100' : 'border-[1.5px] border-dashed border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-900')}>
-            <span aria-hidden="true">{value.category ? SHORT[value.category] : 'Vì sao sai?'}</span><ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-            <select aria-label={`Vì sao sai câu ${card.questionNumber}`} value={value.category} onChange={event => update(card.id, { category: event.target.value as ErrorCategory | '' })}
-              className="absolute inset-0 cursor-pointer opacity-0">
-              <option value="">Vì sao sai?</option>
-              {CATEGORIES.map((category, index) => <option key={category} value={category}>{index + 1} · {CATEGORY_CHOICES[category]}</option>)}
-            </select>
-          </label>
-          <span className="flex w-8 items-center justify-center">
-            {isExplaining(card.id)
-              ? <span role="img" aria-label="Đang viết lời giải" className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
-              : <button type="button" tabIndex={-1} aria-hidden="true" onClick={() => setOpenId(open ? '' : card.id)} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white">
-                  <ChevronDown className={'h-4 w-4 transition-transform ' + (open ? 'rotate-180' : '')} />
-                </button>}
-          </span>
-        </div>
-        {open && <RowDetail card={card} value={value} letters={letters} onChange={patch => update(card.id, patch)} />}
+        {phone
+          // Phones: the question on its own line, then the answer sheet and the reason within thumb reach.
+          ? <div className={'px-3.5 py-2.5 ' + tone}>
+              {marks || question
+                ? <>
+                    {toggleButton(<>
+                      <span className="shrink-0 text-[14px] font-black">Câu {card.questionNumber}</span>
+                      <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-slate-600 dark:text-slate-300">{question}</span>
+                      {chevron}
+                    </>, 'min-h-7 w-full gap-2')}
+                    <div className="mt-2 flex items-center gap-2">
+                      <span onClick={toggle} className="cursor-pointer">{marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} large />}</span>
+                      <span className="ml-auto flex items-center gap-2">{doubtPill(value)}{reasonPicker(card, value)}{writingMark(card)}</span>
+                    </div>
+                  </>
+                // Not read yet: one line, the number and the reason.
+                : <div className="flex items-center gap-2">
+                    {toggleButton(<span className="text-[14px] font-black">Câu {card.questionNumber}</span>, 'min-h-[34px] flex-1')}
+                    {reasonPicker(card, value)}
+                  </div>}
+            </div>
+          : <div className={'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 pr-3 ' + tone}>
+              {toggleButton(<>
+                <span className="w-[72px] shrink-0 text-[14px] font-black">Câu {card.questionNumber}</span>
+                {/* One line of the question first, so the learner recognises it; then what was chosen and what was right. */}
+                <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-slate-600 dark:text-slate-300">{question}</span>
+                {doubtPill(value)}
+                <span className="w-[128px] shrink-0">{marks && <AnswerSheet letters={letters} chosen={chosen} answer={value.answer} />}</span>
+              </>, 'h-11 gap-3 pl-4')}
+              {reasonPicker(card, value)}
+              <span className="flex w-8 items-center justify-center">
+                {writingMark(card) ?? <button type="button" tabIndex={-1} aria-hidden="true" onClick={toggle} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:text-slate-700 dark:hover:text-white">{chevron}</button>}
+              </span>
+            </div>}
+        {open && <RowDetail card={card} value={value} letters={letters} phone={phone} onChange={patch => update(card.id, patch)} />}
       </div>
     );
   };
@@ -240,7 +275,7 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
     const listening = part <= 4;
     return (
       <section key={part} aria-label={`Part ${part}`} className="overflow-hidden rounded-2xl border-[1.5px] border-stone-200 bg-white dark:border-slate-700 dark:bg-[#111A2C]">
-        <header className="flex items-center gap-2.5 border-b border-stone-100 bg-[#FAF8F4] px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900/60">
+        <header className={'flex items-center gap-2.5 border-b border-stone-100 bg-[#FAF8F4] py-2.5 dark:border-slate-800 dark:bg-slate-900/60 ' + (phone ? 'px-3.5' : 'px-4')}>
           <span className={'flex h-6 items-center rounded-[7px] px-2 text-[12px] font-black text-white ' + (listening ? 'bg-indigo-600' : 'bg-teal-600')}>P{part}</span>
           <h3 className="text-[14px] font-black">{PART_NAMES[part]}</h3>
           <span className="flex h-5 min-w-[22px] items-center justify-center rounded-full bg-rose-100 px-1.5 text-[12px] font-black text-rose-700 dark:bg-rose-950 dark:text-rose-300" aria-label={`${items.length} câu sai`}>{items.length}</span>
@@ -250,7 +285,7 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
         {part >= 6
           ? passageGroups(items, forms).map(group => (
               <div key={group[0].id}>
-                {(group.length > 1 || part === 6) && <p className="border-t border-stone-100 px-4 pb-0.5 pt-2 text-[12px] font-bold text-slate-400 first:border-t-0 dark:border-slate-800">
+                {(group.length > 1 || part === 6) && <p className={'border-t border-stone-100 pb-0.5 pt-2 text-[12px] font-bold text-slate-400 first:border-t-0 dark:border-slate-800 ' + (phone ? 'px-3.5' : 'px-4')}>
                   {part === 6 ? `${131 + Math.floor(((group[0].questionNumber ?? 131) - 131) / 4) * 4}–${134 + Math.floor(((group[0].questionNumber ?? 131) - 131) / 4) * 4}` : `${group[0].questionNumber}–${group[group.length - 1].questionNumber}`}
                 </p>}
                 {group.map(row)}
@@ -265,19 +300,37 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
 
   const tabs: Array<[Section, string]> = [['L', 'Listening'], ['R', 'Reading']];
   const parts = [...new Set(inSection(section).map(card => card.part))].sort();
+  const testName = ordered[0]?.sourceTestName ?? '';
+  const status = error ? <p role="alert" className="text-rose-700 dark:text-rose-300">{error}</p>
+    : reading ? <p role="status" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" aria-hidden="true" />Đang đọc ảnh {Math.min(progress.done + 1, progress.total)}/{progress.total} · {elapsed} giây</p>
+    : note ? <p role="status" className="text-slate-500 dark:text-slate-400">{note}</p>
+    : checkCount ? <p className="text-amber-700 dark:text-amber-300">{checkCount} câu cần xem</p> : null;
+  const saveButton = (
+    <button type="button" onClick={save} disabled={!filled.length || reading}
+      className={'cursor-pointer rounded-xl border-2 border-slate-900 bg-emerald-400 font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-200 dark:shadow-none '
+        + (phone ? 'min-h-[50px] flex-1 text-[15px]' : 'min-h-11 shrink-0 px-5 text-[14.5px]')}>
+      {filled.length ? `Lưu ${filled.length} câu` : 'Lưu'}
+    </button>
+  );
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="desktop-detail-title" tabIndex={-1}
+    <div className={phone ? 'fixed inset-0 z-50 flex bg-[#FDFBF7] dark:bg-[#0B1220]' : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4'}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="detail-list-title" tabIndex={-1}
         onDragOver={event => { if (config?.pageImages) event.preventDefault(); }}
         onDrop={event => { event.preventDefault(); addImages([...event.dataTransfer.files]); }}
-        className="flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[22px] border-2 border-slate-900 bg-[#FDFBF7] text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#0B1220] dark:text-white dark:shadow-none">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-[#111A2C]">
-          <h2 id="desktop-detail-title" className="truncate text-[18px] font-black">Ghi câu sai{ordered[0]?.sourceTestName ? ` · ${ordered[0].sourceTestName}` : ''}</h2>
-          <button type="button" aria-label="Đóng" onClick={() => close()} className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X className="h-5 w-5" aria-hidden="true" /></button>
+        className={phone ? 'flex h-[100dvh] w-full flex-col bg-[#FDFBF7] text-slate-900 dark:bg-[#0B1220] dark:text-white'
+          : 'flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[22px] border-2 border-slate-900 bg-[#FDFBF7] text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#0B1220] dark:text-white dark:shadow-none'}>
+        <header className={'flex shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-white dark:border-slate-800 dark:bg-[#111A2C] ' + (phone ? 'px-4 py-3' : 'px-6 py-4')}>
+          {phone
+            ? <div className="min-w-0">
+                <h2 id="detail-list-title" className="text-[17px] font-black">Ghi câu sai</h2>
+                <p className="truncate text-[13px] font-semibold text-slate-500 dark:text-slate-400">{testName ? `${testName} · ` : ''}{ordered.length} câu{ordered.every(card => card.part >= 5) ? ' Reading' : ''}</p>
+              </div>
+            : <h2 id="detail-list-title" className="truncate text-[18px] font-black">Ghi câu sai{testName ? ` · ${testName}` : ''}</h2>}
+          <button type="button" aria-label="Đóng" onClick={() => close()} className="-mr-1.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X className="h-5 w-5" aria-hidden="true" /></button>
         </header>
 
-        {tabs.filter(([key]) => inSection(key).length).length > 1 && <div role="tablist" aria-label="Phần thi" className="flex shrink-0 gap-2 px-6 pt-4">
+        {tabs.filter(([key]) => inSection(key).length).length > 1 && <div role="tablist" aria-label="Phần thi" className={'flex shrink-0 gap-2 pt-4 ' + (phone ? 'px-3' : 'px-6')}>
           {tabs.map(([key, label]) => {
             const items = inSection(key), on = section === key, alert = items.some(needsCheck);
             if (!items.length) return null;
@@ -293,54 +346,59 @@ export function DesktopDetailFlow({ cards, onSave, onClose }: Props) {
           })}
         </div>}
 
-        <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto px-6 py-4">
-          {config?.pageImages && !anyRead && !reading && (
-            <div className="flex items-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-5 py-4 dark:border-slate-600 dark:bg-slate-900">
-              <ImagePlus className="h-7 w-7 shrink-0 text-slate-400" aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-black">Thả hoặc dán ảnh màn hình đề <kbd className="ml-1 rounded-md border border-b-[3px] border-slate-300 px-1.5 text-[12px] font-black text-slate-600 dark:border-slate-600 dark:text-slate-300">Ctrl+V</kbd></p>
-                <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Chọn hết ảnh của đề một lần; AI điền sẵn từng câu.</p>
+        <div className={'min-h-0 flex-1 space-y-3 overflow-y-auto ' + (phone ? 'px-3 py-3' : 'px-6 py-4')}>
+          {config?.pageImages && !anyRead && !reading && (phone
+            ? <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white px-4 py-4 text-center dark:border-slate-600 dark:bg-slate-900">
+                <p className="text-[15px] font-black">Chụp màn hình trang chữa bài</p>
+                <p className="mt-1 text-[13px] font-semibold leading-snug text-slate-500 dark:text-slate-400">Chọn hết ảnh của đề một lần. AI điền sẵn bạn chọn, đáp án và lời giải.</p>
               </div>
-              <button type="button" onClick={() => fileInput.current?.click()} className="min-h-10 shrink-0 cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-4 text-[14px] font-black dark:border-slate-200 dark:bg-slate-900">Chọn ảnh…</button>
-            </div>
-          )}
+            : <div className="flex items-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-5 py-4 dark:border-slate-600 dark:bg-slate-900">
+                <ImagePlus className="h-7 w-7 shrink-0 text-slate-400" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-black">Thả hoặc dán ảnh màn hình đề <kbd className="ml-1 rounded-md border border-b-[3px] border-slate-300 px-1.5 text-[12px] font-black text-slate-600 dark:border-slate-600 dark:text-slate-300">Ctrl+V</kbd></p>
+                  <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Chọn hết ảnh của đề một lần; AI điền sẵn từng câu.</p>
+                </div>
+                <button type="button" onClick={() => fileInput.current?.click()} className="min-h-10 shrink-0 cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-4 text-[14px] font-black dark:border-slate-200 dark:bg-slate-900">Chọn ảnh…</button>
+              </div>)}
           {parts.map(part => partBlock(part, inSection(section).filter(card => card.part === part)))}
           <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
         </div>
 
-        <footer className="flex shrink-0 items-center gap-3 border-t border-stone-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#111A2C]">
-          <div className="min-w-0 flex-1 text-[13px] font-bold">
-            {error ? <p role="alert" className="text-rose-700 dark:text-rose-300">{error}</p>
-              : reading ? <p role="status" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" aria-hidden="true" />Đang đọc ảnh {Math.min(progress.done + 1, progress.total)}/{progress.total} · {elapsed} giây</p>
-              : note ? <p role="status" className="text-slate-500 dark:text-slate-400">{note}</p> : null}
-          </div>
-          {config?.pageImages && <button type="button" onClick={() => fileInput.current?.click()} className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-stone-100 px-4 text-[14px] font-black text-slate-700 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-200">+ Thêm ảnh</button>}
-          <button type="button" onClick={save} disabled={!filled.length || reading}
-            className="min-h-11 shrink-0 cursor-pointer rounded-xl border-2 border-slate-900 bg-emerald-400 px-5 text-[14.5px] font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-200 dark:shadow-none">
-            {filled.length ? `Lưu ${filled.length} câu` : 'Lưu'}
-          </button>
-          <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh màn hình đề"
-            onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; addImages(files); }} />
-        </footer>
+        {phone
+          ? <footer className="shrink-0 space-y-2 border-t border-stone-200 bg-white px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2.5 dark:border-slate-800 dark:bg-[#111A2C]">
+              {status && <div className="text-center text-[13px] font-bold">{status}</div>}
+              <div className="flex gap-2">
+                {config?.pageImages && (anyRead || reading
+                  ? <button type="button" onClick={() => fileInput.current?.click()} className="min-h-[50px] w-[30%] cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[15px] font-black dark:border-slate-200 dark:bg-slate-900">+ Ảnh</button>
+                  : <button type="button" onClick={() => fileInput.current?.click()} className="flex min-h-[50px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[15px] font-black text-violet-950 dark:border-violet-300 dark:bg-violet-950 dark:text-white"><ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />Chọn ảnh đề</button>)}
+                {(anyRead || reading || filled.length > 0 || !config?.pageImages) && saveButton}
+              </div>
+            </footer>
+          : <footer className="flex shrink-0 items-center gap-3 border-t border-stone-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#111A2C]">
+              <div className="min-w-0 flex-1 text-[13px] font-bold">{status}</div>
+              {config?.pageImages && <button type="button" onClick={() => fileInput.current?.click()} className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-stone-100 px-4 text-[14px] font-black text-slate-700 hover:bg-stone-200 dark:bg-slate-800 dark:text-slate-200">+ Thêm ảnh</button>}
+              {saveButton}
+            </footer>}
+        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh màn hình đề"
+          onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; addImages(files); }} />
       </div>
     </div>,
     document.body
   );
 }
 
-/** Like an answer sheet: the learner's choice in red, the right answer in green with a ✓ (readable without colour). */
+/** Like an answer sheet: the learner's choice in red, the right answer in green. */
 const sheetLabel = (chosen: string, answer: string) => [chosen && `Bạn chọn ${chosen}`, answer ? `đáp án ${answer}` : 'chưa có đáp án'].filter(Boolean).join(', ');
 
-function AnswerSheet({ letters, chosen, answer }: { letters: readonly ChoiceLetter[]; chosen: string; answer: string }) {
+function AnswerSheet({ letters, chosen, answer, large = false }: { letters: readonly ChoiceLetter[]; chosen: string; answer: string; large?: boolean }) {
   return (
-    <span className="flex gap-[5px]" role="img" aria-label={sheetLabel(chosen, answer)}>
+    <span className={'flex ' + (large ? 'gap-1.5' : 'gap-[5px]')} role="img" aria-label={sheetLabel(chosen, answer)}>
       {letters.map(letter => {
         const wrong = letter === chosen, right = letter === answer;
         return (
-          <span key={letter} className={'relative flex h-7 w-7 items-center justify-center rounded-lg border-[1.5px] text-[12.5px] font-black ' + (right
+          <span key={letter} className={'flex items-center justify-center rounded-lg border-[1.5px] font-black ' + (large ? 'h-[30px] w-[30px] text-[13px] ' : 'h-7 w-7 text-[12.5px] ') + (right
             ? 'border-emerald-600 bg-emerald-600 text-white' : wrong ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-200 text-slate-400 dark:border-slate-700 dark:text-slate-500')}>
             {letter}
-            {right && <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[9px] font-black text-emerald-600 ring-[1.5px] ring-emerald-600 dark:bg-slate-900">✓</span>}
           </span>
         );
       })}
@@ -348,20 +406,21 @@ function AnswerSheet({ letters, chosen, answer }: { letters: readonly ChoiceLett
   );
 }
 
-/** The opened row: the question as read, the answer pickers, and the explanation once written. */
-function RowDetail({ card, value, letters, onChange }: {
-  card: MistakeEntry; value: CardForm; letters: readonly ChoiceLetter[]; onChange: (patch: Partial<CardForm>) => void;
+/** The opened row: the passage, the options with what was chosen and what is right, the tip and the explanation. */
+function RowDetail({ card, value, letters, phone, onChange }: {
+  card: MistakeEntry; value: CardForm; letters: readonly ChoiceLetter[]; phone: boolean; onChange: (patch: Partial<CardForm>) => void;
 }) {
   const [showPassage, setShowPassage] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const ai = value.ai;
   const chosen = value.choice && value.choice !== 'BLANK' ? value.choice : '';
+  const doubt = openDoubt(value);
   const picker = (label: string, current: string, tone: 'wrong' | 'right', set: (letter: ChoiceLetter | '') => void) => (
     <div className="flex items-center gap-2" role="group" aria-label={label}>
       <span className="w-[68px] text-[12.5px] font-bold text-slate-500 dark:text-slate-400">{label}</span>
       {letters.map(letter => (
         <button key={letter} type="button" aria-pressed={current === letter} onClick={() => set(current === letter ? '' : letter)}
-          className={'h-8 w-8 cursor-pointer rounded-lg border-[1.5px] text-[13px] font-black ' + (current === letter
+          className={'cursor-pointer rounded-lg border-[1.5px] font-black ' + (phone ? 'h-10 w-10 text-[14px] ' : 'h-8 w-8 text-[13px] ') + (current === letter
             ? tone === 'wrong' ? 'border-rose-600 bg-rose-600 text-white' : 'border-emerald-600 bg-emerald-600 text-white'
             : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300')}>{letter}</button>
       ))}
@@ -371,8 +430,9 @@ function RowDetail({ card, value, letters, onChange }: {
   const editing = editOpen || !ai || !value.answer;
   const question = ai?.question?.trim() ?? '';
   const link = 'cursor-pointer font-bold text-blue-700 hover:underline dark:text-blue-300';
+  const neutral = 'min-h-9 cursor-pointer rounded-lg border-[1.5px] border-slate-300 bg-white px-3 text-[13px] font-black text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
   return (
-    <div className="space-y-3 border-t border-indigo-100 bg-[#F8FAFF] py-3.5 pl-[100px] pr-6 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+    <div className={'space-y-3 border-t border-indigo-100 bg-[#F8FAFF] dark:border-indigo-900/50 dark:bg-indigo-950/20 ' + (phone ? 'px-3.5 pb-3.5 pt-3' : 'py-3.5 pl-[100px] pr-6')}>
       {ai?.context?.trim() && card.part >= 6 && <div>
         <button type="button" aria-expanded={showPassage} onClick={() => setShowPassage(open => !open)}
           className="flex max-w-full cursor-pointer items-center gap-1.5 text-left text-[13px] font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
@@ -381,17 +441,25 @@ function RowDetail({ card, value, letters, onChange }: {
         </button>
         {showPassage && <p className="mt-1.5 max-h-60 overflow-y-auto whitespace-pre-line rounded-xl bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-700 dark:bg-slate-900 dark:text-slate-300">{ai.context}</p>}
       </div>}
-      {question.length > 80 && <p className="whitespace-pre-line text-[14px] font-bold leading-relaxed">{question}</p>}
-      {ai && openDoubt(value) && <div className="max-w-[620px]"><AnswerDoubtNote doubt={openDoubt(value)} current={value.answer}
-        onSwitch={() => onChange({ answer: openDoubt(value) })} onKeep={() => onChange({ ai: { ...ai, answerDoubt: '' } })} /></div>}
-      {ai && ai.options.length > 0 && <ul className="space-y-1 text-[14px]">
-        {ai.options.map(option => {
-          const letter = optionLetter(option), right = letter === value.answer, wrong = letter === chosen;
-          return <li key={option} className={'flex gap-2 ' + (right ? 'font-bold text-emerald-700 dark:text-emerald-300' : wrong ? 'font-bold text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-300')}>
-            <span className="w-4 shrink-0 text-center" aria-hidden="true">{right ? '✓' : wrong ? '✕' : ''}</span>{option}
-          </li>;
-        })}
-      </ul>}
+      {question.length > (phone ? 40 : 80) && <p className="whitespace-pre-line text-[14px] font-bold leading-relaxed">{question}</p>}
+      {ai && ai.options.length > 0 && <div className="max-w-[620px]">
+        <ul className="space-y-1 text-[14px]">
+          {ai.options.map(option => {
+            const letter = optionLetter(option), right = letter === value.answer, wrong = letter === chosen;
+            return <li key={option} className={'flex items-center gap-2 ' + (right ? 'font-bold text-emerald-700 dark:text-emerald-300' : wrong ? 'font-bold text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-300')}>
+              <span className="w-4 shrink-0 text-center" aria-hidden="true">{right ? '✓' : wrong ? '✕' : ''}</span>
+              <span className="min-w-0 flex-1">{option}</span>
+              {/* AI solved it differently from the page: name both sides on their options instead of a separate warning. */}
+              {doubt && letter === doubt && <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-700 ring-1 ring-inset ring-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600">AI chọn</span>}
+              {doubt && right && <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Trang đề</span>}
+            </li>;
+          })}
+        </ul>
+        {doubt && <div className="mt-2 flex justify-end gap-2">
+          <button type="button" onClick={() => onChange({ answer: doubt })} className={neutral}>Đổi sang {doubt}</button>
+          <button type="button" onClick={() => onChange({ ai: { ...ai, answerDoubt: '' } })} className={neutral}>Giữ {value.answer}</button>
+        </div>}
+      </div>}
       {!ai && <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Câu này chưa có trong ảnh nào. Dán thêm ảnh, chọn đáp án bên dưới, hoặc chỉ chọn lý do.</p>}
       {editing && <div className="space-y-1.5">
         {picker('Bạn chọn', chosen, 'wrong', letter => onChange({ choice: letter }))}
@@ -402,7 +470,7 @@ function RowDetail({ card, value, letters, onChange }: {
             optionMeanings={resolveQuizOptions({ ...card, options: ai.options, optionNotes: ai.optionNotes, correctAnswer: ai.correctAnswer }).options} /></div>
         : isExplaining(card.id) && <p className="text-[13px] font-bold text-indigo-700 dark:text-indigo-300">Đang viết lời giải…</p>}
       {/* Wider edits (the question's wording, images) happen on the saved card in the notebook, so nothing read here is lost. */}
-      {!editing && <button type="button" onClick={() => setEditOpen(true)} className={'text-[12.5px] ' + link}>Sửa đáp án</button>}
+      {!editing && !doubt && <button type="button" onClick={() => setEditOpen(true)} className={'text-[12.5px] ' + link}>Sửa đáp án</button>}
     </div>
   );
 }

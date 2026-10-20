@@ -3,8 +3,7 @@ import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, Alert
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
-import { MistakeDetailFlow } from '@/features/mistakes/components/MistakeDetailFlow';
-import { DesktopDetailFlow } from '@/features/mistakes/components/DesktopDetailFlow';
+import { DetailListFlow } from '@/features/mistakes/components/DetailListFlow';
 import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -447,13 +446,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       </div>
 
       <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
-      {detailCards.length > 0 && (() => {
-        // Phones go through the questions one at a time; computers get the whole test as one list.
-        const Flow = isPhone ? MistakeDetailFlow : DesktopDetailFlow;
-        return <Flow cards={detailCards} onSave={onUpdateMistake}
-          onOpenFull={card => { setDetailIds(null); openEdit(card); }}
-          onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />;
-      })()}
+      {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone={isPhone} onSave={onUpdateMistake}
+        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}

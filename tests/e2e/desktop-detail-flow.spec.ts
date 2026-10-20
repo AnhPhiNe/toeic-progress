@@ -43,7 +43,8 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   await expect(p6).toContainText('● 1 cần xem');
   await flow.getByRole('button', { name: /^Câu 131/ }).click();
   await expect(flow.getByText(TIP)).toBeVisible();
-  await expect(flow.getByRole('note')).toContainText('AI giải ra C, khác đáp án trang đề (A).');
+  await expect(flow.getByText('AI chọn', { exact: true })).toBeVisible();
+  await expect(flow.getByText('Trang đề', { exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Đổi sang C', exact: true }).click();
   await expect(p6).not.toContainText('Nghi đáp án');
   await expect(flow.getByRole('button', { name: 'Câu 131 Bạn chọn B, đáp án C', exact: true })).toBeVisible();
@@ -83,7 +84,7 @@ test('a doubt left open when saving stays on the notebook card until the learner
     .find((card: { questionNumber?: number; sourceTestName?: string }) => card.questionNumber === 131 && card.sourceTestName === 'ETS Table'));
   expect(await stored()).toMatchObject({ correctAnswer: '(A) accommodates', answerDoubt: 'C' });
   await page.getByRole('button', { name: /The new reading room/ }).first().click();
-  await expect(page.getByRole('note')).toContainText('AI giải ra C, khác đáp án trang đề (A).');
+  await expect(page.getByRole('note')).toContainText('AI chọn C, trang đề chọn A.');
   await page.getByRole('button', { name: 'Giữ A', exact: true }).click();
   await expect(page.getByRole('note')).toHaveCount(0);
   const kept = await stored();
