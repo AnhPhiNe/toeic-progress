@@ -731,7 +731,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>}
 
           {/* 6. PHIẾU KẾT QUẢ GẦN NHẤT — cùng thẻ với điện thoại; kỷ lục, trung bình và tiến bộ đã nằm ở 3 thẻ trên */}
-          {!isPhone && latestTest && <ScoreReportCard latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
+          {!isPhone && latestTest && <ScoreReportCard roomy latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
             newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}>
             <div className="px-[18px] pb-4">
