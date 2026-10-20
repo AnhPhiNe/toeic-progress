@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { Check, ImagePlus, Sparkles, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
-import { CHOICE_LETTERS, learnerMistake, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
+import { CHOICE_LETTERS, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
+import { buildDetailEntry, canExplainRead, EMPTY_FORM as EMPTY, explainInput, fromAI, withArrivedExplanation, type CardForm } from '@/features/mistakes/lib/detailForm';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
@@ -11,8 +12,7 @@ import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { prepareImage, MAX_CONTEXT_IMAGES } from '@/features/mistakes/lib/imageInput';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
-import type { AIConfiguration, AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
-import type { MistakeInput } from '@/features/mistakes/lib/mistakeInput';
+import type { AIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
 import { enqueueExplanations, explanationsVersion, isExplaining, setExplanationInterceptor, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 
 interface Props {
@@ -22,24 +22,6 @@ interface Props {
   /** The full note form for the current card. */
   onOpenFull: (card: MistakeEntry) => void;
   onClose: (saved: number) => void;
-}
-
-type Choice = ChoiceLetter | 'BLANK' | '';
-/** What the learner has filled in for one card; `ai` holds what a screenshot reading returned. */
-interface CardForm { raw: string; choice: Choice; answer: ChoiceLetter | ''; category: ErrorCategory | ''; ai?: AIMistakeParseResult }
-const EMPTY: CardForm = { raw: '', choice: '', answer: '', category: '' };
-
-/** What the explanation request sends for a question read from a screenshot (must match what was read). */
-function explainInput(draft: AIMistakeParseResult, part: MistakeEntry['part']): MistakeInput {
-  const choice = draft.userChoice || '';
-  return { question: draft.question ?? '', options: draft.options, context: draft.context ?? '', part,
-    userChoiceState: choice ? 'CHOSEN' : 'UNKNOWN', userChoice: choice, userReason: '',
-    sourceAnswer: draft.answerSource === 'PROVIDED' ? optionLetter(draft.correctAnswer) : '' };
-}
-
-function fromAI(draft: AIMistakeParseResult): CardForm {
-  const answer = draft.answerSource === 'MISSING' ? '' : optionLetter(draft.correctAnswer);
-  return { raw: '', choice: draft.userChoiceState === 'CHOSEN' && draft.userChoice ? draft.userChoice : '', answer: answer || '', category: draft.explanation ? draft.category : '', ai: draft };
 }
 
 /**
@@ -86,15 +68,7 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
   useEffect(() => {
     setExplanationInterceptor((cardId, draft) => {
       if (!queueRef.current.includes(cardId)) return false;
-      setForms(value => {
-        const current = value[cardId];
-        if (!current?.ai) return value;
-        const answer = current.answer || (draft.answerSource === 'MISSING' ? '' : optionLetter(draft.correctAnswer));
-        const pageAnswer = current.ai.answerSource !== 'MISSING';
-        return { ...value, [cardId]: { ...current, category: current.category || draft.category, answer,
-          ai: { ...current.ai, explanation: draft.explanation, optionNotes: draft.optionNotes, trapTip: draft.trapTip, tags: draft.tags,
-            ...(pageAnswer ? {} : { correctAnswer: draft.correctAnswer, answerSource: draft.answerSource }) } } };
-      });
+      setForms(value => value[cardId]?.ai ? { ...value, [cardId]: withArrivedExplanation(value[cardId], draft) } : value);
       return true;
     });
     return () => setExplanationInterceptor(null);
@@ -108,37 +82,11 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
   const update = (patch: Partial<CardForm>) => { setForms(value => ({ ...value, [currentId]: { ...(value[currentId] ?? EMPTY), ...patch } })); setError(''); };
   const goTo = (id: string) => { setCurrentId(id); setShowContext(false); setError(''); ref.current?.querySelector('[data-flow-body]')?.scrollTo({ top: 0 }); };
 
-  const buildEntry = (target: MistakeEntry, value: CardForm): MistakeEntry | string => {
-    const pasted = !value.ai && value.raw.trim() ? parsePastedQuestion(value.raw, target.part) : null;
-    if (pasted?.error) return pasted.error;
-    if (value.choice && value.choice === value.answer) return 'Đáp án bạn chọn trùng đáp án đúng.';
-    if (!value.ai && !value.choice && !value.answer && !value.category && !pasted) return 'Điền ít nhất một mục, hoặc bấm Bỏ qua.';
-    const options = value.ai?.options ?? pasted?.options ?? target.options ?? [];
-    const question = value.ai ? value.ai.question ?? '' : pasted?.question ?? target.question ?? '';
-    const context = value.ai ? value.ai.context ?? '' : target.context ?? '';
-    const chosen = value.choice === 'BLANK' || value.choice === '' ? undefined : value.choice;
-    const state = value.choice === 'BLANK' ? 'BLANK' : chosen ? 'CHOSEN' : target.userChoiceState ?? 'UNKNOWN';
-    const aiLetter = value.ai && value.ai.answerSource !== 'MISSING' ? optionLetter(value.ai.correctAnswer) : '';
-    const answerFields = value.answer
-      ? { correctAnswer: options.find(option => option.startsWith(`(${value.answer})`)) ?? `(${value.answer})`,
-          ...(value.ai && aiLetter === value.answer ? { answerSource: value.ai.answerSource, answerProvidedBy: value.ai.answerSource === 'PROVIDED' ? 'SOURCE' as const : undefined }
-            : { answerSource: 'PROVIDED' as const, answerProvidedBy: value.ai ? 'LEARNER' as const : 'SOURCE' as const }) }
-      : value.ai ? { correctAnswer: '', answerSource: 'MISSING' as const } : {};
-    return {
-      ...target, question, context, questionContext: [question, context].filter(Boolean).join('\n\n'), options,
-      userChoice: state === 'CHOSEN' ? chosen ?? target.userChoice : undefined, userChoiceState: state,
-      userMistake: learnerMistake({ userChoiceState: state, userChoice: chosen ?? target.userChoice ?? '', userReason: target.userReason ?? '', options }),
-      ...answerFields,
-      ...(value.ai ? { optionNotes: value.ai.optionNotes, explanation: value.ai.explanation ?? undefined, trapTip: value.ai.trapTip, tags: value.ai.tags } : {}),
-      category: value.category || target.category
-    };
-  };
-
   /** Save the given cards; on a problem, show that card and save none. */
   const saveCards = (ids: string[]) => {
     const entries: [MistakeEntry, MistakeEntry][] = [];
     for (const id of ids) {
-      const target = byId.get(id)!, entry = buildEntry(target, forms[id] ?? EMPTY);
+      const target = byId.get(id)!, entry = buildDetailEntry(target, forms[id] ?? EMPTY);
       if (typeof entry === 'string') { goTo(id); setError(entry); return; }
       entries.push([entry, target]);
     }
@@ -182,7 +130,7 @@ export function MistakeDetailFlow({ cards, onSave, onOpenFull, onClose }: Props)
       setBatch(ids); goTo(ids[0]);
       // The explanations are written while the learner checks these cards; this reading already counted the AI use.
       if (result.explainTicket) enqueueExplanations(result.explainTicket, found
-        .filter(({ item, id }) => byId.get(id)!.part !== 1 && item.draft.question?.trim() && item.draft.options.length >= 2)
+        .filter(({ item, id }) => canExplainRead(item.draft, byId.get(id)!.part))
         .map(({ item, id }) => ({ cardId: id, number: item.number, input: explainInput(item.draft, byId.get(id)!.part) })));
       setNote(`Ảnh có ${ids.length} câu sai của bạn: ${found.map(entry => entry.item.number).join(', ')}.`);
     } catch (reason) {

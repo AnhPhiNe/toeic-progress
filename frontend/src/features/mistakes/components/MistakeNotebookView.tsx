@@ -4,6 +4,7 @@ import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
 import { MistakeDetailFlow } from '@/features/mistakes/components/MistakeDetailFlow';
+import { DesktopDetailFlow } from '@/features/mistakes/components/DesktopDetailFlow';
 import { needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -448,9 +449,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       </div>
 
       <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
-      {detailCards.length > 0 && <MistakeDetailFlow cards={detailCards} onSave={onUpdateMistake}
-        onOpenFull={card => { setDetailIds(null); openEdit(card); }}
-        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
+      {detailCards.length > 0 && (() => {
+        // Phones go through the questions one at a time; computers get the whole test as one list.
+        const Flow = isPhone ? MistakeDetailFlow : DesktopDetailFlow;
+        return <Flow cards={detailCards} onSave={onUpdateMistake}
+          onOpenFull={card => { setDetailIds(null); openEdit(card); }}
+          onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />;
+      })()}
       {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}
