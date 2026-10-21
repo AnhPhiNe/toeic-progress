@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Customized, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { VocabLog } from '@/shared/data/dataBundle';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
@@ -7,6 +7,7 @@ import { getTodayDateString, loadVocabLog } from '@/shared/data/storage';
 import { useChartMotion } from '@/shared/hooks/useChartMotion';
 import { uniqueTestNames } from '@/shared/domain/testNames';
 import { formatVocabDate, groupVocabDays, summarizeVocabDays, validVocabDate, vocabDayIndex, vocabDaySignature, vocabPreset, vocabYAxis, type VocabDay, type VocabDetails, type VocabRange } from '../lib/vocabularyModel';
+import { calendarDayIndex } from '@/shared/domain/dateRange';
 import { VocabChartLabels } from './VocabChartLabels';
 import { DateRangePicker } from '@/shared/components/DateRangePicker';
 import { VocabEditModal } from './VocabEditModal';
@@ -29,6 +30,13 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
   const owner = useRef(getActiveAccountId());
   const days = useMemo(() => groupVocabDays(vocabLog), [vocabLog]);
   const total = days.length ? days[days.length - 1].cumulative : 0;
+  const latestRecordedDay = days.length ? days[days.length - 1] : null;
+  const sevenDaysAgo = new Date((calendarDayIndex(today) - 6) * 86400000).toISOString().slice(0, 10);
+  const weekTotal = useMemo(() => {
+    return days
+      .filter(day => day.date >= sevenDaysAgo && day.date <= today)
+      .reduce((sum, day) => sum + day.count, 0);
+  }, [days, sevenDaysAgo, today]);
   const [range, setRange] = useState<VocabRange>(() => vocabPreset(today, 14));
   const selected = useMemo(() => days.filter(day => day.date >= range.from && day.date <= range.to), [days, range]);
   const summary = useMemo(() => summarizeVocabDays(selected), [selected]);
@@ -40,6 +48,18 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
   const page = Math.min(historyPage, pageCount);
   const visible = [...selected].reverse().slice((page - 1) * 5, page * 5);
   useEffect(() => { setHistoryPage(current => Math.min(current, pageCount)); }, [pageCount]);
+
+  const jumpToDate = (targetDate: string) => {
+    const targetIdx = calendarDayIndex(targetDate);
+    const todayIdx = calendarDayIndex(today);
+    if (todayIdx - targetIdx + 1 <= 30) {
+      setRange({ from: targetDate, to: today, preset: null });
+    } else {
+      const toDate = new Date((targetIdx + 13) * 86400000).toISOString().slice(0, 10);
+      setRange({ from: targetDate, to: toDate > today ? today : toDate, preset: null });
+    }
+    setHistoryPage(1);
+  };
 
   const [quickDate, setQuickDate] = useState(today);
   const [quickCount, setQuickCount] = useState(() => String(days.find(day => day.date === today)?.count ?? 20));
@@ -113,8 +133,8 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
 
   return <div className="vocabulary-view">
     <header className="vocab-page-header">
-      <div className="flex flex-wrap items-center gap-2 min-w-0"><h1 className="text-base sm:text-lg font-black">Từ vựng</h1><span className="vocab-total">{total.toLocaleString('vi-VN')} từ tích lũy</span></div>
-      <form onSubmit={quickSave} className="vocab-quick-form"><input type="date" aria-label="Ngày học từ vựng" required min="0001-01-01" max={today} value={quickDate} onChange={event => chooseDate(event.target.value)} className="vocab-quick-date" /><div className="vocab-quick-quantity"><input type="number" aria-label="Số từ đã học" aria-describedby={existing ? 'vocab-update-help' : undefined} required min={1} max={10000} step={1} value={quickCount} onChange={event => { setQuickCount(event.target.value); setSaved(false); }} className="vocab-quick-count" /><span className="text-xs font-bold">từ</span></div><button type="submit" className={`vocab-button is-save ${saved ? 'is-saved' : ''}`}><CheckCircle2 size={16} aria-hidden="true" />{saved ? 'Đã lưu!' : existing ? 'Cập nhật' : 'Lưu từ vựng'}</button>{existing && <p id="vocab-update-help" className="vocab-update-help">Cập nhật sẽ thay số cũ.</p>}</form>
+      <div className="flex flex-wrap items-center gap-2 min-w-0"><h1 className="text-base sm:text-lg font-black">Từ vựng</h1><span className="vocab-total">{total.toLocaleString('vi-VN')} từ tích lũy</span><span className="hidden sm:inline-flex text-xs font-semibold text-slate-500 dark:text-slate-400">· 7 ngày qua: {weekTotal.toLocaleString('vi-VN')} từ</span></div>
+      <form onSubmit={quickSave} className="vocab-quick-form"><input type="date" aria-label="Ngày học từ vựng" required min="0001-01-01" max={today} value={quickDate} onChange={event => chooseDate(event.target.value)} className="vocab-quick-date" /><div className="vocab-quick-quantity"><input type="number" aria-label="Số từ đã học" aria-describedby={existing ? 'vocab-update-help' : undefined} required min={1} max={10000} step={1} placeholder="VD: 20" value={quickCount} onChange={event => { setQuickCount(event.target.value); setSaved(false); }} className="vocab-quick-count" /><span className="text-xs font-bold">từ</span></div><button type="submit" className={`vocab-button is-save ${saved ? 'is-saved' : ''}`}><CheckCircle2 size={16} aria-hidden="true" />{saved ? 'Đã lưu!' : existing ? 'Cập nhật' : 'Lưu từ vựng'}</button>{existing && <p id="vocab-update-help" className="vocab-update-help">Cập nhật sẽ thay số cũ.</p>}</form>
     </header>
     {error && <p role="alert" className="vocab-error">{error}</p>}
     <section className="vocab-panel vocab-chart-panel" aria-label="Biểu đồ từ vựng">
@@ -132,7 +152,35 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
           <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={Math.max(0.5, Math.min(48, (chartWidth - 56) / span * 0.68))} isAnimationActive={barMotion.enabled} animationBegin={0} animationDuration={barMotion.duration} animationEasing="ease-out" onAnimationEnd={barMotion.finish}>
             {plotted.map(day => <Cell key={day.date} fill={day.date === today ? (isDark ? '#34d399' : '#059669') : (isDark ? '#a5a3ff' : '#6366f1')} stroke={isDark ? '#64748b' : '#0f172a'} strokeWidth={1.5} />)}
           </Bar><Customized component={<VocabChartLabels isDark={isDark} />} />
-        </BarChart></ResponsiveContainer> : <div className="vocab-empty">Chưa có ghi nhận trong khoảng này.</div>}
+        </BarChart></ResponsiveContainer> : (
+          <div className="vocab-empty flex flex-col items-center justify-center h-full py-4 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-violet-900/20 bg-violet-50 text-violet-600 dark:border-violet-400/20 dark:bg-violet-950/40 dark:text-violet-300 mb-2">
+              <Calendar size={20} aria-hidden="true" />
+            </div>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Chưa có ghi nhận trong khoảng này.
+            </p>
+            {latestRecordedDay ? (
+              <>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Lần học gần nhất của bạn là <strong className="text-slate-800 dark:text-slate-200">{formatVocabDate(latestRecordedDay.date)} ({latestRecordedDay.count} từ)</strong>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => jumpToDate(latestRecordedDay.date)}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-violet-700 shadow-[2px_2px_0_0_#0f172a] hover:bg-violet-50 active:translate-x-0.5 active:translate-y-0.5 dark:border-slate-300 dark:bg-slate-800 dark:text-violet-300 dark:shadow-[2px_2px_0_0_#cbd5e1]"
+                >
+                  <span>Xem khoảng ngày có dữ liệu ({formatVocabDate(latestRecordedDay.date).slice(0, 5)})</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Nhập số từ đã học ở phía trên để bắt đầu theo dõi tiến độ
+              </p>
+            )}
+          </div>
+        )}
       </div>
       <div className="vocab-stats-strip"><span className="text-xs text-slate-500 dark:text-slate-400">{formatVocabDate(range.from)} – {formatVocabDate(range.to)} · {selected.length} ngày có ghi nhận</span><div className="vocab-summary-values"><span>Kỷ lục: <strong>{summary.record ? `${summary.record.count.toLocaleString('vi-VN')} từ (${formatVocabDate(summary.record.date).slice(0, 5)})` : '—'}</strong></span><span><span>TB mỗi ngày ghi nhận</span>: <strong>{summary.average === null ? '—' : `${summary.average.toLocaleString('vi-VN')} từ/ngày`}</strong></span></div></div>
     </section>
