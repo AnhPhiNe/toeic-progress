@@ -91,6 +91,7 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
         <div className="flex items-center flex-wrap gap-1.5 p-1 bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-300 dark:border-slate-800">
           <button
             type="button"
+            aria-label="Máy Tính Điểm Dự Phóng"
             aria-pressed={activeTab === 'calc'}
             onClick={() => setActiveTab('calc')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-black text-xs transition cursor-pointer border-2 ${
@@ -100,7 +101,7 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
             }`}
           >
             <Calculator className="w-4 h-4 stroke-[2.5]" />
-            <span>Máy Tính Điểm Dự Phóng</span>
+            <span>Máy Tính Điểm</span>
           </button>
 
           <button
@@ -141,13 +142,13 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
         )}
       </div>
 
-      {/* ==================== TAB 1: MÁY TÍNH ĐIỂM DỰ PHÓNG ==================== */}
+      {/* ==================== TAB 1: MÁY TÍNH ĐIỂM ==================== */}
       {activeTab === 'calc' && <>
         <p className="text-xs text-slate-500 dark:text-slate-400">Ước tính thận trọng theo <a className="underline underline-offset-2" href={PRACTICE_SCORE_SOURCE} target="_blank" rel="noopener noreferrer">IIBC 2023</a>; 100/100 quy ước 495đ mỗi kỹ năng. Điểm ETS phụ thuộc từng đề.</p>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-          <div className="lg:col-span-7 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 sm:p-5 space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-center">
+          <div className="lg:col-span-7 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-3.5 sm:p-4 space-y-2.5">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-              <h2 className="text-sm font-black text-slate-950 dark:text-white">Số câu đúng dự phóng</h2>
+              <h2 className="text-sm font-black text-slate-950 dark:text-white">Số câu đúng</h2>
               <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 tabular-nums">
                 Tổng đúng: {rawListening + rawReading}/200 câu ({Math.round(((rawListening + rawReading) / 200) * 1000) / 10}%)
               </span>
@@ -155,7 +156,7 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({ sessions, targetSc
             <ScoreSkillControl skill="listening" raw={rawListening} onChange={setRawListening} />
             <ScoreSkillControl skill="reading" raw={rawReading} onChange={setRawReading} />
           </div>
-          <div className="lg:col-span-5 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 sm:p-5 space-y-3">
+          <div className="lg:col-span-5 rounded-2xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-700 shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 sm:p-5 space-y-3 lg:self-center">
             <section aria-label="Tổng điểm dự kiến" className="rounded-2xl border border-amber-200/90 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/25 p-4 text-center">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
                 <h2 className="font-extrabold text-slate-800 dark:text-slate-200">Tổng điểm dự kiến</h2>
