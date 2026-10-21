@@ -36,9 +36,9 @@ export function ScoreSkillControl({ skill, raw, onChange }: {
         <span className={`block text-xs mt-1 tabular-nums ${raw === count ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>{getPracticeScoreRange(skill, count).min}đ</span>
       </button>)}
     </div>
-    <div className="flex items-center justify-between gap-2 text-xs">
-      <span className={color}>CEFR tham khảo: {level}</span>
-      <span className="text-slate-500 dark:text-slate-400">Sai: <strong className="text-slate-900 dark:text-slate-100">{100 - raw}</strong> câu</span>
+    <div className="flex items-center justify-between gap-2 text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+      <span className="text-slate-500 dark:text-slate-400">Sai: <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{100 - raw}</strong> câu</span>
+      <span className="text-slate-400 dark:text-slate-500">CEFR tham khảo: <strong className={`${color} font-black`}>{level}</strong></span>
     </div>
   </section>;
 }
