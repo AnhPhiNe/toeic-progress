@@ -629,14 +629,28 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       </header>
       {!original && step === 'input' && (
         <div className="shrink-0 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
-          <div role="tablist" aria-label="Chế độ thêm câu sai" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/80 sm:max-w-sm">
+          <div role="tablist" aria-label="Chế độ thêm câu sai" className="grid grid-cols-2 gap-1.5 rounded-xl border-2 border-slate-900 bg-slate-100 p-1 dark:border-slate-400 dark:bg-slate-900 sm:max-w-sm">
             {([['single', 'Nhập tay', PenLine], ['batch', 'Quét ảnh AI', ScanLine]] as const).map(([mode, label, Icon]) => {
               const active = entryMode === mode;
+              const isSingle = mode === 'single';
+              const activeClass = isSingle
+                ? 'border-2 border-slate-900 bg-blue-100/90 text-blue-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-blue-950/80 dark:text-blue-100 dark:shadow-[2px_2px_0_0_#cbd5e1]'
+                : 'border-2 border-slate-900 bg-purple-100/90 text-purple-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-purple-950/80 dark:text-purple-100 dark:shadow-[2px_2px_0_0_#cbd5e1]';
+              const iconColor = active
+                ? (isSingle ? 'text-blue-600 dark:text-blue-400' : 'text-purple-600 dark:text-purple-400')
+                : 'text-slate-400 dark:text-slate-500';
+
               return <button key={mode} type="button" role="tab" aria-selected={active} onClick={() => { setEntryMode(mode); setError(''); }}
-                className={'flex min-h-10 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-[1.5px] text-sm font-bold transition-colors ' + (active
-                  ? 'border-slate-900 bg-white text-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-none'
-                  : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white')}>
-                <Icon className="h-4 w-4" aria-hidden="true" />{label}
+                className={'flex min-h-10 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-black transition-all ' + (active
+                  ? activeClass
+                  : 'border-2 border-transparent text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white')}>
+                <Icon className={'h-4 w-4 shrink-0 ' + iconColor} strokeWidth={2.5} aria-hidden="true" />
+                <span>{label}</span>
+                {mode === 'batch' && (
+                  <span className="rounded-md border border-purple-900/30 bg-purple-600 px-1 py-0.2 text-[9.5px] font-black text-white uppercase tracking-wider dark:border-purple-300">
+                    AI
+                  </span>
+                )}
               </button>;
             })}
           </div>

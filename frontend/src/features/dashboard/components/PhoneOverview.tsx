@@ -200,7 +200,7 @@ export function PhoneSummary({
         targetScore={targetScore}
         newRecord={Boolean(latestIsBest) && totalTests > 1}
       >
-        <div className="p-3 pt-2.5 border-t-2 border-slate-900 dark:border-slate-700">
+        <div className="px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1.5">
           <button
             type="button"
             onClick={onViewDetails}

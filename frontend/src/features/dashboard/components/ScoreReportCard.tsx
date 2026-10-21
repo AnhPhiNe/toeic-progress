@@ -47,7 +47,7 @@ export function ScoreReportCard({
       aria-labelledby="score-report-title"
       className="relative overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
     >
-      <div className={roomy ? 'px-5 pt-4 pb-3.5' : 'px-[18px] pt-3.5 pb-3'}>
+      <div className={roomy ? 'px-5 pt-5 pb-4' : 'px-4 sm:px-5 pt-4 pb-3.5'}>
         {/* Header phân tầng: Metadata (Ngày + Kỷ lục) ở trên, Tên đề rộng rãi 100% ở dưới */}
         <div className="mb-2">
           <div className="flex items-center justify-between gap-2">
@@ -64,12 +64,12 @@ export function ScoreReportCard({
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-[16px] font-black text-slate-900 dark:text-white tracking-tight truncate">
+          <p className="mt-1 text-[16px] font-black text-slate-900 dark:text-white tracking-tight truncate">
             {latestTest.testName}
           </p>
         </div>
 
-        <div className={roomy ? 'mt-3' : 'mt-2'}>
+        <div className={roomy ? 'mt-3.5' : 'mt-2.5'}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="flex items-baseline gap-2">
               <span className={'font-black leading-none tracking-[-0.03em] tabular-nums text-slate-950 dark:text-white ' + (roomy ? 'text-[46px]' : 'text-[40px]')}>
@@ -95,21 +95,21 @@ export function ScoreReportCard({
           </div>
         </div>
 
-        <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+        <div className="mt-4 pt-3.5 border-t border-slate-200/80 dark:border-slate-800">
           <p data-latest-goal className="flex justify-between gap-3 text-[13px] font-bold text-slate-800 dark:text-slate-200">
             <span>Mục tiêu {targetScore}</span>
             {remaining === 0
               ? <span className="text-emerald-700 dark:text-emerald-400">Đã đạt mục tiêu</span>
               : <span className="text-amber-700 dark:text-amber-400">còn {remaining} điểm</span>}
           </p>
-          <div className={(roomy ? 'mt-2 h-2.5 ' : 'mt-1.5 h-2 ') + 'overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800'} aria-hidden="true">
+          <div className={(roomy ? 'mt-2.5 h-2.5 ' : 'mt-2 h-2 ') + 'overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800'} aria-hidden="true">
             <div data-goal-bar className={'h-full rounded-full ' + (remaining === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-600 dark:bg-blue-500')} style={{ width: `${percent}%` }} />
           </div>
         </div>
       </div>
 
       {hasSections
-        ? <dl className={(roomy ? 'px-5 ' : 'px-[18px] ') + 'grid grid-cols-2 gap-2.5 pb-1'}>
+        ? <dl className={(roomy ? 'px-5 pb-3 ' : 'px-4 sm:px-5 pb-2.5 ') + 'grid grid-cols-2 gap-3'}>
             <Section label="Listening" score={listeningScore} raw={latestTest.rawListening} roomy={roomy} kind="listening" />
             <Section label="Reading" score={readingScore} raw={latestTest.rawReading} roomy={roomy} kind="reading" />
           </dl>
@@ -133,7 +133,7 @@ function Section({ label, score, raw, roomy, kind }: { label: string; score?: nu
     : 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-teal-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none';
 
   return (
-    <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2 px-3 py-2.5 ' : 'gap-1.5 px-3 py-2.5 ') + cardClass}>
+    <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2.5 p-3.5 ' : 'gap-2 p-3 sm:p-3.5 ') + cardClass}>
       <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide">
         <dt className={'flex items-center gap-1.5 ' + labelClass}>
           <Icon className={'h-3.5 w-3.5 shrink-0 ' + iconColor} strokeWidth={2.5} aria-hidden="true" />
@@ -141,7 +141,7 @@ function Section({ label, score, raw, roomy, kind }: { label: string; score?: nu
         </dt>
       </div>
       <div className="flex items-end justify-between gap-1">
-        <dd className={'font-black tabular-nums leading-none text-slate-900 dark:text-white tracking-tight ' + (roomy ? 'text-[26px]' : 'text-[24px]')}>{score ?? '—'}</dd>
+        <dd className={'font-black tabular-nums leading-none text-slate-900 dark:text-white tracking-tight ' + (roomy ? 'text-[28px]' : 'text-[25px]')}>{score ?? '—'}</dd>
         {raw !== undefined && (
           <dd className={badgeClass}>
             {raw}/100 câu
