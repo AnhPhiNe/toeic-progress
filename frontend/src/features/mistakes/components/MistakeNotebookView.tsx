@@ -298,7 +298,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   };
 
   return (
-    <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-28' : '')}>
+    <div className="notebook-view animate-fade-in pb-10">
       {/* Mobile top bar: Segmented Control & Slim Action Strip */}
       {isPhone && (
         <div className="mb-3 space-y-2.5">

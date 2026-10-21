@@ -19,7 +19,7 @@ interface Props {
   onRestore: () => void;
 }
 
-const SEGMENT = 'flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-[13px] font-black transition-all';
+const SEGMENT = 'flex min-h-10 flex-1 cursor-pointer items-center justify-center rounded-xl text-[13px] transition-all whitespace-nowrap';
 const QUICK_PRESETS = [30, 50, 70, 85, 100] as const;
 
 /** Phones answer "how many correct answers give what score?": result first, then one stepper per skill. */
@@ -29,9 +29,9 @@ export function PhoneResources({ rawListening, rawReading, onListening, onReadin
   const cefrTier = CONCORDANCE_TIERS.find(tier => tier.cefr === cefr);
 
   return <div className="space-y-4 pb-6">
-    <div role="group" aria-label="Chế độ quy đổi" className="flex rounded-[14px] border-2 border-slate-900 bg-[#efebe4] p-1 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-700 dark:bg-[#162137] dark:shadow-none">
+    <div role="group" aria-label="Chế độ quy đổi" className="grid grid-cols-2 rounded-2xl border-[1.5px] border-slate-200 bg-slate-100/90 p-1 dark:border-slate-800 dark:bg-slate-900/80">
       {([['calc', 'Máy tính điểm'], ['matrix', 'Bảng đối chiếu']] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={tab === id} onClick={() => setTab(id)}
-        className={`${SEGMENT} ${tab === id ? 'border-2 border-slate-900 bg-white text-slate-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-none' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>{label}</button>)}
+        className={`${SEGMENT} ${tab === id ? 'bg-white text-slate-950 font-black shadow-xs border-[1.5px] border-slate-200/90 dark:bg-[#111A2C] dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-bold'}`}>{label}</button>)}
     </div>
 
     {tab === 'calc' ? <>
@@ -78,13 +78,13 @@ export function PhoneResources({ rawListening, rawReading, onListening, onReadin
           </span>
           <button
             type="button"
-            aria-label="Xem chi tiết cách ước tính điểm"
+            aria-label="Cách ước tính điểm"
             aria-haspopup="dialog"
             onClick={() => setInfoOpen(true)}
             className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center gap-1.5 px-2 text-[13px] font-black text-blue-600 hover:text-blue-700 active:opacity-70 dark:text-blue-400 dark:hover:text-blue-300"
           >
             <Info className="h-4 w-4" aria-hidden="true" />
-            <span>Chi tiết</span>
+            <span>Cách ước tính điểm</span>
           </button>
         </div>
       </section>

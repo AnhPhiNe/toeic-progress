@@ -81,12 +81,11 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
   }, [days, today]);
 
   const weekTotal = useMemo(() => past7Days.reduce((acc, d) => acc + d.count, 0), [past7Days]);
-  const highest7 = useMemo(() => Math.max(1, ...past7Days.map(d => d.count)), [past7Days]);
   const activeDaysCount = useMemo(() => past7Days.filter(d => d.count > 0).length, [past7Days]);
   const history = useMemo(() => [...days].reverse(), [days]);
 
   return (
-    <div className="vocabulary-view space-y-4 pb-28">
+    <div className="vocabulary-view space-y-4 pb-10">
       {onNavigateTab && (
         <ReviewSegmentedControl
           activeTab="vocabulary"
@@ -96,7 +95,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
         />
       )}
 
-      {/* Bento Card 1: Header + Counter + Presets */}
+      {/* Bento Card 1: Header + Counter + Presets + Submit Button */}
       <form
         id="vocab-phone-form"
         onSubmit={onSubmit}
@@ -190,6 +189,29 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
           ))}
         </div>
 
+        {/* Nút lưu in-flow ngay trong card */}
+        <div className="mt-4">
+          <button
+            type="submit"
+            className={'flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 text-sm font-black shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:shadow-none ' + (
+              saved ? 'bg-emerald-300 text-slate-950' : 'bg-blue-600 text-white hover:bg-blue-700'
+            )}
+          >
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            <span>
+              {saved
+                ? 'Đã lưu!'
+                : !valid
+                ? 'Lưu từ vựng'
+                : existing
+                ? `Cập nhật · ${value.toLocaleString('vi-VN')} từ`
+                : date === today
+                ? `Lưu ${value.toLocaleString('vi-VN')} từ hôm nay`
+                : `Lưu ${value.toLocaleString('vi-VN')} từ`}
+            </span>
+          </button>
+        </div>
+
         {existing && (
           <p id="vocab-update-help" className="mt-3 text-[12.5px] font-semibold text-amber-700 dark:text-amber-300">
             Đã ghi {existing.count.toLocaleString('vi-VN')} từ cho ngày này · lưu sẽ thay số cũ.
@@ -198,78 +220,52 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
         {error && <p role="alert" className="mt-3 text-sm font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
       </form>
 
-      {/* Bento Card 2: Tiến độ 7 ngày · X từ tích lũy with Mini Bar Chart */}
+      {/* Bento Card 2: Dải 7 ngày tối giản (Minimalist Streak Row) */}
       <section
         aria-labelledby="vocab-7day-heading"
-        className="rounded-2xl border-2 border-slate-900 bg-white p-4.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
+        className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] space-y-3"
       >
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="vocab-7day-heading" className="text-[15px] font-black text-slate-950 dark:text-white">
-            Tiến độ 7 ngày · {total.toLocaleString('vi-VN')} từ tích lũy
+        <div className="flex items-center justify-between">
+          <h2 id="vocab-7day-heading" className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+            Tiến độ 7 ngày
           </h2>
-          <span className="text-[12px] font-bold text-violet-700 dark:text-violet-400">
-            {weekTotal > 0 ? `${weekTotal.toLocaleString('vi-VN')} từ tuần này` : 'Chưa có từ tuần này'}
+          <span className="text-xs font-black text-violet-700 dark:text-violet-400 font-mono">
+            {weekTotal > 0 ? `${weekTotal.toLocaleString('vi-VN')} từ tích lũy` : 'Chưa có từ'}
           </span>
         </div>
 
-        {/* 7-day visual bar chart */}
+        {/* 7-day pill strip */}
         <div
-          className="mt-4 flex h-28 items-end gap-2 pt-2"
+          className="grid grid-cols-7 gap-1.5 py-1 text-center"
           role="img"
           aria-label={`Tiến độ 7 ngày qua: ${activeDaysCount} ngày học, tổng ${weekTotal} từ.`}
         >
-          {past7Days.map(day => {
-            const heightPercent = day.count > 0 ? Math.max(18, Math.round((day.count / highest7) * 100)) : 0;
-            return (
-              <div key={day.date} className="flex flex-1 flex-col items-center justify-end h-full">
-                {/* Daily count label above bar */}
-                <span className={`mb-1 text-[11px] font-extrabold tabular-nums ${day.isToday ? 'text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                  {day.count > 0 ? day.count : ''}
-                </span>
-                {/* Bar track and fill */}
-                <div className="relative flex w-full max-w-[36px] flex-1 items-end justify-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800/80">
-                  {day.count > 0 ? (
-                    <div
-                      className={`w-full rounded-lg transition-all ${
-                        day.isToday
-                          ? 'bg-gradient-to-t from-violet-600 to-indigo-500 shadow-sm dark:from-violet-500 dark:to-indigo-400'
-                          : 'bg-violet-300 dark:bg-violet-700/80'
-                      }`}
-                      style={{ height: `${heightPercent}%` }}
-                      title={`${day.shortDate}: ${day.count} từ`}
-                    />
-                  ) : (
-                    <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700" title={`${day.shortDate}: 0 từ`} />
-                  )}
-                </div>
-                {/* Day label below */}
-                <div className="mt-1.5 text-center leading-none">
-                  <span className={`block text-[11px] font-bold ${day.isToday ? 'font-black text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400'}`}>
-                    {day.label}
-                  </span>
-                  <span className="block text-[9.5px] font-medium text-slate-400 dark:text-slate-500">
-                    {day.shortDate}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+          {past7Days.map(day => (
+            <div
+              key={day.date}
+              className={`p-1.5 rounded-xl border text-center transition-all ${
+                day.isToday
+                  ? 'bg-violet-600 text-white border-2 border-slate-900 shadow-xs dark:border-white'
+                  : day.count > 0
+                  ? 'bg-violet-50 text-violet-900 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800'
+                  : 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:border-slate-800'
+              }`}
+              title={`${day.shortDate}: ${day.count} từ`}
+            >
+              <span className="text-[9.5px] font-bold block opacity-80">{day.label}</span>
+              <span className="text-[11.5px] font-black mt-0.5 block font-mono">
+                {day.count > 0 ? day.count : '—'}
+              </span>
+            </div>
+          ))}
         </div>
 
-        {/* 3 mini stat pills underneath */}
-        <div className="mt-3.5 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 text-center">
-          <div className="rounded-xl bg-slate-50 p-2 dark:bg-slate-800/50">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">7 ngày qua</span>
-            <span className="mt-0.5 block text-[13px] font-black text-slate-900 dark:text-white tabular-nums">{weekTotal.toLocaleString('vi-VN')} từ</span>
-          </div>
-          <div className="rounded-xl bg-slate-50 p-2 dark:bg-slate-800/50">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Trung bình</span>
-            <span className="mt-0.5 block text-[13px] font-black text-slate-900 dark:text-white tabular-nums">{Math.round(weekTotal / 7).toLocaleString('vi-VN')} từ/ng</span>
-          </div>
-          <div className="rounded-xl bg-slate-50 p-2 dark:bg-slate-800/50">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Đã học</span>
-            <span className="mt-0.5 block text-[13px] font-black text-slate-900 dark:text-white tabular-nums">{activeDaysCount}/7 ngày</span>
-          </div>
+        {/* 1 dòng tóm tắt duy nhất thay cho 3 hộp lặp lại chữ */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+          <span>Chuỗi học hiện tại:</span>
+          <span className="inline-flex items-center gap-1 font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+            🔥 {streak > 0 ? `${streak} ngày liên tục` : 'Bắt đầu hôm nay'}
+          </span>
         </div>
       </section>
 
@@ -290,30 +286,6 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
           <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
         </button>
       )}
-
-      {/* Sticky Bottom Save Button: Nút lưu to bản Lưu X từ hôm nay */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
-        <button
-          type="submit"
-          form="vocab-phone-form"
-          className={'flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 text-base font-black shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none ' + (
-            saved ? 'bg-emerald-300 text-slate-950' : 'bg-blue-600 text-white'
-          )}
-        >
-          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-          <span>
-            {saved
-              ? 'Đã lưu!'
-              : !valid
-              ? 'Lưu từ vựng'
-              : existing
-              ? `Cập nhật · ${value.toLocaleString('vi-VN')} từ`
-              : date === today
-              ? `Lưu ${value.toLocaleString('vi-VN')} từ hôm nay`
-              : `Lưu ${value.toLocaleString('vi-VN')} từ`}
-          </span>
-        </button>
-      </div>
 
       <p role="status" aria-live="polite" className="sr-only">{feedback}</p>
 
