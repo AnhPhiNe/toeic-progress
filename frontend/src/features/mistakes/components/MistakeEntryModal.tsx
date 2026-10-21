@@ -660,9 +660,10 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                     value={batchNumbersText}
                     disabled={Boolean(batchProgress)}
                     onChange={event => { setBatchNumbersText(event.target.value); setError(''); }}
-                    placeholder="Để trống = tự dò câu 101–200, hoặc gõ: 107 131"
+                    placeholder="VD: 107 131-134"
                     className={twMerge(inputClass, 'min-h-11 py-2 text-sm border-2 border-slate-300 dark:border-slate-700')}
                   />
+                  <p className="mt-1 text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">Để trống để AI tự dò mọi câu 101–200 trong ảnh</p>
                 </div>
               </div>
 
