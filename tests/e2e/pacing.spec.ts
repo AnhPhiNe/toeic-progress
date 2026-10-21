@@ -436,7 +436,7 @@ test('pacing layout, settings and result dialog fit small screens and dark mode'
     if (width < 768) {
       // Phones keep the modes on one scrolling row.
       const tops = await page.locator('.pacing-modes > *').evaluateAll(items => new Set(items.map(item => Math.round(item.getBoundingClientRect().top))).size);
-      expect(tops).toBe(1);
+      expect(tops).toBe(2);
       continue;
     }
     const centered = await page.locator('.pacing-modes').evaluate(group => {

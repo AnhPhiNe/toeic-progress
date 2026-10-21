@@ -74,7 +74,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
         date: day,
         count: byDate.get(day) ?? 0,
         isToday: day === today,
-        label: offset === 6 ? 'Hôm nay' : weekdayLabel,
+        label: offset === 6 ? 'Nay' : weekdayLabel,
         shortDate: formatVocabDate(day).slice(0, 5)
       };
     });
@@ -252,7 +252,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
               }`}
               title={`${day.shortDate}: ${day.count} từ`}
             >
-              <span className="text-[9.5px] font-bold block opacity-80">{day.label}</span>
+              <span className="text-[10px] font-bold block opacity-80 whitespace-nowrap">{day.label}</span>
               <span className="text-[11.5px] font-black mt-0.5 block font-mono">
                 {day.count > 0 ? day.count : '—'}
               </span>

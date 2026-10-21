@@ -6,7 +6,7 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { DEFAULT_POMODORO, formatClock, formatNumber, hasFlexibleQuestions, PRESETS, type PacingMode, type PomodoroPhase, type PomodoroSettings } from '@/features/pacing/lib/pacingModel';
 
-export const pacingPrimary = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-emerald-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-[2px_2px_0px_#0f172a] hover:bg-emerald-300 disabled:opacity-40';
+export const pacingPrimary = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap shrink-0 rounded-xl border-2 border-slate-900 bg-emerald-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-[2px_2px_0px_#0f172a] hover:bg-emerald-300 disabled:opacity-40';
 export const pacingSecondary = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-[2px_2px_0px_#0f172a] dark:border-slate-300 dark:text-white dark:shadow-[2px_2px_0px_#cbd5e1]';
 const inputClass = 'mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white';
 

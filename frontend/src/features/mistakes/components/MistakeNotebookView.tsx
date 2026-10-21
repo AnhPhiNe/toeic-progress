@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Zap } from 'lucide-react';
+import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
 import { ReviewSegmentedControl } from './ReviewSegmentedControl';
 import type { NavTabId, MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -136,11 +136,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const currentPage = Math.min(page, pageCount);
   const visibleMistakes = filteredMistakes.slice((currentPage - 1) * NOTEBOOK_PAGE_SIZE, currentPage * NOTEBOOK_PAGE_SIZE);
   useEffect(() => { setPage(current => Math.min(current, pageCount)); }, [pageCount]);
-  const duePartsText = useMemo(() => {
-    const parts = Array.from(new Set(mistakes.filter(m => isDueForReview(m)).map(m => m.part))).sort((a, b) => a - b);
-    if (!parts.length) return '';
-    return parts.map(p => `Part ${p}`).join(' · ');
-  }, [mistakes]);
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
   const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? '';
@@ -298,46 +293,16 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   };
 
   return (
-    <div className="notebook-view animate-fade-in pb-10">
-      {/* Mobile top bar: Segmented Control & Slim Action Strip */}
-      {isPhone && (
-        <div className="mb-3 space-y-2.5">
-          {onNavigateTab && (
-            <ReviewSegmentedControl
-              activeTab="mistakes"
-              onNavigateTab={onNavigateTab}
-              dueCount={dueCount}
-              totalCount={mistakes.length}
-            />
-          )}
-
-          {dueCount > 0 && (
-            <div className="flex min-h-[46px] items-center justify-between gap-3 rounded-2xl border-[1.5px] border-rose-200/90 bg-rose-50/80 px-3.5 py-1.5 shadow-2xs dark:border-rose-900/60 dark:bg-rose-950/40 dark:shadow-none">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-900/60 dark:text-rose-400">
-                  <Zap size={18} className="fill-rose-500 text-rose-500" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <div className="truncate text-[13.5px] font-black leading-tight text-rose-950 dark:text-rose-200">
-                    {dueCount} câu cần ôn hôm nay
-                  </div>
-                  {duePartsText && (
-                    <div className="truncate text-[11px] font-semibold text-rose-700/80 dark:text-rose-400/80">
-                      {duePartsText}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
-                className="flex shrink-0 cursor-pointer items-center gap-0.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-rose-700 active:scale-95"
-              >
-                <span>Ôn ngay</span>
-                <span aria-hidden="true">›</span>
-              </button>
-            </div>
-          )}
+    <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-28' : '')}>
+      {/* Mobile top bar: Segmented Control */}
+      {isPhone && onNavigateTab && (
+        <div className="mb-3">
+          <ReviewSegmentedControl
+            activeTab="mistakes"
+            onNavigateTab={onNavigateTab}
+            dueCount={dueCount}
+            totalCount={mistakes.length}
+          />
         </div>
       )}
 

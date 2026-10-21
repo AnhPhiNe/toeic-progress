@@ -103,6 +103,31 @@
 @container(max-width: 520px) { .pacing-setup.is-pomodoro { grid-template-columns: minmax(0, 1fr); gap: 8px; }.pacing-setup.is-pomodoro .pacing-phases, .pacing-setup.is-pomodoro .pacing-settings { grid-column: 1; justify-self: center; } }
 @container(max-width: 300px) { .pacing-stats-filters { grid-template-columns: minmax(0, 1fr); width: 100%; } }
 @container(max-width: 640px) {
+  .pacing-history-panel .pacing-view-tools {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "title action"
+      "tools tools";
+    gap: 12px 10px;
+    align-items: center;
+  }
+  .pacing-history-panel .pacing-view-tools > h2 {
+    grid-area: title;
+  }
+  .pacing-history-panel .pacing-history-header-actions {
+    display: contents;
+  }
+  .pacing-history-panel .pacing-history-tools {
+    grid-area: tools;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pacing-history-panel .pacing-history-header-actions > button {
+    grid-area: action;
+    white-space: nowrap;
+    justify-self: end;
+  }
   .pacing-history-tools { grid-template-columns: minmax(0, 1fr); }
   .pacing-history-table, .pacing-history-table tbody { display: block; }
   .pacing-history-table colgroup { display: none; }
@@ -136,7 +161,7 @@
   .dark .pacing-history-mobile-label { color: #a5b4cb; }
   .pacing-history-value { font-size: 13.5px; font-weight: 800; white-space: nowrap; }
 }
-/* Phones: the page itself is the surface (no card), tabs span the width, modes scroll in one row. */
+/* Phones: the page itself is the surface (no card), tabs span the width, modes in 2 rows. */
 .pacing-view.is-phone .pacing-frame, .dark .pacing-view.is-phone .pacing-frame { border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
 .pacing-view.is-phone .pacing-header, .dark .pacing-view.is-phone .pacing-header { padding: 0; border: 0; background: transparent; }
 .pacing-view.is-phone .pacing-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; width: 100%; padding: 3px; border-radius: 13px; background: #efebe4; }
@@ -144,6 +169,33 @@
 .pacing-view.is-phone .pacing-tab { justify-content: center; }
 .pacing-view.is-phone .pacing-tab svg { display: none; }
 .pacing-panel.is-phone { padding: 16px 0 0; }
+.pacing-panel.is-phone .pacing-modes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 0;
+}
+.pacing-panel.is-phone .pacing-modes .pacing-mode {
+  min-height: 42px;
+  padding: 7px 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+.pacing-panel.is-phone .pacing-modes .pacing-mode:nth-child(1),
+.pacing-panel.is-phone .pacing-modes .pacing-mode:nth-child(2),
+.pacing-panel.is-phone .pacing-modes .pacing-mode:nth-child(3) {
+  grid-column: span 2;
+}
+.pacing-panel.is-phone .pacing-modes .pacing-mode:nth-child(4),
+.pacing-panel.is-phone .pacing-modes .pacing-mode:nth-child(5) {
+  grid-column: span 3;
+}
 .pacing-modes.is-scroll { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; width: auto; margin: 0 -16px; padding: 2px 16px 5px; scrollbar-width: none; }
 .pacing-modes.is-scroll::-webkit-scrollbar { display: none; }
 .pacing-modes.is-scroll .pacing-mode { flex: none; }
