@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('phone overview plots the four latest tests, marks retakes instead of offering a filter, and shows the record date', async ({ page }) => {
+test('phone overview shows score report, tasks, hides progress chart on phone, and preserves chart on desktop', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.evaluate(() => {
@@ -18,10 +18,9 @@ test('phone overview plots the four latest tests, marks retakes instead of offer
   await page.reload();
 
   await expect(page.getByRole('tab', { name: 'Lần đầu' })).toHaveCount(0);
-  await expect(page.locator('.overview-chart-labels text')).toHaveCount(4);
-  await expect(page.locator('.overview-chart-labels [data-retest]')).toHaveCount(1);
-  await expect(page.getByText('Làm lại đề cũ', { exact: true })).toBeVisible();
-  await expect(page.getByText('Ngày 04/09', { exact: true })).toBeVisible();
+  await expect(page.locator('.overview-chart-labels text')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Nhiệm vụ hôm nay' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Xem chi tiết 7 Part/ })).toBeVisible();
   const goalBar = page.locator('[data-goal-bar]');
   await expect(goalBar).toHaveClass(/bg-blue-600/);
   await page.evaluate(() => {

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, ChevronRight, Minus, Plus, Trash2 } from 'lucide-react';
 import { Sheet } from '@/app/components/MobileNav';
+import type { NavTabId } from '@/shared/types';
+import { ReviewSegmentedControl } from '@/features/mistakes/components/ReviewSegmentedControl';
 import { formatVocabDate, summarizeVocabDays, vocabDayIndex, type VocabDay } from '../lib/vocabularyModel';
 
 interface Props {
@@ -13,6 +15,9 @@ interface Props {
   saved: boolean;
   error: string;
   feedback: string;
+  dueMistakesCount?: number;
+  totalMistakesCount?: number;
+  onNavigateTab?: (tab: NavTabId) => void;
   onDate: (date: string) => void;
   onCount: (count: string) => void;
   onSubmit: (event: React.FormEvent) => void;
@@ -27,7 +32,7 @@ const dayFromIndex = (index: number) => new Date(index * 86400000).toISOString()
 const shortDate = (date: string) => formatVocabDate(date).slice(0, 5);
 
 /** Phones answer "how many words today?": one big count with −/+ and presets, a small 14-day strip, history in a sheet. */
-export function PhoneVocabulary({ today, days, total, date, count, existing, saved, error, feedback, onDate, onCount, onSubmit, onEdit, onDelete }: Props) {
+export function PhoneVocabulary({ today, days, total, date, count, existing, saved, error, feedback, dueMistakesCount, totalMistakesCount, onNavigateTab, onDate, onCount, onSubmit, onEdit, onDelete }: Props) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [shown, setShown] = useState(HISTORY_STEP);
   const value = Number(count);
@@ -44,6 +49,14 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
   const history = useMemo(() => [...days].reverse(), [days]);
 
   return <div className="vocabulary-view space-y-4 pb-24">
+    {onNavigateTab && (
+      <ReviewSegmentedControl
+        activeTab="vocabulary"
+        onNavigateTab={onNavigateTab}
+        dueCount={dueMistakesCount}
+        totalCount={totalMistakesCount}
+      />
+    )}
     <form id="vocab-phone-form" onSubmit={onSubmit} className="rounded-2xl border-2 border-slate-900 bg-white px-4 pb-4 pt-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
       <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
         {date === today ? 'Hôm nay' : 'Ngày'} · {shortDate(date)}{' '}

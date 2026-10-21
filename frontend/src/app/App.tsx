@@ -445,6 +445,9 @@ export const App: React.FC = () => {
                 theme={theme}
                 onOpenSessionLogger={() => openSessionLogger()}
                 onNavigateToAnalytics={() => setActiveTab('analytics')}
+                dueMistakesCount={dueMistakesCount}
+                onStartReview={openReview}
+                onNavigateToPacing={navigateToPacing}
               />
             </div>
           )}
@@ -502,6 +505,7 @@ export const App: React.FC = () => {
               onDeleteMistake={handleDeleteMistake}
               onUpdateMistake={handleUpdateMistake}
               onOpenSessionLogger={() => openSessionLogger()}
+              onNavigateTab={setActiveTab}
             />
           )}
 
@@ -510,6 +514,9 @@ export const App: React.FC = () => {
               key={activeOwner ?? 'guest'}
               vocabLog={vocabLog}
               theme={theme}
+              dueMistakesCount={dueMistakesCount}
+              totalMistakesCount={mistakes.length}
+              onNavigateTab={setActiveTab}
               onSaveVocab={handleSaveVocab}
               onDeleteVocab={handleDeleteVocab}
               sourceNames={collectTestNames(sessions, mistakes)}

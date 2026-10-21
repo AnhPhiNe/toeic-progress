@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
-import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
+import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Zap } from 'lucide-react';
+import { ReviewSegmentedControl } from './ReviewSegmentedControl';
+import type { NavTabId, MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
 import { DetailListFlow } from '@/features/mistakes/components/DetailListFlow';
@@ -60,13 +61,14 @@ interface MistakeNotebookViewProps {
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
   onOpenSessionLogger?: () => void;
+  onNavigateTab?: (tab: NavTabId) => void;
 }
 
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
 export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
-  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger }: MistakeNotebookViewProps) {
+  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger, onNavigateTab }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
@@ -134,6 +136,11 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const currentPage = Math.min(page, pageCount);
   const visibleMistakes = filteredMistakes.slice((currentPage - 1) * NOTEBOOK_PAGE_SIZE, currentPage * NOTEBOOK_PAGE_SIZE);
   useEffect(() => { setPage(current => Math.min(current, pageCount)); }, [pageCount]);
+  const duePartsText = useMemo(() => {
+    const parts = Array.from(new Set(mistakes.filter(m => isDueForReview(m)).map(m => m.part))).sort((a, b) => a - b);
+    if (!parts.length) return '';
+    return parts.map(p => `Part ${p}`).join(' · ');
+  }, [mistakes]);
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
   const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? '';
@@ -291,17 +298,59 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   };
 
   return (
-    <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-24' : '')}>
+    <div className="notebook-view animate-fade-in pb-10">
+      {/* Mobile top bar: Segmented Control & Slim Action Strip */}
+      {isPhone && (
+        <div className="mb-3 space-y-2.5">
+          {onNavigateTab && (
+            <ReviewSegmentedControl
+              activeTab="mistakes"
+              onNavigateTab={onNavigateTab}
+              dueCount={dueCount}
+              totalCount={mistakes.length}
+            />
+          )}
+
+          {dueCount > 0 && (
+            <div className="flex min-h-[46px] items-center justify-between gap-3 rounded-2xl border-[1.5px] border-rose-200/90 bg-rose-50/80 px-3.5 py-1.5 shadow-2xs dark:border-rose-900/60 dark:bg-rose-950/40 dark:shadow-none">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-900/60 dark:text-rose-400">
+                  <Zap size={18} className="fill-rose-500 text-rose-500" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="truncate text-[13.5px] font-black leading-tight text-rose-950 dark:text-rose-200">
+                    {dueCount} câu cần ôn hôm nay
+                  </div>
+                  {duePartsText && (
+                    <div className="truncate text-[11px] font-semibold text-rose-700/80 dark:text-rose-400/80">
+                      {duePartsText}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
+                className="flex shrink-0 cursor-pointer items-center gap-0.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-rose-700 active:scale-95"
+              >
+                <span>Ôn ngay</span>
+                <span aria-hidden="true">›</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <section aria-labelledby="notebook-heading" className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[3px_3px_0px_#cbd5e1] max-md:-mx-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:dark:bg-transparent max-md:dark:shadow-none">
       <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-4 sm:px-5 max-md:p-0">
         <h2 id="notebook-heading" className="max-md:sr-only flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg dark:text-white"><BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />Sổ tay</h2>
-        {/* Phones: the review button lives in a bar above the bottom navigation, within thumb reach. */}
-        <div className={'grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex max-md:grid-cols-1 ' + (mistakes.length === 0 ? '!hidden ' : '') + (isPhone && reviewCount > 0 ? 'fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]' : isPhone ? 'hidden' : '')}>
+        {/* Desktop: review & create mistake buttons */}
+        <div className={'hidden sm:flex items-center gap-2 ' + (mistakes.length === 0 ? '!hidden' : '')}>
           <button
             type="button"
             onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
             disabled={reviewCount === 0}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-all max-md:min-h-[54px] max-md:rounded-2xl max-md:text-base ${
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-all ${
               reviewCount > 0
                 ? 'cursor-pointer border-2 border-slate-900 bg-emerald-400 text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
                 : 'cursor-not-allowed border-2 border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
@@ -309,13 +358,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           >
             <Brain className="h-4 w-4 shrink-0" aria-hidden="true" />
             {reviewCount > 0
-              ? <span>{isPhone ? `Ôn ${reviewCount} câu đến hạn` : `Ôn ${reviewCount} thẻ`}</span>
-              : <span>Chưa có thẻ<span className="hidden sm:inline"> đến hạn</span></span>}
+              ? <span>Ôn {reviewCount} thẻ</span>
+              : <span>Chưa có thẻ đến hạn</span>}
           </button>
           <button
             type="button"
             onClick={openCreate}
-            className="max-md:hidden flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none dark:hover:bg-slate-800 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-[2.5px_2.5px_0px_#0f172a] transition-all hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none dark:hover:bg-slate-800 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" aria-hidden="true" />
             <span>Thêm câu sai</span>

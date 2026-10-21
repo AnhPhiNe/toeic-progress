@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Customized, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { VocabLog } from '@/shared/data/dataBundle';
+import type { NavTabId } from '@/shared/types';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { getTodayDateString, loadVocabLog } from '@/shared/data/storage';
 import { useChartMotion } from '@/shared/hooks/useChartMotion';
@@ -19,11 +20,14 @@ interface Props {
   vocabLog: VocabLog[];
   theme: 'light' | 'dark';
   sourceNames?: string[];
+  dueMistakesCount?: number;
+  totalMistakesCount?: number;
+  onNavigateTab?: (tab: NavTabId) => void;
   onSaveVocab: (date: string, count: number, details?: VocabDetails) => void;
   onDeleteVocab?: (id: string) => void;
 }
 
-export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab, onDeleteVocab }: Props) {
+export function VocabularyView({ vocabLog, theme, sourceNames = [], dueMistakesCount, totalMistakesCount, onNavigateTab, onSaveVocab, onDeleteVocab }: Props) {
   const today = getTodayDateString();
   const isDark = theme === 'dark';
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -127,6 +131,7 @@ export function VocabularyView({ vocabLog, theme, sourceNames = [], onSaveVocab,
 
   if (isPhone) return <>
     <PhoneVocabulary today={today} days={days} total={total} date={quickDate} count={quickCount} existing={existing} saved={saved} error={error} feedback={feedback}
+      dueMistakesCount={dueMistakesCount} totalMistakesCount={totalMistakesCount} onNavigateTab={onNavigateTab}
       onDate={chooseDate} onCount={value => { setQuickCount(value); setSaved(false); }} onSubmit={quickSave} onEdit={startEdit} onDelete={onDeleteVocab ? removeDay : undefined} />
     {editModal}
   </>;

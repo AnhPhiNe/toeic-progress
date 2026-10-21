@@ -20,7 +20,7 @@ import {
   CartesianGrid,
   Customized
 } from 'recharts';
-import { StudySession, UserProfile, PacingRun } from '@/shared/types';
+import { StudySession, UserProfile, PacingRun, ReadingPartType } from '@/shared/types';
 import type { VocabLog } from '@/shared/data/dataBundle';
 import { actualStudyDates } from '@/shared/domain/streak';
 import { getTodayDateString, computeSessionAttemptMap } from '@/shared/data/storage';
@@ -40,12 +40,15 @@ interface DashboardProps {
   theme: 'light' | 'dark';
   onOpenSessionLogger: () => void;
   onNavigateToAnalytics: () => void;
+  dueMistakesCount?: number;
+  onStartReview?: () => void;
+  onNavigateToPacing?: (part: ReadingPartType) => void;
 }
 
 // Bề mặt thẻ dùng chung với các màn hình khác (xem surfaces.ts)
 
 // Trên điện thoại chỉ thẻ điểm giữ viền đậm; biểu đồ dùng viền mảnh để không tranh chú ý.
-const PHONE_PANEL = 'rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#111A2C]';
+
 
 const PHONE_CHART_POINTS = 4;
 
@@ -61,7 +64,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   pacingRuns,
   theme,
   onOpenSessionLogger,
-  onNavigateToAnalytics
+  onNavigateToAnalytics,
+  dueMistakesCount = 0,
+  onStartReview,
+  onNavigateToPacing
 }) => {
   const today = getTodayDateString();
   const isDark = theme === 'dark';
@@ -272,6 +278,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const previousTotal = allChartData.length > 1 ? allChartData[allChartData.length - 2].total : undefined;
   const highestPercent = targetScore > 0 ? Math.min(100, Math.round(((highestScore || 0) / targetScore) * 100)) : 0;
 
+  const weakestPart = useMemo(() => {
+    if (!latestTest?.partScores) return 7;
+    const parts: Array<{ part: 5 | 6 | 7; max: number; key: 'part5' | 'part6' | 'part7' }> = [
+      { part: 5, max: 30, key: 'part5' },
+      { part: 6, max: 16, key: 'part6' },
+      { part: 7, max: 54, key: 'part7' },
+    ];
+    let minAcc = 2;
+    let weakest: 5 | 6 | 7 = 7;
+    for (const p of parts) {
+      const val = latestTest.partScores[p.key];
+      if (val !== undefined) {
+        const acc = val / p.max;
+        if (acc < minAcc) {
+          minAcc = acc;
+          weakest = p.part;
+        }
+      }
+    }
+    return weakest;
+  }, [latestTest]);
+
   return (
     <div className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in">
 
@@ -280,11 +308,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* ================= CỘT TRÁI (3 KPI Game Hóa Thành Tích & Biểu đồ tiến độ) ================= */}
         <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
-          {isPhone && <PhoneSummary latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
-            listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
-            highestScore={highestScore} avgScore={stats?.avgScore}
-            totalTests={stats?.totalTests ?? 0} diff={diff} hasDiff={hasDiff} firstTotal={stats?.first.total}
-            bestTestDate={bestTest?.date} latestIsBest={Boolean(bestTest) && bestTest?.id === latestTest?.id} onOpenSessionLogger={onOpenSessionLogger} />}
+          {isPhone && (
+            <PhoneSummary
+              latestTest={latestTest}
+              latestTotal={latestTotal}
+              previousTotal={previousTotal}
+              listeningScore={listeningScore}
+              readingScore={readingScore}
+              targetScore={targetScore}
+              highestScore={highestScore}
+              avgScore={stats?.avgScore}
+              totalTests={stats?.totalTests ?? 0}
+              diff={diff}
+              hasDiff={hasDiff}
+              firstTotal={stats?.first.total}
+              bestTestDate={bestTest?.date}
+              latestIsBest={Boolean(bestTest) && bestTest?.id === latestTest?.id}
+              dueMistakesCount={dueMistakesCount}
+              weakestPart={weakestPart}
+              motto={profile.motto}
+              onOpenSessionLogger={onOpenSessionLogger}
+              onStartReview={onStartReview}
+              onNavigateToPacing={onNavigateToPacing}
+              onViewDetails={onNavigateToAnalytics}
+            />
+          )}
 
           {/* 1. DẢI 3 THẺ CHỈ SỐ — từ tablet trở lên; điện thoại dùng PhoneSummary ở trên */}
           {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
@@ -459,10 +507,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {/* 3. BIỂU ĐỒ TIẾN BỘ */}
           {/* Điện thoại: khi chưa có đề, thẻ PhoneSummary đã mời ghi điểm nên ẩn biểu đồ trống */}
-          <div className={`${isPhone ? PHONE_PANEL : CARD} flex-1 ${isPhone && allChartData.length === 0 ? 'hidden' : 'flex'} flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
+          {!isPhone && (
+          <div className={`${CARD} flex-1 flex flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-[15px] md:text-sm font-black text-slate-900 dark:text-white">
-                <span className="md:hidden">Tiến bộ{allChartData.length > PHONE_CHART_POINTS && <span className="font-semibold text-slate-500 dark:text-slate-400"> · {PHONE_CHART_POINTS} đề</span>}</span><span className="hidden md:inline">Tiến bộ qua từng bài thi</span>
+                Tiến bộ qua từng bài thi
               </h2>
               <div className="flex items-center gap-1.5">
                 {!isPhone && <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="tablist">
@@ -593,7 +642,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       dot={false}
                       activeDot={{ r: 6.5, fill: '#2563EB', stroke: isDark ? '#FFFFFF' : '#0F172A', strokeWidth: 2 }}
                     />
-                    <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} markRetests={isPhone} />} />
+                    <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} markRetests={false} />} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -614,12 +663,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               )}
               </div>
             </div>
-            {isPhone && chartData.some(d => d.isRetest) && (
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <span className="h-2.5 w-2.5 rounded-full border-2 border-slate-400 dark:border-slate-500" aria-hidden="true" />Làm lại đề cũ
-              </p>
-            )}
           </div>
+          )}
 
         </div>
 

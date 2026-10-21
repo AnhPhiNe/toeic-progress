@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  BookMarked,
   BookOpen,
   BookmarkPlus,
   Calculator,
@@ -38,13 +37,10 @@ type SheetId = 'record' | 'more' | null;
 
 const MORE_PAGES: Array<{ id: NavTabId; label: string; icon: React.ElementType }> = [
   { id: 'plan', label: 'Kế hoạch', icon: Target },
+  { id: 'exam-mode', label: 'Đồng hồ Pacing', icon: Timer },
   { id: 'history', label: 'Lịch sử', icon: History },
-  { id: 'analytics', label: 'Phân tích', icon: TrendingUp },
-  { id: 'vocabulary', label: 'Từ vựng', icon: BookMarked },
-  { id: 'resources', label: 'Quy đổi', icon: Calculator }
+  { id: 'resources', label: 'Bảng quy đổi', icon: Calculator }
 ];
-
-const tile = 'flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl border-[1.5px] px-1 text-[13px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer';
 
 /** Phone-only navigation: four destinations and one "+" that gathers every way to record study. */
 export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, toggleTheme, onOpenSettings, onRecordSession, onRecordMistake, onRecordVocab }: MobileNavProps) {
@@ -78,16 +74,16 @@ export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, to
     <nav aria-label="Điều hướng chính" className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-900 bg-white pb-[env(safe-area-inset-bottom)] dark:border-slate-700 dark:bg-[#0B132B] md:hidden">
       <div className="grid h-16 grid-cols-5">
         {navItem('Tổng quan', LayoutDashboard, activeTab === 'dashboard', () => go('dashboard'))}
-        {navItem('Sổ tay', BookOpen, activeTab === 'mistakes', () => go('mistakes'),
+        {navItem('Ôn tập', BookOpen, activeTab === 'mistakes' || activeTab === 'vocabulary', () => go('mistakes'),
           dueMistakesCount > 0 && <span className="absolute left-1/2 top-1.5 ml-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white tabular-nums" aria-hidden="true">{dueMistakesCount}</span>,
-          dueMistakesCount > 0 ? { 'aria-label': `Sổ tay, ${dueMistakesCount} câu cần ôn` } : undefined)}
+          dueMistakesCount > 0 ? { 'aria-label': `Ôn tập, ${dueMistakesCount} câu cần ôn` } : undefined)}
         <div className="flex items-center justify-center">
           <button type="button" onClick={() => setSheet('record')} aria-label="Ghi lại kết quả học" aria-haspopup="dialog"
             className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-900 bg-blue-600 text-white shadow-[2px_2px_0_0_#0f172a] outline-none active:translate-x-px active:translate-y-px active:shadow-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-slate-200 dark:shadow-none cursor-pointer">
             <Plus size={26} strokeWidth={2.5} aria-hidden="true" />
           </button>
         </div>
-        {navItem('Đồng hồ', Timer, activeTab === 'exam-mode', () => go('exam-mode'))}
+        {navItem('Phân tích', TrendingUp, activeTab === 'analytics', () => go('analytics'))}
         {navItem('Thêm', Menu, moreActive, () => setSheet('more'), undefined, { 'aria-haspopup': 'dialog', 'aria-label': 'Thêm trang và cài đặt' })}
       </div>
     </nav>
@@ -118,28 +114,63 @@ export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, to
 
     {sheet === 'more' && (
       <Sheet title="Thêm" onClose={close}>
-        <div className="grid grid-cols-3 gap-2">
-          {MORE_PAGES.map(page => {
-            const active = activeTab === page.id;
-            return (
-              <button key={page.id} type="button" onClick={() => go(page.id)} aria-current={active ? 'page' : undefined}
-                className={tile + (active
-                  ? ' border-slate-900 bg-indigo-100 text-indigo-950 dark:border-slate-300 dark:bg-indigo-950 dark:text-indigo-100'
-                  : ' border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200')}>
-                <page.icon size={21} aria-hidden="true" />{page.label}
+        <div className="space-y-4">
+          <div>
+            <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Học tập & Luyện đề
+            </h3>
+            <div className="grid grid-cols-2 gap-2.5">
+              {MORE_PAGES.map(page => {
+                const active = activeTab === page.id;
+                return (
+                  <button
+                    key={page.id}
+                    type="button"
+                    onClick={() => go(page.id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={'flex min-h-[58px] items-center gap-3 rounded-2xl border-[1.5px] p-3 text-left text-[13px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer ' + (active
+                      ? 'border-indigo-600 bg-indigo-50/80 text-indigo-950 dark:border-indigo-400 dark:bg-indigo-950/60 dark:text-indigo-200'
+                      : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-850')}
+                  >
+                    <span className={'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ' + (active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')}>
+                      <page.icon size={19} aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1 leading-tight">{page.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Hệ thống
+            </h3>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => run(onOpenSettings)}
+                className="flex min-h-[58px] items-center gap-3 rounded-2xl border-[1.5px] border-slate-200 bg-white p-3 text-left text-[13px] font-bold text-slate-800 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-850"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <Settings size={19} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 leading-tight">Cài đặt</span>
               </button>
-            );
-          })}
-          <button type="button" onClick={() => run(onOpenSettings)}
-            className={tile + ' border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'}>
-            <Settings size={21} aria-hidden="true" />Cài đặt
-          </button>
+
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex min-h-[58px] items-center gap-3 rounded-2xl border-[1.5px] border-slate-200 bg-white p-3 text-left text-[13px] font-bold text-slate-800 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-850"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {theme === 'dark' ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
+                </span>
+                <span className="min-w-0 flex-1 leading-tight">{theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <button type="button" onClick={toggleTheme}
-          className="mt-3 flex min-h-12 w-full items-center gap-3 rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 text-left text-[14px] font-bold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 cursor-pointer">
-          {theme === 'dark' ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
-          {theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}
-        </button>
       </Sheet>
     )}
   </>;

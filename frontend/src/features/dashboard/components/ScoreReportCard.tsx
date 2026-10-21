@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Headphones, BookOpen, Calendar } from 'lucide-react';
+import { Headphones, BookOpen } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
 
 export const formatShortDate = (iso: string) => {
@@ -26,32 +26,47 @@ interface ScoreReportProps {
  * in their section colours, then the goal. Phones add record, average and progress as a footer;
  * computers show those in the tiles above, so they add only the link to the Part breakdown.
  */
-export function ScoreReportCard({ latestTest, latestTotal, previousTotal, listeningScore, readingScore, targetScore,
-  newRecord, roomy, children }: ScoreReportProps) {
+export function ScoreReportCard({
+  latestTest,
+  latestTotal,
+  previousTotal,
+  listeningScore,
+  readingScore,
+  targetScore,
+  newRecord,
+  roomy,
+  children
+}: ScoreReportProps) {
   const remaining = Math.max(0, targetScore - latestTotal);
   const percent = targetScore > 0 ? Math.min(100, Math.round((latestTotal / targetScore) * 100)) : 100;
   const change = previousTotal !== undefined ? latestTotal - previousTotal : undefined;
   const hasSections = listeningScore !== undefined || readingScore !== undefined;
 
   return (
-    <section aria-labelledby="score-report-title" className={'relative overflow-hidden rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] shadow-[4px_4px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C] dark:shadow-[4px_4px_0_0_#cbd5e1] '}>
+    <section
+      aria-labelledby="score-report-title"
+      className="relative overflow-hidden rounded-[22px] border-[1.5px] border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A2C] dark:shadow-none"
+    >
       <div className={roomy ? 'px-5 pt-4 pb-3.5' : 'px-[18px] pt-3.5 pb-3'}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 id="score-report-title" className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-400">Kết quả gần nhất</h2>
-            <p className="mt-0.5 truncate text-[15.5px] font-black text-slate-900 dark:text-white">{latestTest.testName}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+        {/* Header phân tầng: Metadata (Ngày + Kỷ lục) ở trên, Tên đề rộng rãi 100% ở dưới */}
+        <div className="mb-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="score-report-title" className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+              <span>Kết quả gần nhất</span>
+              <span className="text-slate-300 dark:text-slate-600 font-normal">·</span>
+              <span className="normal-case font-bold text-slate-600 dark:text-slate-300 tabular-nums">
+                {formatShortDate(latestTest.date)}
+              </span>
+            </h2>
             {newRecord && (
-              <span className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+              <span className="rounded-full border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[10.5px] font-black text-amber-700 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300 shrink-0">
                 🏆 Kỷ lục mới
               </span>
             )}
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11.5px] font-bold tabular-nums text-slate-600 shadow-2xs dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300">
-              <Calendar className="h-3 w-3 text-slate-400" aria-hidden="true" />
-              <span>{formatShortDate(latestTest.date)}</span>
-            </span>
           </div>
+          <p className="mt-0.5 text-[16px] font-black text-slate-900 dark:text-white tracking-tight truncate">
+            {latestTest.testName}
+          </p>
         </div>
 
         <div className={roomy ? 'mt-3' : 'mt-2'}>
@@ -63,17 +78,19 @@ export function ScoreReportCard({ latestTest, latestTotal, previousTotal, listen
               <span className="text-sm sm:text-base font-bold text-slate-400">/ 990</span>
             </p>
             {change !== undefined && change !== 0 && (
-              <p className={
-                'inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold ' +
-                (change > 0
-                  ? 'border-emerald-200/90 bg-emerald-50 text-slate-600 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-slate-300'
-                  : 'border-rose-200/90 bg-rose-50 text-slate-600 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-slate-300')
-              }>
-                <span className={'font-extrabold tabular-nums ' + (change > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+              <span
+                className={
+                  'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold ' +
+                  (change > 0
+                    ? 'border-emerald-200/90 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : 'border-rose-200/90 bg-rose-50 text-rose-600 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-400')
+                }
+              >
+                <span className="tabular-nums">
                   {change > 0 ? '▲' : '▼'} {Math.abs(change)}
                 </span>
-                <span>so với lần trước</span>
-              </p>
+                <span className="hidden sm:inline font-normal text-slate-500 dark:text-slate-400">so với bài trước</span>
+              </span>
             )}
           </div>
         </div>
@@ -92,7 +109,7 @@ export function ScoreReportCard({ latestTest, latestTotal, previousTotal, listen
       </div>
 
       {hasSections
-        ? <dl className={(roomy ? 'px-5 ' : 'px-[18px] ') + 'grid grid-cols-2 gap-2.5'}>
+        ? <dl className={(roomy ? 'px-5 ' : 'px-[18px] ') + 'grid grid-cols-2 gap-2.5 pb-1'}>
             <Section label="Listening" score={listeningScore} raw={latestTest.rawListening} roomy={roomy} kind="listening" />
             <Section label="Reading" score={readingScore} raw={latestTest.rawReading} roomy={roomy} kind="reading" />
           </dl>
@@ -107,25 +124,24 @@ function Section({ label, score, raw, roomy, kind }: { label: string; score?: nu
   const Icon = kind === 'listening' ? Headphones : BookOpen;
   const isListening = kind === 'listening';
   const cardClass = isListening
-    ? 'rounded-2xl border border-indigo-200/90 bg-indigo-50/80 text-indigo-950 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-100'
-    : 'rounded-2xl border border-teal-200/90 bg-teal-50/80 text-teal-950 dark:border-teal-800/60 dark:bg-teal-950/40 dark:text-teal-100';
-  const labelClass = isListening ? 'text-indigo-800 dark:text-indigo-200' : 'text-teal-800 dark:text-teal-200';
-  const dotClass = isListening ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400';
+    ? 'rounded-2xl border border-indigo-200/90 bg-indigo-50/70 text-indigo-950 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-100 shadow-2xs'
+    : 'rounded-2xl border border-teal-200/90 bg-teal-50/70 text-teal-950 dark:border-teal-800/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-2xs';
+  const labelClass = isListening ? 'text-indigo-700 dark:text-indigo-200' : 'text-teal-700 dark:text-teal-200';
+  const iconColor = isListening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-600 dark:text-teal-400';
   const badgeClass = isListening
-    ? 'whitespace-nowrap rounded-md border border-indigo-200 bg-white px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums shrink-0 dark:border-indigo-700 dark:bg-slate-900 dark:text-indigo-300'
-    : 'whitespace-nowrap rounded-md border border-teal-200 bg-white px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums shrink-0 dark:border-teal-700 dark:bg-slate-900 dark:text-teal-300';
+    ? 'whitespace-nowrap rounded-md border border-indigo-200/80 bg-white/90 px-1.5 py-0.5 text-[10.5px] font-black tabular-nums shrink-0 dark:border-indigo-700 dark:bg-slate-900 dark:text-indigo-300 shadow-2xs'
+    : 'whitespace-nowrap rounded-md border border-teal-200/80 bg-white/90 px-1.5 py-0.5 text-[10.5px] font-black tabular-nums shrink-0 dark:border-teal-700 dark:bg-slate-900 dark:text-teal-300 shadow-2xs';
 
   return (
-    <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2 px-2.5 py-2.5 ' : 'gap-1.5 px-2.5 py-2 ') + cardClass}>
-      <div className="flex items-center justify-between gap-1.5">
-        <dt className={'flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider ' + labelClass}>
-          <span className={'h-1.5 w-1.5 rounded-full ' + dotClass} aria-hidden="true" />
-          {label}
+    <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2 px-3 py-2.5 ' : 'gap-1.5 px-3 py-2.5 ') + cardClass}>
+      <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide">
+        <dt className={'flex items-center gap-1.5 ' + labelClass}>
+          <Icon className={'h-3.5 w-3.5 shrink-0 ' + iconColor} strokeWidth={2.5} aria-hidden="true" />
+          <span>{label}</span>
         </dt>
-        <Icon className={'h-4 w-4 shrink-0 ' + (isListening ? 'text-indigo-400 dark:text-indigo-400' : 'text-teal-400 dark:text-teal-400')} strokeWidth={2.2} aria-hidden="true" />
       </div>
       <div className="flex items-end justify-between gap-1">
-        <dd className={'font-black tabular-nums leading-none ' + (roomy ? 'text-[24px] tracking-tight' : 'text-[22px] tracking-tight')}>{score ?? '—'}</dd>
+        <dd className={'font-black tabular-nums leading-none text-slate-900 dark:text-white tracking-tight ' + (roomy ? 'text-[26px]' : 'text-[24px]')}>{score ?? '—'}</dd>
         {raw !== undefined && (
           <dd className={badgeClass}>
             {raw}/100 câu
