@@ -122,9 +122,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
         </span>
       </button>
 
-      {/* 3. Tháp Điểm Yếu: Tập trung các Part bị mất điểm */}
-      <section aria-labelledby="analytics-parts-heading" className="analytics-panel space-y-2.5 rounded-2xl border-2 border-slate-900 bg-white p-3.5 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
-        <div className="flex items-baseline justify-between gap-2">
+      {/* 3. Tháp Điểm Yếu: Tập trung các Part bị mất điểm (Đề xuất 1: Bỏ viền hộp, dòng thoáng, co giãn linh hoạt) */}
+      <section aria-labelledby="analytics-parts-heading" className="analytics-panel space-y-3 rounded-2xl border-2 border-slate-900 bg-white p-3.5 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
+        <div className="flex items-baseline justify-between gap-2 border-b border-slate-100 pb-2 dark:border-slate-800">
           <h2 id="analytics-parts-heading" className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
             Mất điểm ở đâu
           </h2>
@@ -137,25 +137,15 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
 
         {data.parts.length ? (
           partsWithLoss.length > 0 ? (
-            <ol className="space-y-2 text-xs" aria-label={`Số câu sai theo Part, ${chartLabel}`}>
+            <ol className="space-y-2.5 text-xs" aria-label={`Số câu sai theo Part, ${chartLabel}`}>
               {partsWithLoss.map(part => {
                 const n = Number(part.key.slice(4));
                 const weak = part.key === data.weakest?.key;
-                const toneBg = weak
-                  ? 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-200'
-                  : n <= 4
-                  ? 'bg-indigo-50/70 border-indigo-200 text-indigo-900 dark:bg-indigo-950/40 dark:border-indigo-900 dark:text-indigo-200'
-                  : 'bg-teal-50/70 border-teal-200 text-teal-900 dark:bg-teal-950/40 dark:border-teal-900 dark:text-teal-200';
                 const toneBar = weak
                   ? 'bg-rose-600 dark:bg-rose-500'
                   : n <= 4
                   ? 'bg-indigo-600 dark:bg-indigo-500'
                   : 'bg-teal-600 dark:bg-teal-500';
-                const toneTrack = weak
-                  ? 'bg-rose-200/80 border-rose-300 dark:bg-rose-900/60 dark:border-rose-800'
-                  : n <= 4
-                  ? 'bg-indigo-200/80 border-indigo-300 dark:bg-indigo-900/60 dark:border-indigo-800'
-                  : 'bg-teal-200/80 border-teal-300 dark:bg-teal-900/60 dark:border-teal-800';
                 const labelColor = weak
                   ? 'text-rose-700 dark:text-rose-400'
                   : n <= 4
@@ -163,35 +153,48 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
                   : 'text-teal-700 dark:text-teal-400';
 
                 return (
-                  <li key={part.key} className={`rounded-xl border p-2.5 ${toneBg}`}>
-                    <div className="mb-1.5 flex items-center justify-between font-black">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[12.5px] ${labelColor}`}>
+                  <li
+                    key={part.key}
+                    className={
+                      weak
+                        ? 'rounded-xl bg-rose-50/80 p-2 dark:bg-rose-950/40'
+                        : 'px-2 py-0.5'
+                    }
+                  >
+                    <div className="mb-1.5 flex items-center justify-between gap-2 font-black">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className={`truncate text-[12.5px] ${labelColor}`}>
                           {part.code} · {PART_NAMES[n - 1]}
                         </span>
                         {weak && (
-                          <span className="rounded bg-rose-200/90 px-1.5 py-0.5 text-[10px] font-black text-rose-800 dark:bg-rose-900 dark:text-rose-200">
+                          <span className="shrink-0 rounded bg-rose-200/90 px-1.5 py-0.5 text-[10px] font-black text-rose-800 dark:bg-rose-900 dark:text-rose-200">
                             Yếu nhất
                           </span>
                         )}
                       </div>
-                      <span className="tabular-nums text-[12px] font-bold">
-                        {part.lost} câu <span className="opacity-75">({Math.round(part.accuracy)}%)</span>
+                      <span className="shrink-0 text-right tabular-nums text-[12px] font-bold text-slate-900 dark:text-white">
+                        {part.lost} câu <span className="font-semibold text-slate-500 dark:text-slate-400">({Math.round(part.accuracy)}%)</span>
                       </span>
                     </div>
-                    <div className={`h-2.5 overflow-hidden rounded-full border ${toneTrack}`}>
-                      <div className={`h-full rounded-full transition-all duration-300 ${toneBar}`} style={{ width: `${Math.round(part.accuracy)}%` }} />
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${toneBar}`}
+                        style={{ width: `${Math.round(part.accuracy)}%` }}
+                      />
                     </div>
                   </li>
                 );
               })}
 
               {perfectParts.length > 0 && (
-                <li className="flex items-center justify-between border-t border-slate-100 pt-1.5 text-[11.5px] font-extrabold text-emerald-700 dark:border-slate-800 dark:text-emerald-400">
+                <li className="flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-100 px-1 pt-2 text-[11.5px] font-extrabold text-emerald-700 dark:border-slate-800 dark:text-emerald-400">
                   <span>✓ Part làm trọn vẹn 100%:</span>
                   <div className="flex flex-wrap gap-1">
                     {perfectParts.map(part => (
-                      <span key={part.key} className="rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-black text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      <span
+                        key={part.key}
+                        className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-black text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      >
                         {part.code}
                       </span>
                     ))}

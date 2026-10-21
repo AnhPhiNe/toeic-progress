@@ -100,7 +100,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           className="flex min-h-[60px] w-full items-center gap-3 px-4 py-2.5 text-left cursor-pointer">
           <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-black text-white ' + (mistake.part <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>P{mistake.part}</span>
           <span className="min-w-0 flex-1">
-            <span className={'text-[15px] font-bold leading-snug text-slate-900 dark:text-white ' + (expanded ? 'block' : 'line-clamp-2')}>{expanded ? question : shortQuestion}</span>
+            <span className={'text-[15px] font-bold leading-snug text-slate-900 dark:text-white ' + (expanded ? 'block' : 'block truncate')}>{expanded ? question : shortQuestion}</span>
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px]">
               {mistake.sourceTestName && <span className="truncate font-semibold text-slate-400 dark:text-slate-500">{mistake.sourceTestName}</span>}
               {mistake.sourceTestName && (status.kind === 'overdue' || status.kind === 'due' || (showStatus && status.kind !== 'incomplete')) && <span className="text-slate-300 dark:text-slate-600" aria-hidden="true">·</span>}
