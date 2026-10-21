@@ -141,7 +141,7 @@ test('phones put the estimate first, step each skill and restore the latest test
   await expect(page.getByRole('button', { name: /^Lấy từ bài thi gần nhất/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Giảm số câu Listening', exact: true }).click();
   await expect(page.getByLabel('Số câu đúng Listening', { exact: true })).toHaveValue('96');
-  await expect(page.getByRole('region', { name: 'Ước tính Listening', exact: true })).toContainText('Sai 4 câu');
+  await expect(page.getByRole('region', { name: 'Ước tính Listening', exact: true })).toContainText('câu đúng');
   await page.getByLabel('Số câu đúng Reading', { exact: true }).fill('60');
   await expect(total.getByTestId('estimated-total')).not.toHaveText('900');
   await page.getByRole('button', { name: /^Lấy từ bài thi gần nhất/ }).click();

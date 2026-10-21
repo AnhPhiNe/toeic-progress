@@ -44,15 +44,15 @@ export function PhoneResources({ rawListening, rawReading, onListening, onReadin
         </div>
 
         <div className="mt-2 flex items-end justify-between gap-3">
-          <p className="flex items-baseline leading-none">
-            <span className="text-[52px] font-black tabular-nums tracking-tight text-slate-950 dark:text-white" data-testid="estimated-total">{total}</span>
-            <span className="ml-1 text-[16px] font-bold text-slate-400">/990</span>
+          <p className="flex min-w-0 items-baseline leading-none">
+            <span className="text-[44px] font-black tabular-nums tracking-tight text-slate-950 min-[375px]:text-[52px] dark:text-white" data-testid="estimated-total">{total}</span>
+            <span className="ml-1 text-[15px] font-bold text-slate-400">/990</span>
             <button type="button" aria-label="Cách ước tính điểm" aria-haspopup="dialog" onClick={() => setInfoOpen(true)}
-              className="ml-0.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center self-center rounded-full text-slate-400 hover:text-slate-700 active:opacity-70 dark:text-slate-500 dark:hover:text-slate-200">
+              className="flex h-11 w-9 shrink-0 cursor-pointer items-center justify-center self-center rounded-full text-slate-400 hover:text-slate-700 active:opacity-70 dark:text-slate-500 dark:hover:text-slate-200">
               <Info className="h-[18px] w-[18px]" aria-hidden="true" />
             </button>
           </p>
-          <dl className="grid grid-cols-[auto_auto] items-baseline gap-x-3 gap-y-1 pb-1.5 text-[13px] tabular-nums">
+          <dl className="grid shrink-0 grid-cols-[auto_auto] items-baseline gap-x-2.5 gap-y-1 pb-1.5 text-[13px] tabular-nums">
             <dt className="font-semibold text-indigo-600 dark:text-indigo-400">Listening</dt><dd className="text-right font-black text-slate-950 dark:text-white">{scaledListening}</dd>
             <dt className="font-semibold text-teal-700 dark:text-teal-400">Reading</dt><dd className="text-right font-black text-slate-950 dark:text-white">{scaledReading}</dd>
           </dl>
@@ -60,7 +60,7 @@ export function PhoneResources({ rawListening, rawReading, onListening, onReadin
 
         <div className="mt-3">
           <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div className={`h-full rounded-full ${total >= goal ? 'bg-emerald-500' : 'bg-slate-900 dark:bg-slate-200'}`} style={{ width: `${Math.min(100, Math.round(total / goal * 100))}%` }} />
+            <div className={`h-full rounded-full ${total >= goal ? 'bg-emerald-500' : 'bg-blue-600 dark:bg-blue-500'}`} style={{ width: `${Math.min(100, Math.round(total / goal * 100))}%` }} />
           </div>
           <p className="mt-1.5 text-[12px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">
             {total >= goal ? `Đã đạt mục tiêu ${goal}` : `Còn ${goal - total}đ tới ${goal}`}
@@ -109,12 +109,12 @@ function SkillStepper({ skill, raw, onChange }: { skill: 'listening' | 'reading'
   const stepButton = 'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none disabled:opacity-40 dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-none';
 
   return <section aria-label={`Ước tính ${name}`} className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[2.5px_2.5px_0_0_#0f172a] dark:border-slate-700 dark:bg-[#111A2C] dark:shadow-none">
-    <div className="flex items-baseline justify-between">
-      <label htmlFor={`phone-raw-${skill}`} className={`text-[15px] font-black ${listening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-700 dark:text-teal-400'}`}>{name}</label>
-      <span className="text-[12.5px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">Sai {100 - raw} câu · Đúng {raw}/100</span>
-    </div>
+    <label htmlFor={`phone-raw-${skill}`} className="block text-[15px] font-black">
+      <span className={listening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-700 dark:text-teal-400'}>{name}</span>
+      <span className="font-semibold text-slate-400 dark:text-slate-500"> · câu đúng</span>
+    </label>
 
-    <div className="mt-2.5 flex items-center justify-between gap-3">
+    <div className="mt-2 flex items-center justify-between gap-3">
       <button type="button" aria-label={`Giảm số câu ${name}`} disabled={raw === 0} onClick={() => onChange(raw - 1)} className={stepButton}><Minus className="h-5 w-5" aria-hidden="true" /></button>
       <span className="flex items-baseline">
         <input id={`phone-raw-${skill}`} aria-label={`Số câu đúng ${name}`} type="number" inputMode="numeric" data-large-text min="0" max="100" step="1" value={raw}
