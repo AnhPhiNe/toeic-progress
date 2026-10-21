@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ClipboardPaste, ImagePlus, Sparkles, Trash2, X } from 'lucide-react';
+import { ChevronDown, ClipboardPaste, ImagePlus, PenLine, ScanLine, Sparkles, Trash2, X } from 'lucide-react';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { twMerge } from 'tailwind-merge';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
@@ -624,21 +624,24 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         <div className="flex min-w-0 items-center gap-2.5">
           <h2 id="mistake-entry-title" className="shrink-0 text-lg font-extrabold sm:text-xl">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
             : <span>{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa câu sai' : 'Thêm câu sai'}</span>}</h2>
-          {!original && step === 'input' && (
-            <div role="tablist" aria-label="Chế độ thêm câu sai" className="flex shrink-0 items-center rounded-xl bg-slate-100 p-0.5 text-xs font-bold dark:bg-slate-800 sm:text-[13px]">
-              <button type="button" role="tab" aria-selected={entryMode === 'single'} onClick={() => { setEntryMode('single'); setError(''); }}
-                className={'cursor-pointer rounded-lg px-2 py-1 transition-all ' + (entryMode === 'single' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white')}>
-                ✍️ Nhập 1 câu
-              </button>
-              <button type="button" role="tab" aria-selected={entryMode === 'batch'} onClick={() => { setEntryMode('batch'); setError(''); }}
-                className={'cursor-pointer rounded-lg px-2 py-1 transition-all ' + (entryMode === 'batch' ? 'bg-white text-violet-700 shadow-sm dark:bg-slate-900 dark:text-violet-300' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white')}>
-                📸 Quét nhiều ảnh AI
-              </button>
-            </div>
-          )}
         </div>
         <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
       </header>
+      {!original && step === 'input' && (
+        <div className="shrink-0 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
+          <div role="tablist" aria-label="Chế độ thêm câu sai" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/80 sm:max-w-sm">
+            {([['single', 'Nhập tay', PenLine], ['batch', 'Quét ảnh AI', ScanLine]] as const).map(([mode, label, Icon]) => {
+              const active = entryMode === mode;
+              return <button key={mode} type="button" role="tab" aria-selected={active} onClick={() => { setEntryMode(mode); setError(''); }}
+                className={'flex min-h-10 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-[1.5px] text-sm font-bold transition-colors ' + (active
+                  ? 'border-slate-900 bg-white text-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-none'
+                  : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white')}>
+                <Icon className="h-4 w-4" aria-hidden="true" />{label}
+              </button>;
+            })}
+          </div>
+        </div>
+      )}
       <ScrollableModalBody resetKey={step} compact>
         {step === 'input' ? (
           entryMode === 'batch' ? (
