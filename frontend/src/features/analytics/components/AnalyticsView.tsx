@@ -78,61 +78,159 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
     // One category keeps the row to two lines however many notes the test has; the notebook lists the rest.
     const errorLine = data.errors[0] ? `Hay sai nhất: ${ERROR_NAMES[data.errors[0].category]} (${data.errors[0].count})` : '';
     const lostRows = [...data.parts].sort((a, b) => b.lost - a.lost || a.accuracy - b.accuracy);
-    const mostLost = Math.max(1, lostRows[0]?.lost ?? 0);
+    const partsWithLoss = lostRows.filter(part => part.lost > 0);
+    const perfectParts = data.parts.filter(part => part.lost === 0);
     const lostIn = (from: number, to: number) => data.parts.filter(part => { const n = Number(part.key.slice(4)); return n >= from && n <= to; }).reduce((sum, part) => sum + part.lost, 0);
-    const totalLost = lostIn(1, 7), totalMax = data.parts.reduce((sum, part) => sum + part.max, 0);
-    return <div className="analytics-view space-y-4 pb-24 text-slate-800 dark:text-slate-200">
+    const totalLost = lostIn(1, 7);
+
+    return <div className="analytics-view space-y-3 pb-20 text-slate-800 dark:text-slate-200">
+      {/* 1. Bộ chọn đề & lần làm */}
       <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog" aria-label={`Chọn đề và lần làm: ${sourceName}, ${resultStatus}`}
-        className="flex min-h-[50px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 text-left dark:border-slate-700 dark:bg-[#111A2C]">
-        <span className="min-w-0 truncate"><span className="text-[15px] font-black text-slate-950 dark:text-white">{sourceName}</span><span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400"> · {resultStatus}</span></span>
-        <ChevronDown className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+        className="flex min-h-[50px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-white px-4 text-left shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
+        <span className="min-w-0 truncate">
+          <span className="text-[15px] font-black text-slate-950 dark:text-white">{sourceName}</span>
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400"> · {resultStatus}</span>
+        </span>
+        <ChevronDown className="h-[18px] w-[18px] shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
       </button>
 
-      <section aria-labelledby="analytics-parts-heading" className="analytics-panel rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 id="analytics-parts-heading" className="text-[15px] font-black text-slate-950 dark:text-white">Mất điểm ở đâu</h2>
-          {data.parts.length > 0 && <span className="text-[13px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">Sai {totalLost} / {totalMax} câu</span>}
-        </div>
-        {data.parts.length > 0 && <p className="mt-0.5 text-[12px] font-bold tabular-nums">
-          <span className="text-indigo-600 dark:text-indigo-400">● Listening {lostIn(1, 4)}</span><span className="ml-3 text-teal-600 dark:text-teal-400">● Reading {lostIn(5, 7)}</span>
-        </p>}
-        {data.parts.length ? <ol className="mt-2.5 space-y-1" aria-label={`Số câu sai theo Part, ${chartLabel}`}>
-          {lostRows.map(part => {
-            const n = Number(part.key.slice(4)), weak = part.key === data.weakest?.key;
-            const tone = weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400';
-            return <li key={part.key} className={'flex items-center gap-3 rounded-xl py-1 ' + (weak ? '-mx-2 bg-rose-50 px-2 py-1.5 dark:bg-rose-950/40' : '')}
-              title={`Part ${n}: ${PART_NAMES[n - 1]}`}>
-              <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-black text-white ' + (weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>{part.code}</span>
-              <span className="block h-2 flex-1" aria-hidden="true">{part.lost > 0 && <span className={'block h-full rounded-full ' + tone} style={{ width: `${part.lost / mostLost * 100}%` }} />}</span>
-              <span className="w-[76px] shrink-0 text-right leading-tight">
-                <span className={'block text-[14px] font-black tabular-nums ' + (weak ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white')}>{part.lost} câu</span>
-                <span className="block text-[11px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">đúng {Math.round(part.accuracy)}%</span>
+      {/* 2. Thẻ Sổ tay câu sai được đẩy lên trên - không còn bị khuất ở đáy */}
+      <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources)} disabled={!onNavigateToMistakes}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3 text-left shadow-[2px_2px_0_0_#0f172a] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
+            <BookOpen className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[13.5px] font-black leading-tight text-slate-950 dark:text-white">
+              {data.notes.length ? `${data.notes.length} lỗi đã ghi của đề` : 'Chưa có lỗi nào gắn với đề này'}
+            </span>
+            {errorLine ? (
+              <span className="mt-0.5 block truncate text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">
+                {errorLine}
               </span>
-            </li>;
-          })}
-        </ol> : <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-          <p>{data.attempt ? 'Lượt này chưa có chi tiết Part.' : 'Chưa nhập kết quả của đề này.'}</p>
-          {data.attempt && onEditSession ? <button type="button" onClick={() => onEditSession(data.attempt!)} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Bổ sung chi tiết</button>
-            : !data.attempt && onOpenSessionLogger && <button type="button" onClick={() => onOpenSessionLogger({ sessionType: 'FULL_TEST' })} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Nhập kết quả</button>}
-        </div>}
+            ) : (
+              <span className="mt-0.5 block text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">
+                Lưu câu sai vào sổ tay để ôn lại
+              </span>
+            )}
+          </div>
+        </div>
+        <span className="flex shrink-0 items-center gap-0.5 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-black text-blue-600 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+          <span>Sổ tay</span>
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+      </button>
+
+      {/* 3. Tháp Điểm Yếu: Tập trung các Part bị mất điểm */}
+      <section aria-labelledby="analytics-parts-heading" className="analytics-panel space-y-2.5 rounded-2xl border-2 border-slate-900 bg-white p-3.5 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 id="analytics-parts-heading" className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+            Mất điểm ở đâu
+          </h2>
+          {data.parts.length > 0 && (
+            <span className="text-[11.5px] font-extrabold tabular-nums text-slate-500 dark:text-slate-400">
+              Tổng sai {totalLost} câu
+            </span>
+          )}
+        </div>
+
+        {data.parts.length ? (
+          partsWithLoss.length > 0 ? (
+            <ol className="space-y-2 text-xs" aria-label={`Số câu sai theo Part, ${chartLabel}`}>
+              {partsWithLoss.map(part => {
+                const n = Number(part.key.slice(4));
+                const weak = part.key === data.weakest?.key;
+                const toneBg = weak
+                  ? 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-200'
+                  : n <= 4
+                  ? 'bg-indigo-50/70 border-indigo-200 text-indigo-900 dark:bg-indigo-950/40 dark:border-indigo-900 dark:text-indigo-200'
+                  : 'bg-teal-50/70 border-teal-200 text-teal-900 dark:bg-teal-950/40 dark:border-teal-900 dark:text-teal-200';
+                const toneBar = weak
+                  ? 'bg-rose-600 dark:bg-rose-500'
+                  : n <= 4
+                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                  : 'bg-teal-600 dark:bg-teal-500';
+                const toneTrack = weak
+                  ? 'bg-rose-200/80 border-rose-300 dark:bg-rose-900/60 dark:border-rose-800'
+                  : n <= 4
+                  ? 'bg-indigo-200/80 border-indigo-300 dark:bg-indigo-900/60 dark:border-indigo-800'
+                  : 'bg-teal-200/80 border-teal-300 dark:bg-teal-900/60 dark:border-teal-800';
+                const labelColor = weak
+                  ? 'text-rose-700 dark:text-rose-400'
+                  : n <= 4
+                  ? 'text-indigo-700 dark:text-indigo-400'
+                  : 'text-teal-700 dark:text-teal-400';
+
+                return (
+                  <li key={part.key} className={`rounded-xl border p-2.5 ${toneBg}`}>
+                    <div className="mb-1.5 flex items-center justify-between font-black">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[12.5px] ${labelColor}`}>
+                          {part.code} · {PART_NAMES[n - 1]}
+                        </span>
+                        {weak && (
+                          <span className="rounded bg-rose-200/90 px-1.5 py-0.5 text-[10px] font-black text-rose-800 dark:bg-rose-900 dark:text-rose-200">
+                            Yếu nhất
+                          </span>
+                        )}
+                      </div>
+                      <span className="tabular-nums text-[12px] font-bold">
+                        {part.lost} câu <span className="opacity-75">({Math.round(part.accuracy)}%)</span>
+                      </span>
+                    </div>
+                    <div className={`h-2.5 overflow-hidden rounded-full border ${toneTrack}`}>
+                      <div className={`h-full rounded-full transition-all duration-300 ${toneBar}`} style={{ width: `${Math.round(part.accuracy)}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+
+              {perfectParts.length > 0 && (
+                <li className="flex items-center justify-between border-t border-slate-100 pt-1.5 text-[11.5px] font-extrabold text-emerald-700 dark:border-slate-800 dark:text-emerald-400">
+                  <span>✓ Part làm trọn vẹn 100%:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {perfectParts.map(part => (
+                      <span key={part.key} className="rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-black text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        {part.code}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              )}
+            </ol>
+          ) : (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+              🎉 Xuất sắc! Bạn làm đúng 100% tất cả các Part trong lần thi này.
+            </div>
+          )
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            <p>{data.attempt ? 'Lượt này chưa có chi tiết Part.' : 'Chưa nhập kết quả của đề này.'}</p>
+            {data.attempt && onEditSession ? (
+              <button type="button" onClick={() => onEditSession(data.attempt!)} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Bổ sung chi tiết</button>
+            ) : !data.attempt && onOpenSessionLogger && (
+              <button type="button" onClick={() => onOpenSessionLogger({ sessionType: 'FULL_TEST' })} className="min-h-11 cursor-pointer px-3 text-sm font-bold text-blue-600 dark:text-blue-400">Nhập kết quả</button>
+            )}
+          </div>
+        )}
       </section>
 
-      <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources)} disabled={!onNavigateToMistakes}
-        className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 py-3 text-left dark:border-slate-700 dark:bg-[#111A2C]">
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold text-slate-900 dark:text-white">{data.notes.length ? `${data.notes.length} lỗi đã ghi của đề` : 'Chưa có lỗi nào gắn với đề này'}</span>
-          {errorLine && <span className="mt-0.5 block truncate text-[13px] font-semibold text-slate-500 dark:text-slate-400">{errorLine}</span>}
-        </span>
-        <span className="flex shrink-0 items-center text-[13.5px] font-black text-blue-600 dark:text-blue-400">Sổ tay<ChevronRight className="h-4 w-4" aria-hidden="true" /></span>
-      </button>
-
-      {/* The next practice step sits above the bottom navigation, within thumb reach. */}
-      {onNavigateToTimer && weakPart !== null && <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
-        <button type="button" onClick={() => onNavigateToTimer(weakPart < 5 ? 'POMODORO' : `PART_${weakPart}` as ReadingPartType)}
-          className="flex h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-emerald-400 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
-          <Timer className="h-5 w-5" aria-hidden="true" />{weakPart < 5 ? `Phiên tập trung · ${data.weakest!.code} còn ${data.weakest!.lost} câu` : `Luyện ${data.weakest!.code} · còn ${data.weakest!.lost} câu`}
+      {/* 4. Nút hành động luyện tập trong luồng cuộn (không che khuất nội dung hay navigation) */}
+      {onNavigateToTimer && weakPart !== null && (
+        <button
+          type="button"
+          onClick={() => onNavigateToTimer(weakPart < 5 ? 'POMODORO' : `PART_${weakPart}` as ReadingPartType)}
+          className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-emerald-400 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] transition-all hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:bg-emerald-400 dark:text-slate-950 dark:shadow-none"
+        >
+          <Timer className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>
+            {weakPart < 5
+              ? `Phiên tập trung · ${data.weakest!.code} còn ${data.weakest!.lost} câu`
+              : `Luyện tốc độ ${data.weakest!.code} ngay · còn ${data.weakest!.lost} câu`}
+          </span>
         </button>
-      </div>}
+      )}
 
       {pickerOpen && <Sheet title="Chọn đề và lần làm" onClose={() => setPickerOpen(false)}>
         <div className="space-y-4 pb-2">{scopePickers}</div>

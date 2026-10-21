@@ -35,8 +35,8 @@ function howItCounts(task: Task) {
 }
 
 /**
- * Phones: one summary card (a segment per goal, coloured by the goal when done), goals as rows with their own
- * progress bar, finished goals as ✓ rows, and a sheet per goal instead of drag handles and small icons.
+ * Phones: Bento Neo-Brutalism weekly study plan with 44px thumb-friendly checkboxes,
+ * compact bottom padding without double-padding dead space, and a bold add-goal button.
  */
 export function PhonePlan(props: Props) {
   const { summary } = props;
@@ -52,86 +52,203 @@ export function PhonePlan(props: Props) {
     if (task.type === 'AUTO_PART_PRACTICE') return { label: `Ghi kết quả Part ${task.partNumber || 5}`, icon: FileCheck2, action: () => props.onRecordPart(task.partNumber) };
     return { label: 'Đổi cách theo dõi', icon: Pencil, action: () => props.onEdit(task) };
   };
-  const row = 'flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left';
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-4">
+      {/* Chuyển tuần */}
       <div className="flex items-center justify-between">
-        <button type="button" onClick={props.onPrevWeek} aria-label="Tuần trước" className="flex h-10 w-10 items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 cursor-pointer"><ChevronLeft className="h-5 w-5" aria-hidden="true" /></button>
+        <button
+          type="button"
+          onClick={props.onPrevWeek}
+          aria-label="Tuần trước"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-800 shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-200 dark:shadow-none"
+        >
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
         <div className="text-center">
-          <p className="text-base font-black text-slate-950 dark:text-white">{summary.isCurrentWeek ? 'Tuần này' : `Tuần ${shortDate(summary.weekStart)}`}</p>
-          <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">{shortDate(summary.weekStart)} – {shortDate(summary.weekEnd)}
-            {!summary.isCurrentWeek && <> · <button type="button" onClick={props.onCurrentWeek} className="font-bold text-blue-600 dark:text-blue-400 cursor-pointer">Về tuần này</button></>}</p>
+          <p className="text-base font-black text-slate-950 dark:text-white">
+            {summary.isCurrentWeek ? 'Tuần này' : `Tuần ${shortDate(summary.weekStart)}`}
+          </p>
+          <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+            {shortDate(summary.weekStart)} – {shortDate(summary.weekEnd)}
+            {!summary.isCurrentWeek && (
+              <> · <button type="button" onClick={props.onCurrentWeek} className="cursor-pointer font-bold text-blue-600 dark:text-blue-400">Về tuần này</button></>
+            )}
+          </p>
         </div>
-        <button type="button" onClick={props.onNextWeek} aria-label="Tuần sau" className="flex h-10 w-10 items-center justify-center rounded-xl border-[1.5px] border-stone-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 cursor-pointer"><ChevronRight className="h-5 w-5" aria-hidden="true" /></button>
-      </div>
-
-      {summary.tasks.length > 0 && (
-        <section aria-label="Tiến độ tuần" className="rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-slate-500 dark:text-slate-400"><span className="text-[30px] font-black leading-none tabular-nums text-slate-950 dark:text-white">{summary.completedTasks}</span><span className="text-base font-semibold"> / {summary.totalTasks} mục tiêu xong</span></p>
-            <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">{summary.daysStudiedThisWeek} ngày học</span>
-          </div>
-          {/* One segment per goal; a finished goal fills its segment with the goal's own colour. */}
-          <div className="mt-3 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${summary.tasks.length}, minmax(0, 1fr))` }} aria-hidden="true">
-            {[...done, ...todo].map(task => <span key={task.id} className={'h-2.5 rounded-full ' + (task.isComplete ? props.barClass(task) : 'bg-stone-200 dark:bg-slate-800')} />)}
-          </div>
-          {summary.completedTasks === summary.totalTasks && <p className="mt-2.5 text-[13px] font-bold text-emerald-700 dark:text-emerald-400">Đã xong tất cả mục tiêu tuần này</p>}
-        </section>
-      )}
-
-      {summary.tasks.length === 0 && (
-        <div className="space-y-2 rounded-2xl border-[1.5px] border-dashed border-stone-300 px-4 py-8 text-center dark:border-slate-700">
-          <p className="font-black text-slate-800 dark:text-slate-100">Chưa có mục tiêu tuần này</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Đặt 2–3 mục tiêu vừa sức, ví dụ làm 1 đề, học 200 phút, luyện Part 5.</p>
-        </div>
-      )}
-
-      {todo.length > 0 && <section aria-label={`Cần làm · ${todo.length}`}>
-        <h3 className="mb-1.5 ml-1 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">Cần làm · {todo.length}</h3>
-        <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border-[1.5px] border-stone-300 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-[#111A2C]">
-          {todo.map(task => <li key={task.id}>
-            <button type="button" onClick={() => setOpenId(task.id)} aria-haspopup="dialog" data-task-id={task.id} className={row + ' flex-col items-stretch gap-2'}>
-              <span className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 truncate text-[15px] font-bold text-slate-900 dark:text-white">{task.title}</span>
-                <span className="shrink-0 text-[14px] font-black tabular-nums text-slate-950 dark:text-white">{task.done}<span className="font-semibold text-slate-500 dark:text-slate-400">/{task.target} {task.unit}</span></span>
-              </span>
-              <span className="block h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-800" aria-hidden="true">
-                <span data-plan-progress className={'block h-full rounded-full transition-[width] duration-500 ' + props.barClass(task)} style={{ width: `${Math.max(task.done > 0 ? 3 : 2, Math.min(100, task.percent))}%` }} />
-              </span>
-            </button>
-          </li>)}
-        </ul>
-      </section>}
-
-      {done.length > 0 && <section aria-label={`Đã xong · ${done.length}`}>
-        <h3 className="mb-1.5 ml-1 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">Đã xong · {done.length}</h3>
-        <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border-[1.5px] border-stone-300 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-[#111A2C]">
-          {done.map(task => <li key={task.id}>
-            <button type="button" onClick={() => setOpenId(task.id)} aria-haspopup="dialog" data-task-id={task.id} className={row}>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"><Check className="h-5 w-5" strokeWidth={3} aria-hidden="true" /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-bold text-slate-500 dark:text-slate-400">{task.title}</span>
-                <span className="block text-[12.5px] font-semibold text-slate-400 dark:text-slate-500">{task.done}/{task.target} {task.unit}</span>
-              </span>
-            </button>
-          </li>)}
-        </ul>
-      </section>}
-
-      {props.canCopyPrevWeek && <button type="button" onClick={props.onCopyPrevWeek} disabled={props.wipLimitReached}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-stone-300 text-[14px] font-bold text-slate-600 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 cursor-pointer">
-        <Copy className="h-4 w-4" aria-hidden="true" />Chép {props.prevWeekCount} mục tiêu tuần trước
-      </button>}
-
-      {/* Add goal sits above the bottom navigation, within thumb reach. */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-6 dark:from-[#070C16] dark:via-[#070C16]">
-        <button type="button" onClick={props.onAdd} aria-haspopup="dialog"
-          className="flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-white text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:bg-slate-900 dark:text-white dark:shadow-none cursor-pointer">
-          <Plus className="h-5 w-5" aria-hidden="true" />{props.wipLimitReached ? 'Đã có 6 mục tiêu đang làm' : 'Thêm mục tiêu'}
+        <button
+          type="button"
+          onClick={props.onNextWeek}
+          aria-label="Tuần sau"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-800 shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-200 dark:shadow-none"
+        >
+          <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 
+      {/* Tiến độ tuần dạng thẻ Bento */}
+      {summary.tasks.length > 0 && (
+        <section aria-label="Tiến độ tuần" className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-slate-500 dark:text-slate-400">
+              <span className="text-[32px] font-black leading-none tabular-nums text-slate-950 dark:text-white">{summary.completedTasks}</span>
+              <span className="text-base font-semibold"> / {summary.totalTasks} mục tiêu xong</span>
+            </p>
+            <span className="rounded-lg border border-stone-200 bg-stone-100 px-2.5 py-1 text-[12.5px] font-bold tabular-nums text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {summary.daysStudiedThisWeek} ngày học
+            </span>
+          </div>
+          {/* One segment per goal; a finished goal fills its segment with the goal's own colour. */}
+          <div className="mt-3.5 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${summary.tasks.length}, minmax(0, 1fr))` }} aria-hidden="true">
+            {[...done, ...todo].map(task => <span key={task.id} className={'h-2.5 rounded-full ' + (task.isComplete ? props.barClass(task) : 'bg-stone-200 dark:bg-slate-800')} />)}
+          </div>
+          {summary.completedTasks === summary.totalTasks && (
+            <p className="mt-3 text-[13px] font-bold text-emerald-700 dark:text-emerald-400">
+              🎉 Đã xong tất cả mục tiêu tuần này!
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* Trạng thái chưa có mục tiêu */}
+      {summary.tasks.length === 0 && (
+        <div className="space-y-2 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50/50 p-6 text-center dark:border-slate-700 dark:bg-slate-900/30">
+          <p className="text-base font-black text-slate-800 dark:text-slate-100">Chưa có mục tiêu tuần này</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Đặt 2–3 mục tiêu vừa sức, ví dụ làm 1 đề, học 200 phút, luyện Part 5.</p>
+        </div>
+      )}
+
+      {/* Danh sách mục tiêu Cần làm - thẻ Bento Neo-Brutalism */}
+      {todo.length > 0 && (
+        <section aria-label={`Cần làm · ${todo.length}`} className="space-y-2.5">
+          <h3 className="ml-1 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+            Cần làm · {todo.length}
+          </h3>
+          <div className="space-y-2.5">
+            {todo.map(task => {
+              const primary = primaryAction(task);
+              return (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3.5 shadow-[2.5px_2.5px_0_0_#0f172a] transition-all dark:border-slate-700 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#1e293b]"
+                >
+                  {/* Checkbox to chuẩn 44px tap target dễ bấm bằng ngón tay cái */}
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked="false"
+                    aria-label={`Thực hiện ${primary.label} cho mục tiêu ${task.title}`}
+                    onClick={() => primary.action()}
+                    className="group/cb flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-stone-100 text-slate-600 shadow-[1.5px_1.5px_0_0_#0f172a] hover:border-slate-900 hover:bg-stone-200 hover:text-slate-900 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-400 dark:bg-slate-800 dark:text-slate-300 dark:shadow-none dark:hover:bg-slate-700"
+                    title={primary.label}
+                  >
+                    <primary.icon className="h-5 w-5 transition-transform group-hover/cb:scale-110" aria-hidden="true" />
+                  </button>
+
+                  {/* Nội dung mục tiêu + Tiến độ */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(task.id)}
+                    aria-haspopup="dialog"
+                    data-task-id={task.id}
+                    className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 text-left"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="truncate text-[15px] font-bold text-slate-900 dark:text-white">
+                        {task.title}
+                      </span>
+                      <span className="shrink-0 text-[13px] font-black tabular-nums text-slate-950 dark:text-white">
+                        {task.done}<span className="font-semibold text-slate-500 dark:text-slate-400">/{task.target} {task.unit}</span>
+                      </span>
+                    </div>
+                    <div className="block h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-slate-800" aria-hidden="true">
+                      <span
+                        data-plan-progress
+                        className={'block h-full rounded-full transition-[width] duration-500 ' + props.barClass(task)}
+                        style={{ width: `${Math.max(task.done > 0 ? 3 : 2, Math.min(100, task.percent))}%` }}
+                      />
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Danh sách mục tiêu Đã xong - thẻ Bento Neo-Brutalism */}
+      {done.length > 0 && (
+        <section aria-label={`Đã xong · ${done.length}`} className="space-y-2.5">
+          <h3 className="ml-1 text-[12px] font-black uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
+            Đã xong · {done.length}
+          </h3>
+          <div className="space-y-2.5">
+            {done.map(task => (
+              <div
+                key={task.id}
+                className="flex items-center gap-3 rounded-2xl border-2 border-emerald-900/60 bg-emerald-50/50 p-3.5 shadow-[2px_2px_0_0_#065f46] transition-all dark:border-emerald-800 dark:bg-emerald-950/25 dark:shadow-none"
+              >
+                {/* Checkbox to chuẩn 44px tap target đã hoàn thành */}
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked="true"
+                  aria-label={`Mục tiêu ${task.title} đã hoàn thành. Bấm để xem tùy chọn`}
+                  onClick={() => setOpenId(task.id)}
+                  className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-emerald-500 text-white shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none"
+                >
+                  <Check className="h-6 w-6 stroke-[3]" aria-hidden="true" />
+                </button>
+
+                {/* Nội dung mục tiêu đã hoàn thành */}
+                <button
+                  type="button"
+                  onClick={() => setOpenId(task.id)}
+                  aria-haspopup="dialog"
+                  data-task-id={task.id}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 text-left"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-bold line-through text-slate-400 dark:text-slate-500">
+                      {task.title}
+                    </span>
+                    <span className="block text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">
+                      Đã hoàn thành · {task.done}/{task.target} {task.unit}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Sao chép tuần trước */}
+      {props.canCopyPrevWeek && (
+        <button
+          type="button"
+          onClick={props.onCopyPrevWeek}
+          disabled={props.wipLimitReached}
+          className="flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-stone-400 bg-white text-[14px] font-bold text-slate-700 shadow-[1.5px_1.5px_0_0_#94a3b8] active:translate-x-px active:translate-y-px active:shadow-none disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:shadow-none"
+        >
+          <Copy className="h-4 w-4" aria-hidden="true" />
+          <span>Chép {props.prevWeekCount} mục tiêu tuần trước</span>
+        </button>
+      )}
+
+      {/* Nút to bản + Thêm mục tiêu tuần mới */}
+      <button
+        type="button"
+        onClick={props.onAdd}
+        aria-haspopup="dialog"
+        disabled={props.wipLimitReached}
+        className="flex min-h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none disabled:opacity-50 dark:border-slate-200 dark:bg-[#111A2C] dark:text-white dark:shadow-[3px_3px_0_0_#cbd5e1] dark:disabled:opacity-40"
+      >
+        <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden="true" />
+        <span>{props.wipLimitReached ? 'Đã có 6 mục tiêu đang làm' : '+ Thêm mục tiêu tuần mới'}</span>
+      </button>
+
+      {/* Sheet chi tiết thao tác mục tiêu */}
       {open && (() => {
         const primary = primaryAction(open);
         const item = 'flex min-h-[54px] w-full items-center gap-3.5 border-b border-stone-200 px-1 text-left text-[15.5px] font-bold last:border-0 dark:border-slate-800 cursor-pointer';

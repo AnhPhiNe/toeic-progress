@@ -18,10 +18,10 @@ function daysBetween(from: string, to: string): number {
 export function reviewStatus(mistake: MistakeEntry, today = getTodayDateString()): ReviewStatus {
   if (!canReview(mistake)) return { kind: 'incomplete', label: 'Chưa có đáp án' };
   if (mistake.status === 'MASTERED') return { kind: 'mastered', label: 'Đã thuộc' };
-  if (!mistake.nextReviewDate) return { kind: 'due', label: 'Cần ôn' };
+  if (!mistake.nextReviewDate) return { kind: 'due', label: 'Đến hạn hôm nay' };
   const days = daysBetween(today, mistake.nextReviewDate);
-  if (days < 0) return { kind: 'overdue', label: `Quá hạn ${-days} ngày` };
-  if (days === 0) return { kind: 'due', label: 'Cần ôn' };
+  if (days < 0) return { kind: 'overdue', label: `Quá hạn ôn ${-days} ngày` };
+  if (days === 0) return { kind: 'due', label: 'Đến hạn hôm nay' };
   return { kind: 'scheduled', label: days === 1 ? 'Ôn ngày mai' : `Ôn sau ${days} ngày` };
 }
 

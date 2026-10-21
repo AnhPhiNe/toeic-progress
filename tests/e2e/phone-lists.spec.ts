@@ -20,7 +20,7 @@ test('phone notebook groups cards by status, keeps review above the bottom bar a
   // The number prefix is dropped from the row.
   await expect(page.getByText('Reports a should ____ submitted.', { exact: true })).toBeVisible();
 
-  const review = page.getByRole('button', { name: 'Ôn 2 câu đến hạn', exact: true });
+  const review = page.getByRole('button', { name: /^Bắt đầu ôn tập 2 thẻ ngắt quãng$/ });
   const nav = page.getByRole('navigation', { name: 'Điều hướng chính', exact: true });
   const reviewBox = (await review.boundingBox())!, navBox = (await nav.boundingBox())!;
   expect(reviewBox.y + reviewBox.height).toBeLessThanOrEqual(navBox.y);

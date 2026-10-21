@@ -298,7 +298,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   };
 
   return (
-    <div className="notebook-view animate-fade-in pb-10">
+    <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-28' : '')}>
       {/* Mobile top bar: Segmented Control & Slim Action Strip */}
       {isPhone && (
         <div className="mb-3 space-y-2.5">
@@ -514,6 +514,21 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       )}
 
       </section>
+
+      {/* Sticky Bottom CTA on Mobile when cards need spaced repetition review */}
+      {isPhone && reviewCount > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent px-4 pb-3 pt-4 dark:from-[#070C16] dark:via-[#070C16]">
+          <button
+            type="button"
+            onClick={() => onStartReview(activeFilterCount ? matchingMistakes.filter(m => isDueForReview(m)).map(m => m.id) : undefined)}
+            aria-label={`Bắt đầu ôn tập ${reviewCount} thẻ ngắt quãng`}
+            className="flex min-h-[52px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-rose-600 px-4 text-[15px] font-black text-white shadow-[3px_3px_0_0_#0f172a] transition-all hover:bg-rose-700 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-rose-300 dark:bg-rose-600 dark:shadow-none"
+          >
+            <Brain className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span>Bắt đầu ôn tập {reviewCount} thẻ ngắt quãng</span>
+          </button>
+        </div>
+      )}
 
       <div role="status" aria-live="polite" className="notebook-feedback-region">
         {feedback && <div key={feedback.id} className={`notebook-feedback ${feedback.error ? 'is-error' : ''}`}>

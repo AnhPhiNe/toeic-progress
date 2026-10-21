@@ -29,10 +29,10 @@ test('phones log today with presets and steppers, then edit and delete from the 
   await page.getByRole('button', { name: 'Thêm 5 từ', exact: true }).click();
   await expect(count).toHaveValue('35');
   await page.getByRole('button', { name: 'Bớt 5 từ', exact: true }).click();
-  await page.getByRole('button', { name: 'Lưu 30 từ', exact: true }).click();
+  await page.getByRole('button', { name: /^Lưu 30 từ/ }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Đã lưu 30 từ' })).toContainText('cho ngày 09/10/2026');
   await expect(page.getByText('Đã ghi 30 từ cho ngày này', { exact: false })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '14 ngày qua', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Tiến độ 7 ngày/ })).toBeVisible();
 
   await page.getByRole('button', { name: /^Lịch sử ghi nhận/ }).click();
   const sheet = page.getByRole('dialog', { name: 'Lịch sử ghi nhận', exact: true });

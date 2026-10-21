@@ -146,19 +146,63 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
             const practice = full ? null : practiceSummary(session);
             return <li key={session.id}>
               <button type="button" onClick={() => setDetailId(session.id)} aria-label={`Xem chi tiết ${session.testName}, ${historyDate(session.date)}`}
-                className="flex min-h-[64px] w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left">
-                <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-stone-100 leading-none dark:bg-slate-800">
-                  <span className="text-[17px] font-black tabular-nums text-slate-900 dark:text-white">{day}</span>
-                  <span className="mt-0.5 text-[10.5px] font-bold text-slate-500 dark:text-slate-400">T{Number(month)}</span>
+                className="flex min-h-[64px] w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-50/80 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800">
+                <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-stone-200/60 bg-stone-100 leading-none dark:border-slate-700/60 dark:bg-slate-800">
+                  <span className="text-[18px] font-black leading-none tabular-nums text-slate-900 dark:text-white">{day}</span>
+                  <span className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">T{Number(month)}</span>
                 </span>
-                <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                  <span className="truncate text-[15px] font-bold text-slate-900 dark:text-white">{session.testName || 'Chưa đặt tên đề'}</span>
-                  {full && attemptNumber > 1 && <span className="shrink-0 rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-black text-violet-700 dark:bg-violet-950 dark:text-violet-300">Lần {attemptNumber}</span>}
+                <span className="min-w-0 flex-1 flex flex-col justify-center">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-[15px] font-black text-slate-900 dark:text-white">{session.testName || 'Chưa đặt tên đề'}</span>
+                    {full && attemptNumber > 1 && (
+                      <span className="shrink-0 rounded-md bg-violet-100 px-1.5 py-0.5 text-[10.5px] font-black text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                        Lần {attemptNumber}
+                      </span>
+                    )}
+                    {!full && (
+                      <span className="shrink-0 rounded-md bg-teal-100 px-1.5 py-0.5 text-[10.5px] font-black text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+                        {getPracticeParts(session).map(part => `P${part.part}`).join(' & ') || pairedRuns.get(session.id)?.presetName || 'Part'}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-2 mt-1 text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">
+                    {session.durationMinutes ? <span>{historyDuration(session.durationMinutes)}</span> : null}
+                    {full && (session.scaledListening !== undefined || session.scaledReading !== undefined) && (
+                      <span className="inline-flex items-center gap-1.5">
+                        {session.scaledListening !== undefined && (
+                          <span className="inline-flex items-center rounded-md border border-indigo-200/60 bg-indigo-50 px-1.5 py-0.5 text-[11px] font-black text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/70 dark:text-indigo-300">
+                            L {session.scaledListening}
+                          </span>
+                        )}
+                        {session.scaledReading !== undefined && (
+                          <span className="inline-flex items-center rounded-md border border-teal-200/60 bg-teal-50 px-1.5 py-0.5 text-[11px] font-black text-teal-700 dark:border-teal-800/60 dark:bg-teal-950/70 dark:text-teal-300">
+                            R {session.scaledReading}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
                 </span>
-                <span className="shrink-0 text-right">
-                  {full
-                    ? <><span className="block text-[20px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">{session.totalScore ?? '—'}</span><ScoreComparison session={session} previous={previous.get(session.id)} /></>
-                    : <><span className="block text-[17px] font-black leading-tight tabular-nums text-teal-700 dark:text-teal-300">{practice?.percent ?? '—'}</span><span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">{practice?.detail ?? 'Chưa chấm'}</span></>}
+                <span className="shrink-0 text-right flex flex-col items-end justify-center pl-2">
+                  {full ? (
+                    <>
+                      <span className="block text-[22px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">
+                        {session.totalScore ?? '—'}
+                      </span>
+                      <div className="mt-0.5">
+                        <ScoreComparison session={session} previous={previous.get(session.id)} />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="block text-[18px] font-black leading-tight tabular-nums text-teal-700 dark:text-teal-300">
+                        {practice?.percent ?? '—'}
+                      </span>
+                      <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">
+                        {practice?.detail ?? 'Chưa chấm'}
+                      </span>
+                    </>
+                  )}
                 </span>
               </button>
             </li>;

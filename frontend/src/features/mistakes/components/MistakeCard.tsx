@@ -93,7 +93,6 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
   if (compact) {
     // The list already groups by status, so the number prefix and status text are dropped from the row.
     const shortQuestion = question.replace(/^(?:câu|question|q)\s*\d+\s*(?:\([^)]*\)\s*)?[:.)-]\s*/i, '');
-    const subline = [mistake.sourceTestName, showStatus || status.kind === 'overdue' ? status.label : ''].filter(Boolean).join(' · ');
     const action = 'min-h-11 whitespace-nowrap rounded-xl border-[1.5px] border-stone-300 bg-white px-3 text-[14px] font-bold text-slate-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
     return (
       <div className="notebook-card bg-white dark:bg-[#111A2C]">
@@ -101,8 +100,24 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           className="flex min-h-[60px] w-full items-center gap-3 px-4 py-2.5 text-left cursor-pointer">
           <span className={'flex h-[26px] w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-black text-white ' + (mistake.part <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>P{mistake.part}</span>
           <span className="min-w-0 flex-1">
-            <span className={'block text-[15px] font-bold text-slate-900 dark:text-white ' + (expanded ? '' : 'truncate')}>{expanded ? question : shortQuestion}</span>
-            {subline && <span className={`mt-0.5 block truncate text-[12px] font-semibold ${status.kind === 'overdue' ? style.text : 'text-slate-400 dark:text-slate-500'}`}>{subline}</span>}
+            <span className={'block text-[15px] font-bold leading-snug text-slate-900 dark:text-white ' + (expanded ? '' : 'line-clamp-2')}>{expanded ? question : shortQuestion}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px]">
+              {mistake.sourceTestName && <span className="truncate font-semibold text-slate-400 dark:text-slate-500">{mistake.sourceTestName}</span>}
+              {mistake.sourceTestName && (status.kind === 'overdue' || status.kind === 'due' || (showStatus && status.kind !== 'incomplete')) && <span className="text-slate-300 dark:text-slate-600" aria-hidden="true">·</span>}
+              {status.kind === 'overdue' && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden="true" />{status.label}
+                </span>
+              )}
+              {status.kind === 'due' && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />{status.label}
+                </span>
+              )}
+              {showStatus && status.kind !== 'overdue' && status.kind !== 'due' && (
+                <span className="font-semibold text-slate-400 dark:text-slate-500">{status.label}</span>
+              )}
+            </div>
           </span>
           <ChevronDown className={'h-5 w-5 shrink-0 text-slate-300 transition-transform dark:text-slate-600 ' + (expanded ? 'rotate-180' : '-rotate-90')} aria-hidden="true" />
         </button>
@@ -150,7 +165,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           className="notebook-row-toggle grid min-h-11 min-w-0 cursor-pointer grid-cols-1 gap-1.5 text-left sm:grid-cols-[32px_minmax(0,1fr)_160px] sm:items-center sm:gap-3">
           <span className="notebook-row-meta flex min-h-8 items-center gap-2 sm:contents">
             <PartBadge part={mistake.part} />
-            <span className={`ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold sm:hidden ${style.text}`}>
+            <span className={`ml-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-bold sm:hidden ${style.text} ${status.kind === 'due' ? 'bg-amber-50 dark:bg-amber-950/40' : status.kind === 'overdue' ? 'bg-rose-50 dark:bg-rose-950/40' : ''}`}>
               {style.dot && <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />}{status.label}
             </span>
           </span>
