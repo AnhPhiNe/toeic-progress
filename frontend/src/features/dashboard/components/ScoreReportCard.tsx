@@ -1,10 +1,19 @@
 import type { ReactNode } from 'react';
 import { Headphones, BookOpen } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
+import { getConcordanceByToeic } from '@/shared/domain/etsScoring';
 
 export const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
   return `${d}/${m}`;
+};
+
+const CEFR_STYLES: Record<string, string> = {
+  C1: 'bg-purple-100 text-purple-950 dark:bg-purple-950/60 dark:text-purple-200',
+  B2: 'bg-indigo-100 text-indigo-950 dark:bg-indigo-950/60 dark:text-indigo-200',
+  B1: 'bg-blue-100 text-blue-950 dark:bg-blue-950/60 dark:text-blue-200',
+  A2: 'bg-teal-100 text-teal-950 dark:bg-teal-950/60 dark:text-teal-200',
+  A1: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
 };
 
 interface ScoreReportProps {
@@ -42,6 +51,17 @@ export function ScoreReportCard({
   const change = previousTotal !== undefined ? latestTotal - previousTotal : undefined;
   const hasSections = listeningScore !== undefined || readingScore !== undefined;
 
+  const cefrTier = (listeningScore !== undefined && readingScore !== undefined)
+    ? getConcordanceByToeic(listeningScore, readingScore)
+    : null;
+  const cefrName = cefrTier?.cefr ?? (
+    latestTotal >= 945 ? 'C1' :
+    latestTotal >= 785 ? 'B2' :
+    latestTotal >= 550 ? 'B1' :
+    latestTotal >= 225 ? 'A2' :
+    latestTotal >= 120 ? 'A1' : undefined
+  );
+
   return (
     <section
       aria-labelledby="score-report-title"
@@ -58,11 +78,20 @@ export function ScoreReportCard({
                 {formatShortDate(latestTest.date)}
               </span>
             </h2>
-            {newRecord && (
+            {newRecord ? (
               <span className="rounded-lg border-2 border-slate-900 bg-amber-300 px-2 py-0.5 text-[10.5px] font-black text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none shrink-0">
                 🏆 Kỷ lục mới
               </span>
-            )}
+            ) : cefrName ? (
+              <span
+                title={`Khung tham chiếu trình độ CEFR: ${cefrName}`}
+                className={`rounded-lg border-2 border-slate-900 px-2 py-0.5 text-[10.5px] font-black shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none shrink-0 ${
+                  CEFR_STYLES[cefrName] ?? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                }`}
+              >
+                Trình độ {cefrName}
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 text-[16px] font-black text-slate-900 dark:text-white tracking-tight truncate">
             {latestTest.testName}
