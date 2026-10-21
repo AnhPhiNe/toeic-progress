@@ -644,7 +644,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           entryMode === 'batch' ? (
             <div className="space-y-3">
               {/* Hàng 1: Chọn Đề & Số câu tùy chọn */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1">
                   <span className="mb-1.5 block text-sm font-bold">Đề <span className="text-rose-600" aria-hidden="true">*</span></span>
                   <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={Boolean(batchProgress)}
@@ -853,7 +853,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           entryMode === 'batch' ? (
             <>
               <div className="max-w-[50%] truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề và tải ảnh chụp các câu sai Reading (Part 5–7, câu 101–200)'}
+                {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề rồi tải ảnh các câu sai Reading'}
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={close} className={linkClass}>
