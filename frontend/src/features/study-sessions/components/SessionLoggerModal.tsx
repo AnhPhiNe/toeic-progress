@@ -30,6 +30,7 @@ import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
 import { DesktopFullTestBody } from './DesktopFullTestBody';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
+import { ContainerScrollCue } from '@/shared/components/ScrollCue';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -212,6 +213,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   }, [sessionType]);
 
   const modalRef = useModalA11y(isOpen, onClose);
+  const formBodyRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
@@ -366,7 +368,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
           if (primary) event.currentTarget.requestSubmit(primary);
         }} className="flex min-h-0 flex-1 flex-col">
-          <div className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-3 p-4 sm:px-5 sm:py-3.5' : 'space-y-4 p-5'} overflow-y-auto max-md:p-4`}>
+          <div className="relative min-h-0 flex-1 flex flex-col">
+            <div ref={formBodyRef} className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-3 p-4 sm:px-5 sm:py-3.5' : 'space-y-4 p-5'} overflow-y-auto max-md:p-4`}>
           
           {/* Mode Switcher */}
           <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
@@ -890,6 +893,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
+            </div>
+            <ContainerScrollCue containerRef={formBodyRef} resetKey={`${sessionType}-${wrongEntry}`} />
           </div>
           <div className="shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {/* Submit Button */}

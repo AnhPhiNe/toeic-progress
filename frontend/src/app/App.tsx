@@ -30,6 +30,7 @@ import { useRouteTab } from '@/app/routing/useRouteTab';
 import { getActiveAccountId, readDataBundle, StorageWriteError } from '@/shared/data/dataBundle';
 import { ConnectionBanner } from '@/app/components/ConnectionBanner';
 import { hasPersonalData } from '@/shared/data/syncMerge';
+import { PageScrollCue } from '@/shared/components/ScrollCue';
 
 import { 
   loadUserProfile, 
@@ -547,6 +548,7 @@ export const App: React.FC = () => {
       </div>
 
       <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} />
+      <PageScrollCue activeTab={activeTab} />
 
       <MobileNav
         activeTab={activeTab}
