@@ -187,9 +187,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
               })}
 
               {perfectParts.length > 0 && (
-                <li className="flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-100 px-1 pt-2 text-[11.5px] font-extrabold text-emerald-700 dark:border-slate-800 dark:text-emerald-400">
+                <li className="flex flex-wrap items-center justify-start gap-2 border-t border-slate-100 px-1 pt-2.5 text-[11.5px] font-extrabold text-emerald-700 dark:border-slate-800 dark:text-emerald-400">
                   <span>✓ Part làm trọn vẹn 100%:</span>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {perfectParts.map(part => (
                       <span
                         key={part.key}

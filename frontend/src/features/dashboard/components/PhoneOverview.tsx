@@ -48,26 +48,26 @@ function TodayTasks({
   return (
     <section
       aria-label="Nhiệm vụ hôm nay"
-      className="rounded-[22px] border-[1.5px] border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A2C] overflow-hidden"
+      className="rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] overflow-hidden"
     >
       {/* Header tích hợp */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800">
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b-2 border-slate-900 dark:border-slate-700 dark:bg-slate-800/80">
+        <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
           Nhiệm vụ hôm nay
         </h2>
-        <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40">
+        <span className="inline-flex items-center rounded-lg bg-blue-100 dark:bg-blue-950/80 px-2 py-0.5 text-[11px] font-black text-blue-900 dark:text-blue-300 border border-slate-900 dark:border-slate-500 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none">
           {taskCount} việc
         </span>
       </div>
 
       {/* Danh sách công việc */}
-      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="divide-y-2 divide-slate-100 dark:divide-slate-800">
         {/* Việc 1: Ôn câu sai SRS đến hạn hoặc làm đề mới */}
         {hasDueMistakes ? (
           <div className="flex items-center justify-between gap-3 p-3.5 sm:px-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/40">
-                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-amber-100 text-amber-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-400 dark:bg-amber-950/70 dark:text-amber-300 dark:shadow-none">
+                <RotateCcw className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white">
@@ -81,7 +81,7 @@ function TodayTasks({
             <button
               type="button"
               onClick={onStartReview}
-              className="shrink-0 inline-flex items-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+              className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
             >
               Ôn ngay ›
             </button>
@@ -89,8 +89,8 @@ function TodayTasks({
         ) : (
           <div className="flex items-center justify-between gap-3 p-3.5 sm:px-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40">
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-emerald-100 text-emerald-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-400 dark:bg-emerald-950/70 dark:text-emerald-300 dark:shadow-none">
+                <Sparkles className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white">
@@ -104,7 +104,7 @@ function TodayTasks({
             <button
               type="button"
               onClick={onOpenSessionLogger}
-              className="shrink-0 inline-flex items-center rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+              className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-300 text-slate-950 px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
             >
               Làm đề ›
             </button>
@@ -114,8 +114,8 @@ function TodayTasks({
         {/* Việc 2: Luyện tốc độ */}
         <div className="flex items-center justify-between gap-3 p-3.5 sm:px-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">
-              <Timer className="h-4 w-4" aria-hidden="true" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-indigo-100 text-indigo-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-400 dark:bg-indigo-950/70 dark:text-indigo-300 dark:shadow-none">
+              <Timer className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white">
@@ -129,7 +129,7 @@ function TodayTasks({
           <button
             type="button"
             onClick={() => onNavigateToPacing?.(weakestPart ? (`PART_${weakestPart}` as ReadingPartType) : 'PART_7')}
-            className="shrink-0 inline-flex items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
           >
             Luyện ›
           </button>
@@ -163,7 +163,7 @@ export function PhoneSummary({
   if (!latestTest) {
     return (
       <div className="space-y-4">
-        <section className="rounded-[22px] border-[1.5px] border-slate-200/90 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A2C] dark:shadow-none">
+        <section className="rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
           <h2 className="text-base font-black text-slate-950 dark:text-white">Chưa có bài thi nào</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Ghi điểm đề Full Test đầu tiên để thấy tiến bộ và khoảng cách tới mục tiêu {targetScore}.
@@ -171,7 +171,7 @@ export function PhoneSummary({
           <button
             type="button"
             onClick={onOpenSessionLogger}
-            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-black text-white shadow-xs active:bg-blue-700 cursor-pointer"
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-blue-600 text-sm font-black text-white shadow-[2px_2px_0_0_#0f172a] hover:bg-blue-700 active:translate-x-px active:translate-y-px active:shadow-none cursor-pointer"
           >
             <Plus size={18} aria-hidden="true" />Ghi điểm đề đầu tiên
           </button>
@@ -200,14 +200,14 @@ export function PhoneSummary({
         targetScore={targetScore}
         newRecord={Boolean(latestIsBest) && totalTests > 1}
       >
-        <div className="p-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
+        <div className="p-3 pt-2.5 border-t-2 border-slate-900 dark:border-slate-700">
           <button
             type="button"
             onClick={onViewDetails}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-center gap-1.5 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border-2 border-slate-900 dark:border-slate-300 text-xs font-black text-slate-900 dark:text-white flex items-center justify-center gap-1.5 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
           >
             <span>Xem chi tiết 7 Part & Bảng điểm</span>
-            <span className="text-slate-400 font-bold" aria-hidden="true">›</span>
+            <span className="text-slate-900 dark:text-white font-black" aria-hidden="true">›</span>
           </button>
         </div>
       </ScoreReportCard>

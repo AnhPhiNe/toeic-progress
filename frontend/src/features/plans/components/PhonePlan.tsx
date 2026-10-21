@@ -34,6 +34,35 @@ function howItCounts(task: Task) {
   return 'Mục tiêu cũ: đổi cách theo dõi để app tự đếm';
 }
 
+function taskTheme(type: Task['type']) {
+  if (type === 'AUTO_FULL_TEST') {
+    return {
+      bgIcon: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300',
+      tag: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800',
+      label: 'Đề thi'
+    };
+  }
+  if (type === 'AUTO_STUDY_TIME') {
+    return {
+      bgIcon: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300',
+      tag: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+      label: 'Thời gian'
+    };
+  }
+  if (type === 'AUTO_PART_PRACTICE') {
+    return {
+      bgIcon: 'bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300',
+      tag: 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800',
+      label: 'Luyện Part'
+    };
+  }
+  return {
+    bgIcon: 'bg-violet-100 text-violet-800 dark:bg-violet-950/70 dark:text-violet-300',
+    tag: 'bg-violet-50 text-violet-800 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800',
+    label: 'Tự chọn'
+  };
+}
+
 /**
  * Phones: Bento Neo-Brutalism weekly study plan with 44px thumb-friendly checkboxes,
  * compact bottom padding without double-padding dead space, and a bold add-goal button.
@@ -127,19 +156,20 @@ export function PhonePlan(props: Props) {
           <div className="space-y-2.5">
             {todo.map(task => {
               const primary = primaryAction(task);
+              const theme = taskTheme(task.type);
               return (
                 <div
                   key={task.id}
                   className="flex items-center gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3.5 shadow-[2.5px_2.5px_0_0_#0f172a] transition-all dark:border-slate-700 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#1e293b]"
                 >
-                  {/* Checkbox to chuẩn 44px tap target dễ bấm bằng ngón tay cái */}
+                  {/* Checkbox to chuẩn 44px tap target dễ bấm bằng ngón tay cái có màu sắc theo loại việc */}
                   <button
                     type="button"
                     role="checkbox"
                     aria-checked="false"
                     aria-label={`Thực hiện ${primary.label} cho mục tiêu ${task.title}`}
                     onClick={() => primary.action()}
-                    className="group/cb flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-stone-100 text-slate-600 shadow-[1.5px_1.5px_0_0_#0f172a] hover:border-slate-900 hover:bg-stone-200 hover:text-slate-900 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-400 dark:bg-slate-800 dark:text-slate-300 dark:shadow-none dark:hover:bg-slate-700"
+                    className={'group/cb flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] hover:brightness-95 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:shadow-none ' + theme.bgIcon}
                     title={primary.label}
                   >
                     <primary.icon className="h-5 w-5 transition-transform group-hover/cb:scale-110" aria-hidden="true" />
@@ -154,14 +184,19 @@ export function PhonePlan(props: Props) {
                     className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 text-left"
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[15px] font-bold text-slate-900 dark:text-white">
-                        {task.title}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={'rounded-md border px-1.5 py-0.5 text-[10px] font-black shrink-0 ' + theme.tag}>
+                          {theme.label}
+                        </span>
+                        <span className="truncate text-[14.5px] font-bold text-slate-900 dark:text-white">
+                          {task.title}
+                        </span>
+                      </div>
                       <span className="shrink-0 text-[13px] font-black tabular-nums text-slate-950 dark:text-white">
                         {task.done}<span className="font-semibold text-slate-500 dark:text-slate-400">/{task.target} {task.unit}</span>
                       </span>
                     </div>
-                    <div className="block h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-slate-800" aria-hidden="true">
+                    <div className="block h-2.5 overflow-hidden rounded-full bg-slate-100 border border-slate-200/80 dark:border-slate-700 dark:bg-slate-800" aria-hidden="true">
                       <span
                         data-plan-progress
                         className={'block h-full rounded-full transition-[width] duration-500 ' + props.barClass(task)}

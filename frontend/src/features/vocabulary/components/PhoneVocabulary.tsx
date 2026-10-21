@@ -99,41 +99,42 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
       <form
         id="vocab-phone-form"
         onSubmit={onSubmit}
-        className="rounded-2xl border-2 border-slate-900 bg-white p-4.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
+        className="rounded-2xl border-2 border-slate-900 bg-white p-5 sm:p-6 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
       >
-        {/* Header: Ghi nhận từ vựng hôm nay + Streak badge */}
-        <div className="flex flex-col items-center gap-1.5 pb-2">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <h1 className="text-[17px] font-black tracking-tight text-slate-950 dark:text-white">
-              {date === today ? 'Ghi nhận từ vựng hôm nay' : 'Ghi nhận từ vựng'}
-            </h1>
-            {streak > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-black text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300 shadow-2xs">
-                <span aria-hidden="true">🔥</span>
-                <span>{streak} ngày liên tục</span>
-              </span>
-            )}
-          </div>
-          <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">
-            {date === today ? 'Hôm nay' : 'Ngày'} · {shortDate(date)}{' '}
-            <label className="relative inline-block cursor-pointer font-bold text-blue-600 dark:text-blue-400">
-              Đổi ngày
-              <input
-                type="date"
-                aria-label="Ngày học từ vựng"
-                required
-                min="0001-01-01"
-                max={today}
-                value={date}
-                onChange={event => event.target.value && onDate(event.target.value)}
-                className="absolute inset-0 cursor-pointer opacity-0"
-              />
-            </label>
-          </p>
+        {/* Header: Ghi nhận từ vựng + Streak badge */}
+        <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3 dark:border-slate-800">
+          <h1 className="text-[16px] font-black tracking-tight text-slate-950 dark:text-white">
+            {date === today ? 'Ghi nhận từ vựng' : 'Ghi nhận từ vựng'}
+          </h1>
+          {streak > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-black text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300 shadow-2xs">
+              <span aria-hidden="true">🔥</span>
+              <span>{streak} ngày liên tục</span>
+            </span>
+          ) : (
+            <span className="text-[12px] font-bold text-slate-400 dark:text-slate-500">Học từ mới</span>
+          )}
         </div>
 
+        <p className="mt-3 text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">
+          {date === today ? 'Hôm nay' : 'Ngày'} · {shortDate(date)}{' '}
+          <label className="relative inline-block cursor-pointer font-bold text-blue-600 dark:text-blue-400 underline underline-offset-2">
+            Đổi ngày
+            <input
+              type="date"
+              aria-label="Ngày học từ vựng"
+              required
+              min="0001-01-01"
+              max={today}
+              value={date}
+              onChange={event => event.target.value && onDate(event.target.value)}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+        </p>
+
         {/* Big Counter with +/- Buttons */}
-        <div className="mt-3 flex items-center justify-center gap-4">
+        <div className="mt-4 flex items-center justify-center gap-5">
           <button
             type="button"
             aria-label={`Bớt ${STEP} từ`}
@@ -158,7 +159,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
               onChange={event => onCount(event.target.value)}
               className="w-full appearance-none bg-transparent text-center text-[54px] font-black leading-none tabular-nums text-slate-950 outline-none [-moz-appearance:textfield] focus:underline focus:decoration-violet-400 focus:decoration-4 focus:underline-offset-8 dark:text-white [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <span className="mt-1 text-[12px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">từ đã học</span>
+            <span className="mt-1.5 text-[12px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">từ đã học</span>
           </label>
           <button
             type="button"
@@ -171,14 +172,14 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
         </div>
 
         {/* Presets: [10, 20, 30, 50] */}
-        <div role="group" aria-label="Số từ thường dùng" className="mt-4 flex justify-center gap-2">
+        <div role="group" aria-label="Số từ thường dùng" className="mt-5 flex justify-center gap-2.5">
           {PRESETS.map(preset => (
             <button
               type="button"
               key={preset}
               aria-pressed={value === preset}
               onClick={() => onCount(String(preset))}
-              className={'h-10 min-w-12 cursor-pointer rounded-xl border-2 px-3 text-sm font-black tabular-nums transition-all ' + (
+              className={'h-10 min-w-13 cursor-pointer rounded-xl border-2 px-3 text-sm font-black tabular-nums transition-all ' + (
                 value === preset
                   ? 'border-slate-900 bg-violet-200 text-violet-950 shadow-[2px_2px_0_0_#0f172a] dark:border-violet-300 dark:bg-violet-900 dark:text-white dark:shadow-none'
                   : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200'
@@ -190,7 +191,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
         </div>
 
         {/* Nút lưu in-flow ngay trong card */}
-        <div className="mt-4">
+        <div className="mt-5">
           <button
             type="submit"
             className={'flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 text-sm font-black shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:shadow-none ' + (

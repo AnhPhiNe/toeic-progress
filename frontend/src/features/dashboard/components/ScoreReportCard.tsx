@@ -45,13 +45,13 @@ export function ScoreReportCard({
   return (
     <section
       aria-labelledby="score-report-title"
-      className="relative overflow-hidden rounded-[22px] border-[1.5px] border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A2C] dark:shadow-none"
+      className="relative overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
     >
       <div className={roomy ? 'px-5 pt-4 pb-3.5' : 'px-[18px] pt-3.5 pb-3'}>
         {/* Header phân tầng: Metadata (Ngày + Kỷ lục) ở trên, Tên đề rộng rãi 100% ở dưới */}
         <div className="mb-2">
           <div className="flex items-center justify-between gap-2">
-            <h2 id="score-report-title" className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+            <h2 id="score-report-title" className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
               <span>Kết quả gần nhất</span>
               <span className="text-slate-300 dark:text-slate-600 font-normal">·</span>
               <span className="normal-case font-bold text-slate-600 dark:text-slate-300 tabular-nums">
@@ -59,7 +59,7 @@ export function ScoreReportCard({
               </span>
             </h2>
             {newRecord && (
-              <span className="rounded-full border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[10.5px] font-black text-amber-700 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300 shrink-0">
+              <span className="rounded-lg border-2 border-slate-900 bg-amber-300 px-2 py-0.5 text-[10.5px] font-black text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none shrink-0">
                 🏆 Kỷ lục mới
               </span>
             )}
@@ -80,16 +80,16 @@ export function ScoreReportCard({
             {change !== undefined && change !== 0 && (
               <span
                 className={
-                  'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold ' +
+                  'inline-flex items-center gap-1 rounded-lg border-2 border-slate-900 px-2 py-0.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none ' +
                   (change > 0
-                    ? 'border-emerald-200/90 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400'
-                    : 'border-rose-200/90 bg-rose-50 text-rose-600 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-400')
+                    ? 'bg-emerald-300 text-slate-950 dark:bg-emerald-400'
+                    : 'bg-rose-300 text-slate-950 dark:bg-rose-400')
                 }
               >
                 <span className="tabular-nums">
                   {change > 0 ? '▲' : '▼'} {Math.abs(change)}
                 </span>
-                <span className="hidden sm:inline font-normal text-slate-500 dark:text-slate-400">so với bài trước</span>
+                <span className="hidden sm:inline font-bold">so với bài trước</span>
               </span>
             )}
           </div>
@@ -124,13 +124,13 @@ function Section({ label, score, raw, roomy, kind }: { label: string; score?: nu
   const Icon = kind === 'listening' ? Headphones : BookOpen;
   const isListening = kind === 'listening';
   const cardClass = isListening
-    ? 'rounded-2xl border border-indigo-200/90 bg-indigo-50/70 text-indigo-950 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-100 shadow-2xs'
-    : 'rounded-2xl border border-teal-200/90 bg-teal-50/70 text-teal-950 dark:border-teal-800/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-2xs';
+    ? 'rounded-xl border-2 border-slate-900 bg-indigo-50 text-indigo-950 dark:border-slate-300 dark:bg-indigo-950/60 dark:text-indigo-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none'
+    : 'rounded-xl border-2 border-slate-900 bg-teal-50 text-teal-950 dark:border-slate-300 dark:bg-teal-950/60 dark:text-teal-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none';
   const labelClass = isListening ? 'text-indigo-700 dark:text-indigo-200' : 'text-teal-700 dark:text-teal-200';
   const iconColor = isListening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-600 dark:text-teal-400';
   const badgeClass = isListening
-    ? 'whitespace-nowrap rounded-md border border-indigo-200/80 bg-white/90 px-1.5 py-0.5 text-[10.5px] font-black tabular-nums shrink-0 dark:border-indigo-700 dark:bg-slate-900 dark:text-indigo-300 shadow-2xs'
-    : 'whitespace-nowrap rounded-md border border-teal-200/80 bg-white/90 px-1.5 py-0.5 text-[10.5px] font-black tabular-nums shrink-0 dark:border-teal-700 dark:bg-slate-900 dark:text-teal-300 shadow-2xs';
+    ? 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none'
+    : 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-teal-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none';
 
   return (
     <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2 px-3 py-2.5 ' : 'gap-1.5 px-3 py-2.5 ') + cardClass}>
