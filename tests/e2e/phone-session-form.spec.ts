@@ -93,7 +93,8 @@ test('phone Part practice adds and drops rows from the Part buttons and defaults
   await dialog.getByRole('button', { name: 'Part 6', exact: true }).click();
   await dialog.getByLabel('Số câu đúng Part 5').fill('24');
   await dialog.getByLabel('Số câu đúng Part 6').fill('14');
-  await expect(dialog.getByText('83%', { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel('Số câu đúng Part 5')).toHaveValue('24');
+  await expect(dialog.getByLabel('Số câu đúng Part 6')).toHaveValue('14');
   await dialog.getByRole('button', { name: 'Part 5', exact: true }).click();
   await expect(dialog.getByLabel('Số câu đúng Part 5')).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();

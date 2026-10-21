@@ -49,7 +49,7 @@ function DetailsRow({ date, setDate, duration, setDuration, notes, setNotes }: {
   return (
     <details className="group rounded-2xl border-[1.5px] border-stone-300 bg-white dark:border-slate-700 dark:bg-slate-900">
       <summary className="flex min-h-[50px] cursor-pointer list-none items-center justify-between gap-3 px-4 text-[14px] font-bold [&::-webkit-details-marker]:hidden">
-        Ngày, thời gian, ghi chú
+        Thời gian & Ghi chú
         <span className="flex items-center gap-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{when} · {duration} phút<ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" /></span>
       </summary>
       <div className="space-y-3 border-t border-stone-200 px-4 py-3 dark:border-slate-700">
@@ -194,12 +194,13 @@ export function PhoneFullTestBody(props: FullTestProps) {
       </>}
 
       {/* Other ways to enter the same test, on one line. */}
-      <div className="flex flex-wrap items-center justify-center gap-x-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
         {manual
-          ? <button type="button" onClick={() => props.useManual(false)} className="min-h-10 font-bold text-blue-700 dark:text-blue-300">Quay lại ước tính điểm</button>
-          : <>Cách khác:
-            <button type="button" onClick={() => props.onEntry(fromWrong ? 'counts' : 'wrong')} className="min-h-10 px-1 font-bold text-blue-700 dark:text-blue-300">{fromWrong ? 'Số câu đúng mỗi Part' : 'Đánh dấu câu sai'}</button>·
-            <button type="button" onClick={() => props.useManual(true)} className="min-h-10 px-1 font-bold text-blue-700 dark:text-blue-300">Điểm chính thức</button>
+          ? <button type="button" onClick={() => props.useManual(false)} className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">← Quay lại ước tính điểm</button>
+          : <>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cách khác:</span>
+            <button type="button" onClick={() => props.onEntry(fromWrong ? 'counts' : 'wrong')} className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">{fromWrong ? 'Số câu đúng mỗi Part' : 'Đánh dấu câu sai'}</button>
+            <button type="button" onClick={() => props.useManual(true)} className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">Điểm chính thức</button>
           </>}
       </div>
 
@@ -232,27 +233,6 @@ export function PhonePracticeBody(props: PracticeProps) {
     if (next.correct > next.total) next.correct = next.total;
     return next;
   }));
-  const correct = rows.reduce((sum, row) => sum + row.correct, 0);
-  const total = rows.reduce((sum, row) => sum + row.total, 0);
-  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
-  const tone = rows.every(row => isListening(row.part)) ? '#4F46E5' : '#0D9488';
-
-  // Compare a single-Part session with the most recent earlier practice of that Part.
-  let comparison: string | null = null;
-  if (rows.length === 1 && correct > 0) {
-    const part = rows[0].part;
-    const previous = props.sessions
-      .filter(session => !session.deletedAt && session.sessionType === 'PART_PRACTICE' && session.id !== props.editingId)
-      .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
-      .map(session => session.practiceParts?.find(row => row.part === part && row.total > 0))
-      .find(Boolean);
-    if (previous) {
-      const delta = accuracy - Math.round((previous.correct / previous.total) * 100);
-      comparison = delta > 0 ? `Cao hơn lần trước ${delta}%` : delta < 0 ? `Thấp hơn lần trước ${-delta}%` : 'Bằng lần trước';
-    }
-  }
-  const circumference = 2 * Math.PI * 31;
-
   return (
     <div className="space-y-3.5">
       <div>
@@ -269,24 +249,6 @@ export function PhonePracticeBody(props: PracticeProps) {
               </button>
             );
           })}
-        </div>
-      </div>
-
-      <div className={`${LIVE_CARD} flex items-center gap-4 px-4 py-3.5`} aria-live="polite">
-        <span className="relative h-[74px] w-[74px] shrink-0">
-          <svg viewBox="0 0 74 74" className="h-full w-full -rotate-90" aria-hidden="true">
-            <circle cx="37" cy="37" r="31" fill="none" strokeWidth="8" className="stroke-stone-200 dark:stroke-slate-700" />
-            <circle cx="37" cy="37" r="31" fill="none" stroke={tone} strokeWidth="8" strokeLinecap="round"
-              strokeDasharray={`${(accuracy / 100) * circumference} ${circumference}`} className="transition-[stroke-dasharray] duration-300" />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[19px] font-black tabular-nums text-slate-950 dark:text-white">{accuracy}%</span>
-        </span>
-        <div className="min-w-0">
-          <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400">Kết quả</p>
-          <p className="mt-0.5 leading-none"><span className="text-[28px] font-black tabular-nums text-slate-950 dark:text-white">{correct}</span><span className="text-[14px] font-bold text-slate-400"> / {total} câu</span></p>
-          {comparison && <p className={'mt-1.5 text-[12.5px] font-bold ' + (comparison.startsWith('Thấp') ? 'text-rose-600 dark:text-rose-400' : comparison.startsWith('Cao') ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400')}>
-            {comparison}
-          </p>}
         </div>
       </div>
 

@@ -69,7 +69,15 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
               <button type="button" onClick={() => { setTyping(false); setInvalid([]); }} className="min-h-11 cursor-pointer px-3 text-[14px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
             </div>
           </div>
-        : <button type="button" onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }} className="min-h-10 cursor-pointer text-[13.5px] font-bold text-blue-700 dark:text-blue-300">Gõ số câu thay vì chạm</button>}
+        : <button
+            type="button"
+            aria-label="Gõ số câu thay vì chạm"
+            onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }}
+            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-[13.5px] font-bold text-slate-700 transition-all hover:border-slate-900 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-slate-400 dark:hover:bg-slate-800"
+          >
+            <span aria-hidden="true" className="text-base">⌨️</span>
+            <span>Gõ số câu thay vì chạm</span>
+          </button>}
     </div>
   );
 }
