@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { generateUUID } from '@/shared/domain/uuid';
 import { backendRequest, apiAvailable } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 import { explanationSchema, optionNoteSchema } from '@/shared/data/mistakeFields';
@@ -98,7 +99,7 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   // Supabase consumes the sign-up token. The API needs a NEW, single-use token.
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ draft: unknown; usage: AIUsage }>('/api/v1/ai/extract', 'POST', {
-    text: rawInput.trim(), request_id: crypto.randomUUID(), consent: true, captcha_token: captchaToken,
+    text: rawInput.trim(), request_id: generateUUID(), consent: true, captcha_token: captchaToken,
     provider: 'openai', ...(input ? { input } : {}), ...(images.length ? { images: images.map(image => ({ dataUrl: image.dataUrl })) } : {}),
     ...(sourceImageIds.length ? { sourceImageIds } : {})
   }, session.user.id);
@@ -180,7 +181,7 @@ export async function extractPageWithAI(questions: { number: number; part: numbe
   }
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ items: unknown; missing: unknown; explainTicket?: unknown; usage: AIUsage }>('/api/v1/ai/extract-page', 'POST', {
-    request_id: crypto.randomUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
+    request_id: generateUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
     questions, images: images.map(image => ({ dataUrl: image.dataUrl }))
   }, session.user.id);
   const parsed = pageSchema.safeParse(value);
@@ -205,7 +206,7 @@ export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () 
   }
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   const value = await backendRequest<{ wrong: unknown; skipped: unknown; usage: AIUsage }>('/api/v1/ai/read-results', 'POST', {
-    request_id: crypto.randomUUID(), consent: true, provider: 'openai', captcha_token: captchaToken, images: images.map(image => ({ dataUrl: image.dataUrl }))
+    request_id: generateUUID(), consent: true, provider: 'openai', captcha_token: captchaToken, images: images.map(image => ({ dataUrl: image.dataUrl }))
   }, session.user.id);
   const parsed = resultsSchema.safeParse(value);
   if (!parsed.success) throw new Error('Kết quả AI chưa hợp lệ. Hãy thử lại hoặc chạm vào các câu sai.');
@@ -232,7 +233,7 @@ export async function explainBatchWithAI(ticket: string, items: { number: number
     throw new Error('Tài khoản đã thay đổi. Chưa gửi yêu cầu viết lời giải.');
   }
   const value = await backendRequest<unknown>('/api/v1/ai/explain-batch', 'POST', {
-    request_id: crypto.randomUUID(), consent: true, provider: 'openai', ticket, items
+    request_id: generateUUID(), consent: true, provider: 'openai', ticket, items
   }, session.user.id);
   const parsed = explainSchema.safeParse(value);
   if (!parsed.success) throw new Error('Lời giải AI trả về chưa hợp lệ.');

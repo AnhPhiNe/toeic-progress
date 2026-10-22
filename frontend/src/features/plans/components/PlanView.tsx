@@ -23,6 +23,7 @@ import {
   TaskColorKey
 } from '@/shared/types';
 import type { PacingRun } from '@/shared/types';
+import { generateUUID } from '@/shared/domain/uuid';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PlanTaskModal, type PlanTaskDraft } from './PlanTaskModal';
 import { PlanLimitDialog } from './PlanLimitDialog';
@@ -510,9 +511,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
         setSaveError('Đã có 6 mục tiêu đang làm. Hoàn thành hoặc xóa bớt trước khi thêm.');
         return;
       }
-      const uuid = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const uuid = generateUUID();
       const newTask: SmartWeeklyTask = {
         id: `task-${uuid}`,
         title: taskTitle.trim(),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { generateUUID } from '@/shared/domain/uuid';
 import { Sidebar } from '@/app/components/Sidebar';
 import { Topbar } from '@/app/components/Topbar';
 import { MobileNav } from '@/app/components/MobileNav';
@@ -198,7 +199,7 @@ export const App: React.FC = () => {
   const openSessionMistake = (session: StudySession) => {
     const owner = getActiveAccountId();
     setNotebookSourceFilter({ owner, names: [session.testName] });
-    setSessionMistakeRequest({ id: crypto.randomUUID(), owner, sourceName: session.testName, sessionId: session.id });
+    setSessionMistakeRequest({ id: generateUUID(), owner, sourceName: session.testName, sessionId: session.id });
     setActiveTab('mistakes');
   };
 
@@ -206,7 +207,7 @@ export const App: React.FC = () => {
   const openSessionDrafts = (session: StudySession) => {
     const owner = getActiveAccountId();
     setNotebookSourceFilter({ owner, names: [session.testName] });
-    setSessionMistakeRequest({ id: crypto.randomUUID(), owner, detailSessionId: session.id });
+    setSessionMistakeRequest({ id: generateUUID(), owner, detailSessionId: session.id });
     setActiveTab('mistakes');
   };
 
@@ -214,7 +215,7 @@ export const App: React.FC = () => {
   const openNewMistake = () => {
     const owner = getActiveAccountId();
     setNotebookSourceFilter(null);
-    setSessionMistakeRequest({ id: crypto.randomUUID(), owner });
+    setSessionMistakeRequest({ id: generateUUID(), owner });
     setActiveTab('mistakes');
   };
 

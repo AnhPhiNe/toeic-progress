@@ -1,3 +1,5 @@
+import { generateUUID } from '@/shared/domain/uuid';
+
 export const MAX_CONTEXT_IMAGES = 3;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const MAX_PREPARED_BYTES = 600 * 1024;
@@ -28,7 +30,7 @@ export async function prepareImage(file: File, { maxSide = 2048, maxBytes = MAX_
     for (const quality of [0.9, 0.8, 0.7, 0.6]) {
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
       if (Math.ceil((dataUrl.length - dataUrl.indexOf(',') - 1) * 3 / 4) <= maxBytes) {
-        return { id: crypto.randomUUID(), name: file.name || 'Ảnh đã dán', dataUrl };
+        return { id: generateUUID(), name: file.name || 'Ảnh đã dán', dataUrl };
       }
     }
     throw new Error('Ảnh còn quá nặng. Cắt phần cần dùng để chữ rõ hơn.');

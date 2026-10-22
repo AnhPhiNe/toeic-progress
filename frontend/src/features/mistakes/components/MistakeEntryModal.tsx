@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { generateUUID } from '@/shared/domain/uuid';
 import { ChevronDown, ClipboardPaste, ImagePlus, PenLine, ScanLine, Sparkles, Trash2, X } from 'lucide-react';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { twMerge } from 'tailwind-merge';
@@ -133,7 +134,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const [tags, setTags] = useState(original?.tags.join(', ') ?? '');
   const requestEpoch = useRef(0);
   const saving = useRef(false);
-  const entryId = useRef(crypto.randomUUID());
+  const entryId = useRef(generateUUID());
   const draftInput = useRef('');
   const saved = useRef(false);
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
@@ -300,7 +301,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
             const category: ErrorCategory = selectedCategory || (item.draft.category !== 'OTHER' ? item.draft.category : 'OTHER');
             const idx = updated.findIndex(it => it.number === item.number);
             const entry: BatchExtractedItem = {
-              id: idx >= 0 ? updated[idx].id : crypto.randomUUID(),
+              id: idx >= 0 ? updated[idx].id : generateUUID(),
               number: item.number,
               part: itemPart,
               draft: item.draft,
@@ -493,7 +494,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     setDraft(null); setStep('input'); setChanged(false); setAnswerProvidedBy(undefined);
     setCategory('OTHER'); setSelectedCategory(''); setTags(''); setError(''); setKeyOpen(false);
     setBatchItems([]); setBatchNumbersText(''); setBatchProgress(null);
-    entryId.current = crypto.randomUUID(); draftInput.current = ''; saved.current = false;
+    entryId.current = generateUUID(); draftInput.current = ''; saved.current = false;
     requestAnimationFrame(() => ref.current?.querySelector<HTMLTextAreaElement>('#mistake-paste')?.focus());
   };
 

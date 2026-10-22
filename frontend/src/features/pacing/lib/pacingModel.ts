@@ -1,4 +1,5 @@
 import type { ReadingPartType } from '@/shared/types';
+import { generateUUID } from '@/shared/domain/uuid';
 
 export const PRESETS = {
   PART_5: { name: 'Part 5', minutes: 12, questions: 30, part: 5, tip: 'Với câu hỏi từ loại, kiểm tra cấu trúc quanh chỗ trống trước. Với câu hỏi từ vựng, đọc đủ ngữ cảnh để chọn nghĩa phù hợp.' },
@@ -37,7 +38,7 @@ export interface TimerSnapshot {
 }
 export function freshTimer(owner: string | null, mode: PacingMode, settings = DEFAULT_POMODORO, phase: PomodoroPhase = 'WORK'): TimerSnapshot {
   const minutes = mode !== 'POMODORO' ? PRESETS[mode].minutes : phase === 'WORK' ? settings.workMinutes : phase === 'SHORT_BREAK' ? settings.shortBreakMinutes : settings.longBreakMinutes;
-  return { version: 1, id: `pacing-v2-${crypto.randomUUID()}`, owner, mode, phase, status: 'ready', plannedSeconds: minutes * 60,
+  return { version: 1, id: `pacing-v2-${generateUUID()}`, owner, mode, phase, status: 'ready', plannedSeconds: minutes * 60,
     questions: PRESETS[mode].questions, elapsedMs: 0, runningSince: null, startedAt: null, endedAt: null, name: '', correct: '' };
 }
 export const hasFlexibleQuestions = (mode: PacingMode) => mode === 'PART_7_SINGLE' || mode === 'PART_7_MULTI';
