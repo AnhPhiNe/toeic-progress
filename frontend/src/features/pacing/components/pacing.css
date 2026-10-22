@@ -42,13 +42,97 @@
 .pacing-sound { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; min-height: 40px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #334155; cursor: pointer; }.dark .pacing-sound { background: #111a2c; color: #cbd5e1; border-color: #475569; }.pacing-sound[aria-pressed="false"] { color: #64748b; }.dark .pacing-sound[aria-pressed="false"] { color: #94a3b8; }.pacing-sound:hover { background: #f1f5f9; }.dark .pacing-sound:hover { background: #1d2b42; }.pacing-sound:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
 .pacing-setup { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 14px; color: #475569; }.dark .pacing-setup { color: #cbd5e1; }.pacing-setup strong { color: var(--clock-label); }
 .pacing-setup.is-pomodoro { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-.pacing-setup.is-pomodoro .pacing-phases { grid-column: 2; }
+.pacing-setup.is-pomodoro .pacing-phases { grid-column: 2; width: 330px; }
 .pacing-setup.is-pomodoro .pacing-settings { grid-column: 3; justify-self: start; }
 .pacing-settings { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 600; color: #334155; background: #fff; white-space: nowrap; cursor: pointer; }.dark .pacing-settings { color: #cbd5e1; border-color: #475569; background: #111a2c; }.pacing-settings:hover { background: #f1f5f9; }.dark .pacing-settings:hover { background: #1d2b42; }
 .pacing-link { display: inline-flex; align-items: center; min-height: 36px; color: #2563eb; font-size: 13px; font-weight: 600; cursor: pointer; }.dark .pacing-link { color: #60a5fa; }
-.pacing-phases { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; padding: 4px; background: #f1f5f9; border-radius: 12px; }.dark .pacing-phases { background: #1d2b42; }
-.pacing-phase-button { min-height: 40px; padding: 7px 10px; font-size: 13px; border-radius: 9px; cursor: pointer; }
-.pacing-phase-button.is-selected { background: var(--clock-tint); color: var(--clock-label); font-weight: 700; }
+.pacing-phases {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  max-width: 340px;
+  width: calc(100% - 32px);
+  margin-left: auto;
+  margin-right: auto;
+}
+.dark .pacing-phases {
+  background: #0f172a;
+  border-color: #334155;
+}
+.pacing-phase-button {
+  min-height: 38px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 120ms ease;
+  border: 1px solid transparent;
+}
+.dark .pacing-phase-button {
+  color: #94a3b8;
+}
+.pacing-phase-button:hover:not(.is-selected) {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.5);
+}
+.dark .pacing-phase-button:hover:not(.is-selected) {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+}
+.pacing-phase-button.is-selected {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 800;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.dark .pacing-phase-button.is-selected {
+  background: #162137;
+  color: #f8fafc;
+  border-color: #334155;
+  box-shadow: none;
+}
+[data-clock-tone="focus"] .pacing-phase-button.is-selected {
+  color: #e11d48;
+  border-color: #fecdd3;
+  background: #ffffff;
+}
+.dark [data-clock-tone="focus"] .pacing-phase-button.is-selected {
+  color: #fb7185;
+  border-color: #881337;
+  background: #1a1625;
+}
+[data-clock-tone="short-break"] .pacing-phase-button.is-selected {
+  color: #0d9488;
+  border-color: #99f6e4;
+  background: #ffffff;
+}
+.dark [data-clock-tone="short-break"] .pacing-phase-button.is-selected {
+  color: #2dd4bf;
+  border-color: #115e59;
+  background: #112628;
+}
+[data-clock-tone="long-break"] .pacing-phase-button.is-selected {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #ffffff;
+}
+.dark [data-clock-tone="long-break"] .pacing-phase-button.is-selected {
+  color: #60a5fa;
+  border-color: #1e40af;
+  background: #132238;
+}
 .pacing-input { min-height: 40px; border: 1px solid #cbd5e1; border-radius: 9px; padding: 8px 10px; background: #fff; color: #0f172a; font-size: 14px; max-width: 100%; }.dark .pacing-input { border-color: #475569; background: #111a2c; color: #f1f5f9; }
 .pacing-clock { margin: 12px auto 0; max-width: 480px; text-align: center; }.pacing-time { margin: 8px 0 18px; font-size: 96px; font-weight: 800; letter-spacing: -4px; line-height: 1.12; font-variant-numeric: tabular-nums; }
 .pacing-status, .pacing-clock-meta { font-size: 12px; color: #64748b; }.dark .pacing-status, .dark .pacing-clock-meta { color: #a5b4cb; }
