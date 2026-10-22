@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Headphones, BookOpen } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
 import { getConcordanceByToeic } from '@/shared/domain/etsScoring';
+import { triggerHaptic } from '@/shared/lib/haptics';
 
 export const formatShortDate = (iso: string) => {
   const [, m, d] = iso.split('-');
@@ -137,7 +138,7 @@ export function ScoreReportCard({
               : <span className="text-amber-700 dark:text-amber-400">còn {remaining} điểm</span>}
           </p>
           <div className={(roomy ? 'mt-2.5 h-2.5 ' : 'mt-2 h-2 ') + 'overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800'} aria-hidden="true">
-            <div data-goal-bar className={'h-full rounded-full ' + (remaining === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-600 dark:bg-blue-500')} style={{ width: `${percent}%` }} />
+            <div data-goal-bar className={'h-full rounded-full transition-all duration-700 ease-out ' + (remaining === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-blue-600 dark:bg-blue-500')} style={{ width: `${percent}%` }} />
           </div>
         </div>
       </div>
@@ -198,9 +199,12 @@ function Section({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        triggerHaptic(8);
+        onClick?.();
+      }}
       aria-label={`Xem chi tiết ${label}: ${score ?? 'chưa có điểm'}`}
-      className={'group flex min-w-0 flex-col justify-between text-left cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all ' + (roomy ? 'gap-1.5 p-3 ' : 'gap-1.5 p-3 sm:p-3.5 ') + cardClass}
+      className={'group flex min-w-0 flex-col justify-between text-left cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#0f172a] hover:-translate-y-0.5 transition-all duration-150 ' + (roomy ? 'gap-1.5 p-3 ' : 'gap-1.5 p-3 sm:p-3.5 ') + cardClass}
     >
       <div className="flex items-center justify-between w-full">
         <span className={'flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ' + labelClass}>

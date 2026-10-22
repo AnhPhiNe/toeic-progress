@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { NavTabId } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
+import { triggerHaptic } from '@/shared/lib/haptics';
 
 interface MobileNavProps {
   activeTab: NavTabId;
@@ -62,8 +63,8 @@ export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, to
   const moreActive = MORE_PAGES.some(page => page.id === activeTab);
 
   const navItem = (label: string, Icon: React.ElementType, active: boolean, onClick: () => void, extra?: React.ReactNode, props?: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button type="button" onClick={onClick} aria-current={active && !props?.['aria-haspopup'] ? 'page' : undefined} {...props}
-      className={'relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 cursor-pointer ' + (active ? 'text-slate-950 dark:text-white' : 'text-slate-500 dark:text-slate-400')}>
+    <button type="button" onClick={() => { triggerHaptic(8); onClick(); }} aria-current={active && !props?.['aria-haspopup'] ? 'page' : undefined} {...props}
+      className={'relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 cursor-pointer active:scale-95 transition-transform duration-100 ' + (active ? 'text-slate-950 dark:text-white' : 'text-slate-500 dark:text-slate-400')}>
       <span className={'flex h-8 w-12 items-center justify-center rounded-xl transition-colors ' + (active ? 'bg-indigo-100 dark:bg-indigo-950' : '')}>
         <Icon size={21} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
       </span>
@@ -80,8 +81,8 @@ export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, to
           dueMistakesCount > 0 && <span className="absolute left-1/2 top-1.5 ml-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white tabular-nums" aria-hidden="true">{dueMistakesCount}</span>,
           dueMistakesCount > 0 ? { 'aria-label': `Ôn tập, ${dueMistakesCount} câu cần ôn` } : undefined)}
         <div className="flex items-center justify-center">
-          <button type="button" onClick={() => setSheet('record')} aria-label="Ghi lại kết quả học" aria-haspopup="dialog"
-            className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-900 bg-blue-600 text-white shadow-[2px_2px_0_0_#0f172a] outline-none active:translate-x-px active:translate-y-px active:shadow-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-slate-200 dark:shadow-none cursor-pointer">
+          <button type="button" onClick={() => { triggerHaptic(8); setSheet('record'); }} aria-label="Ghi lại kết quả học" aria-haspopup="dialog"
+            className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-900 bg-blue-600 text-white shadow-[2px_2px_0_0_#0f172a] outline-none active:scale-95 transition-transform duration-100 active:translate-x-px active:translate-y-px active:shadow-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-slate-200 dark:shadow-none cursor-pointer">
             <Plus size={26} strokeWidth={2.5} aria-hidden="true" />
           </button>
         </div>
@@ -183,9 +184,9 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
   // Portal to <body> so a sheet opened from the sticky top bar still covers the bottom bar.
   return createPortal(
     <div className="fixed inset-0 z-50 md:hidden">
-      <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-slate-950/50 cursor-default" />
+      <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-slate-950/50 cursor-default animate-backdrop" />
       <div ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t-2 border-slate-900 bg-[#FDFBF7] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 text-slate-900 outline-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100">
+        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t-2 border-slate-900 bg-[#FDFBF7] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 text-slate-900 outline-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100 animate-sheet-up">
         <div className="relative mb-2 flex items-center justify-between">
           <div className="mx-auto h-1.5 w-10 rounded-full bg-slate-300 dark:bg-slate-600" aria-hidden="true" />
           <button type="button" onClick={onClose} aria-label="Đóng" className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-slate-200/70 text-slate-600 hover:bg-slate-300 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer">

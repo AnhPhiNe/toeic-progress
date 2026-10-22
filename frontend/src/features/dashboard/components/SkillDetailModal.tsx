@@ -6,6 +6,7 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { ContainerScrollCue } from '@/shared/components/ScrollCue';
 import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL, PHONE_SHEET_FOOTER } from '@/shared/ui/surfaces';
 import { PART_MAX_QUESTIONS, getPracticeParts } from '@/shared/domain/etsScoring';
+import { triggerHaptic } from '@/shared/lib/haptics';
 
 const PART_SHORT_TITLES: Record<number, string> = {
   1: 'Part 1 · Mô tả tranh',
@@ -34,6 +35,11 @@ export function SkillDetailModal({
 
   const isListening = skill === 'listening';
   const isFull = session.sessionType === 'FULL_TEST';
+
+  const handleSkillChange = (nextSkill: 'listening' | 'reading') => {
+    triggerHaptic(8);
+    setSkill(nextSkill);
+  };
 
   // Tính toán dữ liệu Part cho Listening (Part 1-4) hoặc Reading (Part 5-7)
   const partData = useMemo(() => {
@@ -94,7 +100,7 @@ export function SkillDetailModal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-2 sm:p-4 ${PHONE_SHEET_BACKDROP}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-2 sm:p-4 animate-backdrop ${PHONE_SHEET_BACKDROP}`}
       onClick={event => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -104,7 +110,7 @@ export function SkillDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="skill-detail-title"
-        className={`flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-100 dark:shadow-[4px_4px_0_0_#cbd5e1] ${PHONE_SHEET_PANEL}`}
+        className={`flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-100 dark:shadow-[4px_4px_0_0_#cbd5e1] animate-sheet-up sm:animate-modal-pop ${PHONE_SHEET_PANEL}`}
       >
         {/* Header Modal */}
         <header
@@ -148,7 +154,7 @@ export function SkillDetailModal({
           <div className="grid grid-cols-2 gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl">
             <button
               type="button"
-              onClick={() => setSkill('listening')}
+              onClick={() => handleSkillChange('listening')}
               className={`py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 isListening
                   ? 'bg-white text-indigo-900 shadow-xs border border-slate-300 dark:bg-[#162137] dark:text-indigo-300 dark:border-slate-700'
@@ -159,7 +165,7 @@ export function SkillDetailModal({
             </button>
             <button
               type="button"
-              onClick={() => setSkill('reading')}
+              onClick={() => handleSkillChange('reading')}
               className={`py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 !isListening
                   ? 'bg-white text-teal-900 shadow-xs border border-slate-300 dark:bg-[#162137] dark:text-teal-300 dark:border-slate-700'
@@ -246,7 +252,7 @@ export function SkillDetailModal({
                       aria-hidden="true"
                     >
                       <div
-                        className={`h-full rounded-full transition-all duration-300 ${
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${
                           p.percent >= 70
                             ? 'bg-emerald-500 dark:bg-emerald-400'
                             : 'bg-amber-500 dark:bg-amber-400'
@@ -279,7 +285,7 @@ export function SkillDetailModal({
           </button>
           <button
             type="button"
-            onClick={() => setSkill(isListening ? 'reading' : 'listening')}
+            onClick={() => handleSkillChange(isListening ? 'reading' : 'listening')}
             className={`min-h-10 cursor-pointer rounded-xl border-2 border-slate-900 px-4 py-2 text-xs font-black text-white shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all ${
               isListening ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-teal-600 hover:bg-teal-500'
             }`}

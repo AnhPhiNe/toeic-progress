@@ -20,6 +20,7 @@ import { loadMistakes } from '@/shared/data/storage';
 import { mistakeTestName, testNameKey, uniqueTestNames } from '@/features/mistakes/lib/sourceTests';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
+import { triggerHaptic } from '@/shared/lib/haptics';
 import './notebook.css';
 
 const NOTEBOOK_PAGE_SIZE = 6;
@@ -299,7 +300,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         <div className="mb-3">
           <ReviewSegmentedControl
             activeTab="mistakes"
-            onNavigateTab={onNavigateTab}
+            onNavigateTab={(tab) => {
+              triggerHaptic(8);
+              onNavigateTab(tab);
+            }}
             dueCount={dueCount}
             totalCount={mistakes.length}
           />

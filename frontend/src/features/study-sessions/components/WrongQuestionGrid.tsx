@@ -4,6 +4,7 @@ import { prepareImage, MAX_RESULT_IMAGES, RESULT_IMAGE_OPTIONS } from '@/feature
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
+import { triggerHaptic } from '@/shared/lib/haptics';
 
 const listening = (part: PartNumber) => part <= 4;
 
@@ -15,7 +16,10 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
   const [invalid, setInvalid] = useState<string[]>([]);
   const byPart = wrongQuestionsByPart(wrong);
   const marked = new Set(wrong);
-  const toggle = (question: number) => onChange(marked.has(question) ? wrong.filter(item => item !== question) : [...wrong, question].sort((a, b) => a - b));
+  const toggle = (question: number) => {
+    triggerHaptic(6);
+    onChange(marked.has(question) ? wrong.filter(item => item !== question) : [...wrong, question].sort((a, b) => a - b));
+  };
   const applyTyped = () => {
     const parsed = parseQuestionList(text);
     setInvalid(parsed.invalid);
@@ -50,7 +54,7 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
           const on = marked.has(question);
           return (
             <button key={question} type="button" aria-pressed={on} aria-label={`Câu ${question}`} onClick={() => toggle(question)}
-              className={'h-11 cursor-pointer rounded-[10px] border-2 text-[14px] font-black tabular-nums ' + (on
+              className={'h-11 cursor-pointer rounded-[10px] border-2 text-[14px] font-black tabular-nums active:scale-90 transition-transform duration-75 ' + (on
                 ? 'border-slate-900 bg-rose-600 text-white dark:border-slate-200'
                 : 'border-stone-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200')}>{question}</button>
           );

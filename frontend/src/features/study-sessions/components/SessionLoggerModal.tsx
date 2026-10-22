@@ -335,14 +335,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto max-md:items-stretch max-md:p-0 max-md:overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto max-md:items-stretch max-md:p-0 max-md:overflow-hidden animate-backdrop">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1080px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none`}>
+        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1080px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
         <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
