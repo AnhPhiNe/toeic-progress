@@ -113,11 +113,7 @@ export function SkillDetailModal({
         className={`flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-100 dark:shadow-[4px_4px_0_0_#cbd5e1] animate-sheet-up sm:animate-modal-pop ${PHONE_SHEET_PANEL}`}
       >
         {/* Header Modal */}
-        <header
-          className={`flex shrink-0 items-center justify-between gap-3 border-b-2 border-slate-900 px-4 py-3.5 sm:px-5 transition-colors ${
-            isListening ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'bg-teal-50 dark:bg-teal-950/40'
-          }`}
-        >
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-slate-900 px-4 py-3.5 sm:px-5 bg-slate-50 dark:bg-[#162137]">
           <div className="flex items-center gap-2.5 min-w-0">
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none text-white ${
