@@ -30,6 +30,7 @@ import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { OverviewChartLabels } from './OverviewChartLabels';
 import { PhoneSummary } from './PhoneOverview';
 import { ScoreReportCard } from './ScoreReportCard';
+import { SkillDetailModal } from './SkillDetailModal';
 import './dashboard-motion.css';
 
 interface DashboardProps {
@@ -75,6 +76,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Phones render PhoneSummary instead of the KPI and latest-test cards (streak lives in the top-bar chip); only one version is ever in the DOM.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
+  const [desktopSkillModal, setDesktopSkillModal] = useState<'listening' | 'reading' | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -778,7 +780,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* 6. PHIẾU KẾT QUẢ GẦN NHẤT — cùng thẻ với điện thoại; kỷ lục, trung bình và tiến bộ đã nằm ở 3 thẻ trên */}
           {!isPhone && latestTest && <ScoreReportCard roomy latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
-            newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}>
+            newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}
+            onOpenListening={() => setDesktopSkillModal('listening')}
+            onOpenReading={() => setDesktopSkillModal('reading')}>
             <div className="px-5 pt-3.5 pb-4">
               <button type="button" onClick={onNavigateToAnalytics}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white py-2.5 text-sm font-black text-indigo-700 shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group">
@@ -787,6 +791,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
           </ScoreReportCard>}
+
+          {!isPhone && desktopSkillModal && latestTest && (
+            <SkillDetailModal
+              session={latestTest}
+              initialSkill={desktopSkillModal}
+              onClose={() => setDesktopSkillModal(null)}
+            />
+          )}
         </div>
       </div>
     </div>

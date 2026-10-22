@@ -37,3 +37,67 @@ test('phone overview shows score report, tasks, hides progress chart on phone, a
   await expect(page.locator('.overview-chart-labels text')).toHaveCount(5);
   await expect(page.locator('.overview-chart-labels [data-retest]')).toHaveCount(0);
 });
+
+test('clicking Listening or Reading card opens skill detail modal and allows switching skills', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const stamp = '2026-10-20T09:00:00Z';
+    data.sessions = [{
+      id: 'session-detailed',
+      skillType: 'LR',
+      sessionType: 'FULL_TEST',
+      testName: 'ETS 2024 Test 05',
+      date: '2026-10-20',
+      durationMinutes: 120,
+      totalScore: 935,
+      scaledListening: 475,
+      scaledReading: 460,
+      rawListening: 96,
+      rawReading: 98,
+      partScores: {
+        part1: 6,
+        part2: 24,
+        part3: 38,
+        part4: 28,
+        part5: 29,
+        part6: 16,
+        part7: 53
+      },
+      createdAt: stamp,
+      updatedAt: stamp,
+      deletedAt: null
+    }];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+
+  // Chạm vào thẻ Listening
+  await page.getByRole('button', { name: /Xem chi tiết Listening/ }).click();
+  const modal = page.getByRole('dialog', { name: /Chi tiết Kỹ năng/ });
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText('Chi tiết Kỹ năng Listening')).toBeVisible();
+  await expect(modal.getByText('Part 1 · Mô tả tranh')).toBeVisible();
+  await expect(modal.getByText('6 / 6 câu · 100%')).toBeVisible();
+  await expect(modal.getByText('Part 4 · Bài nói ngắn')).toBeVisible();
+  await expect(modal.getByText('28 / 30 câu · 93%')).toBeVisible();
+
+  // Chuyển tab sang Reading
+  await modal.getByRole('button', { name: '📖 Reading (Part 5–7)', exact: true }).click();
+  await expect(modal.getByText('Chi tiết Kỹ năng Reading')).toBeVisible();
+  await expect(modal.getByText('Part 5 · Hoàn thành câu')).toBeVisible();
+  await expect(modal.getByText('29 / 30 câu · 97%')).toBeVisible();
+  await expect(modal.getByText('Part 7 · Đoạn đơn & đôi/ba')).toBeVisible();
+
+  // Đóng modal
+  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await expect(modal).toHaveCount(0);
+
+  // Chạm vào thẻ Reading trực tiếp
+  await page.getByRole('button', { name: /Xem chi tiết Reading/ }).click();
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText('Chi tiết Kỹ năng Reading')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(modal).toHaveCount(0);
+});

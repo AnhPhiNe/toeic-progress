@@ -28,6 +28,8 @@ interface ScoreReportProps {
   /** Computer: a roomier card, about the height of the old latest-test card */
   roomy?: boolean;
   children?: ReactNode;
+  onOpenListening?: () => void;
+  onOpenReading?: () => void;
 }
 
 /**
@@ -44,7 +46,9 @@ export function ScoreReportCard({
   targetScore,
   newRecord,
   roomy,
-  children
+  children,
+  onOpenListening,
+  onOpenReading
 }: ScoreReportProps) {
   const remaining = Math.max(0, targetScore - latestTotal);
   const percent = targetScore > 0 ? Math.min(100, Math.round((latestTotal / targetScore) * 100)) : 100;
@@ -67,7 +71,7 @@ export function ScoreReportCard({
       aria-labelledby="score-report-title"
       className="relative overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
     >
-      <div className={roomy ? 'px-5 pt-5 pb-4' : 'px-4 sm:px-5 pt-4 pb-3.5'}>
+      <div className={roomy ? 'px-5 pt-4 pb-3' : 'px-4 sm:px-5 pt-4 pb-3.5'}>
         {/* Header phân tầng: Metadata (Ngày + Kỷ lục) ở trên, Tên đề rộng rãi 100% ở dưới */}
         <div className="mb-2">
           <div className="flex items-center justify-between gap-2">
@@ -79,17 +83,18 @@ export function ScoreReportCard({
               </span>
             </h2>
             {newRecord ? (
-              <span className="rounded-lg border-2 border-slate-900 bg-amber-300 px-2 py-0.5 text-[10.5px] font-black text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none shrink-0">
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-900 bg-amber-300 px-2.5 py-0.5 text-[11px] font-black text-slate-950 shadow-none dark:border-slate-400 shrink-0">
                 🏆 Kỷ lục mới
               </span>
             ) : cefrName ? (
               <span
                 title={`Khung tham chiếu trình độ CEFR: ${cefrName}`}
-                className={`rounded-lg border-2 border-slate-900 px-2 py-0.5 text-[10.5px] font-black shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none shrink-0 ${
+                className={`inline-flex items-center gap-1.5 rounded-full border border-slate-900 px-2.5 py-0.5 text-[11px] font-extrabold shadow-none shrink-0 dark:border-slate-400 ${
                   CEFR_STYLES[cefrName] ?? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
                 }`}
               >
-                Trình độ {cefrName}
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" aria-hidden="true" />
+                <span>Trình độ {cefrName}</span>
               </span>
             ) : null}
           </div>
@@ -124,7 +129,7 @@ export function ScoreReportCard({
           </div>
         </div>
 
-        <div className="mt-4 pt-3.5 border-t border-slate-200/80 dark:border-slate-800">
+        <div className={(roomy ? 'mt-3 pt-2.5 ' : 'mt-4 pt-3.5 ') + 'border-t border-slate-200/80 dark:border-slate-800'}>
           <p data-latest-goal className="flex justify-between gap-3 text-[13px] font-bold text-slate-800 dark:text-slate-200">
             <span>Mục tiêu {targetScore}</span>
             {remaining === 0
@@ -138,10 +143,24 @@ export function ScoreReportCard({
       </div>
 
       {hasSections
-        ? <dl className={(roomy ? 'px-5 pb-3 ' : 'px-4 sm:px-5 pb-2.5 ') + 'grid grid-cols-2 gap-3'}>
-            <Section label="Listening" score={listeningScore} raw={latestTest.rawListening} roomy={roomy} kind="listening" />
-            <Section label="Reading" score={readingScore} raw={latestTest.rawReading} roomy={roomy} kind="reading" />
-          </dl>
+        ? <div className={(roomy ? 'px-5 pb-3 ' : 'px-4 sm:px-5 pb-2.5 ') + 'grid grid-cols-2 gap-3'}>
+            <Section
+              label="Listening"
+              score={listeningScore}
+              raw={latestTest.rawListening}
+              roomy={roomy}
+              kind="listening"
+              onClick={onOpenListening}
+            />
+            <Section
+              label="Reading"
+              score={readingScore}
+              raw={latestTest.rawReading}
+              roomy={roomy}
+              kind="reading"
+              onClick={onOpenReading}
+            />
+          </div>
         : <p className={(roomy ? 'px-5 pb-4 ' : 'px-[18px] pb-3 ') + 'text-[13px] text-slate-500 dark:text-slate-400'}>Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.</p>}
 
       {children}
@@ -149,34 +168,60 @@ export function ScoreReportCard({
   );
 }
 
-function Section({ label, score, raw, roomy, kind }: { label: string; score?: number; raw?: number; roomy?: boolean; kind: 'listening' | 'reading' }) {
+function Section({
+  label,
+  score,
+  raw,
+  roomy,
+  kind,
+  onClick
+}: {
+  label: string;
+  score?: number;
+  raw?: number;
+  roomy?: boolean;
+  kind: 'listening' | 'reading';
+  onClick?: () => void;
+}) {
   const Icon = kind === 'listening' ? Headphones : BookOpen;
   const isListening = kind === 'listening';
   const cardClass = isListening
-    ? 'rounded-xl border-2 border-slate-900 bg-indigo-50 text-indigo-950 dark:border-slate-300 dark:bg-indigo-950/60 dark:text-indigo-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none'
-    : 'rounded-xl border-2 border-slate-900 bg-teal-50 text-teal-950 dark:border-slate-300 dark:bg-teal-950/60 dark:text-teal-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none';
-  const labelClass = isListening ? 'text-indigo-700 dark:text-indigo-200' : 'text-teal-700 dark:text-teal-200';
+    ? 'rounded-xl border-2 border-slate-900 bg-indigo-50/80 hover:bg-indigo-100/90 text-indigo-950 dark:border-slate-300 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none'
+    : 'rounded-xl border-2 border-slate-900 bg-teal-50/80 hover:bg-teal-100/90 text-teal-950 dark:border-slate-300 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none';
+  const labelClass = isListening ? 'text-indigo-800 dark:text-indigo-200' : 'text-teal-800 dark:text-teal-200';
   const iconColor = isListening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-600 dark:text-teal-400';
+  const chevronColor = isListening ? 'text-indigo-400 group-hover:text-indigo-900 dark:text-indigo-400 dark:group-hover:text-white' : 'text-teal-400 group-hover:text-teal-900 dark:text-teal-400 dark:group-hover:text-white';
   const badgeClass = isListening
     ? 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none'
     : 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-teal-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none';
 
   return (
-    <div className={'flex min-w-0 overflow-hidden flex-col justify-between ' + (roomy ? 'gap-2.5 p-3.5 ' : 'gap-2 p-3 sm:p-3.5 ') + cardClass}>
-      <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide">
-        <dt className={'flex items-center gap-1.5 ' + labelClass}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Xem chi tiết ${label}: ${score ?? 'chưa có điểm'}`}
+      className={'group flex min-w-0 flex-col justify-between text-left cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all ' + (roomy ? 'gap-1.5 p-3 ' : 'gap-1.5 p-3 sm:p-3.5 ') + cardClass}
+    >
+      <div className="flex items-center justify-between w-full">
+        <span className={'flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ' + labelClass}>
           <Icon className={'h-3.5 w-3.5 shrink-0 ' + iconColor} strokeWidth={2.5} aria-hidden="true" />
           <span>{label}</span>
-        </dt>
+        </span>
+        <span className={'text-sm font-black transition-transform group-hover:translate-x-0.5 ' + chevronColor} aria-hidden="true">
+          ›
+        </span>
       </div>
-      <div className="flex items-end justify-between gap-1">
-        <dd className={'font-black tabular-nums leading-none text-slate-900 dark:text-white tracking-tight ' + (roomy ? 'text-[28px]' : 'text-[25px]')}>{score ?? '—'}</dd>
-        {raw !== undefined && (
-          <dd className={badgeClass}>
+      <div className="flex items-baseline justify-between gap-1 w-full">
+        <span className={'font-black tabular-nums leading-none text-slate-950 dark:text-white tracking-tight ' + (roomy ? 'text-[28px]' : 'text-[28px]')}>
+          {score ?? '—'}
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">/ 495</span>
+        </span>
+        {roomy && raw !== undefined && (
+          <span className={badgeClass}>
             {raw}/100 câu
-          </dd>
+          </span>
         )}
       </div>
-    </div>
+    </button>
   );
 }

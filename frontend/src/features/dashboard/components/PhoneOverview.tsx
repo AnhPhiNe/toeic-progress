@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Plus, RotateCcw, Timer, Sparkles } from 'lucide-react';
 import type { StudySession, ReadingPartType } from '@/shared/types';
 import { ScoreReportCard } from './ScoreReportCard';
+import { SkillDetailModal } from './SkillDetailModal';
 
 interface SummaryProps {
   latestTest: StudySession | null;
@@ -55,7 +57,7 @@ function TodayTasks({
         <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
           Nhiệm vụ hôm nay
         </h2>
-        <span className="inline-flex items-center rounded-lg bg-blue-100 dark:bg-blue-950/80 px-2 py-0.5 text-[11px] font-black text-blue-900 dark:text-blue-300 border border-slate-900 dark:border-slate-500 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none">
+        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-950/80 px-2.5 py-0.5 text-[11px] font-black text-blue-900 dark:text-blue-300 border border-slate-900 dark:border-slate-500 shadow-none">
           {taskCount} việc
         </span>
       </div>
@@ -188,6 +190,8 @@ export function PhoneSummary({
     );
   }
 
+  const [skillModal, setSkillModal] = useState<'listening' | 'reading' | null>(null);
+
   return (
     <div className="space-y-4">
       {/* Thẻ Điểm */}
@@ -199,6 +203,8 @@ export function PhoneSummary({
         readingScore={readingScore}
         targetScore={targetScore}
         newRecord={Boolean(latestIsBest) && totalTests > 1}
+        onOpenListening={() => setSkillModal('listening')}
+        onOpenReading={() => setSkillModal('reading')}
       >
         <div className="px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1.5">
           <button
@@ -228,6 +234,15 @@ export function PhoneSummary({
             “{motto}”
           </p>
         </div>
+      )}
+
+      {/* Modal chi tiết Part khi chạm vào thẻ Listening hoặc Reading */}
+      {skillModal && latestTest && (
+        <SkillDetailModal
+          session={latestTest}
+          initialSkill={skillModal}
+          onClose={() => setSkillModal(null)}
+        />
       )}
     </div>
   );
