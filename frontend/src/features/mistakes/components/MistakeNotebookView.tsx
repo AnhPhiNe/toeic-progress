@@ -119,8 +119,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const sourceSuggestions = useMemo(() => collectTestNames(sessions, mistakes), [sessions, mistakes]);
   const matchingMistakes = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return sourcedMistakes.filter(m => (!term || [m.questionContext, m.userMistake, m.userReason ?? '', m.correctAnswer, m.trapTip ?? '', m.sourceTestName, ...m.tags]
-      .some(value => value.toLowerCase().includes(term))) && (selectedPart === 'ALL' || m.part === selectedPart)
+    return sourcedMistakes.filter(m => (!term || [m.questionContext, m.userMistake, m.userReason, m.correctAnswer, m.trapTip, m.sourceTestName, ...(m.tags ?? [])]
+      .some(value => typeof value === 'string' && value.toLowerCase().includes(term))) && (selectedPart === 'ALL' || m.part === selectedPart)
       && (selectedTest === 'ALL' || (selectedTest === 'SCOPE' ? scopeKeys.has(testNameKey(m.sourceTestName))
         : selectedTest === 'NONE' ? !m.sourceTestName : `test:${testNameKey(m.sourceTestName)}` === selectedTest))
       && (selectedCategory === 'ALL' || m.category === selectedCategory));
@@ -200,7 +200,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   const pendingCards = useMemo(() => matchingMistakes.filter(needsSupplement).sort((a, b) =>
     (a.sourceTestName ?? '').localeCompare(b.sourceTestName ?? '', 'vi', { numeric: true }) || (a.questionNumber ?? 999) - (b.questionNumber ?? 999)
-      || a.createdAt.localeCompare(b.createdAt)), [matchingMistakes]);
+      || (a.createdAt ?? '').localeCompare(b.createdAt ?? '')), [matchingMistakes]);
   const desktopPending = useMemo(() => pendingCards.filter(fromLoggedTest), [pendingCards]);
   /** One attempt owns one question-number namespace. Manual notes use their full editor. */
   const startDetail = (cards: MistakeEntry[]) => {
@@ -293,7 +293,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   };
 
   return (
-    <div className={'notebook-view animate-fade-in pb-10 ' + (isPhone && reviewCount > 0 ? 'pb-28' : '')}>
+    <div className={'notebook-view animate-fade-in ' + (isPhone && reviewCount > 0 ? 'pb-28' : 'pb-10')}>
       {/* Mobile top bar: Segmented Control */}
       {isPhone && onNavigateTab && (
         <div className="mb-3">

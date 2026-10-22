@@ -133,9 +133,9 @@ export const getTaskTheme = (task: SmartWeeklyTask) => {
 export const PlanView: React.FC<PlanViewProps> = ({
   storageVersion = 0,
   profile,
-  sessions,
-  mistakes,
-  vocabLog,
+  sessions = [],
+  mistakes = [],
+  vocabLog = [],
   pacingRuns = [],
   onOpenSessionLogger,
   onNavigateToTimer
@@ -302,6 +302,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
     const tasks = [...activePlanRecord.tasks];
     const from = tasks.findIndex(item => item.id === taskId);
     const to = tasks.findIndex(item => item.id === neighbor.id);
+    if (from === -1 || to === -1) return;
     [tasks[from], tasks[to]] = [tasks[to], tasks[from]];
     if (updateCurrentWeekTasks(tasks)) setSaveFeedback('Đã đổi thứ tự mục tiêu.');
   };
@@ -314,7 +315,8 @@ export const PlanView: React.FC<PlanViewProps> = ({
     const tasks = activePlanRecord.tasks.filter(item => item.id !== taskId);
     const moving = activePlanRecord.tasks.find(item => item.id === taskId);
     if (!moving) return;
-    tasks.splice(tasks.findIndex(item => item.id === first.id), 0, moving);
+    const targetIdx = tasks.findIndex(item => item.id === first.id);
+    tasks.splice(targetIdx >= 0 ? targetIdx : 0, 0, moving);
     if (updateCurrentWeekTasks(tasks)) setSaveFeedback('Đã đưa mục tiêu lên đầu.');
   };
 
@@ -508,8 +510,11 @@ export const PlanView: React.FC<PlanViewProps> = ({
         setSaveError('Đã có 6 mục tiêu đang làm. Hoàn thành hoặc xóa bớt trước khi thêm.');
         return;
       }
+      const uuid = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const newTask: SmartWeeklyTask = {
-        id: `task-${crypto.randomUUID()}`,
+        id: `task-${uuid}`,
         title: taskTitle.trim(),
         type: taskType,
         target: taskTarget,

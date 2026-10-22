@@ -142,7 +142,11 @@ export const App: React.FC = () => {
     } else {
       root.classList.remove('dark');
     }
-    localStorage.setItem('toeic_theme_v1', theme);
+    try {
+      localStorage.setItem('toeic_theme_v1', theme);
+    } catch {
+      /* ignore */
+    }
   }, [theme]);
 
   // Phím tắt toàn cục: Nhấn phím 'n' để mở nhanh Ghi nhận kết quả thi

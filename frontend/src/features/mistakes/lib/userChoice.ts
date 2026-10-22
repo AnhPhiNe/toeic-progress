@@ -7,7 +7,8 @@ export type ChoiceLetter = 'A' | 'B' | 'C' | 'D';
  * draft always produce. Free text is never guessed: "Chọn A vì..." or "be"
  * return '' instead of a letter that might be wrong.
  */
-export function optionLetter(value: string): ChoiceLetter | '' {
+export function optionLetter(value?: string | null): ChoiceLetter | '' {
+  if (!value || typeof value !== 'string') return '';
   return (value.match(/^\s*\(([A-D])\)/i)?.[1]?.toUpperCase() || '') as ChoiceLetter | '';
 }
 
@@ -23,7 +24,7 @@ export function getUserChoice(mistake: Pick<MistakeEntry, 'userChoice' | 'userMi
 
 /** Reason part of a userMistake the manual form wrote as "(A) text - reason". */
 export function reasonAfterChoice(userMistake: string, choiceLabel: string): string {
-  const value = userMistake.trim();
+  const value = (userMistake || '').trim();
   if (!choiceLabel) return value;
   if (value === choiceLabel) return '';
   return value.startsWith(`${choiceLabel} - `) ? value.slice(choiceLabel.length + 3).trim() : value;

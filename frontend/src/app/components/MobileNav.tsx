@@ -16,7 +16,8 @@ import {
   Sun,
   Target,
   Timer,
-  TrendingUp
+  TrendingUp,
+  X
 } from 'lucide-react';
 import type { NavTabId } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
@@ -36,10 +37,11 @@ interface MobileNavProps {
 type SheetId = 'record' | 'more' | null;
 
 const MORE_PAGES: Array<{ id: NavTabId; label: string; icon: React.ElementType }> = [
-  { id: 'plan', label: 'Kế hoạch', icon: Target },
+  { id: 'plan', label: 'Kế hoạch học', icon: Target },
   { id: 'exam-mode', label: 'Đồng hồ Pacing', icon: Timer },
-  { id: 'history', label: 'Lịch sử', icon: History },
-  { id: 'resources', label: 'Bảng quy đổi', icon: Calculator }
+  { id: 'vocabulary', label: 'Sổ từ vựng', icon: BookOpen },
+  { id: 'history', label: 'Lịch sử đề thi', icon: History },
+  { id: 'resources', label: 'Quy đổi điểm', icon: Calculator }
 ];
 
 /** Phone-only navigation: four destinations and one "+" that gathers every way to record study. */
@@ -183,8 +185,13 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
     <div className="fixed inset-0 z-50 md:hidden">
       <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-slate-950/50 cursor-default" />
       <div ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t-2 border-slate-900 bg-[#FDFBF7] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 text-slate-900 outline-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100">
-        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-300 dark:bg-slate-600" aria-hidden="true" />
+        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t-2 border-slate-900 bg-[#FDFBF7] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 text-slate-900 outline-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100">
+        <div className="relative mb-2 flex items-center justify-between">
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-slate-300 dark:bg-slate-600" aria-hidden="true" />
+          <button type="button" onClick={onClose} aria-label="Đóng" className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-slate-200/70 text-slate-600 hover:bg-slate-300 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
         <h2 className="mb-2 text-lg font-black tracking-tight">{title}</h2>
         {children}
       </div>

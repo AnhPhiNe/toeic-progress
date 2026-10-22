@@ -127,7 +127,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
               )}
             </div>
 
-            <div className="border-t-2 border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6">
+            <div className="border-t-2 border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               {result ? (
                 <button type="button" onClick={next} autoFocus
                   className="ml-auto flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-slate-900 sm:w-auto cursor-pointer">

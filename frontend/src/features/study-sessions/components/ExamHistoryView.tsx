@@ -62,7 +62,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
         && (attempt === 'FIRST_ONLY' ? !attempts[session.id]?.isRetest : attempts[session.id]?.isRetest))))
       .sort((a, b) => {
         if (sort === 'date') return (descending ? -1 : 1) * compareSessionDate(a, b);
-        if (sort === 'testName') return (descending ? -1 : 1) * a.testName.localeCompare(b.testName, 'vi', { numeric: true }) || -compareSessionDate(a, b);
+        if (sort === 'testName') return (descending ? -1 : 1) * (a.testName || '').localeCompare(b.testName || '', 'vi', { numeric: true }) || -compareSessionDate(a, b);
         const av = a.sessionType === 'FULL_TEST' ? a[sort] : undefined, bv = b.sessionType === 'FULL_TEST' ? b[sort] : undefined;
         // Missing scores stay last in either direction; they are not zero scores.
         if (av === undefined && bv !== undefined) return 1;
@@ -128,9 +128,10 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
     const rows = [...sorted].sort((a, b) => -compareSessionDate(a, b)).slice(0, phoneShown);
     const months: Array<{ key: string; label: string; items: StudySession[] }> = [];
     for (const session of rows) {
-      const [year, month] = session.date.split('-');
+      const [year = '1970', month = '01'] = (session.date || '').split('-');
+      const validMonth = Number(month) || 1;
       const key = `${year}-${month}`;
-      if (months[months.length - 1]?.key !== key) months.push({ key, label: `Tháng ${Number(month)} · ${year}`, items: [] });
+      if (months[months.length - 1]?.key !== key) months.push({ key, label: `Tháng ${validMonth} · ${year}`, items: [] });
       months[months.length - 1].items.push(session);
     }
     if (!rows.length) return <div className="space-y-2 px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400"><p>{active.length ? 'Không có bài làm khớp bộ lọc.' : 'Chưa có bài làm nào. Bấm nút ＋ ở dưới để ghi điểm.'}</p>
@@ -140,7 +141,8 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
         <h3 className="px-4 pb-1.5 pt-4 text-[12px] font-black uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400">{group.label}</h3>
         <ul className="divide-y divide-stone-200 border-y border-stone-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-[#111A2C]">
           {group.items.map(session => {
-            const [, month, day] = session.date.split('-');
+            const [, month = '01', day = '01'] = (session.date || '').split('-');
+            const validMonth = Number(month) || 1;
             const full = session.sessionType === 'FULL_TEST';
             const attemptNumber = attempts[session.id]?.attemptNumber ?? 1;
             const practice = full ? null : practiceSummary(session);
@@ -149,7 +151,7 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
                 className="flex min-h-[64px] w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-50/80 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800">
                 <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-stone-200/60 bg-stone-100 leading-none dark:border-slate-700/60 dark:bg-slate-800">
                   <span className="text-[18px] font-black leading-none tabular-nums text-slate-900 dark:text-white">{day}</span>
-                  <span className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">T{Number(month)}</span>
+                  <span className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">T{validMonth}</span>
                 </span>
                 <span className="min-w-0 flex-1 flex flex-col justify-center">
                   <span className="flex items-center gap-1.5">

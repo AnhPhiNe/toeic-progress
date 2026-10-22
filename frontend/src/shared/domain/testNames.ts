@@ -1,10 +1,10 @@
 import type { MistakeEntry, StudySession } from '@/shared/types';
 
-export function normalizeTestName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ');
+export function normalizeTestName(name?: string | null): string {
+  return (name || '').trim().replace(/\s+/g, ' ');
 }
 
-export function testNameKey(name: string): string {
+export function testNameKey(name?: string | null): string {
   return normalizeTestName(name).normalize('NFKC').toLocaleLowerCase('vi');
 }
 

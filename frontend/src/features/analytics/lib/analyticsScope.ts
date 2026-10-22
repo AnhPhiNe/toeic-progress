@@ -62,6 +62,7 @@ export function formatAnalyticsNumber(value: number): string {
   return value.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
 }
 
-export function analyticsAttemptLabel(number: number, date: string, latest = false): string {
-  return `Lần ${number} · ${date.split('-').reverse().join('/')}${latest ? ' · Mới nhất' : ''}`;
+export function analyticsAttemptLabel(number: number, date?: string | null, latest = false): string {
+  const formatted = date ? date.split('-').reverse().join('/') : '—';
+  return `Lần ${number} · ${formatted}${latest ? ' · Mới nhất' : ''}`;
 }

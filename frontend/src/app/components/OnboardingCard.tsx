@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Target, PlusCircle, TrendingUp, Sparkles, X, ArrowRight } from 'lucide-react';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 
 interface Props {
   onSetGoal: () => void;
@@ -8,16 +9,7 @@ interface Props {
 }
 
 export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss }) => {
-  // Lắng nghe phím Escape để đóng modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onDismiss();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onDismiss]);
+  const modalRef = useModalA11y(true, onDismiss);
 
   const handleGoalClick = () => {
     onDismiss();
@@ -31,7 +23,8 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+      ref={modalRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/60 backdrop-blur-sm animate-fade-in"
       onClick={e => {
         if (e.target === e.currentTarget) onDismiss();
       }}
@@ -39,7 +32,7 @@ export const OnboardingCard: React.FC<Props> = ({ onSetGoal, onRecord, onDismiss
       aria-modal="true"
       aria-labelledby="onboarding-title"
     >
-      <div className="w-full max-w-lg bg-white dark:bg-[#111A2C] rounded-3xl border-2 border-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:shadow-[4px_4px_0_0_#cbd5e1] p-6 sm:p-7 space-y-5 animate-scale-in relative">
+      <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-white dark:bg-[#111A2C] rounded-3xl border-2 border-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:shadow-[4px_4px_0_0_#cbd5e1] p-6 sm:p-7 space-y-5 animate-scale-in relative">
         
         {/* Nút đóng modal góc phải */}
         <button

@@ -3,7 +3,9 @@ import { testNameKey } from '@/shared/domain/testNames';
 import { mistakeTestName } from '@/features/mistakes/lib/sourceTests';
 
 export function compareSessionDate(a: StudySession, b: StudySession): number {
-  return a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
+  return (a.date || '').localeCompare(b.date || '')
+    || (a.createdAt || '').localeCompare(b.createdAt || '')
+    || (a.id || '').localeCompare(b.id || '');
 }
 
 /** Previous scored Full Test in chronological order, independent of table search/sort. */
@@ -24,9 +26,12 @@ export function sourceMistakes(session: StudySession, sessions: StudySession[], 
 }
 
 export function historyDate(date: string): string {
+  if (!date) return '—';
   const [year, month, day] = date.split('-');
   return day ? `${day}/${month}/${year}` : date;
 }
-export function historyDuration(minutes: number): string {
+
+export function historyDuration(minutes?: number): string {
+  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return '0 phút';
   return minutes < 1 ? `${Math.round(minutes * 60)} giây` : `${minutes.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} phút`;
 }

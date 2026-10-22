@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { BookOpen, ArrowRight, Timer, Layers, ChevronDown, ChevronRight } from 'lucide-react';
 import { ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { StudySession, MistakeEntry, UserProfile, ErrorCategory, ReadingPartType } from '@/shared/types';
@@ -41,8 +41,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
   // Phones: horizontal Part bars, one-line mistake summary, the practice button above the bottom bar.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [pickerOpen, setPickerOpen] = useState(false);
-  // Widening past the phone breakpoint drops the sheet so it does not reappear on the next narrow resize.
-  if (!isPhone && pickerOpen) setPickerOpen(false);
+  useEffect(() => {
+    if (!isPhone && pickerOpen) setPickerOpen(false);
+  }, [isPhone, pickerOpen]);
   const donutMotion = useChartMotion(600);
   const data = useMemo(() => analyticsScopeData(sessions, mistakes, sourceKey,
     attemptChoice?.source === sourceKey ? attemptChoice?.id : undefined), [sessions, mistakes, sourceKey, attemptChoice]);
@@ -95,7 +96,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
       </button>
 
       {/* 2. Thẻ Sổ tay câu sai được đẩy lên trên - không còn bị khuất ở đáy */}
-      <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources)} disabled={!onNavigateToMistakes}
+      <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources.length ? data.notebookSources : undefined)} disabled={!onNavigateToMistakes}
         className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3 text-left shadow-[2px_2px_0_0_#0f172a] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
@@ -253,7 +254,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
       </div>
       {data.attempt && (
         <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-slate-100/90 px-4 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
-          <span>Tổng điểm: <strong className="text-sm font-black tabular-nums text-slate-950 dark:text-white">{data.attempt.totalScore !== undefined ? number(data.attempt.totalScore) : '—'}</strong><span className="text-slate-400">/990</span></span>
+          <span>Tổng điểm: <strong className="text-sm font-black tabular-nums text-slate-950 dark:text-white">{typeof data.attempt.totalScore === 'number' && Number.isFinite(data.attempt.totalScore) ? number(data.attempt.totalScore) : '—'}</strong><span className="text-slate-400">/990</span></span>
           {data.parts.length > 0 && (
             <>
               <span className="h-3.5 w-px bg-slate-300 dark:bg-slate-600" aria-hidden="true" />
@@ -392,9 +393,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
             <button
               type="button"
               className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-slate-900 bg-blue-600 px-4 py-1.5 text-xs font-extrabold text-white shadow-[2px_2px_0px_#0f172a] hover:bg-blue-700 dark:border-slate-300"
-              onClick={() => onNavigateToMistakes(data.notebookSources)}
+              onClick={() => onNavigateToMistakes(data.notebookSources.length ? data.notebookSources : undefined)}
             >
-              Mở Sổ tay của đề<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              {data.sourceKey ? 'Mở Sổ tay của đề' : 'Mở Sổ tay'}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
         </div>

@@ -50,7 +50,7 @@ export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveF
   const pill = (text: string, tone: string) => <span className={'flex h-7 items-center rounded-[9px] border-2 border-slate-900 px-2.5 text-[13px] font-black text-slate-950 ' + tone}>{text}</span>;
 
   return (
-    <div className="space-y-4 px-4 py-4">
+    <div className="space-y-4 px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
       <button type="button" onClick={() => setEditing('account')} data-settings-row="account"
         className="flex w-full items-center gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3.5 text-left shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] cursor-pointer">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-slate-900 bg-[#DDD6FE] font-black text-slate-950">{profileInitials(profile.name)}</span>

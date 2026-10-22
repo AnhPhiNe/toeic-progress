@@ -33,15 +33,15 @@ export const ExplanationView: React.FC<ExplanationViewProps> = ({
 }) => {
   const [open, setOpen] = useState(!collapsible);
   const detailsId = useId();
-  const tip = explanation?.quickTip.trim() ?? '';
+  const tip = explanation?.quickTip?.trim() ?? '';
   const sections = [
-    ...extra.filter(([, value]) => value.trim()),
+    ...extra.filter(([, value]) => typeof value === 'string' && value.trim()),
     ...(explanation
-      ? SECTIONS.map(([key, label]): [string, string] => [label, explanation[key]]).filter(([, value]) => value.trim())
+      ? SECTIONS.map(([key, label]): [string, string] => [label, typeof explanation[key] === 'string' ? explanation[key] : '']).filter(([, value]) => value.trim())
       : [])
   ];
-  const legacyText = explanation ? '' : trapTip.trim();
-  const meanings = optionMeanings.filter(option => option.note?.meaning.trim());
+  const legacyText = explanation ? '' : (trapTip?.trim() ?? '');
+  const meanings = (optionMeanings ?? []).filter(option => option.note?.meaning?.trim());
   const hasDetails = sections.length > 0 || Boolean(legacyText) || meanings.length > 0;
 
   return (
