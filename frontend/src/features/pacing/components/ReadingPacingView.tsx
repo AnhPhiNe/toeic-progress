@@ -101,7 +101,7 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
   }, [snapshot.status]);
   const actualMs = elapsedMs(snapshot, now), remaining = Math.ceil((snapshot.plannedSeconds * 1000 - actualMs) / 1000);
   const natural = actualMs >= snapshot.plannedSeconds * 1000;
-  const isPomodoro = snapshot.mode === 'POMODORO', config = PRESETS[snapshot.mode];
+  const isPomodoro = snapshot.mode === 'POMODORO', config = PRESETS[snapshot.mode] ?? PRESETS.PART_5;
   const savedPomodoro = isPomodoro && runs.some(run => run.id === snapshot.id && !run.deletedAt);
   const [today, setToday] = useState(() => localDate(Date.now()));
   useEffect(() => {

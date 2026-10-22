@@ -119,7 +119,7 @@ function TodayTasks({
             </div>
             <div className="min-w-0">
               <p className="truncate text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white">
-                Luyện tốc độ Part {weakestPart || 7}
+                Luyện tốc độ Part {weakestPart >= 5 && weakestPart <= 7 ? weakestPart : 7}
               </p>
               <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                 Tối ưu thời gian làm bài
@@ -128,7 +128,7 @@ function TodayTasks({
           </div>
           <button
             type="button"
-            onClick={() => onNavigateToPacing?.(weakestPart ? (`PART_${weakestPart}` as ReadingPartType) : 'PART_7')}
+            onClick={() => onNavigateToPacing?.(weakestPart >= 5 && weakestPart <= 7 ? (`PART_${weakestPart}` as ReadingPartType) : 'PART_7')}
             className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
           >
             Luyện ›

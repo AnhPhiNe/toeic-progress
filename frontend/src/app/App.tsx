@@ -108,10 +108,12 @@ export const App: React.FC = () => {
   const navigateToPacing = (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
     if (draft && (draft.mode !== target || target === 'POMODORO' && draft.phase !== 'WORK')) {
-      if (draft.status !== 'ready' && !window.confirm(`Phiên ${PRESETS[draft.mode].name} đang được giữ trên máy. Làm mới để luyện ${PRESETS[target].name}?`)) return;
+      const currentName = PRESETS[draft.mode]?.name ?? 'Luyện tập';
+      const targetName = PRESETS[target]?.name ?? 'Luyện tập';
+      if (draft.status !== 'ready' && !window.confirm(`Phiên ${currentName} đang được giữ trên máy. Làm mới để luyện ${targetName}?`)) return;
       clearTimer(owner, draft.id);
     }
-    setPacingInitialPart(part); setActiveTab('exam-mode');
+    setPacingInitialPart(supportedMode(part)); setActiveTab('exam-mode');
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
