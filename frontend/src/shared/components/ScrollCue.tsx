@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface PageScrollCueProps {
@@ -12,29 +12,37 @@ interface PageScrollCueProps {
  */
 export function PageScrollCue({ activeTab }: PageScrollCueProps) {
   const [visible, setVisible] = useState(false);
-  const userScrolledRef = useRef(false);
 
   useEffect(() => {
-    userScrolledRef.current = false;
     setVisible(false);
 
     const checkScrollable = () => {
-      if (userScrolledRef.current) return;
-      const docHeight = document.documentElement.scrollHeight;
+      const docHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight
+      );
       const winHeight = window.innerHeight;
-      const currentScroll = window.scrollY || document.documentElement.scrollTop;
-      const hasMore = docHeight - winHeight > 60 && currentScroll < 40;
-      setVisible(hasMore);
+      const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const hasMore = docHeight - winHeight > 60;
+
+      // Only show when near top (< 35px) and there's meaningful content below
+      if (hasMore && currentScroll < 35) {
+        setVisible(true);
+      } else if (currentScroll >= 35) {
+        setVisible(false);
+      }
     };
 
     // Allow content and images to render before measuring
-    const timer = setTimeout(checkScrollable, 350);
+    const timer = setTimeout(checkScrollable, 300);
 
     const handleScroll = () => {
-      const currentScroll = window.scrollY || document.documentElement.scrollTop;
-      if (currentScroll > 40) {
-        userScrolledRef.current = true;
+      const currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      if (currentScroll >= 35) {
         setVisible(false);
+      } else {
+        // User scrolled back to top — re-check and display cue if scrollable
+        checkScrollable();
       }
     };
 
@@ -48,19 +56,19 @@ export function PageScrollCue({ activeTab }: PageScrollCueProps) {
     };
   }, [activeTab]);
 
-  // Auto-hide after 6 seconds so it never feels persistent
+  // Auto-hide after 5 seconds of being visible at the top,
+  // but if the user scrolls down and comes back to top, it reappears cleanly
   useEffect(() => {
     if (!visible) return;
     const fadeTimer = setTimeout(() => {
       setVisible(false);
-    }, 6000);
+    }, 5000);
     return () => clearTimeout(fadeTimer);
   }, [visible]);
 
   if (!visible) return null;
 
   const handleScrollDown = () => {
-    userScrolledRef.current = true;
     setVisible(false);
     const scrollAmount = Math.min(window.innerHeight * 0.7, 450);
     window.scrollBy({
