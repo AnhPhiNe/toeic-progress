@@ -193,15 +193,39 @@ export function PhoneFullTestBody(props: FullTestProps) {
         {section('Reading', [5, 6, 7], readingRaw)}
       </>}
 
-      {/* Other ways to enter the same test, on one line. */}
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-        {manual
-          ? <button type="button" onClick={() => props.useManual(false)} className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">← Quay lại ước tính điểm</button>
-          : <>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cách khác:</span>
-            <button type="button" onClick={() => props.onEntry(fromWrong ? 'counts' : 'wrong')} className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">{fromWrong ? 'Số câu đúng mỗi Part' : 'Đánh dấu câu sai'}</button>
-            <button type="button" onClick={() => props.useManual(true)} className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">Điểm chính thức</button>
-          </>}
+      {/* Other ways to enter the same test */}
+      <div className="rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-2.5 space-y-1.5 dark:border-slate-700 dark:bg-slate-900/50">
+        {manual ? (
+          <button
+            type="button"
+            onClick={() => props.useManual(false)}
+            className="flex min-h-10 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 hover:text-slate-950 active:scale-[0.99] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+          >
+            ← Quay lại ước tính điểm
+          </button>
+        ) : (
+          <>
+            <p className="text-center text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Cách nhập khác
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => props.onEntry(fromWrong ? 'counts' : 'wrong')}
+                className="flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-2 py-2 text-center text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 hover:text-slate-950 active:scale-[0.98] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+              >
+                {fromWrong ? 'Số câu đúng mỗi Part' : 'Đánh dấu câu sai'}
+              </button>
+              <button
+                type="button"
+                onClick={() => props.useManual(true)}
+                className="flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-2 py-2 text-center text-xs font-bold text-slate-700 shadow-2xs hover:border-slate-900 hover:text-slate-950 active:scale-[0.98] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+              >
+                Điểm chính thức
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <DetailsRow date={props.date} setDate={props.setDate} duration={props.duration} setDuration={props.setDuration} notes={props.notes} setNotes={props.setNotes} />
