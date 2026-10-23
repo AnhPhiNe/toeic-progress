@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { BookOpen, ArrowRight, Timer, Layers, ChevronDown, ChevronRight } from 'lucide-react';
+import { BookOpen, ArrowRight, Timer, Layers, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { triggerHaptic } from '@/shared/lib/haptics';
 import { ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { StudySession, MistakeEntry, UserProfile, ErrorCategory, ReadingPartType } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -31,11 +32,12 @@ interface AnalyticsViewProps {
   onEditSession?: (session: StudySession) => void;
   onOpenSessionLogger?: (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => void;
   onNavigateToMistakes?: (sourceNames?: string[]) => void;
+  onAddMistakeForSession?: (session: StudySession) => void;
   onNavigateToTimer?: (part?: ReadingPartType) => void;
   onNavigateToPlan?: () => void;
 }
 
-export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onNavigateToTimer, onNavigateToPlan }: AnalyticsViewProps) {
+export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onAddMistakeForSession, onNavigateToTimer, onNavigateToPlan }: AnalyticsViewProps) {
   const [sourceKey, setSourceKey] = useState<string | null>(null);
   const [attemptChoice, setAttemptChoice] = useState<{ source: string; id: string } | null>(null);
   const [activeError, setActiveError] = useState<ErrorCategory | null>(null);
@@ -101,34 +103,76 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
         <ChevronDown className="h-[18px] w-[18px] shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
       </button>
 
-      {/* 2. Thẻ Sổ tay câu sai được đẩy lên trên - không còn bị khuất ở đáy */}
-      <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources.length ? data.notebookSources : undefined)} disabled={!onNavigateToMistakes}
-        aria-label={data.sourceKey ? 'Mở Sổ tay của đề' : 'Mở toàn bộ Sổ tay'}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3 text-left shadow-[2px_2px_0_0_#0f172a] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
+      {/* 2. Thẻ Sổ tay câu sai được đẩy lên trên - Phân biệt rõ số câu sai với Thẻ ôn tập */}
+      <div className="flex w-full items-center justify-between gap-2.5 sm:gap-3 rounded-2xl border-2 border-slate-900 bg-white p-2.5 sm:p-3 text-left shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
-            <BookOpen className="h-5 w-5" aria-hidden="true" />
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
+            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-black leading-tight text-slate-950 dark:text-white">
-              {data.notes.length ? `${data.notes.length} lỗi đã ghi của đề` : data.sourceKey ? 'Chưa có lỗi nào gắn với đề này' : 'Chưa có đề để phân tích'}
+            <span className="block truncate text-[13px] sm:text-[13.5px] font-black leading-tight text-slate-950 dark:text-white">
+              {data.notes.length
+                ? `${data.notes.length} thẻ câu sai đã lưu`
+                : data.sourceKey
+                  ? 'Chưa lưu thẻ ôn tập'
+                  : 'Chưa có đề để phân tích'}
             </span>
             {errorLine ? (
-              <span className="mt-0.5 block truncate text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">
+              <span className="mt-0.5 block truncate text-[11px] sm:text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">
                 {errorLine}
               </span>
             ) : (
-              <span className="mt-0.5 block text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">
-                {data.sourceKey ? 'Lưu câu sai vào sổ tay để ôn lại' : 'Mở Sổ tay để xem tất cả câu đã lưu'}
+              <span className="mt-0.5 block truncate text-[11px] sm:text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">
+                {data.sourceKey
+                  ? totalLost > 0
+                    ? `Đề sai ${totalLost} câu · Lưu để ôn bẫy`
+                    : 'Lưu câu sai vào Sổ tay để ôn lại'
+                  : 'Mở Sổ tay để xem tất cả câu đã lưu'}
               </span>
             )}
           </div>
         </div>
-        <span className="flex shrink-0 items-center gap-0.5 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-black text-blue-600 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
-          <span>Sổ tay</span>
-          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </span>
-      </button>
+
+        {data.notes.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(6);
+              onNavigateToMistakes?.(data.notebookSources.length ? data.notebookSources : undefined);
+            }}
+            disabled={!onNavigateToMistakes}
+            className="flex shrink-0 items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-black text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300 transition-colors cursor-pointer"
+          >
+            <span>Sổ tay</span>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        ) : data.attempt && onAddMistakeForSession ? (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(8);
+              onAddMistakeForSession(data.attempt!);
+            }}
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-blue-600 px-2.5 py-1.5 text-xs font-black text-white shadow-[1.5px_1.5px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all dark:border-slate-300 cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" aria-hidden="true" />
+            <span>Thêm câu sai</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(6);
+              onNavigateToMistakes?.(undefined);
+            }}
+            disabled={!onNavigateToMistakes}
+            className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 transition-colors cursor-pointer"
+          >
+            <span>Sổ tay</span>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        )}
+      </div>
 
       {/* 3. Tháp Điểm Yếu: Tập trung các Part bị mất điểm (Đề xuất 1: Bỏ viền hộp, dòng thoáng, co giãn linh hoạt) */}
       <section aria-labelledby="analytics-parts-heading" className="analytics-panel space-y-3 rounded-2xl border-2 border-slate-900 bg-white p-3.5 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
@@ -393,7 +437,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
               </span>
             ) : (
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {data.sourceKey ? `${data.notes.length} lỗi đã lưu trong Sổ tay` : 'Chọn đề để xem thống kê riêng.'}
+                {data.sourceKey ? (data.notes.length ? `${data.notes.length} thẻ câu sai trong Sổ tay` : 'Chưa lưu thẻ ôn tập trong Sổ tay') : 'Chọn đề để xem thống kê riêng.'}
               </span>
             )}
           </div>
@@ -401,9 +445,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
             <button
               type="button"
               className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-slate-900 bg-blue-600 px-4 py-1.5 text-xs font-extrabold text-white shadow-[2px_2px_0px_#0f172a] hover:bg-blue-700 dark:border-slate-300"
-              onClick={() => onNavigateToMistakes(data.notebookSources.length ? data.notebookSources : undefined)}
+              onClick={() => onNavigateToMistakes(data.notes.length ? data.notebookSources : undefined)}
             >
-              {data.sourceKey ? 'Mở Sổ tay của đề' : 'Mở toàn bộ Sổ tay'}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              {data.sourceKey ? (data.notes.length ? 'Mở Sổ tay của đề' : 'Mở Sổ tay') : 'Mở toàn bộ Sổ tay'}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
         </div>

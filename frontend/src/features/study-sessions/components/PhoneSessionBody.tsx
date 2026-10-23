@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import type { LRPartScore, PracticePartResult, StudySession } from '@/shared/types';
+import type { LRPartScore, PracticePartResult, StudySession, PartTimingDurations } from '@/shared/types';
+import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString } from '@/shared/data/storage';
@@ -92,13 +94,16 @@ interface FullTestProps {
   manualTotal: string; setManualTotal: (value: string) => void;
   includePartDetails: boolean; setIncludePartDetails: (value: boolean) => void;
   date: string; setDate: (value: string) => void; duration: number; setDuration: (value: number) => void; notes: string; setNotes: (value: string) => void;
+  partDurations?: PartTimingDurations;
+  onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
 }
 
 /** Phone Full Test: per-Part counts stay the main input, with the score updating live in a card that sticks while scrolling. */
 export function PhoneFullTestBody(props: FullTestProps) {
-  const { partScores, onPart, preview, scoreSource } = props;
+  const { partScores, onPart, preview, scoreSource, partDurations, onPartDurationsChange } = props;
+  const [timingModalOpen, setTimingModalOpen] = useState(false);
   const manual = scoreSource !== 'ESTIMATED';
-  const fromWrong = !manual && props.entry === 'wrong';
+  const fromWrong = props.entry === 'wrong';
   // An empty section would show the scale's floor (R 5) and a misleadingly low total while the learner is
   // still typing; each section waits for its first answer and the total waits for both.
   // Logging by wrong questions shows a score once the first question is marked (a perfect test is confirmed on save).
@@ -161,7 +166,15 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       </div>
 
-      {manual && (
+      {/* Pacing Timing Strip for Reading Part 5-7 */}
+      <div className="rounded-2xl border-[1.5px] border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-[#111A2C]">
+        <PartTimingStrip
+          durations={partDurations}
+          onOpenEdit={() => setTimingModalOpen(true)}
+        />
+      </div>
+
+      {manual && !fromWrong && (
         <div className="space-y-3 rounded-2xl border-[1.5px] border-stone-300 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           <div className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1 dark:bg-slate-800" role="group" aria-label="Cách nhập điểm trực tiếp">
             {(['MANUAL_SECTIONS', 'MANUAL_TOTAL'] as const).map(mode => (
@@ -234,6 +247,13 @@ export function PhoneFullTestBody(props: FullTestProps) {
       </div>
 
       <DetailsRow date={props.date} setDate={props.setDate} duration={props.duration} setDuration={props.setDuration} notes={props.notes} setNotes={props.setNotes} />
+
+      <PartTimingModal
+        isOpen={timingModalOpen}
+        onClose={() => setTimingModalOpen(false)}
+        value={partDurations}
+        onChange={onPartDurationsChange ?? (() => {})}
+      />
     </div>
   );
 }

@@ -212,7 +212,10 @@ const questionList = z.array(z.number().int().min(1).max(200)).max(200);
 const resultScoresSchema = z.object({
   listening: z.number().int().min(5).max(495).multipleOf(5).nullable(),
   reading: z.number().int().min(5).max(495).multipleOf(5).nullable(),
-  total: z.number().int().min(10).max(990).multipleOf(5).nullable()
+  total: z.number().int().min(10).max(990).multipleOf(5).nullable(),
+  part5Minutes: z.number().int().min(1).max(75).nullish(),
+  part6Minutes: z.number().int().min(1).max(75).nullish(),
+  part7Minutes: z.number().int().min(1).max(75).nullish()
 });
 export type ResultImageScores = z.infer<typeof resultScoresSchema>;
 const resultsSchema = z.object({ wrong: questionList, skipped: questionList, scores: resultScoresSchema.nullish() });

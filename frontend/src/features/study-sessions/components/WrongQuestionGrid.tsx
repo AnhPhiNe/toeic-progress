@@ -102,7 +102,10 @@ export function ResultImageButton({
   extraButton,
   scoreCard,
   isTyping = false,
-  typingContent
+  typingContent,
+  timingContent,
+  appliedScore,
+  onRevertScore
 }: {
   onRead: (numbers: number[]) => void;
   marks: number[];
@@ -114,6 +117,9 @@ export function ResultImageButton({
   scoreCard?: React.ReactNode;
   isTyping?: boolean;
   typingContent?: React.ReactNode;
+  timingContent?: React.ReactNode;
+  appliedScore?: { listening?: string; reading?: string; total?: string };
+  onRevertScore?: () => void;
 }) {
   const [available, setAvailable] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -199,7 +205,7 @@ export function ResultImageButton({
         <div className="rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] mb-2.5" aria-live="polite">
           {scoreCard}
           {onScores && (
-            <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+            <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
               {scoreReview ? (
                 <button
                   type="button"
@@ -213,6 +219,43 @@ export function ResultImageButton({
                   </span>
                   <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Kiểm tra ›</span>
                 </button>
+              ) : appliedScore && (appliedScore.total || (appliedScore.listening && appliedScore.reading)) ? (
+                <div className="flex w-full items-center justify-between py-0.5 text-xs font-black">
+                  <span className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+                    <span aria-hidden="true">📄</span>
+                    <span>Điểm từ đề thi</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(6);
+                        const draftScores = {
+                          listening: appliedScore.listening ? Number(appliedScore.listening) : null,
+                          reading: appliedScore.reading ? Number(appliedScore.reading) : null,
+                          total: appliedScore.total ? Number(appliedScore.total) : null,
+                        };
+                        setScoreReview(draftScores);
+                        onScoresPending?.(true);
+                      }}
+                      className="cursor-pointer rounded-md bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200 transition-colors"
+                      title="Chỉnh sửa điểm từ đề"
+                    >
+                      ✏️ Sửa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(6);
+                        onRevertScore?.();
+                      }}
+                      className="cursor-pointer rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-500 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-950 dark:hover:text-rose-300 transition-colors"
+                      title="Bỏ điểm từ đề, dùng điểm ước tính"
+                    >
+                      ✕ Bỏ
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -228,13 +271,14 @@ export function ResultImageButton({
                 >
                   <span className="flex items-center gap-1.5">
                     <span aria-hidden="true" className="text-amber-500">📄</span>
-                    <span>Nhập điểm từ đề (tùy chọn)</span>
+                    <span>Điểm từ đề thi</span>
                   </span>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 font-bold dark:bg-slate-800 dark:text-slate-400" aria-hidden="true">
-                    Tùy chọn ›
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 font-bold dark:bg-slate-800 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700 transition-colors" aria-hidden="true">
+                    + Nhập ›
                   </span>
                 </button>
               )}
+              {timingContent}
             </div>
           )}
         </div>
@@ -248,7 +292,7 @@ export function ResultImageButton({
           disabled={busy}
           draft={scoreStore?.current}
           onDraftChange={value => { if (scoreStore) scoreStore.current = value; }}
-          onApply={score => { if (scoreStore) scoreStore.current = null; onScoresPending?.(false); onScores(score); }}
+          onApply={score => { if (scoreStore) scoreStore.current = null; onScoresPending?.(false); setScoreReview(null); onScores(score); }}
           onDiscard={() => { if (scoreStore) scoreStore.current = null; setScoreReview(null); scoreEdited.current = false; onScoresPending?.(false); }}
           onEdit={() => { scoreEdited.current = true; onScoresPending?.(true); }}
         />

@@ -20,9 +20,9 @@ export function ScrollableModalBody({ children, resetKey, compact = false }: { c
   }, [resetKey]);
 
   return (
-    <div className="relative flex min-h-0 flex-col">
-      <div ref={viewport} tabIndex={-1} role="region" aria-label="Nội dung ghi lỗi sai" className="min-h-0 overflow-y-auto [scrollbar-gutter:stable]">
-        <div ref={content} className={`px-4 pt-4 sm:px-6 ${compact ? 'space-y-3 pb-5' : 'space-y-4 pb-16'}`}>{children}</div>
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div ref={viewport} tabIndex={-1} role="region" aria-label="Nội dung ghi lỗi sai" className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <div ref={content} className={`px-4 pt-4 sm:px-6 ${compact ? 'space-y-3 pb-8' : 'space-y-4 pb-16'}`}>{children}</div>
       </div>
       {hasMore && (
         <div className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 z-20 transition-all duration-200">

@@ -652,7 +652,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       {!original && step === 'input' && (
         <div className="shrink-0 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
           <div role="tablist" aria-label="Chế độ thêm câu sai" className="grid grid-cols-2 gap-1.5 rounded-xl border-2 border-slate-900 bg-slate-100 p-1 dark:border-slate-400 dark:bg-slate-900 sm:max-w-sm">
-            {([['single', 'Nhập tay', PenLine], ['batch', 'Quét ảnh AI', ScanLine]] as const).map(([mode, label, Icon]) => {
+            {([['single', 'Nhập tay', PenLine], ['batch', 'Quét ảnh', ScanLine]] as const).map(([mode, label, Icon]) => {
               const active = entryMode === mode;
               const isSingle = mode === 'single';
               const activeClass = isSingle
@@ -893,7 +893,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           {original && error.includes('nơi khác') && <button type="button" onClick={() => { if (window.confirm('Tải lại thẻ và bỏ các thay đổi chưa lưu?')) onReload(); }} className="font-bold underline">Tải lại thẻ</button>}</div>}
         {step === 'input' && <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />}
       </ScrollableModalBody>
-      <footer className={`flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-[#111A2C] sm:px-6 max-md:pb-[calc(0.875rem+env(safe-area-inset-bottom))] ${step === 'input' ? 'max-md:flex-nowrap' : ''}`}>
+      <footer className="flex shrink-0 items-center justify-between gap-2.5 sm:gap-3 border-t border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-[#111A2C] sm:px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         {step === 'input' ? (
           entryMode === 'batch' ? (
             <>
@@ -914,7 +914,37 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
               </div>
             </>
           ) : (
-            <><button type="button" onClick={close} className={`${linkClass} mr-auto max-md:order-3 max-md:w-full max-md:text-center max-md:py-2`}>Hủy</button><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? (images.length || sourceImageIds.length ? 'Đang đọc ảnh và phân tích…' : 'Đang phân tích câu hỏi…') : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
+            <>
+              <div className="flex w-full sm:w-auto items-center gap-2 sm:gap-3 order-1 sm:order-2">
+                <button
+                  type="button"
+                  onClick={quickSave}
+                  disabled={busy || imageBusy || persisting}
+                  aria-label={original ? undefined : 'Lưu thủ công'}
+                  className="min-h-11 flex-1 sm:flex-initial cursor-pointer inline-flex items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:border-slate-900 hover:bg-slate-50 active:translate-x-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400 transition-all"
+                >
+                  {original ? 'Lưu thay đổi' : 'Lưu thủ công'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void analyze()}
+                  disabled={!aiAvailable || busy || imageBusy || persisting || (!raw.trim() && !images.length)}
+                  className="min-h-11 flex-[1.4] sm:flex-initial cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-blue-600 px-4 py-2 text-xs sm:text-sm font-extrabold text-white shadow-[2.5px_2.5px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-200 dark:shadow-none transition-all"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{busy ? (images.length || sourceImageIds.length ? 'Đang đọc ảnh…' : 'Đang phân tích…') : 'Phân tích với AI'}</span>
+                </button>
+              </div>
+              <div className="hidden sm:flex w-auto items-center justify-start order-2 sm:order-1">
+                <button
+                  type="button"
+                  onClick={close}
+                  className="w-full sm:w-auto py-1 text-center text-xs sm:text-[13px] font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer transition-colors"
+                >
+                  Hủy
+                </button>
+              </div>
+            </>
           )
         )
           : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm câu tiếp'}</button></div></>

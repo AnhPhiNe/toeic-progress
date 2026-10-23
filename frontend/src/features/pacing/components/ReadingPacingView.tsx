@@ -261,7 +261,7 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
     </Sheet>}
   </section>;
   return <div className={`pacing-view text-slate-900 dark:text-slate-100 ${isPhone ? 'is-phone pb-36' : 'pb-8'}`}>
-    <div className="pacing-frame"><div className="pacing-header">{onBack && (
+    <div className="pacing-frame"><div className="pacing-header">{isPhone && onBack && (
       <button
         type="button"
         onClick={onBack}

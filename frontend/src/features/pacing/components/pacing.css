@@ -1,13 +1,17 @@
 .pacing-frame { border: 2px solid #0f172a; border-radius: 20px; background: #fff; box-shadow: 3px 3px 0 #0f172a; overflow: hidden; }
 .dark .pacing-frame { border-color: #cbd5e1; background: #111a2c; box-shadow: 3px 3px 0 #cbd5e1; }
 .pacing-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding: 16px 22px; border-bottom: 1px solid #cbd5e1; background: #f8fafc; }.dark .pacing-header { border-color: #334155; background: #162137; }
-.pacing-tabs { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.pacing-tabs { display: inline-flex; align-items: center; gap: 4px; padding: 4px; background: #f1f5f9; border-radius: 14px; border: 1.5px solid #e2e8f0; }
+.dark .pacing-tabs { background: #0f172a; border-color: #334155; }
 .pacing-header-tools { display: flex; align-items: center; gap: 8px; max-width: 100%; min-width: 0; margin-left: auto; }
 .pacing-today { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #64748b; font-size: 12px; }.dark .pacing-today { background: #111a2c; color: #a5b4cb; border-color: #475569; }
 .pacing-today svg { flex-shrink: 0; }.pacing-today > span { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }.pacing-today strong { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: #0f172a; }.dark .pacing-today strong { color: #f1f5f9; }
-.pacing-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; }
-.pacing-tab.is-selected { background: #fff; color: #0f172a; border: 2px solid #0f172a; box-shadow: 2px 2px 0 #0f172a; padding: 6px 10px; }
-.dark .pacing-tab { color: #94a3b8; }.dark .pacing-tab.is-selected { background: #111a2c; color: #f1f5f9; border-color: #cbd5e1; box-shadow: 2px 2px 0 #cbd5e1; }
+.pacing-tab { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; transition: all 150ms ease; border: none; background: transparent; white-space: nowrap; }
+.pacing-tab:hover { color: #0f172a; }
+.pacing-tab.is-selected { background: #ffffff; color: #0f172a; font-weight: 800; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04); border: 1px solid rgba(0, 0, 0, 0.06); }
+.dark .pacing-tab { color: #94a3b8; }
+.dark .pacing-tab:hover { color: #f8fafc; }
+.dark .pacing-tab.is-selected { background: #1e293b; color: #f8fafc; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08); }
 .pacing-panel { --clock-accent: #b77900; --clock-tint: #fff7d6; --clock-label: #946200; padding: 22px 24px; container-type: inline-size; }
 .pacing-practice { max-width: 760px; margin: auto; }
 .dark .pacing-panel { --clock-accent: #ffd354; --clock-tint: #332e1c; --clock-label: #ffd354; }
@@ -181,8 +185,8 @@
 .pacing-chart-tooltip { max-width: min(240px, 70vw); padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f172a; font-size: 13px; line-height: 1.6; box-shadow: 0 3px 10px #0f172a1a; overflow-wrap: anywhere; }.dark .pacing-chart-tooltip { border-color: #475569; background: #111a2c; color: #f1f5f9; box-shadow: 0 3px 10px #0003; }
 .pacing-chart-tooltip > strong { display: block; }.pacing-chart-tooltip > p { font-variant-numeric: tabular-nums; }
 .pacing-stats-note { margin-top: 12px; font-size: 12px; color: #64748b; }.dark .pacing-stats-note { color: #a5b4cb; }
-@media(max-width: 730px) { .pacing-panel { padding: 20px 14px; } .pacing-header { padding: 12px 14px; gap: 12px; }.pacing-header-tools { width: 100%; }.pacing-today { flex: 1; }.pacing-tabs { gap: 3px; } .pacing-tab { font-size: 12px; padding: 7px 9px; }.pacing-tab.is-selected { padding: 5px 7px; } .pacing-time { font-size: 82px; } .pacing-input { font-size: 16px; } }
-@media(max-width: 430px) { .pacing-tab svg { display: none; } .pacing-mode { padding: 7px 10px; font-size: 12px; }.pacing-mode.is-selected { padding: 6px 9px; } .pacing-time { font-size: 74px; letter-spacing: -3px; }.pacing-controls > button:not(.pacing-reset):not(:only-child) { flex: 1; } }
+@media(max-width: 730px) { .pacing-panel { padding: 20px 14px; } .pacing-header { padding: 12px 14px; gap: 12px; }.pacing-header-tools { width: 100%; }.pacing-today { flex: 1; }.pacing-time { font-size: 82px; } .pacing-input { font-size: 16px; } }
+@media(max-width: 430px) { .pacing-mode { padding: 7px 10px; font-size: 12px; }.pacing-mode.is-selected { padding: 6px 9px; } .pacing-time { font-size: 74px; letter-spacing: -3px; }.pacing-controls > button:not(.pacing-reset):not(:only-child) { flex: 1; } }
 @media(pointer: coarse) { .pacing-view button, .pacing-mode { min-height: 44px; } .pacing-icon { min-width: 44px; } }
 @container(max-width: 520px) { .pacing-setup.is-pomodoro { grid-template-columns: minmax(0, 1fr); gap: 8px; }.pacing-setup.is-pomodoro .pacing-phases, .pacing-setup.is-pomodoro .pacing-settings { grid-column: 1; justify-self: center; } }
 @container(max-width: 300px) { .pacing-stats-filters { grid-template-columns: minmax(0, 1fr); width: 100%; } }
@@ -248,10 +252,59 @@
 /* Phones: the page itself is the surface (no card), tabs span the width, modes in 2 rows. */
 .pacing-view.is-phone .pacing-frame, .dark .pacing-view.is-phone .pacing-frame { border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
 .pacing-view.is-phone .pacing-header, .dark .pacing-view.is-phone .pacing-header { padding: 0; border: 0; background: transparent; }
-.pacing-view.is-phone .pacing-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; width: 100%; padding: 3px; border-radius: 13px; background: #efebe4; }
-.dark .pacing-view.is-phone .pacing-tabs { background: #162137; }
-.pacing-view.is-phone .pacing-tab { justify-content: center; }
-.pacing-view.is-phone .pacing-tab svg { display: none; }
+.pacing-view.is-phone .pacing-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+}
+.dark .pacing-view.is-phone .pacing-tabs {
+  background: #0f172a;
+  border-color: #334155;
+}
+.pacing-view.is-phone .pacing-tab {
+  justify-content: center;
+  min-height: 42px;
+  padding: 6px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 12px;
+  white-space: nowrap;
+  gap: 5px;
+}
+.pacing-view.is-phone .pacing-tab.is-selected {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.dark .pacing-view.is-phone .pacing-tab.is-selected {
+  background: #1e293b;
+  color: #f8fafc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.pacing-view.is-phone .pacing-tab svg {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-right: 0;
+}
+@media(max-width: 360px) {
+  .pacing-view.is-phone .pacing-tab {
+    font-size: 12px;
+    padding: 6px 3px;
+    gap: 3px;
+  }
+  .pacing-view.is-phone .pacing-tab svg {
+    width: 13px;
+    height: 13px;
+  }
+}
 .pacing-panel.is-phone { padding: 16px 0 0; }
 .pacing-panel.is-phone .pacing-modes {
   display: grid;

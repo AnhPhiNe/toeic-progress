@@ -158,7 +158,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   useEffect(() => { setPage(current => Math.min(current, pageCount)); }, [pageCount]);
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
-  const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? '';
+  const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? (initialSourceNames?.[0] ?? '');
   const resetFilters = () => { setPage(1); setSearchTerm(''); setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedStatus('ALL'); setSelectedCategory('ALL'); };
   const toggleRow = (id: string) => setExpandedIds(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   useEffect(() => {
@@ -289,12 +289,53 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !needsSupplement(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
       { id: 'mastered', label: 'Đã thuộc', dot: 'bg-emerald-600', items: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)), showStatus: false }
     ].filter(group => group.items.length > 0);
-    if (!groups.length) return (
-      <div className="space-y-2 px-4 py-10 text-center text-sm">
-        <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp tìm kiếm.</p>
-        <button type="button" onClick={resetFilters} className="min-h-11 cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
-      </div>
-    );
+    if (!groups.length) {
+      const activeTestName = defaultSourceName || (selectedTest !== 'ALL' && selectedTest !== 'NONE' && selectedTest !== 'SCOPE' ? selectedTest.replace('test:', '') : '');
+      return (
+        <div className="mx-4 my-2.5 rounded-2xl border-2 border-slate-900 bg-white p-6 text-center space-y-3 shadow-[2.5px_2.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2.5px_2.5px_0_0_#cbd5e1]">
+          <div className="space-y-1">
+            <span className="text-3xl block mb-2" aria-hidden="true">📭</span>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {activeTestName
+                ? `Chưa có câu sai nào thuộc đề "${activeTestName}"`
+                : 'Không có thẻ nào khớp bộ lọc hiện tại'}
+            </h3>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+              {mistakes.length > 0 ? (
+                <>Toàn bộ sổ tay của bạn đang có <strong className="font-bold text-slate-800 dark:text-slate-200">{mistakes.length} câu sai</strong> từ các đề khác.</>
+              ) : (
+                <>Bạn chưa lưu câu sai nào vào Sổ tay.</>
+              )}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2 max-w-xs mx-auto">
+            {activeTestName && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(6);
+                  openCreate();
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-slate-900 bg-blue-600 text-white font-black text-xs shadow-[2px_2px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all dark:border-slate-300 cursor-pointer"
+              >
+                + Thêm câu sai cho đề này
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(6);
+                resetFilters();
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-700 font-bold text-xs hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 transition-colors cursor-pointer"
+            >
+              {mistakes.length > 0 ? `Xem tất cả ${mistakes.length} câu` : 'Đặt lại bộ lọc'}
+            </button>
+          </div>
+        </div>
+      );
+    }
     return <div className="notebook-list">{groups.map((group, index) => {
       const shown = openGroups[group.id] ?? 0;
       return (
@@ -341,6 +382,33 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             dueCount={dueCount}
             totalCount={mistakes.length}
           />
+        </div>
+      )}
+
+      {/* Filter Chip Indicator when active filters exist */}
+      {activeFilterCount > 0 && (
+        <div className="w-full mb-2.5 flex items-center justify-between rounded-xl border-2 border-slate-900 bg-indigo-50/90 px-3.5 py-2 text-xs shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-indigo-950/40 dark:shadow-[1.5px_1.5px_0_0_#cbd5e1]">
+          <span className="flex items-center gap-1.5 font-bold text-indigo-900 dark:text-indigo-200 min-w-0 truncate">
+            <span aria-hidden="true">🏷️</span>
+            <span className="truncate">
+              {selectedTest !== 'ALL' && (
+                <span>Đang lọc đề: <strong className="font-black text-indigo-950 dark:text-white">{defaultSourceName || (selectedTest === 'NONE' ? 'Chưa gắn đề' : 'Theo đề')}</strong></span>
+              )}
+              {selectedPart !== 'ALL' && <span> · Part {selectedPart}</span>}
+              {selectedCategory !== 'ALL' && <span> · {ERROR_CATEGORY_LABELS[selectedCategory]?.label ?? selectedCategory}</span>}
+              {searchTerm.trim() && <span> · "{searchTerm.trim()}"</span>}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(6);
+              resetFilters();
+            }}
+            className="ml-2 shrink-0 rounded-lg bg-white border border-slate-900 px-2.5 py-1 text-[11.5px] font-black text-slate-800 hover:bg-slate-100 shadow-[1px_1px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100 transition-all cursor-pointer"
+          >
+            ✕ Bỏ lọc
+          </button>
         </div>
       )}
 
@@ -494,9 +562,38 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <MistakeCard key={mistake.id} {...cardProps(mistake)} />
           ))}
           {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
-            <div className="space-y-2 px-4 py-10 text-center text-sm">
-              <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp bộ lọc.</p>
-              <button type="button" onClick={resetFilters} className="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
+            <div className="m-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-3 dark:border-slate-700 dark:bg-slate-900/30">
+              <span className="text-3xl block" aria-hidden="true">📭</span>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                {defaultSourceName
+                  ? `Chưa có thẻ câu sai nào thuộc đề "${defaultSourceName}"`
+                  : 'Không có thẻ nào khớp bộ lọc hiện tại'}
+              </h3>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                {mistakes.length > 0 ? (
+                  <>Toàn bộ sổ tay đang có <strong className="font-bold text-slate-800 dark:text-slate-200">{mistakes.length} câu sai</strong> từ các đề khác.</>
+                ) : (
+                  <>Bạn chưa lưu câu sai nào vào Sổ tay.</>
+                )}
+              </p>
+              <div className="flex gap-2 justify-center pt-2">
+                {defaultSourceName && (
+                  <button
+                    type="button"
+                    onClick={() => { triggerHaptic(6); openCreate(); }}
+                    className="px-4 py-2 rounded-xl border-2 border-slate-900 bg-blue-600 text-white font-black text-xs shadow-[2px_2px_0_0_#0f172a] hover:bg-blue-500 cursor-pointer"
+                  >
+                    + Thêm câu sai cho đề này
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { triggerHaptic(6); resetFilters(); }}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  {mistakes.length > 0 ? `Xem tất cả ${mistakes.length} câu` : 'Đặt lại bộ lọc'}
+                </button>
+              </div>
             </div>
           )}
           {filteredMistakes.length > 0 && (

@@ -4,8 +4,10 @@ import type { ResultImageScores } from '@/features/mistakes/services/aiMistakeEx
 import { resolveFullTestScore } from '../lib/fullTestScore';
 import { triggerHaptic } from '@/shared/lib/haptics';
 
-export type AppliedResultScore = { source: 'MANUAL_SECTIONS'; listening: number; reading: number }
-  | { source: 'MANUAL_TOTAL'; total: number };
+import type { PartTimingDurations } from '@/shared/types';
+
+export type AppliedResultScore = { source: 'MANUAL_SECTIONS'; listening: number; reading: number; partDurations?: PartTimingDurations }
+  | { source: 'MANUAL_TOTAL'; total: number; partDurations?: PartTimingDurations };
 export interface ResultScoreDraft {
   scores: ResultImageScores;
   mode: AppliedResultScore['source'];
@@ -66,9 +68,14 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
   const apply = () => {
     triggerHaptic(8);
     try {
+      const partDurations: PartTimingDurations | undefined = (scores.part5Minutes != null || scores.part6Minutes != null || scores.part7Minutes != null) ? {
+        part5: scores.part5Minutes ?? undefined,
+        part6: scores.part6Minutes ?? undefined,
+        part7: scores.part7Minutes ?? undefined,
+      } : undefined;
       const selected: AppliedResultScore = mode === 'MANUAL_SECTIONS'
-        ? { source: mode, listening: Number(fields.listening), reading: Number(fields.reading) }
-        : { source: mode, total: Number(fields.total) };
+        ? { source: mode, listening: Number(fields.listening), reading: Number(fields.reading), partDurations }
+        : { source: mode, total: Number(fields.total), partDurations };
       resolveFullTestScore(selected);
       if (selected.source === 'MANUAL_SECTIONS' && fields.total.trim()
         && selected.listening + selected.reading !== Number(fields.total)) {
@@ -248,6 +255,41 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
 
           </div>
         </div>
+
+        {/* Dải Thời gian Part 5 – 7 bóc tách từ ảnh */}
+        {(scores.part5Minutes != null || scores.part6Minutes != null || scores.part7Minutes != null) && (
+          <div className="rounded-2xl border-2 border-slate-900 bg-emerald-50/70 p-3.5 space-y-2.5 dark:border-slate-400 dark:bg-emerald-950/30">
+            <div className="flex items-center justify-between text-xs font-black text-emerald-950 dark:text-emerald-200">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden="true">⏱️</span>
+                <span>Thời gian Reading Part 5 – 7 bóc tách từ ảnh</span>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-extrabold dark:bg-emerald-900 dark:text-emerald-200">
+                Tổng 75p
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-emerald-300 bg-white p-2 text-center dark:border-emerald-800 dark:bg-slate-900">
+                <span className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-400 block uppercase">Part 5</span>
+                <span className="text-lg font-black text-slate-950 dark:text-white tabular-nums">
+                  {scores.part5Minutes ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
+                </span>
+              </div>
+              <div className="rounded-xl border border-emerald-300 bg-white p-2 text-center dark:border-emerald-800 dark:bg-slate-900">
+                <span className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-400 block uppercase">Part 6</span>
+                <span className="text-lg font-black text-slate-950 dark:text-white tabular-nums">
+                  {scores.part6Minutes ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
+                </span>
+              </div>
+              <div className="rounded-xl border border-emerald-300 bg-white p-2 text-center dark:border-emerald-800 dark:bg-slate-900">
+                <span className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-400 block uppercase">Part 7</span>
+                <span className="text-lg font-black text-slate-950 dark:text-white tabular-nums">
+                  {scores.part7Minutes ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Chú thích thông minh */}
         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center">

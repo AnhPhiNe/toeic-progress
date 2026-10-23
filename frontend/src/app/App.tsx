@@ -499,6 +499,7 @@ export const App: React.FC = () => {
               theme={theme}
               onOpenSessionLogger={openSessionLogger}
               onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
+              onAddMistakeForSession={openSessionMistake}
               onEditSession={openSessionEditor}
               onNavigateToTimer={(part = 'POMODORO') => navigateToPacing(part)}
               onNavigateToPlan={() => setActiveTab('plan')}
@@ -512,11 +513,11 @@ export const App: React.FC = () => {
               onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
               initialPart={pacingInitialPart}
-              onBack={() => {
-                const target = pacingReturnTab || 'dashboard';
+              onBack={pacingReturnTab ? () => {
+                const target = pacingReturnTab;
                 setPacingReturnTab(null);
                 setActiveTab(target);
-              }}
+              } : undefined}
               backLabel={pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
             />
           )}

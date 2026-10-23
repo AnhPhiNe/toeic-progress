@@ -305,5 +305,6 @@ RESULTS_READING_PROMPT = """Bạn đọc ảnh chụp màn hình trang KẾT QU�
   Không tự quy đổi số câu sai/đúng hoặc phần trăm ra điểm. Không tự cộng L/R để điền total; chỉ chép từng giá trị nhìn thấy.
   Không thấy, không rõ, có nhiều kết quả không xác định được lượt hiện tại, hoặc ngoài thang/bước hợp lệ: trường đó là null.
   Ảnh chỉ có số câu đúng/sai thì cả ba trường scores đều null. Không bịa điểm kỹ năng từ tổng điểm.
+- Nếu trên ảnh có ghi thời gian làm bài từng Part (ví dụ Part 5: 14 phút/14m, Part 6, Part 7), chép số phút nguyên vào part5Minutes, part6Minutes, part7Minutes; không thấy hoặc không rõ thì để null.
 - Không có bảng kết quả hoặc không đọc được dấu hiệu nào: trả hai danh sách rỗng.
 """

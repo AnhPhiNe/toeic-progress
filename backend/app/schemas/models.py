@@ -783,7 +783,10 @@ RESULTS_OUTPUT_SCHEMA = {
                               "properties": {
                                   "listening": {"type": ["integer", "null"], "minimum": 5, "maximum": 495, "multipleOf": 5},
                                   "reading": {"type": ["integer", "null"], "minimum": 5, "maximum": 495, "multipleOf": 5},
-                                  "total": {"type": ["integer", "null"], "minimum": 10, "maximum": 990, "multipleOf": 5}}}},
+                                  "total": {"type": ["integer", "null"], "minimum": 10, "maximum": 990, "multipleOf": 5},
+                                  "part5Minutes": {"type": ["integer", "null"], "minimum": 1, "maximum": 75},
+                                  "part6Minutes": {"type": ["integer", "null"], "minimum": 1, "maximum": 75},
+                                  "part7Minutes": {"type": ["integer", "null"], "minimum": 1, "maximum": 75}}}},
 }
 
 
@@ -792,6 +795,9 @@ class ResultScores(BaseModel):
     listening: int | None = Field(default=None, strict=True, ge=5, le=495, multiple_of=5)
     reading: int | None = Field(default=None, strict=True, ge=5, le=495, multiple_of=5)
     total: int | None = Field(default=None, strict=True, ge=10, le=990, multiple_of=5)
+    part5Minutes: int | None = Field(default=None, ge=1, le=75)
+    part6Minutes: int | None = Field(default=None, ge=1, le=75)
+    part7Minutes: int | None = Field(default=None, ge=1, le=75)
 
 
 class OpenAIResultsOutput(BaseModel):

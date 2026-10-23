@@ -3,6 +3,9 @@ import { Keyboard } from 'lucide-react';
 import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { ResultImageButton } from './WrongQuestionGrid';
 import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
+import type { ScoreSource } from '../lib/fullTestScore';
+import type { PartTimingDurations } from '@/shared/types';
+import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
 
 const listening = (part: PartNumber) => part <= 4;
 
@@ -17,17 +20,26 @@ interface Props {
   onScores?: (score: AppliedResultScore) => void;
   onScoresPending?: (pending: boolean) => void;
   scoreStore?: ResultScoreStore;
+  scoreSource?: ScoreSource;
+  manualListening?: string;
+  manualReading?: string;
+  manualTotal?: string;
+  onRevertScore?: () => void;
+  partDurations?: PartTimingDurations;
+  onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
 }
 
 /**
  * Computer Full Test: all 200 questions on one screen; clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange }: Props) {
+  const [timingModalOpen, setTimingModalOpen] = useState(false);
   const [typing, setTyping] = useState(false);
   const [text, setText] = useState('');
   const [invalid, setInvalid] = useState<string[]>([]);
   const [showNotes, setShowNotes] = useState(Boolean(notes));
+  const isOfficial = Boolean(scoreSource && scoreSource !== 'ESTIMATED');
   const marked = new Set(wrong);
   const byPart = wrongQuestionsByPart(wrong);
   const toggle = (question: number) => onWrong(marked.has(question) ? wrong.filter(item => item !== question) : normalizeQuestionList([...wrong, question]));
@@ -80,34 +92,51 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           desktop
           scoreCard={
             <div>
-              <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                  Điểm ước tính
+              <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
+                isOfficial ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
+              }`}>
+                <span className={`flex items-center gap-1.5 ${isOfficial ? 'text-amber-900 dark:text-amber-200 font-black' : 'text-slate-700 dark:text-slate-300'}`}>
+                  <span className={`h-2 w-2 rounded-full ${isOfficial ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} aria-hidden="true" />
+                  {isOfficial ? 'Điểm từ đề thi' : 'Điểm ước tính'}
                 </span>
-                {hasMarks ? (
+                {isOfficial ? (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9.5px] font-black text-amber-900 dark:bg-amber-950/70 dark:text-amber-200">
+                    Chính thức
+                  </span>
+                ) : hasMarks ? (
                   <span className="font-black normal-case tabular-nums text-rose-600 dark:text-rose-400">{wrong.length} câu sai</span>
                 ) : (
                   <span className="font-semibold normal-case text-slate-400">Chạm câu sai</span>
                 )}
               </div>
               <p className="mt-0.5 text-[40px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">
-                {hasMarks ? preview?.totalScore ?? '—' : '—'}
+                {isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—'}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs font-black tabular-nums">
                 <span className="rounded-lg border border-indigo-200 bg-indigo-50 py-1 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:text-indigo-300">
-                  L {hasMarks ? preview?.scaledListening ?? '—' : '—'}
+                  L {isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—'}
                 </span>
                 <span className="rounded-lg border border-teal-200 bg-teal-50 py-1 text-teal-700 dark:border-teal-800/60 dark:bg-teal-950/50 dark:text-teal-300">
-                  R {hasMarks ? preview?.scaledReading ?? '—' : '—'}
+                  R {isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—'}
                 </span>
               </div>
+              {isOfficial && hasMarks && (
+                <p className="mt-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  Đã đánh dấu {wrong.length} câu sai trên đề
+                </p>
+              )}
             </div>
           }
           marks={wrong}
           onScores={onScores}
           onScoresPending={onScoresPending}
           scoreStore={scoreStore}
+          appliedScore={isOfficial ? {
+            listening: manualListening,
+            reading: manualReading,
+            total: manualTotal || (preview?.totalScore ? String(preview.totalScore) : '')
+          } : undefined}
+          onRevertScore={onRevertScore}
           onRead={numbers => onWrong(normalizeQuestionList([...wrong, ...numbers]))}
           isTyping={typing}
           typingContent={
@@ -142,15 +171,21 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
               Gõ số câu
             </button>
           }
+          timingContent={
+            <PartTimingStrip
+              durations={partDurations}
+              onOpenEdit={() => setTimingModalOpen(true)}
+            />
+          }
         />
 
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
           <button
             type="button"
             onClick={() => setShowNotes(prev => !prev)}
             aria-label={showNotes ? 'Đóng ghi chú' : 'Thêm ghi chú'}
-            className={`flex items-center gap-1 rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer ${
               showNotes || notes.trim()
                 ? 'bg-amber-100 text-amber-900 font-black dark:bg-amber-950/60 dark:text-amber-200'
                 : 'hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white'
@@ -162,11 +197,11 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
           <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">|</span>
 
-          <div className="flex items-center gap-1" role="group" aria-label="Chế độ nhập khác">
+          <div className="flex items-center gap-1.5" role="group" aria-label="Chế độ nhập khác">
             <button
               type="button"
               onClick={onCounts}
-              className="cursor-pointer rounded-lg px-1.5 py-1 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
               title="Chuyển sang chế độ nhập số câu đúng mỗi Part"
             >
               Số câu đúng mỗi Part
@@ -175,7 +210,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
             <button
               type="button"
               onClick={onOfficial}
-              className="cursor-pointer rounded-lg px-1.5 py-1 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
               title="Chuyển sang chế độ nhập điểm chính thức ETS"
             >
               Điểm chính thức
@@ -208,6 +243,13 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           </div>
         )}
       </div>
+
+      <PartTimingModal
+        isOpen={timingModalOpen}
+        onClose={() => setTimingModalOpen(false)}
+        value={partDurations}
+        onChange={onPartDurationsChange ?? (() => {})}
+      />
     </div>
   );
 }

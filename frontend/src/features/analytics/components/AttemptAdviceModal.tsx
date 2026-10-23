@@ -202,6 +202,79 @@ export function AttemptAdviceModal({
                   </p>
                 </div>
 
+                {/* Phân tích Nhịp độ & Phân bổ thời gian Part 5-7 (nếu có) */}
+                {attempt.partDurations && (attempt.partDurations.part5 != null || attempt.partDurations.part6 != null || attempt.partDurations.part7 != null) && (
+                  <div className="rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#162137] space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                        <span>⏱️</span> Chẩn đoán Chiến thuật Thời gian Reading
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                        Tổng 75 phút
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                        <span className="text-[10px] font-bold text-slate-500 block uppercase">Part 5</span>
+                        <span className="text-base font-black tabular-nums text-slate-950 dark:text-white">
+                          {attempt.partDurations.part5 ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
+                        </span>
+                        <span className={`block text-[9px] font-extrabold mt-0.5 ${(attempt.partDurations.part5 ?? 0) > 15 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {(attempt.partDurations.part5 ?? 0) > 15 ? `Quá ${(attempt.partDurations.part5 ?? 0) - 12}p` : 'Chuẩn (≤12p)'}
+                        </span>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                        <span className="text-[10px] font-bold text-slate-500 block uppercase">Part 6</span>
+                        <span className="text-base font-black tabular-nums text-slate-950 dark:text-white">
+                          {attempt.partDurations.part6 ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
+                        </span>
+                        <span className={`block text-[9px] font-extrabold mt-0.5 ${(attempt.partDurations.part6 ?? 0) > 11 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {(attempt.partDurations.part6 ?? 0) > 11 ? `Quá ${(attempt.partDurations.part6 ?? 0) - 8}p` : 'Chuẩn (≤10p)'}
+                        </span>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                        <span className="text-[10px] font-bold text-slate-500 block uppercase">Part 7</span>
+                        <span className="text-base font-black tabular-nums text-slate-950 dark:text-white">
+                          {attempt.partDurations.part7 ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
+                        </span>
+                        <span className={`block text-[9px] font-extrabold mt-0.5 ${(attempt.partDurations.part7 ?? 0) < 50 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                          {(attempt.partDurations.part7 ?? 0) < 50 ? `Thiếu ${55 - (attempt.partDurations.part7 ?? 0)}p` : 'Đủ giờ (≥50p)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-700 dark:bg-slate-900 dark:text-slate-300 leading-relaxed font-medium">
+                      {(attempt.partDurations.part5 ?? 0) > 15 ? (
+                        <span>
+                          🚨 <strong>Áp lực thời gian:</strong> Bạn mất {attempt.partDurations.part5} phút cho Part 5 (vượt {(attempt.partDurations.part5 ?? 0) - 12}p so với khuyến nghị 12p), khiến Part 7 chỉ còn {attempt.partDurations.part7 ?? 50} phút. Đa số câu sai ở 15 câu cuối thường xuất phát từ việc thiếu thời gian đọc đoạn văn đôi/ba. Hãy tập thói quen khóa Part 5 ở phút thứ 12!
+                        </span>
+                      ) : (attempt.partDurations.part7 ?? 0) < 50 ? (
+                        <span>
+                          ⏱️ <strong>Cần bảo toàn thời gian:</strong> Part 7 đang nhận ít hơn 50 phút. Cần tăng tốc độ xử lý ở Part 5 và 6 để giữ trọn vẹn ít nhất 52–55 phút cho các bài đọc đoạn văn dài.
+                        </span>
+                      ) : (
+                        <span>
+                          🎯 <strong>Nhịp độ làm bài rất tốt:</strong> Bạn phân bổ thời gian giữa các Part rất cân đối ({attempt.partDurations.part5}p - {attempt.partDurations.part6}p - {attempt.partDurations.part7}p). Các câu sai thuần túy là bẫy ngữ nghĩa hoặc từ vựng, không bị ảnh hưởng bởi áp lực thời gian.
+                        </span>
+                      )}
+                    </div>
+
+                    {onNavigateToTimer && (
+                      <button
+                        type="button"
+                        onClick={() => handleAction(() => onNavigateToTimer('PART_5'))}
+                        className="w-full py-2 px-3 rounded-lg border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-xs font-black text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Timer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>Luyện Tốc Độ Đồng Hồ Pacing (Part 5 trong 12 phút) ›</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {stale && (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200 flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />

@@ -136,7 +136,15 @@ export interface StudySession {
 
   notes?: string;
   attemptNumber?: number;  // Lần làm thứ mấy của đề thi này: 1, 2, 3...
+  /** Phân bổ thời gian thực tế từng Part (đặc biệt Reading Part 5-7) cho Full Test */
+  partDurations?: PartTimingDurations;
   createdAt: string;
+}
+
+export interface PartTimingDurations {
+  part5?: number;
+  part6?: number;
+  part7?: number;
 }
 
 // Kết quả luyện tập của MỘT Part trong buổi luyện lẻ (SPEC 4.4)

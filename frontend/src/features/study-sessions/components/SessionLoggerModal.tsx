@@ -33,6 +33,7 @@ import { DesktopFullTestBody } from './DesktopFullTestBody';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 import { ContainerScrollCue } from '@/shared/components/ScrollCue';
 import type { AppliedResultScore, ResultScoreDraft } from './ResultScoreReview';
+import type { PartTimingDurations } from '@/shared/types';
 import { useFormDraft } from '@/shared/hooks/useFormDraft';
 import { parseSessionFormDraft, type SessionFormDraft } from '@/shared/data/studyFormDrafts';
 
@@ -88,6 +89,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualReading, setManualReading] = useState('');
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
+  const [manualViewOverride, setManualViewOverride] = useState(false);
+  const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
   // A Full Test is logged by its wrong questions; per-Part counts and official scores stay as alternatives.
   const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
   const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
@@ -193,6 +196,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     suggestedName.current = !e && phone && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
     setTestName(e?.testName ?? suggestedName.current);
     setEntry(e?.partScores && !e.wrongQuestions ? 'counts' : 'wrong');
+    setManualViewOverride(Boolean(e && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
     setSavedResult(null);
     setDate(e?.date ?? getTodayDateString());
@@ -224,7 +228,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setSourceScorePending(false); sourceScoreStore.current = null;
     if (sessionType === 'PART_PRACTICE') setDurationMinutes(current => current === 120 ? 30 : current);
     if (sessionType !== 'FULL_TEST') setTestName(current => current && current === suggestedName.current ? '' : current);
-    if (sessionType === 'FULL_TEST') setDurationMinutes(current => current === 30 ? 120 : current);
+    if (sessionType === 'FULL_TEST') { setDurationMinutes(current => current === 30 ? 120 : current); setManualViewOverride(false); }
   }, [sessionType]);
 
   const formDraft: SessionFormDraft = { sessionType, testName, date, durationMinutes, vocabCount, notes,
@@ -261,7 +265,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   if (!isOpen) return null;
 
-  const wrongEntry = sessionType === 'FULL_TEST' && scoreSource === 'ESTIMATED' && entry === 'wrong';
+  const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   const effectiveParts = wrongEntry ? partScoresFromWrong(wrongQuestions) : partScores;
   // Tính điểm trực tiếp từ partScores
   const calculated = calculateFromPartScores(effectiveParts);
@@ -279,7 +283,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const changeEntry = (mode: 'wrong' | 'counts') => {
     setSourceScorePending(false);
     sourceScoreStore.current = null;
-    if (mode === 'counts') setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES });
+    if (mode === 'counts') {
+      setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES });
+      setManualViewOverride(true);
+    } else {
+      setManualViewOverride(false);
+    }
     setEntry(mode);
   };
   // Official scores keep the marked questions as per-Part detail.
@@ -287,6 +296,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setSourceScorePending(false);
     sourceScoreStore.current = null;
     setScoreSource(on ? manualMode : 'ESTIMATED');
+    setManualViewOverride(on);
     if (on && entry === 'wrong') { setPartScores(wrongQuestions.length ? effectiveParts : { ...EMPTY_PART_SCORES }); setIncludePartDetails(wrongQuestions.length > 0); }
     else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
     setScoreError('');
@@ -298,6 +308,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setManualTotal(String(score.source === 'MANUAL_TOTAL' ? score.total : score.listening + score.reading));
     setPartScores(partScoresFromWrong(wrongQuestions));
     setIncludePartDetails(wrongQuestions.length > 0);
+    if (score.partDurations) {
+      setPartDurations(score.partDurations);
+    }
+    setManualViewOverride(false);
+    setScoreError('');
+  };
+
+  const revertSourceScore = () => {
+    setScoreSource('ESTIMATED');
+    setManualListening('');
+    setManualReading('');
+    setManualTotal('');
+    sourceScoreStore.current = null;
+    setSourceScorePending(false);
     setScoreError('');
   };
 
@@ -330,7 +354,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
       if (sessionType === 'FULL_TEST') {
         if (sourceScorePending) { setScoreError('Kiểm tra và áp dụng điểm từ đề, hoặc chọn “Dùng điểm ước tính” trước khi lưu.'); return; }
-        if (wrongEntry && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        if (wrongEntry && scoreSource === 'ESTIMATED' && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
         let resolved: ReturnType<typeof resolveFullTestScore>;
         try { resolved = resolveScores(); setScoreError(''); }
         catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
@@ -344,6 +368,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             : isExistingTest ? nextAttemptNumber : 1,
           date,
           durationMinutes: Number(durationMinutes) || 120,
+          partDurations: partDurations && (partDurations.part5 || partDurations.part6 || partDurations.part7) ? partDurations : undefined,
           ...resolved,
           ...(entry === 'wrong' && (wrongEntry || wrongQuestions.length > 0) ? { wrongQuestions: normalizeQuestionList(wrongQuestions) } : {}),
           notes,
@@ -418,12 +443,27 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </button>
         </div>
 
-        {!savedResult && <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
-          <span role="status">{persistentDraft.state === 'unavailable' ? 'Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.' : persistentDraft.state === 'restored' ? 'Đã khôi phục bản nháp trên thiết bị này.' : 'Nội dung được tự lưu nháp trên thiết bị này.'}</span>
-          <button type="button" className="min-h-9 shrink-0 font-bold text-slate-600 underline dark:text-slate-300" onClick={() => {
-            if (window.confirm('Xóa bản nháp đang nhập và đóng form? Kết quả đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) onClose();
-          }}>Bỏ nháp</button>
-        </div>}
+        {!savedResult && persistentDraft.state === 'restored' && (
+          <div className="flex shrink-0 items-center justify-end px-4 py-1.5 sm:px-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-300">
+              <span role="status">📝 Đã khôi phục bản nháp trên thiết bị này</span>
+              <button
+                type="button"
+                className="font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 pl-2 border-l border-slate-300 dark:border-slate-700 cursor-pointer"
+                onClick={() => {
+                  if (window.confirm('Xóa bản nháp đang nhập và đóng form? Kết quả đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) onClose();
+                }}
+              >
+                Bỏ nháp
+              </button>
+            </div>
+          </div>
+        )}
+        {!savedResult && persistentDraft.state === 'unavailable' && (
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
+            <span role="status">Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.</span>
+          </div>
+        )}
         {/* Form Content */}
         {savedResult ? <PhoneSavedResult session={savedResult} onClose={onClose} onDetails={() => { onClose(); onOpenSessionDrafts?.(savedResult); }} />
         : <form onSubmit={handleSubmit} onKeyDown={event => {
@@ -483,6 +523,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               manualReading={manualReading} setManualReading={setManualReading}
               manualTotal={manualTotal} setManualTotal={setManualTotal}
               includePartDetails={includePartDetails} setIncludePartDetails={setIncludePartDetails}
+              partDurations={partDurations} onPartDurationsChange={setPartDurations}
               date={date} setDate={setDate} duration={durationMinutes} setDuration={setDurationMinutes} notes={notes} setNotes={setNotes} />
           )}
           {isPhone && sessionType === 'PART_PRACTICE' && (
@@ -552,7 +593,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               onScores={applySourceScore}
               onScoresPending={setSourceScorePending}
               scoreStore={sourceScoreStore}
-              onCounts={() => changeEntry('counts')} onOfficial={() => switchManual(true)} notes={notes} setNotes={setNotes} />
+              scoreSource={scoreSource}
+              manualListening={manualListening}
+              manualReading={manualReading}
+              manualTotal={manualTotal}
+              onRevertScore={revertSourceScore}
+              onCounts={() => { setManualViewOverride(true); changeEntry('counts'); }}
+              onOfficial={() => { setManualViewOverride(true); switchManual(true); }}
+              notes={notes} setNotes={setNotes}
+              partDurations={partDurations} onPartDurationsChange={setPartDurations} />
           )}
 
           {/* FULL TEST MODE */}
@@ -563,7 +612,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setScoreSource('ESTIMATED');
+                    setManualViewOverride(false);
                     changeEntry('wrong');
                   }}
                   className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3.5 py-2 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-100 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-400 dark:bg-slate-900 dark:text-white transition-all"
