@@ -39,7 +39,7 @@ import {
   loadStudySessions,
   loadPacingRuns,
   updateStudySessions,
-  addStudySession,
+  triggerCelebrationConfetti,
   loadMistakes,
   updateMistakes,
   loadDemoData, 
@@ -50,14 +50,17 @@ import {
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
-import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
+import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType, NavTabId } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
+import type { ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
+import { commitMistakeBatch } from '@/features/mistakes/lib/persistMistakeBatch';
 import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
 import { MISTAKES_CHANGED_EVENT } from '@/features/mistakes/services/explanationQueue';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
 import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
-import { mergeSessionEdit } from '@/features/study-sessions/lib/sessionUpdates';
+import { persistSessionResult } from '@/features/study-sessions/lib/persistSessionResult';
+import { undoMistakeDeletion, undoMistakeGrade } from '@/features/mistakes/lib/persistMistakeUndo';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -105,6 +108,7 @@ export const App: React.FC = () => {
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
   const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
+  const [pacingReturnTab, setPacingReturnTab] = useState<NavTabId | null>(null);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   const navigateToPacing = (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
@@ -114,6 +118,7 @@ export const App: React.FC = () => {
       if (draft.status !== 'ready' && !window.confirm(`Phiên ${currentName} đang được giữ trên máy. Làm mới để luyện ${targetName}?`)) return;
       clearTimer(owner, draft.id);
     }
+    setPacingReturnTab(activeTab);
     setPacingInitialPart(supportedMode(part)); setActiveTab('exam-mode');
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -128,7 +133,7 @@ export const App: React.FC = () => {
   const [savedTest, setSavedTest] = useState<StudySession | null>(null);
   const closeSavedTest = useCallback(() => setSavedTest(null), []);
   const activeOwner = getActiveAccountId();
-  useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
+  useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); setIsSessionModalOpen(false); setEditingSession(null); setSessionPrefill(undefined); }, [activeOwner]);
 
   // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
   // Đọc lại từ chính class đó để React luôn khớp với những gì người dùng đã nhìn thấy.
@@ -225,16 +230,14 @@ export const App: React.FC = () => {
 
   // Lưu và cập nhật session
   const handleSaveSession = (session: StudySession, newMistakes?: MistakeEntry[]) => {
-    const result = addStudySession(session);
-    dismissOnboarding();
+    const result = persistSessionResult(session, { newMistakes, expectedOwner: activeOwner });
     setSessions(result.sessions);
     setProfile(result.profile);
-
-    if (newMistakes && newMistakes.length > 0) {
-      setMistakes(updateMistakes(current => [...newMistakes, ...current]));
-    }
-    // Each wrong question becomes a draft card in the notebook.
-    if (session.wrongQuestions) setMistakes(updateMistakes(current => applyDraftSync(session, current)));
+    setMistakes(result.mistakes);
+    // Cosmetic follow-ups must not turn an already committed result into a failed save.
+    setShowOnboarding(false);
+    try { localStorage.setItem('toeic_onboarding_done_v1', 'true'); } catch { /* The result is already saved. */ }
+    if (result.isRecord) { try { triggerCelebrationConfetti(); } catch { /* Optional animation. */ } }
   };
 
   // Phòng Thi tự ghi buổi học vào bộ nhớ; đọc lại để state không bị cũ
@@ -268,16 +271,10 @@ export const App: React.FC = () => {
    * kỷ lục không được kích hoạt.
    */
   const handleUpdateSession = (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => {
-    setSessions(updateStudySessions(current => {
-      const merged = mergeSessionEdit(current.find(s => s.id === original.id), original, session);
-      return current.map(s => s.id === original.id ? merged : s);
-    }));
-    setProfile(loadUserProfile());
-
-    if (newMistakes && newMistakes.length > 0) {
-      setMistakes(updateMistakes(current => [...newMistakes, ...current]));
-    }
-    if (session.wrongQuestions) setMistakes(updateMistakes(current => applyDraftSync(session, current)));
+    const result = persistSessionResult(session, { original, newMistakes, expectedOwner: activeOwner });
+    setSessions(result.sessions);
+    setProfile(result.profile);
+    setMistakes(result.mistakes);
   };
 
   // Thay nội dung một thẻ lỗi sai (trạng thái & lịch ôn đã được giữ ở form)
@@ -301,6 +298,10 @@ export const App: React.FC = () => {
     setMistakes(updateMistakes(current => [entry, ...current]));
   };
 
+  const handleAddMistakes = (entries: MistakeEntry[]) => {
+    setMistakes(commitMistakeBatch(entries, activeOwner));
+  };
+
   // Chuyển đổi trạng thái lỗi sai
   // Người học tự đánh dấu đã thuộc (menu ⋯), bỏ qua phần lịch ôn còn lại
   const handleMarkMastered = (mistakeId: string) => {
@@ -310,16 +311,19 @@ export const App: React.FC = () => {
   };
 
   // Lưu thẻ đã được chấm trong phiên ôn (SPEC mục 4.6)
-  const handleGradeMistake = (snapshot: MistakeEntry, correct: boolean) => {
+  const handleGradeMistake = (snapshot: MistakeEntry, answer: ReviewAnswer) => {
+    const owner = activeOwner;
+    if (getActiveAccountId() !== owner) throw new Error('Tài khoản đã thay đổi. Hãy mở lại phiên ôn.');
     let before: MistakeEntry | undefined;
     let after: MistakeEntry | undefined;
     const next = updateMistakes(current => {
       before = current.find(m => m.id === snapshot.id);
-      after = gradeLatestMistake(before, snapshot, correct);
+      after = gradeLatestMistake(before, snapshot, answer);
       return current.map(m => m.id === snapshot.id ? after! : m);
     });
     setMistakes(next);
-    return { before: before!, after: after! };
+    const persisted = next.find(card => card.id === snapshot.id)!;
+    return { before: before!, after: persisted, undo: () => setMistakes(undoMistakeGrade(before!, persisted, owner)) };
   };
 
   // Mở phiên ôn: các thẻ được chọn, hoặc mọi thẻ đến hạn. Danh sách được chốt lúc mở.
@@ -347,7 +351,17 @@ export const App: React.FC = () => {
 
   // Xóa lỗi sai
   const handleDeleteMistake = (mistakeId: string) => {
-    setMistakes(updateMistakes(current => current.filter(m => m.id !== mistakeId)));
+    const owner = activeOwner;
+    if (getActiveAccountId() !== owner) throw new Error('Tài khoản đã thay đổi. Hãy mở lại Sổ tay.');
+    let before: MistakeEntry | undefined;
+    const next = updateMistakes(current => {
+      before = current.find(card => card.id === mistakeId);
+      if (!before) throw new Error('Thẻ không còn trong Sổ tay.');
+      return current.filter(card => card.id !== mistakeId);
+    });
+    setMistakes(next);
+    const deletionVersion = readDataBundle().mistakes.find(card => card.id === mistakeId)!.updatedAt;
+    return () => setMistakes(undoMistakeDeletion(before!, deletionVersion, owner));
   };
 
   // Lưu cấu hình
@@ -456,6 +470,8 @@ export const App: React.FC = () => {
                 dueMistakesCount={dueMistakesCount}
                 onStartReview={openReview}
                 onNavigateToPacing={navigateToPacing}
+                mistakes={mistakes}
+                onResumeDetails={openSessionDrafts}
               />
             </div>
           )}
@@ -485,6 +501,7 @@ export const App: React.FC = () => {
               onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
               onEditSession={openSessionEditor}
               onNavigateToTimer={(part = 'POMODORO') => navigateToPacing(part)}
+              onNavigateToPlan={() => setActiveTab('plan')}
             />
           )}
 
@@ -495,6 +512,12 @@ export const App: React.FC = () => {
               onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
               initialPart={pacingInitialPart}
+              onBack={() => {
+                const target = pacingReturnTab || 'dashboard';
+                setPacingReturnTab(null);
+                setActiveTab(target);
+              }}
+              backLabel={pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
             />
           )}
 
@@ -508,6 +531,7 @@ export const App: React.FC = () => {
               onStartReview={openReview}
               mistakes={mistakes}
               onAddMistake={handleAddMistake}
+              onAddMistakes={handleAddMistakes}
               onMarkMastered={handleMarkMastered}
               onReopenCards={handleReopenCards}
               onDeleteMistake={handleDeleteMistake}
@@ -572,6 +596,7 @@ export const App: React.FC = () => {
       {/* Modals */}
       {editingPacing && editingPacing.owner === activeOwner && <PacingResultEditor run={editingPacing.run} owner={editingPacing.owner} onClose={closePacingEditor} onSaved={handleSessionsChangedElsewhere} />}
       <SessionLoggerModal
+        key={activeOwner ?? 'guest'}
         isOpen={isSessionModalOpen}
         onClose={closeSessionLogger}
         onSaveSession={handleSaveSession}
@@ -601,9 +626,10 @@ export const App: React.FC = () => {
         onLoadDemo={canLoadDemo ? handleLoadDemo : undefined}
         onImportSuccess={handleImportSuccess}
         syncLabel={describeSync(account.available, account.status).label}
+        onSignOut={account.email ? account.signOut : undefined}
         accountPanel={<AccountPanel available={account.available} status={account.status} email={account.email} error={account.error}
           onGoogle={account.signInGoogle} onSendOtp={account.sendOtp} onVerifyOtp={account.verifyOtp}
-          onRetry={() => void account.retry()} onSignOut={account.signOut} onDelete={account.deleteAccount} />}
+          onRetry={() => void account.retry()} onSignOut={account.signOut} onDelete={account.deleteAccount} showSignOut={false} />}
       />
 
       {account.pendingTransfer && (

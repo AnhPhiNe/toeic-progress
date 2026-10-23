@@ -319,8 +319,8 @@ def page_item_draft(item: OpenAIPageItem) -> MistakeDraft | None:
     )
 
 
-async def read_results(provider: OpenAIProvider, images: list[str], safety_identifier: str | None = None) -> tuple[list[int], list[int]]:
-    """Read wrong and skipped question numbers from result-page screenshots; returns sorted, disjoint lists."""
+async def read_results(provider: OpenAIProvider, images: list[str], safety_identifier: str | None = None) -> tuple[list[int], list[int], dict]:
+    """Read marked questions and visible source scores; never convert counts into source scores."""
     key = provider.settings.openai_api_key.get_secret_value().strip()
     if not key:
         raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
@@ -344,4 +344,4 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     valid = range(1, 201)
     wrong = sorted({number for number in output.wrong if number in valid})
     skipped = sorted({number for number in output.skipped if number in valid} - set(wrong))
-    return wrong, skipped
+    return wrong, skipped, output.scores.model_dump()

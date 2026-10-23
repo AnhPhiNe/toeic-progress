@@ -4,10 +4,31 @@ const mocks = vi.hoisted(() => ({ getSession: vi.fn(), signInAnonymously: vi.fn(
 vi.mock('@/shared/api/api', () => ({ apiAvailable: true, backendRequest: mocks.backendRequest }));
 vi.mock('@/shared/api/supabaseClient', () => ({ cloud: { auth: { getSession: mocks.getSession, signInAnonymously: mocks.signInAnonymously } } }));
 
-import { extractMistakeWithAI, extractPageWithAI, explainBatchWithAI, getDemoSampleInput, getAIUsage, getAIConfiguration } from './aiMistakeExtractor';
+import { extractMistakeWithAI, extractPageWithAI, readResultsWithAI, explainBatchWithAI, getDemoSampleInput, getAIUsage, getAIConfiguration } from './aiMistakeExtractor';
 
 const guest = { user: { id: 'guest-id', is_anonymous: true }, access_token: 'guest-token' };
 const account = { user: { id: 'account-id', is_anonymous: false }, access_token: 'account-token' };
+
+describe('visible result-image scores', () => {
+  const images = [{ id: 'score', name: 'result.png', dataUrl: 'data:image/png;base64,test' }];
+  it('returns source scores independently of the wrong question list', async () => {
+    const scores = { listening: 375, reading: 370, total: 745 };
+    mocks.backendRequest.mockResolvedValue({ wrong: [3, 107], skipped: [], scores, usage: {} });
+    expect(await readResultsWithAI(images, vi.fn())).toMatchObject({ wrong: [3, 107], scores });
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+  });
+  it('does not invent section scores from a total or require scores from older backends', async () => {
+    mocks.backendRequest.mockResolvedValueOnce({ wrong: [], skipped: [], scores: { listening: null, reading: null, total: 800 }, usage: {} });
+    expect((await readResultsWithAI(images, vi.fn())).scores).toEqual({ listening: null, reading: null, total: 800 });
+    mocks.backendRequest.mockResolvedValueOnce({ wrong: [3], skipped: [], usage: {} });
+    expect((await readResultsWithAI(images, vi.fn())).scores).toBeUndefined();
+  });
+  it('rejects out-of-scale source scores without retrying the paid request', async () => {
+    mocks.backendRequest.mockResolvedValue({ wrong: [], skipped: [], scores: { listening: 500, reading: 370, total: 870 }, usage: {} });
+    await expect(readResultsWithAI(images, vi.fn())).rejects.toThrow('chưa hợp lệ');
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+  });
+});
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -63,13 +84,13 @@ describe('backend AI extraction', () => {
       userChoice: 'D' as const, userChoiceState: 'CHOSEN' as const, userReason: 'I chose D.', sourceAnswer: '' as const };
     await extractMistakeWithAI(JSON.stringify(input), vi.fn(), input);
     expect(mocks.backendRequest).toHaveBeenCalledOnce();
-    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input }), 'account-id');
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input }), 'account-id', expect.any(Function));
   });
   it('sends the learner fields separately without folding their reason into a source answer', async () => {
     const input = { question: 'Reports ____ submitted.', options: ['(A) are', '(B) be'], context: '', part: 5 as const,
       userChoice: '' as const, userChoiceState: 'UNKNOWN' as const, userReason: 'Đáp án chuẩn: A là lời mình ghi lại', sourceAnswer: 'B' as const };
     await extractMistakeWithAI(JSON.stringify(input), vi.fn(), input);
-    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input, consent: true, provider: 'openai' }), 'account-id');
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ input, consent: true, provider: 'openai' }), 'account-id', expect.any(Function));
     expect(mocks.backendRequest).toHaveBeenCalledTimes(1);
   });
   it('rejects empty or oversized input before creating an identity', async () => {
@@ -85,7 +106,7 @@ describe('backend AI extraction', () => {
     expect(mocks.backendRequest).toHaveBeenCalledTimes(1);
     expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({
       input, images: [{ dataUrl: images[0].dataUrl }], consent: true, provider: 'openai'
-    }), 'account-id');
+    }), 'account-id', expect.any(Function));
   });
   it('uses different single-use captcha tokens for anonymous sign-up and extraction', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: null } });
@@ -93,7 +114,7 @@ describe('backend AI extraction', () => {
     const captcha = vi.fn().mockResolvedValueOnce('sign-up-token').mockResolvedValueOnce('api-token');
     await extractMistakeWithAI(getDemoSampleInput().input, captcha);
     expect(mocks.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: 'sign-up-token' } });
-    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ captcha_token: 'api-token', consent: true }), 'guest-id');
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ captcha_token: 'api-token', consent: true }), 'guest-id', expect.any(Function));
     expect(captcha).toHaveBeenCalledTimes(2);
   });
   it('uses the existing permanent account without anonymous sign-up', async () => {
@@ -199,7 +220,7 @@ describe('AI recipient configuration', () => {
     expect(mocks.getSession).not.toHaveBeenCalled();
     expect(mocks.signInAnonymously).not.toHaveBeenCalled();
     await extractMistakeWithAI(getDemoSampleInput().input, vi.fn());
-    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ provider: 'openai' }), 'account-id');
+    expect(mocks.backendRequest).toHaveBeenCalledWith('/api/v1/ai/extract', 'POST', expect.objectContaining({ provider: 'openai' }), 'account-id', expect.any(Function));
   });
 
   it('does not assume a provider when an older backend omits its identity', async () => {
@@ -273,5 +294,103 @@ describe('AI recipient configuration', () => {
     vi.stubGlobal('fetch', fetch);
     await getAIConfiguration();
     expect(fetch).toHaveBeenCalledWith('https://toeic-progress-api.onrender.com/health', expect.anything());
+  });
+});
+
+
+describe('single extraction lifecycle', () => {
+  const raw = () => getDemoSampleInput().input;
+  it('blocks an owner changed while getSession was pending', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: { ...account, user: { ...account.user, id: 'other-account' } } } });
+    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], [], account.user.id)).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not send after closing while getSession is pending', async () => {
+    let current = true;
+    mocks.getSession.mockImplementation(async () => { current = false; return { data: { session: account } }; });
+    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], [], account.user.id, () => current)).rejects.toThrow('đã đóng');
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not replace an account that signs in during guest CAPTCHA', async () => {
+    mocks.getSession.mockResolvedValueOnce({ data: { session: null } }).mockResolvedValueOnce({ data: { session: account } });
+    await expect(extractMistakeWithAI(raw(), async () => 'token', undefined, [], [], null)).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not create a guest or send after closing during CAPTCHA', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    let current = true;
+    await expect(extractMistakeWithAI(raw(), async () => { current = false; return 'token'; }, undefined, [], [], null, () => current)).rejects.toThrow('đã đóng');
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('passes the final dispatch guard and drops a late response without retry', async () => {
+    let current = true;
+    const guard = () => current;
+    mocks.backendRequest.mockImplementation(async () => { current = false; return { draft: getDemoSampleInput().result, usage: {} }; });
+    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], [], account.user.id, guard)).rejects.toThrow('đã đóng');
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+    expect(mocks.backendRequest.mock.calls[0][4]).toBe(guard);
+  });
+});
+
+describe('page extraction lifecycle', () => {
+  const questions = [{ number: 158, part: 7 }];
+  const images = [{ id: 'local', name: 'private.png', dataUrl: 'data:image/png;base64,test' }];
+  it('does not send after closing while getSession is pending', async () => {
+    let current = true;
+    mocks.getSession.mockImplementation(async () => { current = false; return { data: { session: account } }; });
+    await expect(extractPageWithAI(questions, images, vi.fn(), account.user.id, () => current)).rejects.toThrow('đã đóng');
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not send queued screenshots under a different owner', async () => {
+    await expect(extractPageWithAI(questions, images, vi.fn(), 'old-account')).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not sign in anonymously after cancellation during CAPTCHA', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    let current = true;
+    await expect(extractPageWithAI(questions, images, async () => { current = false; return 'token'; }, null, () => current)).rejects.toThrow('đã đóng');
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled(); expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not replace an account that signed in during guest CAPTCHA', async () => {
+    mocks.getSession.mockResolvedValueOnce({ data: { session: null } }).mockResolvedValueOnce({ data: { session: account } });
+    await expect(extractPageWithAI(questions, images, async () => 'token', null)).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled(); expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('drops a response that arrives after the form closes, with no automatic retry', async () => {
+    let current = true;
+    mocks.backendRequest.mockImplementation(async () => { current = false; return { items: [], missing: [158], usage: {} }; });
+    await expect(extractPageWithAI(questions, images, vi.fn(), account.user.id, () => current)).rejects.toThrow('đã đóng');
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+  });
+});
+
+describe('result screenshot lifecycle', () => {
+  const images = [{ id: 'result', name: 'result.png', dataUrl: 'data:image/png;base64,test' }];
+  it('blocks a changed owner before dispatch', async () => {
+    await expect(readResultsWithAI(images, vi.fn(), 'old-account')).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not create a guest after closing during CAPTCHA', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    let current = true;
+    await expect(readResultsWithAI(images, async () => { current = false; return 'token'; }, null, () => current)).rejects.toThrow('đã đóng');
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('does not replace an account signed in during CAPTCHA', async () => {
+    mocks.getSession.mockResolvedValueOnce({ data: { session: null } }).mockResolvedValueOnce({ data: { session: account } });
+    await expect(readResultsWithAI(images, async () => 'token', null)).rejects.toThrow('Tài khoản đã thay đổi');
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+  it('passes the dispatch guard and drops a late response without retry', async () => {
+    let current = true;
+    const guard = () => current;
+    mocks.backendRequest.mockImplementation(async () => { current = false; return { wrong: [101], skipped: [], usage: {} }; });
+    await expect(readResultsWithAI(images, vi.fn(), account.user.id, guard)).rejects.toThrow('đã đóng');
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+    expect(mocks.backendRequest.mock.calls[0][4]).toBe(guard);
   });
 });

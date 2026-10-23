@@ -14,9 +14,10 @@ interface Props {
   onRetry: () => void;
   onSignOut: () => Promise<void>;
   onDelete: () => Promise<void>;
+  showSignOut?: boolean;
 }
 
-export const AccountPanel: React.FC<Props> = ({ available, status, email, error, onGoogle, onSendOtp, onVerifyOtp, onRetry, onSignOut, onDelete }) => {
+export const AccountPanel: React.FC<Props> = ({ available, status, email, error, onGoogle, onSendOtp, onVerifyOtp, onRetry, onSignOut, onDelete, showSignOut = true }) => {
   const [inputEmail, setInputEmail] = useState('');
   const [token, setToken] = useState('');
   const [sent, setSent] = useState(false);
@@ -36,7 +37,7 @@ export const AccountPanel: React.FC<Props> = ({ available, status, email, error,
           {error && <p role="alert" className="text-rose-600 dark:text-rose-400">{error}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={onRetry} disabled={busy} className="rounded-lg border border-slate-300 px-3 py-2 font-semibold dark:border-slate-600"><RefreshCw size={13} className="inline mr-1" />Thử đồng bộ lại</button>
-            <button type="button" onClick={() => void act(onSignOut)} disabled={busy} className="rounded-lg border border-slate-300 px-3 py-2 font-semibold dark:border-slate-600"><LogOut size={13} className="inline mr-1" />Đăng xuất</button>
+            {showSignOut && <button type="button" onClick={() => void act(onSignOut)} disabled={busy} className="rounded-lg border border-slate-300 px-3 py-2 font-semibold dark:border-slate-600"><LogOut size={13} className="inline mr-1" />Đăng xuất</button>}
             <button type="button" onClick={() => void act(onDelete)} disabled={busy} className="rounded-lg px-3 py-2 font-semibold text-rose-600 dark:text-rose-400"><Trash2 size={13} className="inline mr-1" />Xóa tài khoản</button>
           </div>
         </> : <>

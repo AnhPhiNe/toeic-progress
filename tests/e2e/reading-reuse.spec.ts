@@ -7,6 +7,40 @@ const passage = 'Document 1: Registered members pay the member rate.\n\nDocument
 const choices = ['(A) Project Planning.', '(B) Business Writing.', '(C) Data Basics.', '(D) Team Leadership.'];
 const question = (number: number) => `Which workshop is free for registered members (question ${number})?`;
 
+test('reuse keeps its draft separate from an unfinished standalone note', async ({ page }) => {
+  await page.goto('/so-tay');
+  await page.evaluate(({ passage, choices }) => {
+    const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!); const now = new Date().toISOString();
+    bundle.mistakes = [{ id: 'reuse-draft-source', part: 7, question: 'Which workshop is free?', context: passage,
+      questionContext: 'Which workshop is free?\n\n' + passage, options: choices, correctAnswer: choices[2], answerSource: 'PROVIDED',
+      category: 'OTHER', userMistake: '', tags: [], sourceTestName: 'ETS Reuse', status: 'NEEDS_REVIEW', createdAt: now, updatedAt: now, deletedAt: null }];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
+  }, { passage, choices });
+  await page.reload();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
+  const modal = page.getByRole('dialog');
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
+  await modal.getByLabel('Câu hỏi + phương án').fill('Unfinished standalone question');
+  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  const reuse = async () => {
+    await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
+  };
+  await reuse();
+  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
+  await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toBeVisible();
+  await modal.getByLabel('Câu hỏi + phương án').fill('Unfinished question for this passage');
+  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
+  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('Unfinished standalone question');
+  await expect(modal.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await reuse();
+  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('Unfinished question for this passage');
+  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
 async function mockAnalysis(page: Page) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
     export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, part7Images: true }; }
@@ -117,7 +151,7 @@ test('a saved source can start a new question after reload; changing source, Par
   await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
   page.once('dialog', dialog => dialog.accept());
-  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await modal.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
   const confirm = await page.getByRole('dialog').count();
   expect(confirm).toBe(0);
   for (const action of ['source', 'passage']) {
@@ -131,7 +165,7 @@ test('a saved source can start a new question after reload; changing source, Par
     await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
     await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
     await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(1);
-    page.once('dialog', dialog => dialog.accept()); await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+    page.once('dialog', dialog => dialog.accept()); await modal.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
   }
   await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();

@@ -20,7 +20,8 @@ import {
   CartesianGrid,
   Customized
 } from 'recharts';
-import { StudySession, UserProfile, PacingRun, ReadingPartType } from '@/shared/types';
+import { StudySession, UserProfile, PacingRun, ReadingPartType, MistakeEntry } from '@/shared/types';
+import { resumeDetails } from '@/features/dashboard/lib/resumeDetails';
 import type { VocabLog } from '@/shared/data/dataBundle';
 import { actualStudyDates } from '@/shared/domain/streak';
 import { getTodayDateString, computeSessionAttemptMap } from '@/shared/data/storage';
@@ -44,6 +45,8 @@ interface DashboardProps {
   dueMistakesCount?: number;
   onStartReview?: () => void;
   onNavigateToPacing?: (part: ReadingPartType) => void;
+  mistakes?: MistakeEntry[];
+  onResumeDetails?: (session: StudySession) => void;
 }
 
 // Bề mặt thẻ dùng chung với các màn hình khác (xem surfaces.ts)
@@ -68,9 +71,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToAnalytics,
   dueMistakesCount = 0,
   onStartReview,
-  onNavigateToPacing
+  onNavigateToPacing,
+  mistakes = [],
+  onResumeDetails
 }) => {
   const today = getTodayDateString();
+  const unfinished = useMemo(() => resumeDetails(sessions, mistakes), [sessions, mistakes]);
   const isDark = theme === 'dark';
   const chartMotion = useChartMotion(700);
   // Phones render PhoneSummary instead of the KPI and latest-test cards (streak lives in the top-bar chip); only one version is ever in the DOM.
@@ -268,11 +274,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
    */
   const toeicTier = useMemo(() => {
     const score = highestScore || 0;
-    if (score >= 905) return { tier: 'Gold Tier 🏆', rank: 'C1 Master', badgeBg: 'bg-amber-300 text-slate-950 border-slate-900', iconBg: 'bg-amber-400 text-slate-950' };
-    if (score >= 785) return { tier: 'Silver Tier ⭐', rank: 'B2 Working', badgeBg: 'bg-sky-200 text-slate-950 border-slate-900', iconBg: 'bg-sky-300 text-slate-950' };
-    if (score >= 605) return { tier: 'Bronze Tier 🥉', rank: 'B1 Intermediate', badgeBg: 'bg-orange-200 text-slate-950 border-slate-900', iconBg: 'bg-orange-300 text-slate-950' };
-    if (score >= 405) return { tier: 'Starter 🌱', rank: 'A2 Elementary', badgeBg: 'bg-emerald-200 text-slate-950 border-slate-900', iconBg: 'bg-emerald-300 text-slate-950' };
-    return { tier: 'Explorer 🚀', rank: 'A1 Beginner', badgeBg: 'bg-slate-200 text-slate-800 border-slate-900', iconBg: 'bg-slate-200 text-slate-800' };
+    if (score >= 905) return { tier: 'Gold Tier 🏆', rank: 'Cột mốc 905+', badgeBg: 'bg-amber-300 text-slate-950 border-slate-900', iconBg: 'bg-amber-400 text-slate-950' };
+    if (score >= 785) return { tier: 'Silver Tier ⭐', rank: 'Cột mốc 785+', badgeBg: 'bg-sky-200 text-slate-950 border-slate-900', iconBg: 'bg-sky-300 text-slate-950' };
+    if (score >= 605) return { tier: 'Bronze Tier 🥉', rank: 'Cột mốc 605+', badgeBg: 'bg-orange-200 text-slate-950 border-slate-900', iconBg: 'bg-orange-300 text-slate-950' };
+    if (score >= 405) return { tier: 'Starter 🌱', rank: 'Cột mốc 405+', badgeBg: 'bg-emerald-200 text-slate-950 border-slate-900', iconBg: 'bg-emerald-300 text-slate-950' };
+    return { tier: 'Explorer 🚀', rank: 'Đang khởi đầu', badgeBg: 'bg-slate-200 text-slate-800 border-slate-900', iconBg: 'bg-slate-200 text-slate-800' };
   }, [highestScore]);
 
   const hasDiff = Boolean(stats && stats.totalTests > 1);
@@ -304,7 +310,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in">
-
+      {unfinished && onResumeDetails && <button type="button" onClick={() => onResumeDetails(unfinished.session)}
+        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-amber-50 px-4 py-3 text-left shadow-[2px_2px_0_0_#0f172a] hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-400 dark:bg-amber-950/30 dark:text-slate-100">
+        <span className="min-w-0"><span className="block break-words text-sm font-extrabold">Tiếp tục ghi chi tiết {unfinished.session.testName || 'đề chưa đặt tên'}</span>
+          <span className="block text-xs text-slate-600 dark:text-slate-300">Còn {unfinished.remaining} câu Reading chưa hoàn thành · {unfinished.session.date.split('-').reverse().join('/')}</span></span>
+        <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0" />
+      </button>}
       <div ref={gridRef} data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 xl:gap-6 items-stretch">
 
         {/* ================= CỘT TRÁI (3 KPI Game Hóa Thành Tích & Biểu đồ tiến độ) ================= */}
@@ -425,7 +436,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            {/* THẺ 3: XUNG LỰC PHONG ĐỘ & ĐÀ TIẾN BỘ (CHUYỂN MÀU ĐỘNG THEO DIFF) */}
+            {/* THẺ 3: XUNG LỰC PHONG ĐỘ & SO VỚI BÀI ĐẦU (CHUYỂN MÀU ĐỘNG THEO DIFF) */}
             <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn đổi màu theo số dương (xanh lá) / số âm (hồng) bên trái, Trạng thái bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">

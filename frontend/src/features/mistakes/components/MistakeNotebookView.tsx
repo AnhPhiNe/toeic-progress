@@ -10,17 +10,19 @@ import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
-import { optionLetter } from '@/features/mistakes/lib/userChoice';
-import { mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
+import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
+import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { mistakeTestName, testNameKey, uniqueTestNames } from '@/features/mistakes/lib/sourceTests';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { triggerHaptic } from '@/shared/lib/haptics';
+import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
 import './notebook.css';
 
 const NOTEBOOK_PAGE_SIZE = 6;
@@ -56,9 +58,10 @@ interface MistakeNotebookViewProps {
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
+  onAddMistakes?: (entries: MistakeEntry[]) => void;
   onMarkMastered: (id: string) => void;
   onReopenCards: (ids: string[]) => void;
-  onDeleteMistake: (id: string) => void;
+  onDeleteMistake: (id: string) => MistakeUndoAction | void;
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
   onOpenSessionLogger?: () => void;
@@ -68,7 +71,7 @@ interface MistakeNotebookViewProps {
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
-export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
+export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger, onNavigateTab }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
@@ -91,17 +94,33 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return ids.length ? ids : null;
   });
   const [sessionSource, setSessionSource] = useState(createRequest);
-  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[] } | null>(null);
+  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[]; cardId: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
-  const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean } | null>(null);
+  const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const feedbackSequence = useRef(0);
   const notify = useCallback((message: string, error = false) => { setFeedback({ id: ++feedbackSequence.current, message, error }); }, []);
   const savedFeedback = useCallback((message: string) => notify(message), [notify]);
   useEffect(() => {
     if (!feedback) return;
-    const timeout = window.setTimeout(() => setFeedback(null), feedback.error ? 7000 : 4000);
+    const timeout = window.setTimeout(() => setFeedback(null), feedback.undo ? 15000 : feedback.error ? 7000 : 4000);
     return () => window.clearTimeout(timeout);
   }, [feedback]);
+  const deleteCard = (id: string) => {
+    if (!window.confirm('Xóa lỗi này khỏi sổ tay?')) return;
+    try {
+      const owner = getActiveAccountId();
+      const undo = onDeleteMistake(id);
+      setFeedback({ id: ++feedbackSequence.current, message: 'Đã xóa thẻ', error: false, ...(undo ? { undo, owner } : {}) });
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa xóa được thẻ.', true); }
+  };
+  const undoDelete = () => {
+    if (!feedback?.undo) return;
+    try {
+      if (feedback.owner !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Không thể hoàn tác thẻ của tài khoản trước.');
+      feedback.undo();
+      notify('Đã khôi phục thẻ');
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa khôi phục được thẻ.', true); }
+  };
   const markMastered = (id: string) => {
     try {
       onMarkMastered(id);
@@ -153,21 +172,36 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   // Cards read from a screenshot have no explanation yet; the learner asks for one on the card (one AI use).
   const [explainingId, setExplainingId] = useState('');
+  const explanationMounted = useRef(true);
+  useEffect(() => {
+    explanationMounted.current = true;
+    return () => { explanationMounted.current = false; };
+  }, []);
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
   const explain = async (card: MistakeEntry) => {
     if (explainingId) return;
+    const owner = getActiveAccountId();
+    const isCurrent = () => explanationMounted.current && getActiveAccountId() === owner;
+    const sourceImageIds = [...(card.sourceImageIds ?? [])];
+    const chosen = getUserChoice(card);
     const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
-    const input: MistakeInput = { question: card.question ?? '', options: card.options ?? [], context: card.context ?? '', part: card.part,
-      userChoiceState: card.userChoiceState ?? 'UNKNOWN', userChoice: card.userChoiceState === 'CHOSEN' ? card.userChoice ?? '' : '',
+    const input: MistakeInput = { question: card.question ?? card.questionContext, options: [...(card.options ?? [])], context: card.context ?? '', part: card.part,
+      userChoiceState: card.userChoiceState ?? (chosen ? 'CHOSEN' : 'UNKNOWN'), userChoice: chosen,
       userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
-      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input);
-      const latest = loadMistakes().find(value => value.id === card.id) ?? card;
+      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], sourceImageIds, owner, isCurrent);
+      if (!isCurrent()) return;
+      const latest = loadMistakes().find(value => value.id === card.id);
+      if (!latest || !matchesExplanationCard(latest, input)
+        || JSON.stringify(latest.sourceImageIds ?? []) !== JSON.stringify(sourceImageIds)) {
+        throw new Error('Nội dung thẻ đã thay đổi hoặc bị xóa. Chưa áp dụng lời giải; hãy mở lại thẻ để kiểm tra.');
+      }
+      if (latest.explanation || latest.trapTip?.trim()) throw new Error('Thẻ đã có lời giải mới. Giữ nguyên lời giải đang lưu.');
       onUpdateMistake(mergeExplanation(latest, draft), latest);
       notify('Đã thêm giải thích');
-    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
-    finally { setExplainingId(''); removeCaptcha(); }
+    } catch (reason) { if (isCurrent()) notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
+    finally { if (isCurrent()) { setExplainingId(''); removeCaptcha(); } }
   };
 
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
@@ -178,9 +212,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     onReview: () => onStartReview([mistake.id]),
     onEdit: () => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake),
     onReuseReading: mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
-      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds }); setEntry(null);
+      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds, cardId: mistake.id }); setEntry(null);
     } : undefined,
-    onDelete: () => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); },
+    onDelete: () => deleteCard(mistake.id),
     onMarkMastered: () => markMastered(mistake.id),
     onReopen: () => onReopenCards([mistake.id]),
     // A card read from a screenshot asks again with its ticket (no new AI use); otherwise one AI use.
@@ -503,6 +537,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         {feedback && <div key={feedback.id} className={`notebook-feedback ${feedback.error ? 'is-error' : ''}`}>
           {feedback.error ? <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" /> : <SuccessMark />}
           <p className="min-w-0 flex-1 text-sm font-semibold">{feedback.message}</p>
+          {feedback.undo && feedback.owner === getActiveAccountId() && <button type="button" onClick={undoDelete}
+            className="min-h-11 shrink-0 cursor-pointer rounded-lg px-3 text-sm font-extrabold text-blue-700 underline dark:text-blue-300">Hoàn tác</button>}
           <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>}
       </div>
@@ -514,8 +550,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}
         initialReading={reusedReading?.text}
+        draftScope={reusedReading ? `reuse:${reusedReading.cardId}` : undefined}
         initialSourceImageIds={reusedReading?.sourceImageIds}
-        onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
+        onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
     </div>
   );

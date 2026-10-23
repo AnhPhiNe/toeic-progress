@@ -1,6 +1,6 @@
 import type { MistakeEntry } from '@/shared/types';
 import { getTodayDateString } from '@/shared/data/storage';
-import { applyReviewResult, isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
+import { applyReviewResult, isDueForReview, canReview, normalizeReviewRating, type ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 
 export type ReviewStatusKind = 'mastered' | 'overdue' | 'due' | 'scheduled' | 'incomplete';
@@ -30,12 +30,12 @@ export function reviewStatus(mistake: MistakeEntry, today = getTodayDateString()
  * early (or a mastered card) only changes it when the answer is wrong, so a card
  * cannot be pushed to "mastered" by answering it several times in one day.
  */
-export function gradeReview(mistake: MistakeEntry, correct: boolean, today = getTodayDateString()): MistakeEntry {
+export function gradeReview(mistake: MistakeEntry, answer: ReviewAnswer, today = getTodayDateString()): MistakeEntry {
   if (!canReview(mistake)) return mistake;
   if (mistake.status !== 'MASTERED' && isDueForReview(mistake, today)) {
-    return applyReviewResult(mistake, correct, today);
+    return applyReviewResult(mistake, answer, today);
   }
-  if (correct) return mistake;
+  if (normalizeReviewRating(answer) !== 'AGAIN') return mistake;
   return applyReviewResult({ ...mistake, status: 'NEEDS_REVIEW' }, false, today);
 }
 
@@ -43,15 +43,18 @@ export function gradeReview(mistake: MistakeEntry, correct: boolean, today = get
 export function reviewResultText(
   before: MistakeEntry,
   after: MistakeEntry,
-  correct: boolean,
+  answer: ReviewAnswer,
   chosen: string,
   today = getTodayDateString()
 ): string {
-  if (correct) {
-    if (after === before) return 'Đúng · lịch ôn giữ nguyên';
-    if (after.status === 'MASTERED') return 'Đúng · thẻ đã thông suốt';
-    return `Đúng · ${reviewStatus(after, today).label.toLowerCase()}`;
+  const rating = normalizeReviewRating(answer);
+  const label = typeof answer === 'boolean' ? answer ? 'Đúng' : 'Chưa đúng'
+    : { AGAIN: 'Quên', HARD: 'Khó', GOOD: 'Tốt', EASY: 'Dễ' }[rating];
+  if (rating !== 'AGAIN') {
+    if (after === before) return `${label} · lịch ôn giữ nguyên`;
+    if (after.status === 'MASTERED') return `${label} · thẻ đã thông suốt`;
+    return `${label} · ${reviewStatus(after, today).label.toLowerCase()}`;
   }
   const repeated = Boolean(chosen) && chosen === (before.userChoice || optionLetter(before.userMistake));
-  return `${repeated ? 'Vẫn nhầm như lần trước' : 'Chưa đúng'} · ôn lại ngày mai`;
+  return `${repeated ? 'Vẫn nhầm như lần trước' : label} · ôn lại ngày mai`;
 }

@@ -20,7 +20,7 @@ for (const [status, message] of [
     const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
     await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
     await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
-    await expect(modal.getByRole('status')).toContainText(message);
+    await expect(modal.getByRole('status').filter({ hasText: message })).toBeVisible();
     await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeDisabled();
     for (const width of [375,1440]) { await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
     await page.screenshot({ path: info.outputPath('ai-access-' + status + '.png') });
@@ -36,7 +36,7 @@ for (const [status, message] of [
       if (status === 'pending') await page.screenshot({ path: info.outputPath(`ai-approved-actions-${width}.png`) });
     }
     await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
-    await expect(modal.getByRole('status')).toContainText('Đã lưu lỗi sai');
+    await expect(modal.getByRole('status').filter({ hasText: 'Đã lưu lỗi sai' })).toBeVisible();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toHaveLength(1);
   });
 }

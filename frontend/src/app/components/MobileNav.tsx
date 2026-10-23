@@ -189,8 +189,8 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
         className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t-2 border-slate-900 bg-[#FDFBF7] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 text-slate-900 outline-none dark:border-slate-700 dark:bg-[#0B132B] dark:text-slate-100 animate-sheet-up">
         <div className="relative mb-2 flex items-center justify-between">
           <div className="mx-auto h-1.5 w-10 rounded-full bg-slate-300 dark:bg-slate-600" aria-hidden="true" />
-          <button type="button" onClick={onClose} aria-label="Đóng" className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-slate-200/70 text-slate-600 hover:bg-slate-300 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer">
-            <X className="h-4 w-4" />
+          <button type="button" onClick={onClose} aria-label="Đóng" className="absolute -right-1 -top-1 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/80 text-slate-700 hover:bg-slate-300 hover:text-slate-950 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer">
+            <X className="h-5 w-5" />
           </button>
         </div>
         <h2 className="mb-2 text-lg font-black tracking-tight">{title}</h2>

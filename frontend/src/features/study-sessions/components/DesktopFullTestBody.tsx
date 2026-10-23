@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Keyboard } from 'lucide-react';
 import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { ResultImageButton } from './WrongQuestionGrid';
+import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 
 const listening = (part: PartNumber) => part <= 4;
 
@@ -13,13 +14,16 @@ interface Props {
   onOfficial: () => void;
   notes: string;
   setNotes: (value: string) => void;
+  onScores?: (score: AppliedResultScore) => void;
+  onScoresPending?: (pending: boolean) => void;
+  scoreStore?: ResultScoreStore;
 }
 
 /**
  * Computer Full Test: all 200 questions on one screen; clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore }: Props) {
   const [typing, setTyping] = useState(false);
   const [text, setText] = useState('');
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -45,7 +49,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
             <span className={'flex h-6 items-center justify-center rounded-[7px] text-[11.5px] font-black text-white ' + (listening(part) ? 'bg-indigo-600' : 'bg-teal-600')}>P{part}</span>
             {byPart[part].length > 0 && <span className="mt-0.5 block text-[11px] font-black tabular-nums text-rose-600 dark:text-rose-400">{byPart[part].length} sai</span>}
           </div>
-          <div className="grid grid-cols-[repeat(10,28px)] gap-[3px]" role="group" aria-label={`Câu sai Part ${part}`}>
+          <div className="grid grid-cols-[repeat(10,29px)] gap-[3px]" role="group" aria-label={`Câu sai Part ${part}`}>
             {questionsOfPart(part).map(question => {
               const on = marked.has(question);
               return (
@@ -63,81 +67,145 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
   const hasMarks = wrong.length > 0;
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_236px]">
-      <div className="min-w-0">
-        <div className="flex flex-wrap gap-x-8 gap-y-3">
+    <div className="grid gap-6 lg:grid-cols-[1fr_276px]">
+      <div className="min-w-0 overflow-x-auto [scrollbar-gutter:stable] pb-2">
+        <div className="flex flex-nowrap gap-x-6 items-start">
           {section('Listening', PART_NUMBERS.filter(listening))}
           {section('Reading', PART_NUMBERS.filter(part => !listening(part)))}
         </div>
       </div>
 
       <div className="flex flex-col gap-2.5 max-lg:order-first">
-        <div className="rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]" aria-live="polite">
-          <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            <span>Ước tính</span>
-            {hasMarks ? (
-              <span className="font-black normal-case tabular-nums text-rose-600 dark:text-rose-400">{wrong.length} câu sai</span>
-            ) : (
-              <span className="font-semibold normal-case text-slate-400">Chạm câu sai</span>
-            )}
-          </div>
-          <p className="mt-1 text-[42px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">{hasMarks ? preview?.totalScore ?? '—' : '—'}</p>
-          <div className="mt-2.5 grid grid-cols-2 gap-1.5 text-xs font-black tabular-nums">
-            <span className="rounded-lg border border-indigo-200 bg-indigo-50 py-1 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:text-indigo-300">
-              L {hasMarks ? preview?.scaledListening ?? '—' : '—'}
-            </span>
-            <span className="rounded-lg border border-teal-200 bg-teal-50 py-1 text-teal-700 dark:border-teal-800/60 dark:bg-teal-950/50 dark:text-teal-300">
-              R {hasMarks ? preview?.scaledReading ?? '—' : '—'}
-            </span>
-          </div>
-        </div>
-
-        {typing ? (
-          <div className="space-y-2">
-            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">Số câu sai
-              <textarea autoFocus rows={3} value={text} onChange={event => { setText(event.target.value); setInvalid([]); }} placeholder="3 15 22 101-104"
-                onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyTyped(); } }}
-                className="mt-1 w-full resize-none rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[14px] font-bold tabular-nums text-slate-950 focus:border-blue-600 focus:outline-none dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
-            </label>
-            <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Cách nhau bằng dấu cách; 101-104 là một dải câu.</p>
-            {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">Không đọc được: {invalid.join(', ')}</p>}
-            <div className="flex gap-2">
-              <button type="button" onClick={applyTyped} className="min-h-10 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[13.5px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Áp dụng</button>
-              <button type="button" onClick={() => { setTyping(false); setInvalid([]); }} className="min-h-10 cursor-pointer px-3 text-[13.5px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
+        <ResultImageButton
+          desktop
+          scoreCard={
+            <div>
+              <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                  Điểm ước tính
+                </span>
+                {hasMarks ? (
+                  <span className="font-black normal-case tabular-nums text-rose-600 dark:text-rose-400">{wrong.length} câu sai</span>
+                ) : (
+                  <span className="font-semibold normal-case text-slate-400">Chạm câu sai</span>
+                )}
+              </div>
+              <p className="mt-0.5 text-[40px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">
+                {hasMarks ? preview?.totalScore ?? '—' : '—'}
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs font-black tabular-nums">
+                <span className="rounded-lg border border-indigo-200 bg-indigo-50 py-1 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:text-indigo-300">
+                  L {hasMarks ? preview?.scaledListening ?? '—' : '—'}
+                </span>
+                <span className="rounded-lg border border-teal-200 bg-teal-50 py-1 text-teal-700 dark:border-teal-800/60 dark:bg-teal-950/50 dark:text-teal-300">
+                  R {hasMarks ? preview?.scaledReading ?? '—' : '—'}
+                </span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
-            <ResultImageButton desktop onRead={numbers => onWrong(normalizeQuestionList([...wrong, ...numbers]))} />
-            <button type="button" onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }}
-              className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white text-[13px] font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none">
-              <Keyboard className="h-4 w-4" aria-hidden="true" />Gõ số câu
+          }
+          marks={wrong}
+          onScores={onScores}
+          onScoresPending={onScoresPending}
+          scoreStore={scoreStore}
+          onRead={numbers => onWrong(normalizeQuestionList([...wrong, ...numbers]))}
+          isTyping={typing}
+          typingContent={
+            <div className="space-y-2">
+              <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
+                Số câu sai
+                <textarea
+                  autoFocus
+                  rows={3}
+                  value={text}
+                  onChange={event => { setText(event.target.value); setInvalid([]); }}
+                  placeholder="3 15 22 101-104"
+                  onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyTyped(); } }}
+                  className="mt-1 w-full resize-none rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[14px] font-bold tabular-nums text-slate-950 focus:border-blue-600 focus:outline-none dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                />
+              </label>
+              <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Cách nhau bằng dấu cách; 101-104 là một dải câu.</p>
+              {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">Không đọc được: {invalid.join(', ')}</p>}
+              <div className="flex gap-2">
+                <button type="button" onClick={applyTyped} className="min-h-10 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[13.5px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Áp dụng</button>
+                <button type="button" onClick={() => { setTyping(false); setInvalid([]); }} className="min-h-10 cursor-pointer px-3 text-[13.5px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
+              </div>
+            </div>
+          }
+          extraButton={
+            <button
+              type="button"
+              onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }}
+              className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none"
+            >
+              <Keyboard className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Gõ số câu
             </button>
-          </>
-        )}
+          }
+        />
 
-        <div className="rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-2.5 space-y-1.5 dark:border-slate-700 dark:bg-slate-900/50">
-          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">Chế độ nhập khác</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button type="button" onClick={onCounts} className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-[11px] font-bold text-slate-700 hover:border-slate-900 hover:text-slate-950 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
+        {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+          <button
+            type="button"
+            onClick={() => setShowNotes(prev => !prev)}
+            aria-label={showNotes ? 'Đóng ghi chú' : 'Thêm ghi chú'}
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+              showNotes || notes.trim()
+                ? 'bg-amber-100 text-amber-900 font-black dark:bg-amber-950/60 dark:text-amber-200'
+                : 'hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white'
+            }`}
+          >
+            <span aria-hidden="true">📝</span>
+            <span>{notes.trim() ? 'Có ghi chú' : 'Ghi chú'}</span>
+          </button>
+
+          <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">|</span>
+
+          <div className="flex items-center gap-1" role="group" aria-label="Chế độ nhập khác">
+            <button
+              type="button"
+              onClick={onCounts}
+              className="cursor-pointer rounded-lg px-1.5 py-1 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+              title="Chuyển sang chế độ nhập số câu đúng mỗi Part"
+            >
               Số câu đúng mỗi Part
             </button>
-            <button type="button" onClick={onOfficial} className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-[11px] font-bold text-slate-700 hover:border-slate-900 hover:text-slate-950 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
+            <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+            <button
+              type="button"
+              onClick={onOfficial}
+              className="cursor-pointer rounded-lg px-1.5 py-1 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+              title="Chuyển sang chế độ nhập điểm chính thức ETS"
+            >
               Điểm chính thức
             </button>
           </div>
         </div>
 
-        {showNotes ? (
-          <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">Ghi chú
-            <textarea id="session-notes" rows={2} value={notes} onChange={event => setNotes(event.target.value)}
-              className="mt-1 w-full rounded-xl border-[1.5px] border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
-          </label>
-        ) : (
-          <button type="button" onClick={() => setShowNotes(true)}
-            className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2 text-xs font-bold text-slate-600 hover:border-slate-500 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400">
-            + Ghi chú
-          </button>
+        {/* Ô Ghi chú mở rộng (nếu được mở hoặc đã có text) */}
+        {showNotes && (
+          <div className="animate-sheet-up space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              <label htmlFor="session-notes" className="cursor-pointer">Ghi chú bài thi (tùy chọn)</label>
+              <button
+                type="button"
+                onClick={() => setShowNotes(false)}
+                className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
+                Thu gọn ✕
+              </button>
+            </div>
+            <textarea
+              id="session-notes"
+              autoFocus
+              rows={2}
+              value={notes}
+              onChange={event => setNotes(event.target.value)}
+              placeholder="VD: Làm lúc mệt, mất tập trung Part 7..."
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            />
+          </div>
         )}
       </div>
     </div>

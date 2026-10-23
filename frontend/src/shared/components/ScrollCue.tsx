@@ -89,7 +89,7 @@ export function PageScrollCue({ activeTab }: PageScrollCueProps) {
         aria-label="Cuộn xem thêm nội dung bên dưới"
         className="flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white/95 px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] backdrop-blur-xs transition-all hover:bg-slate-50 hover:shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C]/95 dark:text-slate-100 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group"
       >
-        <ChevronDown className="h-3.5 w-3.5 animate-bounce stroke-[2.5]" aria-hidden="true" />
+        <ChevronDown className="h-3.5 w-3.5 animate-bounce [animation-iteration-count:2] motion-reduce:animate-none stroke-[2.5]" aria-hidden="true" />
         <span className="tracking-tight">Cuộn để xem tiếp</span>
       </button>
     </div>
@@ -158,7 +158,7 @@ export function ContainerScrollCue({
         aria-label="Cuộn xem tiếp nội dung bên dưới"
         className="flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white/95 px-3 py-1 text-[11.5px] font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] backdrop-blur-xs hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C]/95 dark:text-white dark:shadow-none cursor-pointer group"
       >
-        <ChevronDown className="h-3 w-3 animate-bounce stroke-[2.5]" aria-hidden="true" />
+        <ChevronDown className="h-3 w-3 animate-bounce [animation-iteration-count:2] motion-reduce:animate-none stroke-[2.5]" aria-hidden="true" />
         <span className="tracking-tight">{label}</span>
       </button>
     </div>

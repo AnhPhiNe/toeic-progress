@@ -1,6 +1,6 @@
 import type { MistakeEntry } from '@/shared/types';
 import { gradeReview } from '@/features/mistakes/lib/review';
-import { canReview } from '@/features/mistakes/lib/spacedRepetition';
+import { canReview, type ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
 
 function stable(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
@@ -16,10 +16,10 @@ export function reviewContentKey(entry: MistakeEntry): string {
   return stable([entry.part, entry.questionContext, entry.question, entry.context, entry.sourceImageIds, entry.options, entry.correctAnswer, entry.answerSource]);
 }
 
-export function gradeLatestMistake(latest: MistakeEntry | undefined, snapshot: MistakeEntry, correct: boolean): MistakeEntry {
+export function gradeLatestMistake(latest: MistakeEntry | undefined, snapshot: MistakeEntry, answer: ReviewAnswer): MistakeEntry {
   if (!latest || !canReview(latest)) throw new Error('Thẻ đã bị xóa hoặc chưa có đáp án. Tải lại thẻ để tiếp tục.');
   if (reviewContentKey(latest) !== reviewContentKey(snapshot)) throw new Error('Nội dung thẻ đã thay đổi. Tải lại thẻ trước khi chấm.');
-  return gradeReview(latest, correct);
+  return gradeReview(latest, answer);
 }
 
 function content(entry: MistakeEntry) {

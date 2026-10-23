@@ -14,11 +14,13 @@ interface Props {
   /** Saves one field through the same merge as the desktop form; returns an error message or null. */
   onSaveField: (patch: Partial<UserProfile>) => string | null;
   accountPanel?: React.ReactNode;
+  signOutAction?: React.ReactNode;
   onExport: () => void;
   onPickBackup: () => void;
   onLoadDemo?: () => void;
   onReset?: () => void;
   resetBusy: boolean;
+  onClose?: () => void;
   /** Restore preview and errors, shown under the data group. */
   dataNotice?: React.ReactNode;
 }
@@ -39,7 +41,7 @@ function Icon({ children, tone }: { children: React.ReactNode; tone: string }) {
 }
 
 /** Phone settings: grouped rows that show each current value; a row opens a small sheet that saves only that field. */
-export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveField, accountPanel, onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice }: Props) {
+export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveField, accountPanel, signOutAction, onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice, onClose }: Props) {
   const days = daysUntil(profile.examDate);
   const row = (field: PhoneSettingsField, icon: React.ReactNode, label: string, value: React.ReactNode) => (
     <button type="button" className={rowClass} onClick={() => setEditing(field)} data-settings-row={field}>
@@ -89,7 +91,19 @@ export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveF
             <Icon tone="bg-rose-100 !border-rose-600"><Trash2 size={17} className="text-rose-600" /></Icon>{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}
           </button>}
         </div>
+        {signOutAction}
         {dataNotice && <div className="mt-3 space-y-3 text-xs">{dataNotice}</div>}
+        {onClose && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex min-h-12 w-full cursor-pointer items-center justify-center rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:text-white"
+            >
+              Đóng Cài Đặt
+            </button>
+          </div>
+        )}
       </section>
 
       {editing && <EditSheet field={editing} profile={profile} accountPanel={accountPanel} onSave={onSaveField} onClose={() => setEditing(null)} />}
@@ -176,7 +190,8 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
         </>}
 
         {error && <p role="alert" className="mt-3 text-sm font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
-        <div className="mt-5 grid gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          <button type="button" onClick={onClose} className="h-[52px] rounded-2xl border border-slate-300 bg-white text-[15px] font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 cursor-pointer">Hủy</button>
           <button type="button" onClick={save}
             className="h-[52px] rounded-2xl border-2 border-slate-900 bg-blue-600 text-[15px] font-black text-white shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 cursor-pointer">
             {field === 'account' ? 'Lưu tên' : 'Lưu'}

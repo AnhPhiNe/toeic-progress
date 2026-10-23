@@ -38,7 +38,7 @@ export function ScrollableModalBody({ children, resetKey, compact = false }: { c
             aria-label="Cuộn xem nội dung bên dưới"
             className="flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white/95 px-3 py-1 text-[11.5px] font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] backdrop-blur-xs hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C]/95 dark:text-white dark:shadow-none cursor-pointer group"
           >
-            <ChevronDown className="h-3 w-3 animate-bounce stroke-[2.5]" aria-hidden="true" />
+            <ChevronDown className="h-3 w-3 animate-bounce [animation-iteration-count:2] motion-reduce:animate-none stroke-[2.5]" aria-hidden="true" />
             <span className="tracking-tight">Còn nội dung bên dưới</span>
           </button>
         </div>

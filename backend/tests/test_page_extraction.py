@@ -139,6 +139,39 @@ def test_a_result_page_gives_sorted_wrong_and_skipped_numbers(api):  # noqa: F81
         request = next(call[2] for call in calls if call[0] == "api.openai.com")
         assert request["text"]["format"]["name"] == "toeic_results" and request["reasoning"] == {"effort": "low"}
         assert [part["type"] for part in request["input"][0]["content"]] == ["input_image"]
+        assert body["scores"] == {"listening": None, "reading": None, "total": None}
+
+
+@pytest.mark.parametrize("scores", [
+    {"listening": 375, "reading": 370, "total": 745},
+    {"listening": None, "reading": None, "total": 800},
+    {"listening": 375, "reading": None, "total": None},
+    {"listening": None, "reading": None, "total": None},
+])
+def test_result_scores_copy_visible_values_without_converting_wrong_counts(api, scores):  # noqa: F811
+    with api(draft={"wrong": [3, 107], "skipped": [], "scores": scores}) as (client, calls):
+        response = client.post("/api/v1/ai/read-results", json=results())
+        assert response.status_code == 200
+        assert response.json()["scores"] == scores
+        assert response.json()["wrong"] == [3, 107]
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
+        request = next(call[2] for call in calls if call[0] == "api.openai.com")
+        schema = request["text"]["format"]["schema"]
+        assert set(schema["required"]) == {"wrong", "skipped", "scores"}
+        assert set(schema["properties"]["scores"]["required"]) == {"listening", "reading", "total"}
+        assert "Không tự quy đổi" in request["instructions"]
+        assert "Không tự cộng L/R" in request["instructions"]
+
+
+@pytest.mark.parametrize("scores", [
+    {"listening": 500, "reading": 370, "total": 870},
+    {"listening": True, "reading": None, "total": None},
+    {"listening": None, "reading": None, "total": 803},
+])
+def test_invalid_source_score_output_is_not_retried(api, scores):  # noqa: F811
+    with api(draft={"wrong": [], "skipped": [], "scores": scores}) as (client, calls):
+        assert client.post("/api/v1/ai/read-results", json=results()).status_code == 502
+        assert sum(call[0] == "api.openai.com" for call in calls) == 1
 
 
 @pytest.mark.parametrize("change", [{"images": []}, {"images": [{"dataUrl": "data:image/png;base64,YmFk"}]}, {"consent": False}])

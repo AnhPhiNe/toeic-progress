@@ -9,9 +9,11 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function backendRequest<T>(path: string, method = 'GET', body?: unknown, expectedUserId?: string): Promise<T> {
+export async function backendRequest<T>(path: string, method = 'GET', body?: unknown, expectedUserId?: string, isCurrent: () => boolean = () => true): Promise<T> {
   if (!apiAvailable || !cloud) throw new Error('Backend chưa được cấu hình. Bạn vẫn có thể dùng chế độ khách.');
+  if (!isCurrent()) throw new Error('Tác vụ đã đóng hoặc thay đổi. Chưa gửi yêu cầu.');
   const { data, error } = await cloud.auth.getSession();
+  if (!isCurrent()) throw new Error('Tác vụ đã đóng hoặc thay đổi. Chưa gửi yêu cầu.');
   if (error || !data.session) throw new Error('Cần đăng nhập hoặc tạo phiên khách để tiếp tục.');
   if (expectedUserId && data.session.user.id !== expectedUserId) throw new Error('Tài khoản đã thay đổi. Vui lòng thử đồng bộ lại.');
   let response: Response;

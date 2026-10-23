@@ -63,3 +63,13 @@ describe('backend request feedback', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+
+it('cancels before fetch when the form closes during the final session lookup', async () => {
+  let current = true;
+  getSession.mockImplementation(async () => { current = false; return { data: { session: { access_token: 'token', user: { id: 'u1' } } }, error: null }; });
+  const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
+  const { backendRequest } = await import('@/shared/api/api');
+  await expect(backendRequest('/api/v1/ai/extract-page', 'POST', {}, 'u1', () => current)).rejects.toThrow('Tác vụ đã đóng');
+  expect(fetch).not.toHaveBeenCalled();
+});

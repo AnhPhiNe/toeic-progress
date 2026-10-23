@@ -11,6 +11,14 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])'
 ].join(',');
 
+function focusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+    .filter(el => el.tabIndex >= 0
+      && !el.closest('[inert], [aria-hidden="true"], [hidden]')
+      && getComputedStyle(el).visibility !== 'hidden'
+      && (el.offsetParent !== null || el === document.activeElement));
+}
+
 /**
  * Gắn hành vi chuẩn của hộp thoại cho một modal:
  *  - Đóng bằng phím Escape
@@ -39,7 +47,7 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
 
     const container = containerRef.current;
     if (container) {
-      const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      const focusables = focusableElements(container);
       // Ưu tiên phần tử tương tác đầu tiên; nếu không có thì focus chính khung modal
       if (focusables.length > 0) {
         focusables[0].focus();
@@ -62,8 +70,7 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
       const node = containerRef.current;
       if (!node) return;
 
-      const focusables = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-        .filter(el => el.tabIndex >= 0 && (el.offsetParent !== null || el === document.activeElement));
+      const focusables = focusableElements(node);
 
       if (focusables.length === 0) {
         e.preventDefault();
@@ -73,10 +80,10 @@ export function useModalA11y(isOpen: boolean, onClose: () => void) {
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
 
-      if (e.shiftKey && document.activeElement === first) {
+      if (e.shiftKey && (document.activeElement === first || !focusables.includes(document.activeElement as HTMLElement))) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
+      } else if (!e.shiftKey && (document.activeElement === last || !focusables.includes(document.activeElement as HTMLElement))) {
         e.preventDefault();
         first.focus();
       }

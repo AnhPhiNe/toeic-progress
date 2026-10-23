@@ -1,3 +1,4 @@
+import { formatPlanQuantity } from '../lib/planDisplay';
 import { useState } from 'react';
 import { ArrowUpToLine, Check, ChevronLeft, ChevronRight, Copy, FileCheck2, Pencil, Plus, Timer, Trash2 } from 'lucide-react';
 import type { SmartWeeklyTask } from '@/shared/types';
@@ -193,7 +194,7 @@ export function PhonePlan(props: Props) {
                         </span>
                       </div>
                       <span className="shrink-0 text-[13px] font-black tabular-nums text-slate-950 dark:text-white">
-                        {task.done}<span className="font-semibold text-slate-500 dark:text-slate-400">/{task.target} {task.unit}</span>
+                        {formatPlanQuantity(task.done)}<span className="font-semibold text-slate-500 dark:text-slate-400">/{formatPlanQuantity(task.target)} {task.unit}</span>
                       </span>
                     </div>
                     <div className="block h-2.5 overflow-hidden rounded-full bg-slate-100 border border-slate-200/80 dark:border-slate-700 dark:bg-slate-800" aria-hidden="true">
@@ -248,7 +249,7 @@ export function PhonePlan(props: Props) {
                       {task.title}
                     </span>
                     <span className="block text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">
-                      Đã hoàn thành · {task.done}/{task.target} {task.unit}
+                      Đã hoàn thành · {formatPlanQuantity(task.done)}/{formatPlanQuantity(task.target)} {task.unit}
                     </span>
                   </div>
                 </button>
@@ -289,7 +290,7 @@ export function PhonePlan(props: Props) {
         const item = 'flex min-h-[54px] w-full items-center gap-3.5 border-b border-stone-200 px-1 text-left text-[15.5px] font-bold last:border-0 dark:border-slate-800 cursor-pointer';
         return (
           <Sheet title={open.title} onClose={() => setOpenId(null)}>
-            <p className="-mt-1 mb-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{open.done}/{open.target} {open.unit} · {howItCounts(open)}</p>
+            <p className="-mt-1 mb-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{formatPlanQuantity(open.done)}/{formatPlanQuantity(open.target)} {open.unit} · {howItCounts(open)}</p>
             <div>
               {!open.isComplete && <button type="button" className={item + ' text-slate-950 dark:text-white'} onClick={() => run(primary.action)}><primary.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />{primary.label}</button>}
               <button type="button" className={item} onClick={() => run(() => props.onMoveToTop(open.id))}><ArrowUpToLine className="h-5 w-5" aria-hidden="true" />Đưa lên đầu</button>

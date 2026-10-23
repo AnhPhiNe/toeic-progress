@@ -78,7 +78,7 @@ test('notes-only sources show missing scores and keep notebook reset available',
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(4);
 });
 
-test('no named test leaves an empty source scope instead of assigning unlinked notes', async ({ page }) => {
+test('no named test leaves analytics unassigned while the explicit all-notebook link keeps unlinked notes accessible', async ({ page }) => {
   await seed(page);
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
@@ -89,10 +89,21 @@ test('no named test leaves an empty source scope instead of assigning unlinked n
   await page.reload();
   await expect(page.getByRole('button', { name: 'Đề: Chưa có đề', exact: true })).toBeDisabled();
   await expect(page.getByRole('img', { name: /lỗi đã ghi:/ })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Mở Sổ tay của đề', exact: true }).click();
+  await expect(page.getByText('Chưa có đề để phân tích.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Mở toàn bộ Sổ tay', exact: true }).click();
+  await expect(page).toHaveURL(/\/so-tay$/);
+  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
+  await expect(page.getByLabel('Đề', { exact: true })).toHaveValue('ALL');
+  // An explicit filter still supports an empty result and resetting it recovers the card.
+  await page.getByLabel('Part', { exact: true }).selectOption('7');
+  await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
+  expect(stored.mistakes[0].sourceTestName).toBe('');
+  expect(stored.mistakes[0].sessionId).toBeUndefined();
 });
 
 test('analytics fits small and desktop viewports in both themes', async ({ page }, testInfo) => {

@@ -20,7 +20,7 @@ from app.core.config import Settings
 logger = logging.getLogger("toeic.runtime")
 request_id_context: ContextVar[str | None] = ContextVar("request_id", default=None)
 # Paths that read the learner's AI access and count against AI quotas.
-AI_PATHS = ("/api/v1/ai/usage", "/api/v1/ai/extract", "/api/v1/ai/extract-page", "/api/v1/ai/read-results", "/api/v1/ai/explain-batch")
+AI_PATHS = ("/api/v1/ai/usage", "/api/v1/ai/extract", "/api/v1/ai/extract-page", "/api/v1/ai/read-results", "/api/v1/ai/explain-batch", "/api/v1/ai/analyze-attempt")
 ROUTES = {
     "/health": "health",
     "/ready": "ready",
@@ -30,6 +30,7 @@ ROUTES = {
     "/api/v1/ai/extract-page": "ai",
     "/api/v1/ai/read-results": "ai",
     "/api/v1/ai/explain-batch": "ai",
+    "/api/v1/ai/analyze-attempt": "ai",
     "/api/v1/account": "destructive",
     "/api/v1/data/reset": "destructive",
     "/api/v1/mistake-images": "sync",

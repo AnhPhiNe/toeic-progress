@@ -11,6 +11,7 @@ import { analyticsScopeData, analyticsAttemptLabel, formatAnalyticsNumber as num
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { testNameKey } from '@/shared/domain/testNames';
 import { Sheet } from '@/app/components/MobileNav';
+import { AttemptAdvicePanel } from './AttemptAdvicePanel';
 import './analytics.css';
 
 const ERROR_NAMES: Record<ErrorCategory, string> = {
@@ -31,9 +32,10 @@ interface AnalyticsViewProps {
   onOpenSessionLogger?: (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB' }) => void;
   onNavigateToMistakes?: (sourceNames?: string[]) => void;
   onNavigateToTimer?: (part?: ReadingPartType) => void;
+  onNavigateToPlan?: () => void;
 }
 
-export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onNavigateToTimer }: AnalyticsViewProps) {
+export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditSession, onNavigateToMistakes, onNavigateToTimer, onNavigateToPlan }: AnalyticsViewProps) {
   const [sourceKey, setSourceKey] = useState<string | null>(null);
   const [attemptChoice, setAttemptChoice] = useState<{ source: string; id: string } | null>(null);
   const [activeError, setActiveError] = useState<ErrorCategory | null>(null);
@@ -54,6 +56,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
     data.errors.find(row => row.category === category) ?? { category, count: 0, percent: 0 }), [data.errors]);
   const highlightedError = data.errors.find(row => row.category === activeError);
   const commonError = data.errors[0] ? ERROR_NAMES[data.errors[0].category].toLocaleLowerCase('vi') : null;
+  const advicePanel = <AttemptAdvicePanel attempt={data.attempt} mistakes={mistakes}
+    ambiguousCount={data.notes.filter(note => !note.sessionId).length}
+    onNavigateToMistakes={onNavigateToMistakes} onNavigateToTimer={onNavigateToTimer} onNavigateToPlan={onNavigateToPlan} />;
 
 
 
@@ -83,6 +88,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
     const perfectParts = data.parts.filter(part => part.lost === 0);
     const lostIn = (from: number, to: number) => data.parts.filter(part => { const n = Number(part.key.slice(4)); return n >= from && n <= to; }).reduce((sum, part) => sum + part.lost, 0);
     const totalLost = lostIn(1, 7);
+    const mostLost = Math.max(1, ...partsWithLoss.map(part => part.lost));
 
     return <div className="analytics-view space-y-3 pb-20 text-slate-800 dark:text-slate-200">
       {/* 1. Bộ chọn đề & lần làm */}
@@ -97,6 +103,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
 
       {/* 2. Thẻ Sổ tay câu sai được đẩy lên trên - không còn bị khuất ở đáy */}
       <button type="button" onClick={() => onNavigateToMistakes?.(data.notebookSources.length ? data.notebookSources : undefined)} disabled={!onNavigateToMistakes}
+        aria-label={data.sourceKey ? 'Mở Sổ tay của đề' : 'Mở toàn bộ Sổ tay'}
         className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-white p-3 text-left shadow-[2px_2px_0_0_#0f172a] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
@@ -104,7 +111,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
           </div>
           <div className="min-w-0 flex-1">
             <span className="block text-[13.5px] font-black leading-tight text-slate-950 dark:text-white">
-              {data.notes.length ? `${data.notes.length} lỗi đã ghi của đề` : 'Chưa có lỗi nào gắn với đề này'}
+              {data.notes.length ? `${data.notes.length} lỗi đã ghi của đề` : data.sourceKey ? 'Chưa có lỗi nào gắn với đề này' : 'Chưa có đề để phân tích'}
             </span>
             {errorLine ? (
               <span className="mt-0.5 block truncate text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">
@@ -112,7 +119,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
               </span>
             ) : (
               <span className="mt-0.5 block text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">
-                Lưu câu sai vào sổ tay để ôn lại
+                {data.sourceKey ? 'Lưu câu sai vào sổ tay để ôn lại' : 'Mở Sổ tay để xem tất cả câu đã lưu'}
               </span>
             )}
           </div>
@@ -138,7 +145,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
 
         {data.parts.length ? (
           partsWithLoss.length > 0 ? (
-            <ol className="space-y-2.5 text-xs" aria-label={`Số câu sai theo Part, ${chartLabel}`}>
+            <ol className="space-y-2.5 text-xs" aria-label={`Số câu sai theo Part, ${partsWithLoss.map(part => `${part.code}: ${part.lost} câu sai, đúng ${Math.round(part.accuracy)}%`).join(', ')}`}>
               {partsWithLoss.map(part => {
                 const n = Number(part.key.slice(4));
                 const weak = part.key === data.weakest?.key;
@@ -158,8 +165,8 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
                     key={part.key}
                     className={
                       weak
-                        ? 'rounded-xl bg-rose-50/80 p-2 dark:bg-rose-950/40'
-                        : 'px-2 py-0.5'
+                        ? 'rounded-xl bg-rose-50/80 p-2.5 border border-rose-200 dark:border-rose-900 dark:bg-rose-950/40'
+                        : 'px-2 py-1.5'
                     }
                   >
                     <div className="mb-1.5 flex items-center justify-between gap-2 font-black">
@@ -174,13 +181,13 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
                         )}
                       </div>
                       <span className="shrink-0 text-right tabular-nums text-[12px] font-bold text-slate-900 dark:text-white">
-                        {part.lost} câu <span className="font-semibold text-slate-500 dark:text-slate-400">({Math.round(part.accuracy)}%)</span>
+                        {part.lost} câu sai <span className="block font-semibold text-slate-500 dark:text-slate-400">đúng {Math.round(part.accuracy)}%</span>
                       </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${toneBar}`}
-                        style={{ width: `${Math.round(part.accuracy)}%` }}
+                        style={{ width: `${part.lost / mostLost * 100}%` }}
                       />
                     </div>
                   </li>
@@ -236,6 +243,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
         </button>
       )}
 
+      {advicePanel}
       {pickerOpen && <Sheet title="Chọn đề và lần làm" onClose={() => setPickerOpen(false)}>
         <div className="space-y-4 pb-2">{scopePickers}</div>
       </Sheet>}
@@ -285,7 +293,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
             {lostRows.filter(part => part.lost > 0).map(part => {
               const n = Number(part.key.slice(4)), weak = part.key === data.weakest?.key;
               return <li key={part.key} className={'flex items-center gap-3 rounded-xl px-2 py-1 ' + (weak ? 'bg-rose-50 dark:bg-rose-950/40' : '')} title={`Part ${n}: ${PART_NAMES[n - 1]}`}>
-                <div className="flex w-[136px] min-w-0 shrink-0 items-center gap-2.5">
+                <div className="flex w-[175px] min-w-0 shrink-0 items-center gap-2.5">
                   <span className={'flex h-7 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold text-white ' + (weak ? 'bg-rose-600' : n <= 4 ? 'bg-indigo-600' : 'bg-teal-600')}>{part.code}</span>
                   <span className={'truncate text-xs font-semibold ' + (weak ? 'font-bold text-rose-950 dark:text-rose-200' : 'text-slate-700 dark:text-slate-300')}>{PART_NAMES[n - 1]}</span>
                 </div>
@@ -368,8 +376,8 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
               <dd className="whitespace-nowrap text-xs tabular-nums"><strong className="font-bold text-slate-950 dark:text-white">{Math.round(row.percent)}%</strong> <span className="text-slate-500 dark:text-slate-400">({row.count})</span></dd></div>)}
           </dl>
         </div> : <div className="my-auto rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-6 text-center dark:border-slate-700 dark:bg-slate-800/40">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Chưa có lỗi nào được gắn với đề này.</p>
-          <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">Lưu câu sai vào Sổ tay để phân tích nhóm bẫy bạn hay gặp nhất trong đề này.</p>
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{data.sourceKey ? 'Chưa có lỗi nào được gắn với đề này.' : 'Chưa có đề để phân tích.'}</p>
+          <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">{data.sourceKey ? 'Lưu câu sai vào Sổ tay để phân tích nhóm bẫy bạn hay gặp nhất trong đề này.' : 'Các câu chưa gắn đề vẫn được giữ trong Sổ tay.'}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"><span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />Bẫy từ vựng</span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"><span className="h-2 w-2 rounded-full bg-blue-500" aria-hidden="true" />Ngữ pháp</span>
@@ -385,7 +393,7 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
               </span>
             ) : (
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {data.notes.length} lỗi đã lưu trong Sổ tay
+                {data.sourceKey ? `${data.notes.length} lỗi đã lưu trong Sổ tay` : 'Chọn đề để xem thống kê riêng.'}
               </span>
             )}
           </div>
@@ -395,11 +403,12 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
               className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-slate-900 bg-blue-600 px-4 py-1.5 text-xs font-extrabold text-white shadow-[2px_2px_0px_#0f172a] hover:bg-blue-700 dark:border-slate-300"
               onClick={() => onNavigateToMistakes(data.notebookSources.length ? data.notebookSources : undefined)}
             >
-              {data.sourceKey ? 'Mở Sổ tay của đề' : 'Mở Sổ tay'}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              {data.sourceKey ? 'Mở Sổ tay của đề' : 'Mở toàn bộ Sổ tay'}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
       </section>
     </div>
+    {advicePanel}
   </div>;
 }

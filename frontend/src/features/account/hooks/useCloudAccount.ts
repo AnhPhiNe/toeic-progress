@@ -225,7 +225,7 @@ export function useCloudAccount(onDataChanged: () => void) {
   const signOut = async () => {
     if (!cloud) return;
     const { error: authError } = await cloud.auth.signOut({ scope: 'local' });
-    if (authError) { setError(authError.message); return; }
+    if (authError) { setError(authError.message); throw new Error(authError.message); }
     deactivateAccount();
     userId.current = null;
     initialized.current = false;

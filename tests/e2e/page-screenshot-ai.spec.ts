@@ -69,7 +69,7 @@ test('on a phone one screenshot fills every wrong question on it, and the list i
   await expect(flow.locator('[data-row-toggle]')).toHaveText(['Câu 107', 'Câu 131', 'Câu 132']);
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
 
-  await expect(flow.getByRole('status')).toHaveText('AI đã điền 2 câu. Kiểm tra lý do rồi bấm Lưu.');
+  await expect(flow.getByRole('status')).toHaveText('Đã đọc 2 câu, cần kiểm tra trước khi lưu. Chưa đọc được câu: 107. Chỉ thêm ảnh cho các câu này.');
   const call = await page.evaluate(() => (window as Window & { __pageCall: { questions: unknown; images: number } }).__pageCall);
   expect(call).toEqual({ questions: [{ number: 107, part: 5 }, { number: 131, part: 6 }, { number: 132, part: 6 }], images: 1 });
   await expect(flow.getByRole('button', { name: 'Câu 131 Bạn chọn C, đáp án D', exact: true })).toBeVisible();

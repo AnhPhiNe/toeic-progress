@@ -270,6 +270,15 @@ export function compactDeletedRecords(bundle: DataBundle): DataBundle {
 
 /** Clear retired copies only for the scope the user explicitly reset. */
 export function clearRetiredCopies(userId: string | null): void {
+  // Explicit reset must also forget local unsaved work and derived AI reports for this scope.
+  const draftPrefix = `toeic_form_draft_v1:${encodeURIComponent(userId ?? 'guest')}:`;
+  const draftKeys: string[] = [];
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(draftPrefix)) draftKeys.push(key);
+  }
+  for (const key of draftKeys) localStorage.removeItem(key);
+  if (userId) localStorage.removeItem(`toeic_attempt_advice_${userId}_v1`);
   localStorage.removeItem(`toeic_pacing_draft_v1_${userId ?? 'guest'}`);
   if (userId) localStorage.removeItem(`toeic_progress_account_${userId}_v2`);
   else {

@@ -776,15 +776,29 @@ class ResultsReadRequest(BaseModel):
 
 QUESTION_LIST_SCHEMA = {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 200}, "maxItems": 200}
 RESULTS_OUTPUT_SCHEMA = {
-    "type": "object", "additionalProperties": False, "required": ["wrong", "skipped"],
-    "properties": {"wrong": QUESTION_LIST_SCHEMA, "skipped": QUESTION_LIST_SCHEMA},
+    "type": "object", "additionalProperties": False, "required": ["wrong", "skipped", "scores"],
+    "properties": {"wrong": QUESTION_LIST_SCHEMA, "skipped": QUESTION_LIST_SCHEMA,
+                   "scores": {"type": "object", "additionalProperties": False,
+                              "required": ["listening", "reading", "total"],
+                              "properties": {
+                                  "listening": {"type": ["integer", "null"], "minimum": 5, "maximum": 495, "multipleOf": 5},
+                                  "reading": {"type": ["integer", "null"], "minimum": 5, "maximum": 495, "multipleOf": 5},
+                                  "total": {"type": ["integer", "null"], "minimum": 10, "maximum": 990, "multipleOf": 5}}}},
 }
+
+
+class ResultScores(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    listening: int | None = Field(default=None, strict=True, ge=5, le=495, multiple_of=5)
+    reading: int | None = Field(default=None, strict=True, ge=5, le=495, multiple_of=5)
+    total: int | None = Field(default=None, strict=True, ge=10, le=990, multiple_of=5)
 
 
 class OpenAIResultsOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     wrong: list[int] = Field(max_length=200)
     skipped: list[int] = Field(max_length=200)
+    scores: ResultScores = Field(default_factory=ResultScores)
 
 
 class PageExplanationInput(MistakeInput):

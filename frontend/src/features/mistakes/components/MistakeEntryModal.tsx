@@ -29,16 +29,11 @@ import { MistakeContextInput } from '@/features/mistakes/components/MistakeConte
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { partOfQuestion, parseQuestionList } from '@/shared/domain/questionNumbers';
 import { enqueueExplanations } from '@/features/mistakes/services/explanationQueue';
+import { buildBatchEntries, type BatchExtractedItem } from '@/features/mistakes/lib/batchCapture';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
-
-interface BatchExtractedItem {
-  id: string;
-  number: number;
-  part: MistakeEntry['part'];
-  draft: aiService.AIMistakeParseResult;
-  category: ErrorCategory;
-  ticket?: string | null;
-}
+import { useFormDraft } from '@/shared/hooks/useFormDraft';
+import { parseMistakeFormDraft, type MistakeFormDraft } from '@/shared/data/studyFormDrafts';
 
 interface Props {
   original: MistakeEntry | null;
@@ -46,8 +41,11 @@ interface Props {
   initialSourceName?: string;
   initialSessionId?: string;
   initialReading?: string;
+  /** Explicit creation actions keep their unfinished work separate from the general new-note draft. */
+  draftScope?: string;
   initialSourceImageIds?: string[];
   onAdd: (entry: MistakeEntry) => void;
+  onAddBatch?: (entries: MistakeEntry[]) => void;
   onUpdate: (entry: MistakeEntry, original: MistakeEntry) => void;
   onClose: () => void;
   onReload: () => void;
@@ -76,7 +74,7 @@ function originalQuestion(entry: MistakeEntry, separateReading = false): string 
   return entry.question !== undefined ? [entry.question, entry.context].filter(Boolean).join('\n\n') : entry.questionContext;
 }
 
-export function MistakeEntryModal({ original, sourceSuggestions = [], initialSourceName = '', initialSessionId, initialReading = '', initialSourceImageIds = [], onAdd, onUpdate, onClose, onReload, onSaved }: Props) {
+export function MistakeEntryModal({ original, sourceSuggestions = [], initialSourceName = '', initialSessionId, initialReading = '', initialSourceImageIds = [], draftScope, onAdd, onAddBatch, onUpdate, onClose, onReload, onSaved }: Props) {
   const initialImages = original?.sourceImageIds ?? initialSourceImageIds;
   const initialContext = initialImages.length ? '' : typeof original?.question === 'string' ? original.context ?? '' : initialReading;
   const hasInitialReading = (original?.part ?? 7) === 7 && (Boolean(initialContext.trim()) || Boolean(initialImages.length));
@@ -94,6 +92,11 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const batchItemsRef = useRef(batchItems);
   batchItemsRef.current = batchItems;
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const [batchSummary, setBatchSummary] = useState<{ requested: number[] | null } | null>(null);
+  const batchMissing = batchSummary?.requested?.filter(number => !batchItems.some(item => item.number === number)) ?? [];
+  const batchReadCount = batchSummary?.requested ? batchSummary.requested.length - batchMissing.length : batchItems.length;
+  const batchRunning = useRef(false);
+  const owner = useRef(getActiveAccountId());
   const batchFileInput = useRef<HTMLInputElement>(null);
   const [saveMoreReceipt, setSaveMoreReceipt] = useState(false);
   const [raw, setRaw] = useState(original ? [originalQuestion(original, Boolean(initialContext.trim()) || Boolean(initialImages.length)), ...(original.options ?? [])].join('\n') : '');
@@ -134,7 +137,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const [tags, setTags] = useState(original?.tags.join(', ') ?? '');
   const requestEpoch = useRef(0);
   const saving = useRef(false);
-  const entryId = useRef(generateUUID());
+  const entryId = useRef<string>(generateUUID());
   const draftInput = useRef('');
   const saved = useRef(false);
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
@@ -158,6 +161,35 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const imageOnlySource = sourceImageIds.length > 0 || Boolean(config?.persistentImages && images.length);
   const initialInput = useRef(currentInput);
   if (original && !draftInput.current) draftInput.current = initialInput.current;
+  const [missingDraftImages, setMissingDraftImages] = useState(false);
+  const formDraft: MistakeFormDraft = {
+    raw, part, choice, reason, sourceTest, source, contextMode, contextText, imageIds: imageIdsDraft,
+    readingText: reading?.text ?? null, hadUnsavedImages: missingDraftImages || Boolean(imageDrafts.length && !imageIdsDraft.length || reading?.images.length && !imageIdsDraft.length),
+    corrected, draft, manual, answerProvidedBy, category, selectedCategory, tags,
+    step: step === 'preview' ? 'preview' : 'input', entryMode, batchNumbersText,
+    batchItems: batchItems.map(({ ticket: _ticket, ...item }) => item), batchSummary,
+    entryId: entryId.current, draftInput: draftInput.current, draftImageKey: imageIdsDraft.join(','), changed,
+    originalUpdatedAt: original?.updatedAt
+  };
+  const persistentDraft = useFormDraft({
+    scope: `mistake:${original?.id ?? draftScope ?? initialSessionId ?? 'new'}`, enabled: !saved.current,
+    value: formDraft, meaningful: changed || batchItems.length > 0 || Boolean(batchNumbersText.trim()) || Boolean(raw.trim() && !original),
+    validate: input => {
+      const value = parseMistakeFormDraft(input);
+      return value && value.originalUpdatedAt === original?.updatedAt ? value : null;
+    },
+    restore: value => {
+      setRaw(value.raw); setPart(value.part as MistakeEntry['part'] | null); setChoice(value.choice); setReason(value.reason);
+      setSourceTest(value.sourceTest); setSource(value.source); setContextMode(value.contextMode); setContextText(value.contextText);
+      setSourceImageIds(value.imageIds); setReading(value.readingText !== null ? { text: value.readingText, images: [] } : null);
+      setCorrected(value.corrected); setDraft(value.draft); setManual(value.manual); setAnswerProvidedBy(value.answerProvidedBy);
+      setCategory(value.category); setSelectedCategory(value.selectedCategory); setTags(value.tags); setEntryMode(value.entryMode);
+      setBatchNumbersText(value.batchNumbersText); setBatchItems(value.batchItems as BatchExtractedItem[]); batchItemsRef.current = value.batchItems as BatchExtractedItem[];
+      setBatchSummary(value.batchSummary); entryId.current = value.entryId; draftInput.current = value.draftInput;
+      draftImages.current = value.draftImageKey; setChanged(value.changed); setMissingDraftImages(value.hadUnsavedImages);
+      setStep(value.hadUnsavedImages ? 'input' : value.step);
+    }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -174,12 +206,13 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   useEffect(() => () => { requestEpoch.current++; }, []);
   const close = useCallback(() => {
     if (saving.current) return;
-    if ((changed || (entryMode === 'batch' && batchItems.length > 0)) && !saved.current && !window.confirm('Bỏ nội dung chưa lưu?')) return;
+    if (!persistentDraft.persist() && changed && !saved.current && !window.confirm('Chưa tự lưu được nháp. Đóng form sẽ mất nội dung đang nhập. Vẫn đóng?')) return;
     requestEpoch.current++; removeCaptcha(); onClose();
-  }, [changed, entryMode, batchItems.length, onClose, removeCaptcha]);
+  }, [changed, onClose, removeCaptcha, persistentDraft]);
   const ref = useModalA11y(true, close);
 
   const validate = (ai = false) => {
+    if (contextMode === 'image' && missingDraftImages && !images.length && !sourceImageIds.length) return 'Chọn lại ảnh ngữ cảnh của bản nháp, hoặc chuyển sang nhập bài đọc bằng chữ trước khi tiếp tục.';
     if (part === null) {
       ref.current?.querySelector<HTMLButtonElement>('[role="group"][aria-label="Part"] button')?.focus();
       return 'Chọn Part trước khi phân tích hoặc lưu.';
@@ -233,7 +266,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       const prepared: PreparedImage[] = [];
       for (const file of files) prepared.push(await prepareImage(file));
       if (epoch !== requestEpoch.current) return;
-      setContextMode('image'); setImages([...imageDrafts, ...prepared]); uploadedImageKey.current = ''; setSourceImageIds([]); setReading(null);
+      setMissingDraftImages(false); setContextMode('image'); setImages([...imageDrafts, ...prepared]); uploadedImageKey.current = ''; setSourceImageIds([]); setReading(null);
       setDraft(null); draftInput.current = ''; setTags(''); setCategory(selectedCategory || 'OTHER');
     } catch (value) {
       if (epoch === requestEpoch.current) setError(value instanceof Error ? value.message : 'Không đọc được ảnh.');
@@ -243,7 +276,8 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const handleBatchFiles = useCallback(async (files: File[]) => {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     if (!imageFiles.length) return;
-    if (batchProgress) return;
+    if (batchRunning.current || entryMode !== 'batch' || getActiveAccountId() !== owner.current) return;
+    if (!sourceTestName) { setError('Chọn hoặc thêm tên đề trước khi quét ảnh.'); return; }
 
     let targetQuestions: { number: number; part: MistakeEntry['part'] }[] = [];
     if (batchNumbersText.trim()) {
@@ -266,7 +300,10 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       }));
     }
 
-    setError('');
+    const epoch = ++requestEpoch.current;
+    const current = () => epoch === requestEpoch.current && getActiveAccountId() === owner.current;
+    batchRunning.current = true;
+    setError(''); setChanged(true);
     const chunks: File[][] = [];
     for (let i = 0; i < imageFiles.length; i += MAX_CONTEXT_IMAGES) {
       chunks.push(imageFiles.slice(i, i + MAX_CONTEXT_IMAGES));
@@ -275,6 +312,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     let doneCount = 0;
     try {
       for (const chunk of chunks) {
+        if (!current()) return;
         setBatchProgress({ done: doneCount, total: imageFiles.length });
         const existingNumbers = new Set(batchItemsRef.current.map(it => it.number));
         const questionsToSend = targetQuestions.length
@@ -290,10 +328,15 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
 
         const prepared: PreparedImage[] = [];
         for (const file of chunk) {
+          if (!current()) return;
           prepared.push(await prepareImage(file));
+          if (!current()) return;
         }
 
-        const result = await aiService.extractPageWithAI(questionsToSend, prepared, getToken);
+        if (!current()) return;
+        const result = await aiService.extractPageWithAI(questionsToSend, prepared, getToken, owner.current, current);
+        if (!current()) return;
+        setAIAccess(result.usage);
         if (result.items.length) {
           const updated = [...batchItemsRef.current];
           for (const item of result.items) {
@@ -318,15 +361,15 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           batchItemsRef.current = updated;
           setBatchItems(updated);
         }
+        setBatchSummary({ requested: targetQuestions.length ? targetQuestions.map(item => item.number) : null });
         doneCount += chunk.length;
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại hoặc chọn ảnh khác.');
+      if (current()) setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại hoặc chọn ảnh khác.');
     } finally {
-      removeCaptcha();
-      setBatchProgress(null);
+      if (epoch === requestEpoch.current) { batchRunning.current = false; removeCaptcha(); setBatchProgress(null); }
     }
-  }, [batchProgress, batchNumbersText, selectedCategory, getToken, removeCaptcha]);
+  }, [entryMode, sourceTestName, batchNumbersText, selectedCategory, getToken, removeCaptcha]);
 
   const handleBatchFilesRef = useRef(handleBatchFiles);
   handleBatchFilesRef.current = handleBatchFiles;
@@ -345,74 +388,39 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   }, [step, entryMode]);
 
   const saveBatch = () => {
-    if (!batchItems.length || batchProgress) return;
+    if (!batchItems.length || batchRunning.current || saving.current) return;
+    if (getActiveAccountId() !== owner.current) { setError('Tài khoản đã thay đổi. Chưa lưu câu sai.'); return; }
     if (!sourceTestName) { setError('Chọn hoặc thêm tên đề trước khi lưu.'); return; }
+    if (!onAddBatch) { setError('Chưa hỗ trợ lưu nhiều câu trong phiên này. Bản nháp vẫn được giữ.'); return; }
+    saving.current = true;
     setError('');
-
-    const explainBatches = new Map<string, { cardId: string; number: number; input: MistakeInput }[]>();
-
-    for (const item of batchItems) {
-      const cardId = item.id;
-      const effectivePart = item.part;
-      const itemDraft = item.draft;
-      const choice = itemDraft.userChoice || '';
-      const userChoiceState = itemDraft.userChoiceState ?? (choice ? 'CHOSEN' : 'UNKNOWN');
-
-      const mistakeInput: MistakeInput = {
-        question: itemDraft.question ?? '',
-        options: itemDraft.options ?? [],
-        context: itemDraft.context ?? '',
-        part: effectivePart,
-        userChoiceState,
-        userChoice: choice,
-        userReason: itemDraft.userReason ?? '',
-        sourceAnswer: itemDraft.answerSource === 'PROVIDED' ? optionLetter(itemDraft.correctAnswer) : ''
-      };
-
-      const entry: MistakeEntry = {
-        id: cardId,
-        createdAt: new Date().toISOString(),
-        status: 'NEEDS_REVIEW',
-        sourceTestName,
-        sessionId: testNameKey(sourceTestName) === testNameKey(initialSourceName) ? initialSessionId : undefined,
-        questionNumber: item.number,
-        part: effectivePart,
-        question: itemDraft.question ?? undefined,
-        context: itemDraft.context ?? undefined,
-        questionContext: itemDraft.questionContext ?? (itemDraft.question || `Câu ${item.number}`),
-        options: itemDraft.options?.length ? itemDraft.options : undefined,
-        userChoice: choice || undefined,
-        userChoiceState,
-        userReason: itemDraft.userReason || undefined,
-        userMistake: itemDraft.userMistake || learnerMistake(mistakeInput),
-        correctAnswer: itemDraft.correctAnswer,
-        answerSource: itemDraft.correctAnswer ? itemDraft.answerSource ?? 'PROVIDED' : 'MISSING',
-        category: item.category,
-        tags: itemDraft.tags ?? [],
-        trapTip: itemDraft.trapTip || undefined,
-        optionNotes: itemDraft.optionNotes?.length ? itemDraft.optionNotes : undefined,
-        explanation: itemDraft.explanation ?? undefined
-      };
-
-      onAdd(entry);
-
-      if (item.ticket && canExplainRead(itemDraft, effectivePart)) {
-        const explainItem = {
-          cardId,
-          number: item.number,
-          input: explainInput(itemDraft, effectivePart)
-        };
+    let entries: MistakeEntry[];
+    try {
+      entries = buildBatchEntries(batchItems, sourceTestName,
+        testNameKey(sourceTestName) === testNameKey(initialSourceName) ? initialSessionId : undefined);
+      // One synchronous commit: the callback must validate and persist the entire bundle or throw.
+      onAddBatch(entries);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Chưa lưu được các câu sai. Bản nháp vẫn được giữ; hãy thử lại.');
+      saving.current = false;
+      return;
+    }
+    saved.current = true;
+    persistentDraft.clear();
+    // Explanation queuing is a post-save action; its failure must never claim the cards were not saved.
+    let queued = true;
+    try {
+      const explainBatches = new Map<string, { cardId: string; number: number; input: MistakeInput }[]>();
+      for (const item of batchItems) {
+        if (!item.ticket || !canExplainRead(item.draft, item.part)) continue;
         const list = explainBatches.get(item.ticket) ?? [];
-        list.push(explainItem);
+        list.push({ cardId: item.id, number: item.number, input: explainInput(item.draft, item.part) });
         explainBatches.set(item.ticket, list);
       }
-    }
-
-    for (const [ticket, list] of explainBatches) {
-      enqueueExplanations(ticket, list);
-    }
-
-    onSaved?.(`Đã lưu ${batchItems.length} câu sai`);
+      for (const [ticket, list] of explainBatches) enqueueExplanations(ticket, list);
+    } catch { queued = false; }
+    saving.current = false;
+    onSaved?.(`Đã lưu ${entries.length} câu sai${queued ? '' : '. Chưa xếp được lời giải AI; bạn có thể mở thẻ để bổ sung.'}`);
     onClose();
   };
 
@@ -448,6 +456,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       setError(`Backend chưa hỗ trợ ảnh Part ${effectivePart}. Nội dung được giữ; cập nhật backend trước khi phân tích ảnh.`); return;
     }
     const epoch = ++requestEpoch.current;
+    const current = () => epoch === requestEpoch.current && getActiveAccountId() === owner.current;
     setBusy(true); setError('');
     try {
       const { errorCategory: _errorCategory, ...baseInput } = input;
@@ -455,9 +464,10 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       const sentInput = config.freeformInput ? { ...selectedInput, question: '', options: [], rawText: raw } : selectedInput;
       const persistent = Boolean(config.persistentImages && (images.length || sourceImageIds.length));
       if (persistent) await sourceImageAccount();
+      if (!current()) return;
       const storedIds = persistent ? await persistImages() : [];
-      const result = await aiService.extractMistakeWithAI(inputText(sentInput), getToken, sentInput, persistent ? [] : images, storedIds);
-      if (epoch !== requestEpoch.current) return;
+      const result = await aiService.extractMistakeWithAI(inputText(sentInput), getToken, sentInput, persistent ? [] : images, storedIds, owner.current, current);
+      if (!current()) return;
       const extractedQuestion = result.draft.question ?? readQuestion(result.draft).question;
       const resolvedInput = { ...input, ...(config.freeformInput ? { question: extractedQuestion, options: result.draft.options } : {}),
         part: (effectivePart ?? result.draft.part) as MistakeEntry['part'] | null };
@@ -481,6 +491,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   };
 
   const resetEntry = (reuse = false, value = draft) => {
+    setMissingDraftImages(false);
     const nextPart = part;
     const text = reuse && value?.part === 7 ? context || value.context || '' : '';
     const retainedIds = reuse && value?.part === 7 ? sourceImageIds : [];
@@ -499,6 +510,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   };
 
   const clearReading = () => {
+    setMissingDraftImages(false);
     setReading(null); setContextText(''); setImages([]); draftImages.current = '';
     setSourceImageIds([]); uploadedImageKey.current = '';
     setDraft(null); draftInput.current = ''; setManual(false); setTags(''); setCategory(selectedCategory || 'OTHER');
@@ -542,6 +554,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       }
       if (original) onUpdate(entry, original); else onAdd(entry);
       saved.current = true;
+      persistentDraft.clear();
       if (addAnother && !original) {
         resetEntry(reuse, value);
         setSaveMoreReceipt(true);
@@ -597,7 +610,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
 
   const contextBlock = (
           <MistakeContextInput part={effectivePart} mode={contextMode} text={contextText} busy={busy || imageBusy || persisting}
-            onMode={mode => { if (mode !== contextMode) { setContextMode(mode); invalidateContext(); } }}
+            onMode={mode => { if (mode !== contextMode) { setContextMode(mode); if (mode === 'text') setMissingDraftImages(false); invalidateContext(); } }}
             onText={value => { setContextText(value); setReading(current => current ? { ...current, text: value } : null); invalidateContext(); }}
             reuseLabel={reading ? original ? 'Đang dùng bài đọc đã lưu' : 'Đang dùng bài đọc trước' : undefined} onReset={clearReading}
             images={sourceImageIds.length && !images.length ? <>
@@ -628,6 +641,14 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         </div>
         <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
       </header>
+      {step !== 'saved' && <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
+        <span role="status">{persistentDraft.state === 'unavailable' ? 'Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.' : persistentDraft.state === 'restored' ? 'Đã khôi phục bản nháp trên thiết bị này.' : 'Nội dung được tự lưu nháp trên thiết bị này.'}
+          {(formDraft.hadUnsavedImages || missingDraftImages) && <span className="mt-1 block text-amber-800 dark:text-amber-300">Ảnh chưa tải lên không nằm trong bản nháp. Sau khi tải lại trang, cần chọn lại ảnh; nội dung đã nhập và câu AI đã đọc vẫn được giữ.</span>}
+        </span>
+        <button type="button" disabled={busy || persisting} className="min-h-9 shrink-0 font-bold text-slate-600 underline disabled:opacity-50 dark:text-slate-300" onClick={() => {
+          if (window.confirm('Xóa bản nháp đang nhập và đóng form? Câu sai đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) { requestEpoch.current++; removeCaptcha(); onClose(); }
+        }}>Bỏ nháp</button>
+      </div>}
       {!original && step === 'input' && (
         <div className="shrink-0 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
           <div role="tablist" aria-label="Chế độ thêm câu sai" className="grid grid-cols-2 gap-1.5 rounded-xl border-2 border-slate-900 bg-slate-100 p-1 dark:border-slate-400 dark:bg-slate-900 sm:max-w-sm">
@@ -641,7 +662,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                 ? (isSingle ? 'text-blue-600 dark:text-blue-400' : 'text-purple-600 dark:text-purple-400')
                 : 'text-slate-400 dark:text-slate-500';
 
-              return <button key={mode} type="button" role="tab" aria-selected={active} onClick={() => { setEntryMode(mode); setError(''); }}
+              return <button key={mode} type="button" role="tab" aria-selected={active} onClick={() => { if (entryMode !== mode) { requestEpoch.current++; batchRunning.current = false; setBatchProgress(null); removeCaptcha(); setBusy(false); setImageBusy(false); } setEntryMode(mode); setError(''); }}
                 className={'flex min-h-10 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-black transition-all ' + (active
                   ? activeClass
                   : 'border-2 border-transparent text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white')}>
@@ -681,7 +702,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                     placeholder="VD: 107 131-134"
                     className={twMerge(inputClass, 'min-h-11 py-2 text-sm border-2 border-slate-300 dark:border-slate-700')}
                   />
-                  <p className="mt-1 text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">Để trống để AI tự dò mọi câu 101–200 trong ảnh</p>
+                  <p className="mt-1 text-[11.5px] font-semibold text-slate-400 dark:text-slate-500">Để trống để dò câu 101–200 · Tối đa 6 câu mỗi lượt</p>
                 </div>
               </div>
 
@@ -711,7 +732,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                   {batchProgress ? (
                     <div className="flex items-center gap-2 text-sm font-bold text-violet-700 dark:text-violet-300" role="status">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-300 border-t-violet-700" aria-hidden="true" />
-                      Đang quét ảnh {Math.min(batchProgress.done + 1, batchProgress.total)}/{batchProgress.total}…
+                      Đang đọc ảnh {Math.min(batchProgress.done + 1, batchProgress.total)}/{batchProgress.total}…
                     </div>
                   ) : (
                     <button
@@ -737,6 +758,12 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                 </div>
               </div>
 
+              {batchSummary && <div role="status" className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-950 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-100">
+                <p className="font-bold">Đã đọc, cần kiểm tra</p><p>Đã đọc {batchReadCount}{batchSummary.requested ? `/${batchSummary.requested.length}` : ''} câu. Mỗi lượt đọc tối đa 6 câu từ 1–3 ảnh.</p>
+                {batchItems.length !== batchReadCount && <p>Tổng danh sách đang có {batchItems.length} câu.</p>}
+                {batchSummary.requested ? <p>{batchMissing.length ? `Chưa đọc được câu: ${batchMissing.join(', ')}. Thêm ảnh rõ các câu này để quét tiếp.` : 'Đã đọc đủ các câu yêu cầu.'}</p>
+                  : <p>Kiểm tra danh sách bên dưới. Nếu còn câu chưa xuất hiện, nhập số câu và thêm ảnh rõ để quét tiếp.</p>}
+              </div>}
               {/* Hàng 3: Danh sách câu đã bóc tách */}
               {batchItems.length > 0 && (
                 <div className="space-y-1.5">
@@ -744,7 +771,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                     <span>Đã quét được {batchItems.length} câu:</span>
                     <button
                       type="button"
-                      onClick={() => setBatchItems([])}
+                      disabled={Boolean(batchProgress)} onClick={() => { batchItemsRef.current = []; setBatchItems([]); setBatchSummary(null); }}
                       className="text-rose-600 hover:underline dark:text-rose-400">
                       Xóa tất cả
                     </button>
@@ -887,7 +914,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
               </div>
             </>
           ) : (
-            <><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang phân tích…' : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
+            <><button type="button" onClick={close} className={`${linkClass} mr-auto max-md:order-3 max-md:w-full max-md:text-center max-md:py-2`}>Hủy</button><button type="button" onClick={() => void analyze()} disabled={busy || imageBusy || persisting || configBusy || !config || aiAccess?.enabled === false || (!raw.trim() && !images.length)} className={`${aiAvailable ? `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200 max-md:min-h-[52px] max-md:flex-[1.5] max-md:justify-center max-md:text-[15px]` : linkClass} max-md:order-2 inline-flex min-h-11 items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}><Sparkles className="h-4 w-4" aria-hidden="true" />{busy ? (images.length || sourceImageIds.length ? 'Đang đọc ảnh và phân tích…' : 'Đang phân tích câu hỏi…') : 'Phân tích với AI'}</button><button type="button" onClick={quickSave} disabled={busy || imageBusy || persisting} aria-label={original ? undefined : 'Lưu thủ công'} className={'max-md:order-1 max-md:min-h-[52px] max-md:flex-1 max-md:text-[15px] ' + (aiAvailable ? 'min-h-11 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' : `${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`)}>{original ? 'Lưu thay đổi' : isPhone ? 'Lưu' : 'Lưu thủ công'}</button></>
           )
         )
           : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm câu tiếp'}</button></div></>

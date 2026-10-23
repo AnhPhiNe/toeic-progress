@@ -5,6 +5,7 @@ import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString } from '@/shared/data/storage';
 import type { ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { WrongQuestionGrid } from './WrongQuestionGrid';
+import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
 type PartNumber = PracticePartResult['part'];
@@ -80,6 +81,9 @@ interface FullTestProps {
   partScores: LRPartScore; onPart: (key: keyof LRPartScore, value: number) => void;
   entry: 'wrong' | 'counts'; onEntry: (entry: 'wrong' | 'counts') => void;
   wrongQuestions: number[]; onWrong: (wrong: number[]) => void;
+  onScores?: (score: AppliedResultScore) => void;
+  onScoresPending?: (pending: boolean) => void;
+  scoreStore?: ResultScoreStore;
   preview: { totalScore?: number; scaledListening?: number; scaledReading?: number; rawListening?: number; rawReading?: number } | null;
   scoreSource: ScoreSource; manualMode: 'MANUAL_SECTIONS' | 'MANUAL_TOTAL';
   useManual: (on: boolean) => void; setManualMode: (mode: 'MANUAL_SECTIONS' | 'MANUAL_TOTAL') => void;
@@ -186,12 +190,13 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       )}
 
-      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onChange={props.onWrong} />}
+      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} />}
 
       {showParts && <>
         {section('Listening', [1, 2, 3, 4], listeningRaw)}
         {section('Reading', [5, 6, 7], readingRaw)}
       </>}
+      {manual && props.entry === 'wrong' && props.wrongQuestions.length > 0 && <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Đã giữ {props.wrongQuestions.length} câu sai để ghi Sổ tay.</p>}
 
       {/* Other ways to enter the same test */}
       <div className="rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-2.5 space-y-1.5 dark:border-slate-700 dark:bg-slate-900/50">
@@ -253,7 +258,7 @@ export function PhonePracticeBody(props: PracticeProps) {
   };
   const update = (part: PartNumber, patch: Partial<PracticePartResult>) => setRows(rows.map(row => {
     if (row.part !== part) return row;
-    const next = { ...row, ...patch, total: partMax(part) };
+    const next = { ...row, ...patch };
     if (next.correct > next.total) next.correct = next.total;
     return next;
   }));
@@ -284,8 +289,8 @@ export function PhonePracticeBody(props: PracticeProps) {
               <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100">{PART_NAMES[row.part]}</p>
               <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{row.total ? `${Math.round((row.correct / row.total) * 100)}%` : 'Số câu đúng'}</p>
             </div>
-            <ScoreBox value={row.correct} max={partMax(row.part)} label={`Số câu đúng Part ${row.part}`} onChange={value => update(row.part, { correct: value })} />
-            <span className="w-8 text-[15px] font-bold tabular-nums text-slate-400 dark:text-slate-500">/{partMax(row.part)}</span>
+            <ScoreBox value={row.correct} max={row.total} label={`Số câu đúng Part ${row.part}`} onChange={value => update(row.part, { correct: value })} />
+            <span className="w-8 text-[15px] font-bold tabular-nums text-slate-400 dark:text-slate-500">/{row.total}</span>
           </div>
         ))}
       </div>

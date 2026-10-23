@@ -8,6 +8,18 @@ import { getTodayDateString } from '@/shared/data/storage';
 export const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14, 30] as const;
 export const MAX_REVIEW_STAGE = REVIEW_INTERVALS_DAYS.length - 1;
 
+/** Four recall choices; booleans retain the original quiz-answer behaviour. */
+export type ReviewRating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
+export type ReviewAnswer = boolean | ReviewRating;
+export function normalizeReviewRating(answer: ReviewAnswer): ReviewRating {
+  return typeof answer === 'boolean' ? answer ? 'GOOD' : 'AGAIN' : answer;
+}
+
+function boundedReviewStage(stage: number | undefined): number {
+  return typeof stage === 'number' && Number.isFinite(stage)
+    ? Math.max(0, Math.min(MAX_REVIEW_STAGE, Math.floor(stage))) : 0;
+}
+
 export function canReview(mistake: MistakeEntry): boolean {
   const hasQuestion = mistake.question !== undefined ? Boolean(mistake.question.trim()) : Boolean(mistake.questionContext?.trim());
   return !mistake.deletedAt && hasQuestion && mistake.answerSource !== 'MISSING' && Boolean(mistake.correctAnswer?.trim());
@@ -52,19 +64,21 @@ export function getDueMistakes(mistakes: MistakeEntry[], today = getTodayDateStr
 
 /**
  * Áp kết quả tự chấm của một lần ôn lên bản ghi.
- * Nhớ: lên một bậc, hẹn xa hơn. Hết bậc mà vẫn nhớ thì coi như thông suốt.
- * Quên: về bậc đầu, hẹn lại ngày mai.
+ * A small, bounded schedule, not an implementation of SM-2 or FSRS:
+ * AGAIN resets for tomorrow; HARD keeps the stage with a shorter interval;
+ * GOOD advances one stage; EASY advances two. Passing the final stage masters.
  */
 export function applyReviewResult(
   mistake: MistakeEntry,
-  remembered: boolean,
+  answer: ReviewAnswer,
   today = getTodayDateString()
 ): MistakeEntry {
-  const currentStage = mistake.reviewStage ?? 0;
+  const currentStage = boundedReviewStage(mistake.reviewStage);
   const reviewCount = (mistake.reviewCount ?? 0) + 1;
   const lastReviewedAt = new Date().toISOString();
+  const rating = normalizeReviewRating(answer);
 
-  if (!remembered) {
+  if (rating === 'AGAIN') {
     return {
       ...mistake,
       status: 'NEEDS_REVIEW',
@@ -75,8 +89,19 @@ export function applyReviewResult(
     };
   }
 
-  // Đã ở bậc cuối mà vẫn nhớ: tốt nghiệp khỏi lịch ôn
-  if (currentStage >= MAX_REVIEW_STAGE) {
+  if (rating === 'HARD') {
+    return {
+      ...mistake,
+      status: 'NEEDS_REVIEW',
+      reviewStage: currentStage,
+      reviewCount,
+      lastReviewedAt,
+      nextReviewDate: addDays(today, Math.max(2, Math.ceil(REVIEW_INTERVALS_DAYS[currentStage] / 2)))
+    };
+  }
+
+  const nextStage = currentStage + (rating === 'EASY' ? 2 : 1);
+  if (nextStage > MAX_REVIEW_STAGE) {
     return {
       ...mistake,
       status: 'MASTERED',
@@ -87,7 +112,6 @@ export function applyReviewResult(
     };
   }
 
-  const nextStage = currentStage + 1;
   return {
     ...mistake,
     status: 'NEEDS_REVIEW',
@@ -101,7 +125,9 @@ export function applyReviewResult(
 /** Nhãn mô tả bậc hiện tại, để người học thấy mình đang ở đâu trong lịch */
 export function getStageLabel(mistake: MistakeEntry): string {
   if (mistake.status === 'MASTERED') return 'Đã thông suốt';
-  const stage = mistake.reviewStage ?? 0;
+  const stage = boundedReviewStage(mistake.reviewStage);
   if (!mistake.lastReviewedAt) return 'Chưa ôn lần nào';
-  return `Bậc ${stage + 1}/${REVIEW_INTERVALS_DAYS.length} · hẹn ${REVIEW_INTERVALS_DAYS[stage]} ngày`;
+  // HARD can use a different interval at the same stage, so show the actual date.
+  const due = mistake.nextReviewDate?.split('-').reverse().join('/');
+  return `Bậc ${stage + 1}/${REVIEW_INTERVALS_DAYS.length}${due ? ` · hẹn ${due}` : ''}`;
 }

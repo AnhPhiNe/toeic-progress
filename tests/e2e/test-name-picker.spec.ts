@@ -92,9 +92,16 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Luyện Part', exact: true }).click();
   const partSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
+  // Changing the form layout can scroll its body, which intentionally closes suggestions.
+  // Focus a stable field, then explicitly request the picker with its keyboard control.
+  await partSource.click();
   await partSource.fill('ETS 2025');
-  await expect(page.getByRole('option', { name: 'ETS 2025 Test 03', exact: true })).toHaveCount(1);
-  await partSource.press('Enter');
+  await partSource.press('ArrowDown');
+  await expect(partSource).toHaveAttribute('aria-expanded', 'true');
+  const canonicalPartName = page.getByRole('option', { name: 'ETS 2025 Test 03', exact: true });
+  await expect(canonicalPartName).toHaveCount(1);
+  await canonicalPartName.click();
+  await expect(partSource).toHaveValue('ETS 2025 Test 03');
   // Cancel this practice draft: selecting a name itself never creates a session.
   await modal.getByRole('button', { name: 'Hủy', exact: true }).click();
   const data = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));

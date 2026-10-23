@@ -11,8 +11,9 @@ test('phone bottom bar navigates, traps focus in its sheets, restores it and han
   await more.click();
   const sheet = page.getByRole('dialog', { name: 'Thêm', exact: true });
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Quy đổi', exact: true })).toHaveAttribute('aria-current', 'page');
-  const first = sheet.getByRole('button', { name: 'Kế hoạch', exact: true });
+  await expect(sheet.getByRole('button', { name: 'Quy đổi điểm', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(sheet.getByRole('button', { name: 'Kế hoạch học', exact: true })).toBeVisible();
+  const first = sheet.getByRole('button', { name: 'Đóng', exact: true });
   const last = sheet.getByRole('button', { name: 'Giao diện tối', exact: true });
   await expect(first).toBeFocused();
   await last.focus();
@@ -36,7 +37,7 @@ test('phone bottom bar navigates, traps focus in its sheets, restores it and han
   await expect(sheet).toHaveCount(0);
 
   await more.click();
-  await sheet.getByRole('button', { name: 'Lịch sử', exact: true }).click();
+  await sheet.getByRole('button', { name: 'Lịch sử đề thi', exact: true }).click();
   await expect(page).toHaveURL(/\/lich-su$/);
   await expect(sheet).toHaveCount(0);
   await bar.getByRole('button', { name: 'Tổng quan', exact: true }).click();

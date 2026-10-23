@@ -16,6 +16,8 @@ import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import type { AIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
 import { enqueueExplanations, explanationsVersion, isExplaining, setExplanationInterceptor, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
+import { useFormDraft } from '@/shared/hooks/useFormDraft';
+import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailDraft } from '@/features/mistakes/lib/detailDraft';
 
 interface Props {
   cards: MistakeEntry[];
@@ -71,15 +73,31 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   const running = useRef(false);
   const closing = useRef(false);
   const owner = useRef(getActiveAccountId());
+  // Pin the versions the learner started from. Re-renders caused by cloud updates
+  // must not bless an older form as a draft of a newer saved card.
+  const draftBases = useRef(cards);
   const fileInput = useRef<HTMLInputElement>(null);
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
   const filled = ordered.filter(card => dirtyIds.current.has(card.id) && !isEmptyForm(forms[card.id] ?? EMPTY_FORM));
   const reading = progress !== null;
   const canReadPageImages = phone ? Boolean(config?.pageImages) : config?.pageImages !== false;
+  const draftValue = useMemo(() => buildDetailDraft(draftBases.current, forms, dirtyIds.current), [forms]);
+  const draft = useFormDraft({ scope: detailDraftScope(cards), value: draftValue, validate: validateDetailDraft,
+    meaningful: draftValue.rows.length > 0,
+    snapshot: () => buildDetailDraft(draftBases.current, formsRef.current, dirtyIds.current),
+    restore: value => {
+      const restored = restoreDetailDraft(value, cards);
+      for (const id of Object.keys(restored)) dirtyIds.current.add(id);
+      const next = { ...formsRef.current, ...restored };
+      formsRef.current = next; setForms(next);
+      if (Object.keys(restored).length) setNote(`Đã khôi phục nháp ${Object.keys(restored).length} câu. Kiểm tra trước khi lưu.`);
+    }
+  });
 
   const close = (count = 0) => {
     if (closing.current) return;
-    if (!count && filled.length && !window.confirm(`Đóng mà không lưu ${filled.length} câu đã điền?`)) return;
+    const persisted = count > 0 || draft.persist();
+    if (!persisted && filled.length && !window.confirm(`Chưa tự lưu được nháp. Đóng và bỏ ${filled.length} câu đã điền?`)) return;
     closing.current = true; pending.current = []; removeCaptcha(); onClose(count);
   };
   const ref = useModalA11y(true, () => close());
@@ -146,9 +164,13 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
             throw new Error('Danh sách có câu thuộc nhiều lượt làm. Đóng và mở riêng từng lượt trong Sổ tay.');
           }
           const images = [];
-          for (const file of chunk) images.push(await prepareImage(file));
+          for (const file of chunk) {
+            if (!activeFlow()) return;
+            images.push(await prepareImage(file));
+            if (!activeFlow()) return;
+          }
           if (!activeFlow()) return;
-          const result = await aiService.extractPageWithAI(questions, images, getToken);
+          const result = await aiService.extractPageWithAI(questions, images, getToken, owner.current, activeFlow);
           if (!activeFlow()) return;
           const matches = result.items.map(item => ({ item, card: ordered.find(card => card.questionNumber === item.number && !formsRef.current[card.id]?.ai) }))
             .filter((entry): entry is { item: typeof entry.item; card: MistakeEntry } => Boolean(entry.card));
@@ -178,7 +200,9 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
       running.current = false;
       if (activeFlow()) {
         setProgress(null);
-        setNote(found ? `AI đã điền ${found} câu. Kiểm tra lý do rồi bấm Lưu.` : 'Không thấy câu sai nào của đề này trong ảnh.');
+        const remaining = ordered.filter(card => readable(card.part) && !formsRef.current[card.id]?.ai).map(card => card.questionNumber).filter(number => number !== undefined);
+        setNote(found ? `Đã đọc ${found} câu, cần kiểm tra trước khi lưu.${remaining.length ? ` Chưa đọc được câu: ${remaining.join(', ')}. Chỉ thêm ảnh cho các câu này.` : ''}`
+          : 'Chưa đọc được câu còn thiếu. Nội dung đã điền vẫn được giữ; thêm ảnh rõ hơn hoặc nhập tay.');
       }
     }
   };
@@ -213,8 +237,12 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
       if (typeof entry === 'string') { setSection(sectionOf(card.part)); setOpenId(card.id); setError(`Câu ${card.questionNumber}: ${entry}`); return; }
       entries.push([entry, card]);
     }
-    try { for (const [entry, card] of entries) onSave(entry, card); }
+    try { for (const [entry, card] of entries) {
+      onSave(entry, draftBases.current.find(original => original.id === card.id) ?? card);
+      dirtyIds.current.delete(card.id);
+    } }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được thẻ.'); return; }
+    if (!dirtyIds.current.size) draft.clear();
     close(entries.length);
   };
 
@@ -224,6 +252,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   const inSection = (key: Section) => ordered.filter(card => sectionOf(card.part) === key);
   const anyRead = Object.values(forms).some(value => value.ai);
   const checkCount = ordered.filter(needsCheck).length;
+  const writingCount = ordered.filter(card => isExplaining(card.id)).length;
 
   const moveFocus = (from: HTMLElement, step: number) => {
     const rows = [...(ref.current?.querySelectorAll<HTMLButtonElement>('[data-row-toggle]') ?? [])];
@@ -340,6 +369,7 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
   const testName = ordered[0]?.sourceTestName ?? '';
   const status = error ? <p role="alert" className="text-rose-700 dark:text-rose-300">{error}</p>
     : reading ? <p role="status" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" aria-hidden="true" />Đang đọc ảnh {Math.min(progress.done + 1, progress.total)}/{progress.total} · {elapsed} giây</p>
+    : writingCount ? <p role="status" className="text-indigo-700 dark:text-indigo-300">Đã đọc ảnh, cần kiểm tra. Đang viết lời giải {writingCount} câu… Bạn có thể sửa đáp án và lý do.</p>
     : note ? <p role="status" className="text-slate-500 dark:text-slate-400">{note}</p>
     : checkCount ? <p className="text-amber-700 dark:text-amber-300">{checkCount} câu cần xem</p> : null;
   const saveButton = (
@@ -384,6 +414,15 @@ export function DetailListFlow({ cards, onSave, onClose, phone = false }: Props)
         </div>}
 
         <div className={'min-h-0 flex-1 space-y-3 overflow-y-auto ' + (phone ? 'px-3 py-3' : 'px-6 py-4')}>
+          {(draft.state !== 'idle' || draftValue.rows.length > 0) && <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <p aria-live="polite">{draft.state === 'unavailable' ? 'Chưa tự lưu được nháp trên trình duyệt. Hãy lưu câu trước khi đóng.' : draft.state === 'restored' ? 'Đã khôi phục nháp trên trình duyệt này.' : 'Đã tự lưu nháp trên trình duyệt này.'}</p>
+            {draftValue.rows.length > 0 && <button type="button" disabled={reading || writingCount > 0} onClick={() => {
+              if (!window.confirm('Bỏ nháp chưa lưu của các câu này? Dữ liệu đã lưu trong Sổ tay vẫn được giữ.')) return;
+              dirtyIds.current.clear(); draft.clear();
+              const next = Object.fromEntries(cards.map(card => [card.id, savedDetailForm(card)]));
+              formsRef.current = next; setForms(next); setNote('Đã bỏ nháp chưa lưu.');
+            }} className="min-h-10 cursor-pointer rounded-lg px-2 font-bold text-slate-700 underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-200">Bỏ nháp</button>}
+          </div>}
           {canReadPageImages && !anyRead && !reading && (phone
             ? <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white px-4 py-4 text-center dark:border-slate-600 dark:bg-slate-900">
                 <p className="text-[15px] font-black">Chụp màn hình trang chữa bài</p>
