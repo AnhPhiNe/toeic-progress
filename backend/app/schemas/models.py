@@ -67,6 +67,39 @@ class PartScores(BaseModel):
     part7: int = Field(ge=0, le=54, strict=True)
 
 
+ElapsedSeconds = Annotated[int, Field(ge=0, le=86400, strict=True)]
+
+
+class ResultTimingParts(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    part1: ElapsedSeconds | None = None
+    part2: ElapsedSeconds | None = None
+    part3: ElapsedSeconds | None = None
+    part4: ElapsedSeconds | None = None
+    part5: ElapsedSeconds | None = None
+    part6: ElapsedSeconds | None = None
+    part7: ElapsedSeconds | None = None
+
+
+class ResultTiming(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    totalSeconds: ElapsedSeconds | None = None
+    listeningSeconds: ElapsedSeconds | None = None
+    readingSeconds: ElapsedSeconds | None = None
+    parts: ResultTimingParts = Field(default_factory=ResultTimingParts)
+
+
+class ConfirmedResultTiming(ResultTiming):
+    source: Literal["IMAGE_CONFIRMED"]
+
+    @model_validator(mode="after")
+    def has_elapsed_value(self):
+        if all(value is None for value in (self.totalSeconds, self.listeningSeconds, self.readingSeconds,
+                                           *self.parts.model_dump().values())):
+            raise ValueError("Chưa có thời gian đã làm để xác nhận")
+        return self
+
+
 class Session(Payload):
     id: str
     skillType: Literal["LR", "SW"]
@@ -87,9 +120,12 @@ class Session(Payload):
     scoreSource: Literal["ESTIMATED", "MANUAL_SECTIONS", "MANUAL_TOTAL"] | None = None
     scoreConversionVersion: str | None = Field(default=None, max_length=100)
     wrongQuestions: list[QuestionNumber] | None = Field(default=None, max_length=200)
+    resultTiming: ConfirmedResultTiming | None = None
 
     @model_validator(mode="after")
     def check_score_source(self):
+        if self.resultTiming is not None and self.sessionType != "FULL_TEST":
+            raise ValueError("Thời gian từ ảnh kết quả chỉ dùng cho Full Test")
         if self.wrongQuestions is not None:
             if self.sessionType != "FULL_TEST":
                 raise ValueError("Danh sách câu sai chỉ dùng cho Full Test")
@@ -310,11 +346,12 @@ class SyncRecord(BaseModel):
         if self.deleted_at is not None:
             self.payload = {"id": self.record_id}
         else:
-            self.payload = (
-                PAYLOAD_MODELS[self.entity_type]
-                .model_validate_json(json.dumps(self.payload))
-                .model_dump(mode="json", exclude_none=True)
-            )
+            validated = PAYLOAD_MODELS[self.entity_type].model_validate_json(json.dumps(self.payload))
+            self.payload = validated.model_dump(mode="json", exclude_none=True)
+            if isinstance(validated, Session) and validated.resultTiming is not None:
+                # Null scope is meaningful: it is unknown, never zero. Keep the
+                # canonical shape so backups and older clients round-trip it.
+                self.payload["resultTiming"] = validated.resultTiming.model_dump()
         if self.updated_at.tzinfo is None or (self.deleted_at and self.deleted_at.tzinfo is None):
             raise ValueError("Thời điểm đồng bộ phải có múi giờ")
         if self.updated_at > datetime.now(timezone.utc) + timedelta(minutes=5):
@@ -775,16 +812,44 @@ class ResultsReadRequest(BaseModel):
 
 
 QUESTION_LIST_SCHEMA = {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 200}, "maxItems": 200}
-RESULTS_OUTPUT_SCHEMA = {
-    "type": "object", "additionalProperties": False, "required": ["wrong", "skipped"],
-    "properties": {"wrong": QUESTION_LIST_SCHEMA, "skipped": QUESTION_LIST_SCHEMA},
+ELAPSED_SECONDS_SCHEMA = {"type": ["integer", "null"], "minimum": 0, "maximum": 86400}
+RESULT_TIMING_SCHEMA = {
+    "type": "object", "additionalProperties": False,
+    "required": ["totalSeconds", "listeningSeconds", "readingSeconds", "parts"],
+    "properties": {**{key: ELAPSED_SECONDS_SCHEMA.copy() for key in ("totalSeconds", "listeningSeconds", "readingSeconds")},
+                   "parts": {"type": "object", "additionalProperties": False,
+                             "required": [f"part{part}" for part in range(1, 8)],
+                             "properties": {f"part{part}": ELAPSED_SECONDS_SCHEMA.copy() for part in range(1, 8)}}},
 }
+RESULTS_OUTPUT_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["wrong", "skipped", "scores", "timing"],
+    "properties": {"wrong": QUESTION_LIST_SCHEMA, "skipped": QUESTION_LIST_SCHEMA,
+                   "timing": RESULT_TIMING_SCHEMA,
+                   "scores": {"type": "object", "additionalProperties": False,
+                              "required": ["listening", "reading", "total"],
+                              "properties": {
+                                  "listening": {"type": ["integer", "null"], "minimum": 5, "maximum": 495, "multipleOf": 5},
+                                  "reading": {"type": ["integer", "null"], "minimum": 5, "maximum": 495, "multipleOf": 5},
+                                  "total": {"type": ["integer", "null"], "minimum": 10, "maximum": 990, "multipleOf": 5}}}},
+}
+
+
+class ResultScores(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    listening: int | None = Field(default=None, strict=True, ge=5, le=495, multiple_of=5)
+    reading: int | None = Field(default=None, strict=True, ge=5, le=495, multiple_of=5)
+    total: int | None = Field(default=None, strict=True, ge=10, le=990, multiple_of=5)
+    part5Minutes: int | None = Field(default=None, ge=1, le=75)
+    part6Minutes: int | None = Field(default=None, ge=1, le=75)
+    part7Minutes: int | None = Field(default=None, ge=1, le=75)
 
 
 class OpenAIResultsOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     wrong: list[int] = Field(max_length=200)
     skipped: list[int] = Field(max_length=200)
+    scores: ResultScores = Field(default_factory=ResultScores)
+    timing: ResultTiming = Field(default_factory=ResultTiming)
 
 
 class PageExplanationInput(MistakeInput):

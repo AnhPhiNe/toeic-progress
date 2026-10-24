@@ -8,8 +8,29 @@ from app.api.dependencies import identity
 from app.core.runtime import client_address
 from app.schemas.models import ExplainBatchRequest, ExtractRequest, PageExtractRequest, ResultsReadRequest
 from app.services import explain_tickets
+from app.schemas.attempt_analysis import AnalyzeAttemptRequest
+from app.services.attempt_analysis import load_snapshot, snapshot_hash, generate_analysis
 
 router = APIRouter()
+
+
+@router.post("/api/v1/ai/analyze-attempt")
+async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=Depends(identity)):
+    settings = request.app.state.settings
+    access = request.state.ai_access
+    if user["is_anonymous"]:
+        raise HTTPException(403, "Đăng nhập để phân tích lần làm đã đồng bộ của tài khoản.")
+    if not access.enabled:
+        raise HTTPException(403, access.message)
+    if not settings.attempt_analysis_ready:
+        raise HTTPException(503, "AI gợi ý ôn tập chưa được cấu hình. Bạn vẫn có thể xem thống kê và ôn Sổ tay.")
+    gateway = request.app.state.gateway
+    snapshot = await load_snapshot(gateway, user["id"], body)
+    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, None, snapshot_hash(snapshot))
+    report = await generate_analysis(gateway, snapshot)
+    return {"report": report, "usage": {"remaining": None if unlimited else reservation["remaining"],
+            "limit": None if unlimited else reservation["limit"], "guest": False, "unlimited": unlimited,
+            **(access.usage_fields() if settings.ai_access_managed else {})}}
 
 
 @router.get("/api/v1/ai/usage")
@@ -172,10 +193,12 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
     for image in body.images:
         input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
-    wrong, skipped = await request.app.state.gateway.read_results([image.dataUrl for image in body.images], user["id"])
+    wrong, skipped, scores, timing = await request.app.state.gateway.read_results([image.dataUrl for image in body.images], user["id"])
     return {
         "wrong": wrong,
         "skipped": skipped,
+        "scores": scores,
+        "timing": timing,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],

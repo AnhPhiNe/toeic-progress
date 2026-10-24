@@ -117,7 +117,7 @@ class Gateway:
                 raise ValueError("Invalid AI access grant")
             return AIAccess(status, limit)
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
-            raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới OpenAI; hãy thử lại hoặc lưu thủ công.") from error
+            raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới dịch vụ AI; hãy thử lại hoặc lưu thủ công.") from error
 
     async def explain_ai_limit(self, owner_id: str, guest: bool, ip_hash: str, user_limit: int | None = None):
         now = datetime.now(timezone.utc)
