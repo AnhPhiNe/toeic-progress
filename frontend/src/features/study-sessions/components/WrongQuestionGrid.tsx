@@ -3,16 +3,19 @@ import { ImagePlus } from 'lucide-react';
 import { prepareImage, MAX_RESULT_IMAGES, RESULT_IMAGE_OPTIONS } from '@/features/mistakes/lib/imageInput';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
-import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
+import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { triggerHaptic } from '@/shared/lib/haptics';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
+import type { ResultImageTiming } from '@/shared/types';
+import { createResultScoreDraft, ResultScoreReview, type AppliedResultScore, type ResultScoreStore } from './ResultScoreReview';
+import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
 
 /** Tap the questions answered wrong, one Part at a time; or type the numbers ("3 15 101-104"). */
-export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChange: (wrong: number[]) => void }) {
+export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming }: { wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void }) {
   const [part, setPart] = useState<PartNumber>(1);
-  const [typing, setTyping] = useState(false);
-  const [text, setText] = useState('');
+  const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
   const byPart = wrongQuestionsByPart(wrong);
   const marked = new Set(wrong);
@@ -28,7 +31,7 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
 
   return (
     <div className="space-y-3">
-      <ResultImageButton onRead={numbers => {
+      <ResultImageButton marks={wrong} onTiming={onTiming} onScores={onScores} onScoresPending={onScoresPending} scoreStore={scoreStore} onRead={numbers => {
         // Marks from the screenshot are added to any taps; the grid opens on the first marked Part.
         const merged = normalizeQuestionList([...wrong, ...numbers]);
         onChange(merged);
@@ -63,20 +66,20 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
       {typing
         ? <div className="space-y-2">
             <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">Số câu sai
-              <input autoFocus type="text" value={text} onChange={event => { setText(event.target.value); setInvalid([]); }} placeholder="3 15 22 101-104"
+              <input aria-label="Số câu sai" autoFocus type="text" value={text} onChange={event => { setText(event.target.value); setInvalid([]); }} placeholder="3 15 22 101-104"
                 onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyTyped(); } }}
                 className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold tabular-nums text-slate-950 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
             </label>
             {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">Không đọc được: {invalid.join(', ')}</p>}
             <div className="flex gap-2">
               <button type="button" onClick={applyTyped} className="min-h-11 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[14px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Áp dụng</button>
-              <button type="button" onClick={() => { setTyping(false); setInvalid([]); }} className="min-h-11 cursor-pointer px-3 text-[14px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
+              <button type="button" onClick={() => { cancelNumbers(); setInvalid([]); }} className="min-h-11 cursor-pointer px-3 text-[14px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
             </div>
           </div>
         : <button
             type="button"
             aria-label="Gõ số câu thay vì chạm"
-            onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }}
+            onClick={openNumbers}
             className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-[13.5px] font-bold text-slate-700 transition-all hover:border-slate-900 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-slate-400 dark:hover:bg-slate-800"
           >
             <span aria-hidden="true" className="text-base">⌨️</span>
@@ -90,33 +93,103 @@ export function WrongQuestionGrid({ wrong, onChange }: { wrong: number[]; onChan
  * Optional: a screenshot of the test's result page lets AI mark the wrong and skipped questions on the grid.
  * Shown only when the backend offers it; the learner checks the marks before saving.
  */
-export function ResultImageButton({ onRead, desktop = false }: { onRead: (numbers: number[]) => void; desktop?: boolean }) {
+export function ResultImageButton({
+  onRead,
+  marks,
+  desktop = false,
+  onScores,
+  onScoresPending,
+  scoreStore,
+  extraButton,
+  scoreCard,
+  isTyping = false,
+  typingContent,
+  timingContent,
+  appliedScore,
+  onRevertScore,
+  onTiming
+}: {
+  onRead: (numbers: number[]) => void;
+  marks: number[];
+  desktop?: boolean;
+  onScores?: (score: AppliedResultScore) => void;
+  onScoresPending?: (pending: boolean) => void;
+  scoreStore?: ResultScoreStore;
+  extraButton?: React.ReactNode;
+  scoreCard?: React.ReactNode;
+  isTyping?: boolean;
+  typingContent?: React.ReactNode;
+  timingContent?: React.ReactNode;
+  appliedScore?: { listening?: string; reading?: string; total?: string };
+  onRevertScore?: () => void;
+  onTiming?: (value: ResultImageTiming) => void;
+}) {
   const [available, setAvailable] = useState(true);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+  const [scoreReview, setScoreReviewState] = useState<aiService.ResultImageScores | null>(() => scoreStore?.current?.scores ?? null);
+  const [scoreOpen, setScoreOpen] = useState(Boolean(scoreStore?.current));
+  const setScoreReview = (value: aiService.ResultImageScores | null) => { setScoreReviewState(value); setScoreOpen(Boolean(value)); };
+  const [scoreVersion, setScoreVersion] = useState(0);
+  const scoreEdited = useRef(scoreStore?.current?.edited ?? false);
   const input = useRef<HTMLInputElement>(null);
   const { containerRef, getToken, remove } = useTurnstile();
+  const lifecycle = useRef(0);
+  const running = useRef(false);
+  const previousMarks = useRef(new Set(marks));
+  const manualEdits = useRef(new Map<number, boolean>());
+  const currentMarks = new Set(marks);
+  if (running.current) {
+    for (const number of new Set([...previousMarks.current, ...currentMarks])) {
+      if (previousMarks.current.has(number) !== currentMarks.has(number)) manualEdits.current.set(number, currentMarks.has(number));
+    }
+  }
+  previousMarks.current = currentMarks;
+  const latestOnRead = useRef(onRead);
+  latestOnRead.current = onRead;
+  useEffect(() => () => { lifecycle.current += 1; running.current = false; }, []);
   useEffect(() => {
     let cancelled = false;
     void aiService.getAIConfiguration().then(config => { if (!cancelled) setAvailable(config.resultImages !== false); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
   const read = async (files: File[]) => {
-    if (busy || !files.length) return;
+    if (running.current || !files.length) return;
     if (files.length > MAX_RESULT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_RESULT_IMAGES} ảnh.`); return; }
+    const generation = ++lifecycle.current;
+    const owner = getActiveAccountId();
+    const isCurrent = () => lifecycle.current === generation && getActiveAccountId() === owner;
+    running.current = true;
+    manualEdits.current.clear();
     setBusy(true); setError(''); setNote('');
     try {
       const images = [];
-      for (const file of files) images.push(await prepareImage(file, RESULT_IMAGE_OPTIONS));
-      const result = await aiService.readResultsWithAI(images, getToken);
-      const count = result.wrong.length + result.skipped.length;
-      onRead([...result.wrong, ...result.skipped]);
-      setNote(count ? `AI đã tô ${count} câu${result.skipped.length ? ` (${result.skipped.length} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
+      for (const file of files) {
+        if (!isCurrent()) return;
+        images.push(await prepareImage(file, RESULT_IMAGE_OPTIONS));
+      }
+      if (!isCurrent()) return;
+      const result = await aiService.readResultsWithAI(images, getToken, owner, isCurrent);
+      if (!isCurrent()) return;
+      const imported = normalizeQuestionList([...result.wrong, ...result.skipped].filter(number => manualEdits.current.get(number) !== false));
+      const count = imported.length;
+      const skippedCount = result.skipped.filter(number => imported.includes(number)).length;
+      // Read the latest callback: the learner may have changed marks while AI was running.
+      latestOnRead.current(imported);
+      if (result.timing) onTiming?.(result.timing);
+      if (result.scores && Object.values(result.scores).some(value => value !== null) && !scoreEdited.current) {
+        if (scoreStore) scoreStore.current = createResultScoreDraft(result.scores);
+        setScoreReview(result.scores); setScoreVersion(value => value + 1);
+        onScoresPending?.(true);
+      }
+      setNote(count ? `AI đã tô ${count} câu${skippedCount ? ` (${skippedCount} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
         : 'Không thấy câu sai nào trong ảnh. Chạm vào các câu sai bên dưới.');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Chạm vào các câu sai bên dưới.');
-    } finally { setBusy(false); remove(); }
+      if (isCurrent()) setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Chạm vào các câu sai bên dưới.');
+    } finally {
+      if (lifecycle.current === generation) { running.current = false; setBusy(false); remove(); }
+    }
   };
   const latestRead = useRef(read);
   latestRead.current = read;
@@ -133,16 +206,179 @@ export function ResultImageButton({ onRead, desktop = false }: { onRead: (number
   if (!available) return null;
   return (
     <div onPaste={desktop ? undefined : event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}>
-      <button type="button" disabled={busy} onClick={() => input.current?.click()}
-        className={desktop
-          ? 'flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white text-[14px] font-black text-slate-950 hover:bg-violet-50 disabled:cursor-wait disabled:opacity-60 dark:border-slate-300 dark:bg-slate-900 dark:text-white'
-          : 'flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white'}>
-        <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />{busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả'}{!desktop && <span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">(không bắt buộc)</span>}
-      </button>
+      {/* Unified Score Card (if provided on desktop) */}
+      {scoreCard && (
+        <div className="rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] mb-2.5" aria-live="polite">
+          {scoreCard}
+          {onScores && (
+            <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
+              {scoreReview ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => { triggerHaptic(4); setScoreOpen(true); }}
+                  className="flex min-h-8 w-full cursor-pointer items-center justify-between rounded-lg bg-amber-100/70 px-2.5 py-1 text-xs font-black text-amber-950 dark:bg-amber-950/50 dark:text-amber-200 transition-colors"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden="true" className="animate-pulse">📄</span>
+                    <span>Điểm từ đề: {scoreOpen ? 'Đang mở hộp thoại' : 'Cần kiểm tra'}</span>
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Kiểm tra ›</span>
+                </button>
+              ) : appliedScore && (appliedScore.total || (appliedScore.listening && appliedScore.reading)) ? (
+                <div className="flex w-full items-center justify-between py-0.5 text-xs font-black">
+                  <span className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+                    <span aria-hidden="true">📄</span>
+                    <span>Điểm từ đề thi</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(6);
+                        const draftScores = {
+                          listening: appliedScore.listening ? Number(appliedScore.listening) : null,
+                          reading: appliedScore.reading ? Number(appliedScore.reading) : null,
+                          total: appliedScore.total ? Number(appliedScore.total) : null,
+                        };
+                        setScoreReview(draftScores);
+                        onScoresPending?.(true);
+                      }}
+                      className="cursor-pointer rounded-md bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200 transition-colors"
+                      title="Chỉnh sửa điểm từ đề"
+                    >
+                      ✏️ Sửa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(6);
+                        onRevertScore?.();
+                      }}
+                      className="cursor-pointer rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-500 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-950 dark:hover:text-rose-300 transition-colors"
+                      title="Bỏ điểm từ đề, dùng điểm ước tính"
+                    >
+                      ✕ Bỏ
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    triggerHaptic(6);
+                    const empty = { listening: null, reading: null, total: null };
+                    if (scoreStore) scoreStore.current = createResultScoreDraft(empty);
+                    setScoreReview(empty);
+                    onScoresPending?.(true);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between text-xs font-black text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 transition-colors py-0.5"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden="true" className="text-amber-500">📄</span>
+                    <span>Điểm từ đề thi</span>
+                  </span>
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 font-bold dark:bg-slate-800 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700 transition-colors" aria-hidden="true">
+                    + Nhập ›
+                  </span>
+                </button>
+              )}
+              {timingContent}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Review Modal Dialog - Always active when scoreReview is set */}
+      {onScores && scoreReview && scoreOpen && (
+        <ResultScoreReview
+          key={scoreVersion}
+          scores={scoreReview}
+          disabled={busy}
+          draft={scoreStore?.current}
+          onDraftChange={value => { if (scoreStore) scoreStore.current = value; }}
+          onClose={() => setScoreOpen(false)}
+          onApply={score => { if (scoreStore) scoreStore.current = null; onScoresPending?.(false); setScoreReview(null); onScores(score); }}
+          onDiscard={() => { if (scoreStore) scoreStore.current = null; setScoreReview(null); scoreEdited.current = false; onScoresPending?.(false); }}
+          onEdit={() => { scoreEdited.current = true; onScoresPending?.(true); }}
+        />
+      )}
+
+      {/* Action Area: Either Typing or Buttons */}
+      {isTyping && typingContent ? (
+        typingContent
+      ) : desktop && extraButton ? (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-violet-50 active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-wait disabled:opacity-60 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none"
+          >
+            <ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {busy ? 'Đang đọc…' : 'Dán ảnh'}
+          </button>
+          {extraButton}
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => input.current?.click()}
+          className={desktop
+            ? 'flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white text-[14px] font-black text-slate-950 hover:bg-violet-50 disabled:cursor-wait disabled:opacity-60 dark:border-slate-300 dark:bg-slate-900 dark:text-white'
+            : 'flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white'}
+        >
+          <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />
+          {busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả'}
+          {!desktop && <span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">(không bắt buộc)</span>}
+        </button>
+      )}
+
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh kết quả"
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />
+      <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
+
+      {/* Fallback button when scoreCard is not provided (e.g. mobile) */}
+      {!scoreCard && scoreReview && !scoreOpen && <button type="button" onClick={() => setScoreOpen(true)}
+        className="min-h-11 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Kiểm tra điểm chưa áp dụng</button>}
+      {!scoreCard && onScores && !scoreReview && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            triggerHaptic(6);
+            const empty = { listening: null, reading: null, total: null };
+            if (scoreStore) scoreStore.current = createResultScoreDraft(empty);
+            setScoreReview(empty);
+            onScoresPending?.(true);
+          }}
+          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-slate-50/50 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-slate-800 hover:bg-slate-100 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:border-slate-400 dark:hover:text-white transition-all disabled:opacity-60"
+        >
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden="true">📄</span>
+            <span>Nhập điểm từ đề (tùy chọn)</span>
+          </span>
+          <span className="text-slate-400 font-bold" aria-hidden="true">›</span>
+        </button>
+      )}
+      {!scoreCard && onScores && scoreReview && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => triggerHaptic(4)}
+          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-amber-400 bg-amber-50/70 px-3 py-1.5 text-xs font-black text-amber-950 transition-all dark:border-amber-500/80 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden="true" className="animate-pulse">📄</span>
+            <span>Điểm từ đề: Đang mở hộp thoại</span>
+          </span>
+          <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Đang kiểm tra ›</span>
+        </button>
+      )}
       <div ref={containerRef} aria-label="Xác minh yêu cầu AI" />
     </div>
   );

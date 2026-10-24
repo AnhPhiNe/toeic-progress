@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, Clock3, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clock3, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
 import type { PacingRun, ReadingPartType } from '@/shared/types';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { getActiveAccountId, readDataBundle } from '@/shared/data/dataBundle';
@@ -22,6 +22,8 @@ export interface ReadingPacingViewProps {
   theme?: 'light' | 'dark';
   initialPart?: ReadingPartType;
   resultDialogBlocked?: boolean;
+  onBack?: () => void;
+  backLabel?: string;
 }
 type Part7Mode = 'PART_7' | 'PART_7_SINGLE' | 'PART_7_MULTI';
 const PART_7_SHORT: Record<Part7Mode, string> = { PART_7: 'Part 7', PART_7_SINGLE: 'Part 7 · Đơn', PART_7_MULTI: 'Part 7 · Đôi/ba' };
@@ -34,7 +36,7 @@ export function ReadingPacingView(props: ReadingPacingViewProps) {
   return <PacingWorkspace key={owner ?? 'guest'} owner={owner} {...props} />;
 }
 export { ReadingPacingView as ExamTimerView };
-function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPart = 'PART_5', resultDialogBlocked = false }: ReadingPacingViewProps & { owner: string | null }) {
+function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPart = 'PART_5', resultDialogBlocked = false, onBack, backLabel }: ReadingPacingViewProps & { owner: string | null }) {
   const [settings, setSettings] = useState(() => readPomodoroSettings(owner));
   const timer = usePacingTimer(owner, supportedMode(initialPart), settings);
   const { snapshot, now } = timer;
@@ -259,7 +261,16 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
     </Sheet>}
   </section>;
   return <div className={`pacing-view text-slate-900 dark:text-slate-100 ${isPhone ? 'is-phone pb-36' : 'pb-8'}`}>
-    <div className="pacing-frame"><div className="pacing-header"><div role="tablist" aria-label="Luyện tốc độ" className="pacing-tabs">{([['timer', 'Luyện tập', Timer], ['history', 'Lịch sử', History], ['stats', 'Thống kê', BarChart3]] as const).map(([id, label, Icon], index) => <button type="button" key={id} role="tab" aria-selected={tab === id} aria-controls={`pacing-${id}`} id={`pacing-${id}-tab`} className={`pacing-tab ${tab === id ? 'is-selected' : ''}`} onClick={() => setTab(id)} onKeyDown={event => {
+    <div className="pacing-frame"><div className="pacing-header">{isPhone && onBack && (
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer mr-2"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        <span>{backLabel || 'Quay lại'}</span>
+      </button>
+    )}<div role="tablist" aria-label="Luyện tốc độ" className="pacing-tabs">{([['timer', 'Luyện tập', Timer], ['history', 'Lịch sử', History], ['stats', 'Thống kê', BarChart3]] as const).map(([id, label, Icon], index) => <button type="button" key={id} role="tab" aria-selected={tab === id} aria-controls={`pacing-${id}`} id={`pacing-${id}-tab`} className={`pacing-tab ${tab === id ? 'is-selected' : ''}`} onClick={() => setTab(id)} onKeyDown={event => {
       const tabs = ['timer', 'history', 'stats'] as const;
       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
       event.preventDefault(); const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + 3) % 3]; setTab(next); document.getElementById(`pacing-${next}-tab`)?.focus();

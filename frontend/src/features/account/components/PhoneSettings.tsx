@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronRight, Cloud, Database, Download, Minus, Plus, Quote, RotateCcw, ShieldCheck, Target, Timer, Trash2, Upload } from 'lucide-react';
 import type { UserProfile } from '@/shared/types';
-import { useOverlayHistory } from '@/shared/hooks/overlayHistory';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { profileDisplayName, profileInitials } from '@/app/components/profileInitials';
 
 export type PhoneSettingsField = 'account' | 'targetScore' | 'examDate' | 'dailyMinGoalMinutes' | 'streakFreezes' | 'motto';
@@ -14,11 +15,13 @@ interface Props {
   /** Saves one field through the same merge as the desktop form; returns an error message or null. */
   onSaveField: (patch: Partial<UserProfile>) => string | null;
   accountPanel?: React.ReactNode;
+  signOutAction?: React.ReactNode;
   onExport: () => void;
   onPickBackup: () => void;
   onLoadDemo?: () => void;
   onReset?: () => void;
   resetBusy: boolean;
+  onClose?: () => void;
   /** Restore preview and errors, shown under the data group. */
   dataNotice?: React.ReactNode;
 }
@@ -39,7 +42,7 @@ function Icon({ children, tone }: { children: React.ReactNode; tone: string }) {
 }
 
 /** Phone settings: grouped rows that show each current value; a row opens a small sheet that saves only that field. */
-export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveField, accountPanel, onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice }: Props) {
+export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveField, accountPanel, signOutAction, onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice, onClose }: Props) {
   const days = daysUntil(profile.examDate);
   const row = (field: PhoneSettingsField, icon: React.ReactNode, label: string, value: React.ReactNode) => (
     <button type="button" className={rowClass} onClick={() => setEditing(field)} data-settings-row={field}>
@@ -89,7 +92,19 @@ export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveF
             <Icon tone="bg-rose-100 !border-rose-600"><Trash2 size={17} className="text-rose-600" /></Icon>{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}
           </button>}
         </div>
+        {signOutAction}
         {dataNotice && <div className="mt-3 space-y-3 text-xs">{dataNotice}</div>}
+        {onClose && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex min-h-12 w-full cursor-pointer items-center justify-center rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C] dark:text-white"
+            >
+              Đóng Cài Đặt
+            </button>
+          </div>
+        )}
       </section>
 
       {editing && <EditSheet field={editing} profile={profile} accountPanel={accountPanel} onSave={onSaveField} onClose={() => setEditing(null)} />}
@@ -119,12 +134,7 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
   const [number, setNumber] = useState(field in STEPPERS ? Number(profile[field as keyof typeof STEPPERS]) : 0);
   const [text, setText] = useState(field === 'account' ? profile.name : field === 'motto' ? profile.motto ?? '' : field === 'examDate' ? profile.examDate ?? '' : '');
   const [error, setError] = useState('');
-  const sheetRef = useRef<HTMLDivElement>(null);
-  useOverlayHistory(true, onClose);
-  useEffect(() => {
-    const first = sheetRef.current?.querySelector<HTMLElement>('input, textarea, button');
-    first?.focus();
-  }, []);
+  const sheetRef = useModalA11y(true, onClose);
   const stepper = STEPPERS[field as keyof typeof STEPPERS];
   const save = () => {
     const patch: Partial<UserProfile> = stepper ? { [field]: number } : field === 'account' ? { name: text } : { [field]: text };
@@ -134,9 +144,9 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
   const clamp = (value: number) => stepper ? Math.max(stepper.min, Math.min(stepper.max, value)) : value;
   const textInput = 'mt-2 w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 text-[16px] font-semibold text-slate-950 outline-none focus:border-blue-600 dark:border-slate-600 dark:bg-slate-950 dark:text-white';
 
-  return (
-    <div className="fixed inset-0 z-[60]" role="presentation">
-      <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-slate-950/45 cursor-default" />
+  return createPortal(
+    <div className="fixed inset-0 z-[60]" role="presentation" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
       <div ref={sheetRef} role="dialog" aria-modal="true" aria-label={TITLES[field]}
         className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-3xl border-t-2 border-slate-900 bg-[#FDFBF7] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 text-slate-900 dark:border-slate-600 dark:bg-[#0B132B] dark:text-slate-100">
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-300 dark:bg-slate-600" aria-hidden="true" />
@@ -176,7 +186,8 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
         </>}
 
         {error && <p role="alert" className="mt-3 text-sm font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
-        <div className="mt-5 grid gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          <button type="button" onClick={onClose} className="h-[52px] rounded-2xl border border-slate-300 bg-white text-[15px] font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 cursor-pointer">Hủy</button>
           <button type="button" onClick={save}
             className="h-[52px] rounded-2xl border-2 border-slate-900 bg-blue-600 text-[15px] font-black text-white shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 cursor-pointer">
             {field === 'account' ? 'Lưu tên' : 'Lưu'}
@@ -188,5 +199,5 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

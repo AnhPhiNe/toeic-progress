@@ -11,7 +11,10 @@
 .dark .notebook-view .notebook-page-button { border-color: #1e40af; background: #121a2b; color: #93c5fd; }
 .dark .notebook-view .notebook-page-button:hover:not(:disabled) { background: #172554; }
 .dark .notebook-view .notebook-page-button:disabled { border-color: #334155; background: transparent; color: #64748b; }
-.notebook-feedback-region { position: fixed; bottom: 20px; right: 20px; width: min(360px, calc(100vw - 40px)); z-index: 40; pointer-events: none; }
+.notebook-feedback-region { position: fixed; bottom: 20px; right: 20px; width: min(400px, calc(100vw - 40px)); z-index: 45; pointer-events: none; }
+@media (max-width: 767px) {
+  .notebook-feedback-region { bottom: calc(5rem + env(safe-area-inset-bottom)); right: 16px; width: calc(100vw - 32px); }
+}
 .notebook-feedback { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid #0f172a; border-radius: 12px; background: #fff; color: #0f172a; box-shadow: 3px 3px 0 #0f172a; pointer-events: auto; }
 .notebook-feedback .study-success-mark { width: 32px; height: 32px; border-radius: 9px; }
 .notebook-feedback .study-success-mark svg { width: 19px; height: 19px; }

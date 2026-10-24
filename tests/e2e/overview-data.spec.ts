@@ -45,10 +45,11 @@ test('partial legacy scores show the known skill and keep the missing skill unkn
   });
   await page.reload();
   const latest = page.getByRole('region', { name: 'Kết quả gần nhất' });
-  await expect(latest.getByText('—', { exact: true })).toBeVisible();
-  await expect(page.getByText('Reading', { exact: true })).toBeVisible();
-  await expect(page.getByText('Listening', { exact: true })).toBeVisible();
-  await expect(page.getByText('5', { exact: true })).toBeVisible();
+  const missingReading = latest.getByRole('button', { name: 'Xem chi tiết Reading: chưa có điểm', exact: true });
+  await expect(missingReading).toBeVisible();
+  await expect(missingReading).toContainText('—');
+  await expect(missingReading).not.toContainText('0 / 495');
+  await expect(latest.getByRole('button', { name: 'Xem chi tiết Listening: 5', exact: true })).toBeVisible();
 });
 
 test('weekly study days include vocabulary and measured practice but not shield dates or deleted activity', async ({ page }) => {

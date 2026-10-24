@@ -48,14 +48,16 @@ test('on a phone the wrong questions are one list; answers and reasons are fille
   await expect(pending.getByText('3 câu Reading sai', { exact: true })).toBeVisible();
 });
 
-test('the pending group opens the list again, and closing with filled rows asks first', async ({ page }) => {
+test('the pending group restores unsaved filled rows after closing on a phone', async ({ page }) => {
   const flow = await logTest(page);
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
   await expect(flow.locator('[data-row-toggle]')).toHaveCount(3);
   await flow.getByLabel('Vì sao sai câu 151').selectOption('TIME_PRESSURE');
-  page.once('dialog', dialog => { expect(dialog.message()).toBe('Đóng mà không lưu 1 câu đã điền?'); void dialog.dismiss(); });
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await expect(flow).toHaveCount(0);
+  await page.reload();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
   await expect(flow).toBeVisible();
   await expect(flow.getByLabel('Vì sao sai câu 151')).toHaveValue('TIME_PRESSURE');
 });

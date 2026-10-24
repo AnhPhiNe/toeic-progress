@@ -59,13 +59,7 @@ export function ScoreReportCard({
   const cefrTier = (listeningScore !== undefined && readingScore !== undefined)
     ? getConcordanceByToeic(listeningScore, readingScore)
     : null;
-  const cefrName = cefrTier?.cefr ?? (
-    latestTotal >= 945 ? 'C1' :
-    latestTotal >= 785 ? 'B2' :
-    latestTotal >= 550 ? 'B1' :
-    latestTotal >= 225 ? 'A2' :
-    latestTotal >= 120 ? 'A1' : undefined
-  );
+  const cefrName = cefrTier?.cefr;
 
   return (
     <section
@@ -76,7 +70,7 @@ export function ScoreReportCard({
         {/* Header phân tầng: Metadata (Ngày + Kỷ lục) ở trên, Tên đề rộng rãi 100% ở dưới */}
         <div className="mb-2">
           <div className="flex items-center justify-between gap-2">
-            <h2 id="score-report-title" className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
+            <h2 id="score-report-title" className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
               <span>Kết quả gần nhất</span>
               <span className="text-slate-300 dark:text-slate-600 font-normal">·</span>
               <span className="normal-case font-bold text-slate-600 dark:text-slate-300 tabular-nums">
@@ -110,7 +104,7 @@ export function ScoreReportCard({
               <span className={'font-black leading-none tracking-[-0.03em] tabular-nums text-slate-950 dark:text-white ' + (roomy ? 'text-[46px]' : 'text-[40px]')}>
                 {latestTotal}
               </span>
-              <span className="text-sm sm:text-base font-bold text-slate-400">/ 990</span>
+              <span className="text-sm sm:text-base font-bold text-slate-600 dark:text-slate-300">/ 990</span>
             </p>
             {change !== undefined && change !== 0 && (
               <span
@@ -215,8 +209,8 @@ function Section({
           ›
         </span>
       </div>
-      <div className="flex items-baseline justify-between gap-1 w-full">
-        <span className={'font-black tabular-nums leading-none text-slate-950 dark:text-white tracking-tight ' + (roomy ? 'text-[28px]' : 'text-[28px]')}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-2 w-full">
+        <span className="whitespace-nowrap font-black tabular-nums leading-none text-slate-950 dark:text-white tracking-tight text-[28px]">
           {score ?? '—'}
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">/ 495</span>
         </span>

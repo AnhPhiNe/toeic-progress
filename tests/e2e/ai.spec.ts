@@ -50,7 +50,8 @@ test('review reveals meanings after answering and saves a real timestamp', async
   await expect(modal.getByText(': to be, hiện tại số nhiều')).toHaveCount(0);
   await modal.getByRole('button', { name: /^A\s*are/ }).click();
   await expect(modal.getByRole('status')).toHaveText('Vẫn nhầm như lần trước · ôn lại ngày mai');
-  await expect(modal.getByText(': to be, hiện tại số nhiều')).toBeVisible();
+  await modal.getByRole('button', { name: 'Xem lại câu hỏi', exact: true }).click();
+  await expect(modal.locator('[aria-hidden="false"]').getByText(': to be, hiện tại số nhiều')).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.lastReviewedAt).toMatch(/T.*Z$/);
   await modal.getByRole('button', { name: 'Xem kết quả' }).click(); await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
@@ -92,9 +93,11 @@ test('dirty input can be retained and unconfigured AI never substitutes a sample
   const modal = page.getByRole('dialog'); await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 5', exact: true }).click(); await modal.getByLabel('Câu hỏi + phương án').fill(raw);
   await expect(modal.getByRole('button', { name: 'Phân tích với AI' })).toBeDisabled();
   await expect(modal.getByRole('checkbox')).toHaveCount(0);
-  page.once('dialog', dialog => dialog.dismiss()); await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(modal).not.toBeVisible();
+  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue(raw);
-  page.once('dialog', dialog => dialog.accept()); await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(modal).not.toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toEqual([]);
 });
@@ -130,7 +133,7 @@ test('review cannot overwrite a newer question stored elsewhere', async ({ page 
   await expect(review.getByRole('alert')).toContainText('Nội dung thẻ đã thay đổi');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.questionContext).toBe('Question corrected on another device.'); expect(saved.reviewCount).toBeUndefined();
-  await review.getByRole('button', { name: 'Tải lại thẻ' }).click(); await expect(review.getByText('Question corrected on another device.')).toBeVisible();
+  await review.getByRole('button', { name: 'Tải lại thẻ' }).click(); await expect(review.locator('[aria-hidden="false"]').getByText('Question corrected on another device.')).toBeVisible();
 });
 
 test('Part and source are required before quick save; category is optional', async ({ page }) => {
@@ -186,7 +189,7 @@ test('AI receives structured input and the learner data survives the preview and
   expect(saved.userChoice).toBe('A'); expect(saved.userChoiceState).toBe('CHOSEN'); expect(saved.userReason).toBe(reason); expect(saved.answerSource).toBe('AI_PROPOSED');
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
   await page.getByRole('button', { name: 'Ôn 1 thẻ' }).click(); const review = page.getByRole('dialog', { name: 'Ôn tập' });
-  await review.getByRole('button', { name: /^B\s*inventory/ }).click(); await expect(review.getByText('AI đề xuất', { exact: true })).toBeVisible();
+  await review.getByRole('button', { name: /^B\s*inventory/ }).click(); await expect(review.locator('[aria-hidden="false"]').getByText('AI đề xuất:', { exact: true })).toBeVisible();
 });
 
 test('reason-only edits preserve explanations and request review before saving', async ({ page }) => {

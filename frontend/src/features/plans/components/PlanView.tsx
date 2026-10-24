@@ -1,3 +1,4 @@
+import { formatPlanQuantity } from '../lib/planDisplay';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Target,
@@ -282,6 +283,8 @@ export const PlanView: React.FC<PlanViewProps> = ({
 
   // Xóa mục tiêu
   const handleDeleteTask = (taskId: string) => {
+    const task = activePlanRecord.tasks.find(item => item.id === taskId);
+    if (!task || !window.confirm(`Xóa mục tiêu “${task.title}”?`)) return;
     const updated = activePlanRecord.tasks.filter(t => t.id !== taskId);
     updateCurrentWeekTasks(updated);
   };
@@ -580,7 +583,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                     )}
 
                     {/* CỘT TRÁI: Grip kéo thả + Tiêu đề & Subtitle + 1 Badge loại bài */}
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 md:w-1/2 flex-1">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                       {/* Grip Kéo Thả */}
                       <button
                         type="button"
@@ -646,7 +649,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                     </div>
 
                     {/* CỘT PHẢI: Mini Progress Bar + Nút CTA gom cụm chặt chẽ (chiếm 50% hàng) */}
-                    <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 sm:gap-4 min-w-0 md:w-1/2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
+                    <div className="flex shrink-0 flex-wrap items-center justify-between md:justify-end gap-3 sm:gap-4 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
                       {/* Mini Progress Bar */}
                       <div className="flex items-center gap-2 w-36 sm:w-40 lg:w-44 shrink-0">
                         <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
@@ -666,7 +669,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                                 : 'text-slate-900 dark:text-white'
                             }`}
                           >
-                            {task.done}/{task.target}
+                            {formatPlanQuantity(task.done)}/{formatPlanQuantity(task.target)}
                           </span>
                           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                             {task.unit}
@@ -876,7 +879,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
                 Thời Lượng Học
               </span>
               <span className="text-sm font-black tabular-nums text-teal-600 dark:text-teal-400">
-                {summary.minutesThisWeek} <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {summary.minutesGoalThisWeek || 210}p</span>
+                {formatPlanQuantity(summary.minutesThisWeek)} <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {summary.minutesGoalThisWeek || 210}p</span>
               </span>
             </div>
             <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
@@ -1073,8 +1076,11 @@ export const PlanView: React.FC<PlanViewProps> = ({
             </div>
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-500">
-            Không có mục tiêu nào phù hợp với bộ lọc đã chọn.
+          <div className="p-8 text-center text-xs font-bold text-slate-500 space-y-2.5">
+            <p>Không có mục tiêu nào phù hợp với bộ lọc đã chọn.</p>
+            <button type="button" onClick={() => setTaskFilter('ALL')} className="inline-flex items-center px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+              Xem tất cả mục tiêu ({summary.tasks.length})
+            </button>
           </div>
         ) : (
           <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-900/60 space-y-2 sm:space-y-2.5">

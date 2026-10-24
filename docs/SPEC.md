@@ -1,5 +1,7 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
+> **Rà soát local 24/10/2026:** xem [FINAL_READINESS_2026-10-24.md](FINAL_READINESS_2026-10-24.md). Nháp giữ cả số câu chưa áp dụng; modal lồng nhau chỉ cho lớp trên nhận bàn phím. Ảnh kết quả trích thời gian đã làm trong cùng lần gọi AI, yêu cầu xác nhận, lưu giây chính xác và null cho phần không biết trong `resultTiming` của Full Test; không suy ra từ thời gian còn lại hoặc giới hạn đề. Điểm/thời gian riêng lẻ không đủ kết luận nguyên nhân lỗi. Không cần migration cho trường này; bản sửa chưa được triển khai production.
+
 **Phiên bản 2.14** · Cập nhật 2026-10-08 · Thay thế toàn bộ SPEC v1
 > Cập nhật kiến trúc dữ liệu 2026-10-06: lưu trữ server chuyển sang bảng nghiệp vụ có cột kiểu riêng, xem mục 6.4.
 
@@ -348,10 +350,10 @@ Hiện đoạn trích và câu hỏi
   → Mẹo 10s; giải thích chi tiết thu gọn
 ```
 
-- **Một luồng ôn duy nhất:** trắc nghiệm khi đáp án khớp một phương án có thật; nếu có đáp án nhưng không đủ phương án để chấm thì lật thẻ và tự chấm Nhớ / Chưa nhớ. Thẻ chưa có đáp án bị loại trước khi mở phiên. Chốt danh sách ID/thứ tự lúc mở; khi chấm, đọc bản ghi mới nhất và chỉ cập nhật trường lịch ôn, không thay toàn bộ thẻ bằng bản chụp cũ. Nếu câu hỏi/phương án/đáp án đã đổi trong khi ôn, yêu cầu tải lại thẻ trước khi chấm; thẻ bị xóa thì bỏ qua.
+- **Một luồng ôn duy nhất:** trắc nghiệm khi đáp án khớp một phương án có thật; người học cũng có thể lật thẻ rồi tự chấm Quên / Khó / Tốt / Dễ. Thẻ có đáp án nhưng không đủ phương án để chấm dùng luồng tự chấm. Thẻ chưa có đáp án bị loại trước khi mở phiên. Chốt danh sách ID/thứ tự lúc mở; khi chấm, đọc bản ghi mới nhất và chỉ cập nhật trường lịch ôn, không thay toàn bộ thẻ bằng bản chụp cũ. Nếu câu hỏi/phương án/đáp án đã đổi trong khi ôn, yêu cầu tải lại thẻ trước khi chấm; thẻ bị xóa thì bỏ qua. Mặt thẻ bị giấu không nhận focus; khi lật, focus chuyển sang mặt đang hiện.
 - **Nguồn đáp án:** thẻ `AI_PROPOSED` phải hiện nhãn AI đề xuất trong cả trắc nghiệm và lật thẻ; kết quả được chấm theo đề xuất đó, không gọi là đáp án nguồn đã kiểm chứng. Nhãn không hiện đáp án trước khi người học trả lời.
-- **Lịch giãn cách:** mỗi bản ghi có `nextReviewDate`. Nhớ thì giãn theo bậc 1 → 3 → 7 → 14 → 30 ngày; quên thì quay về bậc đầu. Đúng ở bậc cuối thì tự chuyển "Thông suốt". *Đây là quyết định chốt, thay cho mâu thuẫn trong v1 giữa mục 1.2 và mục 3.4.*
-- **Ôn sớm** ("Ôn câu này" với thẻ chưa đến hạn hoặc đã thông suốt): sai thì đặt lại lịch về ngày mai; đúng thì giữ nguyên lịch, để không thể đẩy thẻ lên "Thông suốt" bằng cách làm nhiều lần trong một ngày. Muốn bỏ qua lịch thì dùng "Đánh dấu đã thuộc" trong menu ⋯.
+- **Lịch giãn cách (cập nhật 22/10/2026):** dùng năm bậc với khoảng hẹn 1 → 3 → 7 → 14 → 30 ngày, chỉ số 0–4. Với thẻ đến hạn: Quên (`AGAIN`) về bậc 0 và hẹn ngày mai; Khó (`HARD`) giữ bậc, hẹn `max(2, ceil(khoảng ngày của bậc hiện tại / 2))` ngày và không tự chuyển Thông suốt; Tốt (`GOOD`) tăng một bậc; Dễ (`EASY`) tăng hai bậc. Tốt/Dễ vượt bậc cuối mới chuyển Thông suốt và bỏ ngày hẹn. Trắc nghiệm đúng tương đương Tốt, sai tương đương Quên, giữ tương thích dữ liệu cũ. Nhãn lịch hiển thị ngày hẹn thực tế vì Khó có thể đổi khoảng hẹn mà giữ cùng bậc. Đây là lịch giãn cách đơn giản của sản phẩm, không tuyên bố triển khai SM-2 hoặc FSRS; không cần migration.
+- **Ôn sớm** ("Ôn câu này" với thẻ chưa đến hạn hoặc đã thông suốt): sai/Quên thì đặt lại lịch về ngày mai; đúng/Khó/Tốt/Dễ giữ nguyên lịch, để không thể đẩy thẻ lên "Thông suốt" bằng cách làm nhiều lần trong một ngày. Muốn bỏ qua lịch thì dùng "Đánh dấu đã thuộc" trong menu ⋯.
 - Tổng Quan/điều hướng chỉ đếm các thẻ đủ điều kiện ôn; thiếu đáp án không làm tăng badge. Lối vào trực tiếp phiên ôn từ Tổng Quan là yêu cầu cần đối chiếu với UI hiện tại, không coi là đã hoàn thành.
 - Ưu tiên trong phiên: thẻ quá hạn lâu nhất trước, rồi tới nhóm nguyên nhân đang là điểm nghẽn lớn nhất.
 
@@ -580,6 +582,8 @@ Pomodoro ghi thời gian thực và tách bộ đếm theo danh tính đã hoàn
 ---
 
 *Tài liệu này là nguồn sự thật cho quyết định sản phẩm. Khi code và spec lệch nhau, sửa một trong hai — đừng để lệch.*
+
+**Nháp và gợi ý ôn tập — duyệt 23/10/2026:** Nhập điểm, Sổ tay và danh sách ghi chi tiết tự giữ nháp trên trình duyệt theo tài khoản/lần nhập; khôi phục khi mở lại, xóa sau lưu thành công hoặc bỏ nháp. Không lưu ảnh thô, URL có token hay ticket AI trong nháp; ảnh chưa tải lên cần chọn lại. Tổng quan mở đúng lần làm còn câu Reading chưa hoàn thành. Xóa thẻ và chấm ôn có Hoàn tác với kiểm tra tài khoản/phiên bản; hoàn tác chấm khôi phục lịch ôn, không ghi đè sửa đổi mới. Phân tích có báo cáo DeepInfra tùy chọn, dùng đúng Full Test/lần làm đã đồng bộ và câu sai có liên kết rõ ràng, tối đa ba ưu tiên có bằng chứng/cách luyện. Gọi AI theo thao tác chủ động, dùng hạn mức hiện có và lưu báo cáo cục bộ; không tự tạo kế hoạch. Chi tiết triển khai và giới hạn ở `docs/UX_AUTOSAVE_ANALYSIS_2026-10-23.md`.
 
 **Dán tự do — duyệt 11/10/2026:**
 - Form tách ô Câu hỏi/phương án ở trên và một khu vực ngữ cảnh ở dưới: Tranh (Part 1), Transcript (Part 2–4), Ngữ cảnh tùy chọn thu gọn (Part 5), Đoạn đọc (Part 6–7). Part 7 chọn Văn bản hoặc Ảnh trong cùng khung; giữ bản đang nhập của hai chế độ nhưng chỉ gửi/lưu nguồn đang chọn. Nhãn/số câu/định dạng lẫn trong ô trên vẫn được Luna xử lý.

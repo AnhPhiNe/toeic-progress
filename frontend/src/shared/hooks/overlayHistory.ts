@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { compareModalLayers } from './modalLayerOrder';
 
 /**
  * Lets the device Back button (Android, browser Back) close the top dialog or sheet instead of leaving the page.
@@ -8,7 +9,7 @@ import { useEffect, useRef } from 'react';
  * change reuses it, and if Back lands on it the extra step is taken automatically. Nothing navigates on close,
  * so a close never races a reload or a route change.
  */
-type Entry = { id: number; close: () => void };
+type Entry = { id: number; close: () => void; element?: () => HTMLElement | null };
 
 const stack: Entry[] = [];
 let nextId = 1;
@@ -20,7 +21,13 @@ const overlayId = (state: unknown) =>
   state && typeof state === 'object' && 'toeicOverlay' in state ? Number((state as { toeicOverlay: unknown }).toeicOverlay) : null;
 
 function onPopState() {
-  const top = stack.pop();
+  // A portal child can register effects before its parent. Follow visible DOM layers.
+  const top = stack.reduce<Entry | undefined>((current, entry) => {
+    const a = current?.element?.();
+    const b = entry.element?.();
+    return current && a?.isConnected && b?.isConnected && compareModalLayers(a, b) > 0 ? current : entry;
+  }, undefined);
+  if (top) stack.splice(stack.indexOf(top), 1);
   if (top) { top.close(); return; }
   // Back left a spent overlay entry: we are on the page it was opened from, which looks identical.
   if (spentEntry !== null) { spentEntry = null; window.history.back(); }
@@ -42,13 +49,13 @@ export function navigateFromOverlay(path: string) {
   return true;
 }
 
-function openOverlay(close: () => void) {
+function openOverlay(close: () => void, element?: () => HTMLElement | null) {
   listen();
   const id = nextId++;
   if (spentEntry !== null && overlayId(window.history.state) === spentEntry) window.history.replaceState({ toeicOverlay: id }, '', window.location.href);
   else window.history.pushState({ toeicOverlay: id }, '', window.location.href);
   spentEntry = null;
-  stack.push({ id, close });
+  stack.push({ id, close, element });
   return id;
 }
 
@@ -60,12 +67,12 @@ function closeOverlay(id: number) {
 }
 
 /** Register an open overlay with the device Back button. */
-export function useOverlayHistory(isOpen: boolean, onClose: () => void) {
+export function useOverlayHistory(isOpen: boolean, onClose: () => void, element?: { current: HTMLElement | null }) {
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => {
     if (!isOpen) return;
-    const id = openOverlay(() => onCloseRef.current());
+    const id = openOverlay(() => onCloseRef.current(), element ? () => element.current : undefined);
     return () => closeOverlay(id);
-  }, [isOpen]);
+  }, [isOpen, element]);
 }

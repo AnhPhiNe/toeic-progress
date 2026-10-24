@@ -12,7 +12,7 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   await page.evaluate(() => { (window as Window & { __explainDelay?: number }).__explainDelay = 1500; });
   // Four screenshots are read as two turns (three images, then one); the second asks only for questions still missing.
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles([screenshot, screenshot, screenshot, screenshot]);
-  await expect(flow.getByRole('status')).toHaveText('AI đã điền 3 câu. Kiểm tra lý do rồi bấm Lưu.');
+  await expect(flow.getByRole('status')).toContainText('Đã đọc ảnh, cần kiểm tra');
   expect(await page.evaluate(() => (window as Window & { __pageCalls: unknown }).__pageCalls)).toEqual([
     { questions: [104, 112, 131], images: 3 }, { questions: [131], images: 1 }
   ]);
@@ -66,12 +66,15 @@ test('a computer reads all screenshots of a test in turns and saves the whole li
   ]);
 });
 
-test('closing the list with filled rows asks first', async ({ page }) => {
+test('closing the list keeps filled rows as a recoverable draft', async ({ page }) => {
   const flow = await openDesktopFlow(page);
   await flow.getByLabel('Vì sao sai câu 104').selectOption('TIME_PRESSURE');
-  page.once('dialog', dialog => { expect(dialog.message()).toBe('Đóng mà không lưu 1 câu đã điền?'); void dialog.dismiss(); });
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await expect(flow).toBeVisible();
+  await expect(flow).toHaveCount(0);
+  await page.reload();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Table', exact: true }).click();
+  await expect(flow.getByLabel('Vì sao sai câu 104')).toHaveValue('TIME_PRESSURE');
+  await expect(flow.getByText('Đã khôi phục nháp trên trình duyệt này.', { exact: true })).toBeVisible();
 });
 
 test('a doubt left open when saving stays on the notebook card until the learner decides', async ({ page }) => {

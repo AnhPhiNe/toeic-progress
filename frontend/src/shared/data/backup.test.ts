@@ -38,6 +38,20 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('backup restore', () => {
+  it('preserves confirmed exact timing and unknown scopes through backup and refuses malformed timing', () => {
+    const data = bundle(); const stamp = data.profile.updatedAt;
+    const timing = { source: 'IMAGE_CONFIRMED' as const, totalSeconds: 6763, listeningSeconds: null, readingSeconds: null,
+      parts: { part1: null, part2: null, part3: null, part4: null, part5: 795, part6: null, part7: null } };
+    data.sessions = [{ id: 'timed', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'QA timing', date: '2026-09-23', durationMinutes: 112.72,
+      resultTiming: timing, createdAt: stamp, updatedAt: stamp, deletedAt: null }];
+    const parsed = parseBackup(JSON.stringify({ ...data, exportDate: stamp }));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) { restoreBackup(parsed.preview); expect(readDataBundle().sessions[0].resultTiming).toEqual(timing); }
+    for (const invalid of [{ ...timing, totalSeconds: '6763' }, { ...timing, totalSeconds: 6763.5 }, { ...timing, source: 'AI_GUESSED' }]) {
+      expect(parseBackup(JSON.stringify({ ...data, sessions: [{ ...data.sessions[0], resultTiming: invalid }], exportDate: stamp })).ok).toBe(false);
+    }
+    expect(parseBackup(JSON.stringify({ ...data, sessions: [{ ...data.sessions[0], sessionType: 'PART_PRACTICE' }], exportDate: stamp })).ok).toBe(false);
+  });
   it('keeps private image references through export/restore and cloud conversion without image bytes or URLs', async () => {
     const { recordsFromBundle, bundleFromRecords } = await import('@/features/account/services/cloud');
     const data = bundle(); const stamp = data.profile.updatedAt;

@@ -7,8 +7,8 @@ export type UUIDv4 = `${string}-${string}-${string}-${string}-${string}`;
 export function generateUUID(): UUIDv4 {
   try {
     if (typeof crypto !== 'undefined') {
-      if (typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
+      if (typeof crypto.randomUUID === 'function' && crypto.randomUUID !== generateUUID) {
+        try { return crypto.randomUUID(); } catch { /* Try the secure byte generator next. */ }
       }
       if (typeof crypto.getRandomValues === 'function') {
         const bytes = new Uint8Array(16);
@@ -29,24 +29,4 @@ export function generateUUID(): UUIDv4 {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   }) as UUIDv4;
-}
-
-// Polyfill window.crypto.randomUUID if absent (such as in non-secure HTTP contexts)
-if (typeof window !== 'undefined') {
-  try {
-    const gCrypto = window.crypto;
-    if (gCrypto && typeof gCrypto.randomUUID !== 'function') {
-      try {
-        (gCrypto as { randomUUID?: () => string }).randomUUID = generateUUID;
-      } catch {
-        Object.defineProperty(gCrypto, 'randomUUID', {
-          value: generateUUID,
-          writable: true,
-          configurable: true
-        });
-      }
-    }
-  } catch {
-    /* Ignore if window.crypto is restricted */
-  }
 }

@@ -76,7 +76,7 @@ function TodayTasks({
                   Ôn {dueMistakesCount} câu sai
                 </p>
                 <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
-                  Part 5, 6 · Quá hạn
+                  Đến hạn ôn hôm nay
                 </p>
               </div>
             </div>
@@ -96,10 +96,10 @@ function TodayTasks({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white">
-                  Làm đề mới hoặc ôn luyện Part yếu
+                  Ghi lại kết quả vừa làm
                 </p>
                 <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
-                  Không có câu sai quá hạn · Giữ vững nhịp học
+                  Không có câu sai đến hạn · Giữ vững nhịp học
                 </p>
               </div>
             </div>
@@ -108,7 +108,7 @@ function TodayTasks({
               onClick={onOpenSessionLogger}
               className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-300 text-slate-950 px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
             >
-              Làm đề ›
+              Ghi kết quả ›
             </button>
           </div>
         )}
@@ -131,7 +131,7 @@ function TodayTasks({
           <button
             type="button"
             onClick={() => onNavigateToPacing?.(weakestPart >= 5 && weakestPart <= 7 ? (`PART_${weakestPart}` as ReadingPartType) : 'PART_7')}
-            className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
+            className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
           >
             Luyện ›
           </button>
@@ -162,6 +162,8 @@ export function PhoneSummary({
   onNavigateToPacing,
   onViewDetails
 }: SummaryProps) {
+  const [skillModal, setSkillModal] = useState<'listening' | 'reading' | null>(null);
+
   if (!latestTest) {
     return (
       <div className="space-y-4">
@@ -189,8 +191,6 @@ export function PhoneSummary({
       </div>
     );
   }
-
-  const [skillModal, setSkillModal] = useState<'listening' | 'reading' | null>(null);
 
   return (
     <div className="space-y-4">

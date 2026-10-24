@@ -141,10 +141,55 @@ test('automatic completion, week copying and deletion persist without changing t
   expect(previous.tasks.find((task: { id: string }) => task.id === original.id).target).toBe(2);
   expect(copy).toMatchObject({ isCompleted: false, manualDone: 0, target: 2 });
   expect(copy.id).not.toBe(original.id);
+  page.once('dialog', dialog => dialog.accept());
   await page.locator(`[data-task-id="${copy.id}"]`).getByTitle('Xóa mục tiêu', { exact: true }).click();
   await page.reload();
   await expect(page.locator(`[data-task-id="${copy.id}"]`)).toHaveCount(0);
   expect((await data(page)).weeklyPlans.find((week: { weekKey: string }) => week.weekKey === '2026-10-05').tasks).toHaveLength(3);
+});
+
+for (const width of [390, 1280]) {
+  test(`goal deletion requires confirmation and cancel preserves it at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await seed(page);
+    const remove = async () => {
+      if (width < 768) {
+        await page.locator('[data-task-id="time"]').click();
+        await page.getByRole('dialog').getByRole('button', { name: 'Xóa', exact: true }).click();
+      } else {
+        await page.locator('[data-task-id="time"]').getByTitle('Xóa mục tiêu', { exact: true }).click();
+      }
+    };
+    page.once('dialog', dialog => dialog.dismiss());
+    await remove();
+    expect((await data(page)).weeklyPlans[0].tasks.some((task: { id: string }) => task.id === 'time')).toBe(true);
+    page.once('dialog', dialog => dialog.accept());
+    await remove();
+    await page.reload();
+    expect((await data(page)).weeklyPlans[0].tasks.some((task: { id: string }) => task.id === 'time')).toBe(false);
+    if (width < 768) await expect(page.getByRole('checkbox')).toHaveCount(0);
+  });
+}
+
+test('a 320px plan keeps the complete pending goal title readable beside its progress', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await seed(page);
+  const title = 'Học 210 phút tuần này và ôn các câu sai đã ghi';
+  await page.evaluate(title => {
+    const key = 'toeic_progress_bundle_v3';
+    const bundle = JSON.parse(localStorage.getItem(key)!);
+    bundle.weeklyPlans[0].tasks.find((task: { id: string }) => task.id === 'time').title = title;
+    localStorage.setItem(key, JSON.stringify(bundle));
+  }, title);
+  await page.reload();
+  const row = page.locator('[data-task-id="time"]');
+  const heading = row.getByText(title, { exact: true });
+  await expect(heading).toBeVisible();
+  expect(await heading.evaluate(element => element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+  await expect(row).toContainText('120/210 phút');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await row.click();
+  await expect(page.getByRole('dialog')).toContainText(title);
 });
 
 

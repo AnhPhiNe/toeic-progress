@@ -96,7 +96,7 @@ test('review completion reports actual results and an interrupted session shows 
   await page.screenshot({ path: testInfo.outputPath('review-completion-mobile.png'), fullPage: true });
   await review.getByRole('button', { name: 'Đóng', exact: true }).click();
   await seed(page, 1);
-  await page.getByRole('button', { name: /^Ôn 1 (thẻ|câu đến hạn)$/ }).click();
+  await page.getByRole('button', { name: 'Bắt đầu ôn tập 1 thẻ ngắt quãng', exact: true }).click();
   await review.getByRole('button', { name: 'Đóng phiên ôn tập', exact: true }).click();
   await expect(page.getByText(/^Xong \d+ thẻ/)).toHaveCount(0);
 });
@@ -155,7 +155,7 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
 
   await editor.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await editor.getByRole('button', { name: 'Lưu & thêm tiếp', exact: true }).click();
-  await expect(editor.getByRole('status')).toHaveText('Đã lưu ghi chú');
+  await expect(editor.getByRole('status').filter({ hasText: 'Đã lưu ghi chú' })).toHaveText('Đã lưu ghi chú');
   expect((await heading.boundingBox())!.height).toBe(before!.height);
   await expect(editor.getByLabel('Câu hỏi + phương án')).toHaveValue('');
   await expect(editor.getByLabel('Câu hỏi + phương án')).toBeFocused();
@@ -163,5 +163,5 @@ test('save-and-add-next confirms inside the existing header and keeps the next f
   await expect(editor.getByRole('button', { name: 'Chọn đề', exact: true })).toHaveText('ETS Test 1');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.length)).toBe(1);
   await editor.getByLabel('Câu hỏi + phương án').fill('Next question');
-  await expect(editor.getByRole('status')).toHaveCount(0);
+  await expect(editor.getByRole('status').filter({ hasText: 'Đã lưu ghi chú' })).toHaveCount(0);
 });

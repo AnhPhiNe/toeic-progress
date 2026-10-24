@@ -7,6 +7,7 @@ import { ContainerScrollCue } from '@/shared/components/ScrollCue';
 import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL, PHONE_SHEET_FOOTER } from '@/shared/ui/surfaces';
 import { PART_MAX_QUESTIONS, getPracticeParts } from '@/shared/domain/etsScoring';
 import { triggerHaptic } from '@/shared/lib/haptics';
+import { skillSummary } from '../lib/skillSummary';
 
 const PART_SHORT_TITLES: Record<number, string> = {
   1: 'Part 1 · Mô tả tranh',
@@ -78,25 +79,7 @@ export function SkillDetailModal({
     });
   }, [isFull, isListening, session]);
 
-  // Tổng hợp số liệu
-  const summary = useMemo(() => {
-    const scaled = isListening ? session.scaledListening : session.scaledReading;
-    const raw = isListening ? session.rawListening : session.rawReading;
-
-    const sumCorrect = partData.reduce((acc, p) => acc + (p.correct ?? 0), 0);
-    const sumTotal = partData.reduce((acc, p) => acc + p.total, 0);
-
-    const totalQuestions = isFull ? 100 : sumTotal;
-    const correctQuestions = raw !== undefined ? raw : sumCorrect;
-    const accuracy = totalQuestions > 0 ? ((correctQuestions / totalQuestions) * 100).toFixed(1) : '—';
-
-    return {
-      scaled: scaled ?? '—',
-      correct: correctQuestions,
-      total: totalQuestions,
-      accuracy
-    };
-  }, [isFull, isListening, partData, session]);
+  const summary = useMemo(() => skillSummary(session, skill), [session, skill]);
 
   return createPortal(
     <div
@@ -151,6 +134,7 @@ export function SkillDetailModal({
             <button
               type="button"
               onClick={() => handleSkillChange('listening')}
+              aria-pressed={isListening}
               className={`py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 isListening
                   ? 'bg-white text-indigo-900 shadow-xs border border-slate-300 dark:bg-[#162137] dark:text-indigo-300 dark:border-slate-700'
@@ -162,6 +146,7 @@ export function SkillDetailModal({
             <button
               type="button"
               onClick={() => handleSkillChange('reading')}
+              aria-pressed={!isListening}
               className={`py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 !isListening
                   ? 'bg-white text-teal-900 shadow-xs border border-slate-300 dark:bg-[#162137] dark:text-teal-300 dark:border-slate-700'
@@ -188,25 +173,25 @@ export function SkillDetailModal({
                       isListening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-600 dark:text-teal-400'
                     }`}
                   >
-                    {summary.scaled}
-                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/495</span>
+                    {summary.scaled ?? '—'}
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">/495</span>
                   </p>
                 </div>
                 <div className="text-center px-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Số câu đúng
                   </span>
-                  <p className="text-xl font-black text-slate-950 dark:text-white mt-0.5 tabular-nums">
-                    {summary.correct}
-                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/{summary.total}</span>
+                  <p data-testid="skill-correct" className={(summary.correct === undefined ? "text-sm" : "text-xl") + " font-black text-slate-950 dark:text-white mt-0.5 tabular-nums"}>
+                    {summary.correct ?? 'Chưa ghi'}
+                    {summary.correct !== undefined && <span className="text-xs font-bold text-slate-600 dark:text-slate-300">/{summary.total}</span>}
                   </p>
                 </div>
                 <div className="text-center px-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Chính xác
                   </span>
-                  <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5 tabular-nums">
-                    {summary.accuracy}%
+                  <p data-testid="skill-accuracy" className="text-xl font-black text-slate-900 dark:text-white mt-0.5 tabular-nums">
+                    {summary.accuracy === undefined ? '—' : `${summary.accuracy.toFixed(1)}%`}
                   </p>
                 </div>
               </div>
@@ -225,7 +210,7 @@ export function SkillDetailModal({
 
               {partData.length > 0 ? (
                 partData.map((p, index) => {
-                  const isWeak = p.percent < 65;
+                  const isWeak = p.correct !== undefined && p.percent < 65;
                   const barColor = isWeak
                     ? 'bg-amber-500 dark:bg-amber-400'
                     : isListening

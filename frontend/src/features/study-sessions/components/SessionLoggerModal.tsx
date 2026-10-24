@@ -6,7 +6,8 @@ import {
   BookOpen, 
   Plus, 
   Trash2,
-  RotateCcw
+  RotateCcw,
+  ArrowLeft
 } from 'lucide-react';
 import { 
   StudySession, 
@@ -28,9 +29,18 @@ import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
+import { EMPTY_WRONG_NUMBER_DRAFT, type WrongNumberDraft } from '../lib/wrongNumberDraft';
+import { parseQuestionList } from '@/shared/domain/questionNumbers';
+import { hasResultTiming, formatElapsed } from '@/shared/domain/resultTiming';
+import type { ResultImageTiming, ConfirmedResultTiming } from '@/shared/types';
+import { ResultTimingReview, timingCandidate as createTimingCandidate, type TimingCandidate } from './ResultTimingReview';
 import { DesktopFullTestBody } from './DesktopFullTestBody';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 import { ContainerScrollCue } from '@/shared/components/ScrollCue';
+import type { AppliedResultScore, ResultScoreDraft } from './ResultScoreReview';
+import type { PartTimingDurations } from '@/shared/types';
+import { useFormDraft } from '@/shared/hooks/useFormDraft';
+import { parseSessionFormDraft, type SessionFormDraft } from '@/shared/data/studyFormDrafts';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -75,6 +85,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [durationMinutes, setDurationMinutes] = useState(120);
+  const [durationEdited, setDurationEdited] = useState(false);
+  const durationEditedRef = useRef(false);
+  const markDurationEdited = (value: boolean) => { durationEditedRef.current = value; setDurationEdited(value); };
   const [vocabCount, setVocabCount] = useState(1);
 
   const [notes, setNotes] = useState('');
@@ -84,14 +97,74 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualReading, setManualReading] = useState('');
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
+  const [manualViewOverride, setManualViewOverride] = useState(false);
+  const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
+  const [resultTiming, setResultTiming] = useState<ConfirmedResultTiming | null>(null);
+  const [timingCandidate, setTimingCandidate] = useState<TimingCandidate | null>(null);
+  const changeDurationMinutes = (value: number) => {
+    markDurationEdited(true);
+    setDurationMinutes(value);
+    setResultTiming(current => {
+      if (!current || current.totalSeconds === null || Math.abs(current.totalSeconds / 60 - value) < 0.01) return current;
+      const next = { ...current, totalSeconds: null };
+      return hasResultTiming(next) ? next : null;
+    });
+  };
+  const changePartDurations = (value: PartTimingDurations | undefined) => {
+    setPartDurations(value);
+    setResultTiming(current => {
+      if (!current) return null;
+      const next = { ...current, parts: { ...current.parts } };
+      for (const key of ['part5', 'part6', 'part7'] as const) {
+        if (current.parts[key] !== null && (value?.[key] === undefined || Math.abs(current.parts[key]! / 60 - value[key]!) >= 0.01)) next.parts[key] = null;
+      }
+      return hasResultTiming(next) ? next : null;
+    });
+  };
+  const readImageTiming = (value: ResultImageTiming) => {
+    if (hasResultTiming(value)) setTimingCandidate(current => {
+      const previous = current?.timing ?? resultTiming;
+      const next = createTimingCandidate({
+        totalSeconds: value.totalSeconds ?? previous?.totalSeconds ?? null,
+        listeningSeconds: value.listeningSeconds ?? previous?.listeningSeconds ?? null,
+        readingSeconds: value.readingSeconds ?? previous?.readingSeconds ?? null,
+        parts: Object.fromEntries(Object.entries(value.parts).map(([key, seconds]) =>
+          [key, seconds ?? previous?.parts[key as keyof ResultImageTiming['parts']] ?? null])) as ResultImageTiming['parts'],
+      });
+      // Supplemental screenshots fill missing scopes without discarding pending edits.
+      if (current?.edited) {
+        const original = createTimingCandidate(current.timing).fields;
+        for (const key of Object.keys(current.fields) as (keyof TimingCandidate['fields'])[]) {
+          if (current.fields[key] !== original[key]) next.fields[key] = current.fields[key];
+        }
+        next.edited = true;
+      }
+      return next;
+    });
+  };
+  const applyImageTiming = (value: ConfirmedResultTiming) => {
+    setResultTiming(value); setTimingCandidate(null); setScoreError('');
+    if (value.totalSeconds !== null) { setDurationMinutes(Math.round(value.totalSeconds / 60 * 100) / 100); markDurationEdited(true); }
+    const parts = { ...partDurations };
+    for (const key of ['part5', 'part6', 'part7'] as const) {
+      if (value.parts[key] !== null) parts[key] = Math.round(value.parts[key]! / 60 * 100) / 100;
+      else if (resultTiming?.parts[key] != null && parts[key] != null && Math.abs(parts[key]! - resultTiming.parts[key]! / 60) < 0.01) delete parts[key];
+    }
+    setPartDurations(Object.keys(parts).length ? parts : undefined);
+  };
   // A Full Test is logged by its wrong questions; per-Part counts and official scores stay as alternatives.
   const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
   const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
+  const [wrongNumberDraft, setWrongNumberDraft] = useState<WrongNumberDraft>(EMPTY_WRONG_NUMBER_DRAFT);
   const [savedResult, setSavedResult] = useState<StudySession | null>(null);
   const suggestedName = useRef('');
   const [scoreError, setScoreError] = useState('');
+  const [sourceScorePending, setSourceScorePending] = useState(false);
+  const sourceScoreStore = useRef<ResultScoreDraft | null>(null);
   const draftOwner = useRef(getActiveAccountId());
   const savedSession = useRef(false);
+  const [restoredVersion, setRestoredVersion] = useState(0);
+  const restoredType = useRef<string | null>(null);
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
   const previousAttemptsForTest = useMemo(() => {
@@ -150,7 +223,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPracticeRows(prev => prev.map((row, i) => {
       if (i !== index) return row;
       const next = { ...row, ...patch };
-      next.total = PART_MAX_QUESTIONS[`part${next.part}` as keyof typeof PART_MAX_QUESTIONS];
+      // Choosing another Part starts a whole-Part row; editing its result keeps
+      // a historical partial drill's denominator intact.
+      if (next.part !== row.part) next.total = PART_MAX_QUESTIONS[`part${next.part}` as keyof typeof PART_MAX_QUESTIONS];
       // Số câu đúng không bao giờ vượt quá số câu đã làm
       if (next.correct > next.total) next.correct = next.total;
       return next;
@@ -173,7 +248,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
    * độ sửa, sửa xong rồi bấm "Nhập điểm" sẽ thấy dữ liệu của buổi vừa sửa.
    */
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { sourceScoreStore.current = null; return; }
     draftOwner.current = getActiveAccountId();
     savedSession.current = false;
     const e = editingSession;
@@ -183,11 +258,16 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     suggestedName.current = !e && phone && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
     setTestName(e?.testName ?? suggestedName.current);
     setEntry(e?.partScores && !e.wrongQuestions ? 'counts' : 'wrong');
+    setManualViewOverride(Boolean(e && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
+    setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
+    setPartDurations(e?.partDurations);
+    setResultTiming(e?.resultTiming ?? null); setTimingCandidate(null);
     setSavedResult(null);
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
+    markDurationEdited(Boolean(e || prefill?.durationMinutes !== undefined));
     setVocabCount(1);
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
@@ -200,24 +280,61 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setIncludePartDetails(source === 'ESTIMATED' || Boolean(e?.partScores));
     setScoreError('');
     const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
+    setSourceScorePending(false);
+    sourceScoreStore.current = null;
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
-    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p, total: PART_MAX_QUESTIONS[`part${p.part}` as keyof typeof PART_MAX_QUESTIONS] })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
+    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
   }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
-    if (sessionType === 'PART_PRACTICE') setDurationMinutes(current => current === 120 ? 30 : current);
+    if (restoredType.current === sessionType) { restoredType.current = null; return; }
+    restoredType.current = null;
+    setSourceScorePending(false); sourceScoreStore.current = null;
+    if (!durationEditedRef.current && sessionType === 'PART_PRACTICE') setDurationMinutes(current => current === 120 ? 30 : current);
     if (sessionType !== 'FULL_TEST') setTestName(current => current && current === suggestedName.current ? '' : current);
-    if (sessionType === 'FULL_TEST') setDurationMinutes(current => current === 30 ? 120 : current);
+    if (sessionType === 'FULL_TEST') { if (!durationEditedRef.current) setDurationMinutes(current => current === 30 ? 120 : current); setManualViewOverride(false); }
   }, [sessionType]);
 
-  const modalRef = useModalA11y(isOpen, onClose);
+  const formDraft: SessionFormDraft = { sessionType, testName, date, durationMinutes, durationEdited, vocabCount, notes,
+    scoreSource, manualMode, manualListening, manualReading, manualTotal, includePartDetails, entry, wrongQuestions,
+    partScores, practiceRows, sourceScorePending, sourceScoreDraft: sourceScoreStore.current, originalUpdatedAt: editingSession?.updatedAt, wrongNumberDraft, partDurations, resultTiming, timingCandidate };
+  const persistentDraft = useFormDraft({
+    scope: `session:${editingSession?.id ?? (prefill?.sessionType ? `prefill:${prefill.sessionType}:${prefill.partNumber ?? 'all'}` : 'new')}`,
+    enabled: isOpen && !savedSession.current, value: formDraft,
+    snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
+    meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
+      || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
+      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== 1 || date !== getTodayDateString()
+      || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
+    validate: input => {
+      const value = parseSessionFormDraft(input);
+      return value && value.originalUpdatedAt === editingSession?.updatedAt ? value : null;
+    },
+    restore: value => {
+      restoredType.current = value.sessionType;
+      setSessionType(value.sessionType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
+      markDurationEdited(value.durationEdited || value.resultTiming?.totalSeconds != null);
+      setVocabCount(value.vocabCount); setNotes(value.notes); setScoreSource(value.scoreSource); setManualMode(value.manualMode);
+      setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
+      setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
+      setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
+      setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
+      setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
+      setRestoredVersion(version => version + 1);
+    }
+  });
+  const closeWithDraft = () => {
+    if (!persistentDraft.persist() && !window.confirm('Chưa tự lưu được nháp. Đóng form sẽ mất nội dung đang nhập. Vẫn đóng?')) return;
+    onClose();
+  };
+  const modalRef = useModalA11y(isOpen, closeWithDraft);
   const formBodyRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
-  const wrongEntry = sessionType === 'FULL_TEST' && scoreSource === 'ESTIMATED' && entry === 'wrong';
+  const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   const effectiveParts = wrongEntry ? partScoresFromWrong(wrongQuestions) : partScores;
   // Tính điểm trực tiếp từ partScores
   const calculated = calculateFromPartScores(effectiveParts);
@@ -233,14 +350,47 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   try { scorePreview = resolveScores(); } catch { /* Incomplete manual fields stay empty in the preview. */ }
 
   const changeEntry = (mode: 'wrong' | 'counts') => {
-    if (mode === 'counts') setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES });
+    setSourceScorePending(false);
+    sourceScoreStore.current = null;
+    if (mode === 'counts') {
+      setPartScores(wrongQuestions.length ? partScoresFromWrong(wrongQuestions) : { ...EMPTY_PART_SCORES });
+      setManualViewOverride(true);
+    } else {
+      setManualViewOverride(false);
+    }
     setEntry(mode);
   };
   // Official scores keep the marked questions as per-Part detail.
   const switchManual = (on: boolean) => {
+    setSourceScorePending(false);
+    sourceScoreStore.current = null;
     setScoreSource(on ? manualMode : 'ESTIMATED');
+    setManualViewOverride(on);
     if (on && entry === 'wrong') { setPartScores(wrongQuestions.length ? effectiveParts : { ...EMPTY_PART_SCORES }); setIncludePartDetails(wrongQuestions.length > 0); }
     else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
+    setScoreError('');
+  };
+  const applySourceScore = (score: AppliedResultScore) => {
+    setScoreSource(score.source); setManualMode(score.source);
+    setManualListening(score.source === 'MANUAL_SECTIONS' ? String(score.listening) : '');
+    setManualReading(score.source === 'MANUAL_SECTIONS' ? String(score.reading) : '');
+    setManualTotal(String(score.source === 'MANUAL_TOTAL' ? score.total : score.listening + score.reading));
+    setPartScores(partScoresFromWrong(wrongQuestions));
+    setIncludePartDetails(wrongQuestions.length > 0);
+    if (score.partDurations) {
+      changePartDurations(score.partDurations);
+    }
+    setManualViewOverride(false);
+    setScoreError('');
+  };
+
+  const revertSourceScore = () => {
+    setScoreSource('ESTIMATED');
+    setManualListening('');
+    setManualReading('');
+    setManualTotal('');
+    sourceScoreStore.current = null;
+    setSourceScorePending(false);
     setScoreError('');
   };
 
@@ -262,6 +412,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       if (sessionType === 'VOCAB') {
         onSaveVocab(date, vocabCount);
         savedSession.current = true;
+        persistentDraft.clear();
         onClose();
         return;
       }
@@ -271,7 +422,16 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       let newSession: StudySession;
 
       if (sessionType === 'FULL_TEST') {
-        if (wrongEntry && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        if (timingCandidate) { setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.'); return; }
+        if (entry === 'wrong' && wrongNumberDraft.typing) {
+          const parsed = parseQuestionList(wrongNumberDraft.text);
+          if (parsed.invalid.length || JSON.stringify(parsed.questions) !== JSON.stringify(normalizeQuestionList(wrongQuestions))) {
+            setScoreError('Áp dụng danh sách số câu đang gõ, hoặc bấm Hủy tại ô số câu trước khi lưu. Nội dung đang gõ đã được giữ trong nháp.');
+            return;
+          }
+        }
+        if (sourceScorePending) { setScoreError('Kiểm tra và áp dụng điểm từ đề, hoặc chọn “Dùng điểm ước tính” trước khi lưu.'); return; }
+        if (wrongEntry && scoreSource === 'ESTIMATED' && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
         let resolved: ReturnType<typeof resolveFullTestScore>;
         try { resolved = resolveScores(); setScoreError(''); }
         catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
@@ -285,15 +445,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             : isExistingTest ? nextAttemptNumber : 1,
           date,
           durationMinutes: Number(durationMinutes) || 120,
+          partDurations: partDurations && Object.values(partDurations).some(value => value !== undefined) ? partDurations : undefined,
+          ...(resultTiming ? { resultTiming } : {}),
           ...resolved,
-          ...(wrongEntry ? { wrongQuestions: normalizeQuestionList(wrongQuestions) } : {}),
+          ...(entry === 'wrong' && (wrongEntry || wrongQuestions.length > 0) ? { wrongQuestions: normalizeQuestionList(wrongQuestions) } : {}),
           notes,
           createdAt
         };
       } else {
-        const cleanRows = practiceRows
-          .map(r => ({ ...r, total: PART_MAX_QUESTIONS[`part${r.part}` as keyof typeof PART_MAX_QUESTIONS] }))
-          .filter(r => r.total > 0);
+        const cleanRows = practiceRows.map(r => ({ ...r })).filter(r => r.total > 0);
         const partLabel = cleanRows.length === 1
           ? `Luyện Part ${cleanRows[0].part}`
           : `Luyện ${cleanRows.length} Part`;
@@ -320,6 +480,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         onSaveSession(newSession);
       }
       savedSession.current = true;
+      persistentDraft.clear();
       // Only Reading questions become notebook cards, so a test with no Reading mistakes has nothing to fill in.
       if (!isEditing && draftQuestions(newSession).length) {
         if (isPhone || !onSavedWrongTest) { setSavedResult(newSession); return; }
@@ -342,7 +503,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1080px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1100px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
         <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
@@ -352,7 +513,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={closeWithDraft}
             aria-label="Đóng form ghi nhận buổi học"
             className="p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
@@ -360,6 +521,27 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </button>
         </div>
 
+        {!savedResult && persistentDraft.state === 'restored' && (
+          <div className="flex shrink-0 items-center justify-end px-4 py-1.5 sm:px-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-300">
+              <span role="status">📝 Đã khôi phục bản nháp trên thiết bị này</span>
+              <button
+                type="button"
+                className="font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 pl-2 border-l border-slate-300 dark:border-slate-700 cursor-pointer"
+                onClick={() => {
+                  if (window.confirm('Xóa bản nháp đang nhập và đóng form? Kết quả đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) onClose();
+                }}
+              >
+                Bỏ nháp
+              </button>
+            </div>
+          </div>
+        )}
+        {!savedResult && persistentDraft.state === 'unavailable' && (
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
+            <span role="status">Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.</span>
+          </div>
+        )}
         {/* Form Content */}
         {savedResult ? <PhoneSavedResult session={savedResult} onClose={onClose} onDetails={() => { onClose(); onOpenSessionDrafts?.(savedResult); }} />
         : <form onSubmit={handleSubmit} onKeyDown={event => {
@@ -404,11 +586,17 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>
 
           {isPhone && sessionType === 'FULL_TEST' && (
-            <PhoneFullTestBody testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+            <PhoneFullTestBody key={restoredVersion} testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              onTiming={readImageTiming}
+              numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
               retest={isExistingTest ? { attempt: nextAttemptNumber, best: bestPreviousScore } : undefined}
               partScores={effectiveParts} onPart={handlePartScoreChange} preview={scorePreview}
               entry={entry} onEntry={changeEntry}
               wrongQuestions={wrongQuestions} onWrong={setWrongQuestions}
+              onScores={applySourceScore}
+              onScoresPending={setSourceScorePending}
+              scoreStore={sourceScoreStore}
+              manualViewOverride={manualViewOverride}
               scoreSource={scoreSource} manualMode={manualMode}
               useManual={switchManual}
               setManualMode={mode => { setScoreSource(mode); setManualMode(mode); setScoreError(''); }}
@@ -416,14 +604,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               manualReading={manualReading} setManualReading={setManualReading}
               manualTotal={manualTotal} setManualTotal={setManualTotal}
               includePartDetails={includePartDetails} setIncludePartDetails={setIncludePartDetails}
-              date={date} setDate={setDate} duration={durationMinutes} setDuration={setDurationMinutes} notes={notes} setNotes={setNotes} />
+              partDurations={partDurations} onPartDurationsChange={changePartDurations}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes} notes={notes} setNotes={setNotes} />
           )}
           {isPhone && sessionType === 'PART_PRACTICE' && (
             <PhonePracticeBody testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
               rows={practiceRows} setRows={setPracticeRows} sessions={sessions ?? []} editingId={editingSession?.id}
-              date={date} setDate={setDate} duration={durationMinutes} setDuration={setDurationMinutes} notes={notes} setNotes={setNotes} />
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes} notes={notes} setNotes={setNotes} />
           )}
 
+          {sessionType === 'FULL_TEST' && timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={() => { setTimingCandidate(null); setScoreError(''); }} />}
+          {sessionType === 'FULL_TEST' && resultTiming && !timingCandidate && <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900 dark:bg-teal-950/30 dark:text-teal-200">
+            Thời gian đã xác nhận từ ảnh{resultTiming.totalSeconds !== null ? `: ${formatElapsed(resultTiming.totalSeconds)}` : ' · chỉ có từng phần'}.
+            <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
+          </div>}
           {sessionType !== 'VOCAB' && !isPhone && (<>
           {/* General Info Row */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
@@ -453,11 +647,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <input
                 id="session-duration"
                 type="number"
-                min="5"
-                max="240"
+                min="0.01"
+                max="1440"
+                step="any"
                 required
                 value={durationMinutes}
-                onChange={e => setDurationMinutes(Number(e.target.value))}
+                onChange={e => changeDurationMinutes(Number(e.target.value))}
                 className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
@@ -481,20 +676,68 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           )}
 
           {wrongEntry && (
-            <DesktopFullTestBody wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
-              onCounts={() => changeEntry('counts')} onOfficial={() => switchManual(true)} notes={notes} setNotes={setNotes} />
+            <DesktopFullTestBody key={restoredVersion} wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
+              onTiming={readImageTiming}
+              numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
+              onScores={applySourceScore}
+              onScoresPending={setSourceScorePending}
+              scoreStore={sourceScoreStore}
+              scoreSource={scoreSource}
+              manualListening={manualListening}
+              manualReading={manualReading}
+              manualTotal={manualTotal}
+              onRevertScore={revertSourceScore}
+              onCounts={() => { setManualViewOverride(true); changeEntry('counts'); }}
+              onOfficial={() => { setManualViewOverride(true); switchManual(true); }}
+              notes={notes} setNotes={setNotes}
+              partDurations={partDurations} onPartDurationsChange={changePartDurations} />
           )}
 
           {/* FULL TEST MODE */}
           {sessionType === 'FULL_TEST' && !wrongEntry && (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  <input type="checkbox" checked={scoreSource !== 'ESTIMATED'} onChange={event => switchManual(event.target.checked)} />
-                  Nhập điểm từ kết quả đề (tùy chọn)
-                </label>
-                {scoreSource === 'ESTIMATED' && <button type="button" onClick={() => changeEntry('wrong')}
-                  className="cursor-pointer text-sm font-bold text-blue-700 dark:text-blue-300">Đánh dấu câu sai</button>}
+              {/* Header thanh điều hướng: Nút Quay về Lưới 200 câu & Chuyển đổi chế độ */}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-[#FFFDF7] p-3 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualViewOverride(false);
+                    changeEntry('wrong');
+                  }}
+                  className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3.5 py-2 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-100 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-400 dark:bg-slate-900 dark:text-white transition-all"
+                >
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  <span>Đánh dấu câu sai</span>
+                </button>
+
+                <div className="flex items-center gap-1.5" role="group" aria-label="Chế độ nhập">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScoreSource('ESTIMATED');
+                      setEntry('counts');
+                    }}
+                    className={`rounded-xl px-3 py-2 text-xs font-black transition-all cursor-pointer ${
+                      scoreSource === 'ESTIMATED'
+                        ? 'border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300'
+                        : 'border border-slate-300 bg-white text-slate-600 hover:text-slate-950 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                    }`}
+                  >
+                    Số câu đúng mỗi Part
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchManual(true)}
+                    className={`rounded-xl px-3 py-2 text-xs font-black transition-all cursor-pointer ${
+                      scoreSource !== 'ESTIMATED'
+                        ? 'border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300'
+                        : 'border border-slate-300 bg-white text-slate-600 hover:text-slate-950 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                    }`}
+                  >
+                    Điểm chính thức
+                  </button>
+                </div>
+
               </div>
 
               {scoreSource !== 'ESTIMATED' && <div className="rounded-xl border border-slate-200 p-4 space-y-3 dark:border-slate-700">
@@ -773,7 +1016,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
               <div className="space-y-2">
                 {practiceRows.map((row, index) => {
-                  const maxQuestions = PART_MAX_QUESTIONS[`part${row.part}` as keyof typeof PART_MAX_QUESTIONS];
+                  const maxQuestions = row.total;
                   const rowAccuracy = maxQuestions > 0 ? Math.round((row.correct / maxQuestions) * 100) : 0;
                   return (
                     <div key={index} className="flex flex-wrap items-end gap-2">
@@ -903,7 +1146,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             {/* Điện thoại: đã có nút X ở đầu form, nên bỏ "Hủy" để hai nút lưu đủ rộng */}
             <button
               type="button"
-              onClick={onClose}
+              onClick={closeWithDraft}
               className="max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy

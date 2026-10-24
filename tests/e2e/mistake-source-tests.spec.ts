@@ -20,12 +20,12 @@ test('filtered review prioritizes the oldest overdue card and still supports rev
   await page.getByLabel('Đề', { exact: true }).selectOption({ label: 'ETS Test 1' });
   await page.getByRole('button', { name: 'Ôn 2 thẻ', exact: true }).click();
   const review = page.getByRole('dialog', { name: 'Ôn tập' });
-  await expect(review.getByText(/Oldest overdue should/)).toBeVisible();
+  await expect(review.locator('[aria-hidden="false"]').getByText(/Oldest overdue should/)).toBeVisible();
   await review.getByRole('button', { name: 'Đóng phiên ôn tập' }).click();
   const futureRow = page.getByRole('button', { name: 'Mở câu: Future should ____ submitted.', exact: true }).locator('..');
   await futureRow.getByRole('button', { name: 'Tùy chọn thẻ' }).click();
   await page.getByRole('menuitem', { name: 'Ôn câu này', exact: true }).click();
-  await expect(review.getByText(/Future should/)).toBeVisible();
+  await expect(review.locator('[aria-hidden="false"]').getByText(/Future should/)).toBeVisible();
   await expect(review.getByText('1 / 1', { exact: true })).toBeVisible();
 });
 
@@ -83,7 +83,7 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await expect(page.getByRole('button', { name: 'Tất cả 2', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ôn 1 thẻ', exact: true })).toBeEnabled();
   await page.getByLabel('Part', { exact: true }).selectOption('7');
-  await expect(page.getByText('Không có thẻ nào khớp bộ lọc.')).toBeVisible();
+  await expect(page.getByText('Không có thẻ nào khớp bộ lọc hiện tại', { exact: true })).toBeVisible();
   await page.getByLabel('Part', { exact: true }).selectOption('ALL');
   await page.getByRole('button', { name: 'Ôn 1 thẻ', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Ôn tập' }).getByText('1 / 1', { exact: true })).toBeVisible();

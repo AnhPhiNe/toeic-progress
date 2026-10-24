@@ -21,7 +21,7 @@ test('manual section scores override the estimate and survive reload and editing
   for (const [index, count] of [5, 20, 35, 27, 25, 12, 33].entries()) await dialog.getByLabel(`Số câu đúng Part ${index + 1}`, { exact: true }).fill(String(count));
   await expect(dialog.getByText('Ước tính tham khảo', { exact: true })).toBeVisible();
   await expect(dialog.getByText('690', { exact: true })).toBeVisible();
-  await dialog.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)').check();
+  await useOfficialScore(dialog);
   await dialog.getByLabel('Điểm Listening /495').fill('445');
   await dialog.getByLabel('Điểm Reading /495').fill('350');
   await expect(dialog.getByText('795', { exact: true })).toBeVisible();

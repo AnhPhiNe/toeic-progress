@@ -10,17 +10,19 @@ import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
-import { optionLetter } from '@/features/mistakes/lib/userChoice';
-import { mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
+import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
+import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { mistakeTestName, testNameKey, uniqueTestNames } from '@/features/mistakes/lib/sourceTests';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { triggerHaptic } from '@/shared/lib/haptics';
+import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
 import './notebook.css';
 
 const NOTEBOOK_PAGE_SIZE = 6;
@@ -56,9 +58,10 @@ interface MistakeNotebookViewProps {
   dueCount: number;
   onStartReview: (ids?: string[]) => void;
   onAddMistake: (entry: MistakeEntry) => void;
+  onAddMistakes?: (entries: MistakeEntry[]) => void;
   onMarkMastered: (id: string) => void;
   onReopenCards: (ids: string[]) => void;
-  onDeleteMistake: (id: string) => void;
+  onDeleteMistake: (id: string) => MistakeUndoAction | void;
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
   onOpenSessionLogger?: () => void;
@@ -68,7 +71,7 @@ interface MistakeNotebookViewProps {
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
-export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake,
+export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger, onNavigateTab }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
@@ -91,17 +94,33 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return ids.length ? ids : null;
   });
   const [sessionSource, setSessionSource] = useState(createRequest);
-  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[] } | null>(null);
+  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[]; cardId: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
-  const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean } | null>(null);
+  const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const feedbackSequence = useRef(0);
   const notify = useCallback((message: string, error = false) => { setFeedback({ id: ++feedbackSequence.current, message, error }); }, []);
   const savedFeedback = useCallback((message: string) => notify(message), [notify]);
   useEffect(() => {
     if (!feedback) return;
-    const timeout = window.setTimeout(() => setFeedback(null), feedback.error ? 7000 : 4000);
+    const timeout = window.setTimeout(() => setFeedback(null), feedback.undo ? 15000 : feedback.error ? 7000 : 4000);
     return () => window.clearTimeout(timeout);
   }, [feedback]);
+  const deleteCard = (id: string) => {
+    if (!window.confirm('Xóa lỗi này khỏi sổ tay?')) return;
+    try {
+      const owner = getActiveAccountId();
+      const undo = onDeleteMistake(id);
+      setFeedback({ id: ++feedbackSequence.current, message: 'Đã xóa thẻ', error: false, ...(undo ? { undo, owner } : {}) });
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa xóa được thẻ.', true); }
+  };
+  const undoDelete = () => {
+    if (!feedback?.undo) return;
+    try {
+      if (feedback.owner !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Không thể hoàn tác thẻ của tài khoản trước.');
+      feedback.undo();
+      notify('Đã khôi phục thẻ');
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa khôi phục được thẻ.', true); }
+  };
   const markMastered = (id: string) => {
     try {
       onMarkMastered(id);
@@ -139,7 +158,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   useEffect(() => { setPage(current => Math.min(current, pageCount)); }, [pageCount]);
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
-  const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? '';
+  const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? (initialSourceNames?.[0] ?? '');
+  const sourceHasNotes = Boolean(defaultSourceName) && sourcedMistakes.some(note => testNameKey(note.sourceTestName) === testNameKey(defaultSourceName));
   const resetFilters = () => { setPage(1); setSearchTerm(''); setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedStatus('ALL'); setSelectedCategory('ALL'); };
   const toggleRow = (id: string) => setExpandedIds(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   useEffect(() => {
@@ -153,21 +173,36 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   // Cards read from a screenshot have no explanation yet; the learner asks for one on the card (one AI use).
   const [explainingId, setExplainingId] = useState('');
+  const explanationMounted = useRef(true);
+  useEffect(() => {
+    explanationMounted.current = true;
+    return () => { explanationMounted.current = false; };
+  }, []);
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
   const explain = async (card: MistakeEntry) => {
     if (explainingId) return;
+    const owner = getActiveAccountId();
+    const isCurrent = () => explanationMounted.current && getActiveAccountId() === owner;
+    const sourceImageIds = [...(card.sourceImageIds ?? [])];
+    const chosen = getUserChoice(card);
     const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
-    const input: MistakeInput = { question: card.question ?? '', options: card.options ?? [], context: card.context ?? '', part: card.part,
-      userChoiceState: card.userChoiceState ?? 'UNKNOWN', userChoice: card.userChoiceState === 'CHOSEN' ? card.userChoice ?? '' : '',
+    const input: MistakeInput = { question: card.question ?? card.questionContext, options: [...(card.options ?? [])], context: card.context ?? '', part: card.part,
+      userChoiceState: card.userChoiceState ?? (chosen ? 'CHOSEN' : 'UNKNOWN'), userChoice: chosen,
       userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
-      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input);
-      const latest = loadMistakes().find(value => value.id === card.id) ?? card;
+      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], sourceImageIds, owner, isCurrent);
+      if (!isCurrent()) return;
+      const latest = loadMistakes().find(value => value.id === card.id);
+      if (!latest || !matchesExplanationCard(latest, input)
+        || JSON.stringify(latest.sourceImageIds ?? []) !== JSON.stringify(sourceImageIds)) {
+        throw new Error('Nội dung thẻ đã thay đổi hoặc bị xóa. Chưa áp dụng lời giải; hãy mở lại thẻ để kiểm tra.');
+      }
+      if (latest.explanation || latest.trapTip?.trim()) throw new Error('Thẻ đã có lời giải mới. Giữ nguyên lời giải đang lưu.');
       onUpdateMistake(mergeExplanation(latest, draft), latest);
       notify('Đã thêm giải thích');
-    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
-    finally { setExplainingId(''); removeCaptcha(); }
+    } catch (reason) { if (isCurrent()) notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
+    finally { if (isCurrent()) { setExplainingId(''); removeCaptcha(); } }
   };
 
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
@@ -178,9 +213,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     onReview: () => onStartReview([mistake.id]),
     onEdit: () => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake),
     onReuseReading: mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
-      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds }); setEntry(null);
+      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds, cardId: mistake.id }); setEntry(null);
     } : undefined,
-    onDelete: () => { if (window.confirm('Xóa lỗi này khỏi sổ tay?')) onDeleteMistake(mistake.id); },
+    onDelete: () => deleteCard(mistake.id),
     onMarkMastered: () => markMastered(mistake.id),
     onReopen: () => onReopenCards([mistake.id]),
     // A card read from a screenshot asks again with its ticket (no new AI use); otherwise one AI use.
@@ -255,12 +290,53 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       { id: 'later', label: 'Chưa đến hạn', dot: 'bg-slate-400', items: matchingMistakes.filter(m => !isDueForReview(m) && !needsSupplement(m) && !(m.status === 'MASTERED' && canReview(m))), showStatus: true },
       { id: 'mastered', label: 'Đã thuộc', dot: 'bg-emerald-600', items: matchingMistakes.filter(m => m.status === 'MASTERED' && canReview(m)), showStatus: false }
     ].filter(group => group.items.length > 0);
-    if (!groups.length) return (
-      <div className="space-y-2 px-4 py-10 text-center text-sm">
-        <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp tìm kiếm.</p>
-        <button type="button" onClick={resetFilters} className="min-h-11 cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
-      </div>
-    );
+    if (!groups.length) {
+      const activeTestName = defaultSourceName || (selectedTest !== 'ALL' && selectedTest !== 'NONE' && selectedTest !== 'SCOPE' ? selectedTest.replace('test:', '') : '');
+      return (
+        <div className="mx-4 my-2.5 rounded-2xl border-2 border-slate-900 bg-white p-6 text-center space-y-3 shadow-[2.5px_2.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2.5px_2.5px_0_0_#cbd5e1]">
+          <div className="space-y-1">
+            <span className="text-3xl block mb-2" aria-hidden="true">📭</span>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {activeTestName && !sourceHasNotes
+                ? `Chưa có câu sai nào thuộc đề "${activeTestName}"`
+                : 'Không có thẻ nào khớp bộ lọc hiện tại'}
+            </h3>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+              {mistakes.length > 0 && sourceHasNotes ? 'Thử thay đổi hoặc bỏ bộ lọc để xem các câu đã lưu.' : mistakes.length > 0 ? (
+                <>Toàn bộ sổ tay của bạn đang có <strong className="font-bold text-slate-800 dark:text-slate-200">{mistakes.length} câu sai</strong> từ các đề khác.</>
+              ) : (
+                <>Bạn chưa lưu câu sai nào vào Sổ tay.</>
+              )}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2 max-w-xs mx-auto">
+            {activeTestName && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(6);
+                  openCreate();
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-slate-900 bg-blue-600 text-white font-black text-xs shadow-[2px_2px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all dark:border-slate-300 cursor-pointer"
+              >
+                + Thêm câu sai cho đề này
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(6);
+                resetFilters();
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-700 font-bold text-xs hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 transition-colors cursor-pointer"
+            >
+              {mistakes.length > 0 ? `Xem tất cả ${mistakes.length} câu` : 'Đặt lại bộ lọc'}
+            </button>
+          </div>
+        </div>
+      );
+    }
     return <div className="notebook-list">{groups.map((group, index) => {
       const shown = openGroups[group.id] ?? 0;
       return (
@@ -307,6 +383,33 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             dueCount={dueCount}
             totalCount={mistakes.length}
           />
+        </div>
+      )}
+
+      {/* Filter Chip Indicator when active filters exist */}
+      {activeFilterCount > 0 && (
+        <div className="w-full mb-2.5 flex items-center justify-between rounded-xl border-2 border-slate-900 bg-indigo-50/90 px-3.5 py-2 text-xs shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-indigo-950/40 dark:shadow-[1.5px_1.5px_0_0_#cbd5e1]">
+          <span className="flex items-center gap-1.5 font-bold text-indigo-900 dark:text-indigo-200 min-w-0 truncate">
+            <span aria-hidden="true">🏷️</span>
+            <span className="truncate">
+              {selectedTest !== 'ALL' && (
+                <span>Đang lọc đề: <strong className="font-black text-indigo-950 dark:text-white">{defaultSourceName || (selectedTest === 'NONE' ? 'Chưa gắn đề' : 'Theo đề')}</strong></span>
+              )}
+              {selectedPart !== 'ALL' && <span> · Part {selectedPart}</span>}
+              {selectedCategory !== 'ALL' && <span> · {ERROR_CATEGORY_LABELS[selectedCategory]?.label ?? selectedCategory}</span>}
+              {searchTerm.trim() && <span> · "{searchTerm.trim()}"</span>}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(6);
+              resetFilters();
+            }}
+            className="ml-2 shrink-0 rounded-lg bg-white border border-slate-900 px-2.5 py-1 text-[11.5px] font-black text-slate-800 hover:bg-slate-100 shadow-[1px_1px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100 transition-all cursor-pointer"
+          >
+            ✕ Bỏ lọc
+          </button>
         </div>
       )}
 
@@ -460,9 +563,38 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <MistakeCard key={mistake.id} {...cardProps(mistake)} />
           ))}
           {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
-            <div className="space-y-2 px-4 py-10 text-center text-sm">
-              <p className="text-slate-600 dark:text-slate-400">Không có thẻ nào khớp bộ lọc.</p>
-              <button type="button" onClick={resetFilters} className="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Đặt lại bộ lọc</button>
+            <div className="m-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-3 dark:border-slate-700 dark:bg-slate-900/30">
+              <span className="text-3xl block" aria-hidden="true">📭</span>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                {defaultSourceName && !sourceHasNotes
+                  ? `Chưa có thẻ câu sai nào thuộc đề "${defaultSourceName}"`
+                  : 'Không có thẻ nào khớp bộ lọc hiện tại'}
+              </h3>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                {mistakes.length > 0 && sourceHasNotes ? 'Thử thay đổi hoặc bỏ bộ lọc để xem các câu đã lưu.' : mistakes.length > 0 ? (
+                  <>Toàn bộ sổ tay đang có <strong className="font-bold text-slate-800 dark:text-slate-200">{mistakes.length} câu sai</strong> từ các đề khác.</>
+                ) : (
+                  <>Bạn chưa lưu câu sai nào vào Sổ tay.</>
+                )}
+              </p>
+              <div className="flex gap-2 justify-center pt-2">
+                {defaultSourceName && (
+                  <button
+                    type="button"
+                    onClick={() => { triggerHaptic(6); openCreate(); }}
+                    className="px-4 py-2 rounded-xl border-2 border-slate-900 bg-blue-600 text-white font-black text-xs shadow-[2px_2px_0_0_#0f172a] hover:bg-blue-500 cursor-pointer"
+                  >
+                    + Thêm câu sai cho đề này
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { triggerHaptic(6); resetFilters(); }}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  {mistakes.length > 0 ? `Xem tất cả ${mistakes.length} câu` : 'Đặt lại bộ lọc'}
+                </button>
+              </div>
             </div>
           )}
           {filteredMistakes.length > 0 && (
@@ -503,6 +635,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         {feedback && <div key={feedback.id} className={`notebook-feedback ${feedback.error ? 'is-error' : ''}`}>
           {feedback.error ? <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" /> : <SuccessMark />}
           <p className="min-w-0 flex-1 text-sm font-semibold">{feedback.message}</p>
+          {feedback.undo && feedback.owner === getActiveAccountId() && <button type="button" onClick={undoDelete}
+            className="min-h-11 shrink-0 cursor-pointer rounded-lg px-3 text-sm font-extrabold text-blue-700 underline dark:text-blue-300">Hoàn tác</button>}
           <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>}
       </div>
@@ -514,8 +648,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}
         initialReading={reusedReading?.text}
+        draftScope={reusedReading ? `reuse:${reusedReading.cardId}` : undefined}
         initialSourceImageIds={reusedReading?.sourceImageIds}
-        onAdd={onAddMistake} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
+        onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
     </div>
   );

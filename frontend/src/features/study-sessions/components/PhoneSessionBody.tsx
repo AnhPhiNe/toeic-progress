@@ -1,10 +1,15 @@
+import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import type { LRPartScore, PracticePartResult, StudySession } from '@/shared/types';
+import type { LRPartScore, PracticePartResult, StudySession, PartTimingDurations } from '@/shared/types';
+import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString } from '@/shared/data/storage';
 import type { ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { WrongQuestionGrid } from './WrongQuestionGrid';
+import type { WrongNumberDraft } from '../lib/wrongNumberDraft';
+import type { ResultImageTiming } from '@/shared/types';
+import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
 type PartNumber = PracticePartResult['part'];
@@ -59,7 +64,7 @@ function DetailsRow({ date, setDate, duration, setDuration, notes, setNotes }: {
               className="mt-1 h-12 w-full rounded-xl border-[1.5px] border-slate-300 bg-white px-3 font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
           </label>
           <label className="text-[13px] font-semibold text-slate-600 dark:text-slate-300">Thời gian (phút)
-            <input id="session-duration" type="number" inputMode="numeric" min="5" max="240" required value={duration} onChange={event => setDuration(Number(event.target.value))}
+            <input id="session-duration" type="number" inputMode="decimal" min="0.01" max="1440" step="any" required value={duration} onChange={event => setDuration(Number(event.target.value))}
               className="mt-1 h-12 w-full rounded-xl border-[1.5px] border-slate-300 bg-white px-3 font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
           </label>
         </div>
@@ -75,11 +80,17 @@ function DetailsRow({ date, setDate, duration, setDuration, notes, setNotes }: {
 const LIVE_CARD = 'rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]';
 
 interface FullTestProps {
+  manualViewOverride?: boolean;
+  onTiming?: (value: ResultImageTiming) => void;
+  numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void;
   testName: string; setTestName: (value: string) => void; suggestions: string[];
   retest?: { attempt: number; best: number };
   partScores: LRPartScore; onPart: (key: keyof LRPartScore, value: number) => void;
   entry: 'wrong' | 'counts'; onEntry: (entry: 'wrong' | 'counts') => void;
   wrongQuestions: number[]; onWrong: (wrong: number[]) => void;
+  onScores?: (score: AppliedResultScore) => void;
+  onScoresPending?: (pending: boolean) => void;
+  scoreStore?: ResultScoreStore;
   preview: { totalScore?: number; scaledListening?: number; scaledReading?: number; rawListening?: number; rawReading?: number } | null;
   scoreSource: ScoreSource; manualMode: 'MANUAL_SECTIONS' | 'MANUAL_TOTAL';
   useManual: (on: boolean) => void; setManualMode: (mode: 'MANUAL_SECTIONS' | 'MANUAL_TOTAL') => void;
@@ -88,13 +99,16 @@ interface FullTestProps {
   manualTotal: string; setManualTotal: (value: string) => void;
   includePartDetails: boolean; setIncludePartDetails: (value: boolean) => void;
   date: string; setDate: (value: string) => void; duration: number; setDuration: (value: number) => void; notes: string; setNotes: (value: string) => void;
+  partDurations?: PartTimingDurations;
+  onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
 }
 
 /** Phone Full Test: per-Part counts stay the main input, with the score updating live in a card that sticks while scrolling. */
 export function PhoneFullTestBody(props: FullTestProps) {
-  const { partScores, onPart, preview, scoreSource } = props;
+  const { partScores, onPart, preview, scoreSource, partDurations, onPartDurationsChange } = props;
+  const [timingModalOpen, setTimingModalOpen] = useState(false);
   const manual = scoreSource !== 'ESTIMATED';
-  const fromWrong = !manual && props.entry === 'wrong';
+  const fromWrong = props.entry === 'wrong' && !props.manualViewOverride;
   // An empty section would show the scale's floor (R 5) and a misleadingly low total while the learner is
   // still typing; each section waits for its first answer and the total waits for both.
   // Logging by wrong questions shows a score once the first question is marked (a perfect test is confirmed on save).
@@ -157,7 +171,15 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       </div>
 
-      {manual && (
+      {/* Pacing Timing Strip for Reading Part 5-7 */}
+      <div className="rounded-2xl border-[1.5px] border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-[#111A2C]">
+        <PartTimingStrip
+          durations={partDurations}
+          onOpenEdit={() => setTimingModalOpen(true)}
+        />
+      </div>
+
+      {manual && !fromWrong && (
         <div className="space-y-3 rounded-2xl border-[1.5px] border-stone-300 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           <div className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1 dark:bg-slate-800" role="group" aria-label="Cách nhập điểm trực tiếp">
             {(['MANUAL_SECTIONS', 'MANUAL_TOTAL'] as const).map(mode => (
@@ -186,12 +208,13 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       )}
 
-      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onChange={props.onWrong} />}
+      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onTiming={props.onTiming} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft} />}
 
       {showParts && <>
         {section('Listening', [1, 2, 3, 4], listeningRaw)}
         {section('Reading', [5, 6, 7], readingRaw)}
       </>}
+      {manual && props.entry === 'wrong' && props.wrongQuestions.length > 0 && <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Đã giữ {props.wrongQuestions.length} câu sai để ghi Sổ tay.</p>}
 
       {/* Other ways to enter the same test */}
       <div className="rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-2.5 space-y-1.5 dark:border-slate-700 dark:bg-slate-900/50">
@@ -229,6 +252,13 @@ export function PhoneFullTestBody(props: FullTestProps) {
       </div>
 
       <DetailsRow date={props.date} setDate={props.setDate} duration={props.duration} setDuration={props.setDuration} notes={props.notes} setNotes={props.setNotes} />
+
+      <PartTimingModal
+        isOpen={timingModalOpen}
+        onClose={() => setTimingModalOpen(false)}
+        value={partDurations}
+        onChange={onPartDurationsChange ?? (() => {})}
+      />
     </div>
   );
 }
@@ -253,7 +283,7 @@ export function PhonePracticeBody(props: PracticeProps) {
   };
   const update = (part: PartNumber, patch: Partial<PracticePartResult>) => setRows(rows.map(row => {
     if (row.part !== part) return row;
-    const next = { ...row, ...patch, total: partMax(part) };
+    const next = { ...row, ...patch };
     if (next.correct > next.total) next.correct = next.total;
     return next;
   }));
@@ -284,8 +314,8 @@ export function PhonePracticeBody(props: PracticeProps) {
               <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100">{PART_NAMES[row.part]}</p>
               <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{row.total ? `${Math.round((row.correct / row.total) * 100)}%` : 'Số câu đúng'}</p>
             </div>
-            <ScoreBox value={row.correct} max={partMax(row.part)} label={`Số câu đúng Part ${row.part}`} onChange={value => update(row.part, { correct: value })} />
-            <span className="w-8 text-[15px] font-bold tabular-nums text-slate-400 dark:text-slate-500">/{partMax(row.part)}</span>
+            <ScoreBox value={row.correct} max={row.total} label={`Số câu đúng Part ${row.part}`} onChange={value => update(row.part, { correct: value })} />
+            <span className="w-8 text-[15px] font-bold tabular-nums text-slate-400 dark:text-slate-500">/{row.total}</span>
           </div>
         ))}
       </div>

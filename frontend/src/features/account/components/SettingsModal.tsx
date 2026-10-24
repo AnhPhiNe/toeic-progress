@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
-import { X, Download, Upload, RotateCcw, Trash2 } from 'lucide-react';
+import { X, Download, Upload, RotateCcw, Trash2, LogOut } from 'lucide-react';
 import { profileInitials } from '@/app/components/profileInitials';
 import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
 import { UserProfile } from '@/shared/types';
@@ -24,6 +24,7 @@ interface SettingsModalProps {
   accountPanel?: React.ReactNode;
   /** Phone account card subtitle, e.g. "Chỉ lưu trên máy". */
   syncLabel?: string;
+  onSignOut?: () => Promise<void>;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -35,13 +36,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onLoadDemo,
   onImportSuccess,
   accountPanel,
-  syncLabel
+  syncLabel,
+  onSignOut
 }) => {
   const [formData, setFormData] = useState<UserProfile>({ ...profile });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ownedPreview, setOwnedPreview] = useState<{ preview: BackupPreview; owner: string | null; cycle: number } | null>(null);
   const [backupErrors, setBackupErrors] = useState<string[]>([]);
   const [resetBusy, setResetBusy] = useState(false);
+  const [signOutBusy, setSignOutBusy] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
   const [resetError, setResetError] = useState('');
   // Phones show a grouped list; one row at a time opens a sheet that saves just that field.
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -70,6 +74,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setResetError('');
     setResetBusy(false);
     setPhoneEditing(null);
+    setSignOutError('');
     return () => { sessionRef.current = null; readRequest.current += 1; };
   }, [isOpen]);
   useEffect(() => {
@@ -144,9 +149,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Escape (or the X) closes an open phone edit sheet first, then the whole dialog.
   const closeWhenIdle = useCallback(() => {
+    if (signOutBusy) return;
     if (phoneEditing) { setPhoneEditing(null); return; }
     if (!resetBusy) onClose();
-  }, [resetBusy, onClose, phoneEditing]);
+  }, [resetBusy, signOutBusy, onClose, phoneEditing]);
   const modalRef = useModalA11y(isOpen, closeWhenIdle);
 
   if (!isOpen) return null;
@@ -242,9 +248,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const group = 'divide-y divide-slate-100 overflow-hidden rounded-2xl border-[1.5px] border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-[#121A2B]';
   const eyebrow = 'mb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400';
   const dataButton = 'flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-900 shadow-[2px_2px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none';
+  const signOutAction = onSignOut ? <div className="mt-3 space-y-2">
+    <button type="button" disabled={resetBusy || signOutBusy} onClick={async () => {
+      setSignOutBusy(true); setSignOutError('');
+      try { await onSignOut(); }
+      catch (error) { setSignOutError(error instanceof Error ? error.message : 'Chưa đăng xuất được. Hãy thử lại.'); }
+      finally { setSignOutBusy(false); }
+    }} className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+      <LogOut size={17} aria-hidden="true" />{signOutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}
+    </button>
+    {signOutError && <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{signOutError}</p>}
+  </div> : null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${PHONE_SHEET_BACKDROP}`}>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${PHONE_SHEET_BACKDROP}`} onClick={event => { if (event.target === event.currentTarget) closeWhenIdle(); }}>
       <div
         ref={modalRef}
         role="dialog"
@@ -264,8 +281,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {isPhone ? (
           <div className="min-h-0 flex-1 overflow-y-auto bg-[#FDFBF7] dark:bg-[#0B132B]" aria-busy={resetBusy}>
-            <PhoneSettings profile={formData} syncLabel={syncLabel} editing={phoneEditing} setEditing={setPhoneEditing}
-              onSaveField={savePhoneField} accountPanel={accountPanel}
+            <PhoneSettings profile={formData} syncLabel={syncLabel} editing={phoneEditing} setEditing={setPhoneEditing} onClose={closeWhenIdle}
+              onSaveField={savePhoneField} accountPanel={accountPanel} signOutAction={signOutAction}
               onExport={exportDataAsJSON} onPickBackup={() => fileInputRef.current?.click()}
               onLoadDemo={onLoadDemo ? loadDemo : undefined} onReset={onResetData ? () => void handleReset() : undefined} resetBusy={resetBusy}
               dataNotice={(backupErrors.length > 0 || backupPreview || resetError) ? renderDataNotice() : undefined} />
@@ -281,7 +298,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     {profileInitials(formData.name)}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-base font-black leading-tight text-slate-900 dark:text-white">{formData.name.trim() || 'Học viên'}</p>
+                    <p className="truncate text-base font-black leading-tight text-slate-900 dark:text-white">{(formData.name || '').trim() || 'Học viên'}</p>
                     <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">Học viên TOEIC</p>
                   </div>
                 </div>
@@ -362,6 +379,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   {renderDataNotice()}
                 </section>
+                {signOutAction}
               </fieldset>
             </div>
           </div>

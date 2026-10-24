@@ -144,7 +144,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
           >
             <Minus className="h-5 w-5 stroke-[2.5]" aria-hidden="true" />
           </button>
-          <label className="flex w-[8rem] flex-col items-center">
+          <label className="flex min-w-[8rem] max-w-[13rem] flex-col items-center">
             <input
               type="number"
               inputMode="numeric"
@@ -179,7 +179,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
               key={preset}
               aria-pressed={value === preset}
               onClick={() => onCount(String(preset))}
-              className={'h-10 min-w-13 cursor-pointer rounded-xl border-2 px-3 text-sm font-black tabular-nums transition-all ' + (
+              className={'h-11 min-w-14 cursor-pointer rounded-xl border-2 px-3 text-sm font-black tabular-nums transition-all ' + (
                 value === preset
                   ? 'border-slate-900 bg-violet-200 text-violet-950 shadow-[2px_2px_0_0_#0f172a] dark:border-violet-300 dark:bg-violet-900 dark:text-white dark:shadow-none'
                   : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200'
@@ -194,7 +194,7 @@ export function PhoneVocabulary({ today, days, total, date, count, existing, sav
         <div className="mt-5">
           <button
             type="submit"
-            className={'flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 text-sm font-black shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:shadow-none ' + (
+            className={'flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 px-4 text-sm font-black shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 dark:shadow-none ' + (
               saved ? 'bg-emerald-300 text-slate-950' : 'bg-blue-600 text-white hover:bg-blue-700'
             )}
           >

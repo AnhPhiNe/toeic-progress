@@ -19,6 +19,13 @@ describe('reviewing and editing latest data', () => {
     expect(result.reviewStage).toBe(3); expect(result.reviewCount).toBe(5); expect(result.userReason).toBe('Updated elsewhere');
     expect(result.lastReviewedAt).toMatch(/T.*Z$/);
   });
+  it('applies explicit ratings to the latest schedule while still blocking stale content', () => {
+    const latest = { ...card, reviewStage: 3, reviewCount: 8, nextReviewDate: getTodayDateString() };
+    expect(gradeLatestMistake(latest, card, 'EASY')).toMatchObject({ status: 'MASTERED', reviewCount: 9, reviewStage: 4 });
+    expect(gradeLatestMistake(latest, card, 'HARD')).toMatchObject({ status: 'NEEDS_REVIEW', reviewCount: 9, reviewStage: 3 });
+    expect(() => gradeLatestMistake({ ...latest, correctAnswer: '(A) are' }, card, 'EASY')).toThrow('thay đổi');
+    expect(() => gradeLatestMistake({ ...latest, deletedAt: new Date().toISOString() }, card, 'HARD')).toThrow('xóa');
+  });
   it('blocks a changed or deleted review question until explicitly reloaded', () => {
     expect(() => gradeLatestMistake({ ...card, correctAnswer: '(A) are' }, card, true)).toThrow('thay đổi');
     expect(() => gradeLatestMistake(undefined, card, true)).toThrow('xóa');

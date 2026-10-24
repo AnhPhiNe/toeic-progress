@@ -4,7 +4,7 @@ test('device Back closes the top sheet or form first and only then leaves the pa
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/quy-doi');
   const bar = page.getByRole('navigation', { name: 'Điều hướng chính', exact: true });
-  await bar.getByRole('button', { name: 'Sổ tay', exact: true }).click();
+  await bar.getByRole('button', { name: 'Ôn tập', exact: true }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
 
   // Back closes the "+" sheet and stays on the page.
@@ -51,7 +51,7 @@ test('leaving a page from inside a sheet needs a single Back to return', async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/quy-doi');
   await page.getByRole('button', { name: 'Thêm trang và cài đặt', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Thêm', exact: true }).getByRole('button', { name: 'Lịch sử', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Thêm', exact: true }).getByRole('button', { name: 'Lịch sử đề thi', exact: true }).click();
   await expect(page).toHaveURL(/\/lich-su$/);
   await page.waitForTimeout(100);
   await page.goBack();

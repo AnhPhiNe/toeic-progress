@@ -13,7 +13,7 @@ test('manual choices before and during a delayed screenshot are preserved, inclu
   await expect.poll(() => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls?.length)).toBe(1);
   // Explicitly clear a value while the request is still in flight.
   await choice.getByRole('button', { name: 'D', exact: true }).click();
-  await expect(flow.getByRole('status')).toHaveText('AI đã điền 2 câu. Kiểm tra lý do rồi bấm Lưu.');
+  await expect(flow.getByRole('status')).toContainText('Đã đọc 2 câu, cần kiểm tra');
   await expect(flow.getByRole('button', { name: 'Câu 104 đáp án C', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await expect(choice.getByRole('button', { name: 'B', exact: true })).toHaveAttribute('aria-pressed', 'false');
@@ -31,7 +31,7 @@ test('a late explanation reaches a saved partial card reopened in the pending li
   const flow = await openDesktopFlow(page);
   await page.evaluate(() => { Object.assign(window, { __explainDelay: 4000 }); });
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
-  await expect(flow.getByRole('status')).toHaveText('AI đã điền 2 câu. Kiểm tra lý do rồi bấm Lưu.');
+  await expect(flow.getByRole('status')).toContainText('Đã đọc ảnh, cần kiểm tra');
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 2 câu, ETS Table', exact: true }).click();
   await expect(flow.getByRole('button', { name: 'Câu 112 Bạn chọn B, chưa có đáp án', exact: true })).toBeVisible();
@@ -62,7 +62,7 @@ test('retakes with overlapping question numbers open distinct screenshot lists',
   await groups.filter({ hasText: 'Lần 2' }).click();
   await expect(flow.locator('[data-row-toggle]')).toHaveCount(3);
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
-  await expect(flow.getByRole('status')).toHaveText('AI đã điền 2 câu. Kiểm tra lý do rồi bấm Lưu.');
+  await expect(flow.getByRole('status')).toContainText('Đã đọc 2 câu, cần kiểm tra');
   expect(await page.evaluate(() => (window as Window & { __pageCalls: unknown }).__pageCalls)).toEqual([{ questions: [104, 112, 131], images: 1 }]);
 });
 

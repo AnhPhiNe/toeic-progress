@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowRight, RotateCw, X } from 'lucide-react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { ArrowRight, RotateCw, Undo2, X } from 'lucide-react';
 import type { MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { OptionList } from '@/features/mistakes/components/OptionList';
@@ -8,17 +8,20 @@ import { PartBadge } from '@/features/mistakes/components/MistakeCard';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { reviewResultText } from '@/features/mistakes/lib/review';
+import { normalizeReviewRating, type ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { QuestionContext } from '@/features/mistakes/components/QuestionContext';
 import { SourceImageViewer } from '@/features/mistakes/components/SourceImageViewer';
 import { triggerHaptic } from '@/shared/lib/haptics';
+import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 
 interface ReviewModalProps {
   /** Cards to review, fixed when the session opens */
   cards: MistakeEntry[];
   onClose: () => void;
-  onGrade: (snapshot: MistakeEntry, correct: boolean) => { before: MistakeEntry; after: MistakeEntry };
+  onGrade: (snapshot: MistakeEntry, answer: ReviewAnswer) => { before: MistakeEntry; after: MistakeEntry; undo?: MistakeUndoAction };
   onReload: (id: string) => MistakeEntry | undefined;
 }
 
@@ -37,7 +40,22 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
   const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState('');
   const [reloaded, setReloaded] = useState<MistakeEntry | null>(null);
+  const [lastGrade, setLastGrade] = useState<{ index: number; before: MistakeEntry; correct: boolean; updated: boolean; skipped: number; undo: MistakeUndoAction; owner: string | null } | null>(null);
+  const [undoError, setUndoError] = useState('');
   const ref = useModalA11y(true, onClose);
+  const frontRef = useRef<HTMLDivElement | null>(null);
+  const backRef = useRef<HTMLDivElement | null>(null);
+  const faceKey = `${index}:${showAnswer}`;
+  const previousFace = useRef(faceKey);
+
+  // Rotating a face only hides its pixels. Make the inactive face inert too,
+  // and move keyboard focus off the control that just became invisible.
+  useLayoutEffect(() => {
+    if (previousFace.current === faceKey) return;
+    previousFace.current = faceKey;
+    const face = showAnswer ? backRef.current : frontRef.current;
+    (face?.querySelector<HTMLElement>('button:not([disabled]), summary, a[href]') || face)?.focus();
+  }, [faceKey, showAnswer]);
 
   const finished = index >= cards.length;
   const card = reloaded || cards[Math.min(index, cards.length - 1)];
@@ -45,18 +63,39 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
   const quizMode = Boolean(quiz && quiz.correctIndex >= 0 && quiz.options.length >= 2);
   const { question, context } = card ? readQuestion(card) : { question: '', context: '' };
 
-  const grade = (correct: boolean, picked = '') => {
+  const grade = (answer: ReviewAnswer, picked = '') => {
     if (!card || result) return;
     try {
-      const { before, after } = onGrade(card, correct);
+      const { before, after, undo } = onGrade(card, answer);
+      const correct = normalizeReviewRating(answer) !== 'AGAIN';
+      setLastGrade(undo ? { index, before, correct, updated: after !== before, skipped, undo, owner: getActiveAccountId() } : null);
+      setUndoError('');
       if (after !== before) setScheduleUpdatedCount(value => value + 1);
       setReloaded(after);
       if (correct) setCorrectCount(value => value + 1);
-      setResult({ correct, picked, text: reviewResultText(before, after, correct, picked) });
+      setResult({ correct, picked, text: reviewResultText(before, after, answer, picked) });
       setError('');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Chưa lưu được lịch ôn.');
     }
+  };
+
+  const undoGrade = () => {
+    if (!lastGrade) return;
+    try {
+      if (lastGrade.owner !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Không thể hoàn tác lượt ôn trước.');
+      lastGrade.undo();
+      setIndex(lastGrade.index);
+      setSkipped(lastGrade.skipped);
+      setReloaded(onReload(lastGrade.before.id) ?? lastGrade.before);
+      if (lastGrade.correct) setCorrectCount(value => Math.max(0, value - 1));
+      if (lastGrade.updated) setScheduleUpdatedCount(value => Math.max(0, value - 1));
+      setResult(null);
+      setShowAnswer(false);
+      setError('');
+      setUndoError('');
+      setLastGrade(null);
+    } catch (reason) { setUndoError(reason instanceof Error ? reason.message : 'Chưa hoàn tác được lượt ôn.'); }
   };
 
   const next = () => {
@@ -68,7 +107,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/60 sm:items-start sm:p-4 sm:pt-[8vh]">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/60 sm:items-start sm:p-4 sm:pt-[8vh]" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
       <div
         ref={ref}
         role="dialog"
@@ -98,11 +137,19 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
             type="button"
             onClick={onClose}
             aria-label="Đóng phiên ôn tập"
-            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {lastGrade && lastGrade.owner === getActiveAccountId() && <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-2 sm:px-6 dark:border-slate-800">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Chấm nhầm thẻ vừa rồi?</span>
+          <button type="button" onClick={undoGrade} className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-sm font-bold text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950/40">
+            <Undo2 className="h-4 w-4" aria-hidden="true" />Hoàn tác chấm
+          </button>
+          {undoError && <p role="alert" className="w-full text-sm text-rose-700 dark:text-rose-300">{undoError}</p>}
+        </div>}
 
         {finished || !card ? (
           <div className="space-y-4 px-4 pb-6 pt-6 text-center sm:px-6">
@@ -165,6 +212,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
                 >
                   {/* Mặt trước: Câu hỏi */}
                   <div
+                    ref={node => { frontRef.current = node; if (node) node.inert = showAnswer; }}
+                    tabIndex={-1}
                     className={`w-full backface-hidden rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[4px_4px_0_0_#cbd5e1] space-y-4 ${
                       showAnswer ? 'absolute inset-0 pointer-events-none' : 'relative'
                     }`}
@@ -235,6 +284,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
 
                   {/* Mặt sau: Đáp án, Lời giải thích, Bản dịch */}
                   <div
+                    ref={node => { backRef.current = node; if (node) node.inert = !showAnswer; }}
+                    tabIndex={-1}
                     className={`w-full backface-hidden rotate-y-180 rounded-2xl border-2 border-slate-900 bg-white p-4 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#121A2B] dark:shadow-[4px_4px_0_0_#cbd5e1] space-y-4 ${
                       !showAnswer ? 'absolute inset-0 pointer-events-none' : 'relative'
                     }`}
@@ -328,7 +379,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
                       type="button"
                       onClick={() => {
                         triggerHaptic(8);
-                        grade(false, 'Quên');
+                        grade('AGAIN');
                       }}
                       className="flex flex-col items-center justify-center rounded-xl border-2 border-slate-900 bg-rose-100 py-2.5 px-1 text-xs sm:text-sm font-black text-rose-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-rose-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#0f172a] hover:-translate-y-0.5 transition-all cursor-pointer dark:border-slate-300 dark:bg-rose-950/60 dark:text-rose-200 dark:shadow-[2px_2px_0_0_#cbd5e1]"
                     >
@@ -338,7 +389,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
                       type="button"
                       onClick={() => {
                         triggerHaptic(8);
-                        grade(true, 'Khó');
+                        grade('HARD');
                       }}
                       className="flex flex-col items-center justify-center rounded-xl border-2 border-slate-900 bg-amber-100 py-2.5 px-1 text-xs sm:text-sm font-black text-amber-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-amber-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#0f172a] hover:-translate-y-0.5 transition-all cursor-pointer dark:border-slate-300 dark:bg-amber-950/60 dark:text-amber-200 dark:shadow-[2px_2px_0_0_#cbd5e1]"
                     >
@@ -348,7 +399,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
                       type="button"
                       onClick={() => {
                         triggerHaptic(8);
-                        grade(true, 'Tốt');
+                        grade('GOOD');
                       }}
                       className="flex flex-col items-center justify-center rounded-xl border-2 border-slate-900 bg-blue-100 py-2.5 px-1 text-xs sm:text-sm font-black text-blue-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-blue-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#0f172a] hover:-translate-y-0.5 transition-all cursor-pointer dark:border-slate-300 dark:bg-blue-950/60 dark:text-blue-200 dark:shadow-[2px_2px_0_0_#cbd5e1]"
                     >
@@ -358,7 +409,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
                       type="button"
                       onClick={() => {
                         triggerHaptic(8);
-                        grade(true, 'Dễ');
+                        grade('EASY');
                       }}
                       className="flex flex-col items-center justify-center rounded-xl border-2 border-slate-900 bg-emerald-100 py-2.5 px-1 text-xs sm:text-sm font-black text-emerald-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-emerald-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#0f172a] hover:-translate-y-0.5 transition-all cursor-pointer dark:border-slate-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:shadow-[2px_2px_0_0_#cbd5e1]"
                     >

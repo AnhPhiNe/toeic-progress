@@ -1,3 +1,4 @@
+import { formatPlanQuantity } from '../lib/planDisplay';
 import { useState } from 'react';
 import { ArrowUpToLine, Check, ChevronLeft, ChevronRight, Copy, FileCheck2, Pencil, Plus, Timer, Trash2 } from 'lucide-react';
 import type { SmartWeeklyTask } from '@/shared/types';
@@ -165,8 +166,6 @@ export function PhonePlan(props: Props) {
                   {/* Checkbox to chuẩn 44px tap target dễ bấm bằng ngón tay cái có màu sắc theo loại việc */}
                   <button
                     type="button"
-                    role="checkbox"
-                    aria-checked="false"
                     aria-label={`Thực hiện ${primary.label} cho mục tiêu ${task.title}`}
                     onClick={() => primary.action()}
                     className={'group/cb flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] hover:brightness-95 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:shadow-none ' + theme.bgIcon}
@@ -183,19 +182,17 @@ export function PhonePlan(props: Props) {
                     data-task-id={task.id}
                     className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 text-left"
                   >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className={'rounded-md border px-1.5 py-0.5 text-[10px] font-black shrink-0 ' + theme.tag}>
-                          {theme.label}
-                        </span>
-                        <span className="truncate text-[14.5px] font-bold text-slate-900 dark:text-white">
-                          {task.title}
-                        </span>
-                      </div>
+                    <div className="flex flex-wrap items-baseline justify-between gap-1.5">
+                      <span className={'rounded-md border px-1.5 py-0.5 text-[10px] font-black shrink-0 ' + theme.tag}>
+                        {theme.label}
+                      </span>
                       <span className="shrink-0 text-[13px] font-black tabular-nums text-slate-950 dark:text-white">
-                        {task.done}<span className="font-semibold text-slate-500 dark:text-slate-400">/{task.target} {task.unit}</span>
+                        {formatPlanQuantity(task.done)}<span className="font-semibold text-slate-500 dark:text-slate-400">/{formatPlanQuantity(task.target)} {task.unit}</span>
                       </span>
                     </div>
+                    <span className="break-words text-[14.5px] font-bold leading-snug text-slate-900 dark:text-white">
+                      {task.title}
+                    </span>
                     <div className="block h-2.5 overflow-hidden rounded-full bg-slate-100 border border-slate-200/80 dark:border-slate-700 dark:bg-slate-800" aria-hidden="true">
                       <span
                         data-plan-progress
@@ -226,8 +223,6 @@ export function PhonePlan(props: Props) {
                 {/* Checkbox to chuẩn 44px tap target đã hoàn thành */}
                 <button
                   type="button"
-                  role="checkbox"
-                  aria-checked="true"
                   aria-label={`Mục tiêu ${task.title} đã hoàn thành. Bấm để xem tùy chọn`}
                   onClick={() => setOpenId(task.id)}
                   className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-slate-900 bg-emerald-500 text-white shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none"
@@ -248,7 +243,7 @@ export function PhonePlan(props: Props) {
                       {task.title}
                     </span>
                     <span className="block text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">
-                      Đã hoàn thành · {task.done}/{task.target} {task.unit}
+                      Đã hoàn thành · {formatPlanQuantity(task.done)}/{formatPlanQuantity(task.target)} {task.unit}
                     </span>
                   </div>
                 </button>
@@ -280,7 +275,7 @@ export function PhonePlan(props: Props) {
         className="flex min-h-[54px] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-white px-4 py-3.5 text-base font-black text-slate-950 shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none disabled:opacity-50 dark:border-slate-200 dark:bg-[#111A2C] dark:text-white dark:shadow-[3px_3px_0_0_#cbd5e1] dark:disabled:opacity-40"
       >
         <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden="true" />
-        <span>{props.wipLimitReached ? 'Đã có 6 mục tiêu đang làm' : '+ Thêm mục tiêu tuần mới'}</span>
+        <span>{props.wipLimitReached ? 'Đã có 6 mục tiêu đang làm' : 'Thêm mục tiêu tuần mới'}</span>
       </button>
 
       {/* Sheet chi tiết thao tác mục tiêu */}
@@ -289,12 +284,12 @@ export function PhonePlan(props: Props) {
         const item = 'flex min-h-[54px] w-full items-center gap-3.5 border-b border-stone-200 px-1 text-left text-[15.5px] font-bold last:border-0 dark:border-slate-800 cursor-pointer';
         return (
           <Sheet title={open.title} onClose={() => setOpenId(null)}>
-            <p className="-mt-1 mb-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{open.done}/{open.target} {open.unit} · {howItCounts(open)}</p>
+            <p className="-mt-1 mb-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{formatPlanQuantity(open.done)}/{formatPlanQuantity(open.target)} {open.unit} · {howItCounts(open)}</p>
             <div>
               {!open.isComplete && <button type="button" className={item + ' text-slate-950 dark:text-white'} onClick={() => run(primary.action)}><primary.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />{primary.label}</button>}
               <button type="button" className={item} onClick={() => run(() => props.onMoveToTop(open.id))}><ArrowUpToLine className="h-5 w-5" aria-hidden="true" />Đưa lên đầu</button>
               <button type="button" className={item} onClick={() => run(() => props.onEdit(open))}><Pencil className="h-5 w-5" aria-hidden="true" />Sửa mục tiêu</button>
-              <button type="button" className={item + ' text-rose-600 dark:text-rose-400'} onClick={() => run(() => { if (window.confirm(`Xóa mục tiêu “${open.title}”?`)) props.onDelete(open.id); })}><Trash2 className="h-5 w-5" aria-hidden="true" />Xóa</button>
+              <button type="button" className={item + ' text-rose-600 dark:text-rose-400'} onClick={() => run(() => props.onDelete(open.id))}><Trash2 className="h-5 w-5" aria-hidden="true" />Xóa</button>
             </div>
           </Sheet>
         );

@@ -9,9 +9,7 @@ export async function choosePractice(dialog: Locator) {
 
 /** Switch a Full Test from per-Part estimation to typing the official score. */
 export async function useOfficialScore(dialog: Locator) {
-  const checkbox = dialog.getByLabel('Nhập điểm từ kết quả đề (tùy chọn)');
-  if (await checkbox.count()) await checkbox.check();
-  else await dialog.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
 }
 
 /** Rows carry a pencil on larger screens; on phones the edit lives in the session detail. */
