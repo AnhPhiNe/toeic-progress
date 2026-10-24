@@ -24,7 +24,7 @@ ADVICE = {"priorities": [{"title": "Đối chiếu cấu trúc bị động", "o
 
 @contextmanager
 def analysis_api(*, session=SESSION, notes=None, advice=ADVICE, guest=False, grant="active", quota=True,
-                 key="deepinfra-test-secret", provider_status=200, finish="stop"):
+                 key="deepinfra-test-secret", provider_status=200, finish="stop", transport_error=None):
     calls = []
 
     def respond(request):
@@ -44,6 +44,8 @@ def analysis_api(*, session=SESSION, notes=None, advice=ADVICE, guest=False, gra
         if path == "/rest/v1/ai_usage_counters":
             return httpx.Response(200, json=[])
         if request.url.host == "api.deepinfra.com":
+            if transport_error:
+                raise transport_error('Never expose private provider details or deepinfra-test-secret', request=request)
             return httpx.Response(provider_status, json={"choices": [{"finish_reason": finish, "message": {"content": json.dumps(advice)}}]})
         raise AssertionError(f"Unexpected path {path}")
 
@@ -133,6 +135,25 @@ def test_provider_failure_is_not_automatically_retried(kwargs):
         expected = 429 if kwargs.get('provider_status') == 429 else 502
         assert client.post("/api/v1/ai/analyze-attempt", json=payload()).status_code == expected
         assert sum(url.host == "api.deepinfra.com" for url, _, _ in calls) == 1
+
+
+@pytest.mark.parametrize('error,status,code,message', [
+    (httpx.ReadTimeout, 504, 'ANALYSIS_PROVIDER_TIMEOUT', '75 giây'),
+    (httpx.ConnectTimeout, 504, 'ANALYSIS_PROVIDER_TIMEOUT', '75 giây'),
+    (httpx.ConnectError, 503, 'ANALYSIS_PROVIDER_CONNECTION', 'kết nối ổn định'),
+    (httpx.ReadError, 503, 'ANALYSIS_PROVIDER_CONNECTION', 'kết nối ổn định'),
+])
+def test_transport_failures_distinguish_timeout_without_retries_or_sensitive_logs(error, status, code, message, caplog):
+    with analysis_api(transport_error=error) as (client, calls):
+        reply = client.post('/api/v1/ai/analyze-attempt', json=payload())
+        assert reply.status_code == status
+        assert reply.headers['X-Error-Code'] == code
+        assert message in reply.json()['detail']
+        assert sum(url.host == 'api.deepinfra.com' for url, _, _ in calls) == 1
+        assert error.__name__ in caplog.text
+        assert reply.headers['X-Request-ID'] in caplog.text
+        assert 'deepinfra-test-secret' not in reply.text + caplog.text
+        assert 'private provider details' not in reply.text + caplog.text
 
 
 @pytest.mark.parametrize('status,code,text', [

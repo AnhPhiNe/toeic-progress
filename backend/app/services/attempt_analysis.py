@@ -12,6 +12,7 @@ from fastapi import HTTPException
 
 from app.schemas.attempt_analysis import AnalysisAdvice, AnalyzeAttemptRequest
 from app.schemas.models import ConfirmedResultTiming
+from app.core.runtime import request_id_context
 
 logger = logging.getLogger('toeic.attempt_analysis')
 
@@ -138,8 +139,19 @@ async def generate_analysis(gateway, snapshot: dict) -> dict:
                   "reasoning_effort": "medium"},
             timeout=settings.deepinfra_timeout_seconds,
         )
+    except httpx.TimeoutException as error:
+        logger.warning('deepinfra_transport_failed error_type=%s model=%s request_id=%s timeout_seconds=%s',
+                       type(error).__name__, MODEL, request_id_context.get(), settings.deepinfra_timeout_seconds)
+        raise HTTPException(504,
+            f"Yêu cầu tới DeepInfra vượt thời gian chờ {settings.deepinfra_timeout_seconds:g} giây. "
+            "Dữ liệu bài thi vẫn được giữ; hệ thống chưa tự gửi lại yêu cầu. Bạn có thể chủ động thử lại sau.",
+            headers={'X-Error-Code': 'ANALYSIS_PROVIDER_TIMEOUT'}) from error
     except httpx.HTTPError as error:
-        raise HTTPException(503, "Kết nối AI phân tích bị gián đoạn. Dữ liệu bài thi vẫn được giữ; chưa tự gửi lại yêu cầu.") from error
+        logger.warning('deepinfra_transport_failed error_type=%s model=%s request_id=%s',
+                       type(error).__name__, MODEL, request_id_context.get())
+        raise HTTPException(503,
+            "Chưa kết nối ổn định tới DeepInfra. Dữ liệu bài thi vẫn được giữ; chưa tự gửi lại yêu cầu.",
+            headers={'X-Error-Code': 'ANALYSIS_PROVIDER_CONNECTION'}) from error
     if not response.is_success:
         # Never log provider bodies, prompts or credentials. Distinguish upstream
         # configuration/billing from the learner's application quota.

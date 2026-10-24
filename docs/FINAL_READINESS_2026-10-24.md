@@ -36,3 +36,11 @@ See [the backend audit](BACKEND_SUPABASE_FINAL_2026-10-24.md) for live read-only
 Deploy the backend before the frontend to expose source-timing extraction. Older backend responses without timing remain accepted. After deployment, verify one authenticated result-image → explicit review → save → reload flow using an actual result screenshot with visible elapsed time. Do not infer production verification from local mocks.
 
 The build still reports the existing large JavaScript chunk warning. This is a performance follow-up, not a failed build or a reason to weaken data validation or account isolation.
+
+## Production follow-up
+
+The reviewed tree was merged to `master` and deployed as `e2a98f1`: Render backend first, then Vercel frontend. All eight public SPA routes, the current JavaScript asset, `/health`, `/ready` and the same-origin AI-status proxy returned HTTP 200. After the operator added the DeepInfra key and redeployed, `attempt_analysis` became true.
+
+The first authenticated analysis of the selected attempt returned HTTP 503 after 75.75 seconds, around the configured 75-second upstream wait. Its support ID was `23e06559-04ab-4105-b903-d23f7d367ed1`. No report was displayed, records were unchanged and the client did not retry. This observation does not establish an invalid key or prove provider reliability.
+
+Transport failures now distinguish timeout (504, `ANALYSIS_PROVIDER_TIMEOUT`) from other connection failures (503, `ANALYSIS_PROVIDER_CONNECTION`). Diagnostic logs contain only the exception class, fixed model, configured timeout and support ID, excluding exception messages, prompts and credentials. Backend regression suite after this correction: **379 passed**. The model, reasoning effort, time budget and no-automatic-retry behavior remain unchanged.
