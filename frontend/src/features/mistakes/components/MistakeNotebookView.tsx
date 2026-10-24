@@ -159,6 +159,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
   const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? (initialSourceNames?.[0] ?? '');
+  const sourceHasNotes = Boolean(defaultSourceName) && sourcedMistakes.some(note => testNameKey(note.sourceTestName) === testNameKey(defaultSourceName));
   const resetFilters = () => { setPage(1); setSearchTerm(''); setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedStatus('ALL'); setSelectedCategory('ALL'); };
   const toggleRow = (id: string) => setExpandedIds(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   useEffect(() => {
@@ -296,12 +297,12 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           <div className="space-y-1">
             <span className="text-3xl block mb-2" aria-hidden="true">📭</span>
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {activeTestName
+              {activeTestName && !sourceHasNotes
                 ? `Chưa có câu sai nào thuộc đề "${activeTestName}"`
                 : 'Không có thẻ nào khớp bộ lọc hiện tại'}
             </h3>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-              {mistakes.length > 0 ? (
+              {mistakes.length > 0 && sourceHasNotes ? 'Thử thay đổi hoặc bỏ bộ lọc để xem các câu đã lưu.' : mistakes.length > 0 ? (
                 <>Toàn bộ sổ tay của bạn đang có <strong className="font-bold text-slate-800 dark:text-slate-200">{mistakes.length} câu sai</strong> từ các đề khác.</>
               ) : (
                 <>Bạn chưa lưu câu sai nào vào Sổ tay.</>
@@ -565,12 +566,12 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <div className="m-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-3 dark:border-slate-700 dark:bg-slate-900/30">
               <span className="text-3xl block" aria-hidden="true">📭</span>
               <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                {defaultSourceName
+                {defaultSourceName && !sourceHasNotes
                   ? `Chưa có thẻ câu sai nào thuộc đề "${defaultSourceName}"`
                   : 'Không có thẻ nào khớp bộ lọc hiện tại'}
               </h3>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                {mistakes.length > 0 ? (
+                {mistakes.length > 0 && sourceHasNotes ? 'Thử thay đổi hoặc bỏ bộ lọc để xem các câu đã lưu.' : mistakes.length > 0 ? (
                   <>Toàn bộ sổ tay đang có <strong className="font-bold text-slate-800 dark:text-slate-200">{mistakes.length} câu sai</strong> từ các đề khác.</>
                 ) : (
                   <>Bạn chưa lưu câu sai nào vào Sổ tay.</>

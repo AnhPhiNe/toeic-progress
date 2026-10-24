@@ -782,7 +782,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                       const answerLetter = optionLetter(item.draft.correctAnswer) || (item.draft.correctAnswer ? item.draft.correctAnswer : '—');
                       const questionText = item.draft.question || item.draft.questionContext || `Câu ${item.number}`;
                       return (
-                        <div key={item.id} className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 text-sm sm:flex-nowrap">
+                        <div key={item.id} className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 text-sm">
                           <div className="flex min-w-0 flex-1 items-center gap-2">
                             <PartBadge part={item.part} />
                             <span className="shrink-0 font-extrabold text-slate-900 dark:text-slate-100">Câu {item.number}</span>
@@ -790,7 +790,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                               {questionText}
                             </span>
                           </div>
-                          <div className="flex shrink-0 items-center gap-2">
+                          <div className="flex max-w-full flex-wrap items-center gap-2">
                             <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
                               Bạn chọn {choiceLetter}
                             </span>
@@ -817,6 +817,13 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
+                          <details className="w-full min-w-0 text-xs text-slate-600 dark:text-slate-300">
+                            <summary className="cursor-pointer py-1 font-bold">Xem nội dung câu {item.number}</summary>
+                            <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{questionText}</p>
+                            <ul className="mt-2 space-y-1 whitespace-pre-wrap break-words">
+                              {item.draft.options.map((option, index) => <li key={index}>{option}</li>)}
+                            </ul>
+                          </details>
                         </div>
                       );
                     })}
@@ -901,7 +908,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                 {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề rồi tải ảnh các câu sai Reading'}
               </div>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={close} className={linkClass}>
+                <button type="button" onClick={close} className={`${linkClass} hidden sm:inline-flex`}>
                   Hủy
                 </button>
                 <button
@@ -921,7 +928,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                   onClick={quickSave}
                   disabled={busy || imageBusy || persisting}
                   aria-label={original ? undefined : 'Lưu thủ công'}
-                  className="min-h-11 flex-1 sm:flex-initial cursor-pointer inline-flex items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:border-slate-900 hover:bg-slate-50 active:translate-x-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400 transition-all"
+                  className="min-h-11 min-w-0 flex-1 sm:flex-initial cursor-pointer inline-flex items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:border-slate-900 hover:bg-slate-50 active:translate-x-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400 transition-all"
                 >
                   {original ? 'Lưu thay đổi' : 'Lưu thủ công'}
                 </button>
@@ -929,7 +936,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                   type="button"
                   onClick={() => void analyze()}
                   disabled={!aiAvailable || busy || imageBusy || persisting || (!raw.trim() && !images.length)}
-                  className="min-h-11 flex-[1.4] sm:flex-initial cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-blue-600 px-4 py-2 text-xs sm:text-sm font-extrabold text-white shadow-[2.5px_2.5px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-200 dark:shadow-none transition-all"
+                  className="min-h-11 min-w-0 flex-[1.4] sm:flex-initial cursor-pointer inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-blue-600 px-2 sm:px-4 py-2 text-xs sm:text-sm font-extrabold text-white shadow-[2.5px_2.5px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-200 dark:shadow-none transition-all"
                 >
                   <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>{busy ? (images.length || sourceImageIds.length ? 'Đang đọc ảnh…' : 'Đang phân tích…') : 'Phân tích với AI'}</span>

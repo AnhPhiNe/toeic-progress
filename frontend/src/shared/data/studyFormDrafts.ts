@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { explanationSchema, optionNoteSchema } from './mistakeFields';
+import { confirmedResultTimingSchema, resultImageTimingSchema } from '@/shared/domain/resultTiming';
 
 const text = z.string().max(16000);
 const category = z.enum(['VOCABULARY_TRAP', 'ADVANCED_GRAMMAR', 'LISTENING_SPEED', 'TIME_PRESSURE', 'CARELESS_DISTRACTION', 'OTHER']);
@@ -12,10 +13,15 @@ const candidate = z.object({
 });
 export const sessionFormDraftSchema = z.object({
   sessionType: z.enum(['FULL_TEST', 'PART_PRACTICE', 'VOCAB']), testName: text, date: z.string().max(30), durationMinutes: z.number(), vocabCount: z.number(), notes: z.string().max(512 * 1024),
+  durationEdited: z.boolean().default(false),
   scoreSource, manualMode: z.enum(['MANUAL_SECTIONS', 'MANUAL_TOTAL']), manualListening: text, manualReading: text, manualTotal: text,
   includePartDetails: z.boolean(), entry: z.enum(['wrong', 'counts']), wrongQuestions: z.array(z.number().int().min(1).max(200)).max(200), partScores: scores,
   practiceRows: z.array(z.object({ part, correct: z.number(), total: z.number() })).min(1).max(7),
-  sourceScorePending: z.boolean(), sourceScoreDraft: candidate.nullable(), originalUpdatedAt: z.string().optional()
+  sourceScorePending: z.boolean(), sourceScoreDraft: candidate.nullable(), originalUpdatedAt: z.string().optional(),
+  wrongNumberDraft: z.object({ typing: z.boolean(), text: z.string().max(16000) }).default({ typing: false, text: '' }),
+  partDurations: z.object({ part5: z.number().min(0).max(1440).optional(), part6: z.number().min(0).max(1440).optional(), part7: z.number().min(0).max(1440).optional() }).optional(),
+  resultTiming: confirmedResultTimingSchema.nullish().default(null),
+  timingCandidate: z.object({ timing: resultImageTimingSchema, fields: z.record(z.string(), z.string().max(20)), edited: z.boolean() }).nullish().default(null)
 });
 export type SessionFormDraft = z.infer<typeof sessionFormDraftSchema>;
 export const parseSessionFormDraft = (input: unknown): SessionFormDraft | null => { const parsed = sessionFormDraftSchema.safeParse(input); return parsed.success ? parsed.data : null; };

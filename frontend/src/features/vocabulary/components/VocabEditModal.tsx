@@ -14,7 +14,7 @@ export function VocabEditModal({ day, suggestions, onClose, onSave }: Props) {
   const [error, setError] = useState('');
   const save = (event: React.FormEvent) => { event.preventDefault(); const message = onSave(Number(count), { sourceName: source, parts }); if (message) setError(message); };
   return createPortal(<div className="vocab-modal-overlay" onClick={event => { if (event.currentTarget === event.target) onClose(); }}>
-    <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="vocab-edit-title" className="vocab-modal">
+    <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="vocab-edit-title" tabIndex={-1} className="vocab-modal">
       <header className="vocab-modal-header"><div><h3 id="vocab-edit-title" className="text-lg font-black">Sửa ghi nhận</h3><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ngày {formatVocabDate(day.date)}</p></div><button type="button" aria-label="Đóng ghi nhận" className="vocab-icon-button" onClick={onClose}><X size={20} /></button></header>
       <form onSubmit={save} className="flex min-h-0 flex-col">
         <div className="vocab-modal-body">

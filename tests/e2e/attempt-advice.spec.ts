@@ -6,7 +6,7 @@ async function setup(page: Page, width = 1280) {
   const bundle = emptyBundle();
   const stamp = '2026-10-23T00:00:00Z';
   bundle.sessions = ['old', 'current'].map((id, index) => ({ id, testName: 'QA attempt advice', skillType: 'LR', sessionType: 'FULL_TEST',
-    date: `2026-10-${22 + index}`, durationMinutes: 120, createdAt: stamp, updatedAt: stamp, totalScore: 700,
+    date: `2026-10-${22 + index}`, durationMinutes: 120, createdAt: stamp, updatedAt: stamp, totalScore: 860, scaledListening: 460, scaledReading: 400, partDurations: { part5: 18 },
     partScores: { part1: 5, part2: 23, part3: 35, part4: 25, part5: 25, part6: 13, part7: 45 } }));
   bundle.mistakes = ['old', 'current', 'source-only'].map(id => ({ id: `note-${id}`, sessionId: id === 'source-only' ? undefined : id,
     sourceTestName: 'QA attempt advice', part: 5, category: 'OTHER', status: 'NEEDS_REVIEW',
@@ -79,7 +79,7 @@ for (const width of [390, 1280]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
     // Navigate to plan from modal
-    await modal.getByRole('button', { name: 'Thêm vào Kế hoạch tuần', exact: true }).click();
+    await modal.getByRole('button', { name: 'Mở kế hoạch', exact: true }).click();
     await expect(page).toHaveURL(/ke-hoach/);
 
     // Return to analytics and check cached badge
@@ -87,6 +87,19 @@ for (const width of [390, 1280]) {
     panel = page.getByRole('region', { name: 'Chẩn đoán & Gợi ý ôn tập', exact: true });
     await expect(panel.getByText('✓ Báo cáo có sẵn')).toBeVisible();
     expect(await calls(page)).toEqual([]); // No extra call on fresh navigation
+    await panel.getByRole('button', { name: 'Xem Báo cáo & Lời khuyên ›', exact: true }).click();
+    const cachedModal = page.getByRole('dialog', { name: /Chẩn đoán & Gợi ý ôn tập/i });
+    await expect(cachedModal).toContainText('Listening 460/495 · Reading 400/495');
+    await expect(cachedModal).not.toContainText('Toàn bộ trọng tâm');
+    await expect(cachedModal).not.toContainText('Đa số câu sai ở 15 câu cuối');
+    await expect(cachedModal).not.toContainText('Thiếu 55p');
+    await expect(cachedModal).toContainText('Part 5');
+    await expect(cachedModal.getByRole('checkbox')).not.toBeChecked();
+    const refresh = cachedModal.getByRole('button', { name: 'Cập nhật phân tích mới', exact: true });
+    await expect(refresh).toBeDisabled();
+    await cachedModal.getByRole('checkbox').check();
+    await refresh.click();
+    await expect.poll(async () => (await calls(page)).length).toBe(1);
   });
 }
 
@@ -100,7 +113,8 @@ test('changing attempt invalidates a late response and does not cache it', async
   await modal.getByRole('button', { name: 'Bắt đầu Chẩn đoán bằng AI', exact: true }).click();
   await expect(modal.getByRole('button', { name: 'Đang đối chiếu dữ liệu và tạo gợi ý…', exact: true })).toBeDisabled();
 
-  // Switch attempt from background dropdown while advice in flight
+  // Close the overlay, then switch attempt while advice remains in flight.
+  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
   await page.getByLabel('Lần làm', { exact: true }).selectOption('old');
   await page.evaluate(() => (window as Window & { __releaseAdvice: () => void }).__releaseAdvice());
 
@@ -145,4 +159,33 @@ test('edited evidence makes the cached report stale without an automatic AI requ
   panel = page.getByRole('region', { name: 'Chẩn đoán & Gợi ý ôn tập', exact: true });
   await expect(panel.getByText('Dữ liệu có thay đổi')).toBeVisible();
   expect(await calls(page)).toEqual([]); // No new automatic call on reload!
+});
+
+
+test('a cached zero-detail report preserves zero coverage and long priorities remain readable', async ({ page }) => {
+  let panel = await setup(page, 390);
+  await panel.getByRole('button', { name: 'Phân tích đề này với AI ›', exact: true }).click();
+  let modal = page.getByRole('dialog', { name: /Chẩn đoán & Gợi ý ôn tập/i });
+  await modal.getByRole('checkbox').check();
+  await modal.getByRole('button', { name: 'Bắt đầu Chẩn đoán bằng AI', exact: true }).click();
+  await expect(modal.getByRole('heading', { name: /Đối chiếu cấu trúc bị động/ })).toBeVisible();
+  const title = 'Ưu tiên ôn cách đối chiếu cấu trúc bị động trong các câu hỏi có nhiều phương án gần giống nhau';
+  await page.evaluate(title => {
+    const key = 'toeic_attempt_advice_alice_v1';
+    const rows = JSON.parse(localStorage.getItem(key)!);
+    rows[0].report.sampledNotes = 0;
+    rows[0].report.priorities[0].title = title;
+    rows[0].report.priorities[0].evidenceIds = [];
+    localStorage.setItem(key, JSON.stringify(rows));
+  }, title);
+  await page.reload();
+  panel = page.getByRole('region', { name: 'Chẩn đoán & Gợi ý ôn tập', exact: true });
+  await expect(panel).toContainText('Đã xem 0/1 câu sai có chi tiết');
+  await panel.getByRole('button', { name: 'Xem Báo cáo & Lời khuyên ›', exact: true }).click();
+  modal = page.getByRole('dialog', { name: /Chẩn đoán & Gợi ý ôn tập/i });
+  const heading = modal.getByRole('heading', { name: `1. ${title}`, exact: true });
+  await expect(heading).toBeVisible();
+  expect(await heading.evaluate(node => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+  await expect(modal).toContainText('chưa đủ để kết luận nguyên nhân');
+  expect(await calls(page)).toEqual([]);
 });

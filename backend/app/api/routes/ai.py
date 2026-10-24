@@ -193,11 +193,12 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
     for image in body.images:
         input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
-    wrong, skipped, scores = await request.app.state.gateway.read_results([image.dataUrl for image in body.images], user["id"])
+    wrong, skipped, scores, timing = await request.app.state.gateway.read_results([image.dataUrl for image in body.images], user["id"])
     return {
         "wrong": wrong,
         "skipped": skipped,
         "scores": scores,
+        "timing": timing,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],

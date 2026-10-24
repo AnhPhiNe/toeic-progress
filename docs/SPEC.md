@@ -1,5 +1,7 @@
 # ĐẶC TẢ SẢN PHẨM — TOEIC PROGRESS
 
+> **Rà soát local 24/10/2026:** xem [FINAL_READINESS_2026-10-24.md](FINAL_READINESS_2026-10-24.md). Nháp giữ cả số câu chưa áp dụng; modal lồng nhau chỉ cho lớp trên nhận bàn phím. Ảnh kết quả trích thời gian đã làm trong cùng lần gọi AI, yêu cầu xác nhận, lưu giây chính xác và null cho phần không biết trong `resultTiming` của Full Test; không suy ra từ thời gian còn lại hoặc giới hạn đề. Điểm/thời gian riêng lẻ không đủ kết luận nguyên nhân lỗi. Không cần migration cho trường này; bản sửa chưa được triển khai production.
+
 **Phiên bản 2.14** · Cập nhật 2026-10-08 · Thay thế toàn bộ SPEC v1
 > Cập nhật kiến trúc dữ liệu 2026-10-06: lưu trữ server chuyển sang bảng nghiệp vụ có cột kiểu riêng, xem mục 6.4.
 

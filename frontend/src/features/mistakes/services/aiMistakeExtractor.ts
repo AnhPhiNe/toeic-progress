@@ -3,6 +3,8 @@ import { generateUUID } from '@/shared/domain/uuid';
 import { backendRequest, apiAvailable } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 import { aiDraftSchema as draftSchema } from '@/features/mistakes/lib/aiDraftSchema';
+import { resultImageTimingSchema } from '@/shared/domain/resultTiming';
+export { resultImageTimingSchema } from '@/shared/domain/resultTiming';
 import type { MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
 
@@ -218,11 +220,13 @@ const resultScoresSchema = z.object({
   part7Minutes: z.number().int().min(1).max(75).nullish()
 });
 export type ResultImageScores = z.infer<typeof resultScoresSchema>;
-const resultsSchema = z.object({ wrong: questionList, skipped: questionList, scores: resultScoresSchema.nullish() });
+export type { ResultImageTiming } from '@/shared/types';
+const resultsSchema = z.object({ wrong: questionList, skipped: questionList, scores: resultScoresSchema.nullish(),
+  timing: resultImageTimingSchema.nullish() });
 
 /** Read which questions a result-page screenshot marks wrong or skipped; one call counts as one AI use. */
 export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () => Promise<string>,
-  expectedOwner?: string | null, isCurrent: () => boolean = () => true): Promise<{ wrong: number[]; skipped: number[]; scores?: ResultImageScores | null; usage: AIUsage }> {
+  expectedOwner?: string | null, isCurrent: () => boolean = () => true): Promise<{ wrong: number[]; skipped: number[]; scores?: ResultImageScores | null; timing?: import('@/shared/types').ResultImageTiming | null; usage: AIUsage }> {
   if (!images.length || images.length > 8) throw new Error('Chọn 1 đến 8 ảnh kết quả.');
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể chạm vào các câu sai.');
   const checkCurrent = () => { if (!isCurrent()) throw new Error('Tác vụ đọc ảnh đã đóng hoặc thay đổi. Chưa gửi yêu cầu mới.'); };
@@ -250,7 +254,7 @@ export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () 
   }
   const captchaToken = session.user.is_anonymous ? await getCaptcha() : undefined;
   checkOwner(session);
-  const value = await backendRequest<{ wrong: unknown; skipped: unknown; scores?: unknown; usage: AIUsage }>('/api/v1/ai/read-results', 'POST', {
+  const value = await backendRequest<{ wrong: unknown; skipped: unknown; scores?: unknown; timing?: unknown; usage: AIUsage }>('/api/v1/ai/read-results', 'POST', {
     request_id: generateUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
     images: images.map(image => ({ dataUrl: image.dataUrl }))
   }, session.user.id, isCurrent);

@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { Keyboard } from 'lucide-react';
-import { formatQuestionList, normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
+import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { ResultImageButton } from './WrongQuestionGrid';
 import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import type { ScoreSource } from '../lib/fullTestScore';
-import type { PartTimingDurations } from '@/shared/types';
+import type { PartTimingDurations, ResultImageTiming } from '@/shared/types';
 import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
+import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
 
 interface Props {
+  onTiming?: (value: ResultImageTiming) => void;
+  numberDraft?: WrongNumberDraft;
+  onNumberDraft?: (value: WrongNumberDraft) => void;
   wrong: number[];
   onWrong: (wrong: number[]) => void;
   preview: { totalScore?: number; scaledListening?: number; scaledReading?: number } | null;
@@ -33,10 +37,9 @@ interface Props {
  * Computer Full Test: all 200 questions on one screen; clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming }: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
-  const [typing, setTyping] = useState(false);
-  const [text, setText] = useState('');
+  const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
   const [showNotes, setShowNotes] = useState(Boolean(notes));
   const isOfficial = Boolean(scoreSource && scoreSource !== 'ESTIMATED');
@@ -89,6 +92,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
       <div className="flex flex-col gap-2.5 max-lg:order-first">
         <ResultImageButton
+          onTiming={onTiming}
           desktop
           scoreCard={
             <div>
@@ -144,6 +148,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
               <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
                 Số câu sai
                 <textarea
+                  aria-label="Số câu sai"
                   autoFocus
                   rows={3}
                   value={text}
@@ -157,14 +162,14 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
               {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">Không đọc được: {invalid.join(', ')}</p>}
               <div className="flex gap-2">
                 <button type="button" onClick={applyTyped} className="min-h-10 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[13.5px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Áp dụng</button>
-                <button type="button" onClick={() => { setTyping(false); setInvalid([]); }} className="min-h-10 cursor-pointer px-3 text-[13.5px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
+                <button type="button" onClick={() => { cancelNumbers(); setInvalid([]); }} className="min-h-10 cursor-pointer px-3 text-[13.5px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
               </div>
             </div>
           }
           extraButton={
             <button
               type="button"
-              onClick={() => { setText(formatQuestionList(wrong)); setTyping(true); }}
+              onClick={openNumbers}
               className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none"
             >
               <Keyboard className="h-4 w-4 shrink-0" aria-hidden="true" />

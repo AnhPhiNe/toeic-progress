@@ -82,6 +82,22 @@ def test_analysis_is_owner_scoped_quota_counted_and_numeric_facts_are_server_com
         assert "backend-secret" not in json.dumps(provider[0][1])
 
 
+def test_analysis_receives_only_valid_confirmed_elapsed_times_without_deriving_scopes():
+    timing = {"source": "IMAGE_CONFIRMED", "totalSeconds": 6721, "listeningSeconds": None,
+              "readingSeconds": None, "parts": {f"part{part}": None for part in range(1, 8)}}
+    with analysis_api(session={**SESSION, "extra": {"resultTiming": timing, "partDurations": {"part5": 14}}}) as (client, calls):
+        assert client.post("/api/v1/ai/analyze-attempt", json=payload()).status_code == 200
+        request = next(body for url, body, _ in calls if url.host == "api.deepinfra.com")
+        snapshot = json.loads(request["messages"][1]["content"])
+        assert snapshot["confirmedElapsedTiming"] == timing
+        assert "không chứng minh thiếu giờ" in request["messages"][0]["content"]
+        assert "extra" in next(url for url, _, _ in calls if url.path == "/rest/v1/study_sessions").params["select"]
+    with analysis_api(session={**SESSION, "extra": {"resultTiming": {"source": "AI", "totalSeconds": 6721}}}) as (client, calls):
+        assert client.post("/api/v1/ai/analyze-attempt", json=payload()).status_code == 200
+        request = next(body for url, body, _ in calls if url.host == "api.deepinfra.com")
+        assert json.loads(request["messages"][1]["content"])["confirmedElapsedTiming"] is None
+
+
 @pytest.mark.parametrize("patch", [{"sessionVersion": "2026-10-22T00:00:00Z"}, {"noteVersions": {}},
                                   {"noteVersions": {"note-a": "2026-10-22T00:00:00Z"}},
                                   {"noteVersions": {"note-a": STAMP, "other-attempt-note": STAMP}}])

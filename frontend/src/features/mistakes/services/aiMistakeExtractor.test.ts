@@ -11,6 +11,20 @@ const account = { user: { id: 'account-id', is_anonymous: false }, access_token:
 
 describe('visible result-image scores', () => {
   const images = [{ id: 'score', name: 'result.png', dataUrl: 'data:image/png;base64,test' }];
+  it('keeps elapsed seconds and null scopes without deriving any section or total', async () => {
+    const timing = { totalSeconds: 6721, listeningSeconds: null, readingSeconds: null,
+      parts: { part1: null, part2: null, part3: null, part4: null, part5: 870, part6: null, part7: null } };
+    mocks.backendRequest.mockResolvedValue({ wrong: [107], skipped: [], timing, usage: {} });
+    expect((await readResultsWithAI(images, vi.fn())).timing).toEqual(timing);
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+  });
+  it.each([-1, 86401, true, '112', 1.5])('rejects invalid elapsed duration %s without another request', async value => {
+    mocks.backendRequest.mockResolvedValue({ wrong: [], skipped: [], timing: { totalSeconds: value,
+      listeningSeconds: null, readingSeconds: null,
+      parts: { part1: null, part2: null, part3: null, part4: null, part5: null, part6: null, part7: null } }, usage: {} });
+    await expect(readResultsWithAI(images, vi.fn())).rejects.toThrow('chưa hợp lệ');
+    expect(mocks.backendRequest).toHaveBeenCalledOnce();
+  });
   it('returns source scores independently of the wrong question list', async () => {
     const scores = { listening: 375, reading: 370, total: 745 };
     mocks.backendRequest.mockResolvedValue({ wrong: [3, 107], skipped: [], scores, usage: {} });

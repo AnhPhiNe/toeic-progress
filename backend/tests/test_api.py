@@ -217,6 +217,27 @@ def score_record(**scores):
     }
 
 
+def test_confirmed_image_timing_survives_sync_in_session_extra(api):
+    timing = {"source": "IMAGE_CONFIRMED", "totalSeconds": 6721, "listeningSeconds": None,
+              "readingSeconds": None, "parts": {f"part{part}": (870 if part == 5 else None) for part in range(1, 8)}}
+    with api() as (client, calls):
+        reply = client.post("/api/v1/sync", json={"records": [score_record(resultTiming=timing)]})
+        assert reply.status_code == 200
+        sent = next(call[2] for call in calls if call[1].endswith("sync_account_records"))
+        assert sent["p_records"][0]["payload"]["resultTiming"] == timing
+        assert sent["p_records"][0]["payload"]["durationMinutes"] == 120
+
+
+@pytest.mark.parametrize("timing", [{"source": "AI"}, {"source": "IMAGE_CONFIRMED"},
+                                  {"source": "IMAGE_CONFIRMED", "totalSeconds": -1},
+                                  {"source": "IMAGE_CONFIRMED", "totalSeconds": True},
+                                  {"source": "IMAGE_CONFIRMED", "parts": {"part8": 10}}])
+def test_invalid_confirmed_timing_never_reaches_supabase(api, timing):
+    with api() as (client, calls):
+        assert client.post("/api/v1/sync", json={"records": [score_record(resultTiming=timing)]}).status_code == 422
+        assert not any(call[1].endswith("sync_account_records") for call in calls)
+
+
 @pytest.mark.parametrize("parts", [
     [{"part": 5, "correct": 1.5, "total": 30}],
     [{"part": 5, "correct": 0, "total": 0}],

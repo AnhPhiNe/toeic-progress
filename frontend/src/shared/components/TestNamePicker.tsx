@@ -67,15 +67,23 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
     if (!open) return;
     const anchor = searchInPopup ? triggerRef.current : inputRef.current;
     if (!anchor) return;
-    const rect = anchor.getBoundingClientRect();
     const wantedHeight = Math.min(224, Math.max(44, choices.length * 44) + 10) + (searchInPopup ? 60 : 0);
-    const below = window.innerHeight - rect.bottom - 12;
-    const above = rect.top - 12;
-    const flip = below < wantedHeight && above > below;
-    const height = Math.max(44, Math.min(wantedHeight, flip ? above : below));
-    const width = Math.min(Math.max(rect.width, searchInPopup ? 300 : 260), window.innerWidth - 16);
-    setPosition({ left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
-      top: flip ? Math.max(8, rect.top - height - 5) : rect.bottom + 5, width, height });
+    let frame = 0;
+    const place = () => {
+      const rect = anchor.getBoundingClientRect();
+      const below = window.innerHeight - rect.bottom - 12;
+      const above = rect.top - 12;
+      const flip = below < wantedHeight && above > below;
+      const height = Math.max(44, Math.min(wantedHeight, flip ? above : below));
+      const width = Math.min(Math.max(rect.width, searchInPopup ? 300 : 260), window.innerWidth - 16);
+      const next = { left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+        top: flip ? Math.max(8, rect.top - height - 5) : rect.bottom + 5, width, height };
+      setPosition(current => Object.keys(next).every(key => Math.abs(current[key as keyof typeof next] - next[key as keyof typeof next]) < 0.5) ? current : next);
+      // A slide-in dialog moves without resizing the input. Track its transform
+      // while the popup is open so an early measurement cannot cover the footer.
+      frame = requestAnimationFrame(place);
+    };
+    place();
     const outside = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!rootRef.current?.contains(target) && !popupRef.current?.contains(target)) {
@@ -91,6 +99,7 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
     window.addEventListener('scroll', closeOnScroll, true);
     window.addEventListener('resize', closeOnScroll);
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener('pointerdown', outside);
       window.removeEventListener('scroll', closeOnScroll, true);
       window.removeEventListener('resize', closeOnScroll);
@@ -144,7 +153,7 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
       {searchInput}
       {compact && <button type="button" disabled={disabled} aria-label="Hủy đổi đề" className="flex min-h-10 min-w-10 cursor-pointer items-center justify-center text-slate-500" onPointerDown={event => event.preventDefault()} onClick={cancel}><X className="h-4 w-4" aria-hidden="true" /></button>}
     </>}
-    {open && createPortal(<div ref={popupRef}
+    {open && createPortal(<div ref={popupRef} data-modal-owner={listId}
       style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.height }}
       className={`fixed z-[70] rounded-xl border border-slate-300 bg-white shadow-lg dark:border-slate-600 dark:bg-[#111A2C] ${searchInPopup ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-1'}`}>
       {searchInPopup && <div className="relative shrink-0 border-b border-slate-200 p-2 dark:border-slate-700"><Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />{searchInput}</div>}

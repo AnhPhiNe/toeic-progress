@@ -23,7 +23,7 @@ for (const width of [390, 1280]) {
     await expect.poll(() => draftRecords(page)).toContainEqual(expect.objectContaining({ scope: 'session:new', value: expect.objectContaining({ testName: 'QA durable result', wrongQuestions: [107] }) }));
     await page.reload(); form = await openResult(page, width < 768);
     await expect(form.locator('#session-test-name')).toHaveValue('QA durable result');
-    await expect(form.getByText('Đã khôi phục bản nháp trên thiết bị này.', { exact: true })).toBeVisible();
+    await expect(form.getByRole('status').filter({ hasText: 'Đã khôi phục bản nháp trên thiết bị này' })).toBeVisible();
     if (width < 768) await form.getByRole('button', { name: 'Part 5, 1 câu sai', exact: true }).click();
     await expect(form.getByRole('button', { name: 'Câu 107', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
@@ -143,19 +143,20 @@ test('pending score corrections survive reload and explicit discard stays cleare
   let form = await openResult(page);
   await form.locator('#session-test-name').fill('QA pending score draft');
   await form.getByLabel('Ảnh kết quả').setInputFiles(resolve('tests/fixtures/part7-notice.png'));
-  let review = form.getByRole('region', { name: 'Kiểm tra điểm từ ảnh' });
+  let review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await review.getByLabel('Điểm từ ảnh: Listening').fill('400');
   await review.getByLabel('Điểm từ ảnh: Reading').fill('345');
   await page.reload(); form = await openResult(page);
-  review = form.getByRole('region', { name: 'Kiểm tra điểm từ ảnh' });
+  review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await expect(review.getByLabel('Điểm từ ảnh: Listening')).toHaveValue('400');
   await expect(review.getByLabel('Điểm từ ảnh: Reading')).toHaveValue('345');
   // Change only the child-owned mutable score draft before discarding the whole form.
   await review.getByLabel('Điểm từ ảnh: Reading').fill('350');
+  await page.keyboard.press('Escape');
   page.once('dialog', dialog => dialog.accept()); await form.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   expect(await draftRecords(page)).toEqual([]);
   await page.reload(); form = await openResult(page);
   await expect(form.locator('#session-test-name')).not.toHaveValue('QA pending score draft');
-  await expect(form.getByRole('region', { name: 'Kiểm tra điểm từ ảnh' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' })).toHaveCount(0);
 });

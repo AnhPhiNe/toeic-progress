@@ -96,9 +96,9 @@ export function AnalyticsView({ sessions, mistakes, onOpenSessionLogger, onEditS
       {/* 1. Bộ chọn đề & lần làm */}
       <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog" aria-label={`Chọn đề và lần làm: ${sourceName}, ${resultStatus}`}
         className="flex min-h-[50px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-white px-4 text-left shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2px_2px_0_0_#cbd5e1]">
-        <span className="min-w-0 truncate">
-          <span className="text-[15px] font-black text-slate-950 dark:text-white">{sourceName}</span>
-          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400"> · {resultStatus}</span>
+        <span className="min-w-0 flex-1 py-2">
+          <span className="block truncate text-[15px] font-black text-slate-950 dark:text-white">{sourceName}</span>
+          <span className="block text-[13px] font-semibold text-slate-500 dark:text-slate-400">{resultStatus}</span>
         </span>
         <ChevronDown className="h-[18px] w-[18px] shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
       </button>

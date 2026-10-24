@@ -283,6 +283,8 @@ export const PlanView: React.FC<PlanViewProps> = ({
 
   // Xóa mục tiêu
   const handleDeleteTask = (taskId: string) => {
+    const task = activePlanRecord.tasks.find(item => item.id === taskId);
+    if (!task || !window.confirm(`Xóa mục tiêu “${task.title}”?`)) return;
     const updated = activePlanRecord.tasks.filter(t => t.id !== taskId);
     updateCurrentWeekTasks(updated);
   };

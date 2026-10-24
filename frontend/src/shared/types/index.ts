@@ -102,6 +102,18 @@ export interface MistakeEntry {
   lastReviewedAt?: string;
 }
 
+/** Elapsed durations explicitly visible in the result, normalized to seconds. */
+export interface ResultImageTiming {
+  totalSeconds: number | null;
+  listeningSeconds: number | null;
+  readingSeconds: number | null;
+  parts: { part1: number | null; part2: number | null; part3: number | null; part4: number | null;
+    part5: number | null; part6: number | null; part7: number | null };
+}
+export interface ConfirmedResultTiming extends ResultImageTiming {
+  source: 'IMAGE_CONFIRMED';
+}
+
 // Bản ghi một buổi học / làm test
 export interface StudySession {
   id: string;
@@ -124,6 +136,7 @@ export interface StudySession {
   partScores?: LRPartScore;
   /** Full Test ghi bằng danh sách câu sai (1-200, tăng dần); partScores được suy ra từ danh sách này */
   wrongQuestions?: number[];
+  resultTiming?: ConfirmedResultTiming;
 
   /**
    * Dành cho buổi LUYỆN PART LẺ: kết quả từng Part đã luyện trong buổi.

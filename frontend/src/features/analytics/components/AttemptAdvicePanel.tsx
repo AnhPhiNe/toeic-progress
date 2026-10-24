@@ -71,7 +71,8 @@ export function AttemptAdvicePanel({ attempt, mistakes, onNavigateToMistakes, on
   const linked = attempt ? attemptAnalysisInput(attempt, mistakes).notes : [];
 
   const generate = async () => {
-    if (!attempt || !owner || !fingerprint || preparedScope !== scope || busy || !consent) return;
+    if (!consent) { setError('Cho phép gửi dữ liệu cho DeepInfra trước khi tạo hoặc cập nhật phân tích.'); return; }
+    if (!attempt || !owner || !fingerprint || preparedScope !== scope || busy) return;
     const run = ++sequence.current;
     const current = () => run === sequence.current && latest.current.snapshot === snapshot && latest.current.owner === owner && getActiveAccountId() === owner;
     setBusy(true);
@@ -135,9 +136,9 @@ export function AttemptAdvicePanel({ attempt, mistakes, onNavigateToMistakes, on
                 {!attempt
                   ? 'Chọn một lần làm đã lưu để nhận chẩn đoán và gợi ý ôn tập.'
                   : report
-                  ? `AI đã đối chiếu ${report.sampledNotes || linked.length} câu sai của đề: chỉ ra bẫy ETS và mẹo tối ưu điểm số.`
+                  ? `Đã xem ${report.sampledNotes}/${report.linkedNotes} câu sai có chi tiết của lần làm đã chọn.`
                   : owner
-                  ? 'Chỉ ra bẫy ETS và chiến lược khắc phục tối ưu theo từng Part.'
+                  ? 'Ưu tiên theo kết quả từng Part; nhận xét lỗi khi có câu làm bằng chứng.'
                   : 'Đăng nhập và đồng bộ bài thi để nhận gợi ý ôn tập thông minh từ AI.'}
               </p>
             </div>

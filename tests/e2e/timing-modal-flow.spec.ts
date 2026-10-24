@@ -1,63 +1,37 @@
 import { test, expect } from '@playwright/test';
 
-test('Part timing modal flow: presets, auto-calculation, direct manual input and chips display', async ({ page }) => {
-  await page.setViewportSize({ width: 1240, height: 950 });
-  await page.addInitScript(() => {
-    localStorage.setItem('toeic_onboarding_completed', 'true');
-    localStorage.setItem('toeic_study_plan_onboarded', 'true');
+for (const width of [390, 1280]) {
+  test(`actual Part time records only known values, preserves decimals, and isolates Escape at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 700 });
+    await page.goto('/lich-su');
+    await page.evaluate(() => localStorage.setItem('toeic_onboarding_done_v1', 'true'));
+    await page.reload();
+    if (width < 768) {
+      await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
+    } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+    const form = page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
+    await form.locator('#session-test-name').fill('QA actual Part time');
+    // Record an actual wrong answer so saving does not invoke the separate
+    // 990-point confirmation (Playwright dismisses unhandled native dialogs).
+    await form.getByRole('button', { name: 'Câu 3', exact: true }).click();
+    await form.getByRole('button', { name: /Thời gian Part 5 – 7/ }).click();
+    const timing = page.getByRole('dialog', { name: 'Thời gian thực tế Part 5 – 7', exact: true });
+    for (const part of [5, 6, 7]) await expect(timing.getByLabel(`Thời gian Part ${part} (phút)`, { exact: true })).toBeEmpty();
+    await timing.getByLabel('Thời gian Part 5 (phút)', { exact: true }).fill('18.5');
+    await expect(timing.getByLabel('Thời gian Part 7 (phút)', { exact: true })).toBeEmpty();
+    await timing.getByRole('button', { name: 'Áp dụng thời gian', exact: true }).click();
+    await expect(form.getByText('18.5p', { exact: true })).toBeVisible();
+    await expect(form.getByText('Tổng 75p', { exact: true })).toHaveCount(0);
+    await form.getByRole('button', { name: 'Chỉnh sửa thời gian thực tế', exact: true }).click();
+    await timing.getByLabel('Thời gian Part 6 (phút)', { exact: true }).fill('-1');
+    await timing.getByRole('button', { name: 'Áp dụng thời gian', exact: true }).click();
+    await expect(timing.getByRole('alert')).toContainText('0 đến 1440');
+    await page.keyboard.press('Escape');
+    await expect(timing).toHaveCount(0);
+    await expect(form).toBeVisible();
+    await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
+    await expect(form).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.find((row: { testName: string }) => row.testName === 'QA actual Part time')?.partDurations)).toEqual({ part5: 18.5 });
   });
-  await page.goto('/lich-su');
-  await page.waitForLoadState('networkidle');
-
-  // Open 'Ghi điểm'
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await expect(form).toBeVisible();
-
-  // Test name
-  await form.locator('#session-test-name').fill('Test Phân Bổ Thời Gian');
-
-  // 1. Initial State: Click "Thời gian Part 5 – 7"
-  const timeBtn = form.getByRole('button', { name: /Thời gian Part 5 – 7/i });
-  await expect(timeBtn).toBeVisible();
-  await timeBtn.click();
-
-  // 2. Dialog is visible
-  const timingDialog = page.getByRole('dialog', { name: /Phân bổ thời gian Part 5 – 7/i });
-  await expect(timingDialog).toBeVisible();
-
-  // Verify all 3 cards have "phút" label
-  const phutLabels = timingDialog.getByText('phút', { exact: true });
-  await expect(phutLabels).toHaveCount(3);
-
-  // 3. Click preset "Gấp: 18 - 10 - 47"
-  await timingDialog.getByRole('button', { name: 'Gấp: 18 - 10 - 47' }).click();
-
-  // 4. Click "Áp dụng thời gian"
-  await timingDialog.getByRole('button', { name: 'Áp dụng thời gian' }).click();
-  await expect(timingDialog).toBeHidden();
-
-  // 5. Verify 3 chips are visible on the score card: 18p, 10p, 47p
-  await expect(form.getByText('18p')).toBeVisible();
-  await expect(form.getByText('10p')).toBeVisible();
-  await expect(form.getByText('47p')).toBeVisible();
-
-  // 6. Click edit button ✏️
-  const editBtn = form.getByTitle('Chỉnh sửa phân bổ thời gian');
-  await editBtn.click();
-  await expect(timingDialog).toBeVisible();
-
-  // 7. Manually change Part 7 input to 50
-  const inputs = timingDialog.locator('input[type="number"]');
-  await expect(inputs).toHaveCount(3);
-  await inputs.nth(2).fill('50');
-
-  // 8. Apply updated time
-  await timingDialog.getByRole('button', { name: 'Áp dụng thời gian' }).click();
-  await expect(timingDialog).toBeHidden();
-
-  // 9. Verify updated chip: 50p
-  await expect(form.getByText('18p')).toBeVisible();
-  await expect(form.getByText('10p')).toBeVisible();
-  await expect(form.getByText('50p')).toBeVisible();
-});
+}

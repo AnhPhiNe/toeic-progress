@@ -99,7 +99,7 @@ test('no named test leaves analytics unassigned while the explicit all-notebook 
   await page.getByLabel('Part', { exact: true }).selectOption('7');
   await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Đặt lại bộ lọc', exact: true }).click();
+  await page.getByRole('button', { name: /Bỏ lọc/ }).click();
   await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(1);
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
   expect(stored.mistakes[0].sourceTestName).toBe('');

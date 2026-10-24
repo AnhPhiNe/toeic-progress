@@ -3,6 +3,35 @@ import { choosePart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
 import { test, expect } from '@playwright/test';
 import { useOfficialScore } from './helpers/sessionForm';
 
+for (const width of [390, 1280]) {
+  test(`source suggestions follow the animated form and leave Save reachable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/lich-su');
+    if (width < 768) {
+      await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
+    } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+    const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+    const input = form.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn', exact: true });
+    // Fill as soon as the form is visible, while the sheet may still be moving.
+    await input.fill('QA animated source');
+    await expect(input).toHaveAttribute('aria-expanded', 'true');
+    const popup = page.getByRole('listbox', { name: 'Tên đề gợi ý', exact: true });
+    await expect.poll(() => popup.evaluate(list => {
+      const anchor = document.querySelector('#session-test-name')!.getBoundingClientRect();
+      const bounds = list.closest('[data-modal-owner]')!.getBoundingClientRect();
+      return Math.abs(bounds.top - anchor.bottom - 5);
+    })).toBeLessThan(2);
+    await expect(popup.getByRole('option', { name: '+ Thêm tên đề “QA animated source”', exact: true })).toBeVisible();
+    let confirmed = false;
+    page.once('dialog', prompt => { confirmed = prompt.message().includes('990'); void prompt.dismiss(); });
+    await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
+    expect(confirmed).toBe(true);
+    await expect(form).toBeVisible();
+    await expect(popup).toHaveCount(0);
+  });
+}
+
 test('search stays inside the dropdown, keeps the field stable and marks the selected source', async ({ page }, testInfo) => {
   await page.goto('/so-tay');
   await openNoteForm(page);

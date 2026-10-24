@@ -12,7 +12,9 @@ const full = row('sessions', {
   id: 'full1', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'ETS Test 1', date: '2026-10-05', durationMinutes: 120,
   createdAt: stamp, rawListening: 75, rawReading: 70, scaledListening: 320, scaledReading: 285, totalScore: 605,
   partScores: { part1: 6, part2: 20, part3: 29, part4: 20, part5: 20, part6: 10, part7: 40 }, notes: 'First test', source: 'paper',
-  scoreSource: 'ESTIMATED', scoreConversionVersion: 'iibc-mock-2023-perfect-v2'
+  scoreSource: 'ESTIMATED', scoreConversionVersion: 'iibc-mock-2023-perfect-v2',
+  resultTiming: { source: 'IMAGE_CONFIRMED', totalSeconds: 6721, listeningSeconds: null, readingSeconds: null,
+    parts: { part1: null, part2: null, part3: null, part4: null, part5: 870, part6: null, part7: null } }
 });
 const practice = row('sessions', {
   id: 'practice1', skillType: 'LR', sessionType: 'PART_PRACTICE', testName: 'Mini practice', date: '2026-10-06', durationMinutes: 20, createdAt: stamp,

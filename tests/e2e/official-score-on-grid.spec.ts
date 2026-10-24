@@ -22,7 +22,7 @@ test('entering official score stays on the 200-question grid and saves directly'
   await enterScoreBtn.click();
 
   // Wait for ResultScoreReview modal
-  const reviewDialog = page.getByRole('region', { name: 'Kiểm tra điểm từ ảnh' });
+  const reviewDialog = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await expect(reviewDialog).toBeVisible();
 
   // Enter Listening 450, Reading 450

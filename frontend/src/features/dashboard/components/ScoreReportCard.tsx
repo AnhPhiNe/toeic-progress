@@ -209,8 +209,8 @@ function Section({
           ›
         </span>
       </div>
-      <div className="flex items-baseline justify-between gap-1 w-full">
-        <span className={'font-black tabular-nums leading-none text-slate-950 dark:text-white tracking-tight ' + (roomy ? 'text-[28px]' : 'text-[28px]')}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-2 w-full">
+        <span className="whitespace-nowrap font-black tabular-nums leading-none text-slate-950 dark:text-white tracking-tight text-[28px]">
           {score ?? '—'}
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">/ 495</span>
         </span>

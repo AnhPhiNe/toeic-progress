@@ -25,6 +25,7 @@ async def health(request: Request):
         "page_image_extraction": True,
         "result_image_reading": True,
         "result_image_scores": True,
+        "result_image_timing": True,
         "attempt_analysis": settings.attempt_analysis_ready,
         "explain_tickets": bool(settings.rate_limit_secret),
         "persistent_source_images": settings.source_images_enabled,

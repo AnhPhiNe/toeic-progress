@@ -62,23 +62,17 @@ export function AttemptAdviceModal({
 
   if (!isOpen || !attempt) return null;
 
-  // Tổng hợp nhận xét tổng quan dựa trên điểm số
-  const getOverallVerdict = () => {
-    const l = attempt.scaledListening;
-    const r = attempt.scaledReading;
-    if (l !== undefined && r !== undefined) {
-      if (l >= 450 && r >= 450) {
-        return `Phong độ xuất sắc toàn diện! Bạn đạt ${l}/495 Listening và ${r}/495 Reading. Các câu sai chủ yếu là bẫy phân loại nâng cao, hãy đối chiếu chi tiết từng câu dưới đây để đạt mốc điểm tuyệt đối.`;
-      }
-      if (l >= 450 && r < 420) {
-        return `Kỹ năng Nghe đạt phong độ cực kỳ vững vàng (${l}/495 điểm). Toàn bộ trọng tâm cải thiện nên dồn vào kỹ năng Đọc (${r}/495 điểm), đặc biệt là phân bổ thời gian cho Part 7 để bứt phá điểm tổng.`;
-      }
-      if (r >= 450 && l < 420) {
-        return `Kỹ năng Đọc rất tốt (${r}/495 điểm). Điểm mất tập trung ở kỹ năng Nghe (${l}/495 điểm), cần ưu tiên luyện nghe bắt nhịp từ đồng nghĩa và phản xạ 8 giây giữa các câu hỏi.`;
-      }
-    }
-    return `Báo cáo phân tích chuyên sâu các bẫy ETS và thói quen làm bài của bạn ở lần thi ${attempt.testName}. Dưới đây là các Part cần ưu tiên khắc phục nhất để cải thiện điểm số.`;
-  };
+  const observedScores = [
+    attempt.scaledListening != null ? `Listening ${attempt.scaledListening}/495` : '',
+    attempt.scaledReading != null ? `Reading ${attempt.scaledReading}/495` : '',
+  ].filter(Boolean).join(' · ');
+  const consentControl = owner && (
+    <label className="flex cursor-pointer items-start gap-2.5 text-xs font-semibold leading-relaxed text-slate-700 dark:text-slate-300">
+      <input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} disabled={busy}
+        className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600" />
+      <span>Cho phép gửi kết quả, nội dung câu sai và ghi chú của lần làm này tới DeepInfra (DeepSeek) để phân tích. Không gửi ảnh hoặc hồ sơ tài khoản; nội dung bạn nhập có thể chứa thông tin cá nhân, hãy kiểm tra trước khi gửi.</span>
+    </label>
+  );
 
   const handleAction = (callback?: () => void) => {
     triggerHaptic(8);
@@ -108,7 +102,7 @@ export function AttemptAdviceModal({
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 id="ai-advice-modal-title" className="text-base font-black text-slate-950 dark:text-white truncate">
+                <h3 id="ai-advice-modal-title" className="text-base font-black text-slate-950 dark:text-white break-words">
                   Chẩn đoán & Gợi ý ôn tập
                 </h3>
                 <span className="rounded-md bg-slate-200 border border-slate-300 px-1.5 py-0.5 text-[10.5px] font-black text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
@@ -149,24 +143,13 @@ export function AttemptAdviceModal({
                     Sẵn sàng Chẩn đoán Lần làm này
                   </h4>
                   <p className="mt-2 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Hệ thống sẽ đối chiếu số câu sai thực tế của đề <strong className="text-slate-900 dark:text-white">{attempt.testName}</strong>, nhận diện các bẫy ETS bạn thường gặp phải và xây dựng phương pháp khắc phục tối ưu theo từng Part.
+                    Hệ thống sẽ dùng kết quả từng Part và những câu sai đã ghi chi tiết của <strong className="text-slate-900 dark:text-white">{attempt.testName}</strong>. Khi chưa đủ bằng chứng, báo cáo chỉ gợi ý cách luyện chung, không kết luận nguyên nhân.
                   </p>
                 </div>
 
                 {owner ? (
                   <div className="space-y-3.5 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                    <label className="flex cursor-pointer items-start gap-2.5 text-xs font-semibold leading-relaxed text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600 rounded cursor-pointer"
-                        checked={consent}
-                        disabled={busy}
-                        onChange={e => setConsent(e.target.checked)}
-                      />
-                      <span>
-                        Cho phép gửi kết quả và câu sai của lần làm này lên AI để tạo gợi ý ôn tập. Tuyệt đối không gửi ảnh và không gửi thông tin cá nhân.
-                      </span>
-                    </label>
+                    {consentControl}
 
                     <button
                       type="button"
@@ -178,7 +161,7 @@ export function AttemptAdviceModal({
                       {busy ? 'Đang đối chiếu dữ liệu và tạo gợi ý…' : 'Bắt đầu Chẩn đoán bằng AI'}
                     </button>
                     <p className="text-[11.5px] text-center font-medium text-slate-500 dark:text-slate-400">
-                      Mỗi lần chẩn đoán mới tiêu tốn 1 lượt AI. Báo cáo sau khi tạo sẽ được lưu lại để mở xem lại miễn phí bất cứ lúc nào.
+                      Tạo hoặc cập nhật báo cáo sử dụng một lượt AI. Báo cáo được lưu trên trình duyệt này để xem lại mà không gọi AI thêm.
                     </p>
                   </div>
                 ) : (
@@ -198,81 +181,21 @@ export function AttemptAdviceModal({
                     <span>🎯</span> Nhận xét Tổng quan lần làm này
                   </div>
                   <p className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-                    {getOverallVerdict()}
+                    {observedScores || 'Chưa có điểm Listening/Reading riêng cho lần làm này.'} Đã xem {report.sampledNotes}/{report.linkedNotes} câu sai có chi tiết. Số liệu theo Part cho biết nơi cần ưu tiên; nguyên nhân chỉ có thể nhận xét trong phạm vi bằng chứng đã lưu.
                   </p>
                 </div>
 
-                {/* Phân tích Nhịp độ & Phân bổ thời gian Part 5-7 (nếu có) */}
-                {attempt.partDurations && (attempt.partDurations.part5 != null || attempt.partDurations.part6 != null || attempt.partDurations.part7 != null) && (
-                  <div className="rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#162137] space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                        <span>⏱️</span> Chẩn đoán Chiến thuật Thời gian Reading
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                        Tổng 75 phút
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2 text-center dark:border-slate-700 dark:bg-slate-900/50">
-                        <span className="text-[10px] font-bold text-slate-500 block uppercase">Part 5</span>
-                        <span className="text-base font-black tabular-nums text-slate-950 dark:text-white">
-                          {attempt.partDurations.part5 ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
-                        </span>
-                        <span className={`block text-[9px] font-extrabold mt-0.5 ${(attempt.partDurations.part5 ?? 0) > 15 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {(attempt.partDurations.part5 ?? 0) > 15 ? `Quá ${(attempt.partDurations.part5 ?? 0) - 12}p` : 'Chuẩn (≤12p)'}
-                        </span>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2 text-center dark:border-slate-700 dark:bg-slate-900/50">
-                        <span className="text-[10px] font-bold text-slate-500 block uppercase">Part 6</span>
-                        <span className="text-base font-black tabular-nums text-slate-950 dark:text-white">
-                          {attempt.partDurations.part6 ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
-                        </span>
-                        <span className={`block text-[9px] font-extrabold mt-0.5 ${(attempt.partDurations.part6 ?? 0) > 11 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {(attempt.partDurations.part6 ?? 0) > 11 ? `Quá ${(attempt.partDurations.part6 ?? 0) - 8}p` : 'Chuẩn (≤10p)'}
-                        </span>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2 text-center dark:border-slate-700 dark:bg-slate-900/50">
-                        <span className="text-[10px] font-bold text-slate-500 block uppercase">Part 7</span>
-                        <span className="text-base font-black tabular-nums text-slate-950 dark:text-white">
-                          {attempt.partDurations.part7 ?? '—'} <span className="text-xs font-bold text-slate-400">p</span>
-                        </span>
-                        <span className={`block text-[9px] font-extrabold mt-0.5 ${(attempt.partDurations.part7 ?? 0) < 50 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                          {(attempt.partDurations.part7 ?? 0) < 50 ? `Thiếu ${55 - (attempt.partDurations.part7 ?? 0)}p` : 'Đủ giờ (≥50p)'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-700 dark:bg-slate-900 dark:text-slate-300 leading-relaxed font-medium">
-                      {(attempt.partDurations.part5 ?? 0) > 15 ? (
-                        <span>
-                          🚨 <strong>Áp lực thời gian:</strong> Bạn mất {attempt.partDurations.part5} phút cho Part 5 (vượt {(attempt.partDurations.part5 ?? 0) - 12}p so với khuyến nghị 12p), khiến Part 7 chỉ còn {attempt.partDurations.part7 ?? 50} phút. Đa số câu sai ở 15 câu cuối thường xuất phát từ việc thiếu thời gian đọc đoạn văn đôi/ba. Hãy tập thói quen khóa Part 5 ở phút thứ 12!
-                        </span>
-                      ) : (attempt.partDurations.part7 ?? 0) < 50 ? (
-                        <span>
-                          ⏱️ <strong>Cần bảo toàn thời gian:</strong> Part 7 đang nhận ít hơn 50 phút. Cần tăng tốc độ xử lý ở Part 5 và 6 để giữ trọn vẹn ít nhất 52–55 phút cho các bài đọc đoạn văn dài.
-                        </span>
-                      ) : (
-                        <span>
-                          🎯 <strong>Nhịp độ làm bài rất tốt:</strong> Bạn phân bổ thời gian giữa các Part rất cân đối ({attempt.partDurations.part5}p - {attempt.partDurations.part6}p - {attempt.partDurations.part7}p). Các câu sai thuần túy là bẫy ngữ nghĩa hoặc từ vựng, không bị ảnh hưởng bởi áp lực thời gian.
-                        </span>
-                      )}
-                    </div>
-
-                    {onNavigateToTimer && (
-                      <button
-                        type="button"
-                        onClick={() => handleAction(() => onNavigateToTimer('PART_5'))}
-                        className="w-full py-2 px-3 rounded-lg border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-xs font-black text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Timer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                        <span>Luyện Tốc Độ Đồng Hồ Pacing (Part 5 trong 12 phút) ›</span>
-                      </button>
-                    )}
-                  </div>
+                {attempt.partDurations && [5, 6, 7].some(part => attempt.partDurations?.[`part${part}` as keyof NonNullable<StudySession['partDurations']>] != null) && (
+                  <section aria-label="Thời gian Reading đã ghi" className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white">Thời gian từng Part đã ghi</h4>
+                    <dl className="mt-2 flex flex-wrap gap-4 text-xs">
+                      {([5, 6, 7] as const).map(part => {
+                        const minutes = attempt.partDurations?.[`part${part}`];
+                        return minutes == null ? null : <div key={part}><dt>Part {part}</dt><dd className="font-bold">{minutes} phút</dd></div>;
+                      })}
+                    </dl>
+                    <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">Thời gian giúp đối chiếu nhịp làm bài; chưa đủ để kết luận nguyên nhân câu sai hoặc khẳng định bạn làm kịp.</p>
+                  </section>
                 )}
 
                 {stale && (
@@ -303,8 +226,8 @@ export function AttemptAdviceModal({
                         className="rounded-xl border-2 border-slate-900 bg-white p-4 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#162137] space-y-3.5"
                       >
                         {/* Header Part */}
-                        <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
+                          <div className="flex min-w-0 flex-1 basis-48 items-start gap-2.5">
                             {priority.part ? (
                               <span
                                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white text-xs font-black ${
@@ -319,7 +242,7 @@ export function AttemptAdviceModal({
                               </span>
                             )}
                             <div className="min-w-0">
-                              <h5 className="text-sm font-black text-slate-950 dark:text-white truncate">
+                              <h5 className="text-sm font-black text-slate-950 dark:text-white break-words">
                                 {index + 1}. {priority.title}
                               </h5>
                               {partFact && (
@@ -338,7 +261,7 @@ export function AttemptAdviceModal({
                         <div className="space-y-1">
                           <span className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                             <Search className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                            Nguyên nhân & Bẫy ETS thường gặp:
+                            Nhận xét từ dữ liệu hiện có:
                           </span>
                           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-5 whitespace-pre-line">
                             {priority.observation}
@@ -372,7 +295,7 @@ export function AttemptAdviceModal({
                         <div className="rounded-xl bg-emerald-50/90 border border-emerald-300 p-3.5 text-xs text-emerald-950 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-200 leading-relaxed space-y-1">
                           <span className="font-black text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5 text-xs">
                             <Lightbulb className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
-                            Phương pháp học tập & Luyện thi tối ưu:
+                            Cách luyện đề xuất:
                           </span>
                           <p className="pl-5 whitespace-pre-line font-medium">
                             {priority.practice}
@@ -408,7 +331,7 @@ export function AttemptAdviceModal({
                               className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors"
                             >
                               <CalendarDays size={14} aria-hidden="true" />
-                              Thêm vào Kế hoạch tuần
+                              Mở kế hoạch
                             </button>
                           )}
                         </div>
@@ -418,6 +341,8 @@ export function AttemptAdviceModal({
                 </div>
               </>
             )}
+
+            {report && owner && <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">{consentControl}<p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Cập nhật phân tích sẽ sử dụng một lượt AI mới.</p></div>}
 
             {/* Trạng thái lỗi hoặc thông báo */}
             {error && (
@@ -434,7 +359,7 @@ export function AttemptAdviceModal({
         </div>
 
         {/* Footer Modal */}
-        <footer className={`flex shrink-0 items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-3.5 dark:border-slate-800 dark:bg-[#162137] ${PHONE_SHEET_FOOTER}`}>
+        <footer className={`flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3.5 dark:border-slate-800 dark:bg-[#162137] ${PHONE_SHEET_FOOTER}`}>
           <button
             type="button"
             onClick={onClose}
@@ -446,7 +371,7 @@ export function AttemptAdviceModal({
             <button
               type="button"
               onClick={onGenerate}
-              disabled={busy}
+              disabled={busy || !consent}
               className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-black text-white shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 transition-all dark:border-slate-300"
             >
               <RefreshCw size={14} aria-hidden="true" className={busy ? 'animate-spin motion-reduce:animate-none' : ''} />

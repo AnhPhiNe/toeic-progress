@@ -116,6 +116,19 @@ test('one storage failure preserves both drafts and a retry writes each card exa
   expect(new Set(ids).size).toBe(2);
 });
 
+test('batch questions and options can be inspected before saving on a narrow phone', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  const form = await openBatch(page);
+  await form.getByLabel('Ảnh màn hình câu sai').setInputFiles(screenshot);
+  await form.getByText('Xem nội dung câu 101', { exact: true }).click();
+  const details = form.locator('details').filter({ has: page.getByText('Xem nội dung câu 101', { exact: true }) });
+  await expect(details.getByText('Reports 101 ____ ready.', { exact: true })).toBeVisible();
+  await expect(details.getByText('(A) are', { exact: true })).toBeVisible();
+  await expect(details.getByText('(B) is', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await count(page)).toBe(0);
+});
+
 
 test('a targeted follow-up counts only its requested question and separately shows the accumulated batch', async ({ page }) => {
   const form = await openBatch(page);

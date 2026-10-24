@@ -96,7 +96,7 @@ function TodayTasks({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white">
-                  Làm đề mới hoặc ôn luyện Part yếu
+                  Ghi lại kết quả vừa làm
                 </p>
                 <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                   Không có câu sai đến hạn · Giữ vững nhịp học
@@ -108,7 +108,7 @@ function TodayTasks({
               onClick={onOpenSessionLogger}
               className="shrink-0 inline-flex items-center rounded-xl border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-300 text-slate-950 px-3 py-1.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
             >
-              Làm đề ›
+              Ghi kết quả ›
             </button>
           </div>
         )}

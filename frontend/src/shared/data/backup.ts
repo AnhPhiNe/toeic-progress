@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { confirmedResultTimingSchema } from '@/shared/domain/resultTiming';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import { explanationSchema, optionNoteSchema, normalizeReviewTimestamp, normalizeMistakeRecord } from '@/shared/data/mistakeFields';
 import { partOfQuestion, partScoresFromWrong } from '@/shared/domain/questionNumbers';
@@ -42,9 +43,11 @@ const session = z.object({
   scoreSource: z.enum(['ESTIMATED','MANUAL_SECTIONS','MANUAL_TOTAL']).optional(),
   scoreConversionVersion: z.string().max(100).optional(),
   wrongQuestions: z.array(questionNumber).max(200).refine(list => list.every((value, index) => index === 0 || value > list[index - 1]), 'danh sách câu sai phải tăng dần, không trùng').optional(),
+  resultTiming: confirmedResultTimingSchema.optional(),
   notes: z.string().optional(), attemptNumber: z.number().int().positive().optional(), createdAt: timestamp,
   ...metadata
 }).passthrough().superRefine((value, context) => {
+  if (value.resultTiming && value.sessionType !== 'FULL_TEST') context.addIssue({ code: 'custom', path: ['resultTiming'], message: 'thời gian từ ảnh chỉ dùng cho Full Test' });
   if (value.wrongQuestions) {
     if (value.sessionType !== 'FULL_TEST') context.addIssue({ code: 'custom', path: ['wrongQuestions'], message: 'danh sách câu sai chỉ dùng cho Full Test' });
     else if (value.partScores && Object.entries(partScoresFromWrong(value.wrongQuestions)).some(([key, correct]) => value.partScores![key as keyof typeof value.partScores] !== correct))

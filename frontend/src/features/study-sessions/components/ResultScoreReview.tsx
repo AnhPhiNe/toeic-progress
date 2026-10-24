@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { X } from 'lucide-react';
 import type { ResultImageScores } from '@/features/mistakes/services/aiMistakeExtractor';
 import { resolveFullTestScore } from '../lib/fullTestScore';
@@ -23,13 +25,17 @@ export const createResultScoreDraft = (scores: ResultImageScores): ResultScoreDr
 });
 
 /** Image values are candidates; only an explicit learner action changes the saved score source. */
-export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, onDraftChange, disabled = false }: {
+export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, onClose, draft, onDraftChange, disabled = false }: {
   scores: ResultImageScores; onApply: (score: AppliedResultScore) => void; onEdit: () => void; onDiscard: () => void; disabled?: boolean;
   draft?: ResultScoreDraft | null; onDraftChange?: (draft: ResultScoreDraft) => void;
+  /** Hides the panel while keeping its unapplied candidate; distinct from choosing an estimate. */
+  onClose: () => void;
 }) {
   const [mode, setMode] = useState(() => (draft ?? createResultScoreDraft(scores)).mode);
   const [fields, setFields] = useState(() => (draft ?? createResultScoreDraft(scores)).fields);
   const [error, setError] = useState('');
+  const close = () => { if (!disabled) onClose(); };
+  const modalRef = useModalA11y(true, close);
 
   const handleLChange = (val: string) => {
     const next = { ...fields, listening: val };
@@ -92,18 +98,8 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
     onDiscard();
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !disabled) {
-        handleDiscard();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [disabled]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none">
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6" onClick={event => { if (event.target === event.currentTarget) close(); }}>
       {/* Visual Backdrop Overlay */}
       <div
         className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] pointer-events-none animate-backdrop"
@@ -111,10 +107,13 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
       />
 
       {/* Modal Dialog Card: Phương án 1 - Thanh 3 Cột Liền Khối [ L + R = Tổng ] */}
-      <section
-        role="region"
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         aria-label="Kiểm tra điểm từ ảnh"
-        className="pointer-events-auto relative w-full max-w-[560px] rounded-3xl border-2 border-slate-900 bg-[#FFFDF7] p-6 sm:p-7 shadow-[8px_8px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[8px_8px_0_0_#cbd5e1] animate-modal-pop space-y-5"
+        className="relative max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full max-w-[560px] rounded-3xl border-2 border-slate-900 bg-[#FFFDF7] p-6 sm:p-7 shadow-[8px_8px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[8px_8px_0_0_#cbd5e1] animate-modal-pop space-y-5"
       >
         {/* Header Modal */}
         <div className="flex items-center justify-between border-b border-slate-200/90 pb-3.5 dark:border-slate-800">
@@ -136,11 +135,11 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
           </div>
           <button
             type="button"
-            onClick={handleDiscard}
+            onClick={close}
             disabled={disabled}
             aria-label="Đóng điểm từ đề"
             className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-700 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-100 hover:text-slate-950 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-400 dark:bg-slate-800 dark:text-slate-200 transition-all cursor-pointer"
-            title="Bỏ qua điểm từ đề"
+            title="Đóng và giữ điểm chờ kiểm tra"
           >
             <X size={16} />
           </button>
@@ -265,7 +264,7 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
                 <span>Thời gian Reading Part 5 – 7 bóc tách từ ảnh</span>
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-extrabold dark:bg-emerald-900 dark:text-emerald-200">
-                Tổng 75p
+                Theo ảnh
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -323,7 +322,7 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, draft, o
             Dùng điểm ước tính
           </button>
         </div>
-      </section>
+      </div>
     </div>
-  );
+  , document.body);
 }

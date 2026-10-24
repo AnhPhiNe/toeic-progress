@@ -7,6 +7,8 @@ import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString } from '@/shared/data/storage';
 import type { ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { WrongQuestionGrid } from './WrongQuestionGrid';
+import type { WrongNumberDraft } from '../lib/wrongNumberDraft';
+import type { ResultImageTiming } from '@/shared/types';
 import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
@@ -62,7 +64,7 @@ function DetailsRow({ date, setDate, duration, setDuration, notes, setNotes }: {
               className="mt-1 h-12 w-full rounded-xl border-[1.5px] border-slate-300 bg-white px-3 font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
           </label>
           <label className="text-[13px] font-semibold text-slate-600 dark:text-slate-300">Thời gian (phút)
-            <input id="session-duration" type="number" inputMode="numeric" min="5" max="240" required value={duration} onChange={event => setDuration(Number(event.target.value))}
+            <input id="session-duration" type="number" inputMode="decimal" min="0.01" max="1440" step="any" required value={duration} onChange={event => setDuration(Number(event.target.value))}
               className="mt-1 h-12 w-full rounded-xl border-[1.5px] border-slate-300 bg-white px-3 font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
           </label>
         </div>
@@ -78,6 +80,9 @@ function DetailsRow({ date, setDate, duration, setDuration, notes, setNotes }: {
 const LIVE_CARD = 'rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]';
 
 interface FullTestProps {
+  manualViewOverride?: boolean;
+  onTiming?: (value: ResultImageTiming) => void;
+  numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void;
   testName: string; setTestName: (value: string) => void; suggestions: string[];
   retest?: { attempt: number; best: number };
   partScores: LRPartScore; onPart: (key: keyof LRPartScore, value: number) => void;
@@ -103,7 +108,7 @@ export function PhoneFullTestBody(props: FullTestProps) {
   const { partScores, onPart, preview, scoreSource, partDurations, onPartDurationsChange } = props;
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const manual = scoreSource !== 'ESTIMATED';
-  const fromWrong = props.entry === 'wrong';
+  const fromWrong = props.entry === 'wrong' && !props.manualViewOverride;
   // An empty section would show the scale's floor (R 5) and a misleadingly low total while the learner is
   // still typing; each section waits for its first answer and the total waits for both.
   // Logging by wrong questions shows a score once the first question is marked (a perfect test is confirmed on save).
@@ -203,7 +208,7 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       )}
 
-      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} />}
+      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onTiming={props.onTiming} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft} />}
 
       {showParts && <>
         {section('Listening', [1, 2, 3, 4], listeningRaw)}

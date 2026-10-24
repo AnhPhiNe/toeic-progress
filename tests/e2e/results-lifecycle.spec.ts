@@ -41,7 +41,7 @@ for (const width of [390, 1280]) {
     const form = await openForm(page);
     await form.getByRole('button', { name: 'Câu 3', exact: true }).click();
     await form.getByLabel('Ảnh kết quả').setInputFiles(resolve('tests/fixtures/part7-notice.png'));
-    await expect(form.getByRole('button', { name: /^AI đang đọc ảnh…/ })).toBeVisible();
+    await expect(form.getByRole('button', { name: /^(AI đang đọc ảnh…|Đang đọc…)/ })).toBeVisible();
     await form.getByRole('button', { name: 'Câu 3', exact: true }).click();
     await form.getByRole('button', { name: 'Câu 6', exact: true }).click();
     await finish(page);

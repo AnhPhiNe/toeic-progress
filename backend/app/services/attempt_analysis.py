@@ -11,6 +11,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.schemas.attempt_analysis import AnalysisAdvice, AnalyzeAttemptRequest
+from app.schemas.models import ConfirmedResultTiming
 
 logger = logging.getLogger('toeic.attempt_analysis')
 
@@ -18,7 +19,7 @@ MODEL = "deepseek-ai/DeepSeek-V4.1-Flash-1017"
 VERSION = 1
 MAX_NOTES = 40
 PART_MAX = (6, 25, 39, 30, 30, 16, 54)
-SESSION_FIELDS = "id,updated_at,skill_type,session_type,test_name,study_date,scaled_listening,scaled_reading,total_score,part1_correct,part2_correct,part3_correct,part4_correct,part5_correct,part6_correct,part7_correct"
+SESSION_FIELDS = "id,updated_at,skill_type,session_type,test_name,study_date,scaled_listening,scaled_reading,total_score,part1_correct,part2_correct,part3_correct,part4_correct,part5_correct,part6_correct,part7_correct,extra"
 NOTE_FIELDS = "id,updated_at,session_id,part,category,question_context,user_mistake,correct_answer,trap_tip,options,tags,extra"
 
 
@@ -94,8 +95,16 @@ async def load_snapshot(gateway, owner: str, body: AnalyzeAttemptRequest) -> dic
     if not facts and not evidence:
         raise HTTPException(422, "Lần làm này mới có điểm tổng. Thêm số câu đúng theo Part hoặc ghi chi tiết câu sai để nhận gợi ý có bằng chứng; chưa dùng lượt AI.")
     scores = {key: session.get(key) for key in ("scaled_listening", "scaled_reading", "total_score")}
+    extra = session.get("extra") if isinstance(session.get("extra"), dict) else {}
+    timing = None
+    if extra.get("resultTiming") is not None:
+        try:
+            timing = ConfirmedResultTiming.model_validate(extra["resultTiming"]).model_dump()
+        except ValueError:
+            pass  # Ignore unvalidated legacy extras; never invent a duration.
     return {"attemptId": body.attemptId, "testName": session["test_name"], "date": session["study_date"],
             "scores": scores, "parts": facts, "linkedNotes": len(evidence),
+            "confirmedElapsedTiming": timing,
             "sampledNotes": min(MAX_NOTES, len(evidence)), "evidence": evidence[:MAX_NOTES]}
 
 
@@ -111,6 +120,7 @@ Số liệu thống kê và thời lượng đã được UI hiển thị riêng
 part là số Part liên quan hoặc null; chỉ được dùng Part có facts hoặc evidence. evidenceIds chỉ chọn ID có trong evidence, không bịa.
 Mỗi ưu tiên phải có evidenceIds hoặc part có thống kê. Nếu chỉ có thống kê Part, nói rõ chưa đủ câu chi tiết để xác định nguyên nhân; hướng dẫn cách tự kiểm chứng.
 Không kết luận yếu từ vựng, đọc chậm, mất tập trung hay thiếu ngữ pháp chỉ từ số câu sai. Category là ghi chú, đáp án AI chưa được kiểm chứng. Thể hiện sự chưa chắc chắn và đề xuất đối chiếu nguồn khi cần.
+confirmedElapsedTiming là thời gian đã làm được người dùng kiểm tra từ ảnh, đơn vị giây; có thể thiếu từng phạm vi. Chỉ dùng dữ kiện hiện có, không tự chia tổng hoặc suy ra thời gian còn lại. Thời gian dài/ngắn một mình không chứng minh thiếu giờ, đọc chậm hoặc bỏ bài; chỉ đề xuất tự kiểm chứng kết hợp lỗi có bằng chứng.
 Nếu sampledNotes nhỏ hơn linkedNotes, đây chỉ là mẫu. Không suy rộng thành toàn bộ lỗi của người học.
 Không lặp cùng ưu tiên; không URL, HTML, markdown link, chẩn đoán y tế hay lời đảm bảo kết quả. Không cần liệt kê điểm tổng. Không trả thêm khóa ngoài schema.
 """
