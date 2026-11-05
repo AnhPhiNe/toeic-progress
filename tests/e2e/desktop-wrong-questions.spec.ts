@@ -44,10 +44,11 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
   expect(session.wrongQuestions).toEqual([3, 101, 102, 103, 107, 113, 115, 117, 128]);
   expect(session.partScores).toMatchObject({ part1: 5, part5: 22 });
 
-  // The form closes; a note offers to fill in the questions now, and the notebook keeps them as one row for the test.
+  // The form closes on the result screen, which offers to fill in the Reading questions; the notebook keeps them as one row.
   await expect(form).toHaveCount(0);
-  const notice = page.getByRole('status').filter({ hasText: 'Đã lưu ETS Desktop · 8 câu Reading sai vào Sổ tay' });
-  await notice.getByRole('button', { name: 'Ghi chi tiết ›', exact: true }).click();
+  const result = page.getByRole('dialog', { name: 'Đã lưu bài đầu tiên!', exact: true });
+  await expect(result.getByText('8 câu Reading sai đã vào Sổ tay. Ghi nội dung câu để ôn lại được.', { exact: true })).toBeVisible();
+  await result.getByRole('button', { name: 'Ghi chi tiết 8 câu sai', exact: true }).click();
   const flow = page.getByRole('dialog', { name: /^Ghi câu sai/ });
   await expect(flow).toBeVisible();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();

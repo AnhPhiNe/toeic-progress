@@ -109,8 +109,10 @@ const CELEBRATED_KEY = 'toeic_streak_celebrated_v1';
  * It never blocks input, steps aside as soon as the learner taps or types (so it never sits over the
  * next form), and skips the motion when the system asks for reduced motion.
  */
-export function StreakCelebration({ streak, studiedToday, today }: { streak: number; studiedToday: boolean; today: string }) {
+export function StreakCelebration({ streak, studiedToday, today, held = false }: { streak: number; studiedToday: boolean; today: string; held?: boolean }) {
   const [visible, setVisible] = useState(false);
+  // While another screen holds the stage (a test's result screen), the flare waits until that screen closes.
+  const [pending, setPending] = useState(false);
   const previous = useRef(studiedToday);
   useEffect(() => {
     const becameStudied = !previous.current && studiedToday;
@@ -122,17 +124,22 @@ export function StreakCelebration({ streak, studiedToday, today }: { streak: num
     } catch {
       // Celebrating twice is harmless when storage is unavailable.
     }
-    setVisible(true);
-    const timer = window.setTimeout(() => setVisible(false), 2600);
-    return () => window.clearTimeout(timer);
+    setPending(true);
   }, [studiedToday, streak, today]);
+
+  useEffect(() => {
+    if (!pending || held) return;
+    setPending(false);
+    setVisible(true);
+  }, [pending, held]);
 
   useEffect(() => {
     if (!visible) return;
     const hide = () => setVisible(false);
+    const timer = window.setTimeout(hide, 2600);
     window.addEventListener('pointerdown', hide, true);
     window.addEventListener('keydown', hide, true);
-    return () => { window.removeEventListener('pointerdown', hide, true); window.removeEventListener('keydown', hide, true); };
+    return () => { window.clearTimeout(timer); window.removeEventListener('pointerdown', hide, true); window.removeEventListener('keydown', hide, true); };
   }, [visible]);
 
   if (!visible) return null;

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { usePartCounts } from './helpers/sessionForm';
+import { closeTestResult, usePartCounts } from './helpers/sessionForm';
 
 async function open(page: Page) {
   await page.goto('/quy-doi');
@@ -113,6 +113,7 @@ test('new data updates an untouched calculator and preserves explicit simulation
     for(const [index,count] of [6,25,39,30,30,16,part7].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1),{exact:true}).fill(String(count));
     await dialog.getByRole('button',{name:'Lưu kết quả'}).click();
     await expect(dialog).not.toBeVisible();
+    await closeTestResult(page);
   }
   await saveParts('New latest perfect',54);
   await expect(page.getByLabel('Số câu đúng Listening',{exact:true})).toHaveValue('100');

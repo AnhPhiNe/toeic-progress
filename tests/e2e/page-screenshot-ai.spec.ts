@@ -57,7 +57,7 @@ async function openFlow(page: Page) {
   await form.getByLabel('Số câu sai', { exact: true }).fill('107 131 132');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết câu sai ›', exact: true }).click();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   return page.getByRole('dialog', { name: /^Ghi câu sai/ });
 }
 

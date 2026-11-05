@@ -62,7 +62,7 @@ test('a same-named SW result does not count as an earlier LR attempt', async ({ 
   });
   await page.reload();
   await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-  const modal = page.getByRole('dialog');
+  const modal = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await modal.getByLabel('Tên Đề Thi / Nguồn').fill('Shared source');
   await page.getByRole('option', { name: 'Shared source', exact: true }).click();
   await expect(modal.getByText('Lần 4', { exact: true })).toHaveCount(0);

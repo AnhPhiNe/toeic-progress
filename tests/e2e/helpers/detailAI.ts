@@ -55,6 +55,6 @@ export async function openDesktopFlow(page: Page) {
   await form.getByLabel('Số câu sai').fill('3 104 112 131');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
-  await page.getByRole('status').getByRole('button', { name: 'Ghi chi tiết ›', exact: true }).click();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   return page.getByRole('dialog', { name: 'Ghi câu sai · ETS Table', exact: true });
 }

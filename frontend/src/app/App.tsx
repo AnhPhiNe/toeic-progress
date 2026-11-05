@@ -15,7 +15,7 @@ import { PlanView } from '@/features/plans/components/PlanView';
 import { ResourcesView } from '@/features/resources/components/ResourcesView';
 import { VocabularyView } from '@/features/vocabulary/components/VocabularyView';
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
-import { SavedTestNotice } from '@/features/study-sessions/components/SavedTestNotice';
+import { SessionResultScreen } from '@/features/study-sessions/components/SessionResultScreen';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
@@ -123,7 +123,7 @@ export const App: React.FC = () => {
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
-  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number } | undefined>(undefined);
+  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean } | undefined>(undefined);
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [editingPacing, setEditingPacing] = useState<{ run: PacingRun; owner: string | null } | null>(null);
@@ -209,6 +209,15 @@ export const App: React.FC = () => {
   };
 
   // Sau khi ghi đề bằng câu sai: mở Sổ tay đúng đề đó để ghi chi tiết các thẻ vừa tạo.
+  // Màn kết quả: đề chưa có danh sách câu sai thì mở lại đúng đề đó ở lưới số câu.
+  const markSessionWrong = (session: StudySession) => {
+    setSavedTest(null);
+    setSessionPrefill({ markWrong: true });
+    // The stored copy carries the save's updatedAt, which the editor checks before overwriting.
+    setEditingSession(loadStudySessions().find(stored => stored.id === session.id && !stored.deletedAt) ?? session);
+    setIsSessionModalOpen(true);
+  };
+
   const openSessionDrafts = (session: StudySession) => {
     const owner = getActiveAccountId();
     setNotebookSourceFilter({ owner, names: [session.testName] });
@@ -508,7 +517,7 @@ export const App: React.FC = () => {
 
           {activeTab === 'exam-mode' && (
             <ReadingPacingView
-              resultDialogBlocked={isSessionModalOpen || isSettingsModalOpen || editingPacing !== null || reviewCards !== null || Boolean(account.pendingTransfer)}
+              resultDialogBlocked={savedTest !== null || isSessionModalOpen || isSettingsModalOpen || editingPacing !== null || reviewCards !== null || Boolean(account.pendingTransfer)}
               onOpenSessionLogger={openSessionLogger}
               onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
@@ -579,7 +588,7 @@ export const App: React.FC = () => {
 
       </div>
 
-      <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} />
+      <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null} />
       <PageScrollCue activeTab={activeTab} />
 
       <MobileNav
@@ -607,11 +616,12 @@ export const App: React.FC = () => {
         editingSession={editingSession}
         onUpdateSession={handleUpdateSession}
         onAddMistakeForSession={openSessionMistake}
-        onOpenSessionDrafts={openSessionDrafts}
-        onSavedWrongTest={setSavedTest}
+        onSavedFullTest={setSavedTest}
       />
-      {savedTest && <SavedTestNotice session={savedTest} onClose={closeSavedTest}
-        onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }} />}
+      {savedTest && <SessionResultScreen session={savedTest} sessions={sessions} mistakes={mistakes} targetScore={profile.targetScore}
+        onClose={closeSavedTest} onMarkWrong={() => markSessionWrong(savedTest)}
+        onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }}
+        onReview={ids => { setSavedTest(null); openReview(ids); }} />}
 
       {reviewCards && (
         <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}

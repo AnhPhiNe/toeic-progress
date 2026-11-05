@@ -1,4 +1,11 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
+
+/** A new Full Test ends on its result screen; tests that keep working in the app close it first. */
+export async function closeTestResult(page: Page) {
+  const close = page.getByRole('button', { name: 'Đóng kết quả', exact: true });
+  await close.click();
+  await expect(close).toHaveCount(0);
+}
 
 /** The score form is titled differently on phones ("Ghi điểm") and on larger screens. */
 export const sessionDialog = (page: Page) => page.getByRole('dialog', { name: /^(Ghi điểm|Sửa kết quả)$/ });

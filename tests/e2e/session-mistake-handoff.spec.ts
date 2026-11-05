@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { chooseNoteSource } from './helpers/noteSource';
 import { choosePart, expectPart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
-import { choosePractice, sessionDialog, useOfficialScore } from './helpers/sessionForm';
+import { choosePractice, closeTestResult, sessionDialog, useOfficialScore } from './helpers/sessionForm';
 
 async function openSession(page: Page, practice = false) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
@@ -104,6 +104,7 @@ test('Enter saves the result without opening notes and the header opens account 
   await expect(modal).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Thêm câu sai', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions)).toHaveLength(1);
+  await closeTestResult(page);
   const indicator = page.getByRole('status', { name: 'Trạng thái đồng bộ' });
   await expect(indicator).toHaveText('Chỉ lưu trên máy');
   for (const width of [375, 1440]) {

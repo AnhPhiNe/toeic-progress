@@ -62,9 +62,9 @@ test('phone Full Test is logged by its wrong questions, which become draft noteb
   await expect(card).toContainText('4 câu sai');
   await dialog.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
 
-  const result = page.getByRole('dialog', { name: 'Đã lưu', exact: true });
-  await expect(result.getByText('196/200', { exact: true })).toBeVisible();
-  await expect(result.getByText('3 câu Reading sai đã vào Sổ tay.', { exact: true })).toBeVisible();
+  const result = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: /điểm|bài đầu tiên|phong độ/ }) });
+  await expect(result.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true })).toBeVisible();
+  await expect(result.getByText('3 câu Reading sai đã vào Sổ tay. Ghi nội dung câu để ôn lại được.', { exact: true })).toBeVisible();
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
   const session = stored.sessions.find((item: { testName: string }) => item.testName === 'ETS 2024 Test 04');
   expect(session).toMatchObject({ wrongQuestions: [3, 151, 152, 153], scoreSource: 'ESTIMATED',

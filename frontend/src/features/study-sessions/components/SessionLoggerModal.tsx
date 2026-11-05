@@ -28,7 +28,7 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
+import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
 import { EMPTY_WRONG_NUMBER_DRAFT, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 import { parseQuestionList } from '@/shared/domain/questionNumbers';
 import { hasResultTiming, formatElapsed } from '@/shared/domain/resultTiming';
@@ -49,7 +49,8 @@ interface SessionLoggerModalProps {
   onSaveVocab: (date: string, count: number) => void;
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3) */
-  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number };
+  /** `markWrong` reopens a saved Full Test straight on its wrong-question grid. */
+  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean };
   /**
    * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
@@ -57,10 +58,8 @@ interface SessionLoggerModalProps {
   editingSession?: StudySession | null;
   onUpdateSession?: (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => void;
   onAddMistakeForSession?: (session: StudySession) => void;
-  /** After a test is logged by its wrong questions: open those draft cards. */
-  onOpenSessionDrafts?: (session: StudySession) => void;
-  /** Computers: the form closes after such a save and the app offers the detail flow in a note. */
-  onSavedWrongTest?: (session: StudySession) => void;
+  /** A new Full Test was saved: the form closes and the app shows its result screen. */
+  onSavedFullTest?: (session: StudySession) => void;
 }
 
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
@@ -75,8 +74,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   editingSession,
   onUpdateSession,
   onAddMistakeForSession,
-  onOpenSessionDrafts,
-  onSavedWrongTest
+  onSavedFullTest
 }) => {
   const isEditing = !!editingSession;
   // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
@@ -156,7 +154,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
   const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
   const [wrongNumberDraft, setWrongNumberDraft] = useState<WrongNumberDraft>(EMPTY_WRONG_NUMBER_DRAFT);
-  const [savedResult, setSavedResult] = useState<StudySession | null>(null);
   const suggestedName = useRef('');
   const [scoreError, setScoreError] = useState('');
   const [sourceScorePending, setSourceScorePending] = useState(false);
@@ -257,13 +254,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const phone = typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
     suggestedName.current = !e && phone && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
     setTestName(e?.testName ?? suggestedName.current);
-    setEntry(e?.partScores && !e.wrongQuestions ? 'counts' : 'wrong');
-    setManualViewOverride(Boolean(e && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
+    const markWrong = Boolean(e && prefill?.markWrong);
+    setEntry(e?.partScores && !e.wrongQuestions && !markWrong ? 'counts' : 'wrong');
+    setManualViewOverride(Boolean(e && !markWrong && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
     setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
     setPartDurations(e?.partDurations);
     setResultTiming(e?.resultTiming ?? null); setTimingCandidate(null);
-    setSavedResult(null);
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
@@ -285,7 +282,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
     setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
-  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
+  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
@@ -481,11 +478,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       }
       savedSession.current = true;
       persistentDraft.clear();
-      // Only Reading questions become notebook cards, so a test with no Reading mistakes has nothing to fill in.
-      if (!isEditing && draftQuestions(newSession).length) {
-        if (isPhone || !onSavedWrongTest) { setSavedResult(newSession); return; }
+      // A new Full Test ends on its result screen, unless the learner asked to add a mistake right away.
+      const addsMistake = addMistakeAfterSave && !draftQuestions(newSession).length;
+      if (newSession.sessionType === 'FULL_TEST' && onSavedFullTest && (!isEditing || prefill?.markWrong) && !addsMistake) {
         onClose();
-        onSavedWrongTest(newSession);
+        onSavedFullTest(newSession);
         return;
       }
       onClose();
@@ -503,13 +500,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1100px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`relative w-full ${wrongEntry && !isPhone ? 'max-w-[1100px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
         <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
           <div className="flex items-center space-x-3">
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone && savedResult ? 'Đã lưu' : sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
+              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
             </div>
           </div>
           <button
@@ -521,7 +518,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </button>
         </div>
 
-        {!savedResult && persistentDraft.state === 'restored' && (
+        {persistentDraft.state === 'restored' && (
           <div className="flex shrink-0 items-center justify-end px-4 py-1.5 sm:px-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-300">
               <span role="status">📝 Đã khôi phục bản nháp trên thiết bị này</span>
@@ -537,14 +534,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           </div>
         )}
-        {!savedResult && persistentDraft.state === 'unavailable' && (
+        {persistentDraft.state === 'unavailable' && (
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
             <span role="status">Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.</span>
           </div>
         )}
         {/* Form Content */}
-        {savedResult ? <PhoneSavedResult session={savedResult} onClose={onClose} onDetails={() => { onClose(); onOpenSessionDrafts?.(savedResult); }} />
-        : <form onSubmit={handleSubmit} onKeyDown={event => {
+        <form onSubmit={handleSubmit} onKeyDown={event => {
           if (event.key !== 'Enter' || event.defaultPrevented || !(event.target instanceof HTMLInputElement)) return;
           event.preventDefault();
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
@@ -1172,7 +1168,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>
           </div>
 
-        </form>}
+        </form>
 
       </div>
     </div>

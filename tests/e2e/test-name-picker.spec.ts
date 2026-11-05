@@ -1,7 +1,7 @@
 import { chooseNoteSource } from './helpers/noteSource';
 import { choosePart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
 import { test, expect } from '@playwright/test';
-import { useOfficialScore } from './helpers/sessionForm';
+import { closeTestResult, useOfficialScore } from './helpers/sessionForm';
 
 for (const width of [390, 1280]) {
   test(`source suggestions follow the animated form and leave Save reachable at ${width}px`, async ({ page }) => {
@@ -117,6 +117,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await modal.getByLabel('Tổng điểm TOEIC /990').fill('750');
   await modal.getByRole('button', { name: 'Lưu kết quả' }).click();
+  await closeTestResult(page);
   await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
   modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Luyện Part', exact: true }).click();
