@@ -1,6 +1,18 @@
-# Duyệt tài khoản AI cho beta
+# Quyền AI theo tài khoản
 
-Tài khoản học và quyền AI là hai phần riêng. Chưa được duyệt AI vẫn nhập điểm, ghi sổ tay và lưu thủ công như bình thường. Chế độ này không cấp quyền quản trị ứng dụng hay quyền đọc dữ liệu của người khác.
+Tài khoản học và quyền AI là hai phần riêng. Không dùng được AI vẫn nhập điểm, ghi sổ tay và lưu thủ công như bình thường. Chế độ này không cấp quyền quản trị ứng dụng hay quyền đọc dữ liệu của người khác.
+
+## Mở AI khi đăng nhập (từ 05/11/2026)
+
+Không còn bước chờ duyệt. Đăng nhập Google là dùng AI ngay, trong hạn mức tháng mặc định (`AI_ACCOUNT_MONTHLY_LIMIT`, mặc định 10). Khách chưa đăng nhập bấm vào tính năng AI sẽ thấy lời mời đăng nhập Google, kèm lựa chọn nhập tay. Admin vẫn đặt `blocked` để khóa một tài khoản, hoặc sửa `monthly_limit`.
+
+Triển khai:
+
+1. Áp dụng `supabase/migrations/20261105000000_ai_access_open_by_default.sql` trong SQL Editor của Supabase. Migration đổi mặc định của `status` sang `active` và chuyển các tài khoản đang `pending` sang `active`; không đổi tài khoản `blocked` hay hạn mức đã chỉnh. Chạy lại không mở khóa tài khoản `blocked`.
+2. Deploy backend mới. Giữ `AI_ACCESS_MANAGED=true`. Backend coi tài khoản đăng nhập chưa có dòng quyền là `active` với hạn mức mặc định, và trả mã `AI_LOGIN_REQUIRED` cho khách để giao diện mời đăng nhập.
+3. Xem lại hạn mức chung trước khi mở cho sinh viên: `AI_GLOBAL_DAILY_LIMIT` (mặc định 20 lượt/ngày cho cả ứng dụng), `AI_GLOBAL_MINUTE_LIMIT`, `AI_IP_DAILY_LIMIT`. Đây là trần chi phí; khi chạm trần, mọi người nhận thông báo hết lượt trong ngày.
+
+Phần dưới đây là lịch sử bật chế độ duyệt lần đầu, giữ để tra cứu.
 
 ## Bật lần đầu
 
@@ -23,9 +35,9 @@ Tester đăng nhập Google vào web một lần. Trong Supabase **Table Editor 
 | `monthly_limit` | `30` | Tối đa 30 yêu cầu phân tích trong tháng |
 | `monthly_limit` | `NULL` | Miễn hạn mức AI của ứng dụng; chỉ dành cho tài khoản được tin cậy |
 
-`email` và `display_name` chỉ để tìm người; được lấy từ Supabase Auth và không quyết định quyền. Quyền gắn với `user_id`, không sửa `user_id` sang người khác. Tài khoản mới hoặc guest chuyển thành tài khoản đăng nhập luôn vào `pending`; thông tin người dùng tự sửa không thể duyệt AI. Không cấp quyền Table Editor/Dashboard cho tester.
+`email` và `display_name` chỉ để tìm người; được lấy từ Supabase Auth và không quyết định quyền. Quyền gắn với `user_id`, không sửa `user_id` sang người khác. Tài khoản mới hoặc guest chuyển thành tài khoản đăng nhập vào `active` với hạn mức mặc định (trước 05/11/2026 là `pending`); thông tin người dùng tự sửa không thể duyệt AI. Không cấp quyền Table Editor/Dashboard cho tester.
 
-Khi chế độ được bật, bảng này là nguồn quyền duy nhất; `AI_UNLIMITED_EMAILS` không ghi đè tài khoản `blocked` hay `pending`. Khách phải đăng nhập và được duyệt mới dùng AI.
+Khi chế độ được bật, bảng này là nguồn quyền duy nhất; `AI_UNLIMITED_EMAILS` không ghi đè tài khoản `blocked` hay `pending`. Khách phải đăng nhập Google mới dùng AI.
 
 ## Cách đếm lượt và các giới hạn còn lại
 

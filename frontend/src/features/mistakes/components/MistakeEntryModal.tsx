@@ -4,6 +4,7 @@ import { ChevronDown, ClipboardPaste, ImagePlus, PenLine, ScanLine, Sparkles, Tr
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { twMerge } from 'tailwind-merge';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
+import { requestAISignIn } from '@/shared/lib/aiSignIn';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -196,7 +197,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     setConfigBusy(true);
     void aiService.getAIConfiguration().then(async value => {
       const access = value.managedAccess ? await aiService.getAIUsage() ?? { remaining: 0, limit: 0, guest: true, enabled: false,
-        accessStatus: 'login_required' as const, accessMessage: 'Đăng nhập Google để đăng ký dùng AI. Tài khoản cần được duyệt trước khi phân tích.' } : null;
+        accessStatus: 'login_required' as const, accessMessage: 'Đăng nhập Google để dùng AI. Bạn vẫn có thể nhập và lưu thủ công.' } : null;
       if (!cancelled) { setConfig(value); setAIAccess(access); setError(''); }
     })
       .catch(value => { if (!cancelled) setError(value instanceof Error ? value.message : 'Chưa kết nối được AI.'); })
@@ -894,7 +895,9 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           {draft.part === null && <label className="block text-sm font-semibold">Part<select aria-label="Part" className={`${inputClass} mt-1`} value="" onChange={event => { const value = Number(event.target.value) as MistakeEntry['part']; setDraft({ ...draft, part: value || null }); setPart(value || null); draftInput.current = inputText({ ...input, part: value || null }); setChanged(true); }}><option value="">Chọn Part</option>{partChoices.map(value => <option key={value} value={value}>Part {value}</option>)}</select></label>}
         </>}
         {step === 'input' && aiAccess?.enabled === false && <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-          <p>{aiAccess.accessMessage}</p><button type="button" disabled={configBusy} onClick={() => setConfigAttempt(value => value + 1)} className="min-h-10 font-semibold underline">Kiểm tra quyền AI</button>
+          <p>{aiAccess.accessMessage}</p>{aiAccess.accessStatus === 'login_required'
+            ? <button type="button" onClick={requestAISignIn} className="min-h-10 font-semibold underline">Đăng nhập Google</button>
+            : <button type="button" disabled={configBusy} onClick={() => setConfigAttempt(value => value + 1)} className="min-h-10 font-semibold underline">Kiểm tra quyền AI</button>}
         </div>}
         {error && <div className="space-y-1 text-sm text-rose-600 dark:text-rose-300" role="alert"><p>{error}</p>{step === 'input' && !configBusy && !config && <button type="button" onClick={() => setConfigAttempt(value => value + 1)} className="font-bold underline">Thử kết nối lại</button>}
           {original && error.includes('nơi khác') && <button type="button" onClick={() => { if (window.confirm('Tải lại thẻ và bỏ các thay đổi chưa lưu?')) onReload(); }} className="font-bold underline">Tải lại thẻ</button>}</div>}

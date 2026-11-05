@@ -61,6 +61,8 @@ import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
 import { persistSessionResult } from '@/features/study-sessions/lib/persistSessionResult';
 import { undoMistakeDeletion, undoMistakeGrade } from '@/features/mistakes/lib/persistMistakeUndo';
+import { AISignInPrompt } from '@/features/account/components/AISignInPrompt';
+import { AI_SIGN_IN_EVENT } from '@/shared/lib/aiSignIn';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -84,6 +86,15 @@ export const App: React.FC = () => {
     setDataVersion(value => value + 1);
   }, []);
   const account = useCloudAccount(refreshFromStorage);
+  // Guests who reach for AI get one sign-in prompt; it only appears when signing in is possible.
+  const isGuest = account.available && !account.hasAccountSession;
+  const [aiSignInOpen, setAISignInOpen] = useState(false);
+  useEffect(() => {
+    if (!isGuest) { setAISignInOpen(false); return; }
+    const open = () => setAISignInOpen(true);
+    window.addEventListener(AI_SIGN_IN_EVENT, open);
+    return () => window.removeEventListener(AI_SIGN_IN_EVENT, open);
+  }, [isGuest]);
 
   // Saves throw StorageWriteError when the account is not connected or storage is full.
   // Handlers do not each catch it, so surface it here instead of failing silently.
@@ -619,9 +630,13 @@ export const App: React.FC = () => {
         onSavedFullTest={setSavedTest}
       />
       {savedTest && <SessionResultScreen session={savedTest} sessions={sessions} mistakes={mistakes} targetScore={profile.targetScore}
+        onSignIn={isGuest ? () => void account.signInGoogle() : undefined}
         onClose={closeSavedTest} onMarkWrong={() => markSessionWrong(savedTest)}
         onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }}
         onReview={ids => { setSavedTest(null); openReview(ids); }} />}
+
+      {aiSignInOpen && <AISignInPrompt onClose={() => setAISignInOpen(false)}
+        onSignIn={() => { setAISignInOpen(false); void account.signInGoogle(); }} />}
 
       {reviewCards && (
         <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}

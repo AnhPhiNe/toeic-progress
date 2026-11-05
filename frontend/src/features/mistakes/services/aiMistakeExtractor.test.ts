@@ -408,3 +408,27 @@ describe('result screenshot lifecycle', () => {
     expect(mocks.backendRequest.mock.calls[0][4]).toBe(guard);
   });
 });
+
+describe('managed AI access for guests', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_URL', 'https://api.example');
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai', managed_ai_access: true }) }));
+  });
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+  it('invites a guest to sign in instead of solving a captcha for a session the backend would refuse', async () => {
+    const asked = vi.fn();
+    const appWindow = Object.assign(new EventTarget(), { location: { hostname: 'localhost' } });
+    vi.stubGlobal('window', appWindow);
+    appWindow.addEventListener('toeic:ai-sign-in', asked);
+    const captcha = vi.fn();
+    const images = [{ id: 'local', name: 'result.png', dataUrl: 'data:image/jpeg;base64,example' }];
+    await expect(readResultsWithAI(images, captcha)).rejects.toThrow('Đăng nhập Google để dùng AI');
+    await expect(extractMistakeWithAI(getDemoSampleInput().input, captcha)).rejects.toThrow('Đăng nhập Google để dùng AI');
+    expect(asked).toHaveBeenCalledTimes(2);
+    expect(captcha).not.toHaveBeenCalled();
+    expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+    expect(mocks.backendRequest).not.toHaveBeenCalled();
+  });
+});

@@ -21,7 +21,7 @@ async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=De
     if user["is_anonymous"]:
         raise HTTPException(403, "Đăng nhập để phân tích lần làm đã đồng bộ của tài khoản.")
     if not access.enabled:
-        raise HTTPException(403, access.message)
+        raise access.denied()
     if not settings.attempt_analysis_ready:
         raise HTTPException(503, "AI gợi ý ôn tập chưa được cấu hình. Bạn vẫn có thể xem thống kê và ôn Sổ tay.")
     gateway = request.app.state.gateway
@@ -61,7 +61,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
         raise HTTPException(503, message + " Bạn vẫn có thể lưu thủ công.")
     access = request.state.ai_access
     if not access.enabled:
-        raise HTTPException(403, access.message)
+        raise access.denied()
     gateway = request.app.state.gateway
     source_images = [image.dataUrl for image in body.images]
     if body.sourceImageIds:
@@ -153,7 +153,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         raise HTTPException(503, message + " Bạn vẫn có thể ghi tay.")
     access = request.state.ai_access
     if not access.enabled:
-        raise HTTPException(403, access.message)
+        raise access.denied()
     questions = [question.model_dump() for question in body.questions]
     input_hash = hashlib.sha256(json.dumps(questions, separators=(",", ":")).encode())
     for image in body.images:
@@ -188,7 +188,7 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
         raise HTTPException(503, "Chức năng phân tích AI đang tắt hoặc chưa cấu hình. Bạn vẫn có thể chạm vào các câu sai.")
     access = request.state.ai_access
     if not access.enabled:
-        raise HTTPException(403, access.message)
+        raise access.denied()
     input_hash = hashlib.sha256(b"results")
     for image in body.images:
         input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
@@ -217,7 +217,7 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
         raise HTTPException(503, "Chức năng phân tích AI đang tắt hoặc chưa cấu hình.")
     access = request.state.ai_access
     if not access.enabled:
-        raise HTTPException(403, access.message)
+        raise access.denied()
     ticket = explain_tickets.verify(settings.rate_limit_secret, body.ticket, user["id"])
     if ticket is None:
         raise HTTPException(403, "Lượt viết lời giải kèm ảnh đã hết hạn hoặc không hợp lệ. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",

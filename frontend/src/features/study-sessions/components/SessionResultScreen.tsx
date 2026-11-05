@@ -52,13 +52,15 @@ interface Props {
   /** Reading cards wait for their content: open them in the notebook. */
   onDetails: () => void;
   onReview: (mistakeIds: string[]) => void;
+  /** Guests only: their data lives on this device, so the screen offers a Google sign-in to keep it safe. */
+  onSignIn?: () => void;
 }
 
 /**
  * Shown right after a Full Test is saved: an honest reaction from Mầm, the score against the goal, where the
  * points were lost, and the one next step that leads toward reviewing those mistakes.
  */
-export function SessionResultScreen({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview }: Props) {
+export function SessionResultScreen({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn }: Props) {
   const result = useMemo(() => summarizeSessionResult(session, sessions, mistakes, targetScore), [session, sessions, mistakes, targetScore]);
   const dialogRef = useModalA11y(true, onClose);
   const { goal } = result;
@@ -142,6 +144,14 @@ export function SessionResultScreen({ session, sessions, mistakes, targetScore, 
             )}
             {result.step === 'done' && !result.partLosses.length && (
               <p className="mt-4 text-[14px] font-semibold text-slate-700 dark:text-slate-300 md:mt-0">Không sai câu nào. Tuyệt vời!</p>
+            )}
+            {onSignIn && (
+              <p className="mt-4 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+                Kết quả đang chỉ lưu trên máy này.{' '}
+                <button type="button" onClick={onSignIn} className="cursor-pointer font-bold text-[#3E8A4F] underline underline-offset-2 dark:text-emerald-300">
+                  Đăng nhập để không mất khi đổi máy
+                </button>
+              </p>
             )}
           </section>
 

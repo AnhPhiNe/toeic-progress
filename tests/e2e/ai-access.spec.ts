@@ -1,21 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { chooseNoteSource } from './helpers/noteSource';
 
 for (const [status, message] of [
   ['pending', 'Tài khoản đang chờ được duyệt sử dụng AI. Bạn vẫn có thể nhập và lưu thủ công.'],
   ['blocked', 'Quyền sử dụng AI của tài khoản đang bị tạm khóa. Bạn vẫn có thể nhập và lưu thủ công.'],
-  ['login_required', 'Đăng nhập Google để đăng ký dùng AI. Tài khoản cần được duyệt trước khi phân tích.'],
 ] as const) {
   test(`managed AI ${status} explains access, permits manual saving and rechecks approval`, async ({ page }, info) => {
-    await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
-      export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, freeformInput: true, managedAccess: true }; }
-      export async function getAIUsage() {
-        window.__accessReads = (window.__accessReads || 0) + 1;
-        return window.__approved === true ? { remaining: 27, limit: 27, guest: false, enabled: true, accessStatus: 'active', accessMessage: '' }
-          : { remaining: 0, limit: 10, guest: ${status === 'login_required'}, enabled: false, accessStatus: '${status}', accessMessage: ${JSON.stringify(message)} };
-      }
-      export async function extractMistakeWithAI() { throw new Error('AI must not be called by this test'); }
-    ` }));
+    await mockAccess(page, status, message);
     await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
     const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
     await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
@@ -39,4 +30,32 @@ for (const [status, message] of [
     await expect(modal.getByRole('status').filter({ hasText: 'Đã lưu lỗi sai' })).toBeVisible();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes)).toHaveLength(1);
   });
+}
+
+test('a guest is invited to sign in with Google instead of waiting for approval, and can still save by hand', async ({ page }) => {
+  const message = 'Đăng nhập Google để dùng AI. Bạn vẫn có thể nhập và lưu thủ công.';
+  await mockAccess(page, 'login_required', message);
+  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
+  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
+  await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
+  await expect(modal.getByRole('status').filter({ hasText: message })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Kiểm tra quyền AI', exact: true })).toHaveCount(0);
+  await page.evaluate(() => window.addEventListener('toeic:ai-sign-in', () => { (window as Window & { __signIn?: number }).__signIn = 1; }));
+  await modal.getByRole('button', { name: 'Đăng nhập Google', exact: true }).click();
+  expect(await page.evaluate(() => (window as Window & { __signIn?: number }).__signIn)).toBe(1);
+  await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
+  await expect(modal.getByRole('status').filter({ hasText: 'Đã lưu lỗi sai' })).toBeVisible();
+});
+
+async function mockAccess(page: Page, status: string, message: string) {
+    await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
+      export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, freeformInput: true, managedAccess: true }; }
+      export async function getAIUsage() {
+        window.__accessReads = (window.__accessReads || 0) + 1;
+        return window.__approved === true ? { remaining: 27, limit: 27, guest: false, enabled: true, accessStatus: 'active', accessMessage: '' }
+          : { remaining: 0, limit: 10, guest: ${status === 'login_required'}, enabled: false, accessStatus: '${status}', accessMessage: ${JSON.stringify(message)} };
+      }
+      export async function extractMistakeWithAI() { throw new Error('AI must not be called by this test'); }
+    ` }));
 }

@@ -12,6 +12,7 @@ def test_denied_grants_stop_before_images_quota_captcha_and_provider(api, status
     with api(ai_grant={"status": status, "monthly_limit": 30}, settings_overrides=MANAGED) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction())
         assert response.status_code == 403 and message in response.json()["detail"]
+        assert "X-Error-Code" not in response.headers
         assert not any("reserve_ai" in call[1] or call[0] in ("api.openai.com", "challenges.cloudflare.com") for call in calls)
         usage = client.get("/api/v1/ai/usage").json()
         assert usage["enabled"] is False and usage["accessStatus"] == status and not usage["unlimited"]
@@ -19,15 +20,22 @@ def test_denied_grants_stop_before_images_quota_captcha_and_provider(api, status
         assert client.post("/api/v1/sync", json={}).status_code == 200
 
 
-def test_guest_and_missing_grants_cannot_use_managed_ai(api):
+def test_guests_are_asked_to_sign_in_before_managed_ai(api):
     with api(guest=True, settings_overrides=MANAGED) as (client, calls):
         response = client.post("/api/v1/ai/extract", json=extraction())
         assert response.status_code == 403 and "Đăng nhập Google" in response.json()["detail"]
+        assert response.headers["X-Error-Code"] == "AI_LOGIN_REQUIRED"
         assert client.get("/api/v1/ai/usage").json()["accessStatus"] == "login_required"
         assert not any(call[1].endswith("ai_access_grants") or "reserve_ai" in call[1] for call in calls)
-    with api(settings_overrides=MANAGED) as (client, calls):
-        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 403
-        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_signed_in_account_without_a_grant_row_uses_the_default_cap(api):
+    with api(settings_overrides={**MANAGED, "ai_account_monthly_limit": 12}) as (client, calls):
+        assert client.get("/api/v1/ai/usage").json()["accessStatus"] == "active"
+        reply = client.post("/api/v1/ai/extract", json=extraction())
+        assert reply.status_code == 200
+        reservation = next(call for call in calls if call[1].endswith("reserve_ai_request"))
+        assert reservation[2]["p_user_limit"] == 12
 
 
 @pytest.mark.parametrize("limit", [1, 27, 10000])

@@ -8,6 +8,8 @@ const tester = '22222222-2222-4222-8222-222222222222';
 const guest = '33333333-3333-4333-8333-333333333333';
 const fresh = '44444444-4444-4444-8444-444444444444';
 const migration = await readFile(new URL('../../supabase/migrations/20261011000000_ai_access_grants.sql', import.meta.url), 'utf8');
+const openByDefault = await readFile(new URL('../../supabase/migrations/20261105000000_ai_access_open_by_default.sql', import.meta.url), 'utf8');
+const later = '55555555-5555-4555-8555-555555555555';
 const grant = async id => (await db.query('select * from public.ai_access_grants where user_id=$1', [id])).rows[0];
 
 try {
@@ -46,6 +48,17 @@ try {
   assert.equal((await grant(owner)).status,'blocked','Reapplying must not restore revoked owner access');
   assert.equal((await grant(tester)).monthly_limit,27,'Reapplying must retain admin changes');
 
+  // Opening AI by default: waiting accounts become active, blocked ones and custom caps stay, new sign-ins start active.
+  assert.equal((await grant(fresh)).status,'pending');
+  await db.exec(openByDefault);
+  assert.equal((await grant(fresh)).status,'active'); assert.equal((await grant(fresh)).monthly_limit,10);
+  assert.equal((await grant(owner)).status,'blocked','Opening AI must not unblock an account');
+  assert.equal((await grant(tester)).monthly_limit,27,'Opening AI must keep custom caps');
+  await db.query(`insert into auth.users(id,email,raw_user_meta_data) values($1,'later@gmail.com','{"monthly_limit":null}')`, [later]);
+  assert.equal((await grant(later)).status,'active'); assert.equal((await grant(later)).monthly_limit,10,'Auth metadata must never raise a cap');
+  await db.exec(openByDefault);
+  assert.equal((await grant(owner)).status,'blocked','Reapplying must not unblock an account');
+
   for (const role of ['anon','authenticated']) {
     for (const sql of ['select * from public.ai_access_grants',
       "update public.ai_access_grants set status='active',monthly_limit=null", 'delete from public.ai_access_grants',
@@ -70,5 +83,5 @@ try {
   assert.equal((await db.query('select public.get_ai_usage($1,false,40) as value',[tester])).rows[0].value.remaining,39);
   await db.query('delete from auth.users where id=$1',[tester]);
   assert.equal(await grant(tester),undefined,'Deleting Auth account must delete its AI grant');
-  console.log('AI grants: private admin control, pending signup, owner bootstrap, cap preservation, reset and deletion passed.');
+  console.log('AI grants: private admin control, open-by-default signup, owner bootstrap, cap preservation, reset and deletion passed.');
 } finally { await db.close(); }
