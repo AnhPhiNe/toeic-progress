@@ -7,13 +7,13 @@ import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart
 import { triggerHaptic } from '@/shared/lib/haptics';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import type { ResultImageTiming } from '@/shared/types';
-import { createResultScoreDraft, ResultScoreReview, type AppliedResultScore, type ResultScoreStore } from './ResultScoreReview';
+import { createResultScoreDraft, ResultScoreReview, tryAutoApplyResultScores, type AppliedResultScore, type ResultScoreStore } from './ResultScoreReview';
 import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
 
 /** Tap the questions answered wrong, one Part at a time; or type the numbers ("3 15 101-104"). */
-export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming }: { wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void }) {
+export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming, appliedScore, onRevertScore, initialFiles, onInitialFilesHandled }: { wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void; appliedScore?: { listening?: string; reading?: string; total?: string }; onRevertScore?: () => void; initialFiles?: File[]; onInitialFilesHandled?: () => void }) {
   const [part, setPart] = useState<PartNumber>(1);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -31,7 +31,7 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
 
   return (
     <div className="space-y-3">
-      <ResultImageButton marks={wrong} onTiming={onTiming} onScores={onScores} onScoresPending={onScoresPending} scoreStore={scoreStore} onRead={numbers => {
+      <ResultImageButton marks={wrong} onTiming={onTiming} onScores={onScores} onScoresPending={onScoresPending} scoreStore={scoreStore} appliedScore={appliedScore} onRevertScore={onRevertScore} initialFiles={initialFiles} onInitialFilesHandled={onInitialFilesHandled} onRead={numbers => {
         // Marks from the screenshot are added to any taps; the grid opens on the first marked Part.
         const merged = normalizeQuestionList([...wrong, ...numbers]);
         onChange(merged);
@@ -107,7 +107,9 @@ export function ResultImageButton({
   timingContent,
   appliedScore,
   onRevertScore,
-  onTiming
+  onTiming,
+  initialFiles,
+  onInitialFilesHandled
 }: {
   onRead: (numbers: number[]) => void;
   marks: number[];
@@ -123,6 +125,8 @@ export function ResultImageButton({
   appliedScore?: { listening?: string; reading?: string; total?: string };
   onRevertScore?: () => void;
   onTiming?: (value: ResultImageTiming) => void;
+  initialFiles?: File[];
+  onInitialFilesHandled?: () => void;
 }) {
   const [available, setAvailable] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -133,6 +137,7 @@ export function ResultImageButton({
   const setScoreReview = (value: aiService.ResultImageScores | null) => { setScoreReviewState(value); setScoreOpen(Boolean(value)); };
   const [scoreVersion, setScoreVersion] = useState(0);
   const scoreEdited = useRef(scoreStore?.current?.edited ?? false);
+  const lastImageScores = useRef<aiService.ResultImageScores | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const { containerRef, getToken, remove } = useTurnstile();
   const lifecycle = useRef(0);
@@ -179,9 +184,20 @@ export function ResultImageButton({
       latestOnRead.current(imported);
       if (result.timing) onTiming?.(result.timing);
       if (result.scores && Object.values(result.scores).some(value => value !== null) && !scoreEdited.current) {
-        if (scoreStore) scoreStore.current = createResultScoreDraft(result.scores);
-        setScoreReview(result.scores); setScoreVersion(value => value + 1);
-        onScoresPending?.(true);
+        lastImageScores.current = result.scores;
+        const autoApplied = tryAutoApplyResultScores(result.scores);
+        if (autoApplied) {
+          if (scoreStore) scoreStore.current = null;
+          setScoreReview(null);
+          setScoreVersion(value => value + 1);
+          onScoresPending?.(false);
+          onScores?.(autoApplied);
+        } else {
+          if (scoreStore) scoreStore.current = createResultScoreDraft(result.scores);
+          setScoreReview(result.scores);
+          setScoreVersion(value => value + 1);
+          onScoresPending?.(false);
+        }
       }
       setNote(count ? `AI đã tô ${count} câu${skippedCount ? ` (${skippedCount} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
         : 'Không thấy câu sai nào trong ảnh. Chạm vào các câu sai bên dưới.');
@@ -193,6 +209,12 @@ export function ResultImageButton({
   };
   const latestRead = useRef(read);
   latestRead.current = read;
+  useEffect(() => {
+    if (!available || !initialFiles?.length || running.current) return;
+    const files = initialFiles;
+    onInitialFilesHandled?.();
+    void latestRead.current(files);
+  }, [available, initialFiles, onInitialFilesHandled]);
   // On a computer the screenshot can be pasted with Ctrl+V anywhere in the form, not only on the button.
   useEffect(() => {
     if (!desktop || !available) return;
@@ -204,8 +226,24 @@ export function ResultImageButton({
     return () => document.removeEventListener('paste', onPaste);
   }, [desktop, available]);
   if (!available) return null;
+  const openEditAppliedScore = () => {
+    triggerHaptic(6);
+    const draftScores = lastImageScores.current ?? {
+      listening: appliedScore?.listening ? Number(appliedScore.listening) : null,
+      reading: appliedScore?.reading ? Number(appliedScore.reading) : null,
+      total: appliedScore?.total ? Number(appliedScore.total) : null,
+    };
+    if (scoreStore) scoreStore.current = createResultScoreDraft(draftScores);
+    setScoreReview(draftScores);
+    onScoresPending?.(true);
+  };
+  const hasAppliedScore = Boolean(appliedScore && (appliedScore.total || (appliedScore.listening && appliedScore.reading)));
   return (
-    <div onPaste={desktop ? undefined : event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}>
+    <div
+      onPaste={desktop ? undefined : event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}
+      onDragOver={event => { if (event.dataTransfer?.types?.includes('Files')) event.preventDefault(); }}
+      onDrop={event => { const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}
+    >
       {/* Unified Score Card (if provided on desktop) */}
       {scoreCard && (
         <div className="rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] mb-2.5" aria-live="polite">
@@ -225,7 +263,7 @@ export function ResultImageButton({
                   </span>
                   <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Kiểm tra ›</span>
                 </button>
-              ) : appliedScore && (appliedScore.total || (appliedScore.listening && appliedScore.reading)) ? (
+              ) : hasAppliedScore ? (
                 <div className="flex w-full items-center justify-between py-0.5 text-xs font-black">
                   <span className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
                     <span aria-hidden="true">📄</span>
@@ -234,16 +272,7 @@ export function ResultImageButton({
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => {
-                        triggerHaptic(6);
-                        const draftScores = {
-                          listening: appliedScore.listening ? Number(appliedScore.listening) : null,
-                          reading: appliedScore.reading ? Number(appliedScore.reading) : null,
-                          total: appliedScore.total ? Number(appliedScore.total) : null,
-                        };
-                        setScoreReview(draftScores);
-                        onScoresPending?.(true);
-                      }}
+                      onClick={openEditAppliedScore}
                       className="cursor-pointer rounded-md bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200 transition-colors"
                       title="Chỉnh sửa điểm từ đề"
                     >
@@ -253,6 +282,8 @@ export function ResultImageButton({
                       type="button"
                       onClick={() => {
                         triggerHaptic(6);
+                        lastImageScores.current = null;
+                        scoreEdited.current = false;
                         onRevertScore?.();
                       }}
                       className="cursor-pointer rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-500 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-950 dark:hover:text-rose-300 transition-colors"
@@ -299,8 +330,8 @@ export function ResultImageButton({
           draft={scoreStore?.current}
           onDraftChange={value => { if (scoreStore) scoreStore.current = value; }}
           onClose={() => setScoreOpen(false)}
-          onApply={score => { if (scoreStore) scoreStore.current = null; onScoresPending?.(false); setScoreReview(null); onScores(score); }}
-          onDiscard={() => { if (scoreStore) scoreStore.current = null; setScoreReview(null); scoreEdited.current = false; onScoresPending?.(false); }}
+          onApply={score => { lastImageScores.current = null; if (scoreStore) scoreStore.current = null; onScoresPending?.(false); setScoreReview(null); onScores(score); }}
+          onDiscard={() => { lastImageScores.current = null; if (scoreStore) scoreStore.current = null; setScoreReview(null); scoreEdited.current = false; onScoresPending?.(false); onRevertScore?.(); }}
           onEdit={() => { scoreEdited.current = true; onScoresPending?.(true); }}
         />
       )}
@@ -345,7 +376,38 @@ export function ResultImageButton({
       {/* Fallback button when scoreCard is not provided (e.g. mobile) */}
       {!scoreCard && scoreReview && !scoreOpen && <button type="button" onClick={() => setScoreOpen(true)}
         className="min-h-11 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Kiểm tra điểm chưa áp dụng</button>}
-      {!scoreCard && onScores && !scoreReview && (
+      {!scoreCard && onScores && !scoreReview && hasAppliedScore && (
+        <div className="mt-2 flex min-h-9 w-full items-center justify-between rounded-xl border border-amber-300 bg-amber-50/70 px-3 py-1.5 text-xs font-black text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden="true">📄</span>
+            <span>Điểm từ đề thi</span>
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={openEditAppliedScore}
+              className="cursor-pointer rounded-md bg-amber-200/80 px-2 py-0.5 text-[11px] font-bold text-amber-950 hover:bg-amber-300 dark:bg-amber-900/70 dark:text-amber-100"
+              title="Chỉnh sửa điểm từ đề"
+            >
+              ✏️ Sửa
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(6);
+                lastImageScores.current = null;
+                scoreEdited.current = false;
+                onRevertScore?.();
+              }}
+              className="cursor-pointer rounded-md bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-300"
+              title="Bỏ điểm từ đề, dùng điểm ước tính"
+            >
+              ✕ Bỏ
+            </button>
+          </div>
+        </div>
+      )}
+      {!scoreCard && onScores && !scoreReview && !hasAppliedScore && (
         <button
           type="button"
           disabled={busy}

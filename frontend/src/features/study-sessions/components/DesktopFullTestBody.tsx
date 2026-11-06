@@ -31,13 +31,15 @@ interface Props {
   onRevertScore?: () => void;
   partDurations?: PartTimingDurations;
   onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
+  initialFiles?: File[];
+  onInitialFilesHandled?: () => void;
 }
 
 /**
  * Computer Full Test: all 200 questions on one screen; clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled }: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -93,6 +95,8 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
       <div className="flex flex-col gap-2.5 max-lg:order-first">
         <ResultImageButton
           onTiming={onTiming}
+          initialFiles={initialFiles}
+          onInitialFilesHandled={onInitialFilesHandled}
           desktop
           scoreCard={
             <div>

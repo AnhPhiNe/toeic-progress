@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BarChart3, Clock3, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clock3, Coffee, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
 import type { PacingRun, ReadingPartType } from '@/shared/types';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { getActiveAccountId, readDataBundle } from '@/shared/data/dataBundle';
@@ -281,19 +281,176 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
       {tab !== 'timer' && snapshot.status !== 'ready' && <div className="pacing-resume"><span>{config.name} · {formatClock(remaining)} · {snapshot.status === 'running' ? 'Đang chạy' : snapshot.status === 'finished' ? 'Chờ kết quả' : 'Đã tạm dừng'}</span><button type="button" className="pacing-link" onClick={() => setTab('timer')}>Trở về đồng hồ →</button></div>}
       {(error || timer.error) && !edit && snapshot.status !== 'finished' && <p role="alert" className="mx-4 mt-3 text-sm text-rose-700 dark:text-rose-300">{error || timer.error}</p>}
       {tab === 'timer' && isPhone && phonePanel}
-      {tab === 'timer' && !isPhone && <section id="pacing-timer" role="tabpanel" aria-labelledby="pacing-timer-tab" className="pacing-panel" data-clock-tone={clockTone} data-mode-tone={modeTone}><div className="pacing-practice"><div className="pacing-mode-row"><div role="group" aria-label="Chế độ luyện" className="pacing-modes"><button type="button" aria-pressed={snapshot.mode === 'PART_5'} data-mode-tone="part5" className={selectedMode('PART_5')} onClick={() => selectMode('PART_5')}>Part 5</button><button type="button" aria-pressed={snapshot.mode === 'PART_6'} data-mode-tone="part6" className={selectedMode('PART_6')} onClick={() => selectMode('PART_6')}>Part 6</button><select data-mode-tone="part7" aria-label="Chọn Part 7" value={snapshot.mode.startsWith('PART_7') ? snapshot.mode : 'PART_7_INACTIVE'} className={`pacing-mode ${snapshot.mode.startsWith('PART_7') ? 'is-selected' : ''}`} onChange={event => selectMode(event.target.value as PacingMode)}><option value="PART_7_INACTIVE" hidden>Part 7 · Toàn bộ</option><option value="PART_7">Part 7 · Toàn bộ</option><option value="PART_7_SINGLE">Part 7 · Đoạn đơn</option><option value="PART_7_MULTI">Part 7 · Đôi/ba</option></select><button type="button" aria-pressed={snapshot.mode === 'FULL_READING'} data-mode-tone="reading" className={selectedMode('FULL_READING')} onClick={() => selectMode('FULL_READING')}>Reading 75p</button><button type="button" aria-pressed={isPomodoro} data-mode-tone="pomodoro" className={selectedMode('POMODORO')} onClick={() => selectMode('POMODORO')}>Pomodoro</button></div></div>
-        <div className={`pacing-setup ${isPomodoro ? 'is-pomodoro' : ''}`}>{isPomodoro ? <div role="group" aria-label="Giai đoạn Pomodoro" className="pacing-phases">{([['WORK', 'Tập trung'], ['SHORT_BREAK', 'Nghỉ ngắn'], ['LONG_BREAK', 'Nghỉ dài']] as const).map(([phase, label]) => <button type="button" key={phase} aria-pressed={snapshot.phase === phase} className={`pacing-phase-button transition-all duration-200 ${snapshot.phase === phase ? 'is-selected' : ''}`} onClick={() => { triggerHaptic(8); selectMode('POMODORO', phase); }}>{label}</button>)}</div> : <span><strong>{config.name}</strong>{snapshot.questions ? ` · ${snapshot.questions} câu` : ''}</span>}{snapshot.status === 'ready' && <button type="button" className="pacing-settings" aria-expanded={configOpen || settingsOpen} onClick={() => isPomodoro ? setSettingsOpen(true) : setConfigOpen(!configOpen)}><Settings2 className="h-4 w-4" aria-hidden="true" />Điều chỉnh</button>}</div>
-        <div className="pacing-clock">
-          {wakeLockActive && (
-            <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-950/60 dark:text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Màn hình luôn sáng (Wake Lock Active)</span>
+      {tab === 'timer' && !isPhone && (
+        <section id="pacing-timer" role="tabpanel" aria-labelledby="pacing-timer-tab" className="pacing-panel !p-6" data-clock-tone={clockTone} data-mode-tone={modeTone}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Cột Trái (Col 1-7): Đồng hồ, Chế độ & Điều khiển */}
+            <div className="lg:col-span-7 flex flex-col items-center text-center">
+              {/* Mode row: 4 chế độ Reading trên 1 hàng duy nhất + Pomodoro tách biệt */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-4 w-full">
+                <div role="group" aria-label="Chế độ luyện Reading" className="inline-flex items-center gap-1 p-1 rounded-2xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    aria-pressed={snapshot.mode === 'PART_5'}
+                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'PART_5' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    onClick={() => selectMode('PART_5')}
+                  >
+                    Part 5 (12p)
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={snapshot.mode === 'PART_6'}
+                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'PART_6' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    onClick={() => selectMode('PART_6')}
+                  >
+                    Part 6 (8p)
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={snapshot.mode.startsWith('PART_7')}
+                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode.startsWith('PART_7') ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    onClick={() => setPart7Open(true)}
+                  >
+                    {snapshot.mode.startsWith('PART_7') ? `${PART_7_SHORT[snapshot.mode as Part7Mode]} (${config.minutes}p)` : 'Part 7 (55p)'} ▾
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={snapshot.mode === 'FULL_READING'}
+                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'FULL_READING' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    onClick={() => selectMode('FULL_READING')}
+                  >
+                    Reading 75p
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  aria-pressed={isPomodoro}
+                  className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-black transition-all ${isPomodoro ? 'bg-rose-500 text-white border-2 border-slate-900 shadow-[2px_2px_0_0_#0f172a]' : 'text-slate-600 hover:text-slate-900 bg-stone-100 border border-stone-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800'}`}
+                  onClick={() => selectMode('POMODORO')}
+                >
+                  <Coffee className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Pomodoro (25p)</span>
+                </button>
+              </div>
+
+              {/* Pomodoro Phases */}
+              {isPomodoro && (
+                <div role="group" aria-label="Giai đoạn Pomodoro" className="pacing-phases mb-3">
+                  {([['WORK', 'Tập trung'], ['SHORT_BREAK', 'Nghỉ ngắn'], ['LONG_BREAK', 'Nghỉ dài']] as const).map(([phase, label]) => (
+                    <button
+                      type="button"
+                      key={phase}
+                      aria-pressed={snapshot.phase === phase}
+                      className={`pacing-phase-button transition-all duration-200 ${snapshot.phase === phase ? 'is-selected' : ''}`}
+                      onClick={() => { triggerHaptic(8); selectMode('POMODORO', phase); }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Wake Lock */}
+              {wakeLockActive && (
+                <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Màn hình luôn sáng (Wake Lock Active)</span>
+                </div>
+              )}
+
+              {/* Đồng hồ số lớn */}
+              <div className="pacing-clock w-full">
+                <div role="timer" className="pacing-time !text-7xl sm:!text-8xl" aria-label={`Còn ${formatClock(remaining)}`}>
+                  {formatClock(remaining)}
+                </div>
+                {(snapshot.status === 'paused' || snapshot.status === 'finished') && (
+                  <p className="pacing-status">
+                    {snapshot.status === 'paused' ? 'Đã tạm dừng' : remaining <= 0 ? 'Hết thời gian' : 'Chờ nhập kết quả'}
+                  </p>
+                )}
+                <div role="progressbar" aria-label="Thời gian còn lại" aria-valuemin={0} aria-valuemax={100} aria-valuenow={remainingPercent} aria-valuetext={`Còn ${formatClock(remaining)}`} className="pacing-track">
+                  <div style={{ width: `${remaining / snapshot.plannedSeconds * 100}%` }} />
+                </div>
+                {(actualMs > 0 || snapshot.questions > 0) && (
+                  <p className="pacing-clock-meta">
+                    {actualMs > 0 && `Đã dùng ${formatClock(actualMs / 1000)}`}
+                    {actualMs > 0 && snapshot.questions > 0 && ' · '}
+                    {snapshot.questions > 0 && `Mục tiêu chuẩn ≤ ${formatNumber(snapshot.plannedSeconds / snapshot.questions)} giây/câu`}
+                  </p>
+                )}
+              </div>
+
+              {/* Hàng nút điều khiển */}
+              <div className="pacing-controls mt-4">
+                {snapshot.status === 'ready' ? (
+                  <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}>
+                    <Play className="h-4 w-4" aria-hidden="true" />Bắt đầu (Phím Space)
+                  </button>
+                ) : (
+                  <>
+                    {remaining > 0 && (
+                      <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}>
+                        {snapshot.status === 'running' ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+                        {snapshot.status === 'running' ? 'Tạm dừng' : 'Tiếp tục'}
+                      </button>
+                    )}
+                    <button type="button" className={`${pacingSecondary} !border-slate-900 !bg-blue-600 !text-white active:scale-95 transition-transform duration-100`} onClick={() => { initAudio(); timer.finish(); }}>
+                      {isPomodoro ? 'Kết thúc phiên' : remaining ? 'Xong bài' : 'Nhập kết quả'}
+                    </button>
+                    <button type="button" className="pacing-reset active:scale-95 transition-transform duration-100" onClick={() => selectMode(snapshot.mode, snapshot.phase)}>
+                      Làm lại
+                    </button>
+                  </>
+                )}
+                {snapshot.status === 'ready' && (
+                  <button type="button" className="pacing-settings" aria-expanded={configOpen || settingsOpen} onClick={() => isPomodoro ? setSettingsOpen(true) : setConfigOpen(!configOpen)}>
+                    <Settings2 className="h-4 w-4" aria-hidden="true" />Điều chỉnh
+                  </button>
+                )}
+              </div>
             </div>
-          )}
-          <div role="timer" className="pacing-time" aria-label={`Còn ${formatClock(remaining)}`}>{formatClock(remaining)}</div>{(snapshot.status === 'paused' || snapshot.status === 'finished') && <p className="pacing-status">{snapshot.status === 'paused' ? 'Đã tạm dừng' : remaining <= 0 ? 'Hết thời gian' : 'Chờ nhập kết quả'}</p>}<div role="progressbar" aria-label="Thời gian còn lại" aria-valuemin={0} aria-valuemax={100} aria-valuenow={remainingPercent} aria-valuetext={`Còn ${formatClock(remaining)}`} className="pacing-track"><div style={{ width: `${remaining / snapshot.plannedSeconds * 100}%` }} /></div>{(actualMs > 0 || snapshot.questions > 0) && <p className="pacing-clock-meta">{actualMs > 0 && `Đã dùng ${formatClock(actualMs / 1000)}`}{actualMs > 0 && snapshot.questions > 0 && ' · '}{snapshot.questions > 0 && `Mục tiêu gợi ý ≤ ${formatNumber(snapshot.plannedSeconds / snapshot.questions)} giây/câu`}</p>}</div>
-        <div className="pacing-controls">{snapshot.status === 'ready' ? <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}><Play className="h-4 w-4" aria-hidden="true" />Bắt đầu</button> : <>{remaining > 0 && <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}>{snapshot.status === 'running' ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}{snapshot.status === 'running' ? 'Tạm dừng' : 'Tiếp tục'}</button>}<button type="button" className={`${pacingSecondary} !border-slate-900 !bg-blue-600 !text-white active:scale-95 transition-transform duration-100`} onClick={() => { initAudio(); timer.finish(); }}>{isPomodoro ? 'Kết thúc phiên' : remaining ? 'Xong bài' : 'Nhập kết quả'}</button><button type="button" className="pacing-reset active:scale-95 transition-transform duration-100" onClick={() => selectMode(snapshot.mode, snapshot.phase)}>Làm lại</button></>}</div>
-        <details className="pacing-tip"><summary>{isPomodoro ? 'Gợi ý tập trung' : `Mẹo luyện ${config.name}`}</summary><p>{config.tip}</p></details>
-      </div></section>}
+
+            {/* Cột Phải (Col 8-12): Chiến thuật & Thống kê phiên */}
+            <div className="lg:col-span-5 flex flex-col gap-4 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 pt-5 lg:pt-0 lg:pl-6 text-left">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white mb-2">
+                  {isPomodoro ? 'Chiến thuật Pomodoro' : `Chiến thuật làm bài ${config.name}`}
+                </h3>
+                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 dark:border-blue-900/60 dark:bg-blue-950/30">
+                  <h4 className="text-xs font-black text-blue-700 dark:text-blue-400 mb-1">
+                    {snapshot.mode === 'PART_5' ? 'Quy tắc vàng 24s/câu' : snapshot.mode === 'PART_6' ? 'Quy tắc vàng 30s/câu' : snapshot.mode.startsWith('PART_7') ? 'Chiến thuật đọc quét 55 phút' : isPomodoro ? 'Tập trung sâu 25 phút' : 'Quản lý thời gian Reading 75 phút'}
+                  </h4>
+                  <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300 font-medium">
+                    {config.tip}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Hôm nay đã luyện</span>
+                  <strong className="text-base font-black text-slate-950 dark:text-white tabular-nums">
+                    {studyTimeLabel(todaySeconds)}
+                  </strong>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Phiên hoàn thành</span>
+                  <strong className="text-base font-black text-slate-950 dark:text-white tabular-nums">
+                    {completed} phiên
+                  </strong>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-xs dark:border-slate-800 font-bold">
+                <span className="text-slate-500 dark:text-slate-400">Lịch sử các phiên luyện</span>
+                <button type="button" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer" onClick={() => setTab('history')}>
+                  Xem lịch sử →
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
       {tab === 'history' && <div id="pacing-history" role="tabpanel" aria-labelledby="pacing-history-tab"><PacingHistory runs={runs} onNew={() => setTab('timer')} onEdit={run => { setEdit({ run, name: run.testName ?? '', correct: run.correctAnswers?.toString() ?? '', study: linkedStudyVersion(run) }); setError(''); }} onDelete={deleteRun} /></div>}
       {tab === 'stats' && <div id="pacing-stats" role="tabpanel" aria-labelledby="pacing-stats-tab"><PacingCharts runs={runs} initialMode={snapshot.mode} theme={theme} onPractice={selectMode} /></div>}
     </div>

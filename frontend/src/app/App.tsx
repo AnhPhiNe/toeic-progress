@@ -134,7 +134,7 @@ export const App: React.FC = () => {
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
-  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean } | undefined>(undefined);
+  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] } | undefined>(undefined);
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [editingPacing, setEditingPacing] = useState<{ run: PacingRun; owner: string | null } | null>(null);
@@ -191,7 +191,7 @@ export const App: React.FC = () => {
   }, [isSessionModalOpen, isSettingsModalOpen, editingPacing]);
 
   // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
-  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number }) => {
+  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; initialFiles?: File[] }) => {
     setEditingSession(null);
     setSessionPrefill(prefill);
     setIsSessionModalOpen(true);
@@ -485,7 +485,7 @@ export const App: React.FC = () => {
                 vocabLog={vocabLog}
                 pacingRuns={loadPacingRuns()}
                 theme={theme}
-                onOpenSessionLogger={() => openSessionLogger()}
+                onOpenSessionLogger={openSessionLogger}
                 onNavigateToAnalytics={() => setActiveTab('analytics')}
                 dueMistakesCount={dueMistakesCount}
                 onStartReview={openReview}

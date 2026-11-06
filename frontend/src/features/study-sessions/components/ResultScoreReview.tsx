@@ -24,6 +24,38 @@ export const createResultScoreDraft = (scores: ResultImageScores): ResultScoreDr
   edited: false
 });
 
+export function tryAutoApplyResultScores(scores: ResultImageScores | null | undefined): AppliedResultScore | null {
+  if (!scores) return null;
+  const partDurations: PartTimingDurations | undefined = (scores.part5Minutes != null || scores.part6Minutes != null || scores.part7Minutes != null) ? {
+    part5: scores.part5Minutes ?? undefined,
+    part6: scores.part6Minutes ?? undefined,
+    part7: scores.part7Minutes ?? undefined,
+  } : undefined;
+  if (scores.listening !== null && scores.reading !== null) {
+    if (scores.total !== null && scores.listening + scores.reading !== scores.total) {
+      return null;
+    }
+    try {
+      const candidate: AppliedResultScore = { source: 'MANUAL_SECTIONS', listening: scores.listening, reading: scores.reading, partDurations };
+      resolveFullTestScore(candidate);
+      return candidate;
+    } catch {
+      /* Fall through to total score if section scores are out of bounds */
+    }
+  }
+  if (scores.total !== null) {
+    try {
+      const candidate: AppliedResultScore = { source: 'MANUAL_TOTAL', total: scores.total, partDurations };
+      resolveFullTestScore(candidate);
+      return candidate;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+
 /** Image values are candidates; only an explicit learner action changes the saved score source. */
 export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, onClose, draft, onDraftChange, disabled = false }: {
   scores: ResultImageScores; onApply: (score: AppliedResultScore) => void; onEdit: () => void; onDiscard: () => void; disabled?: boolean;

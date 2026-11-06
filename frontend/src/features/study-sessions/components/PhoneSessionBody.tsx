@@ -100,6 +100,9 @@ interface FullTestProps {
   date: string; setDate: (value: string) => void; duration: number; setDuration: (value: number) => void; notes: string; setNotes: (value: string) => void;
   partDurations?: PartTimingDurations;
   onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
+  onRevertScore?: () => void;
+  initialFiles?: File[];
+  onInitialFilesHandled?: () => void;
 }
 
 /** Phone Full Test: per-Part counts stay the main input, with the score updating live in a card that sticks while scrolling. */
@@ -158,15 +161,17 @@ export function PhoneFullTestBody(props: FullTestProps) {
         {props.retest && <p className="mt-1.5 text-[13px] font-semibold text-violet-700 dark:text-violet-300">Làm lại lần {props.retest.attempt} · cao nhất trước đây {props.retest.best}đ</p>}
       </div>
 
-      <div className={`${LIVE_CARD} sticky top-0 z-10 flex items-center gap-4 px-4 py-3`} aria-live="polite">
-        <div className="shrink-0">
-          <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
-          <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
-          {marked && <p className="mt-1 text-[12px] font-black tabular-nums text-rose-600 dark:text-rose-400">{props.wrongQuestions.length} câu sai</p>}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
-          <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown.scaledListening ?? '—'}</span>{bar(shown.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
-          <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown.scaledReading ?? '—'}</span>{bar(shown.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
+      <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-[#FDFBF7]/95 backdrop-blur-xs dark:bg-[#070C16]/95 border-b border-slate-200/80 dark:border-slate-800">
+        <div className={`${LIVE_CARD} flex items-center gap-4 px-4 py-3`} aria-live="polite">
+          <div className="shrink-0">
+            <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
+            <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
+            {marked && <p className="mt-1 text-[12px] font-black tabular-nums text-rose-600 dark:text-rose-400">{props.wrongQuestions.length} câu sai</p>}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
+            <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown.scaledListening ?? '—'}</span>{bar(shown.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
+            <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown.scaledReading ?? '—'}</span>{bar(shown.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
+          </div>
         </div>
       </div>
 
@@ -207,7 +212,7 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       )}
 
-      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onTiming={props.onTiming} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft} />}
+      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onTiming={props.onTiming} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft} appliedScore={manual ? { listening: props.manualListening, reading: props.manualReading, total: props.manualTotal || (preview?.totalScore ? String(preview.totalScore) : '') } : undefined} onRevertScore={props.onRevertScore} initialFiles={props.initialFiles} onInitialFilesHandled={props.onInitialFilesHandled} />}
 
       {showParts && <>
         {section('Listening', [1, 2, 3, 4], listeningRaw)}

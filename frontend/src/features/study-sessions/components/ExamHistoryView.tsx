@@ -23,7 +23,7 @@ export interface ExamHistoryViewProps {
 type SortField = 'date' | 'testName' | 'scaledListening' | 'scaledReading' | 'totalScore';
 type Kind = 'ALL' | 'FULL_TEST' | 'PART_PRACTICE';
 type Attempt = 'ALL' | 'FIRST_ONLY' | 'RETEST_ONLY';
-const HISTORY_PAGE_SIZE = 6;
+const HISTORY_PAGE_SIZE = 10;
 /** Phones load the list in steps of this many rows instead of paging. */
 const PHONE_HISTORY_STEP = 10;
 function PracticeResult({ session, pacingRun }: { session: StudySession; pacingRun?: PacingRun }) {
@@ -232,7 +232,25 @@ export function ExamHistoryView({ sessions, mistakes, pacingRuns = [], onDeleteS
       {isPhone ? renderPhoneList() : <>
       <table className="history-table w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: '13%' }} /><col style={{ width: '30%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '11%' }} /><col style={{ width: '16%' }} /><col style={{ width: '10%' }} /></colgroup><thead className="bg-slate-50 text-sm font-semibold text-slate-600 dark:bg-slate-900/40 dark:text-slate-300"><tr>{sortHeader('date', 'Ngày')}{sortHeader('testName', 'Tên đề', false)}{sortHeader('scaledListening', 'Listening')}{sortHeader('scaledReading', 'Reading')}{sortHeader('totalScore', 'Tổng')}<th scope="col" className="text-center">So với bài trước</th><th scope="col"><span className="sr-only">Thao tác</span></th></tr></thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">{visible.map(session => <tr key={session.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50"><td className="whitespace-nowrap text-center text-sm tabular-nums text-slate-600 dark:text-slate-300">{historyDate(session.date)}</td><td><div className="flex flex-wrap items-center gap-1.5">{nameButton(session)}{session.sessionType === 'FULL_TEST' && (attempts[session.id]?.attemptNumber ?? 1) > 1 && <span className="shrink-0 rounded-md border border-violet-200/80 bg-violet-50 px-1.5 py-0.5 text-[11px] font-extrabold text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300">Lần {attempts[session.id]?.attemptNumber}</span>}{session.sessionType === 'PART_PRACTICE' && <span className="shrink-0 rounded-md border border-teal-200/80 bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300">{getPracticeParts(session).map(part => `P${part.part}`).join(' & ') || pairedRuns.get(session.id)?.presetName || 'Part'}</span>}</div><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{historyDuration(session.durationMinutes)}</p></td>
-          {session.sessionType === 'FULL_TEST' ? <><td className="text-center text-base font-semibold tabular-nums text-indigo-600 dark:text-indigo-300">{session.scaledListening ?? '—'}</td><td className="text-center text-base font-semibold tabular-nums text-teal-700 dark:text-teal-300">{session.scaledReading ?? '—'}</td><td className="text-center text-xl font-extrabold tabular-nums">{session.totalScore ?? '—'}</td></> : <td colSpan={3} className="text-center"><PracticeResult session={session} pacingRun={pairedRuns.get(session.id)} /></td>}
+          {session.sessionType === 'FULL_TEST' ? (
+            <>
+              <td className="text-center">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-sm font-black text-indigo-700 bg-indigo-50 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 tabular-nums">
+                  {session.scaledListening ?? '—'}
+                </span>
+              </td>
+              <td className="text-center">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-sm font-black text-teal-700 bg-teal-50 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 tabular-nums">
+                  {session.scaledReading ?? '—'}
+                </span>
+              </td>
+              <td className="text-center text-xl font-black tabular-nums text-slate-950 dark:text-white">
+                {session.totalScore ?? '—'}
+              </td>
+            </>
+          ) : (
+            <td colSpan={3} className="text-center"><PracticeResult session={session} pacingRun={pairedRuns.get(session.id)} /></td>
+          )}
           <td className="text-center"><ScoreComparison session={session} previous={previous.get(session.id)} /></td><td>{actions(session)}</td></tr>)}</tbody>
       </table>
       <div className="history-mobile divide-y divide-slate-200 dark:divide-slate-700">{visible.map(session => <article key={session.id} className="px-3 py-3"><div className="mb-1 flex items-center justify-between gap-2"><span className="text-sm tabular-nums text-slate-600 dark:text-slate-300">{historyDate(session.date)}</span>{actions(session)}</div>{nameButton(session)}<p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{meta(session)}</p><div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">{session.sessionType === 'FULL_TEST' ? <><div className="flex flex-wrap items-center gap-3 tabular-nums"><strong className="text-xl">{session.totalScore === undefined ? 'Chưa ghi điểm' : `${session.totalScore}đ`}</strong><span className="text-base font-semibold text-indigo-600 dark:text-indigo-300">L {session.scaledListening ?? '—'}</span><span className="text-base font-semibold text-teal-700 dark:text-teal-300">R {session.scaledReading ?? '—'}</span></div><ScoreComparison session={session} previous={previous.get(session.id)} /></> : <PracticeResult session={session} pacingRun={pairedRuns.get(session.id)} />}</div></article>)}</div>

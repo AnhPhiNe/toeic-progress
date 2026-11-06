@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Headphones, BookOpen } from 'lucide-react';
+import { Headphones, BookOpen, Trophy } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
 import { getConcordanceByToeic } from '@/shared/domain/etsScoring';
 import { triggerHaptic } from '@/shared/lib/haptics';
@@ -78,13 +78,14 @@ export function ScoreReportCard({
               </span>
             </h2>
             {newRecord ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-900 bg-amber-300 px-2.5 py-0.5 text-[11px] font-black text-slate-950 shadow-none dark:border-slate-400 shrink-0">
-                🏆 Kỷ lục mới
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/90 bg-amber-100 px-2.5 py-0.5 text-[11px] font-black text-amber-950 shrink-0 dark:border-amber-700/80 dark:bg-amber-950/70 dark:text-amber-200">
+                <Trophy className="h-3 w-3 stroke-[2.5] text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <span>Kỷ lục mới</span>
               </span>
             ) : cefrName ? (
               <span
                 title={`Khung tham chiếu trình độ CEFR: ${cefrName}`}
-                className={`inline-flex items-center gap-1.5 rounded-full border border-slate-900 px-2.5 py-0.5 text-[11px] font-extrabold shadow-none shrink-0 dark:border-slate-400 ${
+                className={`inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 px-2.5 py-0.5 text-[11px] font-extrabold shrink-0 dark:border-slate-700/80 ${
                   CEFR_STYLES[cefrName] ?? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
                 }`}
               >
@@ -109,10 +110,10 @@ export function ScoreReportCard({
             {change !== undefined && change !== 0 && (
               <span
                 className={
-                  'inline-flex items-center gap-1 rounded-lg border-2 border-slate-900 px-2 py-0.5 text-xs font-black shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none ' +
+                  'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-black ' +
                   (change > 0
-                    ? 'bg-emerald-300 text-slate-950 dark:bg-emerald-400'
-                    : 'bg-rose-300 text-slate-950 dark:bg-rose-400')
+                    ? 'border-emerald-200/80 bg-emerald-50 text-emerald-800 dark:border-emerald-800/80 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    : 'border-rose-200/80 bg-rose-50 text-rose-800 dark:border-rose-800/80 dark:bg-rose-950/60 dark:text-rose-300')
                 }
               >
                 <span className="tabular-nums">
@@ -181,14 +182,14 @@ function Section({
   const Icon = kind === 'listening' ? Headphones : BookOpen;
   const isListening = kind === 'listening';
   const cardClass = isListening
-    ? 'rounded-xl border-2 border-slate-900 bg-indigo-50/80 hover:bg-indigo-100/90 text-indigo-950 dark:border-slate-300 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none'
-    : 'rounded-xl border-2 border-slate-900 bg-teal-50/80 hover:bg-teal-100/90 text-teal-950 dark:border-slate-300 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-100 shadow-[2px_2px_0_0_#0f172a] dark:shadow-none';
+    ? 'rounded-xl border border-indigo-200/80 bg-indigo-50/70 hover:bg-indigo-100/80 text-indigo-950 dark:border-indigo-800/80 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 dark:text-indigo-100'
+    : 'rounded-xl border border-teal-200/80 bg-teal-50/70 hover:bg-teal-100/80 text-teal-950 dark:border-teal-800/80 dark:bg-teal-950/50 dark:hover:bg-teal-900/60 dark:text-teal-100';
   const labelClass = isListening ? 'text-indigo-800 dark:text-indigo-200' : 'text-teal-800 dark:text-teal-200';
   const iconColor = isListening ? 'text-indigo-600 dark:text-indigo-400' : 'text-teal-600 dark:text-teal-400';
   const chevronColor = isListening ? 'text-indigo-400 group-hover:text-indigo-900 dark:text-indigo-400 dark:group-hover:text-white' : 'text-teal-400 group-hover:text-teal-900 dark:text-teal-400 dark:group-hover:text-white';
   const badgeClass = isListening
-    ? 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none'
-    : 'whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 text-[11px] font-black tabular-nums shrink-0 dark:border-slate-300 dark:bg-slate-900 dark:text-teal-300 shadow-[1px_1px_0_0_#0f172a] dark:shadow-none';
+    ? 'whitespace-nowrap rounded-lg border border-slate-200/80 bg-white/90 px-2 py-0.5 text-[11px] font-black tabular-nums text-indigo-800 shrink-0 dark:border-slate-700/80 dark:bg-slate-900 dark:text-indigo-300'
+    : 'whitespace-nowrap rounded-lg border border-slate-200/80 bg-white/90 px-2 py-0.5 text-[11px] font-black tabular-nums text-teal-800 shrink-0 dark:border-slate-700/80 dark:bg-slate-900 dark:text-teal-300';
 
   return (
     <button
@@ -198,7 +199,7 @@ function Section({
         onClick?.();
       }}
       aria-label={`Xem chi tiết ${label}: ${score ?? 'chưa có điểm'}`}
-      className={'group flex min-w-0 flex-col justify-between text-left cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_#0f172a] hover:-translate-y-0.5 transition-all duration-150 ' + (roomy ? 'gap-1.5 p-3 ' : 'gap-1.5 p-3 sm:p-3.5 ') + cardClass}
+      className={'group flex min-w-0 flex-col justify-between text-left cursor-pointer hover:brightness-[0.98] active:scale-[0.99] transition-all duration-150 ' + (roomy ? 'gap-1.5 p-3 ' : 'gap-1.5 p-3 sm:p-3.5 ') + cardClass}
     >
       <div className="flex items-center justify-between w-full">
         <span className={'flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ' + labelClass}>

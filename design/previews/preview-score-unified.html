@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghi điểm thống nhất</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--page:#E7F0E2;--paper:#FBFDF8;--ink:#1E2430;--muted:#66705F;--line:#E4ECDD;--soft:#F0F6EB;--green:#3E8A4F;--green-dark:#2B6638;--green-soft:#DCEFD3;--sun:#F2B93B;--sun-soft:#FFF3D3;--red:#D9475B;--red-soft:#FCE4E7;--lis:#5B5BD6;--lis-soft:#E7E7FB;--rea:#2E8F7E;--rea-soft:#DDF2EE}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1120px;margin:0 auto;padding:36px 16px 64px}
+  h1{font-size:22px;margin:0 0 4px}
+  .lead{margin:0 0 26px;color:var(--muted);font-size:14px;line-height:1.5;max-width:860px}
+  .state{margin-bottom:40px}
+  .state-head{display:flex;gap:10px;align-items:baseline;margin:0 0 4px 2px}
+  .num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;flex:none}
+  .state-head h2{margin:0;font-size:17px}
+  .state > p{margin:0 0 12px 38px;color:var(--muted);font-size:13.5px;line-height:1.5}
+
+  .modal{background:var(--paper);border-radius:24px;box-shadow:0 24px 60px -28px rgba(20,40,10,.5);overflow:hidden}
+  .m-head{display:flex;align-items:center;gap:10px;padding:14px 20px 10px;border-bottom:1px solid var(--line)}
+  .m-head h3{margin:0;font-size:17px;margin-right:6px}
+  .pill{font-size:13px;font-weight:700;background:var(--soft);border-radius:999px;padding:6px 12px;color:#2C3428}
+  .pill span{color:var(--green);margin-left:6px}
+  .x{margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:13px}
+  .m-body{display:grid;grid-template-columns:1fr 268px;gap:18px;padding:14px 20px 16px}
+  .m-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 16px;border-top:1px solid var(--line)}
+  .btn{border:0;border-radius:15px;padding:12px 20px;font:inherit;font-size:14.5px;font-weight:800;color:#fff;background:var(--green);box-shadow:0 5px 0 var(--green-dark)}
+  .ghost{font-size:13.5px;font-weight:700;color:#4B5546}
+
+  .grid-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .skill{font-size:11px;font-weight:800;letter-spacing:.06em;margin:0 0 6px}
+  .skill.l{color:var(--lis)} .skill.r{color:var(--rea)}
+  .part{display:grid;grid-template-columns:42px 1fr;gap:6px;margin-bottom:7px}
+  .ptag{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .ptag b{font-size:11px;font-weight:800;color:#fff;border-radius:7px;padding:3px 6px}
+  .l .ptag b{background:var(--lis)} .r .ptag b{background:var(--rea)}
+  .ptag small{font-size:10.5px;font-weight:800;color:var(--red)}
+  .cells{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+  .cells i{font-style:normal;font-size:10.5px;font-weight:700;text-align:center;line-height:20px;height:20px;border-radius:6px;background:#fff;border:1px solid #E3EADD;color:#59645A;font-variant-numeric:tabular-nums}
+  .cells i.w{background:var(--red);border-color:var(--red);color:#fff}
+  .cells i.q{background:var(--sun);border-color:#C98C10;color:#3D2A00}
+
+  .side{display:flex;flex-direction:column;gap:12px}
+  .score{background:var(--soft);border-radius:18px;padding:12px 14px}
+  .score .src{display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;color:var(--muted)}
+  .score .src em{font-style:normal;color:var(--green)}
+  .score strong{display:block;font-size:40px;font-weight:800;letter-spacing:-.02em;text-align:center;margin:4px 0 6px}
+  .lr{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .lr span{text-align:center;border-radius:10px;padding:6px;font-size:13px;font-weight:800}
+  .lr .a{background:var(--lis-soft);color:var(--lis)} .lr .b{background:var(--rea-soft);color:var(--rea)}
+  .count{text-align:center;font-size:12px;font-weight:700;color:var(--red);margin-top:8px}
+
+  .img{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
+  .thumb{width:46px;height:56px;border-radius:8px;background:linear-gradient(160deg,#dfe7da,#c9d6c2);flex:none;position:relative}
+  .thumb:after{content:"";position:absolute;inset:10px 8px auto 8px;height:4px;border-radius:2px;background:#9fb09a;box-shadow:0 9px 0 #b3c2ad,0 18px 0 #b3c2ad,0 27px 0 #b3c2ad}
+  .img p{margin:0;font-size:12.5px;line-height:1.45;color:#3B4537}
+  .img p b{display:block;font-size:13px;color:var(--ink)}
+  .img p a{color:var(--green);font-weight:700}
+
+  .drop{border:2px dashed #B9D3AE;border-radius:16px;background:#F5FAF1;padding:14px 12px;text-align:center}
+  .drop svg{width:58px;height:64px;display:block;margin:0 auto}
+  .drop b{display:block;font-size:13.5px;margin-top:2px}
+  .drop p{margin:4px 0 10px;font-size:12px;color:var(--muted);line-height:1.45}
+  .drop span{display:inline-block;background:var(--green);color:#fff;font-size:12.5px;font-weight:800;border-radius:11px;padding:7px 12px;box-shadow:0 3px 0 var(--green-dark)}
+  kbd{font-family:inherit;font-size:11px;font-weight:800;background:#fff;border:1px solid #D6E2CE;border-bottom-width:2px;border-radius:5px;padding:0 5px}
+
+  .doubt{background:var(--sun-soft);border-radius:14px;padding:10px 12px;font-size:12.5px;line-height:1.45;color:#5E4708}
+  .doubt b{display:block;color:#3D2A00}
+  .doubt .opts{display:flex;gap:6px;margin-top:8px}
+  .doubt .opts span{flex:1;text-align:center;background:#fff;border:1px solid #EBD9A6;border-radius:9px;padding:6px;font-weight:800;color:#3B4537}
+  .more{font-size:12.5px;font-weight:700;color:#4B5546}
+  .more small{font-weight:500;color:#8C9686}
+  .alt{font-size:12.5px;color:var(--muted)} .alt a{color:var(--green);font-weight:700}
+
+  .same{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  .same div{background:var(--paper);border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.5;color:#3B4537}
+  .same b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:2px}
+  @media (max-width:880px){.m-body{grid-template-columns:1fr}.same{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E08F"/><stop offset="1" stop-color="#4C9F55"/></linearGradient>
+    <linearGradient id="lg2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient>
+    <radialGradient id="pg" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient>
+    <g id="mam">
+      <path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#pg)"/><rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/>
+      <ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+      <g transform="translate(0,13)"><path d="M60 44 Q58 32 60 22" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 29 C46 13 27 14 21 25 C32 36 49 37 59 29Z" fill="url(#lg1)"/><path d="M61 25 C70 6 92 3 101 13 C91 28 73 31 61 25Z" fill="url(#lg2)"/></g>
+      <g transform="translate(0,6)"><ellipse cx="47" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/><ellipse cx="73" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/>
+        <circle cx="49.2" cy="75.8" r="2.5" fill="#fff"/><circle cx="75.2" cy="75.8" r="2.5" fill="#fff"/>
+        <path d="M54.5 90 Q60 94.5 65.5 90" stroke="#9C4434" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+    </g>
+  </defs>
+</svg>
+
+<div class="page">
+  <h1>Ghi điểm: một khung cho mọi cách nhập</h1>
+  <p class="lead">Luôn cùng một bố cục: lưới 200 câu có số ở giữa, cột phải là điểm và nguồn dữ liệu. Dán ảnh chỉ là cách tô lưới nhanh hơn; nhập tay là chạm trực tiếp. Không còn tab Full Test/Luyện Part/Từ vựng, ngày và thời lượng trong form.</p>
+
+  <section class="state">
+    <div class="state-head"><span class="num">A</span><h2>Mới mở: chưa có gì</h2></div>
+    <p>Chạm câu sai trên lưới, hoặc dán ảnh để Mầm tô giúp. Cả hai cùng nằm trên một màn.</p>
+    <div class="modal">
+      <div class="m-head"><h3>Ghi điểm</h3><span class="pill">ETS 2024 Test 06<span>Đổi</span></span><span class="pill">Hôm nay<span>▾</span></span><span class="x">✕</span></div>
+      <div class="m-body"><div class="grid-wrap" data-wrong="" data-unsure=""></div>
+        <div class="side">
+          <div class="score"><div class="src"><span>ĐIỂM ƯỚC TÍNH</span></div><strong>990</strong><div class="lr"><span class="a">L 495</span><span class="b">R 495</span></div><div class="count" style="color:#66705F">Chưa đánh dấu câu sai</div></div>
+          <div class="drop"><svg viewBox="0 -14 120 134"><use href="#mam"/></svg><b>Dán ảnh kết quả</b><p>Mầm đọc điểm và tô câu sai lên lưới. Hoặc nhấn <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p><span>Chọn ảnh</span></div>
+          <div class="alt">Có điểm chính thức? <a>Nhập L/R</a></div>
+          <div class="more">▸ Thêm chi tiết <small>thời lượng, ghi chú</small></div>
+        </div>
+      </div>
+      <div class="m-foot"><span class="ghost">Hủy</span><button class="btn">Lưu và xem kết quả</button></div>
+    </div>
+  </section>
+
+  <section class="state">
+    <div class="state-head"><span class="num">B</span><h2>Sau khi dán ảnh: lưới đã được tô sẵn</h2></div>
+    <p>Cùng khung với A. Điểm lấy từ ảnh; câu AI chưa chắc tô vàng và hỏi ở cột phải. Muốn sửa thì chạm ô trên lưới như nhập tay.</p>
+    <div class="modal">
+      <div class="m-head"><h3>Ghi điểm</h3><span class="pill">ETS 2024 Test 06<span>Đổi</span></span><span class="pill">Hôm nay<span>▾</span></span><span class="x">✕</span></div>
+      <div class="m-body"><div class="grid-wrap" data-wrong="3 15 22 40 41 57 88 101 105 112 118 131 150 151 152 153 160 166 175 181 190 194 199" data-unsure="188"></div>
+        <div class="side">
+          <div class="score"><div class="src"><span>ĐIỂM</span><em>từ ảnh</em></div><strong>745</strong><div class="lr"><span class="a">L 400</span><span class="b">R 345</span></div><div class="count">23 câu sai</div></div>
+          <div class="img"><div class="thumb"></div><p><b>Đã đọc ảnh kết quả</b>Điểm, câu sai và thời gian 1:52:30. <a>Đổi ảnh</a></p></div>
+          <div class="doubt"><b>Câu 188 bị mờ trong ảnh</b>Câu này bạn làm đúng hay sai?<div class="opts"><span>Sai</span><span>Đúng</span></div></div>
+          <div class="more">▸ Thêm chi tiết <small>thời lượng, ghi chú</small></div>
+        </div>
+      </div>
+      <div class="m-foot"><span class="ghost">Hủy</span><button class="btn">Lưu và xem kết quả</button></div>
+    </div>
+  </section>
+
+  <section class="state">
+    <div class="state-head"><span class="num">C</span><h2>Nhập tay: chạm câu sai</h2></div>
+    <p>Cùng khung với A và B. Điểm ước tính cập nhật ngay khi chạm.</p>
+    <div class="modal">
+      <div class="m-head"><h3>Ghi điểm</h3><span class="pill">ETS 2024 Test 06<span>Đổi</span></span><span class="pill">Hôm nay<span>▾</span></span><span class="x">✕</span></div>
+      <div class="m-body"><div class="grid-wrap" data-wrong="3 15 40 101 105 150 151 152 153 160 175" data-unsure=""></div>
+        <div class="side">
+          <div class="score"><div class="src"><span>ĐIỂM ƯỚC TÍNH</span></div><strong>905</strong><div class="lr"><span class="a">L 470</span><span class="b">R 435</span></div><div class="count">11 câu sai</div></div>
+          <div class="drop"><svg viewBox="0 -14 120 134"><use href="#mam"/></svg><b>Dán ảnh kết quả</b><p>Để Mầm tô giúp phần còn lại.</p><span>Chọn ảnh</span></div>
+          <div class="alt">Có điểm chính thức? <a>Nhập L/R</a> · Gõ nhanh? <a>Gõ số câu</a></div>
+          <div class="more">▸ Thêm chi tiết <small>thời lượng, ghi chú</small></div>
+        </div>
+      </div>
+      <div class="m-foot"><span class="ghost">Hủy</span><button class="btn">Lưu và xem kết quả</button></div>
+    </div>
+  </section>
+
+  <div class="same">
+    <div><b>Một bố cục, ba trạng thái</b>Lưới luôn ở giữa, điểm luôn ở góc phải trên, nút Lưu luôn ở góc phải dưới. Người dùng học một lần.</div>
+    <div><b>Ảnh chỉ là cách tô nhanh</b>Không còn màn "kiểm tra" riêng. AI tô lên chính lưới mà người dùng vẫn chạm khi nhập tay.</div>
+    <div><b>Bỏ khỏi form</b>Tab Full Test/Luyện Part/Từ vựng (tách thành nút riêng), ô 120 phút, khung "Điểm từ đề thi", ba lựa chọn phụ.</div>
+  </div>
+</div>
+<script>
+  const parts = { 1:[1,6], 2:[7,31], 3:[32,70], 4:[71,100], 5:[101,130], 6:[131,146], 7:[147,200] };
+  for (const wrap of document.querySelectorAll('.grid-wrap')) {
+    const wrong = new Set(wrap.dataset.wrong.split(' ').filter(Boolean).map(Number));
+    const unsure = new Set(wrap.dataset.unsure.split(' ').filter(Boolean).map(Number));
+    for (const [skill, list, cls] of [['LISTENING', [1,2,3,4], 'l'], ['READING', [5,6,7], 'r']]) {
+      const col = document.createElement('div'); col.className = cls;
+      col.innerHTML = `<p class="skill ${cls}">● ${skill}</p>`;
+      for (const p of list) {
+        const [a, b] = parts[p]; let cells = '', n = 0;
+        for (let q = a; q <= b; q++) {
+          const c = wrong.has(q) ? 'w' : unsure.has(q) ? 'q' : '';
+          if (wrong.has(q)) n++;
+          cells += `<i class="${c}">${q}</i>`;
+        }
+        col.innerHTML += `<div class="part"><div class="ptag"><b>P${p}</b>${n ? `<small>${n} sai</small>` : ''}</div><div class="cells">${cells}</div></div>`;
+      }
+      wrap.appendChild(col);
+    }
+  }
+</script>
+</body>
+</html>

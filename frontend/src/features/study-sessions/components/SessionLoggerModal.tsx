@@ -31,7 +31,7 @@ import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
 import { EMPTY_WRONG_NUMBER_DRAFT, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 import { parseQuestionList } from '@/shared/domain/questionNumbers';
-import { hasResultTiming, formatElapsed } from '@/shared/domain/resultTiming';
+import { hasResultTiming, formatElapsed, parseElapsed } from '@/shared/domain/resultTiming';
 import type { ResultImageTiming, ConfirmedResultTiming } from '@/shared/types';
 import { ResultTimingReview, timingCandidate as createTimingCandidate, type TimingCandidate } from './ResultTimingReview';
 import { DesktopFullTestBody } from './DesktopFullTestBody';
@@ -50,7 +50,7 @@ interface SessionLoggerModalProps {
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3) */
   /** `markWrong` reopens a saved Full Test straight on its wrong-question grid. */
-  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean };
+  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] };
   /**
    * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
@@ -87,6 +87,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const durationEditedRef = useRef(false);
   const markDurationEdited = (value: boolean) => { durationEditedRef.current = value; setDurationEdited(value); };
   const [vocabCount, setVocabCount] = useState(1);
+  const [pendingInitialFiles, setPendingInitialFiles] = useState<File[] | undefined>(undefined);
 
   const [notes, setNotes] = useState('');
   const [scoreSource, setScoreSource] = useState<ScoreSource>('ESTIMATED');
@@ -119,27 +120,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       return hasResultTiming(next) ? next : null;
     });
   };
-  const readImageTiming = (value: ResultImageTiming) => {
-    if (hasResultTiming(value)) setTimingCandidate(current => {
-      const previous = current?.timing ?? resultTiming;
-      const next = createTimingCandidate({
-        totalSeconds: value.totalSeconds ?? previous?.totalSeconds ?? null,
-        listeningSeconds: value.listeningSeconds ?? previous?.listeningSeconds ?? null,
-        readingSeconds: value.readingSeconds ?? previous?.readingSeconds ?? null,
-        parts: Object.fromEntries(Object.entries(value.parts).map(([key, seconds]) =>
-          [key, seconds ?? previous?.parts[key as keyof ResultImageTiming['parts']] ?? null])) as ResultImageTiming['parts'],
-      });
-      // Supplemental screenshots fill missing scopes without discarding pending edits.
-      if (current?.edited) {
-        const original = createTimingCandidate(current.timing).fields;
-        for (const key of Object.keys(current.fields) as (keyof TimingCandidate['fields'])[]) {
-          if (current.fields[key] !== original[key]) next.fields[key] = current.fields[key];
-        }
-        next.edited = true;
-      }
-      return next;
-    });
-  };
   const applyImageTiming = (value: ConfirmedResultTiming) => {
     setResultTiming(value); setTimingCandidate(null); setScoreError('');
     if (value.totalSeconds !== null) { setDurationMinutes(Math.round(value.totalSeconds / 60 * 100) / 100); markDurationEdited(true); }
@@ -150,9 +130,64 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     }
     setPartDurations(Object.keys(parts).length ? parts : undefined);
   };
+  const discardImageTiming = () => {
+    if (resultTiming) {
+      if (resultTiming.totalSeconds !== null && Math.abs(durationMinutes - Math.round(resultTiming.totalSeconds / 60 * 100) / 100) < 0.01) {
+        setDurationMinutes(editingSession?.durationMinutes ?? prefill?.durationMinutes ?? 120);
+        markDurationEdited(Boolean(editingSession || prefill?.durationMinutes !== undefined));
+      }
+      const parts = { ...partDurations };
+      for (const key of ['part5', 'part6', 'part7'] as const) {
+        if (resultTiming.parts[key] != null && parts[key] != null && Math.abs(parts[key]! - Math.round(resultTiming.parts[key]! / 60 * 100) / 100) < 0.01) {
+          delete parts[key];
+        }
+      }
+      setPartDurations(Object.keys(parts).length ? parts : undefined);
+    }
+    setResultTiming(null);
+    setTimingCandidate(null);
+    setScoreError('');
+  };
+  const readImageTiming = (value: ResultImageTiming) => {
+    if (!hasResultTiming(value)) return;
+    const previous = timingCandidate?.timing ?? resultTiming;
+    const merged: ResultImageTiming = {
+      totalSeconds: (value.totalSeconds && value.totalSeconds > 0 ? value.totalSeconds : null) ?? previous?.totalSeconds ?? null,
+      listeningSeconds: value.listeningSeconds ?? previous?.listeningSeconds ?? null,
+      readingSeconds: value.readingSeconds ?? previous?.readingSeconds ?? null,
+      parts: Object.fromEntries(Object.entries(value.parts).map(([key, seconds]) =>
+        [key, seconds ?? previous?.parts[key as keyof ResultImageTiming['parts']] ?? null])) as ResultImageTiming['parts'],
+    };
+    if (timingCandidate?.edited) {
+      setTimingCandidate(current => {
+        if (!current) return null;
+        const next = createTimingCandidate(merged);
+        const original = createTimingCandidate(current.timing).fields;
+        for (const key of Object.keys(current.fields) as (keyof TimingCandidate['fields'])[]) {
+          if (current.fields[key] !== original[key]) next.fields[key] = current.fields[key];
+        }
+        next.edited = true;
+        return next;
+      });
+      return;
+    }
+    if (hasResultTiming(merged)) {
+      applyImageTiming({ ...merged, source: 'IMAGE_CONFIRMED' });
+    }
+  };
   // A Full Test is logged by its wrong questions; per-Part counts and official scores stay as alternatives.
   const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
-  const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
+  const [wrongQuestions, setWrongQuestionsState] = useState<number[]>([]);
+  const latestWrongQuestions = useRef<number[]>([]);
+  latestWrongQuestions.current = wrongQuestions;
+  const setWrongQuestions = (next: number[]) => {
+    latestWrongQuestions.current = next;
+    setWrongQuestionsState(next);
+    if (entry === 'wrong') {
+      setPartScores(partScoresFromWrong(next));
+      if (next.length > 0) setIncludePartDetails(true);
+    }
+  };
   const [wrongNumberDraft, setWrongNumberDraft] = useState<WrongNumberDraft>(EMPTY_WRONG_NUMBER_DRAFT);
   const suggestedName = useRef('');
   const [scoreError, setScoreError] = useState('');
@@ -245,14 +280,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
    * độ sửa, sửa xong rồi bấm "Nhập điểm" sẽ thấy dữ liệu của buổi vừa sửa.
    */
   useEffect(() => {
-    if (!isOpen) { sourceScoreStore.current = null; return; }
+    if (!isOpen) { sourceScoreStore.current = null; setPendingInitialFiles(undefined); return; }
     draftOwner.current = getActiveAccountId();
     savedSession.current = false;
     const e = editingSession;
     setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
-    // A new Full Test on a phone starts with the next numbered test after the latest one (Test 3 -> Test 4).
-    const phone = typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
-    suggestedName.current = !e && phone && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
+    // A new Full Test starts with the next numbered test after the latest one (Test 3 -> Test 4) on both Desktop and Mobile.
+    suggestedName.current = !e && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
     setTestName(e?.testName ?? suggestedName.current);
     const markWrong = Boolean(e && prefill?.markWrong);
     setEntry(e?.partScores && !e.wrongQuestions && !markWrong ? 'counts' : 'wrong');
@@ -279,10 +313,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
     setSourceScorePending(false);
     sourceScoreStore.current = null;
+    setPendingInitialFiles(prefill?.initialFiles?.length ? prefill.initialFiles : undefined);
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
     setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
-  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong]);
+  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
@@ -332,13 +367,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   if (!isOpen) return null;
 
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
-  const effectiveParts = wrongEntry ? partScoresFromWrong(wrongQuestions) : partScores;
+  const typedWrongParsed = wrongEntry && wrongNumberDraft.typing ? parseQuestionList(wrongNumberDraft.text) : null;
+  const activeWrongQuestions = typedWrongParsed && !typedWrongParsed.invalid.length ? typedWrongParsed.questions : wrongQuestions;
+  const effectiveParts = wrongEntry ? partScoresFromWrong(activeWrongQuestions) : partScores;
   // Tính điểm trực tiếp từ partScores
   const calculated = calculateFromPartScores(effectiveParts);
-  const resolveScores = () => resolveFullTestScore({
+  const resolveScores = (overrideParts = effectiveParts, overrideIncludePartDetails = includePartDetails) => resolveFullTestScore({
     previous: editingSession,
     source: scoreSource,
-    partScores: scoreSource === 'ESTIMATED' || includePartDetails ? effectiveParts : undefined,
+    partScores: scoreSource === 'ESTIMATED' || overrideIncludePartDetails ? overrideParts : undefined,
     listening: manualListening.trim() ? Number(manualListening) : undefined,
     reading: manualReading.trim() ? Number(manualReading) : undefined,
     total: manualTotal.trim() ? Number(manualTotal) : undefined
@@ -368,12 +405,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setScoreError('');
   };
   const applySourceScore = (score: AppliedResultScore) => {
+    const currentWrong = latestWrongQuestions.current;
     setScoreSource(score.source); setManualMode(score.source);
     setManualListening(score.source === 'MANUAL_SECTIONS' ? String(score.listening) : '');
     setManualReading(score.source === 'MANUAL_SECTIONS' ? String(score.reading) : '');
     setManualTotal(String(score.source === 'MANUAL_TOTAL' ? score.total : score.listening + score.reading));
-    setPartScores(partScoresFromWrong(wrongQuestions));
-    setIncludePartDetails(wrongQuestions.length > 0);
+    setPartScores(partScoresFromWrong(currentWrong));
+    setIncludePartDetails(currentWrong.length > 0);
     if (score.partDurations) {
       changePartDurations(score.partDurations);
     }
@@ -419,18 +457,55 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       let newSession: StudySession;
 
       if (sessionType === 'FULL_TEST') {
-        if (timingCandidate) { setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.'); return; }
+        let finalTiming = resultTiming;
+        let finalDuration = Number(durationMinutes) || 120;
+        let finalPartDurations = partDurations;
+        if (timingCandidate) {
+          const parsedTiming: ResultImageTiming = {
+            totalSeconds: null, listeningSeconds: null, readingSeconds: null,
+            parts: { part1: null, part2: null, part3: null, part4: null, part5: null, part6: null, part7: null }
+          };
+          const timingKeys = ['totalSeconds', 'listeningSeconds', 'readingSeconds', 'part1', 'part2', 'part3', 'part4', 'part5', 'part6', 'part7'] as const;
+          for (const key of timingKeys) {
+            const val = parseElapsed(timingCandidate.fields[key] ?? '');
+            if (val === 'invalid') {
+              setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.');
+              return;
+            }
+            if (key.startsWith('part')) parsedTiming.parts[key as keyof ResultImageTiming['parts']] = val;
+            else parsedTiming[key as 'totalSeconds'] = val;
+          }
+          if (parsedTiming.totalSeconds === 0 || !hasResultTiming(parsedTiming)) {
+            setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.');
+            return;
+          }
+          finalTiming = { ...parsedTiming, source: 'IMAGE_CONFIRMED' };
+          if (finalTiming.totalSeconds !== null) finalDuration = Math.round(finalTiming.totalSeconds / 60 * 100) / 100;
+          const nextParts = { ...finalPartDurations };
+          for (const key of ['part5', 'part6', 'part7'] as const) {
+            if (finalTiming.parts[key] !== null) nextParts[key] = Math.round(finalTiming.parts[key]! / 60 * 100) / 100;
+          }
+          finalPartDurations = Object.keys(nextParts).length ? nextParts : undefined;
+          applyImageTiming(finalTiming);
+        }
+
+        let finalWrong = wrongQuestions;
         if (entry === 'wrong' && wrongNumberDraft.typing) {
           const parsed = parseQuestionList(wrongNumberDraft.text);
-          if (parsed.invalid.length || JSON.stringify(parsed.questions) !== JSON.stringify(normalizeQuestionList(wrongQuestions))) {
+          if (parsed.invalid.length) {
             setScoreError('Áp dụng danh sách số câu đang gõ, hoặc bấm Hủy tại ô số câu trước khi lưu. Nội dung đang gõ đã được giữ trong nháp.');
             return;
           }
+          finalWrong = parsed.questions;
+          setWrongQuestions(parsed.questions);
+          setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
         }
         if (sourceScorePending) { setScoreError('Kiểm tra và áp dụng điểm từ đề, hoặc chọn “Dùng điểm ước tính” trước khi lưu.'); return; }
-        if (wrongEntry && scoreSource === 'ESTIMATED' && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        if (wrongEntry && scoreSource === 'ESTIMATED' && !finalWrong.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        const submitParts = wrongEntry ? partScoresFromWrong(finalWrong) : partScores;
+        const submitIncludeParts = includePartDetails || (entry === 'wrong' && finalWrong.length > 0);
         let resolved: ReturnType<typeof resolveFullTestScore>;
-        try { resolved = resolveScores(); setScoreError(''); }
+        try { resolved = resolveScores(submitParts, submitIncludeParts); setScoreError(''); }
         catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
         newSession = {
           id: sessionId,
@@ -441,11 +516,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             ? computeSessionAttemptMap(sessions ?? loadStudySessions())[editingSession.id]?.attemptNumber ?? editingSession.attemptNumber ?? 1
             : isExistingTest ? nextAttemptNumber : 1,
           date,
-          durationMinutes: Number(durationMinutes) || 120,
-          partDurations: partDurations && Object.values(partDurations).some(value => value !== undefined) ? partDurations : undefined,
-          ...(resultTiming ? { resultTiming } : {}),
+          durationMinutes: finalDuration,
+          partDurations: finalPartDurations && Object.values(finalPartDurations).some(value => value !== undefined) ? finalPartDurations : undefined,
+          ...(finalTiming ? { resultTiming: finalTiming } : {}),
           ...resolved,
-          ...(entry === 'wrong' && (wrongEntry || wrongQuestions.length > 0) ? { wrongQuestions: normalizeQuestionList(wrongQuestions) } : {}),
+          ...(entry === 'wrong' && (wrongEntry || finalWrong.length > 0) ? { wrongQuestions: normalizeQuestionList(finalWrong) } : {}),
           notes,
           createdAt
         };
@@ -584,6 +659,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {isPhone && sessionType === 'FULL_TEST' && (
             <PhoneFullTestBody key={restoredVersion} testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
               onTiming={readImageTiming}
+              initialFiles={pendingInitialFiles}
+              onInitialFilesHandled={() => setPendingInitialFiles(undefined)}
+              onRevertScore={revertSourceScore}
               numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
               retest={isExistingTest ? { attempt: nextAttemptNumber, best: bestPreviousScore } : undefined}
               partScores={effectiveParts} onPart={handlePartScoreChange} preview={scorePreview}
@@ -609,10 +687,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes} notes={notes} setNotes={setNotes} />
           )}
 
-          {sessionType === 'FULL_TEST' && timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={() => { setTimingCandidate(null); setScoreError(''); }} />}
+          {sessionType === 'FULL_TEST' && timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={discardImageTiming} />}
           {sessionType === 'FULL_TEST' && resultTiming && !timingCandidate && <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900 dark:bg-teal-950/30 dark:text-teal-200">
             Thời gian đã xác nhận từ ảnh{resultTiming.totalSeconds !== null ? `: ${formatElapsed(resultTiming.totalSeconds)}` : ' · chỉ có từng phần'}.
             <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
+            <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
           </div>}
           {sessionType !== 'VOCAB' && !isPhone && (<>
           {/* General Info Row */}
@@ -674,6 +753,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {wrongEntry && (
             <DesktopFullTestBody key={restoredVersion} wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
               onTiming={readImageTiming}
+              initialFiles={pendingInitialFiles}
+              onInitialFilesHandled={() => setPendingInitialFiles(undefined)}
               numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
               onScores={applySourceScore}
               onScoresPending={setSourceScorePending}

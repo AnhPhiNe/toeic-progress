@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
+import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Inbox, Tag } from 'lucide-react';
 import { ReviewSegmentedControl } from './ReviewSegmentedControl';
 import type { NavTabId, MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -295,7 +295,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       return (
         <div className="mx-4 my-2.5 rounded-2xl border-2 border-slate-900 bg-white p-6 text-center space-y-3 shadow-[2.5px_2.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2.5px_2.5px_0_0_#cbd5e1]">
           <div className="space-y-1">
-            <span className="text-3xl block mb-2" aria-hidden="true">📭</span>
+            <Inbox className="h-8 w-8 mx-auto text-slate-400 mb-2 stroke-[1.5]" aria-hidden="true" />
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
               {activeTestName && !sourceHasNotes
                 ? `Chưa có câu sai nào thuộc đề "${activeTestName}"`
@@ -390,7 +390,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       {activeFilterCount > 0 && (
         <div className="w-full mb-2.5 flex items-center justify-between rounded-xl border-2 border-slate-900 bg-indigo-50/90 px-3.5 py-2 text-xs shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-indigo-950/40 dark:shadow-[1.5px_1.5px_0_0_#cbd5e1]">
           <span className="flex items-center gap-1.5 font-bold text-indigo-900 dark:text-indigo-200 min-w-0 truncate">
-            <span aria-hidden="true">🏷️</span>
+            <Tag className="h-3.5 w-3.5 text-indigo-700 dark:text-indigo-300 shrink-0" aria-hidden="true" />
             <span className="truncate">
               {selectedTest !== 'ALL' && (
                 <span>Đang lọc đề: <strong className="font-black text-indigo-950 dark:text-white">{defaultSourceName || (selectedTest === 'NONE' ? 'Chưa gắn đề' : 'Theo đề')}</strong></span>
@@ -564,7 +564,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           ))}
           {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
             <div className="m-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-3 dark:border-slate-700 dark:bg-slate-900/30">
-              <span className="text-3xl block" aria-hidden="true">📭</span>
+              <Inbox className="h-8 w-8 mx-auto text-slate-400 mb-2 stroke-[1.5]" aria-hidden="true" />
               <h3 className="text-sm font-black text-slate-900 dark:text-white">
                 {defaultSourceName && !sourceHasNotes
                   ? `Chưa có thẻ câu sai nào thuộc đề "${defaultSourceName}"`

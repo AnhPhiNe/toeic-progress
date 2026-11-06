@@ -1,5 +1,5 @@
 import { StudySession, MistakeEntry, UserProfile, SmartWeeklyTask, WeeklyPlanRecord, PacingRun } from '@/shared/types';
-import { getTodayDateString, getWeekMonday, addDays, getOrCreateWeeklyPlan } from '@/shared/data/storage';
+import { getTodayDateString, getWeekMonday, addDays, getOrCreateWeeklyPlan, loadUserProfile, loadWeeklyPlans, saveWeeklyPlans } from '@/shared/data/storage';
 import { getPracticeParts } from '@/shared/domain/etsScoring';
 import { causePriority } from '@/shared/domain/learningAnalytics';
 import type { VocabLog } from '@/shared/data/dataBundle';
@@ -232,3 +232,56 @@ export function buildWeeklyStudyPlan(
     recommendation
   };
 }
+
+export function syncPrioritiesToWeeklyPlan(
+  priorities: Array<{ part: number | null; title: string; practice?: string; minutes?: number }>
+): boolean {
+  try {
+    const validPriorities = priorities.filter(
+      (p): p is { part: number; title: string; practice?: string; minutes?: number } =>
+        typeof p.part === 'number' && Number.isInteger(p.part) && p.part >= 1 && p.part <= 7
+    );
+    if (validPriorities.length === 0) return false;
+
+    const weekKey = getWeekMonday(getTodayDateString());
+    const profile = loadUserProfile();
+    const currentPlan = getOrCreateWeeklyPlan(weekKey, profile, false);
+    const existingTasks = [...currentPlan.tasks];
+    let added = false;
+
+    for (const priority of validPriorities) {
+      if (existingTasks.length >= 15) break;
+      const alreadyHasPart = existingTasks.some(
+        task => task.type === 'AUTO_PART_PRACTICE' && task.partNumber === priority.part
+      );
+      if (!alreadyHasPart) {
+        const cleanTitle = priority.title.trim();
+        const title = cleanTitle.toLowerCase().includes(`part ${priority.part}`)
+          ? cleanTitle
+          : `Luyện Part ${priority.part}: ${cleanTitle}`;
+        existingTasks.push({
+          id: `task-ai-part-${priority.part}-${weekKey}`,
+          title: title.slice(0, 120),
+          type: 'AUTO_PART_PRACTICE',
+          partNumber: priority.part,
+          target: 2,
+          unit: 'bài',
+          notes: (priority.practice || `Ưu tiên từ chẩn đoán AI cho Part ${priority.part}`).slice(0, 300),
+          color: priority.part === 7 ? 'amber' : priority.part <= 4 ? 'rose' : 'sky',
+          createdAt: new Date().toISOString()
+        });
+        added = true;
+      }
+    }
+
+    const plans = loadWeeklyPlans();
+    if (added || !plans[weekKey]) {
+      plans[weekKey] = { ...currentPlan, weekKey, tasks: existingTasks };
+      saveWeeklyPlans(plans);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+

@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen, Languages } from 'lucide-react';
 import type { NavTabId } from '@/shared/types';
 import { triggerHaptic } from '@/shared/lib/haptics';
 
@@ -38,7 +39,7 @@ export const ReviewSegmentedControl: React.FC<ReviewSegmentedControlProps> = ({
         }`}
       >
         <span className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="text-base">📖</span>
+          <BookOpen className="h-4 w-4 stroke-[2.2]" aria-hidden="true" />
           <span>Câu sai</span>
         </span>
         {count > 0 && (
@@ -69,7 +70,7 @@ export const ReviewSegmentedControl: React.FC<ReviewSegmentedControlProps> = ({
         }`}
       >
         <span className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="text-base">🔤</span>
+          <Languages className="h-4 w-4 stroke-[2.2]" aria-hidden="true" />
           <span>Từ vựng</span>
         </span>
       </button>

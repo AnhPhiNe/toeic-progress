@@ -42,7 +42,7 @@
 .pacing-mode.is-selected { border: 2px solid #0f172a; box-shadow: 2px 2px 0 0 #0f172a; background: var(--mode-selected, #c4b5fd); color: var(--mode-selected-label, #3b0764); font-weight: 900; padding: 7px 12px; }
 .pacing-mode:focus-visible { outline: 2px solid var(--mode-label); outline-offset: 3px; }
 .pacing-mode option { background: #fff; color: #0f172a; }.dark .pacing-mode option { background: #111a2c; color: #f1f5f9; }
-.dark .pacing-mode.is-selected { background: var(--mode-selected, #c4b5fd); border-color: #f8fafc; color: var(--mode-selected-label, #3b0764); box-shadow: 2px 2px 0 0 #cbd5e1; }
+.dark .pacing-mode.is-selected { background: var(--mode-selected, #c4b5fd); border-color: #f8fafc; color: #0f172a; box-shadow: 2px 2px 0 0 #cbd5e1; font-weight: 900; }
 .pacing-sound { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; min-height: 40px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #334155; cursor: pointer; }.dark .pacing-sound { background: #111a2c; color: #cbd5e1; border-color: #475569; }.pacing-sound[aria-pressed="false"] { color: #64748b; }.dark .pacing-sound[aria-pressed="false"] { color: #94a3b8; }.pacing-sound:hover { background: #f1f5f9; }.dark .pacing-sound:hover { background: #1d2b42; }.pacing-sound:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
 .pacing-setup { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 14px; color: #475569; }.dark .pacing-setup { color: #cbd5e1; }.pacing-setup strong { color: var(--clock-label); }
 .pacing-setup.is-pomodoro { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }

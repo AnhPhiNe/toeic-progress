@@ -43,7 +43,7 @@ export function AnalyticsScopePicker({ value, onChange, names }: Props) {
       onClick={() => {
         setQuery(''); setActive(Math.max(0, options.findIndex(option => option.value === value))); setOpen(!open);
       }}
-      className="flex min-h-11 max-w-full cursor-pointer items-center justify-between gap-3 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:bg-[#111A2C] dark:text-white">
+      className="flex min-h-10 max-w-full cursor-pointer items-center justify-between gap-3 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm font-bold text-slate-900 shadow-sm hover:border-slate-400 disabled:cursor-default disabled:opacity-60 dark:border-slate-600 dark:bg-[#111A2C] dark:text-white dark:hover:border-slate-500 transition-colors">
       <span className="min-w-0 break-words">{options.find(option => option.value === value)?.label ?? 'Chưa có đề'}</span><ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
     </button>
     {open && <div ref={popup} style={{ left: popupLeft }} className="absolute top-full z-30 mt-2 w-[350px] max-w-[calc(100vw-48px)] rounded-xl border-2 border-slate-900 bg-white p-2 shadow-[3px_3px_0px_#0f172a] dark:border-slate-300 dark:bg-[#111A2C]">

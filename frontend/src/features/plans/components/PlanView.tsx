@@ -13,7 +13,11 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowDown,
-  GripVertical
+  GripVertical,
+  Clock3,
+  Flame,
+  Pin,
+  Sparkles
 } from 'lucide-react';
 import {
   StudySession,
@@ -871,7 +875,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
         {/* Khối 2: Thời lượng tích luỹ */}
         <div className="flex items-center gap-3.5 px-0 lg:px-5 pt-3 lg:pt-0">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-200/80 dark:border-teal-800 flex items-center justify-center shrink-0">
-            <span className="text-base select-none">⏰</span>
+            <Clock3 className="w-5 h-5 stroke-[2.5]" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline justify-between gap-2">
@@ -895,7 +899,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
         {/* Khối 3: Chuyên cần 7 ngày */}
         <div className="flex items-center gap-3.5 pl-0 lg:pl-5 pt-3 lg:pt-0">
           <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 flex items-center justify-center shrink-0">
-            <span className="text-base select-none">🔥</span>
+            <Flame className="w-5 h-5 stroke-[2.5]" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
@@ -1012,31 +1016,31 @@ export const PlanView: React.FC<PlanViewProps> = ({
         {(isWipLimitReached || is100Percent) && (
           <div className="p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200/80 dark:border-slate-800">
             {isWipLimitReached && (
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-slate-900 text-amber-950 dark:text-amber-200 text-xs font-semibold flex items-center justify-between gap-3 shadow-[2px_2px_0px_#0f172a] animate-fade-in">
+              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200 text-xs font-semibold flex items-center justify-between gap-3 animate-fade-in">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-xl shrink-0">📌</span>
+                  <Pin className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" aria-hidden="true" />
                   <p>
                     <strong>Đã đạt tối đa 6 việc cần làm:</strong> Để giữ sự tập trung cao nhất (WIP Limit), hãy hoàn thành bớt các mục tiêu hiện tại trước khi tạo thêm nhé!
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-xl bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-100 font-black text-[11px] shrink-0 border border-slate-900 shadow-[1px_1px_0px_#0f172a]">
+                <span className="px-2.5 py-1 rounded-lg bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-100 font-black text-[11px] shrink-0 border border-amber-300 dark:border-amber-700">
                   6/6 Đang làm
                 </span>
               </div>
             )}
 
             {is100Percent && (
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-100 dark:bg-amber-950/60 border-2 border-slate-900 shadow-[2.5px_2.5px_0px_#0f172a] flex items-center gap-3 animate-fade-in">
-                <span className="text-2xl sm:text-3xl shrink-0">🎉</span>
+              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3 animate-fade-in">
+                <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-black text-slate-950 dark:text-amber-100">
+                  <p className="text-xs sm:text-sm font-black text-emerald-950 dark:text-emerald-100">
                     Xuất sắc! Bạn đã hoàn thành 100% mục tiêu tuần này!
                   </p>
-                  <p className="text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-amber-300">
+                  <p className="text-[11px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                     Toàn bộ {summary.totalTasks}/{summary.totalTasks} mục tiêu SMART đã cán đích. Hãy giữ vững phong độ đỉnh cao này nhé!
                   </p>
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-amber-400 text-slate-950 font-black text-xs border border-slate-900 shadow-[1px_1px_0px_#0f172a] shrink-0">
+                <span className="px-3 py-1 rounded-lg bg-emerald-500 text-white font-black text-xs shrink-0">
                   100% Hoàn Thành
                 </span>
               </div>

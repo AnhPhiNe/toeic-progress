@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tổng quan làm lại</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#F5F8F5;--surface:#FFFFFF;--subtle:#EEF2EF;--line:#DFE4E2;--line-strong:#878F8C;
+    --ink:#232927;--muted:#5F6966;--neo:#4A5450;--neo-shadow:#C4CCC8;
+    --action:#387F48;--action-dark:#2B6638;--action-soft:#DCEFD3;--action-ink:#2B6638;
+    --sun:#F2B93B;--sun-soft:#FFF3D3;--sun-ink:#6F4F05;--gold:#A87A0C;
+    --lis:#5B5BD6;--lis-soft:#E7E7FB;--lis-ink:#3A3A9E;--rea:#2E8F7E;--rea-soft:#DDF2EE;--rea-ink:#1F6457;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#E3E8E5;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1360px;margin:0 auto;padding:20px 16px 60px}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .switch{display:flex;gap:4px;background:#fff;border-radius:999px;padding:4px;box-shadow:0 6px 18px -8px rgba(0,0,0,.3)}
+  .switch button{border:0;font:inherit;font-weight:700;font-size:14px;padding:8px 16px;border-radius:999px;cursor:pointer;background:transparent;color:var(--muted)}
+  .switch button[aria-pressed="true"]{background:var(--action);color:#fff}
+  .bar span{font-size:13px;color:var(--muted);margin-left:6px}
+  .shot{width:100%;display:block;border-radius:20px;box-shadow:0 30px 70px -40px rgba(0,0,0,.5)}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .pair .cap{font-weight:700;font-size:14px;margin:0 0 8px}
+  .pair .scale{zoom:.5}
+
+  /* shell: giữ như hiện tại, chỉ đổi viền nhẹ + màu Mầm */
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:860px;background:var(--canvas);border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -40px rgba(0,0,0,.5)}
+  .side{background:var(--surface);padding:16px 12px;display:flex;flex-direction:column;border-right:1.5px solid var(--neo)}
+  .brand{display:flex;align-items:center;gap:10px;margin:2px 6px 22px}
+  .logo{width:40px;height:40px;display:grid;place-items:center;font-family:Nunito;font-weight:900;color:#fff;background:var(--action);border-radius:12px}
+  .brand b{font-family:Nunito;font-weight:800;font-size:17px}
+  .grp{font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 10px 6px}
+  .nav{display:flex;align-items:center;gap:10px;padding:9px 10px;font-size:14px;font-weight:500;margin-bottom:3px;border-radius:12px;border:1.5px solid transparent}
+  .nav svg{width:18px;height:18px;flex:none}
+  .nav.on{background:var(--action-soft);border-color:var(--neo);font-weight:700;color:var(--action-ink)}
+  .nav .badge{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--sun-soft);color:var(--sun-ink)}
+  .me{margin-top:auto;display:flex;gap:10px;align-items:center;padding:14px 8px 2px;border-top:1px solid var(--line)}
+  .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--action-soft);color:var(--action-ink)}
+  .me small{display:block;color:var(--muted);font-size:12px}
+  .main{display:flex;flex-direction:column;min-width:0}
+  .top{display:flex;align-items:center;gap:10px;padding:12px 28px;background:var(--surface);border-bottom:1.5px solid var(--neo)}
+  .top h2{font-family:Nunito;font-weight:800;font-size:21px;margin:0 auto 0 0}
+  .chip{font-size:13px;font-weight:700;padding:7px 12px;background:var(--sun-soft);color:var(--sun-ink);border:1.5px solid var(--neo);border-radius:12px}
+  .cta{font:700 13.5px "Be Vietnam Pro";color:#fff;background:var(--action);padding:8px 14px;border-radius:12px;border:1.5px solid var(--action-dark);box-shadow:3px 3px 0 var(--action-dark)}
+  .body{padding:22px 28px 30px;display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:18px;align-content:start}
+  .card{background:var(--surface);border:1.5px solid var(--neo);border-radius:18px;box-shadow:3px 3px 0 var(--neo-shadow)}
+  h3{margin:0;font-family:Nunito;font-weight:800;font-size:17px}
+
+  /* dải Hôm nay: một dòng */
+  .today{grid-column:1 / -1;display:flex;align-items:center;gap:14px;padding:10px 14px 10px 10px;background:var(--action-soft);border-color:var(--action-dark);box-shadow:3px 3px 0 #B9D8AE}
+  .today svg{width:52px;height:52px;flex:none}
+  .today b{font-size:16px;font-weight:700}
+  .today .go{margin-left:auto;font:700 14px "Be Vietnam Pro";color:#fff;background:var(--action);padding:9px 18px;border-radius:12px;border:1.5px solid var(--action-dark);box-shadow:2px 2px 0 var(--action-dark);white-space:nowrap}
+
+  /* 3 thẻ số */
+  .kpi{padding:18px 20px}
+  .kpi small{font-size:13.5px;font-weight:600;color:var(--muted)}
+  .num{font-family:Nunito;font-weight:900;font-size:46px;line-height:1;margin:12px 0 10px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .num i{font:600 14px "Be Vietnam Pro";color:var(--muted);font-style:normal;margin-left:4px;letter-spacing:0}
+  .kpi p{margin:0;font-size:13px;color:var(--muted)}
+
+  /* chuỗi ngày */
+  .streak{padding:18px 20px}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+  .week span{height:40px;display:grid;place-items:center;border-radius:10px;background:var(--subtle);font-size:11.5px;font-weight:700;color:var(--muted)}
+  .week .on{background:var(--sun);color:#3d2c02}
+  .week .now{background:var(--sun-soft);color:var(--sun-ink);box-shadow:inset 0 0 0 1.5px var(--sun)}
+  .streak p{margin:12px 0 0;font-size:13px;color:var(--muted)}
+
+  /* biểu đồ */
+  .chart{grid-column:1 / 4;padding:18px 22px 12px}
+  .row{display:flex;justify-content:space-between;align-items:center}
+  .seg{display:flex;gap:2px;padding:3px;font-size:12.5px;font-weight:600;background:var(--subtle);border-radius:10px}
+  .seg span{padding:4px 12px;border-radius:8px;color:var(--muted)}
+  .seg .on{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--neo)}
+  svg.line{width:100%;height:300px;margin-top:8px;display:block}
+
+  /* kết quả gần nhất */
+  .last{padding:18px 20px;display:flex;flex-direction:column}
+  .last .meta{font-size:13px;color:var(--muted)}
+  .big{font-family:Nunito;font-weight:900;font-size:58px;line-height:1;margin:14px 0 4px;font-variant-numeric:tabular-nums}
+  .big i{font:600 16px "Be Vietnam Pro";color:var(--muted);font-style:normal;margin-left:4px}
+  .delta{font-size:13px;color:var(--muted)}
+  .goal{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-top:18px}
+  .goal em{font-style:normal;color:var(--action-ink)}
+  .track{height:8px;border-radius:99px;background:var(--subtle);margin-top:8px;overflow:hidden}
+  .track i{display:block;height:100%;width:87%;background:var(--action)}
+  .lr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .lr div{padding:12px 14px;border-radius:14px;white-space:nowrap}
+  .lr .l{background:var(--lis-soft)} .lr .r{background:var(--rea-soft)}
+  .lr small{display:block;font-size:12.5px;font-weight:700}
+  .lr strong{font-family:Nunito;font-weight:900;font-size:28px}
+  .lr span{font-size:12px;color:var(--muted)}
+  .more{margin-top:auto;padding-top:16px;font-weight:700;font-size:14px;color:var(--action-ink);text-decoration:none}
+
+  /* người mới */
+  .empty{grid-column:1 / -1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 24px}
+  .empty svg{width:150px;height:150px}
+  .empty h4{font-family:Nunito;font-weight:900;font-size:26px;margin:14px 0 18px}
+  .empty .go{font:700 15px "Be Vietnam Pro";color:#fff;background:var(--action);padding:12px 22px;border-radius:14px;border:1.5px solid var(--action-dark);box-shadow:3px 3px 0 var(--action-dark)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="switch" role="group" aria-label="Chọn bản"><button type="button" data-v="new" aria-pressed="true">Đề xuất</button><button type="button" data-v="old" aria-pressed="false">Hiện tại</button><button type="button" data-v="pair" aria-pressed="false">Song song</button></div>
+    <div class="switch" role="group" aria-label="Trạng thái"><button type="button" data-s="resume" aria-pressed="true">Còn câu dở</button><button type="button" data-s="review" aria-pressed="false">Cần ôn</button><button type="button" data-s="done" aria-pressed="false">Đã học</button><button type="button" data-s="new" aria-pressed="false">Người mới</button></div>
+    <span>Giữ nguyên vị trí các khối như hiện tại.</span>
+  </div>
+  <div id="stage"></div>
+</div>
+
+<template id="mam-lush">
+  <svg viewBox="0 -14 120 134" class="mam" aria-hidden="true">
+    <defs><linearGradient id="lf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E08F"/><stop offset="1" stop-color="#4C9F55"/></linearGradient><linearGradient id="lf2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient><radialGradient id="pt" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient></defs>
+    <g transform="translate(60,86) scale(0.82,1) translate(-60,-78)" fill="#DDA263"><ellipse cx="18" cy="78" rx="6.5" ry="11.5" transform="rotate(62 18 78)"/><ellipse cx="102" cy="78" rx="6.5" ry="11.5" transform="rotate(-62 102 78)"/></g>
+    <ellipse cx="60" cy="113" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/>
+    <path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#pt)"/><rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/><rect x="33" y="58.5" width="22" height="4" rx="2" fill="#fff" opacity=".38"/><ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+    <g transform="translate(0,6)"><path d="M39 80 Q46.5 71 54 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/><path d="M66 80 Q73.5 71 81 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/><ellipse cx="37" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/><ellipse cx="83" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/><path d="M51 87 Q60 100 69 87 Z" fill="#9C4434"/><ellipse cx="60" cy="94.5" rx="4.5" ry="2.6" fill="#F27C6C"/></g>
+    <g transform="translate(0,13)"><path d="M60 44 Q58 26 60 4" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#lf)"/><path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#lf2)"/><path d="M60 12 C52 0 40 -2 34 4 C42 14 52 15 60 12Z" fill="url(#lf)"/><path d="M60 8 C66 -4 78 -6 84 -1 C78 9 68 11 60 8Z" fill="url(#lf2)"/></g>
+    <g fill="#F2B93B"><circle cx="12" cy="38" r="3"/><circle cx="104" cy="62" r="2.2"/><path d="M106 40 l0 8 M102 44 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/></g>
+  </svg>
+</template>
+<template id="mam-sprout">
+  <svg viewBox="0 -14 120 134" class="mam" aria-hidden="true">
+    <defs><linearGradient id="sf2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient><radialGradient id="sp" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient></defs>
+    <g transform="translate(60,88) scale(0.84,1) translate(-60,-88)" fill="#DDA263"><ellipse cx="25" cy="88" rx="6.5" ry="10.5" transform="rotate(-22 25 88)"/><ellipse cx="95" cy="88" rx="6.5" ry="10.5" transform="rotate(22 95 88)"/></g>
+    <ellipse cx="60" cy="113" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/>
+    <path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#sp)"/><rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/><rect x="33" y="58.5" width="22" height="4" rx="2" fill="#fff" opacity=".38"/><ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+    <g transform="translate(0,6)"><ellipse cx="47" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/><ellipse cx="73" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/><circle cx="49.2" cy="75.8" r="2.5" fill="#fff"/><circle cx="75.2" cy="75.8" r="2.5" fill="#fff"/><ellipse cx="36" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/><ellipse cx="84" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/><path d="M54.5 90 Q60 94.5 65.5 90" stroke="#9C4434" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+    <g transform="translate(0,13)"><path d="M60 43 Q59 36 61 31" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M61 33 C66 22 80 21 83 28 C75 36 67 36 61 33Z" fill="url(#sf2)"/></g>
+  </svg>
+</template>
+
+
+<template id="app">
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="logo">TP</span><b>TOEIC Progress</b></div>
+      <div class="grp">Hành trình</div>
+      <div class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Tổng quan</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Kế hoạch</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></svg>Đồng hồ phòng thi</div>
+      <div class="grp">Đo lường và chẩn đoán</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>Lịch sử thi</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Phân tích điểm</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>Sổ tay<span class="badge">3</span></div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6.5A2.5 2.5 0 0 0 4 21.5"/></svg>Từ vựng</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h1M14 11h1M9 15h1M14 15h1"/></svg>Quy đổi điểm</div>
+      <div class="me"><span class="avatar">MT</span><div><b style="font-size:13.5px">Minh Tuấn</b><small>Mục tiêu 990 điểm</small></div></div>
+    </aside>
+    <div class="main">
+      <div class="top"><h2>Tổng quan</h2><span class="chip">Thi: D-18</span><span class="cta">＋ Ghi điểm</span></div>
+      <div class="body" id="body"></div>
+    </div>
+  </div>
+</template>
+
+<script>
+  const strip = {
+    resume: ['Đề "hihihi" còn 4 câu Reading chưa ghi', 'Ghi tiếp'],
+    review: ['3 câu sai đến hạn ôn hôm nay', 'Ôn ngay'],
+    done:   ['Hôm nay xong rồi, Mầm đã được tưới nước', 'Ghi điểm mới']
+  };
+  const chart = `
+    <svg class="line" viewBox="0 0 640 260" preserveAspectRatio="none" role="img" aria-label="Điểm 10 bài thi">
+      <g stroke="#E6EAE8"><line x1="40" x2="630" y1="200" y2="200"/><line x1="40" x2="630" y1="150" y2="150"/><line x1="40" x2="630" y1="100" y2="100"/><line x1="40" x2="630" y1="50" y2="50"/></g>
+      <g font-size="11" font-family="Be Vietnam Pro" fill="#5F6966" text-anchor="end"><text x="32" y="204">800</text><text x="32" y="154">850</text><text x="32" y="104">900</text><text x="32" y="54">950</text></g>
+      <line x1="40" x2="630" y1="10" y2="10" stroke="#387F48" stroke-dasharray="5 5" opacity=".6"/>
+      <polygon fill="#DCEFD3" opacity=".5" points="60,175 121,130 182,80 243,90 304,70 366,40 427,65 488,65 549,65 610,135 610,235 60,235"/>
+      <polyline fill="none" stroke="#387F48" stroke-width="2.5" stroke-linejoin="round" points="60,175 121,130 182,80 243,90 304,70 366,40 427,65 488,65 549,65 610,135"/>
+      <g fill="#fff" stroke="#387F48" stroke-width="2"><circle cx="60" cy="175" r="3.5"/><circle cx="121" cy="130" r="3.5"/><circle cx="182" cy="80" r="3.5"/><circle cx="243" cy="90" r="3.5"/><circle cx="304" cy="70" r="3.5"/><circle cx="366" cy="40" r="3.5"/><circle cx="427" cy="65" r="3.5"/><circle cx="488" cy="65" r="3.5"/><circle cx="549" cy="65" r="3.5"/></g>
+      <circle cx="610" cy="135" r="6" fill="#387F48" stroke="#fff" stroke-width="2"/>
+      <g font-family="Be Vietnam Pro" font-weight="700" font-size="12.5" fill="#232927" text-anchor="middle"><text x="366" y="28">960</text><text x="604" y="159">865</text></g>
+      <g font-size="11" font-family="Be Vietnam Pro" fill="#5F6966" text-anchor="middle"><text x="60" y="254">15/08</text><text x="182" y="254">02/09</text><text x="304" y="254">10/09</text><text x="427" y="254">20/10</text><text x="610" y="254">23/10</text></g>
+    </svg>`;
+  const mam = id => document.getElementById(id).innerHTML;
+
+  function body(st) {
+    if (st === 'new') return `<div class="empty card">${mam('mam-sprout')}<h4>Ghi bài thi đầu tiên để Mầm bắt đầu lớn</h4><span class="go">＋ Ghi bài thi đầu tiên</span></div>`;
+    const [msg, btn] = strip[st];
+    const learned = st === 'done';
+    const days = ['T2','T3','T4','T5','T6','T7','CN'].map((d,i) => `<span class="${i === 3 ? (learned ? 'on' : 'now') : (learned && (i === 1 || i === 2) ? 'on' : '')}">${d}</span>`).join('');
+    return `
+      <div class="today card">${mam('mam-lush')}<b>${msg}</b><span class="go">${btn}</span></div>
+      <div class="kpi card"><small>Kỷ lục</small><div class="num" style="color:var(--gold)">960<i>/ 990</i></div><p>ETS 2024 Test 04</p></div>
+      <div class="kpi card"><small>Trung bình 10 đề</small><div class="num" style="color:var(--lis)">909<i>/ 990</i></div><p>Từ 825 đến 960</p></div>
+      <div class="kpi card"><small>So với bài đầu</small><div class="num" style="color:var(--action)">+40<i>điểm</i></div><p>825 lên 865</p></div>
+      <div class="streak card"><div class="row"><h3>Chuỗi ngày học</h3>${learned ? '<b style="color:var(--sun-ink)">3 ngày</b>' : ''}</div><div class="week">${days}</div><p>${learned ? 'Mai học tiếp để giữ chuỗi.' : 'Học hôm nay để bắt đầu chuỗi.'}</p></div>
+      <div class="chart card"><div class="row"><h3>Tiến bộ qua từng bài thi</h3><span class="seg"><span class="on">Tất cả</span><span>Lần đầu</span></span></div>${chart}</div>
+      <div class="last card">
+        <div class="row"><h3>Kết quả gần nhất</h3><span class="meta">23/10</span></div>
+        <div class="big">865<i>/ 990</i></div>
+        <div class="delta">Thấp hơn bài trước 70 điểm</div>
+        <div class="goal"><span>Mục tiêu 990</span><em>còn 125 điểm</em></div>
+        <div class="track"><i></i></div>
+        <div class="lr"><div class="l"><small style="color:var(--lis-ink)">Listening</small><strong>405</strong> <span>/ 495</span></div><div class="r"><small style="color:var(--rea-ink)">Reading</small><strong>460</strong> <span>/ 495</span></div></div>
+        <a class="more" href="#">Xem 7 Part →</a>
+      </div>`;
+  }
+
+  const stage = document.getElementById('stage');
+  let view = 'new', st = 'resume';
+  function proposed() { const t = document.getElementById('app').content.cloneNode(true); t.getElementById('body').innerHTML = body(st); return t; }
+  function render() {
+    stage.innerHTML = '';
+    if (view === 'new') stage.appendChild(proposed());
+    else if (view === 'old') stage.innerHTML = '<img class="shot" src="img/current-overview.png" alt="Tổng quan hiện tại">';
+    else {
+      const p = document.createElement('div'); p.className = 'pair';
+      p.innerHTML = '<div><p class="cap">Hiện tại</p><img class="shot" src="img/current-overview.png" alt="Tổng quan hiện tại"></div><div><p class="cap">Đề xuất</p><div class="scale"></div></div>';
+      p.querySelector('.scale').appendChild(proposed()); stage.appendChild(p);
+    }
+    for (const b of document.querySelectorAll('[data-v]')) b.setAttribute('aria-pressed', String(b.dataset.v === view));
+    for (const b of document.querySelectorAll('[data-s]')) b.setAttribute('aria-pressed', String(b.dataset.s === st));
+  }
+  for (const b of document.querySelectorAll('[data-v]')) b.addEventListener('click', () => { view = b.dataset.v; render(); });
+  for (const b of document.querySelectorAll('[data-s]')) b.addEventListener('click', () => { st = b.dataset.s; if (view === 'old') view = 'new'; render(); });
+  render();
+</script>
+</body>
+</html>

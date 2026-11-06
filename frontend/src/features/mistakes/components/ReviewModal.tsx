@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowRight, RotateCw, Undo2, X } from 'lucide-react';
 import type { MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
@@ -105,6 +105,68 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
     setReloaded(null);
     setIndex(value => value + 1);
   };
+
+  const latestShortcuts = useRef<{
+    finished: boolean;
+    card: MistakeEntry | undefined;
+    showAnswer: boolean;
+    result: Result | null;
+    quizMode: boolean;
+    quiz: ReturnType<typeof resolveQuizOptions> | null;
+    grade: (answer: ReviewAnswer, picked?: string) => void;
+    next: () => void;
+  }>({ finished, card, showAnswer, result, quizMode, quiz, grade, next });
+  latestShortcuts.current = { finished, card, showAnswer, result, quizMode, quiz, grade, next };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      const state = latestShortcuts.current;
+      if (state.finished || !state.card) return;
+
+      if (!state.showAnswer && !state.result && state.quizMode && state.quiz) {
+        const keyMap: Record<string, 'A' | 'B' | 'C' | 'D'> = {
+          '1': 'A', '2': 'B', '3': 'C', '4': 'D',
+          'a': 'A', 'b': 'B', 'c': 'C', 'd': 'D',
+          'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D'
+        };
+        const targetLetter = keyMap[event.key];
+        if (targetLetter) {
+          const optionIndex = state.quiz.options.findIndex((opt, idx) => opt.letter === targetLetter || (!opt.letter && ['A', 'B', 'C', 'D'][idx] === targetLetter));
+          if (optionIndex >= 0) {
+            event.preventDefault();
+            triggerHaptic(8);
+            state.grade(optionIndex === state.quiz.correctIndex, state.quiz.options[optionIndex].letter);
+            setShowAnswer(true);
+            return;
+          }
+        }
+      }
+
+      if ((event.key === ' ' || event.code === 'Space') && !state.showAnswer) {
+        event.preventDefault();
+        triggerHaptic(8);
+        setShowAnswer(true);
+        return;
+      }
+
+      if (event.key === 'Enter' && state.result) {
+        event.preventDefault();
+        state.next();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/60 sm:items-start sm:p-4 sm:pt-[8vh]" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
@@ -253,19 +315,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ cards, onClose, onGrad
                                 }
                           }
                         />
-                        <div className="flex justify-end pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              triggerHaptic(8);
-                              setShowAnswer(true);
-                            }}
-                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white cursor-pointer transition-colors"
-                          >
-                            <RotateCw className="h-3.5 w-3.5" />
-                            <span>Xem giải thích / Đáp án</span>
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       <button

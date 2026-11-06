@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useLayoutEffect, useRef } from 'react';
 import {
   CheckCircle2,
   ArrowRight,
@@ -7,7 +7,8 @@ import {
   TrendingUp,
   Crown,
   TrendingDown,
-  Activity
+  Activity,
+  Flame
 } from 'lucide-react';
 import {
   AreaChart,
@@ -40,7 +41,7 @@ interface DashboardProps {
   vocabLog: VocabLog[];
   pacingRuns: PacingRun[];
   theme: 'light' | 'dark';
-  onOpenSessionLogger: () => void;
+  onOpenSessionLogger: (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; initialFiles?: File[] }) => void;
   onNavigateToAnalytics: () => void;
   dueMistakesCount?: number;
   onStartReview?: () => void;
@@ -267,18 +268,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const diff = stats?.diff ?? 0;
 
   /**
-   * 3 THẺ CHỈ SỐ GAME HÓA THÀNH TÍCH (Gamified Mastery Badges & Rank Tier):
-   * - Thẻ 1: Cấp bậc năng lực ETS & Kỷ Lục (Gold/Silver/Bronze Tier 🏆)
-   * - Thẻ 2: Cột mốc bài thi gần nhất (Checkpoint 🎯) với phân rã L/R
-   * - Thẻ 3: Xung lực phong độ (Pulse Status ⚡) với chỉ số tăng giảm
+   * 3 THẺ CHỈ SỐ THÀNH TÍCH:
+   * - Thẻ 1: Cấp bậc năng lực ETS & Kỷ Lục
+   * - Thẻ 2: Điểm trung bình & dải phong độ
+   * - Thẻ 3: Xung lực phong độ so với bài đầu
    */
   const toeicTier = useMemo(() => {
     const score = highestScore || 0;
-    if (score >= 905) return { tier: 'Gold Tier 🏆', rank: 'Cột mốc 905+', badgeBg: 'bg-amber-300 text-slate-950 border-slate-900', iconBg: 'bg-amber-400 text-slate-950' };
-    if (score >= 785) return { tier: 'Silver Tier ⭐', rank: 'Cột mốc 785+', badgeBg: 'bg-sky-200 text-slate-950 border-slate-900', iconBg: 'bg-sky-300 text-slate-950' };
-    if (score >= 605) return { tier: 'Bronze Tier 🥉', rank: 'Cột mốc 605+', badgeBg: 'bg-orange-200 text-slate-950 border-slate-900', iconBg: 'bg-orange-300 text-slate-950' };
-    if (score >= 405) return { tier: 'Starter 🌱', rank: 'Cột mốc 405+', badgeBg: 'bg-emerald-200 text-slate-950 border-slate-900', iconBg: 'bg-emerald-300 text-slate-950' };
-    return { tier: 'Explorer 🚀', rank: 'Đang khởi đầu', badgeBg: 'bg-slate-200 text-slate-800 border-slate-900', iconBg: 'bg-slate-200 text-slate-800' };
+    if (score >= 905) return { tier: 'Gold Tier', rank: 'Cột mốc 905+', badgeBg: 'bg-amber-300 text-slate-950 border-slate-900', iconBg: 'bg-amber-400 text-slate-950' };
+    if (score >= 785) return { tier: 'Silver Tier', rank: 'Cột mốc 785+', badgeBg: 'bg-sky-200 text-slate-950 border-slate-900', iconBg: 'bg-sky-300 text-slate-950' };
+    if (score >= 605) return { tier: 'Bronze Tier', rank: 'Cột mốc 605+', badgeBg: 'bg-orange-200 text-slate-950 border-slate-900', iconBg: 'bg-orange-300 text-slate-950' };
+    if (score >= 405) return { tier: 'Starter', rank: 'Cột mốc 405+', badgeBg: 'bg-emerald-200 text-slate-950 border-slate-900', iconBg: 'bg-emerald-300 text-slate-950' };
+    return { tier: 'Explorer', rank: 'Đang khởi đầu', badgeBg: 'bg-slate-200 text-slate-800 border-slate-900', iconBg: 'bg-slate-200 text-slate-800' };
   }, [highestScore]);
 
   const hasDiff = Boolean(stats && stats.totalTests > 1);
@@ -308,8 +309,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return weakest;
   }, [latestTest]);
 
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+      const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
+      if (files.length > 0) {
+        event.preventDefault();
+        onOpenSessionLogger({ sessionType: 'FULL_TEST', initialFiles: files });
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [onOpenSessionLogger]);
+
   return (
-    <div className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in">
+    <div
+      className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in"
+      onDragOver={event => {
+        if (event.dataTransfer?.types?.includes('Files')) {
+          event.preventDefault();
+        }
+      }}
+      onDrop={event => {
+        const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/'));
+        if (files.length > 0) {
+          event.preventDefault();
+          onOpenSessionLogger({ sessionType: 'FULL_TEST', initialFiles: files });
+        }
+      }}
+    >
       {unfinished && onResumeDetails && <button type="button" onClick={() => onResumeDetails(unfinished.session)}
         className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-amber-50 px-4 py-3 text-left shadow-[2px_2px_0_0_#0f172a] hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-400 dark:bg-amber-950/30 dark:text-slate-100">
         <span className="min-w-0"><span className="block break-words text-sm font-extrabold">Tiếp tục ghi chi tiết {unfinished.session.testName || 'đề chưa đặt tên'}</span>
@@ -318,7 +355,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </button>}
       <div ref={gridRef} data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 xl:gap-6 items-stretch">
 
-        {/* ================= CỘT TRÁI (3 KPI Game Hóa Thành Tích & Biểu đồ tiến độ) ================= */}
+        {/* ================= CỘT TRÁI (3 KPI & Biểu đồ tiến độ) ================= */}
         <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
           {isPhone && (
@@ -340,7 +377,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               dueMistakesCount={dueMistakesCount}
               weakestPart={weakestPart}
               motto={profile.motto}
-              onOpenSessionLogger={onOpenSessionLogger}
+              onOpenSessionLogger={() => onOpenSessionLogger()}
               onStartReview={onStartReview}
               onNavigateToPacing={onNavigateToPacing}
               onViewDetails={onNavigateToAnalytics}
@@ -351,25 +388,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
             
             {/* THẺ 1: HUY HIỆU CẤP BẬC & KỶ LỤC CÁ NHÂN */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-[#111A2C] hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn Kỷ Lục Gọn bên trái, % Đích bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <span
-                  className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-950/20 bg-amber-300 text-slate-950 shadow-2xs cursor-default"
+                  className="px-2 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-200/80 bg-amber-50 text-amber-900 dark:border-amber-800/80 dark:bg-amber-950/60 dark:text-amber-300 cursor-default"
                   title={`${toeicTier.tier} (${toeicTier.rank})`}
                 >
-                  KỶ LỤC 🏆
+                  KỶ LỤC
                 </span>
-                <span className="text-[10px] sm:text-[10.5px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-amber-300/40">
+                <span className="text-[10px] sm:text-[10.5px] font-black text-amber-700 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-amber-200/70 dark:border-amber-800/60">
                   {pointsRemaining === 0 && (highestScore || 0) > 0
-                    ? 'Đạt đích 🎯'
+                    ? 'Đạt đích'
                     : pointsRemaining > 0
                     ? `Thiếu ${pointsRemaining}đ`
                     : `${highestPercent}% Đích`}
                 </span>
               </div>
 
-              {/* Middle: Điểm to rõ bên trái, Khối Icon dập nổi bên phải */}
+              {/* Middle: Điểm to rõ bên trái, Khối Icon bên phải */}
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl sm:text-3xl xl:text-4xl font-black tabular-nums leading-none tracking-tight text-amber-600 dark:text-amber-400">
@@ -382,8 +419,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
 
-                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 bg-amber-400 text-slate-950 shadow-2xs transition-transform duration-200 ">
-                  <Crown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 " />
+                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-center shrink-0 bg-amber-100/80 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 transition-transform duration-200">
+                  <Crown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200" aria-hidden="true" />
                 </div>
               </div>
 
@@ -396,21 +433,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* THẺ 2: ĐIỂM TRUNG BÌNH (TRÁNH LẶP LẠI VỚI BÀI GẦN NHẤT) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-[#111A2C] hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Trung bình Badge bên trái, Tổng số đề bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
-                <span className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
-                  TRUNG BÌNH 📊
+                <span className="px-2 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-50 text-sky-900 border border-sky-200/80 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800/80">
+                  TRUNG BÌNH
                 </span>
                 <span
-                  className="text-[10px] sm:text-[10.5px] font-black text-blue-700 dark:text-blue-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-sky-300/40"
+                  className="text-[10px] sm:text-[10.5px] font-black text-blue-700 dark:text-blue-400 bg-sky-50/80 dark:bg-sky-950/40 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-sky-200/70 dark:border-sky-800/60"
                   title="Tổng số bài thi đã hoàn thành"
                 >
                   {stats ? `${stats.totalTests} Đề Thi` : '0 Đề'}
                 </span>
               </div>
 
-              {/* Middle: Điểm trung bình bên trái, Khối Icon dập nổi bên phải */}
+              {/* Middle: Điểm trung bình bên trái, Khối Icon bên phải */}
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl sm:text-3xl xl:text-4xl font-black tabular-nums leading-none tracking-tight text-blue-600 dark:text-blue-400">
@@ -423,8 +460,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
 
-                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-sky-200 text-blue-950 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 ">
-                  <Target className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 " />
+                <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-sky-100/80 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-center shrink-0 transition-transform duration-200">
+                  <Target className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200" aria-hidden="true" />
                 </div>
               </div>
 
@@ -437,17 +474,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* THẺ 3: XUNG LỰC PHONG ĐỘ & SO VỚI BÀI ĐẦU (CHUYỂN MÀU ĐỘNG THEO DIFF) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-[#111A2C] hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
               {/* Top Bar: Nhãn đổi màu theo số dương (xanh lá) / số âm (hồng) bên trái, Trạng thái bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
-                <span className={`px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
+                <span className={`px-2 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border ${
                   !hasDiff
-                    ? 'bg-slate-200 text-slate-800 border-slate-900/20'
+                    ? 'bg-slate-100 text-slate-700 border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/80'
                     : diff > 0
-                    ? 'bg-emerald-300 text-slate-950 border-emerald-950/20'
+                    ? 'bg-emerald-50 text-emerald-900 border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/80'
                     : diff < 0
-                    ? 'bg-rose-200 text-slate-950 border-rose-950/20'
-                    : 'bg-sky-200 text-slate-950 border-sky-950/20'
+                    ? 'bg-rose-50 text-rose-900 border-rose-200/80 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/80'
+                    : 'bg-sky-50 text-sky-900 border-sky-200/80 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800/80'
                 }`}>
                   SO VỚI BÀI ĐẦU
                 </span>
@@ -455,16 +492,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   !hasDiff
                     ? 'text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
                     : diff > 0
-                    ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300/50'
+                    ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/70 dark:border-emerald-800/60'
                     : diff < 0
-                    ? 'text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/60 border-rose-300/50'
-                    : 'text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-950/60 border-sky-300/50'
+                    ? 'text-rose-700 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border-rose-200/70 dark:border-rose-800/60'
+                    : 'text-sky-700 dark:text-sky-300 bg-sky-50/80 dark:bg-sky-950/40 border-sky-200/70 dark:border-sky-800/60'
                 }`}>
-                  {!hasDiff ? 'Chờ thi' : diff > 0 ? 'Bứt phá 🚀' : diff < 0 ? 'Cần ôn ⚠️' : 'Giữ vững 🎯'}
+                  {!hasDiff ? 'Chờ thi' : diff > 0 ? 'Bứt phá' : diff < 0 ? 'Cần ôn' : 'Giữ vững'}
                 </span>
               </div>
 
-              {/* Middle: Con số thay đổi bên trái, Khối Icon dập nổi bên phải */}
+              {/* Middle: Con số thay đổi bên trái, Khối Icon bên phải */}
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <div className="flex items-baseline gap-1">
                   <span className={`text-2xl sm:text-3xl xl:text-4xl font-black tabular-nums leading-none tracking-tight ${
@@ -483,23 +520,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
 
-                <div className={`w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200  ${
+                <div className={`w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-200 ${
                   !hasDiff
-                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    ? 'border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     : diff > 0
-                    ? 'bg-emerald-300 text-slate-950'
+                    ? 'border-emerald-200/80 dark:border-emerald-800/80 bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                     : diff < 0
-                    ? 'bg-rose-200 text-rose-800'
-                    : 'bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300'
+                    ? 'border-rose-200/80 dark:border-rose-800/80 bg-rose-100/80 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                    : 'border-sky-200/80 dark:border-sky-800/80 bg-sky-100/80 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300'
                 }`}>
                   {!hasDiff ? (
-                    <Activity className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:scale-110" />
+                    <Activity className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
                   ) : diff > 0 ? (
-                    <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5 group-" />
+                    <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
                   ) : diff < 0 ? (
-                    <TrendingDown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
+                    <TrendingDown className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:translate-y-0.5" aria-hidden="true" />
                   ) : (
-                    <Activity className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:scale-110" />
+                    <Activity className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5] transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
                   )}
                 </div>
               </div>
@@ -508,7 +545,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
                 <span className="truncate block text-slate-900 dark:text-slate-100 font-bold">
                   {hasDiff && stats
-                    ? `Từ bài đầu: ${stats.first.total}đ ➔ ${stats.latest.total}đ`
+                    ? `Từ bài đầu: ${stats.first.total}đ → ${stats.latest.total}đ`
                     : stats?.totalTests === 1
                     ? 'Mới thi 1 đề'
                     : 'Cần từ 2 đề'}
@@ -599,11 +636,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <div className="text-xs text-slate-500 dark:text-slate-400 font-black flex items-center justify-between gap-3">
                               <span>Ngày {label}</span>
                               {d.isRetest ? (
-                                <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-slate-900 text-[10px] font-black">
+                                <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300/80 text-[10px] font-black">
                                   Lần {d.attemptNumber}
                                 </span>
                               ) : (
-                                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 border border-slate-900 text-[10px] font-black">
+                                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 border border-blue-300/80 text-[10px] font-black">
                                   Lần đầu
                                 </span>
                               )}
@@ -611,7 +648,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <div className="font-black text-slate-900 dark:text-white text-xs truncate max-w-[200px]">
                               {d.name || 'Đề thi ETS'}
                             </div>
-                            <div className="pt-1 border-t-2 border-slate-900/10 dark:border-slate-700 flex items-center justify-between gap-4">
+                            <div className="pt-1 border-t border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-4">
                               <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Tổng điểm:</span>
                               <span className="font-black text-blue-600 dark:text-blue-400 text-base tabular-nums">
                                 {d.total}đ
@@ -665,7 +702,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </p>
                   {allChartData.length === 0 && (
                     <button
-                      onClick={onOpenSessionLogger}
+                      onClick={() => onOpenSessionLogger()}
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-linear-primary text-sm cursor-pointer"
                     >
                       <PlusCircle className="w-4 h-4" />
@@ -685,34 +722,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
 
 
-          {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT (CHUẨN NEO-BRUTALISM) */}
+          {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT */}
           {!isPhone && <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
-            {/* Header: Đuốc kem bơ tĩnh + Title sắc nét + Streak Badge */}
+            {/* Header: Icon vector + Title sắc nét + Streak Badge */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 {/* 1280–1535px: cột phải hẹp, bỏ icon trang trí để tiêu đề và chip nằm một dòng */}
-                <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-slate-900 flex xl:hidden 2xl:flex items-center justify-center text-base shrink-0 select-none">
-                  <span className="text-base sm:text-lg leading-none select-none">
-                    {profile.currentStreak > 0 ? '🔥' : '🕯️'}
-                  </span>
+                <span className="w-8 h-8 rounded-xl bg-amber-100/80 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/80 dark:border-amber-800/80 flex xl:hidden 2xl:flex items-center justify-center shrink-0 select-none">
+                  <Flame className="w-4 h-4 stroke-[2.5] fill-current" aria-hidden="true" />
                 </span>
                 <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
                   Chuỗi Ngày Học
                 </h2>
               </div>
 
-              {/* Huy hiệu streak: Nền vàng nhạt viền đen thanh lịch */}
+              {/* Huy hiệu streak: Phẳng dịu mắt theo Single-Elevation Rule */}
               <span
-                className="px-2.5 py-1 rounded-xl bg-amber-200 dark:bg-amber-950 text-amber-950 dark:text-amber-200 border-2 border-slate-900 dark:border-slate-700 text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] shrink-0 inline-flex items-center gap-1"
+                className="px-2.5 py-1 rounded-xl bg-amber-100/80 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300/80 dark:border-amber-800/80 text-xs font-black shrink-0 inline-flex items-center gap-1"
                 title="Số ngày học liên tục"
               >
                 <span className="text-sm font-black tabular-nums leading-none">
                   {profile.currentStreak}
                 </span>
                 <span className="font-black text-[11px]">ngày</span>
-                <span className="text-sm leading-none select-none">
-                  {profile.currentStreak > 0 ? '🔥' : '🕯️'}
-                </span>
+                <Flame className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 fill-current" aria-hidden="true" />
               </span>
             </div>
 
@@ -722,21 +755,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 Tuần này: <strong className="font-black text-slate-950 dark:text-white text-xs tabular-nums">{weekDays.filter(d => d.isCompleted).length}/7</strong> ngày
               </span>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10.5px] font-black border shadow-2xs transition-all inline-flex items-center gap-1 ${
+                className={`px-2 py-0.5 rounded-full text-[10.5px] font-black border transition-all inline-flex items-center gap-1 ${
                   hasStudiedToday
-                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-500'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-400'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/80'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80'
                 }`}
               >
                 {hasStudiedToday ? (
                   <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400 stroke-[2.5]" />
-                    Đã học hôm nay 🎉
+                    <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400 stroke-[2.5]" aria-hidden="true" />
+                    <span>Đã học hôm nay</span>
                   </>
                 ) : (
                   <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse border border-slate-900" />
-                    Chưa học hôm nay
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+                    <span>Chưa học hôm nay</span>
                   </>
                 )}
               </span>
@@ -760,23 +793,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                   {d.isCompleted ? (
                     <div
-                      className="relative w-full aspect-square rounded-lg bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+                      className="relative w-full aspect-square rounded-lg bg-amber-400/90 text-slate-950 border border-amber-500/80 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
                       title={`${d.label}: Đã học`}
                     >
-                      <span className="text-base sm:text-lg animate-fire-flicker leading-none select-none">🔥</span>
+                      <Flame className="w-4 h-4 fill-current animate-fire-flicker" aria-hidden="true" />
                     </div>
                   ) : d.isCurrent ? (
                     <div
-                      className="relative w-full aspect-square rounded-lg bg-amber-100/60 dark:bg-amber-950/40 border-2 border-dashed border-amber-500 flex items-center justify-center cursor-pointer hover:bg-amber-100 hover:scale-105 transition-all group/today"
+                      className="relative w-full aspect-square rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-dashed border-amber-400 dark:border-amber-600 flex items-center justify-center cursor-pointer hover:bg-amber-100/80 hover:scale-105 transition-all group/today"
                       title="Hôm nay: Luyện tập để thắp sáng ngọn lửa!"
                     >
-                      <span className="text-base sm:text-lg opacity-40 leading-none select-none group-hover/today:opacity-80 transition-all">
-                        🔥
-                      </span>
+                      <Flame className="w-4 h-4 text-amber-500/50 group-hover/today:text-amber-600 transition-all" aria-hidden="true" />
                     </div>
                   ) : (
                     <div
-                      className="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"
+                      className="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center"
                       title={`${d.label}: Chưa học`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />

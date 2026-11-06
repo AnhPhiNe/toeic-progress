@@ -32,9 +32,17 @@ import { partOfQuestion, parseQuestionList } from '@/shared/domain/questionNumbe
 import { enqueueExplanations } from '@/features/mistakes/services/explanationQueue';
 import { buildBatchEntries, type BatchExtractedItem } from '@/features/mistakes/lib/batchCapture';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
+import { loadStudySessions } from '@/shared/data/storage';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
 import { useFormDraft } from '@/shared/hooks/useFormDraft';
 import { parseMistakeFormDraft, type MistakeFormDraft } from '@/shared/data/studyFormDrafts';
+
+function latestSessionTestName(): string {
+  const active = loadStudySessions().filter(s => !s.deletedAt && normalizeTestName(s.testName));
+  if (active.length === 0) return '';
+  const latest = [...active].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''))[0];
+  return latest ? normalizeTestName(latest.testName) : '';
+}
 
 interface Props {
   original: MistakeEntry | null;
@@ -106,7 +114,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   // Phones: Part buttons, context above the question, optional fields folded into one row.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [reason, setReason] = useState(original?.userReason ?? '');
-  const [sourceTest, setSourceTest] = useState(original?.sourceTestName ?? initialSourceName);
+  const [sourceTest, setSourceTest] = useState(() => original ? (original.sourceTestName ?? initialSourceName) : (initialSourceName || latestSessionTestName()));
   const [keyOpen, setKeyOpen] = useState(false);
   const sourceTestName = sourceSuggestions.find(name => testNameKey(name) === testNameKey(sourceTest)) ?? normalizeTestName(sourceTest);
   const [source, setSource] = useState<ChoiceLetter | ''>(original?.answerSource === 'PROVIDED' ? optionLetter(original.correctAnswer) : '');
