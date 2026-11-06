@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BarChart3, Clock3, Coffee, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronDown, Clock3, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
 import type { PacingRun, ReadingPartType } from '@/shared/types';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { getActiveAccountId, readDataBundle } from '@/shared/data/dataBundle';
@@ -48,6 +48,16 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [part7Open, setPart7Open] = useState(false);
   if (!isPhone && part7Open) setPart7Open(false);
+  const [part7MenuOpen, setPart7MenuOpen] = useState(false);
+  const part7MenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!part7MenuOpen) return;
+    const clickOutside = (e: MouseEvent | PointerEvent) => {
+      if (!part7MenuRef.current?.contains(e.target as Node)) setPart7MenuOpen(false);
+    };
+    document.addEventListener('pointerdown', clickOutside);
+    return () => document.removeEventListener('pointerdown', clickOutside);
+  }, [part7MenuOpen]);
   const phoneModes = useRef<HTMLDivElement>(null);
   // The chosen mode can sit past the edge of the scrolling row (Pomodoro on narrow phones).
   useEffect(() => { phoneModes.current?.querySelector('.is-selected')?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' }); }, [snapshot.mode, isPhone]);
@@ -204,7 +214,6 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
       <button type="button" aria-pressed={snapshot.mode === 'PART_6'} data-mode-tone="part6" className={selectedMode('PART_6')} onClick={() => selectMode('PART_6')}>Part 6</button>
       <button type="button" aria-pressed={snapshot.mode.startsWith('PART_7')} aria-haspopup="dialog" data-mode-tone="part7" className={`pacing-mode ${snapshot.mode.startsWith('PART_7') ? 'is-selected' : ''}`} onClick={() => setPart7Open(true)}>{snapshot.mode.startsWith('PART_7') ? PART_7_SHORT[snapshot.mode as Part7Mode] : 'Part 7'}</button>
       <button type="button" aria-pressed={snapshot.mode === 'FULL_READING'} data-mode-tone="reading" className={selectedMode('FULL_READING')} onClick={() => selectMode('FULL_READING')}>Reading 75p</button>
-      <button type="button" aria-pressed={isPomodoro} data-mode-tone="pomodoro" className={selectedMode('POMODORO')} onClick={() => selectMode('POMODORO')}>Pomodoro</button>
     </div>
     {isPomodoro && <div role="group" aria-label="Giai đoạn Pomodoro" className="pacing-phases mt-4 justify-center">{([['WORK', 'Tập trung'], ['SHORT_BREAK', 'Nghỉ ngắn'], ['LONG_BREAK', 'Nghỉ dài']] as const).map(([phase, label]) => <button type="button" key={phase} aria-pressed={snapshot.phase === phase} className={`pacing-phase-button transition-all duration-200 ${snapshot.phase === phase ? 'is-selected' : ''}`} onClick={() => { triggerHaptic(8); selectMode('POMODORO', phase); }}>{label}</button>)}</div>}
     {wakeLockActive && (
@@ -282,17 +291,17 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
       {(error || timer.error) && !edit && snapshot.status !== 'finished' && <p role="alert" className="mx-4 mt-3 text-sm text-rose-700 dark:text-rose-300">{error || timer.error}</p>}
       {tab === 'timer' && isPhone && phonePanel}
       {tab === 'timer' && !isPhone && (
-        <section id="pacing-timer" role="tabpanel" aria-labelledby="pacing-timer-tab" className="pacing-panel !p-6" data-clock-tone={clockTone} data-mode-tone={modeTone}>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Cột Trái (Col 1-7): Đồng hồ, Chế độ & Điều khiển */}
-            <div className="lg:col-span-7 flex flex-col items-center text-center">
-              {/* Mode row: 4 chế độ Reading trên 1 hàng duy nhất + Pomodoro tách biệt */}
+        <section id="pacing-timer" role="tabpanel" aria-labelledby="pacing-timer-tab" className="pacing-panel !px-6 !pt-7 !pb-6 flex min-h-[calc(100dvh-12rem)] flex-col" data-clock-tone={clockTone} data-mode-tone={modeTone}>
+          <div className="flex flex-1 flex-col">
+            {/* Một cột trung tâm: chế độ, đồng hồ, điều khiển, mẹo */}
+            <div className="flex flex-1 flex-col items-center text-center">
+              {/* Mode row: 4 chế độ Reading chuẩn TOEIC */}
               <div className="flex flex-wrap items-center justify-center gap-2 mb-4 w-full">
-                <div role="group" aria-label="Chế độ luyện Reading" className="inline-flex items-center gap-1 p-1 rounded-2xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800">
+                <div role="group" aria-label="Chế độ luyện Reading" className="inline-flex items-center gap-1 p-1 rounded-2xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800 shadow-sm">
                   <button
                     type="button"
                     aria-pressed={snapshot.mode === 'PART_5'}
-                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'PART_5' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    className={`cursor-pointer px-4 py-2 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'PART_5' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
                     onClick={() => selectMode('PART_5')}
                   >
                     Part 5 (12p)
@@ -300,37 +309,56 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
                   <button
                     type="button"
                     aria-pressed={snapshot.mode === 'PART_6'}
-                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'PART_6' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    className={`cursor-pointer px-4 py-2 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'PART_6' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
                     onClick={() => selectMode('PART_6')}
                   >
                     Part 6 (8p)
                   </button>
-                  <button
-                    type="button"
-                    aria-pressed={snapshot.mode.startsWith('PART_7')}
-                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode.startsWith('PART_7') ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
-                    onClick={() => setPart7Open(true)}
-                  >
-                    {snapshot.mode.startsWith('PART_7') ? `${PART_7_SHORT[snapshot.mode as Part7Mode]} (${config.minutes}p)` : 'Part 7 (55p)'} ▾
-                  </button>
+                  <div ref={part7MenuRef} className="relative inline-block">
+                    <button
+                      type="button"
+                      aria-pressed={snapshot.mode.startsWith('PART_7')}
+                      aria-expanded={part7MenuOpen}
+                      className={`cursor-pointer px-4 py-2 rounded-xl text-xs font-black transition-all inline-flex items-center gap-1.5 ${snapshot.mode.startsWith('PART_7') ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                      onClick={() => setPart7MenuOpen(v => !v)}
+                    >
+                      <span>{snapshot.mode.startsWith('PART_7') ? `${PART_7_SHORT[snapshot.mode as Part7Mode]} (${config.minutes}p)` : 'Part 7 (55p)'}</span>
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${part7MenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                    </button>
+                    {part7MenuOpen && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-2 w-64 rounded-xl border-2 border-slate-900 bg-white p-1.5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-700 dark:bg-slate-900 text-left">
+                        {(['PART_7', 'PART_7_SINGLE', 'PART_7_MULTI'] as const).map(mode => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-bold transition-colors ${
+                              snapshot.mode === mode
+                                ? 'bg-blue-50 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200 font-black'
+                                : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
+                            }`}
+                            onClick={() => {
+                              selectMode(mode);
+                              setPart7MenuOpen(false);
+                            }}
+                          >
+                            <span>{PRESETS[mode].name}</span>
+                            <span className="font-semibold text-slate-500 tabular-nums dark:text-slate-400">
+                              {PRESETS[mode].questions} câu · {PRESETS[mode].minutes}p
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     aria-pressed={snapshot.mode === 'FULL_READING'}
-                    className={`cursor-pointer px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'FULL_READING' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                    className={`cursor-pointer px-4 py-2 rounded-xl text-xs font-black transition-all ${snapshot.mode === 'FULL_READING' ? 'bg-white text-slate-950 shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
                     onClick={() => selectMode('FULL_READING')}
                   >
                     Reading 75p
                   </button>
                 </div>
-                <button
-                  type="button"
-                  aria-pressed={isPomodoro}
-                  className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-black transition-all ${isPomodoro ? 'bg-rose-500 text-white border-2 border-slate-900 shadow-[2px_2px_0_0_#0f172a]' : 'text-slate-600 hover:text-slate-900 bg-stone-100 border border-stone-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800'}`}
-                  onClick={() => selectMode('POMODORO')}
-                >
-                  <Coffee className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Pomodoro (25p)</span>
-                </button>
               </div>
 
               {/* Pomodoro Phases */}
@@ -360,7 +388,7 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
 
               {/* Đồng hồ số lớn */}
               <div className="pacing-clock w-full">
-                <div role="timer" className="pacing-time !text-7xl sm:!text-8xl" aria-label={`Còn ${formatClock(remaining)}`}>
+                <div role="timer" className="pacing-time !text-8xl xl:!text-[148px] !leading-none !my-10" aria-label={`Còn ${formatClock(remaining)}`}>
                   {formatClock(remaining)}
                 </div>
                 {(snapshot.status === 'paused' || snapshot.status === 'finished') && (
@@ -381,7 +409,7 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
               </div>
 
               {/* Hàng nút điều khiển */}
-              <div className="pacing-controls mt-4">
+              <div className="pacing-controls mt-8">
                 {snapshot.status === 'ready' ? (
                   <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}>
                     <Play className="h-4 w-4" aria-hidden="true" />Bắt đầu (Phím Space)
@@ -408,45 +436,11 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
                   </button>
                 )}
               </div>
-            </div>
 
-            {/* Cột Phải (Col 8-12): Chiến thuật & Thống kê phiên */}
-            <div className="lg:col-span-5 flex flex-col gap-4 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 pt-5 lg:pt-0 lg:pl-6 text-left">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white mb-2">
-                  {isPomodoro ? 'Chiến thuật Pomodoro' : `Chiến thuật làm bài ${config.name}`}
-                </h3>
-                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 dark:border-blue-900/60 dark:bg-blue-950/30">
-                  <h4 className="text-xs font-black text-blue-700 dark:text-blue-400 mb-1">
-                    {snapshot.mode === 'PART_5' ? 'Quy tắc vàng 24s/câu' : snapshot.mode === 'PART_6' ? 'Quy tắc vàng 30s/câu' : snapshot.mode.startsWith('PART_7') ? 'Chiến thuật đọc quét 55 phút' : isPomodoro ? 'Tập trung sâu 25 phút' : 'Quản lý thời gian Reading 75 phút'}
-                  </h4>
-                  <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300 font-medium">
-                    {config.tip}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-                  <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Hôm nay đã luyện</span>
-                  <strong className="text-base font-black text-slate-950 dark:text-white tabular-nums">
-                    {studyTimeLabel(todaySeconds)}
-                  </strong>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-                  <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Phiên hoàn thành</span>
-                  <strong className="text-base font-black text-slate-950 dark:text-white tabular-nums">
-                    {completed} phiên
-                  </strong>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-xs dark:border-slate-800 font-bold">
-                <span className="text-slate-500 dark:text-slate-400">Lịch sử các phiên luyện</span>
-                <button type="button" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer" onClick={() => setTab('history')}>
-                  Xem lịch sử →
-                </button>
-              </div>
+              {/* Mẹo: một dòng chữ nhạt ở đáy, đổi theo chế độ đang chọn */}
+              <p className="mt-auto max-w-xl pt-10 text-center text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+                <strong className="font-bold text-slate-800 dark:text-slate-200">{config.name}:</strong> {config.tip}
+              </p>
             </div>
           </div>
         </section>
