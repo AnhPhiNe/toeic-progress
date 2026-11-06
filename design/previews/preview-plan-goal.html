@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mục tiêu tuần</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--indigo:#4F46E5}
+  *{box-sizing:border-box}
+  body{margin:0;background:#CBD5E1;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;padding:24px}
+  .cap{font-size:19px;font-weight:900;margin:0 0 4px}
+  .cap small{display:block;font-size:13.5px;font-weight:500;color:#334155;margin-top:2px}
+  .row{display:grid;grid-template-columns:repeat(2,460px);gap:28px;align-items:start;margin-bottom:30px}
+  .lbl{font-size:13px;font-weight:800;color:#334155;margin:0 0 6px}
+  .card{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:12px 14px;box-shadow:2px 2px 0 var(--ink)}
+  .chip{width:40px;height:40px;border-radius:12px;border:2px solid var(--ink);display:grid;place-items:center;flex:none;box-shadow:1.5px 1.5px 0 var(--ink)}
+  .t{font-size:15px;font-weight:800}
+  .n{font-size:12.5px;color:var(--muted);font-weight:600}
+  .bar{height:8px;border-radius:99px;background:#F1F5F9;overflow:hidden;flex:1}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--indigo)}
+  .mini{font:inherit;font-size:12.5px;font-weight:800;padding:5px 10px;border-radius:9px;border:2px solid var(--ink);background:#fff;white-space:nowrap}
+  .ghost{color:#94A3B8;font-size:14px;letter-spacing:2px}
+  /* modal */
+  .modal{background:#fff;border:2px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);overflow:hidden}
+  .mh{display:flex;align-items:center;padding:14px 18px;border-bottom:2px solid var(--ink);background:#F8FAFC}
+  .mh h3{margin:0;font-size:17px;font-weight:900}.mh p{margin:2px 0 0;font-size:12.5px;color:var(--muted);font-weight:600}
+  .mh .x{margin-left:auto;color:var(--muted);font-size:20px}
+  .mb{padding:16px 18px;display:grid;gap:16px}
+  .q{font-size:14px;font-weight:800;margin:0 0 8px}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .tile{border:2px solid #CBD5E1;border-radius:14px;padding:12px 8px;text-align:center;font-size:13px;font-weight:800;background:#fff;display:grid;justify-items:center;gap:6px}
+  .tile.on{border-color:var(--ink);box-shadow:3px 3px 0 var(--ink);background:#EEF2FF}
+  .tile .chip{width:36px;height:36px;box-shadow:none}
+  .parts{display:flex;gap:6px}
+  .parts span{width:44px;height:38px;border-radius:10px;border:2px solid #CBD5E1;display:grid;place-items:center;font-weight:800;font-size:13.5px}
+  .parts span.on{border-color:var(--ink);background:#FDE68A;box-shadow:2px 2px 0 var(--ink)}
+  .parts span.l{color:#64748B}
+  .step{display:flex;align-items:center;gap:0;border:2px solid var(--ink);border-radius:12px;overflow:hidden;width:max-content}
+  .step b{width:44px;height:42px;display:grid;place-items:center;font-size:20px;background:#fff}
+  .step b:first-child{border-right:2px solid var(--ink)}.step b:last-child{border-left:2px solid var(--ink)}
+  .step span{min-width:84px;text-align:center;font-size:20px;font-weight:900}
+  .step small{font-size:13px;color:var(--muted);font-weight:700;margin-left:4px}
+  .preview{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#F8FAFC;border:1.5px dashed #94A3B8}
+  .preview b{font-size:14.5px}
+  .preview a{margin-left:auto;font-size:12.5px;font-weight:800;color:#2563EB}
+  .note{font-size:13px;font-weight:700;color:#2563EB}
+  .mf{display:flex;justify-content:flex-end;gap:10px;padding:12px 18px;border-top:2px solid #E2E8F0}
+  .btn{font:inherit;font-size:14px;font-weight:800;padding:10px 16px;border-radius:12px;border:2px solid var(--ink);background:#fff}
+  .btn.pri{background:var(--indigo);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+  .quick{display:flex;gap:6px;margin-top:8px}
+  .quick span{font-size:12.5px;font-weight:800;padding:5px 10px;border-radius:9px;border:1.5px solid #CBD5E1}
+  .quick span.on{border:2px solid var(--ink);background:#CCFBF1}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const clock=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+const file=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/></svg>`;
+const book=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>`;
+const cardNow=`<div class="card" style="display:flex;gap:12px;align-items:flex-start"><span class="chip" style="background:#C7D2FE">${clock}</span><div style="flex:1"><div style="display:flex"><div style="flex:1"><div class="t">Học 210 phút tuần này</div><div class="n">Tương đương ~30 phút mỗi ngày</div></div><span class="ghost">⋮⋮ ✎ 🗑</span></div><div style="display:flex;align-items:center;gap:10px;margin-top:8px"><div class="bar"><i style="width:57%"></i></div><b style="font-size:13px">120/210 phút</b><button class="mini">Bật đồng hồ</button></div></div></div>`;
+const cardNew=`<div class="card" style="display:flex;gap:12px;align-items:center"><span class="chip" style="background:#C7D2FE">${clock}</span><div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span class="t">Học 210 phút</span><span class="n" style="margin-left:auto"><b style="color:#0F172A">120</b> / 210</span></div><div class="bar" style="margin-top:7px;flex:none"><i style="width:57%"></i></div></div><button class="mini">Bật đồng hồ</button></div>`;
+const S1=`<p class="cap">1 · Thẻ nhiệm vụ gọn hơn<small>Bỏ dòng "Tương đương ~30 phút mỗi ngày" (đã có ở biểu đồ), bỏ chữ "tuần này" trong tên (trang đã là kế hoạch tuần), số 210 chỉ còn 1 lần. Nút sắp xếp/sửa/xóa chỉ hiện khi rê chuột vào thẻ.</small></p>
+<div class="row"><div><p class="lbl">Hiện tại</p>${cardNow}</div><div><p class="lbl">Đề xuất</p>${cardNew}</div></div>`;
+const S2=`<p class="cap">2 · Hộp thêm mục tiêu: chọn, không gõ<small>Bước 1 chọn loại bằng 3 ô lớn. Bước 2 chỉ hỏi đúng thứ của loại đó (Part nào, bao nhiêu) bằng nút bấm và nút −/+. Tên tự sinh ra, có "Đổi tên" nếu muốn. Bỏ ô Đơn vị (tự theo loại) và bảng 6 màu (màu theo loại); ghi chú thu vào một dòng.</small></p>
+<div class="row">
+<div class="modal"><div class="mh"><div><h3>Mục tiêu mới</h3><p>Tuần 02/11 – 08/11</p></div><span class="x">✕</span></div>
+<div class="mb">
+<div><p class="q">Bạn muốn làm gì?</p><div class="tiles"><div class="tile"><span class="chip" style="background:#BFDBFE">${file}</span>Làm đề Full Test</div><div class="tile"><span class="chip" style="background:#C7D2FE">${clock}</span>Học đủ số phút</div><div class="tile on"><span class="chip" style="background:#FDE68A">${book}</span>Luyện một Part</div></div></div>
+<div><p class="q">Part nào?</p><div class="parts"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span></div></div>
+<div><p class="q">Bao nhiêu bài trong tuần?</p><div class="step"><b>−</b><span>2<small>bài</small></span><b>+</b></div></div>
+<div class="preview">🎯<b>Luyện 2 bài Part 7</b><a>Đổi tên</a></div>
+<span class="note">+ Thêm ghi chú</span>
+</div><div class="mf"><button class="btn">Hủy</button><button class="btn pri">Thêm mục tiêu</button></div></div>
+<div class="modal"><div class="mh"><div><h3>Mục tiêu mới</h3><p>Tuần 02/11 – 08/11</p></div><span class="x">✕</span></div>
+<div class="mb">
+<div><p class="q">Bạn muốn làm gì?</p><div class="tiles"><div class="tile"><span class="chip" style="background:#BFDBFE">${file}</span>Làm đề Full Test</div><div class="tile on" style="background:#CCFBF1"><span class="chip" style="background:#C7D2FE">${clock}</span>Học đủ số phút</div><div class="tile"><span class="chip" style="background:#FDE68A">${book}</span>Luyện một Part</div></div></div>
+<div><p class="q">Bao nhiêu phút trong tuần?</p><div class="step"><b>−</b><span>210<small>phút</small></span><b>+</b></div><div class="quick"><span>150</span><span class="on">210</span><span>300</span><span>420</span></div><p class="n" style="margin:6px 0 0">Khoảng 30 phút mỗi ngày</p></div>
+<div class="preview">🎯<b>Học 210 phút</b><a>Đổi tên</a></div>
+<span class="note">+ Thêm ghi chú</span>
+</div><div class="mf"><button class="btn">Hủy</button><button class="btn pri">Thêm mục tiêu</button></div></div>
+</div>`;
+document.getElementById('out').innerHTML=S1+S2;
+</script>
+</body>
+</html>

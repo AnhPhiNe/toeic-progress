@@ -38,6 +38,8 @@ export interface WeeklyStudyPlanSummary {
 
   minutesThisWeek: number;
   minutesGoalThisWeek: number;
+  /** Minutes logged on each day Monday..Sunday, same source as minutesThisWeek. */
+  minutesByDay: number[];
   daysStudiedThisWeek: number;
   fullTestsThisWeek: number;
 
@@ -95,7 +97,12 @@ export function buildWeeklyStudyPlan(
   const thisWeekSessions = sessions.filter(s => !s.deletedAt && s.date >= weekStart && s.date <= weekEnd);
   // Chỉ đếm Full Test có điểm; bản ghi Sprint Reading cũ từng bị lưu là FULL_TEST không điểm
   const fullTestsThisWeek = thisWeekSessions.filter(s => s.skillType === 'LR' && s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0).length;
-  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + (Number.isFinite(s.durationMinutes) && s.durationMinutes > 0 ? s.durationMinutes : 0), 0);
+  const sessionMinutes = (s: StudySession) => Number.isFinite(s.durationMinutes) && s.durationMinutes > 0 ? s.durationMinutes : 0;
+  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + sessionMinutes(s), 0);
+  const minutesByDay = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(weekStart, i);
+    return thisWeekSessions.filter(s => s.date === day).reduce((acc, s) => acc + sessionMinutes(s), 0);
+  });
 
   const daysStudiedThisWeek = new Set([
     ...thisWeekSessions.map(s => s.date),
@@ -226,6 +233,7 @@ export function buildWeeklyStudyPlan(
     completionPercent,
     minutesThisWeek,
     minutesGoalThisWeek,
+    minutesByDay,
     daysStudiedThisWeek,
     fullTestsThisWeek,
     tasks: evaluatedTasks,

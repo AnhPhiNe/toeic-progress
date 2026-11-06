@@ -1,24 +1,6 @@
 import { formatPlanQuantity } from '../lib/planDisplay';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Target,
-  CheckCircle2,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Trash2,
-  Pencil,
-  Copy,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  GripVertical,
-  Clock3,
-  Flame,
-  Pin,
-  Sparkles
-} from 'lucide-react';
+import { Target, Plus, ChevronLeft, ChevronRight, Trash2, Pencil, Copy, ArrowUp, ArrowDown, Clock3, Check, FileCheck2, BookOpen, Lightbulb, MoreHorizontal } from 'lucide-react';
 import {
   StudySession,
   MistakeEntry,
@@ -36,7 +18,6 @@ import './plan-feedback.css';
 import { buildWeeklyStudyPlan } from '@/features/plans/lib/studyPlan';
 import { assertPlanFitsSync } from '@/features/plans/lib/planLimits';
 import { getTodayDateString, getWeekMonday, addDays, loadWeeklyPlans, saveWeeklyPlans, getOrCreateWeeklyPlan } from '@/shared/data/storage';
-import { CARD } from '@/shared/ui/surfaces';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhonePlan } from './PhonePlan';
 import type { VocabLog } from '@/shared/data/dataBundle';
@@ -131,6 +112,11 @@ export const getDefaultTaskColor = (type: SmartTaskType, partNumber?: number): T
   return 'purple';
 };
 
+/** Icon and chip colour of each goal card (chips use the same palette as the progress bar, one step lighter). */
+const TASK_ICONS: Record<SmartTaskType, React.ElementType> = { AUTO_FULL_TEST: FileCheck2, AUTO_STUDY_TIME: Clock3, AUTO_PART_PRACTICE: BookOpen, CUSTOM: Target };
+const TASK_CHIPS: Record<TaskColorKey, string> = {
+  indigo: 'bg-indigo-200', blue: 'bg-blue-200', amber: 'bg-amber-200', sky: 'bg-sky-200', rose: 'bg-rose-200', purple: 'bg-purple-200'
+};
 export const getTaskTheme = (task: SmartWeeklyTask) => {
   const colorKey = task.color || getDefaultTaskColor(task.type, task.partNumber);
   return TASK_THEMES[colorKey] || TASK_THEMES.indigo;
@@ -165,7 +151,6 @@ export const PlanView: React.FC<PlanViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const closeTaskModal = useCallback(() => { setIsModalOpen(false); setSaveError(''); }, []);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [taskFilter, setTaskFilter] = useState<'ALL' | 'INCOMPLETE' | 'COMPLETED'>('ALL');
   const [taskTitle, setTaskTitle] = useState('');
   const [taskType, setTaskType] = useState<SmartTaskType>('AUTO_FULL_TEST');
   const [taskTarget, setTaskTarget] = useState<number>(1);
@@ -293,12 +278,19 @@ export const PlanView: React.FC<PlanViewProps> = ({
     updateCurrentWeekTasks(updated);
   };
 
-  // Kéo thả sắp xếp thứ tự mục tiêu (HTML5 Drag & Drop)
-  const [draggableTaskId, setDraggableTaskId] = useState<string | null>(null);
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
-  const [dropPosition, setDropPosition] = useState<'above' | 'below'>('above');
-  const [orderTaskId, setOrderTaskId] = useState<string | null>(null);
+  // Hàng nhiệm vụ đang mở menu ⋯ (sửa, đổi thứ tự, xóa)
+  const [menuTaskId, setMenuTaskId] = useState<string | null>(null);
+  // Done goals live in their own view inside the same six-slot frame.
+  const [showDone, setShowDone] = useState(false);
+  useEffect(() => { setShowDone(false); }, [selectedWeek]);
+  useEffect(() => {
+    if (!menuTaskId) return;
+    const close = (event: MouseEvent) => {
+      if (!(event.target as HTMLElement).closest('[role="menu"], [aria-haspopup="menu"]')) setMenuTaskId(null);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menuTaskId]);
 
   const moveTask = (taskId: string, direction: -1 | 1) => {
     const task = summary.tasks.find(item => item.id === taskId);
@@ -326,62 +318,6 @@ export const PlanView: React.FC<PlanViewProps> = ({
     const targetIdx = tasks.findIndex(item => item.id === first.id);
     tasks.splice(targetIdx >= 0 ? targetIdx : 0, 0, moving);
     if (updateCurrentWeekTasks(tasks)) setSaveFeedback('Đã đưa mục tiêu lên đầu.');
-  };
-
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    setOrderTaskId(null);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', taskId);
-    setDraggedTaskId(taskId);
-  };
-
-  const handleDragOver = (e: React.DragEvent, taskId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (draggedTaskId === taskId) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offset = e.clientY - rect.top;
-    const isTop = offset < rect.height / 2;
-    setDropPosition(isTop ? 'above' : 'below');
-    setDragOverTaskId(taskId);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-    setDragOverTaskId(null);
-  };
-
-  const handleDrop = (e: React.DragEvent, targetTaskId: string) => {
-    e.preventDefault();
-    if (!draggedTaskId || draggedTaskId === targetTaskId) {
-      setDraggedTaskId(null);
-      setDragOverTaskId(null);
-      setDraggableTaskId(null);
-      return;
-    }
-
-    const tasks = [...activePlanRecord.tasks];
-    const fromIndex = tasks.findIndex(t => t.id === draggedTaskId);
-    const toIndex = tasks.findIndex(t => t.id === targetTaskId);
-
-    if (fromIndex !== -1 && toIndex !== -1) {
-      const [movedItem] = tasks.splice(fromIndex, 1);
-      const adjustedTargetIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
-      const finalIndex = Math.max(0, Math.min(tasks.length, dropPosition === 'below' ? adjustedTargetIndex + 1 : adjustedTargetIndex));
-      tasks.splice(finalIndex, 0, movedItem);
-      updateCurrentWeekTasks(tasks);
-    }
-
-    setDraggedTaskId(null);
-    setDragOverTaskId(null);
-    setDraggableTaskId(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedTaskId(null);
-    setDragOverTaskId(null);
-    setDraggableTaskId(null);
   };
 
   // Mở modal thêm mục tiêu
@@ -455,30 +391,6 @@ export const PlanView: React.FC<PlanViewProps> = ({
     }
   };
 
-  // Các mục tiêu mẫu chưa có trong danh sách tuần này (cho khay gợi ý nhanh)
-  const availableQuickPresets = useMemo(() => {
-    const existing = activePlanRecord.tasks;
-    const presets: { id: 'FULL_TEST' | 'MINUTES' | 'PART_5' | 'PART_7'; label: string }[] = [];
-    if (!existing.some(t => t.type === 'AUTO_FULL_TEST')) {
-      presets.push({ id: 'FULL_TEST', label: '+ 1 đề Full Test' });
-    }
-    if (!existing.some(t => t.type === 'AUTO_STUDY_TIME')) {
-      presets.push({ id: 'MINUTES', label: `+ Học ${(profile.dailyMinGoalMinutes || 30) * 7} phút` });
-    }
-    if (!existing.some(t => t.type === 'AUTO_PART_PRACTICE' && t.partNumber === 5)) {
-      presets.push({ id: 'PART_5', label: '+ Luyện 2 bài Part 5' });
-    }
-    if (!existing.some(t => t.type === 'AUTO_PART_PRACTICE' && t.partNumber === 7)) {
-      presets.push({ id: 'PART_7', label: '+ Luyện 2 bài Part 7' });
-    }
-    return presets;
-  }, [activePlanRecord.tasks, profile.dailyMinGoalMinutes]);
-
-  const handleQuickPresetChip = (preset: 'FULL_TEST' | 'MINUTES' | 'PART_5' | 'PART_7') => {
-    handleOpenAddModal();
-    applyQuickPreset(preset);
-  };
-
   // Lưu mục tiêu (thêm mới hoặc cập nhật sửa)
   const handleSaveModal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,227 +452,109 @@ export const PlanView: React.FC<PlanViewProps> = ({
   const incompleteTasks = useMemo(() => summary.tasks.filter(t => !t.isComplete), [summary.tasks]);
   const completedTasks = useMemo(() => summary.tasks.filter(t => t.isComplete), [summary.tasks]);
 
-  const filteredTasks = useMemo(() => {
-    if (taskFilter === 'COMPLETED') return completedTasks;
-    if (taskFilter === 'INCOMPLETE') return incompleteTasks;
-    // Trang Tất cả: Đưa các việc chưa làm lên trên, việc đã xong tự động chuyển xuống đáy
-    return [...incompleteTasks, ...completedTasks];
-  }, [incompleteTasks, completedTasks, taskFilter]);
-
   const renderTask = (task: (typeof summary.tasks)[number]) => {
-              const isAuto = task.type !== 'CUSTOM';
-              const theme = getTaskTheme(task);
-              const isDragging = draggedTaskId === task.id;
-              const isDragOver = dragOverTaskId === task.id && !isDragging;
-              const group = summary.tasks.filter(item => item.isComplete === task.isComplete);
-              const groupIndex = group.findIndex(item => item.id === task.id);
+    const theme = getTaskTheme(task);
+    const Icon = TASK_ICONS[task.type] ?? Target;
+    const chip = TASK_CHIPS[task.color || getDefaultTaskColor(task.type, task.partNumber)] ?? TASK_CHIPS.indigo;
+    const group = summary.tasks.filter(item => item.isComplete === task.isComplete);
+    const groupIndex = group.findIndex(item => item.id === task.id);
+    // The page is the week's plan, so "tuần này" in a goal's name only repeats it.
+    const title = task.title.replace(/\s+tuần này$/i, '');
+    const action = task.isComplete ? null
+      : task.type === 'AUTO_FULL_TEST' ? { label: 'Ghi điểm', title: 'Mở biểu mẫu nhập kết quả làm đề Full Test', run: () => onOpenSessionLogger() }
+      : task.type === 'AUTO_STUDY_TIME' ? { label: 'Bật đồng hồ', title: 'Chuyển đến Đồng hồ phòng thi để bấm giờ học', run: () => onNavigateToTimer ? onNavigateToTimer() : onOpenSessionLogger({ sessionType: 'PART_PRACTICE' }) }
+      : task.type === 'AUTO_PART_PRACTICE' ? { label: 'Ghi kết quả', title: `Ghi kết quả luyện tập Part ${task.partNumber || 5}`, run: () => onOpenSessionLogger({ sessionType: 'PART_PRACTICE', partNumber: task.partNumber }) }
+      : { label: 'Đổi theo dõi', title: 'Chọn cách theo dõi tự động cho mục tiêu này', run: () => handleOpenEditModal(task) };
 
-              return (
-                  <div
-                    key={task.id}
-                    data-task-id={task.id}
-                    draggable={draggableTaskId === task.id}
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    onDragOver={(e) => handleDragOver(e, task.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, task.id)}
-                    onDragEnd={handleDragEnd}
-                    className={`p-3 sm:px-4 sm:py-3.5 rounded-xl border transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 group ${
-                      isDragging
-                        ? 'opacity-40 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[0.99] border-dashed border-indigo-400'
-                        : task.isComplete
-                        ? 'bg-emerald-50/60 hover:bg-emerald-50/90 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-800/80'
-                        : 'bg-white dark:bg-[#151f32] hover:bg-slate-50/90 dark:hover:bg-slate-800/80 border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600'
-                    } ${
-                      isDragOver && dropPosition === 'above'
-                        ? 'border-t-2 !border-t-indigo-600 dark:!border-t-indigo-400'
-                        : ''
-                    } ${
-                      isDragOver && dropPosition === 'below'
-                        ? 'border-b-2 !border-b-indigo-600 dark:!border-b-indigo-400'
-                        : ''
-                    }`}
-                  >
-                    {/* Dải vạch màu nội bộ cho việc chưa hoàn thành */}
-                    {!task.isComplete && (
-                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${theme.progressBar} pointer-events-none`} />
-                    )}
+    return (
+      <div
+        key={task.id}
+        data-task-id={task.id}
+        title={task.notes || undefined}
+        className={`relative flex min-h-[68px] items-center gap-3 border-t border-slate-200 px-4 py-2.5 first:border-t-0 dark:border-slate-700 ${task.isComplete ? 'bg-slate-50/70 dark:bg-slate-900/40' : ''}`}
+      >
+        {task.isComplete ? (
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-slate-900 bg-emerald-500 text-white dark:border-slate-200">
+            <Check className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+          </span>
+        ) : (
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 text-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none ${chip}`}>
+            <Icon className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
+          </span>
+        )}
 
-                    {/* CỘT TRÁI: Grip kéo thả + Tiêu đề & Subtitle + 1 Badge loại bài */}
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                      {/* Grip Kéo Thả */}
-                      <button
-                        type="button"
-                        className="flex min-h-9 min-w-6 items-center justify-center cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none shrink-0"
-                        onMouseEnter={() => setDraggableTaskId(task.id)}
-                        onMouseLeave={() => setDraggableTaskId(null)}
-                        onTouchStart={() => setDraggableTaskId(task.id)}
-                        aria-label={`Sắp xếp ${task.title}`}
-                        aria-expanded={orderTaskId === task.id}
-                        onClick={() => setOrderTaskId(current => current === task.id ? null : task.id)}
-                        onKeyDown={event => {
-                          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-                            event.preventDefault();
-                            moveTask(task.id, event.key === 'ArrowUp' ? -1 : 1);
-                          } else if (event.key === 'Escape') setOrderTaskId(null);
-                        }}
-                        title="Kéo để sắp xếp, hoặc bấm để chọn lên/xuống. Có thể dùng phím ↑/↓."
-                      >
-                        <GripVertical className="w-4 h-4 stroke-[2.5]" aria-hidden="true" />
-                      </button>
-                      {orderTaskId === task.id && (
-                        <div role="group" aria-label="Đổi thứ tự mục tiêu" className="flex shrink-0 gap-1">
-                          <button type="button" aria-label="Di chuyển lên" disabled={groupIndex === 0} onClick={() => moveTask(task.id, -1)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-700 disabled:opacity-30 dark:border-slate-600 dark:text-slate-200"><ArrowUp className="h-4 w-4" aria-hidden="true" /></button>
-                          <button type="button" aria-label="Di chuyển xuống" disabled={groupIndex === group.length - 1} onClick={() => moveTask(task.id, 1)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-700 disabled:opacity-30 dark:border-slate-600 dark:text-slate-200"><ArrowDown className="h-4 w-4" aria-hidden="true" /></button>
-                        </div>
-                      )}
+        <div className="min-w-0 flex-1">
+          <p title={task.title} className={`truncate text-[15px] font-extrabold ${task.isComplete ? 'text-slate-500 line-through dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>{title}</p>
+          {task.isComplete
+            ? <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Đã xong · {formatPlanQuantity(task.done)}/{formatPlanQuantity(task.target)} {task.unit}</p>
+            : <div className="mt-1 flex items-center gap-2">
+                <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
+                  <div data-plan-progress className={`h-full rounded-full transition-all duration-500 ${theme.progressBar}`}
+                    style={{ width: `${Math.max(task.done > 0 ? 3 : 0, Math.min(100, task.percent))}%` }} />
+                </div>
+                <span className="shrink-0 text-xs font-bold tabular-nums text-slate-500 dark:text-slate-400"><b className="font-black text-slate-900 dark:text-white">{formatPlanQuantity(task.done)}</b>/{formatPlanQuantity(task.target)}</span>
+              </div>}
+          <span className="sr-only">{formatPlanQuantity(task.done)}/{formatPlanQuantity(task.target)} {task.unit}</span>
+        </div>
 
-                      {/* Tên Task + Phân loại + Dòng phụ */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className={`text-sm sm:text-base font-black truncate max-w-full ${
-                              task.isComplete
-                                ? 'line-through text-slate-400 dark:text-slate-500'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                            title={task.title}
-                          >
-                            {task.title}
-                          </span>
+        {action && (
+          <button type="button" onClick={action.run} title={action.title}
+            className="shrink-0 cursor-pointer whitespace-nowrap rounded-lg border-2 border-slate-900 bg-white px-2.5 py-1 text-xs font-black text-slate-900 transition hover:bg-slate-100 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800">
+            {action.label}
+          </button>
+        )}
 
-                          {/* Badge phân loại duy nhất */}
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${theme.badge}`}>
-                            {isAuto
-                              ? (task.type === 'AUTO_FULL_TEST' ? 'Full Test' : task.type === 'AUTO_STUDY_TIME' ? 'Thời gian học' : `Part ${task.partNumber || 5}`)
-                              : 'Mục tiêu cũ'}
-                          </span>
-                        </div>
-
-                        {/* Dòng phụ (Ghi chú / Hướng dẫn tự động) bên dưới tiêu đề cho MỌI loại mục tiêu */}
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-full">
-                          {task.notes
-                            ? task.notes.slice(0, 120)
-                            : task.type === 'AUTO_FULL_TEST'
-                            ? 'Rèn luyện phản xạ 200 câu · Tự động cộng khi lưu điểm đề thi'
-                            : task.type === 'AUTO_STUDY_TIME'
-                            ? 'Duy trì thói quen mỗi ngày · Tự động cộng thời gian từ mọi phiên học'
-                            : task.type === 'AUTO_PART_PRACTICE'
-                            ? `Tập trung cải thiện độ chính xác Part ${task.partNumber || 5} · Tự động cộng khi lưu bài luyện`
-                            : 'Mục tiêu tùy chỉnh'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* CỘT PHẢI: Mini Progress Bar + Nút CTA gom cụm chặt chẽ (chiếm 50% hàng) */}
-                    <div className="flex shrink-0 flex-wrap items-center justify-between md:justify-end gap-3 sm:gap-4 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
-                      {/* Mini Progress Bar */}
-                      <div className="flex items-center gap-2 w-36 sm:w-40 lg:w-44 shrink-0">
-                        <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
-                          <div
-                            data-plan-progress
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              task.isComplete ? 'bg-emerald-500' : theme.progressBar
-                            }`}
-                            style={{ width: `${Math.max(task.done > 0 ? 3 : 0, Math.min(100, task.percent))}%` }}
-                          />
-                        </div>
-                        <div className="flex items-baseline gap-1 shrink-0 text-xs">
-                          <span
-                            className={`font-black tabular-nums ${
-                              task.isComplete
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                          >
-                            {formatPlanQuantity(task.done)}/{formatPlanQuantity(task.target)}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                            {task.unit}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Nút Hành Động Nhanh (CTA) hoặc Trạng thái Hoàn thành */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {task.isComplete ? (
-                          <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800 sm:min-w-[112px] select-none">
-                            <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Đã xong</span>
-                          </div>
-                        ) : (
-                          <>
-                            {task.type === 'AUTO_FULL_TEST' && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenSessionLogger()}
-                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${theme.primaryBtn} sm:min-w-[112px] transition cursor-pointer`}
-                                title="Mở biểu mẫu nhập kết quả làm đề Full Test"
-                              >
-                                <span>Ghi điểm</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {task.type === 'AUTO_STUDY_TIME' && (
-                              <button
-                                type="button"
-                                onClick={() => onNavigateToTimer ? onNavigateToTimer() : onOpenSessionLogger({ sessionType: 'PART_PRACTICE' })}
-                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${theme.primaryBtn} sm:min-w-[112px] transition cursor-pointer`}
-                                title="Chuyển đến Đồng hồ phòng thi để bấm giờ học"
-                              >
-                                <span>Bật đồng hồ</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {task.type === 'AUTO_PART_PRACTICE' && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenSessionLogger({ sessionType: 'PART_PRACTICE', partNumber: task.partNumber })}
-                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${theme.primaryBtn} sm:min-w-[112px] transition cursor-pointer`}
-                                title={`Ghi kết quả luyện tập Part ${task.partNumber || 5}`}
-                              >
-                                <span>Ghi kết quả</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {task.type === 'CUSTOM' && (
-                              <button type="button" onClick={() => handleOpenEditModal(task)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">
-                                Đổi theo dõi
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {/* Nút Chỉnh sửa & Xóa — hiển thị tinh tế trên hover */}
-                      <div className="flex items-center gap-0.5 shrink-0 opacity-100 md:opacity-60 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity pl-1.5 border-l border-slate-200 dark:border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditModal(task)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer"
-                          title="Chỉnh sửa mục tiêu"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-                          title="Xóa mục tiêu"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-              );
+        {/* Sửa, đổi thứ tự, xóa gom trong một nút ⋯ để hàng luôn gọn */}
+        <div className="relative shrink-0">
+          <button type="button" aria-label={`Tùy chọn ${task.title}`} aria-haspopup="menu" aria-expanded={menuTaskId === task.id}
+            onClick={() => setMenuTaskId(current => current === task.id ? null : task.id)}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white">
+            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+          </button>
+          {menuTaskId === task.id && (
+            <div role="menu" aria-label={`Tùy chọn ${task.title}`} onKeyDown={event => { if (event.key === 'Escape') setMenuTaskId(null); }}
+              className="absolute right-0 top-9 z-20 w-48 overflow-hidden rounded-xl border-2 border-slate-900 bg-white py-1 text-sm font-bold shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-slate-900 dark:shadow-none">
+              {[
+                { label: 'Sửa mục tiêu', icon: Pencil, run: () => handleOpenEditModal(task) },
+                { label: 'Đưa lên', icon: ArrowUp, run: () => moveTask(task.id, -1), disabled: groupIndex === 0 },
+                { label: 'Đưa xuống', icon: ArrowDown, run: () => moveTask(task.id, 1), disabled: groupIndex === group.length - 1 },
+                { label: 'Xóa mục tiêu', icon: Trash2, run: () => handleDeleteTask(task.id), danger: true }
+              ].map(item => (
+                <button key={item.label} type="button" role="menuitem" disabled={item.disabled}
+                  onClick={() => { setMenuTaskId(null); item.run(); }}
+                  className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-slate-800 ${item.danger ? 'text-rose-700 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                  <item.icon className="h-4 w-4" aria-hidden="true" />{item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
-  const is100Percent = summary.totalTasks > 0 && summary.completedTasks >= summary.totalTasks;
+  // One click turns the notebook-based suggestion into a goal for this week.
+  const handleAddRecommendation = () => {
+    const rec = summary.recommendation;
+    if (!rec) return;
+    if (incompleteTasksCount >= 6) {
+      setWipLimitAlert(true);
+      return;
+    }
+    const task: SmartWeeklyTask = {
+      id: `task-${generateUUID()}`,
+      title: rec.title,
+      type: rec.type,
+      target: rec.target,
+      unit: rec.unit,
+      partNumber: rec.partNumber,
+      notes: rec.notes,
+      color: getDefaultTaskColor(rec.type, rec.partNumber),
+      createdAt: new Date().toISOString()
+    };
+    if (updateCurrentWeekTasks([...activePlanRecord.tasks, task])) setSaveFeedback(`Đã thêm “${rec.title}”.`);
+  };
+
 
   if (isPhone) return (
     <div className="plan-view animate-fade-in">
@@ -786,345 +580,164 @@ export const PlanView: React.FC<PlanViewProps> = ({
     </div>
   );
 
+  const dailyGoal = profile.dailyMinGoalMinutes || 30;
+  const weekGoal = summary.minutesGoalThisWeek || dailyGoal * 7;
+  const peakMinutes = Math.max(dailyGoal * 1.5, ...summary.minutesByDay, 1);
+  const weekPercent = weekGoal ? Math.min(100, Math.round((summary.minutesThisWeek / weekGoal) * 100)) : 0;
+  const suggestion = summary.recommendation && summary.weekEnd >= today && !isWipLimitReached ? summary.recommendation : null;
+  // Six fixed slots (the WIP limit) keep the panel, and the chart beside it, the same height as goals come and go.
+  const orderedTasks = incompleteTasks;
+  const emptySlots = showDone ? 0 : Math.max(0, 6 - orderedTasks.length);
+
   return (
-    <div className="plan-view space-y-4 animate-fade-in pb-10">
+    <div className="plan-view space-y-5 animate-fade-in pb-10">
       {saveError && !isModalOpen && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{saveError}</p>}
 
-      {/* ================= 1. THANH TIÊU ĐỀ & ĐIỀU HƯỚNG TUẦN ================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-wrap">
+      {/* Tiêu đề + chọn tuần: "Tuần này" chỉ nằm ở nút chọn tuần */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            Kế hoạch
-            {summary.isCurrentWeek && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                Tuần này
-              </span>
-            )}
-          </h1>
-          <div className="mt-1 flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-wrap">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">
-              {formatVnDate(summary.weekStart)} – {formatVnDate(summary.weekEnd)}
-            </span>
-            <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500">
-              • Tự động cập nhật tiến độ khi lưu đề hoặc bấm giờ
-            </span>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Kế hoạch tuần</h1>
+          <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
+            {formatVnDate(summary.weekStart)} – {formatVnDate(summary.weekEnd)}
             {!summary.isCurrentWeek && (
-              <button
-                onClick={handleCurrentWeek}
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer ml-1"
-              >
+              <button type="button" onClick={handleCurrentWeek} className="ml-2 cursor-pointer font-bold text-blue-600 hover:underline dark:text-blue-400">
                 Về tuần này
               </button>
             )}
-          </div>
+          </p>
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Cụm nút chuyển tuần */}
-          <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 shadow-2xs">
-            <button
-              onClick={handlePrevWeek}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              title="Tuần trước"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-              {summary.isCurrentWeek
-                ? 'Tuần này'
-                : `${formatVnDate(summary.weekStart).slice(0, 5)} – ${formatVnDate(summary.weekEnd).slice(0, 5)}`}
-            </span>
-            <button
-              onClick={handleNextWeek}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              title="Tuần sau"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        <div className="inline-flex items-stretch overflow-hidden rounded-xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-slate-900">
+          <button type="button" onClick={handlePrevWeek} title="Tuần trước" aria-label="Tuần trước"
+            className="flex w-10 cursor-pointer items-center justify-center border-r-2 border-slate-900 text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800">
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <span className="flex items-center px-3.5 text-sm font-extrabold text-slate-900 dark:text-white">
+            {summary.isCurrentWeek ? 'Tuần này' : `${formatVnDate(summary.weekStart).slice(0, 5)} – ${formatVnDate(summary.weekEnd).slice(0, 5)}`}
+          </span>
+          <button type="button" onClick={handleNextWeek} title="Tuần sau" aria-label="Tuần sau"
+            className="flex w-10 cursor-pointer items-center justify-center border-l-2 border-slate-900 text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800">
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
       </div>
 
-      {/* ================= 2. DẢI RIBBON TIẾN ĐỘ LIỀN KHỐI (UNIFIED PROGRESS RIBBON) ================= */}
-      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-300 bg-white dark:bg-[#111A2C] shadow-[3px_3px_0px_#0f172a] dark:shadow-[3px_3px_0px_#cbd5e1] p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 dark:divide-slate-800">
-        
-        {/* Khối 1: Tiến độ tuần & Thanh năng lượng */}
-        <div className="flex items-center gap-3.5 pr-0 lg:pr-5">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center shrink-0">
-            <Target className="w-5 h-5 stroke-[2.5]" />
+      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        {/* Thời gian học mỗi ngày: một cột cho mỗi ngày, thấy ngay học đều hay dồn */}
+        <section aria-labelledby="plan-days-title" className="flex flex-col rounded-2xl border-2 border-slate-900 bg-white p-5 shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="plan-days-title" className="text-base font-black text-slate-900 dark:text-white">Thời gian học mỗi ngày</h2>
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+              <span className="font-black tabular-nums text-slate-900 dark:text-white">{formatPlanQuantity(summary.minutesThisWeek)}</span> / {formatPlanQuantity(weekGoal)} phút tuần này
+            </p>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Mục tiêu đã hoàn thành
-              </span>
-              <span className="text-xs font-black tabular-nums text-indigo-600 dark:text-indigo-400">
-                {summary.completedTasks}/{summary.totalTasks} ({summary.completionPercent}%)
-              </span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
-              <div
-                data-plan-progress
-                className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${Math.max(summary.completedTasks > 0 ? 5 : 0, Math.min(100, summary.completionPercent))}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Khối 2: Thời lượng tích luỹ */}
-        <div className="flex items-center gap-3.5 px-0 lg:px-5 pt-3 lg:pt-0">
-          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-200/80 dark:border-teal-800 flex items-center justify-center shrink-0">
-            <Clock3 className="w-5 h-5 stroke-[2.5]" aria-hidden="true" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Thời Lượng Học
-              </span>
-              <span className="text-sm font-black tabular-nums text-teal-600 dark:text-teal-400">
-                {formatPlanQuantity(summary.minutesThisWeek)} <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {summary.minutesGoalThisWeek || 210}p</span>
-              </span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
-              <div
-                data-plan-progress
-                className="h-full bg-teal-500 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${Math.max(summary.minutesThisWeek > 0 ? 5 : 0, Math.min(100, summary.minutesGoalThisWeek ? Math.round((summary.minutesThisWeek / summary.minutesGoalThisWeek) * 100) : 0))}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Khối 3: Chuyên cần 7 ngày */}
-        <div className="flex items-center gap-3.5 pl-0 lg:pl-5 pt-3 lg:pt-0">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 flex items-center justify-center shrink-0">
-            <Flame className="w-5 h-5 stroke-[2.5]" aria-hidden="true" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Đã học
-              </span>
-              <span className="text-sm font-black tabular-nums text-rose-600 dark:text-rose-400">
-                {summary.daysStudiedThisWeek} ngày
-              </span>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 mt-1.5" aria-hidden="true">
-              {weekDays.map(day => {
-                const isStudied = studiedDatesSet.has(day.date);
-                const isCurrentDay = day.date === today;
-                return (
+          <div className="mt-5 grid min-h-52 flex-1 grid-cols-7 gap-2.5">
+            {weekDays.map((day, index) => {
+              const minutes = summary.minutesByDay[index] ?? 0;
+              const isToday = day.date === today;
+              const future = day.date > today;
+              const studied = studiedDatesSet.has(day.date);
+              const label = minutes > 0 ? `${formatPlanQuantity(minutes)} phút` : studied ? 'học từ vựng' : isToday ? 'hôm nay, chưa học' : future ? 'chưa tới' : 'không học';
+              return (
+                <div key={day.date} className="flex h-full flex-col items-center justify-end gap-1.5" title={`${day.label} ${formatVnDate(day.date).slice(0, 5)}: ${label}`}>
+                  {minutes > 0 && <span className="text-xs font-black tabular-nums text-slate-700 dark:text-slate-200">{formatPlanQuantity(minutes)}p</span>}
                   <div
-                    key={day.date}
-                    className={`h-5 flex items-center justify-center rounded text-[10px] tabular-nums transition-colors ${
-                      isStudied
-                        ? 'bg-emerald-500 text-white font-black'
-                        : isCurrentDay
-                        ? 'bg-rose-50 dark:bg-rose-950/60 ring-1 ring-rose-300 dark:ring-rose-700 text-rose-700 dark:text-rose-300 font-black'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold'
+                    className={`w-full rounded-t-[10px] rounded-b-md ${
+                      minutes > 0 ? 'border-2 border-slate-900 bg-teal-600 dark:border-slate-200'
+                        : studied ? 'border-2 border-slate-900 bg-teal-200 dark:border-slate-200'
+                        : isToday ? 'border-2 border-dashed border-orange-500 bg-orange-50 dark:bg-orange-950/30'
+                        : future ? 'border-2 border-dashed border-slate-200 opacity-60 dark:border-slate-700'
+                        : 'border-2 border-dashed border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800/50'
                     }`}
-                    title={`${day.label} (${formatVnDate(day.date).slice(0, 5)}): ${isStudied ? 'Đã học' : isCurrentDay ? 'Hôm nay' : 'Chưa học'}`}
-                  >
-                    {day.label}
-                  </div>
-                );
-              })}
-            </div>
+                    style={{ height: minutes > 0 ? `${Math.max(8, (minutes / peakMinutes) * 72)}%` : '22px' }}
+                  />
+                  <span className={`text-xs font-extrabold ${isToday ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-slate-400'}`}>{isToday ? 'Nay' : day.label}</span>
+                  <span className="sr-only">{label}</span>
+                </div>
+              );
+            })}
           </div>
-        </div>
+          <div className="mt-4 flex items-center gap-3 text-sm font-bold text-slate-600 dark:text-slate-300">
+            <span className="shrink-0">Mục tiêu {dailyGoal} phút/ngày</span>
+            <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div data-plan-progress className="h-full rounded-full bg-teal-600 transition-all duration-700 ease-out" style={{ width: `${weekPercent}%` }} />
+            </div>
+            <span className="shrink-0 tabular-nums text-slate-900 dark:text-white">{weekPercent}%</span>
+          </div>
+        </section>
 
-      </div>
-
-      {/* ================= 4. DANH SÁCH MỤC TIÊU SMART (LINEAR / STRIPE STYLE) ================= */}
-      <div className={`${CARD} overflow-hidden !p-0`}>
-        {/* Header với Tiêu đề, Filter Tabs, Nút Sao chép tuần trước & Thêm mục tiêu */}
-        <div className="p-4 sm:p-5 border-b-2 border-slate-900/10 dark:border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
-              Việc Cần Làm Tuần Này
-              <span
-                className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                title={`${summary.completedTasks} trên ${summary.totalTasks} mục tiêu đã hoàn thành`}
-              >
-                {summary.completedTasks}/{summary.totalTasks}
-              </span>
+        {/* Khung nhiệm vụ cố định 6 ô: gợi ý và nút thêm nằm trong ô trống, nên chiều cao không đổi khi thêm/xóa */}
+        <section aria-labelledby="plan-tasks-title" className="flex flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#111A2C]">
+          <div className="flex items-center justify-between gap-2 border-b-2 border-slate-900 px-4 py-3 dark:border-slate-300">
+            <h2 id="plan-tasks-title" className="text-base font-black text-slate-900 dark:text-white">
+              Nhiệm vụ <span className="ml-1 text-sm font-bold text-slate-500 dark:text-slate-400">{summary.completedTasks}/{summary.totalTasks} xong</span>
             </h2>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Bộ lọc trạng thái: Tất cả / Cần làm / Đã xong */}
-            {summary.tasks.length > 0 && (
-              <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
-                {(['ALL', 'INCOMPLETE', 'COMPLETED'] as const).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setTaskFilter(tab)}
-                    aria-pressed={taskFilter === tab}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      taskFilter === tab
-                        ? 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
-                    }`}
-                  >
-                    {tab === 'ALL' && `Tất cả (${summary.tasks.length})`}
-                    {tab === 'INCOMPLETE' && `Cần làm (${summary.tasks.filter(t => !t.isComplete).length})`}
-                    {tab === 'COMPLETED' && `Đã xong (${summary.tasks.filter(t => t.isComplete).length})`}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Nút Sao chép từ tuần trước nếu tuần trước có mục tiêu */}
-            {canCopyPrevWeek && (
-              <button
-                type="button"
-                onClick={handleCopyPrevWeek}
-                disabled={isWipLimitReached}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-black transition ${
-                  isWipLimitReached
-                    ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                    : 'border-slate-900 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-white shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer'
-                }`}
-                title={isWipLimitReached ? 'Đã đạt giới hạn 6 mục tiêu đang làm' : 'Sao chép các mục tiêu từ tuần trước sang tuần này'}
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sao chép tuần trước ({prevWeekTasks.length})</span>
-                <span className="sm:hidden">Sao chép ({prevWeekTasks.length})</span>
-              </button>
-            )}
-
-            {/* Nút Thêm mục tiêu */}
-            <button
-              onClick={handleOpenAddModal}
-              aria-haspopup="dialog"
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border-2 text-xs font-black transition ${
-                isWipLimitReached
-                  ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer'
-                  : 'border-slate-900 bg-indigo-600 hover:bg-indigo-700 text-white shadow-[1.5px_1.5px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer'
-              }`}
-              title={isWipLimitReached ? 'Đã đạt tối đa 6 việc cần làm. Hãy hoàn thành bớt mục tiêu để thêm mới!' : 'Thêm mục tiêu tuần'}
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Thêm mục tiêu {isWipLimitReached ? '(6/6)' : ''}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Thông báo giới hạn WIP Limit & Hoàn thành 100% */}
-        {(isWipLimitReached || is100Percent) && (
-          <div className="p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200/80 dark:border-slate-800">
-            {isWipLimitReached && (
-              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200 text-xs font-semibold flex items-center justify-between gap-3 animate-fade-in">
-                <div className="flex items-center gap-2.5">
-                  <Pin className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" aria-hidden="true" />
-                  <p>
-                    <strong>Đã đạt tối đa 6 việc cần làm:</strong> Để giữ sự tập trung cao nhất (WIP Limit), hãy hoàn thành bớt các mục tiêu hiện tại trước khi tạo thêm nhé!
-                  </p>
-                </div>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-100 font-black text-[11px] shrink-0 border border-amber-300 dark:border-amber-700">
-                  6/6 Đang làm
-                </span>
-              </div>
-            )}
-
-            {is100Percent && (
-              <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3 animate-fade-in">
-                <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-black text-emerald-950 dark:text-emerald-100">
-                    Xuất sắc! Bạn đã hoàn thành 100% mục tiêu tuần này!
-                  </p>
-                  <p className="text-[11px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                    Toàn bộ {summary.totalTasks}/{summary.totalTasks} mục tiêu SMART đã cán đích. Hãy giữ vững phong độ đỉnh cao này nhé!
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-lg bg-emerald-500 text-white font-black text-xs shrink-0">
-                  100% Hoàn Thành
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Danh sách mục tiêu hoặc Trạng thái trống */}
-        {summary.tasks.length === 0 ? (
-          <div className="p-8 sm:p-12 text-center space-y-3">
-            <Target className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
-            <div className="space-y-1">
-              <p className="text-sm font-black text-slate-800 dark:text-slate-200">
-                Chưa có mục tiêu nào trong tuần này
-              </p>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                Hãy tạo 2-3 mục tiêu vừa sức (ví dụ: làm 1 đề, học 200 phút, luyện Part 5) để có định hướng ôn luyện rõ ràng.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+            <div className="flex items-center gap-1.5">
               {canCopyPrevWeek && (
-                <button
-                  onClick={handleCopyPrevWeek}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-slate-900 bg-white dark:bg-slate-800 text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] hover:bg-slate-50 transition cursor-pointer"
-                >
-                  <Copy className="w-4 h-4" />
-                  Sao chép {prevWeekTasks.length} mục tiêu tuần trước
+                <button type="button" onClick={handleCopyPrevWeek} disabled={isWipLimitReached}
+                  title={isWipLimitReached ? 'Đã đạt giới hạn 6 mục tiêu đang làm' : 'Sao chép các mục tiêu từ tuần trước sang tuần này'}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-white px-2.5 py-1 text-xs font-black text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 dark:border-slate-300 dark:bg-slate-900 dark:text-white">
+                  <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                  Sao chép tuần trước ({prevWeekTasks.length})
                 </button>
               )}
-              <button
-                onClick={handleOpenAddModal}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-slate-900 bg-indigo-600 text-white text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] hover:bg-indigo-700 transition cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Thiết lập mục tiêu tuần
-              </button>
+              {emptySlots === 0 && !showDone && (
+                <button type="button" onClick={handleOpenAddModal} aria-haspopup="dialog"
+                  title={isWipLimitReached ? 'Đã đạt tối đa 6 việc cần làm. Hãy hoàn thành bớt mục tiêu để thêm mới!' : 'Thêm mục tiêu tuần'}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-slate-900 bg-white px-2.5 py-1 text-xs font-black text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:bg-slate-900 dark:text-white">
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Thêm mục tiêu{isWipLimitReached ? ' (6/6)' : ''}</span>
+                </button>
+              )}
             </div>
           </div>
-        ) : filteredTasks.length === 0 ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-500 space-y-2.5">
-            <p>Không có mục tiêu nào phù hợp với bộ lọc đã chọn.</p>
-            <button type="button" onClick={() => setTaskFilter('ALL')} className="inline-flex items-center px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-              Xem tất cả mục tiêu ({summary.tasks.length})
-            </button>
-          </div>
-        ) : (
-          <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-900/60 space-y-2 sm:space-y-2.5">
-            {taskFilter === 'ALL' ? (
-              <>
-                {incompleteTasks.map(renderTask)}
-                {completedTasks.length > 0 && (
-                  <details key={selectedWeek} data-completed-goals className="group/completed">
-                    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-1 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white [&::-webkit-details-marker]:hidden">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                      Đã hoàn thành ({completedTasks.length})
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-open/completed:rotate-180" aria-hidden="true" />
-                    </summary>
-                    <div className="mt-2 space-y-2 sm:space-y-2.5">{completedTasks.map(renderTask)}</div>
-                  </details>
-                )}
-              </>
-            ) : filteredTasks.map(renderTask)}
 
-            {!isWipLimitReached && taskFilter !== 'COMPLETED' && summary.tasks.length > 0 && availableQuickPresets.length > 0 && (
-              <div className="pt-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  💡 Thêm nhanh mục tiêu:
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {availableQuickPresets.map(preset => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => handleQuickPresetChip(preset.id)}
-                      className="border border-dashed border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 hover:border-indigo-400 text-xs font-bold text-slate-600 dark:text-slate-300 px-3 py-1 rounded-lg transition cursor-pointer"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
+          <div className="h-[408px] overflow-y-auto">
+            {(showDone ? completedTasks : orderedTasks).map(renderTask)}
+            {showDone && completedTasks.length === 0 && <p className="px-4 py-6 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">Chưa có việc nào xong tuần này.</p>}
+            {Array.from({ length: emptySlots }, (_, slot) => {
+              const showSuggestion = Boolean(suggestion) && slot === 0;
+              const addSlot = slot === (suggestion ? 1 : 0);
+              const rowClass = 'flex h-[68px] items-center gap-3 border-t border-slate-200 px-4 dark:border-slate-700';
+              if (showSuggestion && suggestion) return (
+                <div key="suggestion" className={`${rowClass} bg-orange-50 dark:bg-orange-950/25 ${orderedTasks.length === 0 ? 'border-t-0' : ''}`}>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-orange-200 text-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">
+                    <Lightbulb className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-extrabold text-slate-900 dark:text-white">Gợi ý: {suggestion.title}</p>
+                    <p className="truncate text-xs font-semibold text-orange-800 dark:text-orange-300" title={suggestion.reason}>{suggestion.reason}</p>
+                  </div>
+                  <button type="button" onClick={handleAddRecommendation}
+                    className="shrink-0 cursor-pointer whitespace-nowrap rounded-lg border-2 border-slate-900 bg-orange-500 px-3 py-1.5 text-xs font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
+                    + Thêm
+                  </button>
                 </div>
-              </div>
-            )}
+              );
+              if (addSlot) return (
+                <div key="add" className={`${rowClass} ${orderedTasks.length === 0 && !suggestion ? 'border-t-0' : ''}`}>
+                  <button type="button" onClick={handleOpenAddModal} aria-haspopup="dialog" title="Thêm mục tiêu tuần"
+                    className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-400 text-sm font-extrabold text-slate-600 transition hover:border-slate-900 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-300 dark:hover:text-white">
+                    <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                    <span>Thêm mục tiêu</span>
+                  </button>
+                </div>
+              );
+              return (
+                <div key={`empty-${slot}`} aria-hidden="true" className={rowClass}>
+                  <div className="h-11 w-full rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800" />
+                </div>
+              );
+            })}
           </div>
-        )}
+          {(
+            <button type="button" onClick={() => setShowDone(current => !current)} aria-expanded={showDone} disabled={!showDone && completedTasks.length === 0}
+              className="mt-auto flex min-h-11 w-full cursor-pointer items-center gap-2 disabled:cursor-default disabled:text-slate-400 disabled:hover:bg-transparent border-t-2 border-slate-900 px-4 text-sm font-extrabold text-slate-700 hover:bg-slate-50 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800/60">
+              {showDone
+                ? <><ChevronLeft className="h-4 w-4" aria-hidden="true" />Quay lại việc đang làm ({incompleteTasks.length})</>
+                : <><Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" strokeWidth={3} aria-hidden="true" />Đã xong ({completedTasks.length})<ChevronRight className="ml-auto h-4 w-4" aria-hidden="true" /></>}
+            </button>
+          )}
+        </section>
       </div>
 
       {isModalOpen && <PlanTaskModal editing={Boolean(editingTaskId)} weekLabel={`Tuần ${formatVnDate(summary.weekStart)} – ${formatVnDate(summary.weekEnd)}`} value={{ title: taskTitle, type: taskType, target: taskTarget, unit: taskUnit, part: taskPart, notes: taskNotes, color: taskColor }} colors={TASK_COLOR_OPTIONS} error={saveError} onClose={closeTaskModal} onSubmit={handleSaveModal} onPreset={applyQuickPreset} onChange={(patch: Partial<PlanTaskDraft>) => {
