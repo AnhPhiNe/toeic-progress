@@ -12,6 +12,10 @@
   outline-offset: 3px;
 }
 
+@keyframes streak-today {
+  50% { transform: scale(1.1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .overview-dashboard, .overview-dashboard * {
     animation: none !important;

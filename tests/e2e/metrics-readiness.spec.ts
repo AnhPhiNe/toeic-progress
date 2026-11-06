@@ -17,16 +17,16 @@ async function seed(page: Page, fields: Record<string, unknown> = {}) {
 test('official scaled-only scores keep raw counts unknown and skill buttons expose selection', async ({ page }) => {
   await seed(page);
   await page.getByRole('button', { name: /Xem chi tiết Listening/ }).click();
-  const modal = page.getByRole('dialog', { name: /Chi tiết Kỹ năng/ });
+  const modal = page.getByRole('dialog', { name: /^Chi tiết (Listening|Reading):/ });
   await expect(modal.getByTestId('skill-correct')).toHaveText('Chưa ghi');
   await expect(modal.getByTestId('skill-accuracy')).toHaveText('—');
-  const listening = modal.getByRole('button', { name: '🎧 Listening (Part 1–4)', exact: true });
-  const reading = modal.getByRole('button', { name: '📖 Reading (Part 5–7)', exact: true });
-  await expect(listening).toHaveAttribute('aria-pressed', 'true');
-  await expect(reading).toHaveAttribute('aria-pressed', 'false');
+  const listening = modal.getByRole('tab', { name: /^Listening/ });
+  const reading = modal.getByRole('tab', { name: /^Reading/ });
+  await expect(listening).toHaveAttribute('aria-selected', 'true');
+  await expect(reading).toHaveAttribute('aria-selected', 'false');
   await reading.click();
-  await expect(reading).toHaveAttribute('aria-pressed', 'true');
-  await expect(listening).toHaveAttribute('aria-pressed', 'false');
+  await expect(reading).toHaveAttribute('aria-selected', 'true');
+  await expect(listening).toHaveAttribute('aria-selected', 'false');
   await expect(modal.getByTestId('skill-correct')).toHaveText('Chưa ghi');
   await expect(modal.getByTestId('skill-accuracy')).toHaveText('—');
 });
@@ -34,10 +34,10 @@ test('official scaled-only scores keep raw counts unknown and skill buttons expo
 test('partial Parts do not invent a skill total while explicit raw zero stays visible', async ({ page }) => {
   await seed(page, { partScores: { part1: 6 }, rawReading: 0 });
   await page.getByRole('button', { name: /Xem chi tiết Listening/ }).click();
-  const modal = page.getByRole('dialog', { name: /Chi tiết Kỹ năng/ });
+  const modal = page.getByRole('dialog', { name: /^Chi tiết (Listening|Reading):/ });
   await expect(modal.getByTestId('skill-correct')).toHaveText('Chưa ghi');
   await expect(modal.getByText('6 / 6 câu · 100%', { exact: true })).toBeVisible();
-  await modal.getByRole('button', { name: '📖 Reading (Part 5–7)', exact: true }).click();
+  await modal.getByRole('tab', { name: /^Reading/ }).click();
   await expect(modal.getByTestId('skill-correct')).toHaveText('0/100');
   await expect(modal.getByTestId('skill-accuracy')).toHaveText('0.0%');
 });

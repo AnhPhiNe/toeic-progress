@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tổng quan viền Neo</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;--bg:#F8FAFC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#D9DEE5;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .variant{margin:24px auto;max-width:1440px}
+  .label{font-size:22px;font-weight:800;margin:0 0 4px 4px}
+  .label small{display:block;font-size:14px;font-weight:500;color:#475569;margin-top:2px}
+  .frame{display:grid;grid-template-columns:232px 1fr;background:var(--bg);border-radius:14px;overflow:hidden;border:1px solid #CBD5E1}
+
+  /* sidebar */
+  .side{background:#fff;border-right:2px solid var(--ink);padding:18px 14px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:16px;margin-bottom:22px}
+  .brand i{width:34px;height:34px;border-radius:10px;background:#2563EB;border:2px solid var(--ink);display:block}
+  .grp{font-size:11px;font-weight:800;color:#94A3B8;letter-spacing:.06em;margin:16px 8px 6px}
+  .nav{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:600;color:#334155}
+  .nav.on{background:#EFF6FF;color:#1D4ED8;font-weight:800;border:2px solid var(--ink)}
+  .nav b{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#F59E0B;color:var(--ink);font-size:12px;font-weight:900;display:grid;place-items:center;border:1.5px solid var(--ink)}
+  .nav s{width:16px;height:16px;border-radius:4px;background:#CBD5E1;text-decoration:none;flex:none}
+  .nav.on s{background:#93C5FD}
+
+  .main{padding:22px 28px 28px}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .top h1{font-size:24px;font-weight:900;margin:0;flex:1}
+  .btn{font:inherit;font-size:14px;font-weight:800;padding:10px 16px;border-radius:12px;border:2px solid var(--ink);background:#fff}
+  .btn.pri{background:#2563EB;color:#fff;box-shadow:3px 3px 0 var(--ink)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr 1.25fr;gap:18px;align-items:stretch}
+  .card{background:#fff;border-radius:18px}
+  .kpi{padding:18px 20px}
+  .kpi .h{display:flex;justify-content:space-between;align-items:center}
+  .tag{font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:7px;letter-spacing:.03em}
+  .num{font-size:44px;font-weight:900;letter-spacing:-.03em;line-height:1;margin:14px 0 0}
+  .num small{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:4px}
+  .kpi p{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:13px;font-weight:600}
+
+  .streak{padding:18px 20px}
+  .streak .h{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
+  .streak .h em{margin-left:auto;font-style:normal;font-size:13px;font-weight:800;background:#FEF3C7;padding:3px 10px;border-radius:999px}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;text-align:center;font-size:11.5px;font-weight:700;color:var(--muted)}
+  .week i{display:block;height:36px;margin-top:5px;border-radius:9px;background:#F1F5F9}
+  .week .now{color:#D97706}.week .now i{background:#FFFBEB;outline:1.5px dashed #F59E0B}
+
+  .chart{grid-column:1/4;padding:18px 20px}
+  .chart .h{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px}
+  .seg{display:flex;gap:2px;padding:3px;background:#F1F5F9;border-radius:9px;font-size:12px;font-weight:700}
+  .seg span{padding:4px 10px;border-radius:7px;color:var(--muted)}.seg .on{background:var(--ink);color:#fff}
+  svg{display:block;width:100%;height:auto;margin-top:8px}
+
+  .score{grid-column:4;grid-row:2;padding:18px 20px;display:flex;flex-direction:column}
+  .score .cap{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+  .score h4{margin:8px 0 0;font-size:17px;font-weight:800}
+  .big{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+  .big b{font-size:58px;font-weight:900;letter-spacing:-.04em;line-height:1}
+  .big span{color:var(--muted);font-weight:600}
+  .big em{margin-left:auto;white-space:nowrap;font-style:normal;font-size:12.5px;font-weight:800;color:#BE123C;background:#FFF1F2;padding:3px 8px;border-radius:7px}
+  .goal{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;margin-top:16px}
+  .goal span{color:#C2410C}
+  .bar{height:10px;border-radius:99px;background:#E2E8F0;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:87%;background:#2563EB;border-radius:99px}
+  .lr{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .lr div{border-radius:14px;padding:12px 14px}
+  .lr small{font-size:12px;font-weight:800;letter-spacing:.04em}
+  .lr b{display:block;white-space:nowrap;font-size:30px;font-weight:900;margin-top:4px}
+  .lr b span{font-size:12px;color:var(--muted);font-weight:600}
+  .more{margin-top:auto;padding-top:16px}
+  .more .btn{width:100%;color:#4338CA;text-align:center}
+
+  /* ===== A: Neo đủ ===== */
+  .A .card{border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+  .A .lr div{border:2px solid var(--ink)}
+  .A .more .btn{box-shadow:3px 3px 0 var(--ink)}
+  /* ===== B: Neo nhẹ ===== */
+  .B .card{border:2px solid var(--ink)}
+  .B .card.hero{box-shadow:3px 3px 0 var(--ink)}
+  .B .lr div{border:1.5px solid #CBD5E1}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const week=['T2','T3','T4','T5','T6','T7','CN'].map((d,i)=>`<div class="${i===4?'now':''}">${d}<i></i></div>`).join('');
+const pts=[825,870,920,910,930,960,935,935,935,865], dates=['15/08','22/08','02/09','08/09','10/09','13/09','20/10','23/10','23/10','23/10'];
+const W=760,H=300,x=i=>50+i*(W-80)/9,y=v=>20+(990-v)*(H-50)/190;
+const line=pts.map((v,i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ');
+const chart=`<svg viewBox="0 0 ${W} ${H}">
+ ${[990,950,900,850,800].map(v=>`<line x1="44" x2="${W-20}" y1="${y(v)}" y2="${y(v)}" stroke="#E2E8F0" ${v===990?'stroke-dasharray="5 4" stroke="#93C5FD"':''}/><text x="8" y="${y(v)+4}" font-size="12" fill="#64748B">${v}</text>`).join('')}
+ <path d="${line} L${x(9)},${y(800)} L${x(0)},${y(800)} Z" fill="#DBEAFE" opacity=".55"/>
+ <path d="${line}" fill="none" stroke="#2563EB" stroke-width="2.5"/>
+ ${pts.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="${i===9?6:4}" fill="${i===9?'#2563EB':'#fff'}" stroke="#2563EB" stroke-width="2"/><text x="${x(i)}" y="${y(v)-11}" font-size="12" font-weight="800" text-anchor="middle">${v}</text>`).join('')}
+ ${dates.map((d,i)=>`<text x="${x(i)}" y="${H-4}" font-size="11.5" fill="#64748B" text-anchor="middle">${d}</text>`).join('')}
+</svg>`;
+const kpi=(tag,tc,side,num,unit,foot)=>`<div class="card kpi hero"><div class="h"><span class="tag" style="${tc}">${tag}</span><span class="tag" style="${tc}">${side}</span></div><div class="num" style="color:${tc.match(/color:([^;]+)/)[1]}">${num}<small>${unit}</small></div><p>${foot}</p></div>`;
+const page=(v,title,sub)=>`<section class="variant ${v}"><p class="label">${title}<small>${sub}</small></p>
+<div class="frame"><aside class="side"><div class="brand"><i></i>TOEIC Progress</div>
+<div class="grp">HÀNH TRÌNH</div><div class="nav on"><s></s>Tổng quan</div><div class="nav"><s></s>Kế hoạch</div><div class="nav"><s></s>Đồng hồ phòng thi</div>
+<div class="grp">ĐO LƯỜNG &amp; CHẨN ĐOÁN</div><div class="nav"><s></s>Lịch sử thi</div><div class="nav"><s></s>Phân tích điểm</div><div class="nav"><s></s>Sổ tay<b title="4 câu Reading chưa ghi chi tiết">4</b></div><div class="nav"><s></s>Từ vựng</div><div class="nav"><s></s>Quy đổi điểm</div></aside>
+<main class="main"><div class="top"><h1>Tổng quan</h1><button class="btn">Ghi lỗi sai</button><button class="btn pri">+ Ghi điểm</button></div>
+<div class="grid">
+${kpi('KỶ LỤC','background:#FEF3C7;color:#B45309','Thiếu 30đ','960','/990đ','ETS 2024 Test 04')}
+${kpi('TRUNG BÌNH','background:#DBEAFE;color:#1D4ED8','10 đề','909','/990đ','Dải phong độ: 825đ → 960đ')}
+${kpi('SO VỚI BÀI ĐẦU','background:#D1FAE5;color:#047857','Bứt phá','+40','điểm','Từ bài đầu: 825đ → 865đ')}
+<div class="card streak"><div class="h">🔥 Chuỗi ngày học<em>0 ngày</em></div><div class="week">${week}</div></div>
+<div class="card chart"><div class="h">Tiến bộ qua từng bài thi<div class="seg"><span class="on">Tất cả</span><span>Lần đầu</span></div></div>${chart}</div>
+<div class="card score hero"><span class="cap">KẾT QUẢ GẦN NHẤT · 23/10</span><h4>hihihi</h4><div class="big"><b>865</b><span>/990</span><em>▼ 70 so với lần trước</em></div>
+<div class="goal">Mục tiêu 990<span>còn 125 điểm</span></div><div class="bar"><i></i></div>
+<div class="lr"><div style="background:#EEF2FF"><small style="color:#4338CA">LISTENING</small><b>405 <span>/495</span></b></div><div style="background:#ECFDF5"><small style="color:#047857">READING</small><b>460 <span>/495</span></b></div></div>
+<div class="more"><button class="btn">Xem 7 Part chi tiết →</button></div></div>
+</div></main></div></section>`;
+document.getElementById('out').innerHTML=
+ page('A','A · Neo đủ','Mọi thẻ viền đen + bóng đổ 4px, kể cả ô Listening/Reading và nút phụ.')+
+ page('B','B · Neo nhẹ (tớ đề xuất)','Mọi thẻ viền đen 2px. Bóng đổ chỉ ở 3 thẻ chỉ số, thẻ điểm 865 và nút Ghi điểm. Biểu đồ, Chuỗi học không bóng.');
+</script>
+</body>
+</html>

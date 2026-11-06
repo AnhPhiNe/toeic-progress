@@ -28,6 +28,8 @@ interface ScoreReportProps {
   newRecord: boolean;
   /** Computer: a roomier card, about the height of the old latest-test card */
   roomy?: boolean;
+  /** Grid placement on the computer overview. */
+  className?: string;
   children?: ReactNode;
   onOpenListening?: () => void;
   onOpenReading?: () => void;
@@ -47,6 +49,7 @@ export function ScoreReportCard({
   targetScore,
   newRecord,
   roomy,
+  className = '',
   children,
   onOpenListening,
   onOpenReading
@@ -64,9 +67,10 @@ export function ScoreReportCard({
   return (
     <section
       aria-labelledby="score-report-title"
-      className="relative overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1]"
+      className={`relative flex flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] ${className}`}
     >
-      <div className={roomy ? 'px-5 pt-4 pb-3' : 'px-4 sm:px-5 pt-4 pb-3.5'}>
+      {/* Computer: when the row is taller than the content, the spare height goes between header, total and goal, not into one gap. */}
+      <div className={roomy ? 'flex flex-1 flex-col justify-around px-5 pt-4 pb-3' : 'px-4 sm:px-5 pt-4 pb-3.5'}>
         {/* Header phân tầng: Metadata (Ngày + Kỷ lục) ở trên, Tên đề rộng rãi 100% ở dưới */}
         <div className="mb-2">
           <div className="flex items-center justify-between gap-2">

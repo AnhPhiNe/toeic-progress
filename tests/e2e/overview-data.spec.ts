@@ -69,6 +69,6 @@ test('weekly study days include vocabulary and measured practice but not shield 
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await expect(page.getByText('3/7', { exact: true })).toBeVisible();
-  await expect(page.getByText('Chưa học hôm nay', { exact: true })).toBeVisible();
+  const week = page.getByRole('group', { name: /^Chuỗi học/ });
+  for (const day of ['T2: đã học', 'T3: đã học', 'T4: đã học', 'T5: khiên giữ chuỗi', 'T6: hôm nay, chưa học']) await expect(week.getByText(day, { exact: true })).toBeAttached();
 });

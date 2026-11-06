@@ -75,29 +75,29 @@ test('clicking Listening or Reading card opens skill detail modal and allows swi
 
   // Chạm vào thẻ Listening
   await page.getByRole('button', { name: /Xem chi tiết Listening/ }).click();
-  const modal = page.getByRole('dialog', { name: /Chi tiết Kỹ năng/ });
+  const modal = page.getByRole('dialog', { name: /^Chi tiết (Listening|Reading):/ });
   await expect(modal).toBeVisible();
-  await expect(modal.getByText('Chi tiết Kỹ năng Listening')).toBeVisible();
+  await expect(modal.getByRole('tab', { name: /^Listening/ })).toHaveAttribute('aria-selected', 'true');
   await expect(modal.getByText('Part 1 · Mô tả tranh')).toBeVisible();
   await expect(modal.getByText('6 / 6 câu · 100%')).toBeVisible();
   await expect(modal.getByText('Part 4 · Bài nói ngắn')).toBeVisible();
   await expect(modal.getByText('28 / 30 câu · 93%')).toBeVisible();
 
   // Chuyển tab sang Reading
-  await modal.getByRole('button', { name: '📖 Reading (Part 5–7)', exact: true }).click();
-  await expect(modal.getByText('Chi tiết Kỹ năng Reading')).toBeVisible();
+  await modal.getByRole('tab', { name: /^Reading/ }).click();
+  await expect(modal.getByRole('tab', { name: /^Reading/ })).toHaveAttribute('aria-selected', 'true');
   await expect(modal.getByText('Part 5 · Hoàn thành câu')).toBeVisible();
   await expect(modal.getByText('29 / 30 câu · 97%')).toBeVisible();
   await expect(modal.getByText('Part 7 · Đoạn đơn & đôi/ba')).toBeVisible();
 
   // Đóng modal
-  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await modal.getByRole('button', { name: 'Đóng chi tiết kỹ năng', exact: true }).click();
   await expect(modal).toHaveCount(0);
 
   // Chạm vào thẻ Reading trực tiếp
   await page.getByRole('button', { name: /Xem chi tiết Reading/ }).click();
   await expect(modal).toBeVisible();
-  await expect(modal.getByText('Chi tiết Kỹ năng Reading')).toBeVisible();
+  await expect(modal.getByRole('tab', { name: /^Reading/ })).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Escape');
   await expect(modal).toHaveCount(0);
 });

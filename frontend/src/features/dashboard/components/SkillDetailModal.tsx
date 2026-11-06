@@ -4,7 +4,7 @@ import { Headphones, BookOpen, X } from 'lucide-react';
 import type { StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { ContainerScrollCue } from '@/shared/components/ScrollCue';
-import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL, PHONE_SHEET_FOOTER } from '@/shared/ui/surfaces';
+import { PHONE_SHEET_BACKDROP, PHONE_SHEET_PANEL } from '@/shared/ui/surfaces';
 import { PART_MAX_QUESTIONS, getPracticeParts } from '@/shared/domain/etsScoring';
 import { triggerHaptic } from '@/shared/lib/haptics';
 import { skillSummary } from '../lib/skillSummary';
@@ -92,81 +92,68 @@ export function SkillDetailModal({
         ref={ref}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="skill-detail-title"
+        aria-label={`Chi tiết ${isListening ? 'Listening' : 'Reading'}: ${session.testName || 'Bài thi'}`}
         className={`flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-slate-900 shadow-[4px_4px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:text-slate-100 dark:shadow-[4px_4px_0_0_#cbd5e1] animate-sheet-up sm:animate-modal-pop ${PHONE_SHEET_PANEL}`}
       >
-        {/* Header Modal */}
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-slate-900 px-4 py-3.5 sm:px-5 bg-slate-50 dark:bg-[#162137]">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:shadow-none text-white ${
-                isListening ? 'bg-indigo-600' : 'bg-teal-600'
-              }`}
-            >
-              {isListening ? (
-                <Headphones className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-              ) : (
-                <BookOpen className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-              )}
-            </span>
-            <div className="min-w-0">
-              <h3 id="skill-detail-title" className="text-[15px] font-black leading-tight truncate">
-                Chi tiết Kỹ năng {isListening ? 'Listening' : 'Reading'}
-              </h3>
-              <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
-                {session.testName || 'Bài thi'} · {session.date}
-              </p>
-            </div>
+        {/* Header: the test, not the skill — the tabs below say which skill is shown */}
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-slate-900 bg-slate-50 px-4 py-3.5 sm:px-5 dark:border-slate-300 dark:bg-[#162137]">
+          <div className="min-w-0">
+            <h3 id="skill-detail-title" className="truncate text-base font-black leading-tight">
+              {session.testName || 'Bài thi'}
+            </h3>
+            <p className="mt-0.5 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {session.date.split('-').reverse().join('/')} · {isFull ? 'Full Test' : 'Luyện Part'}
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng chi tiết kỹ năng"
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200/80 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-200/80 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
 
-        {/* Thanh gạt chuyển đổi kỹ năng (Segmented Switch) */}
-        <div className="p-3 bg-slate-50 border-b border-slate-200 dark:border-slate-800 dark:bg-slate-900/60 shrink-0">
-          <div className="grid grid-cols-2 gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl">
-            <button
-              type="button"
-              onClick={() => handleSkillChange('listening')}
-              aria-pressed={isListening}
-              className={`py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
-                isListening
-                  ? 'bg-white text-indigo-900 shadow-xs border border-slate-300 dark:bg-[#162137] dark:text-indigo-300 dark:border-slate-700'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-              }`}
-            >
-              🎧 Listening (Part 1–4)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSkillChange('reading')}
-              aria-pressed={!isListening}
-              className={`py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
-                !isListening
-                  ? 'bg-white text-teal-900 shadow-xs border border-slate-300 dark:bg-[#162137] dark:text-teal-300 dark:border-slate-700'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-              }`}
-            >
-              📖 Reading (Part 5–7)
-            </button>
-          </div>
+        {/* Neo tabs: black frame, the chosen skill filled with its colour */}
+        <div role="tablist" aria-label="Kỹ năng" className="mx-4 mt-4 grid shrink-0 grid-cols-2 overflow-hidden rounded-xl border-2 border-slate-900 sm:mx-5 dark:border-slate-300">
+          {(['listening', 'reading'] as const).map(key => {
+            const selected = skill === key;
+            const Icon = key === 'listening' ? Headphones : BookOpen;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => handleSkillChange(key)}
+                className={`flex min-h-10 cursor-pointer items-center justify-center gap-2 text-[13.5px] font-extrabold transition-colors ${
+                  key === 'reading' ? 'border-l-2 border-slate-900 dark:border-slate-300 ' : ''
+                }${
+                  selected
+                    ? key === 'listening' ? 'bg-indigo-600 text-white' : 'bg-teal-600 text-white'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#111A2C] dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                {key === 'listening' ? 'Listening' : 'Reading'}
+                <span className={`text-xs font-semibold ${selected ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                  {key === 'listening' ? 'P1–4' : 'P5–7'}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Thân cuộn Modal */}
         <div className="relative min-h-0 flex-1 flex flex-col">
-          <div ref={bodyRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+          <div ref={bodyRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5 max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {/* Khối KPI 3 chỉ số (Neo-Brutalist cao cấp) */}
             <div className="rounded-xl border-2 border-slate-900 bg-white shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#162137] dark:shadow-none overflow-hidden">
               <div className="grid grid-cols-3 divide-x-2 divide-slate-900 dark:divide-slate-700 py-3">
                 <div className="text-center px-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Điểm quy đổi
+                    Điểm
                   </span>
                   <p
                     className={`text-xl font-black mt-0.5 tabular-nums ${
@@ -200,11 +187,11 @@ export function SkillDetailModal({
             {/* Danh sách Part (Bỏ card, thanh progress trực quan liền mạch) */}
             <div className="space-y-4 pt-1">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                  Chi tiết {partData.length} Part {isListening ? 'Nghe' : 'Đọc'}
+                <h4 className="text-[13px] font-black text-slate-900 dark:text-slate-100">
+                  {partData.length} Part {isListening ? 'nghe' : 'đọc'}
                 </h4>
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  {isFull ? 'Thang 100 câu' : 'Số câu thực tế'}
+                  {partData.some(p => p.correct !== undefined && p.percent < 65) ? 'Part dưới 65% tô cam' : isFull ? '' : 'Số câu thực tế'}
                 </span>
               </div>
 
@@ -255,27 +242,6 @@ export function SkillDetailModal({
           <ContainerScrollCue containerRef={bodyRef} />
         </div>
 
-        {/* Footer Modal */}
-        <footer
-          className={`flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5 dark:border-slate-800 ${PHONE_SHEET_FOOTER}`}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-10 cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
-          >
-            Đóng
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSkillChange(isListening ? 'reading' : 'listening')}
-            className={`min-h-10 cursor-pointer rounded-xl border-2 border-slate-900 px-4 py-2 text-xs font-black text-white shadow-[2px_2px_0_0_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all ${
-              isListening ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-teal-600 hover:bg-teal-500'
-            }`}
-          >
-            Chuyển xem {isListening ? 'Reading (Part 5–7) ›' : 'Listening (Part 1–4) ›'}
-          </button>
-        </footer>
       </div>
     </div>,
     document.body

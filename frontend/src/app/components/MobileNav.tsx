@@ -27,6 +27,8 @@ interface MobileNavProps {
   activeTab: NavTabId;
   setActiveTab: (tab: NavTabId) => void;
   dueMistakesCount: number;
+  /** Reading questions of logged tests still waiting for details; shown as a quiet amber dot. */
+  unfinishedDetailsCount?: number;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onOpenSettings: () => void;
@@ -46,7 +48,7 @@ const MORE_PAGES: Array<{ id: NavTabId; label: string; icon: React.ElementType }
 ];
 
 /** Phone-only navigation: four destinations and one "+" that gathers every way to record study. */
-export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, toggleTheme, onOpenSettings, onRecordSession, onRecordMistake, onRecordVocab }: MobileNavProps) {
+export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, unfinishedDetailsCount = 0, theme, toggleTheme, onOpenSettings, onRecordSession, onRecordMistake, onRecordVocab }: MobileNavProps) {
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
 
@@ -78,8 +80,13 @@ export function MobileNav({ activeTab, setActiveTab, dueMistakesCount, theme, to
       <div className="grid h-16 grid-cols-5">
         {navItem('Tổng quan', LayoutDashboard, activeTab === 'dashboard', () => go('dashboard'))}
         {navItem('Ôn tập', BookOpen, activeTab === 'mistakes' || activeTab === 'vocabulary', () => go('mistakes'),
-          dueMistakesCount > 0 && <span className="absolute left-1/2 top-1.5 ml-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white tabular-nums" aria-hidden="true">{dueMistakesCount}</span>,
-          dueMistakesCount > 0 ? { 'aria-label': `Ôn tập, ${dueMistakesCount} câu cần ôn` } : undefined)}
+          <>
+            {dueMistakesCount > 0 && <span className="absolute left-1/2 top-1.5 ml-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white tabular-nums" aria-hidden="true">{dueMistakesCount}</span>}
+            {unfinishedDetailsCount > 0 && <span className="absolute left-1/2 top-1.5 -ml-6 h-2.5 w-2.5 rounded-full border-[1.5px] border-slate-900 bg-amber-400 dark:border-slate-200" aria-hidden="true" />}
+          </>,
+          dueMistakesCount > 0 || unfinishedDetailsCount > 0
+            ? { 'aria-label': ['Ôn tập', dueMistakesCount > 0 && `${dueMistakesCount} câu cần ôn`, unfinishedDetailsCount > 0 && `${unfinishedDetailsCount} câu chưa ghi chi tiết`].filter(Boolean).join(', ') }
+            : undefined)}
         <div className="flex items-center justify-center">
           <button type="button" onClick={() => { triggerHaptic(8); setSheet('record'); }} aria-label="Ghi lại kết quả học" aria-haspopup="dialog"
             className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-900 bg-blue-600 text-white shadow-[2px_2px_0_0_#0f172a] outline-none active:scale-95 transition-transform duration-100 active:translate-x-px active:translate-y-px active:shadow-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-slate-200 dark:shadow-none cursor-pointer">

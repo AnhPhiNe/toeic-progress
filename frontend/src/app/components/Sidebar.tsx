@@ -20,6 +20,8 @@ export interface SidebarProps {
   setActiveTab: (tab: NavTabId) => void;
   profile: UserProfile;
   pendingMistakesCount: number;
+  /** Reading questions of logged tests still waiting for details; shown as a quiet amber dot on Sổ tay. */
+  unfinishedDetailsCount?: number;
   sessions?: StudySession[];
   hasStudiedToday?: boolean;
   onOpenSettings: () => void;
@@ -31,6 +33,7 @@ interface NavItem {
   fullLabel: string;
   icon: React.ElementType;
   badge?: number;
+  pending?: number;
 }
 
 const navButton =
@@ -41,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   profile,
   pendingMistakesCount,
+  unfinishedDetailsCount = 0,
   onOpenSettings
 }) => {
   // Phones (<768px) navigate with MobileNav; this sidebar starts at tablet width.
@@ -107,7 +111,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Sổ tay',
           fullLabel: 'Sổ tay',
           icon: BookOpen,
-          badge: pendingMistakesCount > 0 ? pendingMistakesCount : undefined
+          badge: pendingMistakesCount > 0 ? pendingMistakesCount : undefined,
+          pending: unfinishedDetailsCount > 0 ? unfinishedDetailsCount : undefined
         },
         { id: 'vocabulary', label: 'Từ vựng', fullLabel: 'Từ vựng', icon: BookMarked },
         { id: 'resources', label: 'Quy đổi điểm', fullLabel: 'Quy đổi điểm', icon: Calculator }
@@ -170,9 +175,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             : ' text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-2 hover:border-slate-900/40 dark:hover:border-slate-600 font-bold border-2 border-transparent')
                         }
                         aria-label={item.fullLabel}
+                        aria-describedby={item.pending ? `nav-pending-${item.id}` : undefined}
                         aria-current={active ? 'page' : undefined}
-                        title={compact ? item.fullLabel : undefined}
+                        title={item.pending ? `${item.pending} câu Reading chưa ghi chi tiết` : compact ? item.fullLabel : undefined}
                       >
+                        {item.pending !== undefined && <>
+                          <span className={'absolute h-2.5 w-2.5 rounded-full border-[1.5px] border-slate-900 bg-amber-400 dark:border-slate-200 ' + (compact ? 'left-1.5 top-1' : 'left-2 top-1.5')} aria-hidden="true" />
+                          <span id={`nav-pending-${item.id}`} className="sr-only">{item.pending} câu Reading chưa ghi chi tiết</span>
+                        </>}
                         <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all ' + (active ? 'bg-indigo-600 text-white border border-slate-900 dark:border-slate-700 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-950 dark:group-hover:text-white')}>
                           <Icon size={17} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
                         </span>

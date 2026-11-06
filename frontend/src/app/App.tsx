@@ -7,6 +7,7 @@ import { profileInitials } from '@/app/components/profileInitials';
 import { StreakCelebration, StreakChip } from '@/app/components/StreakChip';
 import { actualStudyDates } from '@/shared/domain/streak';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
+import { unfinishedDetailCount } from '@/features/dashboard/lib/unfinishedDetails';
 import { AnalyticsView } from '@/features/analytics/components/AnalyticsView';
 import { ExamHistoryView } from '@/features/study-sessions/components/ExamHistoryView';
 import { MistakeNotebookView } from '@/features/mistakes/components/MistakeNotebookView';
@@ -426,6 +427,7 @@ export const App: React.FC = () => {
 
   // Badge điều hướng chỉ việc cần làm HÔM NAY, không phải toàn bộ tồn đọng
   const dueMistakesCount = getDueMistakes(mistakes).length;
+  const unfinishedDetails = unfinishedDetailCount(sessions, mistakes);
   const today = getTodayDateString();
   const studiedDates = actualStudyDates({ sessions, vocabLog, pacingRuns: loadPacingRuns() }, today);
   const hasStudiedToday = studiedDates.has(today) || sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
@@ -439,6 +441,7 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
         profile={profile}
         pendingMistakesCount={dueMistakesCount}
+        unfinishedDetailsCount={unfinishedDetails}
         sessions={sessions}
         hasStudiedToday={hasStudiedToday}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
@@ -491,7 +494,7 @@ export const App: React.FC = () => {
                 onStartReview={openReview}
                 onNavigateToPacing={navigateToPacing}
                 mistakes={mistakes}
-                onResumeDetails={openSessionDrafts}
+                onNavigateToPlan={() => setActiveTab('plan')}
               />
             </div>
           )}
@@ -606,6 +609,7 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         dueMistakesCount={dueMistakesCount}
+        unfinishedDetailsCount={unfinishedDetails}
         theme={theme}
         toggleTheme={toggleTheme}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
