@@ -26,24 +26,25 @@ test('overview preserves the original layout with only the requested label and c
     await page.setViewportSize({ width, height: 850 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px`).toBe(true);
   }
+  // Cards keep their natural height: the chart matches the latest-score card and nothing stretches with the window.
+  const rowBottoms = () => page.locator('[data-overview-grid]').evaluate(grid => {
+    const card = grid.querySelector('[aria-labelledby="score-report-title"]')!.getBoundingClientRect();
+    const chart = grid.querySelector('.recharts-responsive-container')!.closest('[class*="xl:col-span-8"]')!.getBoundingClientRect();
+    return { height: Math.round(card.height), gap: Math.abs(card.bottom - chart.bottom) };
+  });
+  let first = 0;
   for (const height of [730, 850, 1080]) {
     await page.setViewportSize({ width: 1440, height });
-    await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => Math.abs(grid.getBoundingClientRect().bottom - (innerHeight - 29)))).toBeLessThan(3);
-    // The chart column fills the screen; the score report keeps its own height and never runs past it.
-    const columns = await page.locator('[data-overview-grid]').evaluate(grid => Array.from(grid.children).map(column => column.lastElementChild!.getBoundingClientRect().bottom));
-    expect(columns[1]).toBeLessThanOrEqual(columns[0] + 2);
+    const measured = await rowBottoms();
+    expect(measured.gap, `${height}px tall`).toBeLessThan(3);
+    first ||= measured.height;
+    expect(measured.height).toBe(first);
   }
   await page.setViewportSize({ width: 1280, height: 730 });
-  await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => Math.abs(grid.getBoundingClientRect().bottom - (innerHeight - 29)))).toBeLessThan(3);
   await page.evaluate(() => { document.documentElement.style.zoom = '125%'; });
-  await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => {
-    const columns = Array.from(grid.children).map(column => column.lastElementChild!.getBoundingClientRect().bottom);
-    return columns[1] - columns[0];
-  })).toBeLessThan(2);
+  await expect.poll(async () => (await rowBottoms()).gap).toBeLessThan(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.evaluate(() => { document.documentElement.style.zoom = ''; });
-  await page.setViewportSize({ width: 375, height: 812 });
-  await expect.poll(async () => page.locator('[data-overview-grid]').evaluate(grid => (grid as HTMLElement).style.minHeight)).toBe('');
   await page.setViewportSize({ width: 1440, height: 850 });
   await page.screenshot({ path: testInfo.outputPath('overview-original-cleanup.png'), fullPage: true, animations: 'disabled' });
   await page.evaluate(() => {

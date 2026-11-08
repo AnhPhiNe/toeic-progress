@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   Target,
@@ -89,39 +89,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
   const [desktopSkillModal, setDesktopSkillModal] = useState<'listening' | 'reading' | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    const main = grid.closest('main');
-    const media = window.matchMedia('(min-width: 1280px)');
-    const resize = () => {
-      if (!media.matches) {
-        grid.style.minHeight = '';
-        return;
-      }
-      const bounds = grid.getBoundingClientRect();
-      // DOM rectangles include CSS zoom; min-height uses layout pixels.
-      const scale = grid.offsetWidth > 0 ? bounds.width / grid.offsetWidth : 1;
-      const bottomPadding = main ? parseFloat(getComputedStyle(main).paddingBottom) : 24;
-      const available = (window.innerHeight - bounds.top) / scale - bottomPadding - 5;
-      const height = `${Math.max(0, Math.floor(available))}px`;
-      if (grid.style.minHeight !== height) grid.style.minHeight = height;
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(grid);
-    if (main) observer.observe(main);
-    if (grid.parentElement?.parentElement) observer.observe(grid.parentElement.parentElement);
-    window.addEventListener('resize', resize);
-    media.addEventListener('change', resize);
-    resize();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', resize);
-      media.removeEventListener('change', resize);
-    };
-  }, []);
 
   const studiedDates = useMemo(() => actualStudyDates({ sessions, vocabLog, pacingRuns }, today), [sessions, vocabLog, pacingRuns, today]);
 
@@ -327,7 +295,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }
       }}
     >
-      <div ref={gridRef} data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 xl:grid-rows-[auto_1fr] gap-4 sm:gap-5 xl:gap-6 items-stretch">
+      <div data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 xl:grid-rows-[auto_auto] gap-4 sm:gap-5 xl:gap-6 items-stretch">
 
         {/* ================= CỘT TRÁI (3 KPI & Biểu đồ tiến độ) ================= */}
         <div className="flex flex-col gap-4 sm:gap-5 min-w-0 xl:contents">

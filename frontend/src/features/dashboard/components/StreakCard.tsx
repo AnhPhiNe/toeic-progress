@@ -58,20 +58,27 @@ export function StreakCard({ streak, longestStreak, studiedDates, shieldDates, t
 
   return (
     <div role="group" aria-label={`Chuỗi học ${streak} ngày`}
-      className={`flex flex-col justify-center ${className} rounded-2xl border-2 border-slate-900 bg-orange-50 px-4 py-3 2xl:px-5 2xl:py-4 dark:border-slate-200 dark:bg-orange-950/25 ${atRisk ? 'shadow-[3px_3px_0_0_#0f172a] dark:shadow-[3px_3px_0_0_#cbd5e1]' : ''}`}>
-      <div className="flex items-center gap-2.5">
+      className={`flex flex-col justify-center ${className} rounded-2xl border-2 border-slate-900 bg-orange-50 px-5 py-4 dark:border-slate-200 dark:bg-orange-950/25 ${atRisk ? 'shadow-[3px_3px_0_0_#0f172a] dark:shadow-[3px_3px_0_0_#cbd5e1]' : ''}`}>
+      <div className="flex items-center gap-3.5">
         <Flame aria-hidden="true" strokeWidth={1.5}
-          className={`h-10 w-10 -ml-1 shrink-0 ${hot ? 'fill-orange-500 text-slate-900 dark:text-slate-100' : 'fill-slate-200 text-slate-300 dark:fill-slate-700 dark:text-slate-600'}`} />
-        <p className="flex min-w-0 items-baseline gap-1.5">
-          <span className={`text-4xl font-black leading-none tabular-nums tracking-tight ${hot ? 'text-slate-950 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>{streak}</span>
-          <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">ngày liên tiếp</span>
-        </p>
-        <p className="ml-auto text-right text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Kỷ lục<span className="block text-sm font-extrabold text-slate-900 dark:text-white">{Math.max(longestStreak, streak)} ngày</span>
-        </p>
+          className={`h-12 w-12 -ml-1 shrink-0 ${hot ? 'fill-orange-500 text-slate-900 dark:text-slate-100' : 'fill-slate-200 text-slate-300 dark:fill-slate-700 dark:text-slate-600'}`} />
+        <div className="min-w-0">
+          <p className="flex items-baseline gap-2">
+            <span className={`text-4xl font-black leading-none tabular-nums tracking-tight ${hot ? 'text-slate-950 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>{streak}</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">ngày liên tiếp</span>
+          </p>
+          <p className="mt-1.5 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+            {perfect ? <span className="font-extrabold text-orange-700 dark:text-orange-300">Tuần hoàn hảo! </span> : null}Kỷ lục <b className="font-extrabold text-slate-900 dark:text-white">{Math.max(longestStreak, streak)} ngày</b>
+          </p>
+        </div>
+        {/* The reminder is the button itself: it appears only when there is no streak or it is at risk */}
+        {reminder && onStart && <button type="button" onClick={onStart} title={reminder.text}
+          className="ml-auto shrink-0 cursor-pointer whitespace-nowrap rounded-[10px] border-2 border-slate-900 bg-orange-500 px-3 py-1.5 text-xs font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
+          {reminder.action}<span className="sr-only">: {reminder.text}</span>
+        </button>}
       </div>
 
-      <div className="mt-3 grid grid-cols-7 gap-y-1 text-center">
+      <div className="mt-4 grid grid-cols-7 gap-y-1 text-center">
         {perfect ? (
           <div className="col-span-7 grid h-8 grid-cols-7 place-items-center rounded-full border-2 border-slate-900 bg-orange-500 text-white dark:border-slate-200" aria-label="Học đủ 7 ngày tuần này">
             {days.map((day, index) => day === 'shield'
@@ -94,16 +101,6 @@ export function StreakCard({ streak, longestStreak, studiedDates, shieldDates, t
         ))}
       </div>
 
-      {perfect && <p className="mt-2 text-sm font-extrabold text-orange-700 dark:text-orange-300">Tuần hoàn hảo: học đủ 7 ngày!</p>}
-      {reminder && (
-        <div className={`mt-2.5 flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold bg-white/80 dark:bg-slate-900/50`}>
-          <span className="min-w-0 flex-1 text-balance text-slate-800 dark:text-slate-200">{reminder.text}</span>
-          {onStart && <button type="button" onClick={onStart}
-            className="shrink-0 cursor-pointer whitespace-nowrap rounded-[10px] border-2 border-slate-900 bg-orange-500 px-3 py-1.5 text-xs font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-200 dark:shadow-none">
-            {reminder.action}
-          </button>}
-        </div>
-      )}
     </div>
   );
 }
