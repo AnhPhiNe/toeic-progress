@@ -88,6 +88,37 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
   const hasMarks = wrong.length > 0;
   const aiFirst = !manualOpen;
+  const shownTotal = isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—';
+  const shownL = isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—';
+  const shownR = isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—';
+  const mostWrong = Math.max(0, ...PART_NUMBERS.map(part => byPart[part].length));
+  // AI-first summary: a plain table (label, value) with the wrong questions per Part in one aligned row; no pills.
+  const summaryTable = (
+    <div className="text-left">
+      <div className="mb-1 flex items-center justify-between text-[12px] font-black text-emerald-700 dark:text-emerald-300">
+        <span>{isOfficial ? '✓ Điểm từ đề thi' : '✓ Kết quả đã nhận'}</span>
+        <span className="font-bold text-slate-500 dark:text-slate-400">Kiểm tra rồi bấm Lưu</span>
+      </div>
+      <div className="grid min-h-[48px] grid-cols-[96px_1fr] items-center border-b border-slate-200 dark:border-slate-700">
+        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">Điểm</span>
+        <span className="text-[22px] font-black tabular-nums text-slate-950 dark:text-white">{shownTotal}
+          <span className="ml-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400">L {shownL} · R {shownR}</span>
+        </span>
+      </div>
+      <div className="grid min-h-[48px] grid-cols-[96px_1fr] items-center">
+        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">Câu sai</span>
+        <span className="text-[18px] font-black tabular-nums text-slate-950 dark:text-white">{wrong.length} câu</span>
+      </div>
+      <div className="mb-1 grid grid-cols-7 overflow-hidden rounded-[10px] border-[1.5px] border-slate-300 dark:border-slate-600" role="group" aria-label="Câu sai theo Part">
+        {PART_NUMBERS.map(part => (
+          <div key={part} className="border-l border-slate-200 py-1.5 text-center first:border-l-0 dark:border-slate-700">
+            <small className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">P{part}</small>
+            <b className={'block text-[16px] font-black tabular-nums ' + (byPart[part].length > 0 && byPart[part].length === mostWrong ? 'text-amber-700 dark:text-amber-300' : 'text-slate-950 dark:text-white')}>{byPart[part].length}</b>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   return (
     <div className={manualOpen ? 'grid gap-6 lg:grid-cols-[1fr_276px]' : 'mx-auto grid w-full max-w-[560px] gap-3'}>
       {/* Kept mounted (just hidden) so the image reader and its drafts survive switching views */}
@@ -111,7 +142,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           onInitialFilesHandled={onInitialFilesHandled}
           desktop
           dropzone={aiFirst}
-          scoreCard={aiFirst && !hasMarks && !isOfficial ? undefined :
+          scoreCard={aiFirst ? (hasMarks || isOfficial ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
                 isOfficial ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
