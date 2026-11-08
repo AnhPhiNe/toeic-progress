@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 
 async function seed(page: Page, fields: Record<string, unknown> = {}) {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -67,6 +68,7 @@ test('logging a first result updates the mounted phone summary without a hook-or
   if (await chooser.isVisible()) await chooser.getByRole('button', { name: /^Điểm đề thi/ }).click();
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.locator('#session-test-name').fill('First phone result');
+  await openManualEntry(page, form);
   await form.getByRole('button', { name: 'Câu 3', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Kết quả gần nhất' })).toContainText('First phone result');

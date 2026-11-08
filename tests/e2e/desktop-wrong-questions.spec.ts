@@ -11,6 +11,7 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.locator('#session-test-name').fill('ETS Desktop');
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
+  await form.getByRole('button', { name: /^Nhập tay/ }).click();
 
   // All 200 questions fit on one screen without scrolling the form.
   await expect(form.getByRole('button', { name: 'Câu 200', exact: true })).toBeInViewport();
@@ -60,6 +61,7 @@ test('a computer can still log per-Part counts or an official score', async ({ p
   await page.goto('/lich-su');
   await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await form.getByRole('button', { name: /^Nhập tay/ }).click();
   await form.getByRole('button', { name: 'Câu 5', exact: true }).click();
   await form.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true }).click();
   // The marks carry over as counts.

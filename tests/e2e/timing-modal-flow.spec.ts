@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 
 for (const width of [390, 1280]) {
   test(`actual Part time records only known values, preserves decimals, and isolates Escape at ${width}px`, async ({ page }) => {
@@ -12,6 +13,7 @@ for (const width of [390, 1280]) {
     } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
     const form = page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
     await form.locator('#session-test-name').fill('QA actual Part time');
+    await openManualEntry(page, form);
     // Record an actual wrong answer so saving does not invoke the separate
     // 990-point confirmation (Playwright dismisses unhandled native dialogs).
     await form.getByRole('button', { name: 'Câu 3', exact: true }).click();

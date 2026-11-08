@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 import { resolve } from 'node:path';
 
 async function openForm(page: Page, width: number) {
@@ -8,7 +9,9 @@ async function openForm(page: Page, width: number) {
     await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
     await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
   } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-  return page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await openManualEntry(page, form);
+  return form;
 }
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions);
 const allNull = { totalSeconds: null, listeningSeconds: null, readingSeconds: null, parts: { part1: null, part2: null, part3: null, part4: null, part5: null, part6: null, part7: null } };

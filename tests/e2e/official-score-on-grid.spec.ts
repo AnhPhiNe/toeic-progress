@@ -16,6 +16,7 @@ test('entering official score stays on the 200-question grid and saves directly'
 
   // Test name
   await form.locator('#session-test-name').fill('Test Lưu Điểm Trực Tiếp');
+  await form.getByRole('button', { name: /^Nhập tay/ }).click();
 
   // Click "+ Nhập ›" on "Điểm từ đề thi"
   const enterScoreBtn = form.getByRole('button', { name: /Điểm từ đề thi/i });

@@ -97,6 +97,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
   const [manualViewOverride, setManualViewOverride] = useState(false);
+  // Computer Full Test opens on the paste-an-image view; editing an existing test or restoring typed marks opens the manual tools.
+  const [fullTestManual, setFullTestManual] = useState(() => Boolean(editingSession));
   const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
   const [resultTiming, setResultTiming] = useState<ConfirmedResultTiming | null>(null);
   const [timingCandidate, setTimingCandidate] = useState<TimingCandidate | null>(null);
@@ -292,6 +294,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setEntry(e?.partScores && !e.wrongQuestions && !markWrong ? 'counts' : 'wrong');
     setManualViewOverride(Boolean(e && !markWrong && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
+    setFullTestManual(Boolean(e));
     setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
     setPartDurations(e?.partDurations);
     setResultTiming(e?.resultTiming ?? null); setTimingCandidate(null);
@@ -352,6 +355,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
       setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
       setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
+      setFullTestManual(value.wrongQuestions.length > 0 || value.wrongNumberDraft.typing);
       setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
       setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
       setRestoredVersion(version => version + 1);
@@ -575,7 +579,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone ? 'max-w-[1100px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
         <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
@@ -751,7 +755,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           )}
 
           {wrongEntry && (
-            <DesktopFullTestBody key={restoredVersion} wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
+            <DesktopFullTestBody key={restoredVersion} manualOpen={fullTestManual} onManualOpenChange={setFullTestManual}
+              wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
               onTiming={readImageTiming}
               initialFiles={pendingInitialFiles}
               onInitialFilesHandled={() => setPendingInitialFiles(undefined)}

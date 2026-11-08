@@ -33,13 +33,17 @@ interface Props {
   onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
   initialFiles?: File[];
   onInitialFilesHandled?: () => void;
+  /** false = AI-first view (paste a result image); true = the manual tools (200-question grid, typed numbers, scores). */
+  manualOpen: boolean;
+  onManualOpenChange: (open: boolean) => void;
 }
 
 /**
- * Computer Full Test: all 200 questions on one screen; clicking a number marks it wrong.
+ * Computer Full Test. By default one large area to paste the result screenshot; "Nhập tay" opens the
+ * manual tools: all 200 questions on one screen, where clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange }: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -83,9 +87,11 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
   );
 
   const hasMarks = wrong.length > 0;
+  const aiFirst = !manualOpen;
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_276px]">
-      <div className="min-w-0 overflow-x-auto [scrollbar-gutter:stable] pb-2">
+    <div className={manualOpen ? 'grid gap-6 lg:grid-cols-[1fr_276px]' : 'mx-auto grid w-full max-w-[560px] gap-3'}>
+      {/* Kept mounted (just hidden) so the image reader and its drafts survive switching views */}
+      <div className={manualOpen ? 'min-w-0 overflow-x-auto [scrollbar-gutter:stable] pb-2' : 'hidden'}>
         <div className="flex flex-nowrap gap-x-6 items-start">
           {section('Listening', PART_NUMBERS.filter(listening))}
           {section('Reading', PART_NUMBERS.filter(part => !listening(part)))}
@@ -93,12 +99,19 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
       </div>
 
       <div className="flex flex-col gap-2.5 max-lg:order-first">
+        {manualOpen && (
+          <button type="button" onClick={() => onManualOpenChange(false)}
+            className="w-fit cursor-pointer text-[13px] font-black text-indigo-700 hover:underline dark:text-indigo-300">
+            ‹ Quay lại dán ảnh
+          </button>
+        )}
         <ResultImageButton
           onTiming={onTiming}
           initialFiles={initialFiles}
           onInitialFilesHandled={onInitialFilesHandled}
           desktop
-          scoreCard={
+          dropzone={aiFirst}
+          scoreCard={aiFirst && !hasMarks && !isOfficial ? undefined :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
                 isOfficial ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
@@ -188,8 +201,21 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           }
         />
 
+        {aiFirst && (
+          <div className="flex items-center justify-between text-[13px] font-black">
+            <button type="button" onClick={() => onManualOpenChange(true)}
+              className="cursor-pointer text-indigo-700 hover:underline dark:text-indigo-300">
+              Nhập tay: chạm câu sai, gõ số câu, nhập điểm ›
+            </button>
+            <button type="button" onClick={() => setShowNotes(prev => !prev)} aria-label={showNotes ? 'Đóng ghi chú' : 'Thêm ghi chú'}
+              className="cursor-pointer text-slate-600 hover:underline dark:text-slate-300">
+              {notes.trim() ? 'Có ghi chú' : 'Ghi chú'}
+            </button>
+          </div>
+        )}
+
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+        <div className={'rounded-xl border border-slate-200 bg-slate-50/70 p-2 items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400 ' + (manualOpen ? 'flex' : 'hidden')}>
           <button
             type="button"
             onClick={() => setShowNotes(prev => !prev)}

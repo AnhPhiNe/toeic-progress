@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 import { resolve } from 'node:path';
 import { chooseNoteSource } from './helpers/noteSource';
 
@@ -18,6 +19,7 @@ for (const width of [390, 1280]) {
     await page.evaluate(() => localStorage.setItem('toeic_onboarding_done_v1', 'true')); await page.reload();
     let form = await openResult(page, width < 768);
     await form.locator('#session-test-name').fill('QA durable result');
+    await openManualEntry(page, form);
     if (width < 768) await form.getByRole('button', { name: 'Part 5', exact: true }).click();
     await form.getByRole('button', { name: 'Câu 107', exact: true }).click();
     await expect.poll(() => draftRecords(page)).toContainEqual(expect.objectContaining({ scope: 'session:new', value: expect.objectContaining({ testName: 'QA durable result', wrongQuestions: [107] }) }));
@@ -58,6 +60,7 @@ test('a failed result save retains its durable draft and a later successful retr
   await page.goto('/lich-su'); await page.evaluate(() => localStorage.setItem('toeic_onboarding_done_v1', 'true')); await page.reload();
   let form = await openResult(page);
   await form.locator('#session-test-name').fill('QA failed draft save');
+  await openManualEntry(page, form);
   await form.getByRole('button', { name: 'Câu 107', exact: true }).click();
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;

@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 
 async function expectFocusWithin(page: Page, dialog: Locator, steps = 16) {
   for (let index = 0; index < steps; index++) {
@@ -64,6 +65,7 @@ for (const width of [390, 1280]) {
     } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
     const form = page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/, includeHidden: true });
     await form.locator('#session-test-name').fill('QA modal score');
+    await openManualEntry(page, form);
     const wrong = form.getByRole('button', { name: 'Câu 3', exact: true, includeHidden: true });
     await wrong.scrollIntoViewIfNeeded();
     await wrong.evaluate(node => { (window as unknown as { qaGridClicks: number }).qaGridClicks = 0; node.addEventListener('click', () => (window as unknown as { qaGridClicks: number }).qaGridClicks++); });

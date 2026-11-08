@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 import { resolve } from 'node:path';
 
 async function delayedResults(page: Page) {
@@ -27,7 +28,9 @@ async function openForm(page: Page, navigate = true) {
     await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
     await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
   }
-  return page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
+  const form = page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
+  await openManualEntry(page, form);
+  return form;
 }
 
 async function finish(page: Page) {
