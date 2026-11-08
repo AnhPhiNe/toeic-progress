@@ -233,7 +233,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const hasDiff = Boolean(stats && stats.totalTests > 1);
   const latestTotal = latestTest ? (latestTest.totalScore || (listeningScore ?? 0) + (readingScore ?? 0)) : 0;
   const previousTotal = allChartData.length > 1 ? allChartData[allChartData.length - 2].total : undefined;
-  const highestPercent = targetScore > 0 ? Math.min(100, Math.round(((highestScore || 0) / targetScore) * 100)) : 0;
 
   const weakestPart = useMemo(() => {
     if (!latestTest?.partScores) return 7;
@@ -337,14 +336,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-950/20 bg-amber-300 text-slate-950 shadow-2xs cursor-default"
                   title={`${toeicTier.tier} (${toeicTier.rank})`}
                 >
-                  KỶ LỤC 🏆
-                </span>
-                <span className="text-[10px] sm:text-[10.5px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-amber-300/40">
-                  {pointsRemaining === 0 && (highestScore || 0) > 0
-                    ? 'Đạt đích 🎯'
-                    : pointsRemaining > 0
-                    ? `Thiếu ${pointsRemaining}đ`
-                    : `${highestPercent}% Đích`}
+                  KỶ LỤC
                 </span>
               </div>
 
@@ -367,9 +359,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Footer: Tên đề kỷ lục trọn vẹn, thoáng đãng */}
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+              <div className="text-[11px]">
                 <span className="truncate block text-slate-900 dark:text-slate-100 font-bold" title={bestTest?.testName || 'Chưa có bài thi'}>
                   {bestTest?.testName || 'Chưa có bài thi'}
+                  {bestTest && (highestScore || 0) > 0 && (
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">
+                      {pointsRemaining > 0 ? ` · thiếu ${pointsRemaining}đ` : pointsRemaining === 0 ? ' · đạt mục tiêu' : ''}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -379,13 +376,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {/* Top Bar: Trung bình Badge bên trái, Tổng số đề bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <span className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
-                  TRUNG BÌNH 📊
-                </span>
-                <span
-                  className="text-[10px] sm:text-[10.5px] font-black text-blue-700 dark:text-blue-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-sky-300/40"
-                  title="Tổng số bài thi đã hoàn thành"
-                >
-                  {stats ? `${stats.totalTests} Đề Thi` : '0 Đề'}
+                  TRUNG BÌNH
                 </span>
               </div>
 
@@ -408,9 +399,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Footer: Dải phong độ Min -> Max */}
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-                <span className="truncate block text-slate-700 dark:text-slate-300 font-bold" title={stats ? `Dải phong độ: ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}>
-                  {stats ? `Dải phong độ: ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}
+              <div className="text-[11px]">
+                <span className="truncate block text-slate-700 dark:text-slate-300 font-bold" title={stats ? `${stats.totalTests} đề · dải phong độ ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}>
+                  {stats ? `${stats.totalTests} đề · ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}
                 </span>
               </div>
             </div>
@@ -429,17 +420,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     : 'bg-sky-200 text-slate-950 border-sky-950/20'
                 }`}>
                   SO VỚI BÀI ĐẦU
-                </span>
-                <span className={`text-[10px] sm:text-[10.5px] font-black px-1.5 py-0.5 rounded-md whitespace-nowrap border ${
-                  !hasDiff
-                    ? 'text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                    : diff > 0
-                    ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300/50'
-                    : diff < 0
-                    ? 'text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/60 border-rose-300/50'
-                    : 'text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-950/60 border-sky-300/50'
-                }`}>
-                  {!hasDiff ? 'Chờ thi' : diff > 0 ? 'Bứt phá 🚀' : diff < 0 ? 'Cần ôn ⚠️' : 'Giữ vững 🎯'}
                 </span>
               </div>
 
@@ -484,7 +464,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Footer: Điểm đầu ➔ cuối trọn vẹn */}
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+              <div className="text-[11px]">
                 <span className="truncate block text-slate-900 dark:text-slate-100 font-bold">
                   {hasDiff && stats
                     ? `Từ bài đầu: ${stats.first.total}đ ➔ ${stats.latest.total}đ`
