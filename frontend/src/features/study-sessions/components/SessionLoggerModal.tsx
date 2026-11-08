@@ -99,6 +99,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualViewOverride, setManualViewOverride] = useState(false);
   // Computer Full Test opens on the paste-an-image view; editing an existing test or restoring typed marks opens the manual tools.
   const [fullTestManual, setFullTestManual] = useState(() => Boolean(editingSession));
+  // Computer Full Test: date and duration stay folded away until asked for, so the form opens on the name and the paste area.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
   const [resultTiming, setResultTiming] = useState<ConfirmedResultTiming | null>(null);
   const [timingCandidate, setTimingCandidate] = useState<TimingCandidate | null>(null);
@@ -295,6 +297,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setManualViewOverride(Boolean(e && !markWrong && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
     setFullTestManual(Boolean(e));
+    setDetailsOpen(false);
     setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
     setPartDurations(e?.partDurations);
     setResultTiming(e?.resultTiming ?? null); setTimingCandidate(null);
@@ -371,6 +374,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   if (!isOpen) return null;
 
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
+  // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
+  const compactTop = sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && !detailsOpen;
+  const durationBlank = sessionType === 'FULL_TEST' && !isPhone && !isEditing && !durationEdited;
   const typedWrongParsed = wrongEntry && wrongNumberDraft.typing ? parseQuestionList(wrongNumberDraft.text) : null;
   const activeWrongQuestions = typedWrongParsed && !typedWrongParsed.invalid.length ? typedWrongParsed.questions : wrongQuestions;
   const effectiveParts = wrongEntry ? partScoresFromWrong(activeWrongQuestions) : partScores;
@@ -462,7 +468,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
       if (sessionType === 'FULL_TEST') {
         let finalTiming = resultTiming;
-        let finalDuration = Number(durationMinutes) || 120;
+        // A computer Full Test whose duration was never typed, read from an image or edited is saved as "not recorded" (0),
+        // not as the 120-minute placeholder: that number was never the learner's real time and would count as study minutes.
+        const durationUnknown = !isPhone && !isEditing && !durationEditedRef.current;
+        let finalDuration = durationUnknown ? 0 : Number(durationMinutes) || 120;
         let finalPartDurations = partDurations;
         if (timingCandidate) {
           const parsedTiming: ResultImageTiming = {
@@ -700,7 +709,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {sessionType !== 'VOCAB' && !isPhone && (<>
           {/* General Info Row */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-            <div className="sm:col-span-6">
+            <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
               <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Tên Đề Thi / Nguồn
                 {sessionType === 'PART_PRACTICE' && (
@@ -710,7 +719,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <TestNamePicker id="session-test-name" label="Tên Đề Thi / Nguồn" required={sessionType === 'FULL_TEST'}
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
-            <div className="sm:col-span-3">
+            <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
               <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
               <input
                 id="session-date"
@@ -721,7 +730,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
-            <div className="sm:col-span-3">
+            <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
               <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Làm (Phút)</label>
               <input
                 id="session-duration"
@@ -729,13 +738,21 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 min="0.01"
                 max="1440"
                 step="any"
-                required
-                value={durationMinutes}
+                required={!durationBlank}
+                placeholder={durationBlank ? 'Chưa ghi' : undefined}
+                value={durationBlank ? '' : durationMinutes}
                 onChange={e => changeDurationMinutes(Number(e.target.value))}
                 className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
           </div>
+
+          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (
+            <button type="button" onClick={() => setDetailsOpen(open => !open)} aria-expanded={detailsOpen}
+              className="-mt-1 w-fit cursor-pointer text-[13px] font-black text-slate-600 hover:underline dark:text-slate-300">
+              {detailsOpen ? 'Ẩn chi tiết ▴' : 'Thêm chi tiết: ngày, thời lượng ▾'}
+            </button>
+          )}
 
           {/* Smart Retest Detection Alert */}
           {isExistingTest && (
