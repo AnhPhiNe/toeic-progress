@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 
 interface PageScrollCueProps {
   /** Re-checks scrollability when the active tab or view changes */
@@ -11,6 +12,7 @@ interface PageScrollCueProps {
  * Automatically disappears once the user begins scrolling, or after a brief timeout.
  */
 export function PageScrollCue({ activeTab }: PageScrollCueProps) {
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -66,7 +68,8 @@ export function PageScrollCue({ activeTab }: PageScrollCueProps) {
     return () => clearTimeout(fadeTimer);
   }, [visible]);
 
-  if (!visible) return null;
+  // Phones only: a computer screen already shows that the page continues, and the cue covered content there.
+  if (!visible || !isPhone) return null;
 
   const handleScrollDown = () => {
     setVisible(false);
@@ -113,6 +116,7 @@ export function ContainerScrollCue({
   label = 'Còn nội dung bên dưới',
   resetKey
 }: ContainerScrollCueProps) {
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
@@ -138,7 +142,7 @@ export function ContainerScrollCue({
     };
   }, [containerRef, resetKey]);
 
-  if (!hasMore) return null;
+  if (!hasMore || !isPhone) return null;
 
   const handleScroll = () => {
     const el = containerRef.current;

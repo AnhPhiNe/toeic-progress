@@ -593,31 +593,26 @@ export const PlanView: React.FC<PlanViewProps> = ({
     <div className="plan-view space-y-5 animate-fade-in pb-10">
       {saveError && !isModalOpen && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{saveError}</p>}
 
-      {/* Tiêu đề + chọn tuần: "Tuần này" chỉ nằm ở nút chọn tuần */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Kế hoạch tuần</h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
-            {formatVnDate(summary.weekStart)} – {formatVnDate(summary.weekEnd)}
-            {!summary.isCurrentWeek && (
-              <button type="button" onClick={handleCurrentWeek} className="ml-2 cursor-pointer font-bold text-blue-600 hover:underline dark:text-blue-400">
-                Về tuần này
-              </button>
-            )}
-          </p>
-        </div>
-        <div className="inline-flex items-stretch overflow-hidden rounded-xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-slate-900">
-          <button type="button" onClick={handlePrevWeek} title="Tuần trước" aria-label="Tuần trước"
-            className="flex w-10 cursor-pointer items-center justify-center border-r-2 border-slate-900 text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800">
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <span className="flex items-center px-3.5 text-sm font-extrabold text-slate-900 dark:text-white">
-            {summary.isCurrentWeek ? 'Tuần này' : `${formatVnDate(summary.weekStart).slice(0, 5)} – ${formatVnDate(summary.weekEnd).slice(0, 5)}`}
-          </span>
-          <button type="button" onClick={handleNextWeek} title="Tuần sau" aria-label="Tuần sau"
-            className="flex w-10 cursor-pointer items-center justify-center border-l-2 border-slate-900 text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800">
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </button>
+      {/* Tiêu đề, dưới là chọn tuần: ngày nằm giữa hai mũi tên nên chỉ hiện một lần */}
+      <div>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Kế hoạch tuần</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-stretch overflow-hidden rounded-xl border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-slate-900">
+            <button type="button" onClick={handlePrevWeek} title="Tuần trước" aria-label="Tuần trước"
+              className="flex w-9 cursor-pointer items-center justify-center border-r-2 border-slate-900 text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <span className="flex min-h-9 items-center px-3 text-sm font-extrabold tabular-nums text-slate-900 dark:text-white">
+              {formatVnDate(summary.weekStart).slice(0, 5)} – {formatVnDate(summary.weekEnd)}
+            </span>
+            <button type="button" onClick={handleNextWeek} title="Tuần sau" aria-label="Tuần sau"
+              className="flex w-9 cursor-pointer items-center justify-center border-l-2 border-slate-900 text-slate-800 hover:bg-slate-100 dark:border-slate-300 dark:text-slate-200 dark:hover:bg-slate-800">
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          {summary.isCurrentWeek
+            ? <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-extrabold text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">Tuần này</span>
+            : <button type="button" onClick={handleCurrentWeek} className="cursor-pointer text-sm font-bold text-blue-600 hover:underline dark:text-blue-400">Về tuần này</button>}
         </div>
       </div>
 

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đồng hồ phòng thi</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--teal:#0D9488;--green:#10B981;--indigo:#4F46E5}
+  *{box-sizing:border-box}
+  body{margin:0;background:#CBD5E1;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;padding:24px}
+  .cap{font-size:19px;font-weight:900;margin:0 0 4px;max-width:1180px}
+  .cap small{display:block;font-size:13.5px;font-weight:500;color:#334155;margin-top:2px}
+  .wrap{max-width:1180px;margin:0 auto 34px}
+  .frame{background:#fff;border:2px solid var(--ink);border-radius:20px;box-shadow:3px 3px 0 var(--ink);overflow:hidden;margin-top:10px}
+  .bar{display:flex;align-items:flex-end;gap:26px;padding:0 24px;border-bottom:2px solid var(--ink);background:#F8FAFC}
+  .tab{padding:16px 2px 12px;font-weight:800;font-size:15px;color:var(--muted);border-bottom:4px solid transparent;margin-bottom:-2px;display:flex;gap:8px;align-items:center}
+  .tab.on{color:var(--ink);border-color:var(--ink)}
+  .today{margin:0 0 10px auto;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:#475569;align-self:center}
+  .today b{color:var(--ink)}
+  .icon{width:36px;height:36px;border-radius:10px;border:2px solid #CBD5E1;display:grid;place-items:center;align-self:center;margin-bottom:0}
+  .body{padding:26px 28px 30px}
+  /* mode picker */
+  .modes{display:grid;grid-template-columns:repeat(4,1fr);border:2px solid var(--ink);border-radius:14px;overflow:hidden;max-width:720px;margin:0 auto}
+  .mode{padding:10px 8px;text-align:center;border-left:2px solid var(--ink);background:#fff}
+  .mode:first-child{border-left:0}
+  .mode b{display:block;font-size:15px;font-weight:900}
+  .mode span{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .mode.on{background:var(--indigo);color:#fff}.mode.on span{color:#E0E7FF}
+  .clock{text-align:center;font-size:150px;font-weight:900;letter-spacing:-.04em;line-height:1;margin:34px 0 14px;font-variant-numeric:tabular-nums}
+  .track{max-width:540px;height:10px;border-radius:99px;background:#E2E8F0;margin:0 auto}
+  .sub{text-align:center;font-size:14px;font-weight:600;color:#475569;margin-top:10px}
+  .actions{display:flex;justify-content:center;gap:12px;margin-top:22px}
+  .btn{font:inherit;font-weight:800;font-size:16px;padding:12px 22px;border-radius:14px;border:2px solid var(--ink);background:#fff;display:inline-flex;align-items:center;gap:10px}
+  .btn.go{background:var(--green);box-shadow:3px 3px 0 var(--ink);font-size:17px}
+  kbd{font:inherit;font-size:11.5px;font-weight:800;padding:2px 7px;border-radius:6px;border:1.5px solid var(--ink);background:#fff}
+  .tip{max-width:720px;margin:22px auto 0;display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:12px;background:#F8FAFC;font-size:14px;color:#334155}
+  .tip b{color:var(--ink)} .tip a{margin-left:auto;font-weight:800;color:#2563EB;font-size:13px;white-space:nowrap}
+  /* results */
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:13.5px;font-weight:800;padding:7px 12px;border-radius:10px;border:2px solid #CBD5E1;background:#fff}
+  .chip.on{border-color:var(--ink);background:#E0E7FF;box-shadow:2px 2px 0 var(--ink)}
+  .head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .search{margin-left:auto;width:240px;padding:9px 12px;border:2px solid #CBD5E1;border-radius:10px;font-size:14px;color:#94A3B8}
+  .grid{display:grid;gap:18px;margin-top:20px}
+  .card{border:2px solid var(--ink);border-radius:16px;padding:16px 18px}
+  .card h3{margin:0;font-size:15.5px;font-weight:900;display:flex;justify-content:space-between;align-items:baseline}
+  .card h3 span{font-size:13px;font-weight:700;color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(3,180px);gap:10px;margin-top:12px}
+  .stat{border-radius:12px;background:#F8FAFC;padding:10px 12px}
+  .stat small{font-size:12px;font-weight:700;color:var(--muted)}
+  .stat b{display:block;font-size:22px;font-weight:900;margin-top:2px}
+  .stat b i{font-style:normal;font-size:13px;color:var(--muted);font-weight:700}
+  svg{display:block;width:100%;height:auto;margin-top:10px}
+  .rows{border:2px solid var(--ink);border-radius:16px;overflow:hidden}
+  .row{display:grid;grid-template-columns:1fr 90px 120px 80px 40px;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid #E2E8F0;font-size:14px}
+  .row:first-child{border-top:0}
+  .row.hd{background:#F8FAFC;font-size:12px;font-weight:800;color:var(--muted);padding:9px 14px}
+  .row .n{font-weight:800}
+  .row .m{display:flex;gap:6px;align-items:center;margin-top:2px;font-size:12.5px;color:var(--muted);font-weight:600}
+  .tag{white-space:nowrap;font-size:11.5px;font-weight:800;padding:2px 7px;border-radius:6px;border:1.5px solid var(--ink)}
+  .num{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+  .ok{color:#047857}.slow{color:#B45309}
+  .row.sel{background:#EEF2FF}
+  .row.odd{opacity:.55}
+  .more{color:var(--muted);font-weight:900;text-align:center}
+  .warn{font-size:11.5px;font-weight:700;color:#B45309}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const tabs=(on)=>`<div class="bar"><div class="tab ${on===0?'on':''}">⏱ Luyện tập</div><div class="tab ${on===1?'on':''}">📊 Kết quả</div><div class="today">🕒 Đã luyện hôm nay <b>0 phút</b></div><div class="icon">🔈</div></div>`;
+const A=`<section class="wrap"><p class="cap">Tab Luyện tập<small>Tab trang là chữ có gạch chân (cấp trên), chọn chế độ là khung viền đen (cấp dưới) có số câu. Thanh xám khi chưa chạy. Nút Bắt đầu gọn, phím tắt là ô kbd. Mẹo còn một dòng.</small></p>
+<div class="frame">${tabs(0)}<div class="body">
+<div class="modes"><div class="mode on"><b>Part 5</b><span>12 phút · 30 câu</span></div><div class="mode"><b>Part 6</b><span>8 phút · 16 câu</span></div><div class="mode"><b>Part 7 ▾</b><span>55 phút · 54 câu</span></div><div class="mode"><b>Reading</b><span>75 phút · 100 câu</span></div></div>
+<div class="clock">12:00</div><div class="track"></div>
+<p class="sub">Mục tiêu ≤ 24 giây mỗi câu</p>
+<div class="actions"><button class="btn go">▶ Bắt đầu <kbd>Space</kbd></button><button class="btn">⚙ Điều chỉnh</button></div>
+<div class="tip">💡<span><b>Mẹo Part 5:</b> câu từ loại, xem cấu trúc quanh chỗ trống trước.</span><a>Xem thêm</a></div>
+</div></div></section>`;
+
+const runs=[
+ {n:'ETS 2024 Test 3',t:'Part 5',c:'#C7D2FE',d:'06/11',time:'11:20',sp:22.7,res:'26/30',ok:true},
+ {n:'ETS 2024 Test 2',t:'Part 5',c:'#C7D2FE',d:'05/11',time:'12:40',sp:25.3,res:'24/30',ok:false},
+ {n:'ETS 2024 Test 1',t:'Part 5',c:'#C7D2FE',d:'02/11',time:'13:30',sp:27,res:'22/30',ok:false},
+ {n:'ETS 2026',t:'Part 5',c:'#C7D2FE',d:'26/09',time:'0:01',sp:0.03,res:'30/30',odd:true},
+];
+const sp=[31,29.5,30.2,28,27.4,28.8,26.9,27.5,26,25.6,26.4,25,24.6,25.3,24.1,23.8,24.4,23.2,22.9,22.7], W=1060,H=230,x=i=>56+i*((W-90)/19),y=v=>20+(33-v)*(H-56)/14;
+const chart=`<svg viewBox="0 0 ${W} ${H}">
+${[32,28,24,20].map(v=>`<line x1="40" x2="${W-16}" y1="${y(v)}" y2="${y(v)}" stroke="#EEF2F6"/><text x="6" y="${y(v)+4}" font-size="11.5" fill="#94A3B8">${v}s</text>`).join('')}
+<line x1="40" x2="${W-16}" y1="${y(24)}" y2="${y(24)}" stroke="#10B981" stroke-width="2" stroke-dasharray="6 5"/><text x="46" y="${y(24)+16}" text-anchor="start" font-size="12" font-weight="800" fill="#047857">Mục tiêu 24s</text>
+<path d="${sp.map((v,i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ')}" fill="none" stroke="#4F46E5" stroke-width="3"/>
+${sp.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="${i===19?8:4.5}" fill="${i===19?'#4F46E5':'#fff'}" stroke="#4F46E5" stroke-width="2.5"/>${i%3===1||i===19?`<text x="${x(i)}" y="${y(v)-12}" text-anchor="middle" font-size="12" font-weight="800">${String(v).replace('.',',')}</text>`:''}<text x="${x(i)}" y="${H-4}" text-anchor="middle" font-size="11" fill="#64748B">${['14/10','15/10','16/10','18/10','19/10','20/10','22/10','23/10','24/10','25/10','27/10','28/10','29/10','30/10','01/11','02/11','03/11','04/11','05/11','06/11'][i]}</text>`).join('')}
+</svg>`;
+const B=`<section class="wrap"><p class="cap">Tab Kết quả (gộp Lịch sử + Thống kê)<small>Một bộ lọc chế độ cho cả trang. Trên: 3 số liệu và biểu đồ rộng hết khung, 20 lượt gần nhất, có ‹ Cũ hơn. Dưới: danh sách lượt, 10 dòng mỗi trang; bấm một dòng thì điểm trên biểu đồ được tô. Lượt quá ngắn bị làm mờ và không tính vào số liệu.</small></p>
+<div class="frame">${tabs(1)}<div class="body">
+<div class="head"><div class="chips"><span class="chip">Tất cả</span><span class="chip on">Part 5</span><span class="chip">Part 6</span><span class="chip">Part 7</span><span class="chip">Reading</span></div><div class="search">Tìm tên đề…</div></div>
+<div class="grid">
+<div class="card"><h3>Part 5 · giây mỗi câu qua 20 lượt gần nhất<span><b style="color:#0F172A">‹ Cũ hơn</b></span></h3>
+<div class="stats"><div class="stat"><small>Gần nhất</small><b>22,7<i> s/câu</i></b></div><div class="stat"><small>Tốt nhất</small><b>22,7<i> s/câu</i></b></div><div class="stat"><small>Chính xác TB</small><b>80<i>%</i></b></div></div>
+${chart}</div>
+<div class="rows"><div class="row hd"><span>Lượt</span><span class="num">Thời gian</span><span class="num">Tốc độ</span><span class="num">Đúng</span><span></span></div>
+${runs.map((r,i)=>`<div class="row ${i===0?'sel':''} ${r.odd?'odd':''}"><div><div class="n">${r.n}</div><div class="m"><span class="tag" style="background:${r.c}">${r.t}</span>${r.d}${r.odd?' · <span class="warn">Quá ngắn, không tính</span>':''}</div></div><span class="num">${r.time}</span><span class="num ${r.odd?'':r.ok?'ok':'slow'}">${String(r.sp).replace('.',',')} s/câu</span><span class="num">${r.res}</span><span class="more">⋯</span></div>`).join('')}
+</div></div>
+</div></div></section>`;
+document.getElementById('out').innerHTML=A+B;
+</script>
+</body>
+</html>

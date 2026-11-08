@@ -1,3 +1,4 @@
+import { switchToDarkOnMobile } from './helpers/theme';
 import { expect, test, type Page } from '@playwright/test';
 
 const longName = 'ETS Practice Test with a deliberately long title to verify selected attempt visibility on narrow screens';
@@ -47,11 +48,12 @@ test('phone analytics keeps the attempt on its own visible line for long test na
 });
 
 test('selected pacing labels meet normal-text contrast in dark mode for all mode tones', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
+  // The tinted mode chips live on phones; computers fill the chosen mode with indigo and white text.
+  await page.setViewportSize({ width: 390, height: 900 });
   await page.goto('/luyen-toc-do');
-  await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
-  for (const mode of ['Part 5', 'Part 6', 'Part 7', 'Reading 75p', 'Pomodoro']) {
-    if (mode === 'Part 7') await page.getByLabel('Chọn Part 7', { exact: true }).selectOption('PART_7');
+  await switchToDarkOnMobile(page);
+  for (const mode of ['Part 5', 'Part 6', 'Part 7', 'Reading 75p']) {
+    if (mode === 'Part 7') { await page.getByRole('button', { name: 'Part 7', exact: true }).click(); await page.getByRole('button', { name: /^Part 7 · Toàn bộ/ }).click(); }
     else await page.getByRole('button', { name: mode, exact: true }).click();
     const selected = page.locator('.pacing-mode.is-selected');
     const ratio = await selected.evaluate(element => {

@@ -11,14 +11,14 @@ async function data(page: Page) { return page.evaluate(() => JSON.parse(localSto
 async function showMetric(page: Page, name: 'Thời gian mỗi câu' | 'Độ chính xác') {
   await page.getByRole('group', { name: 'Chỉ số biểu đồ' }).getByRole('button', { name, exact: true }).click();
 }
-async function expectCenteredPhases(page: Page) {
-  const offset = await page.locator('.pacing-phases').evaluate(element => {
-    const phases = element.getBoundingClientRect();
-    const clock = element.closest('.pacing-panel')!.querySelector('.pacing-time')!.getBoundingClientRect();
-    return Math.abs(phases.x + phases.width / 2 - clock.x - clock.width / 2);
-  });
-  expect(offset).toBeLessThan(1);
+/** Mode buttons: computers show "Part 6 · 8 phút · 16 câu", phones "Part 6" / "Reading 75p". */
+const modeButton = (page: Page, name: string) => page.getByRole('button', { name: new RegExp(`^${name}(?:\\s|$)`) });
+/** Phones keep the separate History and Statistics tabs of the classic charts. */
+async function openPhone(page: Page) {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await open(page);
 }
+const target = (seconds: number) => `${seconds.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} giây mỗi câu`;
 async function finishReading(page: Page) {
   await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
   await page.clock.fastForward(10000);
@@ -32,24 +32,28 @@ async function nameResult(page: Page, name = 'ETS 2024 Test 04') {
 
 test('whole Part 7 is the first choice; whole modes lock counts and partial Part 7 saves its chosen denominator', async ({ page }) => {
   await open(page);
-  const part7 = page.getByLabel('Chọn Part 7');
-  await expect(part7.locator('option:not([hidden])')).toHaveText(['Part 7 · Toàn bộ', 'Part 7 · Đoạn đơn', 'Part 7 · Đôi/ba']);
-  await part7.selectOption('PART_7');
+  const pickPart7 = async (name: string) => {
+    await modeButton(page, 'Part 7').click();
+    await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  };
+  await modeButton(page, 'Part 7').click();
+  await expect(page.getByRole('button', { name: /^Part 7 · / })).toHaveText([/^Part 7 · Toàn bộ/, /^Part 7 · Đoạn đơn/, /^Part 7 · Đôi\/ba/]);
+  await page.getByRole('button', { name: /^Part 7 · Toàn bộ/ }).click();
   await expect(page.getByRole('timer')).toHaveText('55:00');
-  await expect(page.locator('.pacing-setup')).toContainText('54 câu');
-  for (const [mode, count] of [['PART_7', 54], ['Part 5', 30], ['Part 6', 16], ['Reading 75p', 100]] as const) {
-    if (mode === 'PART_7') await part7.selectOption(mode);
-    else await page.getByRole('button', { name: mode, exact: true }).click();
+  await expect(modeButton(page, 'Part 7')).toContainText('54 câu');
+  for (const [mode, count] of [['PART_7', 54], ['Part 5', 30], ['Part 6', 16], ['Reading', 100]] as const) {
+    if (mode === 'PART_7') await pickPart7('Part 7 · Toàn bộ');
+    else await modeButton(page, mode).click();
     await page.getByRole('button', { name: 'Điều chỉnh', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Điều chỉnh thời gian', exact: true });
     await expect(dialog.getByRole('spinbutton')).toHaveCount(1);
     await dialog.getByLabel('Thời gian luyện (phút)').fill('10');
     await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
     await expect(page.getByRole('timer')).toHaveText('10:00');
-    await expect(page.locator('.pacing-setup')).toContainText(`${count} câu`);
+    await expect(page.locator('.pacing-clock-meta')).toContainText(target(600 / count));
   }
-  for (const [mode, count] of [['PART_7_SINGLE', 29], ['PART_7_MULTI', 25]] as const) {
-    await part7.selectOption(mode);
+  for (const [mode, count] of [['Part 7 · Đoạn đơn', 29], ['Part 7 · Đôi/ba', 25]] as const) {
+    await pickPart7(mode);
     await page.getByRole('button', { name: 'Điều chỉnh', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Điều chỉnh lượt luyện', exact: true });
     await expect(dialog.getByLabel('Số câu luyện')).toHaveValue(String(count));
@@ -59,11 +63,10 @@ test('whole Part 7 is the first choice; whole modes lock counts and partial Part
     await dialog.getByLabel('Số câu luyện').fill('10');
     await dialog.getByLabel('Thời gian luyện (phút)').fill('9');
     await dialog.getByRole('button', { name: 'Áp dụng', exact: true }).click();
-    await expect(page.locator('.pacing-setup')).toContainText('10 câu');
-    await expect(page.locator('.pacing-clock-meta')).toContainText('54 giây/câu');
+    await expect(page.locator('.pacing-clock-meta')).toContainText(target(54));
   }
   await page.reload();
-  await expect(page.locator('.pacing-setup')).toContainText('10 câu');
+  await expect(page.locator('.pacing-clock-meta')).toContainText(target(54));
   await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
   await page.clock.fastForward(10000);
   await page.getByRole('button', { name: 'Xong bài', exact: true }).click();
@@ -106,7 +109,7 @@ test('today badge counts saved real study time across modes and excludes breaks,
   await page.getByRole('button', { name: 'Lưu thời gian', exact: true }).click();
   await expect(page.locator('.pacing-today')).toContainText('1 giờ 21 phút');
   expect((await data(page)).pacingRuns[0].actualSeconds).toBe(60);
-  await page.getByRole('tab', { name: 'Thống kê', exact: true }).click();
+  await page.getByRole('tab', { name: 'Kết quả', exact: true }).click();
   await expect(page.locator('.pacing-today')).toContainText('1 giờ 21 phút');
   await page.clock.fastForward(24 * 60 * 60 * 1000);
   await expect(page.locator('.pacing-today')).toContainText('0 phút');
@@ -133,19 +136,23 @@ test('ungraded Reading saves only real time; later grading updates the paired se
       questionContext: 'Keep this source after deletion.', userMistake: '', correctAnswer: '(B) be', tags: [], createdAt: stamp, updatedAt: stamp, deletedAt: null }];
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
   });
-  await page.getByRole('tab', { name: 'Thống kê', exact: true }).click();
-  await showMetric(page, 'Độ chính xác');
-  await expect(page.getByText('Chưa có lượt đã chấm.', { exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: 'Lịch sử', exact: true }).click();
-  await page.getByRole('button', { name: 'Sửa kết quả ETS 2024 Test 04', exact: true }).click();
+  // Saving lands on Kết quả; 10 seconds for 30 questions is listed but kept out of the trend.
+  const row = page.locator('[data-run-id]');
+  await expect(row).toContainText('Quá ngắn, không tính');
+  await expect(row).toContainText('Chưa chấm');
+  await expect(page.getByText('Chưa có lượt Part 5 nào để vẽ biểu đồ.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Tùy chọn ETS 2024 Test 04', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Sửa kết quả' }).click();
   await page.getByRole('spinbutton', { name: 'Số câu đúng' }).fill('0');
   await page.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
   bundle = await data(page);
   expect(bundle.pacingRuns[0]).toMatchObject({ correctAnswers: 0, accuracyPercent: 0 });
   expect(bundle.sessions[0].practiceParts).toEqual([{ part: 5, correct: 0, total: 30 }]);
+  await expect(row).toContainText('0/30');
   page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Xóa lượt ETS 2024 Test 04', exact: true }).click();
+  await page.getByRole('button', { name: 'Tùy chọn ETS 2024 Test 04', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Xóa lượt' }).click();
   bundle = await data(page);
   expect(bundle.pacingRuns[0].deletedAt).toBeTruthy(); expect(bundle.sessions[0].deletedAt).toBeTruthy();
   expect(bundle.mistakes[0].sourceTestName).toBe('ETS 2024 Test 04');
@@ -170,10 +177,10 @@ test('running and paused drafts survive navigation/reload; switching paused mode
   await expect(page.getByText('11:50', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Tiếp tục', exact: true })).toBeVisible();
   page.once('dialog', dialog => dialog.dismiss());
-  await page.getByRole('button', { name: 'Part 6', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await modeButton(page, 'Part 6').click();
+  await expect(modeButton(page, 'Part 5')).toHaveAttribute('aria-pressed', 'true');
   page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Part 6', exact: true }).click();
+  await modeButton(page, 'Part 6').click();
   await expect(page.getByText('08:00', { exact: true })).toBeVisible();
 });
 
@@ -199,7 +206,7 @@ test('an explicit Part request from Analytics switches the preserved draft only 
   await page.getByRole('button', { name: 'Bấm giờ P6', exact: true }).click();
   await expect(page).toHaveURL(/\/luyen-toc-do$/);
   await expect(page.getByText('08:00', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Part 6', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(modeButton(page, 'Part 6')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('result draft stays intact on reload, validates grades and retains input after a failed save', async ({ page }) => {
@@ -224,52 +231,6 @@ test('result draft stays intact on reload, validates grades and retains input af
   expect((await data(page)).sessions).toHaveLength(0);
 });
 
-test('early Pomodoro records only actual focus time and never claims a completed cycle', async ({ page }) => {
-  await open(page);
-  await page.getByRole('button', { name: 'Pomodoro', exact: true }).click();
-  await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
-  await page.clock.fastForward(10000);
-  await page.getByRole('button', { name: 'Kết thúc phiên', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Kết thúc phiên sớm', exact: true });
-  await expect(modal.getByRole('spinbutton', { name: 'Số câu đúng' })).toHaveCount(0);
-  await modal.getByRole('button', { name: 'Lưu thời gian', exact: true }).click();
-  const bundle = await data(page);
-  expect(bundle.pacingRuns[0]).toMatchObject({ partType: 'POMODORO', finishedNaturally: false, actualSeconds: 10 });
-  expect(bundle.pacingRuns[0]).not.toHaveProperty('accuracyPercent');
-  expect(bundle.sessions[0].durationMinutes).toBeCloseTo(10 / 60);
-  await page.getByRole('tab', { name: 'Luyện tập', exact: true }).click();
-  await expect(page.locator('.pacing-today')).toContainText('Đã luyện hôm nay');
-  await expect(page.locator('.pacing-today')).not.toContainText('phiên');
-});
-
-test('natural Pomodoro completes once; breaks stay out of study time and settings remain available', async ({ page }) => {
-  await open(page);
-  await page.getByRole('button', { name: 'Pomodoro', exact: true }).click();
-  await page.getByRole('button', { name: 'Điều chỉnh', exact: true }).click();
-  const settings = page.getByRole('dialog', { name: 'Thời gian Pomodoro', exact: true });
-  await settings.getByRole('spinbutton', { name: 'Tập trung (phút)', exact: true }).fill('1');
-  await settings.getByRole('spinbutton', { name: 'Nghỉ ngắn (phút)', exact: true }).fill('1');
-  await settings.getByRole('button', { name: 'Lưu thiết lập', exact: true }).click();
-  await expectCenteredPhases(page);
-  await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
-  await expectCenteredPhases(page);
-  await page.clock.fastForward(61000);
-  const finished = page.getByRole('dialog', { name: 'Phiên tập trung hoàn thành', exact: true });
-  await expect(finished).toBeVisible();
-  expect((await data(page)).sessions).toHaveLength(1);
-  expect((await data(page)).sessions[0].durationMinutes).toBe(1);
-  await page.reload();
-  await expect(finished).toBeVisible();
-  expect((await data(page)).sessions).toHaveLength(1);
-  await finished.getByRole('button', { name: 'Nghỉ ngắn 1p', exact: true }).click();
-  await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
-  await page.clock.fastForward(61000);
-  await expect(page.getByRole('dialog', { name: 'Hết giờ nghỉ', exact: true })).toBeVisible();
-  const bundle = await data(page);
-  expect(bundle.pacingRuns).toHaveLength(2); expect(bundle.sessions).toHaveLength(1);
-  expect(bundle.pacingRuns[0].presetId).toBe('POMODORO_SHORT_BREAK');
-});
-
 test('expiry preserves results but waits for an existing logger dialog to close', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: 'Điều chỉnh', exact: true }).click();
@@ -288,7 +249,7 @@ test('expiry preserves results but waits for an existing logger dialog to close'
 });
 
 test('statistics quick scopes paginate both metrics together and recover from an empty period', async ({ page }) => {
-  await open(page);
+  await openPhone(page);
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     bundle.pacingRuns = Array.from({ length: 26 }, (_, index) => ({ id: `chart-${index}`, presetId: 'PART_5', presetName: 'Part 5', partType: 'PART_5', date: '2026-10-09', createdAt: `2026-10-09T08:00:${String(index).padStart(2, '0')}Z`, plannedMinutes: 12, actualMinutes: 10, actualSeconds: 600 + index, totalQuestions: 30, correctAnswers: index ? undefined : 0, finishedNaturally: false, phases: [], updatedAt: '2026-10-09T08:00:00Z', deletedAt: null }));
@@ -325,7 +286,7 @@ test('statistics quick scopes paginate both metrics together and recover from an
   await page.getByLabel('Phạm vi thống kê').selectOption('LAST_3_DAYS');
   await expect(page.getByText('Đang xem 21–26 / 26 lượt', { exact: true })).toBeVisible();
   await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(6);
-  for (const width of [320, 375, 768, 1440]) {
+  for (const width of [320, 375, 767]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await expect(page.locator('.pacing-chart')).toHaveCount(1);
@@ -353,7 +314,7 @@ test('statistics quick scopes paginate both metrics together and recover from an
 
 test('Reading 75p remains practice and its aggregate result is visible in main history without invented Part scores', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Reading 75p', exact: true }).click();
+  await modeButton(page, 'Reading').click();
   await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click();
   await page.clock.fastForward(10000);
   await page.getByRole('button', { name: 'Xong bài', exact: true }).click();
@@ -439,7 +400,7 @@ test('pacing layout, settings and result dialog fit small screens and dark mode'
       expect(tops).toBe(2);
       continue;
     }
-    const centered = await page.locator('.pacing-modes').evaluate(group => {
+    const centered = await page.getByRole('group', { name: 'Chế độ luyện Reading' }).evaluate(group => {
       const clock = document.querySelector('.pacing-clock')!.getBoundingClientRect();
       const rows = new Map<number, { left: number; right: number }>();
       for (const element of group.children) {
@@ -452,23 +413,14 @@ test('pacing layout, settings and result dialog fit small screens and dark mode'
     expect(centered).toBe(true);
   }
   await page.screenshot({ path: testInfo.outputPath('pacing-ready.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Pomodoro', exact: true }).click();
-  await expectCenteredPhases(page);
+  // Before the clock runs the track is grey and the start button names its shortcut without saying it.
+  await expect(page.getByRole('button', { name: 'Bắt đầu', exact: true })).toHaveAttribute('aria-keyshortcuts', 'Space');
   await expect(page.locator('.pacing-today')).toContainText('0 phút');
-  await page.screenshot({ path: testInfo.outputPath('pacing-pomodoro.png'), fullPage: true });
-  await page.setViewportSize({ width: 320, height: 900 });
-  for (const [phase, tone] of [['Nghỉ ngắn', 'short-break'], ['Nghỉ dài', 'long-break'], ['Tập trung', 'focus']]) {
-    await page.getByRole('button', { name: phase, exact: true }).click();
-    await expect(page.getByRole('tabpanel')).toHaveAttribute('data-clock-tone', tone);
-    await expect(page.getByRole('button', { name: 'Điều chỉnh', exact: true })).toBeVisible();
-    await expectCenteredPhases(page);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  }
-  await page.getByRole('button', { name: 'Điều chỉnh', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Thời gian Pomodoro' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Part 5', exact: true }).click();
   await page.setViewportSize({ width: 375, height: 900 });
+  // The phone layout mounts with an entrance animation; the paused test clock has to let it finish.
+  await page.clock.runFor(500);
+  await expect(page.locator('.pacing-view')).toHaveClass(/is-phone/);
+  await page.reload();
   const modal = await finishReading(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await expect(modal.getByRole('button', { name: 'Lưu thời gian', exact: true })).toBeVisible();
@@ -482,7 +434,7 @@ test('pacing layout, settings and result dialog fit small screens and dark mode'
 });
 
 test('compact history preserves tiny durations and zero grades, filters across pages, and fits mobile', async ({ page }, testInfo) => {
-  await open(page);
+  await openPhone(page);
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const samples = [
@@ -513,7 +465,7 @@ test('compact history preserves tiny durations and zero grades, filters across p
   await history.getByLabel('Lọc chế độ lịch sử').selectOption('POMODORO');
   await expect(history.locator('tbody tr')).toHaveCount(2);
   await history.getByLabel('Lọc chế độ lịch sử').selectOption('ALL');
-  for (const width of [320, 375, 768, 1440]) {
+  for (const width of [320, 375, 767]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const fits = await history.locator('.pacing-history-value').evaluateAll(elements => elements.every(element => {
@@ -533,7 +485,7 @@ test('compact history preserves tiny durations and zero grades, filters across p
 });
 
 test('statistics keeps stable run labels, missing grades and unclipped latest values', async ({ page }) => {
-  await open(page);
+  await openPhone(page);
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const speeds = [32, 30, 29, 28, 27, 26], grades = [10, 11, undefined, 12, 14, 15];
@@ -563,7 +515,7 @@ test('statistics keeps stable run labels, missing grades and unclipped latest va
   await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(6);
   await expect(page.locator('.recharts-xAxis').first()).toContainText('Lượt 6');
   await page.getByLabel('Phạm vi thống kê').selectOption('TODAY');
-  for (const width of [320, 375, 768, 1440]) {
+  for (const width of [320, 375, 767]) {
     await page.setViewportSize({ width, height: 900 });
     await showMetric(page, 'Thời gian mỗi câu');
     await expect(page.locator('.pacing-point-label[data-kind="speed"]')).toHaveCount(1);
@@ -611,7 +563,7 @@ test('statistics keeps stable run labels, missing grades and unclipped latest va
 });
 
 test('statistics speed axis follows the filtered data and stays stable across pages', async ({ page }) => {
-  await open(page);
+  await openPhone(page);
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     bundle.pacingRuns = Array.from({ length: 12 }, (_, index) => ({
@@ -639,4 +591,54 @@ test('statistics speed axis follows the filtered data and stays stable across pa
   await expect(axis).toHaveText(['0', '2', '4', '6', '8', '10']);
   await expect(speed.locator('.recharts-bar-rectangle')).toHaveCount(10);
   await expect(speed.locator('.recharts-reference-line')).toHaveCount(0);
+});
+
+test('on a computer Kết quả shows one mode filter, a 20-run speed trend with its target, and five runs a page', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => {
+    const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const run = (index: number, extra: object) => ({ id: `results-${index}`, presetId: 'PART_5', presetName: 'Part 5', partType: 'PART_5', date: `2026-10-${String(index + 1).padStart(2, '0')}`,
+      createdAt: `2026-10-${String(index + 1).padStart(2, '0')}T08:00:00Z`, updatedAt: '2026-10-09T08:00:00Z', deletedAt: null, plannedMinutes: 12, finishedNaturally: false, phases: [], totalQuestions: 30, ...extra });
+    bundle.pacingRuns = [
+      ...Array.from({ length: 22 }, (_, index) => run(index, { actualSeconds: (30 - index * 0.25) * 30, actualMinutes: 10, correctAnswers: 20 + (index % 5), testName: `ETS ${index + 1}` })),
+      run(22, { id: 'results-short', actualSeconds: 30, actualMinutes: .5, correctAnswers: 30, testName: 'Bấm nhầm' }),
+      { ...run(23, { actualSeconds: 400, actualMinutes: 400 / 60, correctAnswers: 13, testName: 'Đoạn văn' }), presetId: 'PART_6', presetName: 'Part 6', partType: 'PART_6', totalQuestions: 16 }
+    ];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
+  });
+  await page.reload();
+  await expect(page.getByRole('tab')).toHaveText(['Luyện tập', 'Kết quả']);
+  await page.getByRole('tab', { name: 'Kết quả', exact: true }).click();
+  const filters = page.getByRole('group', { name: 'Chế độ kết quả' });
+  await expect(filters.getByRole('button')).toHaveText(['Tất cả', 'Part 5', 'Part 6', 'Part 7', 'Reading']);
+  await expect(filters.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { name: 'Part 5 · giây mỗi câu qua 20 lượt gần nhất' })).toBeVisible();
+  // The latest real run is 24.75 s; the mis-tap (1 s per question) is listed but left out of every number.
+  await expect(page.locator('dl')).toContainText('Gần nhất24,8');
+  await expect(page.locator('dl')).toContainText('Tốt nhất24,8');
+  await expect(page.locator('.recharts-reference-line')).toHaveCount(1);
+  await expect(page.getByText('Mục tiêu 24s', { exact: true })).toBeVisible();
+  const rows = page.locator('[data-run-id]');
+  await expect(rows).toHaveCount(5);
+  await expect(rows.first()).toContainText('Bấm nhầm');
+  await expect(rows.first()).toContainText('Quá ngắn, không tính');
+  await expect(page.getByRole('status').filter({ hasText: 'lượt' })).toHaveText('1–5 / 23 lượt');
+  const nav = page.getByRole('navigation', { name: 'Trang biểu đồ' });
+  await nav.getByRole('button', { name: /Cũ hơn/ }).click();
+  await expect(page.getByRole('heading', { name: 'Part 5 · giây mỗi câu qua 2 lượt gần nhất' })).toBeVisible();
+  await nav.getByRole('button', { name: /Mới hơn/ }).click();
+  await rows.nth(1).click();
+  await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
+  await filters.getByRole('button', { name: 'Tất cả', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /giây mỗi câu/ })).toHaveCount(0);
+  await expect(rows.first()).toContainText('Đoạn văn');
+  await page.getByRole('searchbox', { name: 'Tìm đề trong lịch sử' }).fill('ETS 3');
+  await expect(rows).toHaveCount(1);
+  await page.getByRole('button', { name: 'Tùy chọn ETS 3', exact: true }).click();
+  await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Sửa kết quả', 'Xóa lượt']);
+  await page.keyboard.press('Escape');
+  for (const width of [768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `width ${width}`).toBe(true);
+  }
 });
