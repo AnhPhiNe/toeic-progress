@@ -16,6 +16,45 @@
   50% { transform: scale(1.1); }
 }
 
+/* Streak flame: outer and core move on different beats so it never looks mechanical. */
+.sf { overflow: visible; transform-origin: 50% 92%; }
+.sf-outer { transform-origin: 50% 95%; fill: #f97316; stroke: #0f172a; stroke-width: 2.2; stroke-linejoin: round; }
+.sf-core { transform-origin: 50% 80%; fill: #fde68a; }
+.sf-spark { fill: #fdba74; stroke: #0f172a; stroke-width: 1.2; opacity: 0; }
+:root.dark .sf-outer, :root.dark .sf-spark { stroke: #e2e8f0; }
+
+.sf-hot { animation: sf-sway 2.6s ease-in-out infinite; }
+.sf-hot .sf-outer { animation: sf-flick 1.1s ease-in-out infinite; }
+.sf-hot .sf-core { animation: sf-flick .8s ease-in-out infinite reverse; }
+.sf-hot .sf-spark { animation: sf-spark 2.2s ease-out infinite; }
+.sf-hot .sf-spark-b { animation-delay: 1.1s; }
+
+.sf-weak { transform: scale(.9); animation: sf-sway-weak 4.2s ease-in-out infinite; }
+.sf-weak .sf-outer { fill: #fb923c; animation: sf-flick 2.4s ease-in-out infinite; }
+.sf-weak .sf-core { fill: #fde68a; animation: sf-flick 2s ease-in-out infinite reverse; }
+
+.sf-cold .sf-outer { fill: #e2e8f0; stroke: #94a3b8; }
+.sf-cold .sf-core { fill: #f8fafc; }
+:root.dark .sf-cold .sf-outer { fill: #334155; stroke: #475569; }
+:root.dark .sf-cold .sf-core { fill: #1e293b; }
+
+@keyframes sf-flick {
+  0%, 100% { transform: scale(1, 1) skewX(0); }
+  25% { transform: scale(.95, 1.07) skewX(-3deg); }
+  50% { transform: scale(1.04, .96) skewX(2deg); }
+  75% { transform: scale(.97, 1.05) skewX(-1.5deg); }
+}
+@keyframes sf-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes sf-sway-weak { 0%, 100% { transform: scale(.9) rotate(-2deg); } 50% { transform: scale(.9) rotate(2.5deg); } }
+@keyframes sf-spark {
+  0% { opacity: 0; transform: translate(0, 6px) scale(.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 6px), -22px) scale(.2); }
+}
+/* The "today" circle pops once when the day's study is done. */
+.streak-pop { box-shadow: 0 0 0 4px #fdba74; animation: streak-pop-in .5s ease-out; transform: scale(1.1); }
+@keyframes streak-pop-in { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1.1); } }
+
 @media (prefers-reduced-motion: reduce) {
   .overview-dashboard, .overview-dashboard * {
     animation: none !important;
