@@ -445,6 +445,8 @@ export const App: React.FC = () => {
         sessions={sessions}
         hasStudiedToday={hasStudiedToday}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* 2. Main Content View Area (Right) */}
