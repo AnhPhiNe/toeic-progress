@@ -261,20 +261,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return weakest;
   }, [latestTest]);
 
-  // Wrong answers in that Part for the latest test (undefined when the Part score was never recorded).
-  const weakestWrong = useMemo(() => {
-    const max = { 5: 30, 6: 16, 7: 54 }[weakestPart as 5 | 6 | 7];
-    const correct = latestTest?.partScores?.[`part${weakestPart}` as 'part5' | 'part6' | 'part7'];
-    return correct === undefined || max === undefined ? undefined : Math.max(0, max - correct);
-  }, [latestTest, weakestPart]);
+  // Desktop next step: the Reading Part that lost the most questions in the latest test (by count, so the sentence
+  // "Mất nhiều điểm nhất" is literally true). undefined when no Reading Part score was recorded. Phones keep weakestPart.
+  const mostLost = useMemo(() => {
+    let best: { part: 5 | 6 | 7; wrong: number } | undefined;
+    for (const [part, max] of [[5, 30], [6, 16], [7, 54]] as const) {
+      const correct = latestTest?.partScores?.[`part${part}`];
+      if (correct === undefined) continue;
+      const wrong = Math.max(0, max - correct);
+      if (!best || wrong > best.wrong) best = { part, wrong };
+    }
+    return best;
+  }, [latestTest]);
 
   // What the latest-result card suggests next, from the learner's own data only (no AI call):
   // 1) mistakes due for review, 2) the weakest Part with a recorded score, 3) a prompt to record Part scores.
   const nextStep = dueMistakesCount > 0 && onStartReview
     ? { kind: 'review' as const, count: dueMistakesCount }
-    : weakestWrong !== undefined && weakestWrong > 0 && onNavigateToPacing
-      ? { kind: 'part' as const, part: weakestPart, wrong: weakestWrong }
-      : weakestWrong === undefined
+    : mostLost && mostLost.wrong > 0 && onNavigateToPacing
+      ? { kind: 'part' as const, part: mostLost.part, wrong: mostLost.wrong }
+      : !mostLost
         ? { kind: 'record' as const }
         : null;
 

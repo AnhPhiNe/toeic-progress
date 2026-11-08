@@ -209,8 +209,11 @@ export function ResultImageButton({
           onScoresPending?.(false);
         }
       }
-      setNote(count ? `AI đã tô ${count} câu${skippedCount ? ` (${skippedCount} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
-        : 'Không thấy câu sai nào trong ảnh. Chạm vào các câu sai bên dưới.');
+      // Paste view: the grid is hidden and the summary table already shows the count, so only the empty case needs a line.
+      setNote(dropzone
+        ? (count ? '' : 'Không thấy câu sai nào trong ảnh. Thử ảnh khác hoặc bấm Nhập tay.')
+        : count ? `AI đã tô ${count} câu${skippedCount ? ` (${skippedCount} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
+          : 'Không thấy câu sai nào trong ảnh. Chạm vào các câu sai bên dưới.');
     } catch (reason) {
       if (isCurrent()) setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Chạm vào các câu sai bên dưới.');
     } finally {
