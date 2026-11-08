@@ -101,7 +101,8 @@ export const Topbar: React.FC<TopbarProps> = ({
 
   const currentTab = tabConfig[activeTab] || tabConfig.dashboard;
 
-  const isExamUrgent = daysUntilExam !== null && daysUntilExam <= 14;
+  // Calm amber from 30 days out; deliberately no red or blinking so the countdown reads as planning, not an alarm.
+  const isExamSoon = daysUntilExam !== null && daysUntilExam <= 30;
 
   return (
     <header className="sticky top-0 z-20 w-full bg-white dark:bg-[#0B132B] border-b-2 border-slate-900 dark:border-slate-700 transition-colors">
@@ -128,13 +129,13 @@ export const Topbar: React.FC<TopbarProps> = ({
             <button
               onClick={onOpenSettings}
               className={`h-9 rounded-lg px-2 text-[13px] font-bold transition-colors cursor-pointer whitespace-nowrap hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
-                isExamUrgent ? 'text-rose-700 dark:text-rose-300' : 'text-slate-700 dark:text-slate-200'
+                isExamSoon ? 'text-amber-700 dark:text-amber-300' : 'text-slate-700 dark:text-slate-200'
               }`}
               title="Đếm ngược ngày thi chính thức (Bấm để đổi ngày thi trong Cài đặt)"
               aria-label={daysUntilExam !== null ? `Còn ${daysUntilExam} ngày thi. Bấm để cài đặt.` : "Chưa đặt ngày thi. Bấm để cài đặt."}
             >
               {daysUntilExam !== null
-                ? <>Còn <span className="font-black text-slate-950 dark:text-white">{daysUntilExam} ngày</span> thi</>
+                ? <>Còn <span className={'font-black ' + (isExamSoon ? 'text-amber-700 dark:text-amber-300' : 'text-slate-950 dark:text-white')}>{daysUntilExam} ngày</span> thi</>
                 : 'Chưa đặt ngày thi'}
             </button>
 
