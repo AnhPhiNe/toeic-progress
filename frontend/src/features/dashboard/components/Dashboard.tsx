@@ -52,7 +52,7 @@ interface DashboardProps {
 /** Neo surfaces on Tổng quan: every card has the black border; only the key numbers and the latest score are raised. */
 const NEO_FLAT = 'rounded-2xl border-2 border-slate-900 bg-white dark:border-slate-200 dark:bg-[#111A2C]';
 const NEO_RAISED = `${NEO_FLAT} shadow-[3px_3px_0_0_#0f172a] dark:shadow-[3px_3px_0_0_#cbd5e1]`;
-const KPI_CARD = `${NEO_RAISED} p-3 sm:p-3.5 xl:p-4 2xl:p-5 flex flex-col justify-between space-y-2 sm:space-y-2.5 group`;
+const KPI_CARD = `${NEO_RAISED} p-3 sm:p-3.5 xl:p-4 2xl:p-5 flex flex-col justify-center gap-2.5 sm:gap-3 group`;
 
 // Bề mặt thẻ dùng chung với các màn hình khác (xem surfaces.ts)
 
@@ -121,13 +121,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Dữ liệu biểu đồ, sắp theo ngày tăng dần để đường đi lên từ trái sang phải
   const allChartData = useMemo(() => {
+    const seenOnDay = new Map<string, number>();
     return [...fullTests]
       .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || '').localeCompare(b.createdAt || ''))
       .map(session => {
         const attemptNumber = attemptMap[session.id]?.attemptNumber || session.attemptNumber || 1;
+        // Nhiều đề cùng một ngày: đề thứ hai trở đi ghi "(2)", "(3)" để nhãn trục không lặp.
+        const nth = (seenOnDay.get(session.date) || 0) + 1;
+        seenOnDay.set(session.date, nth);
         return {
           id: session.id,
-          date: formatShortDate(session.date),
+          date: nth > 1 ? `${formatShortDate(session.date)} (${nth})` : formatShortDate(session.date),
           name: session.testName,
           total: session.totalScore || 0,
           listening: session.scaledListening,
@@ -202,7 +206,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (ceiling - s < (step === 100 ? 50 : 35)) continue;
       ticks.push(s);
     }
-    if (!ticks.includes(ceiling)) ticks.push(ceiling);
+    // Chỉ đặt mốc ở trần khi nó rơi đúng bước, để các vạch cách đều; mục tiêu đã có đường xanh lá riêng.
+    if (!ticks.includes(ceiling) && (ceiling - floor) % step === 0) ticks.push(ceiling);
 
     return { domain: [floor, ceiling] as [number, number], ticks };
   }, [chartData, targetScore]);
@@ -255,6 +260,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
     return weakest;
   }, [latestTest]);
+
+  // Wrong answers in that Part for the latest test (undefined when the Part score was never recorded).
+  const weakestWrong = useMemo(() => {
+    const max = { 5: 30, 6: 16, 7: 54 }[weakestPart as 5 | 6 | 7];
+    const correct = latestTest?.partScores?.[`part${weakestPart}` as 'part5' | 'part6' | 'part7'];
+    return correct === undefined || max === undefined ? undefined : Math.max(0, max - correct);
+  }, [latestTest, weakestPart]);
+
+  // What the latest-result card suggests next, from the learner's own data only (no AI call):
+  // 1) mistakes due for review, 2) the weakest Part with a recorded score, 3) a prompt to record Part scores.
+  const nextStep = dueMistakesCount > 0 && onStartReview
+    ? { kind: 'review' as const, count: dueMistakesCount }
+    : weakestWrong !== undefined && weakestWrong > 0 && onNavigateToPacing
+      ? { kind: 'part' as const, part: weakestPart, wrong: weakestWrong }
+      : weakestWrong === undefined
+        ? { kind: 'record' as const }
+        : null;
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
@@ -333,7 +355,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {/* Top Bar: Nhãn Kỷ Lục Gọn bên trái, % Đích bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <span
-                  className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-950/20 bg-amber-300 text-slate-950 shadow-2xs cursor-default"
+                  className="flex items-center gap-1.5 whitespace-nowrap text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 cursor-default"
                   title={`${toeicTier.tier} (${toeicTier.rank})`}
                 >
                   KỶ LỤC
@@ -347,7 +369,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {highestScore || 0}
                   </span>
                   {targetScore > 0 && (
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
+                    <span className="whitespace-nowrap text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
                       / {targetScore}đ
                     </span>
                   )}
@@ -375,7 +397,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className={KPI_CARD}>
               {/* Top Bar: Trung bình Badge bên trái, Tổng số đề bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
-                <span className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
+                <span className="flex items-center gap-1.5 whitespace-nowrap text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
                   TRUNG BÌNH
                 </span>
               </div>
@@ -387,7 +409,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {stats?.avgScore || 0}
                   </span>
                   {targetScore > 0 && (
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
+                    <span className="whitespace-nowrap text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
                       / {targetScore}đ
                     </span>
                   )}
@@ -410,14 +432,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className={KPI_CARD}>
               {/* Top Bar: Nhãn đổi màu theo số dương (xanh lá) / số âm (hồng) bên trái, Trạng thái bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
-                <span className={`px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
+                <span className={`flex items-center gap-1.5 whitespace-nowrap text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider ${
                   !hasDiff
-                    ? 'bg-slate-200 text-slate-800 border-slate-900/20'
+                    ? 'text-slate-500 dark:text-slate-400'
                     : diff > 0
-                    ? 'bg-emerald-300 text-slate-950 border-emerald-950/20'
+                    ? 'text-emerald-600 dark:text-emerald-400'
                     : diff < 0
-                    ? 'bg-rose-200 text-slate-950 border-rose-950/20'
-                    : 'bg-sky-200 text-slate-950 border-sky-950/20'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-sky-600 dark:text-sky-400'
                 }`}>
                   SO VỚI BÀI ĐẦU
                 </span>
@@ -507,17 +529,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Điện thoại: biểu đồ lấp phần màn hình còn lại thay vì để trống phía dưới */}
-            <div className="relative w-full h-[max(220px,calc(100dvh-520px))] md:h-[180px] xl:h-auto xl:flex-1 xl:min-h-[160px]">
+            <div className="relative w-full h-[max(220px,calc(100dvh-520px))] md:h-[180px] xl:h-auto xl:flex-1 xl:min-h-[clamp(240px,calc(100dvh-400px),460px)]">
               <div className="absolute inset-0">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 20, right: 16, left: -4, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563EB" stopOpacity={isDark ? 0.3 : 0.16} />
-                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+                  <AreaChart data={chartData} margin={{ top: 28, right: 104, left: -4, bottom: 0 }}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
@@ -579,31 +595,50 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     />
                     <ReferenceLine
                       y={targetScore}
-                      stroke={isDark ? '#60A5FA' : '#93C5FD'}
-                      strokeDasharray="6 3"
+                      stroke={isDark ? '#34D399' : '#059669'}
+                      strokeWidth={2}
+                      strokeDasharray="7 5"
                       label={{
                         value: `Mục tiêu ${targetScore}`,
-                        position: 'insideBottomLeft',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        fill: isDark ? '#93C5FD' : '#2563EB',
+                        position: 'right',
+                        fontSize: 13,
+                        fontWeight: 800,
+                        fill: isDark ? '#6EE7B7' : '#047857',
                         fontFamily: 'Plus Jakarta Sans, sans-serif'
                       }}
+                    />
+                    {/* Ink outline under the blue line, the same trick the Neo cards use for their borders */}
+                    <Area
+                      type="linear"
+                      dataKey="total"
+                      stroke={isDark ? '#E2E8F0' : '#0F172A'}
+                      strokeWidth={8}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      fill="none"
+                      isAnimationActive={chartMotion.enabled}
+                      animationBegin={0}
+                      animationDuration={chartMotion.duration}
+                      animationEasing="ease-out"
+                      dot={false}
+                      activeDot={false}
                     />
                     <Area
                       className="overview-score-area"
                       type="linear"
                       dataKey="total"
-                      stroke="#2563EB"
-                      strokeWidth={2.5}
-                      fill="url(#scoreFill)"
+                      stroke="#60A5FA"
+                      strokeWidth={4}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      fill="none"
                       isAnimationActive={chartMotion.enabled}
                       animationBegin={0}
                       animationDuration={chartMotion.duration}
                       animationEasing="ease-out"
                       onAnimationEnd={chartMotion.finish}
                       dot={false}
-                      activeDot={{ r: 6.5, fill: '#2563EB', stroke: isDark ? '#FFFFFF' : '#0F172A', strokeWidth: 2 }}
+                      activeDot={{ r: 9, fill: '#F59E0B', stroke: isDark ? '#E2E8F0' : '#0F172A', strokeWidth: 3 }}
                     />
                     <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} markRetests={false} />} />
                   </AreaChart>
@@ -646,12 +681,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
             newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}
             onOpenListening={() => setDesktopSkillModal('listening')}
             onOpenReading={() => setDesktopSkillModal('reading')}>
-            <div className="px-5 pt-3.5 pb-4">
-              <button type="button" onClick={onNavigateToAnalytics}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white py-2.5 text-sm font-black text-indigo-700 shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group">
-                <span>Xem 7 Part chi tiết</span>
-                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-              </button>
+            <div className="mx-5 mt-1 border-t border-slate-200/80 pb-4 pt-3.5 dark:border-slate-800">
+              {nextStep?.kind === 'review' && (
+                <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300">
+                  Sổ tay có <b className="font-black text-slate-950 dark:text-white">{nextStep.count} câu</b> đến hạn ôn
+                </p>
+              )}
+              {nextStep?.kind === 'part' && (
+                <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300">
+                  Mất nhiều điểm nhất: <b className="font-black text-slate-950 dark:text-white">Part {nextStep.part}</b> (sai {nextStep.wrong} câu)
+                </p>
+              )}
+              {nextStep?.kind === 'record' && (
+                <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300">
+                  Ghi điểm từng Part để biết nên luyện gì tiếp.
+                </p>
+              )}
+              <div className="mt-2.5 flex items-center gap-3">
+                {nextStep?.kind === 'review' && (
+                  <button type="button" onClick={onStartReview}
+                    className="flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 py-2.5 text-sm font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:shadow-[2px_2px_0_0_#cbd5e1]">
+                    Ôn {nextStep.count} câu ngay
+                  </button>
+                )}
+                {nextStep?.kind === 'part' && onNavigateToPacing && (
+                  <button type="button" onClick={() => onNavigateToPacing(`PART_${nextStep.part}` as ReadingPartType)}
+                    className="flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 py-2.5 text-sm font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:shadow-[2px_2px_0_0_#cbd5e1]">
+                    Luyện Part {nextStep.part}
+                  </button>
+                )}
+                <button type="button" onClick={onNavigateToAnalytics}
+                  className={`group flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3.5 py-2 text-[13px] font-black text-indigo-700 transition active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 ${nextStep?.kind === 'review' || nextStep?.kind === 'part' ? 'shrink-0' : 'flex-1'}`}>
+                  <span>Xem 7 Part</span>
+                  <ArrowRight className="h-3.5 w-3.5 stroke-[2.5] transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </button>
+              </div>
             </div>
           </ScoreReportCard>}
 
