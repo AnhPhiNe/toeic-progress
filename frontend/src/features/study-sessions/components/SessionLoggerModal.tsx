@@ -747,10 +747,19 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           </div>
 
+          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && detailsOpen && (
+            <div className="space-y-1">
+              <label htmlFor="session-notes-details" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Ghi chú bài thi (tùy chọn)</label>
+              <textarea id="session-notes-details" rows={2} value={notes} onChange={event => setNotes(event.target.value)}
+                placeholder="VD: Làm lúc mệt, mất tập trung Part 7..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+            </div>
+          )}
           {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (
             <button type="button" onClick={() => setDetailsOpen(open => !open)} aria-expanded={detailsOpen}
-              className="-mt-1 w-fit cursor-pointer text-[13px] font-black text-slate-600 hover:underline dark:text-slate-300">
-              {detailsOpen ? 'Ẩn chi tiết ▴' : 'Thêm chi tiết: ngày, thời lượng ▾'}
+              title="Đổi ngày, thêm thời lượng và ghi chú"
+              className="-mt-1 w-fit cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[13px] font-black text-slate-800 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
+              {detailsOpen ? 'Ẩn chi tiết ▴' : `Ngày: ${date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().join('/')} · giờ, ghi chú ▾`}
             </button>
           )}
 

@@ -233,16 +233,11 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         />
 
         {aiFirst && (
-          <div className="flex items-center justify-between text-[13px] font-black">
-            <button type="button" onClick={() => onManualOpenChange(true)}
-              className="cursor-pointer text-indigo-700 hover:underline dark:text-indigo-300">
-              Nhập tay: chạm câu sai, gõ số câu, nhập điểm ›
-            </button>
-            <button type="button" onClick={() => setShowNotes(prev => !prev)} aria-label={showNotes ? 'Đóng ghi chú' : 'Thêm ghi chú'}
-              className="cursor-pointer text-slate-600 hover:underline dark:text-slate-300">
-              {notes.trim() ? 'Có ghi chú' : 'Ghi chú'}
-            </button>
-          </div>
+          <button type="button" onClick={() => onManualOpenChange(true)}
+            title="Chạm câu sai, gõ số câu, nhập điểm"
+            className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-[13.5px] font-black text-indigo-700 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300">
+            Nhập tay <span aria-hidden="true">›</span>
+          </button>
         )}
 
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
