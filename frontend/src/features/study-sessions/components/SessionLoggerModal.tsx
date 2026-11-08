@@ -86,6 +86,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [durationEdited, setDurationEdited] = useState(false);
   const durationEditedRef = useRef(false);
   const markDurationEdited = (value: boolean) => { durationEditedRef.current = value; setDurationEdited(value); };
+  // Giờ làm để trống (đề cũ lưu 0 hoặc learner xoá ô): lưu 0 chứ không bịa 120.
+  const [durationEmpty, setDurationEmpty] = useState(false);
+  const durationEmptyRef = useRef(false);
+  const markDurationEmpty = (value: boolean) => { durationEmptyRef.current = value; setDurationEmpty(value); };
   const [vocabCount, setVocabCount] = useState(1);
   const [pendingInitialFiles, setPendingInitialFiles] = useState<File[] | undefined>(undefined);
 
@@ -106,6 +110,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [timingCandidate, setTimingCandidate] = useState<TimingCandidate | null>(null);
   const changeDurationMinutes = (value: number) => {
     markDurationEdited(true);
+    if (value > 0) markDurationEmpty(false);
     setDurationMinutes(value);
     setResultTiming(current => {
       if (!current || current.totalSeconds === null || Math.abs(current.totalSeconds / 60 - value) < 0.01) return current;
@@ -126,7 +131,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   };
   const applyImageTiming = (value: ConfirmedResultTiming) => {
     setResultTiming(value); setTimingCandidate(null); setScoreError('');
-    if (value.totalSeconds !== null) { setDurationMinutes(Math.round(value.totalSeconds / 60 * 100) / 100); markDurationEdited(true); }
+    if (value.totalSeconds !== null) { setDurationMinutes(Math.round(value.totalSeconds / 60 * 100) / 100); markDurationEdited(true); markDurationEmpty(false); }
     const parts = { ...partDurations };
     for (const key of ['part5', 'part6', 'part7'] as const) {
       if (value.parts[key] !== null) parts[key] = Math.round(value.parts[key]! / 60 * 100) / 100;
@@ -138,6 +143,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     if (resultTiming) {
       if (resultTiming.totalSeconds !== null && Math.abs(durationMinutes - Math.round(resultTiming.totalSeconds / 60 * 100) / 100) < 0.01) {
         setDurationMinutes(editingSession?.durationMinutes ?? prefill?.durationMinutes ?? 120);
+        markDurationEmpty(Boolean(editingSession) && !(Number(editingSession?.durationMinutes) > 0));
         markDurationEdited(Boolean(editingSession || prefill?.durationMinutes !== undefined));
       }
       const parts = { ...partDurations };
@@ -305,6 +311,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
     markDurationEdited(Boolean(e || prefill?.durationMinutes !== undefined));
+    markDurationEmpty(Boolean(e) && !(Number(e?.durationMinutes) > 0));
     setVocabCount(1);
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
@@ -376,7 +383,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
   const compactTop = sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && !detailsOpen;
-  const durationBlank = sessionType === 'FULL_TEST' && !isPhone && !isEditing && !durationEdited;
+  const durationBlank = sessionType === 'FULL_TEST' && !isPhone && ((!isEditing && !durationEdited) || durationEmpty);
   const typedWrongParsed = wrongEntry && wrongNumberDraft.typing ? parseQuestionList(wrongNumberDraft.text) : null;
   const activeWrongQuestions = typedWrongParsed && !typedWrongParsed.invalid.length ? typedWrongParsed.questions : wrongQuestions;
   const effectiveParts = wrongEntry ? partScoresFromWrong(activeWrongQuestions) : partScores;
@@ -470,7 +477,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         let finalTiming = resultTiming;
         // A computer Full Test whose duration was never typed, read from an image or edited is saved as "not recorded" (0),
         // not as the 120-minute placeholder: that number was never the learner's real time and would count as study minutes.
-        const durationUnknown = !isPhone && !isEditing && !durationEditedRef.current;
+        const durationUnknown = !isPhone && ((!isEditing && !durationEditedRef.current) || durationEmptyRef.current);
         let finalDuration = durationUnknown ? 0 : Number(durationMinutes) || 120;
         let finalPartDurations = partDurations;
         if (timingCandidate) {
@@ -741,7 +748,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 required={!durationBlank}
                 placeholder={durationBlank ? 'Chưa ghi' : undefined}
                 value={durationBlank ? '' : durationMinutes}
-                onChange={e => changeDurationMinutes(Number(e.target.value))}
+                onChange={e => { changeDurationMinutes(Number(e.target.value)); if (e.target.value === '') markDurationEmpty(true); }}
                 className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
               />
             </div>
