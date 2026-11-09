@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const INK = 'border-2 border-slate-900 dark:border-slate-300';
 
@@ -10,18 +10,28 @@ interface Props {
 
 export const DesktopVocabBody = ({ count, setCount, date, setDate, today }: Props) => {
   const [dateOpen, setDateOpen] = useState(false);
+  // Text mirror of the count so the field can be empty while typing.
+  const [text, setText] = useState(String(count));
+  useEffect(() => { if (Number(text) !== count) setText(String(count)); }, [count]); // eslint-disable-line react-hooks/exhaustive-deps
+  const step = (delta: number) => setCount(Math.max(1, (Number(count) || 0) + delta));
+  const stepBtn = `grid h-11 w-11 cursor-pointer place-items-center rounded-xl bg-white text-xl font-extrabold text-slate-900 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800 ${INK}`;
   const [, m, d] = date.split('-');
   const label = `${date === today ? 'Hôm nay, ' : ''}${d}/${m}`;
   return (
     <div className="space-y-4 text-center">
       <div className="pt-2">
         <div className="text-[13px] font-bold text-slate-600 dark:text-slate-300">Hôm nay bạn học bao nhiêu từ?</div>
-        <div className="mt-2 inline-flex items-baseline gap-2">
-          <input type="number" min={1} step={1} required inputMode="numeric" aria-label="Số từ đã học" value={count}
-            onChange={e => setCount(Number(e.target.value))} onFocus={e => e.target.select()}
-            className={`w-[170px] rounded-2xl bg-white px-4 py-0.5 text-center text-[56px] font-extrabold leading-[1.15] tabular-nums text-slate-900 focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-700 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${INK}`} />
-          <span className="text-lg font-bold text-slate-500 dark:text-slate-400">từ</span>
+        {/* − and + change one word at a time; the number itself can still be typed, and clearing it does not jump to 0 */}
+        <div className="mt-2 flex items-center justify-center gap-3.5">
+          <button type="button" aria-label="Bớt 1 từ" disabled={(Number(count) || 0) <= 1} onClick={() => step(-1)} className={stepBtn}>−</button>
+          <input type="number" min={1} step={1} required inputMode="numeric" aria-label="Số từ đã học" value={text}
+            onChange={e => { setText(e.target.value); if (e.target.value !== '') setCount(Number(e.target.value)); }}
+            onBlur={() => { if (text === '' || Number(text) < 1) { setText('1'); setCount(1); } }}
+            onFocus={e => e.target.select()}
+            className={`w-[150px] rounded-2xl bg-white px-4 py-0.5 text-center text-[52px] font-extrabold leading-[1.15] tabular-nums text-slate-900 focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-700 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${INK}`} />
+          <button type="button" aria-label="Thêm 1 từ" onClick={() => step(1)} className={stepBtn}>+</button>
         </div>
+        <div className="mt-1 text-base font-bold text-slate-500 dark:text-slate-400">từ</div>
         <div className="mt-3.5 grid grid-cols-5 gap-2">
           {[5, 10, 20, 30, 50].map(n => (
             <button key={n} type="button" onClick={() => setCount((Number(count) || 0) + n)}

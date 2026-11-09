@@ -25,8 +25,9 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
   const [detailOpen, setDetailOpen] = useState(initialDetailOpen);
   const used = new Set(rows.map(r => r.part));
 
+  const removePart = (part: Part) => setRows(prev => prev.length <= 1 ? prev : prev.filter(row => row.part !== part));
   const addPart = (part: Part) => {
-    if (used.has(part)) return;
+    if (used.has(part)) { removePart(part); return; }
     setRows(prev => [...prev, { part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}` as keyof typeof PART_MAX_QUESTIONS] }]);
   };
   const patch = (index: number, change: (row: PracticePartResult) => Partial<PracticePartResult>) =>
@@ -37,21 +38,20 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
       next.correct = Math.min(next.total, Math.max(0, Math.round(next.correct) || 0));
       return next;
     }));
-  const last = rows[rows.length - 1];
   const stepBtn = `grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] bg-white text-lg font-extrabold hover:bg-slate-100 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800 ${INK}`;
 
   return (
     <div className="space-y-4">
       <div>
-        <div className="mb-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">Thêm Part đã luyện</div>
-        <div role="group" aria-label="Thêm Part đã luyện" className={`grid grid-cols-7 overflow-hidden rounded-xl ${INK}`}>
+        <div className="mb-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">Part đã luyện</div>
+        <div role="group" aria-label="Part đã luyện" className={`grid grid-cols-7 overflow-hidden rounded-xl ${INK}`}>
           {PARTS.map((p, i) => {
             const isUsed = used.has(p);
             return (
-              <button key={p} type="button" aria-label={`Thêm Part ${p}`} aria-disabled={isUsed} onClick={() => addPart(p)}
+              <button key={p} type="button" aria-label={isUsed ? `Part ${p} đã thêm, bấm để bỏ` : `Thêm Part ${p}`} aria-pressed={isUsed} onClick={() => addPart(p)}
                 className={`py-2.5 text-sm font-extrabold transition ${i > 0 ? 'border-l-2 border-slate-900 dark:border-slate-300' : ''} ${
                   isUsed
-                    ? 'cursor-default bg-white text-slate-400 line-through dark:bg-slate-950 dark:text-slate-500'
+                    ? 'cursor-pointer bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100'
                     : 'cursor-pointer bg-white text-slate-900 hover:bg-blue-100 hover:text-blue-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-blue-900 dark:hover:text-blue-100'
                 }`}>
                 {p}
@@ -64,7 +64,7 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
       {rows.map((row, index) => {
         const pct = row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
         return (
-          <div key={row.part} className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-2xl px-3.5 py-3 ${INK}`}>
+          <div key={row.part} className={`grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-2xl px-3.5 py-3 ${INK}`}>
             <span className="rounded-[10px] border-2 border-slate-900 bg-blue-100 px-2.5 py-1.5 text-[13px] font-extrabold text-blue-700 dark:border-slate-300 dark:bg-blue-900 dark:text-blue-100">Part {row.part}</span>
             <div className="flex items-center justify-center gap-2.5">
               <button type="button" aria-label={`Giảm số câu đúng Part ${row.part}`} onClick={() => patch(index, r => ({ correct: r.correct - 1 }))} className={stepBtn}>−</button>
@@ -85,14 +85,16 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
             <div className="text-right text-[13px] font-extrabold tabular-nums text-emerald-600 dark:text-emerald-300">
               {pct}%<small className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">đúng</small>
             </div>
+            {rows.length > 1
+              ? <button type="button" aria-label={`Bỏ Part ${row.part}`} title={`Bỏ Part ${row.part}`} onClick={() => removePart(row.part)}
+                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border-2 border-transparent text-lg font-extrabold text-slate-500 hover:border-slate-900 hover:text-rose-700 focus-visible:border-slate-900 focus-visible:outline-none dark:text-slate-400 dark:hover:border-slate-300 dark:hover:text-rose-300">×</button>
+              : <span className="w-8" aria-hidden="true" />}
           </div>
         );
       })}
 
       <div className="flex items-center justify-between text-[13px] font-extrabold">
-        {rows.length > 1
-          ? <button type="button" onClick={() => setRows(prev => prev.length <= 1 ? prev : prev.slice(0, -1))} className="cursor-pointer text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Bỏ Part {last.part}</button>
-          : <span />}
+        <span />
         <button type="button" aria-expanded={detailOpen} onClick={() => setDetailOpen(o => !o)} className="cursor-pointer text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
           Thêm chi tiết {detailOpen ? '▴' : '▾'}
         </button>

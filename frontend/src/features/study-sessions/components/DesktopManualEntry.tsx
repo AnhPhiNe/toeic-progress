@@ -61,28 +61,30 @@ export function DesktopManualEntry({ wrong, onWrong, numberDraft, onNumberDraft,
     go();
   };
 
-  const section = (label: string, current: string, change: (next: string) => void) => (
-    <label className="block min-w-0">
-      <span className="mb-1 flex items-baseline justify-between text-[12px] font-extrabold text-slate-700 dark:text-slate-200">
-        {label}<em className="font-semibold not-italic text-slate-500 dark:text-slate-400">nếu có</em>
-      </span>
-      <input type="number" inputMode="numeric" min={5} max={495} step={5} aria-label={label} placeholder="Chưa có" value={current}
-        onChange={event => change(event.target.value)} className={inputClass} />
+  // One label for the row; "L" / "R" sit inside the fields so the two boxes read as one score.
+  const section = (label: 'Listening' | 'Reading', current: string, change: (next: string) => void) => (
+    <label className="flex min-w-0 items-stretch overflow-hidden rounded-xl border-2 border-slate-900 bg-white focus-within:ring-[3px] focus-within:ring-blue-300 dark:border-slate-300 dark:bg-[#121A2B] dark:focus-within:ring-blue-700">
+      <span aria-hidden="true" className="grid w-9 shrink-0 place-items-center border-r-2 border-slate-900 bg-slate-50 text-[13px] font-extrabold text-slate-700 dark:border-slate-300 dark:bg-[#0B1220] dark:text-slate-200">{label[0]}</span>
+      <input type="number" inputMode="numeric" min={5} max={495} step={5} aria-label={label} placeholder={label} value={current}
+        onChange={event => change(event.target.value)}
+        className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] font-bold tabular-nums text-slate-950 placeholder:font-semibold placeholder:text-slate-400 focus:outline-none dark:text-white dark:placeholder:text-slate-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
     </label>
   );
 
   return (
     <div className="grid gap-3.5" data-testid="manual-entry">
-      <div className="grid grid-cols-[1fr_1fr_120px] items-end gap-2.5">
-        {section('Listening', listening, next => onSections(next, reading))}
-        {section('Reading', reading, next => onSections(listening, next))}
-        <div className="pb-1.5" aria-live="polite">
-          <span className="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400">Tổng</span>
-          <b className="block text-[24px] font-extrabold leading-[1.1] tabular-nums text-slate-950 dark:text-white" data-testid="manual-total">{total}</b>
-          <span className={'mt-0.5 block text-[11px] font-extrabold ' + (official ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-600 dark:text-slate-300')}>
-            {official ? 'Điểm từ đề thi' : 'Ước tính từ câu sai'}
+      <div>
+        <div className="mb-1 flex items-baseline justify-between text-[12px] font-extrabold text-slate-700 dark:text-slate-200">
+          Điểm L/R từ đề thi <span className="font-semibold text-slate-500 dark:text-slate-400">không bắt buộc</span>
+        </div>
+        <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2.5">
+          {section('Listening', listening, next => onSections(next, reading))}
+          {section('Reading', reading, next => onSections(listening, next))}
+          <span className={'min-w-[64px] text-right text-[14px] font-bold text-slate-500 dark:text-slate-400 ' + (bothSections ? '' : 'invisible')} aria-hidden={!bothSections}>
+            = <b className="text-[22px] font-extrabold tabular-nums text-slate-950 dark:text-white">{bothSections ? Number(listening) + Number(reading) : 0}</b>
           </span>
         </div>
+        <p className="mt-1.5 text-[12px] font-semibold text-slate-500 dark:text-slate-400">Để trống thì điểm được ước tính từ số câu sai.</p>
       </div>
 
       <div>
@@ -95,6 +97,16 @@ export function DesktopManualEntry({ wrong, onWrong, numberDraft, onNumberDraft,
       </div>
 
       <PartCountRow wrong={parsed.questions} />
+
+      <div className="flex items-baseline justify-between border-t border-slate-200 pt-3 dark:border-slate-700" aria-live="polite">
+        <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Điểm sẽ lưu</span>
+        <span className="flex items-baseline gap-2">
+          <b className="text-[22px] font-extrabold tabular-nums text-slate-950 dark:text-white" data-testid="manual-total">{total}</b>
+          <span className={'text-[12px] font-bold ' + (official ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400')}>
+            {official ? 'Điểm từ đề thi' : hasMarks ? 'Ước tính từ câu sai' : 'Gõ câu sai hoặc điểm L/R'}
+          </span>
+        </span>
+      </div>
 
       <div className="flex items-center justify-between text-[13px] font-extrabold">
         <button type="button" onClick={() => leave(onBack)} className="cursor-pointer text-slate-600 hover:underline dark:text-slate-300">‹ Quay lại dán ảnh</button>
