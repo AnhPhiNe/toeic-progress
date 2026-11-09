@@ -208,6 +208,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const draftOwner = useRef(getActiveAccountId());
   const savedSession = useRef(false);
   const [restoredVersion, setRestoredVersion] = useState(0);
+  // Computer: "Bỏ nháp" clears the form at once and offers 8 seconds to undo instead of a confirm dialog.
+  const [resetNonce, setResetNonce] = useState(0);
+  const [discarded, setDiscarded] = useState<SessionFormDraft | null>(null);
+  const undoTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(undoTimer.current), []);
   const restoredType = useRef<string | null>(null);
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
@@ -302,7 +307,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
     setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
-  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles]);
+  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles, resetNonce]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
@@ -317,19 +322,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const formDraft: SessionFormDraft = { sessionType, testName, date, durationMinutes, durationEdited, vocabCount, notes,
     scoreSource, manualMode, manualListening, manualReading, manualTotal, includePartDetails, entry, wrongQuestions,
     partScores, practiceRows, sourceScorePending, sourceScoreDraft: sourceScoreStore.current, originalUpdatedAt: editingSession?.updatedAt, wrongNumberDraft, partDurations, resultTiming, timingCandidate };
-  const persistentDraft = useFormDraft({
-    scope: `session:${editingSession?.id ?? (prefill?.sessionType ? `prefill:${prefill.sessionType}:${prefill.partNumber ?? 'all'}` : 'new')}`,
-    enabled: isOpen && !savedSession.current, value: formDraft,
-    snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
-    meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
-      || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
-      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== 1 || date !== getTodayDateString()
-      || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
-    validate: input => {
-      const value = parseSessionFormDraft(input);
-      return value && value.originalUpdatedAt === editingSession?.updatedAt ? value : null;
-    },
-    restore: value => {
+  const restoreFormDraft = (value: SessionFormDraft) => {
       restoredType.current = value.sessionType;
       setSessionType(value.sessionType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
       markDurationEdited(value.durationEdited || value.resultTiming?.totalSeconds != null);
@@ -342,8 +335,37 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
       setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
       setRestoredVersion(version => version + 1);
-    }
+  };
+  const persistentDraft = useFormDraft({
+    scope: `session:${editingSession?.id ?? (prefill?.sessionType ? `prefill:${prefill.sessionType}:${prefill.partNumber ?? 'all'}` : 'new')}`,
+    enabled: isOpen && !savedSession.current, value: formDraft,
+    snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
+    meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
+      || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
+      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== 1 || date !== getTodayDateString()
+      || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
+    validate: input => {
+      const value = parseSessionFormDraft(input);
+      return value && value.originalUpdatedAt === editingSession?.updatedAt ? value : null;
+    },
+    restore: value => restoreFormDraft(value)
   });
+  const discardDraft = () => {
+    const snapshot = { ...formDraft, sourceScoreDraft: sourceScoreStore.current };
+    if (!persistentDraft.clear()) return;
+    setResetNonce(value => value + 1);
+    setRestoredVersion(value => value + 1);
+    setDiscarded(snapshot);
+    window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setDiscarded(null), 8000);
+  };
+  const undoDiscard = () => {
+    if (!discarded) return;
+    window.clearTimeout(undoTimer.current);
+    restoreFormDraft(discarded);
+    setDiscarded(null);
+    persistentDraft.restart();
+  };
   const closeWithDraft = () => {
     if (!persistentDraft.persist() && !window.confirm('Chưa tự lưu được nháp. Đóng form sẽ mất nội dung đang nhập. Vẫn đóng?')) return;
     onClose();
@@ -600,7 +622,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </button>
         </div>
 
-        {persistentDraft.state === 'restored' && (
+        {persistentDraft.state === 'restored' && isPhone && (
           <div className="flex shrink-0 items-center justify-end px-4 py-1.5 sm:px-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-300">
               <span role="status">📝 Đã khôi phục bản nháp trên thiết bị này</span>
@@ -631,37 +653,38 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           <div className="relative min-h-0 flex-1 flex flex-col">
             <div ref={formBodyRef} className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-3 p-4 sm:px-5 sm:py-3.5' : 'space-y-4 p-5'} overflow-y-auto max-md:p-4`}>
           
-          {/* Mode Switcher */}
-          <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
-            <button
-              type="button"
-              onClick={() => setSessionType('FULL_TEST')}
-              className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
-                sessionType === 'FULL_TEST'
-                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <span>Full Test</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSessionType('PART_PRACTICE')}
-              className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
-                sessionType === 'PART_PRACTICE'
-                  ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <span>Luyện Part</span>
-            </button>
-            {!isEditing && (
-              <button type="button" onClick={() => setSessionType('VOCAB')}
-                className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer ${sessionType === 'VOCAB' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
-                Từ vựng
-              </button>
-            )}
+          {/* Mode Switcher: computers use the Neo segmented bar (2px ink frame, selected cell tinted); phones keep the soft tabs */}
+          <div className={isPhone
+            ? `grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`
+            : `grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} overflow-hidden rounded-xl border-2 border-slate-900 dark:border-slate-300`}>
+            {([['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const)
+              .filter(([type]) => !(isEditing && type === 'VOCAB'))
+              .map(([type, label], index) => {
+                const on = sessionType === type;
+                const phoneOn = type === 'PART_PRACTICE' ? 'text-amber-600 dark:text-amber-300' : 'text-blue-600 dark:text-blue-300';
+                return (
+                  <button key={type} type="button" onClick={() => setSessionType(type)} aria-pressed={on}
+                    className={isPhone
+                      ? `py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center cursor-pointer ${on ? `bg-white dark:bg-slate-800 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold ${phoneOn}` : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`
+                      : `py-2 text-[13px] font-extrabold transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${index > 0 ? 'border-l-2 border-slate-900 dark:border-slate-300' : ''} ${on ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#121A2B] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+                    {label}
+                  </button>
+                );
+              })}
           </div>
+
+          {!isPhone && discarded && (
+            <div role="status" className="flex items-center justify-between text-[12.5px] font-bold text-slate-500 dark:text-slate-400">
+              <span>Đã bỏ bản nháp</span>
+              <button type="button" onClick={undoDiscard} className="cursor-pointer font-extrabold text-blue-700 hover:underline dark:text-blue-300">Hoàn tác</button>
+            </div>
+          )}
+          {!isPhone && !discarded && persistentDraft.state === 'restored' && (
+            <div className="flex items-center justify-between text-[12.5px] font-bold text-slate-500 dark:text-slate-400">
+              <span role="status">Đang tiếp tục bản nháp chưa lưu</span>
+              <button type="button" onClick={discardDraft} className="cursor-pointer font-extrabold text-rose-700 hover:underline dark:text-rose-300">Bỏ nháp</button>
+            </div>
+          )}
 
           {isPhone && sessionType === 'FULL_TEST' && (
             <PhoneFullTestBody key={restoredVersion} testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
@@ -705,24 +728,24 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
             <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
               <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Tên Đề Thi / Nguồn
+                Tên đề
               </label>
-              <TestNamePicker id="session-test-name" label="Tên Đề Thi / Nguồn" required={sessionType === 'FULL_TEST'}
+              <TestNamePicker id="session-test-name" label="Tên đề" required={sessionType === 'FULL_TEST'}
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
             <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
-              <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
+              <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày làm</label>
               <input
                 id="session-date"
                 type="date"
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
+                className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
               />
             </div>
             <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
-              <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Làm (Phút)</label>
+              <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời gian làm (phút)</label>
               <input
                 id="session-duration"
                 type="number"
@@ -733,7 +756,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 placeholder={durationBlank ? 'Chưa ghi' : undefined}
                 value={durationBlank ? '' : durationMinutes}
                 onChange={e => { changeDurationMinutes(Number(e.target.value)); if (e.target.value === '') markDurationEmpty(true); }}
-                className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
+                className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
               />
             </div>
           </div>
@@ -743,7 +766,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               <label htmlFor="session-notes-details" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Ghi chú bài thi (tùy chọn)</label>
               <textarea id="session-notes-details" rows={2} value={notes} onChange={event => setNotes(event.target.value)}
                 placeholder="VD: Làm lúc mệt, mất tập trung Part 7..."
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                className="w-full rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:border-slate-300 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-700" />
             </div>
           )}
           {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (

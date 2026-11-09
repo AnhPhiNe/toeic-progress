@@ -20,7 +20,7 @@ async function openSession(page: Page, practice = false) {
   }
   const modal = sessionDialog(page);
   if (practice) await choosePractice(modal);
-  await modal.getByLabel('Tên Đề Thi / Nguồn').fill(practice ? 'ETS Practice' : 'ETS Handoff');
+  await modal.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill(practice ? 'ETS Practice' : 'ETS Handoff');
   if (!practice) {
     await useOfficialScore(modal);
     await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();

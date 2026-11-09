@@ -25,7 +25,7 @@ for (const width of [390, 1280]) {
     await expect.poll(() => draftRecords(page)).toContainEqual(expect.objectContaining({ scope: 'session:new', value: expect.objectContaining({ testName: 'QA durable result', wrongQuestions: [107] }) }));
     await page.reload(); form = await openResult(page, width < 768);
     await expect(form.locator('#session-test-name')).toHaveValue('QA durable result');
-    await expect(form.getByRole('status').filter({ hasText: 'Đã khôi phục bản nháp trên thiết bị này' })).toBeVisible();
+    await expect(form.getByRole('status').filter({ hasText: /Đã khôi phục bản nháp trên thiết bị này|Đang tiếp tục bản nháp chưa lưu/ })).toBeVisible();
     if (width < 768) await form.getByRole('button', { name: 'Part 5, 1 câu sai', exact: true }).click();
     else {
       // A restored draft with marks opens the short manual view with the list; the grid is one step further.

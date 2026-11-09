@@ -19,7 +19,7 @@ async function seed(page: Page, practice = false) {
 
 test('a metadata edit cannot overwrite a score updated while the editor was open', async ({ page }) => {
   const editor = await seed(page);
-  await editor.getByLabel('Tên Đề Thi / Nguồn', { exact: true }).fill('Draft name');
+  await editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/, { exact: true }).fill('Draft name');
   await editor.getByLabel('Ghi Chú Buổi Học', { exact: true }).fill('Draft notes');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
@@ -28,11 +28,11 @@ test('a metadata edit cannot overwrite a score updated while the editor was open
   });
   await editor.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await expect(editor.getByRole('alert')).toContainText('Buổi học đã được sửa ở nơi khác');
-  await expect(editor.getByLabel('Tên Đề Thi / Nguồn')).toHaveValue('Draft name');
+  await expect(editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/)).toHaveValue('Draft name');
   await expect(editor.getByLabel('Ghi Chú Buổi Học')).toHaveValue('Draft notes');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions[0])).toMatchObject({ totalScore: 900, notes: 'Latest external note' });
-  await expect(editor.getByLabel('Ngày Luyện Đề')).toHaveValue('2026-10-09');
-  await expect(editor.getByLabel('Thời Gian Làm (Phút)')).toHaveValue('120');
+  await expect(editor.getByLabel(/^(Ngày Luyện Đề|Ngày làm)$/)).toHaveValue('2026-10-09');
+  await expect(editor.getByLabel(/^Thời (Gian Làm \(Phút\)|gian làm \(phút\))$/)).toHaveValue('120');
 });
 
 test('a deleted Part practice cannot be restored by an open editor', async ({ page }) => {
@@ -66,7 +66,7 @@ test('an open guest logger cannot write its draft into a newly active account', 
   await page.goto('/lich-su');
   await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await editor.getByLabel('Tên Đề Thi / Nguồn', { exact: true }).fill('Guest draft');
+  await editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/, { exact: true }).fill('Guest draft');
   await useOfficialScore(editor);
   await editor.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await editor.getByLabel('Tổng điểm TOEIC /990').fill('800');
@@ -80,6 +80,6 @@ test('an open guest logger cannot write its draft into a newly active account', 
   });
   await editor.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();
   await expect(editor.getByRole('alert')).toContainText('Tài khoản đã thay đổi');
-  await expect(editor.getByLabel('Tên Đề Thi / Nguồn')).toHaveValue('Guest draft');
+  await expect(editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/)).toHaveValue('Guest draft');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_audit-other-owner_v3')!).sessions)).toHaveLength(0);
 });

@@ -12,7 +12,7 @@ for (const width of [390, 1280]) {
       await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
     } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
     const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-    const input = form.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn', exact: true });
+    const input = form.getByRole('combobox', { name: /^Tên (đề|Đề Thi \/ Nguồn)$/, exact: true });
     // Fill as soon as the form is visible, while the sheet may still be moving.
     await input.fill('QA animated source');
     await expect(input).toHaveAttribute('aria-expanded', 'true');
@@ -107,7 +107,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
   await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
   modal = page.getByRole('dialog');
-  const scoreSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
+  const scoreSource = modal.getByRole('combobox', { name: /^Tên (đề|Đề Thi \/ Nguồn)$/ });
   await scoreSource.fill('  ets 2025   test 03  ');
   await expect(page.getByRole('option', { name: 'ETS 2025 Test 03', exact: true })).toBeVisible();
   await expect(page.getByRole('option', { name: /Thêm tên đề/ })).toHaveCount(0);

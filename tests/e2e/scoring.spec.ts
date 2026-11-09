@@ -16,7 +16,7 @@ async function savedSession(page: Page) {
 
 test('manual section scores override the estimate and survive reload and editing', async ({ page }) => {
   let dialog = await openLogger(page);
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual sections');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Manual sections');
   await usePartCounts(dialog);
   for (const [index, count] of [5, 20, 35, 27, 25, 12, 33].entries()) await dialog.getByLabel(`Số câu đúng Part ${index + 1}`, { exact: true }).fill(String(count));
   await expect(dialog.getByText('Ước tính tham khảo', { exact: true })).toBeVisible();
@@ -43,7 +43,7 @@ test('manual section scores override the estimate and survive reload and editing
 test('total-only entry validates limits and can later add or remove section scores', async ({ page }) => {
   let dialog = await openLogger(page);
   await page.setViewportSize({ width: 375, height: 900 });
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual total');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Manual total');
   await useOfficialScore(dialog);
   await dialog.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await expect(dialog.getByLabel('Số câu đúng Part 1', { exact: true })).not.toBeVisible();
@@ -93,7 +93,7 @@ test('old estimates retain their version on metadata edits and switch only when 
   await page.getByRole('button',{name:'Sửa bản ghi Legacy estimate'}).click();
   const dialog=page.getByRole('dialog');
   await expect(dialog.getByText('855',{exact:true})).toBeVisible();
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Legacy renamed');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Legacy renamed');
   await dialog.getByRole('button',{name:'Lưu thay đổi'}).click();
   await expect(dialog).not.toBeVisible();
   expect(await savedSession(page)).toMatchObject({totalScore:855,scoreConversionVersion:'legacy-reference-v1'});
@@ -108,7 +108,7 @@ test('old estimates retain their version on metadata edits and switch only when 
 
 test('a newly saved perfect Full Test receives 495 per section and 990 total', async ({ page }) => {
   const dialog = await openLogger(page);
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Perfect estimate');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Perfect estimate');
   await usePartCounts(dialog);
   for (const [index,count] of [6,25,39,30,30,16,54].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1), {exact:true}).fill(String(count));
   await expect(dialog.getByText('990',{exact:true})).toBeVisible();

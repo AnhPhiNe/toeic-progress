@@ -95,7 +95,7 @@ test('a total-only latest attempt stays incomplete; switching tests resets the a
   await expect(page.getByRole('img',{name:/^2 lỗi đã ghi:/})).toBeVisible();
   await page.getByRole('button',{name:'Bổ sung chi tiết',exact:true}).click();
   const editor=page.getByRole('dialog');
-  await expect(editor.getByLabel('Tên Đề Thi / Nguồn')).toHaveValue('ETS A');
+  await expect(editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/)).toHaveValue('ETS A');
   await expect(editor.getByLabel('Tổng điểm TOEIC /990')).toHaveValue('800');
   await editor.getByRole('button',{name:'Lưu thay đổi',exact:true}).click();
   await expect(editor).not.toBeVisible();

@@ -108,7 +108,7 @@ test('new data updates an untouched calculator and preserves explicit simulation
   async function saveParts(name:string, part7:number) {
     await page.getByRole('button',{name:'Ghi điểm, phím tắt N'}).click();
     const dialog=page.getByRole('dialog',{name:'Ghi điểm'});
-    await dialog.getByLabel('Tên Đề Thi / Nguồn').fill(name);
+    await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill(name);
     await usePartCounts(dialog);
     for(const [index,count] of [6,25,39,30,30,16,part7].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1),{exact:true}).fill(String(count));
     await dialog.getByRole('button',{name:'Lưu kết quả'}).click();
