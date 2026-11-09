@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { resolve } from 'node:path';
+import { openManualEntry } from './manualEntry';
 
 export const screenshot = resolve('tests/fixtures/part7-notice.png');
 export const TIP = 'Câu thiếu động từ chính → chọn động từ chia thì.';
@@ -51,7 +52,7 @@ export async function openDesktopFlow(page: Page) {
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await form.locator('#session-test-name').fill('ETS Table');
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
-  await form.getByRole('button', { name: /^Nhập tay/ }).click();
+  await openManualEntry(page, form);
   await form.getByRole('button', { name: 'Gõ số câu', exact: true }).click();
   await form.getByLabel('Số câu sai').fill('3 104 112 131');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();

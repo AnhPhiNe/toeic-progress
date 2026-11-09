@@ -111,18 +111,27 @@ export function ResultImageButton({
   onTiming,
   initialFiles,
   onInitialFilesHandled,
-  dropzone = false
+  dropzone = false,
+  compactDrop = false,
+  flatCard = false,
+  pasteEnabled = true
 }: {
   onRead: (numbers: number[]) => void;
   marks: number[];
   desktop?: boolean;
   /** Computer AI-first view: one large paste/drop area instead of two small buttons. */
   dropzone?: boolean;
+  /** With a summary on screen the drop area shrinks to one line so the next actions stay in view. */
+  compactDrop?: boolean;
+  /** Summary supplies its own frame; no score-entry rows are added under it. */
+  flatCard?: boolean;
+  /** Ctrl+V anywhere reads an image (off while a view without the drop area is shown). */
+  pasteEnabled?: boolean;
   onScores?: (score: AppliedResultScore) => void;
   onScoresPending?: (pending: boolean) => void;
   scoreStore?: ResultScoreStore;
   extraButton?: React.ReactNode;
-  scoreCard?: React.ReactNode;
+  scoreCard?: React.ReactNode | ((api: { editScore: () => void }) => React.ReactNode);
   isTyping?: boolean;
   typingContent?: React.ReactNode;
   timingContent?: React.ReactNode;
@@ -230,14 +239,14 @@ export function ResultImageButton({
   }, [available, initialFiles, onInitialFilesHandled]);
   // On a computer the screenshot can be pasted with Ctrl+V anywhere in the form, not only on the button.
   useEffect(() => {
-    if (!desktop || !available) return;
+    if (!desktop || !available || !pasteEnabled) return;
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
       if (files.length) { event.preventDefault(); void latestRead.current(files); }
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
-  }, [desktop, available]);
+  }, [desktop, available, pasteEnabled]);
   if (!available) return null;
   const openEditAppliedScore = () => {
     triggerHaptic(6);
@@ -259,9 +268,16 @@ export function ResultImageButton({
     >
       {/* Unified Score Card (if provided on desktop) */}
       {scoreCard && (
-        <div className="rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] mb-2.5" aria-live="polite">
-          {scoreCard}
-          {onScores && (
+        <div className={flatCard ? 'mb-2.5' : 'rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] mb-2.5'} aria-live="polite">
+          {typeof scoreCard === 'function' ? scoreCard({ editScore: openEditAppliedScore }) : scoreCard}
+          {onScores && flatCard && scoreReview && (
+            <button type="button" disabled={busy} onClick={() => { triggerHaptic(4); setScoreOpen(true); }}
+              className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-slate-900 bg-white px-3 text-[13px] font-black text-slate-950 dark:border-slate-300 dark:bg-slate-900 dark:text-white">
+              <span>Điểm từ đề: {scoreOpen ? 'đang mở hộp thoại' : 'cần kiểm tra'}</span>
+              <span className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300" aria-hidden="true">Kiểm tra ›</span>
+            </button>
+          )}
+          {onScores && !flatCard && (
             <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
               {scoreReview ? (
                 <button
@@ -361,6 +377,12 @@ export function ResultImageButton({
             Đăng nhập Google
           </button>
         </div>
+      ) : dropzone && compactDrop ? (
+        <button type="button" disabled={busy} onClick={() => input.current?.click()}
+          className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-500 bg-slate-50 px-3 text-[13px] font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900">
+          <ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {busy ? 'AI đang đọc ảnh…' : 'Dán thêm ảnh: Ctrl+V hoặc thả vào đây'}
+        </button>
       ) : dropzone ? (
         <div className="rounded-2xl border-[2.5px] border-dashed border-slate-500 bg-slate-50 px-4 py-7 text-center dark:border-slate-500 dark:bg-slate-900/60">
           <ImagePlus className="mx-auto h-7 w-7 text-slate-700 dark:text-slate-200" aria-hidden="true" />
@@ -373,16 +395,8 @@ export function ResultImageButton({
           </p>
         </div>
       ) : desktop && extraButton ? (
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => input.current?.click()}
-            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-violet-50 active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-wait disabled:opacity-60 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none"
-          >
-            <ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {busy ? 'Đang đọc…' : 'Dán ảnh'}
-          </button>
+        <div className="space-y-2">
+          {busy && <button type="button" disabled className="flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-50 px-3 text-xs font-bold text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"><ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />Đang đọc…</button>}
           {extraButton}
         </div>
       ) : (
@@ -402,7 +416,7 @@ export function ResultImageButton({
 
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh kết quả"
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />
-      <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
+      <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
 

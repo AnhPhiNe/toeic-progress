@@ -27,6 +27,11 @@ for (const width of [390, 1280]) {
     await expect(form.locator('#session-test-name')).toHaveValue('QA durable result');
     await expect(form.getByRole('status').filter({ hasText: 'Đã khôi phục bản nháp trên thiết bị này' })).toBeVisible();
     if (width < 768) await form.getByRole('button', { name: 'Part 5, 1 câu sai', exact: true }).click();
+    else {
+      // A restored draft with marks opens the short manual view with the list; the grid is one step further.
+      await expect(form.getByLabel('Số câu sai', { exact: true })).toHaveValue('107');
+      await form.getByRole('button', { name: /^Chạm từng câu trên lưới/ }).click();
+    }
     await expect(form.getByRole('button', { name: 'Câu 107', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
     await expect.poll(() => draftRecords(page)).toEqual([]);

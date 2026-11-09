@@ -6,6 +6,7 @@ import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import type { ScoreSource } from '../lib/fullTestScore';
 import type { PartTimingDurations, ResultImageTiming } from '@/shared/types';
 import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
+import { DesktopManualEntry, PartCountRow } from './DesktopManualEntry';
 import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
@@ -36,6 +37,13 @@ interface Props {
   /** false = AI-first view (paste a result image); true = the manual tools (200-question grid, typed numbers, scores). */
   manualOpen: boolean;
   onManualOpenChange: (open: boolean) => void;
+  /** The short manual view (official L/R plus a typed wrong list) between the paste view and the grid. */
+  minimalOpen: boolean;
+  onMinimalOpenChange: (open: boolean) => void;
+  onSections: (listening: string, reading: string) => void;
+  /** Minutes of the total time once known (typed or read from an image); undefined while unrecorded. */
+  knownMinutes?: number;
+  onOpenDetails: () => void;
 }
 
 /**
@@ -43,7 +51,7 @@ interface Props {
  * manual tools: all 200 questions on one screen, where clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange, minimalOpen, onMinimalOpenChange, onSections, knownMinutes, onOpenDetails }: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -87,36 +95,39 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
   );
 
   const hasMarks = wrong.length > 0;
-  const aiFirst = !manualOpen;
+  const aiFirst = !manualOpen && !minimalOpen;
+  const showSummary = aiFirst && (hasMarks || isOfficial);
   const shownTotal = isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—';
   const shownL = isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—';
   const shownR = isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—';
-  const mostWrong = Math.max(0, ...PART_NUMBERS.map(part => byPart[part].length));
-  // AI-first summary: a plain table (label, value) with the wrong questions per Part in one aligned row; no pills.
-  const summaryTable = (
+  const dotted = 'cursor-pointer border-b-2 border-dotted border-slate-500 pb-px text-left hover:border-slate-900 dark:border-slate-400 dark:hover:border-slate-200';
+  // AI-first summary: label/value rows where each value is a button that opens the place to correct it.
+  const summaryTable = (api: { editScore: () => void }) => (
     <div className="text-left">
-      <div className="mb-1 flex items-center justify-between text-[12px] font-black text-emerald-700 dark:text-emerald-300">
-        <span>{isOfficial ? '✓ Điểm từ đề thi' : '✓ Kết quả đã nhận'}</span>
-        <span className="font-bold text-slate-500 dark:text-slate-400">Kiểm tra rồi bấm Lưu</span>
-      </div>
-      <div className="grid min-h-[48px] grid-cols-[96px_1fr] items-center border-b border-slate-200 dark:border-slate-700">
-        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">Điểm</span>
-        <span className="text-[22px] font-black tabular-nums text-slate-950 dark:text-white">{shownTotal}
-          <span className="ml-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400">L {shownL} · R {shownR}</span>
-        </span>
-      </div>
-      <div className="grid min-h-[48px] grid-cols-[96px_1fr] items-center">
-        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">Câu sai</span>
-        <span className="text-[18px] font-black tabular-nums text-slate-950 dark:text-white">{wrong.length} câu</span>
-      </div>
-      <div className="mb-1 grid grid-cols-7 overflow-hidden rounded-[10px] border-[1.5px] border-slate-300 dark:border-slate-600" role="group" aria-label="Câu sai theo Part">
-        {PART_NUMBERS.map(part => (
-          <div key={part} className="border-l border-slate-200 py-1.5 text-center first:border-l-0 dark:border-slate-700">
-            <small className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">P{part}</small>
-            <b className={'block text-[16px] font-black tabular-nums ' + (byPart[part].length > 0 && byPart[part].length === mostWrong ? 'text-amber-700 dark:text-amber-300' : 'text-slate-950 dark:text-white')}>{byPart[part].length}</b>
+      <div className="overflow-hidden rounded-[14px] border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#121A2B]">
+        <div className="border-b-2 border-slate-900 bg-slate-50 px-4 py-2.5 text-[12px] font-extrabold text-slate-700 dark:border-slate-300 dark:bg-[#0B1220] dark:text-slate-200">
+          Đọc được từ ảnh <span className="font-semibold text-slate-500 dark:text-slate-400">· bấm vào giá trị để sửa</span>
+        </div>
+        <div className="grid min-h-[50px] grid-cols-[100px_1fr] items-center border-b border-slate-200 px-4 dark:border-slate-700">
+          <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Điểm</span>
+          <span className="flex items-baseline gap-2">
+            <button type="button" onClick={api.editScore} aria-label="Sửa điểm" className={dotted + ' text-[16px] font-extrabold tabular-nums text-slate-950 dark:text-white'}>{isOfficial ? '' : hasMarks ? '~' : ''}{shownTotal}</button>
+            <small className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">L {shownL} · R {shownR}</small>
+          </span>
+        </div>
+        {knownMinutes !== undefined && knownMinutes > 0 && (
+          <div className="grid min-h-[50px] grid-cols-[100px_1fr] items-center border-b border-slate-200 px-4 dark:border-slate-700">
+            <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Thời gian</span>
+            <span><button type="button" onClick={onOpenDetails} aria-label="Sửa thời gian" className={dotted + ' text-[16px] font-extrabold tabular-nums text-slate-950 dark:text-white'}>{Math.round(knownMinutes)} phút</button></span>
           </div>
-        ))}
+        )}
+        <div className="grid min-h-[50px] grid-cols-[100px_1fr] items-center px-4">
+          <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Câu sai</span>
+          <span><button type="button" onClick={() => onMinimalOpenChange(true)} aria-label="Sửa câu sai" className={dotted + ' text-[16px] font-extrabold tabular-nums text-slate-950 dark:text-white'}>{wrong.length} câu</button></span>
+        </div>
+        <div className="px-4 pb-3 pt-1"><PartCountRow wrong={wrong} /></div>
       </div>
+      <p className="mt-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400">Giá trị đọc từ ảnh chỉ là gợi ý. Bạn xác nhận khi bấm Lưu.</p>
     </div>
   );
   return (
@@ -131,18 +142,27 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
       <div className="flex flex-col gap-2.5 max-lg:order-first">
         {manualOpen && (
-          <button type="button" onClick={() => onManualOpenChange(false)}
+          <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(true); }}
             className="w-fit cursor-pointer text-[13px] font-black text-indigo-700 hover:underline dark:text-indigo-300">
-            ‹ Quay lại dán ảnh
+            ‹ Quay lại
           </button>
         )}
+        {minimalOpen && !manualOpen && (
+          <DesktopManualEntry wrong={wrong} onWrong={onWrong} numberDraft={numberDraft} onNumberDraft={onNumberDraft}
+            listening={manualListening ?? ''} reading={manualReading ?? ''} officialTotal={scoreSource === 'MANUAL_TOTAL' ? manualTotal : undefined}
+            onSections={onSections} onBack={() => onMinimalOpenChange(false)} onGrid={() => onManualOpenChange(true)} />
+        )}
+        <div className={minimalOpen && !manualOpen ? 'hidden' : undefined}>
         <ResultImageButton
+          pasteEnabled={!minimalOpen || manualOpen}
+          compactDrop={showSummary}
+          flatCard={aiFirst}
           onTiming={onTiming}
           initialFiles={initialFiles}
           onInitialFilesHandled={onInitialFilesHandled}
           desktop
           dropzone={aiFirst}
-          scoreCard={aiFirst ? (hasMarks || isOfficial ? summaryTable : undefined) :
+          scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
                 isOfficial ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
@@ -190,7 +210,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           } : undefined}
           onRevertScore={onRevertScore}
           onRead={numbers => onWrong(normalizeQuestionList([...wrong, ...numbers]))}
-          isTyping={typing}
+          isTyping={manualOpen && typing}
           typingContent={
             <div className="space-y-2">
               <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
@@ -231,9 +251,10 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
             />
           }
         />
+        </div>
 
-        {aiFirst && (
-          <button type="button" onClick={() => onManualOpenChange(true)}
+        {aiFirst && !minimalOpen && (
+          <button type="button" onClick={() => onMinimalOpenChange(true)}
             title="Chạm câu sai, gõ số câu, nhập điểm"
             className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-[13.5px] font-black text-indigo-700 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300">
             Nhập tay <span aria-hidden="true">›</span>

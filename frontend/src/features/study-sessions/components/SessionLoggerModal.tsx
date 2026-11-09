@@ -103,6 +103,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualViewOverride, setManualViewOverride] = useState(false);
   // Computer Full Test opens on the paste-an-image view; editing an existing test or restoring typed marks opens the manual tools.
   const [fullTestManual, setFullTestManual] = useState(() => Boolean(editingSession));
+  // Between the paste view and the 200-question grid: official L/R plus a typed wrong list.
+  const [manualMinimal, setManualMinimal] = useState(false);
   // Computer Full Test: date and duration stay folded away until asked for, so the form opens on the name and the paste area.
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
@@ -272,6 +274,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setManualViewOverride(Boolean(e && !markWrong && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
     setFullTestManual(Boolean(e));
+    setManualMinimal(false);
     setDetailsOpen(false);
     setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
     setPartDurations(e?.partDurations);
@@ -334,7 +337,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
       setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
       setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
-      setFullTestManual(value.wrongQuestions.length > 0 || value.wrongNumberDraft.typing);
+      setFullTestManual(false);
+      setManualMinimal(value.wrongQuestions.length > 0 || value.wrongNumberDraft.typing);
       setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
       setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
       setRestoredVersion(version => version + 1);
@@ -389,6 +393,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     if (on && entry === 'wrong') { setPartScores(wrongQuestions.length ? effectiveParts : { ...EMPTY_PART_SCORES }); setIncludePartDetails(wrongQuestions.length > 0); }
     else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
     setScoreError('');
+  };
+  // Minimal manual view: both Listening and Reading filled = official sections score; otherwise back to the estimate from the wrong list.
+  const changeSectionScores = (listeningValue: string, readingValue: string) => {
+    setSourceScorePending(false);
+    sourceScoreStore.current = null;
+    setManualListening(listeningValue);
+    setManualReading(readingValue);
+    setScoreError('');
+    if (listeningValue.trim() && readingValue.trim()) {
+      setScoreSource('MANUAL_SECTIONS'); setManualMode('MANUAL_SECTIONS');
+      setManualTotal(String(Number(listeningValue) + Number(readingValue)));
+    } else if (scoreSource === 'MANUAL_SECTIONS') {
+      setScoreSource('ESTIMATED'); setManualTotal('');
+    }
   };
   const applySourceScore = (score: AppliedResultScore) => {
     const currentWrong = latestWrongQuestions.current;
@@ -755,6 +773,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
           {wrongEntry && (
             <DesktopFullTestBody key={restoredVersion} manualOpen={fullTestManual} onManualOpenChange={setFullTestManual}
+              minimalOpen={manualMinimal} onMinimalOpenChange={setManualMinimal} onSections={changeSectionScores}
+              knownMinutes={durationBlank ? undefined : durationMinutes} onOpenDetails={() => setDetailsOpen(true)}
               wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
               onTiming={readImageTiming}
               initialFiles={pendingInitialFiles}
