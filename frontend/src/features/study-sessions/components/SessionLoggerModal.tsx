@@ -4,8 +4,6 @@ import {
   CheckCircle2, 
   Headphones, 
   BookOpen, 
-  Plus, 
-  Trash2,
   RotateCcw,
   ArrowLeft
 } from 'lucide-react';
@@ -23,6 +21,8 @@ import {
 import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
 import { collectTestNames, normalizeTestName, suggestNextTestName, testNameKey } from '@/shared/domain/testNames';
 import { normalizeQuestionList, partScoresFromWrong } from '@/shared/domain/questionNumbers';
+import { DesktopPracticeBody } from './DesktopPracticeBody';
+import { DesktopVocabBody } from './DesktopVocabBody';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
@@ -252,37 +252,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [practiceRows, setPracticeRows] = useState<PracticePartResult[]>([
     { part: 5, correct: 0, total: 30 }
   ]);
-
-  const practiceTotals = practiceRows.reduce(
-    (acc, r) => ({ correct: acc.correct + (r.correct || 0), total: acc.total + (r.total || 0) }),
-    { correct: 0, total: 0 }
-  );
-  const practiceAccuracy = practiceTotals.total > 0
-    ? Math.round((practiceTotals.correct / practiceTotals.total) * 100)
-    : 0;
-
-  const updatePracticeRow = (index: number, patch: Partial<PracticePartResult>) => {
-    setPracticeRows(prev => prev.map((row, i) => {
-      if (i !== index) return row;
-      const next = { ...row, ...patch };
-      // Choosing another Part starts a whole-Part row; editing its result keeps
-      // a historical partial drill's denominator intact.
-      if (next.part !== row.part) next.total = PART_MAX_QUESTIONS[`part${next.part}` as keyof typeof PART_MAX_QUESTIONS];
-      // Số câu đúng không bao giờ vượt quá số câu đã làm
-      if (next.correct > next.total) next.correct = next.total;
-      return next;
-    }));
-  };
-
-  const addPracticeRow = () => {
-    const used = new Set(practiceRows.map(r => r.part));
-    const nextPart = ([1, 2, 3, 4, 5, 6, 7] as const).find(p => !used.has(p)) || 5;
-    setPracticeRows(prev => [...prev, { part: nextPart, correct: 0, total: PART_MAX_QUESTIONS[`part${nextPart}` as keyof typeof PART_MAX_QUESTIONS] }]);
-  };
-
-  const removePracticeRow = (index: number) => {
-    setPracticeRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== index));
-  };
 
   /**
    * Nạp lại form MỖI LẦN mở. Component không bị gỡ khi đóng (chỉ trả null),
@@ -713,15 +682,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
             <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
           </div>}
-          {sessionType !== 'VOCAB' && !isPhone && (<>
+          {sessionType === 'FULL_TEST' && !isPhone && (<>
           {/* General Info Row */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
             <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
               <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Tên Đề Thi / Nguồn
-                {sessionType === 'PART_PRACTICE' && (
-                  <span className="font-normal text-slate-400 dark:text-slate-500"> (không bắt buộc)</span>
-                )}
               </label>
               <TestNamePicker id="session-test-name" label="Tên Đề Thi / Nguồn" required={sessionType === 'FULL_TEST'}
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
@@ -1109,99 +1075,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
-          {/* PART PRACTICE MODE */}
-          {sessionType === 'PART_PRACTICE' && (
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  Các Part Đã Luyện
-                </span>
-                {practiceTotals.total > 0 && (
-                  <span className={`px-2.5 py-0.5 rounded-md border text-xs font-black tabular-nums whitespace-nowrap shrink-0 ${
-                    practiceAccuracy >= 80
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                      : practiceAccuracy >= 60
-                      ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                      : 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                  }`}>
-                    {practiceTotals.correct}/{practiceTotals.total} câu · {practiceAccuracy}%
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                {practiceRows.map((row, index) => {
-                  const maxQuestions = row.total;
-                  const rowAccuracy = maxQuestions > 0 ? Math.round((row.correct / maxQuestions) * 100) : 0;
-                  return (
-                    <div key={index} className="flex flex-wrap items-end gap-2">
-                      <div className="flex-1 min-w-[140px]">
-                        {index === 0 && (
-                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Part</label>
-                        )}
-                        <select
-                          value={row.part}
-                          onChange={e => updatePracticeRow(index, { part: Number(e.target.value) as PracticePartResult['part'] })}
-                          className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
-                        >
-                          {([1, 2, 3, 4, 5, 6, 7] as const).map(p => (
-                            <option key={p} value={p}>Part {p}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="shrink-0">
-                        {index === 0 && (
-                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Số câu đúng</label>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            max={maxQuestions}
-                            value={row.correct}
-                            aria-label={`Số câu đúng Part ${row.part}`}
-                            onChange={e => updatePracticeRow(index, { correct: Math.max(0, Number(e.target.value) || 0) })}
-                            className="w-20 px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums text-center font-bold"
-                          />
-                          <span className="text-xs font-bold tabular-nums text-slate-400 dark:text-slate-500 whitespace-nowrap">
-                            / {maxQuestions} câu
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="h-[38px] flex items-center gap-1.5 shrink-0">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums w-10 text-right">
-                          {rowAccuracy}%
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removePracticeRow(index)}
-                          disabled={practiceRows.length <= 1}
-                          aria-label={`Xóa dòng Part ${row.part}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {practiceRows.length < 7 && (
-                <button
-                  type="button"
-                  onClick={addPracticeRow}
-                  className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Thêm Part khác
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Session Notes (the wrong-question layout keeps its own, folded) */}
           {!wrongEntry && <div>
             <label htmlFor="session-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1218,7 +1091,18 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>}
           </>)}
 
-          {sessionType === 'VOCAB' && (
+          {sessionType === 'PART_PRACTICE' && !isPhone && (
+            <DesktopPracticeBody key={restoredVersion} rows={practiceRows} setRows={setPracticeRows}
+              testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes}
+              notes={notes} setNotes={setNotes} today={getTodayDateString()} />
+          )}
+
+          {sessionType === 'VOCAB' && !isPhone && (
+            <DesktopVocabBody count={vocabCount} setCount={setVocabCount} date={date} setDate={setDate} today={getTodayDateString()} />
+          )}
+
+          {sessionType === 'VOCAB' && isPhone && (
             <div className="space-y-3.5 rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Ngày học

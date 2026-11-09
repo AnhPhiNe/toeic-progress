@@ -71,7 +71,7 @@ test('a goal is picked, not typed: kind, Part and quantity name it, and edits ke
   expect(goal).toMatchObject({ title: 'Luyện 4 bài Part 7', target: 4, color: 'amber', notes: 'Giữ ghi chú này' });
   await page.locator(`[data-task-id="${goal.id}"]`).getByRole('button', { name: 'Ghi kết quả', exact: true }).click();
   const logger = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await expect(logger.locator('select').filter({ has: page.getByRole('option', { name: 'Part 7', exact: true }) }).first()).toHaveValue('7');
+  await expect(logger.getByLabel('Số câu đúng Part 7', { exact: true })).toBeVisible();
 });
 
 test('a renamed goal keeps its own name; a failed save keeps the draft and stale editing cannot overwrite a week', async ({ page }) => {

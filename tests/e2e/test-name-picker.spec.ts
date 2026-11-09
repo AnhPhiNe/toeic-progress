@@ -121,7 +121,8 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
   modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Luyện Part', exact: true }).click();
-  const partSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
+  await modal.getByRole('button', { name: /Thêm chi tiết/ }).click();
+  const partSource = modal.getByRole('combobox', { name: 'Tên đề hoặc nguồn' });
   // Changing the form layout can scroll its body, which intentionally closes suggestions.
   // Focus a stable field, then explicitly request the picker with its keyboard control.
   await partSource.click();

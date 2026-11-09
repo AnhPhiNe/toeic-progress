@@ -37,7 +37,7 @@ test('a metadata edit cannot overwrite a score updated while the editor was open
 
 test('a deleted Part practice cannot be restored by an open editor', async ({ page }) => {
   const editor = await seed(page, true);
-  await editor.getByLabel('Tên Đề Thi / Nguồn', { exact: true }).fill('Keep my draft');
+  await editor.getByLabel('Tên đề hoặc nguồn', { exact: true }).fill('Keep my draft');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     bundle.sessions[0] = { id: 'session-conflict', updatedAt: '2026-10-10T09:00:00Z', deletedAt: '2026-10-10T09:00:00Z' };
@@ -45,7 +45,7 @@ test('a deleted Part practice cannot be restored by an open editor', async ({ pa
   });
   await editor.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await expect(editor.getByRole('alert')).toContainText('Buổi học đã bị xóa');
-  await expect(editor.getByLabel('Tên Đề Thi / Nguồn')).toHaveValue('Keep my draft');
+  await expect(editor.getByLabel('Tên đề hoặc nguồn')).toHaveValue('Keep my draft');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions[0].deletedAt)).toBeTruthy();
 });
 
