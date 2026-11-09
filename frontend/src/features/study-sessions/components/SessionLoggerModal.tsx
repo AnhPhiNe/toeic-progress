@@ -1095,7 +1095,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <DesktopPracticeBody key={restoredVersion} rows={practiceRows} setRows={setPracticeRows}
               testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
               date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes}
-              notes={notes} setNotes={setNotes} today={getTodayDateString()} />
+              notes={notes} setNotes={setNotes} today={getTodayDateString()}
+              // Only details the learner actually wrote open the section; the Full Test name suggestion is cleared on switching tabs.
+              initialDetailOpen={Boolean(editingSession?.testName || editingSession?.notes || notes.trim())} />
           )}
 
           {sessionType === 'VOCAB' && !isPhone && (

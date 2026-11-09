@@ -17,10 +17,12 @@ interface Props {
   duration: number; setDuration: (v: number) => void;
   notes: string; setNotes: (v: string) => void;
   today: string;
+  /** Open "Thêm chi tiết" at first render (editing a session or a restored draft that has a name or notes). */
+  initialDetailOpen?: boolean;
 }
 
-export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, suggestions, date, setDate, duration, setDuration, notes, setNotes, today }: Props) => {
-  const [detailOpen, setDetailOpen] = useState(Boolean(testName.trim() || notes.trim()));
+export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, suggestions, date, setDate, duration, setDuration, notes, setNotes, today, initialDetailOpen = false }: Props) => {
+  const [detailOpen, setDetailOpen] = useState(initialDetailOpen);
   const used = new Set(rows.map(r => r.part));
 
   const addPart = (part: Part) => {
