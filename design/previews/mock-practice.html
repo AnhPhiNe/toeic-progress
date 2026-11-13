@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Luyện tập</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa;--viol:#f3efff;--viod:#6a4fd0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;position:relative;overflow:hidden}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--viol);border-color:#d6c9ff;color:var(--viod)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.wh{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.btn.big{font-size:18px;padding:16px 30px;border-radius:16px}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:40px 56px 40px}
+h1{font-weight:900;font-size:38px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:16px;color:var(--mut);margin-top:2px}
+/* hero */
+.hero{margin-top:24px;background:var(--viol);border-radius:30px;padding:30px 36px 32px;display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:center}
+.chip{display:inline-block;font-weight:900;font-size:13.5px;color:var(--viod);background:#fff;border-radius:99px;padding:5px 12px}
+.hero h2{font-weight:900;font-size:36px;letter-spacing:-1px;line-height:1.1;margin:10px 0 6px}
+.hero p{font-weight:700;font-size:16px;color:#5f5a78;line-height:1.5}
+.parts{display:flex;gap:12px;margin-top:20px}
+.pt{background:#fff;border:2px solid #e3dcff;border-radius:18px;padding:12px 16px;min-width:150px}
+.pt b{display:block;font-weight:900;font-size:17px}
+.pt span{font-weight:700;font-size:13.5px;color:var(--mut)}
+.pt.on{border-color:var(--vio);box-shadow:0 4px 0 #d6c9ff;background:#fff}
+.pt.on b{color:var(--viod)}
+.acts{display:flex;align-items:center;gap:16px;margin-top:24px}
+.step{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:8px 10px 8px 16px;font-weight:800;font-size:15px;color:#5c675f}
+.step .sb{width:34px;height:34px;border-radius:10px;background:var(--viol);color:var(--viod);display:grid;place-items:center;font-weight:900;font-size:20px}
+.step strong{font-weight:900;font-size:19px;color:var(--ink);min-width:28px;text-align:center}
+.hero .s svg{display:block;width:100%}
+/* list */
+h3{font-weight:900;font-size:24px;letter-spacing:-.5px;margin:34px 0 2px}
+.h3s{font-weight:700;font-size:15px;color:var(--mut)}
+.rows{margin-top:14px}
+.r{display:grid;grid-template-columns:110px 130px 150px 150px 1fr;align-items:center;padding:13px 6px;border-bottom:2px solid #f0f2f0;font-weight:800;font-size:15.5px}
+.r.hd{font-size:13px;color:var(--mut);border-bottom:2px solid var(--line);padding-top:0}
+.r .d{color:var(--mut)}
+.pill{justify-self:start;font-weight:900;font-size:14px;padding:4px 12px;border-radius:99px;background:var(--viol);color:var(--viod)}
+.pill.l{background:#e6f3fd;color:#136fb3}
+.tag{justify-self:start;font-weight:900;font-size:13.5px;padding:4px 11px;border-radius:99px}
+.tag.ok{background:var(--gl);color:var(--gd)}.tag.slow{background:#fff3d1;color:#a87a00}.tag.no{background:#f1f3f1;color:var(--mut)}
+/* focus timer */
+.focus{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;padding:34px 60px;background:#fbfaff}
+.fbar{width:100%;display:flex;justify-content:space-between;align-items:center}
+.fbar .t{font-weight:900;font-size:20px}
+.fbar .t span{font-weight:800;color:var(--mut);font-size:16px;margin-left:8px}
+.x{font-weight:900;font-size:15px;color:#5c675f;background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px 14px}
+.ring{position:relative;width:380px;height:380px;margin-top:40px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .n{font-weight:900;font-size:84px;letter-spacing:-3px;line-height:1}
+.ring .sub{font-weight:800;font-size:16px;color:var(--mut);margin-top:6px}
+.pace{margin-top:30px;background:#fff;border:2px solid #e3dcff;border-radius:18px;padding:12px 20px;font-weight:800;font-size:16.5px;color:#5f5a78}
+.pace b{color:var(--viod);font-weight:900}
+.facts{display:flex;gap:16px;margin-top:30px}
+.note{margin-top:18px;font-weight:700;font-size:14px;color:var(--mut)}
+.fsoc{position:absolute;right:70px;bottom:40px;width:150px}
+.fsoc svg{display:block;width:100%}
+/* modal */
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);display:grid;place-items:center}
+.modal{width:520px;background:#fff;border-radius:30px;padding:30px 34px 30px;text-align:center}
+.modal .ms{width:150px;margin:-6px auto 4px}.modal .ms svg{display:block;width:100%}
+.modal h2{font-weight:900;font-size:30px;letter-spacing:-.6px;line-height:1.15}
+.modal p{font-weight:700;font-size:16px;color:var(--mut);margin-top:6px}
+.mrow{display:flex;justify-content:space-between;align-items:center;background:#f6f8f6;border-radius:18px;padding:14px 18px;margin-top:20px;font-weight:900;font-size:17px;text-align:left}
+.mrow small{display:block;font-weight:700;font-size:13.5px;color:var(--mut)}
+.mrow .step{background:#fff}
+.mrow + .mrow{margin-top:10px}
+.mbtn{display:flex;gap:12px;margin-top:24px}.mbtn .btn{flex:1}
+</style>
+</head>
+<body>
+
+<!-- 1. Trang Luyện tập -->
+<div class="page" id="p1">
+  <aside class="side" data-side></aside>
+  <main>
+    <h1>Luyện tập</h1><div class="lead">Bấm giờ một Part như trong phòng thi, xong thì ghi số câu sai. Mỗi buổi đều tính vào chuỗi ngày.</div>
+    <div class="hero">
+      <div>
+        <span class="chip">Gợi ý hôm nay</span>
+        <h2>Part 7, 54 câu trong 54 phút</h2>
+        <p>Đề gần nhất bạn sai 16 câu ở Part 7, nhiều nhất trong các Part.</p>
+        <div class="parts">
+          <div class="pt"><b>Part 5</b><span>30 câu · 10 phút</span></div>
+          <div class="pt"><b>Part 6</b><span>16 câu · 8 phút</span></div>
+          <div class="pt on"><b>Part 7</b><span>54 câu · 54 phút</span></div>
+          <div class="pt"><b>Cả phần Đọc</b><span>100 câu · 75 phút</span></div>
+        </div>
+        <div class="acts">
+          <span class="btn g big">Bắt đầu bấm giờ</span>
+          <div class="step">Số câu <span class="sb">−</span><strong>54</strong><span class="sb">+</span></div>
+          <span class="btn wh">Ghi kết quả, không bấm giờ</span>
+        </div>
+      </div>
+      <span class="s" data-s="idle"></span>
+    </div>
+
+    <h3>Buổi luyện gần đây</h3><div class="h3s">Tuần này 4 buổi. Phần Nghe không bấm giờ được vì chạy theo audio, chỉ ghi kết quả.</div>
+    <div class="rows">
+      <div class="r hd"><span>Ngày</span><span>Part</span><span>Số câu sai</span><span>Thời gian</span><span>So với giờ gợi ý</span></div>
+      <div class="r"><span class="d">11/11</span><span class="pill">Part 7</span><span>14 / 54</span><span>49:30</span><span class="tag ok">nhanh hơn 4:30</span></div>
+      <div class="r"><span class="d">10/11</span><span class="pill l">Part 3</span><span>8 / 39</span><span>—</span><span class="tag no">không bấm giờ</span></div>
+      <div class="r"><span class="d">09/11</span><span class="pill">Part 5</span><span>5 / 30</span><span>11:20</span><span class="tag slow">chậm hơn 1:20</span></div>
+      <div class="r"><span class="d">08/11</span><span class="pill">Part 6</span><span>3 / 16</span><span>7:40</span><span class="tag ok">nhanh hơn 0:20</span></div>
+    </div>
+  </main>
+</div>
+
+<!-- 2. Đang bấm giờ -->
+<div class="page" id="p2">
+  <div class="focus">
+    <div class="fbar"><div class="t">Part 7<span>54 câu · 54 phút</span></div><span class="x">× Dừng</span></div>
+    <div class="ring">
+      <svg viewBox="0 0 380 380"><circle cx="190" cy="190" r="168" fill="none" stroke="#ece7ff" stroke-width="22"/>
+      <circle cx="190" cy="190" r="168" fill="none" stroke="#a78bfa" stroke-width="22" stroke-linecap="round" stroke-dasharray="1055.6" stroke-dashoffset="443"/></svg>
+      <div class="in"><div class="n">31:20</div><div class="sub">còn lại trong 54:00</div></div>
+    </div>
+    <div class="pace">Theo nhịp 1 phút một câu, lúc này bạn nên ở khoảng <b>câu 23</b>.</div>
+    <div class="facts"><span class="btn wh big">Tạm dừng</span><span class="btn g big">Xong rồi</span></div>
+    <div class="note">Đồng hồ vẫn chạy khi bạn chuyển sang tab làm đề.</div>
+    <span class="fsoc" data-s="idle"></span>
+  </div>
+</div>
+
+<!-- 3. Xong, ghi kết quả -->
+<div class="page" id="p3">
+  <div class="focus">
+    <div class="fbar"><div class="t">Part 7<span>54 câu · 54 phút</span></div><span class="x">× Dừng</span></div>
+    <div class="ring">
+      <svg viewBox="0 0 380 380"><circle cx="190" cy="190" r="168" fill="none" stroke="#ece7ff" stroke-width="22"/>
+      <circle cx="190" cy="190" r="168" fill="none" stroke="#a78bfa" stroke-width="22" stroke-linecap="round" stroke-dasharray="1055.6" stroke-dashoffset="967"/></svg>
+      <div class="in"><div class="n">4:30</div><div class="sub">còn lại trong 54:00</div></div>
+    </div>
+  </div>
+  <div class="dim">
+    <div class="modal">
+      <div class="ms" data-s="yay"></div>
+      <h2>Xong Part 7 trong 49:30</h2>
+      <p>Nhanh hơn giờ gợi ý 4:30. Chấm bài rồi ghi lại nhé.</p>
+      <div class="mrow"><div>Số câu sai<small>trên 54 câu</small></div><div class="step"><span class="sb">−</span><strong>14</strong><span class="sb">+</span></div></div>
+      <div class="mrow"><div>Thời gian<small>lấy từ đồng hồ</small></div><div>49:30</div></div>
+      <div class="mbtn"><span class="btn wh">Để sau</span><span class="btn g">Lưu kết quả</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv on"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+document.querySelectorAll('[data-side]').forEach(e=>e.innerHTML=SIDE);
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+</script>
+</body>
+</html>

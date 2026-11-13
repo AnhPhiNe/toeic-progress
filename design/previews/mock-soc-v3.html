@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sóc v3: ba hướng nhân vật</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#sheet{width:1440px;background:#fff;padding:44px 52px 52px}
+h1{font-weight:900;font-size:36px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:16.5px;color:var(--mut);margin-top:4px;max-width:900px;line-height:1.5}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px}
+.c{border-radius:32px;padding:26px 26px 24px;display:flex;flex-direction:column}
+.c .tag{font-weight:900;font-size:14px;opacity:.75}
+.c h2{font-weight:900;font-size:30px;letter-spacing:-.6px;margin-top:2px}
+.c .art{margin:6px auto 0;width:340px}
+.c .art svg{display:block;width:100%;overflow:visible}
+.c p{font-weight:700;font-size:15.5px;line-height:1.5;margin-top:8px}
+.c p b{font-weight:900}
+.mini{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:14px;border-top:2px solid rgba(47,58,51,.1);font-weight:800;font-size:13.5px;color:#5c675f}
+.mini span{display:block;flex:none}
+.mini .s1{width:64px}.mini .s2{width:40px}.mini .s3{width:24px}
+.mini svg{display:block;width:100%;overflow:visible;filter:brightness(0)}
+.mini svg .gs{display:none}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <h1>Sóc v3: ba hướng nhân vật</h1>
+  <div class="lead">Mỗi con có một nét riêng nhìn bóng đen vẫn nhận ra, và nét đó gắn với việc của app. Bạn chọn một hướng, tôi mới đưa sang Tripo làm 3D.</div>
+  <div class="row">
+    <div class="c" style="background:#fff1e3">
+      <div class="tag" style="color:#b0591c">Hướng A</div><h2>Sóc Mũ Hạt</h2>
+      <div class="art" id="a"></div>
+      <p><b>Nét riêng:</b> đội vỏ hạt dẻ làm mũ, quàng khăn xanh màu của app.</p>
+      <p><b>Gắn với app:</b> lên một mốc điểm thì đổi mũ hoặc gắn thêm huy hiệu lên khăn.</p>
+      <div class="mini"><span class="s1" data-k="a"></span><span class="s2" data-k="a"></span><span class="s3" data-k="a"></span>Bóng đen ở 64, 40, 24px</div>
+    </div>
+    <div class="c" style="background:#fff6d9">
+      <div class="tag" style="color:#a87a00">Hướng B</div><h2>Sóc Má Phính</h2>
+      <div class="art" id="b"></div>
+      <p><b>Nét riêng:</b> sóc chuột hai má phồng to, ba sọc trên trán, hai răng thỏ.</p>
+      <p><b>Gắn với app:</b> má phồng vì đang ngậm câu sai chưa ôn. Ôn xong thì má xẹp lại.</p>
+      <div class="mini"><span class="s1" data-k="b"></span><span class="s2" data-k="b"></span><span class="s3" data-k="b"></span>Bóng đen ở 64, 40, 24px</div>
+    </div>
+    <div class="c" style="background:#efeaff">
+      <div class="tag" style="color:#6a4fd0">Hướng C</div><h2>Sóc Bay</h2>
+      <div class="art" id="c"></div>
+      <p><b>Nét riêng:</b> sóc bay màu tím, kính phi công vàng trên trán, màng cánh như áo choàng.</p>
+      <p><b>Gắn với app:</b> lượn từ trạm này sang trạm kia trên núi mỗi khi có đề mới.</p>
+      <div class="mini"><span class="s1" data-k="c"></span><span class="s2" data-k="c"></span><span class="s3" data-k="c"></span>Bóng đen ở 64, 40, 24px</div>
+    </div>
+  </div>
+</div>
+<script>
+let uid=0;
+function grad(id,l,m,d){return `<radialGradient id="${id}" cx="36%" cy="28%" r="80%"><stop offset="0" stop-color="${l}"/><stop offset=".55" stop-color="${m}"/><stop offset="1" stop-color="${d}"/></radialGradient>`}
+function eye(x,y,rx=14,ry=17){return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#33241a"/><ellipse cx="${x}" cy="${y+ry*.45}" rx="${rx*.72}" ry="${ry*.42}" fill="#6a4630" opacity=".7"/><circle cx="${x+rx*.32}" cy="${y-ry*.36}" r="${rx*.42}" fill="#fff"/><circle cx="${x-rx*.4}" cy="${y+ry*.34}" r="${rx*.2}" fill="#fff"/>`}
+function face(y,smile){return `<ellipse cx="150" cy="${y}" rx="7" ry="5" fill="#8a5231"/>`+(smile==='open'?`<path d="M136 ${y+9} Q150 ${y+30} 164 ${y+9}Z" fill="#5a2f22"/><path d="M143 ${y+19} Q150 ${y+27} 157 ${y+19} Q150 ${y+15} 143 ${y+19}Z" fill="#ff8f8f"/>`:`<path d="M138 ${y+8} Q144 ${y+17} 150 ${y+8} Q156 ${y+17} 162 ${y+8}" fill="none" stroke="#33241a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`)}
+const BEAN='M150 62 C212 62 238 108 238 160 C238 190 226 206 214 218 C222 250 200 284 150 284 C100 284 78 250 86 218 C74 206 62 190 62 160 C62 108 88 62 150 62Z';
+const MASK='M150 132 C124 116 86 124 80 158 C76 186 96 204 112 212 C104 240 118 272 150 272 C182 272 196 240 188 212 C204 204 224 186 220 158 C214 124 176 116 150 132Z';
+const shadow='<ellipse class="gs" cx="156" cy="298" rx="96" ry="10" fill="#2f3a33" opacity=".12"/>';
+
+function A(){const u='a'+(uid++);return `<svg viewBox="0 0 300 320"><defs>${grad(u+'b','#ffb27a','#ff9550','#e87430')}${grad(u+'h','#b97a48','#9a623a','#74452a')}${grad(u+'c','#fffaf0','#fff1dc','#f6dcbc')}</defs>${shadow}
+ <path d="M196 276 C268 290 304 226 290 164 C282 128 246 120 234 146 C228 164 244 176 254 168 C258 204 240 240 196 246Z" fill="#e87430"/>
+ <path d="M214 262 C258 258 280 222 272 178 C268 158 252 150 244 158" fill="none" stroke="#ffe3c2" stroke-width="13" stroke-linecap="round"/>
+ <ellipse cx="122" cy="286" rx="22" ry="11" fill="#d9652a"/><ellipse cx="178" cy="286" rx="22" ry="11" fill="#d9652a"/>
+ <path d="M82 100 C62 58 86 44 110 78Z" fill="#ff9550"/><path d="M86 90 C74 66 88 58 102 78Z" fill="#ffb5a7"/>
+ <path d="M218 100 C238 58 214 44 190 78Z" fill="#ff9550"/><path d="M214 90 C226 66 212 58 198 78Z" fill="#ffb5a7"/>
+ <path d="${BEAN}" fill="url(#${u}b)"/>
+ <path d="${MASK}" fill="url(#${u}c)"/>
+ <ellipse cx="94" cy="188" rx="14" ry="9" fill="#ff8f7f" opacity=".6"/><ellipse cx="206" cy="188" rx="14" ry="9" fill="#ff8f7f" opacity=".6"/>
+ ${eye(120,160)}${eye(180,160)}${face(182)}
+ <path d="M88 211 C112 228 188 228 212 211 L215 229 C190 248 110 248 85 229Z" fill="#46b35a"/>
+ <path d="M182 238 L205 232 C212 246 214 258 212 270 L192 264 C192 254 188 246 182 238Z" fill="#2f8a42"/>
+ <path d="M88 211 C112 228 188 228 212 211" fill="none" stroke="#6fd082" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+ <ellipse cx="108" cy="254" rx="11" ry="17" transform="rotate(-28 108 254)" fill="#e87430"/><ellipse cx="192" cy="254" rx="11" ry="17" transform="rotate(28 192 254)" fill="#e87430"/>
+ <rect x="143" y="14" width="13" height="26" rx="6.5" transform="rotate(-14 150 30)" fill="#74452a"/>
+ <path d="M78 96 C78 50 116 30 150 30 C184 30 222 50 222 96 C198 110 102 110 78 96Z" fill="url(#${u}h)"/>
+ <g fill="none" stroke="#c98b58" stroke-width="3" stroke-linecap="round" opacity=".55"><path d="M104 54 Q112 62 104 72"/><path d="M128 44 Q136 54 128 66"/><path d="M154 42 Q162 52 154 64"/><path d="M180 48 Q188 58 180 70"/><path d="M116 76 Q124 84 118 92"/><path d="M144 72 Q152 82 146 92"/><path d="M170 74 Q178 84 172 94"/><path d="M196 68 Q204 78 198 88"/></g>
+ <path d="M78 96 C102 110 198 110 222 96" fill="none" stroke="#5f3a22" stroke-width="10" stroke-linecap="round"/>
+ <ellipse cx="116" cy="50" rx="20" ry="9" transform="rotate(-24 116 50)" fill="#fff" opacity=".18"/></svg>`}
+
+function B(){const u='b'+(uid++);return `<svg viewBox="0 0 300 320"><defs>${grad(u+'b','#ffc98a','#f2a65a','#d98845')}${grad(u+'c','#fffaf0','#fff3e0','#f6dfc0')}</defs>${shadow}
+ <path d="M204 276 C272 290 304 226 290 168 C284 136 250 130 240 152 C236 168 250 178 258 170 C262 204 246 240 204 246Z" fill="#d98845"/>
+ <path d="M222 262 C262 256 280 224 273 182" fill="none" stroke="#7a4a2b" stroke-width="9" stroke-linecap="round"/>
+ <ellipse cx="120" cy="286" rx="22" ry="11" fill="#c97a3c"/><ellipse cx="180" cy="286" rx="22" ry="11" fill="#c97a3c"/>
+ <circle cx="98" cy="66" r="22" fill="#f2a65a"/><circle cx="98" cy="68" r="12" fill="#ffb5a7"/>
+ <circle cx="202" cy="66" r="22" fill="#f2a65a"/><circle cx="202" cy="68" r="12" fill="#ffb5a7"/>
+ <path d="M150 48 C205 48 232 86 238 130 C266 138 274 184 242 198 C234 244 206 284 150 284 C94 284 66 244 58 198 C26 184 34 138 62 130 C68 86 95 48 150 48Z" fill="url(#${u}b)"/>
+ <path d="M141 50 Q150 46 159 50 L156 104 Q150 112 144 104Z" fill="#7a4a2b"/>
+ <path d="M118 56 Q124 52 130 55 L132 96 Q127 102 122 96Z" fill="#fff3e0"/><path d="M170 55 Q176 52 182 56 L178 96 Q173 102 168 96Z" fill="#fff3e0"/>
+ <path d="M150 122 C122 106 80 116 68 146 C46 152 44 184 70 190 C78 236 108 272 150 272 C192 272 222 236 230 190 C256 184 254 152 232 146 C220 116 178 106 150 122Z" fill="url(#${u}c)"/>
+ <ellipse cx="66" cy="170" rx="17" ry="12" fill="#ff8f7f" opacity=".55"/><ellipse cx="234" cy="170" rx="17" ry="12" fill="#ff8f7f" opacity=".55"/>
+ ${eye(118,146)}${eye(182,146)}
+ <ellipse cx="150" cy="166" rx="7" ry="5" fill="#8a5231"/>
+ <path d="M137 174 Q143.500 183 150 174 Q156.500 183 163 174" fill="none" stroke="#33241a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+ <rect x="143" y="179" width="6.500" height="10" rx="2.500" fill="#fff" stroke="#e2d2bc" stroke-width="1"/><rect x="150.500" y="179" width="6.500" height="10" rx="2.500" fill="#fff" stroke="#e2d2bc" stroke-width="1"/>
+ <g transform="translate(150,232)"><ellipse cx="0" cy="8" rx="17" ry="20" fill="#e9b872"/><ellipse cx="-6" cy="4" rx="4" ry="9" fill="#fff" opacity=".35"/><path d="M-20 0 Q0 -25 20 0 Q0 9 -20 0Z" fill="#8e5a35"/><rect x="-3" y="-23" width="6" height="10" rx="3" fill="#8e5a35"/></g>
+ <ellipse cx="120" cy="234" rx="11" ry="18" transform="rotate(-40 120 234)" fill="#d98845"/><ellipse cx="180" cy="234" rx="11" ry="18" transform="rotate(40 180 234)" fill="#d98845"/>
+ <ellipse cx="112" cy="84" rx="22" ry="10" transform="rotate(-28 112 84)" fill="#fff" opacity=".2"/></svg>`}
+
+function C(){const u='c'+(uid++);return `<svg viewBox="0 0 300 320"><defs>${grad(u+'b','#cdbcff','#a78bfa','#8566ea')}${grad(u+'c','#ffffff','#f6f1ff','#e2d8ff')}${grad(u+'l','#d8f1ff','#8fd3ff','#4aa9ea')}</defs>${shadow}
+ <path d="M206 274 C270 288 300 232 286 180 C281 162 264 160 260 176 C258 214 244 240 206 246Z" fill="#7355dc"/>
+ <path d="M72 168 C34 176 26 236 58 266 C92 284 208 284 242 266 C274 236 266 176 228 168Z" fill="#7355dc"/>
+ <path d="M80 184 C52 194 48 236 70 256 C100 268 200 268 230 256 C252 236 248 194 220 184Z" fill="#9a80f5"/>
+ <ellipse cx="122" cy="286" rx="22" ry="11" fill="#6a4fd0"/><ellipse cx="178" cy="286" rx="22" ry="11" fill="#6a4fd0"/>
+ <circle cx="92" cy="82" r="23" fill="#a78bfa"/><circle cx="92" cy="84" r="12" fill="#ffb5d0"/>
+ <circle cx="208" cy="82" r="23" fill="#a78bfa"/><circle cx="208" cy="84" r="12" fill="#ffb5d0"/>
+ <path d="${BEAN}" fill="url(#${u}b)"/>
+ <path d="${MASK}" fill="url(#${u}c)"/>
+ <ellipse cx="94" cy="190" rx="14" ry="9" fill="#ff8fb0" opacity=".55"/><ellipse cx="206" cy="190" rx="14" ry="9" fill="#ff8fb0" opacity=".55"/>
+ ${eye(120,164)}${eye(180,164)}${face(184,'open')}
+ <ellipse cx="76" cy="206" rx="12" ry="20" transform="rotate(52 76 206)" fill="#8566ea"/><ellipse cx="224" cy="206" rx="12" ry="20" transform="rotate(-52 224 206)" fill="#8566ea"/>
+ <path d="M68 118 C96 94 204 94 232 118" fill="none" stroke="#3b2f6b" stroke-width="10" stroke-linecap="round"/>
+ <rect x="140" y="92" width="20" height="10" rx="5" fill="#d99a00"/>
+ <circle cx="120" cy="98" r="25" fill="#ffc83d"/><circle cx="120" cy="98" r="17" fill="url(#${u}l)"/><path d="M110 92 Q116 84 126 86" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+ <circle cx="180" cy="98" r="25" fill="#ffc83d"/><circle cx="180" cy="98" r="17" fill="url(#${u}l)"/><path d="M170 92 Q176 84 186 86" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>`}
+
+const F={a:A,b:B,c:C};
+['a','b','c'].forEach(k=>document.getElementById(k).innerHTML=F[k]());
+document.querySelectorAll('[data-k]').forEach(e=>e.innerHTML=F[e.dataset.k]());
+</script>
+</body>
+</html>

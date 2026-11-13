@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Bảng streak: 4 ý tưởng</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--org:#ff9a3d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+svg text{font-family:'Nunito'}
+#sheet{width:1560px;background:#fff;padding:36px 40px 44px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:24px}
+.stage{border-radius:24px;background:linear-gradient(180deg,#fff3d1,#ffe0ec);padding:26px 20px;display:flex;justify-content:center}
+.card{width:100%;background:#fff;border-radius:22px;padding:16px 18px 18px;box-shadow:0 10px 0 rgba(47,58,51,.08),0 20px 40px rgba(180,120,60,.12)}
+.card .ghost{height:8px;border-radius:99px;background:#eef0ee;margin-bottom:8px}.card .ghost.s{width:60%}
+.cap{margin-top:12px}.cap b{font-weight:900;font-size:17px}.cap span{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:2px;line-height:1.4}
+.soc svg{display:block;width:100%}
+@keyframes flick{0%,100%{transform:scale(1,1) rotate(-2deg)}50%{transform:scale(1.06,1.1) rotate(2deg)}}
+@keyframes glow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.9;transform:scale(1.12)}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes rise{0%{transform:translateY(0) scale(1);opacity:.9}100%{transform:translateY(-34px) scale(.3);opacity:0}}
+.flk{transform-box:fill-box;transform-origin:50% 92%;animation:flick 1.2s ease-in-out infinite}
+.glw{transform-box:fill-box;transform-origin:center;animation:glow 2.4s ease-in-out infinite}
+
+/* A */
+.sa{position:relative;background:linear-gradient(160deg,#fff4e6,#ffe3cc);border-radius:20px;padding:14px 14px 12px;overflow:hidden}
+.sa .arc{display:block;width:100%}
+.sa .mid{position:absolute;left:0;right:0;top:74px;text-align:center}
+.sa .mid b{display:block;font-weight:900;font-size:40px;letter-spacing:-1.5px;color:#e2701a;line-height:1}
+.sa .mid small{font-weight:900;font-size:13px;color:#b0602a}
+.sa .ft{display:flex;justify-content:space-between;align-items:center;margin-top:2px;font-weight:800;font-size:12.5px;color:#8a6a3a}
+.sa .ft .frz{background:#fff;color:#1c8fe3;border-radius:99px;padding:3px 9px;font-weight:900}
+.spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#ffb35c;animation:rise 2.2s ease-out infinite}
+
+/* B */
+.sb{background:linear-gradient(180deg,#eaf7ff,#f7fcff);border-radius:20px;padding:12px 12px 10px;position:relative;overflow:hidden}
+.sb .top{display:flex;align-items:center;justify-content:space-between}
+.sb .top b{font-weight:900;font-size:17px;color:#7a4a2b}.sb .top small{display:block;font-weight:700;font-size:12px;color:var(--mut)}
+.sb .top .n{font-weight:900;font-size:30px;color:#a8652f;letter-spacing:-1px}
+.sb svg.br{display:block;width:100%;margin-top:4px}
+.sb .ft{font-weight:800;font-size:12.5px;color:#5c675f;margin-top:4px;text-align:center}
+
+/* C */
+.sc{background:#2f3a33;border-radius:20px;padding:14px 16px 14px;color:#fff;position:relative;overflow:hidden}
+.sc .hd{display:flex;align-items:center;gap:10px}
+.sc .hd .fl{width:44px;height:52px;flex:none}
+.sc .hd b{font-weight:900;font-size:26px;letter-spacing:-.5px;color:#ffb35c;line-height:1}.sc .hd small{display:block;font-weight:800;font-size:12.5px;color:#b9c7bd;margin-top:2px}
+.sc .trk{position:relative;height:56px;margin-top:12px}
+.sc .line{position:absolute;left:8px;right:8px;top:22px;height:10px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
+.sc .line i{display:block;height:100%;width:70%;border-radius:99px;background:linear-gradient(90deg,#ffd766,#ff8a2a);box-shadow:0 0 14px rgba(255,138,42,.7)}
+.sc .ms{position:absolute;top:10px;transform:translateX(-50%);text-align:center}
+.sc .ms i{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#3d4a42;border:3px solid #2f3a33;font-style:normal;font-size:15px}
+.sc .ms.on i{background:#ffc83d;box-shadow:0 0 0 3px rgba(255,200,61,.35)}
+.sc .ms span{display:block;font-weight:900;font-size:11px;color:#b9c7bd;margin-top:2px}
+.sc .head{position:absolute;top:13px;left:70%;transform:translateX(-50%);font-size:24px}
+.sc .ft{display:flex;justify-content:space-between;font-weight:800;font-size:12.5px;color:#b9c7bd;margin-top:6px}.sc .ft b{color:#ffd766}
+
+/* D */
+.sd{border-radius:20px;padding:12px 14px 14px;background:#fff6ec;position:relative}
+.sd .hd{display:flex;align-items:center;gap:10px}
+.sd .big{position:relative;width:58px;height:66px;flex:none}
+.sd .big svg{position:absolute;inset:0}
+.sd .big b{position:absolute;left:0;right:0;top:30px;text-align:center;font-weight:900;font-size:20px;color:#fff;text-shadow:0 2px 0 rgba(160,60,0,.4)}
+.sd .hd .t b{display:block;font-weight:900;font-size:18px;color:#e2701a}.sd .hd .t small{font-weight:700;font-size:12.5px;color:#8a6a3a}
+.sd .hd .frz{margin-left:auto;align-self:flex-start;background:#e6f3fd;color:#1c8fe3;border-radius:99px;padding:3px 9px;font-weight:900;font-size:12px}
+.week{display:flex;justify-content:space-between;margin-top:10px}
+.dd{display:flex;flex-direction:column;align-items:center;gap:4px;width:36px}
+.dd span{font-weight:900;font-size:11px;color:#a8946e}
+.dd i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-style:normal;background:#f0e3d2}
+.dd.on i{background:radial-gradient(circle at 40% 35%,#ffcf7a,#ff8a2a);box-shadow:0 3px 0 #d9661a}
+.dd.td span{color:#e2701a}.dd.td i{background:#fff;border:3px solid #ff9a3d;animation:pulse 1.6s ease-in-out infinite}
+.dd.fz i{background:#dcefff;box-shadow:0 3px 0 #a9d3f5}
+.next{margin-top:10px;display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:7px 10px;font-weight:800;font-size:12.5px;color:#5c675f}
+.next .bar{flex:1;height:7px;border-radius:99px;background:#f0e3d2;overflow:hidden}.next .bar i{display:block;height:100%;width:70%;background:linear-gradient(90deg,#ffd766,#ff8a2a)}
+.next b{color:#e2701a}
+</style>
+</head>
+<body>
+<div id="sheet">
+ <h1>Bảng streak: 4 ý tưởng</h1>
+ <div class="lead">Cùng dữ liệu: 7 ngày liền, kỷ lục 9, 1 thẻ giữ chuỗi, hôm nay thứ Sáu đã học. Mỗi bản đặt ở cuối thẻ Hôm nay.</div>
+ <div class="row" id="row"></div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const FLAME=(w=44,h=52)=>`<svg viewBox="0 0 44 52" width="${w}" height="${h}"><ellipse class="glw" cx="22" cy="34" rx="20" ry="18" fill="#ffb35c" opacity=".35"/><g class="flk"><path d="M22 2 C26 14 40 19 40 32 a18 17 0 0 1 -36 0 C4 23 11 19 13 10 C16 14 18 16 22 2Z" fill="url(#fg)"/><path d="M22 24 c4 5 8 8 8 13 a8 8 0 0 1 -16 0 c0-5 4-7 8-13Z" fill="#ffe58f"/></g><defs><linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#ff6a1a"/></linearGradient></defs></svg>`;
+const ghost='<div class="ghost"></div><div class="ghost s"></div><div class="ghost"></div><div style="height:6px"></div>';
+const DAYS=['T2','T3','T4','T5','T6','T7','CN'];
+
+function sA(){
+ // arc of 7 coals
+ let g='';const cx=147,cy=150,R=112;
+ DAYS.forEach((d,i)=>{const a=Math.PI*(1-i/6),x=cx+R*Math.cos(a),y=cy-R*Math.sin(a)*.78,on=i<5,td=i===4;
+  g+=`<g transform="translate(${x} ${y})">${on?`<circle r="17" fill="#ffb35c" opacity=".35" class="glw" style="animation-delay:${i*.2}s"/>`:''}<circle r="${td?15:13}" fill="${on?'url(#cg)':'#f3e2cc'}" ${td?'stroke="#e2701a" stroke-width="3"':''}/>${on?'<path d="M0 -6 c2 3 5 5 5 8 a5 5 0 0 1 -10 0 c0-3 3-5 5-8Z" fill="#fff" opacity=".9"/>':''}<text y="${y<110?-21:29}" font-weight="900" font-size="11" fill="${td?'#e2701a':'#b0905e'}" text-anchor="middle">${d}</text></g>`});
+ return `<div class="card">${ghost}<div class="sa">
+  <svg class="arc" viewBox="0 0 294 196"><defs><radialGradient id="cg" cx="40%" cy="35%"><stop offset="0" stop-color="#ffcf7a"/><stop offset="1" stop-color="#ff7a1a"/></radialGradient></defs>
+   <path d="M35 150 A112 87 0 0 1 259 150" fill="none" stroke="#f3dcc0" stroke-width="5" stroke-dasharray="2 9" stroke-linecap="round"/>${g}
+   <g transform="translate(125 78)">${FLAME(44,52).replace('<svg','<svg x="0" y="0"')}</g><text x="147" y="166" font-weight="900" font-size="34" fill="#e2701a" text-anchor="middle">7</text><text x="147" y="186" font-weight="900" font-size="13" fill="#b0602a" text-anchor="middle">ngày liền</text></svg>
+  <i class="spark" style="left:146px;top:84px"></i><i class="spark" style="left:156px;top:92px;animation-delay:.7s"></i><i class="spark" style="left:138px;top:96px;animation-delay:1.4s"></i>
+  <div class="ft"><span>Kỷ lục 9 ngày · còn 2</span><span class="frz">❄ 1</span></div></div></div>`}
+
+function sB(){
+ let g=`<path d="M10 92 C90 70 200 96 300 72" fill="none" stroke="#a8652f" stroke-width="10" stroke-linecap="round"/>`;
+ DAYS.forEach((d,i)=>{const x=26+i*43,y=92-(i*0.0)+(Math.sin(i*1.1)*6)-i*2.6,on=i<5,td=i===4;
+  g+=`<path d="M${x} ${y-4} q-6 -18 4 -26" fill="none" stroke="#7fbf6a" stroke-width="3"/><ellipse cx="${x+6}" cy="${y-30}" rx="9" ry="5" fill="#9bd68a" transform="rotate(-30 ${x+6} ${y-30})"/>`;
+  g+= on?`<g transform="translate(${x} ${y+12})"><ellipse cx="0" cy="7" rx="10" ry="12" fill="${td?'#e9b872':'#c48a5c'}"/><path d="M-12 1 Q0 -14 12 1 Q0 6 -12 1Z" fill="#8e5a35"/><rect x="-1.5" y="-12" width="3" height="6" rx="1.5" fill="#8e5a35"/>${td?'<circle cx="-4" cy="5" r="2.5" fill="#fff" opacity=".7"/>':''}</g>`
+         :`<g transform="translate(${x} ${y+12})" opacity=".55"><ellipse cx="0" cy="7" rx="10" ry="12" fill="none" stroke="#b9a58a" stroke-width="2" stroke-dasharray="3 3"/></g>`;
+  g+=`<text x="${x}" y="${y+44}" font-weight="900" font-size="11" fill="${td?'#a8652f':'#9aa39c'}" text-anchor="middle">${d}</text>`});
+ return `<div class="card">${ghost}<div class="sb"><div class="top"><div><b>Cành hạt dẻ tuần này</b><small>Mỗi ngày học, Sóc treo thêm một hạt</small></div><span class="n">7🌰</span></div>
+  <svg class="br" viewBox="0 0 310 150">${g}</svg>
+  <span class="soc" data-s="yay" style="position:absolute;right:6px;top:52px;width:54px"></span>
+  <div class="ft">Chuỗi <b>7 ngày</b> · kỷ lục 9 · <span style="color:#1c8fe3;font-weight:900">❄ 1</span></div></div></div>`}
+
+function sC(){
+ const MS=[[3,'3'],[7,'7'],[10,'10'],[30,'30']];
+ const xs=v=>8+ (Math.min(v,30)<=10? v/10*0.75 : 0.75+(v-10)/20*0.25)*200;
+ return `<div class="card">${ghost}<div class="sc">
+  <div class="hd"><span class="fl">${FLAME()}</span><div><b>7 ngày liền</b><small>Hôm nay đã giữ lửa · kỷ lục 9</small></div><span style="margin-left:auto;font-weight:900;font-size:12px;background:rgba(28,143,227,.2);color:#8fcaf5;border-radius:99px;padding:3px 9px;align-self:flex-start">❄ 1</span></div>
+  <div class="trk"><div class="line"><i style="width:${xs(7)/310*100+3}%"></i></div>
+   ${MS.map(([v,l])=>`<div class="ms ${v<=7?'on':''}" style="left:${xs(v)+8}px"><i>${v<=7?'🏅':v===30?'👑':'🎁'}</i><span>${l} ngày</span></div>`).join('')}</div>
+  <div class="ft"><span>Mốc tiếp theo: <b>10 ngày</b></span><span>còn 3 ngày</span></div></div></div>`}
+
+function sD(){
+ return `<div class="card">${ghost}<div class="sd">
+  <div class="hd"><span class="big">${FLAME(58,66)}<b>7</b></span><div class="t"><b>Ngày thứ 7 liền!</b><small>Kỷ lục của bạn: 9 ngày</small></div><span class="frz">❄ 1</span></div>
+  <div class="week">${DAYS.map((d,i)=>`<div class="dd ${i<4?'on':i===4?'on td':''}${i===1?' fz':''}"><span>${d}</span><i>${i===1?'❄':i<5?'<svg width="14" height="11" viewBox="0 0 14 12"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</i></div>`).join('')}</div>
+  <div class="next">🎁 Mốc 10 ngày<div class="bar"><i></i></div><b>còn 3</b></div></div></div>`}
+
+const SK=[['A. Vòng than hồng','Ngọn lửa lớn ở giữa, 7 ngày là 7 viên than xếp vòng cung; ngày đã học cháy sáng, tia lửa bay lên.',sA],
+ ['B. Cành hạt dẻ','Mỗi ngày học Sóc treo thêm một hạt dẻ lên cành. Hợp câu chuyện Sóc nhất, nhẹ nhàng.',sB],
+ ['C. Đường lửa tới mốc','Nền tối, thanh lửa phát sáng chạy tới các mốc 3, 7, 10, 30 ngày, mỗi mốc một phần quà.',sC],
+ ['D. Lịch tròn có mốc','Gọn và rõ nhất: số ngày nằm trong ngọn lửa, 7 ô tròn (có ngày dùng thẻ ❄), và thanh "Mốc 10 ngày còn 3".',sD]];
+document.getElementById('row').innerHTML=SK.map(([t,d,f])=>`<div><div class="stage">${f()}</div><div class="cap"><b>${t}</b><span>${d}</span></div></div>`).join('');
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang chủ: con đường</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--grey:#e5e7e5;--greyd:#c8ccc8;--blue:#1c8fe3;--pink:#ff7a9c;--pinkd:#d9547a;--vio:#a78bfa;--viod:#7c5ce0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:40px;display:flex;justify-content:center}
+.frame{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr 390px;overflow:hidden;position:relative}
+/* nav */
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;white-space:nowrap;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.nv b{margin-left:auto;background:var(--pink);color:#fff;border-radius:99px;font-size:12.5px;padding:1px 9px}
+.add{margin:22px 4px 0;border:2px solid var(--line);border-radius:16px;padding:16px;text-align:center}
+.add p{font-weight:700;font-size:14px;color:var(--mut);line-height:1.4;margin-bottom:12px}
+.btn{display:block;text-align:center;font-weight:900;font-size:15px;border-radius:14px;padding:12px 18px;letter-spacing:.2px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--blue);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+/* centre */
+.mid{position:relative;overflow:hidden}
+.sky{position:absolute;left:0;right:0;bottom:0;height:230px}
+.col{width:620px;margin:0 0 0 140px;position:relative;height:100%}
+.stage{position:absolute;left:-104px;right:0;top:24px;background:var(--g);box-shadow:0 6px 0 var(--gd);border-radius:18px;padding:16px 22px;color:#fff;display:flex;align-items:center}
+.stage small{display:block;font-weight:800;font-size:13.5px;opacity:.85}
+.stage b{font-weight:900;font-size:22px;letter-spacing:-.3px}
+.stage span{margin-left:auto;border:2px solid rgba(255,255,255,.55);border-radius:12px;padding:9px 16px;font-weight:900;font-size:14px}
+.node{position:absolute;width:74px;height:66px;border-radius:50%;margin-left:-37px;display:grid;place-items:center}
+.node.done{background:var(--gold);box-shadow:0 8px 0 var(--goldd)}
+.node.lock{background:var(--grey);box-shadow:0 8px 0 var(--greyd)}
+.node.now{width:86px;height:78px;margin-left:-43px;background:var(--g);box-shadow:0 9px 0 var(--gd)}
+.ring{position:absolute;width:118px;height:112px;margin-left:-59px;border-radius:50%;border:8px solid var(--gl)}
+.lab{position:absolute;font-weight:800;font-size:15.5px;line-height:1.25;width:230px}
+.lab small{display:block;font-weight:700;font-size:13px;color:var(--mut)}
+.lab.mut{color:#a3aba5}.lab.mut small{color:#b8beb9}
+.next{position:absolute;width:262px;background:#fff;border:2px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:0 5px 0 var(--line)}
+.next:after{content:"";position:absolute;right:-10px;top:44px;width:16px;height:16px;background:#fff;border-right:2px solid var(--line);border-top:2px solid var(--line);transform:rotate(45deg)}
+.next small{font-weight:800;font-size:13px;color:var(--g)}
+.next b{display:block;font-weight:900;font-size:19px;margin:2px 0 2px;letter-spacing:-.2px}
+.next p{font-weight:700;font-size:13.5px;color:var(--mut);margin-bottom:12px}
+.mam{position:absolute;width:170px}
+.sign{position:absolute;text-align:center;font-weight:900;font-size:15px;color:#fff;background:#8b6b4a;border-radius:10px;padding:7px 14px;box-shadow:0 4px 0 #6b5037}
+.sign:after{content:"";position:absolute;left:50%;top:100%;width:8px;height:30px;margin-left:-4px;background:#6b5037}
+/* right */
+.rail{padding:22px 34px 0 6px}
+.cnt{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:16.5px;padding:6px 6px 18px}
+.cnt div{display:flex;align-items:center;gap:8px}
+.card{border:2px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:16px}
+.card h3{font-weight:900;font-size:18.5px;letter-spacing:-.2px}
+.card .big{font-weight:900;font-size:60px;line-height:1;letter-spacing:-2px;margin:8px 0 2px}
+.bar{height:16px;border-radius:99px;background:var(--grey);overflow:hidden;margin:10px 0 8px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--g)}
+.row{display:flex;justify-content:space-between;font-weight:800;font-size:13.5px;color:var(--mut)}
+.quest{display:flex;align-items:center;gap:14px;margin-top:12px}
+.quest .q{flex:1}
+.quest .q b{font-weight:800;font-size:15px}
+.link{font-weight:900;font-size:13.5px;color:var(--blue)}
+.tag{position:absolute;right:0;bottom:0;background:#fff;color:#000;font:800 13px 'Nunito';padding:6px 12px;border-radius:10px 0 0 0;border:2px solid #000;border-width:2px 0 0 2px}
+</style>
+</head>
+<body>
+<div class="frame" id="J">
+  <div class="tag">J. Con đường từng bước</div>
+
+  <aside class="side">
+    <div class="logo">toeic progress</div>
+    <div class="nv on"><i style="background:var(--g)"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 9.5 L10 3 L17 9.5 V17 H12 V12 H8 V17 H3Z" fill="#fff"/></svg></i>Hôm nay</div>
+    <div class="nv"><i style="background:var(--gold)"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 15 L8 9 L11 12 L17 4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Hành trình điểm</div>
+    <div class="nv"><i style="background:var(--vio)"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="11" r="6.5" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M10 7.5 V11 L12.5 12.5 M8 2.5 H12" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></i>Luyện tập</div>
+    <div class="nv"><i style="background:var(--pink)"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="3" width="12" height="14" rx="2.5" fill="#fff"/><path d="M7 7.5 H13 M7 10.5 H13 M7 13.5 H10.5" stroke="#ff7a9c" stroke-width="1.8" stroke-linecap="round"/></svg></i>Sổ tay câu sai<b>3</b></div>
+    <div class="add"><p>Vừa làm xong một đề? Dán ảnh kết quả, Mầm lo phần còn lại.</p><div class="btn w">+ Ghi điểm</div></div>
+  </aside>
+
+  <main class="mid">
+    <svg class="sky" viewBox="0 0 800 230" preserveAspectRatio="none"><path d="M0 120 Q120 50 260 110 T520 90 T800 120 V230 H0Z" fill="#eef8f0"/><path d="M0 170 Q160 110 340 160 T800 150 V230 H0Z" fill="#dff1e3"/></svg>
+    <div class="col">
+      <div class="stage"><div><small>Chặng 3, đang ở 725 điểm</small><b>Từ 725 lên trạm 750</b></div><span>Xem cả hành trình</span></div>
+
+      <!-- path: centre x = 320 -->
+      <div class="node done" style="left:320px;top:136px"><svg width="30" height="24" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="lab" style="left:376px;top:148px">Làm đề ETS 2024 Test 04<small>725 điểm, kỷ lục mới</small></div>
+
+      <div class="node done" style="left:262px;top:236px"><svg width="30" height="24" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="lab" style="left:316px;top:248px">Soi 46 câu sai<small>Mầm đã xếp theo Part</small></div>
+
+      <div class="ring" style="left:230px;top:323px"></div>
+      <div class="node now" style="left:230px;top:340px"><svg width="34" height="34" viewBox="0 0 34 34"><path d="M11 6 L27 17 L11 28Z" fill="#fff"/></svg></div>
+      <div class="next" style="left:-122px;top:316px"><small>Bước tiếp theo</small><b>Ôn 3 câu sai đến hạn</b><p>Khoảng 5 phút</p><div class="btn g">Bắt đầu</div></div>
+
+      <div class="node lock" style="left:262px;top:462px"><svg width="30" height="30" viewBox="0 0 20 20"><circle cx="10" cy="11" r="6.5" fill="none" stroke="#a9afa9" stroke-width="2.6"/><path d="M10 7.5 V11 L12.5 12.5 M8 2.5 H12" stroke="#a9afa9" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></div>
+      <div class="lab mut" style="left:316px;top:474px">Bấm giờ một bài Part 7<small>20 phút</small></div>
+
+      <div class="node lock" style="left:320px;top:562px"><svg width="30" height="30" viewBox="0 0 20 20"><rect x="3" y="5" width="11" height="12" rx="2.5" fill="#a9afa9"/><rect x="7" y="2.5" width="11" height="12" rx="2.5" fill="#c4c9c4" stroke="#e5e7e5" stroke-width="1.5"/></svg></div>
+      <div class="lab mut" style="left:376px;top:574px">Ôn 8 thẻ từ rút từ câu sai<small>10 phút</small></div>
+
+      <div class="node lock" style="left:378px;top:662px"><svg width="34" height="30" viewBox="0 0 34 30"><rect x="3" y="12" width="28" height="15" rx="3" fill="#a9afa9"/><path d="M3 12 Q3 3 17 3 Q31 3 31 12Z" fill="#c4c9c4"/><rect x="14" y="10" width="6" height="8" rx="2" fill="#e5e7e5"/></svg></div>
+      <div class="lab mut" style="left:434px;top:674px">Bản tin tuần<small>Mở vào Chủ nhật</small></div>
+
+      <div class="node lock" style="left:410px;top:762px"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M8 27 V4" stroke="#a9afa9" stroke-width="3.5" stroke-linecap="round"/><path d="M9.5 5 L25 9.5 L9.5 15Z" fill="#a9afa9"/></svg></div>
+      <div class="lab mut" style="left:466px;top:774px">Làm đề tiếp theo<small>Qua 750 là sang chặng 4</small></div>
+
+      <span class="mam" id="mam" style="left:436px;top:296px"></span>
+      <div class="sign" style="left:176px;top:742px">Trạm 750</div>
+    </div>
+  </main>
+
+  <aside class="rail">
+    <div class="cnt">
+      <div><svg width="20" height="26" viewBox="0 0 22 28"><path d="M11 1 C13 8 21 11 21 18 a10 9.5 0 0 1 -20 0 C1 13 5 11 6 6 C8 8 9 9 11 1Z" fill="#ff9a3d"/><path d="M11 14 c2 3 4 4 4 6.5 a4 4 0 0 1 -8 0 c0-2.5 2-3.500 4-6.5Z" fill="#ffd84d"/></svg><span style="color:#f08a1c">6 ngày</span></div>
+      <div><svg width="24" height="24" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="18" rx="4" fill="#7fb7ff"/><rect x="2" y="4" width="20" height="6" rx="3" fill="#1c8fe3"/><circle cx="12" cy="15.500" r="3" fill="#fff"/></svg><span style="color:var(--blue)">39 ngày nữa thi</span></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Đường tới 800</h3><span class="link">Xem dự báo</span></div>
+      <div class="big">725</div>
+      <div class="bar"><i style="width:58%"></i></div>
+      <div class="row"><span>620 đề đầu</span><span style="color:var(--gd)">còn 75 điểm</span><span>800</span></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Nhiệm vụ hôm nay</h3><span class="link">Còn 4 tiếng</span></div>
+      <div class="quest">
+        <div class="q"><b>Xong 3 bước trên đường</b><div class="bar" style="margin:8px 0 0"><i style="width:4%"></i></div></div>
+        <svg width="44" height="40" viewBox="0 0 34 30"><rect x="3" y="12" width="28" height="15" rx="3" fill="#d99a00"/><path d="M3 12 Q3 3 17 3 Q31 3 31 12Z" fill="#ffc83d"/><rect x="14" y="10" width="6" height="8" rx="2" fill="#fff"/></svg>
+      </div>
+    </div>
+    <div class="card" style="background:#f6f2ff;border-color:#ddd2ff">
+      <h3>Part 7 đang kéo điểm xuống</h3>
+      <div style="font-weight:700;font-size:14px;color:var(--mut);margin-top:4px;line-height:1.45">Đề vừa rồi sai 16 câu ở đây, phần lớn là 10 câu cuối. Vì vậy bước 2 hôm nay là bấm giờ.</div>
+    </div>
+  </aside>
+</div>
+<script src="_mascot-soft.js"></script>
+<script>document.getElementById('mam').innerHTML=mam('happy','leaves')</script>
+</body>
+</html>

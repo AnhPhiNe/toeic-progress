@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hôm nay: 3 ý tưởng mới</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+svg text{font-family:'Nunito'}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden;position:relative}
+.tagl{position:absolute;left:268px;bottom:0;background:#fff;font-weight:800;font-size:13px;padding:6px 12px;border-radius:0 10px 0 0;z-index:20}
+.side{border-right:2px solid var(--line);padding:26px 16px;background:#fff;z-index:5;display:flex;flex-direction:column}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:block;text-align:center;font-weight:900;font-size:16px;border-radius:14px;padding:13px 18px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+.main{position:relative;overflow:hidden}
+.main>svg.bg{position:absolute;left:0;top:0}
+.sq{position:absolute;z-index:4}.sq svg{display:block;width:100%}
+/* shared card */
+.card{background:#fff;border-radius:24px;padding:20px 22px;box-shadow:0 8px 0 rgba(47,58,51,.12)}
+.card h2{font-weight:900;font-size:22px;letter-spacing:-.4px}
+.card .sub{font-weight:700;font-size:13.5px;color:var(--mut)}
+.tk{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:2px solid #f1f3f1;font-weight:800;font-size:15px}
+.tk i{width:24px;height:24px;border-radius:50%;border:3px solid #cfd5cf;flex:none}
+.tk.done i{background:var(--g);border-color:var(--g)}.tk.done b{color:#a3aba5;text-decoration:line-through;font-weight:800}
+.tk b{font-weight:800}.tk span{margin-left:auto;font-weight:800;font-size:12.5px;color:var(--mut)}
+.mine{font-weight:900;font-size:12px;color:var(--mut);letter-spacing:.4px;margin-top:10px}
+.tk.my i{border-radius:8px}
+.add{font-weight:900;font-size:14px;color:var(--blue);padding:9px 0 4px}
+.wk{display:flex;align-items:center;gap:10px;margin:10px 0 12px;background:#f6f8f6;border-radius:12px;padding:8px 12px;font-weight:800;font-size:13.5px}
+.wk .bar{flex:1;height:8px;border-radius:99px;background:#e2e6e2;overflow:hidden}.wk .bar i{display:block;height:100%;width:60%;background:var(--g);border-radius:99px}
+.wk a{font-weight:900;color:var(--blue)}
+.chips{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px}
+.chips div{background:#fff;border-radius:99px;padding:7px 14px;font-weight:900;font-size:14px;box-shadow:0 3px 0 rgba(47,58,51,.1)}
+.drop{border:3px dashed #a9dfb3;background:var(--gl);border-radius:18px;padding:22px 16px;text-align:center;margin:14px 0 12px}
+.drop b{display:block;font-weight:900;font-size:18px;color:var(--gd)}.drop span{font-weight:700;font-size:13.5px;color:#5c675f}
+.kbd{display:inline-block;background:#fff;border-radius:7px;padding:0 7px;font-weight:900;box-shadow:0 2px 0 #b9d9bf}
+.goalrow{display:flex;gap:10px;margin-bottom:12px}.goalrow div{flex:1;border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-weight:800;font-size:12.5px;color:var(--mut)}.goalrow b{display:block;font-weight:900;font-size:20px;color:var(--ink)}
+.hero{position:absolute;z-index:6}
+.hero small{font-weight:900;font-size:14px;letter-spacing:.3px}
+.hero h1{font-weight:900;font-size:40px;letter-spacing:-1.2px;line-height:1.08}
+.hero p{font-weight:700;font-size:16px;margin-top:8px;line-height:1.45}
+/* A bottom bar */
+.dock{position:absolute;left:26px;right:26px;bottom:24px;z-index:6;background:#fff;border-radius:26px;padding:18px 22px;box-shadow:0 8px 0 rgba(20,30,60,.18);display:grid;grid-template-columns:170px 1fr 1fr 1fr 230px;gap:14px;align-items:stretch}
+.dock .t1{display:flex;flex-direction:column;justify-content:center}
+.dock .t1 h2{font-weight:900;font-size:22px}.dock .t1 small{font-weight:800;font-size:13px;color:#c77c00}
+.tile{border:2px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:14.5px}
+.tile i{width:22px;height:22px;border-radius:50%;border:3px solid #cfd5cf}
+.tile.done{background:#f6f8f6}.tile.done i{background:var(--g);border-color:var(--g)}.tile.done b{color:#a3aba5;text-decoration:line-through}
+.tile b{font-weight:900}.tile span{font-weight:700;font-size:12.5px;color:var(--mut)}
+.tile.my{border-style:dashed}
+.dock .r{display:flex;flex-direction:column;justify-content:space-between}
+/* C parchment */
+.hand{font-family:'Caveat',cursive}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv on"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+const FIRST=620,BEST=725,GOAL=800,MS=[650,675,700,725,750,775];
+const TASKS=`<div class="tk done"><i></i><b>Ôn 3 câu sai đến hạn</b><span>5 phút</span></div>
+ <div class="tk"><i></i><b>Bấm giờ một bài Part 7</b><span>20 phút</span></div>
+ <div class="tk"><i></i><b>Ôn 8 thẻ từ</b><span>10 phút</span></div>
+ <div class="mine">VIỆC CỦA MÌNH</div>
+ <div class="tk my done"><i></i><b>Học 20 từ trên Mochi</b><span>mỗi ngày</span></div>
+ <div class="add">+ Thêm việc của mình</div>`;
+const CARD=(w=380)=>`<div class="chips"><div style="color:#f08a1c">🔥 6 ngày liền</div><div style="color:var(--blue)">Thi sau 38 ngày</div></div>
+ <div class="card" style="width:${w}px"><h2>Hôm nay</h2><div class="sub">Xong một việc là giữ được chuỗi</div><div style="margin-top:4px">${TASKS}</div>
+ <div class="wk">Tuần này 3/5 buổi<div class="bar"><i></i></div><a>Sửa</a></div><div class="btn g">Bấm giờ Part 7</div></div>`;
+const NEWCARD=(w=400,title='Leo tới đỉnh của bạn')=>`<div class="card" style="width:${w}px"><h2>${title}</h2><div class="sub" style="font-size:14.5px;line-height:1.45;margin-top:4px">Dán ảnh kết quả một đề bất kỳ. Sóc đọc điểm và đặt trại đầu tiên cho bạn.</div>
+ <div class="drop"><b>Dán ảnh kết quả</b><span>bấm <span class="kbd">Ctrl</span> + <span class="kbd">V</span> hoặc kéo ảnh vào</span></div>
+ <div class="goalrow"><div>Đỉnh núi (mục tiêu)<b>800</b></div><div>Ngày thi<b>20/12</b></div></div>
+ <div class="btn w">Chưa làm đề? Nhập điểm bạn đoán</div></div>`;
+const page=(id,tag,inner)=>`<div class="page" id="${id}"><aside class="side">${SIDE}</aside><div class="main">${inner}</div><div class="tagl">${tag}</div></div>`;
+const tent=(x,y,lit,c)=>`<g transform="translate(${x} ${y})"><path d="M-26 0 L0 -36 L26 0Z" fill="${lit?c:'#4b5670'}"/><path d="M-26 0 L0 -36 L0 0Z" fill="${lit?'rgba(0,0,0,.12)':'rgba(0,0,0,.2)'}"/><path d="M-6 0 L0 -14 L6 0Z" fill="${lit?'#ffe9a8':'#2b3348'}"/>${lit?'<circle cx="0" cy="-4" r="16" fill="#ffd766" opacity=".25"/>':''}</g>`;
+const pflag=(x,y,c,h=30)=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-h}" stroke="#5c675f" stroke-width="3" stroke-linecap="round"/><path d="M${x+1.5} ${y-h} L${x+20} ${y-h+6} L${x+1.5} ${y-h+12}Z" fill="${c}"/>`;
+
+// ===== A. Bình minh trên dãy núi =====
+function sceneA(isNew){
+ const W=1172,H=900;
+ const prog=isNew?0:(BEST-FIRST)/(GOAL-FIRST);
+ const sky=isNew?['#141c3a','#2b3566','#5a4f86']:['#7ec8ff','#bfe2ff','#ffe2b8'];
+ // ridge path points left-bottom to summit right-top
+ const P=[[90,560],[220,520],[330,470],[450,440],[560,390],[670,350],[780,300],[890,250],[1010,170]];
+ let ridge='M'+P[0];for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];ridge+=` Q${(a[0]+b[0])/2} ${Math.min(a[1],b[1])-24} ${b[0]} ${b[1]}`}
+ let g=`<defs><linearGradient id="skA${isNew?1:0}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".55" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
+  <radialGradient id="sun${isNew?1:0}"><stop offset="0" stop-color="#fff6c8"/><stop offset=".4" stop-color="#ffd766" stop-opacity=".9"/><stop offset="1" stop-color="#ffb36b" stop-opacity="0"/></radialGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#skA${isNew?1:0})"/>`;
+ if(isNew){let st='',s=7;for(let i=0;i<70;i++){s=(s*9301+49297)%233280;const x=s%W;s=(s*9301+49297)%233280;const y=s%380;st+=`<circle cx="${x}" cy="${y}" r="${(i%3)*.7+.8}" fill="#fff" opacity="${.3+(i%4)*.15}"/>`}g+=st}
+ g+=`<circle cx="1010" cy="${isNew?250:150}" r="${isNew?120:190}" fill="url(#sun${isNew?1:0})" opacity="${isNew?.45:1}"/>`;
+ g+=`<path d="M-20 640 L180 430 L300 500 L470 330 L600 420 L760 260 L880 330 L1010 140 L1190 420 L1190 900 L-20 900Z" fill="${isNew?'#39406a':'#9fb4e6'}"/>
+  <path d="M1010 140 L960 210 L985 205 L1010 230 L1035 200 L1060 215Z" fill="#fff" opacity="${isNew?.6:1}"/>
+  <path d="M-20 700 L160 560 L330 640 L520 520 L720 600 L900 470 L1190 560 L1190 900 L-20 900Z" fill="${isNew?'#2c3358':'#7fa3d8'}"/>
+  <path d="M-20 760 Q300 690 600 740 T1190 720 V900 H-20Z" fill="${isNew?'#1f2645':'#5f8fcc'}"/>`;
+ g+=`<path d="${ridge}" fill="none" stroke="${isNew?'#59618c':'#fff'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="1 14" opacity=".9"/>`;
+ // camps
+ const labels=[FIRST,...MS];
+ labels.forEach((m,i)=>{const [x,y]=P[i],lit=!isNew&&m<=BEST;
+  g+=tent(x,y,lit,i===0?'#46b35a':'#ffc83d');
+  if(lit&&i>0)g+=pflag(x+22,y-6,'#ff7a9c',30);
+  g+=`<g><rect x="${x-26}" y="${y+10}" width="52" height="24" rx="12" fill="${lit?'#fff':isNew?'#2b3348':'rgba(255,255,255,.55)'}"/><text x="${x}" y="${y+27}" font-weight="900" font-size="13.5" fill="${lit?'#2f3a33':isNew?'#8a93b8':'#4d5a75'}" text-anchor="middle">${i===0&&isNew?'?':m}</text></g>`;
+ });
+ g+=pflag(1010,170,'#ff7a9c',58)+`<rect x="976" y="182" width="68" height="28" rx="14" fill="#ff7a9c"/><text x="1010" y="202" font-weight="900" font-size="16" fill="#fff" text-anchor="middle">800</text>`;
+ let html=`<svg class="bg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+ if(isNew){
+  html+=`<span class="sq" style="left:70px;top:430px;width:96px">${soc('idle')}</span>
+  <div class="hero" style="left:60px;top:60px;color:#fff;max-width:640px"><small style="color:#ffd766">TRỜI CÒN TỐI, ĐỈNH ĐANG CHỜ</small><h1>Mỗi đề bạn làm<br>là một trại trên đường lên đỉnh</h1><p style="color:#c9cfee">Dựng trại đầu tiên, mặt trời sẽ lên dần theo điểm của bạn.</p></div>
+  <div style="position:absolute;right:36px;top:250px;z-index:6">${NEWCARD(380,'Dựng trại đầu tiên')}</div>`;
+ } else {
+  const [sx,sy]=P[4];
+  html+=`<span class="sq" style="left:${sx-50}px;top:${sy-150}px;width:100px">${soc('yay')}</span>
+  <div class="hero" style="left:60px;top:46px;color:#1f3557;max-width:620px"><small style="color:#1269ad">TRẠI 725 · CÒN 3 TRẠI NỮA LÀ TỚI ĐỈNH</small><h1>Mặt trời đã lên quá nửa ngọn núi</h1><p style="color:#3f5a7a">Bầu trời sáng dần theo mỗi mốc bạn vượt qua.</p></div>
+  <div class="dock"><div class="t1"><h2>Hôm nay</h2><small>🔥 6 ngày liền</small><span style="font-weight:700;font-size:12.5px;color:var(--mut);margin-top:6px">Tuần này 3/5 buổi · <b style="color:var(--blue)">Sửa</b></span></div>
+   <div class="tile done"><i></i><b>Ôn 3 câu sai</b><span>đến hạn hôm nay</span></div>
+   <div class="tile"><i></i><b>Bấm giờ Part 7</b><span>Part sai nhiều nhất</span></div>
+   <div class="tile my"><i></i><b>Học 20 từ Mochi</b><span>việc của mình · <b style="color:var(--blue)">+ thêm</b></span></div>
+   <div class="r"><div style="font-weight:800;font-size:13px;color:var(--mut)">Còn: Ôn 8 thẻ từ</div><div class="btn g">Bấm giờ Part 7</div></div></div>`;
+ }
+ return html;
+}
+
+// ===== B. Cầu thang lên cúp =====
+function sceneB(isNew){
+ const W=1172,H=900;
+ const steps=[FIRST,...MS];
+ let g=`<defs><linearGradient id="skB${isNew?1:0}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${isNew?'#fdf3ff':'#fff4d6'}"/><stop offset="1" stop-color="${isNew?'#eef1ff':'#ffe7ef'}"/></linearGradient>
+  <linearGradient id="cup" x1="0" x2="1"><stop offset="0" stop-color="#ffe58f"/><stop offset=".5" stop-color="#ffc83d"/><stop offset="1" stop-color="#e8a516"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#skB${isNew?1:0})"/>`;
+ // rays behind cup
+ for(let i=0;i<14;i++){const a=i/14*Math.PI*2;g+=`<path d="M560 190 L${560+Math.cos(a)*700} ${190+Math.sin(a)*700} L${560+Math.cos(a+.12)*700} ${190+Math.sin(a+.12)*700}Z" fill="#fff" opacity="${isNew?.35:.5}"/>`}
+ const bx=i=>110+i*66,by=i=>780-i*72,tw=58,th=30;
+ const block=(i,m)=>{const x=bx(i),y=by(i),ok=!isNew&&m<=BEST,cur=!isNew&&m===BEST,ghost=isNew&&i>0;
+  const top=cur?'#46b35a':ok?'#ffc83d':ghost?'none':'#ffffff',l=cur?'#2f8a42':ok?'#e8a516':ghost?'none':'#dfe3ef',r=cur?'#3a9a4d':ok?'#d99a00':ghost?'none':'#c9cfe0';
+  const st=ghost?`stroke="#c9c3e6" stroke-width="2" stroke-dasharray="5 6"`:'';
+  const hgt=140+i*72;
+  return `<g><path d="M${x-tw} ${y} L${x} ${y+th} L${x} ${y+th+hgt} L${x-tw} ${y+hgt}Z" fill="${l}" ${st}/><path d="M${x} ${y+th} L${x+tw} ${y} L${x+tw} ${y+hgt} L${x} ${y+th+hgt}Z" fill="${r}" ${st}/>
+   <path d="M${x-tw} ${y} L${x} ${y-th} L${x+tw} ${y} L${x} ${y+th}Z" fill="${top}" ${st}/>
+   <text x="${x-tw/2}" y="${y+th/2+34}" font-weight="900" font-size="17" fill="${cur||ok?'#fff':ghost?'#b3add6':'#8a93a8'}" text-anchor="middle">${ghost?'':m}</text></g>`};
+ steps.forEach((m,i)=>g+=block(i,m));
+ // cup pedestal
+ const ci=steps.length,cx=bx(ci)+30,cy=by(ci)-40;
+ g+=`<g transform="translate(${cx} ${cy})"><ellipse cx="0" cy="96" rx="80" ry="18" fill="#2f3a33" opacity=".12"/><rect x="-50" y="56" width="100" height="40" rx="8" fill="#2f3a33"/><text x="0" y="83" font-weight="900" font-size="20" fill="#ffe58f" text-anchor="middle">800</text>
+  <rect x="-14" y="30" width="28" height="28" fill="url(#cup)"/><path d="M-62 -70 H62 C62 -10 30 30 0 32 C-30 30 -62 -10 -62 -70Z" fill="url(#cup)"/>
+  <path d="M-62 -58 C-100 -58 -96 -10 -56 -14" fill="none" stroke="#e8a516" stroke-width="10"/><path d="M62 -58 C100 -58 96 -10 56 -14" fill="none" stroke="#e8a516" stroke-width="10"/>
+  <path d="M-36 -52 C-34 -24 -20 4 -4 14" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".55"/>
+  ${isNew?'':''}</g>`;
+ let html=`<svg class="bg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+ if(isNew){
+  html+=`<span class="sq" style="left:${bx(0)-56}px;top:${by(0)-128}px;width:112px">${soc('idle')}</span>
+  <div class="hero" style="left:56px;top:60px;max-width:430px"><small style="color:#6a4fd0">CHIẾC CÚP 800 ĐANG CHỜ BẠN</small><h1>Mỗi 25 điểm<br>là một bậc thang</h1><p style="color:#5f5a78">Đặt chân lên bậc đầu tiên bằng một đề bất kỳ. Các bậc sẽ hiện ra khi bạn leo.</p></div>
+  <div style="position:absolute;right:36px;top:200px;z-index:6">${NEWCARD(380,'Bước lên bậc đầu tiên')}</div>`;
+ } else {
+  const i=steps.indexOf(BEST);
+  html+=`<span class="sq" style="left:${bx(i)-50}px;top:${by(i)-128}px;width:100px">${soc('yay')}</span>
+  <div class="hero" style="left:56px;top:50px;max-width:470px"><small style="color:#a87a00">BẬC 5/8 · CÒN 75 ĐIỂM</small><h1>Ba bậc nữa là chạm tay vào cúp</h1></div>
+  <div style="position:absolute;right:36px;top:28px;z-index:6">${CARD(360)}</div>`;
+ }
+ return html;
+}
+
+// ===== C. Bản đồ kho báu =====
+function sceneC(isNew){
+ const W=1172,H=900;
+ const P=[[120,770],[250,690],[160,590],[300,520],[440,560],[560,470],[480,370],[560,290],[600,196]];
+ let g=`<defs><radialGradient id="pa" cx="45%" cy="45%" r="75%"><stop offset="0" stop-color="#fbf0d6"/><stop offset=".75" stop-color="#f1dcae"/><stop offset="1" stop-color="#d9b97c"/></radialGradient>
+  <filter id="rough"><feTurbulence baseFrequency=".03" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="6"/></filter></defs>
+  <rect width="${W}" height="${H}" fill="#8fc8d9"/>
+  <path d="M30 40 H740 Q760 60 744 90 L756 860 Q740 880 720 870 H40 Q20 860 30 830 L22 70Z" fill="url(#pa)" filter="url(#rough)"/>
+  <g stroke="#c9a66b" stroke-width="2" fill="none" opacity=".5"><path d="M80 300 Q140 260 200 300 T320 300"/><path d="M420 700 Q480 660 540 700 T660 700"/><path d="M520 160 Q560 130 600 160"/></g>
+  <g transform="translate(660 760)"><circle r="46" fill="none" stroke="#a87a3a" stroke-width="2"/><path d="M0 -40 L8 0 L0 40 L-8 0Z" fill="#c05a3a"/><path d="M-40 0 L0 -8 L40 0 L0 8Z" fill="#8a6a3a"/><text y="-50" font-weight="900" font-size="14" fill="#8a6a3a" text-anchor="middle">B</text></g>`;
+ let trail='M'+P[0];for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];trail+=` Q${(a[0]+b[0])/2+30} ${(a[1]+b[1])/2} ${b[0]} ${b[1]}`}
+ g+=`<path d="${trail}" fill="none" stroke="#8a5a2a" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>`;
+ const labels=[FIRST,...MS];
+ labels.forEach((m,i)=>{const [x,y]=P[i],ok=!isNew&&m<=BEST,fog=isNew&&i>0;
+  if(fog)return;
+  if(ok){g+=`<g transform="translate(${x} ${y}) rotate(${(i*37)%20-10})"><circle r="24" fill="none" stroke="#c0392b" stroke-width="3.5"/><path d="M-11 -11 L11 11 M11 -11 L-11 11" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/></g>`}
+  else g+=`<circle cx="${x}" cy="${y}" r="9" fill="#fbf0d6" stroke="#8a5a2a" stroke-width="3"/>`;
+  g+=`<text x="${x+30}" y="${y+6}" font-family="Caveat" font-weight="700" font-size="26" fill="${ok?'#7a2a1a':'#8a6a3a'}">${i===0&&isNew?'bạn ở đây':m}</text>`;
+ });
+ // treasure island
+ g+=`<g transform="translate(600 196)"><ellipse cx="0" cy="18" rx="70" ry="22" fill="#e8c98a"/><ellipse cx="0" cy="14" rx="56" ry="16" fill="#9ed08a"/>
+  <rect x="-30" y="-24" width="60" height="38" rx="6" fill="#a8652f"/><path d="M-30 -24 Q0 -50 30 -24Z" fill="#8a4e24"/><rect x="-30" y="-8" width="60" height="6" fill="#ffc83d"/><rect x="-6" y="-14" width="12" height="16" rx="3" fill="#ffc83d"/>
+  <path d="M-20 -46 l3 6 6 1 -4.5 4 1 6 -5.5 -3 -5.5 3 1 -6 -4.5 -4 6 -1Z" fill="#ffd766"/><path d="M24 -52 l2 4 4 .6 -3 3 .7 4 -3.7 -2 -3.7 2 .7 -4 -3 -3 4 -.6Z" fill="#ffd766"/></g>
+  <text x="600" y="256" font-family="Caveat" font-weight="700" font-size="32" fill="#7a2a1a" text-anchor="middle">Kho báu 800</text>`;
+ if(isNew){g+=`<g opacity=".92"><ellipse cx="420" cy="430" rx="300" ry="190" fill="#f6ecd6"/><ellipse cx="300" cy="380" rx="170" ry="110" fill="#fbf4e4"/><ellipse cx="520" cy="500" rx="180" ry="110" fill="#fbf4e4"/></g>
+  <text x="420" y="440" font-family="Caveat" font-weight="700" font-size="34" fill="#a8885a" text-anchor="middle">vùng chưa khám phá</text>`}
+ let html=`<svg class="bg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+ if(isNew){
+  html+=`<span class="sq" style="left:${P[0][0]-56}px;top:${P[0][1]-120}px;width:104px">${soc('idle')}</span>
+  <div class="hero" style="left:70px;top:76px;max-width:560px;color:#5a3a1a"><small style="color:#a8652f">TẤM BẢN ĐỒ CỦA BẠN</small><h1 class="hand" style="font-size:58px;letter-spacing:0;line-height:.95">Kho báu 800<br>nằm ở cuối con đường</h1></div>
+  <div style="position:absolute;right:36px;top:200px;z-index:6">${NEWCARD(380,'Đánh dấu chặng đầu')}</div>`;
+ } else {
+  const [sx,sy]=P[4];
+  html+=`<span class="sq" style="left:${sx-30}px;top:${sy-128}px;width:100px">${soc('yay')}</span>
+  <div class="hero" style="left:70px;top:70px;max-width:520px;color:#5a3a1a"><small style="color:#a8652f">4 DẤU X · CÒN 3 CHẶNG</small><h1 class="hand" style="font-size:54px;letter-spacing:0;line-height:.95">Kho báu chỉ còn<br>cách 75 điểm</h1></div>
+  <div style="position:absolute;right:36px;top:28px;z-index:6">${CARD(360)}</div>`;
+ }
+ return html;
+}
+
+const SCENES=[["A","A. Bình minh trên dãy núi",sceneA],["B","B. Cầu thang lên cúp",sceneB],["C","C. Bản đồ kho báu",sceneC]];
+let o="";SCENES.forEach(([k,t,f])=>{o+=page('n'+k,t+' · người mới',f(true))+page('r'+k,t+' · đang leo',f(false))});
+document.getElementById('out').innerHTML=o;
+document.querySelectorAll('.sq').forEach(e=>e.style.display='block');
+</script>
+</body>
+</html>

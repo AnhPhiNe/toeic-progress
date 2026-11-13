@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang chủ: ba trạng thái</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--grey:#e9ebe9;--greyd:#c8ccc8;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:40px;display:flex;flex-direction:column;gap:60px;align-items:center}
+.frame{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden;position:relative}
+.tag{position:absolute;left:268px;bottom:0;background:#fff;color:#000;font:800 13px 'Nunito';padding:6px 12px;border-radius:0 10px 0 0;z-index:9}
+.side{border-right:2px solid var(--line);padding:26px 16px;background:#fff;z-index:2}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;white-space:nowrap;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.nv b{margin-left:auto;background:var(--pink);color:#fff;border-radius:99px;font-size:12.5px;padding:1px 9px}
+.side{display:flex;flex-direction:column}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.500px;color:#5c675f;padding:8px 14px}
+.me{margin-top:auto;display:flex;align-items:center;gap:12px;border-top:2px solid var(--line);padding:14px 8px 0;font-weight:900;font-size:15px}
+.me i{width:40px;height:40px;border-radius:50%;background:#e7f6ea;color:var(--gd);display:grid;place-items:center;font-style:normal;font-size:14px;flex:none}
+.me small{display:block;font-weight:700;font-size:12.500px;color:var(--mut)}
+.btn{display:block;text-align:center;font-weight:900;font-size:16px;border-radius:14px;padding:13px 18px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--blue);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.main{position:relative;overflow:hidden;background:#e9f6ff}
+.main>svg{position:absolute;left:0;top:0}
+.st{position:absolute;transform:translate(-50%,-50%);text-align:center;z-index:2}
+.st .c{width:62px;height:56px;border-radius:50%;margin:0 auto;display:grid;place-items:center;background:var(--gold);box-shadow:0 7px 0 var(--goldd)}
+.st.lock .c{background:#fff;box-shadow:0 7px 0 #d5dbe6}
+.st.now .c{background:var(--g);box-shadow:0 8px 0 var(--gd);width:72px;height:64px}
+.st b{display:inline-block;margin-top:14px;background:#fff;border-radius:99px;padding:2px 12px;font-weight:900;font-size:15px;box-shadow:0 3px 0 rgba(47,58,51,.12)}
+.st small{display:block;font-weight:800;font-size:12px;color:#5c675f;margin-top:4px}
+.mam{position:absolute;z-index:3}.mam svg{display:block;width:100%}
+.bub{position:absolute;z-index:3;background:#fff;border-radius:16px;padding:10px 16px;font-weight:800;font-size:15px;line-height:1.35;box-shadow:0 4px 0 rgba(47,58,51,.12)}
+.bub:after{content:"";position:absolute;left:28px;bottom:-8px;width:16px;height:16px;background:#fff;transform:rotate(45deg)}
+.panel{position:absolute;right:36px;top:28px;width:380px;z-index:4}
+.cnt{display:flex;justify-content:flex-end;gap:10px;margin-bottom:14px}
+.cnt div{display:flex;align-items:center;gap:8px;background:#fff;border-radius:99px;padding:8px 16px;font-weight:900;font-size:15px;box-shadow:0 3px 0 rgba(47,58,51,.1)}
+.card{background:#fff;border-radius:22px;padding:22px 24px;box-shadow:0 6px 0 rgba(47,58,51,.1)}
+.card h2{font-weight:900;font-size:24px;letter-spacing:-.4px}
+.card .sub{font-weight:700;font-size:14.5px;color:var(--mut);margin-top:2px}
+.tk{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:2px solid var(--line);font-weight:800;font-size:16px}
+.tk:last-of-type{border:0}
+.tk i{width:26px;height:26px;border-radius:50%;border:3px solid #cfd5cf;flex:none}
+.tk span{margin-left:auto;font-weight:800;font-size:13.5px;color:var(--mut)}
+.nudge{margin-top:14px;background:#fff;border-radius:18px;padding:14px 18px;font-weight:700;font-size:14.5px;line-height:1.45;display:flex;align-items:center;gap:14px;box-shadow:0 5px 0 rgba(47,58,51,.1)}
+.nudge b{font-weight:900}
+.nudge .btn{white-space:nowrap;font-size:14.5px;padding:10px 14px}
+.drop{border:3px dashed #a9dfb3;background:var(--gl);border-radius:18px;padding:30px 20px;text-align:center;margin:18px 0 14px}
+.drop b{display:block;font-weight:900;font-size:19px;color:var(--gd)}
+.drop span{font-weight:700;font-size:14px;color:#5c675f}
+.kbd{display:inline-block;background:#fff;border-radius:7px;padding:1px 8px;font-weight:900;box-shadow:0 2px 0 #b9d9bf}
+.big{font-weight:900;font-size:86px;line-height:.95;letter-spacing:-3px}
+.up{display:inline-block;background:var(--gold);border-radius:99px;padding:4px 14px;font-weight:900;font-size:16px;vertical-align:26px;margin-left:10px;letter-spacing:0}
+.fact{font-weight:800;font-size:15.5px;margin-top:8px;display:flex;gap:10px;align-items:center}
+.fact i{width:10px;height:10px;border-radius:50%;flex:none}
+.ask2{margin-top:14px;background:#fff8e1;border-radius:22px;padding:18px 22px;box-shadow:0 6px 0 #f0dfa8}
+.ask2 h3{font-weight:900;font-size:18.5px}
+.ask2 p{font-weight:700;font-size:14.5px;color:#6b5a1e;line-height:1.45;margin:4px 0 14px}
+.ask2 .r{display:flex;align-items:center;gap:18px}
+.ask2 .r span{font-weight:900;font-size:15px;color:#8a7a45}
+
+.st.sm .c{width:46px;height:42px;box-shadow:0 5px 0 var(--goldd)}
+.st.sm.lock .c{background:#eef2f8;box-shadow:0 5px 0 #c8d2e2}.st.sm.lock .c::after{content:"";width:12px;height:12px;border-radius:50%;background:#c8d2e2}
+.st.sm.now .c{width:54px;height:48px;box-shadow:0 6px 0 var(--gd)}
+.st.sm .c svg{width:20px}
+.st.sm b{position:absolute;top:50%;margin:0;transform:translateY(-62%);white-space:nowrap}
+.st.sm.L b{right:calc(100% + 10px)}.st.sm.R b{left:calc(100% + 10px)}
+.st.sm small{position:absolute;top:50%;margin:0;transform:translateY(55%);white-space:nowrap}
+.st.sm.L small{right:calc(100% + 12px)}.st.sm.R small{left:calc(100% + 12px)}
+.wk{display:flex;align-items:center;gap:10px;margin:2px 0 14px;background:#f6f8f6;border-radius:14px;padding:10px 14px;font-weight:800;font-size:14px}
+.wk .bar{flex:1;height:8px;border-radius:99px;background:#e2e6e2;overflow:hidden}.wk .bar i{display:block;height:100%;width:60%;background:var(--g);border-radius:99px}
+.wk a{font-weight:900;color:var(--blue);text-decoration:none}
+.note2{left:36px;top:210px;font-size:17px;padding:12px 18px}.note2:after{display:none}
+</style>
+</head>
+<body>
+<div class="frame" id="M1"><div class="tag">Mục tiêu gần: 620 → 800, ít mốc nên mỗi 25 điểm</div></div>
+<div class="frame" id="M2"><div class="tag">Mục tiêu xa: 430 → 800, mốc mỗi 50 điểm</div></div>
+<link rel="stylesheet" href="_soc.css">
+<script src="_soc.js"></script>
+<script>
+const side=`<aside class="side"><div class="logo">toeic progress</div>
+<div class="nv on"><i style="background:var(--g)"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 9.5 L10 3 L17 9.5 V17 H12 V12 H8 V17 H3Z" fill="#fff"/></svg></i>Hôm nay</div>
+<div class="nv"><i style="background:var(--gold)"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 15 L8 9 L11 12 L17 4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Hành trình điểm</div>
+<div class="nv"><i style="background:var(--vio)"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="11" r="6.5" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M10 7.5 V11 L12.5 12.5 M8 2.5 H12" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></i>Luyện tập</div>
+<div class="nv"><i style="background:var(--pink)"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="3" width="12" height="14" rx="2.5" fill="#fff"/><path d="M7 7.5 H13 M7 10.5 H13 M7 13.5 H10.5" stroke="#ff7a9c" stroke-width="1.8" stroke-linecap="round"/></svg></i>Sổ tay__B__</div>
+<div class="nv"><i style="background:#1c8fe3"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 3 H15 V8 A5 5 0 0 1 5 8Z" fill="#fff"/><rect x="8.5" y="12" width="3" height="4" fill="#fff"/><rect x="6" y="15.500" width="8" height="2.500" rx="1.200" fill="#fff"/></svg></i>Thành tích</div>
+<div class="btn g" style="margin:16px 4px 0">+ Ghi điểm</div>
+<div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>
+<div class="me"><i>HV</i><div>Học viên<small>Mục tiêu 800, thi 20/12</small></div></div></aside>`;
+const chk='<svg width="26" height="20" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const st=(x,y,k,score,sub)=>`<div class="st ${k}" style="left:${x}px;top:${y+16}px"><div class="c">${k==='lock'?'':chk}</div>${score?`<b>${score}</b>`:''}${sub?`<small>${sub}</small>`:''}</div>`;
+const flame='<svg width="18" height="24" viewBox="0 0 22 28"><path d="M11 1 C13 8 21 11 21 18 a10 9.5 0 0 1 -20 0 C1 13 5 11 6 6 C8 8 9 9 11 1Z" fill="#ff9a3d"/><path d="M11 14 c2 3 4 4 4 6.5 a4 4 0 0 1 -8 0 c0-2.5 2-3.500 4-6.5Z" fill="#ffd84d"/></svg>';
+const cnt=(a,b)=>`<div class="cnt"><div>${flame}<span style="color:#f08a1c">${a}</span></div><div><span style="color:var(--blue)">${b}</span></div></div>`;
+
+
+const SUM=[470,180],BASE=[140,800];
+function build(first,best,dates){
+ let step=50;if((800-first)/50<4)step=25;const ms=[];for(let v=Math.floor(first/step)*step+step;v<800;v+=step)if(v-first>=10)ms.push(v);
+ const n=ms.length,top=262,bot=760;
+ const zz=(i,N)=>{const y=bot-(bot-top)*(i/N),w=46+(y-180)*.2,side=i%2?1:-1;return {x:470+side*w,y,side}};
+ const b0=zz(0,n);const pts=ms.map((m,i)=>({m,...zz(i+1,n)}));
+ const all=[b0,...pts,{x:SUM[0],y:SUM[1]}];
+ const seg=(a,b)=>{const h=(a.y-b.y)*.62,ox=(b.x-a.x)*.12;return ` C${a.x+ox} ${a.y-h} ${b.x-ox} ${b.y+h} ${b.x} ${b.y}`};
+ let full='M'+all[0].x+' '+all[0].y;for(let i=1;i<all.length;i++)full+=seg(all[i-1],all[i]);
+ const reached=pts.filter(p=>p.m<=best).length;
+ let done='';if(reached){done='M'+all[0].x+' '+all[0].y;for(let i=1;i<=reached;i++)done+=seg(all[i-1],all[i])}
+ const svg=`<svg width="1172" height="900" viewBox="0 0 1172 900">
+<circle cx="110" cy="120" r="52" fill="#ffd84d"/>
+<g fill="#fff"><ellipse cx="760" cy="640" rx="70" ry="26"/><ellipse cx="800" cy="620" rx="44" ry="28"/><ellipse cx="200" cy="230" rx="64" ry="24"/><ellipse cx="236" cy="212" rx="40" ry="26"/><ellipse cx="660" cy="110" rx="54" ry="20"/><ellipse cx="690" cy="96" rx="34" ry="22"/></g>
+<path d="M-60 900 L300 330 Q470 60 640 330 L1000 900Z" fill="#c5d4f1"/>
+<path d="M351 261 Q470 129 589 261 L555 292 L520 262 L470 298 L420 262 L385 292Z" fill="#fff"/>
+<path d="M0 700 Q180 630 400 700 T800 690 T1172 720 V900 H0Z" fill="#b5e3ba"/>
+<path d="M0 790 Q220 720 480 790 T1172 780 V900 H0Z" fill="#95d49d"/>
+<g fill="#5fbf70"><circle cx="640" cy="760" r="30"/><circle cx="60" cy="700" r="26"/><circle cx="930" cy="760" r="34"/></g><g fill="#46b35a"><circle cx="672" cy="776" r="22"/><circle cx="968" cy="778" r="24"/></g>
+<path d="${full}" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" opacity=".95"/>
+<path d="${full}" fill="none" stroke="#aab6cc" stroke-width="3" stroke-dasharray="2 13" stroke-linecap="round"/>
+${done?`<path d="${done}" fill="none" stroke="#ffc83d" stroke-width="26" stroke-linecap="round"/>`:''}
+<line x1="470" y1="180" x2="470" y2="96" stroke="#5c675f" stroke-width="6" stroke-linecap="round"/><path d="M473 98 L540 118 L473 142Z" fill="#ff7a9c"/>
+</svg>`;
+ let h=svg+`<div class="st sm ${b0.side<0?'L':'R'}" style="left:${b0.x}px;top:${b0.y+12}px"><div class="c">${chk}</div><b>Xuất phát ${first}</b></div>`;
+ pts.forEach((p,i)=>{const ok=p.m<=best,now=i===reached-1,k=(now?'now':ok?'':'lock')+' sm '+(p.side<0?'L':'R');
+  h+=`<div class="st ${k}" style="left:${p.x}px;top:${p.y+12}px"><div class="c">${ok?chk:''}</div><b>${p.m}</b>${ok&&dates[p.m]?`<small>${dates[p.m]}</small>`:''}</div>`});
+ h+=`<div class="st" style="left:566px;top:120px"><b style="font-size:19px;padding:4px 16px;background:var(--pink);color:#fff">800</b></div>`;
+ const cur=reached?pts[reached-1]:b0;
+ return {h,cur,left:800-best,n,reached};
+}
+const card=(mid)=>`<div class="panel">${cnt('6 ngày liền','Thi sau 38 ngày')}
+<div class="card"><h2>Hôm nay</h2><div class="sub">Làm một việc là giữ được chuỗi</div>
+<div style="margin:8px 0 6px"><div class="tk"><i></i>Ôn 3 câu sai đến hạn<span>5 phút</span></div><div class="tk"><i></i>Bấm giờ một bài Part 7<span>20 phút</span></div><div class="tk"><i></i>Ôn 8 thẻ từ<span>10 phút</span></div></div>
+<div class="wk">Tuần này 3/5 buổi<div class="bar"><i></i></div><a>Sửa</a></div>
+<div class="btn g">Ôn 3 câu sai</div></div>
+<div class="nudge"><div><b>${mid}</b><br>Làm xong thì dán ảnh vào nha.</div><div class="btn w">+ Ghi điểm</div></div></div>`;
+function place(id,first,best,dates,bubble,nudge){
+ const r=build(first,best,dates),c=r.cur,sx=c.side<0?c.x+34:c.x-150,sy=c.y-96;
+ document.getElementById(id).innerHTML+=side.replace('__B__','<b>3</b>')+`<div class="main">${r.h}
+ <span class="mam" style="left:${sx}px;top:${sy}px;width:112px">${soc('idle')}</span>
+ <div class="bub note2">${bubble.replace('{left}',r.left).replace('{n}',r.n-r.reached+1)}</div>${card(nudge)}</div>`;
+}
+place('M1',620,725,{650:'22/10',675:'22/10',700:'30/10',725:'06/11'},'Còn {left} điểm, {n} mốc nữa!','5 ngày rồi chưa có đề mới.');
+place('M2',430,615,{450:'02/10',500:'09/10',550:'18/10',600:'30/10'},'Đã qua 4 mốc. Còn {n} mốc nữa!','3 ngày rồi chưa có đề mới.');
+</script>
+</body></html>

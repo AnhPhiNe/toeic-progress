@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Ghi điểm</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--sun:#fff8e1}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#fff;display:flex;justify-content:center}
+#sheet{width:1440px;padding:40px 48px 48px;background:#eef1ee}
+h1{font-weight:900;font-size:36px;letter-spacing:-.8px}
+.sub{font-weight:700;font-size:16.5px;color:var(--mut);margin:6px 0 26px;max-width:900px;line-height:1.5}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:34px 36px}
+.step{font-weight:900;font-size:17px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.step i{width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-style:normal;font-size:15px}
+.step small{font-weight:700;font-size:14px;color:var(--mut)}
+.m{background:#fff;border-radius:28px;padding:24px 28px 26px;box-shadow:0 8px 0 rgba(47,58,51,.08);height:560px;display:flex;flex-direction:column}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.mh b{font-weight:900;font-size:24px;letter-spacing:-.4px}
+.x{width:38px;height:38px;border-radius:12px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900;font-size:18px;color:#5c675f}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:#f1f4f1;border-radius:14px;padding:4px;font-weight:800;font-size:15px;text-align:center;margin-bottom:16px}
+.seg span{padding:9px;border-radius:11px;color:#5c675f}.seg span.on{background:#fff;color:var(--ink);box-shadow:0 2px 0 rgba(47,58,51,.1)}
+.drop{flex:1;border:3px dashed #a9dfb3;background:var(--gl);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
+.drop b{font-weight:900;font-size:24px;color:var(--gd)}
+.drop span{font-weight:700;font-size:15px;color:#5c675f}
+.kbd{display:inline-block;background:#fff;border-radius:7px;padding:1px 9px;font-weight:900;box-shadow:0 2px 0 #b9d9bf}
+.foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;font-weight:700;font-size:14px;color:var(--mut)}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:16px;border-radius:14px;padding:13px 22px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--blue);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.read{flex:1;display:grid;grid-template-columns:200px 1fr;gap:26px;align-items:center}
+.thumb{height:270px;border-radius:16px;background:#f1f4f1;padding:16px;display:flex;flex-direction:column;gap:9px;position:relative;overflow:hidden}
+.thumb i{display:block;height:9px;border-radius:5px;background:#d9ded9}
+.thumb .scan{position:absolute;left:0;right:0;top:44%;height:4px;background:var(--g);box-shadow:0 0 0 6px rgba(70,179,90,.18)}
+.ck{display:flex;align-items:center;gap:12px;font-weight:800;font-size:16px;padding:8px 0}
+.ck i{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center}
+.ck.ok i{background:var(--g)}.ck.now i{border:3px solid var(--g);border-top-color:transparent}.ck.wait{color:#a3aba5}.ck.wait i{border:3px solid #dfe3df}
+.sq{width:112px;margin:0 auto 4px}.sq svg{display:block;width:100%}
+.r{display:grid;grid-template-columns:118px 1fr 34px;align-items:center;gap:10px;padding:11px 14px;border-bottom:2px solid var(--line);font-weight:800;font-size:15.5px}
+.r span{font-weight:700;font-size:14px;color:var(--mut)}
+.r small{font-weight:700;font-size:13px;color:var(--mut)}
+.pen{width:30px;height:30px;border-radius:9px;background:#f1f4f1;display:grid;place-items:center}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.chips em{font-style:normal;font-weight:800;font-size:12px;border-radius:99px;padding:1px 8px;background:#f1f4f1;color:#5c675f}
+.chips em.b{background:#ffe9ef;color:#c23c63}
+.unsure{background:var(--sun);border-radius:14px;border:0;margin-top:8px}
+.in{border:2px solid var(--line);border-radius:14px;padding:11px 14px;font-weight:800;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.lab{font-weight:800;font-size:14px;color:#5c675f;margin:14px 0 6px}
+.pp{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.pp span{border:2px solid var(--line);border-radius:12px;padding:9px 0;text-align:center;font-weight:900;font-size:14.5px;color:#5c675f}
+.pp span.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.stp{display:flex;align-items:center;gap:10px}
+.stp i{width:40px;height:40px;border-radius:12px;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-weight:900;font-size:20px;color:#5c675f}
+.stp b{font-weight:900;font-size:24px;min-width:44px;text-align:center}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <h1>Ghi điểm: một ảnh, ba bước</h1>
+  <div class="sub">Người học dán ảnh, Sóc đọc, người học xem lại rồi lưu. Mọi ô đều sửa được nhưng không ô nào bắt phải gõ. Bài luyện từng Part có lối ghi riêng, nhanh hơn.</div>
+  <div class="g">
+    <div><div class="step"><i>1</i>Dán ảnh<small>mở bằng nút "+ Ghi điểm" hoặc phím N</small></div>
+      <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+        <div class="seg"><span class="on">Đề Full Test</span><span>Bài luyện Part</span></div>
+        <div class="drop"><svg width="56" height="50" viewBox="0 0 56 50"><rect x="4" y="6" width="48" height="38" rx="9" fill="#fff"/><circle cx="19" cy="20" r="5" fill="#ffc83d"/><path d="M8 38 L22 26 L31 33 L39 27 L48 35 V40 H8Z" fill="#46b35a"/></svg>
+          <b>Dán ảnh kết quả vào đây</b><span>bấm <span class="kbd">Ctrl</span> + <span class="kbd">V</span>, kéo ảnh vào, hoặc bấm để chọn tệp</span><span style="font-size:13.5px;margin-top:6px">Chụp trang có điểm và danh sách câu sai. Nhiều ảnh cũng được.</span></div>
+        <div class="foot"><span>Còn 9 lượt đọc ảnh trong tháng này</span><span class="btn w" style="padding:9px 16px;font-size:14.5px">Nhập tay</span></div>
+      </div></div>
+
+    <div><div class="step"><i>2</i>Sóc đọc ảnh<small>vài giây, không cần chờ ở đây</small></div>
+      <div class="m"><div class="mh"><b>Sóc đang đọc ảnh</b><div class="x">×</div></div>
+        <div class="read"><div class="thumb"><i style="width:60%;height:14px"></i><i style="width:40%"></i><i style="margin-top:8px"></i><i></i><i style="width:80%"></i><i></i><i style="width:70%"></i><i></i><i style="width:50%"></i><i></i><i style="width:85%"></i><div class="scan"></div></div>
+          <div><div class="sq" data-s="think"></div>
+            <div class="ck ok"><i><svg width="14" height="11" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Điểm Nghe và Đọc</div>
+            <div class="ck now"><i></i>Danh sách câu sai</div>
+            <div class="ck wait"><i></i>Thời gian làm bài</div>
+          </div></div>
+        <div class="foot"><span>Bạn có thể đóng lại, Sóc đọc xong sẽ báo.</span></div>
+      </div></div>
+
+    <div><div class="step"><i>3</i>Xem lại rồi lưu<small>ô nào sai thì bấm bút để sửa</small></div>
+      <div class="m"><div class="mh"><b>Sóc đọc được thế này</b><div class="x">×</div></div>
+        <div style="flex:1">
+          <div class="r"><span>Tên đề</span><div>ETS 2024 Test 05<br><small>Sóc đoán theo đề trước của bạn</small></div><div class="pen"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="#5c675f"/></svg></div></div>
+          <div class="r"><span>Ngày làm</span><div>Hôm nay, 12/11</div><div class="pen"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="#5c675f"/></svg></div></div>
+          <div class="r"><span>Điểm</span><div><b style="font-size:24px;font-weight:900">745</b> &nbsp;Nghe 375, Đọc 370</div><div class="pen"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="#5c675f"/></svg></div></div>
+          <div class="r"><span>Câu sai</span><div>41 câu<div class="chips"><em>P1: 1</em><em>P2: 3</em><em>P3: 8</em><em>P4: 5</em><em>P5: 5</em><em>P6: 7</em><em class="b">P7: 12</em></div></div><div class="pen"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="#5c675f"/></svg></div></div>
+          <div class="r" style="border:0"><span>Thời gian</span><div>1 giờ 58 phút</div><div class="pen"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="#5c675f"/></svg></div></div>
+          <div class="r unsure"><span style="color:#8a6a10">Chưa chắc</span><div>Câu 132 bị mờ, Sóc đang tính là sai</div><div style="font-weight:900;font-size:13.5px;color:var(--blue);white-space:nowrap;margin-left:-22px">Xem ảnh</div></div>
+        </div>
+        <div class="foot"><span class="btn w" style="padding:11px 18px;font-size:15px">Dán ảnh khác</span><span class="btn g">Lưu điểm</span></div>
+      </div></div>
+
+    <div><div class="step"><i>+</i>Bài luyện Part<small>ghi nhanh, vẫn tính là "hôm nay đã học"</small></div>
+      <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+        <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+        <div class="lab" style="margin-top:0">Bạn vừa luyện Part nào?</div>
+        <div class="pp"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+          <div><div class="lab">Số câu đúng</div><div class="stp"><i>−</i><b>14</b><i>+</i></div></div>
+          <div><div class="lab">Trên tổng số câu</div><div class="stp"><i>−</i><b>20</b><i>+</i></div></div>
+        </div>
+        <div class="lab">Mất bao lâu</div>
+        <div class="in">Sóc vừa bấm giờ giúp bạn: 22 phút<div class="pen"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="#5c675f"/></svg></div></div>
+        <div class="lab">Có ảnh kết quả thì dán vào, Sóc điền giúp</div>
+        <div class="in" style="border-style:dashed;color:var(--mut);font-weight:700;font-size:14.5px;justify-content:center">Dán ảnh, Ctrl + V</div>
+        <div class="foot" style="margin-top:auto"><span></span><span class="btn g">Lưu bài luyện</span></div>
+      </div></div>
+  </div>
+</div>
+<script src="_soc.js"></script>
+<script>document.querySelectorAll('[data-s]').forEach(e=>{e.innerHTML=soc(e.dataset.s)})</script>
+</body>
+</html>

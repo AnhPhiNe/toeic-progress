@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thành tích</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#page{width:1440px;background:#fff;display:grid;grid-template-columns:268px 1fr}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--ink);box-shadow:0 4px 0 rgba(47,58,51,.14)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:40px 56px 60px}
+h1{font-weight:900;font-size:38px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:16px;color:var(--mut);margin-top:2px}
+.hero{margin-top:26px;background:#fff6d9;border-radius:30px;padding:26px 40px;display:grid;grid-template-columns:190px 1fr 210px;align-items:center;gap:30px;position:relative;overflow:hidden}
+.hero small{font-weight:900;font-size:14px;color:#a87a00}
+.hero h2{font-weight:900;font-size:40px;letter-spacing:-1px;line-height:1.1;margin:4px 0 8px}
+.hero p{font-weight:700;font-size:16.5px;color:#6b5a1e;line-height:1.5;max-width:520px}
+.hero .s svg{display:block;width:100%}
+h3{font-weight:900;font-size:26px;letter-spacing:-.5px;margin:46px 0 4px}
+.h3s{font-weight:700;font-size:15px;color:var(--mut)}
+.shelf{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:18px}
+.b{background:#f6f8f6;border-radius:24px;padding:20px 14px 18px;text-align:center}
+.b svg{width:120px;height:132px;display:block;margin:0 auto 8px}
+.b b{display:block;font-weight:900;font-size:17px}
+.b span{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:2px;line-height:1.35}
+.b.lock b{color:#8a938c}
+.pg{height:10px;border-radius:99px;background:#e2e6e2;margin:10px 14px 0;overflow:hidden}.pg i{display:block;height:100%;border-radius:99px;background:var(--g)}
+.wk{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:18px;margin-top:18px}
+.wc{border-radius:26px;padding:24px 24px 22px;color:#fff;display:flex;flex-direction:column;height:300px}
+.wc small{font-weight:800;font-size:14px;opacity:.9}
+.wc .n{font-weight:900;font-size:76px;line-height:1;letter-spacing:-3px;margin:8px 0 6px}
+.wc p{font-weight:800;font-size:15px;line-height:1.5}
+.wc .btn{margin-top:auto;align-self:flex-start;font-size:14.5px;padding:10px 16px}
+.wc.soon{background:#f6f8f6;color:var(--mut);border:3px dashed #cfd5cf;justify-content:center;text-align:center}
+.wc.soon b{font-weight:900;font-size:19px;color:#5c675f;display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<div id="page">
+  <aside class="side">
+    <div class="logo">toeic progress</div>
+    <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+    <div class="nv"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+    <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+    <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+    <div class="nv on"><i style="background:var(--blue)"></i>Thành tích</div>
+    <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+    <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>
+  </aside>
+  <main>
+    <h1>Thành tích</h1><div class="lead">5 huy hiệu đã có, 3 bản tin tuần. Tất cả tính từ các đề và buổi học bạn đã ghi.</div>
+
+    <div class="hero">
+      <span id="hb"></span>
+      <div><small>Huy hiệu mới nhất, 06/11</small><h2>Vượt mốc 700</h2><p>Đề ETS 2024 Test 04 được 725 điểm. Từ đề đầu tới đây bạn đã lên 105 điểm đó.</p></div>
+      <span class="s" data-s="yay"></span>
+    </div>
+
+    <h3>Huy hiệu</h3><div class="h3s">Cái nào chưa có thì ghi rõ còn thiếu bao nhiêu.</div>
+    <div class="shelf" id="shelf"></div>
+
+    <h3>Bản tin tuần</h3><div class="h3s">Mỗi Chủ nhật Sóc gói một tuần của bạn thành một tấm thẻ, lưu ảnh để khoe được.</div>
+    <div class="wk">
+      <div class="wc" style="background:var(--g)"><small>Tuần 02/11 đến 08/11</small><div class="n">+35</div><p>Kỷ lục mới 725.<br>Part 7 sai ít hơn 3 câu.<br>Học 5 trên 7 ngày.</p><span class="btn w">Lưu ảnh</span></div>
+      <div class="wc" style="background:var(--blue)"><small>Tuần 26/10 đến 01/11</small><div class="n">+25</div><p>690 điểm.<br>Nghe lên 20 điểm.</p><span class="btn w">Lưu ảnh</span></div>
+      <div class="wc" style="background:var(--vio)"><small>Tuần 19/10 đến 25/10</small><div class="n">+45</div><p>665 điểm.<br>Tuần lên nhanh nhất.</p><span class="btn w">Lưu ảnh</span></div>
+      <div class="wc soon"><div><b>Tuần này</b>Mở vào Chủ nhật 15/11</div></div>
+    </div>
+  </main>
+</div>
+<script src="_soc.js"></script>
+<script>
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+function badge(c,d,txt,sub,lock){if(lock){c='#dfe3df';d='#c3c9c3'}
+ return `<svg viewBox="0 0 120 132"><path d="M38 86 L28 126 L48 114 L60 128 L72 114 L92 126 L82 86Z" fill="${lock?'#cfd5cf':'#ff7a9c'}"/>
+ <circle cx="60" cy="60" r="50" fill="${d}"/><circle cx="60" cy="53" r="50" fill="${c}"/><circle cx="60" cy="53" r="39" fill="none" stroke="#fff" stroke-opacity="${lock?.6:.5}" stroke-width="4" stroke-dasharray="1 9" stroke-linecap="round"/>
+ <text x="60" y="${sub?55:63}" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="${txt.length>2?30:38}" fill="${lock?'#9aa39c':'#fff'}">${txt}</text>${sub?`<text x="60" y="75" text-anchor="middle" font-family="Nunito" font-weight="800" font-size="13" fill="${lock?'#9aa39c':'#fff'}">${sub}</text>`:''}</svg>`}
+document.getElementById('hb').innerHTML=badge('#ffc83d','#d99a00','700','điểm');document.querySelector('#hb svg').style.cssText='width:190px;height:209px;display:block';
+const B=[['#46b35a','#2f8a42','1','đề','Đề đầu tiên','12/10, 620 điểm'],['#1c8fe3','#136fb3','650','điểm','Vượt mốc 650','22/10'],['#ffc83d','#d99a00','700','điểm','Vượt mốc 700','06/11'],['#ff9a3d','#d9762a','3','ngày','Chuỗi 3 ngày','học liền 3 ngày'],['#a78bfa','#7c5ce0','3','lần','Kỷ lục 3 lần liền','3 đề sau đều cao hơn đề trước'],
+ ['','','750','điểm','Vượt mốc 750','còn 25 điểm',67],['','','7','ngày','Chuỗi 7 ngày','còn 1 ngày nữa',86],['','','5','đề','Ghi đủ 5 đề','còn 1 đề',80],['','','P7','','Gỡ Part 7','sai dưới 10 câu, hiện 16',40],['','','800','điểm','Chạm mục tiêu','còn 75 điểm',58]];
+document.getElementById('shelf').innerHTML=B.map(b=>`<div class="b ${b[6]?'lock':''}">${badge(b[0],b[1],b[2],b[3],!!b[6])}<b>${b[4]}</b><span>${b[5]}</span>${b[6]?`<div class="pg"><i style="width:${b[6]}%"></i></div>`:''}</div>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Vé lên đỉnh: 4 phiên bản</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--pink:#ff7a9c;--blue:#1c8fe3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#sheet{width:1440px;background:#fff;padding:40px 44px 50px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.tbl{display:grid;grid-template-columns:200px 1fr 1fr;gap:20px 22px;margin-top:24px}
+.ch{font-weight:900;font-size:18px;text-align:center}
+.rh b{display:block;font-weight:900;font-size:19px}.rh span{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:4px;line-height:1.4}
+.rh{display:flex;flex-direction:column;justify-content:center}
+.stage{height:290px;border-radius:24px;display:flex;align-items:center;justify-content:center}
+svg text{font-family:'Nunito'}
+.t{width:560px;height:224px;display:grid;grid-template-columns:1fr 128px;position:relative;filter:drop-shadow(0 10px 18px rgba(47,58,51,.14))}
+.t .m{border-radius:22px 0 0 22px;position:relative;overflow:hidden;-webkit-mask:radial-gradient(circle 13px at 100% 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 100% 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle 13px at 100% 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 100% 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.t .s{border-radius:0 22px 22px 0;position:relative;overflow:hidden;-webkit-mask:radial-gradient(circle 13px at 0 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 0 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle 13px at 0 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 0 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.perf{position:absolute;left:0;top:16px;bottom:16px;border-left:2.5px dashed}
+.glider{position:absolute;width:92px}
+.glider svg{display:block;width:100%;overflow:visible}
+
+/* A minimal */
+.A .m{background:#fff;padding:20px 26px}
+.A .meta{font-weight:800;font-size:13px;color:var(--mut)}
+.A .meta em{font-style:normal;font-weight:900;font-size:11.5px;color:#6a4fd0;background:#efeaff;border-radius:99px;padding:2px 8px;margin-left:6px}
+.A .big{font-weight:900;font-size:72px;letter-spacing:-3px;line-height:1;margin-top:8px}
+.A .big small{font-size:14px;letter-spacing:0;color:var(--mut);margin-left:8px}
+.A .route{position:absolute;left:26px;right:26px;bottom:34px;height:40px}
+.A .route .ln{position:absolute;left:44px;right:56px;top:24px;border-top:2.5px dashed #d5dcd6}
+.A .route .ln u{position:absolute;left:0;top:-2.5px;height:2.5px}
+.A .route b{position:absolute;bottom:0;font-weight:900;font-size:17px}
+.A .route .to{right:0;display:flex;align-items:center;gap:4px}
+.A .route .left{position:absolute;left:50%;transform:translateX(-50%);top:34px;font-weight:800;font-size:12px;color:var(--mut)}
+.A .s{color:#fff;padding:20px 16px;display:flex;flex-direction:column;justify-content:space-between}
+.A .s .d{font-weight:900;font-size:40px;letter-spacing:-1px;line-height:1}
+.A .s .d small{display:block;font-size:12px;letter-spacing:.5px;opacity:.85;margin-top:2px}
+.A .s .lr div{display:flex;justify-content:space-between;font-weight:800;font-size:13px;opacity:.9}.A .s .lr b{font-weight:900;font-size:16px;opacity:1}
+
+/* B sky */
+.B .m{background:#fff}
+.B .sky{height:112px;position:relative;overflow:hidden}
+.B .sky svg.bgs{position:absolute;inset:0;width:100%;height:100%}
+.B .low{display:flex;align-items:center;padding:8px 26px 0;gap:20px}
+.B .big{font-weight:900;font-size:62px;letter-spacing:-2.5px;line-height:1}
+.B .vr{width:2px;height:54px;background:#eef0ee}
+.B .lr{display:flex;gap:22px}.B .lr div{font-weight:800;font-size:12px;color:var(--mut)}.B .lr b{display:block;font-weight:900;font-size:22px;color:var(--ink)}
+.B .s{background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.B .s .d{font-weight:900;font-size:38px;letter-spacing:-1px;line-height:1}
+.B .s .tag{font-weight:900;font-size:12px;color:#fff;border-radius:99px;padding:3px 12px}
+.B .s .dt{font-weight:800;font-size:12px;color:var(--mut);text-align:center;line-height:1.35}
+.B .s .re{font-weight:900;font-size:11.5px;color:#6a4fd0;background:#efeaff;border-radius:99px;padding:2px 9px}
+
+/* C night */
+.C .m{padding:20px 26px;color:#fff}
+.C .meta{font-weight:800;font-size:13px;opacity:.7;letter-spacing:.3px}
+.C .big{font-weight:900;font-size:70px;letter-spacing:-3px;line-height:1;margin-top:6px;background:linear-gradient(180deg,#fff3c4,#ffc83d);-webkit-background-clip:text;color:transparent}
+.C .lr{display:flex;gap:22px;margin-top:8px}.C .lr div{font-weight:800;font-size:12px;opacity:.7}.C .lr b{display:block;font-weight:900;font-size:19px;opacity:1}
+.C .s{padding:18px 14px;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
+.C .s .holo{height:46px;border-radius:10px;background:linear-gradient(110deg,#ff9ec4,#ffd766,#8fe6d0,#9ec5ff,#c9a8ff)}
+.C .s .d{font-weight:900;font-size:36px;letter-spacing:-1px;line-height:1}.C .s .d small{display:block;font-size:12px;opacity:.75;letter-spacing:.5px}
+
+/* D stamps */
+.D .m{background:#fffaf0;padding:20px 26px}
+.D .meta{font-weight:800;font-size:13px;color:#8a7a5a}
+.D .big{font-weight:900;font-size:68px;letter-spacing:-3px;line-height:1;margin-top:8px}
+.D .lr{display:flex;gap:22px;margin-top:6px}.D .lr div{font-weight:800;font-size:12px;color:#8a7a5a}.D .lr b{display:block;font-weight:900;font-size:19px;color:var(--ink)}
+.stp{position:absolute;font-weight:900;letter-spacing:1.5px;text-align:center;opacity:.88}
+.stp.round{width:104px;height:104px;border-radius:50%;border:4px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;line-height:1.15}
+.stp.round::before{content:"";position:absolute;inset:5px;border-radius:50%;border:1.5px dashed currentColor}
+.stp.rect{border:3.5px solid;border-radius:8px;padding:4px 10px;font-size:13px}
+.D .s{background:#fffaf0;padding:18px 14px;display:flex;flex-direction:column;justify-content:space-between}
+.D .s .d{font-weight:900;font-size:34px;letter-spacing:-1px;line-height:1}.D .s .d small{display:block;font-size:11.5px;color:#8a7a5a;letter-spacing:.5px}
+.D .s .bc{height:36px;background:repeating-linear-gradient(90deg,#5a4a2a 0 2px,transparent 2px 4px,#5a4a2a 4px 7px,transparent 7px 9px,#5a4a2a 9px 10px,transparent 10px 13px);opacity:.75}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <h1>Vé lên đỉnh B: máy bay kéo băng rôn</h1>
+  <div class="lead">Mỗi vé chỉ giữ 3 tầng chữ: điểm đề này thật to, đường bay tới mục tiêu, và Nghe/Đọc. Mọi thứ khác dời sang cuống vé hoặc bỏ.</div>
+  <div class="tbl" id="tbl"></div>
+</div>
+<script>
+// ---- Sóc Bay đang lượn (nhìn nghiêng, hướng sang phải)
+function glider(mood){
+ const sad=mood==='sad';
+ const eyes=sad
+  ?`<path d="M58 40 Q62 37 66 40" fill="none" stroke="#33241a" stroke-width="3" stroke-linecap="round"/><path d="M74 40 Q78 37 82 40" fill="none" stroke="#33241a" stroke-width="3" stroke-linecap="round"/>`
+  :`<ellipse cx="62" cy="40" rx="4.6" ry="5.4" fill="#33241a"/><ellipse cx="78" cy="40" rx="4.6" ry="5.4" fill="#33241a"/><circle cx="63.6" cy="38" r="1.8" fill="#fff"/><circle cx="79.6" cy="38" r="1.8" fill="#fff"/>`;
+ const mouth=sad?`<path d="M66 52 Q70 49 74 52" fill="none" stroke="#33241a" stroke-width="2.4" stroke-linecap="round"/>`:`<path d="M65 50 Q70 57 75 50Z" fill="#5a2f3a"/>`;
+ return `<svg viewBox="0 0 140 112">
+  <path d="M92 82 C118 92 132 70 124 56 C118 46 106 50 110 58 C113 64 120 62 119 58" fill="none" stroke="#f58845" stroke-width="12" stroke-linecap="round"/>
+  <path d="M8 46 C30 34 50 50 70 48 C90 50 110 34 132 46 C126 62 124 80 118 92 C104 86 90 94 70 92 C50 94 36 86 22 92 C16 80 14 62 8 46Z" fill="#35a352"/>
+  <path d="M18 52 C34 44 52 58 70 56 C88 58 106 44 122 52 C118 64 116 76 112 84 C100 80 88 86 70 85 C52 86 40 80 28 84 C24 76 22 64 18 52Z" fill="#fff0c2"/>
+  <circle cx="9" cy="46" r="6" fill="#f58845"/><circle cx="131" cy="46" r="6" fill="#f58845"/><circle cx="22" cy="92" r="5.5" fill="#f58845"/><circle cx="118" cy="92" r="5.5" fill="#f58845"/>
+  <ellipse cx="70" cy="74" rx="20" ry="18" fill="#ffa468"/><ellipse cx="70" cy="78" rx="12" ry="12" fill="#fff3e0"/>
+  <path d="M48 26 C42 6 58 4 62 20Z" fill="#ffa468"/><path d="M51 22 C48 11 57 10 59 19Z" fill="#ffb9ab"/>
+  <path d="M92 26 C98 6 82 4 78 20Z" fill="#ffa468"/><path d="M89 22 C92 11 83 10 81 19Z" fill="#ffb9ab"/>
+  <circle cx="70" cy="40" r="25" fill="#ffa468"/>
+  <path d="M70 44 C58 36 46 42 47 52 C49 62 60 66 70 66 C80 66 91 62 93 52 C94 42 82 36 70 44Z" fill="#fff3e0"/>
+  <ellipse cx="54" cy="52" rx="5" ry="3.4" fill="#ff9d8e" opacity=".7"/><ellipse cx="86" cy="52" rx="5" ry="3.4" fill="#ff9d8e" opacity=".7"/>
+  ${eyes}<ellipse cx="70" cy="47" rx="3" ry="2.2" fill="#8a5231"/>${mouth}
+  <path d="M46 28 C56 20 84 20 94 28" fill="none" stroke="#7a4a2b" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="60" cy="25" r="8" fill="#ffc83d"/><circle cx="60" cy="25" r="5" fill="#8fe6d0"/><circle cx="58.5" cy="23.5" r="1.5" fill="#fff"/>
+  <circle cx="80" cy="25" r="8" fill="#ffc83d"/><circle cx="80" cy="25" r="5" fill="#8fe6d0"/><circle cx="78.5" cy="23.5" r="1.5" fill="#fff"/>
+ </svg>`}
+const flag=(x,y,c='#ff7a9c')=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y+38}" stroke="#5c675f" stroke-width="3.5" stroke-linecap="round"/><path d="M${x+1.5} ${y} L${x+26} ${y+8} L${x+1.5} ${y+16}Z" fill="${c}"/>`;
+const C={rec:{c:'#e8a516',t:'KỶ LỤC MỚI'},down:{c:'#7d8fa3',t:'CHỮNG LẠI MỘT CHÚT'}};
+const D={rec:{date:'11/11',test:'ETS 2024 Test 03',re:1,prev:740,sc:765,d:25,L:390,R:375,need:35,lv:'B1'},
+         down:{date:'09/11',test:'ETS 2024 Test 05',prev:725,sc:710,d:-15,L:360,R:350,need:90,lv:'B1'}};
+const pos=d=>Math.max(.12,Math.min(.9,(d.sc-600)/(800-600)));
+const ds=d=>`${d.d>0?'+':'−'}${Math.abs(d.d)}`;
+
+function A(k){const d=D[k],c=C[k].c,p=pos(d),rot=k==='down'?14:-8;
+ return `<div class="t A"><div class="m"><div class="meta">${d.date} · ${d.test}${d.re?'<em>làm lại</em>':''}</div>
+  <div class="big">${d.sc}<small>điểm</small></div>
+  <div class="route"><b style="left:0;color:var(--mut)">${d.prev}</b><div class="ln"><u style="width:${p*100}%;background:${c}"></u></div>
+   <span class="left">còn ${d.need} điểm</span><b class="to">800 <svg width="18" height="22" viewBox="0 0 18 22"><line x1="2" y1="1" x2="2" y2="21" stroke="#5c675f" stroke-width="3" stroke-linecap="round"/><path d="M3 2 L17 6 L3 10Z" fill="#ff7a9c"/></svg></b>
+   <span class="glider" style="left:calc(44px + (100% - 100px) * ${p} - 44px);top:-62px;width:88px;transform:rotate(${rot}deg)">${glider(k==='down'?'sad':'yay')}</span></div></div>
+  <div class="s" style="background:${c}"><div class="d">${ds(d)}<small>${C[k].t}</small></div><div class="lr"><div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div></div></div></div>`}
+
+function B(k){const d=D[k],c=C[k].c,p=pos(d),W=432;
+ const x0=40,x1=W-60,yb=k==='down'?84:88,ya=34;const xp=x0+(x1-x0)*p;
+ const arc=t=>{const x=x0+(x1-x0)*t,y=yb-(yb-ya)*Math.sin(t*Math.PI/2);return[x,y]};
+ const [gx,gy]=arc(Math.min(p,.82));let pts='';for(let i=0;i<=40;i++){const [x,y]=arc(i/40);pts+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)}
+ let done='';for(let i=0;i<=40;i++){const t=p*i/40;const [x,y]=arc(t);done+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)}
+ const sky=k==='down'?'linear-gradient(#dfe7ef,#f3f6f9)':'linear-gradient(#bfe6ff,#eaf7ff)';
+ return `<div class="t B"><div class="m"><div class="sky" style="background:${sky}"><svg class="bgs" viewBox="0 0 ${W} 112" preserveAspectRatio="none">
+   <g fill="#fff" opacity=".9"><ellipse cx="90" cy="30" rx="30" ry="10"/><ellipse cx="108" cy="22" rx="18" ry="11"/><ellipse cx="300" cy="70" rx="26" ry="8"/></g>
+   <path d="${pts}" fill="none" stroke="${k==='down'?'#b7c3cf':'#9fd0f5'}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+   <path d="${done}" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/>
+   <circle cx="${x0}" cy="${yb}" r="6" fill="#fff" stroke="${c}" stroke-width="3"/>
+   <text x="${x0}" y="${yb+18}" font-weight="900" font-size="13" fill="#5c675f" text-anchor="middle">${d.prev}</text>
+   ${flag(x1-2,ya-24)}<text x="${x1+10}" y="${ya+30}" font-weight="900" font-size="14" fill="#d9547a" text-anchor="middle">800</text>
+  </svg><span class="glider" style="left:${gx-46}px;top:${gy-44}px;width:84px;transform:rotate(${k==='down'?16:-10}deg)">${glider(k==='down'?'sad':'yay')}</span></div>
+  <div class="low"><div class="big">${d.sc}</div><div class="vr"></div><div class="lr"><div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div><div>Còn tới 800<b>${d.need}</b></div></div></div></div>
+  <div class="s"><span class="perf" style="border-color:#dfe4df"></span><div class="d" style="color:${k==='down'?'#7d8fa3':'#2f8a42'}">${ds(d)}</div><span class="tag" style="background:${c}">${k==='down'?'Chững lại':'Kỷ lục mới'}</span>${d.re?'<span class="re">làm lại</span>':''}<div class="dt">${d.date}<br>${d.test.replace('ETS 2024 ','')}</div></div></div>`}
+
+function Cn(k){const d=D[k],p=pos(d);
+ const bg=k==='down'?'linear-gradient(135deg,#2b3446,#3b4558)':'linear-gradient(135deg,#1f2a4a,#3a2a63)';
+ let stars='';let s=k==='down'?5:9;for(let i=0;i<34;i++){s=(s*9301+49297)%233280;const x=s%432;s=(s*9301+49297)%233280;const y=s%224;stars+=`<circle cx="${x}" cy="${y}" r="${(i%3)*0.6+0.8}" fill="#fff" opacity="${.35+(i%4)*.15}"/>`}
+ const x0=220,x1=360,y0=176,y1=66,gx=x0+(x1-x0)*p,gy=y0+(y1-y0)*p;
+ return `<div class="t C"><div class="m" style="background:${bg}"><svg style="position:absolute;inset:0" width="432" height="224">${stars}
+   <circle cx="398" cy="34" r="20" fill="#fff3c4" opacity="${k==='down'?.5:.95}"/><circle cx="389" cy="29" r="18" fill="${k==='down'?'#2f394c':'#2b2d55'}" opacity=".9"/>
+   <line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round"/>
+   <circle cx="${x0}" cy="${y0}" r="4" fill="#fff"/><text x="${x0}" y="${y0+20}" font-weight="900" font-size="12" fill="#fff" fill-opacity=".7" text-anchor="middle">${d.prev}</text>
+   <path d="M${x1} ${y1-8} l3 6 6 1 -4.5 4.5 1 6.5 -5.5 -3 -5.5 3 1 -6.5 -4.5 -4.5 6 -1Z" fill="#ffd766"/><text x="${x1-18}" y="${y1+4}" font-weight="900" font-size="13" fill="#ffd766" text-anchor="end">800</text>
+  </svg><div style="position:relative"><div class="meta">${d.date} · ${d.test}${d.re?' · làm lại':''}</div><div class="big">${d.sc}</div><div class="lr"><div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div></div></div>
+  <span class="glider" style="left:${gx-44}px;top:${gy-44}px;width:88px;transform:rotate(${k==='down'?14:-24}deg)">${glider(k==='down'?'sad':'yay')}</span></div>
+  <div class="s" style="background:${bg}"><span class="perf" style="border-color:rgba(255,255,255,.25)"></span><div class="d" style="color:${k==='down'?'#c9d3df':'#8fe6a6'}">${ds(d)}<small>${k==='down'?'CHỮNG LẠI':'KỶ LỤC MỚI'}</small></div><div style="font-weight:800;font-size:12px;opacity:.75">còn ${d.need} tới 800</div><div class="holo" style="${k==='down'?'filter:grayscale(.85);opacity:.6':''}"></div></div></div>`}
+
+function Dp(k){const d=D[k],p=pos(d);
+ const st=k==='rec'
+  ?`<div class="stp round" style="left:250px;top:18px;color:#d6416a;transform:rotate(-14deg)">KỶ LỤC<br><span style="font-size:20px">${d.date}</span>MỚI</div><div class="stp rect" style="left:330px;top:130px;color:#6a4fd0;transform:rotate(8deg)">LÀM LẠI · LẦN ĐẦU 690</div>`
+  :`<div class="stp round" style="left:250px;top:18px;color:#7d8fa3;transform:rotate(-10deg)">CHỮNG<br><span style="font-size:20px">${d.date}</span>LẠI</div><div class="stp rect" style="left:300px;top:136px;color:#2f8a42;transform:rotate(6deg)">VẪN HƠN 3/4 ĐỀ CŨ</div>`;
+ return `<div class="t D"><div class="m"><div class="meta">${d.test}</div><div class="big">${d.sc}</div><div class="lr"><div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div></div>
+  <div style="position:absolute;left:26px;bottom:18px;font-weight:800;font-size:12.5px;color:#8a7a5a">còn ${d.need} điểm tới 800</div>${st}
+  <span class="glider" style="left:176px;top:96px;width:76px;transform:rotate(${k==='down'?14:-12}deg)">${glider(k==='down'?'sad':'yay')}</span></div>
+  <div class="s"><span class="perf" style="border-color:#e4d9c2"></span><div class="d" style="color:${k==='down'?'#7d8fa3':'#2f8a42'}">${ds(d)}<small>SO VỚI ĐỀ TRƯỚC</small></div><div style="font-weight:900;font-size:13px">${d.date}</div><div class="bc"></div></div></div>`}
+
+
+function plane(c){return `<svg viewBox="0 0 64 44"><path d="M6 22 C6 19 9 18 12 18 L50 18 C58 18 62 20 62 22 C62 24 58 26 50 26 L12 26 C9 26 6 25 6 22Z" fill="#fff" stroke="${c}" stroke-width="2.5"/><path d="M26 18 L36 2 L42 2 L38 18Z M26 26 L36 42 L42 42 L38 26Z" fill="${c}"/><path d="M8 19 L4 9 L9 9 L15 18Z M8 25 L4 35 L9 35 L15 26Z" fill="${c}"/><circle cx="52" cy="22" r="2.2" fill="${c}" opacity=".5"/><circle cx="46" cy="22" r="2.2" fill="${c}" opacity=".5"/></svg>`}
+D.rec.first=620;D.down.first=620;
+function B2(k){const d=D[k],c=C[k].c,W=432;
+ const pr=t=>(t-d.first)/(800-d.first),p=pr(d.sc),pp=pr(d.prev);
+ const x0=34,x1=W-62,yb=94,ya=34;
+ const arc=t=>{const x=x0+(x1-x0)*t,y=yb-(yb-ya)*Math.sin(t*Math.PI/2);return[x,y]};
+ const path=(a,b)=>{let s='';for(let i=0;i<=40;i++){const [x,y]=arc(a+(b-a)*i/40);s+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)}return s};
+ const [gx,gy]=arc(p),[qx,qy]=arc(pp),[tx,ty]=arc(Math.min(1,p+.01));
+ const ang=Math.atan2(ty-gy,tx-gx)*180/Math.PI;
+ const sky=k==='down'?'linear-gradient(#dfe7ef,#f3f6f9)':'linear-gradient(#bfe6ff,#eaf7ff)';
+ const prevMark=k==='down'
+  ?`<circle cx="${qx}" cy="${qy}" r="7" fill="#fff" stroke="#9aa6b8" stroke-width="3" stroke-dasharray="3 3"/><text x="${qx}" y="${qy-14}" font-weight="900" font-size="12" fill="#5c6b7a" text-anchor="middle">đề trước ${d.prev}</text>`
+  :`<circle cx="${qx}" cy="${qy}" r="5" fill="#fff" stroke="${c}" stroke-width="3"/>`;
+ return `<div class="t B"><div class="m"><div class="sky" style="background:${sky}"><svg class="bgs" viewBox="0 0 ${W} 112" preserveAspectRatio="none">
+   <g fill="#fff" opacity=".9"><ellipse cx="96" cy="26" rx="30" ry="10"/><ellipse cx="114" cy="18" rx="18" ry="11"/><ellipse cx="300" cy="80" rx="26" ry="8"/></g>
+   <path d="${path(0,1)}" fill="none" stroke="${k==='down'?'#b7c3cf':'#9fd0f5'}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+   <path d="${path(0,p)}" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/>
+   <circle cx="${x0}" cy="${yb}" r="5" fill="${c}"/><text x="${x0}" y="${yb+15}" font-weight="900" font-size="12" fill="#5c675f" text-anchor="middle">${d.first}</text>
+   ${prevMark}
+   ${flag(x1+4,ya-26)}<text x="${x1+26}" y="${ya+14}" font-weight="900" font-size="14" fill="#d9547a" text-anchor="middle">800</text>
+  </svg><span class="glider" style="left:${gx-26}px;top:${gy-18}px;width:52px;transform:rotate(${ang}deg)">${plane(k==='down'?'#7d8fa3':'#e8a516')}</span></div>
+  <div class="low"><div class="big">${d.sc}</div><div class="vr"></div><div class="lr"><div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div><div>Còn tới 800<b>${d.need}</b></div></div></div></div>
+  <div class="s"><span class="perf" style="border-color:#dfe4df"></span><div class="d" style="color:${k==='down'?'#7d8fa3':'#2f8a42'}">${ds(d)}</div><span class="tag" style="background:${c}">${k==='down'?'Chững lại':'Kỷ lục mới'}</span>${d.re?'<span class="re">làm lại</span>':''}<div class="dt">${d.date}<br>${d.test.replace('ETS 2024 ','')}</div></div></div>`}
+
+const V0=[['A','Tối giản','Nhiều khoảng trắng, chỉ 3 tầng chữ. Cuống vé tô màu theo tình huống.',A,'#fff7e2','#eef1f5'],
+ ['B','Bầu trời','Nửa trên là bầu trời, Sóc lượn theo đường vòng cung từ đề trước lên cờ 800.',B,'#e8f5ff','#eef1f5'],
+ ['C','Đêm sao','Vé tối, số điểm ánh vàng, Sóc lượn về phía ngôi sao 800. Cuống vé có dải ánh bảy màu.',Cn,'#e9e6f5','#e7eaef'],
+ ['D','Đóng dấu','Vé giấy kiểu hộ chiếu, tình huống được đóng thành con dấu.',Dp,'#f8f1e3','#eef1f5']];
+
+D.first2={date:'12/10',test:'ETS 2024 Test 01',prev:null,sc:620,d:0,L:310,R:310,need:180,first:620};
+D.goal={date:'14/12',test:'ETS 2024 Test 08',prev:765,sc:805,d:40,L:410,R:395,need:0,first:620};
+const BAN={rec:'Kỷ lục mới!',down:'Lần sau lấy lại nha!',first2:'Cất cánh!',goal:'Chạm 800 rồi!'};
+const TAG={rec:['Kỷ lục mới','#ffc83d','#5a4410'],down:['Chững lại','#eef1f5','#5c675f'],first2:['Đề đầu tiên','#e7f6ea','#2f8a42'],goal:['Chạm mục tiêu','#ff7a9c','#fff']};
+function toon(){return `<path d="M-30 2 C-30 -8 -20 -12 -8 -12 L14 -12 C26 -12 34 -6 36 0 C34 6 26 10 14 10 L-8 10 C-20 10 -30 8 -30 2Z" fill="#fff" stroke="#1c8fe3" stroke-width="2.5"/>
+ <path d="M-26 -8 L-34 -26 L-22 -26 L-14 -11Z" fill="#1c8fe3"/>
+ <path d="M-4 2 L-14 20 L-2 20 L10 4Z" fill="#46b35a"/>
+ <path d="M26 -9 C31 -7 35 -3 36 0 L24 0 Z" fill="#9ed6ff"/>
+ <circle cx="-14" cy="-3" r="3" fill="#9ed6ff"/><circle cx="-4" cy="-3" r="3" fill="#9ed6ff"/><circle cx="6" cy="-3" r="3" fill="#9ed6ff"/>
+ <path d="M-30 4 L36 4" stroke="#ffc83d" stroke-width="3"/>`}
+function B3(k){const d=D[k],W=432;
+ const pr=t=>(t-d.first)/(800-d.first),p=Math.max(.06,Math.min(1,pr(d.sc)));
+ const x0=34,x1=W-62,yb=96,ya=36;
+ const arc=t=>{const x=x0+(x1-x0)*t,y=yb-(yb-ya)*Math.sin(t*Math.PI/2);return[x,y]};
+ const path=(a,b)=>{let s='';for(let i=0;i<=40;i++){const [x,y]=arc(a+(b-a)*i/40);s+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)}return s};
+ const pg=k==='goal'?.8:Math.max(p,.36);const [gx,gy]=arc(pg),[tx,ty]=arc(Math.min(1,pg+.01));
+ const ang=Math.atan2(ty-gy,tx-gx)*180/Math.PI;
+ const txt=BAN[k],bw=txt.length*7.1+22;
+ const banner=`<line x1="-30" y1="0" x2="-44" y2="0" stroke="#7a857e" stroke-width="1.5"/><path d="M${-44-bw} -10 H-44 V10 H${-44-bw} L${-50-bw} 0Z" fill="${k==='down'?'#fff':'#ffd766'}" stroke="${k==='down'?'#d5dcd6':'#e8b62c'}" stroke-width="1.5"/><text x="${-44-bw/2-2}" y="4.5" font-weight="900" font-size="12" fill="${k==='down'?'#4d5850':'#5a4410'}" text-anchor="middle">${txt}</text>`;
+ const t=TAG[k];
+ return `<div class="t B"><div class="m"><div class="sky" style="background:linear-gradient(#bfe6ff,#eaf7ff)"><svg class="bgs" viewBox="0 0 ${W} 112">
+   <g fill="#fff" opacity=".9"><ellipse cx="96" cy="22" rx="30" ry="10"/><ellipse cx="114" cy="14" rx="18" ry="11"/><ellipse cx="320" cy="92" rx="26" ry="8"/></g>
+   <path d="${path(0,1)}" fill="none" stroke="#9fd0f5" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+   <path d="${path(0,p)}" fill="none" stroke="#1c8fe3" stroke-width="3.5" stroke-linecap="round" opacity=".55"/>
+   <circle cx="${x0}" cy="${yb}" r="5" fill="#1c8fe3"/><text x="${x0}" y="${yb+14}" font-weight="900" font-size="11.5" fill="#4d6a80" text-anchor="middle">${d.first}</text>
+   ${flag(x1+4,ya-28)}<text x="${x1+24}" y="${ya+12}" font-weight="900" font-size="14" fill="#d9547a" text-anchor="middle">800</text>
+   <g transform="translate(${gx},${gy}) rotate(${ang}) scale(.9)">${banner}${toon()}</g>
+  </svg></div>
+  <div class="low"><div class="big">${d.sc}</div><div class="vr"></div><div class="lr"><div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div><div>${k==='goal'?'Vượt 800':'Còn tới 800'}<b>${k==='goal'?d.sc-800:d.need}</b></div></div></div></div>
+  <div class="s"><span class="perf" style="border-color:#dfe4df"></span><div class="d" style="color:${k==='down'?'#7a857e':'#2f8a42'}">${k==='first2'?'#1':ds(d)}</div><span class="tag" style="background:${t[1]};color:${t[2]}">${t[0]}</span>${d.re?'<span class="re">làm lại</span>':''}<div class="dt">${d.date}<br>${d.test.replace('ETS 2024 ','')}</div></div></div>`}
+
+const V_old=[['B','Bầu trời, máy bay','Đường vòng cung là cả hành trình từ đề đầu tiên (620) tới 800. Máy bay đứng ở điểm hiện tại; khi giảm điểm, máy bay nằm sau mốc "đề trước" chứ không bay ngược.',B2,'#e8f5ff','#eef1f5'],
+ ['D','Đóng dấu, Sóc Bay','Không có đường bay nên giữ được Sóc. Con dấu nói tình huống.',Dp,'#f8f1e3','#eef1f5']];
+let h='<div></div><div class="ch">Kỷ lục mới, đề làm lại</div><div class="ch">Giảm điểm</div>';
+h+=`<div class="rh"><b>B. Bầu trời</b><span>Bầu trời luôn sáng. Máy bay kéo băng rôn đổi lời theo tình huống.</span></div><div class="stage" style="background:#e8f5ff">${B3('rec')}</div><div class="stage" style="background:#e8f5ff">${B3('down')}</div>`;
+h+=`<div class="rh"></div><div class="ch" style="align-self:end">Đề đầu tiên</div><div class="ch" style="align-self:end">Chạm mục tiêu</div>`;
+h+=`<div class="rh"></div><div class="stage" style="background:#e8f5ff">${B3('first2')}</div><div class="stage" style="background:#e8f5ff">${B3('goal')}</div>`;
+const V=[];V.forEach(v=>{h+=`<div class="rh"><b>${v[0]}. ${v[1]}</b><span>${v[2]}</span></div><div class="stage" style="background:${v[4]}">${v[3]('rec')}</div><div class="stage" style="background:${v[5]}">${v[3]('down')}</div>`});
+document.getElementById('tbl').innerHTML=h;
+</script>
+</body>
+</html>

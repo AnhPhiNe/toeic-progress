@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Linh vật, biểu đồ và AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f172a; --bg:#f6f8f7; --muted:#5f6966; --line:#dfe4e2;
+  --green:#387f48; --green50:#6dbe6a; --green20:#dcefd3; --green10:#f1f8ee;
+  --sun:#f2b93b; --sun20:#fff3d3; --red:#c93c4b; --red20:#fde3e5;
+  --lis:#5b5bd6; --lis20:#e7e7fb; --rea:#2e8f7e; --rea20:#ddf2ee;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:#cfd6d3;padding:40px;display:flex;flex-direction:column;gap:60px;align-items:center}
+.sheet{width:1440px;background:var(--bg);padding:38px 46px 44px}
+.sheet>h1{font-size:34px;font-weight:800;letter-spacing:-.8px}
+.sheet>p.sub{font-size:16.5px;margin:6px 0 26px;color:#3a4240;max-width:900px;line-height:1.5}
+.neo{border:2px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);background:#fff}
+.btn{font:800 14px 'Plus Jakarta Sans';border:2px solid var(--ink);border-radius:12px;padding:9px 16px;background:#fff;color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--green);color:#fff;box-shadow:0 4px 0 var(--ink)}
+.muted{color:var(--muted)}
+h2{font-size:19px;font-weight:800;letter-spacing:-.2px;line-height:1.3}
+.why{font-size:14px;line-height:1.5;color:#3a4240;font-weight:500}
+
+/* ---------- mascots ---------- */
+.m3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.mc{padding:22px 24px 20px;display:flex;flex-direction:column}
+.mc .stage{height:210px;border-radius:12px;display:flex;align-items:flex-end;justify-content:center;gap:6px;margin:14px 0 14px;padding-bottom:10px}
+.faces{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;font-weight:700;font-size:12.5px;margin-bottom:14px}
+.faces svg{width:66px;height:74px;display:block;margin:0 auto 2px}
+.react{margin-top:24px;padding:20px 26px}
+.react .r5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:8px;text-align:center}
+.react svg{width:104px;height:118px;display:block;margin:0 auto}
+.react b{display:block;font-size:14.5px;font-weight:800}
+.react span{font-size:13px;font-weight:500;color:#3a4240;line-height:1.4;display:block;margin-top:2px}
+
+/* ---------- charts ---------- */
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.ch{padding:20px 22px 18px;display:flex;flex-direction:column}
+.ch.wide{grid-column:span 2}
+.ch .q{font-size:13.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.ch svg{display:block;width:100%;margin-top:12px}
+.ch svg text{font-family:'Plus Jakarta Sans'}
+.amap{display:grid;grid-template-columns:repeat(25,1fr);gap:3px;margin-top:14px}
+.amap i{aspect-ratio:1;border-radius:3px;border:1.5px solid #cfd6d3;background:#fff}
+.legend{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin-top:12px}
+.legend i{width:16px;height:16px;border-radius:3px;border:1.5px solid var(--ink);display:inline-block}
+.halves{display:grid;grid-template-columns:1fr;gap:10px}
+.halves small{font-weight:800;font-size:12.5px;display:block;margin-top:10px}
+
+/* ---------- AI ---------- */
+.ai{padding:20px 22px;display:flex;flex-direction:column;min-height:372px}
+.ai .how{font-size:13px;font-weight:700;margin-bottom:4px}
+.ai .how.yes{color:#3a3a9e}.ai .how.no{color:#1f6457}
+.ai .demo{margin-top:14px;flex:1;display:flex;flex-direction:column;justify-content:center}
+.drop{border:2px dashed var(--ink);border-radius:12px;padding:12px;font-weight:700;font-size:13.5px;text-align:center;background:var(--green10)}
+.read{margin-top:10px;border:2px solid var(--ink);border-radius:12px;overflow:hidden;font-size:14px;font-weight:600}
+.read div{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1.5px solid var(--line)}
+.read div:last-child{border:0}
+.read b{font-weight:800}
+.read .unsure{background:var(--sun20)}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:120px;margin-top:12px;text-align:center;font-size:12.5px;font-weight:700}
+.wk div{display:flex;flex-direction:column;justify-content:flex-end;gap:5px;height:100%}
+.wk i{border:2px solid var(--ink);border-radius:7px;background:var(--green50);display:block}
+.wk i.moved{background:var(--sun)}
+.wk i.gone{background:#fff;border-style:dashed;border-color:#878f8c}
+.say{background:var(--green20);border:2px solid var(--ink);border-radius:14px 14px 14px 4px;padding:10px 14px;font-size:14px;font-weight:600;line-height:1.45}
+.qz{border:2px solid var(--ink);border-radius:12px;padding:14px 16px;font-size:15px;font-weight:600;line-height:1.5}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.opts span{border:2px solid var(--ink);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}
+.opts span.pick{background:var(--green20)}
+.recap{background:var(--green);color:#fff;border:2px solid var(--ink);border-radius:14px;padding:16px 18px;position:relative}
+.recap .big{font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--sun)}
+.recap ul{list-style:none;font-size:14px;font-weight:600;line-height:1.7;margin-top:8px}
+.ask{align-self:flex-end;background:var(--ink);color:#fff;border-radius:14px 14px 4px 14px;padding:9px 14px;font-size:14px;font-weight:600;margin-bottom:10px}
+.noti{border:2px solid var(--ink);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;font-size:14px;font-weight:600;line-height:1.4;background:#fff;box-shadow:3px 3px 0 var(--ink)}
+.noti+.noti{margin-top:12px}
+.noti svg{width:44px;height:50px;flex:none}
+.noti b{font-weight:800;display:block}
+</style>
+</head>
+<body>
+
+<!-- ============ MASCOT ============ -->
+<div class="sheet" id="M">
+  <h1>Linh vật: ba ứng viên</h1>
+  <p class="sub">Mầm hiện tại vẽ kiểu đất sét bóng mềm, trong khi giao diện là nét mực dày. Cả ba ứng viên dưới đây đều vẽ lại theo nét mực của app để đứng chung một màn không bị lạc.</p>
+  <div class="m3">
+    <div class="neo mc">
+      <h2>Mầm nét mực</h2>
+      <div class="why">Giữ nhân vật đã có, chỉ đổi cách vẽ. Cây vẫn lớn theo điểm cao nhất.</div>
+      <div class="stage" style="background:var(--green20)"><span data-m="mam,happy,bloom" style="width:170px"></span></div>
+      <div class="faces"><div><span data-m="mam,calm"></span>An ủi</div><div><span data-m="mam,think"></span>Đang đọc ảnh</div><div><span data-m="mam,sleep"></span>Màn trống</div><div><span data-m="mam,grit"></span>Tuần thi</div></div>
+      <div class="why" style="margin-top:auto"><b>Hợp khi:</b> bạn muốn ít rủi ro nhất và giữ câu chuyện "mầm lớn lên".</div>
+    </div>
+    <div class="neo mc">
+      <h2>Chì, cây bút 2B</h2>
+      <div class="why">Thi TOEIC giấy là tô bằng bút chì 2B. Học càng nhiều, Chì càng ngắn và càng tự hào.</div>
+      <div class="stage" style="background:var(--sun20)"><span data-m="chi,calm,96" style="width:92px"></span><span data-m="chi,happy,66" style="width:92px"></span><span data-m="chi,happy,36" style="width:92px"></span></div>
+      <div class="faces" style="grid-template-columns:repeat(3,1fr)"><div>Mới bóc</div><div>Sau 10 đề</div><div>Sau 30 đề</div></div>
+      <div class="why" style="margin-top:auto"><b>Hợp khi:</b> bạn muốn linh vật chỉ thuộc về TOEIC, không trùng Mochi, Prep hay Duolingo.</div>
+    </div>
+    <div class="neo mc">
+      <h2>Tô, ô đáp án đã tô</h2>
+      <div class="why">Ô tròn trên phiếu trả lời. Màu của Tô chính là màu đúng, sai, chưa chắc đang dùng trong app.</div>
+      <div class="stage" style="background:var(--lis20);align-items:center;gap:14px;padding:0"><span data-m="to,empty,A" style="width:74px"></span><span data-m="to,empty,B" style="width:74px"></span><span data-m="to,ink,happy" style="width:112px"></span><span data-m="to,empty,D" style="width:74px"></span></div>
+      <div class="faces" style="grid-template-columns:repeat(3,1fr)"><div><span data-m="to,green,happy"></span>Đúng</div><div><span data-m="to,red,sad"></span>Sai</div><div><span data-m="to,sun,think"></span>AI chưa chắc</div></div>
+      <div class="why" style="margin-top:auto"><b>Hợp khi:</b> bạn muốn linh vật nhỏ, dễ vẽ, dùng được ngay làm biểu tượng trong lưới câu hỏi.</div>
+    </div>
+  </div>
+  <div class="neo react">
+    <h2>Linh vật đổi theo dữ liệu thật, đó là lý do mở app</h2>
+    <div class="r5">
+      <div><span data-m="mam,happy,bloom"></span><b>Vừa lập kỷ lục</b><span>Nở hoa, giữ nguyên tới đề sau</span></div>
+      <div><span data-m="mam,sad,wilt"></span><b>3 ngày chưa học</b><span>Lá rũ, tưới 5 phút là tươi lại</span></div>
+      <div><span data-m="mam,grit"></span><b>Còn 7 ngày tới thi</b><span>Đeo băng đỏ, đổi sang lịch nước rút</span></div>
+      <div><span data-m="mam,think"></span><b>AI đang đọc ảnh</b><span>Thay cho vòng xoay chờ</span></div>
+      <div><span data-m="mam,sleep"></span><b>Sau 23 giờ</b><span>Ngủ, nhắc bạn mai học tiếp</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CHARTS ============ -->
+<div class="sheet" id="G">
+  <h1>Năm biểu đồ, mỗi cái trả lời một câu hỏi</h1>
+  <p class="sub">Tiêu đề là câu kết luận rút từ số liệu, không phải tên biểu đồ. Người học đọc tiêu đề là đủ, nhìn hình để tin.</p>
+  <div class="g">
+    <div class="neo ch wide">
+      <div class="q">Mình có kịp không?</div>
+      <h2>Giữ đà này, bạn chạm 800 khoảng 01/12, trước ngày thi gần 3 tuần</h2>
+      <svg viewBox="0 0 860 300">
+        <g stroke="#dfe4e2" stroke-width="1.5"><line x1="50" y1="270" x2="830" y2="270"/><line x1="50" y1="170" x2="830" y2="170"/></g>
+        <g font-size="13" font-weight="600" fill="#5f6966" text-anchor="end"><text x="42" y="274">600</text><text x="42" y="174">700</text></g>
+        <polygon points="329,145 820,20 820,95" fill="#fff3d3" stroke="#f2b93b" stroke-width="1.5" stroke-dasharray="4 5"/>
+        <line x1="50" y1="70" x2="830" y2="70" stroke="#387f48" stroke-width="2.5" stroke-dasharray="8 7"/>
+        <text x="56" y="62" font-size="13.5" font-weight="800" fill="#387f48">Mục tiêu 800</text>
+        <line x1="385" y1="24" x2="385" y2="270" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="2 5"/>
+        <line x1="820" y1="20" x2="820" y2="270" stroke="#0f172a" stroke-width="3"/>
+        <path d="M822 20 L858 31 L822 44Z" fill="#c93c4b" stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M329 145 Q470 88 608 70 T820 45" fill="none" stroke="#0f172a" stroke-width="3" stroke-dasharray="3 8" stroke-linecap="round"/>
+        <polyline points="50,250 162,205 251,180 329,145" fill="none" stroke="#0f172a" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="50,250 162,205 251,180 329,145" fill="none" stroke="#6dbe6a" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <g fill="#fff" stroke="#0f172a" stroke-width="3"><circle cx="50" cy="250" r="7"/><circle cx="162" cy="205" r="7"/><circle cx="251" cy="180" r="7"/></g>
+        <circle cx="329" cy="145" r="9" fill="#f2b93b" stroke="#0f172a" stroke-width="3"/>
+        <g font-size="14" font-weight="800" text-anchor="middle"><text x="58" y="234">620</text><text x="162" y="189">665</text><text x="251" y="164">690</text><text x="322" y="126">725</text></g>
+        <circle cx="608" cy="70" r="8" fill="#387f48" stroke="#0f172a" stroke-width="3"/>
+        <g><rect x="536" y="92" width="144" height="30" rx="15" fill="#0f172a"/><text x="608" y="112" fill="#fff" font-size="13.5" font-weight="800" text-anchor="middle">Chạm 800 ở đây</text></g>
+        <text x="700" y="150" font-size="13" font-weight="600" fill="#6f4f05">Vùng ước tính</text>
+        <g font-size="13" font-weight="700" text-anchor="middle"><text x="54" y="292">12/10</text><text x="385" y="292">Hôm nay</text><text x="608" y="292">01/12</text><text x="806" y="292">Thi 20/12</text></g>
+      </svg>
+    </div>
+
+    <div class="neo ch">
+      <div class="q">46 câu sai nằm ở đâu?</div>
+      <h2>Một phần ba số câu sai nằm ở Part 7</h2>
+      <svg viewBox="0 0 400 268" id="wf"></svg>
+    </div>
+
+    <div class="neo ch">
+      <div class="q">Sai vì không biết hay vì hết giờ?</div>
+      <h2>Cuối Part 7 đỏ đậm qua cả 4 đề: bạn hết giờ</h2>
+      <div class="halves">
+        <div><small style="color:#3a3a9e">Listening, câu 1 đến 100</small><div class="amap" id="mapL"></div></div>
+        <div><small style="color:#1f6457">Reading, câu 101 đến 200</small><div class="amap" id="mapR"></div></div>
+      </div>
+      <div class="legend">Số đề bị sai ở câu đó: <i style="background:#fff;border-color:#cfd6d3"></i>0 <i style="background:#fde3e5"></i>1 <i style="background:#f3a3ab"></i>2 <i style="background:#c93c4b"></i>3 <i style="background:#7f1d2b"></i>4</div>
+    </div>
+
+    <div class="neo ch">
+      <div class="q">Nên luyện nhanh hơn hay chắc hơn?</div>
+      <h2>Part 7 vừa chậm vừa sai, Part 5 đã ổn</h2>
+      <svg viewBox="0 0 400 268">
+        <rect x="30" y="10" width="360" height="226" rx="10" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+        <rect x="31" y="11" width="179" height="112" fill="#dcefd3"/><rect x="210" y="123" width="179" height="112" fill="#fde3e5"/>
+        <line x1="210" y1="10" x2="210" y2="236" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="4 5"/><line x1="30" y1="123" x2="390" y2="123" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="4 5"/>
+        <g font-size="12" font-weight="700" fill="#3a4240"><text x="40" y="28">Nhanh và đúng</text><text x="382" y="28" text-anchor="end">Chậm mà đúng</text><text x="40" y="228">Nhanh mà sai</text><text x="382" y="228" text-anchor="end">Chậm và sai</text></g>
+        <g stroke="#0f172a" stroke-width="2.5">
+          <g fill="#2e8f7e"><circle cx="112" cy="62" r="9"/><circle cx="138" cy="78" r="9"/><circle cx="98" cy="50" r="9"/></g>
+          <g fill="#f2b93b"><circle cx="196" cy="110" r="9"/><circle cx="228" cy="98" r="9"/></g>
+          <g fill="#c93c4b"><circle cx="300" cy="186" r="9"/><circle cx="324" cy="166" r="9"/><circle cx="282" cy="200" r="9"/></g>
+        </g>
+        <g font-size="14" font-weight="800"><text x="152" y="60">Part 5</text><text x="242" y="94">Part 6</text><text x="238" y="170">Part 7</text></g>
+        <g font-size="12.5" font-weight="700" fill="#5f6966"><text x="30" y="256">Nhanh hơn mục tiêu</text><text x="390" y="256" text-anchor="end">Chậm hơn mục tiêu</text></g>
+      </svg>
+    </div>
+
+    <div class="neo ch">
+      <div class="q">Lỗi nào đang giảm, lỗi nào đứng yên?</div>
+      <h2>Lỗi ngữ pháp giảm một nửa, lỗi thiếu giờ chưa giảm</h2>
+      <svg viewBox="0 0 400 268" id="st"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AI ============ -->
+<div class="sheet" id="I">
+  <h1>Tự động hóa: bạn chỉ chụp và duyệt</h1>
+  <p class="sub">Sáu chỗ app tự làm thay người học. Dòng màu trên mỗi thẻ nói rõ chỗ nào thật sự cần AI và chỗ nào chỉ cần luật tính sẵn, vì luật thì nhanh, miễn phí và không bịa số.</p>
+  <div class="g">
+    <div class="neo ai">
+      <div class="how yes">Cần AI đọc ảnh</div>
+      <h2>Một ảnh là xong một đề</h2>
+      <div class="demo">
+        <div class="drop">Dán ảnh kết quả, Ctrl + V</div>
+        <div class="read">
+          <div><span>Tên đề</span><b>ETS 2024 Test 05</b></div>
+          <div><span>Điểm</span><b>745, L 375 và R 370</b></div>
+          <div><span>Câu sai</span><b>41 câu, đã xếp theo Part</b></div>
+          <div class="unsure"><span>AI chưa chắc câu 132</span><b>Bấm để xem ảnh</b></div>
+        </div>
+        <div style="margin-top:12px;text-align:right"><span class="btn primary">Lưu và xem kết quả</span></div>
+      </div>
+    </div>
+
+    <div class="neo ai">
+      <div class="how no">Luật tính sẵn, không cần AI</div>
+      <h2>Kế hoạch tự dời khi bạn lỡ một ngày</h2>
+      <div class="demo">
+        <div class="say">Hôm qua bạn nghỉ. Mình đã dời 20 phút Part 7 sang thứ Năm, tuần này vẫn đủ 210 phút.</div>
+        <div class="wk">
+          <div><i style="height:55%"></i>T2</div><div><i class="gone" style="height:38%"></i>T3</div><div><i style="height:55%"></i>Nay</div>
+          <div><i class="moved" style="height:38%"></i><i style="height:42%;margin-top:-3px"></i>T5</div><div><i style="height:55%"></i>T6</div><div><i style="height:70%"></i>T7</div><div><i style="height:30%"></i>CN</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="neo ai">
+      <div class="how yes">Cần AI viết câu hỏi</div>
+      <h2>Bài luyện sinh ra từ chính lỗi của bạn</h2>
+      <div class="demo">
+        <div class="muted" style="font-size:13.5px;font-weight:600;margin-bottom:8px">Từ 6 câu từ loại bạn sai tuần này, câu 2 trên 6</div>
+        <div class="qz">The manager asked that the report ____ by Friday.
+          <div class="opts"><span>A. submits</span><span class="pick">B. be submitted</span><span>C. submitted</span><span>D. submitting</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="neo ai">
+      <div class="how yes">Số do luật tính, AI chỉ viết lời</div>
+      <h2>Bản tin Chủ nhật của riêng bạn</h2>
+      <div class="demo">
+        <div class="recap">
+          <div style="font-weight:700;font-size:14px">Tuần 02/11 đến 08/11</div>
+          <div class="big">+35</div>
+          <ul><li>Kỷ lục mới 725, đề ETS 2024 Test 04</li><li>Part 3 đúng thêm 4 câu so với đề trước</li><li>Từ quên nhiều nhất: prompt (adj)</li></ul>
+        </div>
+        <div style="margin-top:12px"><span class="btn">Lưu ảnh để chia sẻ</span></div>
+      </div>
+    </div>
+
+    <div class="neo ai">
+      <div class="how yes">Cần AI hiểu câu hỏi, số lấy từ dữ liệu</div>
+      <h2>Hỏi thẳng dữ liệu của bạn</h2>
+      <div class="demo">
+        <div class="ask">Sao Part 7 của mình mãi không lên?</div>
+        <div class="say">Trong 4 đề, 11 trên 16 câu sai Part 7 nằm ở 10 câu cuối. Bạn hết giờ chứ không phải đọc không hiểu. Thử bấm giờ Part 5 xuống 10 phút để dư thời gian.
+          <div style="margin-top:8px"><span class="btn" style="padding:6px 12px;font-size:13px">Mở đồng hồ Part 5</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="neo ai">
+      <div class="how no">Luật tính sẵn, không cần AI</div>
+      <h2>Nhắc đúng giờ bạn hay học</h2>
+      <div class="demo">
+        <div class="noti"><span data-m="mam,calm"></span><div><b>20:30, giờ quen của bạn</b>3 câu sai đến hạn ôn, mất khoảng 5 phút.</div></div>
+        <div class="noti"><span data-m="mam,sad,wilt"></span><div><b>Chuỗi 6 ngày sắp đứt</b>Còn 2 tiếng. Ghi 10 từ mới là giữ được.</div></div>
+        <div class="noti"><span data-m="mam,grit"></span><div><b>Còn 7 ngày tới thi</b>Mình đã đổi sang lịch nước rút, mỗi ngày một Part.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const K='#0f172a';
+function mamNeo(e,st){
+  const happy=e==='happy',sad=e==='sad',grit=e==='grit',sleep=e==='sleep',think=e==='think';
+  const G1='#6dbe6a',G2='#387f48';let plant;
+  if(st==='wilt')plant=`<path d="M60 56 Q60 38 76 36" fill="none" stroke="#8a8f3a" stroke-width="5" stroke-linecap="round"/><path d="M74 35 C88 31 98 42 94 56 C82 54 75 48 74 35Z" fill="#d8c66a" stroke="${K}" stroke-width="3" stroke-linejoin="round"/><path d="M60 46 C48 41 37 49 37 61 C49 62 58 56 60 46Z" fill="#d8c66a" stroke="${K}" stroke-width="3" stroke-linejoin="round"/>`;
+  else if(st==='bloom')plant=`<path d="M60 56 L60 12" stroke="${G2}" stroke-width="5" stroke-linecap="round"/><path d="M59 44 C46 28 27 29 21 40 C32 51 49 52 59 44Z" fill="${G1}" stroke="${K}" stroke-width="3" stroke-linejoin="round"/><path d="M61 40 C70 21 92 18 101 28 C91 43 73 46 61 40Z" fill="${G2}" stroke="${K}" stroke-width="3" stroke-linejoin="round"/><g transform="translate(60,6)" fill="#f2b93b" stroke="${K}" stroke-width="2.5"><circle cx="0" cy="-10" r="7"/><circle cx="9.5" cy="-3" r="7"/><circle cx="6" cy="8" r="7"/><circle cx="-6" cy="8" r="7"/><circle cx="-9.5" cy="-3" r="7"/><circle r="6" fill="#f97316"/></g>`;
+  else plant=`<path d="M60 56 Q58 44 60 32" fill="none" stroke="${G2}" stroke-width="5" stroke-linecap="round"/><path d="M59 40 C46 24 27 25 21 36 C32 47 49 48 59 40Z" fill="${G1}" stroke="${K}" stroke-width="3" stroke-linejoin="round"/><path d="M61 36 C70 17 92 14 101 24 C91 39 73 42 61 36Z" fill="${G2}" stroke="${K}" stroke-width="3" stroke-linejoin="round"/>`;
+  const arms=happy?`<ellipse cx="21" cy="84" rx="7" ry="12" transform="rotate(55 21 84)"/><ellipse cx="99" cy="84" rx="7" ry="12" transform="rotate(-55 99 84)"/>`:think?`<ellipse cx="26" cy="100" rx="7" ry="11" transform="rotate(-20 26 100)"/><ellipse cx="88" cy="112" rx="7" ry="11" transform="rotate(-70 88 112)"/>`:`<ellipse cx="26" cy="100" rx="7" ry="11" transform="rotate(-20 26 100)"/><ellipse cx="94" cy="100" rx="7" ry="11" transform="rotate(20 94 100)"/>`;
+  let eyes;
+  if(happy)eyes=`<path d="M41 94 Q47.5 85 54 94M66 94 Q72.5 85 79 94" fill="none" stroke="${K}" stroke-width="4" stroke-linecap="round"/>`;
+  else if(sleep)eyes=`<path d="M41 91 Q47.5 97 54 91M66 91 Q72.5 97 79 91" fill="none" stroke="${K}" stroke-width="4" stroke-linecap="round"/>`;
+  else{const dy=think?-2:0;eyes=`<ellipse cx="47.5" cy="91" rx="5.5" ry="7" fill="${K}"/><ellipse cx="72.5" cy="91" rx="5.5" ry="7" fill="${K}"/><circle cx="${think?50:49.5}" cy="${88+dy}" r="2.2" fill="#fff"/><circle cx="${think?75:74.5}" cy="${88+dy}" r="2.2" fill="#fff"/>`;
+    if(sad)eyes+=`<path d="M40 82 L53 78M80 82 L67 78" stroke="${K}" stroke-width="3.5" stroke-linecap="round"/>`;
+    if(grit)eyes+=`<path d="M40 78 L54 83M80 78 L66 83" stroke="${K}" stroke-width="4" stroke-linecap="round"/>`;}
+  const mouth=happy?`<path d="M51 101 Q60 114 69 101Z" fill="#9c4434" stroke="${K}" stroke-width="3" stroke-linejoin="round"/>`:sad?`<path d="M53 108 Q60 102 67 108" fill="none" stroke="${K}" stroke-width="3.5" stroke-linecap="round"/>`:think?`<circle cx="63" cy="105" r="3.5" fill="${K}"/>`:sleep?`<ellipse cx="60" cy="105" rx="3.5" ry="4.5" fill="#9c4434" stroke="${K}" stroke-width="2.5"/>`:grit?`<path d="M53 105 L67 105" stroke="${K}" stroke-width="3.5" stroke-linecap="round"/>`:`<path d="M53 103 Q60 109 67 103" fill="none" stroke="${K}" stroke-width="3.5" stroke-linecap="round"/>`;
+  const extra=happy?`<g fill="#f2b93b" stroke="${K}" stroke-width="2"><path d="M12 44 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z"/><path d="M108 60 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z"/></g>`:think?`<g fill="${K}"><circle cx="96" cy="60" r="3"/><circle cx="106" cy="50" r="4"/><circle cx="114" cy="36" r="5"/></g>`:sleep?`<g font-family="Plus Jakarta Sans" font-weight="800" fill="${K}"><text x="92" y="48" font-size="15">z</text><text x="102" y="34" font-size="20">z</text></g>`:sad?`<path d="M92 76 q5 8 0 12 q-5 -4 0 -12Z" fill="#7dd3fc" stroke="${K}" stroke-width="2"/>`:'';
+  const rim=grit?`<rect x="24" y="56" width="72" height="17" rx="8.5" fill="#c93c4b" stroke="${K}" stroke-width="3.5"/><circle cx="60" cy="64.5" r="5" fill="#fff" stroke="${K}" stroke-width="2"/><path d="M96 62 l14 -6 -2 9 9 2 -19 4Z" fill="#c93c4b" stroke="${K}" stroke-width="2.5" stroke-linejoin="round"/>`:`<rect x="24" y="56" width="72" height="17" rx="8.5" fill="#e8794f" stroke="${K}" stroke-width="3.5"/>`;
+  return `<svg viewBox="0 -12 120 142" style="display:block;width:100%">${plant}<g fill="#dda263" stroke="${K}" stroke-width="3">${arms}</g><path d="M30 68 L90 68 L83 120 Q60 128 37 120Z" fill="#ee8b62" stroke="${K}" stroke-width="3.5" stroke-linejoin="round"/>${rim}<ellipse cx="38" cy="103" rx="6" ry="4" fill="#ff8f80" opacity=".7"/><ellipse cx="82" cy="103" rx="6" ry="4" fill="#ff8f80" opacity=".7"/>${eyes}${mouth}${extra}</svg>`}
+function chi(e,len){len=+len;const top=150-len-36,happy=e==='happy';const by=top+26,bb=by+len; // body from by to bb, tip to bb+34
+  const ey=by+Math.min(22,len*.45);
+  const eyes=happy?`<path d="M33 ${ey+2} Q38 ${ey-5} 43 ${ey+2}M49 ${ey+2} Q54 ${ey-5} 59 ${ey+2}" fill="none" stroke="${K}" stroke-width="3.5" stroke-linecap="round"/><path d="M40 ${ey+8} Q46 ${ey+17} 52 ${ey+8}Z" fill="#9c4434" stroke="${K}" stroke-width="2.5" stroke-linejoin="round"/>`:`<ellipse cx="38" cy="${ey}" rx="4" ry="5.5" fill="${K}"/><ellipse cx="54" cy="${ey}" rx="4" ry="5.5" fill="${K}"/><path d="M41 ${ey+10} Q46 ${ey+14} 51 ${ey+10}" fill="none" stroke="${K}" stroke-width="3" stroke-linecap="round"/>`;
+  const arms=happy?`<path d="M24 ${ey+10} L8 ${ey-8}M68 ${ey+10} L84 ${ey-8}" stroke="${K}" stroke-width="4" stroke-linecap="round"/>`:`<path d="M24 ${ey+12} L10 ${ey+24}M68 ${ey+12} L82 ${ey+24}" stroke="${K}" stroke-width="4" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 92 190" style="display:block;width:100%">${arms}<rect x="24" y="${top}" width="44" height="22" rx="9" fill="#ff9aa2" stroke="${K}" stroke-width="3.5"/><rect x="24" y="${top+14}" width="44" height="14" fill="#cbd5e1" stroke="${K}" stroke-width="3.5"/><rect x="24" y="${by}" width="44" height="${len}" fill="#f2b93b" stroke="${K}" stroke-width="3.5"/><path d="M24 ${bb} L68 ${bb} L46 ${bb+38}Z" fill="#f6dfb8" stroke="${K}" stroke-width="3.5" stroke-linejoin="round"/><path d="M39.5 ${bb+27} L52.5 ${bb+27} L46 ${bb+38}Z" fill="${K}" stroke="${K}" stroke-width="2" stroke-linejoin="round"/>${eyes}${len>60?`<text x="46" y="${bb-8}" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="800" font-size="13" fill="${K}">2B</text>`:''}</svg>`}
+function to(c,e){const fills={ink:K,green:'#6dbe6a',red:'#c93c4b',sun:'#f2b93b',empty:'#fff'};const f=fills[c];
+  if(c==='empty')return `<svg viewBox="0 0 90 100" style="display:block;width:100%"><circle cx="45" cy="50" r="33" fill="#fff" stroke="${K}" stroke-width="3.5"/><text x="45" y="61" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="800" font-size="30" fill="${K}">${e}</text></svg>`;
+  const dark=c==='ink'||c==='red',E=dark?'#fff':K;
+  const eyes=e==='happy'?`<path d="M30 48 Q36 40 42 48M48 48 Q54 40 60 48" fill="none" stroke="${E}" stroke-width="4" stroke-linecap="round"/><path d="M37 56 Q45 68 53 56Z" fill="${dark?'#fff':'#9c4434'}"/>`:e==='sad'?`<ellipse cx="36" cy="48" rx="4.5" ry="6" fill="${E}"/><ellipse cx="54" cy="48" rx="4.5" ry="6" fill="${E}"/><path d="M38 63 Q45 57 52 63" fill="none" stroke="${E}" stroke-width="3.5" stroke-linecap="round"/>`:`<ellipse cx="36" cy="46" rx="4.5" ry="6" fill="${E}"/><ellipse cx="54" cy="46" rx="4.5" ry="6" fill="${E}"/><circle cx="48" cy="61" r="3.5" fill="${E}"/><text x="72" y="24" font-family="Plus Jakarta Sans" font-weight="800" font-size="22" fill="${K}">?</text>`;
+  return `<svg viewBox="0 0 90 100" style="display:block;width:100%"><path d="M34 80 L32 94M56 80 L58 94" stroke="${K}" stroke-width="4" stroke-linecap="round"/><path d="${e==='happy'?'M14 44 L2 30M76 44 L88 30':'M13 54 L3 64M77 54 L87 64'}" stroke="${K}" stroke-width="4" stroke-linecap="round"/><circle cx="45" cy="50" r="33" fill="${f}" stroke="${K}" stroke-width="3.5"/>${eyes}</svg>`}
+document.querySelectorAll('[data-m]').forEach(el=>{const[k,a,b]=el.dataset.m.split(',');el.style.display='block';el.innerHTML=k==='mam'?mamNeo(a,b):k==='chi'?chi(a,b):to(a,b)});
+
+// waterfall
+(()=>{const d=[1,3,9,6,6,5,16],y=v=>26+(200-v)*4.1;let v=200,s='';const w=34,gap=44,x0=38;
+ s+=`<text x="${x0-6}" y="18" font-size="13" font-weight="800">200 câu</text>`;
+ d.forEach((n,i)=>{const x=x0+i*gap,y1=y(v),y2=y(v-n),h=Math.max(y2-y1,5),c=i===6?'#c93c4b':i<4?'#5b5bd6':'#2e8f7e';
+  s+=`<rect x="${x}" y="${y1}" width="${w}" height="${h}" rx="4" fill="${c}" stroke="${K}" stroke-width="2"/><text x="${x+w/2}" y="${y1+h+16}" text-anchor="middle" font-size="13" font-weight="800" fill="${i===6?'#c93c4b':K}">−${n}</text>`;
+  if(i<6)s+=`<line x1="${x+w}" y1="${y2}" x2="${x+gap}" y2="${y2}" stroke="${K}" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  s+=`<text x="${x+w/2}" y="258" text-anchor="middle" font-size="12.5" font-weight="700">P${i+1}</text>`;v-=n});
+ s+=`<line x1="${x0+6*gap+w}" y1="${y(154)}" x2="392" y2="${y(154)}" stroke="${K}" stroke-width="2"/><text x="394" y="${y(154)+22}" text-anchor="end" font-size="18" font-weight="800">154</text><text x="394" y="${y(154)+38}" text-anchor="end" font-size="12" font-weight="700">câu đúng</text>`;
+ s+=`<line x1="30" y1="240" x2="392" y2="240" stroke="#dfe4e2" stroke-width="1.5"/>`;
+ document.getElementById('wf').innerHTML=s})();
+
+// answer map
+(()=>{const col=['#fff','#fde3e5','#f3a3ab','#c93c4b','#7f1d2b'];let seed=7;const r=()=>(seed=(seed*9301+49297)%233280)/233280;
+ const cnt=n=>{if(n>=190)return r()<.8?4:3;if(n>=183)return r()<.6?3:2;if(n>=147)return r()<.3?1:r()<.12?2:0;if(n>=131)return r()<.3?1:0;if(n>=101)return r()<.22?1:r()<.06?2:0;if(n>=71)return r()<.2?1:0;if(n>=32)return r()<.26?1:r()<.1?2:0;if(n>=7)return r()<.12?1:0;return 0};
+ let L='',R='';for(let n=1;n<=200;n++){const c=cnt(n),h=`<i style="background:${col[c]};${c?'border-color:#0f172a':''}"></i>`;n<=100?L+=h:R+=h}
+ document.getElementById('mapL').innerHTML=L;document.getElementById('mapR').innerHTML=R})();
+
+// stacked
+(()=>{const data=[[18,22,14,12],[17,17,12,12],[16,13,12,12],[14,11,9,12]],names=['Từ vựng','Ngữ pháp','Nối âm','Thiếu giờ'],col=['#5b5bd6','#2e8f7e','#f2b93b','#c93c4b'],k=3,base=236;let s='';
+ data.forEach((d,i)=>{const x=22+i*68;let y=base;d.forEach((n,j)=>{const h=n*k;y-=h;s+=`<rect x="${x}" y="${y}" width="50" height="${h}" fill="${col[j]}" stroke="${K}" stroke-width="2"/><text x="${x+25}" y="${y+h/2+5}" text-anchor="middle" font-size="13" font-weight="800" fill="${j===2?K:'#fff'}">${n}</text>`;
+   if(i===3)s+=`<text x="${x+60}" y="${y+h/2+5}" font-size="13.5" font-weight="800" fill="${j===2?'#6f4f05':col[j]}">${names[j]}</text>`});
+  s+=`<text x="${x+25}" y="${y-8}" text-anchor="middle" font-size="13" font-weight="800">${d.reduce((a,b)=>a+b)} sai</text><text x="${x+25}" y="256" text-anchor="middle" font-size="12.5" font-weight="700">Test 0${i+1}</text>`});
+ document.getElementById('st').innerHTML=s})();
+</script>
+</body>
+</html>

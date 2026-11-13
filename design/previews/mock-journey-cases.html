@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Điểm số: trường hợp khó</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:36px 54px 30px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.top h1{font-weight:900;font-size:34px;letter-spacing:-1px}
+.tabs{display:flex;background:#f1f3f1;border-radius:16px;padding:5px;gap:4px}
+.tabs span{font-weight:900;font-size:15px;padding:9px 18px;border-radius:12px;color:#5c675f}
+.tabs span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--line)}
+.tabs em{font-style:normal;font-weight:800;color:var(--mut);margin-left:6px}
+svg text{font-family:'Nunito'}
+.scene{position:relative;margin-top:22px;height:700px;border-radius:32px;overflow:hidden;background:linear-gradient(#dff1ff,#f2f9ff 70%)}
+.scene>svg{position:absolute;inset:0;width:100%;height:100%}
+.head{position:absolute;left:40px;top:34px;max-width:600px}
+.head small{font-weight:900;font-size:14px;color:#1269ad}
+.head h2{font-weight:900;font-size:32px;letter-spacing:-.8px;line-height:1.15;margin-top:4px}
+.seg{position:absolute;right:26px;top:26px;display:flex;background:#fff;border-radius:99px;padding:4px;font-weight:800;font-size:14px;box-shadow:0 3px 0 rgba(47,58,51,.08)}
+.seg span{padding:6px 16px;border-radius:99px;color:#5c675f}.seg span.on{background:var(--ink);color:#fff}
+.sq{position:absolute;width:100px}.sq svg{display:block;width:100%}
+.bub{position:absolute;background:#fff;border-radius:18px 18px 18px 6px;padding:12px 16px;font-weight:700;font-size:14.5px;line-height:1.45;max-width:720px;width:max-content;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.bub b{font-weight:900}
+.bub .act{display:inline-block;margin:0 0 0 10px;font-weight:900;font-size:13.5px;color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:5px 10px}
+.case{font-weight:900;font-size:14px;color:#fff;background:var(--ink);border-radius:99px;padding:5px 14px;display:inline-block;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv on"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+const W=1064,EX=69,TODAY=31,TARGET=800;
+const dlabel=d=>{const t=new Date(2026,9,12+d);return String(t.getDate()).padStart(2,'0')+'/'+String(t.getMonth()+1).padStart(2,'0')};
+function fit(pts){const n=pts.length,mx=pts.reduce((a,p)=>a+p.d,0)/n,my=pts.reduce((a,p)=>a+p.s,0)/n;
+ let sxy=0,sxx=0;pts.forEach(p=>{sxy+=(p.d-mx)*(p.s-my);sxx+=(p.d-mx)**2});const b=sxy/sxx,a=my-b*mx;
+ const sd=Math.sqrt(pts.reduce((q,p)=>q+(p.s-(a+b*p.d))**2,0)/Math.max(1,n-2));return{a,b,sd}}
+function scene(c){
+ const use=c.pts.filter(p=>!p.skip),f=fit(use),last=c.pts[c.pts.length-1];
+ const start={d:last.d,s:f.a+f.b*last.d};const endS=f.a+f.b*EX;const spread=d=>f.sd*1.3+ (d-last.d)*0.9;
+ const lo=Math.min(...c.pts.map(p=>p.s),endS-spread(EX))-25,hi=Math.max(TARGET,endS+spread(EX))+25;
+ const X=d=>90+d*(910/EX),Y=s=>470-(s-lo)/(hi-lo)*260;
+ let g='';
+ g+=`<path d="M0 575 Q180 545 380 570 T760 562 T1064 550 V700 H0Z" fill="#cdeed2"/><path d="M0 625 Q240 600 520 622 T1064 615 V700 H0Z" fill="#b6e3be"/>`;
+ g+=`<line x1="40" y1="${Y(TARGET)}" x2="1000" y2="${Y(TARGET)}" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/><text x="40" y="${Y(TARGET)+24}" font-weight="900" font-size="15" fill="#d9547a">Mục tiêu 800</text>`;
+ // cone
+ g+=`<polygon points="${X(start.d)},${Y(start.s)} ${X(EX)},${Y(endS+spread(EX))} ${X(EX)},${Y(endS-spread(EX))}" fill="#ffe9a8" opacity=".7"/>`;
+ g+=`<line x1="${X(start.d)}" y1="${Y(start.s)}" x2="${X(EX)}" y2="${Y(endS)}" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="2 10" stroke-linecap="round"/>`;
+ // fitted trend through history (thin)
+ g+=`<line x1="${X(use[0].d)}" y1="${Y(f.a+f.b*use[0].d)}" x2="${X(start.d)}" y2="${Y(start.s)}" stroke="#d99a00" stroke-width="2.5" stroke-opacity=".45" stroke-dasharray="1 7" stroke-linecap="round"/>`;
+ g+=`<line x1="${X(TODAY)}" y1="200" x2="${X(TODAY)}" y2="498" stroke="#2f3a33" stroke-opacity=".3" stroke-width="2" stroke-dasharray="2 7"/>`;
+ g+=`<polyline points="${c.pts.map(p=>X(p.d)+','+Y(p.s)).join(' ')}" fill="none" stroke="#ffc83d" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`;
+ c.pts.forEach((p,i)=>{const isLast=i===c.pts.length-1;const prev=c.pts[i-1];const dn=prev&&p.s<prev.s;
+  g+=p.skip?`<circle cx="${X(p.d)}" cy="${Y(p.s)}" r="12" fill="#fff" stroke="#b7beb8" stroke-width="4" stroke-dasharray="4 4"/>`
+   :`<circle cx="${X(p.d)}" cy="${Y(p.s)}" r="${isLast?14:11}" fill="${isLast?'#46b35a':'#fff'}" stroke="${isLast?'#fff':'#d99a00'}" stroke-width="5"/>`;
+  g+=`<text x="${X(p.d)}" y="${Y(p.s)+(dn?-24:36)}" font-weight="900" font-size="${isLast?22:17}" fill="#2f3a33" text-anchor="middle">${p.s}</text>`;
+  if(prev){const d=p.s-prev.s;g+=`<text x="${(X(p.d)+X(prev.d))/2}" y="${(Y(p.s)+Y(prev.s))/2+(d<0?-14:26)}" font-weight="900" font-size="13" fill="${d<0?'#c7547a':'#2f8a42'}" text-anchor="middle">${d>0?'+':''}${d}</text>`}
+ });
+ g+=`<line x1="1000" y1="${Math.min(Y(TARGET),Y(endS+spread(EX)))-50}" x2="1000" y2="500" stroke="#5c675f" stroke-width="5" stroke-linecap="round"/>`;
+ const ft=Math.min(Y(TARGET),Y(endS+spread(EX)))-48;g+=`<path d="M1002 ${ft} L956 ${ft+16} L1002 ${ft+34}Z" fill="#ff7a9c"/>`;
+ g+=`<text x="986" y="${Y(endS)+5}" font-weight="900" font-size="15" fill="#8a6a10" text-anchor="end">${c.endLabel}</text>`;
+ if(c.cross){const dc=(TARGET-f.a)/f.b;if(dc<EX&&f.b>0){g+=`<circle cx="${X(dc)}" cy="${Y(TARGET)}" r="10" fill="#fff" stroke="#ff7a9c" stroke-width="5"/><g><rect x="${X(dc)-80}" y="${Y(TARGET)-58}" width="160" height="34" rx="17" fill="#2f3a33"/><text x="${X(dc)}" y="${Y(TARGET)-35}" fill="#fff" font-weight="900" font-size="15" text-anchor="middle">${c.cross}</text></g>`}}
+ g+=`${(()=>{const R=500,H=30;const segs=[['Tháng 10',-6,20,'#e3f1e7'],['Tháng 11',20,50,'#d6ecdc'],['Tháng 12',50,EX,'#e3f1e7']];
+ let a=segs.map(([n,a1,b1,c],i)=>`<rect x="${i?X(a1)+2:46}" y="${R}" width="${(i===2?1012:X(b1)-2)-(i?X(a1)+2:46)}" height="${H}" rx="15" fill="${c}"/><text x="${(i?X(a1):46)+16}" y="${R+20}" font-weight="900" font-size="13.5" fill="#6d8a74">${n}</text>`).join('');
+ const left=EX-TODAY;a+=`<line x1="${X(TODAY)+10}" y1="${R-16}" x2="${X(EX)-10}" y2="${R-16}" stroke="#9fb3a5" stroke-width="2"/><line x1="${X(TODAY)+10}" y1="${R-22}" x2="${X(TODAY)+10}" y2="${R-10}" stroke="#9fb3a5" stroke-width="2"/><line x1="${X(EX)-10}" y1="${R-22}" x2="${X(EX)-10}" y2="${R-10}" stroke="#9fb3a5" stroke-width="2"/><rect x="${(X(TODAY)+X(EX))/2-58}" y="${R-29}" width="116" height="26" rx="13" fill="#f2f9ff"/><text x="${(X(TODAY)+X(EX))/2}" y="${R-11}" font-weight="900" font-size="13.5" fill="#5c675f" text-anchor="middle">còn ${left} ngày</text>`;
+ a+=`<rect x="${X(TODAY)-60}" y="${R-1}" width="120" height="32" rx="16" fill="#2f3a33"/><text x="${X(TODAY)}" y="${R+20}" font-weight="900" font-size="13.5" fill="#fff" text-anchor="middle">Hôm nay 12/11</text>`;
+ a+=`<rect x="${X(EX)-88}" y="${R-1}" width="96" height="32" rx="16" fill="#ff7a9c"/><text x="${X(EX)-40}" y="${R+20}" font-weight="900" font-size="13.5" fill="#fff" text-anchor="middle">Thi 20/12</text>`;
+ if(c.tip){const t=c.pts[c.tip];a+=`<g><rect x="${X(t.d)-92}" y="${Y(t.s)-64}" width="184" height="34" rx="12" fill="#2f3a33"/><path d="M${X(t.d)-7} ${Y(t.s)-31} L${X(t.d)} ${Y(t.s)-22} L${X(t.d)+7} ${Y(t.s)-31}Z" fill="#2f3a33"/><text x="${X(t.d)}" y="${Y(t.s)-42}" font-weight="900" font-size="14" fill="#fff" text-anchor="middle">30/10 · ETS 2024 Test 03</text></g>`}
+ return a})()}`;
+ const lp={x:X(last.d),y:Y(last.s)};
+ return `<div class="page"><aside class="side">${SIDE}</aside><main>
+ <div class="top"><h1>Hành trình điểm</h1><div class="tabs"><span class="on">Điểm số</span><span>Từng Part</span><span>Các đề<em>${c.pts.length}</em></span></div></div>
+ <div class="scene"><svg viewBox="0 0 1064 700">${g}</svg>
+ <div class="head"><span class="case">${c.tag}</span><br><small>Mình có kịp không?</small><h2>${c.h}</h2></div>
+ <div class="seg"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div>
+ <span class="sq" data-s="${c.soc}" style="left:46px;top:566px;width:84px"></span>
+ ${c.bub?`<div class="bub" style="left:142px;top:${c.bub.includes('act')?572:592}px">${c.bub}</div>`:''}
+ </div></main></div>`}
+const CASES=[
+ {tag:'Bình thường',pts:[{d:0,s:620},{d:10,s:665},{d:18,s:690},{d:25,s:725}],h:'Giữ đà này, bạn chạm 800 khoảng 01/12, trước ngày thi gần 3 tuần',soc:'idle',endLabel:'~830',cross:'Chạm 800 ~01/12',bub:'',tip:2},
+ {tag:'Điểm lên xuống thất thường',pts:[{d:0,s:620},{d:8,s:690},{d:15,s:650},{d:22,s:705},{d:28,s:680}],
+  h:'Điểm còn lên xuống nhiều nên mình chưa đoán chắc được. Khả năng cao bạn chạm 800 trước ngày thi.',soc:'think',endLabel:'~790 đến 870',cross:'Có thể chạm ở đây',
+  bub:'Vùng vàng rộng vì điểm của bạn dao động <b>±30</b> giữa các đề. Ghi thêm đề, vùng này sẽ hẹp lại.',bx:600,by:470},
+ {tag:'Đề mới nhất tụt mạnh',pts:[{d:0,s:620},{d:10,s:665},{d:18,s:690},{d:25,s:725},{d:30,s:640,skip:true}],
+  h:'Đề này thấp hơn đề trước 85 điểm. Một đề thấp chưa đủ kéo cả đà đi xuống.',soc:'sad',socBelow:true,endLabel:'~840',cross:'Chạm 800 ~04/12',
+  bub:'Đề này lệch hẳn so với 4 đề trước, nên mình <b>tạm không tính</b> vào dự báo.<span class="act">Vẫn tính đề này</span>',bx:600,by:440},
+ {tag:'Đà lên chậm, chưa kịp mục tiêu',pts:[{d:0,s:620},{d:10,s:640},{d:18,s:635},{d:25,s:655},{d:30,s:650}],
+  h:'Theo đà này, ngày thi bạn khoảng 690, còn thiếu 110 điểm.',soc:'idle',endLabel:'~690',cross:'',
+  bub:'Lên chậm không phải là đứng yên. Xem tab <b>Từng Part</b> để biết Part nào kéo điểm lại nhiều nhất.',bx:560,by:250}];
+document.getElementById('out').innerHTML=CASES.map(scene).join('');
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+document.querySelectorAll('.page').forEach((p,i)=>p.id='c'+(i+1));
+</script>
+</body>
+</html>

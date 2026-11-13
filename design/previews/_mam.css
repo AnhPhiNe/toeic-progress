@@ -1,0 +1,21 @@
+:root{--g10:#F1F8EE;--g20:#DCEFD3;--g50:#6DBE6A;--g60:#4FA65A;--g70:#387F48;--g80:#2B6638;
+--bg:#F6F8F7;--surface:#fff;--subtle:#EEF1F0;--line:#DFE4E2;--strong:#878F8C;--fg:#232927;--muted:#5F6966;
+--sun:#F2B93B;--sun20:#FFF3D3;--sun80:#6F4F05;--red:#C93C4B;--red20:#FDE3E5;--ind:#5B5BD6;--ind20:#E7E7FB;--tea:#2E8F7E;--tea20:#DDF2EE}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--fg);width:1440px;height:900px;display:flex;overflow:hidden}
+aside{width:232px;padding:24px 16px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);background:var(--surface)}
+.logo{font-weight:800;font-size:17px;padding:4px 12px 20px;display:flex;gap:10px;align-items:center}
+.logo i{width:28px;height:28px;border-radius:9px;background:var(--g70);display:grid;place-items:center;color:#fff;font-style:normal;font-size:14px}
+aside a{padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);display:block}
+aside a.on{background:var(--g20);color:var(--g80)}
+aside small{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--strong);padding:18px 12px 6px}
+.me{margin-top:auto;display:flex;gap:10px;align-items:center;padding:12px;border-top:1px solid var(--line);font-size:13px}
+.me b{display:block}.me span{color:var(--muted);font-size:12px}
+main{flex:1;padding:28px 40px;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.top h1{font-size:24px;font-weight:800}
+.btn{background:var(--g70);color:#fff;font-weight:700;font-size:14px;padding:11px 20px;border-radius:12px}
+.btn.ghost{background:var(--subtle);color:var(--fg)}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.mam{width:120px}
+h3{font-size:16px;font-weight:800;margin-bottom:4px}

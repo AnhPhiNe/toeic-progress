@@ -1,0 +1,33 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);width:1120px;padding:24px 30px}
+.tag{font-size:14px;font-weight:800;margin:20px 0 4px}.tag:first-child{margin-top:0}.sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.card{background:#fff;border:2px solid var(--ink);border-radius:18px;box-shadow:3px 3px 0 var(--ink);padding:14px 18px 8px}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}.hd b{font-size:15px;font-weight:800}
+.seg{display:inline-flex;padding:2px;border-radius:9px;background:#F1F5F9;border:1px solid #E2E8F0;font-size:11px;font-weight:800}.seg span{padding:3px 9px;border-radius:7px;color:#475569}.seg .on{background:var(--ink);color:#fff}
+svg{display:block;width:100%}
+</style>
+<div class="tag">A2 · vùng tô màu đậm, viền đen (gần với neobrutalism.dev hơn)</div><div class="sub">Vùng tô xanh đặc đậm, đường viền đen mỏng hơn, điểm viền đen. Không còn xanh nhạt xỉn.</div>
+<div class="card"><div class="hd"><b>Tiến bộ qua từng bài thi</b><div class="seg"><span class="on">Tất cả</span><span>Lần đầu</span></div></div><div id="c1"></div></div>
+<div class="tag">C · không tô vùng, đường xanh viền đen</div><div class="sub">Giữ nhẹ, chỉ một đường xanh sáng có viền đen, điểm mới nhất vàng. Không thước "còn 75đ" để khỏi lặp.</div>
+<div class="card"><div class="hd"><b>Tiến bộ qua từng bài thi</b><div class="seg"><span class="on">Tất cả</span><span>Lần đầu</span></div></div><div id="c2"></div></div>
+<script>
+const D=[['09/10',620],['15/10',640],['19/10',665],['27/10',690],['31/10',710],['03/11',725]],T=800;
+function chart(v,h){const W=1060,H=h,L=46,R=v?124:20,Tp=v?34:30,B=34;const lo=550,hi=850;const x=i=>L+(W-L-R)*i/(D.length-1);const y=s=>Tp+(H-Tp-B)*(1-(s-lo)/(hi-lo));
+ let s=`<svg viewBox="0 0 ${W} ${H}" height="${H}">`;
+ [600,700,800].forEach(t=>{s+=`<line x1="${L}" x2="${W-R+14}" y1="${y(t)}" y2="${y(t)}" stroke="${t===800?(v?'#059669':'#93C5FD'):'#E2E8F0'}" ${t===800?'stroke-dasharray="7 5" stroke-width="2"':''}/><text x="${L-10}" y="${y(t)+4}" text-anchor="end" font-size="12" font-weight="700" fill="#64748B">${t}</text>`});
+ const pts=D.map((d,i)=>[x(i),y(d[1])]);const line=pts.map(p=>p.join(',')).join(' ');
+ if(v===0){s+=`<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563EB" stop-opacity=".16"/><stop offset=".95" stop-color="#2563EB" stop-opacity="0"/></linearGradient></defs><polygon points="${x(0)},${H-B} ${line} ${x(5)},${H-B}" fill="url(#g)"/><polyline points="${line}" fill="none" stroke="#2563EB" stroke-width="2.5"/><text x="${L+10}" y="${y(800)-6}" font-size="12" font-weight="700" fill="#2563EB">Mục tiêu 800</text>`;
+  pts.forEach((p,i)=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${i===5?6:4}" fill="${i===5?'#2563EB':'#fff'}" stroke="#2563EB" stroke-width="2"/>`})}
+ if(v===1){s+=`<polygon points="${x(0)},${H-B} ${line} ${x(5)},${H-B}" fill="#60A5FA"/><polyline points="${line}" fill="none" stroke="#0F172A" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s+=`<text x="${W-R+22}" y="${y(800)+4}" font-size="13" font-weight="800" fill="#047857">Mục tiêu 800</text>`;
+  pts.forEach((p,i)=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${i===5?10:7}" fill="${i===5?'#F59E0B':'#fff'}" stroke="#0F172A" stroke-width="3"/>`})}
+ if(v===2){s+=`<polyline points="${line}" fill="none" stroke="#0F172A" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/><polyline points="${line}" fill="none" stroke="#60A5FA" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const ty=y(800);s+=`<text x="${W-R+22}" y="${ty-8}" font-size="13" font-weight="800" fill="#047857">Mục tiêu 800</text>`;
+  pts.forEach((p,i)=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${i===5?10:7}" fill="${i===5?'#F59E0B':'#fff'}" stroke="#0F172A" stroke-width="3"/>`})}
+ D.forEach((d,i)=>{s+=`<text x="${x(i)}" y="${y(d[1])-(v?18:12)}" text-anchor="middle" font-size="${v?14:12}" font-weight="800">${d[1]}</text><text x="${x(i)}" y="${H-10}" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">${d[0]}</text>`});
+ return s+'</svg>'}
+c1.innerHTML=chart(1,300);c2.innerHTML=chart(2,300);
+</script></html>

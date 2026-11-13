@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Điểm số: hai hướng</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:36px 54px 30px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.top h1{font-weight:900;font-size:34px;letter-spacing:-1px}
+.tabs{display:flex;background:#f1f3f1;border-radius:16px;padding:5px;gap:4px}
+.tabs span{font-weight:900;font-size:15px;padding:9px 18px;border-radius:12px;color:#5c675f}
+.tabs span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--line)}
+.tabs em{font-style:normal;font-weight:800;color:var(--mut);margin-left:6px}
+svg text{font-family:'Nunito'}
+/* A */
+.scene{position:relative;margin-top:22px;height:700px;border-radius:32px;overflow:hidden;background:linear-gradient(#dff1ff,#f2f9ff 70%)}
+.scene svg.bg{position:absolute;inset:0;width:100%;height:100%}
+.head{position:absolute;left:40px;top:34px;max-width:560px}
+.head small{font-weight:900;font-size:14px;color:#1269ad}
+.head h2{font-weight:900;font-size:34px;letter-spacing:-.8px;line-height:1.15;margin-top:4px}
+.seg{position:absolute;right:26px;top:26px;display:flex;background:#fff;border-radius:99px;padding:4px;font-weight:800;font-size:14px;box-shadow:0 3px 0 rgba(47,58,51,.08)}
+.seg span{padding:6px 16px;border-radius:99px;color:#5c675f}.seg span.on{background:var(--ink);color:#fff}
+.sq{position:absolute;width:104px}.sq svg{display:block;width:100%}
+.bub{position:absolute;background:#fff;border-radius:18px 18px 6px 18px;padding:12px 16px;font-weight:700;font-size:14.5px;line-height:1.45;max-width:230px;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.bub b{font-weight:900}
+/* B */
+.ladder{display:grid;grid-template-columns:1fr;margin-top:18px;position:relative;height:720px;border-radius:32px;background:#fbf8f1;overflow:hidden}
+.ladder>svg{position:absolute;inset:0;width:100%;height:100%}
+.lh{position:absolute;left:470px;top:430px;max-width:540px}
+.lh small{font-weight:900;font-size:14px;color:#a87a00}
+.lh h2{font-weight:900;font-size:32px;letter-spacing:-.8px;line-height:1.15;margin-top:4px}
+.stop{position:absolute;left:470px;display:flex;align-items:center;gap:16px}
+.stop .d{font-weight:900;font-size:14px;color:var(--mut);width:84px}
+.stop .c{background:#fff;border-radius:18px;padding:12px 18px;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.stop .c b{font-weight:900;font-size:22px;letter-spacing:-.4px}
+.stop .c span{display:block;font-weight:700;font-size:14px;color:var(--mut)}
+.stop.now .c{background:var(--ink);color:#fff}.stop.now .c span{color:#c9d1cb}
+.stop.goal .c b{color:#d9547a}
+</style>
+</head>
+<body>
+
+<!-- A: một cảnh -->
+<div class="page" id="pA">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="top"><h1>Hành trình điểm</h1><div class="tabs"><span class="on">Điểm số</span><span>Từng Part</span><span>Các đề<em>4</em></span></div></div>
+    <div class="scene">
+      <svg class="bg" viewBox="0 0 1064 700" preserveAspectRatio="none">
+        <g fill="#fff" opacity=".9"><ellipse cx="760" cy="70" rx="58" ry="20"/><ellipse cx="792" cy="54" rx="36" ry="22"/><ellipse cx="560" cy="250" rx="40" ry="14"/></g>
+        <path d="M0 610 Q180 560 380 600 T760 590 T1064 570 V700 H0Z" fill="#cdeed2"/>
+        <path d="M0 650 Q240 615 520 648 T1064 640 V700 H0Z" fill="#b6e3be"/>
+      </svg>
+      <svg class="bg" viewBox="0 0 1064 700">
+        <line x1="40" y1="180" x2="1000" y2="180" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/>
+        <text x="40" y="208" font-weight="900" font-size="15" fill="#d9547a">Mục tiêu 800</text>
+        <polygon points="420,330 1000,84 1000,172" fill="#ffe9a8" opacity=".7"/>
+        <path d="M420 330 Q600 230 750 180 T1000 124" fill="none" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="2 10" stroke-linecap="round"/>
+        <line x1="499" y1="250" x2="499" y2="600" stroke="#2f3a33" stroke-opacity=".3" stroke-width="2" stroke-dasharray="2 7"/>
+        <polyline points="90,540 222,450 328,400 420,330" fill="none" stroke="#ffc83d" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+        <g fill="#fff" stroke="#d99a00" stroke-width="5"><circle cx="90" cy="540" r="11"/><circle cx="222" cy="450" r="11"/><circle cx="328" cy="400" r="11"/></g>
+        <circle cx="420" cy="330" r="14" fill="#46b35a" stroke="#fff" stroke-width="5"/>
+        <g font-weight="900" font-size="18" fill="#2f3a33" text-anchor="middle"><text x="90" y="575">620</text><text x="222" y="485">665</text><text x="328" y="435">690</text><text x="452" y="368" font-size="24">725</text></g>
+        <g><rect x="190" y="512" width="116" height="30" rx="15" fill="#fff"/><text x="248" y="533" font-weight="900" font-size="15" fill="#2f8a42" text-anchor="middle">+35 mỗi đề</text></g>
+        <circle cx="750" cy="180" r="11" fill="#fff" stroke="#ff7a9c" stroke-width="5"/>
+        <g><rect x="676" y="118" width="148" height="34" rx="17" fill="#2f3a33"/><text x="750" y="141" fill="#fff" font-weight="900" font-size="15" text-anchor="middle">Chạm 800 ở đây</text></g>
+        <text x="768" y="214" font-weight="800" font-size="14" fill="#5c675f">khoảng 3 đề nữa</text>
+        <line x1="1000" y1="110" x2="1000" y2="610" stroke="#5c675f" stroke-width="5" stroke-linecap="round"/><path d="M1002 112 L956 128 L1002 146Z" fill="#ff7a9c"/>
+        <text x="1000" y="100" font-weight="900" font-size="14" fill="#8a6a10" text-anchor="middle">~830</text>
+        <g font-weight="800" font-size="14" fill="#3f5a45" text-anchor="middle"><text x="90" y="672">12/10</text><text x="499" y="672">Hôm nay</text><text x="750" y="672">01/12</text><text x="990" y="672">Thi 20/12</text></g>
+      </svg>
+      <div class="head"><small>Mình có kịp không?</small><h2>Giữ đà này, bạn chạm 800 khoảng 01/12, trước ngày thi gần 3 tuần</h2></div>
+      <div class="seg"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div>
+      <span class="sq" data-s="idle" style="left:368px;top:200px"></span>
+      <div class="bub" style="left:150px;top:250px">Đường chấm là mình <b>ước tính</b> từ 4 đề thôi nha.</div>
+    </div>
+  </main>
+</div>
+
+<!-- B: thang điểm -->
+<div class="page" id="pB">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="top"><h1>Hành trình điểm</h1><div class="tabs"><span class="on">Điểm số</span><span>Từng Part</span><span>Các đề<em>4</em></span></div></div>
+    <div class="ladder">
+      <svg viewBox="0 0 1064 720" id="lad"></svg>
+      <div class="lh"><small>Mình có kịp không?</small><h2>Còn 75 điểm, và bạn đang leo 35 điểm mỗi đề</h2></div>
+      <div class="stop" style="top:156px"><span class="d">Thi 20/12</span><div class="c"><b>~830</b><span>dự kiến nếu giữ đà</span></div></div>
+      <div class="stop goal" style="top:230px"><span class="d">~01/12</span><div class="c"><b>Chạm 800</b><span>khoảng 3 đề nữa</span></div></div>
+      <div class="stop now" style="top:370px"><span class="d">Hôm nay</span><div class="c"><b>725</b><span>Nghe 365 · Đọc 360</span></div></div>
+      <div class="stop" style="top:556px"><span class="d">12/10</span><div class="c"><b>620</b><span>đề đầu tiên</span></div></div>
+      <span class="sq" data-s="idle" style="left:112px;top:258px;width:96px;z-index:2"></span>
+    </div>
+  </main>
+</div>
+
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv on"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+document.querySelectorAll('[data-side]').forEach(e=>e.innerHTML=SIDE);
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+// ladder
+const Y=s=>660-(s-600)*2.4;let g='';
+const X1=120,X2=200;
+g+=`<rect x="${X1-10}" y="44" width="12" height="636" rx="6" fill="#d9c39a"/><rect x="${X2-2}" y="44" width="12" height="636" rx="6" fill="#d9c39a"/>`;
+for(let s=600;s<=850;s+=25){const y=Y(s);const done=s<=725;g+=`<rect x="${X1}" y="${y-4}" width="${X2-X1}" height="8" rx="4" fill="${done?'#ffc83d':s<=830?'#f0e2bf':'#ece6d6'}" ${!done&&s<=830?'stroke="#d99a00" stroke-dasharray="4 6" stroke-width="2"':''}/>`;
+ if(s%50===0)g+=`<text x="${X1-24}" y="${y+5}" font-weight="800" font-size="13" fill="#a99a78" text-anchor="end">${s}</text>`}
+[[620,'12/10'],[665,'22/10'],[690,'30/10'],[725,'06/11']].forEach(([s])=>{g+=`<circle cx="${X2+30}" cy="${Y(s)}" r="9" fill="${s===725?'#46b35a':'#fff'}" stroke="${s===725?'#fff':'#d99a00'}" stroke-width="4"/>`+(s===665||s===690?`<text x="${X2+48}" y="${Y(s)+5}" font-weight="900" font-size="15" fill="#8a6a10">${s}</text>`:'')});
+g+=`<line x1="${X1-14}" y1="${Y(800)}" x2="460" y2="${Y(800)}" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/><path d="M${X2+12} ${Y(800)-30} L${X2+52} ${Y(800)-20} L${X2+12} ${Y(800)-10}Z" fill="#ff7a9c"/><line x1="${X2+12}" y1="${Y(800)-32}" x2="${X2+12}" y2="${Y(800)}" stroke="#5c675f" stroke-width="3"/>`;
+[[830,0],[800,0],[725,0],[620,0]].forEach(([s])=>{g+=`<line x1="${X2+44}" y1="${Y(s)}" x2="460" y2="${Y(s)}" stroke="#cdbf9e" stroke-width="2" stroke-dasharray="2 6"/>`});
+g+=`<path d="M0 690 Q300 660 640 690 T1064 680 V720 H0Z" fill="#e9dcbc"/>`;
+document.getElementById('lad').innerHTML=g;
+// align stops to ladder heights
+const off=18; // ladder top offset inside main
+document.querySelectorAll('#pB .stop').forEach((e,i)=>{const s=[830,800,725,620][i];e.style.top=(Y(s)-e.offsetHeight/2)+'px'});
+</script>
+</body>
+</html>

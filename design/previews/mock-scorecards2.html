@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thẻ điểm: 3 kiểu × 4 trường hợp</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--pink:#ff7a9c;--blue:#1c8fe3;--gold:#ffc83d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#sheet{width:1440px;background:#fff;padding:40px 44px 50px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.tbl{display:grid;grid-template-columns:150px repeat(3,1fr);gap:18px 20px;margin-top:26px;align-items:stretch}
+.ch{font-weight:900;font-size:19px;text-align:center}.ch span{display:block;font-weight:700;font-size:13px;color:var(--mut)}
+.rh{display:flex;flex-direction:column;justify-content:center}.rh b{font-weight:900;font-size:17px;line-height:1.25}.rh span{font-weight:700;font-size:13px;color:var(--mut);margin-top:4px;line-height:1.35}
+.stage{height:400px;border-radius:24px;background:#f2f4f2;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.soc svg{display:block;width:100%}
+
+/* ---------- 1 vé ---------- */
+.bp{width:384px;height:236px;display:grid;grid-template-columns:1fr 104px;filter:drop-shadow(0 10px 18px rgba(47,58,51,.15))}
+.bp .m,.bp .s{background:#fff;position:relative}
+.bp .m{border-radius:20px 0 0 20px;padding:0 18px 14px;-webkit-mask:radial-gradient(circle 12px at 100% 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 12px at 100% 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle 12px at 100% 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 12px at 100% 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.bp .s{border-radius:0 20px 20px 0;border-left:2px dashed #d5dcd6;padding:12px 12px;display:flex;flex-direction:column;justify-content:space-between;-webkit-mask:radial-gradient(circle 12px at 0 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 12px at 0 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle 12px at 0 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 12px at 0 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.bp .hd{margin:0 -18px;padding:9px 18px;color:#fff;font-weight:900;font-size:12px;letter-spacing:1px;display:flex;justify-content:space-between;border-radius:20px 0 0 0}
+.bp .route{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.bp .route div b{display:block;font-weight:900;font-size:22px;letter-spacing:-.5px;line-height:1}
+.bp .route div span{font-weight:800;font-size:10px;color:var(--mut);letter-spacing:.5px}
+.bp .ln{flex:1;margin:0 10px;position:relative;height:16px}
+.bp .ln::before{content:"";position:absolute;left:0;right:0;top:7px;border-top:2px dashed #cfd5cf}
+.bp .ln u{position:absolute;left:0;top:6px;height:4px;border-radius:2px}
+.bp .ln i{position:absolute;top:-4px;font-style:normal;font-size:17px;transform:translateX(-50%)}
+.bp .now{margin-top:6px;display:flex;align-items:flex-end;gap:10px}
+.bp .now b{font-weight:900;font-size:50px;letter-spacing:-2px;line-height:.9}
+.bp .now span{font-weight:800;font-size:10.5px;color:var(--mut);letter-spacing:.5px;padding-bottom:4px}
+.bp .f{display:grid;grid-template-columns:repeat(4,1fr);margin-top:10px}
+.bp .f div{font-weight:800;font-size:9.5px;color:var(--mut);letter-spacing:.5px}.bp .f b{display:block;font-weight:900;font-size:15px;color:var(--ink);letter-spacing:0}
+.bp .k{font-weight:800;font-size:9.5px;color:var(--mut);letter-spacing:.5px}.bp .k b{display:block;font-weight:900;font-size:21px;letter-spacing:0}
+.bp .bc{height:38px;background:repeating-linear-gradient(90deg,#2f3a33 0 2px,transparent 2px 4px,#2f3a33 4px 7px,transparent 7px 9px,#2f3a33 9px 10px,transparent 10px 13px)}
+.bp .re{display:inline-block;background:#fff;color:#6a4fd0;border-radius:99px;padding:0 7px;margin-left:6px;letter-spacing:0}
+.stamp{position:absolute;border:4px double;font-weight:900;letter-spacing:2px;border-radius:8px;padding:4px 10px;transform:rotate(-12deg);background:rgba(255,255,255,.75)}
+
+/* ---------- 3 thẻ sưu tầm ---------- */
+.tc{width:264px;height:368px;border-radius:20px;padding:9px;box-shadow:0 14px 26px rgba(47,58,51,.2);position:relative}
+.tc .in{height:100%;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column}
+.tc .tp{display:flex;justify-content:space-between;align-items:baseline}
+.tc .tp b{font-weight:900;font-size:15px}.tc .tp span{font-weight:900;font-size:12px}.tc .tp span em{font-style:normal;font-size:24px;letter-spacing:-1px}
+.tc .art{height:140px;margin-top:6px;border-radius:10px;border:3px solid;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative}
+.tc .art .soc{width:118px;margin-bottom:-6px}
+.tc .ty{margin-top:6px;font-weight:900;font-size:11px;border-radius:6px;padding:2px 8px;align-self:flex-start}
+.tc .st{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.tc .st div{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:6px;font-weight:800;font-size:12.5px}
+.tc .st i{width:14px;height:14px;border-radius:50%}
+.tc .st b{font-weight:900;font-size:17px}
+.tc .ft{margin-top:auto;display:flex;justify-content:space-between;font-weight:800;font-size:10px;padding-top:5px;border-top:1.5px solid rgba(0,0,0,.08)}
+.tc .re{font-style:normal;background:#efeaff;color:#6a4fd0;border-radius:99px;padding:0 6px}
+
+/* ---------- 4 Sóc cầm bảng ---------- */
+.sk{position:relative;width:390px;height:350px;transform:scale(.9)}
+.sk .soc{position:absolute;left:100px;top:22px;width:190px}
+.sk .sign{position:absolute;left:112px;top:190px;width:166px;height:98px;background:#fff;border-radius:20px;border:5px solid #2f3a33;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-3deg);box-shadow:0 6px 0 rgba(47,58,51,.15)}
+.sk .sign b{font-weight:900;font-size:56px;letter-spacing:-2px;line-height:1}
+.sk .sign small{font-weight:900;font-size:11px;color:var(--mut);letter-spacing:.5px}
+.sk .tag{position:absolute;font-weight:900;border:4px solid #fff;box-shadow:0 5px 12px rgba(47,58,51,.18);display:grid;place-items:center;text-align:center;line-height:1.05}
+.sk .tag small{display:block;font-size:10px;letter-spacing:.5px;opacity:.85}
+.conf i{position:absolute;width:10px;height:16px;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <h1>Thẻ điểm: 3 kiểu × 4 trường hợp</h1>
+  <div class="lead">Mỗi hàng là một tình huống thật. Màu, nhãn và trạng thái của Sóc đổi theo dữ liệu, không bao giờ trách người học.</div>
+  <div class="tbl" id="tbl"></div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const GOAL=800;
+const lvl=s=>{const B=[[945,'C1'],[785,'B2'],[550,'B1'],[225,'A2'],[120,'A1']];const i=B.findIndex(b=>s>=b[0]);return{cur:B[i][1],next:B[i-1]?{n:B[i-1][1],need:B[i-1][0]-s}:null}};
+const S=[
+ {k:'rec',title:'Kỷ lục mới, đề làm lại',sub:'765, hơn đề trước 25, làm lại Test 03',date:'11/11',test:'ETS 2024 Test 03',re:true,sc:765,L:390,R:375,d:25,prev:740,first:false,best:true,firstTry:690,no:7},
+ {k:'down',title:'Giảm điểm',sub:'710, thấp hơn đề trước 15',date:'09/11',test:'ETS 2024 Test 05',sc:710,L:360,R:350,d:-15,prev:725,no:5},
+ {k:'first',title:'Đề đầu tiên',sub:'620, chưa có gì để so',date:'12/10',test:'ETS 2024 Test 01',sc:620,L:310,R:310,first:true,no:1},
+ {k:'goal',title:'Chạm mục tiêu',sub:'805, vượt mốc 800',date:'14/12',test:'ETS 2024 Test 08',sc:805,L:410,R:395,d:40,prev:765,best:true,goal:true,no:9}];
+
+function ticket(s){
+ const hc={rec:'#e8a516',down:'#7d8fa3',first:'#46b35a',goal:'#ff7a9c'}[s.k];
+ const from=s.first?s.sc:s.prev,fromL=s.first?'XUẤT PHÁT':'ĐỀ TRƯỚC';
+ const pct=s.goal?100:Math.round(Math.min(1,(s.sc-(s.first?0:400))/(GOAL-(s.first?0:400)))*100);
+ const plane=s.goal?100:s.first?6:Math.max(8,Math.min(92,Math.round((s.sc-400)/(GOAL-400)*100)));
+ const head={rec:'KỶ LỤC MỚI',down:'CHẶNG CHỮNG LẠI',first:'CHUYẾN ĐẦU TIÊN',goal:'ĐÃ HẠ CÁNH 800'}[s.k];
+ const L=lvl(s.sc);
+ const k1=s.first?`<div class="k">CHẶNG<b style="font-size:15px;color:${hc}">Đầu tiên</b></div>`:`<div class="k">${s.d>0?'TĂNG':'GIẢM'}<b style="color:${s.d>0?'#2f8a42':'#7d8fa3'}">${s.d>0?'+':'−'}${Math.abs(s.d)}</b></div>`;
+ return `<div class="bp" style="position:relative"><div class="m"><div class="hd" style="background:${hc}"><span>${head}${s.re?'<span class="re">LÀM LẠI</span>':''}</span><span>${s.date}</span></div>
+  <div class="route"><div><span>${fromL}</span><b>${from}</b></div><div class="ln"><u style="width:${plane}%;background:${hc}"></u><i style="left:${plane}%">${s.k==='down'?'<span style="display:inline-block;transform:scaleX(-1)">✈</span>':'✈'}</i></div><div style="text-align:right"><span>MỤC TIÊU</span><b>${GOAL}</b></div></div>
+  <div class="now"><b style="color:${s.k==='down'?'#4d5850':'#2f3a33'}">${s.sc}</b><span>${s.goal?'VƯỢT MỤC TIÊU '+(s.sc-GOAL):'ĐIỂM ĐỀ NÀY'}</span></div>
+  <div class="f"><div>NGHE<b>${s.L}</b></div><div>ĐỌC<b>${s.R}</b></div><div>CẤP<b>${L.cur}</b></div><div>${s.goal?'TỚI '+L.next.n:'CÒN'}<b>${s.goal?L.next.need:GOAL-s.sc}</b></div></div></div>
+  <div class="s">${k1}<div class="k">ĐỀ<b style="font-size:13.5px;color:var(--ink)">${s.test.replace('ETS 2024 ','')}</b></div><div class="bc"></div></div>
+  ${s.goal?`<div class="stamp" style="right:8px;top:92px;color:#d6416a;border-color:#d6416a;font-size:13px;padding:3px 8px">ĐÃ TỚI<br>800</div>`:''}
+  ${s.k==='down'?`<div style="position:absolute;left:18px;bottom:-34px;font-weight:800;font-size:13px;color:#5c675f">Vẫn cao hơn 3 trong 4 đề trước đó.</div>`:''}
+ </div>`}
+
+function card(s){
+ const sk={rec:{bd:'conic-gradient(from 210deg,#ff9ec4,#ffd766,#8fe6d0,#9ec5ff,#c9a8ff,#ff9ec4)',in:'#fff8e6',art:'radial-gradient(circle at 50% 70%,#fff3c4,#ffd36b 60%,#f5a74b)',ab:'#e9c66b',ty:'★ Thẻ hiếm · Kỷ lục mới',tyb:'#e9c66b',tyc:'#5a4410',soc:'yay',hp:'#d9547a'},
+  down:{bd:'linear-gradient(160deg,#dfe5ec,#b9c4d0)',in:'#f6f8fa',art:'radial-gradient(circle at 50% 70%,#eef3f8,#cdd8e4 65%,#aebdcc)',ab:'#c3ced9',ty:'Thẻ thường · Lần sau lấy lại nha',tyb:'#dfe5ec',tyc:'#4d5a68',soc:'sad',hp:'#5c6b7a'},
+  first:{bd:'linear-gradient(160deg,#9be3a9,#46b35a)',in:'#f2fbf4',art:'radial-gradient(circle at 50% 70%,#f3fff5,#bfeec8 65%,#8fd69d)',ab:'#a9dfb3',ty:'Thẻ khởi đầu · #1',tyb:'#cfeed6',tyc:'#2f8a42',soc:'idle',hp:'#2f8a42'},
+  goal:{bd:'conic-gradient(from 0deg,#ffd766,#ff9ec4,#ffd766,#fff3c4,#ffd766)',in:'#fff4f7',art:'radial-gradient(circle at 50% 70%,#fff,#ffd3e0 60%,#ff9ec4)',ab:'#ff9ec4',ty:'♛ Thẻ huyền thoại · Chạm 800',tyb:'#ff7a9c',tyc:'#fff',soc:'yay',hp:'#d6416a'}}[s.k];
+ const L=lvl(s.sc);
+ const third=s.first?`<div><i style="background:#cfd5cf"></i><span>Mốc để so với các đề sau</span><b></b></div>`:`<div><i style="background:${s.d>0?'#46b35a':'#9aa6b8'}"></i><span>So với đề trước</span><b style="color:${s.d>0?'#2f8a42':'#5c6b7a'}">${s.d>0?'+':'−'}${Math.abs(s.d)}</b></div>`;
+ return `<div class="tc" style="background:${sk.bd}"><div class="in" style="background:${sk.in}">
+  <div class="tp"><b>Sóc · ${L.cur}</b><span style="color:${sk.hp}"><em>${s.sc}</em> điểm</span></div>
+  <div class="art" style="background:${sk.art};border-color:${sk.ab}"><span class="soc" data-s="${sk.soc}"></span>${s.goal?'<div class="conf" style="position:absolute;inset:0">'+[[20,18,'#ffd766',20],[200,26,'#46b35a',-30],[60,60,'#1c8fe3',40],[180,80,'#a78bfa',-15],[34,104,'#ff7a9c',65]].map(c=>`<i style="left:${c[0]}px;top:${c[1]}px;background:${c[2]};transform:rotate(${c[3]}deg)"></i>`).join('')+'</div>':''}</div>
+  <span class="ty" style="background:${sk.tyb};color:${sk.tyc}">${sk.ty}</span>
+  <div class="st"><div><i style="background:var(--blue)"></i><span>Nghe</span><b>${s.L}</b></div><div><i style="background:var(--g)"></i><span>Đọc</span><b>${s.R}</b></div>${third}</div>
+  <div class="ft" style="color:${sk.tyc==='#fff'?'#a8566b':sk.tyc}"><span>${s.test.replace('ETS 2024 ','')}${s.re?' · <em class="re">làm lại</em>':''}</span><span>#${String(s.no).padStart(2,'0')} · ${s.date}</span></div>
+ </div></div>`}
+
+function stick(s){
+ const soc={rec:'yay',down:'sad',first:'idle',goal:'yay'}[s.k];
+ const L=lvl(s.sc);
+ const t=(st,cls,txt)=>`<div class="tag" style="${st}">${txt}</div>`;
+ let tags='';
+ if(s.k==='rec'){tags+=t('left:4px;top:36px;width:84px;height:84px;border-radius:50%;background:#46b35a;color:#fff;font-size:26px;transform:rotate(-12deg)','','+25<small>LẦN NÀY</small>');
+  tags+=t('right:4px;top:18px;padding:8px 14px;border-radius:14px;background:#ffd766;color:#5a4410;font-size:16px;transform:rotate(10deg)','','KỶ LỤC!');
+  tags+=t('right:0;top:146px;width:80px;height:80px;border-radius:22px;background:#2f3a33;color:#ffe58f;font-size:28px;transform:rotate(8deg)','',`${L.cur}<small>CÒN ${L.next.need} → ${L.next.n}</small>`);
+  tags+=t('left:10px;top:150px;padding:6px 12px;border-radius:12px;background:#efeaff;color:#6a4fd0;font-size:13px;transform:rotate(-8deg)','','LÀM LẠI<small>lần đầu 690</small>');}
+ if(s.k==='down'){tags+=t('left:6px;top:40px;width:80px;height:80px;border-radius:50%;background:#9aa6b8;color:#fff;font-size:24px;transform:rotate(-10deg)','','−15<small>LẦN NÀY</small>');
+  tags+=t('right:4px;top:24px;padding:8px 12px;border-radius:14px;background:#fff;color:#4d5850;font-size:14px;transform:rotate(7deg);border-color:#e6e9e6','','Lần sau<br>lấy lại nha');
+  tags+=t('right:0;top:150px;width:80px;height:80px;border-radius:22px;background:#2f3a33;color:#ffe58f;font-size:28px;transform:rotate(8deg)','',`${L.cur}<small>VẪN GIỮ</small>`);}
+ if(s.k==='first'){tags+=t('left:0;top:30px;padding:10px 14px;border-radius:16px;background:#46b35a;color:#fff;font-size:17px;transform:rotate(-10deg)','','ĐỀ ĐẦU<br>TIÊN!');
+  tags+=t('right:2px;top:26px;width:82px;height:82px;border-radius:50%;background:#ffd766;color:#5a4410;font-size:14px;transform:rotate(9deg)','','MỐC<br>KHỞI ĐẦU');
+  tags+=t('right:0;top:156px;width:80px;height:80px;border-radius:22px;background:#2f3a33;color:#ffe58f;font-size:28px;transform:rotate(8deg)','',`${L.cur}<small>CÒN ${GOAL-s.sc} → 800</small>`);}
+ if(s.k==='goal'){tags+=t('left:-2px;top:20px;width:100px;height:100px;border-radius:50%;background:#ff7a9c;color:#fff;font-size:20px;transform:rotate(-12deg)','','CHẠM<br>800!');
+  tags+=t('right:4px;top:18px;padding:8px 14px;border-radius:14px;background:#ffd766;color:#5a4410;font-size:16px;transform:rotate(10deg)','','KỶ LỤC!');
+  tags+=t('right:0;top:146px;width:80px;height:80px;border-radius:22px;background:#2f3a33;color:#ffe58f;font-size:28px;transform:rotate(8deg)','',`${L.cur}<small>VỪA LÊN</small>`);
+  tags+=t('left:10px;top:150px;width:70px;height:70px;border-radius:50%;background:#46b35a;color:#fff;font-size:20px;transform:rotate(-8deg)','','+40');}
+ tags+=t('left:0;bottom:22px;padding:7px 14px;border-radius:99px;background:#1c8fe3;color:#fff;font-size:15px;transform:rotate(-6deg)','',`Nghe ${s.L}`);
+ tags+=t('right:26px;bottom:18px;padding:7px 14px;border-radius:99px;background:#46b35a;color:#fff;font-size:15px;transform:rotate(5deg)','',`Đọc ${s.R}`);
+ const conf=s.goal?'<div class="conf">'+[[60,10,'#ffd766',20],[300,6,'#1c8fe3',-30],[150,0,'#a78bfa',40],[250,120,'#ff7a9c',-15],[96,128,'#46b35a',65],[330,250,'#ffd766',30]].map(c=>`<i style="left:${c[0]}px;top:${c[1]}px;background:${c[2]};transform:rotate(${c[3]}deg)"></i>`).join('')+'</div>':'';
+ return `<div class="sk">${conf}<span class="soc" data-s="${soc}"></span><div class="sign"${s.k==='down'?' style="border-color:#7d8fa3"':''}><b>${s.sc}</b><small>${s.date} · ${s.test.replace('ETS 2024 ','')}</small></div>${tags}</div>`}
+
+const bg={rec:['#e3f2fd','#f6efff','#ece6ff'],down:['#eef1f5','#eef1f5','#e9edf2'],first:['#eaf7ed','#eaf7ed','#e7f6ea'],goal:['#fff0f4','#fff0f4','#fff0f4']};
+let h='<div></div><div class="ch">1. Vé lên đỉnh<span>màu dải vé đổi theo trường hợp</span></div><div class="ch">3. Thẻ sưu tầm<span>độ hiếm của thẻ đổi theo trường hợp</span></div><div class="ch">4. Sóc cầm bảng điểm<span>Sóc và nhãn dán đổi theo trường hợp</span></div>';
+S.forEach(s=>{h+=`<div class="rh"><b>${s.title}</b><span>${s.sub}</span></div><div class="stage" style="background:${bg[s.k][0]}">${ticket(s)}</div><div class="stage" style="background:${bg[s.k][1]}">${card(s)}</div><div class="stage" style="background:${bg[s.k][2]}">${stick(s)}</div>`});
+document.getElementById('tbl').innerHTML=h;
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+</script>
+</body>
+</html>

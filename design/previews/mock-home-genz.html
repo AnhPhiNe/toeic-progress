@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang chủ kiểu mới</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Bricolage+Grotesque:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14142b;--cream:#fffaf0;--lime:#c8f169;--lilac:#c9b8ff;--pink:#ff8fb8;--sky:#9ddcff;--sun:#ffd84d;--green:#3f9450}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Be Vietnam Pro',sans-serif;color:var(--ink);background:#bfc4cc;padding:40px;display:flex;flex-direction:column;gap:60px;align-items:center}
+.frame{width:1440px;height:900px;position:relative;overflow:hidden}
+.tag{position:absolute;right:0;bottom:0;background:#fff;color:#000;font:800 13px 'Be Vietnam Pro';padding:6px 12px;border-radius:10px 0 0 0;z-index:9;border:2px solid #000;border-width:2px 0 0 2px}
+.nav{display:flex;align-items:center;height:56px}
+.logo{display:flex;align-items:center;gap:8px;font:800 17px 'Unbounded';letter-spacing:-.5px}
+.logo span{width:40px}
+.pills{margin:0 auto;display:flex;gap:4px;background:var(--ink);border-radius:99px;padding:5px}
+.pills a{padding:9px 20px;border-radius:99px;color:#fff;font-weight:600;font-size:14.5px}
+.pills a.on{background:var(--lime);color:var(--ink);font-weight:800}
+.cta{background:var(--pink);border:2.5px solid var(--ink);border-radius:99px;padding:9px 18px;font-weight:800;font-size:14.5px}
+.ava{width:44px;height:44px;border-radius:50%;background:var(--lilac);border:2.5px solid var(--ink);margin-left:12px;display:grid;place-items:center;font-weight:800}
+.pill{display:inline-flex;align-items:center;gap:8px;border-radius:99px;padding:12px 22px;font-weight:800;font-size:15px;border:2.5px solid var(--ink)}
+.pill.dark{background:var(--ink);color:#fff}
+.pill.white{background:#fff}
+
+/* ---------- D bento ---------- */
+#D{background:var(--cream);padding:24px 40px 28px;display:flex;flex-direction:column;gap:18px}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:196px 196px 1fr;gap:18px;flex:1;min-height:0}
+.t{border:2.5px solid var(--ink);border-radius:30px;padding:24px 26px;position:relative;overflow:hidden}
+.t h3{font:700 15px 'Be Vietnam Pro'}
+.hero{grid-column:1/8;grid-row:1/3;background:var(--lime);padding:32px 36px}
+.hero .hi{font-weight:700;font-size:16px}
+.hero h1{font:800 54px/1.08 'Unbounded';letter-spacing:-2.5px;margin-top:10px}
+.road{position:absolute;left:36px;right:36px;bottom:92px}
+.road .bar{height:34px;border:2.5px solid var(--ink);border-radius:99px;background:#fff;overflow:hidden}
+.road .bar i{display:block;height:100%;width:58%;background:var(--ink);border-radius:99px}
+.road .lab{display:flex;justify-content:space-between;font:700 14px 'Unbounded';margin-top:8px}
+.road .me{position:absolute;left:58%;top:-98px;width:104px;margin-left:-58px;transform:rotate(-7deg)}
+.road .now{position:absolute;left:58%;top:42px;transform:translateX(-50%);font:800 14px 'Unbounded';background:var(--sun);border:2.5px solid var(--ink);border-radius:99px;padding:2px 12px}
+.hero .foot{position:absolute;left:36px;right:36px;bottom:26px;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:15.5px}
+.streak{grid-column:8/10;background:var(--pink)}
+.num{font:800 86px/0.95 'Unbounded';letter-spacing:-4px}
+.count{grid-column:10/13;background:var(--ink);color:#fff}
+.count .num{color:var(--lime)}
+.dots{display:grid;grid-template-columns:repeat(13,1fr);gap:5px;position:absolute;left:150px;right:24px;top:30px}
+.dots i{aspect-ratio:1;border-radius:50%;border:2px solid #5a5a7a}
+.dots i.x{background:var(--lime);border-color:var(--lime)}
+.last{grid-column:8/13;background:var(--sun);display:flex;gap:20px;align-items:center}
+.burst{position:absolute;right:26px;top:22px;width:128px;height:128px;transform:rotate(12deg)}
+.chips{display:flex;gap:8px;margin-top:6px}
+.chips b{background:var(--ink);color:#fff;border-radius:99px;padding:5px 14px;font-size:13.5px}
+.todo{grid-column:1/6;background:#fff}
+.todo h2,.weak h2,.wrap h2{font:800 23px/1.2 'Unbounded';letter-spacing:-1px}
+.q{display:flex;align-items:center;gap:14px;margin-top:14px;font-weight:700;font-size:16px}
+.q .ic{width:46px;height:46px;border-radius:15px;border:2.5px solid var(--ink);flex:none;display:grid;place-items:center;font:800 16px 'Unbounded'}
+.q small{display:block;font-weight:500;font-size:13.5px;color:#55556d}
+.q .go{margin-left:auto}
+.weak{grid-column:6/10;background:var(--lilac)}
+.mini{display:flex;align-items:flex-end;gap:8px;height:88px;margin:14px 0 12px}
+.mini i{flex:1;background:var(--ink);border-radius:8px 8px 3px 3px;display:block}
+.mini i.bad{background:var(--pink);border:2.5px solid var(--ink)}
+.wrap{grid-column:10/13;background:var(--sky)}
+.cards{position:absolute;right:26px;bottom:24px;width:120px;height:150px}
+.cards i{position:absolute;inset:0;border:2.5px solid var(--ink);border-radius:18px}
+.play{position:absolute;left:26px;bottom:26px;width:62px;height:62px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+
+/* ---------- E map ---------- */
+#E{background:#cdebff}
+#E .nav{position:absolute;left:40px;right:40px;top:24px;z-index:5}
+#E .scene{position:absolute;inset:0}
+.hud{display:flex;gap:10px}
+.hud b{background:#fff;border:2.5px solid var(--ink);border-radius:99px;padding:8px 16px;font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.node{position:absolute;transform:translate(-50%,-50%);text-align:center;z-index:3}
+.node .c{width:58px;height:58px;border-radius:50%;border:3.5px solid var(--ink);background:var(--lime);display:grid;place-items:center;margin:0 auto;box-shadow:0 6px 0 var(--ink)}
+.node.lock .c{background:#fff}
+.node b{display:inline-block;margin-top:12px;background:#fff;border:2.5px solid var(--ink);border-radius:99px;padding:2px 12px;font:800 14px 'Bricolage Grotesque'}
+.node small{display:block;font-weight:700;font-size:12px;margin-top:3px}
+.hereM{position:absolute;left:566px;top:372px;width:136px;z-index:4}
+.bub{position:absolute;left:300px;top:380px;z-index:4;background:#fff;border:2.5px solid var(--ink);border-radius:22px 22px 4px 22px;padding:14px 18px;width:252px;font-weight:600;font-size:14.5px;line-height:1.45;box-shadow:5px 5px 0 var(--ink)}
+.bub b{font:800 19px 'Bricolage Grotesque';display:block;margin-bottom:2px}
+.panel{position:absolute;right:40px;top:104px;bottom:36px;width:356px;background:#fff;border:2.5px solid var(--ink);border-radius:30px;padding:26px 26px 24px;z-index:5;display:flex;flex-direction:column;box-shadow:7px 7px 0 var(--ink)}
+.panel h2{font:800 27px/1.15 'Bricolage Grotesque';letter-spacing:-.5px}
+.panel .q{font-size:15.5px}
+.leg{margin-top:auto;background:var(--cream);border:2.5px solid var(--ink);border-radius:20px;padding:14px 16px;font-weight:700;font-size:14px}
+.leg .bar{height:16px;border:2.5px solid var(--ink);border-radius:99px;background:#fff;margin:8px 0 6px;overflow:hidden}
+.leg .bar i{display:block;height:100%;width:0%;background:var(--sun)}
+.bigbtn{margin-top:16px;background:var(--lime);border:2.5px solid var(--ink);border-radius:20px;padding:15px;text-align:center;font:800 18px 'Bricolage Grotesque';box-shadow:0 6px 0 var(--ink)}
+
+/* ---------- F chat ---------- */
+#F{background:#12121d;color:#fff;padding:24px 40px}
+#F .pills{background:#232336}
+#F .logo{color:#fff}
+#F .glow{position:absolute;left:50%;top:40px;width:900px;height:520px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(201,184,255,.28),transparent)}
+.center{width:980px;margin:22px auto 0;position:relative;text-align:center}
+.center .m{width:118px;margin:0 auto}
+.center h1{font:800 56px/1.1 'Bricolage Grotesque';letter-spacing:-1.5px;margin-top:4px}
+.center h1 em{font-style:normal;color:var(--lime)}
+.center p{font-size:17px;color:#b9b9d0;margin-top:10px}
+.ask{margin:24px auto 0;width:820px;background:#1d1d2e;border:2px solid #3b3b58;border-radius:26px;padding:16px 16px 16px 24px;display:flex;align-items:center;gap:14px;font-size:17px;color:#8f8fae;text-align:left}
+.ask .send{margin-left:auto;width:50px;height:50px;border-radius:50%;background:var(--lime);display:grid;place-items:center;flex:none}
+.sugg{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.sugg span{border:1.5px solid #47476a;border-radius:99px;padding:8px 16px;font-weight:600;font-size:14px;color:#dcdcf0}
+.sugg span.hot{background:var(--pink);color:var(--ink);border-color:var(--pink);font-weight:800}
+.w3{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:18px;margin-top:30px;text-align:left}
+.w{background:#1b1b2b;border:1.5px solid #34344e;border-radius:26px;padding:20px 22px;height:286px;display:flex;flex-direction:column}
+.w .k{font-weight:600;font-size:13.5px;color:#9d9dbb}
+.w h3{font:800 21px/1.25 'Bricolage Grotesque';margin-top:2px}
+.w svg text{font-family:'Be Vietnam Pro'}
+.li{display:flex;align-items:center;gap:12px;font-weight:600;font-size:15px;margin-top:12px}
+.li i{width:22px;height:22px;border-radius:7px;border:2px solid var(--lime);flex:none}
+.li span{margin-left:auto;color:#9d9dbb;font-size:13.5px}
+.w .btn{margin-top:auto;background:var(--lime);color:var(--ink);border-radius:16px;padding:12px;text-align:center;font:800 16px 'Bricolage Grotesque'}
+</style>
+</head>
+<body>
+
+<!-- ================= D ================= -->
+<div class="frame" id="D">
+  <div class="tag">D. Bento màu</div>
+  <div class="nav">
+    <div class="logo"><span data-m="mam,calm"></span>toeic progress</div>
+    <div class="pills"><a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a></div>
+    <div class="cta">+ Ghi điểm</div><div class="ava">HV</div>
+  </div>
+  <div class="bento">
+    <div class="t hero">
+      <div class="hi">Thứ Tư 11/11, tối rồi đó</div>
+      <h1>Còn 75 điểm nữa<br>là chạm 800</h1>
+      <div class="road">
+        <span class="me" data-m="mam,happy"></span>
+        <div class="bar"><i></i></div>
+        <div class="now">725</div>
+        <div class="lab"><span>620</span><span>800</span></div>
+      </div>
+      <div class="foot">Bốn đề, lên 105 điểm. Đà này thì kịp trước ngày thi.<span class="pill dark">Xem dự báo</span></div>
+    </div>
+    <div class="t streak"><h3>Chuỗi ngày</h3><div class="num" style="margin-top:8px">6</div><div style="font-weight:700;font-size:15px;margin-top:6px">ngày liền, giữ nha</div>
+      <svg style="position:absolute;right:14px;top:16px;transform:rotate(10deg)" width="54" height="66" viewBox="0 0 22 28"><path d="M11 1 C13 8 21 11 21 18 a10 9.5 0 0 1 -20 0 C1 13 5 11 6 6 C8 8 9 9 11 1Z" fill="#ffd84d" stroke="#14142b" stroke-width="1.6" stroke-linejoin="round"/><path d="M11 13 c2 3 5 4 5 7 a5 5 0 0 1 -10 0 c0-3 3-4 5-7Z" fill="#fff"/></svg>
+    </div>
+    <div class="t count"><h3>Ngày thi 20/12</h3><div class="num" style="margin-top:8px">39</div><div style="font-weight:700;font-size:15px;margin-top:6px">ngày nữa</div><div class="dots" id="dots"></div></div>
+    <div class="t last">
+      <div><h3>Đề gần nhất, ETS 2024 Test 04</h3><div class="num" style="font-size:78px;margin-top:6px">725</div><div class="chips"><b>Nghe 365</b><b>Đọc 360</b></div></div>
+      <svg class="burst" viewBox="-60 -60 120 120"><polygon id="star" fill="#ff8fb8" stroke="#14142b" stroke-width="2.5" stroke-linejoin="round"/><text y="-2" text-anchor="middle" font-family="Unbounded" font-weight="800" font-size="24" fill="#14142b">+35</text><text y="15" text-anchor="middle" font-family="Be Vietnam Pro" font-weight="800" font-size="10" fill="#14142b">kỷ lục mới</text></svg>
+    </div>
+    <div class="t todo">
+      <h2>Hôm nay 3 việc, 35 phút</h2>
+      <div class="q"><div class="ic" style="background:var(--pink)">1</div><div>Ôn 3 câu sai đến hạn<small>5 phút</small></div><span class="pill dark go" style="padding:9px 18px">Bắt đầu</span></div>
+      <div class="q"><div class="ic" style="background:var(--lilac)">2</div><div>Bấm giờ một bài Part 7<small>20 phút</small></div></div>
+      <div class="q"><div class="ic" style="background:var(--sky)">3</div><div>Ôn 8 thẻ từ rút từ câu sai<small>10 phút</small></div></div>
+    </div>
+    <div class="t weak">
+      <h2>Part 7 đang hút điểm của bạn</h2>
+      <div class="mini"><i style="height:66%"></i><i style="height:76%"></i><i style="height:54%"></i><i style="height:60%"></i><i style="height:60%"></i><i style="height:38%"></i><i class="bad" style="height:100%"></i></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14.5px">Sai 16 câu ở đề vừa rồi<span class="pill white" style="padding:8px 16px;font-size:14px">Luyện 20 phút</span></div>
+    </div>
+    <div class="t wrap">
+      <h2>Tuần này của bạn</h2><div style="font-weight:600;font-size:14.5px;margin-top:6px">5 thẻ, xem trong 20 giây</div>
+      <div class="cards"><i style="background:var(--pink);transform:rotate(14deg)"></i><i style="background:var(--sun);transform:rotate(5deg)"></i><i style="background:var(--lime);transform:rotate(-5deg);display:grid;place-items:center;font:800 30px 'Unbounded';font-style:normal">+35</i></div>
+      <div class="play"><svg width="22" height="24" viewBox="0 0 22 24"><path d="M3 2 L20 12 L3 22Z" fill="#c8f169"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= E ================= -->
+<div class="frame" id="E">
+  <div class="tag">E. Bản đồ lên đỉnh 800</div>
+  <svg class="scene" viewBox="0 0 1440 900">
+    <circle cx="150" cy="190" r="56" fill="#ffd84d" stroke="#14142b" stroke-width="3.5"/>
+    <g fill="#fff" stroke="#14142b" stroke-width="3"><path d="M330 210 a34 34 0 0 1 62 -14 a28 28 0 0 1 48 14 a22 22 0 0 1 -6 42 h-98 a24 24 0 0 1 -6 -42Z"/><path d="M620 150 a28 28 0 0 1 52 -12 a24 24 0 0 1 40 12 a18 18 0 0 1 -5 34 h-82 a20 20 0 0 1 -5 -34Z"/></g>
+    <path d="M730 520 L930 130 L1130 520Z" fill="#b9b4e8" stroke="#14142b" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M886 216 L930 130 L974 216 L950 200 L930 222 L910 200Z" fill="#fff" stroke="#14142b" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M-20 560 Q200 430 460 520 T900 470 T1460 540 V920 H-20Z" fill="#a8e08f" stroke="#14142b" stroke-width="3.5"/>
+    <path d="M-20 720 Q260 620 560 700 T1100 660 T1460 720 V920 H-20Z" fill="#7ccb6b" stroke="#14142b" stroke-width="3.5"/>
+    <g stroke="#14142b" stroke-width="3"><g fill="#3f9450"><circle cx="230" cy="560" r="30"/><circle cx="880" cy="640" r="34"/><circle cx="470" cy="800" r="30"/></g><g fill="#2f7a40"><circle cx="262" cy="574" r="22"/><circle cx="920" cy="656" r="24"/></g></g>
+    <path id="full" d="M110 790 C260 790 250 650 390 640 C540 630 520 770 680 740 C830 710 760 560 640 520 C520 480 560 360 700 350 C820 340 850 250 920 190" fill="none" stroke="#14142b" stroke-width="40" stroke-linecap="round"/>
+    <path d="M110 790 C260 790 250 650 390 640 C540 630 520 770 680 740 C830 710 760 560 640 520 C520 480 560 360 700 350 C820 340 850 250 920 190" fill="none" stroke="#fffaf0" stroke-width="31" stroke-linecap="round"/>
+    <path d="M110 790 C260 790 250 650 390 640 C540 630 520 770 680 740 C830 710 760 560 640 520" fill="none" stroke="#ffd84d" stroke-width="31" stroke-linecap="round"/>
+    <path d="M640 520 C520 480 560 360 700 350 C820 340 850 250 920 190" fill="none" stroke="#14142b" stroke-width="3" stroke-dasharray="2 14" stroke-linecap="round"/>
+    <g><line x1="930" y1="132" x2="930" y2="62" stroke="#14142b" stroke-width="5" stroke-linecap="round"/><path d="M932 64 L996 82 L932 104Z" fill="#ff8fb8" stroke="#14142b" stroke-width="3.5" stroke-linejoin="round"/></g>
+  </svg>
+  <div class="nav">
+    <div class="logo"><span data-m="mam,calm"></span>toeic progress</div>
+    <div class="pills"><a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a></div>
+    <div class="hud"><b>6 ngày liền</b><b>Thi sau 39 ngày</b></div><div class="ava">HV</div>
+  </div>
+  <div class="node" style="left:110px;top:790px"><div class="c"><svg width="26" height="20" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#14142b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>620</b><small>12/10</small></div>
+  <div class="node" style="left:390px;top:640px"><div class="c"><svg width="26" height="20" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#14142b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>665</b><small>22/10</small></div>
+  <div class="node" style="left:680px;top:740px"><div class="c"><svg width="26" height="20" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#14142b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>690</b><small>30/10</small></div>
+  <div class="node" style="left:640px;top:540px"><div class="c" style="background:var(--sun);opacity:0"></div><b style="background:var(--sun)">725, bạn ở đây</b></div>
+  <div class="node lock" style="left:700px;top:350px"><div class="c"></div><b>750</b><small>trạm kế</small></div>
+  <div class="node lock" style="left:860px;top:262px"><div class="c" style="width:44px;height:44px"></div><b>785, bậc B2</b></div>
+  <div class="node" style="left:1010px;top:150px"><b style="font-size:20px;padding:4px 16px;background:var(--pink)">800</b></div>
+  <span class="hereM" data-m="mam,happy"></span>
+  <div class="bub"><b>Còn 25 điểm tới trạm kế</b>Hôm nay đi thêm một đoạn nhé: Part 7, 20 phút.</div>
+
+  <div class="panel">
+    <h2>Hôm nay đi 3 bước</h2>
+    <div style="font-weight:600;font-size:14.5px;margin-top:4px;color:#55556d">Xong cả ba là giữ được chuỗi 6 ngày</div>
+    <div class="q"><div class="ic" style="background:var(--pink)">1</div><div>Ôn 3 câu sai đến hạn<small>5 phút</small></div></div>
+    <div class="q"><div class="ic" style="background:var(--lilac)">2</div><div>Bấm giờ một bài Part 7<small>20 phút</small></div></div>
+    <div class="q"><div class="ic" style="background:var(--sky)">3</div><div>Ôn 8 thẻ từ rút từ câu sai<small>10 phút</small></div></div>
+    <div class="leg">Chặng này: 725 lên 750<div class="bar"><i></i></div><span style="font-weight:600;color:#55556d">Điểm chỉ đổi khi bạn ghi đề mới</span></div>
+    <div class="bigbtn">Bắt đầu bước 1</div>
+  </div>
+</div>
+
+<!-- ================= F ================= -->
+<div class="frame" id="F">
+  <div class="tag">F. Hỏi Mầm</div>
+  <div class="glow"></div>
+  <div class="nav" style="position:relative">
+    <div class="logo"><span data-m="mam,calm"></span>toeic progress</div>
+    <div class="pills"><a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a></div>
+    <div class="hud" style="color:var(--ink)"><b>6 ngày liền</b><b>Thi sau 39 ngày</b></div><div class="ava" style="color:var(--ink)">HV</div>
+  </div>
+  <div class="center">
+    <div class="m" data-m="mam,happy"></div>
+    <h1>Tối nay <em>20 phút</em> là đủ.</h1>
+    <p>Mình đã xem đề hôm 06/11 của bạn và chuẩn bị sẵn ba thứ bên dưới.</p>
+    <div class="ask">
+      <svg width="28" height="26" viewBox="0 0 28 26"><rect x="2" y="3" width="24" height="20" rx="5" fill="none" stroke="#8f8fae" stroke-width="2.5"/><circle cx="10" cy="10" r="2.5" fill="#8f8fae"/><path d="M4 20 L12 13 L17 17 L21 14 L25 18" fill="none" stroke="#8f8fae" stroke-width="2.5" stroke-linejoin="round"/></svg>
+      Dán ảnh kết quả vào đây, hoặc hỏi Mầm bất cứ điều gì
+      <div class="send"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 19 V4 M4 10 L11 3 L18 10" fill="none" stroke="#14142b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="sugg"><span class="hot">Ghi điểm đề mới</span><span>Sao Part 7 mãi không lên?</span><span>Cho mình 6 câu từ loại</span><span>Tuần này mình học thế nào?</span></div>
+
+    <div class="w3">
+      <div class="w">
+        <div class="k">Mình có kịp không?</div><h3>Kịp. Chạm 800 khoảng 01/12</h3>
+        <svg viewBox="0 0 380 170" style="margin-top:auto;display:block;width:100%">
+          <polygon points="150,96 362,22 362,70" fill="#c8f169" opacity=".16"/>
+          <line x1="8" y1="46" x2="372" y2="46" stroke="#ff8fb8" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="10" y="38" fill="#ff8fb8" font-size="12.5" font-weight="700">800</text>
+          <path d="M150 96 Q230 58 362 40" fill="none" stroke="#c8f169" stroke-width="2.5" stroke-dasharray="3 7" stroke-linecap="round"/>
+          <polyline points="14,150 62,124 104,112 150,96" fill="none" stroke="#c8f169" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <g fill="#12121d" stroke="#c8f169" stroke-width="3"><circle cx="14" cy="150" r="5.5"/><circle cx="62" cy="124" r="5.5"/><circle cx="104" cy="112" r="5.5"/></g><circle cx="150" cy="96" r="7" fill="#c8f169"/>
+          <text x="150" y="80" fill="#fff" font-size="14" font-weight="800" text-anchor="middle">725</text>
+          <line x1="362" y1="14" x2="362" y2="156" stroke="#fff" stroke-width="2"/><text x="356" y="166" fill="#b9b9d0" font-size="12" font-weight="600" text-anchor="end">thi 20/12</text>
+        </svg>
+      </div>
+      <div class="w">
+        <div class="k">Việc hôm nay</div><h3>3 việc, 35 phút</h3>
+        <div class="li"><i></i>Ôn 3 câu sai đến hạn<span>5 phút</span></div>
+        <div class="li"><i></i>Bấm giờ Part 7<span>20 phút</span></div>
+        <div class="li"><i></i>Ôn 8 thẻ từ<span>10 phút</span></div>
+        <div class="btn">Bắt đầu</div>
+      </div>
+      <div class="w" style="background:var(--lilac);color:var(--ink);border-color:var(--lilac)">
+        <div class="k" style="color:#3d3566">Tuần này của bạn</div>
+        <div style="font:800 84px/1 'Bricolage Grotesque';letter-spacing:-3px;margin-top:10px">+35</div>
+        <div style="font-weight:700;font-size:15px;line-height:1.5;margin-top:8px">Kỷ lục mới 725.<br>Part 3 đúng thêm 4 câu.</div>
+        <div class="btn" style="background:var(--ink);color:#fff">Xem 5 thẻ</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="_mascot.js"></script>
+<script>
+mountMascots();
+let d='';for(let i=0;i<39;i++)d+=`<i></i>`;document.getElementById('dots').innerHTML=d;
+let p=[];for(let i=0;i<24;i++){const r=i%2?46:58,a=i*Math.PI/12;p.push((r*Math.cos(a)).toFixed(1)+','+(r*Math.sin(a)).toFixed(1))}document.getElementById('star').setAttribute('points',p.join(' '));
+</script>
+</body>
+</html>

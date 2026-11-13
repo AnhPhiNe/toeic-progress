@@ -1,0 +1,62 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B;--o:#F97316;--o50:#FFF7ED;--o200:#FED7AA;--blue:#2563EB}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);width:1440px;padding:28px 36px}
+h1{font-size:22px;font-weight:800}.lead{font-size:14px;color:var(--muted);margin:4px 0 22px}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border:2px solid var(--ink);border-radius:16px;box-shadow:3px 3px 0 var(--ink);margin-bottom:12px}
+.kpi div{padding:14px 22px;border-left:2px solid #E2E8F0}.kpi div:first-child{border-left:0}
+.kpi small{font-size:11px;font-weight:800;letter-spacing:.07em;color:var(--muted)}.kpi b{display:block;font-size:34px;font-weight:800;line-height:1.1;margin-top:2px}.kpi i{font-style:normal;font-size:13px;color:var(--muted);font-weight:600}
+.cap{font-size:12px;color:var(--muted);margin-bottom:26px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;align-items:start}
+.tag{font-size:13px;font-weight:800;margin-bottom:8px}.tag span{font-weight:600;color:var(--muted)}
+.card{background:var(--o50);border:2px solid var(--ink);border-radius:18px;padding:18px 20px}
+.top{display:flex;align-items:center;gap:12px}
+.flame{width:46px;height:46px}
+.n{font-size:38px;font-weight:800;line-height:1}.u{font-size:14px;font-weight:600;color:var(--muted);margin-left:6px}
+.rec{font-size:13px;color:var(--muted);font-weight:600;margin-top:4px}.rec b{color:var(--ink)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:16px;row-gap:4px}
+.c{width:28px;height:28px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-size:14px;font-weight:800;color:#fff}
+.done{background:var(--o);border:2px solid var(--ink)}.miss{background:#FFE4CC}.fut{background:#fff;border:2px solid var(--o200)}
+.now{background:#fff;border:2px dashed var(--o)}.pop{background:var(--o);border:2px solid var(--ink);box-shadow:0 0 0 4px #FDBA74;transform:scale(1.12)}
+.lb{font-size:11px;font-weight:700;color:#94A3B8}.lb.t{color:#EA580C}
+.banner{margin-top:14px;background:#FEF3C7;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.btn{border:2px solid var(--ink);border-radius:10px;background:var(--o);color:#fff;font-size:12px;font-weight:800;padding:6px 12px;box-shadow:2px 2px 0 var(--ink)}
+.pill{position:relative}.spark{position:absolute;font-size:16px}
+.grid12{display:grid;grid-template-rows:repeat(7,13px);grid-auto-flow:column;grid-auto-columns:13px;gap:4px;margin-top:16px}
+.grid12 i{border-radius:3px;background:#FFE9D6;display:block}
+.stats{display:flex;gap:26px;margin-top:14px;padding-top:12px;border-top:1.5px solid var(--o200);font-size:12px;color:var(--muted);font-weight:700}.stats b{display:block;font-size:18px;color:var(--ink);font-weight:800}
+.more{margin-top:12px;font-size:12px;font-weight:800;color:var(--blue)}
+.cal{margin-top:14px;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:14px 16px}
+.cal .h{display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:8px}
+.cal .g{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;font-weight:700}
+.cal .g span{height:26px;width:26px;margin:0 auto;display:grid;place-items:center;border-radius:50%;color:#94A3B8}.cal .g .on{background:var(--o);color:#fff;border:2px solid var(--ink)}.cal .g .w{color:var(--ink)}.cal .g .tn{border:2px dashed var(--o);color:var(--ink)}
+.cal .g .d{font-size:10px;color:#94A3B8;height:18px}
+</style>
+<h1>Tổng quan · khu chỉ số và streak, 3 phương án</h1>
+<p class="lead">Tất cả theo ngôn ngữ Neo đang dùng: viền ink 2px, bóng cứng, cam cho streak. Chưa đụng code app.</p>
+<div class="kpi"><div><small>KỶ LỤC</small><b>725 <i>/ 800đ</i></b><i>ETS 2024 Test 04 · thiếu 75đ</i></div><div><small>TRUNG BÌNH</small><b style="color:var(--blue)">675 <i>/ 800đ</i></b><i>4 đề · 620đ → 725đ</i></div><div><small>SO VỚI BÀI ĐẦU</small><b style="color:#059669">+105 <i>điểm</i></b><i>Từ bài đầu: 620đ → 725đ</i></div></div>
+<p class="cap">Khối KPI gộp: một khung, ba số chia bằng vạch mảnh (thay cho 3 thẻ riêng).</p>
+<div class="row" id="row"></div>
+<script>
+const flame=(on)=>`<svg class="flame" viewBox="0 0 24 24"><path d="M12 2c1 3.5 5 5.5 5 10.5A5 5 0 0 1 7 12.5c0-2 1-3 2-4 .3 1.2 1 2 1.8 2.2C10.5 8 10.8 4.5 12 2Z" fill="${on?'#F97316':'#E2E8F0'}" stroke="${on?'#0F172A':'#CBD5E1'}" stroke-width="1.5" stroke-linejoin="round"/>${on?'<path d="M12 12.5c1.6 1.2 2.4 2.2 2.4 3.4a2.4 2.4 0 0 1-4.8 0c0-1 .8-2 2.4-3.4Z" fill="#FED7AA"/>':''}</svg>`;
+const week=(pat,popIdx)=>{const L=['T2','T3','T4','T5','T6','T7','CN'];let c='',l='';pat.forEach((s,i)=>{const cls={d:'done',m:'miss',f:'fut',n:'now'}[s];c+=`<span class="c ${cls} ${i===popIdx?'pop':''}">${s==='d'?'✓':''}</span>`;l+=`<span class="lb ${s==='n'||i===popIdx?'t':''}">${i===popIdx||s==='n'?'Nay':L[i]}</span>`});return `<div class="days">${c}${l}</div>`};
+const head=(n,rec,on=true)=>`<div class="top">${flame(on)}<div><div><span class="n" style="color:${on?'#0F172A':'#94A3B8'}">${n}</span><span class="u">ngày liên tiếp</span></div><div class="rec">${rec}</div></div></div>`;
+let g='';const lv=['#FFE9D6','#FDBA74','#F97316','#C2410C'];for(let i=0;i<84;i++){const r=(Math.sin(i*12.9898)*43758.5453)%1;const v=Math.abs(r);const lvl=i>76?3:v>.72?3:v>.5?2:v>.3?1:0;g+=`<i style="background:${i>82?'#fff;border:2px solid #0F172A;box-sizing:border-box':lv[lvl]}"></i>`}
+let cal='<div class="g">'+['T2','T3','T4','T5','T6','T7','CN'].map(x=>`<span class="d">${x}</span>`).join('');
+for(let d=1;d<=30;d++){const off=(d+5)%7;const on=[2,3,5,6,7,9,10,12,13,14,15,16,17,19,21,22,23,24,26,27,28,29].includes(d);cal+=`<span class="${d===8?'tn':on?'on':d>8?'':'w'}">${d}</span>`}
+cal+='</div>';
+document.getElementById('row').innerHTML=`
+<div><div class="tag">A · Giữ thẻ hiện tại, thêm phản hồi <span>(mốc 7 ngày)</span></div>
+<div class="card">${head(7,'Kỷ lục <b>12 ngày</b> · còn 5 ngày để phá kỷ lục')}${week(['d','d','d','d','d','d','d'].map((x,i)=>i===6?'d':x),6)}
+<div class="banner"><span>Mốc mới: 7 ngày liên tiếp!</span><span class="btn">Tuyệt</span></div></div>
+<div class="rec" style="margin-top:8px">Lửa đổi trạng thái; vòng "Nay" bật lên có tích khi học xong; dòng mốc hiện một lần rồi tắt.</div></div>
+<div><div class="tag">B · Thêm lưới 12 tuần <span>(R2, kiểu GitHub)</span></div>
+<div class="card">${head(4,'Kỷ lục <b>12 ngày</b>')}${week(['m','d','d','d','n','f','f'],-1)}
+<div class="grid12">${g}</div><div class="stats"><div>Hiện tại<b>4 ngày</b></div><div>Kỷ lục<b>12 ngày</b></div><div>12 tuần qua<b>31 ngày</b></div></div></div>
+<div class="rec" style="margin-top:8px">Cho thấy nhịp học dài hạn; ô đậm dần theo lượng học trong ngày.</div></div>
+<div><div class="tag">C · Gọn, bấm để mở lịch tháng <span>(kiểu Quizlet)</span></div>
+<div class="card">${head(4,'Kỷ lục <b>12 ngày</b>')}${week(['m','d','d','d','n','f','f'],-1)}<div class="more">Xem lịch tháng 11 ▾</div>
+<div class="cal"><div class="h"><span>Tháng 11 / 2026</span><span style="color:var(--muted)">22 ngày học</span></div>${cal}</div></div>
+<div class="rec" style="margin-top:8px">Thẻ gọn khi đóng; đây là trạng thái đã mở.</div></div>`;
+</script></html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Điểm số: trục theo từng đề</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:32px 54px 30px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.top h1{font-weight:900;font-size:30px;letter-spacing:-.8px}
+.tabs{display:flex;background:#f1f3f1;border-radius:16px;padding:5px;gap:4px}
+.tabs span{font-weight:900;font-size:15px;padding:9px 18px;border-radius:12px;color:#5c675f}
+.tabs span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--line)}
+.tabs em{font-style:normal;font-weight:800;color:var(--mut);margin-left:6px}
+.hl{display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px}
+.hl small{font-weight:900;font-size:14px;color:#1269ad}
+.hl h2{font-weight:900;font-size:28px;letter-spacing:-.6px;line-height:1.2;margin-top:2px}
+.seg{display:flex;background:#f1f3f1;border-radius:99px;padding:4px;font-weight:800;font-size:14px}
+.seg span{padding:6px 16px;border-radius:99px;color:#5c675f}.seg span.on{background:var(--ink);color:#fff}
+svg text{font-family:'Nunito'}
+.scene{position:relative;margin-top:16px;height:620px;border-radius:30px;overflow:hidden;background:linear-gradient(#dff1ff,#f3faff 75%)}
+.scene>svg{position:absolute;inset:0;width:100%;height:100%}
+.sq{position:absolute;left:40px;top:526px;width:80px}.sq svg{display:block;width:100%}
+.bub{position:absolute;left:130px;top:548px;background:#fff;border-radius:18px 18px 18px 6px;padding:11px 16px;font-weight:700;font-size:14.5px;width:max-content;max-width:760px;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.bub b{font-weight:900}
+.bub .act{display:inline-block;margin-left:10px;font-weight:900;font-size:13.5px;border:2px solid var(--line);border-radius:10px;padding:3px 10px}
+.case{font-weight:900;font-size:13px;color:#fff;background:var(--ink);border-radius:99px;padding:4px 12px;margin-right:8px;vertical-align:3px}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv on"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+const TARGET=800,SHOW=8,GHOST=3;
+function draw(c){
+ const TARGET=c.target||800,LBL=c.part?`Mục tiêu ${c.part} ${TARGET}`:`Mục tiêu ${TARGET}`;
+ const all=c.tests,hidden=Math.max(0,all.length-SHOW),T=all.slice(hidden);
+ const n=T.length,x0=hidden?180:110,slot=(1010-x0)/(n+GHOST+0.6),X=i=>x0+i*slot;
+ // trend over shown tests (by index)
+ const m=T.length,mx=(m-1)/2,my=T.reduce((a,t)=>a+t.s,0)/m;let sxy=0,sxx=0;T.forEach((t,i)=>{sxy+=(i-mx)*(t.s-my);sxx+=(i-mx)**2});
+ const b=sxy/sxx,a=my-b*mx,sd=Math.sqrt(T.reduce((q,t,i)=>q+(t.s-(a+b*i))**2,0)/Math.max(1,m-2));
+ const at=i=>a+b*i,end=n-1+GHOST,sp=i=>sd*1.2+(i-(n-1))*6;
+ const dmax=Math.max(...T.map(t=>t.s)),far=TARGET-dmax>150;const lo=Math.min(...T.map(t=>t.s))-20,hi=far?Math.max(dmax,at(end))+40:Math.max(TARGET,at(end)+sp(end))+15;
+ const Y=s=>400-(s-lo)/(hi-lo)*350;
+ let g=`<path d="M0 520 Q200 495 420 515 T820 505 T1064 495 V620 H0Z" fill="#cdeed2"/><path d="M0 575 Q260 552 540 572 T1064 566 V620 H0Z" fill="#b6e3be"/>`;
+ // faint guides every 50
+ const span=hi-lo,step=[25,50,100].find(st=>span/st<=6)||100;for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){if(Math.abs(v-TARGET)<20)continue;g+=`<line x1="${hidden?150:80}" y1="${Y(v)}" x2="1010" y2="${Y(v)}" stroke="#2f3a33" stroke-opacity=".06" stroke-width="2"/><text x="${hidden?142:72}" y="${Y(v)+5}" font-weight="800" font-size="12.5" fill="#9aa69d" text-anchor="end">${v}</text>`}
+ // goal
+ if(far)g+=`<g><rect x="60" y="34" width="250" height="34" rx="17" fill="#fff"/><text x="185" y="57" font-weight="900" font-size="14.5" fill="#d9547a" text-anchor="middle">↑ ${LBL}, còn ${TARGET-dmax} điểm</text></g>`;
+ else g+=`<line x1="60" y1="${Y(TARGET)}" x2="${X(end)+96}" y2="${Y(TARGET)}" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/><text x="${hidden?150:60}" y="${Y(TARGET)-10}" font-weight="900" font-size="15" fill="#d9547a">${LBL}</text>`;
+ // future slots
+ const fx=X(n-1);
+ 
+ 
+ 
+ const kx=(TARGET-a)/b,hitK=b>0&&kx>n-1&&kx<=end?Math.ceil(kx-(n-1)):0;
+ for(let k=1;k<=GHOST;k++){const x=X(n-1+k);const v=at(n-1+k),r=sp(n-1+k);g+=`${k===hitK?`<circle cx="${x}" cy="${Y(v)}" r="11" fill="#fff" stroke="#ff7a9c" stroke-width="5"/><rect x="${x-(x>950?150:74)}" y="${Y(v)-56}" width="148" height="32" rx="16" fill="#2f3a33"/><text x="${x-(x>950?76:0)}" y="${Y(v)-35}" fill="#fff" font-weight="900" font-size="14.5" text-anchor="middle">Chạm ${TARGET} ở đây</text>`:''}${k===hitK?`<text x="${x}" y="446" font-weight="900" font-size="13.5" fill="#d9547a" text-anchor="middle">${k} đề nữa</text>`:''}`}
+
+ // exam flag
+ 
+ g+=`<line x1="${X(end)+96}" y1="60" x2="${X(end)+96}" y2="400" stroke="#5c675f" stroke-width="5" stroke-linecap="round"/><path d="M${X(end)+98} 62 L${X(end)+54} 78 L${X(end)+98} 94Z" fill="#ff7a9c"/><rect x="${X(end)+44}" y="402" width="104" height="54" rx="16" fill="#ff7a9c"/><text x="${X(end)+96}" y="425" font-weight="900" font-size="15" fill="#fff" text-anchor="middle">Thi 20/12</text><text x="${X(end)+96}" y="444" font-weight="800" font-size="12.5" fill="#fff" text-anchor="middle" opacity=".9">còn 38 ngày</text>`;
+ // axis baseline
+ g+=`<line x1="${hidden?150:80}" y1="420" x2="${fx+slot*.4}" y2="420" stroke="#c9d6cc" stroke-width="2"/>`;
+ if(hidden)g+=`<g><rect x="40" y="404" width="82" height="32" rx="16" fill="#fff" stroke="#d5dcd6" stroke-width="2"/><text x="81" y="425" font-weight="900" font-size="13.5" fill="#5c675f" text-anchor="middle">+${hidden} đề</text></g>`;
+ // line + points
+ g+=`<polyline points="${T.map((t,i)=>X(i)+','+Y(t.s)).join(' ')}" fill="none" stroke="#ffc83d" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>`;
+ // date labels grouped by same day
+ let i=0;while(i<n){let j=i;while(j+1<n&&T[j+1].d===T[i].d)j++;const cx=(X(i)+X(j))/2;
+  if(j>i){g+=`<path d="M${X(i)} 428 V434 H${X(j)} V428" fill="none" stroke="#9fb3a5" stroke-width="2"/><text x="${cx}" y="452" font-weight="900" font-size="13.5" fill="#3f5a45" text-anchor="middle">${T[i].d}</text><text x="${cx}" y="469" font-weight="800" font-size="12.5" fill="#7a857e" text-anchor="middle">${j-i+1} đề cùng ngày</text>`}
+  else g+=`<text x="${cx}" y="446" font-weight="${i===n-1?900:800}" font-size="13.5" fill="${i===n-1?'#2f3a33':'#5c6b60'}" text-anchor="middle">${T[i].d}</text>`;
+  i=j+1}
+ T.forEach((t,k)=>{const last=k===n-1,prev=T[k-1],dn=prev&&t.s<prev.s;
+  g+=`<circle cx="${X(k)}" cy="${Y(t.s)}" r="${last?13:10}" fill="${last?'#46b35a':'#fff'}" stroke="${last?'#fff':'#d99a00'}" stroke-width="5"/>`;
+  g+=`<text x="${X(k)}" y="${Y(t.s)+(dn?32:-20)}" font-weight="900" font-size="${last?21:16}" fill="#2f3a33" text-anchor="middle">${t.s}</text>`;
+  if(t.re)g+=`<g><rect x="${X(k)-84}" y="${Y(t.s)+(dn?17:-36)}" width="60" height="22" rx="11" fill="#efeaff"/><text x="${X(k)-54}" y="${Y(t.s)+(dn?32:-21)}" font-weight="900" font-size="12" fill="#6a4fd0" text-anchor="middle">làm lại</text></g>`;
+ });
+ return `<div class="page"><aside class="side">${SIDE}</aside><main>
+ <div class="top"><h1>Hành trình điểm</h1><div class="tabs"><span class="on">Điểm số</span><span>Từng Part</span><span>Các đề<em>${all.length}</em></span></div></div>
+ <div class="hl"><div><small><span class="case">${c.tag}</span>Mình có kịp không?</small><h2>${c.autoH?(hitK?`${c.part}: khoảng ${hitK} đề nữa bạn chạm ${TARGET}`:`${c.part}: theo đà này, ngày thi bạn khoảng ${Math.round(at(end))}`):c.h}</h2></div><div class="seg"><span class="${c.part?'':'on'}">Tổng</span><span class="${c.part==='Nghe'?'on':''}">Nghe</span><span class="${c.part==='Đọc'?'on':''}">Đọc</span></div></div>
+ <div class="scene"><svg viewBox="0 0 1064 620">${g}</svg><span class="sq" data-s="idle"></span><div class="bub">${c.bub}</div></div></main></div>`}
+const CASES=[
+ {tag:'Tab Nghe',part:'Nghe',target:410,autoH:1,tests:[{d:'12/10',s:310},{d:'22/10',s:330},{d:'30/10',s:350},{d:'06/11',s:365},{d:'09/11',s:360},{d:'09/11',s:380},{d:'11/11',s:390,re:1}],bub:'Mình chia mục tiêu 800 theo điểm hiện tại của bạn: <b>Nghe 410, Đọc 390</b>.<span class="act">Đổi</span>'},
+ {tag:'Tab Đọc',part:'Đọc',target:390,autoH:1,tests:[{d:'12/10',s:310},{d:'22/10',s:335},{d:'30/10',s:340},{d:'06/11',s:360},{d:'09/11',s:350},{d:'09/11',s:360},{d:'11/11',s:375,re:1}],bub:'Đọc lên chậm hơn Nghe. Tab <b>Từng Part</b> cho biết Part nào kéo điểm Đọc lại.'},
+ {tag:'Mới bắt đầu, mục tiêu còn xa',h:'Bạn đã lên 70 điểm sau 4 đề, cứ giữ đà nhé',tests:[{d:'20/10',s:450},{d:'27/10',s:475},{d:'03/11',s:495},{d:'10/11',s:520}],bub:'Mục tiêu còn xa nên mình ghim nó ở mép trên, để đường điểm của bạn không bị ép xuống đáy.'},
+ {tag:'7 đề, có 2 đề cùng ngày và 1 đề làm lại',h:'Giữ đà này, khoảng 2 đề nữa bạn chạm 800, trước ngày thi',
+  tests:[{d:'12/10',s:620},{d:'22/10',s:665},{d:'30/10',s:690},{d:'06/11',s:725},{d:'09/11',s:710},{d:'09/11',s:740},{d:'11/11',s:765,re:1}],
+  bub:'Đề 11/11 là <b>Test 03 làm lại</b>, bạn đã gặp câu hỏi rồi nên điểm có thể cao hơn thực tế một chút.'},
+ {tag:'14 đề, chỉ hiện 8 đề gần nhất',h:'Giữ đà này, khoảng 3 đề nữa bạn chạm 800, trước ngày thi',
+  tests:[{d:'20/09',s:560},{d:'24/09',s:575},{d:'28/09',s:590},{d:'02/10',s:600},{d:'07/10',s:610},{d:'12/10',s:620},{d:'18/10',s:650},{d:'22/10',s:665},{d:'26/10',s:680},{d:'30/10',s:690},{d:'03/11',s:705},{d:'06/11',s:725},{d:'09/11',s:740},{d:'11/11',s:760}],
+  bub:'Biểu đồ chỉ hiện 8 đề gần nhất cho dễ nhìn. Bấm <b>+6 đề</b> hoặc tab <b>Các đề</b> để xem hết.'}];
+document.getElementById('out').innerHTML=CASES.map(draw).join('');
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+document.querySelectorAll('.page').forEach((p,i)=>p.id='d'+(i+1));
+</script>
+</body>
+</html>

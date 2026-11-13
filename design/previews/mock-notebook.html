@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sổ tay</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--pinkl:#fff0f4;--pinkd:#d6416a;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;position:relative;overflow:hidden}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--pinkl);border-color:#ffc7d5;color:var(--pinkd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.wh{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.btn.big{font-size:18px;padding:16px 30px;border-radius:16px}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:40px 56px 40px}
+.top{display:flex;justify-content:space-between;align-items:flex-end}
+h1{font-weight:900;font-size:38px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:16px;color:var(--mut);margin-top:2px}
+.seg{display:flex;background:#f1f3f1;border-radius:16px;padding:5px;gap:4px}
+.seg span{font-weight:900;font-size:15.5px;padding:10px 18px;border-radius:12px;color:#5c675f}
+.seg span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--line)}
+.seg em{font-style:normal;font-weight:800;color:var(--mut);margin-left:6px}
+.hero{margin-top:22px;background:var(--pinkl);border-radius:30px;padding:24px 36px;display:grid;grid-template-columns:1fr 190px;gap:24px;align-items:center}
+.hero h2{font-weight:900;font-size:34px;letter-spacing:-1px;line-height:1.1;margin-bottom:6px}
+.hero p{font-weight:700;font-size:16px;color:#7a5a63;line-height:1.5;max-width:620px}
+.hero .btn{margin-top:20px}
+.hero .s svg{display:block;width:100%}
+.frow{display:flex;gap:10px;margin-top:24px;align-items:center}
+.dd{display:flex;align-items:center;gap:6px;font-weight:800;font-size:14.5px;color:var(--mut);border:2px solid var(--line);border-radius:14px;padding:9px 14px}.dd b{font-weight:900;color:var(--ink)}.dd i{font-style:normal;color:var(--mut);margin-left:2px}
+.sel{font-weight:900;font-size:15px;border:2px solid var(--line);border-radius:14px;padding:9px 16px;box-shadow:0 3px 0 var(--line)}.sel i{font-style:normal;color:var(--mut);margin-left:6px}
+.seg.sm span{font-size:14.5px;padding:7px 14px}
+.search{flex:1;font-weight:700;font-size:15px;color:#a3aca5;border:2px solid var(--line);border-radius:14px;padding:9px 16px}
+.filters{display:flex;gap:8px;margin-top:12px;align-items:center}
+.f{font-weight:800;font-size:14.5px;padding:7px 14px;border-radius:99px;border:2px solid var(--line);color:#5c675f}
+.f.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.fl{font-weight:800;font-size:13.5px;color:var(--mut);margin-right:4px}
+.rows{margin-top:12px}
+.r{display:grid;grid-template-columns:96px 1fr 140px 150px;align-items:center;gap:16px;padding:12px 6px;border-bottom:2px solid #f0f2f0}
+.pill{justify-self:start;font-weight:900;font-size:14px;padding:4px 12px;border-radius:99px;background:#efeaff;color:#6a4fd0}
+.q b{display:block;font-weight:800;font-size:15.5px}
+.q span{font-weight:700;font-size:13.5px;color:var(--mut)}
+.why{justify-self:start;font-weight:900;font-size:13.5px;padding:4px 11px;border-radius:99px}
+.why.v{background:#e6f3fd;color:#136fb3}.why.gr{background:#fff3d1;color:#a87a00}.why.inf{background:#efeaff;color:#6a4fd0}
+.due{font-weight:800;font-size:14px;color:var(--mut)}.due.now{color:var(--pinkd)}
+/* review */
+.rev{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;padding:34px 60px;background:#fffafb}
+.fbar{width:100%;display:flex;justify-content:space-between;align-items:center}
+.fbar .t{font-weight:900;font-size:20px}.fbar .t span{font-weight:800;color:var(--mut);font-size:16px;margin-left:8px}
+.x{font-weight:900;font-size:15px;color:#5c675f;background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px 14px}
+.prog{width:100%;height:12px;border-radius:99px;background:#f3e3e8;margin-top:18px;overflow:hidden}.prog i{display:block;height:100%;width:33%;background:var(--pink);border-radius:99px}
+.card{width:820px;background:#fff;border:2px solid var(--line);border-radius:28px;padding:30px 36px;margin-top:34px}
+.card small{font-weight:800;font-size:14px;color:var(--mut)}
+.card .qq{font-weight:800;font-size:22px;line-height:1.45;margin:8px 0 18px}
+.card .qq u{text-decoration:none;border-bottom:3px solid #d0d5d0;padding:0 26px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.o{border:2px solid var(--line);border-radius:16px;padding:12px 16px;font-weight:800;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.o em{font-style:normal;font-weight:900;font-size:13px;padding:3px 10px;border-radius:99px}
+.o.bad{border-color:#ffc7d5;background:var(--pinkl)}.o.bad em{background:#fff;color:var(--pinkd)}
+.o.ok{border-color:#a9dfb3;background:var(--gl)}.o.ok em{background:#fff;color:var(--gd)}
+.ex{margin-top:18px;background:#f6f8f6;border-radius:18px;padding:16px 20px;display:grid;grid-template-columns:70px 1fr;gap:14px;align-items:center}
+.ex .s svg{display:block;width:100%}
+.ex p{font-weight:700;font-size:16px;line-height:1.5}.ex b{font-weight:900}
+.racts{display:flex;gap:14px;margin-top:26px}.racts .btn{min-width:200px}
+.hint{margin-top:12px;font-weight:700;font-size:14px;color:var(--mut)}
+/* word cards */
+.wgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}
+.w{border:2px solid var(--line);border-radius:24px;padding:20px 22px}
+.w .wd{display:flex;justify-content:space-between;align-items:baseline}
+.w b{font-weight:900;font-size:24px;letter-spacing:-.4px}
+.w .ipa{font-weight:700;font-size:14px;color:var(--mut)}
+.w .mn{font-weight:800;font-size:16px;margin-top:4px}
+.w .ctx{margin-top:12px;background:#f6f8f6;border-radius:14px;padding:10px 14px;font-weight:700;font-size:14.5px;line-height:1.45;color:#4d5850}
+.w .ctx strong{font-weight:900;color:var(--ink)}
+.w .src{margin-top:10px;font-weight:800;font-size:13px;color:var(--mut);display:flex;justify-content:space-between}
+.w .src .due.now{font-size:13px}
+/* detail */
+main.dt{padding:30px 56px}
+.back{font-weight:900;font-size:15px;color:var(--mut)}
+.dtop{display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px}
+.meta{display:flex;gap:10px;align-items:center;margin-top:8px}
+.chipx{font-weight:900;font-size:13.5px;padding:4px 11px;border-radius:99px;background:#f1f3f1;color:#4d5850}
+.dgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:26px;margin-top:20px}
+.psg{background:#f6f8f6;border-radius:18px;padding:16px 18px;font-weight:700;font-size:15.5px;line-height:1.55;color:#4d5850}
+.psg mark{background:#fff3d1;color:var(--ink);font-weight:900;padding:0 3px;border-radius:5px}
+.qq2{font-weight:900;font-size:19px;margin:16px 0 10px}
+.dgrid .o{font-size:15.5px;margin-bottom:8px;padding:10px 14px}
+.an{border:2px solid var(--line);border-radius:24px;padding:6px 22px}
+.sec{padding:10px 0;border-bottom:2px solid #f0f2f0;font-weight:700;font-size:14.5px;line-height:1.45;color:#3f4a43}
+.sec:last-child{border-bottom:0}
+.sec b{display:block;font-weight:900;font-size:13px;color:var(--mut);margin-bottom:1px}
+.sec.tip b{color:var(--pinkd)}
+.tr{margin-top:10px;padding-top:10px;border-top:2px dashed #dfe4df;font-weight:700;font-size:14.5px;color:var(--mut);line-height:1.5}.tr b{color:#4d5850}
+.an{border:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.box{border:2px solid var(--line);border-radius:20px;padding:16px 20px}
+.box h4{font-weight:900;font-size:16.5px;margin-bottom:6px}
+.box p{font-weight:700;font-size:15.5px;line-height:1.55;color:#3f4a43}.box p b{font-weight:900;color:var(--ink)}
+.box.why2{background:var(--pinkl);border-color:#ffd3de}.box.why2 h4{color:var(--pinkd)}
+.pp{display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;gap:8px}
+.pp small{display:block;font-weight:800;font-size:13px;color:var(--mut);margin-bottom:4px}
+.pp span.y,.pp span.gg{display:block;font-weight:800;font-size:15px;line-height:1.4;border-radius:12px;padding:8px 12px}
+.pp .y{background:#fff3d1}.pp .gg{background:var(--gl);color:var(--gd)}
+.arr{font-weight:900;font-size:22px;color:var(--mut);text-align:center}
+.words{display:flex;gap:10px;flex-wrap:wrap}.words span{background:#f6f8f6;border-radius:12px;padding:8px 14px;font-weight:700;font-size:15px;color:#4d5850}.words b{font-weight:900;color:var(--ink);margin-right:8px}
+.tipl{font-weight:700;font-size:15px;line-height:1.5;color:#7a5a00;background:#fff8e1;border-radius:16px;padding:12px 18px}.tipl b{font-weight:900}
+.psg.big{font-size:19px;font-weight:800;color:var(--ink);line-height:1.6}
+.blank{display:inline-block;width:90px;border-bottom:3px solid #c9cfc9;vertical-align:-2px}.blank.sm{width:60px}
+.pat{margin-bottom:12px}.pat span{display:inline-block;font-weight:800;font-size:15.5px;border-radius:12px;padding:8px 12px}.pat .y{background:#fff3d1}
+.pat small{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:6px}
+.pp2{display:grid;grid-template-columns:.6fr 1.4fr;gap:10px}
+.pp2 small{display:block;font-weight:800;font-size:13px;color:var(--mut);margin-bottom:4px}
+.pp2 span{display:block;font-weight:800;font-size:15px;border-radius:12px;padding:8px 12px}.pp2 .gg{background:var(--gl);color:var(--gd)}.pp2 .y{background:#fff3d1}
+.cap{margin-top:10px;font-size:14.5px!important}
+.dgrid .o.o2{align-items:flex-start;padding:10px 14px}
+.o2 b{display:block;font-weight:800;font-size:15.5px}
+.o2 .vn{display:block;font-weight:700;font-size:14px;color:var(--mut);margin-top:1px}
+.o2 .no{display:block;font-weight:700;font-size:14px;color:var(--ink);margin-top:8px;background:#f3f5f8;border-left:4px solid #9aa6b8;border-radius:8px;padding:6px 10px}
+.o2 .no b{display:inline;font-weight:900;font-size:14px;color:#56637a;margin-right:4px}
+.o2 em{margin-top:1px;flex:none;margin-left:10px}
+.o2>div{flex:1}
+.saved{font-weight:700;font-size:14.5px;color:var(--mut);padding:2px 4px}.saved b{color:var(--ink);font-weight:900}
+.o2 .vni{font-weight:700;font-size:14.5px;color:var(--mut);margin-left:10px}
+.o2 .pos{display:inline-block;font-weight:900;font-size:12.5px;color:#56637a;background:#eef1f6;border-radius:6px;padding:1px 7px;margin-left:10px;vertical-align:1px}
+.o2 .pos + .vni{margin-left:8px}
+/* empty */
+.empty{margin-top:40px;background:var(--pinkl);border-radius:34px;padding:44px 50px;display:grid;grid-template-columns:260px 1fr;gap:40px;align-items:center}
+.empty .s svg{display:block;width:100%}
+.empty h2{font-weight:900;font-size:36px;letter-spacing:-1px;line-height:1.15}
+.empty p{font-weight:700;font-size:17px;color:#7a5a63;line-height:1.55;margin-top:10px;max-width:640px}
+.steps{display:flex;gap:12px;margin-top:22px}
+.st{background:#fff;border-radius:18px;padding:12px 16px;font-weight:800;font-size:14.5px;color:#5c675f;flex:1}
+.st b{display:block;font-weight:900;font-size:22px;color:var(--pinkd)}
+.empty .acts{display:flex;gap:14px;margin-top:26px;align-items:center}
+.small{font-weight:700;font-size:14px;color:var(--mut);margin-top:22px}
+</style>
+</head>
+<body>
+
+<!-- 1. Câu sai -->
+<div class="page" id="p1">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="top"><div><h1>Sổ tay</h1><div class="lead">Câu sai và từ mới Sóc gom từ các trang chữa bài bạn chụp.</div></div>
+      <div class="seg"><span class="on">Câu sai<em>23</em></span><span>Thẻ từ<em>41</em></span></div></div>
+    <div class="hero">
+      <div><h2>6 câu đến hạn ôn hôm nay</h2>
+        <p>Toàn câu Part 7 và Part 5 từ đề 06/11. Ôn xong là giữ được chuỗi 7 ngày.</p>
+        <span class="btn g big">Ôn 6 câu, khoảng 5 phút</span></div>
+      <span class="s" data-s="idle"></span>
+    </div>
+    <div class="frow"><div class="seg sm"><span class="on">Tất cả<em>23</em></span><span>Cần ôn<em>6</em></span><span>Đã thuộc<em>9</em></span></div>
+      <span class="dd">Đề<b>Tất cả</b><i>▾</i></span><span class="dd">Part<b>Tất cả</b><i>▾</i></span><span class="dd">Lý do<b>Tất cả</b><i>▾</i></span>
+      <span class="search">Tìm câu hỏi, mẹo…</span></div>
+    <div class="rows">
+      <div class="r"><span class="pill">Part 5</span><div class="q"><b>The manager asked all staff to ___ the new safety guidelines.</b><span>Câu 112 · ETS 2024 Test 04</span></div><span class="why gr">Ngữ pháp</span><span class="due now">ôn hôm nay</span></div>
+      <div class="r"><span class="pill">Part 7</span><div class="q"><b>What is suggested about Ms. Tran?</b><span>Câu 176 · ETS 2024 Test 04</span></div><span class="why v">Từ vựng</span><span class="due now">ôn hôm nay</span></div>
+      <div class="r"><span class="pill">Part 5</span><div class="q"><b>Applicants must submit their résumés ___ Friday.</b><span>Câu 118 · ETS 2024 Test 04</span></div><span class="why v">Từ vựng</span><span class="due now">ôn hôm nay</span></div>
+      <div class="r"><span class="pill">Part 7</span><div class="q"><b>The word "covered" in paragraph 2 is closest in meaning to</b><span>Câu 183 · ETS 2024 Test 03</span></div><span class="why v">Từ vựng</span><span class="due">ôn 15/11</span></div>
+    </div>
+  </main>
+</div>
+
+<!-- 2. Đang ôn -->
+<div class="page" id="p2">
+  <div class="rev">
+    <div class="fbar"><div class="t">Ôn câu sai<span>2 / 6</span></div><span class="x">× Thoát</span></div>
+    <div class="prog"><i></i></div>
+    <div class="card">
+      <small>Part 5 · Câu 112 · ETS 2024 Test 04</small>
+      <div class="qq">The manager asked all staff to <u></u> the new safety guidelines.</div>
+      <div class="opts">
+        <div class="o bad">(A) comply<em>bạn chọn</em></div>
+        <div class="o ok">(B) follow<em>đáp án</em></div>
+        <div class="o">(C) adhere</div>
+        <div class="o">(D) insist</div>
+      </div>
+      <div class="ex"><span class="s" data-s="idle"></span><p><b>comply</b> và <b>adhere</b> phải đi kèm giới từ (comply <b>with</b>, adhere <b>to</b>). Chỗ trống đứng ngay trước tân ngữ nên cần động từ không cần giới từ: <b>follow</b>.</p></div>
+    </div>
+    <div class="racts"><span class="btn wh big">Vẫn chưa chắc</span><span class="btn g big">Hiểu rồi</span></div>
+    <div class="hint">"Hiểu rồi" thì 4 ngày sau hỏi lại, "Vẫn chưa chắc" thì ngày mai. <b style="color:var(--pinkd)">Xem phân tích đầy đủ</b></div>
+  </div>
+</div>
+
+<!-- 3. Thẻ từ -->
+<div class="page" id="p3">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="top"><div><h1>Sổ tay</h1><div class="lead">Câu sai và từ mới Sóc gom từ các trang chữa bài bạn chụp.</div></div>
+      <div class="seg"><span>Câu sai<em>23</em></span><span class="on">Thẻ từ<em>41</em></span></div></div>
+    <div class="hero">
+      <div><h2>12 thẻ từ đến hạn</h2>
+        <p>Mỗi thẻ là một từ làm bạn sai câu, kèm đúng câu gốc trong đề.</p>
+        <span class="btn g big">Ôn 12 thẻ</span></div>
+      <span class="s" data-s="idle"></span>
+    </div>
+    <div class="wgrid">
+      <div class="w"><div class="wd"><b>comply with</b><span class="ipa">/kəmˈplaɪ/</span></div><div class="mn">tuân theo</div>
+        <div class="ctx">All visitors must <strong>comply with</strong> the security rules.</div>
+        <div class="src"><span>Câu 112 · Test 04</span><span class="due now">ôn hôm nay</span></div></div>
+      <div class="w"><div class="wd"><b>covered</b><span class="ipa">/ˈkʌvərd/</span></div><div class="mn">chi trả (chi phí)</div>
+        <div class="ctx">Travel expenses will be <strong>covered</strong> by the company.</div>
+        <div class="src"><span>Câu 183 · Test 03</span><span class="due now">ôn hôm nay</span></div></div>
+      <div class="w"><div class="wd"><b>no later than</b><span class="ipa">/noʊ ˈleɪtər ðæn/</span></div><div class="mn">chậm nhất là</div>
+        <div class="ctx">Submit the form <strong>no later than</strong> Friday.</div>
+        <div class="src"><span>Câu 118 · Test 04</span><span class="due">ôn 16/11</span></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- 4. Chưa có gì -->
+<div class="page" id="p4">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="top"><div><h1>Sổ tay</h1><div class="lead">Câu sai và từ mới Sóc gom từ các trang chữa bài bạn chụp.</div></div>
+      <div class="seg"><span class="on">Câu sai<em>0</em></span><span>Thẻ từ<em>0</em></span></div></div>
+    <div class="empty">
+      <span class="s" data-s="idle"></span>
+      <div>
+        <h2>Sổ tay còn trống</h2>
+        <p>Chụp trang chữa bài của Part sai nhiều nhất. Sóc tự đọc câu sai, ghi lý do và tách từ mới thành thẻ. Bạn không cần gõ gì.</p>
+        <div class="steps">
+          <div class="st"><b>1</b>Mở trang chữa bài Part 7 của đề 06/11</div>
+          <div class="st"><b>2</b>Chụp 2 trang, dán vào đây</div>
+          <div class="st"><b>3</b>Sóc gom câu sai và từ mới, báo khi xong</div>
+        </div>
+        <div class="acts"><span class="btn g big">Chụp trang chữa bài</span><span class="btn wh">Thêm một câu bằng tay</span></div>
+        <div class="small">Hiện chỉ đọc được phần Đọc (Part 5 đến 7). Mỗi lần chụp dùng 1 lượt đọc ảnh, bạn còn 9 lượt.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<!-- 5. Chi tiết một câu -->
+<div class="page" id="p5">
+  <aside class="side" data-side></aside>
+  <main class="dt">
+    <div class="back">← Sổ tay</div>
+    <div class="dtop"><div><h1 style="font-size:32px">Câu 176, Part 7</h1><div class="meta"><span class="chipx">ETS 2024 Test 04</span><span class="chipx">Câu hỏi suy luận</span><span class="why v">Từ vựng</span><span class="due now">Cần ôn · ôn hôm nay</span></div></div>
+      <div style="display:flex;gap:10px"><span class="btn wh">Xem ảnh gốc</span><span class="btn wh">Sửa</span></div></div>
+    <div class="dgrid">
+      <div>
+        <div class="psg">… Ms. Tran, who joined our Hanoi office last spring, <mark>will lead the new client training program</mark> starting in June. …<div class="tr"><b>Dịch:</b> Chị Tran, vào văn phòng Hà Nội từ mùa xuân năm ngoái, sẽ phụ trách chương trình đào tạo khách hàng mới từ tháng 6.</div></div>
+        <div class="qq2">What is suggested about Ms. Tran?</div>
+        <div class="o bad o2"><div><b>(A) She recently moved to Hanoi.</b><span class="vn">Chị mới chuyển tới Hà Nội.</span></div><em>bạn chọn</em></div>
+        <div class="o  o2"><div><b>(B) She has worked at the company for ten years.</b><span class="vn">Chị đã làm ở công ty mười năm.</span><span class="no"><b>Loại vì</b> bài không nhắc chị làm bao lâu.</span></div></div>
+        <div class="o ok o2"><div><b>(C) She will take on a new responsibility.</b><span class="vn">Chị sẽ đảm nhận một trách nhiệm mới.</span></div><em>đáp án</em></div>
+        <div class="o  o2"><div><b>(D) She organized last year's training.</b><span class="vn">Chị đã tổ chức khoá đào tạo năm ngoái.</span><span class="no"><b>Loại vì</b> bài nói chương trình mới từ tháng 6, không nói năm ngoái.</span></div></div>
+</div>
+      <div class="an">
+        <div class="box why2"><h4>Vì sao bạn sai</h4><p>(A) lặp lại chữ <b>"Hanoi"</b> trong bài để bẫy. Bài chỉ nói chị vào <b>văn phòng</b> Hà Nội, không nói chị mới chuyển tới đó.</p></div>
+        <div class="box"><h4>Đáp án đến từ đâu</h4>
+          <div class="pp"><div><small>Trong bài</small><span class="y">will lead the new client training program</span></div><span class="arr">→</span><div><small>Đáp án viết lại</small><span class="gg">take on a new responsibility</span></div></div></div>
+        <div class="box"><h4>Từ cần nhớ</h4><div class="words"><span><b>take on</b>đảm nhận</span><span><b>lead</b>phụ trách</span></div></div>
+        <div class="tipl"><b>Mẹo:</b> câu "suggested" thường có đáp án viết lại bằng chữ khác. Cẩn thận đáp án lặp đúng chữ trong bài.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 6. Câu 112, Part 5 -->
+<div class="page" id="p6">
+  <aside class="side" data-side></aside>
+  <main class="dt">
+    <div class="back">← Sổ tay</div>
+    <div class="dtop"><div><h1 style="font-size:32px">Câu 112, Part 5</h1><div class="meta"><span class="chipx">ETS 2024 Test 04</span><span class="chipx">Câu hỏi ngữ pháp</span><span class="why gr">Ngữ pháp</span><span class="due now">Cần ôn · ôn hôm nay</span></div></div>
+      <div style="display:flex;gap:10px"><span class="btn wh">Xem ảnh gốc</span><span class="btn wh">Sửa</span></div></div>
+    <div class="dgrid">
+      <div><div class="psg big">The manager asked all staff to <span class="blank"></span> the new safety guidelines.<div class="tr"><b>Dịch:</b> Quản lý yêu cầu toàn bộ nhân viên ____ các hướng dẫn an toàn mới.</div></div>
+        <div class="qq2">Chọn từ điền vào chỗ trống</div>
+        <div class="o bad o2"><div><b>(A) comply<span class="vni">tuân theo</span></b></div><em>bạn chọn</em></div>
+        <div class="o ok o2"><div><b>(B) follow<span class="vni">làm theo</span></b></div><em>đáp án</em></div>
+        <div class="o  o2"><div><b>(C) adhere<span class="vni">tuân thủ</span></b><span class="no"><b>Loại vì</b> cũng cần giới từ: adhere to.</span></div></div>
+        <div class="o  o2"><div><b>(D) insist<span class="vni">khăng khăng</span></b><span class="no"><b>Loại vì</b> sai nghĩa, lại cần giới từ: insist on.</span></div></div>
+</div>
+      <div class="an"><div class="box why2"><h4>Vì sao bạn sai</h4><p><b>comply</b> đúng nghĩa "tuân theo", nhưng phải đi với giới từ: comply <b>with</b> the guidelines. Chỗ trống đứng ngay trước tân ngữ, không có chỗ cho "with".</p></div>
+        <div class="box"><h4>Nhìn ngay sau chỗ trống</h4>
+          <div class="pat"><span class="y">to ____ the new safety guidelines</span><small>sau chỗ trống là tân ngữ, không có giới từ</small></div>
+          <div class="pp2"><div><small>Đi thẳng với tân ngữ</small><span class="gg">follow</span></div><div><small>Cần giới từ đi kèm</small><span class="y">comply with · adhere to · insist on</span></div></div></div>
+        <div class="saved">Đã thêm 3 từ vào Thẻ từ: <b>comply with</b>, <b>adhere to</b>, <b>insist on</b></div>
+        <div class="tipl"><b>Mẹo:</b> bốn đáp án cùng nghĩa thì đừng chọn theo nghĩa. Nhìn chữ ngay sau chỗ trống xem có giới từ hay không.</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- 7. Câu 139, Part 6 -->
+<div class="page" id="p7">
+  <aside class="side" data-side></aside>
+  <main class="dt">
+    <div class="back">← Sổ tay</div>
+    <div class="dtop"><div><h1 style="font-size:32px">Câu 139, Part 6</h1><div class="meta"><span class="chipx">ETS 2024 Test 04</span><span class="chipx">Câu hỏi từ nối</span><span class="why gr">Ngữ pháp</span><span class="due">Cần ôn · ôn 16/11</span></div></div>
+      <div style="display:flex;gap:10px"><span class="btn wh">Xem ảnh gốc</span><span class="btn wh">Sửa</span></div></div>
+    <div class="dgrid">
+      <div><div class="psg">Starting next month, all expense reports will be submitted through our new online system. <mark>The system automatically checks each report for missing receipts.</mark> <span class="blank sm"></span>, managers will spend less time reviewing paperwork.<div class="tr"><b>Dịch:</b> Từ tháng sau, mọi báo cáo chi phí sẽ nộp qua hệ thống trực tuyến mới. Hệ thống tự kiểm tra từng báo cáo có thiếu hoá đơn không. ____, quản lý sẽ mất ít thời gian xem giấy tờ hơn.</div></div>
+        <div class="qq2">Chọn từ nối điền vào chỗ trống</div>
+        <div class="o bad o2"><div><b>(A) However<span class="vni">tuy nhiên</span></b></div><em>bạn chọn</em></div>
+        <div class="o ok o2"><div><b>(B) As a result<span class="vni">do đó, vì vậy</span></b></div><em>đáp án</em></div>
+        <div class="o  o2"><div><b>(C) Otherwise<span class="vni">nếu không thì</span></b><span class="no"><b>Loại vì</b> dùng để nói hậu quả khi điều trước không xảy ra.</span></div></div>
+        <div class="o  o2"><div><b>(D) Instead<span class="vni">thay vào đó</span></b><span class="no"><b>Loại vì</b> dùng khi thay việc này bằng việc khác.</span></div></div>
+</div>
+      <div class="an"><div class="box why2"><h4>Vì sao bạn sai</h4><p><b>However</b> dùng khi câu sau <b>ngược ý</b> câu trước. Ở đây câu sau là lợi ích nối tiếp từ câu trước, không có gì trái ngược.</p></div>
+        <div class="box"><h4>Đáp án đến từ đâu</h4>
+          <div class="pp"><div><small>Câu ngay trước</small><span class="y">The system automatically checks each report</span></div><span class="arr">→</span><div><small>Câu có chỗ trống</small><span class="gg">managers will spend less time</span></div></div>
+          <p class="cap">Hệ thống làm việc thay → quản lý đỡ việc. Đây là <b>nguyên nhân → kết quả</b>, nên chọn <b>As a result</b>.</p></div>
+        <div class="saved">Đã thêm 3 từ vào Thẻ từ: <b>As a result</b>, <b>However</b>, <b>Otherwise</b></div>
+        <div class="tipl"><b>Mẹo:</b> câu từ nối ở Part 6, đọc câu ngay trước chỗ trống và tự hỏi: hai câu cùng chiều hay ngược chiều?</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- 8. Part 5 từ loại -->
+<div class="page" id="p8">
+  <aside class="side" data-side></aside>
+  <main class="dt">
+    <div class="back">← Sổ tay</div>
+    <div class="dtop"><div><h1 style="font-size:32px">Câu 104, Part 5</h1><div class="meta"><span class="chipx">ETS 2024 Test 04</span><span class="chipx">Câu hỏi từ loại</span><span class="why gr">Ngữ pháp</span><span class="due now">Cần ôn · ôn hôm nay</span></div></div>
+      <div style="display:flex;gap:10px"><span class="btn wh">Xem ảnh gốc</span><span class="btn wh">Sửa</span></div></div>
+    <div class="dgrid">
+      <div><div class="psg big">The hotel offers comfortable <span class="blank"></span> for business travelers.<div class="tr"><b>Dịch:</b> Khách sạn cung cấp ____ thoải mái cho khách đi công tác.</div></div>
+        <div class="qq2">Chọn từ điền vào chỗ trống</div>
+        <div class="o  o2"><div><b>(A) accommodate<span class="pos">v</span><span class="vni">chứa được, đáp ứng</span></b><span class="no"><b>Loại vì</b> động từ không đứng ngay sau tính từ "comfortable".</span></div></div>
+        <div class="o ok o2"><div><b>(B) accommodations<span class="pos">n</span><span class="vni">chỗ ở</span></b></div><em>đáp án</em></div>
+        <div class="o bad o2"><div><b>(C) accommodating<span class="pos">adj</span><span class="vni">dễ chịu, chiều khách</span></b></div><em>bạn chọn</em></div>
+        <div class="o  o2"><div><b>(D) accommodatingly<span class="pos">adv</span><span class="vni">một cách chiều khách</span></b><span class="no"><b>Loại vì</b> trạng từ không làm tân ngữ cho "offers".</span></div></div></div>
+      <div class="an">
+        <div class="box why2"><h4>Vì sao bạn sai</h4><p><b>accommodating</b> là <b>tính từ</b>. Chỗ trống đứng sau tính từ "comfortable" nên cần một <b>danh từ</b> để nó bổ nghĩa.</p></div>
+        <div class="box"><h4>Nhìn quanh chỗ trống</h4>
+          <div class="pat"><span class="y">offers comfortable ____ for</span><small>trước là tính từ, sau là giới từ: chỗ trống là danh từ</small></div>
+          <div class="pp2"><div><small>Cần</small><span class="gg">danh từ (n)</span></div><div><small>Chỉ một đáp án là danh từ</small><span class="gg">accommodations</span></div></div></div>
+        <div class="saved">Đã thêm vào Thẻ từ: <b>accommodations</b></div>
+        <div class="tipl"><b>Mẹo:</b> bốn đáp án cùng một gốc từ là câu hỏi từ loại. Không cần dịch, chỉ nhìn từ ngay trước và ngay sau chỗ trống.</div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv on"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+document.querySelectorAll('[data-side]').forEach(e=>e.innerHTML=SIDE);
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+</script>
+</body>
+</html>
