@@ -1,0 +1,41 @@
+/* Ôn câu sai on computers (design/previews/mock-notebook.html, screen 2) */
+.rv { position: fixed; inset: 0; z-index: 60; background: #fffafb; overflow-y: auto; padding: 32px 60px 40px; display: flex; flex-direction: column; align-items: center; }
+.rv button { font-family: var(--rd-font); }
+.rv-bar { align-self: stretch; display: flex; justify-content: space-between; align-items: center; }
+.rv-bar b { font-weight: 900; font-size: 20px; }
+.rv-bar span { font-weight: 800; font-size: 15px; color: var(--rd-mut); margin-left: 8px; }
+.rv-x { background: #fff; border: 2px solid var(--rd-line); border-radius: 12px; padding: 7px 14px; font-weight: 900; font-size: 14px; color: #5c675f; cursor: pointer; }
+.rv-prog { align-self: stretch; height: 12px; border-radius: 99px; background: #f6dde4; margin-top: 20px; overflow: hidden; }
+.rv-prog i { display: block; height: 100%; border-radius: 99px; background: var(--rd-pink); transition: width .3s; }
+.rv-card { width: min(820px, 100%); margin-top: 34px; background: #fff; border: 2px solid #f1e6ea; border-radius: 28px; padding: 28px 34px 30px; }
+.rv-card > small { font-weight: 800; font-size: 13.5px; color: var(--rd-mut); }
+.rv-ctx { margin-top: 12px; background: #f7f7f7; border-radius: 16px; padding: 14px 18px; font-weight: 700; font-size: 15.5px; line-height: 1.65; white-space: pre-line; }
+.rv-q { font-weight: 900; font-size: 21px; line-height: 1.4; margin-top: 12px; }
+.rv-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.rv-o { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left; border: 2px solid var(--rd-line); background: #fff; border-radius: 16px; padding: 12px 16px; font-weight: 800; font-size: 16px; color: var(--rd-ink); cursor: pointer; position: relative; transition: border-color .15s, background .15s; }
+.rv-o:hover:not(:disabled) { border-color: #ffc2d1; background: #fff8fa; }
+.rv-o:disabled { cursor: default; }
+.rv-o > span { padding-right: 70px; }
+.rv-o b { font-weight: 900; }
+.rv-o em { position: absolute; right: 12px; top: 11px; font-style: normal; font-weight: 900; font-size: 12.5px; background: #fff; border-radius: 99px; padding: 2px 9px; }
+.rv-o small { font-weight: 700; font-size: 13.5px; color: var(--rd-mut); }
+.rv-o.is-ok { border-color: #a8dcb2; background: #e9f7ec; }
+.rv-o.is-ok em { color: var(--rd-green-d); }
+.rv-o.is-bad { border-color: #ffc2d1; background: #fff0f4; }
+.rv-o.is-bad em { color: #d6416a; }
+.rv-o.is-dim { opacity: .75; }
+.rv-show { margin-top: 18px; }
+.rv-plain { margin-top: 16px; font-weight: 800; font-size: 16px; }
+.rv-ex { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; margin-top: 18px; background: #f5f7f5; border-radius: 18px; padding: 12px 20px 12px 12px; }
+.rv-ex p { font-weight: 700; font-size: 15.5px; line-height: 1.6; color: #3f4a43; white-space: pre-line; }
+.rv-ex b { font-weight: 900; color: var(--rd-green-d); }
+.rv-acts { display: flex; gap: 16px; margin-top: 26px; }
+.rv-acts .rd-btn { min-width: 200px; font-size: 17px; padding: 15px 26px; }
+.rv-hint { margin-top: 14px; font-weight: 700; font-size: 13.5px; color: var(--rd-mut); text-align: center; }
+.rv-hint button { border: 0; background: none; font-weight: 900; font-size: 13.5px; color: #d6416a; cursor: pointer; margin-left: 6px; }
+.rv-err { margin-top: 12px; color: #c23c63; font-weight: 800; }
+.rv-done { margin: auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.rv-done h2 { font-weight: 900; font-size: 40px; letter-spacing: -1px; }
+.rv-done p { font-weight: 700; font-size: 16px; color: #5c675f; margin-bottom: 14px; }
+.rv-done b { font-weight: 900; color: var(--rd-ink); }
+@media (prefers-reduced-motion: reduce) { .rv-prog i { transition: none; } }

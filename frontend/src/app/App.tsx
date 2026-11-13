@@ -4,6 +4,7 @@ import { RdSidebar } from '@/app/components/RdSidebar';
 import { TodayPage } from '@/features/today/components/TodayPage';
 import { JourneyPage } from '@/features/journey/components/JourneyPage';
 import { PracticePage } from '@/features/pacing/components/PracticePage';
+import { ReviewSession } from '@/features/mistakes/components/ReviewSession';
 import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -711,8 +712,9 @@ export const App: React.FC = () => {
         onSignIn={() => { setAISignInOpen(false); void account.signInGoogle(); }} />}
 
       {reviewCards && (
-        <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}
+        isPhone ? <ReviewModal cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake}
           onReload={id => loadMistakes().find(m => m.id === id && canReview(m))} />
+          : <ReviewSession cards={reviewCards} onClose={() => setReviewCards(null)} onGrade={handleGradeMistake} />
       )}
 
       <SettingsModal
