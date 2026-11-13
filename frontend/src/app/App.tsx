@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { generateUUID } from '@/shared/domain/uuid';
-import { Sidebar } from '@/app/components/Sidebar';
+import { RdSidebar } from '@/app/components/RdSidebar';
 import { Topbar } from '@/app/components/Topbar';
 import { MobileNav } from '@/app/components/MobileNav';
 import { profileInitials } from '@/app/components/profileInitials';
@@ -436,17 +436,14 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
       
       {/* 1. Sidebar (Desktop Persistent & Mobile Overlay Drawer Unified) */}
-      <Sidebar
+      <RdSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         profile={profile}
-        pendingMistakesCount={dueMistakesCount}
-        unfinishedDetailsCount={unfinishedDetails}
-        sessions={sessions}
-        hasStudiedToday={hasStudiedToday}
+        dueMistakesCount={dueMistakesCount}
+        streak={profile.currentStreak}
+        onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
-        theme={theme}
-        onToggleTheme={toggleTheme}
       />
 
       {/* 2. Main Content View Area (Right) */}

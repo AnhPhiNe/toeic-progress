@@ -1,0 +1,53 @@
+/* Port of design/previews/_soc.css, scoped under .soc */
+/* ---- motion: every layer has its own rhythm ---- */
+.soc{display:inline-block;line-height:0}.soc svg{overflow:visible;width:100%;height:auto}.soc :is(.body,.head,.tail,.earL,.earR,.lid,.look,.wave,.nut,.all,.toss,.shadow,.cf,.tear,.z1,.z2){transform-box:fill-box}
+.soc .body{transform-origin:50% 100%;animation:soc-breathe 3.2s ease-in-out infinite}
+.soc .head{transform-origin:50% 95%;animation:soc-bob 3.2s ease-in-out -.5s infinite}
+.soc .tail{transform-origin:8% 96%;animation:soc-tail 2.7s cubic-bezier(.45,0,.55,1) infinite}
+.soc .earL{transform-origin:70% 100%;animation:soc-twitch 5.5s ease-in-out infinite}
+.soc .earR{transform-origin:30% 100%;animation:soc-twitchR 5.5s ease-in-out -2.1s infinite}
+.soc .lid{transform-origin:50% 50%;animation:soc-blink 6.3s infinite}
+.soc .look{animation:soc-look 8s ease-in-out infinite}
+.soc .wave{transform-origin:50% 50%;animation:soc-wave 3.6s ease-in-out infinite}
+.soc .s-hi .head{animation:soc-hitilt 3.6s ease-in-out infinite}
+@keyframes soc-hitilt{0%,10%,76%,100%{transform:rotate(-1deg)}24%,62%{transform:translateY(1px) rotate(4deg)}}
+.soc .nut{transform-origin:50% 50%;animation:soc-nibble 4.4s ease-in-out infinite}
+@keyframes soc-breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.022,.978)}}
+@keyframes soc-bob{0%,100%{transform:translateY(0) rotate(-1.4deg)}50%{transform:translateY(2.5px) rotate(1.6deg)}}
+@keyframes soc-tail{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(7deg)}}
+@keyframes soc-twitch{0%,76%,100%{transform:rotate(0)}80%{transform:rotate(-16deg)}84%{transform:rotate(2deg)}88%{transform:rotate(-9deg)}93%{transform:rotate(0)}}
+@keyframes soc-twitchR{0%,76%,100%{transform:rotate(0)}80%{transform:rotate(16deg)}84%{transform:rotate(-2deg)}88%{transform:rotate(9deg)}93%{transform:rotate(0)}}
+@keyframes soc-blink{0%,45%,49.5%,54%,100%{transform:scaleY(1)}47%,51.5%{transform:scaleY(.08)}}
+@keyframes soc-look{0%,18%,100%{transform:translate(0,0)}24%,46%{transform:translate(3px,-1px)}54%,78%{transform:translate(-3px,0)}86%{transform:translate(0,0)}}
+@keyframes soc-wave{0%,8%,78%,100%{transform:rotate(112deg)}20%{transform:rotate(-14deg)}30%{transform:rotate(14deg)}40%{transform:rotate(-12deg)}50%{transform:rotate(14deg)}60%{transform:rotate(-6deg)}}
+@keyframes soc-nibble{0%,60%,100%{transform:translateY(0) rotate(0)}66%{transform:translateY(-5px) rotate(-6deg)}72%{transform:translateY(-3px) rotate(4deg)}78%{transform:translateY(-5px) rotate(-4deg)}86%{transform:translateY(0) rotate(0)}}
+/* celebrate: anticipation, jump, landing squash */
+.soc .s-yay .all{transform-origin:50% 100%;animation:soc-jump 1.5s cubic-bezier(.3,0,.3,1) infinite}
+.soc .s-yay .tail{animation:soc-tailfast .5s ease-in-out infinite}
+.soc .s-yay .toss{animation:soc-toss 1.5s cubic-bezier(.3,0,.3,1) infinite}
+.soc .s-yay .shadow{transform-origin:50% 50%;animation:soc-shadow 1.5s cubic-bezier(.3,0,.3,1) infinite}
+.soc .s-yay .cf{animation:soc-pop 1.5s ease-out infinite}
+@keyframes soc-jump{0%,100%{transform:translateY(0) scale(1,1)}12%{transform:translateY(0) scale(1.08,.9)}40%{transform:translateY(-30px) scale(.95,1.07)}62%{transform:translateY(0) scale(1.1,.88)}76%{transform:translateY(0) scale(.98,1.03)}}
+@keyframes soc-tailfast{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(10deg)}}
+@keyframes soc-toss{0%,12%,62%,100%{transform:translateY(0) rotate(0)}40%{transform:translateY(-30px) rotate(200deg)}}
+@keyframes soc-shadow{0%,12%,62%,100%{transform:scale(1)}40%{transform:scale(.72)}}
+@keyframes soc-pop{0%,10%{opacity:0;transform:translateY(10px) scale(.4)}35%{opacity:1;transform:translateY(-14px) scale(1)}80%,100%{opacity:0;transform:translateY(10px) scale(.8)}}
+.soc .s-think .head{animation:soc-ponder 3.4s ease-in-out infinite}
+.soc .d1,.soc .d2,.soc .d3{transform-box:fill-box;animation:soc-dot 1.2s ease-in-out infinite}.soc .d2{animation-delay:.15s}.soc .d3{animation-delay:.3s}
+@keyframes soc-ponder{0%,100%{transform:rotate(5deg)}50%{transform:translateY(2px) rotate(9deg)}}
+@keyframes soc-dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-9px)}}
+/* sad: slow, heavy */
+.soc .s-sad .body{animation-duration:5s}.soc .s-sad .head{animation:soc-droop 5s ease-in-out infinite}
+.soc .s-sad .tail{animation:soc-taillow 5s ease-in-out infinite}.soc .s-sad .earL,.soc .s-sad .earR{animation:none}
+.soc .s-sad .tear{animation:soc-tear 3.4s ease-in infinite}
+@keyframes soc-droop{0%,100%{transform:translateY(3px) rotate(-3deg)}50%{transform:translateY(6px) rotate(-5deg)}}
+@keyframes soc-taillow{0%,100%{transform:rotate(16deg)}50%{transform:rotate(20deg)}}
+@keyframes soc-tear{0%,40%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(26px)}}
+/* sleep */
+.soc .s-zzz .body{animation:soc-deep 4.4s ease-in-out infinite}.soc .s-zzz .head{animation:soc-nod 4.4s ease-in-out infinite}
+.soc .s-zzz .tail{animation:soc-taillow 6s ease-in-out infinite}.soc .s-zzz .earL,.soc .s-zzz .earR{animation:none}
+.soc .s-zzz .z1{animation:soc-zz 4.4s linear infinite}.soc .s-zzz .z2{animation:soc-zz 4.4s linear -2.2s infinite}
+@keyframes soc-deep{0%,100%{transform:scale(1,1)}50%{transform:scale(1.04,.96)}}
+@keyframes soc-nod{0%,100%{transform:translateY(4px) rotate(5deg)}50%{transform:translateY(8px) rotate(9deg)}}
+@keyframes soc-zz{0%{opacity:0;transform:translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translate(16px,-40px) scale(1.2)}}
+@media (prefers-reduced-motion:reduce){.soc svg *{animation:none!important}}
