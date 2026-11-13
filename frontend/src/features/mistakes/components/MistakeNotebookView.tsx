@@ -416,13 +416,15 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     const dueTests = uniqueTestNames(dueList.map(m => m.sourceTestName));
     const pendingGroups = groupDetailAttempts(desktopPending, sessions);
     const empty = mistakes.length === 0;
+    const pickedFilters = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL');
+    const partsPresent = [...new Set(sourcedMistakes.map(m => m.part))].sort();
     const statusTabs: Array<['ALL' | 'DUE' | 'MASTERED', string, number]> = [['ALL', 'Tất cả', stats.total], ['DUE', 'Cần ôn', stats.due], ['MASTERED', 'Đã thuộc', stats.mastered]];
     return (
       <div className="rd nb-page">
         <div className="nb-top">
           <div><h1>Sổ tay</h1><p>Câu sai và từ mới Sóc gom từ các trang chữa bài bạn chụp.</p></div>
           <div className="nb-tabs" role="tablist" aria-label="Sổ tay">
-            <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{stats.total}</em></button>
+            <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{sourcedMistakes.length}</em></button>
             <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>0</em></button>
           </div>
         </div>
@@ -477,29 +479,52 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <div className="nb-tools">
               <div className="nb-seg" role="group" aria-label="Trạng thái">
                 {statusTabs.map(([id, label, count]) => (
-                  <button key={id} type="button" aria-pressed={selectedStatus === id} onClick={() => { setSelectedStatus(id); setPage(1); }}>{label}<em>{count}</em></button>
+                  <button key={id} type="button" aria-pressed={selectedStatus === id} className={id === 'DUE' ? 'is-due' : undefined} onClick={() => { setSelectedStatus(id); setPage(1); }}>{label}<em>{count}</em></button>
                 ))}
               </div>
-              <label className="nb-sel"><span>Đề</span>
-                <select value={selectedTest} onChange={e => { setSelectedTest(e.target.value); setPage(1); }}>
-                  <option value="ALL">Tất cả</option>
-                  {initialSourceNames && initialSourceNames.length > 1 && <option value="SCOPE">Các đề đang xem</option>}
-                  {filterSourceNames.map(name => <option key={name} value={`test:${testNameKey(name)}`}>{name}</option>)}
-                  <option value="NONE">Chưa gắn đề</option>
-                </select></label>
-              <label className="nb-sel"><span>Part</span>
-                <select value={String(selectedPart)} onChange={e => { setSelectedPart(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value)); setPage(1); }}>
-                  <option value="ALL">Tất cả</option>
-                  {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>Part {n}</option>)}
-                </select></label>
-              <label className="nb-sel"><span>Lý do</span>
-                <select value={selectedCategory} onChange={e => { setSelectedCategory(e.target.value as ErrorCategory | 'ALL'); setPage(1); }}>
-                  <option value="ALL">Tất cả</option>
-                  {(Object.keys(ERROR_CATEGORY_LABELS) as ErrorCategory[]).map(c => <option key={c} value={c}>{categoryShort(c)}</option>)}
-                </select></label>
-              <input className="nb-search" type="search" value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} placeholder="Tìm câu hỏi, mẹo…" aria-label="Tìm trong Sổ tay" />
-              <button type="button" className="nb-add" onClick={openCreate} aria-label="Thêm câu sai" title="Thêm câu sai">+</button>
+              <span className="nb-sp" />
+              <label className="nb-search">
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="M11 11 L14.5 14.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+                <input type="search" value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} placeholder="Tìm câu hỏi, mẹo…" aria-label="Tìm trong Sổ tay" />
+              </label>
+              <div className="nb-fwrap" ref={filterRef}>
+                <button type="button" className={'nb-fbtn' + (pickedFilters ? ' is-on' : '')} aria-expanded={filterOpen} onClick={() => setFilterOpen(o => !o)}>
+                  <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M1 2 H15 M4 7 H12 M6.5 12 H9.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
+                  Lọc{pickedFilters > 0 && <b>{pickedFilters}</b>}
+                </button>
+                {filterOpen && (
+                  <div className="nb-pop" role="dialog" aria-label="Bộ lọc">
+                    <h5>ĐỀ</h5>
+                    <div className="nb-cs">
+                      <button type="button" aria-pressed={selectedTest === 'ALL'} onClick={() => { setSelectedTest('ALL'); setPage(1); }}>Tất cả</button>
+                      {initialSourceNames && initialSourceNames.length > 1 && <button type="button" aria-pressed={selectedTest === 'SCOPE'} onClick={() => { setSelectedTest('SCOPE'); setPage(1); }}>Các đề đang xem</button>}
+                      {filterSourceNames.map(name => { const v = `test:${testNameKey(name)}`; return <button key={name} type="button" aria-pressed={selectedTest === v} onClick={() => { setSelectedTest(v); setPage(1); }}>{name}</button>; })}
+                      <button type="button" aria-pressed={selectedTest === 'NONE'} onClick={() => { setSelectedTest('NONE'); setPage(1); }}>Chưa gắn đề</button>
+                    </div>
+                    <h5>PART</h5>
+                    <div className="nb-cs">
+                      <button type="button" aria-pressed={selectedPart === 'ALL'} onClick={() => { setSelectedPart('ALL'); setPage(1); }}>Tất cả</button>
+                      {partsPresent.map(n => <button key={n} type="button" aria-pressed={selectedPart === n} onClick={() => { setSelectedPart(n); setPage(1); }}>{n}</button>)}
+                    </div>
+                    <h5>LÝ DO SAI</h5>
+                    <div className="nb-cs">
+                      <button type="button" aria-pressed={selectedCategory === 'ALL'} onClick={() => { setSelectedCategory('ALL'); setPage(1); }}>Tất cả</button>
+                      {(Object.keys(ERROR_CATEGORY_LABELS) as ErrorCategory[]).map(c => <button key={c} type="button" aria-pressed={selectedCategory === c} onClick={() => { setSelectedCategory(c); setPage(1); }}>{categoryShort(c)}</button>)}
+                    </div>
+                    <div className="nb-pft"><span>{filteredMistakes.length} câu khớp</span><button type="button" onClick={() => setFilterOpen(false)}>Xong</button></div>
+                  </div>
+                )}
+              </div>
+              <button type="button" className="nb-add" onClick={openCreate}>+ Thêm câu sai</button>
             </div>
+            {pickedFilters > 0 && (
+              <div className="nb-chips">
+                {selectedTest !== 'ALL' && <button type="button" onClick={() => { setSelectedTest('ALL'); setPage(1); }} aria-label="Bỏ lọc đề">Đề {selectedTest === 'NONE' ? 'chưa gắn' : selectedTest === 'SCOPE' ? 'đang xem' : defaultSourceName}<i>×</i></button>}
+                {selectedPart !== 'ALL' && <button type="button" onClick={() => { setSelectedPart('ALL'); setPage(1); }} aria-label="Bỏ lọc Part">Part {selectedPart}<i>×</i></button>}
+                {selectedCategory !== 'ALL' && <button type="button" onClick={() => { setSelectedCategory('ALL'); setPage(1); }} aria-label="Bỏ lọc lý do">{categoryShort(selectedCategory)}<i>×</i></button>}
+                <button type="button" className="nb-clear" onClick={() => { setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedCategory('ALL'); setPage(1); }}>Bỏ lọc</button>
+              </div>
+            )}
 
             {visibleMistakes.length ? (
               <ul className="nb-rows">
