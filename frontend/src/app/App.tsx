@@ -451,7 +451,8 @@ export const App: React.FC = () => {
   // Hành trình điểm replaces Lịch sử thi + Phân tích on computers.
   const showJourney = (activeTab === 'history' || activeTab === 'analytics') && !isPhone;
   const showPractice = activeTab === 'exam-mode' && !isPhone && !pomodoroOpen;
-  const fullPage = showToday || showJourney || showPractice;
+  const showNotebook = activeTab === 'mistakes' && !isPhone;
+  const fullPage = showToday || showJourney || showPractice || showNotebook;
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
@@ -544,7 +545,7 @@ export const App: React.FC = () => {
           />
         ) : (
         /* Body Container */
-        <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 lg:pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-5 lg:pb-6 flex flex-col min-h-0">
+        <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className={showNotebook ? 'flex-1 w-full flex flex-col min-h-0' : "flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 lg:pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-5 lg:pb-6 flex flex-col min-h-0"}>
           {activeTab === 'dashboard' && (
             <div className="w-full space-y-3 sm:space-y-4">
               {showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
