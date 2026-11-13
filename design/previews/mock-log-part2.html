@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--pinkd:#d6416a;--pinkl:#ffe1e9;--vio:#a78bfa;--viod:#7c5ce0;--viol:#f1ecff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#eef0ee;padding:36px 40px}
+h1{font-weight:900;font-size:30px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15px;color:var(--mut);margin-top:4px;max-width:1200px}
+.cols{display:grid;grid-template-columns:repeat(3,440px);gap:36px;margin-top:24px}
+.ttl{display:flex;align-items:center;gap:10px;font-weight:900;font-size:19px;margin-bottom:12px}
+.ttl i{font-style:normal;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:15px}
+.ttl small{font-weight:700;font-size:13px;color:var(--mut)}
+.m{background:#fff;border-radius:26px;padding:20px 22px;box-shadow:0 8px 0 rgba(47,58,51,.07);height:560px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.mh b{font-weight:900;font-size:21px}
+.x{width:34px;height:34px;border-radius:11px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900}
+.seg{display:flex;gap:4px;background:#f1f3f1;border-radius:13px;padding:4px;margin-bottom:16px}.seg span{flex:1;text-align:center;font-weight:800;font-size:14px;color:#5c675f;padding:8px 0;border-radius:10px}.seg .on{background:#fff;color:var(--ink);font-weight:900;box-shadow:0 2px 0 rgba(47,58,51,.1)}
+.parts{display:flex;gap:6px}
+.parts span{flex:1;height:44px;border-radius:14px;background:#f6f8f6;display:grid;place-items:center;font-weight:900;font-size:17px;color:#7a857e}
+.parts span.on{background:var(--vio);color:#fff;box-shadow:0 3px 0 var(--viod);transform:translateY(-2px)}
+.parts em{font-style:normal;flex:none;width:44px;height:44px;border-radius:14px;border:2px dashed var(--line);display:grid;place-items:center;font-weight:900;color:var(--mut)}
+.lab{font-weight:900;font-size:12.5px;color:var(--mut);letter-spacing:.3px;margin:18px 0 6px}
+.big1{display:flex;align-items:center;justify-content:center;gap:18px}
+.pm{width:54px;height:54px;border-radius:18px;background:#fff;border:2px solid var(--line);box-shadow:0 4px 0 var(--line);display:grid;place-items:center;font-weight:900;font-size:26px}
+.pm.p{background:var(--pink);border-color:var(--pink);color:#fff;box-shadow:0 4px 0 var(--pinkd)}
+.num1{text-align:center;min-width:110px}
+.num1 b{display:block;font-weight:900;font-size:64px;letter-spacing:-2px;line-height:1;color:var(--pinkd);border-bottom:3px dashed #f5bccb;padding-bottom:2px}
+.num1 small{font-weight:900;font-size:13px;color:var(--mut)}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.btn{font-weight:900;font-size:15.5px;border-radius:15px;padding:12px 20px;background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.meta{display:flex;align-items:center;gap:10px;font-weight:800;font-size:13.5px;color:var(--mut)}
+.tchip{background:#f6f8f6;border-radius:99px;padding:6px 12px;font-weight:900;color:#5c675f}
+/* A: split bar */
+.sb{margin-top:22px}
+.sb .hd{display:flex;align-items:baseline;justify-content:space-between}
+.sb .hd b{font-weight:900;font-size:24px}.sb .hd b small{font-size:14px;color:var(--mut);font-weight:800;margin-left:4px}
+.sb .hd span{font-weight:900;font-size:22px;color:var(--viod)}
+.bar{display:flex;height:16px;border-radius:99px;overflow:hidden;margin-top:8px;gap:3px}
+.bar i{display:block;height:100%}
+.bar .c{background:linear-gradient(90deg,#c4b2fd,#a78bfa)}
+.bar .w{background:var(--pink)}
+.leg{display:flex;justify-content:space-between;margin-top:6px;font-weight:800;font-size:12.5px;color:var(--mut)}
+.leg em{font-style:normal;color:var(--pinkd);font-weight:900}
+/* B: dots answer strip */
+.dots{display:grid;grid-template-columns:repeat(18,1fr);gap:4px;margin-top:20px}
+.dots i{aspect-ratio:1;border-radius:5px;background:#e6defe}
+.dots i.w{background:var(--pink);box-shadow:0 2px 0 var(--pinkd)}
+.dsum{display:flex;align-items:baseline;justify-content:center;gap:8px;margin-top:12px}
+.dsum b{font-weight:900;font-size:26px}.dsum span{font-weight:800;font-size:14px;color:var(--mut)}
+.dsum em{font-style:normal;background:var(--viol);color:var(--viod);border-radius:99px;padding:3px 10px;font-weight:900;font-size:14px}
+/* C: Sóc reacts */
+.sr{display:flex;align-items:flex-end;gap:12px;margin-top:20px}
+.sr .soc-s{width:92px;flex:none}.sr .soc-s svg{display:block;width:100%}
+.bub{position:relative;flex:1;background:#f6f2ff;border-radius:18px 18px 18px 6px;padding:12px 16px;margin-bottom:22px}
+.bub::before{content:'';position:absolute;left:-8px;bottom:0;border:8px solid transparent;border-right-color:#f6f2ff;border-bottom-color:#f6f2ff}
+.bub b{display:block;font-weight:900;font-size:26px;line-height:1.05}
+.bub b small{font-size:14px;color:var(--mut);font-weight:800;margin-left:4px}
+.bub span{font-weight:800;font-size:14px;color:#6a4fd0}
+</style></head>
+<body>
+<h1>Bài luyện Part · thay khung tím chứa vòng tròn</h1>
+<div class="lead">Giữ nguyên phần chọn Part và đếm câu sai. Đổi cách hiện kết quả: không còn một khung tím riêng, kết quả nối liền với con số câu sai ngay bên trên. Thời gian chuyển xuống chân form cạnh nút Lưu.</div>
+<div class="cols">
+
+<div><div class="ttl"><i>A</i>Thanh đúng/sai<small>một thanh, hai màu</small></div>
+ <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+  <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+  <div class="parts"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span><em>+</em></div>
+  <div class="lab">BẠN SAI MẤY CÂU?</div>
+  <div class="big1"><span class="pm">−</span><div class="num1"><b>6</b><small>câu sai · bấm số để gõ</small></div><span class="pm p">+</span></div>
+  <div class="sb"><div class="hd"><b>48<small>/54 câu đúng</small></b><span>89%</span></div>
+   <div class="bar"><i class="c" style="flex:48"></i><i class="w" style="flex:6"></i></div>
+   <div class="leg"><span>đúng</span><em>6 sai</em></div></div>
+  <div class="foot"><span class="meta"><span class="tchip">⏱ 22 phút</span>Thêm ghi chú</span><span class="btn">Lưu bài luyện</span></div></div></div>
+
+<div><div class="ttl"><i>B</i>Dải câu<small>mỗi chấm là một câu của Part</small></div>
+ <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+  <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+  <div class="parts"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span><em>+</em></div>
+  <div class="lab">BẠN SAI MẤY CÂU?</div>
+  <div class="big1"><span class="pm">−</span><div class="num1"><b>6</b><small>câu sai · bấm số để gõ</small></div><span class="pm p">+</span></div>
+  <div class="dots" id="dB"></div>
+  <div class="dsum"><b>48/54</b><span>câu đúng</span><em>89%</em></div>
+  <div class="foot"><span class="meta"><span class="tchip">⏱ 22 phút</span>Thêm ghi chú</span><span class="btn">Lưu bài luyện</span></div></div></div>
+
+<div><div class="ttl"><i>C</i>Sóc nhận xét<small>Sóc đổi dáng theo kết quả</small></div>
+ <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+  <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+  <div class="parts"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span><em>+</em></div>
+  <div class="lab">BẠN SAI MẤY CÂU?</div>
+  <div class="big1"><span class="pm">−</span><div class="num1"><b>6</b><small>câu sai · bấm số để gõ</small></div><span class="pm p">+</span></div>
+  <div class="sr"><span class="soc-s" id="sC"></span><div class="bub"><b>48<small>/54 câu đúng</small></b><span>89% · Part 7 vững rồi đó!</span></div></div>
+  <div class="foot"><span class="meta"><span class="tchip">⏱ 22 phút</span>Thêm ghi chú</span><span class="btn">Lưu bài luyện</span></div></div></div>
+
+</div>
+<script src="_soc.js"></script>
+<script>
+document.getElementById('dB').innerHTML=Array.from({length:54},(_,k)=>`<i class="${k>=48?'w':''}"></i>`).join('');
+document.getElementById('sC').innerHTML=soc('idle');
+</script>
+</body></html>

@@ -147,7 +147,7 @@
 /* ---- Bài luyện Part v2 (mock-log-part.html, hướng 1; fixed Part size) ---- */
 .rdw-parts { display: flex; gap: 6px; }
 .rdw-parts button { flex: 1; height: 48px; border: 0; border-radius: 14px; background: #f6f8f6; font: 900 18px var(--rd-font); color: #7a857e; cursor: pointer; transition: transform .1s, background .15s; }
-.rdw-parts button:hover:not(:disabled) { background: #efeaff; color: var(--rd-violet-d); }
+.rdw-parts button:hover:not(:disabled):not(.is-on) { background: #efeaff; color: var(--rd-violet-d); }
 .rdw-parts button.is-on { background: var(--rd-violet); color: #fff; box-shadow: 0 3px 0 var(--rd-violet-d); transform: translateY(-2px); }
 .rdw-parts.is-adding button:not(.is-on):not(.rdw-add) { box-shadow: inset 0 0 0 2px #d6ccfb; background: #fff; }
 .rdw-parts button:disabled { cursor: default; }
@@ -178,3 +178,18 @@
 .rdw-res b { display: block; font-weight: 900; font-size: 26px; line-height: 1; }
 .rdw-res small { font-weight: 800; font-size: 13px; color: var(--rd-mut); }
 .rdw-res .rdp-time { margin-left: auto; background: #fff; }
+
+/* ---- Sóc nhận xét, one stage (mock-log-part4.html, C1) ---- */
+.rdw-stage { position: relative; border-radius: 24px; background: linear-gradient(160deg, #f7f3ff 0%, #efe8ff 100%); padding: 16px 18px 0; overflow: hidden; }
+.rdw-q { font-weight: 900; font-size: 12.5px; color: #8a78c9; letter-spacing: .4px; text-align: center; margin-bottom: 4px; }
+.rdw-stage .rdw-num small { color: #8a78c9; }
+.rdw-stage .rdp-grid .rdw-card { background: #fff; box-shadow: 0 3px 0 rgba(124, 92, 224, .1); }
+.rdw-say { display: flex; align-items: flex-end; gap: 6px; margin-top: 12px; }
+.rdw-soc { flex: none; margin-bottom: -14px; }
+.rdw-bubble { position: relative; flex: 1; background: #fff; border-radius: 20px 20px 20px 6px; padding: 13px 16px 14px; margin-bottom: 20px; box-shadow: 0 4px 0 rgba(124, 92, 224, .12); }
+.rdw-bubble::before { content: ''; position: absolute; left: -9px; bottom: 0; border: 9px solid transparent; border-right-color: #fff; border-bottom-color: #fff; }
+.rdw-sc { display: flex; align-items: baseline; gap: 8px; }
+.rdw-sc b { font-weight: 900; font-size: 30px; letter-spacing: -.8px; line-height: 1; }
+.rdw-sc small { font-weight: 800; font-size: 14px; color: var(--rd-mut); }
+.rdw-sc em { margin-left: auto; font-style: normal; background: var(--rd-violet-l); color: var(--rd-violet-d); border-radius: 99px; padding: 3px 10px; font-weight: 900; font-size: 14px; }
+.rdw-bubble p { font-weight: 800; font-size: 14.5px; color: #5c4aa8; margin-top: 6px; }

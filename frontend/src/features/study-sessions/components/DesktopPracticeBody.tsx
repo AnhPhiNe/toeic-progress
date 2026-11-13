@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { PracticePartResult } from '@/shared/types';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
+import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 
 type Part = PracticePartResult['part'];
 const PARTS: Part[] = [1, 2, 3, 4, 5, 6, 7];
@@ -50,13 +51,12 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
             <button type="button" className="rdp-x" aria-label={`Bỏ Part ${row.part}`} title={`Bỏ Part ${row.part}`} onClick={() => removePart(row.part)}>×</button>
           </div>
         )}
-        {single && <div className="rdp-lbl">BẠN SAI MẤY CÂU?</div>}
         <div className="rdw-dial">
           <button type="button" className="rdw-pm" aria-label={`Bớt một câu sai Part ${row.part}`} disabled={wrong <= 0} onClick={() => setWrong(index, wrong - 1)}>−</button>
           <label className="rdw-num">
             <input type="number" min={0} max={row.total} step={1} inputMode="numeric" aria-label={`Số câu sai Part ${row.part}`}
               value={wrong} onChange={e => setWrong(index, Number(e.target.value))} onFocus={e => e.target.select()} className={NO_SPIN} />
-            <small>câu sai · bấm số để gõ</small>
+            <small>{single ? 'câu sai · bấm số để gõ' : 'câu sai'}</small>
           </label>
           <button type="button" className="rdw-pm is-plus" aria-label={`Thêm một câu sai Part ${row.part}`} disabled={wrong >= row.total} onClick={() => setWrong(index, wrong + 1)}>+</button>
         </div>
@@ -67,7 +67,14 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
   const correct = rows.reduce((sum, row) => sum + row.correct, 0);
   const total = rows.reduce((sum, row) => sum + row.total, 0);
   const share = total ? correct / total : 0;
-  const rc = 2 * Math.PI * 26;
+  const pct = Math.round(share * 100);
+  // Sóc reacts to the share correct; never a sad pose (design/previews/mock-log-part4.html).
+  const which = rows.length === 1 ? `Part ${rows[0].part}` : 'Buổi này';
+  const [mood, line]: [SocMood, string] = share >= 0.95
+    ? ['cheerB', correct === total ? 'Không sai câu nào!' : 'Gần như hoàn hảo!']
+    : share >= 0.75 ? ['cheerC', `${which} vững rồi đó!`]
+    : share >= 0.5 ? ['idle', 'Đang lên đều đó!']
+    : ['think', rows.length === 1 ? 'Part này khó, ôn cùng Sóc nha' : 'Hơi khó, ôn cùng Sóc nha'];
 
   return (
     <div className="rdp space-y-4">
@@ -84,23 +91,22 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
       </div>
       {adding && <p className="rdw-hint">Chọn Part muốn ghi thêm</p>}
 
-      <div className={rows.length > 1 ? 'rdp-grid' : undefined}>
-        {rows.map((row, index) => counter(row, index, rows.length === 1))}
-      </div>
-
-      <div className="rdw-res">
-        <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
-          <circle cx="32" cy="32" r="26" fill="none" stroke="#e9e2ff" strokeWidth="9" />
-          <circle cx="32" cy="32" r="26" fill="none" stroke="#a78bfa" strokeWidth="9" strokeLinecap="round" opacity={share > 0 ? 1 : 0}
-            strokeDasharray={`${share * rc} ${rc}`} transform="rotate(-90 32 32)" />
-          <text x="32" y="37" textAnchor="middle" fontWeight="900" fontSize="14" fill="#2f3a33">{Math.round(share * 100)}%</text>
-        </svg>
-        <div><b>{correct}/{total}</b><small>câu đúng</small></div>
-        <button type="button" className="rdp-time" onClick={() => setDetailOpen(true)}>⏱ {Math.round(duration)} phút</button>
+      <div className="rdw-stage">
+        {rows.length === 1 && <div className="rdw-q">BẠN SAI MẤY CÂU?</div>}
+        <div className={rows.length > 1 ? 'rdp-grid' : undefined}>
+          {rows.map((row, index) => counter(row, index, rows.length === 1))}
+        </div>
+        <div className="rdw-say">
+          <Soc state={mood} size={132} className="rdw-soc" />
+          <div className="rdw-bubble" aria-live="polite">
+            <div className="rdw-sc"><b>{correct}/{total}</b><small>câu đúng</small><em>{pct}%</em></div>
+            <p>{line}</p>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between text-[13px] font-extrabold">
-        <span />
+        <button type="button" className="rdp-time" onClick={() => setDetailOpen(true)}>⏱ {Math.round(duration)} phút</button>
         <button type="button" aria-expanded={detailOpen} onClick={() => setDetailOpen(o => !o)} className="cursor-pointer text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
           {detailOpen ? 'Ẩn chi tiết ▴' : 'Thêm tên bài, ghi chú ▾'}
         </button>
