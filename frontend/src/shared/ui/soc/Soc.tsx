@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { socSvg, type SocState } from './socSvg';
+import { socMoodSvg, type SocMood, type SocState } from './socSvg';
 import './soc.css';
 
-export type { SocState };
+export type { SocMood, SocState };
 
 interface SocProps {
-  state?: SocState;
+  state?: SocMood;
   /** Rendered width in px; height follows the 240×260 artwork. */
   size?: number;
   className?: string;
@@ -15,7 +15,7 @@ interface SocProps {
 
 /** The approved 2D Sóc mascot. The markup is a fixed, trusted template (no user data). */
 export function Soc({ state = 'idle', size = 96, className, label }: SocProps) {
-  const html = useMemo(() => socSvg(state), [state]);
+  const html = useMemo(() => socMoodSvg(state), [state]);
   return (
     <span
       className={'soc' + (className ? ' ' + className : '')}

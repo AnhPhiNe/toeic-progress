@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { MilestonePlan } from '@/shared/domain/milestones';
-import { socSvg, type SocState } from '@/shared/ui/soc/socSvg';
+import { socMoodSvg, type SocMood } from '@/shared/ui/soc/socSvg';
 import '@/shared/ui/soc/soc.css';
 import { SCENE_H, SCENE_W, TILE_H as th, TILE_W as tw, stairsGeometry } from '../lib/stairsGeometry';
 
@@ -14,6 +14,15 @@ interface Props {
 }
 
 const ddmm = (date?: string) => (date ? `${date.slice(8, 10)}/${date.slice(5, 7)}` : '');
+const SEEN_KEY = 'rd_stairs_seen_v1';
+/** True once per climb when the current step is higher than on the last visit. */
+function takeNewStep(target: number, index: number): boolean {
+  try {
+    const [t, i] = (localStorage.getItem(SEEN_KEY) ?? '').split(':').map(Number);
+    localStorage.setItem(SEEN_KEY, `${target}:${index}`);
+    return t === target && Number.isFinite(i) && index > i;
+  } catch { return false; }
+}
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Placeholder stairs for a learner with no test yet: faded blocks and the goal trophy. */
@@ -38,7 +47,7 @@ export function StairsScene({ plan, target, testsAhead }: Props) {
   };
 
   const [wiggle, setWiggle] = useState(0);
-  const [socState, setSocState] = useState<SocState>('idle');
+  const [socState, setSocState] = useState<SocMood>('idle');
   const socRef = useRef<SVGGElement>(null);
   const socAt = Math.max(0, cur);
   useEffect(() => {
@@ -46,7 +55,15 @@ export function StairsScene({ plan, target, testsAhead }: Props) {
     if (!el) return;
     const end = g.soc(socAt);
     const place = (x: number, y: number) => el.setAttribute('transform', `translate(${x} ${y})`);
-    if (empty || socAt === 0 || reduceMotion() || !el.animate) { place(end.x, end.y); return; }
+    // Rest pose: star eyes on the goal (D), bounce on a step (C); a new step first gets a stronger bounce with confetti.
+    const rest: SocMood = empty ? 'idle' : done ? 'cheerD' : 'cheerC';
+    const newStep = !empty && !done && takeNewStep(target, socAt);
+    let calm: number | undefined;
+    const arrive = () => {
+      if (newStep) { setSocState('cheerCplus'); calm = window.setTimeout(() => setSocState(rest), 4400); }
+      else setSocState(rest);
+    };
+    if (empty || socAt === 0 || reduceMotion() || !el.animate) { place(end.x, end.y); arrive(); return () => window.clearTimeout(calm); }
     const frames: Keyframe[] = [];
     for (let i = 0; i <= socAt; i++) {
       const a = g.soc(i);
@@ -59,18 +76,16 @@ export function StairsScene({ plan, target, testsAhead }: Props) {
     const start = g.soc(0);
     place(start.x, start.y);
     const anim = el.animate(frames, { duration: 400 * socAt, delay: 1000, easing: 'linear', fill: 'forwards' });
-    let calm: number | undefined;
     anim.onfinish = () => {
       place(end.x, end.y);
       anim.cancel();
-      setSocState('yay');
-      calm = window.setTimeout(() => setSocState('idle'), 2400);
+      arrive();
     };
     return () => { anim.cancel(); window.clearTimeout(calm); };
-  }, [g, socAt, empty]);
+  }, [g, socAt, empty, done, target]);
 
   // Inline size beats .soc svg { width: 100% }, which would fill the whole scene.
-  const socHtml = useMemo(() => socSvg(socState).replace('<svg viewBox="0 0 240 260"', '<svg viewBox="0 0 240 260" width="78" height="85" style="width:78px;height:85px"'), [socState]);
+  const socHtml = useMemo(() => socMoodSvg(socState).replace('<svg viewBox="0 0 240 260"', '<svg viewBox="0 0 240 260" width="78" height="85" style="width:78px;height:85px"'), [socState]);
 
   const rays = useMemo(() => Array.from({ length: 16 }, (_, i) => {
     const a = i / 16 * Math.PI * 2;

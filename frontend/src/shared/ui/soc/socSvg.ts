@@ -38,3 +38,56 @@ export function socSvg(s: SocState): string {
     </g>
     ${nutAt}${arms}
   </g></g></svg>`}
+
+
+/* ---- Celebrations from design/previews/mock-soc-cheer.html (approved B, C, D; no raised arms) ---- */
+/** cheerCplus = the stronger bounce with a confetti burst, for a new step. */
+export type SocCheer = 'cheerB' | 'cheerC' | 'cheerCplus' | 'cheerD';
+export type SocMood = SocState | SocCheer;
+
+const IDLE_ARMS = `<ellipse cx="88" cy="202" rx="10" ry="16" transform="rotate(-38 88 202)" fill="#e58a45"/><ellipse cx="132" cy="202" rx="10" ry="16" transform="rotate(38 132 202)" fill="#e58a45"/>`;
+const YAY_ARMS = /<ellipse cx="68" cy="170"[^>]*\/><ellipse cx="152" cy="170"[^>]*\/>/;
+const heart = (x: number, y: number, c: string, d: number) => `<g transform="translate(${x} ${y})"><path class="ov" style="animation-delay:${d}s" d="M0 4 C-7 -5 -16 2 0 14 C16 2 7 -5 0 4Z" fill="${c}"/></g>`;
+const noteG = (x: number, y: number, c: string, d: number, tx: number) => `<g transform="translate(${x} ${y})"><g class="ov" style="animation-delay:${d}s;--tx:${tx}px"><rect x="6" y="-18" width="3.5" height="20" rx="1.5" fill="${c}"/><path d="M9.5 -18 q10 2 10 10 q-3 -5 -10 -5Z" fill="${c}"/><ellipse cx="3" cy="3" rx="6" ry="4.6" fill="${c}"/></g></g>`;
+function burst(cx: number, cy: number, n: number, R: number, cols: string[]): string {
+  let h = '';
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2 - Math.PI / 2, r = R * (0.8 + (i % 3) * 0.15);
+    h += `<g transform="translate(${cx} ${cy})"><rect class="pt" style="--tx:${(Math.cos(a) * r).toFixed(1)}px;--ty:${(Math.sin(a) * r).toFixed(1)}px;--r:${i * 47}deg" x="-4" y="-6" width="${i % 2 ? 8 : 9}" height="${i % 2 ? 8 : 13}" rx="2.5" fill="${cols[i % cols.length]}"/></g>`;
+  }
+  return h;
+}
+function starP(x: number, y: number, r: number, c: string): string {
+  let p = '';
+  for (let i = 0; i < 10; i++) {
+    const rr = i % 2 ? r * 0.45 : r, a = -Math.PI / 2 + i * Math.PI / 5;
+    p += (i ? 'L' : 'M') + (x + rr * Math.cos(a)).toFixed(1) + ' ' + (y + rr * Math.sin(a)).toFixed(1);
+  }
+  return `<path class="star-e" d="${p}Z" fill="${c}" stroke="#3a2a1e" stroke-width="2.5" stroke-linejoin="round"/>`;
+}
+
+function cheerSvg(k: 'B' | 'C' | 'D'): string {
+  let s = socSvg('yay').replace('class="s-yay"', `class="s-c${k}"`)
+    .replace(YAY_ARMS, IDLE_ARMS).replace('<g transform="translate(110,22)">', '<g transform="translate(110,202)">');
+  if (k === 'B') s = s.replace('</svg>', heart(78, 58, '#ff7a9c', 0) + heart(150, 46, '#ff9eb8', 0.12) + heart(116, 30, '#ff7a9c', 0.24) + '</svg>');
+  if (k === 'C') s = s.replace('</svg>', noteG(176, 96, '#a78bfa', 0, 18) + noteG(44, 110, '#1c8fe3', 0.8, -16) + noteG(190, 150, '#46b35a', 1.6, 22) + '</svg>');
+  if (k === 'D') {
+    s = s.replace(/<path d="M70 116 Q82 99 94 116"[^>]*\/>/, starP(82, 112, 15, '#ffd766')).replace(/<path d="M126 116 Q138 99 150 116"[^>]*\/>/, starP(138, 112, 15, '#ffd766'));
+    let ring = '';
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2, x = 112 + Math.cos(a) * 112, y = 130 + Math.sin(a) * 100;
+      ring += `<g transform="translate(${x} ${y})"><path class="ring" style="animation-delay:${i * 0.05}s" d="M0 -9 l2.6 6 6.4 3 -6.4 3 -2.6 6 -2.6 -6 -6.4 -3 6.4 -3Z" fill="${['#ffd766', '#ffffff', '#ffb35c'][i % 3]}"/></g>`;
+    }
+    s = s.replace('<g class="all">', ring + burst(112, 110, 12, 130, ['#ffd766', '#ff7a9c', '#ffb35c']) + '<g class="all">');
+  }
+  return s;
+}
+
+/** Any mood: the five base states or a celebration (B toss acorn, C bounce, D star eyes). */
+export function socMoodSvg(m: SocMood): string {
+  if (m === 'cheerCplus') {
+    return cheerSvg('C').replace('class="s-cC"', 'class="s-cC s-cCplus"')
+      .replace('<g class="all">', burst(112, 150, 14, 120, ['#ff7a9c', '#ffc83d', '#46b35a', '#1c8fe3', '#a78bfa']) + '<g class="all">');
+  }
+  return m === 'cheerB' ? cheerSvg('B') : m === 'cheerC' ? cheerSvg('C') : m === 'cheerD' ? cheerSvg('D') : socSvg(m);
+}

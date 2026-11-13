@@ -106,8 +106,8 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           {Array.from({ length: 60 }, (_, i) => (
             <i key={i} className="td-confp" aria-hidden="true" style={{ left: `${(i * 37) % 100}%`, background: ['#ffd766', '#ff7a9c', '#46b35a', '#1c8fe3', '#a78bfa'][i % 5], animationDuration: `${2 + (i % 7) * 0.3}s`, animationDelay: `${(i % 11) * 0.11}s` }} />
           ))}
-          <Soc state="yay" size={130} className="td-cele-soc is-l" />
-          <Soc state="yay" size={130} className="td-cele-soc is-r" />
+          <Soc state="cheerD" size={130} className="td-cele-soc is-l" />
+          <Soc state="cheerD" size={130} className="td-cele-soc is-r" />
           <div className="td-cele-box">
             <svg className="td-bigcup" viewBox="-110 -110 220 190" aria-hidden="true">
               <defs><linearGradient id="tdCup2" x1="0" x2="1"><stop offset="0" stopColor="#ffe9a3" /><stop offset=".45" stopColor="#ffc83d" /><stop offset="1" stopColor="#e09a12" /></linearGradient></defs>

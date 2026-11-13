@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { Habit } from '@/shared/types';
 import type { StreakWeek, WeeklyGoal } from '@/shared/domain/streakWeek';
 import { nextStreakMilestone } from '@/shared/domain/streakWeek';
@@ -18,6 +18,24 @@ interface Props {
   onAddHabit: (title: string) => void;
   onRemoveHabit: (id: string) => void;
   onSetWeeklyGoal: (days: number) => void;
+}
+
+const FIRST_DONE_KEY = 'rd_first_done_cheer_v1';
+
+/** Toss-acorn cheer (B) once a day, the first time something on the card is done. */
+function useFirstDoneCheer(doneCount: number, today: string): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (doneCount === 0) return;
+    try {
+      if (localStorage.getItem(FIRST_DONE_KEY) === today) return;
+      localStorage.setItem(FIRST_DONE_KEY, today);
+    } catch { return; }
+    setOn(true);
+    const t = window.setTimeout(() => setOn(false), 4800);
+    return () => window.clearTimeout(t);
+  }, [doneCount, today]);
+  return on;
 }
 
 const ICON: Record<TodayTask['kind'], [string, string]> = {
@@ -53,6 +71,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
   const total = tasks.length + habits.length;
   const doneCount = tasks.length - open.length + habitsDone;
   const allDone = !hero && total > 0 && doneCount === total;
+  const firstCheer = useFirstDoneCheer(doneCount, today);
   const studiedToday = week.days.some(d => d.isToday && d.state === 'done');
 
   const [adding, setAdding] = useState(false);
@@ -93,7 +112,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
           <p>Muốn thì bấm giờ một Part bất kỳ.</p>
           <div className="td-acts"><button type="button" className="td-go" onClick={onPracticeMore}>Luyện tập</button></div>
         </>}
-        <Soc state={allDone ? 'yay' : 'idle'} size={112} className="td-hero-soc" />
+        <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={112} className="td-hero-soc" />
       </div>
 
       <div className="td-body">
