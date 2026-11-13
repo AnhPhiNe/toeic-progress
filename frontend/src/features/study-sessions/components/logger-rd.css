@@ -143,3 +143,38 @@
 .rdp-tot button { width: 26px; height: 26px; border-radius: 9px; border: 2px solid var(--rd-line); background: #fff; font: 900 15px var(--rd-font); color: var(--rd-ink); cursor: pointer; line-height: 1; padding: 0; }
 .rdp-tot input { width: 42px; border: 0 !important; border-bottom: 2px dotted #c3c8c3 !important; border-radius: 0 !important; background: none; text-align: center; font: 900 17px var(--rd-font); color: var(--rd-ink); padding: 0; }
 .rdp-time { border: 0; background: #f1ecff; color: #6a4fd0; border-radius: 99px; padding: 6px 14px; font: 900 13.5px var(--rd-font); cursor: pointer; }
+
+/* ---- Bài luyện Part v2 (mock-log-part.html, hướng 1; fixed Part size) ---- */
+.rdw-parts { display: flex; gap: 6px; }
+.rdw-parts button { flex: 1; height: 48px; border: 0; border-radius: 14px; background: #f6f8f6; font: 900 18px var(--rd-font); color: #7a857e; cursor: pointer; transition: transform .1s, background .15s; }
+.rdw-parts button:hover:not(:disabled) { background: #efeaff; color: var(--rd-violet-d); }
+.rdw-parts button.is-on { background: var(--rd-violet); color: #fff; box-shadow: 0 3px 0 var(--rd-violet-d); transform: translateY(-2px); }
+.rdw-parts.is-adding button:not(.is-on):not(.rdw-add) { box-shadow: inset 0 0 0 2px #d6ccfb; background: #fff; }
+.rdw-parts button:disabled { cursor: default; }
+.rdw-parts .rdw-add { flex: none; width: 48px; background: #fff; border: 2px dashed var(--rd-line); color: var(--rd-mut); font-size: 20px; }
+.rdw-parts .rdw-add.is-on { border-style: solid; color: var(--rd-pink-d); }
+.rdw-parts button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+.rdw-hint { font-weight: 800; font-size: 13px; color: var(--rd-violet-d); margin-top: -6px !important; }
+.rdw-card.is-single { padding-top: 6px; }
+.rdp-grid .rdw-card { background: #f8f6ff; border-radius: 20px; padding: 10px 12px 14px; }
+.rdw-cardh { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4px; }
+.rdw-cardh b { font-weight: 900; font-size: 15px; color: var(--rd-violet-d); }
+.rdw-dial { display: flex; align-items: center; justify-content: center; gap: 20px; }
+.rdp-grid .rdw-dial { gap: 10px; }
+.rdw-pm { width: 58px; height: 58px; border-radius: 18px; border: 2px solid var(--rd-line); background: #fff; box-shadow: 0 4px 0 var(--rd-line); font: 900 28px var(--rd-font); color: var(--rd-ink); cursor: pointer; flex: none; }
+.rdw-pm.is-plus { background: var(--rd-pink); border-color: var(--rd-pink); color: #fff; box-shadow: 0 4px 0 var(--rd-pink-d); }
+.rdw-pm:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--rd-line); }
+.rdw-pm.is-plus:active:not(:disabled) { box-shadow: 0 1px 0 var(--rd-pink-d); }
+.rdw-pm:disabled { opacity: .4; cursor: default; }
+.rdp-grid .rdw-pm { width: 44px; height: 44px; font-size: 22px; border-radius: 14px; }
+.rdw-num { display: flex; flex-direction: column; align-items: center; cursor: text; }
+.rdw-num input { width: 130px; border: 0 !important; border-bottom: 3px dashed #f5bccb !important; border-radius: 0 !important; background: none; text-align: center; font: 900 68px/1 var(--rd-font); letter-spacing: -2px; color: var(--rd-pink-d); padding: 0 0 2px; }
+.rdp-grid .rdw-num input { width: 80px; font-size: 44px; }
+.rdw-num input:focus { outline: none; border-bottom-style: solid !important; border-bottom-color: var(--rd-pink) !important; }
+.rdw-num small { font-weight: 900; font-size: 13.5px; color: var(--rd-mut); margin-top: 6px; }
+.rdp-grid .rdw-num small { font-size: 12px; }
+.rdw-res { display: flex; align-items: center; gap: 14px; background: #f8f6ff; border-radius: 18px; padding: 10px 16px; }
+.rdw-res svg { flex: none; }
+.rdw-res b { display: block; font-weight: 900; font-size: 26px; line-height: 1; }
+.rdw-res small { font-weight: 800; font-size: 13px; color: var(--rd-mut); }
+.rdw-res .rdp-time { margin-left: auto; background: #fff; }

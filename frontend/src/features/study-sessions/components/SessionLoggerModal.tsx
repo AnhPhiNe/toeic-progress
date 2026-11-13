@@ -309,7 +309,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPendingInitialFiles(prefill?.initialFiles?.length ? prefill.initialFiles : undefined);
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
-    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
+    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: isPhone ? 0 : PART_MAX_QUESTIONS[`part${part}`], total: PART_MAX_QUESTIONS[`part${part}`] }]);
   }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles, resetNonce]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
