@@ -19,6 +19,8 @@ interface Props {
   onEditSession: (session: StudySession) => void;
   onSessionsChanged: () => void;
   onOpenPomodoro: () => void;
+  /** True while a clock is running, paused or awaiting its result: the app hides the sidebar for focus. */
+  onFocusChange?: (focused: boolean) => void;
 }
 
 const CHOICES: Array<{ mode: PacingMode; label: string }> = [
@@ -37,7 +39,7 @@ export function PracticePage(props: Props) {
   return <PracticeWorkspace key={owner ?? 'guest'} owner={owner} {...props} />;
 }
 
-function PracticeWorkspace({ owner, sessions, initialPart, resultDialogBlocked = false, onOpenSessionLogger, onEditSession, onSessionsChanged, onOpenPomodoro }: Props & { owner: string | null }) {
+function PracticeWorkspace({ owner, sessions, initialPart, resultDialogBlocked = false, onOpenSessionLogger, onEditSession, onSessionsChanged, onOpenPomodoro, onFocusChange }: Props & { owner: string | null }) {
   const [settings] = useState(() => readPomodoroSettings(owner));
   const timer = usePacingTimer(owner, supportedMode(initialPart ?? 'PART_5'), settings);
   const { snapshot, now } = timer;
@@ -57,6 +59,9 @@ function PracticeWorkspace({ owner, sessions, initialPart, resultDialogBlocked =
 
   const suggestion = useMemo(() => pickTodayTasks(readDataBundle(), localDate(Date.now())).find(t => t.kind === 'PART_TIMER'), [sessions]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setWrong(0); }, [snapshot.id]);
+  const focused = snapshot.status !== 'ready';
+  useEffect(() => { onFocusChange?.(focused); }, [focused, onFocusChange]);
+  useEffect(() => () => onFocusChange?.(false), [onFocusChange]);
 
   useEffect(() => {
     if (snapshot.status !== 'finished' || played.current === snapshot.id) return;

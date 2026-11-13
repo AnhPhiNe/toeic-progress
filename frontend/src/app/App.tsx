@@ -132,6 +132,7 @@ export const App: React.FC = () => {
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
   // Pomodoro keeps the older clock view; the redesigned Luyện tập handles Reading presets.
   const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  const [practiceFocus, setPracticeFocus] = useState(false);
   useEffect(() => { if (activeTab !== 'exam-mode') setPomodoroOpen(false); }, [activeTab]);
   const navigateToPacing = (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
@@ -466,7 +467,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
       
       {/* 1. Sidebar (Desktop Persistent & Mobile Overlay Drawer Unified) */}
-      <RdSidebar
+      {!(practiceFocus && activeTab === 'exam-mode') && <RdSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         profile={profile}
@@ -474,7 +475,7 @@ export const App: React.FC = () => {
         streak={streakNow}
         onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
-      />
+      />}
 
       {/* 2. Main Content View Area (Right) */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
@@ -525,6 +526,7 @@ export const App: React.FC = () => {
             onEditSession={openSessionEditor}
             onSessionsChanged={handleSessionsChangedElsewhere}
             onOpenPomodoro={() => { setPacingInitialPart('POMODORO'); setPomodoroOpen(true); }}
+            onFocusChange={setPracticeFocus}
           />
         ) : showJourney ? (
           <JourneyPage
