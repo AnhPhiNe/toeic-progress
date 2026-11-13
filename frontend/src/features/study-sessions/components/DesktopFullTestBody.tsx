@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Soc } from '@/shared/ui/soc/Soc';
 import { Keyboard } from 'lucide-react';
 import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { ResultImageButton } from './WrongQuestionGrid';
@@ -6,10 +7,11 @@ import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import type { ScoreSource } from '../lib/fullTestScore';
 import type { PartTimingDurations, ResultImageTiming } from '@/shared/types';
 import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
-import { DesktopManualEntry, PartCountRow } from './DesktopManualEntry';
+import { DesktopManualEntry } from './DesktopManualEntry';
 import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
+const fmtMinutes = (minutes: number) => { const m = Math.round(minutes); return m >= 60 ? `${Math.floor(m / 60)}g ${String(m % 60).padStart(2, '0')}p` : `${m} phút`; };
 
 interface Props {
   onTiming?: (value: ResultImageTiming) => void;
@@ -44,6 +46,8 @@ interface Props {
   /** Minutes of the total time once known (typed or read from an image); undefined while unrecorded. */
   knownMinutes?: number;
   onOpenDetails: () => void;
+  /** Test name, date and time shown as chips inside the review card; a chip opens the fields to edit them. */
+  meta?: { name: string; dateLabel: string; onEdit: () => void };
 }
 
 /**
@@ -51,7 +55,7 @@ interface Props {
  * manual tools: all 200 questions on one screen, where clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange, minimalOpen, onMinimalOpenChange, onSections, knownMinutes, onOpenDetails }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange, minimalOpen, onMinimalOpenChange, onSections, knownMinutes, onOpenDetails , meta}: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -100,34 +104,54 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
   const shownTotal = isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—';
   const shownL = isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—';
   const shownR = isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—';
-  const dotted = 'cursor-pointer border-b-2 border-dotted border-slate-500 pb-px text-left hover:border-slate-900 dark:border-slate-400 dark:hover:border-slate-200';
-  // AI-first summary: label/value rows where each value is a button that opens the place to correct it.
+  // AI-first review (design/previews/mock-log-v3.html, 3B): green score card, then all 200 numbered
+  // questions laid out like the answer sheet so the learner can check what Sóc read; a click toggles a question.
+  const pen = <svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="currentColor" /></svg>;
+  const bar = (value: number | string) => typeof value === 'number' ? `${Math.min(100, value / 495 * 100)}%` : '0%';
+  const sheet = (title: string, parts: PartNumber[], first: boolean) => (
+    <div>
+      <div className="rdl-sec">{title}{first && <span>{wrong.length} câu sai</span>}</div>
+      {parts.map(part => (
+        <div key={part} className="rdl-pg">
+          <b>P{part}</b>
+          <div className="rdl-cells" role="group" aria-label={`Câu sai Part ${part}`}>
+            {questionsOfPart(part).map(question => {
+              const on = marked.has(question);
+              return <button key={question} type="button" aria-pressed={on} aria-label={`Câu ${question}${on ? ', đang tính là sai' : ''}`} className={on ? 'is-w' : undefined} onClick={() => toggle(question)}>{question}</button>;
+            })}
+          </div>
+          <em>{byPart[part].length || ''}</em>
+        </div>
+      ))}
+    </div>
+  );
   const summaryTable = (api: { editScore: () => void }) => (
-    <div className="text-left">
-      <div className="overflow-hidden rounded-[14px] border-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#121A2B]">
-        <div className="border-b-2 border-slate-900 bg-slate-50 px-4 py-2.5 text-[12px] font-extrabold text-slate-700 dark:border-slate-300 dark:bg-[#0B1220] dark:text-slate-200">
-          Đọc được từ ảnh <span className="font-semibold text-slate-500 dark:text-slate-400">· bấm vào giá trị để sửa</span>
+    <div className="rdl-review">
+      <div className="rdl-hero">
+        <span className="rdl-ring" aria-hidden="true" />
+        <div className="rdl-hl">
+          <button type="button" className="rdl-big" onClick={api.editScore} aria-label="Sửa điểm" title={isOfficial ? 'Điểm từ đề · bấm để sửa' : 'Điểm ước tính từ câu sai · bấm để sửa'}>
+            {!isOfficial && hasMarks ? <i>~</i> : null}{shownTotal}<small>/990</small>
+          </button>
+          <div className="rdl-lr">
+            <div><span>Nghe <b>{shownL}</b></span><i><b style={{ width: bar(shownL) }} /></i></div>
+            <div><span>Đọc <b>{shownR}</b></span><i><b style={{ width: bar(shownR) }} /></i></div>
+          </div>
         </div>
-        <div className="grid min-h-[50px] grid-cols-[100px_1fr] items-center border-b border-slate-200 px-4 dark:border-slate-700">
-          <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Điểm</span>
-          <span className="flex items-baseline gap-2">
-            <button type="button" onClick={api.editScore} aria-label="Sửa điểm" className={dotted + ' text-[16px] font-extrabold tabular-nums text-slate-950 dark:text-white'}>{isOfficial ? '' : hasMarks ? '~' : ''}{shownTotal}</button>
-            <small className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">L {shownL} · R {shownR}</small>
-          </span>
-        </div>
-        {knownMinutes !== undefined && knownMinutes > 0 && (
-          <div className="grid min-h-[50px] grid-cols-[100px_1fr] items-center border-b border-slate-200 px-4 dark:border-slate-700">
-            <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Thời gian</span>
-            <span><button type="button" onClick={onOpenDetails} aria-label="Sửa thời gian" className={dotted + ' text-[16px] font-extrabold tabular-nums text-slate-950 dark:text-white'}>{Math.round(knownMinutes)} phút</button></span>
+        {meta && (
+          <div className="rdl-hm">
+            <button type="button" className="rdl-hp is-name" onClick={meta.onEdit} title={meta.name || 'Đặt tên đề'}><span className="rdl-hp-t">{meta.name || 'Đặt tên đề'}</span>{pen}</button>
+            <div>
+              <button type="button" className="rdl-hp" onClick={meta.onEdit}>{meta.dateLabel}{pen}</button>
+              <button type="button" className="rdl-hp" onClick={onOpenDetails}>{knownMinutes ? fmtMinutes(knownMinutes) : 'Thời gian'}{pen}</button>
+            </div>
           </div>
         )}
-        <div className="grid min-h-[50px] grid-cols-[100px_1fr] items-center px-4">
-          <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">Câu sai</span>
-          <span><button type="button" onClick={() => onMinimalOpenChange(true)} aria-label="Sửa câu sai" className={dotted + ' text-[16px] font-extrabold tabular-nums text-slate-950 dark:text-white'}>{wrong.length} câu</button></span>
-        </div>
-        <div className="px-4 pb-3 pt-1"><PartCountRow wrong={wrong} /></div>
+        <Soc state="idle" size={104} className="rdl-hero-soc" />
       </div>
-      <p className="mt-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400">Giá trị đọc từ ảnh chỉ là gợi ý. Bạn xác nhận khi bấm Lưu.</p>
+      {sheet('NGHE', PART_NUMBERS.filter(listening), true)}
+      {sheet('ĐỌC', PART_NUMBERS.filter(part => !listening(part)), false)}
+      <div className="rdl-leg"><span><i className="is-w" />sai</span><span><i />đúng</span><span className="rdl-leg-tip">Bấm ô để đổi đúng/sai</span></div>
     </div>
   );
   return (

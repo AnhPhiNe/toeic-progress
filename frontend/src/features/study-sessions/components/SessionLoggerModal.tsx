@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import './logger-rd.css';
 import { 
   X, 
   CheckCircle2, 
@@ -107,6 +108,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualMinimal, setManualMinimal] = useState(false);
   // Computer Full Test: date and duration stay folded away until asked for, so the form opens on the name and the paste area.
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // Computer AI-first view keeps name/date/time inside the review card; this opens their fields.
+  const [metaOpen, setMetaOpen] = useState(false);
   const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
   const [resultTiming, setResultTiming] = useState<ConfirmedResultTiming | null>(null);
   const [timingCandidate, setTimingCandidate] = useState<TimingCandidate | null>(null);
@@ -377,6 +380,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
+  const aiDesktop = sessionType === 'FULL_TEST' && !isPhone && wrongEntry && !fullTestManual && !manualMinimal;
   const compactTop = sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && !detailsOpen;
   const durationBlank = sessionType === 'FULL_TEST' && !isPhone && ((!isEditing && !durationEdited) || durationEmpty);
   const typedWrongParsed = wrongEntry && wrongNumberDraft.typing ? parseQuestionList(wrongNumberDraft.text) : null;
@@ -475,6 +479,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         savedSession.current = true;
         persistentDraft.clear();
         onClose();
+        return;
+      }
+
+      if (sessionType === 'FULL_TEST' && !testName.trim()) {
+        setMetaOpen(true);
+        setScoreError('Đặt tên đề trước khi lưu.');
         return;
       }
 
@@ -604,19 +614,19 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`${isPhone ? '' : 'rd rdl rdl-modal '}relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : !isPhone && sessionType === 'PART_PRACTICE' ? 'max-w-[600px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
-        <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
+        <div className={(isPhone ? '' : 'rdl-head ') + "flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]"}>
           <div className="flex items-center space-x-3">
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
+              <h2 id="session-logger-title" className={(isPhone ? '' : 'rdl-title ') + 'text-base sm:text-lg font-bold text-slate-900 dark:text-white'}>{sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
             </div>
           </div>
           <button
             onClick={closeWithDraft}
             aria-label="Đóng form ghi nhận buổi học"
-            className="p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className={(isPhone ? '' : 'rdl-x ') + "p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"}
           >
             <X className="w-5 h-5" />
           </button>
@@ -656,8 +666,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {/* Mode Switcher: computers use the Neo segmented bar (2px ink frame, selected cell tinted); phones keep the soft tabs */}
           <div className={isPhone
             ? `grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`
-            : `grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} overflow-hidden rounded-xl border-2 border-slate-900 dark:border-slate-300`}>
-            {([['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const)
+            : 'rdl-seg'}>
+            {(isPhone ? [['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const
+              // Redesign: the daily word counter is dropped on computers (a VOCAB log opened elsewhere keeps its tab).
+              : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part'], ...(sessionType === 'VOCAB' ? [['VOCAB', 'Từ vựng']] as const : [])] as const)
               .filter(([type]) => !(isEditing && type === 'VOCAB'))
               .map(([type, label], index) => {
                 const on = sessionType === type;
@@ -725,7 +737,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>}
           {sessionType === 'FULL_TEST' && !isPhone && (<>
           {/* General Info Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+          {(!aiDesktop || metaOpen) && <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
             <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
               <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Tên đề
@@ -759,7 +771,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
               />
             </div>
-          </div>
+          </div>}
 
           {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && detailsOpen && (
             <div className="space-y-1">
@@ -769,8 +781,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 className="w-full rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:border-slate-300 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-700" />
             </div>
           )}
-          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (
-            <button type="button" onClick={() => setDetailsOpen(open => !open)} aria-expanded={detailsOpen}
+          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (!aiDesktop || metaOpen) && (
+            <button type="button" onClick={() => { if (aiDesktop && detailsOpen) setMetaOpen(false); setDetailsOpen(open => !open); }} aria-expanded={detailsOpen}
               title="Đổi ngày, thêm thời lượng và ghi chú"
               className="-mt-1 w-fit cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[13px] font-black text-slate-800 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
               {detailsOpen ? 'Ẩn chi tiết ▴' : `Ngày: ${date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().join('/')} · giờ, ghi chú ▾`}
@@ -797,7 +809,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {wrongEntry && (
             <DesktopFullTestBody key={restoredVersion} manualOpen={fullTestManual} onManualOpenChange={setFullTestManual}
               minimalOpen={manualMinimal} onMinimalOpenChange={setManualMinimal} onSections={changeSectionScores}
-              knownMinutes={durationBlank ? undefined : durationMinutes} onOpenDetails={() => setDetailsOpen(true)}
+              knownMinutes={durationBlank ? undefined : durationMinutes} onOpenDetails={() => { setMetaOpen(true); setDetailsOpen(true); }}
+              meta={{ name: testName, dateLabel: date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().slice(0, 2).join('/'), onEdit: () => { setMetaOpen(true); setDetailsOpen(true); } }}
               wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
               onTiming={readImageTiming}
               initialFiles={pendingInitialFiles}
@@ -1183,7 +1196,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
             <ContainerScrollCue containerRef={formBodyRef} resetKey={`${sessionType}-${wrongEntry}`} />
           </div>
-          <div className="shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <div className={(isPhone ? '' : 'rdl-foot ') + "shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"}>
           {/* Submit Button */}
           {scoreError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
           <div className="flex flex-wrap items-center justify-end gap-2 max-md:flex-nowrap">
@@ -1191,7 +1204,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="button"
               onClick={closeWithDraft}
-              className="max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="rdl-cancel max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy
             </button>
@@ -1208,7 +1221,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="submit"
               name="afterSave" value="close"
-              className="min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-[3px_3px_0_0_#0f172a] dark:shadow-none flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
+              className="rdl-save min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-[3px_3px_0_0_#0f172a] dark:shadow-none flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Soc } from '@/shared/ui/soc/Soc';
 import { ImagePlus } from 'lucide-react';
 import { prepareImage, MAX_RESULT_IMAGES, RESULT_IMAGE_OPTIONS } from '@/features/mistakes/lib/imageInput';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
@@ -378,21 +379,31 @@ export function ResultImageButton({
           </button>
         </div>
       ) : dropzone && compactDrop ? (
-        <button type="button" disabled={busy} onClick={() => input.current?.click()}
-          className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-500 bg-slate-50 px-3 text-[13px] font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900">
+        <button type="button" disabled={busy} onClick={() => input.current?.click()} className="rdl-compact">
           <ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {busy ? 'AI đang đọc ảnh…' : 'Dán thêm ảnh: Ctrl+V hoặc thả vào đây'}
+          {busy ? 'Sóc đang đọc ảnh…' : 'Dán ảnh khác: Ctrl + V hoặc thả vào đây'}
         </button>
+      ) : dropzone && busy ? (
+        <div className="rdl-read" role="status" aria-live="polite">
+          <div className="rdl-thumb" aria-hidden="true">
+            {[60, 40, 100, 100, 80, 100, 70, 100, 50, 100, 85].map((w, i) => <i key={i} style={{ width: `${w}%`, marginTop: i === 2 ? 20 : undefined }} />)}
+            <div className="rdl-scan" />
+          </div>
+          <div className="rdl-read-t">
+            <Soc state="think" size={96} />
+            <b>Sóc đang đọc ảnh</b>
+            <p>Vài giây thôi, xong Sóc điền giúp bạn.</p>
+            {['Điểm Nghe và Đọc', 'Danh sách câu sai', 'Thời gian làm bài'].map(label => <div key={label} className="rdl-ck"><i aria-hidden="true" />{label}</div>)}
+          </div>
+        </div>
       ) : dropzone ? (
-        <div className="rounded-2xl border-[2.5px] border-dashed border-slate-500 bg-slate-50 px-4 py-7 text-center dark:border-slate-500 dark:bg-slate-900/60">
-          <ImagePlus className="mx-auto h-7 w-7 text-slate-700 dark:text-slate-200" aria-hidden="true" />
-          <button type="button" disabled={busy} onClick={() => input.current?.click()}
-            className="mt-2 cursor-pointer text-[16px] font-black text-slate-950 hover:underline disabled:cursor-wait disabled:opacity-60 dark:text-white">
-            {busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả vào đây'}
-          </button>
-          <p className="mt-1 text-[12.5px] font-semibold leading-5 text-slate-600 dark:text-slate-300">
-            <kbd className="rounded border border-slate-400 bg-white px-1.5 text-[11px] font-black dark:bg-slate-800">Ctrl</kbd> + <kbd className="rounded border border-slate-400 bg-white px-1.5 text-[11px] font-black dark:bg-slate-800">V</kbd> hoặc thả ảnh vào đây, hoặc bấm để chọn tệp.
-          </p>
+        <div role="button" tabIndex={0} className="rdl-drop" onClick={() => input.current?.click()}
+          onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.current?.click(); } }}
+          aria-label="Dán ảnh kết quả: bấm Ctrl V, kéo ảnh vào, hoặc bấm để chọn tệp">
+          <svg width="56" height="50" viewBox="0 0 56 50" aria-hidden="true"><rect x="4" y="6" width="48" height="38" rx="9" fill="#fff" /><circle cx="19" cy="20" r="5" fill="#ffc83d" /><path d="M8 38 L22 26 L31 33 L39 27 L48 35 V40 H8Z" fill="#46b35a" /></svg>
+          <b>Dán ảnh kết quả vào đây</b>
+          <span>bấm <span className="rdl-kbd">Ctrl</span> + <span className="rdl-kbd">V</span>, kéo ảnh vào, hoặc bấm để chọn tệp</span>
+          <small>Chụp trang có điểm và danh sách câu sai. Nhiều ảnh cũng được.</small>
         </div>
       ) : desktop && extraButton ? (
         <div className="space-y-2">
@@ -416,7 +427,7 @@ export function ResultImageButton({
 
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh kết quả"
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />
-      <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
+      <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
 

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--pinkd:#d6416a;--vio:#a78bfa;--viod:#7c5ce0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#eef0ee;padding:36px 40px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15px;color:var(--mut);margin-top:4px}
+.cols{display:grid;grid-template-columns:repeat(3,440px);gap:36px;margin-top:26px}
+.ttl{display:flex;align-items:center;gap:10px;font-weight:900;font-size:19px;margin-bottom:12px}
+.ttl i{font-style:normal;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:15px}
+.ttl small{font-weight:700;font-size:13px;color:var(--mut)}
+.m{background:#fff;border-radius:26px;padding:20px 22px;box-shadow:0 8px 0 rgba(47,58,51,.07);height:540px;display:flex;flex-direction:column;position:relative;overflow:hidden;margin-bottom:26px}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.mh b{font-weight:900;font-size:21px}
+.x{width:34px;height:34px;border-radius:11px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.btn{font-weight:900;font-size:15.5px;border-radius:15px;padding:12px 20px;background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--blue);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);padding:9px 15px;font-size:14.5px}
+.seg{display:flex;gap:4px;background:#f1f3f1;border-radius:13px;padding:4px;margin-bottom:16px}.seg span{flex:1;text-align:center;font-weight:800;font-size:14px;color:#5c675f;padding:8px 0;border-radius:10px}.seg .on{background:#fff;color:var(--ink);font-weight:900;box-shadow:0 2px 0 rgba(47,58,51,.1)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#f1f3f1;border-radius:99px;padding:6px 12px;font-weight:800;font-size:13.5px}
+.chip.e::after{content:'';width:11px;height:11px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14 L3 10 L11 2 L14 5 L6 13Z' fill='%237a857e'/%3E%3C/svg%3E") center/contain no-repeat}
+.soc-s svg{display:block;width:100%}
+.lbl{font-weight:900;font-size:12px;color:var(--mut);letter-spacing:.4px}
+
+/* ===== 1. Thẻ điểm ===== */
+.h1card{position:relative;border-radius:22px;background:linear-gradient(135deg,#4fc066,#2f8a42);color:#fff;padding:16px 18px 18px;overflow:hidden}
+.h1card .big{font-weight:900;font-size:64px;letter-spacing:-2.5px;line-height:.95}
+.h1card .big small{font-size:16px;letter-spacing:0;opacity:.85;margin-left:4px}
+.lr{display:flex;gap:18px;margin-top:12px;max-width:290px}.lr div{flex:1}.lr span{display:flex;justify-content:space-between;font-weight:800;font-size:12.5px;opacity:.95}
+.lr i{display:block;height:8px;border-radius:99px;background:rgba(255,255,255,.25);margin-top:3px;overflow:hidden}.lr i b{display:block;height:100%;background:#fff;border-radius:99px}
+.h1card .soc-s{position:absolute;right:-4px;bottom:-14px;width:110px}
+.h1card .ring{position:absolute;right:-50px;top:-50px;width:160px;height:160px;border-radius:50%;border:22px solid rgba(255,255,255,.08)}
+.wr{margin-top:16px;display:flex;align-items:flex-end;gap:12px}
+.wr .n{font-weight:900;font-size:30px;line-height:1;color:var(--pinkd)}.wr .n small{display:block;font-size:12.5px;color:var(--mut);font-weight:800}
+.cl{flex:1;display:flex;align-items:flex-end;gap:7px;height:86px}
+.cl div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.cl em{font-style:normal;font-weight:900;font-size:12px;color:#5c675f;margin-bottom:3px}
+.cl i{display:block;width:100%;border-radius:8px 8px 4px 4px;background:#ffd3de}
+.cl div.mx i{background:var(--pink)}
+.cl span{font-weight:900;font-size:11.5px;color:var(--mut);margin-top:4px}
+.cl .q{display:inline-grid;vertical-align:1px;width:17px;height:17px;font-size:11px!important;border-radius:50%;background:var(--gold);color:#6b4a00;font-weight:900;font-size:12px;display:grid;place-items:center;box-shadow:0 2px 0 var(--goldd)}
+.unsure1{margin-top:12px;display:flex;align-items:center;gap:8px;background:#fff6d6;border-radius:12px;padding:8px 12px;font-weight:800;font-size:13px;color:#7a5a00}
+.unsure1 a{margin-left:auto;font-weight:900;color:var(--blue)}
+.ptile{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.ptile span{height:48px;border-radius:14px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900;font-size:18px;color:#5c675f;box-shadow:0 3px 0 var(--line)}
+.ptile span.on{background:var(--vio);border-color:var(--vio);color:#fff;box-shadow:0 3px 0 var(--viod)}
+.gauge{position:relative;width:200px;height:200px;margin:16px auto 0}
+.gauge .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .c b{font-weight:900;font-size:50px;letter-spacing:-1.5px;line-height:1}.gauge .c small{font-weight:800;font-size:14px;color:var(--mut)}
+.pm{position:absolute;top:50%;width:42px;height:42px;margin-top:-21px;border-radius:14px;border:2px solid var(--line);background:#fff;display:grid;place-items:center;font-weight:900;font-size:22px;box-shadow:0 3px 0 var(--line)}
+.tot{display:flex;justify-content:center;gap:10px;align-items:center;margin-top:8px;font-weight:800;font-size:13.5px;color:var(--mut)}
+.tot i{font-style:normal;width:26px;height:26px;border-radius:9px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900;color:var(--ink)}
+.tot b{color:var(--ink);font-weight:900}
+
+/* ===== 2. Vé ===== */
+.tk{position:relative;display:grid;grid-template-columns:1fr 112px;border-radius:20px;overflow:hidden;box-shadow:0 6px 0 rgba(47,58,51,.08);margin-top:4px}
+.tk .a{background:linear-gradient(160deg,#fff7df,#ffe8b8);padding:16px 16px 14px}
+.tk .b{background:#fff3d1;padding:16px 10px;border-left:3px dashed #e8c66e;text-align:center}
+.tk .nm{font-weight:900;font-size:19px;letter-spacing:-.3px}.tk .dt{font-weight:800;font-size:12.5px;color:#9a7a30;margin-top:2px}
+.tk .big{font-weight:900;font-size:58px;letter-spacing:-2px;line-height:1;margin-top:10px;color:#2f3a33}
+.tk .lr2{display:flex;gap:6px;margin-top:8px}.tk .lr2 span{background:#fff;border-radius:99px;padding:3px 10px;font-weight:900;font-size:12.5px}
+.tk .b .n{font-weight:900;font-size:40px;line-height:1;color:var(--pinkd)}.tk .b small{display:block;font-weight:800;font-size:12px;color:#9a7a30}
+.tk .b .pp{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:10px}.tk .b .pp em{font-style:normal;background:#fff;border-radius:8px;padding:2px 0;font-weight:900;font-size:11.5px;color:#5c675f}.tk .b .pp em.mx{background:var(--pink);color:#fff}
+.tk::before,.tk::after{content:'';position:absolute;left:calc(100% - 112px - 11px);width:22px;height:22px;border-radius:50%;background:#fff}
+.tk::before{top:-11px}.tk::after{bottom:-11px}
+.stamp{position:absolute;right:120px;top:12px;transform:rotate(-10deg);border:3px solid var(--g);color:var(--g);border-radius:10px;padding:2px 8px;font-weight:900;font-size:12px;opacity:.85}
+.sticky{position:relative;margin:18px 6px 0 auto;width:250px;background:#ffe98a;padding:12px 14px;transform:rotate(-2deg);box-shadow:0 6px 12px rgba(160,120,0,.18);font-weight:800;font-size:13.5px;color:#5a4300;border-radius:4px}
+.sticky::before{content:'';position:absolute;top:-8px;left:50%;margin-left:-26px;width:52px;height:16px;background:rgba(255,255,255,.6);transform:rotate(3deg)}
+.sticky b{display:block;font-weight:900;font-size:15px}.sticky a{display:inline-block;margin-top:6px;font-weight:900;color:var(--blue)}
+.soc2{position:absolute;left:20px;bottom:70px;width:100px}
+.mini{border-radius:20px;background:linear-gradient(160deg,#f6f2ff,#e9e2ff);padding:16px;position:relative}
+.mini .pt{display:flex;gap:6px;flex-wrap:wrap}
+.mini .pt span{width:44px;height:44px;border-radius:12px;background:#fff;display:grid;place-items:center;font-weight:900;font-size:17px;color:#6a5aa8}
+.mini .pt span.on{background:var(--vio);color:#fff;box-shadow:0 3px 0 var(--viod)}
+.score2{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px}
+.score2 .v{font-weight:900;font-size:58px;letter-spacing:-2px;line-height:1}
+.score2 .v small{font-size:26px;color:var(--mut);letter-spacing:0}
+.score2 .pm{position:static;margin:0}
+.time{margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px}
+.time span{background:#f1ecff;color:#6a4fd0;border-radius:99px;padding:6px 14px;font-weight:900;font-size:14px}
+
+/* ===== 3. Lưới câu ===== */
+.top3{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.top3 .big{font-weight:900;font-size:46px;letter-spacing:-1.5px;line-height:1}
+.top3 .lr3{font-weight:800;font-size:14px;color:var(--mut)}.top3 .lr3 b{color:var(--ink)}
+.meta3{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.grid3{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.grid3 .rw{display:grid;grid-template-columns:30px 1fr 34px;align-items:center;gap:8px}
+.grid3 .rw>b{font-weight:900;font-size:12.5px;color:var(--mut)}
+.grid3 .rw>em{font-style:normal;font-weight:900;font-size:12.5px;color:var(--pinkd);text-align:right}
+.dots{display:flex;flex-wrap:wrap;gap:3px}
+.dots i{width:9px;height:9px;border-radius:3px;background:#e3ece5}
+.dots i.w{background:var(--pink)}
+.dots i.u{background:#fff;box-shadow:0 0 0 2.5px var(--gold)}
+.legend{display:flex;gap:14px;margin-top:12px;font-weight:800;font-size:12.5px;color:var(--mut)}
+.legend span{display:flex;align-items:center;gap:6px}.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.qd{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;margin-top:14px}
+.qd i{aspect-ratio:1;border-radius:10px;background:var(--gl);box-shadow:0 2px 0 #c9e8cf;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:12px;color:#5c8a66}
+.qd i.w{background:var(--pink);box-shadow:0 2px 0 var(--pinkd);color:#fff}
+.qd i.off{background:#f3f4f3;box-shadow:none;color:#c3c8c3}
+.res3{display:flex;align-items:center;justify-content:space-between;margin-top:14px;background:#f6f8f6;border-radius:14px;padding:10px 14px;font-weight:800;font-size:14px;color:var(--mut)}
+.res3 b{font-weight:900;font-size:24px;color:var(--ink)}
+.res3 .tot i{width:26px;height:26px}
+</style></head>
+<body>
+<h1>Ghi điểm · Xem lại & Bài luyện Part: 3 hướng mới</h1>
+<div class="lead">Bỏ nhãn từng dòng và bút sửa. Bấm thẳng vào con số để sửa. Mỗi hướng gồm màn xem lại sau khi Sóc đọc ảnh (trên) và màn ghi bài luyện Part (dưới).</div>
+<div class="cols">
+
+<!-- 1 -->
+<div>
+ <div class="ttl"><i>1</i>Thẻ điểm<small>số to, câu sai thành cột</small></div>
+ <div class="m"><div class="mh"><b>Sóc đọc được</b><div class="x">×</div></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><span class="chip e">ETS 2024 Test 05</span><span class="chip e">Hôm nay</span><span class="chip e">1g 58p</span></div>
+  <div class="h1card"><span class="ring"></span><div class="big">745<small>/990</small></div>
+   <div class="lr"><div><span>Nghe <b>375</b></span><i><b style="width:76%"></b></i></div><div><span>Đọc <b>370</b></span><i><b style="width:75%"></b></i></div></div>
+   <span class="soc-s" data-s="idle"></span></div>
+  <div class="wr"><div class="n">41<small>câu sai</small></div>
+   <div class="cl" id="cl1"></div></div>
+  <div class="unsure1">❓ Câu 132 bị mờ, đang tính là sai<a>Xem ảnh</a></div>
+  <div class="foot"><span class="btn w">Dán ảnh khác</span><span class="btn">Lưu điểm</span></div></div>
+ <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+  <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+  <div class="ptile"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span></div>
+  <div class="gauge"><svg viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="84" fill="none" stroke="#f1ecff" stroke-width="18"/><circle cx="100" cy="100" r="84" fill="none" stroke="#a78bfa" stroke-width="18" stroke-linecap="round" stroke-dasharray="369.5 527.8" transform="rotate(-90 100 100)"/></svg>
+   <div class="c"><b>14</b><small>câu đúng</small></div>
+   <span class="pm" style="left:-58px">−</span><span class="pm" style="right:-58px">+</span></div>
+  <div class="tot">trên <i>−</i><b>20</b><i>+</i> câu · ⏱ <b>22 phút</b></div>
+  <div class="foot"><span class="btn w">Dán ảnh</span><span class="btn">Lưu bài luyện</span></div></div>
+</div>
+
+<!-- 2 -->
+<div>
+ <div class="ttl"><i>2</i>Vé<small>giống vé lên đỉnh ở Hành trình</small></div>
+ <div class="m"><div class="mh"><b>Sóc đọc được</b><div class="x">×</div></div>
+  <div class="tk"><div class="a"><div class="nm">ETS 2024 Test 05</div><div class="dt">Hôm nay · 1 giờ 58 phút</div>
+    <div class="big">745</div><div class="lr2"><span>Nghe 375</span><span>Đọc 370</span></div></div>
+   <div class="b"><div class="n">41</div><small>câu sai</small><div class="pp" id="pp2"></div></div>
+   <span class="stamp">+20 điểm</span></div>
+  <div class="sticky"><b>Câu 132 bị mờ</b>Sóc đang tính là sai.<br><a>Xem ảnh</a></div>
+  <span class="soc-s soc2" data-s="think"></span>
+  <div class="foot"><span class="btn w">Dán ảnh khác</span><span class="btn">Lưu điểm</span></div></div>
+ <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+  <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+  <div class="mini"><div class="pt"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span></div></div>
+  <div class="score2"><span class="pm">−</span><div class="v">14<small>/20</small></div><span class="pm">+</span></div>
+  <div class="tot" style="margin-top:6px">câu đúng · tổng <i>−</i><b>20</b><i>+</i></div>
+  <div class="time"><span>⏱ Sóc bấm giờ: 22 phút</span></div>
+  <div class="foot"><span class="btn w">Dán ảnh</span><span class="btn">Lưu bài luyện</span></div></div>
+</div>
+
+<!-- 3 -->
+<div>
+ <div class="ttl"><i>3</i>Lưới câu<small>thấy ngay câu nào sai, bấm ô để sửa</small></div>
+ <div class="m"><div class="mh"><b>Sóc đọc được</b><div class="x">×</div></div>
+  <div class="top3"><span class="big">745</span><span class="lr3">Nghe <b>375</b> · Đọc <b>370</b></span></div>
+  <div class="meta3"><span class="chip e">ETS 2024 Test 05</span><span class="chip e">Hôm nay</span><span class="chip e">1g 58p</span></div>
+  <div class="grid3" id="g3"></div>
+  <div class="legend"><span><i style="background:var(--pink)"></i>sai · 41</span><span><i style="background:#fff;box-shadow:0 0 0 2px var(--gold)"></i>chưa chắc · 1</span><span><i style="background:#e3ece5"></i>đúng</span></div>
+  <div class="foot"><span class="btn w">Dán ảnh khác</span><span class="btn">Lưu điểm</span></div></div>
+ <div class="m"><div class="mh"><b>Ghi điểm</b><div class="x">×</div></div>
+  <div class="seg"><span>Đề Full Test</span><span class="on">Bài luyện Part</span></div>
+  <div class="ptile"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="on">7</span></div>
+  <div class="qd" id="qd3"></div>
+  <div class="res3"><span><b>14</b>/20 đúng</span><span class="tot" style="margin:0">tổng <i>−</i><b>20</b><i>+</i></span></div>
+  <div class="tot" style="margin-top:10px">bấm ô để đánh dấu câu sai · ⏱ <b>22 phút</b></div>
+  <div class="foot"><span class="btn w">Dán ảnh</span><span class="btn">Lưu bài luyện</span></div></div>
+</div>
+
+</div>
+<script src="_soc.js"></script>
+<script>
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+const WRONG=[1,3,8,5,5,7,12],MXP=6;
+document.getElementById('cl1').innerHTML=WRONG.map((n,i)=>`<div class="${i===MXP?'mx':''}"><em>${n}${i===4?' <b class="q">?</b>':''}</em><i style="height:${Math.max(8,n/12*62)}px"></i><span>P${i+1}</span></div>`).join('');
+document.getElementById('pp2').innerHTML=WRONG.map((n,i)=>`<em class="${i===MXP?'mx':''}">P${i+1} ${n}</em>`).join('');
+const SIZE=[6,25,39,30,30,16,54];
+document.getElementById('g3').innerHTML=SIZE.map((sz,i)=>{let d='';const w=WRONG[i];for(let k=0;k<sz;k++){const pick=(k*7+i*3)%sz<w;d+=`<i class="${i===4&&k===2?'u':pick?'w':''}"></i>`}return `<div class="rw"><b>P${i+1}</b><div class="dots">${d}</div><em>${w}</em></div>`}).join('');
+document.getElementById('qd3').innerHTML=Array.from({length:20},(_,k)=>`<i class="${[2,5,9,13,16,18].includes(k)?'w':''}">${k+1}</i>`).join('');
+</script>
+</body></html>

@@ -38,63 +38,63 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
       next.correct = Math.min(next.total, Math.max(0, Math.round(next.correct) || 0));
       return next;
     }));
-  const stepBtn = `grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] bg-white text-lg font-extrabold hover:bg-slate-100 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800 ${INK}`;
+
+  const ring = (row: PracticePartResult, index: number, big: boolean) => {
+    const size = big ? 200 : 150, stroke = big ? 18 : 14, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+    const share = row.total > 0 ? row.correct / row.total : 0;
+    return (
+      <div key={row.part} className={'rdp-card' + (big ? ' is-big' : '')}>
+        {!big && <div className="rdp-cardh"><b>Part {row.part}</b>
+          {rows.length > 1 && <button type="button" className="rdp-x" aria-label={`Bỏ Part ${row.part}`} title={`Bỏ Part ${row.part}`} onClick={() => removePart(row.part)}>×</button>}</div>}
+        <div className="rdp-dial">
+          <button type="button" className="rdp-pm" aria-label={`Giảm số câu đúng Part ${row.part}`} onClick={() => patch(index, r0 => ({ correct: r0.correct - 1 }))}>−</button>
+          <div className="rdp-ring" style={{ width: size, height: size }}>
+            <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-hidden="true">
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1ecff" strokeWidth={stroke} />
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={share >= 0.5 ? '#a78bfa' : '#b9a5fc'} strokeWidth={stroke} strokeLinecap="round" opacity={share > 0 ? 1 : 0}
+                strokeDasharray={`${Math.max(0.001, share) * c} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: 'stroke-dasharray .3s' }} />
+            </svg>
+            <div className="rdp-c">
+              <input type="number" min={0} max={row.total} step={1} inputMode="numeric" aria-label={`Số câu đúng Part ${row.part}`}
+                value={row.correct} onChange={e => patch(index, () => ({ correct: Number(e.target.value) }))} onFocus={e => e.target.select()}
+                className={NO_SPIN} />
+              <small>câu đúng</small>
+            </div>
+          </div>
+          <button type="button" className="rdp-pm" aria-label={`Tăng số câu đúng Part ${row.part}`} onClick={() => patch(index, r0 => ({ correct: r0.correct + 1 }))}>+</button>
+        </div>
+        <div className="rdp-tot">trên
+          <button type="button" aria-label={`Giảm tổng số câu Part ${row.part}`} onClick={() => patch(index, r0 => ({ total: r0.total - 1 }))}>−</button>
+          <input type="number" min={1} step={1} inputMode="numeric" aria-label={`Tổng số câu Part ${row.part}`} value={row.total}
+            onChange={e => patch(index, () => ({ total: Number(e.target.value) }))} onFocus={e => e.target.select()} className={NO_SPIN} />
+          <button type="button" aria-label={`Tăng tổng số câu Part ${row.part}`} onClick={() => patch(index, r0 => ({ total: r0.total + 1 }))}>+</button>
+          câu
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="rdp space-y-4">
       <div>
-        <div className="mb-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">Part đã luyện</div>
-        <div role="group" aria-label="Part đã luyện" className={`grid grid-cols-7 overflow-hidden rounded-xl ${INK}`}>
-          {PARTS.map((p, i) => {
+        <div className="rdp-lbl">Bạn vừa luyện Part nào?</div>
+        <div role="group" aria-label="Part đã luyện" className="rdp-tiles">
+          {PARTS.map(p => {
             const isUsed = used.has(p);
             return (
-              <button key={p} type="button" aria-label={isUsed ? `Part ${p} đã thêm, bấm để bỏ` : `Thêm Part ${p}`} aria-pressed={isUsed} onClick={() => addPart(p)}
-                className={`py-2.5 text-sm font-extrabold transition ${i > 0 ? 'border-l-2 border-slate-900 dark:border-slate-300' : ''} ${
-                  isUsed
-                    ? 'cursor-pointer bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100'
-                    : 'cursor-pointer bg-white text-slate-900 hover:bg-blue-100 hover:text-blue-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-blue-900 dark:hover:text-blue-100'
-                }`}>
-                {p}
-              </button>
+              <button key={p} type="button" aria-label={isUsed ? `Part ${p} đã chọn, bấm để bỏ` : `Thêm Part ${p}`} aria-pressed={isUsed} onClick={() => addPart(p)}
+                className={isUsed ? 'is-on' : undefined}>{p}</button>
             );
           })}
         </div>
       </div>
 
-      {rows.map((row, index) => {
-        const pct = row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
-        return (
-          <div key={row.part} className={`grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-2xl px-3.5 py-3 ${INK}`}>
-            <span className="rounded-[10px] border-2 border-slate-900 bg-blue-100 px-2.5 py-1.5 text-[13px] font-extrabold text-blue-700 dark:border-slate-300 dark:bg-blue-900 dark:text-blue-100">Part {row.part}</span>
-            <div className="flex items-center justify-center gap-2.5">
-              <button type="button" aria-label={`Giảm số câu đúng Part ${row.part}`} onClick={() => patch(index, r => ({ correct: r.correct - 1 }))} className={stepBtn}>−</button>
-              <input type="number" min={0} max={row.total} step={1} inputMode="numeric" aria-label={`Số câu đúng Part ${row.part}`}
-                value={row.correct} onChange={e => patch(index, () => ({ correct: Number(e.target.value) }))}
-                onFocus={e => e.target.select()}
-                className={`w-[74px] rounded-xl px-2 py-0.5 text-center text-[30px] font-extrabold leading-[1.1] tabular-nums ${NO_SPIN} ${FIELD}`} />
-              <button type="button" aria-label={`Tăng số câu đúng Part ${row.part}`} onClick={() => patch(index, r => ({ correct: r.correct + 1 }))} className={stepBtn}>+</button>
-              <span className="flex items-center gap-1 text-[15px] font-bold text-slate-500 dark:text-slate-400">
-                /
-                <input type="number" min={1} step={1} inputMode="numeric" aria-label={`Tổng số câu Part ${row.part}`}
-                  value={row.total} onChange={e => patch(index, () => ({ total: Number(e.target.value) }))}
-                  onFocus={e => e.target.select()}
-                  className={`w-10 border-0 border-b-2 border-dotted border-slate-500 bg-transparent px-0 text-center font-bold tabular-nums text-slate-700 focus:border-blue-500 focus:outline-none dark:border-slate-400 dark:text-slate-200 ${NO_SPIN}`} />
-                câu
-              </span>
-            </div>
-            <div className="text-right text-[13px] font-extrabold tabular-nums text-emerald-600 dark:text-emerald-300">
-              {pct}%<small className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">đúng</small>
-            </div>
-            {rows.length > 1
-              ? <button type="button" aria-label={`Bỏ Part ${row.part}`} title={`Bỏ Part ${row.part}`} onClick={() => removePart(row.part)}
-                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border-2 border-transparent text-lg font-extrabold text-slate-500 hover:border-slate-900 hover:text-rose-700 focus-visible:border-slate-900 focus-visible:outline-none dark:text-slate-400 dark:hover:border-slate-300 dark:hover:text-rose-300">×</button>
-              : <span className="w-8" aria-hidden="true" />}
-          </div>
-        );
-      })}
+      <div className={rows.length > 1 ? 'rdp-grid' : undefined}>
+        {rows.map((row, index) => ring(row, index, rows.length === 1))}
+      </div>
 
       <div className="flex items-center justify-between text-[13px] font-extrabold">
-        <span />
+        <button type="button" className="rdp-time" onClick={() => setDetailOpen(true)}>⏱ {Math.round(duration)} phút</button>
         <button type="button" aria-expanded={detailOpen} onClick={() => setDetailOpen(o => !o)} className="cursor-pointer text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
           Thêm chi tiết {detailOpen ? '▴' : '▾'}
         </button>
