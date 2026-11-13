@@ -10,6 +10,8 @@ export interface RdSidebarProps {
   profile: UserProfile;
   dueMistakesCount: number;
   streak: number;
+  /** New badges not shown yet: a pink dot on Thành tích. */
+  newBadges?: number;
   onOpenSessionLogger: () => void;
   onOpenSettings: () => void;
 }
@@ -25,14 +27,14 @@ const ICONS: Record<string, ReactNode> = {
 
 interface Item { key: keyof typeof ICONS; label: string; tab?: NavTabId; also?: NavTabId[]; color: string; lip: string; tint: string; badge?: number }
 
-export function RdSidebar({ activeTab, setActiveTab, profile, dueMistakesCount, streak, onOpenSessionLogger, onOpenSettings }: RdSidebarProps) {
+export function RdSidebar({ activeTab, setActiveTab, profile, dueMistakesCount, streak, newBadges = 0, onOpenSessionLogger, onOpenSettings }: RdSidebarProps) {
   // While pages are rebuilt one by one, each item opens the current page that will merge into it.
   const items: Item[] = [
     { key: 'today', label: 'Hôm nay', tab: 'dashboard', also: ['plan'], color: 'var(--rd-green)', lip: 'var(--rd-green-d)', tint: 'var(--rd-green)' },
     { key: 'journey', label: 'Hành trình điểm', tab: 'history', also: ['analytics'], color: 'var(--rd-gold)', lip: 'var(--rd-gold-d)', tint: 'var(--rd-gold-d)' },
     { key: 'practice', label: 'Luyện tập', tab: 'exam-mode', color: 'var(--rd-violet)', lip: 'var(--rd-violet-d)', tint: 'var(--rd-violet-d)' },
     { key: 'notebook', label: 'Sổ tay', tab: 'mistakes', also: ['vocabulary'], color: 'var(--rd-pink)', lip: 'var(--rd-pink-d)', tint: 'var(--rd-pink-d)', badge: dueMistakesCount || undefined },
-    { key: 'awards', label: 'Thành tích', color: 'var(--rd-blue)', lip: 'var(--rd-blue-d)', tint: 'var(--rd-blue-d)' }
+    { key: 'awards', label: 'Thành tích', tab: 'awards', color: 'var(--rd-blue)', lip: 'var(--rd-blue-d)', tint: 'var(--rd-blue-d)', badge: newBadges || undefined }
   ];
   const name = profileDisplayName(profile.name);
 
@@ -60,7 +62,7 @@ export function RdSidebar({ activeTab, setActiveTab, profile, dueMistakesCount, 
                 <svg viewBox="0 0 24 24">{ICONS[item.key]}</svg>
               </span>
               <span className="rd-side__lbl">{item.label}</span>
-              {item.badge ? <em aria-label={`${item.badge} câu đến hạn`}>{item.badge}</em> : null}
+              {item.badge ? <em aria-label={item.key === 'awards' ? `${item.badge} huy hiệu mới` : `${item.badge} câu đến hạn`}>{item.badge}</em> : null}
             </button>
           );
         })}

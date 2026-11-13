@@ -5,6 +5,8 @@ import { TodayPage } from '@/features/today/components/TodayPage';
 import { JourneyPage } from '@/features/journey/components/JourneyPage';
 import { PracticePage } from '@/features/pacing/components/PracticePage';
 import { ReviewSession } from '@/features/mistakes/components/ReviewSession';
+import { AwardsPage, unseenBadges } from '@/features/awards/components/AwardsPage';
+import { computeBadges } from '@/features/awards/lib/badges';
 import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -453,7 +455,9 @@ export const App: React.FC = () => {
   const showJourney = (activeTab === 'history' || activeTab === 'analytics') && !isPhone;
   const showPractice = activeTab === 'exam-mode' && !isPhone && !pomodoroOpen;
   const showNotebook = activeTab === 'mistakes' && !isPhone;
-  const fullPage = showToday || showJourney || showPractice || showNotebook;
+  const showAwards = activeTab === 'awards';
+  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards;
+  const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
@@ -475,6 +479,7 @@ export const App: React.FC = () => {
         profile={profile}
         dueMistakesCount={dueMistakesCount}
         streak={streakNow}
+        newBadges={newBadges}
         onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
       />}
@@ -519,6 +524,8 @@ export const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateProfile={updateProfile}
           />
+        ) : showAwards ? (
+          <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} />
         ) : showPractice ? (
           <PracticePage
             sessions={sessions}

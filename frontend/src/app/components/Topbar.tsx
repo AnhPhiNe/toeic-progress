@@ -96,6 +96,12 @@ export const Topbar: React.FC<TopbarProps> = ({
       short: 'Quy đổi',
       category: 'Đo lường & chẩn đoán',
       icon: Calculator
+    },
+    awards: {
+      title: 'Thành tích',
+      short: 'Thành tích',
+      category: 'Hành trình',
+      icon: Calculator
     }
   };
 
