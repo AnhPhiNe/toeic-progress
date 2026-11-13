@@ -22,7 +22,7 @@ function test(date: string, total: number, extra: Partial<StudySession> = {}): S
   };
 }
 
-/** Sketch mock-journey-score2 case "7 Ä‘á», cÃ³ 2 Ä‘á» cÃ¹ng ngÃ y vÃ  1 Ä‘á» lÃ m láº¡i". */
+/** Sketch mock-journey-score2 case "7 tests, 2 on the same day, 1 retake". */
 function sketchSeven(): StudySession[] {
   seq = 0;
   return [

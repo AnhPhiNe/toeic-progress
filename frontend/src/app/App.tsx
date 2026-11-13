@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { generateUUID } from '@/shared/domain/uuid';
 import { RdSidebar } from '@/app/components/RdSidebar';
 import { TodayPage } from '@/features/today/components/TodayPage';
+import { JourneyPage } from '@/features/journey/components/JourneyPage';
 import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -441,6 +442,9 @@ export const App: React.FC = () => {
   const bundle = useMemo(() => readDataBundle(), [profile, sessions, mistakes, vocabLog, dataVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const streakNow = useMemo(() => deriveStreakWithExtras(bundle, today, extraStudyDates(bundle.profile, bundle.mistakes)).currentStreak, [bundle, today]);
   const showToday = activeTab === 'dashboard' && !isPhone;
+  // Hành trình điểm replaces Lịch sử thi + Phân tích on computers.
+  const showJourney = (activeTab === 'history' || activeTab === 'analytics') && !isPhone;
+  const fullPage = showToday || showJourney;
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
@@ -470,7 +474,7 @@ export const App: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         
         {/* Topbar Header */}
-        {!showToday && <Topbar
+        {!fullPage && <Topbar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           profile={profile}
@@ -505,6 +509,20 @@ export const App: React.FC = () => {
             onOpenSessionLogger={() => openSessionLogger()}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateProfile={updateProfile}
+          />
+        ) : showJourney ? (
+          <JourneyPage
+            key={activeOwner ?? 'guest'}
+            sessions={sessions}
+            mistakes={mistakes}
+            profile={profile}
+            today={today}
+            initialTab={activeTab === 'analytics' ? 'parts' : 'score'}
+            onOpenNotebook={name => { setNotebookSourceFilter({ owner: activeOwner, names: [name] }); setActiveTab('mistakes'); }}
+            onPractice={part => navigateToPacing(`PART_${part}` as ReadingPartType)}
+            onEditSession={openSessionEditor}
+            onDeleteSession={handleDeleteSession}
+            onOpenSessionLogger={() => openSessionLogger()}
           />
         ) : (
         /* Body Container */
