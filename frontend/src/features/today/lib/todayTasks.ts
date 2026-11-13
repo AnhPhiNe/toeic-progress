@@ -58,7 +58,7 @@ function task(kind: TodayTaskKind, today: string, fields: Omit<TodayTask, 'id' |
 }
 
 /** Local calendar date of an ISO timestamp, matching how `today` is produced. */
-function localDate(iso: string): string | null {
+export function localDate(iso: string): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

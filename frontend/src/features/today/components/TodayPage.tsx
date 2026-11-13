@@ -1,0 +1,130 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { DataBundle } from '@/shared/data/dataBundle';
+import type { UserProfile } from '@/shared/types';
+import { buildMilestones } from '@/shared/domain/milestones';
+import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
+import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
+import { Soc } from '@/shared/ui/soc/Soc';
+import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
+import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
+import { countWord } from '../lib/stairsGeometry';
+import { StairsScene } from './StairsScene';
+import { TodayCard } from './TodayCard';
+import './today.css';
+
+interface Props {
+  bundle: DataBundle;
+  today: string;
+  onStartTask: (task: TodayTask) => void;
+  onPracticeMore: () => void;
+  onOpenSessionLogger: () => void;
+  onOpenSettings: () => void;
+  onUpdateProfile: (update: (profile: UserProfile) => UserProfile) => void;
+}
+
+const CELEBRATED_KEY = 'rd_goal_celebrated_v1';
+
+export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile }: Props) {
+  const { profile, sessions, mistakes } = bundle;
+  const target = profile.targetScore;
+  const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
+  const tasks = useMemo(() => pickTodayTasks(bundle, today), [bundle, today]);
+  const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
+  const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
+  const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
+  const ahead = useMemo(() => {
+    const f = forecast(journeyPoints(sessions), target, profile.examDate, today);
+    return f && f.kind === 'rising' ? f.testsAhead : null;
+  }, [sessions, target, profile.examDate, today]);
+  const examIn = daysUntil(profile.examDate, today);
+
+  const climbing = plan.status === 'empty' ? null : plan;
+  const blocks = climbing ? climbing.steps.length - 1 : 0;
+  const remaining = climbing ? blocks - climbing.currentIndex : 0;
+
+  // One full-page celebration per goal, the first time it is reached.
+  const [celebrate, setCelebrate] = useState(false);
+  useEffect(() => {
+    if (plan.status !== 'done') return;
+    try {
+      if (localStorage.getItem(CELEBRATED_KEY) === String(target)) return;
+      localStorage.setItem(CELEBRATED_KEY, String(target));
+    } catch { /* Without storage the celebration may repeat; harmless. */ }
+    setCelebrate(true);
+  }, [plan.status, target]);
+
+  const scored = useMemo(() => sessions
+    .filter(s => !s.deletedAt && s.sessionType === 'FULL_TEST' && s.skillType === 'LR' && Number.isFinite(s.totalScore))
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? '')), [sessions]);
+
+  return (
+    <div className="rd td-page">
+      <StairsScene plan={climbing} target={target} testsAhead={ahead} />
+
+      <header className="td-hd">
+        {climbing ? <>
+          <div className="td-row">
+            <div className="td-dots" aria-hidden="true">
+              {climbing.steps.map((_, i) => <i key={i} className={i < climbing.currentIndex ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : ''} />)}
+            </div>
+            <small>{plan.status === 'done' ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${blocks + 1} · CÒN ${target - climbing.best} ĐIỂM`}</small>
+          </div>
+          {plan.status === 'done'
+            ? <><h1>Bạn đã <em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} · đặt mục tiêu mới trong cài đặt</p></>
+            : <><h1>{countWord(remaining)} bậc nữa là <em>chạm tay vào cúp</em></h1><p>Mỗi bậc {climbing.step} điểm · rê chuột để xem ngày đạt</p></>}
+        </> : <>
+          <h1>Dựng cầu thang <em>lên cúp {target}</em></h1>
+          <p>Ghi điểm đề đầu tiên, Sóc sẽ xếp các bậc từ đó.</p>
+          <button type="button" className="rd-btn td-first" onClick={onOpenSessionLogger}>+ Ghi điểm đề đầu tiên</button>
+        </>}
+      </header>
+
+      <aside className="td-panel">
+        <div className="td-chips">
+          {examIn !== null
+            ? <span style={{ color: 'var(--rd-blue)' }}>{examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`}</span>
+            : <button type="button" onClick={onOpenSettings}>📅 Đặt ngày thi</button>}
+        </div>
+        <TodayCard
+          tasks={tasks}
+          habits={profile.habits ?? []}
+          today={today}
+          week={week}
+          goal={goal}
+          onStartTask={onStartTask}
+          onPracticeMore={onPracticeMore}
+          onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
+          onAddHabit={title => onUpdateProfile(p => addHabit(p, title, crypto.randomUUID()))}
+          onRemoveHabit={id => onUpdateProfile(p => removeHabit(p, id))}
+          onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))}
+        />
+      </aside>
+
+      {celebrate && climbing && (
+        <div className="td-cele" role="dialog" aria-modal="true" aria-label={`Bạn đã chạm ${target}`}>
+          <div className="td-rays2" aria-hidden="true" />
+          {Array.from({ length: 60 }, (_, i) => (
+            <i key={i} className="td-confp" aria-hidden="true" style={{ left: `${(i * 37) % 100}%`, background: ['#ffd766', '#ff7a9c', '#46b35a', '#1c8fe3', '#a78bfa'][i % 5], animationDuration: `${2 + (i % 7) * 0.3}s`, animationDelay: `${(i % 11) * 0.11}s` }} />
+          ))}
+          <Soc state="yay" size={130} className="td-cele-soc is-l" />
+          <Soc state="yay" size={130} className="td-cele-soc is-r" />
+          <div className="td-cele-box">
+            <svg className="td-bigcup" viewBox="-110 -110 220 190" aria-hidden="true">
+              <defs><linearGradient id="tdCup2" x1="0" x2="1"><stop offset="0" stopColor="#ffe9a3" /><stop offset=".45" stopColor="#ffc83d" /><stop offset="1" stopColor="#e09a12" /></linearGradient></defs>
+              <path d="M-64 -64 C-104 -64 -100 -10 -58 -16" fill="none" stroke="#e8a516" strokeWidth="11" strokeLinecap="round" /><path d="M64 -64 C104 -64 100 -10 58 -16" fill="none" stroke="#d99a00" strokeWidth="11" strokeLinecap="round" />
+              <path d="M-64 -76 H64 C64 -12 32 30 0 32 C-32 30 -64 -12 -64 -76Z" fill="url(#tdCup2)" /><ellipse cx="0" cy="-76" rx="64" ry="9" fill="#ffe9a3" /><rect x="-12" y="28" width="24" height="22" fill="url(#tdCup2)" /><rect x="-44" y="48" width="88" height="24" rx="7" fill="#2f3a33" />
+              <text x="0" y="66" fontWeight="900" fontSize="17" fill="#ffe58f" textAnchor="middle">{climbing.best}</text>
+              <path d="M0 -62 l7 14 15 2 -11 11 3 15 -14 -7 -14 7 3 -15 -11 -11 15 -2Z" fill="#fff" />
+            </svg>
+            <h1>Bạn đã chạm {target}!</h1>
+            <p>Từ {scored[0]?.totalScore} lên {climbing.best} sau {scored.length} đề.</p>
+            <div className="td-cele-bt">
+              <button type="button" className="rd-btn" onClick={() => { setCelebrate(false); onOpenSettings(); }}>Đặt mục tiêu mới</button>
+              <button type="button" className="rd-btn rd-btn--white" onClick={() => setCelebrate(false)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -319,6 +319,17 @@ export interface UserProfile {
   dailyMinGoalMinutes: number; // vd: 30 phút
   motto: string;             // Câu châm ngôn hoặc cam kết cá nhân
   selectedSkill: SkillType;  // 'LR' | 'SW'
+  /** Hôm nay: số buổi muốn học mỗi tuần (mặc định 5). */
+  weeklyGoalDays?: number;
+  /** Hôm nay: tối đa 2 "Việc của mình" tự đánh dấu mỗi ngày; ngày đánh dấu tính vào chuỗi. */
+  habits?: Habit[];
+}
+
+/** A learner's own recurring task, ticked by hand. doneDates keeps only recent days. */
+export interface Habit {
+  id: string;
+  title: string;
+  doneDates: string[];
 }
 
 // ================= KẾ HOẠCH TUẦN SMART =================

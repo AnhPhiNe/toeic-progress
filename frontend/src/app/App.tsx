@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { generateUUID } from '@/shared/domain/uuid';
 import { RdSidebar } from '@/app/components/RdSidebar';
+import { TodayPage } from '@/features/today/components/TodayPage';
+import type { TodayTask } from '@/features/today/lib/todayTasks';
+import { extraStudyDates } from '@/features/today/lib/habits';
+import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { Topbar } from '@/app/components/Topbar';
 import { MobileNav } from '@/app/components/MobileNav';
 import { profileInitials } from '@/app/components/profileInitials';
@@ -431,6 +436,21 @@ export const App: React.FC = () => {
   const today = getTodayDateString();
   const studiedDates = actualStudyDates({ sessions, vocabLog, pacingRuns: loadPacingRuns() }, today);
   const hasStudiedToday = studiedDates.has(today) || sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
+  // Hôm nay (desktop) reads the whole bundle; the state above is what changes it.
+  const isPhone = useMediaQuery('(max-width: 767px)');
+  const bundle = useMemo(() => readDataBundle(), [profile, sessions, mistakes, vocabLog, dataVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  const streakNow = useMemo(() => deriveStreakWithExtras(bundle, today, extraStudyDates(bundle.profile, bundle.mistakes)).currentStreak, [bundle, today]);
+  const showToday = activeTab === 'dashboard' && !isPhone;
+  const startTodayTask = (task: TodayTask) => {
+    if (task.kind === 'REVIEW_MISTAKES') openReview();
+    else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
+    else if (task.kind === 'FULL_TEST') openSessionLogger();
+    else if (task.kind === 'WORD_CARDS') setActiveTab('vocabulary');
+  };
+  const updateProfile = (update: (current: UserProfile) => UserProfile) => {
+    saveUserProfile(update(loadUserProfile()));
+    setProfile(loadUserProfile());
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
@@ -441,7 +461,7 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
         profile={profile}
         dueMistakesCount={dueMistakesCount}
-        streak={profile.currentStreak}
+        streak={streakNow}
         onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
@@ -450,7 +470,7 @@ export const App: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         
         {/* Topbar Header */}
-        <Topbar
+        {!showToday && <Topbar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           profile={profile}
@@ -464,7 +484,7 @@ export const App: React.FC = () => {
           accountButton={<AccountAvatarButton initials={profileInitials(profile.name)} available={account.available} status={account.status}
             onOpenSettings={() => setIsSettingsModalOpen(true)} />}
           streakButton={<StreakChip streak={profile.currentStreak} longestStreak={profile.longestStreak || 0} studiedDates={studiedDates} today={today} />}
-        />
+        />}
 
         <ConnectionBanner
           accountActive={Boolean(getActiveAccountId() || account.hasAccountSession)}
@@ -476,7 +496,18 @@ export const App: React.FC = () => {
           onUseGuest={() => void account.signOut()}
         />
 
-        {/* Body Container */}
+        {showToday ? (
+          <TodayPage
+            bundle={bundle}
+            today={today}
+            onStartTask={startTodayTask}
+            onPracticeMore={() => setActiveTab('exam-mode')}
+            onOpenSessionLogger={() => openSessionLogger()}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onUpdateProfile={updateProfile}
+          />
+        ) : (
+        /* Body Container */
         <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 lg:pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-5 lg:pb-6 flex flex-col min-h-0">
           {activeTab === 'dashboard' && (
             <div className="w-full space-y-3 sm:space-y-4">
@@ -598,6 +629,7 @@ export const App: React.FC = () => {
             />
           )}
         </main>
+        )}
 
       </div>
 
