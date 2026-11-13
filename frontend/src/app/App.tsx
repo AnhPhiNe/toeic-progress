@@ -3,6 +3,7 @@ import { generateUUID } from '@/shared/domain/uuid';
 import { RdSidebar } from '@/app/components/RdSidebar';
 import { TodayPage } from '@/features/today/components/TodayPage';
 import { JourneyPage } from '@/features/journey/components/JourneyPage';
+import { PracticePage } from '@/features/pacing/components/PracticePage';
 import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -126,8 +127,12 @@ export const App: React.FC = () => {
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
   const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
+
   const [pacingReturnTab, setPacingReturnTab] = useState<NavTabId | null>(null);
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
+  // Pomodoro keeps the older clock view; the redesigned Luyện tập handles Reading presets.
+  const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  useEffect(() => { if (activeTab !== 'exam-mode') setPomodoroOpen(false); }, [activeTab]);
   const navigateToPacing = (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
     if (draft && (draft.mode !== target || target === 'POMODORO' && draft.phase !== 'WORK')) {
@@ -444,7 +449,8 @@ export const App: React.FC = () => {
   const showToday = activeTab === 'dashboard' && !isPhone;
   // Hành trình điểm replaces Lịch sử thi + Phân tích on computers.
   const showJourney = (activeTab === 'history' || activeTab === 'analytics') && !isPhone;
-  const fullPage = showToday || showJourney;
+  const showPractice = activeTab === 'exam-mode' && !isPhone && !pomodoroOpen;
+  const fullPage = showToday || showJourney || showPractice;
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
@@ -509,6 +515,16 @@ export const App: React.FC = () => {
             onOpenSessionLogger={() => openSessionLogger()}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateProfile={updateProfile}
+          />
+        ) : showPractice ? (
+          <PracticePage
+            sessions={sessions}
+            initialPart={pacingInitialPart}
+            resultDialogBlocked={savedTest !== null || isSessionModalOpen || isSettingsModalOpen || editingPacing !== null || reviewCards !== null || Boolean(account.pendingTransfer)}
+            onOpenSessionLogger={openSessionLogger}
+            onEditSession={openSessionEditor}
+            onSessionsChanged={handleSessionsChangedElsewhere}
+            onOpenPomodoro={() => { setPacingInitialPart('POMODORO'); setPomodoroOpen(true); }}
           />
         ) : showJourney ? (
           <JourneyPage
@@ -584,12 +600,12 @@ export const App: React.FC = () => {
               onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
               initialPart={pacingInitialPart}
-              onBack={pacingReturnTab ? () => {
+              onBack={pomodoroOpen && !isPhone ? () => { setPomodoroOpen(false); setPacingInitialPart('PART_5'); } : pacingReturnTab ? () => {
                 const target = pacingReturnTab;
                 setPacingReturnTab(null);
                 setActiveTab(target);
               } : undefined}
-              backLabel={pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
+              backLabel={pomodoroOpen && !isPhone ? 'Luyện tập' : pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
             />
           )}
 
