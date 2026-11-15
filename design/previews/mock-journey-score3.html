@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gold:#ffc83d;--ink:#2f3a33;--mut:#7a857e;--blue:#1c8fe3;--pink:#ff7a9c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px;background:#fff;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#fff8e1;border-color:#f6dc8f;color:#d99a00}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;padding:30px 52px 0}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.top{display:flex;align-items:center;justify-content:space-between}
+.top h2{font-weight:900;font-size:30px;letter-spacing:-.8px}
+.seg{display:flex;background:#f1f3f1;border-radius:18px;padding:5px}
+.seg span{padding:9px 18px;border-radius:14px;font-weight:900;font-size:15px;color:#5e6962}.seg span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.06)}
+.seg.sm span{padding:6px 14px;font-size:14px}.seg.sm span.on{background:var(--ink);color:#fff}
+.hd{display:flex;align-items:flex-end;justify-content:space-between;margin-top:18px}
+.hd small{font-weight:900;font-size:14px;color:var(--blue)}.hd h1{font-weight:900;font-size:30px;letter-spacing:-.8px;margin-top:2px}
+.hd h1 em{font-style:normal;color:#e0970f}
+.box{position:absolute;left:52px;right:52px;top:178px;bottom:30px;border-radius:30px;overflow:hidden}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:4px 11px;font-weight:900;font-size:13px}
+.up{background:#e3f6e6;color:var(--gd)}
+.bubble{position:absolute;background:#fff;border-radius:18px;padding:11px 15px;font-weight:800;font-size:14px;line-height:1.35;box-shadow:0 6px 0 rgba(47,58,51,.08);z-index:4}
+.stat{position:absolute;left:24px;top:24px;width:250px;z-index:3;display:flex;flex-direction:column;gap:12px}
+.st{background:rgba(255,255,255,.94);border-radius:24px;padding:16px 18px;box-shadow:0 8px 0 rgba(47,58,51,.06)}
+.st small{font-weight:900;font-size:12.5px;color:var(--mut);letter-spacing:.3px}
+.st .big{font-weight:900;font-size:62px;letter-spacing:-3px;line-height:1;margin-top:4px}
+.st .big span{font-size:20px;color:var(--mut);letter-spacing:0;margin-left:4px}
+.st .r{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:15px;padding:7px 0;border-top:2px solid #f2f3f2}
+.st .r:first-of-type{border:0}.st .r span{font-weight:800;color:var(--mut);font-size:14px}
+.dark .st{background:rgba(255,255,255,.1);color:#fff;box-shadow:none;border:1.5px solid rgba(255,255,255,.18);backdrop-filter:blur(4px)}
+.dark .st small,.dark .st .r span,.dark .st .big span{color:#c9c6ea}.dark .st .r{border-color:rgba(255,255,255,.12)}
+.dark .up{background:rgba(127,209,140,.2);color:#9be8a8}
+.an{position:absolute;z-index:6;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+.an b{width:20px;height:20px;border-radius:50%;background:var(--pink);display:grid;place-items:center;font-size:12px;flex:none}
+.legend{width:1440px;background:#fff;border-radius:20px;padding:16px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.legend div{font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.45}.legend b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pink);color:#fff;font-size:12px;margin-right:6px}
+.legend strong{color:var(--ink)}
+</style></head>
+<body>
+<div class="cap">J1 · Leo núi tuyết<small>không còn cúp: mục tiêu là đỉnh núi tuyết cắm cờ 800; mỗi đề là một cọc mốc trên sống núi; ngày thi là biển gỗ dưới chân đỉnh; nhiều lớp núi xa, thông, mây cho có chiều sâu</small></div>
+<div class="page" id="J1"></div>
+<div class="legend">
+ <div><b>1</b><strong>Đường vẽ dần:</strong> mở tab là sống núi vẽ từ trái sang phải, cọc mốc cắm xuống lần lượt.</div>
+ <div><b>2</b><strong>Cờ đỉnh phấp phới:</strong> lá cờ 800 bay nhẹ, tuyết lấp lánh trên đỉnh.</div>
+ <div><b>3</b><strong>Sóc leo:</strong> Sóc nhún ở cọc mới nhất; đề mới ghi thì Sóc nhảy lên cọc tiếp theo.</div>
+ <div><b>4</b><strong>Mây + chim:</strong> mây trôi chậm qua núi xa, đàn chim bay ngang theo chu kỳ dài.</div>
+</div>
+<div class="cap">J2 · Chòm sao điểm<small>trời đêm tím: mỗi đề là một ngôi sao, nối thành chòm sao đi lên; mục tiêu 800 là mặt trăng; ngày thi là hành tinh có vành; khác hẳn trang Hôm nay (ban ngày, cầu thang, cúp)</small></div>
+<div class="page" id="J2"></div>
+<div class="legend">
+ <div><b>1</b><strong>Sao sáng dần:</strong> các sao bật sáng theo thứ tự đề, đường nối chạy theo.</div>
+ <div><b>2</b><strong>Sao mới nhất lấp lánh:</strong> sao 765 to nhất, nhấp nháy nhẹ.</div>
+ <div><b>3</b><strong>Trăng mục tiêu:</strong> trăng toả sáng nhẹ, đường nét đứt "bay tới" chạy chậm.</div>
+ <div><b>4</b><strong>Sao băng:</strong> thỉnh thoảng một sao băng vụt qua; trời có sao nhỏ nhấp nháy.</div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>
+<div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv on"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const HEAD=t=>`<div class="top"><h2>Hành trình điểm</h2><div class="seg"><span class="on">Điểm số</span><span>Từng Part</span><span>Các đề 7</span></div></div><div class="hd"><div><small>Mình có kịp không?</small><h1>${t}</h1></div><div class="seg sm"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div></div>`;
+const STAT=`<div class="stat"><div class="st"><small>ĐIỂM GẦN NHẤT · 11/11</small><div class="big">765<span>/990</span></div><div style="margin-top:8px"><span class="pill up">▲ 25 so với đề trước</span></div></div>
+ <div class="st"><div class="r">Nghe <span>400</span></div><div class="r">Đọc <span>365</span></div><div class="r">Tăng từ đề đầu <span style="color:#46b35a;font-weight:900">+145</span></div></div></div>`;
+const SOC=(m,x,y,w)=>`<span class="soc-s" style="position:absolute;left:${x}px;top:${y}px;width:${w}px;z-index:4" data-s="${m}"></span>`;
+const AN=(n,t,x,y)=>`<span class="an" style="left:${x}px;top:${y}px"><b>${n}</b>${t}</span>`;
+const T=[['12/10',620],['22/10',665],['30/10',690],['06/11',725],['09/11',710],['09/11',740],['11/11',765]];
+const W=1068,H=692,x0=360,dx=70,ys=s=>590-(s-600)*2.3;
+const P=T.map(([d,s],i)=>[x0+i*dx,ys(s)]),last=P[P.length-1];
+const pine=(x,y,s=1,c='#3f9a54')=>`<g transform="translate(${x} ${y}) scale(${s})"><rect x="-3" y="0" width="6" height="12" fill="#8a5a36"/><path d="M0 -40 L16 -12 H8 L20 4 H-20 L-8 -12 H-16Z" fill="${c}"/></g>`;
+
+// ---------- J1
+{let g=`<defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaff"/><stop offset=".7" stop-color="#fdf3e3"/></linearGradient>
+ <linearGradient id="mt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd18c"/><stop offset="1" stop-color="#3f9a54"/></linearGradient>
+ <linearGradient id="pk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9fb7d9"/><stop offset="1" stop-color="#7d95bd"/></linearGradient></defs>
+ <rect width="${W}" height="${H}" fill="url(#sk)"/><circle cx="620" cy="110" r="46" fill="#fff3c4"/><circle cx="620" cy="110" r="80" fill="#fff3c4" opacity=".35"/>`;
+ // far ranges
+ g+=`<path d="M0 470 L120 380 L220 430 L360 320 L470 400 L560 350 L640 410 L760 300 L860 380 L1068 330 V${H} H0Z" fill="#d6e6f5"/>`;
+ g+=`<path d="M0 540 L160 450 L300 510 L420 440 L540 500 V${H} H0Z" fill="#c4dcef"/>`;
+ // summit peak (target 800)
+ const pkx=last[0]+150,pky=ys(800);
+ g+=`<path d="M${last[0]-120} ${H} L${pkx} ${pky} L${W+120} ${H}Z" fill="url(#pk)"/><path d="M${pkx} ${pky} L${W+120} ${H} L${pkx+50} ${H}Z" fill="#6f87b0" opacity=".55"/>`;
+ g+=`<path d="M${pkx-46} ${pky+58} L${pkx} ${pky} L${pkx+48} ${pky+60} L${pkx+30} ${pky+52} L${pkx+16} ${pky+66} L${pkx} ${pky+50} L${pkx-14} ${pky+64} L${pkx-28} ${pky+50}Z" fill="#fff"/>`;
+ g+=`<g transform="translate(${pkx} ${pky})"><line x1="0" y1="0" x2="0" y2="-62" stroke="#3a463e" stroke-width="4" stroke-linecap="round"/><path d="M2 -62 Q30 -66 52 -56 Q30 -46 2 -40Z" fill="#ff7a9c"/><text x="24" y="-47" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">800</text></g>`;
+ g+=`<g fill="#fff" opacity=".9"><path d="M${pkx-70} ${pky-30} l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z"/><path d="M${pkx+64} ${pky+10} l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z"/></g>`;
+ // target line
+ // main ridge (data)
+ const ridge=`M0 ${H-90} L${x0-80} ${P[0][1]+70} L${P.map(p=>p.join(' ')).join(' L')} L${last[0]+58} ${last[1]+34} L${last[0]+96} ${last[1]+120} L${last[0]+120} ${H}`;
+ g+=`<path d="${ridge} V${H} H0Z" fill="url(#mt)"/>`;
+ // shading under each segment
+ for(let i=1;i<P.length;i++){const [ax,ay]=P[i-1],[bx,by]=P[i];g+=`<path d="M${ax} ${ay} L${bx} ${by} L${bx} ${by+90} L${ax} ${ay+80}Z" fill="#fff" opacity="${i%2?.08:.0}"/>`}
+ g+=`<path d="M${last[0]} ${last[1]} L${last[0]+58} ${last[1]+34} L${last[0]+96} ${last[1]+120} L${last[0]+120} ${H} L${last[0]-20} ${H}Z" fill="#2f7d43" opacity=".35"/>`;
+ // future trail
+ g+=`<path d="M${last[0]+6} ${last[1]+4} L${last[0]+58} ${last[1]+30} L${pkx+34} ${pky+66} L${pkx-14} ${pky+40} L${pkx+12} ${pky+20} L${pkx} ${pky+6}" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="2 10" stroke-linecap="round" stroke-linejoin="round"/>`;
+ // ridge line & stakes
+ g+=`<path d="M${P.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
+ P.forEach(([x,y],i)=>{if(i===P.length-1)return;const s=T[i][1];g+=`<g transform="translate(${x} ${y})"><line x1="0" y1="2" x2="0" y2="-26" stroke="#8a5a36" stroke-width="4" stroke-linecap="round"/><rect x="-22" y="-48" width="44" height="22" rx="6" fill="#c98b4e"/><rect x="-22" y="-48" width="44" height="22" rx="6" fill="none" stroke="#9e6634" stroke-width="2"/><text y="-32" font-weight="900" font-size="13.5" fill="#fff" text-anchor="middle">${s}</text></g>`});
+ g+=`<path d="M0 ${H-46} Q260 ${H-78} 560 ${H-50} T${W} ${H-60} V${H} H0Z" fill="#5bb46b"/>`;
+ // pines on slope & ground
+ [[x0+90,H-120,.8],[x0+250,H-160,.8],[x0+400,H-190,.75],[x0+20,H-50,1],[x0+200,H-56,1.1],[x0+340,H-52,1],[60,H-48,1],[150,H-60,.9],[250,H-56,1.1]].forEach(([x,y,s])=>g+=pine(x,y,s));
+ [[W-150,H-52,1,'#3f9a54'],[W-96,H-40,1.2,'#2f8a42'],[W-210,H-30,1,'#2f8a42']].forEach(a=>g+=pine(...a));
+ T.forEach(([d],i)=>{g+=`<text x="${P[i][0]}" y="${H-18}" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">${d}</text>`});
+ // exam signpost
+ const ex=W-70,ey=H-150;g+=`<g transform="translate(${ex} ${ey})"><rect x="-4" y="0" width="8" height="90" fill="#8a5a36"/><path d="M-58 -6 H46 L60 16 L46 38 H-58Z" fill="#c98b4e" stroke="#9e6634" stroke-width="3"/><text x="-4" y="14" font-weight="900" font-size="14" fill="#fff" text-anchor="middle">Thi 21/12</text><text x="-4" y="31" font-weight="800" font-size="11.5" fill="#fff3dc" text-anchor="middle">còn 38 ngày</text></g>`;
+ // clouds & birds
+ g+=`<g fill="#fff" opacity=".95"><ellipse cx="500" cy="210" rx="56" ry="15"/><ellipse cx="530" cy="198" rx="32" ry="17"/></g><g fill="none" stroke="#6b7a90" stroke-width="2" stroke-linecap="round"><path d="M720 150 q7 -7 14 0 q7 -7 14 0"/><path d="M760 128 q5 -5 10 0 q5 -5 10 0"/></g>`;
+ document.getElementById('J1').innerHTML=SIDE+`<main>${HEAD('Còn <em>35 điểm</em>, khoảng 2 đề nữa là cắm cờ')}
+ <div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ ${SOC('hi',last[0]-34,last[1]-72,66)}
+ <div class="bubble" style="left:${last[0]-420}px;top:${last[1]-180}px">Cọc mới nhất <b>765</b>, cao nhất từ trước tới giờ!</div>
+ ${STAT}
+ ${AN(1,'sống núi vẽ dần',x0+60,ys(620)+30)}${AN(2,'cờ đỉnh bay',pkx-190,pky-60)}${AN(3,"Sóc nhún ở cọc mới",last[0]+50,last[1]+92)}${AN(4,'mây + chim',420,232)}</div></main>`}
+
+// ---------- J2
+{let g=`<defs><linearGradient id="nt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2a5c"/><stop offset=".6" stop-color="#3d3a7c"/><stop offset="1" stop-color="#6b4f8f"/></linearGradient>
+ <radialGradient id="gl"><stop offset="0" stop-color="#fff6c8" stop-opacity=".9"/><stop offset="1" stop-color="#fff6c8" stop-opacity="0"/></radialGradient></defs>
+ <rect width="${W}" height="${H}" fill="url(#nt)"/>`;
+ for(let i=0;i<90;i++){const x=(i*397)%W,y=(i*211)%(H-120),r=(i%5===0)?1.8:1;g+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${.35+(i%3)*.2}"/>`}
+ // shooting star
+ g+=`<path d="M560 70 L700 40" stroke="url(#gl)" stroke-width="3"/><path d="M500 84 L700 40" stroke="#fff" stroke-width="1.5" opacity=".5"/><circle cx="700" cy="40" r="3" fill="#fff"/>`;
+ // moon target
+ const mx=last[0]+170,my=ys(800)-10;
+ g+=`<circle cx="${mx}" cy="${my}" r="110" fill="url(#gl)" opacity=".5"/><circle cx="${mx}" cy="${my}" r="48" fill="#fff3c4"/><circle cx="${mx+18}" cy="${my-14}" r="42" fill="#3a3a78" opacity=".0"/><circle cx="${mx-14}" cy="${my-8}" r="7" fill="#f1e2a6"/><circle cx="${mx+12}" cy="${my+14}" r="10" fill="#f1e2a6"/><circle cx="${mx+16}" cy="${my-18}" r="5" fill="#f1e2a6"/><text x="${mx}" y="${my+80}" font-weight="900" font-size="16" fill="#fff3c4" text-anchor="middle">Mục tiêu 800</text>`;
+ g+=`<line x1="300" y1="${ys(800)}" x2="${mx-60}" y2="${ys(800)}" stroke="#fff3c4" stroke-width="2" stroke-dasharray="4 10" opacity=".6"/>`;
+ // constellation
+ g+=`<path d="M${P.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#c9c6ff" stroke-width="2.5" opacity=".75"/>`;
+ g+=`<path d="M${last[0]} ${last[1]} Q${last[0]+80} ${last[1]-40} ${mx-52} ${my+6}" fill="none" stroke="#fff3c4" stroke-width="2.5" stroke-dasharray="3 9" stroke-linecap="round"/>`;
+ g+=`<text x="${last[0]+70}" y="${last[1]-44}" font-weight="900" font-size="13" fill="#fff3c4" text-anchor="middle">~2 đề nữa</text>`;
+ const star=(x,y,r,c)=>{let d='';for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,rr=k%2?r*.45:r;d+=(k?'L':'M')+(x+Math.cos(a)*rr)+' '+(y+Math.sin(a)*rr)}return `<circle cx="${x}" cy="${y}" r="${r*2.2}" fill="url(#gl)" opacity=".7"/><path d="${d}Z" fill="${c}"/>`};
+ P.forEach(([x,y],i)=>{const L=i===P.length-1;g+=star(x,y,L?17:10,L?'#ffe58f':'#fff');g+=`<text x="${x}" y="${y+(L?40:30)}" font-weight="900" font-size="${L?17:14}" fill="${L?'#ffe58f':'#fff'}" text-anchor="middle">${T[i][1]}</text>`});
+ // planet = exam
+ const px=W-110,py=H-210;g+=`<g transform="translate(${px} ${py})"><ellipse rx="64" ry="16" fill="none" stroke="#ff9eb8" stroke-width="5" transform="rotate(-18)"/><circle r="34" fill="#ff7a9c"/><circle r="34" fill="#fff" opacity=".12" cx="-8" cy="-8"/><path d="M-60 6 A64 16 -18 0 0 60 -26" fill="none" stroke="#ff9eb8" stroke-width="5" transform="rotate(0)"/><text y="70" font-weight="900" font-size="15" fill="#fff" text-anchor="middle">Thi 21/12</text><text y="88" font-weight="800" font-size="12.5" fill="#ffc7d6" text-anchor="middle">còn 38 ngày</text></g>`;
+ // horizon hill with Sóc
+ g+=`<path d="M0 ${H-70} Q300 ${H-120} 640 ${H-80} T${W} ${H-90} V${H} H0Z" fill="#2a2550"/>`;
+ T.forEach(([d],i)=>{g+=`<text x="${P[i][0]}" y="${H-26}" font-weight="900" font-size="13" fill="#c9c6ea" text-anchor="middle">${d}</text>`});
+ document.getElementById('J2').innerHTML=SIDE+`<main>${HEAD('Còn <em>35 điểm</em>, khoảng 2 đề nữa là chạm trăng')}
+ <div class="box dark"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ ${SOC('hi',x0-110,H-190,74)}
+ <div class="bubble" style="left:24px;top:${H-110}px;background:#fff">Sao <b>765</b> sáng nhất từ trước tới giờ!</div>
+ ${STAT}
+ ${AN(1,'sao bật sáng lần lượt',x0+90,ys(660)+20)}${AN(2,'sao mới lấp lánh',last[0]-30,last[1]+52)}${AN(3,'trăng mục tiêu',mx-50,my-90)}${AN(4,'sao băng',720,30)}</div></main>`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

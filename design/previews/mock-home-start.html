@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:24px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#f0faf2;border-color:#bfe6c6;color:var(--gd)}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff3d1 0%,#ffe9e0 55%,#ffe0ec 100%)}
+.rays{position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 60% 22%,rgba(255,255,255,.5) 0 7deg,transparent 7deg 22deg)}
+svg.sc{position:absolute;left:0;top:0;width:100%;height:100%}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.btn{display:inline-block;background:var(--g);color:#fff;border-radius:16px;padding:13px 22px;font-weight:900;font-size:16.5px;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);padding:11px 18px;font-size:15px}
+.in{display:inline-flex;align-items:center;gap:8px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:9px 14px;font-weight:800;font-size:15px;color:var(--mut)}
+.in b{color:var(--ink);font-weight:900;font-size:18px}
+.in.on{border-color:var(--gold);box-shadow:0 3px 0 #e8b62c;background:#fffaf0}
+/* A */
+.a-card{position:absolute;left:44px;top:34px;width:540px;z-index:4;background:rgba(255,255,255,.92);border-radius:28px;padding:22px 26px 24px;box-shadow:0 10px 0 rgba(47,58,51,.06)}
+.a-card small{font-weight:900;font-size:13px;color:#a87a00;letter-spacing:.4px}
+.a-card h1{font-weight:900;font-size:30px;letter-spacing:-1px;line-height:1.1;margin-top:4px}.a-card h1 em{font-style:normal;color:#e0970f}
+.lab{font-weight:900;font-size:14px;margin:14px 0 7px}
+.chips{display:flex;gap:7px}
+.chips span{flex:1;text-align:center;border-radius:14px;padding:9px 0;background:#fff;border:2px solid var(--line);box-shadow:0 3px 0 var(--line);font-weight:900;font-size:17px}
+.chips span.on{background:#fff6d6;border-color:var(--gold);box-shadow:0 3px 0 #e8b62c}
+.chips span.other{font-size:14px;color:var(--mut);border-style:dashed}
+.chips span.typing{flex:1.5;background:#fffaf0;border-color:var(--gold);box-shadow:0 3px 0 #e8b62c;color:var(--ink)}
+.chips span.typing i{display:inline-block;width:2px;height:18px;background:var(--ink);vertical-align:-3px;margin-left:2px}
+.a-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hint{font-weight:700;font-size:13px;color:var(--mut)}
+.panel{position:absolute;right:32px;top:24px;width:350px;z-index:4}
+.tcard{background:#fff;border-radius:26px;overflow:hidden;box-shadow:0 10px 0 rgba(47,58,51,.08)}
+.tcard .h{background:linear-gradient(135deg,#4fc066,#2f8a42);color:#fff;padding:18px 20px;position:relative;min-height:150px}
+.tcard .h small{font-weight:900;font-size:12px;opacity:.85}.tcard .h b{display:block;font-weight:900;font-size:24px;line-height:1.1;margin-top:4px;max-width:200px}.tcard .h p{font-weight:700;font-size:13px;opacity:.9;margin-top:6px;max-width:190px}
+.tcard .h .soc-s{position:absolute;right:4px;bottom:-10px;width:100px}
+.tcard .b{padding:12px 18px 16px;font-weight:800;font-size:13px;color:var(--mut)}
+/* B */
+.b-head{position:absolute;left:52px;top:40px;z-index:4;max-width:520px}
+.b-head small{font-weight:900;font-size:13px;color:#a87a00;letter-spacing:.4px}
+.b-head h1{font-weight:900;font-size:36px;letter-spacing:-1.2px;line-height:1.08;margin-top:4px}.b-head h1 em{font-style:normal;color:#e0970f}
+.b-head p{font-weight:700;font-size:15px;color:#7a6a4a;margin-top:8px}
+.slider{position:absolute;z-index:4;width:76px;border-radius:40px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 2px #f1dfb6}
+.knob{position:absolute;left:50%;transform:translate(-50%,-50%);background:#2f3a33;color:#ffe58f;border-radius:16px;padding:8px 12px;font-weight:900;font-size:20px;white-space:nowrap;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+.knob::after{content:'⇕';margin-left:6px;font-size:14px;color:#fff;opacity:.7}
+.ticks{position:absolute;left:84px;font-weight:800;font-size:12.5px;color:#a8946e}
+.b-foot{position:absolute;left:52px;bottom:40px;z-index:4;display:flex;gap:12px;align-items:center}
+/* C */
+.chat{position:absolute;left:44px;top:30px;z-index:4;width:470px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex;gap:10px;align-items:flex-end}
+.msg .soc-s{width:62px;flex:none}
+.bub{background:#fff;border-radius:20px 20px 20px 6px;padding:12px 16px;font-weight:800;font-size:15.5px;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.ans{align-self:flex-end;background:var(--g);color:#fff;border-radius:20px 20px 6px 20px;padding:10px 16px;font-weight:900;font-size:15.5px}
+.qbox{margin-left:72px;background:#fff;border-radius:20px;padding:12px 14px;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.qbox .chips span{font-size:15px;padding:7px 0}
+.step{display:flex;gap:6px;margin-left:72px}.step i{width:26px;height:6px;border-radius:3px;background:rgba(47,58,51,.12)}.step i.on{background:var(--g)}
+</style></head>
+<body>
+
+<div class="cap">A · Thẻ mục tiêu, có ô "Khác" để tự nhập<small>cầu thang trải rộng hết khoảng trống tới tận thẻ bên phải; bậc chia theo khoảng từ mức phổ biến (450) tới mục tiêu, có nhãn "ước lượng" cho tới khi ghi đề đầu tiên</small></div>
+<div class="page" id="A"></div>
+
+<div class="cap">B · Kéo cúp lên độ cao mong muốn<small>một thanh trượt dọc cạnh cúp; kéo lên thì cầu thang mọc thêm bậc ngay trước mắt, gõ số trực tiếp trên nút cũng được</small></div>
+<div class="page" id="B"></div>
+
+<div class="cap">C · Sóc hỏi 3 câu<small>mục tiêu (chip + tự nhập), ngày thi, và "đề gần nhất bạn được bao nhiêu?": có câu thứ ba là dựng được cầu thang thật ngay, không phải đợi ghi đề</small></div>
+<div class="page" id="C"></div>
+
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>
+<div class="nv on"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const TC=`<div class="panel"><div class="tcard"><div class="h"><small>TIẾP THEO · 120 PHÚT</small><b>Ghi điểm đề đầu tiên</b><p>Để biết mình đang ở đâu</p><span class="soc-s" data-s="idle"></span></div><div class="b">Chuỗi ngày và việc của mình hiện ở đây sau buổi đầu.</div></div></div>`;
+// stairs spread over [x0..x1], rising from yb to yt, with labels
+function stairs(vals,{x0=110,x1=700,yb=780,yt=300,lit=-1,ghost=true,label=true}={}){
+ const n=vals.length,dx=(x1-x0)/n,dy=(yb-yt)/n,tw=Math.min(58,dx*0.62),th=tw*0.52;let g='';
+ vals.forEach((v,i)=>{const x=x0+i*dx,y=yb-i*dy,h=900-y+40,on=i<=lit;
+  const L=on?'#f5b52a':'#e4e2f2',R=on?'#d99a00':'#d2cfe6',T=on?'#ffe58f':'#fbfaff';
+  g+=`<path d="M${x-tw} ${y} L${x} ${y+th} L${x} ${y+th+h} L${x-tw} ${y+h}Z" fill="${L}"/><path d="M${x} ${y+th} L${x+tw} ${y} L${x+tw} ${y+h} L${x} ${y+th+h}Z" fill="${R}"/><path d="M${x-tw} ${y} L${x} ${y-th} L${x+tw} ${y} L${x} ${y+th}Z" fill="${T}" ${on?'':'stroke="#c9c3e6" stroke-width="2" stroke-dasharray="5 5"'}/>`;
+  if(label)g+=`<g transform="translate(${x-tw/2} ${y+th/2+70})"><rect x="-24" y="-16" width="48" height="23" rx="11" fill="${on?'rgba(0,0,0,.14)':'rgba(255,255,255,.65)'}"/><text x="0" y="1" font-weight="900" font-size="15" fill="${on?'#fff':'#8f8bb0'}" text-anchor="middle">${v}</text></g>`});
+ return {g,cx:x0+n*dx+40,cy:yb-n*dy-50,pos:i=>[x0+i*dx-36,yb-i*dy-76]}}
+function cup(x,y,val,dim=false){return `<g transform="translate(${x} ${y})"><ellipse cx="0" cy="104" rx="84" ry="16" fill="#b0784a" opacity=".16"/><path d="M-58 68 L58 68 L66 100 L-66 100Z" fill="#3a463e"/><rect x="-62" y="62" width="124" height="10" rx="5" fill="#2f3a33"/><text x="0" y="93" font-weight="900" font-size="20" fill="#ffe58f" text-anchor="middle">${val}</text><path d="M-64 -64 C-104 -64 -100 -10 -58 -16" fill="none" stroke="#e8a516" stroke-width="11" stroke-linecap="round" opacity="${dim?.4:1}"/><path d="M64 -64 C104 -64 100 -10 58 -16" fill="none" stroke="#d99a00" stroke-width="11" stroke-linecap="round" opacity="${dim?.4:1}"/><path d="M-64 -76 H64 C64 -12 32 30 0 32 C-32 30 -64 -12 -64 -76Z" fill="${dim?'#f3e6c4':'#ffc83d'}"/><rect x="-26" y="48" width="52" height="16" rx="5" fill="${dim?'#e6d6ae':'#e09a12'}"/><rect x="-12" y="28" width="24" height="24" fill="${dim?'#f3e6c4':'#ffc83d'}"/>${dim?'':'<path d="M0 -58 l5 10 11 1.6 -8 7.8 1.9 11 -9.9 -5.2 -9.9 5.2 1.9 -11 -8 -7.8 11 -1.6Z" fill="#fff"/>'}</g>`}
+const range=(a,b,s)=>{const o=[];for(let v=a;v<b;v+=s)o.push(v);return o};
+// A
+{const vals=range(450,850,50);const s=stairs(vals,{x0:120,x1:650,yb:790,yt:330});
+ document.getElementById('A').innerHTML=SIDE+`<main><div class="rays"></div><svg class="sc" viewBox="0 0 1172 900" preserveAspectRatio="xMinYMax slice">${s.g}${cup(s.cx,s.cy,850)}<g transform="translate(${s.cx-60} ${s.cy+122})"><rect width="120" height="26" rx="13" fill="#fff"/><text x="60" y="18" font-weight="900" font-size="12.5" fill="#a87a00" text-anchor="middle">bậc ước lượng</text></g></svg>
+ <span class="soc-s" style="position:absolute;left:84px;top:714px;width:76px;z-index:3" data-s="idle"></span>${TC}
+ <div class="a-card"><small>BẮT ĐẦU</small><h1>Dựng cầu thang <em>lên cúp 850</em></h1>
+  <div class="lab">Mục tiêu</div><div class="chips"><span>600</span><span>700</span><span>800</span><span>900</span><span class="typing">850<i></i></span></div>
+  <div class="lab">Ngày thi</div><div class="a-row"><span class="in">📅 <b>20/12/2026</b></span><span class="hint">không bắt buộc</span></div>
+  <div style="margin-top:16px" class="a-row"><span class="btn">+ Ghi điểm đề đầu tiên</span></div>
+  <div class="hint" style="margin-top:10px">Bậc đang ước lượng từ 450. Ghi đề đầu tiên, Sóc xếp lại bậc theo điểm thật của bạn.</div></div></main>`}
+// B
+{const vals=range(450,900,50);const s=stairs(vals,{x0:110,x1:500,yb:800,yt:250,label:false});
+ const top=120,bot=780,v=900,k=top+(1-(v-400)/590)*(bot-top);
+ document.getElementById('B').innerHTML=SIDE+`<main><div class="rays"></div><svg class="sc" viewBox="0 0 1172 900" preserveAspectRatio="xMinYMax slice">${s.g}${cup(s.cx,s.cy,v)}<path d="M${s.cx+150} ${k} H${s.cx+72}" stroke="#2f3a33" stroke-width="3" stroke-dasharray="4 6"/></svg>
+ <span class="soc-s" style="position:absolute;left:74px;top:724px;width:76px;z-index:3" data-s="idle"></span>${TC}
+ <div class="b-head"><small>BẮT ĐẦU · KÉO CÚP LÊN</small><h1>Bạn muốn leo <em>tới đâu?</em></h1><p>Kéo nút bên phải cúp. Cao hơn là thêm bậc, mỗi bậc 50 điểm.</p></div>
+ <div class="slider" style="left:${s.cx+150}px;top:${top}px;height:${bot-top}px"><div class="knob" style="top:${k-top}px">${v}</div></div>
+ <div class="ticks" style="left:${s.cx+236}px;top:${top-8}px;height:${bot-top}px;display:flex;flex-direction:column;justify-content:space-between"><span>990</span><span>850</span><span>700</span><span>550</span><span>400</span></div>
+ <div class="b-foot"><span class="in">📅 Ngày thi <b>20/12</b></span><span class="btn">+ Ghi điểm đề đầu tiên</span></div></main>`}
+// C
+{const vals=range(550,800,25);const s=stairs(vals,{x0:120,x1:640,yb:790,yt:360,lit:0});const [sx,sy]=s.pos(0);
+ document.getElementById('C').innerHTML=SIDE+`<main><div class="rays"></div><svg class="sc" viewBox="0 0 1172 900" preserveAspectRatio="xMinYMax slice">${s.g}${cup(s.cx,s.cy,800)}</svg>
+ <span class="soc-s" style="position:absolute;left:${sx}px;top:${sy}px;width:76px;z-index:3" data-s="idle"></span>${TC}
+ <div class="chat"><div class="step"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  <div class="msg"><span class="soc-s" data-s="idle"></span><div class="bub">Bạn muốn đạt bao nhiêu điểm?</div></div><div class="ans">800</div>
+  <div class="msg"><span class="soc-s" data-s="idle"></span><div class="bub">Khi nào bạn thi?</div></div><div class="ans">20/12 · còn 36 ngày</div>
+  <div class="msg"><span class="soc-s" data-s="idle"></span><div class="bub">Đề gần nhất bạn được khoảng bao nhiêu?</div></div>
+  <div class="qbox"><div class="chips"><span>Chưa làm</span><span>~450</span><span class="on">~550</span><span>~650</span><span class="other">Tự nhập</span></div></div>
+  <div style="margin-left:72px" class="a-row"><span class="btn">Dựng cầu thang</span><span class="hint">10 bậc, mỗi bậc 25 điểm</span></div></div></main>`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script>
+</body></html>

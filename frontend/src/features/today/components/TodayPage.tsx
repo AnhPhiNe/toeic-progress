@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { UserProfile } from '@/shared/types';
-import { buildMilestones } from '@/shared/domain/milestones';
+import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
 import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
 import { countWord } from '../lib/stairsGeometry';
+import { PREVIEW_TARGET, hasChosenGoal, profileWithGoal, todayMode } from '../lib/goalSetup';
+import { FirstDayPanel } from './FirstDayPanel';
+import { GoalCard } from './GoalCard';
 import { StairsScene } from './StairsScene';
 import { TodayCard } from './TodayCard';
 import './today.css';
@@ -39,6 +42,12 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
   const examIn = daysUntil(profile.examDate, today);
 
   const climbing = plan.status === 'empty' ? null : plan;
+  // No test yet: pick a goal (choose), see the estimated stairs (ready), or climb the real ones.
+  const chosen = hasChosenGoal(profile);
+  const [editingGoal, setEditingGoal] = useState(() => !hasChosenGoal(profile));
+  const mode = todayMode({ hasTests: climbing !== null, chosen, editing: editingGoal });
+  const estimate = useMemo(() => estimateMilestones(chosen ? target : PREVIEW_TARGET), [chosen, target]);
+  const firstTask = tasks.find(item => !item.done) ?? null;
   const blocks = climbing ? climbing.steps.length - 1 : 0;
   const remaining = climbing ? blocks - climbing.currentIndex : 0;
 
@@ -59,9 +68,27 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
 
   return (
     <div className="rd td-page">
-      <StairsScene plan={climbing} target={target} testsAhead={ahead} />
+      <StairsScene
+        plan={climbing}
+        target={chosen || climbing ? target : PREVIEW_TARGET}
+        testsAhead={ahead}
+        cupLabel={chosen || climbing ? undefined : '?'}
+        banner={mode === 'choose' ? (chosen ? `Mục tiêu ${target}` : 'Chọn mục tiêu') : undefined}
+      />
 
-      <header className="td-hd">
+      {mode === 'choose' && (
+        <GoalCard
+          target={chosen ? target : null}
+          examDate={profile.examDate}
+          today={today}
+          onPick={value => onUpdateProfile(p => profileWithGoal(p, value))}
+          onExamDate={date => onUpdateProfile(p => ({ ...p, examDate: date }))}
+          onLog={onOpenSessionLogger}
+          onDone={chosen ? () => setEditingGoal(false) : undefined}
+        />
+      )}
+
+      {mode !== 'choose' && <header className={'td-hd' + (climbing ? '' : ' is-ready')}>
         {climbing ? <>
           <div className="td-row">
             <div className="td-dots" aria-hidden="true">
@@ -73,19 +100,22 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
             ? <><h1>Bạn đã <em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} · đặt mục tiêu mới trong cài đặt</p></>
             : <><h1>{countWord(remaining)} bậc nữa là <em>chạm tay vào cúp</em></h1><p>Mỗi bậc {climbing.step} điểm · rê chuột để xem ngày đạt</p></>}
         </> : <>
-          <h1>Dựng cầu thang <em>lên cúp {target}</em></h1>
-          <p>Ghi điểm đề đầu tiên, Sóc sẽ xếp các bậc từ đó.</p>
-          <button type="button" className="rd-btn td-first" onClick={onOpenSessionLogger}>+ Ghi điểm đề đầu tiên</button>
+          <div className="td-row">
+            <div className="td-dots" aria-hidden="true">{estimate.values.map((_, i) => <i key={i} />)}</div>
+            <small>{estimate.values.length} BẬC ƯỚC LƯỢNG · {estimate.values[0]} → {target}</small>
+          </div>
+          <h1>Cầu thang lên <em>cúp {target}</em><br />đã dựng xong</h1>
+          <p>Ghi đề đầu tiên để Sóc đặt bạn lên đúng bậc.<button type="button" className="td-edit" onClick={() => setEditingGoal(true)}>Sửa mục tiêu</button></p>
         </>}
-      </header>
+      </header>}
 
       <aside className="td-panel">
-        <div className="td-chips">
+        {mode !== 'choose' && <div className="td-chips">
           {examIn !== null
             ? <span style={{ color: 'var(--rd-blue)' }}>{examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`}</span>
             : <button type="button" onClick={onOpenSettings}>📅 Đặt ngày thi</button>}
-        </div>
-        <TodayCard
+        </div>}
+        {climbing ? <TodayCard
           tasks={tasks}
           habits={profile.habits ?? []}
           today={today}
@@ -97,7 +127,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           onAddHabit={title => onUpdateProfile(p => addHabit(p, title, crypto.randomUUID()))}
           onRemoveHabit={id => onUpdateProfile(p => removeHabit(p, id))}
           onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))}
-        />
+        /> : <FirstDayPanel task={firstTask} firstStep={estimate.values[0]} week={week} onStartTask={onStartTask} />}
       </aside>
 
       {celebrate && climbing && (

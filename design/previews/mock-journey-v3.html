@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gold:#ffc83d;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px;background:#fff;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#fff8e1;border-color:#f6dc8f;color:#d99a00}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;padding:30px 52px 0}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.top{display:flex;align-items:center;justify-content:space-between}
+.top h2{font-weight:900;font-size:30px;letter-spacing:-.8px}
+.seg{display:flex;background:#f1f3f1;border-radius:18px;padding:5px}
+.seg span{padding:9px 18px;border-radius:14px;font-weight:900;font-size:15px;color:#5e6962}.seg span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.06)}
+.seg.sm span{padding:6px 14px;font-size:14px}.seg.sm span.on{background:var(--ink);color:#fff}
+.hd{display:flex;align-items:flex-end;justify-content:space-between;margin-top:18px}
+.hd small{font-weight:900;font-size:14px;color:var(--blue)}.hd h1{font-weight:900;font-size:30px;letter-spacing:-.8px;margin-top:2px}
+.hd h1 em{font-style:normal;color:#e0970f}
+.box{position:absolute;left:52px;right:52px;top:178px;bottom:30px;border-radius:30px;overflow:hidden}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:4px 11px;font-weight:900;font-size:13px}
+.up{background:#e3f6e6;color:var(--gd)}.dn{background:#ffe6ec;color:#d64570}
+.bubble{position:absolute;background:#fff;border-radius:18px;padding:12px 16px;font-weight:800;font-size:14.5px;line-height:1.35;box-shadow:0 6px 0 rgba(47,58,51,.08)}
+.bubble b{font-weight:900}
+.btn{display:inline-block;background:var(--g);color:#fff;border-radius:14px;padding:9px 15px;font-weight:900;font-size:14px;box-shadow:0 4px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--gd);box-shadow:0 4px 0 #d9e7dc}
+/* score A */
+.stat{position:absolute;left:24px;top:24px;width:262px;z-index:3;display:flex;flex-direction:column;gap:12px}
+.st{background:rgba(255,255,255,.94);border-radius:24px;padding:16px 18px;box-shadow:0 8px 0 rgba(47,58,51,.06)}
+.st small{font-weight:900;font-size:12.5px;color:var(--mut);letter-spacing:.3px}
+.st .big{font-weight:900;font-size:64px;letter-spacing:-3px;line-height:1;margin-top:4px}
+.st .big span{font-size:20px;color:var(--mut);letter-spacing:0;margin-left:4px}
+.st .r{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:15px;padding:7px 0;border-top:2px solid #f2f3f2}
+.st .r:first-of-type{border:0}.st .r span{font-weight:800;color:var(--mut);font-size:14px}
+/* score B */
+.card{position:absolute;background:#fff;border-radius:28px;box-shadow:0 0 0 2px #eef0ee,0 8px 0 rgba(47,58,51,.05)}
+.lr{padding:14px 0;border-top:2px solid #f2f3f2}.lr:first-of-type{border:0}
+.lr .t{display:flex;align-items:baseline;gap:10px}.lr .t b{font-weight:900;font-size:17px}.lr .t strong{font-weight:900;font-size:34px;letter-spacing:-1px;margin-left:auto}.lr .t strong span{font-size:15px;color:var(--mut);letter-spacing:0}
+.bar{position:relative;height:18px;border-radius:99px;background:#eef0ee;margin-top:10px}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.bar u{position:absolute;top:-7px;bottom:-7px;width:4px;border-radius:3px;background:var(--pink)}
+.bar em{position:absolute;top:24px;transform:translateX(-50%);font-style:normal;font-weight:900;font-size:12px;color:#d64570;white-space:nowrap}
+.lr p{font-weight:800;font-size:13.5px;color:var(--mut);margin-top:26px}
+/* parts A */
+.grid{position:absolute;left:52px;right:52px;top:178px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pc{border-radius:26px;background:#fff;box-shadow:0 0 0 2px #eef0ee,0 7px 0 rgba(47,58,51,.05);padding:16px 16px 14px;position:relative;height:330px}
+.pc .h{display:flex;justify-content:space-between;align-items:flex-start}
+.pc .h b{font-weight:900;font-size:19px}.pc .h small{display:block;font-weight:800;font-size:13px;color:var(--mut)}
+.pc .tag{font-weight:900;font-size:11.5px;border-radius:99px;padding:3px 9px}
+.pc .ring{display:block;margin:10px auto 0;width:128px;height:128px}
+.pc .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-weight:900;font-size:14px}
+.pc .meta span{font-weight:800;color:var(--mut);font-size:13px}
+.pc .spark{display:block;width:100%;height:46px;margin-top:6px}
+.pc.hot{box-shadow:0 0 0 3px var(--pink),0 7px 0 #f2b6c7}
+.ribbon{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--pink);color:#fff;font-weight:900;font-size:12.5px;border-radius:99px;padding:4px 12px;white-space:nowrap;box-shadow:0 3px 0 #d64570}
+.pc.sum{background:linear-gradient(160deg,#fff8e1,#ffe9ef);box-shadow:none;display:flex;flex-direction:column}
+.pc.sum h4{font-weight:900;font-size:18px;line-height:1.2}
+.pc.sum ol{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.pc.sum li{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:8px 10px;font-weight:900;font-size:14px}
+.pc.sum li i{width:24px;height:24px;border-radius:50%;background:var(--pink);color:#fff;font-style:normal;display:grid;place-items:center;font-size:12px;flex:none}
+.pc.sum li span{margin-left:auto;font-weight:800;color:var(--mut);font-size:12.5px}
+.grp{position:absolute;left:52px;font-weight:900;font-size:13px;letter-spacing:.4px}
+/* parts B */
+.rows{position:absolute;left:52px;top:178px;width:742px;bottom:30px}
+.gh{display:flex;align-items:center;gap:8px;font-weight:900;font-size:14px;letter-spacing:.3px;margin:4px 0 6px}
+.gh i{width:12px;height:12px;border-radius:4px}
+.pr{display:grid;grid-template-columns:118px 1fr 74px;align-items:center;gap:12px;padding:12px 12px;border-radius:18px}
+.pr.hot{background:#fff1f5}
+.pr .n b{display:block;font-weight:900;font-size:16px}.pr .n small{font-weight:800;font-size:12.5px;color:var(--mut)}
+.hb{display:flex;height:30px;border-radius:10px;overflow:hidden;box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+.hb i{display:flex;align-items:center;font-style:normal;font-weight:900;font-size:13px;color:#fff;padding:0 8px;white-space:nowrap}
+.hb .ok{background:#7fcf8c}.hb .bad{background:var(--pink);justify-content:center}
+.pr .d{text-align:right}
+.side2{position:absolute;right:52px;top:178px;width:300px;bottom:30px;border-radius:28px;background:linear-gradient(170deg,#fff6d6,#ffe3ec);padding:20px 20px}
+.side2 h4{font-weight:900;font-size:19px;line-height:1.2}
+.side2 .it{background:#fff;border-radius:18px;padding:12px 14px;margin-top:10px}
+.side2 .it b{font-weight:900;font-size:15px}.side2 .it p{font-weight:700;font-size:13px;color:var(--mut);margin-top:2px}
+.side2 .it .k{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.side2 .it .k span:first-child{font-weight:900;color:#d64570;font-size:13px}
+.legend{display:flex;gap:16px;font-weight:800;font-size:13px;color:var(--mut);margin-top:10px}.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-1px}
+/* islands */
+.isl-l{position:absolute;z-index:3;text-align:center;transform:translateX(-50%)}
+.isl-l b{display:inline-block;background:#fff;border-radius:99px;padding:4px 12px;font-weight:900;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,.1)}
+.isl-l small{display:block;font-weight:900;font-size:12.5px;margin-top:4px;color:#fff;text-shadow:0 1px 3px rgba(0,40,70,.5)}
+</style></head>
+<body>
+<div class="cap">Điểm số · S1 "Đường lên đỉnh"<small>đường điểm thành sườn đồi; mỗi đề là một cột mốc, Sóc đứng ở đề mới nhất; đoạn nét đứt dẫn lên đỉnh có cúp 800; cột trái là con số lớn để thấy ngay mình đang ở đâu</small></div>
+<div class="page" id="SA"></div>
+<div class="cap">Điểm số · S2 "Đồng hồ + cột"<small>đồng hồ điểm 765/990 có vạch mục tiêu; bên phải tách Nghe / Đọc và chỉ ra phần nào còn thiếu; dưới là cột điểm từng đề, cột cuối nét đứt là dự báo</small></div>
+<div class="page" id="SB"></div>
+<div class="cap">Điểm số · S3 "Bậc thang từng đề"<small>mỗi đề là một khối cao theo điểm, cùng ngôn ngữ cầu thang ở trang Hôm nay; khối nét đứt là 2 đề dự báo dẫn tới cúp</small></div>
+<div class="page" id="SC"></div>
+<div class="cap">Từng Part · P1 "Bảy thẻ Part"<small>mỗi Part một thẻ: vòng % đúng, số câu sai, đường nhỏ 4 đề gần đây; thẻ mất điểm nhiều nhất có viền hồng; thẻ thứ 8 là việc nên làm</small></div>
+<div class="page" id="PA"></div>
+<div class="cap">Từng Part · P2 "Thanh đúng / sai theo độ dài Part"<small>độ dài thanh = số câu của Part (Part 7 dài nhất, Part 1 ngắn nhất), phần hồng là câu sai; cột phải: sửa ở đâu lời nhất</small></div>
+<div class="page" id="PB"></div>
+<div class="cap">Từng Part · P3 "Hai quần đảo"<small>mỗi Part là một hòn đảo, to theo số câu, màu theo % đúng (xanh tốt, vàng ổn, cát hồng là yếu); Sóc chèo thuyền tới đảo nên ôn trước</small></div>
+<div class="page" id="PC"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>
+<div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv on"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const TOP=t=>`<div class="top"><h2>Hành trình điểm</h2><div class="seg"><span class="${t==='s'?'on':''}">Điểm số</span><span class="${t==='p'?'on':''}">Từng Part</span><span>Các đề 7</span></div></div>`;
+const SCOC=(m,x,y,w)=>`<span class="soc-s" style="position:absolute;left:${x}px;top:${y}px;width:${w}px;z-index:4" data-s="${m}"></span>`;
+const T=[['12/10',620],['22/10',665],['30/10',690],['06/11',725],['09/11',710],['09/11',740],['11/11',765]];
+const tree=(x,y,s=1)=>`<g transform="translate(${x} ${y}) scale(${s})"><rect x="-6" y="-10" width="12" height="40" rx="5" fill="#a26c43"/><circle cx="0" cy="-30" r="30" fill="#6bc27a"/><circle cx="-18" cy="-18" r="20" fill="#5bb46b"/><circle cx="16" cy="-40" r="18" fill="#8fdb9c"/></g>`;
+const cup=(x,y,s,v)=>`<g transform="translate(${x} ${y}) scale(${s})"><circle r="95" cy="-10" fill="#fff7d1" opacity=".6"/><path d="M-58 68 L58 68 L66 100 L-66 100Z" fill="#3a463e"/><text x="0" y="93" font-weight="900" font-size="22" fill="#ffe58f" text-anchor="middle">${v}</text><path d="M-64 -64 C-104 -64 -100 -10 -58 -16" fill="none" stroke="#e8a516" stroke-width="11" stroke-linecap="round"/><path d="M64 -64 C104 -64 100 -10 58 -16" fill="none" stroke="#d99a00" stroke-width="11" stroke-linecap="round"/><path d="M-64 -76 H64 C64 -12 32 30 0 32 C-32 30 -64 -12 -64 -76Z" fill="#ffc83d"/><ellipse cx="0" cy="-76" rx="64" ry="9" fill="#ffe9a3"/><rect x="-26" y="48" width="52" height="20" rx="5" fill="#e09a12"/><rect x="-12" y="28" width="24" height="24" fill="#ffc83d"/><path d="M0 -58 l5 10 11 1.6 -8 7.8 1.9 11 -9.9 -5.2 -9.9 5.2 1.9 -11 -8 -7.8 11 -1.6Z" fill="#fff"/></g>`;
+const flagTag=(x,y,txt,sub)=>`<g transform="translate(${x} ${y})"><line x1="0" y1="0" x2="0" y2="150" stroke="#3a463e" stroke-width="5" stroke-linecap="round"/><path d="M0 4 L-46 18 L0 32Z" fill="#ff7a9c"/><rect x="-56" y="150" width="112" height="50" rx="16" fill="#ff7a9c"/><text x="0" y="172" font-weight="900" font-size="15" fill="#fff" text-anchor="middle">${txt}</text><text x="0" y="190" font-weight="800" font-size="12" fill="#fff" text-anchor="middle">${sub}</text></g>`;
+
+// ---------- S1 path to the summit
+{const W=1068,H=692,x0=360,dx=74,ys=s=>600-(s-600)*2.3;
+ const P=T.map(([d,s],i)=>[x0+i*dx,ys(s)]);const last=P[P.length-1],peak=[last[0]+112,ys(800)];
+ let g=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dff1ff"/><stop offset="1" stop-color="#fff4e0"/></linearGradient><linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fdb9c"/><stop offset="1" stop-color="#4fae5f"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sky)"/>`;
+ g+=`<path d="M300 520 L420 400 L520 470 L640 360 L760 450 L860 300 L980 420 L1068 360 V${H} H300Z" fill="#cfe6f6"/>`;
+ g+=`<g fill="#fff" opacity=".9"><ellipse cx="520" cy="110" rx="60" ry="17"/><ellipse cx="552" cy="98" rx="34" ry="19"/><ellipse cx="760" cy="170" rx="44" ry="12"/></g>`;
+ // target line
+ g+=`<line x1="330" y1="${peak[1]}" x2="${W-30}" y2="${peak[1]}" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="8 8"/><text x="334" y="${peak[1]-12}" font-weight="900" font-size="15" fill="#e0557f">Mục tiêu 800</text>`;
+ // future dashed slope to peak
+ const fut=`M${last[0]} ${last[1]} Q${last[0]+90} ${last[1]-20} ${peak[0]} ${peak[1]+60}`;
+ g+=`<path d="M0 ${H-70} L300 ${P[0][1]+40} L${P.map(p=>p.join(' ')).join(' L')} Q${last[0]+90} ${last[1]-20} ${peak[0]} ${peak[1]+60} L${peak[0]+120} ${peak[1]+170} L${W} ${peak[1]+260} V${H} H300Z" fill="url(#hill)"/>`;
+ g+=`<path d="M${last[0]} ${last[1]} Q${last[0]+90} ${last[1]-20} ${peak[0]} ${peak[1]+60} L${peak[0]+120} ${peak[1]+170} L${W} ${peak[1]+260} V${H} H${last[0]}Z" fill="#fff" opacity=".45"/>`;
+ g+=`<path d="${fut}" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="3 11" stroke-linecap="round"/>`;
+ g+=`<path d="M${P.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#ffc83d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+ P.forEach(([x,y],i)=>{const s=T[i][1],isL=i===P.length-1;
+  if(!isL)g+=`<circle cx="${x}" cy="${y}" r="9" fill="#fff" stroke="#e8a516" stroke-width="5"/><g transform="translate(${x} ${y-26})"><rect x="-22" y="-14" width="44" height="24" rx="12" fill="#fff"/><text y="4" font-weight="900" font-size="14" fill="#2f3a33" text-anchor="middle">${s}</text></g>`;
+  g+=`<text x="${x}" y="${H-28}" font-weight="900" font-size="13" fill="#fff" text-anchor="middle" opacity=".95">${T[i][0]}</text>`});
+ g+=`<text x="${(P[4][0]+P[5][0])/2}" y="${H-10}" font-weight="800" font-size="11" fill="#eafbe9" text-anchor="middle">2 đề cùng ngày</text>`;
+ g+=cup(peak[0],peak[1]-78,.7,800);
+ g+=`<g transform="translate(${peak[0]} ${peak[1]+96})"><rect x="-44" y="-15" width="88" height="26" rx="13" fill="#2f3a33"/><text y="3" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">~2 đề nữa</text></g>`;
+ g+=flagTag(W-62,peak[1]+150,'Thi 21/12','còn 38 ngày');
+ g+=tree(318,640,.7)+tree(1020,560,.6);
+ document.getElementById('SA').innerHTML=SIDE+`<main>${TOP('s')}<div class="hd"><div><small>Mình có kịp không?</small><h1>Còn <em>35 điểm</em>, khoảng 2 đề nữa là lên đỉnh</h1></div><div class="seg sm"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div></div>
+ <div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ ${SCOC('hi',last[0]-34,last[1]-74,68)}
+ <div class="bubble" style="left:${last[0]-430}px;top:${peak[1]-96}px;z-index:4">Đề mới nhất <b>765</b>, cao nhất từ trước tới giờ!</div>
+ <div class="stat"><div class="st"><small>ĐIỂM GẦN NHẤT · 11/11</small><div class="big">765<span>/990</span></div><div style="margin-top:8px"><span class="pill up">▲ 25 so với đề trước</span></div></div>
+ <div class="st"><div class="r">Nghe <span>400</span></div><div class="r">Đọc <span>365</span></div><div class="r">Tăng từ đề đầu <span style="color:#2f8a42;font-weight:900">+145</span></div></div>
+ <div class="st" style="background:rgba(255,255,255,.75)"><small>TRUNG BÌNH MỖI ĐỀ</small><div style="font-weight:900;font-size:26px;margin-top:2px">+24 điểm</div></div></div></div></main>`}
+
+// ---------- S2 gauge + columns
+{const gx=230,gy=205,R=165,ang=s=>Math.PI*(1-s/990),pt=(s,r)=>[gx+Math.cos(ang(s))*r,gy-Math.sin(ang(s))*r];
+ const arc=(a,b,r)=>{const [x1,y1]=pt(a,r),[x2,y2]=pt(b,r);return `M${x1} ${y1} A${r} ${r} 0 0 1 ${x2} ${y2}`};
+ let g=`<defs><linearGradient id="ga" x1="0" x2="1"><stop offset="0" stop-color="#ffd766"/><stop offset="1" stop-color="#46b35a"/></linearGradient></defs>`;
+ g+=`<path d="${arc(0,990,R)}" fill="none" stroke="#eef0ee" stroke-width="34" stroke-linecap="round"/><path d="${arc(0,765,R)}" fill="none" stroke="url(#ga)" stroke-width="34" stroke-linecap="round"/>`;
+ g+=`<path d="${arc(765,800,R)}" fill="none" stroke="#ff9eb8" stroke-width="34" stroke-dasharray="4 5"/>`;
+ [0,250,500,750,990].forEach(s=>{const [x,y]=pt(s,R-40);g+=`<text x="${x}" y="${y+5}" font-weight="800" font-size="12" fill="#a3aba5" text-anchor="middle">${s}</text>`});
+ {const [x1,y1]=pt(800,R-26),[x2,y2]=pt(800,R+30);g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#e0557f" stroke-width="4" stroke-linecap="round"/>`;const [tx,ty]=pt(800,R+50);g+=`<text x="${tx}" y="${ty}" font-weight="900" font-size="14" fill="#e0557f" text-anchor="middle">800</text>`}
+ g+=`<text x="${gx}" y="${gy+4}" font-weight="900" font-size="74" fill="#2f3a33" text-anchor="middle" letter-spacing="-3">765</text>`;
+ // columns
+ const CW=1068,CH=330,bx=70,bw=64,gap=46,yb=270,sc=s=>(s-500)*0.82;let c='';
+ c+=`<line x1="40" y1="${yb-sc(800)}" x2="${CW-40}" y2="${yb-sc(800)}" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="8 8"/><text x="${CW-40}" y="${yb-sc(800)-10}" font-weight="900" font-size="14" fill="#e0557f" text-anchor="end">Mục tiêu 800</text>`;
+ T.forEach(([d,s],i)=>{const x=bx+i*(bw+gap),h=sc(s),L=i===T.length-1;
+  c+=`<rect x="${x}" y="${yb-h}" width="${bw}" height="${h}" rx="16" fill="${L?'#46b35a':'#ffd766'}"/><rect x="${x}" y="${yb-h}" width="${bw}" height="${h}" rx="16" fill="none" stroke="${L?'#2f8a42':'#e8b62c'}" stroke-width="0" /><rect x="${x}" y="${yb-12}" width="${bw}" height="12" fill="${L?'#2f8a42':'#e8b62c'}" opacity=".5"/>`;
+  c+=`<text x="${x+bw/2}" y="${yb-h-10}" font-weight="900" font-size="16" fill="${L?'#2f8a42':'#2f3a33'}" text-anchor="middle">${s}</text><text x="${x+bw/2}" y="${yb+24}" font-weight="900" font-size="13" fill="#7a857e" text-anchor="middle">${d}</text>`});
+ {const i=7,x=bx+i*(bw+gap),h=sc(800);c+=`<rect x="${x}" y="${yb-h}" width="${bw}" height="${h}" rx="16" fill="#fff0f4" stroke="#ff9eb8" stroke-width="3" stroke-dasharray="7 6"/><text x="${x+bw/2}" y="${yb-h-10}" font-weight="900" font-size="16" fill="#e0557f" text-anchor="middle">~800</text><text x="${x+bw/2}" y="${yb+24}" font-weight="900" font-size="13" fill="#e0557f" text-anchor="middle">2 đề nữa</text>`;
+  const fx=bx+8*(bw+gap)+10;c+=flagTag(fx+40,yb-200,'Thi 21/12','còn 38 ngày').replace('y2="150"','y2="150"')}
+ document.getElementById('SB').innerHTML=SIDE+`<main>${TOP('s')}<div class="hd"><div><small>Mình có kịp không?</small><h1>Còn <em>35 điểm</em>, khoảng 2 đề nữa</h1></div><div class="seg sm"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div></div>
+ <div class="card" style="left:52px;top:178px;width:470px;height:300px;background:linear-gradient(180deg,#fffbe9,#fff)"><svg viewBox="0 0 460 230" width="460" height="230" style="position:absolute;left:5px;top:22px">${g}</svg><span class="pill up" style="position:absolute;left:50%;transform:translateX(-50%);bottom:22px">▲ 25 so với đề trước</span></div>
+ <div class="card" style="left:542px;top:178px;right:52px;height:300px;padding:18px 26px">
+  <div class="lr"><div class="t"><b>🎧 Nghe</b><strong>400<span>/495</span></strong></div><div class="bar"><i style="width:${400/495*100}%;background:linear-gradient(90deg,#9fd3ff,#1c8fe3)"></i><u style="left:${410/495*100}%"></u><em style="left:${410/495*100}%">cần 410</em></div><p>Còn 10 điểm, gần chạm rồi.</p></div>
+  <div class="lr"><div class="t"><b>📖 Đọc</b><strong>365<span>/495</span></strong></div><div class="bar"><i style="width:${365/495*100}%;background:linear-gradient(90deg,#b7ecc0,#46b35a)"></i><u style="left:${390/495*100}%"></u><em style="left:${390/495*100}%">cần 390</em></div><p>Còn 25 điểm, <b style="color:#d64570">phần cần đẩy</b>.</p></div></div>
+ <div class="card" style="left:52px;top:498px;right:52px;bottom:30px;overflow:hidden"><div style="position:absolute;left:26px;top:18px;font-weight:900;font-size:16px">Điểm từng đề</div><svg viewBox="0 0 ${CW} ${CH}" width="${CW}" height="${CH}" style="position:absolute;left:0;top:44px">${c}</svg></div>
+</main>`}
+
+// ---------- S3 test stairs
+{const W=1068,H=692,x0=130,dx=96,yb=640,k=2.0,tw=36,th=19;let g=`<defs><linearGradient id="sk3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d1"/><stop offset="1" stop-color="#ffe0ec"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sk3)"/>`;
+ const top=s=>yb-(s-560)*k;
+ for(let i=0;i<18;i++){const a=i/18*Math.PI*2,cx=900,cy=150;g+=`<path d="M${cx} ${cy} L${cx+Math.cos(a)*1400} ${cy+Math.sin(a)*1400} L${cx+Math.cos(a+.1)*1400} ${cy+Math.sin(a+.1)*1400}Z" fill="#fff" opacity=".4"/>`}
+ g+=`<line x1="40" y1="${top(800)}" x2="${W-40}" y2="${top(800)}" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="8 8"/><text x="44" y="${top(800)-12}" font-weight="900" font-size="15" fill="#e0557f">Mục tiêu 800</text>`;
+ const col=(x,s,cl,lab,dash)=>{const y=top(s),h=H-y;const [l,r,t,st]=cl;
+  return `<path d="M${x-tw} ${y} L${x} ${y+th} L${x} ${y+th+h} L${x-tw} ${y+h}Z" fill="${l}"/><path d="M${x} ${y+th} L${x+tw} ${y} L${x+tw} ${y+h} L${x} ${y+th+h}Z" fill="${r}"/><path d="M${x-tw} ${y} L${x} ${y-th} L${x+tw} ${y} L${x} ${y+th}Z" fill="${t}" stroke="${st}" stroke-width="2" ${dash?'stroke-dasharray="5 5"':''}/>`+(lab?`<g transform="translate(${x} ${y-th-18})"><rect x="-25" y="-14" width="50" height="24" rx="12" fill="${dash?'#fff':'#2f3a33'}"/><text y="4" font-weight="900" font-size="14" fill="${dash?'#e0557f':'#ffe58f'}" text-anchor="middle">${lab}</text></g>`:'')};
+ const GOLD=['#ffd766','#f0b52c','#ffe9a3','#e8a516'],GRN=['#7fd18c','#46b35a','#c9f0cf','#2f8a42'],GH=['#fbeef3','#f5dbe5','#fff','#ff9eb8'];
+ T.forEach(([d,s],i)=>{const x=x0+i*dx,L=i===T.length-1;g+=col(x,s,L?GRN:GOLD,s,false);g+=`<text x="${x}" y="${H-24}" font-weight="900" font-size="13" fill="${L?'#fff':'#8a6a10'}" text-anchor="middle">${d}</text>`;
+  if(i>0){const dv=s-T[i-1][1];g+=`<text x="${x}" y="${top(s)-th-42}" font-weight="900" font-size="12.5" fill="${dv>=0?'#2f8a42':'#d64570'}" text-anchor="middle">${dv>=0?'+':''}${dv}</text>`}});
+ [782,800].forEach((s,j)=>{const x=x0+(7+j)*dx;g+=col(x,s,GH,j?'':'~782',true)});
+ g+=cup(x0+8*dx,top(800)-th-92,.6,800);
+ g+=flagTag(W-60,top(800)+40,'Thi 21/12','còn 38 ngày');
+ const L=[x0+6*dx,top(765)];
+ document.getElementById('SC').innerHTML=SIDE+`<main>${TOP('s')}<div class="hd"><div><small>Mình có kịp không?</small><h1>Bảy đề, bảy bậc. <em>Hai bậc nữa</em> là chạm cúp</h1></div><div class="seg sm"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div></div>
+ <div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ ${SCOC('think',24,40,70)}
+ <div class="bubble" style="left:104px;top:44px;width:300px">Đề 11/11 là <b>đề làm lại</b> nên điểm có thể cao hơn thực tế một chút.</div></div></main>`}
+
+// ---------- parts data
+const PT=[['Part 1','Mô tả tranh',6,3,[2,3,1,3],'n'],['Part 2','Hỏi đáp',25,4,[7,5,5,4],'n'],['Part 3','Hội thoại',39,11,[11,10,11,11],'n'],['Part 4','Bài nói',30,7,[9,8,7,7],'n'],['Part 5','Điền câu',30,3,[6,4,4,3],'d'],['Part 6','Điền đoạn',16,3,[4,5,3,3],'d'],['Part 7','Đọc hiểu',54,12,[16,14,13,12],'d']];
+const pct=p=>Math.round((p[2]-p[3])/p[2]*100);
+const tone=v=>v>=85?['#46b35a','#e3f6e6','Vững']:v>=75?['#f0b52c','#fff4d6','Ổn']:['#ff7a9c','#ffe6ec','Cần ôn'];
+const ring=(v,col)=>{const r=50,c=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 128 128"><circle cx="64" cy="64" r="${r}" fill="none" stroke="#eef0ee" stroke-width="14"/><circle cx="64" cy="64" r="${r}" fill="none" stroke="${col}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${c*v/100} ${c}" transform="rotate(-90 64 64)"/><text x="64" y="70" font-weight="900" font-size="30" fill="#2f3a33" text-anchor="middle">${v}%</text><text x="64" y="88" font-weight="800" font-size="11" fill="#7a857e" text-anchor="middle">đúng</text></svg>`};
+const spark=(a,col)=>{const mx=Math.max(...a)+1,pts=a.map((v,i)=>[10+i*70,40-v/mx*32]);return `<svg class="spark" viewBox="0 0 230 46"><path d="M${pts.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===3?6:4}" fill="${i===3?col:'#fff'}" stroke="${col}" stroke-width="3"/>`).join('')}</svg>`};
+
+// P1 cards
+{let h='';PT.forEach((p,i)=>{const v=pct(p),[col,bg,lab]=tone(v),d=p[4][3]-p[4][2],hot=i===6;
+  h+=`<div class="pc ${hot?'hot':''}">${hot?'<span class="ribbon">Mất nhiều điểm nhất</span>':''}<div class="h"><div><b>${p[0]}</b><small>${p[1]} · ${p[2]} câu</small></div><span class="tag" style="background:${bg};color:${col==='#f0b52c'?'#a87a00':col}">${lab}</span></div>${ring(v,col)}
+  <div class="meta">${p[3]} câu sai <span>${d<0?`<b style="color:#2f8a42">▼ ${-d}</b> so với đề trước`:d>0?`<b style="color:#d64570">▲ ${d}</b> so với đề trước`:'như đề trước'}</span></div>${spark(p[4],col)}<div style="font-weight:800;font-size:11.5px;color:#a3aba5;text-align:center">câu sai 4 đề gần đây</div></div>`});
+ h+=`<div class="pc sum"><h4>Tuần này ôn 2 Part này là lời nhất</h4><ol><li><i>1</i>Part 7<span>12 câu sai</span></li><li><i>2</i>Part 3<span>11 câu sai</span></li></ol><div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between"><span class="btn">Bấm giờ Part 7</span><span class="soc-s" style="width:78px;margin:0 -6px -6px 0" data-s="hi"></span></div></div>`;
+ document.getElementById('PA').innerHTML=SIDE+`<main>${TOP('p')}<div class="hd"><div><small style="color:#e0557f">Mất điểm ở đâu?</small><h1>Đọc hiểu <em>Part 7</em> mất nhiều nhất: 12 câu</h1></div><div class="seg sm" style="background:#fff;box-shadow:0 0 0 2px #eef0ee"><span class="on" style="background:#fff;color:#2f3a33">Đề 11/11 · ETS 2024 Test 03 ▾</span></div></div>
+ <div class="grid" style="grid-template-rows:330px 330px">${h}</div></main>`}
+
+// P2 rows
+{const row=(p,i)=>{const v=pct(p),d=p[4][3]-p[4][2],hot=i===6||i===2,w=p[2]*9;
+  return `<div class="pr ${hot?'hot':''}"><div class="n"><b>${p[0]}</b><small>${p[1]}</small></div><div><div class="hb" style="width:${Math.max(w,96)}px"><i class="ok" style="flex:${p[2]-p[3]}">${p[2]>=16?`${p[2]-p[3]} đúng`:''}</i><i class="bad" style="flex:${Math.max(p[3],p[2]<10?p[3]:p[3])}">${p[3]}</i></div></div><div class="d">${d<0?`<span class="pill up">▼ ${-d}</span>`:d>0?`<span class="pill dn">▲ ${d}</span>`:'<span class="pill" style="background:#f1f3f1;color:#7a857e">= 0</span>'}</div></div>`};
+ const L=PT.filter(p=>p[5]==='n').map((p)=>row(p,PT.indexOf(p))).join(''),R=PT.filter(p=>p[5]==='d').map(p=>row(p,PT.indexOf(p))).join('');
+ document.getElementById('PB').innerHTML=SIDE+`<main>${TOP('p')}<div class="hd"><div><small style="color:#e0557f">Mất điểm ở đâu?</small><h1>43 câu sai, hơn nửa nằm ở <em>Part 3 và Part 7</em></h1></div><div class="seg sm" style="background:#fff;box-shadow:0 0 0 2px #eef0ee"><span class="on" style="background:#fff;color:#2f3a33">Đề 11/11 · ETS 2024 Test 03 ▾</span></div></div>
+ <div class="rows"><div class="gh"><i style="background:#1c8fe3"></i>NGHE · 25 câu sai</div>${L}<div class="gh" style="margin-top:14px"><i style="background:#46b35a"></i>ĐỌC · 18 câu sai</div>${R}
+ <div class="legend"><span><i style="background:#7fcf8c"></i>đúng</span><span><i style="background:#ff7a9c"></i>sai</span><span>độ dài thanh = số câu của Part</span><span>▼ ít sai hơn đề trước</span></div></div>
+ <div class="side2"><h4>Sửa ở đâu lời nhất?</h4>
+  <div class="it"><b>Part 7 · Đọc hiểu</b><p>12 câu sai, đang giảm dần qua 4 đề.</p><div class="k"><span>≈ 60 điểm</span><span class="btn" style="padding:7px 12px;font-size:13px">Bấm giờ</span></div></div>
+  <div class="it"><b>Part 3 · Hội thoại</b><p>11 câu sai, đứng yên 4 đề liền.</p><div class="k"><span>≈ 55 điểm</span><span class="btn w" style="padding:7px 12px;font-size:13px">Xem câu sai</span></div></div>
+  <div class="it"><b>Part 1 · Mô tả tranh</b><p>Chỉ 6 câu nhưng sai một nửa.</p><div class="k"><span>≈ 15 điểm</span><span class="btn w" style="padding:7px 12px;font-size:13px">Xem câu sai</span></div></div>
+  <span class="soc-s" style="position:absolute;right:16px;bottom:10px;width:84px" data-s="think"></span></div></main>`}
+
+// P3 islands
+{const W=1068,H=692;let g=`<defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff"/><stop offset="1" stop-color="#6cc3f0"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sea)"/>`;
+ for(let i=0;i<26;i++){const x=(i*173)%W,y=60+(i*97)%600;g+=`<path d="M${x} ${y} q8 -6 16 0 q8 6 16 0" fill="none" stroke="#fff" stroke-width="2.5" opacity=".5" stroke-linecap="round"/>`}
+ const POS=[[150,250],[330,170],[300,440],[500,330],[700,200],[700,470],[900,330]];
+ const isle=(x,y,n,v)=>{const r=24+Math.sqrt(n)*12,[col]=tone(v),top=v>=85?'#7fd18c':v>=75?'#cfe58a':'#f6d3b8',side=v>=85?'#4fae5f':v>=75?'#a9c25a':'#e2ab8c';
+  let s=`<ellipse cx="${x}" cy="${y+r*.42}" rx="${r*1.12}" ry="${r*.5}" fill="#fff" opacity=".45"/><ellipse cx="${x}" cy="${y+r*.22}" rx="${r}" ry="${r*.5}" fill="${side}"/><ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.5}" fill="${top}"/>`;
+  if(v>=75){s+=tree(x-r*.35,y-6,.45)+(n>20?tree(x+r*.3,y-2,.55):'')}else{s+=`<g transform="translate(${x+r*.2} ${y-4})"><path d="M0 0 V-34" stroke="#a26c43" stroke-width="4"/><path d="M0 -34 q-14 -4 -24 4 M0 -34 q14 -6 24 2 M0 -34 q-6 -14 -18 -16 M0 -34 q8 -12 20 -12" stroke="#6bc27a" stroke-width="5" fill="none" stroke-linecap="round"/></g>`}
+  return s};
+ let labels='';
+ PT.forEach((p,i)=>{const [x,y]=POS[i],v=pct(p),r=24+Math.sqrt(p[2])*12;g+=isle(x,y,p[2],v);labels+=`<div class="isl-l" style="left:${x}px;top:${y+r*.62+6}px"><b style="color:${tone(v)[0]==='#f0b52c'?'#a87a00':tone(v)[0]}">${p[0]} · ${v}%</b><small>${p[3]} sai / ${p[2]}</small></div>`});
+ g+=`<text x="230" y="70" font-weight="900" font-size="18" fill="#fff" opacity=".9">QUẦN ĐẢO NGHE</text><text x="700" y="70" font-weight="900" font-size="18" fill="#fff" opacity=".9">QUẦN ĐẢO ĐỌC</text>`;
+ g+=`<path d="M730 600 Q840 520 880 420" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="4 9" stroke-linecap="round" opacity=".8"/>`;
+ g+=`<g transform="translate(700 625)"><path d="M-46 0 H46 L34 22 H-34Z" fill="#a26c43"/><path d="M-46 0 H46" stroke="#7d4f2e" stroke-width="4"/></g>`;
+ document.getElementById('PC').innerHTML=SIDE+`<main>${TOP('p')}<div class="hd"><div><small style="color:#e0557f">Mất điểm ở đâu?</small><h1>Đảo <em>Part 1 và Part 3</em> còn hoang, Part 7 rộng nhất</h1></div><div class="seg sm" style="background:#fff;box-shadow:0 0 0 2px #eef0ee"><span class="on" style="background:#fff;color:#2f3a33">Đề 11/11 · ETS 2024 Test 03 ▾</span></div></div>
+ <div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>${labels}
+ ${SCOC('hi',700-36,625-66,72)}
+ <div class="bubble" style="left:400px;top:592px;width:240px">Ghé <b>Part 7</b> trước nhé: đảo rộng nhất, 12 câu gỡ lại được.</div>
+ <div class="bubble" style="left:24px;top:600px;display:flex;gap:14px;font-size:13px"><span>🟢 vững ≥85%</span><span>🟡 ổn 75–85%</span><span>🟤 cần ôn &lt;75%</span></div></div></main>`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

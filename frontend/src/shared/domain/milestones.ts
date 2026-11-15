@@ -83,3 +83,23 @@ export function buildMilestones(sessions: StudySession[], targetScore: number): 
   const value = steps[index].value;
   return { status: 'climbing', target, step, best, steps, currentIndex, next: { index, value, gap: value - best } };
 }
+
+/** Typical first score a new learner starts from; the estimated stairs begin here. */
+export const ESTIMATE_START = 450;
+
+export interface StairsEstimate {
+  step: number;
+  /** Stair values, then the target last (same shape as buildMilestones steps). */
+  values: number[];
+}
+
+/**
+ * Stairs drawn before any test is logged: from a typical first score up to the target, using the same
+ * step rule as buildMilestones so the real stairs look alike once a first score arrives.
+ * Targets at or below the typical start climb from 200 points under the target instead.
+ */
+export function estimateMilestones(target: number): StairsEstimate {
+  const start = target > ESTIMATE_START ? ESTIMATE_START : Math.max(0, target - 200);
+  const step = chooseStep(start, target);
+  return { step, values: stepValues(start, target, step) };
+}

@@ -321,6 +321,8 @@ export interface UserProfile {
   selectedSkill: SkillType;  // 'LR' | 'SW'
   /** Hôm nay: số buổi muốn học mỗi tuần (mặc định 5). */
   weeklyGoalDays?: number;
+  /** Hôm nay: học viên đã tự chọn mục tiêu (phân biệt với mặc định 990 chưa chọn). */
+  goalChosen?: boolean;
   /** Hôm nay: tối đa 2 "Việc của mình" tự đánh dấu mỗi ngày; ngày đánh dấu tính vào chuỗi. */
   habits?: Habit[];
 }
