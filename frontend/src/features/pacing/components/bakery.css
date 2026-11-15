@@ -12,12 +12,12 @@
 .bk-step input:focus { outline: 2px solid var(--rd-violet); border-radius: 8px; }
 
 /* ---------- 1 Chọn món ---------- */
-.bk-page { min-height: 100vh; padding: 30px max(52px, calc((100% - 1196px) / 2)) 40px; background: #fff; }
+.bk-page { min-height: 100vh; padding: 24px max(52px, calc((100% - 1196px) / 2)) 40px; background: #fff; }
 .bk-kick { font-weight: 900; font-size: 14px; color: var(--rd-violet-d); letter-spacing: .4px; }
 .bk-h1 { font-weight: 900; font-size: 32px; letter-spacing: -1px; line-height: 1.15; margin-top: 2px; }
 .bk-h1 em { font-style: normal; color: var(--rd-violet-d); }
 .bk-sub { font-weight: 700; font-size: 15px; color: var(--rd-mut); margin-top: 4px; }
-.bk-fit { position: relative; margin-top: 22px; width: 100%; }
+.bk-fit { position: relative; margin-top: 16px; width: 100%; }
 .bk-stage { position: absolute; left: 0; top: 0; width: 1068px; height: 450px; border-radius: 30px; overflow: hidden; transform-origin: 0 0; background: #fff4f7; }
 .bk-shop-svg { position: absolute; inset: 0; }
 
@@ -59,7 +59,9 @@
 .bk-ghost:focus-visible, .bk-link:focus-visible, .bk-stop:focus-visible, .bk-row:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 3px; }
 .bk-link { margin-left: auto; border: 0; background: none; font-weight: 900; font-size: 14.5px; color: var(--rd-violet-d); cursor: pointer; }
 
-.bk-col { margin: 0 auto; }
+.bk-chead { display: flex; align-items: baseline; gap: 14px; }
+.bk-chead .bk-h1 { font-size: 28px; flex: none; white-space: nowrap; margin: 0; }
+.bk-chead .bk-sub { margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 .bk-recent { margin-top: 22px; }
 .bk-recent-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .bk-all-dim { position: fixed; inset: 0; z-index: 60; background: rgba(47, 58, 51, .45); display: grid; place-items: center; }
