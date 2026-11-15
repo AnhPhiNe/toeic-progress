@@ -44,6 +44,7 @@ function useFit() {
   const page = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [wide, setWide] = useState(W);
   useLayoutEffect(() => {
     const root = page.current, el = ref.current;
     if (!root || !el) return;
@@ -52,7 +53,10 @@ function useFit() {
       const width = root.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const top = el.getBoundingClientRect().top + window.scrollY;
       const byHeight = (window.innerHeight - top - BELOW) / H;
-      setScale(Math.min(1.12, width / W, Math.max(0.62, byHeight)));
+      const k = Math.min(1.12, width / W, Math.max(0.62, byHeight));
+      setScale(k);
+      // A height-limited stage widens in scene units so it still spans the column.
+      setWide(Math.max(W, Math.min(1500, Math.floor(width / k))));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -60,14 +64,15 @@ function useFit() {
     observer.observe(root);
     return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
-  return [page, ref, scale] as const;
+  return [page, ref, scale, wide] as const;
 }
 
 const SHOWN = 4;
 
 /** Chọn món: a bakery whose four display-case items are the four Parts. */
 export function BakeryChoose(p: Props) {
-  const [page, fit, scale] = useFit();
+  const [page, fit, scale, wide] = useFit();
+  const off = (wide - W) / 2;
   const [all, setAll] = useState(false);
   useEffect(() => {
     if (!all) return;
@@ -99,15 +104,16 @@ export function BakeryChoose(p: Props) {
 
   return (
     <div className="rd bk-root bk-page" ref={page}>
-      <div className="bk-col" style={{ maxWidth: Math.round(W * scale) }}>
+      <div className="bk-col">
       <div className="bk-chead">
         <h1 className="bk-h1">Hôm nay nướng <em>{p.label}</em> nhé?</h1>
         {p.reason && <p className="bk-sub">{p.reason}</p>}
       </div>
 
       <div className="bk-fit" ref={fit} style={{ height: H * scale }}>
-        <div className="bk-stage" style={{ transform: `scale(${scale})` }}>
-          <ShopBackdrop width={W} height={H} />
+        <div className="bk-stage" style={{ width: wide, transform: `scale(${scale})` }}>
+          <ShopBackdrop width={wide} height={H} offset={off} />
+          <div className="bk-shop" style={{ left: off }}>
 
           {p.choices.map((c, i) => {
             const on = i === selected;
@@ -131,6 +137,7 @@ export function BakeryChoose(p: Props) {
           </div>
           <div className={'bk-bub' + (selected === 3 ? ' is-left' : '')}>
             {dish} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <> Lần trước bạn xong trong {p.lastTime}!</>}
+          </div>
           </div>
         </div>
       </div>

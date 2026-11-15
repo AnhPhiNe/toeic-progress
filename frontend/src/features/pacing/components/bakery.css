@@ -20,6 +20,7 @@
 .bk-fit { position: relative; margin-top: 16px; width: 100%; }
 .bk-stage { position: absolute; left: 0; top: 0; width: 1068px; height: 450px; border-radius: 30px; overflow: hidden; transform-origin: 0 0; background: #fff4f7; }
 .bk-shop-svg { position: absolute; inset: 0; }
+.bk-shop { position: absolute; top: 0; width: 1068px; height: 450px; }
 
 .bk-item { position: absolute; top: 130px; width: 180px; height: 312px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--rd-ink); text-align: left; z-index: 3; }
 .bk-item:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; border-radius: 16px; }

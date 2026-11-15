@@ -98,15 +98,48 @@ function Counter({ x0, x1 }: { x0: number; x1: number }) {
   );
 }
 
-/** Everything of the shop scene except the four dishes, the dome and Sóc (1068 x 450). */
-export function ShopBackdrop({ width, height }: { width: number; height: number }) {
+function Plant({ x }: { x: number }) {
   return (
-    <svg className="bk-shop-svg" viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
-      <rect width={width} height={height} fill="#fff4f7" />
-      {Array.from({ length: Math.ceil(width / 72) }, (_, i) => <rect key={i} x={i * 72} y="0" width="36" height={height} fill="#ffecf2" />)}
-      <Awning width={width} height={46} />
-      <BulbsG width={width} count={14} y={66} />
-      <Sign cx={width / 2} />
+    <g transform={`translate(${x} 0)`}>
+      <path d="M-26 450 L-20 396 H20 L26 450Z" fill="#c98b4e" /><rect x="-24" y="390" width="48" height="10" rx="4" fill="#e0a467" />
+      <path d="M0 392 C-30 360 -40 320 -14 300 M0 392 C10 350 34 330 40 300 M0 392 C-4 350 4 310 0 280" stroke="#46b35a" strokeWidth="10" fill="none" strokeLinecap="round" />
+      <ellipse cx="-14" cy="300" rx="14" ry="9" fill="#5bb46b" /><ellipse cx="40" cy="300" rx="14" ry="9" fill="#5bb46b" /><ellipse cx="0" cy="280" rx="12" ry="9" fill="#7fd18c" />
+    </g>
+  );
+}
+
+function MenuBoard({ x }: { x: number }) {
+  return (
+    <g transform={`translate(${x} 170)`}>
+      <rect x="-62" y="0" width="124" height="150" rx="12" fill="#3a463e" stroke="#c98b4e" strokeWidth="6" />
+      <text x="0" y="30" textAnchor="middle" fontWeight="900" fontSize="16" fill="#ffe58f">MENU</text>
+      {[['Cupcake', "12'"], ['Bánh quy', "8'"], ['Bánh kem', "55'"], ['3 tầng', "75'"]].map(([a, b], i) => (
+        <g key={a}><text x="-48" y={58 + i * 24} fontWeight="800" fontSize="12" fill="#fff">{a}</text><text x="48" y={58 + i * 24} fontWeight="900" fontSize="12" fill="#ff9eb8" textAnchor="end">{b}</text></g>
+      ))}
+      <path d="M-20 150 L-30 280 M20 150 L30 280" stroke="#c98b4e" strokeWidth="6" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/**
+ * Everything of the shop scene except the four dishes, the dome and Sóc. The shop itself is drawn at 1068 x 450;
+ * `width` may be wider (wide windows) and the shop is then centred with `offset`, the wall, awning and bulbs running
+ * the full width and a plant / menu board filling the sides.
+ */
+export function ShopBackdrop({ width, height, offset = 0 }: { width: number; height: number; offset?: number }) {
+  const left = -offset;
+  return (
+    <svg className="bk-shop-svg" viewBox={`${left} 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
+      <rect x={left} width={width} height={height} fill="#fff4f7" />
+      {Array.from({ length: Math.ceil(width / 72) + 1 }, (_, i) => <rect key={i} x={Math.floor(left / 72) * 72 + i * 72} y="0" width="36" height={height} fill="#ffecf2" />)}
+      <g transform={`translate(${left} 0)`}>
+        <Awning width={width} height={46} />
+        <BulbsG width={width} count={Math.max(14, Math.round(14 * width / 1068))} y={66} />
+      </g>
+      {offset > 0 && <rect x={left} y="384" width={width} height="66" fill="#f6ebe0" opacity=".8" />}
+      {offset >= 70 && <Plant x={-offset / 2} />}
+      {offset >= 100 && <MenuBoard x={1068 + offset / 2} />}
+      <Sign cx={534} />
       <Shelf />
       <ellipse className="bk-halo" cx="955" cy="272" rx="150" ry="140" fill="#ff9a4d" opacity=".2" />
       <Oven x={870} y={150} w={170} h={236} variant="shop" />
