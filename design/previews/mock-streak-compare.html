@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>So sánh thẻ chuỗi</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:linear-gradient(180deg,#fff3d1,#ffe0ec);min-height:100vh;padding:26px}
+h1{font-weight:900;font-size:24px}h1+p{font-weight:700;font-size:14px;color:#5e6962;margin:4px 0 14px}
+.bar0{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.bar0 button{border:0;border-radius:14px;padding:10px 16px;font:900 14px Nunito;cursor:pointer;background:#fff;color:#2f3a33;box-shadow:0 0 0 2px #e6e9e6,0 4px 0 #e6e9e6}
+.bar0 button.on{background:#ff8a3d;color:#fff;box-shadow:0 4px 0 #d9661f}
+.grid{display:grid;grid-template-columns:repeat(3,368px);gap:26px;align-items:start}
+.col h3{font-weight:900;font-size:16px}.col p{font-weight:700;font-size:12.5px;color:#5e6962;margin:2px 0 10px;line-height:1.4;min-height:36px}
+.card{width:368px;background:#fff;border-radius:24px;padding:16px 18px 14px;box-shadow:0 8px 0 rgba(47,58,51,.06),0 20px 40px rgba(180,120,60,.12);position:relative;overflow:hidden}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hd b{display:block;font-weight:900;font-size:17px}.hd small{font-weight:700;font-size:12.5px;color:#7a857e}
+.num{font-weight:900;font-size:15px;border-radius:99px;padding:4px 11px;background:#fff1df;color:#c2630a;white-space:nowrap}
+.num.off{background:#f1f3f1;color:#7a857e}
+svg{display:block;width:100%;overflow:visible}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-weight:800;font-size:12.5px;color:#7a857e;gap:8px}
+.pill{border-radius:99px;padding:3px 10px;font-weight:900;font-size:12px;white-space:nowrap}
+.say{margin-top:8px;background:#fff8ee;border-radius:14px;padding:8px 12px;font-weight:800;font-size:13px;color:#5e5530}
+.verdict{margin-top:12px;font-weight:700;font-size:13px;color:#4d5850;line-height:1.5}.verdict b{color:#2f3a33}
+.fl{transform-box:fill-box;transform-origin:50% 100%;animation:fsw 1.5s ease-in-out infinite alternate}
+@keyframes fsw{0%{rotate:-6deg;scale:1 .95}100%{rotate:4deg;scale:.93 1.08}}
+.big{transform-box:fill-box;transform-origin:50% 100%;animation:bigf 1.2s ease-in-out infinite alternate}
+@keyframes bigf{0%{scale:1}100%{scale:1.05 1.09}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></head><body>
+<h1>So sánh 3 kiểu thẻ chuỗi ngày</h1>
+<p>Chọn tình huống, cả 3 thẻ cùng đổi theo. Thẻ rộng 368px như cột phải trang Hôm nay.</p>
+<div class="bar0" id="bar"></div>
+<div class="grid">
+ <div class="col"><h3>Bánh chồng tầng</h3><p>Nến trong tuần, mỗi tuần trọn thêm một tầng; quá 5 tầng thì cất thành hộp bánh trên kệ.</p><div class="card" id="k1"></div><div class="verdict" id="v1"></div></div>
+ <div class="col"><h3>Nến thường (chỉ trong tuần)</h3><p>7 nến trên một bánh, đủ 7 thì thổi; tuần sau bắt đầu lại.</p><div class="card" id="k2"></div><div class="verdict" id="v2"></div></div>
+ <div class="col"><h3>Truyền thống (kiểu Duolingo)</h3><p>Ngọn lửa lớn kèm con số, hàng 7 ngày có dấu tick, mốc kế tiếp.</p><div class="card" id="k3"></div><div class="verdict" id="v3"></div></div>
+</div>
+<script>
+const SC={
+ d5:{t:'5 ngày',n:5,rec:5,freeze:-1,broke:false},
+ d12:{t:'12 ngày',n:12,rec:12,freeze:-1,broke:false},
+ d80:{t:'80 ngày',n:80,rec:80,freeze:-1,broke:false},
+ frz:{t:'Dùng ngày nghỉ (❄)',n:12,rec:12,freeze:3,broke:false},
+ brk:{t:'Gãy chuỗi (kỷ lục 23)',n:1,rec:23,freeze:-1,broke:true}};
+let cur='d12';
+const COLS=['#ff7a9c','#ffc83d','#7ec8ff','#7fd18c','#a78bfa','#ff9a4d','#ff7a9c'];
+const TIER=['#ffd1dc','#fff1c9','#e6f1ff','#e6f8ea','#f1e9ff'],TIERT=['#ff9eb8','#ffd766','#9fd0ff','#a8e6b3','#c9b8ff'];
+const DN=['T2','T3','T4','T5','T6','T7','CN'];
+// week state: index of today in week = (n-1)%7 position; days before today in this streak lit
+function weekCells(s){const today=(s.n-1)%7;return DN.map((d,i)=>({d,today:i===today,on:i<=today&&i>today-s.n,frz:s.freeze>=0&&i===s.freeze&&i<today}))}
+function candle(x,y,on,col,i,frz){return `<g transform="translate(${x} ${y})"><rect x="-4" y="-26" width="8" height="26" rx="3" fill="${frz?'#cfe8ff':on?col:'#efe7ee'}"/>${frz?'<text x="0" y="-32" text-anchor="middle" font-size="13">❄</text>':on?`<circle cx="0" cy="-36" r="11" fill="#ffd38a" opacity=".35"/><path class="fl" style="animation-delay:-${i*.21}s" d="M0 -46 C5 -39 6 -35 0 -27 C-6 -35 -5 -39 0 -46Z" fill="#ff9a2e"/><path d="M0 -38 C2 -35 2 -32 0 -29 C-2 -32 -2 -35 0 -38Z" fill="#ffe58f"/>`:''}</g>`}
+function box(x,y,label,gold){return `<g transform="translate(${x} ${y})"><rect x="-22" y="-26" width="44" height="30" rx="6" fill="${gold?'#ffe58f':'#ffd1dc'}" stroke="${gold?'#e0a400':'#ff9eb8'}" stroke-width="2"/><path d="M0 -26 V4 M-22 -12 H22" stroke="${gold?'#e0a400':'#ff7a9c'}" stroke-width="3"/><path d="M0 -26 q-10 -10 -14 -2 q6 4 14 2 q10 -10 14 -2 q-6 4 -14 2" fill="${gold?'#e0a400':'#ff7a9c'}"/><text x="0" y="18" text-anchor="middle" font-weight="900" font-size="9.5" fill="#a87a00">${label}</text></g>`}
+
+function layered(s){const weeks=Math.floor((s.n-1)/7),c=(s.n-1)%7+1;const boxes=Math.floor(weeks/5),tiers=weeks%5+1;const H=232;let g='';
+ const shelfBoxes=[...Array(Math.min(boxes,3))].map((_,i)=>box(300-i*50,40,`${(i+1)*35} ngày`,true));
+ if(s.broke)shelfBoxes.push(box(300,40,'kỷ lục 23',false));
+ if(shelfBoxes.length)g+=`<rect x="200" y="44" width="125" height="6" rx="3" fill="#c98b4e"/>`+shelfBoxes.join('');
+ let y=H-16;g+=`<rect x="20" y="${y}" width="290" height="10" rx="5" fill="#e6e0f5"/>`;
+ const gold=s.n>=30;
+ for(let t=0;t<tiers;t++){const w=250-t*42,x=150-w/2,h=28;y-=h;g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9" fill="${gold&&t===0?'#ffe9a3':TIER[t]}"/><path d="M${x} ${y+8} ${[...Array(Math.round(w/24))].map(()=>`q12 13 24 0`).join(' ')}" fill="none" stroke="${gold&&t===0?'#ffc83d':TIERT[t]}" stroke-width="5"/>`}
+ const topW=250-(tiers-1)*42;const wc=weekCells(s);
+ for(let i=0;i<7;i++)g+=candle(150-topW/2+12+i*(topW-24)/6,y,wc[i].on&&!wc[i].frz,COLS[i],i,wc[i].frz);
+ const title=s.broke?'Mẻ bánh mới':`Bánh ${tiers} tầng${boxes?` · ${boxes} hộp trên kệ`:''}`;
+ const sub=s.broke?'Kỷ lục 23 ngày đã cất lên kệ':`${c}/7 nến tuần này`;
+ document.getElementById('k1').innerHTML=`<div class="hd"><div><b style="color:#d6416a">${title}</b><small>${sub}</small></div><span class="num">🔥 ${s.n} ngày</span></div><svg viewBox="0 0 330 ${H}">${g}</svg>
+ ${s.broke?'<div class="say">🐿️ Mình nướng mẻ mới nhé, kỷ lục 23 ngày vẫn ở trên kệ.</div>':''}
+ <div class="foot"><span>Kỷ lục ${s.rec} ngày</span><span class="pill" style="background:#eaf5ff;color:#136fb3">❄ ${s.freeze>=0?1:2} ngày nghỉ</span></div>`;
+ document.getElementById('v1').innerHTML={d5:'<b>Ổn:</b> giống nến thường, thêm cảm giác "sắp lên tầng".',d12:'<b>Tốt:</b> 2 tầng cho thấy đã qua 1 tuần trọn.',d80:'<b>Tốt nhất:</b> 2 hộp bánh vàng trên kệ + bánh 2 tầng, vẫn gọn.',frz:'<b>Rõ:</b> nến xanh băng cho thấy ngày nghỉ đã giữ chuỗi.',brk:'<b>Nhẹ nhàng:</b> kỷ lục thành hộp bánh trên kệ, không mất trắng.'}[cur]}
+
+function candlesOnly(s){const wc=weekCells(s);let g='';
+ for(let i=0;i<7;i++)g+=`<g>${candle(34+i*44,70,wc[i].on&&!wc[i].frz,COLS[i],i,wc[i].frz).replace('translate(','translate(')}</g><text x="${34+i*44}" y="122" text-anchor="middle" font-weight="900" font-size="11" fill="${wc[i].today?'#e8730c':'#a3aba5'}">${wc[i].today?'Nay':DN[i]}</text>`;
+ g+=`<rect x="8" y="70" width="314" height="34" rx="11" fill="#ffd1dc"/><path d="M8 79 ${[...Array(10)].map(()=>`q15.7 16 31.4 0`).join(' ')}" fill="none" stroke="#fff" stroke-width="5"/>`;
+ // redraw candles above cake
+ let top='';for(let i=0;i<7;i++)top+=candle(34+i*44,70,wc[i].on&&!wc[i].frz,COLS[i],i,wc[i].frz);
+ const c=(s.n-1)%7+1;
+ document.getElementById('k2').innerHTML=`<div class="hd"><div><b style="color:#d6416a">${s.broke?'Bánh tuần này':`${c}/7 nến tuần này`}</b><small>${s.broke?'Chuỗi bắt đầu lại':'Đủ 7 nến là thổi bánh'}</small></div><span class="num">🔥 ${s.n} ngày</span></div><svg viewBox="0 0 330 130" style="margin-top:6px">${g}${top}</svg>
+ <div class="foot"><span>Kỷ lục ${s.rec} ngày</span><span class="pill" style="background:#eaf5ff;color:#136fb3">❄ ${s.freeze>=0?1:2} ngày nghỉ</span></div>`;
+ document.getElementById('v2').innerHTML={d5:'<b>Đẹp:</b> rõ ràng trong tuần.',d12:'<b>Yếu:</b> chỉ thấy 5 nến, không thấy đã qua 1 tuần trọn.',d80:'<b>Yếu nhất:</b> 80 ngày chỉ còn 3 nến, thành tích lớn bị chìm vào con số nhỏ.',frz:'<b>Rõ:</b> nến xanh băng.',brk:'<b>Ổn:</b> chỉ còn 1 nến, kỷ lục nằm ở dòng chữ dưới.'}[cur]}
+
+function classic(s){const wc=weekCells(s);const ms=[3,7,14,30,60,100,200].find(m=>m>s.n)||365;const prev=[0,3,7,14,30,60,100,200].filter(m=>m<=s.n).pop();
+ const lit=!s.broke||true;
+ document.getElementById('k3').innerHTML=`<div class="hd" style="align-items:center"><div style="display:flex;gap:12px;align-items:center"><svg viewBox="0 0 44 52" style="width:58px"><defs><linearGradient id="cfl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#ff6a1a"/></linearGradient></defs><ellipse cx="22" cy="34" rx="20" ry="18" fill="#ffb35c" opacity=".3"/><g class="big"><path d="M22 2 C26 14 40 19 40 32 a18 17 0 0 1 -36 0 C4 23 11 19 13 10 C16 14 18 16 22 2Z" fill="url(#cfl)"/><path d="M22 24 c4 5 8 8 8 13 a8 8 0 0 1 -16 0 c0-5 4-7 8-13Z" fill="#ffe58f"/></g></svg><div><b style="font-size:30px;line-height:1;color:#ff7a1a">${s.n}</b><small>${s.broke?'ngày · bắt đầu lại':'ngày liền'}</small></div></div><span class="num off">Kỷ lục ${s.rec}</span></div>
+ <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;text-align:center">${wc.map(w=>`<div><span style="display:block;font-weight:900;font-size:11px;color:${w.today?'#e8730c':'#a3aba5'};margin-bottom:4px">${w.today?'Nay':w.d}</span><i style="display:grid;place-items:center;margin:0 auto;width:32px;height:32px;border-radius:50%;font-style:normal;font-weight:900;font-size:14px;color:#fff;background:${w.frz?'#7ec8ff':w.on?'#ff8a2a':'#efeee9'}">${w.frz?'❄':w.on?'✓':''}</i></div>`).join('')}</div>
+ <div class="foot" style="margin-top:12px;background:#fff8ee;border-radius:12px;padding:7px 10px"><span>🎁 Mốc ${ms} ngày</span><span style="flex:1;height:7px;border-radius:99px;background:#f1ece3;overflow:hidden"><i style="display:block;height:100%;width:${(s.n-prev)/(ms-prev)*100}%;background:linear-gradient(90deg,#ffb347,#ff6a1a)"></i></span><b style="color:#e8730c">còn ${ms-s.n}</b></div>`;
+ document.getElementById('v3').innerHTML={d5:'<b>Quen thuộc:</b> đọc nhanh nhất, nhưng giống mọi app khác.',d12:'<b>Rõ con số:</b> 12 to, dễ thấy.',d80:'<b>Rõ con số:</b> nhưng nhìn y như ngày 12, không thấy "đã đi được bao xa".',frz:'<b>Rõ:</b> ô xanh băng.',brk:'<b>Hơi buồn:</b> số to rơi về 1, cảm giác mất trắng rõ nhất.'}[cur]}
+
+function render(){const s=SC[cur];layered(s);candlesOnly(s);classic(s);document.getElementById('bar').innerHTML=Object.entries(SC).map(([k,v])=>`<button class="${k===cur?'on':''}" data-k="${k}">${v.t}</button>`).join('');document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cur=b.dataset.k;render()})}
+render();
+</script></body></html>

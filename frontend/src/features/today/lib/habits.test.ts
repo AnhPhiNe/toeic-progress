@@ -5,12 +5,13 @@ import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } 
 const base = { name: 'A', targetScore: 800, examDate: '', currentStreak: 0, longestStreak: 0, streakFreezes: 1, lastStudyDate: '', dailyMinGoalMinutes: 30, motto: '', selectedSkill: 'LR' } as UserProfile;
 
 describe('habits', () => {
-  it('adds at most two trimmed habits and ignores blanks', () => {
+  it('adds at most three trimmed habits and ignores blanks', () => {
     let p = addHabit(base, '  Học 20 từ Mochi  ', 'a');
     p = addHabit(p, '   ', 'x');
     p = addHabit(p, 'Nghe podcast', 'b');
     p = addHabit(p, 'Thứ ba', 'c');
-    expect(p.habits?.map(h => h.title)).toEqual(['Học 20 từ Mochi', 'Nghe podcast']);
+    p = addHabit(p, 'Thứ tư', 'd');
+    expect(p.habits?.map(h => h.title)).toEqual(['Học 20 từ Mochi', 'Nghe podcast', 'Thứ ba']);
   });
 
   it('toggles today on and off and prunes old ticks', () => {

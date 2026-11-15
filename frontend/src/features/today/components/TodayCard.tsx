@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Habit } from '@/shared/types';
 import type { StreakWeek, WeeklyGoal } from '@/shared/domain/streakWeek';
-import { nextStreakMilestone } from '@/shared/domain/streakWeek';
 import { Soc } from '@/shared/ui/soc/Soc';
+import { StreakCake } from './StreakCake';
 import type { TodayTask } from '../lib/todayTasks';
 import { HABIT_TITLE_MAX, MAX_HABITS, habitDoneToday } from '../lib/habits';
 
@@ -49,19 +49,6 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-function Flame({ n }: { n: number }) {
-  return (
-    <span className="td-sk-big" aria-hidden="true">
-      <svg viewBox="0 0 44 52" width="54" height="62">
-        <defs><linearGradient id="tdFlame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffb347" /><stop offset="1" stopColor="#ff6a1a" /></linearGradient></defs>
-        <ellipse className="td-glw" cx="22" cy="34" rx="20" ry="18" fill="#ffb35c" opacity=".35" />
-        <g className="td-flk"><path d="M22 2 C26 14 40 19 40 32 a18 17 0 0 1 -36 0 C4 23 11 19 13 10 C16 14 18 16 22 2Z" fill="url(#tdFlame)" /><path d="M22 24 c4 5 8 8 8 13 a8 8 0 0 1 -16 0 c0-5 4-7 8-13Z" fill="#ffe58f" /></g>
-      </svg>
-      <b>{n}</b>
-    </span>
-  );
-}
-
 export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
@@ -72,7 +59,6 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
   const doneCount = tasks.length - open.length + habitsDone;
   const allDone = !hero && total > 0 && doneCount === total;
   const firstCheer = useFirstDoneCheer(doneCount, today);
-  const studiedToday = week.days.some(d => d.isToday && d.state === 'done');
 
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -85,9 +71,6 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
     setAdding(false);
   };
 
-  const ms = nextStreakMilestone(week.current);
-  const streakTitle = studiedToday ? `Ngày thứ ${week.current} liền!` : week.current > 0 ? `Đang có ${week.current} ngày liền` : 'Bắt đầu chuỗi mới';
-  const streakSub = studiedToday ? `Kỷ lục của bạn: ${week.longest} ngày` : week.current > 0 ? `Xong một việc là lên ${week.current + 1} ngày` : 'Xong một việc hôm nay là có ngày 1';
 
   return (
     <>
@@ -113,7 +96,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
           <p>Muốn thì bấm giờ một Part bất kỳ.</p>
           <div className="td-acts"><button type="button" className="td-go" onClick={onPracticeMore}>Luyện tập</button></div>
         </>}
-        <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={112} className="td-hero-soc" />
+        <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={96} className="td-hero-soc" />
       </div>
 
       <div className="td-body">
@@ -137,8 +120,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
                 <button type="button" className={'td-r' + (on ? ' is-done' : '')} onClick={() => onToggleHabit(habit.id)} aria-pressed={on}>
                   <i className="td-c is-sq">{on && <Check />}</i>
                   <span className="td-ic" style={{ background: '#e6f3fd' }} aria-hidden="true">✏️</span>
-                  <span className="td-tx"><b>{habit.title}</b><small>việc của mình · mỗi ngày</small></span>
-                  <span className="td-tm">{on ? 'xong' : 'tự đánh dấu'}</span>
+                  <span className="td-tx"><b title={habit.title}>{habit.title}</b><small>việc của mình · mỗi ngày</small></span>
                 </button>
                 <button type="button" className="td-x" onClick={() => onRemoveHabit(habit.id)} aria-label={`Bỏ việc "${habit.title}"`} title="Bỏ việc này">×</button>
               </li>
@@ -155,24 +137,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
       </div>
     </section>
 
-    <section className="td-skcard" aria-label="Chuỗi ngày">
-        <div className="td-sk">
-          <div className="td-sk-hd">
-            <Flame n={week.current} />
-            <div className="td-sk-t"><b>{streakTitle}</b><small>{streakSub}</small></div>
-            {week.freezesLeft > 0 && <span className="td-frz" title="Ngày nghỉ được giữ chuỗi">❄ {week.freezesLeft}</span>}
-          </div>
-          <div className="td-week">
-            {week.days.map(d => (
-              <div key={d.date} className={'td-dd is-' + d.state + (d.isToday ? ' is-today' : '')}>
-                <span>{d.isToday ? 'Nay' : d.label}</span>
-                <i>{d.state === 'done' ? <Check /> : d.state === 'freeze' ? '❄' : ''}</i>
-              </div>
-            ))}
-          </div>
-          <div className="td-next">🎁 Mốc {ms.target} ngày<div className="td-bar"><i style={{ width: `${Math.round(ms.progress * 100)}%` }} /></div><b>còn {ms.left}</b></div>
-        </div>
-
+    <StreakCake week={week}>
         <div className="td-wk">
           <span>Tuần này <b>{goal.done}/{goal.goal}</b> buổi</span>
           <div className="td-bar is-green"><i style={{ width: `${Math.min(100, goal.done / goal.goal * 100)}%` }} /></div>
@@ -185,7 +150,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
               </span>
             : <button type="button" className="td-link" onClick={() => setEditGoal(true)}>Sửa</button>}
         </div>
-    </section>
+    </StreakCake>
     </>
   );
 }

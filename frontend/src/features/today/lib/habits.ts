@@ -1,7 +1,7 @@
 import type { Habit, MistakeEntry, UserProfile } from '@/shared/types';
 import { localDate } from './todayTasks';
 
-export const MAX_HABITS = 2;
+export const MAX_HABITS = 3;
 export const HABIT_TITLE_MAX = 40;
 /** Ticks older than this are dropped so the synced profile stays small. */
 const KEEP_DAYS = 120;

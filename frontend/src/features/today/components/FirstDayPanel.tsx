@@ -1,5 +1,6 @@
 import type { StreakWeek } from '@/shared/domain/streakWeek';
 import { Soc } from '@/shared/ui/soc/Soc';
+import { StreakCake } from './StreakCake';
 import type { TodayTask } from '../lib/todayTasks';
 
 interface Props {
@@ -51,27 +52,6 @@ function Rewards({ firstStep }: { firstStep: number }) {
   );
 }
 
-function GhostWeek({ week }: { week: StreakWeek }) {
-  return (
-    <section className="td-ghost" aria-label="Tuần đầu tiên">
-      <div className="td-ghost-hd">
-        <svg viewBox="0 0 100 104" aria-hidden="true">
-          <path d="M50 6 C58 26 84 34 84 60 a34 32 0 0 1 -68 0 C16 44 28 36 32 20 C38 30 44 32 50 6Z" fill="#f6e3c8" stroke="#e8cfa8" strokeWidth="5" strokeLinejoin="round" />
-        </svg>
-        <div><h3>Tuần đầu tiên</h3><p>Ngọn lửa đầu tiên thắp khi bạn ghi đề.</p></div>
-      </div>
-      <div className="td-week" aria-hidden="true">
-        {week.days.map(day => (
-          <div key={day.date} className={'td-dd is-' + (day.state === 'done' ? 'done' : 'future') + (day.isToday ? ' is-today' : '')}>
-            <span>{day.isToday ? 'Nay' : day.label}</span>
-            <i />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 /** Right-hand column of the new-user Hôm nay page: next task, the rewards waiting, and a ghost of the first week. */
 export function FirstDayPanel({ task, firstStep, week, onStartTask }: Props) {
   return (
@@ -93,7 +73,7 @@ export function FirstDayPanel({ task, firstStep, week, onStartTask }: Props) {
         </div>
       </section>
       <Rewards firstStep={firstStep} />
-      <GhostWeek week={week} />
+      <StreakCake week={week} />
     </>
   );
 }

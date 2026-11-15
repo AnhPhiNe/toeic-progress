@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Thẻ chuỗi bánh</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:linear-gradient(180deg,#fff3d1,#ffe0ec);min-height:100vh;padding:26px}
+h1{font-weight:900;font-size:24px}h1+p{font-weight:700;font-size:14px;color:#5e6962;margin:4px 0 14px}
+.bar0{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.bar0 button{border:0;border-radius:14px;padding:10px 14px;font:900 13.5px Nunito;cursor:pointer;background:#fff;color:#2f3a33;box-shadow:0 0 0 2px #e6e9e6,0 4px 0 #e6e9e6}
+.bar0 button.on{background:#ff8a3d;color:#fff;box-shadow:0 4px 0 #d9661f}
+.row{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+.card{width:368px;background:#fff;border-radius:24px;padding:16px 18px 14px;box-shadow:0 8px 0 rgba(47,58,51,.06),0 20px 40px rgba(180,120,60,.12);position:relative;overflow:hidden}
+.top{display:flex;align-items:center;gap:10px}
+.fbig{width:46px;flex:none}
+.cnt b{display:block;font-weight:900;font-size:30px;line-height:1;color:#ff6a1a;letter-spacing:-.5px}
+.cnt b span{font-size:15px;color:#c2630a;letter-spacing:0;margin-left:4px}
+.cnt small{font-weight:800;font-size:12.5px;color:#7a857e}
+.frz{margin-left:auto;border-radius:99px;padding:4px 10px;font-weight:900;font-size:12.5px;background:#eaf5ff;color:#136fb3;white-space:nowrap}
+.act{margin-top:10px;border-radius:14px;padding:8px 12px;font-weight:800;font-size:13px;background:#fff8ee;color:#5e5530}
+.act.warn{background:#fff1df;color:#b4530a;box-shadow:inset 0 0 0 2px #ffcf9a}
+.act b{font-weight:900}
+.foot2{display:flex;justify-content:center;margin-top:12px;padding-top:10px;border-top:2px solid #f5f1ec;font-weight:800;font-size:12.5px;color:#7a857e}.foot2 b{color:#c2630a}
+.card{padding:18px 20px 16px}
+svg{display:block;width:100%;overflow:visible}
+.tip{position:absolute;background:#2f3a33;color:#fff;border-radius:10px;padding:5px 9px;font-weight:800;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5}
+.notes{max-width:520px;font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.55}
+.notes li{margin:0 0 6px 18px}.notes b{color:#2f3a33}
+.fl{transform-box:fill-box;transform-origin:50% 100%;animation:fsw 1.5s ease-in-out infinite alternate}
+@keyframes fsw{0%{rotate:-6deg;scale:1 .95}100%{rotate:4deg;scale:.93 1.08}}
+.big{transform-box:fill-box;transform-origin:50% 100%;animation:bigf 1.2s ease-in-out infinite alternate}
+@keyframes bigf{0%{scale:1}100%{scale:1.05 1.09}}
+.danger{animation:dg 1.4s ease-in-out infinite}
+@keyframes dg{50%{stroke-opacity:.25}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></head><body>
+<h1>Thẻ chuỗi · Bánh chồng tầng (bản chốt thử)</h1>
+<p>Đã áp 8 điểm chỉnh. Chọn tình huống; rê chuột lên nến để xem ghi chú.</p>
+<div class="bar0" id="bar"></div>
+<div class="row"><div class="card" id="card"></div>
+<ul class="notes">
+<li><b>1 · Con số trước:</b> "🔥 12 ngày liền" to ở góc trái, liếc là biết.</li>
+<li><b>2 · Tên ngày dưới nến:</b> hôm nay ghi "Nay" màu cam.</li>
+<li><b>3 · Một câu hành động:</b> luôn nói việc cần làm tiếp.</li>
+<li><b>4 · Gọn:</b> kệ chỉ hiện khi có hộp; tối đa 3 tầng, tầng 4 trở đi gộp thành hộp.</li>
+<li><b>5 · Ngày nghỉ:</b> nến xanh băng ❄, số lượt nghỉ cạnh con số.</li>
+<li><b>6 · Không chỉ dựa màu:</b> lửa = đã học, ❄ = ngày nghỉ, nến trắng = chưa.</li>
+<li><b>7 · Hiệu ứng chừng mực:</b> lửa lay nhẹ; thổi nến chỉ 1 lần mỗi tuần.</li>
+<li><b>8 · Sắp mất chuỗi:</b> sau 20 giờ chưa học, nến "Nay" viền cam nhấp nháy + "Còn 4 tiếng".</li>
+</ul></div>
+<script>
+const SC={
+ new:{t:'Người mới',n:0,rec:0,today:false,frz:-1,left:2},
+ d5:{t:'5 ngày (hôm nay đã học)',n:5,rec:5,today:true,frz:-1,left:2},
+ d12no:{t:'12 ngày · tối chưa học',n:12,rec:12,today:false,frz:-1,left:2,danger:true},
+ d26:{t:'26 ngày',n:26,rec:26,today:true,frz:-1,left:2},
+ d80:{t:'80 ngày',n:80,rec:80,today:true,frz:-1,left:2},
+ d365:{t:'365 ngày',n:365,rec:365,today:true,frz:-1,left:2},
+ d1200:{t:'1200 ngày',n:1200,rec:1200,today:true,frz:-1,left:2},
+ frz:{t:'Dùng ngày nghỉ',n:12,rec:12,today:true,frz:2,left:1},
+ brk:{t:'Gãy chuỗi (kỷ lục 23)',n:0,rec:23,today:false,frz:-1,left:2,broke:true}};
+let cur='d12no';
+const COLS=['#ff7a9c','#ffc83d','#7ec8ff','#7fd18c','#a78bfa','#ff9a4d','#ff7a9c'];
+const TIER=['#ffd1dc','#fff1c9','#e6f1ff'],TIERT=['#ff9eb8','#ffd766','#9fd0ff'];
+const DN=['T2','T3','T4','T5','T6','T7','CN'];const TODAY=4;// Fri
+function box(x,label,gold){return `<g transform="translate(${x} 34)"><rect x="-20" y="-24" width="40" height="27" rx="6" fill="${gold?'#ffe58f':'#ffd1dc'}" stroke="${gold?'#e0a400':'#ff9eb8'}" stroke-width="2"/><path d="M0 -24 V3 M-20 -11 H20" stroke="${gold?'#e0a400':'#ff7a9c'}" stroke-width="3"/><text x="0" y="16" text-anchor="middle" font-weight="900" font-size="9.5" fill="#a87a00">${label}</text></g>`}
+function render(){const s=SC[cur];
+ // days of this week: streak counts include today if s.today
+ const streakEnd=s.today?TODAY:TODAY-1;const daysThisWeek=Math.min(s.n, streakEnd+1);
+ const state=DN.map((d,i)=>{if(i===s.frz)return 'frz';if(i<=streakEnd&&i>streakEnd-daysThisWeek)return 'on';return i===TODAY?'today':'off'});
+ const weeksDone=Math.max(0,Math.floor((s.n-daysThisWeek)/7));
+ // Calm layout: one wide cake (2 tiers once a full week is done), no shelf; long streaks live in one chip below.
+ const tiers=weeksDone>0?2:1;const gold=s.n>=30;
+ const H=150;let g='';let y=H-30;g+=`<rect x="10" y="${y}" width="310" height="9" rx="4.5" fill="#efeaf5"/>`;
+ for(let t=0;t<tiers;t++){const w=300-t*40,x=165-w/2;y-=30;g+=`<rect x="${x}" y="${y}" width="${w}" height="30" rx="10" fill="${gold&&t===0?'#ffe9a3':TIER[t]}"/><path d="M${x} ${y+8} ${[...Array(Math.round(w/26))].map(()=>'q13 13 26 0').join(' ')}" fill="none" stroke="${gold&&t===0?'#ffc83d':TIERT[t]}" stroke-width="5"/>`}
+ const topW=300-(tiers-1)*40;
+ state.forEach((st,i)=>{const x=165-topW/2+22+i*(topW-44)/6;const col=COLS[i];
+  g+=`<g class="cd" data-i="${i}" transform="translate(${x} ${y})"><rect x="-5" y="-28" width="10" height="28" rx="3" fill="${st==='on'?col:st==='frz'?'#cfe8ff':'#f3eef3'}" stroke="${st==='today'?'#ff8a2a':'none'}" stroke-width="2.5" ${st==='today'&&s.danger?'class="danger"':''}/>`;
+  if(st==='on')g+=`<circle cx="0" cy="-38" r="11" fill="#ffd38a" opacity=".35"/><path class="fl" style="animation-delay:-${i*.21}s" d="M0 -48 C5 -41 6 -37 0 -29 C-6 -37 -5 -41 0 -48Z" fill="#ff9a2e"/><path d="M0 -40 C2 -37 2 -34 0 -31 C-2 -34 -2 -37 0 -40Z" fill="#ffe58f"/>`;
+  if(st==='frz')g+=`<text x="0" y="-34" text-anchor="middle" font-size="14">❄</text>`;
+  g+=`<rect x="-16" y="-56" width="32" height="90" fill="transparent"/></g>`;
+  g+=`<text x="${x}" y="${H-6}" text-anchor="middle" font-weight="900" font-size="11.5" fill="${i===TODAY?'#e8730c':'#a3aba5'}">${i===TODAY?'Nay':DN[i]}</text>`});
+ const cakes=Math.floor(s.n/7);
+ const cIn=state.filter(x=>x==='on'||x==='frz').length;
+ let act;
+ if(s.broke)act=`🐿️ Mình nướng mẻ mới nhé!`;
+ else if(s.n===0)act=`Xong 1 việc là <b>thắp nến đầu tiên</b>`;
+ else if(!s.today&&s.danger)act=`⏰ Còn <b>4 tiếng</b> để giữ chuỗi`;
+ else if(!s.today)act=`Hôm nay chưa thắp nến, xong 1 việc là thắp.`;
+ else act=`Còn <b>${7-cIn} nến</b> nữa là xong bánh tuần này`;
+ const fsvg=`<svg class="fbig" viewBox="0 0 44 52"><defs><linearGradient id="ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.n?'#ffb347':'#f6e7d2'}"/><stop offset="1" stop-color="${s.n?'#ff6a1a':'#ead6b9'}"/></linearGradient></defs><g class="${s.n?'big':''}"><path d="M22 2 C26 14 40 19 40 32 a18 17 0 0 1 -36 0 C4 23 11 19 13 10 C16 14 18 16 22 2Z" fill="url(#ff)"/>${s.n?'<path d="M22 24 c4 5 8 8 8 13 a8 8 0 0 1 -16 0 c0-5 4-7 8-13Z" fill="#ffe58f"/>':''}</g></svg>`;
+ document.getElementById('card').innerHTML=`<div class="top">${fsvg}<div class="cnt"><b>${s.n}<span>ngày liền</span></b><small>${s.rec>s.n?`Kỷ lục ${s.rec} ngày`:s.n?'Đang là kỷ lục 🎉':'Bắt đầu chuỗi đầu tiên'}</small></div><span class="frz" title="Ngày nghỉ giữ chuỗi">❄ ${s.left}</span></div>
+ <div class="act ${s.danger?'warn':''}">${act}</div><svg viewBox="0 0 330 ${H}" style="margin-top:14px">${g}</svg>
+ <div class="foot2">${s.broke?`<span>🎂 Kỷ lục <b>23 ngày</b> vẫn được giữ</span>`:cakes?`<span>🎂 <b>${cakes}</b> bánh tuần đã nướng</span>`:`<span>🎂 Đủ 7 nến là xong bánh đầu</span>`}</div>`;
+ const card=document.getElementById('card');let tip;
+ card.querySelectorAll('.cd').forEach(el=>{el.onmouseenter=e=>{const i=+el.dataset.i,st=state[i];tip=document.createElement('div');tip.className='tip';tip.textContent=st==='on'?`${DN[i]}: đã học`:st==='frz'?'Ngày nghỉ giữ chuỗi':i===TODAY?'Hôm nay: chưa thắp':'Chưa tới';card.appendChild(tip);const r=el.getBoundingClientRect(),c=card.getBoundingClientRect();tip.style.left=(r.left-c.left-30)+'px';tip.style.top=(r.top-c.top-30)+'px'};el.onmouseleave=()=>tip&&tip.remove()});
+ document.getElementById('bar').innerHTML=Object.entries(SC).map(([k,v])=>`<button class="${k===cur?'on':''}" data-k="${k}">${v.t}</button>`).join('');
+ document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cur=b.dataset.k;render()});
+}
+render();
+</script></body></html>
