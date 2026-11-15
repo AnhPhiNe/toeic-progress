@@ -73,6 +73,7 @@
 .bk-all-list { margin-top: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 3px; }
 .bk-recent h2 { font-weight: 900; font-size: 17px; }
 .bk-recent h2 span { font-weight: 700; font-size: 13.5px; color: var(--rd-mut); margin-left: 8px; }
+.bk-col { margin: 0 auto; }
 .bk-rows { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
 .bk-row { display: flex; gap: 8px; align-items: center; background: #fffaf5; box-shadow: 0 0 0 2px #ffe9d6; border: 0; border-radius: 18px; padding: 12px 12px; cursor: pointer; text-align: left; color: inherit; transition: box-shadow .15s; }
 .bk-row:hover { box-shadow: 0 0 0 2px #ffcf9a; }

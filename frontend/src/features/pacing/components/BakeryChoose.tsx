@@ -99,7 +99,7 @@ export function BakeryChoose(p: Props) {
 
   return (
     <div className="rd bk-root bk-page" ref={page}>
-      <div className="bk-col">
+      <div className="bk-col" style={{ maxWidth: Math.round(W * scale) }}>
       <div className="bk-chead">
         <h1 className="bk-h1">Hôm nay nướng <em>{p.label}</em> nhé?</h1>
         {p.reason && <p className="bk-sub">{p.reason}</p>}
