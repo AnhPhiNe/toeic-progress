@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gold:#ffc83d;--ink:#2f3a33;--mut:#7a857e;--vio:#a78bfa;--viod:#7c5ce0;--pink:#ff7a9c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden;position:relative}
+.page.full{display:block}
+.side{border-right:2px solid #eef0ee;padding:22px 14px;background:#fff;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#f4f0ff;border-color:#d9ccff;color:var(--viod)}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;padding:30px 52px 0}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.kick{font-weight:900;font-size:14px;color:var(--viod);letter-spacing:.4px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px;margin-top:2px}h1 em{font-style:normal;color:var(--viod)}
+.sub{font-weight:700;font-size:15px;color:var(--mut);margin-top:4px}
+.scene{position:absolute;left:52px;right:52px;top:150px;height:420px;border-radius:30px;overflow:hidden}
+.ctrl{position:absolute;left:52px;right:52px;top:592px;display:flex;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--g);color:#fff;border-radius:18px;padding:15px 24px;font-weight:900;font-size:18px;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--ink);font-size:15px;padding:13px 18px;box-shadow:0 0 0 2px #e6e9e6,0 4px 0 #e6e9e6}
+.step{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:7px 10px;box-shadow:0 0 0 2px #e6e9e6;font-weight:900;font-size:15px}
+.step i{width:32px;height:32px;border-radius:10px;background:#f1ecff;color:var(--viod);display:grid;place-items:center;font-style:normal}
+.step span{font-weight:800;color:var(--mut);font-size:13px}
+.link{margin-left:auto;font-weight:900;font-size:14.5px;color:var(--viod)}
+.recent{position:absolute;left:52px;right:52px;top:680px}
+.recent h3{font-weight:900;font-size:17px}.recent h3 span{font-weight:700;font-size:13.5px;color:var(--mut);margin-left:8px}
+.tk{display:flex;gap:12px;margin-top:12px}
+.t{flex:1;background:#faf8ff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #efe9ff}
+.t b{font-weight:900;font-size:15px}.t small{display:block;font-weight:800;font-size:12px;color:var(--mut)}
+.t .r{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-weight:900;font-size:14px}
+.pill{font-weight:900;font-size:12px;border-radius:99px;padding:3px 9px}
+.up{background:#e3f6e6;color:var(--gd)}.dn{background:#ffe6ec;color:#d64570}
+.bub{position:absolute;background:#fff;border-radius:16px;padding:10px 14px;font-weight:800;font-size:14px;line-height:1.35;box-shadow:0 5px 0 rgba(47,58,51,.1);z-index:4}
+.bub b{font-weight:900;color:var(--viod)}
+.an{position:absolute;z-index:6;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+.an b{width:20px;height:20px;border-radius:50%;background:var(--pink);display:grid;place-items:center;font-size:12px;flex:none}
+.legend{width:1440px;background:#fff;border-radius:20px;padding:16px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.legend div{font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.45}.legend b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pink);color:#fff;font-size:12px;margin-right:6px}
+.legend strong{color:var(--ink)}
+.tb{position:absolute;left:60px;right:60px;top:34px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+.tb b{font-weight:900;font-size:22px}.tb span{font-weight:800;font-size:15px;color:var(--mut);margin-left:10px}
+.stop{background:#fff;border-radius:14px;padding:9px 16px;font-weight:900;font-size:14.5px;box-shadow:0 0 0 2px #e6e9e6,0 3px 0 #e6e9e6}
+.run{position:absolute;left:0;right:0;bottom:70px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:5}
+.run .row{display:flex;gap:14px}.run p{font-weight:700;font-size:13.5px;color:var(--mut)}
+</style></head>
+<body>
+<div class="cap">Tiệm bánh · 1 Chọn món (chọn Part)<small>quầy kính trưng 4 món, mỗi món là một Part với "thời gian nướng"; món đang chọn nằm trên đế bánh dưới chuông kính, có thẻ công thức treo; Sóc đầu bếp đứng cạnh lò</small></div>
+<div class="page" id="B1"></div>
+<div class="legend">
+ <div><b>1</b><strong>Đèn dây nhấp nháy:</strong> bóng đèn trên mái hiên sáng lần lượt; mái hiên đung đưa rất nhẹ.</div>
+ <div><b>2</b><strong>Chọn món:</strong> rê chuột món nào món đó nảy lên; bấm thì chuông kính nhấc lên, món trượt sang đế bánh, nút đổi thành "Bật lò · Part N".</div>
+ <div><b>3</b><strong>Hơi nóng + lò:</strong> khói mỏng bay lên từ các món; cửa lò bên phải hắt ánh cam chập chờn.</div>
+ <div><b>4</b><strong>Sóc đánh trứng:</strong> Sóc khuấy cây đánh trứng; bấm "Bật lò" thì Sóc ôm khay chạy vào lò.</div>
+</div>
+<div class="cap">Tiệm bánh · 2 Đang nướng (đang bấm giờ)<small>lò lớn ở giữa: bánh nở dần theo thời gian, màn hình lò đếm ngược; tờ công thức bên phải là 5 bước theo nhịp 1 phút một câu, bước nào tới giờ tự tick; 5 phút cuối lò chuyển cam và "sắp chín"</small></div>
+<div class="page full" id="B2"></div>
+<div class="legend">
+ <div><b>1</b><strong>Bánh nở:</strong> bánh trong lò cao dần theo thời gian đã trôi; ánh lửa trong lò phập phồng nhẹ.</div>
+ <div><b>2</b><strong>Hơi nước:</strong> khói bay khỏi ống thông hơi theo nhịp; số trên màn hình lò chớp dấu ":".</div>
+ <div><b>3</b><strong>Công thức tự tick:</strong> mỗi khi tới mốc câu, bước đó tick xanh kèm tiếng "ting" nhỏ (nếu bật âm).</div>
+ <div><b>4</b><strong>5 phút cuối:</strong> đèn lò đổi cam đỏ, màn hình nhấp nháy, Sóc ngó vào lò; hết giờ thì chuông "ding".</div>
+</div>
+<div class="cap">Tiệm bánh · 3 Ra lò (ghi kết quả)<small>bấm "Xong rồi": cửa lò bật mở, Sóc bưng bánh ra kèm rắc cốm màu; nhập số câu sai thì bánh được trang trí theo số câu đúng (càng đúng nhiều càng nhiều dâu); phá kỷ lục thì có ruy băng vàng</small></div>
+<div class="page full" id="B3"></div>
+<div class="legend">
+ <div><b>1</b><strong>Cửa lò bật mở:</strong> hơi nóng phụt ra, ánh vàng hắt ra nền, bánh trượt ra khỏi lò.</div>
+ <div><b>2</b><strong>Rắc cốm:</strong> cốm màu và ngôi sao nhỏ rơi quanh thẻ trong 1,5 giây rồi dừng.</div>
+ <div><b>3</b><strong>Dâu theo số câu đúng:</strong> bấm −/+ số câu sai thì quả dâu trên bánh rơi xuống hoặc nhấc ra ngay.</div>
+ <div><b>4</b><strong>Kỷ lục mới:</strong> ruy băng vàng lật ra; huy hiệu "Thợ bánh nhanh tay" nếu có.</div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>
+<div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv on"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const SO=(m,x,y,w,z=4)=>`<span class="soc-s" style="position:absolute;left:${x}px;top:${y}px;width:${w}px;z-index:${z}" data-s="${m}"></span>`;
+const HAT=(x,y,w,z=5)=>`<svg style="position:absolute;left:${x}px;top:${y}px;width:${w}px;z-index:${z}" viewBox="0 0 60 46"><rect x="13" y="30" width="34" height="12" rx="3" fill="#fff" stroke="#e6e0f5" stroke-width="2"/><circle cx="18" cy="21" r="11" fill="#fff" stroke="#efeaf8" stroke-width="1.5"/><circle cx="30" cy="14" r="13" fill="#fff" stroke="#efeaf8" stroke-width="1.5"/><circle cx="42" cy="21" r="11" fill="#fff" stroke="#efeaf8" stroke-width="1.5"/></svg>`;
+const AN=(n,t,x,y)=>`<span class="an" style="left:${x}px;top:${y}px"><b>${n}</b>${t}</span>`;
+const whisk=(x,y,s=1,r=-30)=>`<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})"><rect x="-4" y="0" width="8" height="40" rx="4" fill="#a26c43"/><path d="M0 0 C-16 -20 -14 -52 0 -60 C14 -52 16 -20 0 0 M0 0 C-7 -22 -6 -50 0 -60 C6 -50 7 -22 0 0" fill="none" stroke="#b9bcc4" stroke-width="3"/></g>`;
+const steam=(x,y,s=1,op=.7)=>`<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="${op}"><path d="M-10 0 q-8 -12 0 -24 q8 -12 0 -24"/><path d="M10 -6 q-8 -12 0 -24 q8 -12 0 -24"/></g>`;
+const cupcake=(x,y,s,c)=>`<g transform="translate(${x} ${y}) scale(${s})"><path d="M-30 0 L30 0 L22 44 L-22 44Z" fill="#ffc83d"/>${[-18,-6,6,18].map(v=>`<line x1="${v}" y1="2" x2="${v*.75}" y2="42" stroke="#e8a516" stroke-width="3"/>`).join('')}<path d="M-34 2 Q-40 -26 -12 -30 Q0 -52 14 -30 Q42 -26 34 2Z" fill="${c}"/><g fill="#fff">${[[-16,-12],[4,-22],[18,-8],[-2,-4]].map(([a,b])=>`<rect x="${a}" y="${b}" width="6" height="3" rx="1.5" transform="rotate(${a*3} ${a} ${b})" fill="${['#46b35a','#1c8fe3','#ffc83d','#a78bfa'][Math.abs(a)%4]}"/>`).join('')}</g><circle cy="-46" r="8" fill="#ff5c7a"/></g>`;
+const cookies=(x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s})">${[0,1,2].map(k=>`<ellipse cy="${30-k*16}" rx="42" ry="12" fill="#d39256"/><ellipse cy="${26-k*16}" rx="42" ry="12" fill="#e8ad6c"/>${[[-18,-2],[6,4],[20,-4],[-4,-6]].map(([a,b])=>`<circle cx="${a}" cy="${26-k*16+b}" r="3.5" fill="#6b3f1f"/>`).join('')}`).join('')}</g>`;
+const strawberry=(x,y,s=1)=>`<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 14 C-12 6 -12 -8 0 -8 C12 -8 12 6 0 14Z" fill="#ff4d6d"/><path d="M-6 -8 L0 -14 L6 -8 L0 -6Z" fill="#46b35a"/><g fill="#ffe58f"><circle cx="-3" cy="-1" r="1.2"/><circle cx="3" cy="2" r="1.2"/><circle cx="-1" cy="6" r="1.2"/></g></g>`;
+const layerCake=(x,y,s,tiers,berries=0)=>{let o=`<g transform="translate(${x} ${y}) scale(${s})">`;const TT=[[80,52,'#ffd1dc','#ff9eb8'],[60,44,'#fff','#c8b6ff'],[42,38,'#ffe9a3','#ffc83d']];let yy=0;for(let k=0;k<tiers;k++){const [w,h,c1,c2]=TT[k];o+=`<rect x="${-w}" y="${yy-h}" width="${w*2}" height="${h}" rx="10" fill="${c1}" stroke="#eadff5" stroke-width="3"/><path d="M${-w} ${yy-h+10} ${Array.from({length:8},(_,j)=>`Q${-w+w/8*(2*j+1)} ${yy-h+30} ${-w+w/8*(2*j+2)} ${yy-h+10}`).join(' ')} V${yy-h} H${-w}Z" fill="${c2}"/>`;yy-=h}
+ if(berries){const w=TT[tiers-1][0];for(let b=0;b<berries;b++)o+=strawberry(-w+14+b*((2*w-28)/Math.max(1,berries-1)),yy-6,.72)}else o+=`<circle cy="${yy-10}" r="10" fill="#ff5c7a"/><path d="M0 ${yy-20} q4 -10 10 -12" stroke="#46b35a" stroke-width="3" fill="none"/>`;return o+'</g>'};
+const bulbs=(W,y0,n)=>{let s=`<path d="M0 ${y0} ${Array.from({length:n},(_,i)=>`Q${(i+.5)*W/n} ${y0+26} ${(i+1)*W/n} ${y0}`).join(' ')}" fill="none" stroke="#7a5b4a" stroke-width="2"/>`;for(let i=0;i<n;i++){const x=(i+.5)*W/n,y=y0+13;s+=`<circle cx="${x}" cy="${y+6}" r="11" fill="#fff3a8" opacity=".35"/><ellipse cx="${x}" cy="${y+6}" rx="5" ry="7" fill="${['#ffe08a','#ffb3c6','#c8b6ff','#b6f0c0'][i%4]}"/>`}return s};
+const awning=(W,h)=>{let s='';const n=Math.round(W/60);for(let i=0;i<n;i++)s+=`<rect x="${i*W/n}" y="0" width="${W/n}" height="${h}" fill="${i%2?'#fff':'#ff8fab'}"/><path d="M${i*W/n} ${h} Q${(i+.5)*W/n} ${h+26} ${(i+1)*W/n} ${h}Z" fill="${i%2?'#fff':'#ff8fab'}"/>`;return s+`<rect x="0" y="0" width="${W}" height="10" fill="#ff7a9c"/>`};
+const stripes=(W,H,a,b,w=36)=>{let s=`<rect width="${W}" height="${H}" fill="${a}"/>`;for(let x=0;x<W;x+=w*2)s+=`<rect x="${x}" y="0" width="${w}" height="${H}" fill="${b}"/>`;return s};
+const OVEN=(x,y,w,h,glow,cakeH,showCake=true,open=false)=>{let s=`<g transform="translate(${x} ${y})"><rect x="8" y="10" width="${w}" height="${h}" rx="${w*.07}" fill="#d9cdf5"/><rect width="${w}" height="${h}" rx="${w*.07}" fill="#fff" stroke="#e6e0f5" stroke-width="5"/><path d="M0 ${h*.2} V${w*.07} Q0 0 ${w*.07} 0 H${w-w*.07} Q${w} 0 ${w} ${w*.07} V${h*.2}Z" fill="#a78bfa"/>`;
+ const wx=w*.1,wy=h*.28,ww=w*.8,wh=h*.5;
+ if(open){s+=`<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="${w*.04}" fill="#3a2418"/><rect x="${wx+10}" y="${wy+10}" width="${ww-20}" height="${wh-20}" rx="${w*.03}" fill="#ffb066"/><rect x="${wx+10}" y="${wy+10}" width="${ww-20}" height="${wh-20}" rx="${w*.03}" fill="url(#ovg)"/><path d="M${wx} ${wy+wh} L${wx-30} ${wy+wh+70} L${wx+ww+30} ${wy+wh+70} L${wx+ww} ${wy+wh}Z" fill="#f3eefc" stroke="#e6e0f5" stroke-width="4"/>`}
+ else{s+=`<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="${w*.04}" fill="#3a2418"/><rect x="${wx+12}" y="${wy+12}" width="${ww-24}" height="${wh-24}" rx="${w*.03}" fill="${glow}" opacity=".7"/><rect x="${wx+12}" y="${wy+12}" width="${ww-24}" height="${wh-24}" rx="${w*.03}" fill="url(#ovg)"/>`;
+  for(let k=0;k<3;k++)s+=`<path d="M${wx+ww*.22+k*ww*.28} ${wy+wh*.28} q-8 12 0 24 q8 12 0 24" stroke="#fff" stroke-width="2.5" fill="none" opacity=".3"/>`;
+  s+=`<line x1="${wx+24}" y1="${wy+wh-44}" x2="${wx+ww-24}" y2="${wy+wh-44}" stroke="#2b1a10" stroke-width="5"/>`;
+  if(showCake)s+=`<g transform="translate(${wx+ww/2} ${wy+wh-46})"><rect x="${-ww*.24}" y="-26" width="${ww*.48}" height="26" rx="6" fill="#c7cbd1"/><rect x="${-ww*.24}" y="-26" width="${ww*.48}" height="8" rx="4" fill="#dfe2e6"/><path d="M${-ww*.22} -26 Q${-ww*.24} ${-26-cakeH} 0 ${-26-cakeH-12} Q${ww*.24} ${-26-cakeH} ${ww*.22} -26Z" fill="#f2c27a"/><path d="M${-ww*.15} ${-26-cakeH*.75} Q0 ${-26-cakeH-6} ${ww*.15} ${-26-cakeH*.75}" stroke="#e0a35a" stroke-width="5" fill="none"/></g>`;
+  s+=`<rect x="${wx+20}" y="${wy+16}" width="${ww*.35}" height="10" rx="5" fill="#fff" opacity=".18"/>`}
+ s+=`<rect x="${w*.18}" y="${h*.83}" width="${w*.64}" height="${h*.04}" rx="${h*.02}" fill="#cfc4ef"/><rect x="${w*.1}" y="${h*.9}" width="${w*.8}" height="${h*.06}" rx="10" fill="#f3eefc"/></g>`;return s};
+const OVGRAD=`<defs><radialGradient id="ovg" cy=".95" r=".9"><stop offset="0" stop-color="#ffe08a" stop-opacity=".95"/><stop offset=".6" stop-color="#ff9a4d" stop-opacity=".25"/><stop offset="1" stop-color="#ff9a4d" stop-opacity="0"/></radialGradient></defs>`;
+const PARTS=[['Part 5','30 câu',12,'10:30'],['Part 6','16 câu',8,'7:40'],['Part 7','54 câu',55,'52:10'],['Cả phần Đọc','100 câu',75,'chưa có']];
+const SEL=2;
+
+// ========== 1 picker
+{const W=1068,H=450;let g=OVGRAD+stripes(W,H,'#fff4f7','#ffecf2');
+ g+=awning(W,46)+bulbs(W,66,14);
+ // sign
+ g+=`<line x1="${W/2-90}" y1="56" x2="${W/2-80}" y2="96" stroke="#7a5b4a" stroke-width="3"/><line x1="${W/2+90}" y1="56" x2="${W/2+80}" y2="96" stroke="#7a5b4a" stroke-width="3"/><rect x="${W/2-130}" y="94" width="260" height="46" rx="14" fill="#c98b4e" stroke="#9e6634" stroke-width="3"/><text x="${W/2}" y="125" font-weight="900" font-size="20" fill="#fff" text-anchor="middle">Tiệm bánh của Sóc</text>`;
+ // shelf left
+ g+=`<rect x="34" y="176" width="200" height="10" rx="5" fill="#c98b4e"/><g><rect x="46" y="128" width="40" height="48" rx="10" fill="#fff" stroke="#e6e0f5" stroke-width="3"/><rect x="46" y="128" width="40" height="12" rx="6" fill="#ff9eb8"/><text x="66" y="164" font-weight="900" font-size="10" fill="#c58aa0" text-anchor="middle">BỘT</text><rect x="96" y="140" width="34" height="36" rx="9" fill="#fff" stroke="#e6e0f5" stroke-width="3"/><rect x="96" y="140" width="34" height="10" rx="5" fill="#a78bfa"/><text x="113" y="168" font-weight="900" font-size="9" fill="#a593d8" text-anchor="middle">ĐƯỜNG</text><rect x="144" y="160" width="80" height="14" rx="7" fill="#e8ad6c"/><rect x="134" y="164" width="12" height="6" rx="3" fill="#c98b4e"/><rect x="222" y="164" width="12" height="6" rx="3" fill="#c98b4e"/></g>`;
+ // oven right
+ g+=OVEN(870,150,170,236,'#ff9a4d',30,false);
+ g+=`<rect x="860" y="384" width="190" height="66" fill="#efe6dc"/>`;
+ // display counter
+ const cx0=24,cx1=800;g+=`<rect x="${cx0}" y="226" width="${cx1-cx0}" height="146" rx="18" fill="#dff3ff" opacity=".55" stroke="#fff" stroke-width="4"/><path d="M${cx0+30} 236 L${cx0+90} 236 L${cx0+40} 360 L${cx0+14} 360Z" fill="#fff" opacity=".45"/><rect x="${cx0-6}" y="364" width="${cx1-cx0+12}" height="86" rx="10" fill="#ff9eb8"/><rect x="${cx0-6}" y="364" width="${cx1-cx0+12}" height="14" rx="7" fill="#fff"/>`;
+ for(let i=0;i<10;i++)g+=`<circle cx="${cx0+40+i*76}" cy="420" r="6" fill="#fff" opacity=".5"/>`;
+ const xs=[110,290,470,670];
+ // plates
+ xs.forEach((x,i)=>{if(i!==SEL)g+=`<ellipse cx="${x}" cy="350" rx="70" ry="12" fill="#fff" stroke="#e6e0f5" stroke-width="3"/>`});
+ const sx=xs[SEL];g+=`<ellipse cx="${sx}" cy="320" rx="120" ry="70" fill="#fff6c8" opacity=".55"/><rect x="${sx-86}" y="318" width="172" height="12" rx="6" fill="#e6e0f5"/><rect x="${sx-8}" y="330" width="16" height="18" fill="#e6e0f5"/><ellipse cx="${sx}" cy="350" rx="50" ry="9" fill="#e6e0f5"/>`;
+ // glass dome lifted above selected
+ g+=`<path d="M${sx-92} 222 Q${sx-92} 150 ${sx} 146 Q${sx+92} 150 ${sx+92} 222Z" fill="#e6f6ff" opacity=".55" stroke="#fff" stroke-width="4"/><circle cx="${sx}" cy="140" r="8" fill="#fff" stroke="#e6e0f5" stroke-width="3"/><path d="M${sx-62} 210 Q${sx-60} 172 ${sx-30} 160" stroke="#fff" stroke-width="5" fill="none" opacity=".8" stroke-linecap="round"/>`;
+ g+=cupcake(xs[0],300,1.05,'#ffd1dc')+cookies(xs[1],314,1.1)+layerCake(sx,318,1.05,2)+layerCake(xs[3],346,.82,3);
+ g+=steam(xs[0],230,.6,.6)+steam(xs[1],270,.6,.6)+steam(xs[3],210,.6,.6);
+ g+=`<g fill="#ffc83d"><path d="M${sx-118} 250 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4Z"/><path d="M${sx+110} 268 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z"/><path d="M${sx+70} 196 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5Z"/></g>`;
+ // price tags
+ let tags='';PARTS.forEach((p,i)=>{const on=i===SEL,x=xs[i];g+=`<line x1="${x}" y1="372" x2="${x}" y2="384" stroke="#c98b4e" stroke-width="2"/>`;
+  tags+=`<div style="position:absolute;left:${x-78}px;top:382px;width:156px;height:60px;z-index:3;background:${on?'#fffbe9':'#fff'};border-radius:12px;${on?'box-shadow:0 0 0 3px #ffc83d,0 4px 0 #e8b62c;':'box-shadow:0 3px 0 rgba(0,0,0,.08);'}padding:6px 10px;transform:rotate(${[-2,1.5,0,-1.5][i]}deg)"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-weight:900;font-size:15px;white-space:nowrap">${p[0]}</b><b style="font-weight:900;font-size:14px;color:#e8730c">${p[2]}′</b></div><div style="font-weight:800;font-size:11.5px;color:#7a857e;margin-top:3px;white-space:nowrap">${p[1]} · kỷ lục ${p[3]}</div></div>`});
+ document.getElementById('B1').innerHTML=SIDE+`<main><div class="kick">LUYỆN TẬP</div><h1>Hôm nay nướng <em>Part 7</em> nhé?</h1><div class="sub">Part bạn sai nhiều nhất · cứ như phòng thi: hết giờ là dừng</div>
+ <div class="scene" style="height:${H}px"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}${whisk(842,300,.8,-24)}</svg>${tags}
+ ${SO('hi',796,262,82)}${HAT(808,232,58)}
+ <div class="bub" style="left:596px;top:148px;width:220px;font-size:13.5px">Bánh kem cần <b>55 phút</b>. Lần trước bạn xong trong 52:10!</div>
+ ${AN(1,'đèn nhấp nháy',40,72)}${AN(2,'bấm món để chọn',300,200)}${AN(3,'lò hắt ánh cam',880,128)}${AN(4,'Sóc đánh trứng',770,410)}</div>
+ <div class="ctrl" style="top:622px"><span class="btn" style="background:#ff8a3d;box-shadow:0 5px 0 #d9661f">🔥 Bật lò · Part 7 · 55 phút</span><span class="step"><i>−</i>55<span>phút</span><i>+</i></span><span class="btn w">Ghi kết quả, không bấm giờ</span><span class="link">Đồng hồ Pomodoro ›</span></div>
+ <div class="recent" style="top:700px"><h3>Mẻ bánh gần đây<span>Tuần này 3 mẻ · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></h3><div class="tk">
+ ${[['Part 7','Thứ 6','52:10','6 sai','up','sớm 2′50'],['Part 5','Thứ 5','10:30','4 sai','up','sớm 1′30'],['Part 5','Thứ 3','13:05','5 sai','dn','trễ 1′05'],['Part 6','Thứ 2','7:40','2 sai','up','sớm 20″']].map((r,k)=>`<div class="t" style="display:flex;gap:10px;align-items:center;background:#fffaf5;box-shadow:0 0 0 2px #ffe9d6"><svg viewBox="-50 -70 100 100" style="width:40px;height:40px;flex:none">${[layerCake(0,24,.45,2),cupcake(0,-10,.7,'#ffd1dc'),cupcake(0,-10,.7,'#c8b6ff'),cookies(0,-8,.7)][k]}</svg><div style="flex:1;white-space:nowrap"><b>${r[0]} · ${r[3]}</b><small>${r[1]} · ${r[2]}</small></div><span class="pill ${r[4]}">${r[5]}</span></div>`).join('')}</div></div></main>`}
+
+// ========== 2 baking
+{const W=1440,H=900,T=.3;let g=OVGRAD+stripes(W,H,'#fff4f7','#ffecf2',44);
+ g+=bulbs(W,0,18);
+ g+=`<rect x="0" y="740" width="${W}" height="160" fill="#f1e3d6"/>`;for(let x=0;x<W;x+=80)g+=`<rect x="${x}" y="740" width="40" height="40" fill="#e9d6c5"/><rect x="${x+40}" y="780" width="40" height="40" fill="#e9d6c5"/><rect x="${x}" y="820" width="40" height="40" fill="#e9d6c5"/><rect x="${x+40}" y="860" width="40" height="40" fill="#e9d6c5"/>`;
+ const ox=450,oy=120,ow=540,oh=620;g+=OVEN(ox,oy,ow,oh,'#ff9a4d',50+T*130);
+ // display + dials
+ g+=`<rect x="${ox+150}" y="${oy+26}" width="240" height="80" rx="16" fill="#2b2160"/><text x="${ox+270}" y="${oy+86}" font-weight="900" font-size="54" fill="#9cf0a8" text-anchor="middle" letter-spacing="3">38:24</text>`;
+ [ox+70,ox+ow-70].forEach((x,k)=>g+=`<circle cx="${x}" cy="${oy+66}" r="32" fill="#fff"/><circle cx="${x}" cy="${oy+66}" r="32" fill="none" stroke="#cfc4ef" stroke-width="4"/><line x1="${x}" y1="${oy+66}" x2="${x+(k?-16:16)}" y2="${oy+42}" stroke="#7c5ce0" stroke-width="7" stroke-linecap="round"/>`);
+ g+=`<text x="${ox+70}" y="${oy+118}" font-weight="900" font-size="11" fill="#fff" text-anchor="middle">180°</text><text x="${ox+ow-70}" y="${oy+118}" font-weight="900" font-size="11" fill="#fff" text-anchor="middle">55′</text>`;
+ // vent + steam
+ g+=`<rect x="${ox+ow/2-40}" y="${oy-18}" width="80" height="18" rx="6" fill="#cfc4ef"/>`+steam(ox+ow/2-20,oy-24,1.1,.8)+steam(ox+ow/2+30,oy-34,.9,.6);
+ // under-oven progress
+ const bx=ox+60,by=oy+oh-108,bw=ow-120;
+ g+=`<text x="${ox+ow/2}" y="${by-14}" font-weight="900" font-size="13" fill="#a593d8" text-anchor="middle">còn lại trong 55:00</text>`;
+ // recipe card right
+ const rx=1050,ry=170;g+=`<g transform="rotate(2 ${rx+160} ${ry+200})"><rect x="${rx+6}" y="${ry+8}" width="320" height="430" rx="16" fill="#e9d6c5"/><rect x="${rx}" y="${ry}" width="320" height="430" rx="16" fill="#fffdf6"/>${Array.from({length:12},(_,k)=>`<line x1="${rx+20}" y1="${ry+92+k*28}" x2="${rx+300}" y2="${ry+92+k*28}" stroke="#f3e9dc" stroke-width="2"/>`).join('')}<rect x="${rx+120}" y="${ry-14}" width="80" height="28" rx="4" fill="#ffd1dc" opacity=".85" transform="rotate(-4 ${rx+160} ${ry})"/></g>`;
+ const steps=[['Câu 1–10','Trộn bột',1],['Câu 11–20','Cho vào lò',2],['Câu 21–30','Bánh nở',0],['Câu 31–40','Phủ kem',0],['Câu 41–54','Trang trí',0]];
+ let rc=`<div style="position:absolute;left:${rx+22}px;top:${ry+20}px;width:280px;z-index:4;transform:rotate(2deg)"><div style="font-weight:900;font-size:13px;color:#e8730c;letter-spacing:.4px">CÔNG THỨC</div><div style="font-weight:900;font-size:22px">Bánh kem Part 7</div><div style="font-weight:800;font-size:13px;color:#7a857e">54 câu · 55 phút · nhịp 1 phút một câu</div>
+  ${steps.map(([a,b,st])=>`<div style="display:flex;align-items:center;gap:10px;margin-top:${st===2?12:12}px;padding:${st===2?'8px 10px':'0 10px'};border-radius:14px;${st===2?'background:#fff1df;box-shadow:0 0 0 2px #ffcf9a':''}"><i style="width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:13px;color:#fff;background:${st===1?'#46b35a':st===2?'#ff8a3d':'#e6e0f5'}">${st===1?'✓':st===2?'●':''}</i><div><b style="font-weight:900;font-size:15px;${st===1?'color:#7a857e;text-decoration:line-through':''}">${a}</b><small style="display:block;font-weight:800;font-size:12px;color:#7a857e">${b}${st===2?' · nên ở khoảng câu 17':''}</small></div></div>`).join('')}</div>`;
+ document.getElementById('B2').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}${whisk(330,640,1.1,-20)}</svg>${rc}
+ <div class="tb" style="top:44px"><div><b>Part 7</b><span>54 câu · 55 phút</span></div><span class="stop">× Dừng</span></div>
+ ${SO('hi',170,560,150,5)}${HAT(202,500,92,6)}
+ <div class="bub" style="left:110px;top:430px;width:230px">Thơm quá! Theo nhịp thì giờ nên ở khoảng <b>câu 17</b>.</div>
+ <div class="run" style="bottom:40px"><div class="row"><span class="btn w">Tạm dừng</span><span class="btn" style="background:#ff8a3d;box-shadow:0 5px 0 #d9661f">Xong rồi · ra lò</span></div><p>Đồng hồ vẫn chạy khi bạn chuyển tab làm đề · Phím cách để tạm dừng</p></div>
+ ${AN(1,'bánh nở theo thời gian',ox+ow/2-80,oy+330)}${AN(2,'hơi nước bay',ox+ow/2+60,oy-56)}${AN(3,'bước tới giờ tự tick',rx+90,ry+446)}${AN(4,'5 phút cuối lò đổi cam',ox+20,oy+oh+14)}`}
+
+// ========== 3 out of oven
+{const W=1440,H=900;let g=OVGRAD+stripes(W,H,'#fff4f7','#ffecf2',44)+bulbs(W,0,18);
+ g+=`<rect x="0" y="740" width="${W}" height="160" fill="#f1e3d6"/>`;
+ g+=OVEN(1040,250,300,380,'#ff9a4d',40,false,true);
+ g+=`<path d="M1060 520 L700 900 L1440 900 L1340 520Z" fill="#fff3c4" opacity=".35"/>`;
+ g+=steam(1150,240,1,.8)+steam(1230,230,.8,.6);
+ // confetti
+ const cc=['#ff7a9c','#ffc83d','#46b35a','#1c8fe3','#a78bfa','#ff8a3d'];for(let i=0;i<70;i++){const x=(i*173)%1000+80,y=(i*97)%640+40;if(x>380&&x<1000&&y>120&&y<760)continue;g+=`<rect x="${x}" y="${y}" width="10" height="4" rx="2" fill="${cc[i%6]}" transform="rotate(${i*37} ${x} ${y})"/>`}
+ document.getElementById('B3').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ <div class="tb" style="top:44px"><div><b>Part 7</b><span>54 câu · 55 phút</span></div><span></span></div>
+ <div style="position:absolute;left:400px;top:120px;width:600px;height:640px;background:#fff;border-radius:34px;box-shadow:0 14px 0 rgba(47,58,51,.06),0 30px 80px rgba(200,120,80,.18);z-index:4;padding:0 34px">
+  <div style="position:absolute;left:50%;top:-18px;transform:translateX(-50%);background:#ffc83d;color:#6b4a00;font-weight:900;font-size:15px;border-radius:12px;padding:8px 18px;box-shadow:0 4px 0 #d99a00;white-space:nowrap">🎀 Kỷ lục mới · nhanh hơn 1′30</div>
+  <svg viewBox="-160 -170 320 190" style="display:block;width:330px;margin:34px auto 0">${`<ellipse cx="0" cy="8" rx="130" ry="16" fill="#e6e0f5"/><rect x="-118" y="-6" width="236" height="12" rx="6" fill="#fff" stroke="#e6e0f5" stroke-width="3"/>`}${layerCake(0,-6,1.25,2,7)}</svg>
+  <h2 style="text-align:center;font-weight:900;font-size:30px;letter-spacing:-.8px;margin-top:6px">Ra lò! Part 7 trong 50:40</h2>
+  <p style="text-align:center;font-weight:700;font-size:15px;color:#7a857e;margin-top:4px">Chấm bài rồi ghi số câu sai, Sóc trang trí bánh cho bạn.</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;background:#f7f5f0;border-radius:18px;padding:14px 18px;margin-top:18px"><div><b style="font-weight:900;font-size:17px">Số câu sai</b><small style="display:block;font-weight:800;font-size:13px;color:#7a857e">48/54 đúng · mỗi 7 câu đúng là 1 quả dâu</small></div><span class="step"><i>−</i>6<i>+</i></span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;background:#f7f5f0;border-radius:18px;padding:14px 18px;margin-top:10px"><div><b style="font-weight:900;font-size:17px">Thời gian</b><small style="display:block;font-weight:800;font-size:13px;color:#7a857e">lấy từ đồng hồ lò</small></div><b style="font-weight:900;font-size:20px">50:40</b></div>
+  <div style="display:flex;gap:12px;margin-top:20px"><span class="btn w" style="flex:1;justify-content:center">Để sau</span><span class="btn" style="flex:1.4;justify-content:center">Lưu vào sổ</span></div></div>
+ ${SO('hi',150,560,150,5)}${HAT(182,500,92,6)}<svg style="position:absolute;left:150px;top:640px;width:150px;z-index:6" viewBox="-80 -60 160 70">${`<rect x="-70" y="-6" width="140" height="10" rx="5" fill="#c7cbd1"/>`}${cupcake(0,-12,.6,'#ffd1dc')}</svg>
+ ${AN(1,'cửa lò bật mở',1080,210)}${AN(2,'rắc cốm màu',90,150)}${AN(3,'dâu theo số câu đúng',760,250)}${AN(4,'ruy băng kỷ lục',840,92)}`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

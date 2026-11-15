@@ -127,7 +127,7 @@ export const App: React.FC = () => {
   useEffect(() => { if (account.status === 'synced') setWriteNotice(''); }, [account.status]);
 
   const [activeTab, setActiveTab] = useRouteTab();
-  const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[] } | null>(null);
+  const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[]; part?: number } | null>(null);
   const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
 
@@ -545,7 +545,7 @@ export const App: React.FC = () => {
             profile={profile}
             today={today}
             initialTab={activeTab === 'analytics' ? 'parts' : 'score'}
-            onOpenNotebook={name => { setNotebookSourceFilter({ owner: activeOwner, names: [name] }); setActiveTab('mistakes'); }}
+            onOpenNotebook={(name, part) => { setNotebookSourceFilter({ owner: activeOwner, names: [name], part }); setActiveTab('mistakes'); }}
             onPractice={part => navigateToPacing(`PART_${part}` as ReadingPartType)}
             onEditSession={openSessionEditor}
             onDeleteSession={handleDeleteSession}
@@ -625,6 +625,7 @@ export const App: React.FC = () => {
               key={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest.id : 'notebook'}
               createRequest={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest : undefined}
               initialSourceNames={notebookSourceFilter?.owner === activeOwner ? notebookSourceFilter.names : undefined}
+              initialPart={notebookSourceFilter?.owner === activeOwner ? notebookSourceFilter.part : undefined}
               sessions={sessions}
               dueCount={dueMistakesCount}
               onStartReview={openReview}

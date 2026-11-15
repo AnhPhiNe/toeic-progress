@@ -15,14 +15,14 @@ interface Props {
   profile: UserProfile;
   today: string;
   initialTab?: Tab;
-  onOpenNotebook: (testName: string) => void;
+  onOpenNotebook: (testName: string, part?: number) => void;
   onPractice: (part: 5 | 6 | 7) => void;
   onEditSession: (session: StudySession) => void;
   onDeleteSession: (id: string) => void;
   onOpenSessionLogger: () => void;
 }
 
-/** Hành trình điểm (design/previews/mock-journey-score2.html + mock-journey-tabs.html). */
+/** Hành trình điểm (design/previews/mock-journey-score3.html J1, mock-journey-parts4.html, mock-journey-tabs.html). */
 export function JourneyPage({ sessions, mistakes, profile, today, initialTab = 'score', onOpenNotebook, onPractice, onEditSession, onDeleteSession, onOpenSessionLogger }: Props) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export function JourneyPage({ sessions, mistakes, profile, today, initialTab = '
         </div>
       </div>
       {tab === 'score' && <ScoreTab sessions={sessions} profile={profile} today={today} onOpenTest={setOpenId} onShowTests={() => setTab('tests')} />}
-      {tab === 'parts' && <PartsTab sessions={sessions} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
+      {tab === 'parts' && <PartsTab sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
       {tab === 'tests' && <TestsTab sessions={sessions} onOpenTest={setOpenId} onOpenSessionLogger={onOpenSessionLogger} />}
       {open && (
         <TestDrawer session={open} sessions={sessions} mistakes={mistakes} target={profile.targetScore}

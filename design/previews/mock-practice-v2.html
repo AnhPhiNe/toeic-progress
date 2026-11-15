@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gold:#ffc83d;--ink:#2f3a33;--mut:#7a857e;--vio:#a78bfa;--viod:#7c5ce0;--pink:#ff7a9c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden;position:relative}
+.page.full{display:block}
+.side{border-right:2px solid #eef0ee;padding:22px 14px;background:#fff;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#f4f0ff;border-color:#d9ccff;color:var(--viod)}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;padding:30px 52px 0}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.kick{font-weight:900;font-size:14px;color:var(--viod);letter-spacing:.4px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px;margin-top:2px}h1 em{font-style:normal;color:var(--viod)}
+.sub{font-weight:700;font-size:15px;color:var(--mut);margin-top:4px}
+.scene{position:absolute;left:52px;right:52px;top:150px;height:420px;border-radius:30px;overflow:hidden}
+.ctrl{position:absolute;left:52px;right:52px;top:592px;display:flex;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--g);color:#fff;border-radius:18px;padding:15px 24px;font-weight:900;font-size:18px;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--ink);font-size:15px;padding:13px 18px;box-shadow:0 0 0 2px #e6e9e6,0 4px 0 #e6e9e6}
+.step{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:7px 10px;box-shadow:0 0 0 2px #e6e9e6;font-weight:900;font-size:15px}
+.step i{width:32px;height:32px;border-radius:10px;background:#f1ecff;color:var(--viod);display:grid;place-items:center;font-style:normal}
+.step span{font-weight:800;color:var(--mut);font-size:13px}
+.link{margin-left:auto;font-weight:900;font-size:14.5px;color:var(--viod)}
+.recent{position:absolute;left:52px;right:52px;top:680px}
+.recent h3{font-weight:900;font-size:17px}.recent h3 span{font-weight:700;font-size:13.5px;color:var(--mut);margin-left:8px}
+.tk{display:flex;gap:12px;margin-top:12px}
+.t{flex:1;background:#faf8ff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #efe9ff}
+.t b{font-weight:900;font-size:15px}.t small{display:block;font-weight:800;font-size:12px;color:var(--mut)}
+.t .r{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-weight:900;font-size:14px}
+.pill{font-weight:900;font-size:12px;border-radius:99px;padding:3px 9px}
+.up{background:#e3f6e6;color:var(--gd)}.dn{background:#ffe6ec;color:#d64570}
+.bub{position:absolute;background:#fff;border-radius:16px;padding:10px 14px;font-weight:800;font-size:14px;line-height:1.35;box-shadow:0 5px 0 rgba(47,58,51,.1);z-index:4}
+.bub b{font-weight:900;color:var(--viod)}
+.an{position:absolute;z-index:6;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+.an b{width:20px;height:20px;border-radius:50%;background:var(--pink);display:grid;place-items:center;font-size:12px;flex:none}
+.legend{width:1440px;background:#fff;border-radius:20px;padding:16px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.legend div{font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.45}.legend b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pink);color:#fff;font-size:12px;margin-right:6px}
+.legend strong{color:var(--ink)}
+.tb{position:absolute;left:60px;right:60px;top:34px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+.tb b{font-weight:900;font-size:22px}.tb span{font-weight:800;font-size:15px;color:var(--mut);margin-left:10px}
+.stop{background:#fff;border-radius:14px;padding:9px 16px;font-weight:900;font-size:14.5px;box-shadow:0 0 0 2px #e6e9e6,0 3px 0 #e6e9e6}
+.run{position:absolute;left:0;right:0;bottom:70px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:5}
+.run .row{display:flex;gap:14px}.run p{font-weight:700;font-size:13.5px;color:var(--mut)}
+</style></head>
+<body>
+<div class="cap">A · Đường chạy — chọn Part<small>mỗi Part là một làn chạy, dài theo số phút; cờ đích ghi giờ; vạch trắng là kỷ lục của bạn; Sóc đứng vạch xuất phát ở làn đang chọn</small></div>
+<div class="page" id="A1"></div>
+<div class="cap">A · Đường chạy — đang bấm giờ<small>đồng hồ nằm giữa sân; Sóc chạy vòng quanh theo thời gian đã trôi; cột mốc "câu 10, 20, 30…" cho biết theo nhịp lúc này nên làm tới câu nào</small></div>
+<div class="page full" id="A2"></div>
+<div class="legend">
+ <div><b>1</b><strong>Chọn làn:</strong> bấm làn khác thì Sóc nhảy sang làn đó, cờ đích phấp phới, nút Bắt đầu đổi chữ.</div>
+ <div><b>2</b><strong>Xuất phát:</strong> bấm Bắt đầu: đếm 3-2-1 trên vạch, sidebar thu lại, vào màn đường đua.</div>
+ <div><b>3</b><strong>Sóc chạy:</strong> Sóc chạy quanh sân theo thời gian; cột mốc "câu 10, 20…" trên đường cho biết nên làm tới đâu.</div>
+ <div><b>4</b><strong>Về đích:</strong> bấm Xong rồi: Sóc chạm vạch, pháo giấy nhỏ, mở thẻ ghi số câu sai.</div>
+</div>
+<div class="cap">B · Bàn học buổi tối — chọn Part<small>góc học có cửa sổ, đèn bàn; mỗi Part là một quyển đề trên bàn, quyển đang chọn nhô lên phát sáng; đồng hồ treo tường ghi số phút</small></div>
+<div class="page" id="B1"></div>
+<div class="cap">B · Bàn học buổi tối — đang bấm giờ<small>trời ngoài cửa sổ tối dần theo thời gian (hoàng hôn → sao); đồng hồ treo tường quét màu tím phần đã trôi; giấy note ghi câu nên ở</small></div>
+<div class="page full" id="B2"></div>
+<div class="legend">
+ <div><b>1</b><strong>Chọn quyển:</strong> quyển đề nhô lên, đèn bàn rọi vào; đồng hồ tường quay kim tới số phút.</div>
+ <div><b>2</b><strong>Trời theo thời gian:</strong> lúc bắt đầu là hoàng hôn, càng gần hết giờ càng nhiều sao.</div>
+ <div><b>3</b><strong>Sóc đọc bài:</strong> Sóc lật trang mỗi vài phút, thỉnh thoảng gật gù.</div>
+ <div><b>4</b><strong>Giấy note nhịp:</strong> số "câu nên ở" lật như lịch mỗi khi tăng.</div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>
+<div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv on"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const SO=(m,x,y,w,z=4)=>`<span class="soc-s" style="position:absolute;left:${x}px;top:${y}px;width:${w}px;z-index:${z}" data-s="${m}"></span>`;
+const AN=(n,t,x,y)=>`<span class="an" style="left:${x}px;top:${y}px"><b>${n}</b>${t}</span>`;
+const PARTS=[['Part 5','30 câu',12,'10:30'],['Part 6','16 câu',8,'7:40'],['Part 7','54 câu',55,'52:10'],['Cả phần Đọc','100 câu',75,'']];
+const SEL=2;
+const CTRL=`<div class="ctrl"><span class="btn">▶ Bắt đầu · Part 7 · 55 phút</span><span class="step"><i>−</i>55<span>phút</span><i>+</i></span><span class="btn w">Ghi kết quả, không bấm giờ</span><span class="link">Đồng hồ Pomodoro ›</span></div>`;
+const RECENT=`<div class="recent"><h3>Gần đây<span>Tuần này 3 buổi · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></h3><div class="tk">
+ <div class="t"><b>Part 7</b><small>Thứ 6 · 54 câu</small><div class="r">52:10 · 6 sai <span class="pill up">▼ 2'50 nhịp</span></div></div>
+ <div class="t"><b>Part 5</b><small>Thứ 5 · 30 câu</small><div class="r">10:30 · 4 sai <span class="pill up">▼ 1'30 nhịp</span></div></div>
+ <div class="t"><b>Part 5</b><small>Thứ 3 · 30 câu</small><div class="r">13:05 · 5 sai <span class="pill dn">▲ 1'05 nhịp</span></div></div>
+ <div class="t"><b>Part 6</b><small>Thứ 2 · 16 câu</small><div class="r">7:40 · 2 sai <span class="pill up">▼ 20" nhịp</span></div></div></div></div>`;
+const HEAD=`<div class="kick">LUYỆN TẬP</div><h1>Hôm nay bấm giờ <em>Part 7</em> nhé?</h1><div class="sub">Part bạn sai nhiều nhất · cứ như phòng thi: hết giờ là dừng</div>`;
+const flagChk=(x,y)=>{let s=`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-46}" stroke="#2f3a33" stroke-width="4" stroke-linecap="round"/>`;for(let r=0;r<3;r++)for(let c=0;c<4;c++)s+=`<rect x="${x+c*7}" y="${y-46+r*7}" width="7" height="7" fill="${(r+c)%2?'#2f3a33':'#fff'}"/>`;return s};
+
+// ---------- A1 lanes
+{const W=1068,H=420,lx=210,lw=740,laneH=74,top0=48;let g=`<defs><linearGradient id="arena" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f7cf2"/><stop offset="1" stop-color="#6c58d6"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#arena)"/>`;
+ // stands lights
+ for(let i=0;i<14;i++)g+=`<circle cx="${40+i*76}" cy="18" r="5" fill="#fff6c8" opacity=".8"/><circle cx="${40+i*76}" cy="18" r="14" fill="#fff6c8" opacity=".18"/>`;
+ g+=`<rect x="0" y="${top0-14}" width="${W}" height="${laneH*4+28}" fill="#4fae5f"/>`;
+ PARTS.forEach((p,i)=>{const y=top0+i*laneH,len=lw*p[2]/75,on=i===SEL;
+  g+=`<rect x="0" y="${y}" width="${W}" height="${laneH}" fill="${on?'#f0745e':'#d9634f'}"/><line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#fff" stroke-width="3"/>`;
+  if(on)g+=`<rect x="0" y="${y}" width="${W}" height="${laneH}" fill="#fff" opacity=".08"/>`;
+  // dashed progress up to finish
+  g+=`<line x1="${lx}" y1="${y+laneH/2}" x2="${lx+len}" y2="${y+laneH/2}" stroke="#fff" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round" opacity="${on?.9:.45}"/>`;
+  g+=flagChk(lx+len,y+laneH-8);
+  g+=`<g transform="translate(${lx+len+34} ${y+laneH/2})"><rect x="0" y="-14" width="${p[2]>9?74:66}" height="28" rx="14" fill="${on?'#fff':'rgba(255,255,255,.75)'}"/><text x="${p[2]>9?37:33}" y="5" font-weight="900" font-size="14" fill="#2f3a33" text-anchor="middle">${p[2]} phút</text></g>`;
+  if(p[3]){const [m,s]=p[3].split(':').map(Number),rx=lx+lw*(m+s/60)/75;g+=`<line x1="${rx}" y1="${y+6}" x2="${rx}" y2="${y+laneH-6}" stroke="#fff" stroke-width="4" stroke-linecap="round"/><g transform="translate(${rx} ${y+14})"><rect x="-38" y="-12" width="76" height="20" rx="10" fill="#2f3a33" opacity="${on?1:.55}"/><text y="3" font-weight="900" font-size="11.5" fill="#ffe58f" text-anchor="middle">kỷ lục ${p[3]}</text></g>`}
+ });
+ g+=`<line x1="${lx}" y1="${top0}" x2="${lx}" y2="${top0+laneH*4}" stroke="#fff" stroke-width="6"/>`;
+ g+=`<line x1="0" y1="${top0+laneH*4}" x2="${W}" y2="${top0+laneH*4}" stroke="#fff" stroke-width="3"/>`;
+ // lane labels
+ let labels='';PARTS.forEach((p,i)=>{const y=top0+i*laneH,on=i===SEL;labels+=`<div style="position:absolute;left:18px;top:${y+12}px;width:150px;height:50px;border-radius:16px;background:${on?'#fff':'rgba(255,255,255,.82)'};${on?'box-shadow:0 0 0 3px #ffc83d,0 4px 0 rgba(0,0,0,.15);':''}padding:6px 12px;z-index:3"><b style="font-weight:900;font-size:16px">${p[0]}</b><small style="display:block;font-weight:800;font-size:12px;color:#7a857e">${p[1]}</small></div>`});
+ // infield bottom
+ g+=`<rect x="0" y="${top0+laneH*4+14}" width="${W}" height="${H}" fill="#5bb46b"/>`;
+ g+=`<text x="${W/2}" y="${H-24}" font-weight="900" font-size="15" fill="#e9f8ec" text-anchor="middle" opacity=".9">Phần Nghe chạy theo audio nên không có làn · ghi kết quả bên dưới</text>`;
+ const sy=top0+SEL*laneH;
+ document.getElementById('A1').innerHTML=SIDE+`<main>${HEAD}<div class="scene"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>${labels}
+ ${SO('hi',lx-8,sy-22,64)}
+ <div class="bub" style="left:${lx+80}px;top:${sy+14}px;padding:8px 12px;font-size:13.5px">Kỷ lục của bạn: <b>52:10</b>. Phá nhé?</div>
+ ${AN(1,'bấm làn để đổi Part',560,top0+laneH*0+20)}</div>${CTRL}${RECENT}</main>`}
+
+// ---------- A2 oval track running
+{const W=1440,H=900,cx=720,cy=420,rx=470,ry=250,bw=58;let g=`<rect width="${W}" height="${H}" fill="#f4f0ff"/>`;
+ for(let i=0;i<18;i++)g+=`<circle cx="${60+i*78}" cy="${110}" r="5" fill="#a78bfa" opacity=".35"/>`;
+ g+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx+bw/2+16}" ry="${ry+bw/2+16}" fill="#4fae5f"/>`;
+ g+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#e8705a" stroke-width="${bw}"/>`;
+ g+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="14 10" opacity=".8"/>`;
+ g+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx-bw/2}" ry="${ry-bw/2}" fill="#5bb46b" stroke="#fff" stroke-width="3"/><ellipse cx="${cx}" cy="${cy}" rx="${rx+bw/2}" ry="${ry+bw/2}" fill="none" stroke="#fff" stroke-width="3"/>`;
+ // elapsed arc (from top, clockwise) 30%
+ const pt=(f)=>{const a=-Math.PI/2+f*2*Math.PI;return [cx+Math.cos(a)*rx,cy+Math.sin(a)*ry]};
+ let d=`M${pt(0).join(' ')}`;for(let k=1;k<=60;k++)d+=` L${pt(.3*k/60).join(' ')}`;
+ g+=`<path d="${d}" fill="none" stroke="#ffc83d" stroke-width="14" stroke-linecap="round" opacity=".9"/>`;
+ // start line top
+ g+=`<line x1="${cx}" y1="${cy-ry-bw/2}" x2="${cx}" y2="${cy-ry+bw/2}" stroke="#fff" stroke-width="8"/>`;
+ for(let r=0;r<4;r++)for(let c=0;c<2;c++)g+=`<rect x="${cx-7+c*7}" y="${cy-ry-bw/2+r*14.5}" width="7" height="14.5" fill="${(r+c)%2?'#2f3a33':'#fff'}"/>`;
+ // pace ghost at 32%
+ const gp=pt(.3);const po=(f,k)=>{const a=-Math.PI/2+f*2*Math.PI;return [cx+Math.cos(a)*(rx+k),cy+Math.sin(a)*(ry+k)]};
+ [10,20,30,40,50].forEach(q=>{const f=q/54,[x1,y1]=po(f,-bw/2),[x2,y2]=po(f,bw/2),[lx,ly]=po(f,bw/2+40);g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="5"/><g transform="translate(${lx} ${ly})"><rect x="-34" y="-14" width="68" height="26" rx="13" fill="#fff"/><text y="4" font-weight="900" font-size="13.5" fill="#7c5ce0" text-anchor="middle">câu ${q}</text></g>`});
+ // centre
+ g+=`<text x="${cx}" y="${cy+10}" font-weight="900" font-size="120" fill="#fff" text-anchor="middle" letter-spacing="-5">38:24</text><text x="${cx}" y="${cy+56}" font-weight="900" font-size="20" fill="#e9f8ec" text-anchor="middle">còn lại trong 55:00</text>`;
+ const sp=pt(.3);
+ document.getElementById('A2').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ <div class="tb"><div><b>Part 7</b><span>54 câu · 55 phút</span></div><span class="stop">× Dừng</span></div>
+ ${SO('hi',sp[0]-36,sp[1]-70,72,5)}
+ <div class="bub" style="left:1010px;top:690px">Theo nhịp 1 phút một câu,<br>lúc này nên ở khoảng <b>câu 17</b>.</div>
+ <div class="run"><div class="row"><span class="btn w">Tạm dừng</span><span class="btn">Xong rồi</span></div><p>Đồng hồ vẫn chạy khi bạn chuyển tab làm đề · Phím cách để tạm dừng</p></div>
+ ${AN(3,'Sóc chạy theo thời gian',sp[0]-250,sp[1]-30)}`}
+
+// ---------- B1 desk
+{const W=1068,H=420;let g=`<defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ece6ff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient><linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a6ad8"/><stop offset=".6" stop-color="#f29fb6"/><stop offset="1" stop-color="#ffd38a"/></linearGradient><radialGradient id="lamp" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#fff3c4" stop-opacity=".9"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient></defs>
+ <rect width="${W}" height="${H}" fill="url(#wall)"/>`;
+ // window
+ g+=`<rect x="40" y="34" width="200" height="200" rx="18" fill="url(#dusk)"/><circle cx="190" cy="84" r="16" fill="#fff6d6"/><path d="M40 196 L80 168 L110 184 L150 150 L190 178 L240 160 V234 H40Z" fill="#5a4aa8" opacity=".7"/>`;
+ for(let i=0;i<5;i++)g+=`<circle cx="${66+i*30}" cy="${60+(i%3)*18}" r="2" fill="#fff"/>`;
+ g+=`<rect x="40" y="34" width="200" height="200" rx="18" fill="none" stroke="#fff" stroke-width="10"/><line x1="140" y1="34" x2="140" y2="234" stroke="#fff" stroke-width="7"/><line x1="40" y1="134" x2="240" y2="134" stroke="#fff" stroke-width="7"/>`;
+ // wall clock
+ g+=`<g transform="translate(560 86) scale(.72)"><circle r="78" fill="#fff" stroke="#7c5ce0" stroke-width="9"/><path d="M0 0 L0 -66 A66 66 0 1 1 -38.8 -53.4 Z" fill="#a78bfa" opacity=".35"/>`;
+ for(let k=0;k<12;k++){const a=k/12*Math.PI*2;g+=`<line x1="${Math.sin(a)*58}" y1="${-Math.cos(a)*58}" x2="${Math.sin(a)*66}" y2="${-Math.cos(a)*66}" stroke="#2f3a33" stroke-width="${k%3?2:4}"/>`}
+ g+=`<line x1="0" y1="0" x2="-38" y2="-52" stroke="#2f3a33" stroke-width="5" stroke-linecap="round"/><circle r="6" fill="#2f3a33"/><text y="34" font-weight="900" font-size="18" fill="#7c5ce0" text-anchor="middle">55 phút</text></g>`;
+ // shelf with plant
+ g+=`<g transform="translate(110 0)"><rect x="760" y="90" width="230" height="12" rx="6" fill="#c98b4e"/><rect x="780" y="50" width="22" height="40" rx="4" fill="#ff7a9c"/><rect x="806" y="58" width="18" height="32" rx="4" fill="#ffc83d"/><rect x="828" y="46" width="20" height="44" rx="4" fill="#46b35a"/><rect x="852" y="56" width="16" height="34" rx="4" fill="#1c8fe3"/><g transform="translate(940 60)"><path d="M-14 30 L14 30 L10 8 L-10 8Z" fill="#c98b4e"/><path d="M0 8 Q-20 -14 -6 -26 M0 8 Q16 -18 6 -30 M0 8 Q-4 -10 0 -34" stroke="#46b35a" stroke-width="6" fill="none" stroke-linecap="round"/></g></g>`;
+ // lamp
+ g+=`<path d="M560 160 L700 150 L1000 420 L280 420Z" fill="url(#lamp)" opacity=".5"/>`;
+ // desk
+ g+=`<rect x="0" y="300" width="${W}" height="120" fill="#c98b4e"/><rect x="0" y="300" width="${W}" height="14" fill="#e0a467"/>`;
+ // booklets
+ const BK=[['#ffc83d','#d99a00'],['#46b35a','#2f8a42'],['#ff7a9c','#d64570'],['#1c8fe3','#1569ab']];
+ let labels='';PARTS.forEach((p,i)=>{const on=i===SEL,x=300+i*170,w=140,h=on?190:160,y=300-h+(on?-26:20);
+  g+=`<g>${on?`<ellipse cx="${x+w/2}" cy="${y+h+30}" rx="96" ry="14" fill="#7c5ce0" opacity=".25"/>`:''}<rect x="${x+8}" y="${y+8}" width="${w}" height="${h}" rx="14" fill="${BK[i][1]}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${BK[i][0]}"/><rect x="${x}" y="${y}" width="16" height="${h}" rx="8" fill="${BK[i][1]}" opacity=".5"/></g>`;
+  labels+=`<div style="position:absolute;left:${x+26}px;top:${y+16}px;width:${w-36}px;z-index:3;color:#fff"><b style="font-weight:900;font-size:19px;display:block">${p[0]}</b><small style="font-weight:800;font-size:13px;opacity:.95">${p[1]}</small><div style="margin-top:${on?70:44}px;display:inline-block;background:rgba(255,255,255,.95);color:#2f3a33;border-radius:99px;padding:3px 10px;font-weight:900;font-size:13px">⏱ ${p[2]} phút</div>${p[3]?`<div style="font-weight:800;font-size:12px;margin-top:6px;opacity:.95">kỷ lục ${p[3]}</div>`:''}</div>`;
+  if(on)g+=`<g fill="#fff"><path d="M${x-16} ${y+10} l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z"/><path d="M${x+w+12} ${y+40} l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z"/></g>`});
+ document.getElementById('B1').innerHTML=SIDE+`<main>${HEAD}<div class="scene"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>${labels}
+ ${SO('hi',990,200,96,3)}
+ ${AN(1,'bấm quyển để chọn Part',300,8)}</div>${CTRL}${RECENT}</main>`}
+
+// ---------- B2 desk running
+{const W=1440,H=900,f=.3;let g=`<defs><linearGradient id="wall2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ece6ff"/><stop offset="1" stop-color="#d8cdff"/></linearGradient><linearGradient id="sky2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb38a"/><stop offset=".3" stop-color="#e98bb0"/><stop offset=".55" stop-color="#6c58d6"/><stop offset="1" stop-color="#2b2a66"/></linearGradient><radialGradient id="lamp2" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#fff3c4" stop-opacity=".9"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient></defs><rect width="${W}" height="${H}" fill="url(#wall2)"/>`;
+ // wide window showing time passing left->right
+ g+=`<rect x="80" y="110" width="520" height="330" rx="22" fill="url(#sky2)"/>`;
+ g+=`<circle cx="150" cy="380" r="26" fill="#ffe08a"/>`;
+ for(let i=0;i<20;i++){const x=330+(i*53)%260,y=140+(i*37)%200;g+=`<circle cx="${x}" cy="${y}" r="${i%4?1.6:2.6}" fill="#fff" opacity="${x>380?.9:.4}"/>`}
+ g+=`<path d="M80 400 L130 370 L170 386 L220 350 L270 380 L330 356 L390 382 L450 352 L520 380 L600 360 V440 H80Z" fill="#3f347e" opacity=".8"/>`;
+ g+=`<rect x="80" y="110" width="520" height="330" rx="22" fill="none" stroke="#fff" stroke-width="12"/><line x1="340" y1="110" x2="340" y2="440" stroke="#fff" stroke-width="8"/>`;
+ // time marker on window sill
+ g+=`<rect x="80" y="452" width="520" height="10" rx="5" fill="#fff" opacity=".7"/><rect x="80" y="452" width="${520*f}" height="10" rx="5" fill="#7c5ce0"/><text x="80" y="486" font-weight="800" font-size="14" fill="#7a857e">bắt đầu</text><text x="600" y="486" font-weight="800" font-size="14" fill="#7a857e" text-anchor="end">hết giờ</text>`;
+ // big wall clock
+ const cx=1000,cy=300,R=190;g+=`<circle cx="${cx}" cy="${cy}" r="${R+16}" fill="#7c5ce0"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="#fff"/>`;
+ const a=f*2*Math.PI;g+=`<path d="M${cx} ${cy} L${cx} ${cy-R+14} A${R-14} ${R-14} 0 ${f>.5?1:0} 1 ${cx+Math.sin(a)*(R-14)} ${cy-Math.cos(a)*(R-14)} Z" fill="#a78bfa" opacity=".35"/>`;
+ for(let k=0;k<60;k++){const b=k/60*Math.PI*2,l=k%5?8:18;g+=`<line x1="${cx+Math.sin(b)*(R-14)}" y1="${cy-Math.cos(b)*(R-14)}" x2="${cx+Math.sin(b)*(R-14-l)}" y2="${cy-Math.cos(b)*(R-14-l)}" stroke="#2f3a33" stroke-width="${k%5?2:4}"/>`}
+ g+=`<line x1="${cx}" y1="${cy}" x2="${cx+Math.sin(a)*(R-50)}" y2="${cy-Math.cos(a)*(R-50)}" stroke="#7c5ce0" stroke-width="8" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="#7c5ce0"/>`;
+ g+=`<text x="${cx}" y="${cy+90}" font-weight="900" font-size="58" fill="#2f3a33" text-anchor="middle" letter-spacing="-2">38:24</text><text x="${cx}" y="${cy+118}" font-weight="900" font-size="16" fill="#7a857e" text-anchor="middle">còn lại trong 55:00</text>`;
+ // desk
+ g+=`<rect x="0" y="600" width="${W}" height="300" fill="#c98b4e"/><rect x="0" y="600" width="${W}" height="16" fill="#e0a467"/>`;
+ g+=`<path d="M300 610 L1140 610 L1440 900 L0 900Z" fill="url(#lamp2)" opacity=".35"/>`;
+ // open booklet
+ g+=`<g transform="translate(560 640)"><path d="M0 0 Q90 -24 180 0 L180 120 Q90 96 0 120Z" fill="#fff"/><path d="M180 0 Q270 -24 360 0 L360 120 Q270 96 180 120Z" fill="#fbf8ff"/><line x1="180" y1="0" x2="180" y2="120" stroke="#e6e0f5" stroke-width="3"/>${[20,36,52,68,84].map(y=>`<line x1="24" y1="${y}" x2="156" y2="${y}" stroke="#e6e9e6" stroke-width="4" stroke-linecap="round"/><line x1="204" y1="${y}" x2="336" y2="${y}" stroke="#e6e9e6" stroke-width="4" stroke-linecap="round"/>`).join('')}</g>`;
+ // sticky note
+ g+=`<g transform="translate(1190 560) rotate(4)"><rect width="170" height="140" rx="6" fill="#ffe58f"/><rect width="170" height="22" rx="6" fill="#ffd34d"/><text x="85" y="56" font-weight="800" font-size="15" fill="#6b4a00" text-anchor="middle">nên ở khoảng</text><text x="85" y="104" font-weight="900" font-size="46" fill="#2f3a33" text-anchor="middle">câu 17</text></g>`;
+ document.getElementById('B2').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>
+ <div class="tb"><div><b>Part 7</b><span>54 câu · 55 phút</span></div><span class="stop">× Dừng</span></div>
+ ${SO('hi',400,520,120,3)}
+ <div class="run" style="bottom:40px"><div class="row"><span class="btn w">Tạm dừng</span><span class="btn">Xong rồi</span></div><p>Đồng hồ vẫn chạy khi bạn chuyển tab làm đề · Phím cách để tạm dừng</p></div>
+ ${AN(2,'trời tối dần theo thời gian',100,74)}${AN(3,'Sóc đọc bài, lật trang',260,520)}${AN(4,'note lật số câu',1180,520)}`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

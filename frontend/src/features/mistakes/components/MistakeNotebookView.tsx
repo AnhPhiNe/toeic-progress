@@ -56,6 +56,8 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
   initialSourceNames?: string[];
+  /** Opens the notebook already filtered to one Part (from a treasure chest in Hành trình điểm). */
+  initialPart?: number;
   /** Opens the note form for a test, or with `detailSessionId` the detail flow for that test's draft cards. */
   createRequest?: { sourceName?: string; sessionId?: string; detailSessionId?: string };
   dueCount: number;
@@ -74,10 +76,10 @@ interface MistakeNotebookViewProps {
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
-export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
+export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, initialPart, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger, onNavigateTab }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
+  const [selectedPart, setSelectedPart] = useState<number | 'ALL'>(initialPart ?? 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<ErrorCategory | 'ALL'>('ALL');
   const [selectedTest, setSelectedTest] = useState(() => initialSourceNames === undefined ? 'ALL'
