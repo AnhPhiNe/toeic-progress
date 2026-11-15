@@ -175,7 +175,8 @@
 .td-cancel { background: none; border: 0; font-weight: 900; font-size: 13px; color: var(--rd-mut); cursor: pointer; }
 
 /* streak: "lịch tròn có mốc" */
-.td-sk { margin-top: 12px; border-radius: 18px; padding: 12px 14px 14px; background: #fff6ec; }
+.td-skcard { flex: none; margin-top: 14px; border-radius: 24px; padding: 16px 18px 14px; background: rgba(255, 255, 255, .94); box-shadow: 0 8px 0 rgba(47, 58, 51, .06); }
+.td-sk { border-radius: 18px; padding: 12px 14px 14px; background: #fff6ec; }
 .td-sk-hd { display: flex; align-items: center; gap: 10px; }
 .td-sk-big { position: relative; width: 54px; height: 62px; flex: none; }
 .td-sk-big svg { position: absolute; inset: 0; }

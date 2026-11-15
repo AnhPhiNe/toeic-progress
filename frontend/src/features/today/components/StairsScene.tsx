@@ -89,7 +89,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner }: Prop
     const el = socRef.current;
     if (!el) return;
     // Before any test, Sóc waits on the ground at the foot of the stairs.
-    const end = empty ? { x: Math.max(20, g.bx(0) - g.tw - 74), y: g.by(0) + 34 } : g.soc(socAt);
+    const end = empty ? { x: Math.max(30, g.bx(0) - g.tw - 82), y: g.by(0) + 22 } : g.soc(socAt);
     const place = (x: number, y: number) => el.setAttribute('transform', `translate(${x} ${y})`);
     // Rest pose: star eyes on the goal (D), bounce on a step (C); a new step first gets a stronger bounce with confetti.
     const rest: SocMood = empty ? 'idle' : done ? 'cheerD' : 'cheerC';

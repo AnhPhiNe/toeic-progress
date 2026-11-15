@@ -26,10 +26,11 @@ export function stairsGeometry(blocks: number, viewW: number = SCENE_W): StairsG
   const n = Math.max(1, blocks);
   const dy = Math.min(110, 440 / n);
   const span = Math.max(420, viewW - 300);
-  const dx = Math.min(110, span / n);
-  const tw = Math.max(36, Math.min(76, Math.round(dx * 0.66)));
+  const dx = Math.min(96, span / n);
+  // Slim blocks: wide steps read as towers on wide screens.
+  const tw = Math.max(34, Math.min(50, Math.round(dx * 0.56)));
   const th = Math.round(tw * 30 / 58);
-  const bx = (i: number) => 135 + i * dx;
+  const bx = (i: number) => 175 + i * dx;
   const by = (i: number) => 715 - i * dy;
   return {
     dx, dy, tw, th, bx, by,

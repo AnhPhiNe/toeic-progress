@@ -90,6 +90,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
   const streakSub = studiedToday ? `Kỷ lục của bạn: ${week.longest} ngày` : week.current > 0 ? `Xong một việc là lên ${week.current + 1} ngày` : 'Xong một việc hôm nay là có ngày 1';
 
   return (
+    <>
     <section className="td-card" aria-label="Việc hôm nay">
       <div className={'td-hero' + (allDone ? ' is-done' : '')}>
         <span className="td-ring" aria-hidden="true" />
@@ -151,7 +152,10 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
               <button type="button" className="td-cancel" onClick={() => { setAdding(false); setDraft(''); }}>Huỷ</button>
             </form>
           : <button type="button" className="td-add" onClick={() => setAdding(true)}>+ Thêm việc của mình</button>)}
+      </div>
+    </section>
 
+    <section className="td-skcard" aria-label="Chuỗi ngày">
         <div className="td-sk">
           <div className="td-sk-hd">
             <Flame n={week.current} />
@@ -181,7 +185,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
               </span>
             : <button type="button" className="td-link" onClick={() => setEditGoal(true)}>Sửa</button>}
         </div>
-      </div>
     </section>
+    </>
   );
 }

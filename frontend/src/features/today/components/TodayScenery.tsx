@@ -88,7 +88,7 @@ export function SceneryFront({ children }: { children?: ReactNode }) {
 
   const ground = useMemo(() => {
     const e = edge;
-    const trees = [tree(6, 830), tree(690, 808, 0.9)];
+    const trees = [tree(-30, 840, 0.9), tree(690, 808, 0.9)];
     if (e > 900) trees.push(tree(e - 182, 800, 0.75), tree(e - 62, 780));
     const flowers = [[44, 862, '#ff9eb8'], [110, 870, '#fff'], [262, 860, '#ffd766'], [420, 868, '#ff9eb8'], [520, 862, '#a78bfa'], [770, 850, '#fff'], [e - 312, 855, '#ffd766'], [e - 122, 850, '#ff9eb8']] as const;
     return { e, trees, flowers };
