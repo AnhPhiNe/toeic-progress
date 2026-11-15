@@ -32,13 +32,15 @@ interface BackProps {
   cup: { x: number; y: number };
   /** Text on the banner the balloon pulls ("Mục tiêu 850"); none for no banner. */
   banner?: string;
+  /** Scene width in units (same as the stairs layer). */
+  viewW?: number;
 }
 
 /** Sky layer: rays, glow, drifting clouds and the floating balloon. Sits behind the stairs. */
-export function SceneryBack({ cup, banner }: BackProps) {
+export function SceneryBack({ cup, banner, viewW = SCENE_W }: BackProps) {
   const bannerW = banner ? Math.max(92, Math.round(banner.length * 7.8 + 18)) : 0;
   return (
-    <svg className="td-layer td-sky" viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} preserveAspectRatio="xMinYMax meet" aria-hidden="true">
+    <svg className="td-layer td-sky" viewBox={`0 0 ${viewW} ${SCENE_H}`} preserveAspectRatio="xMinYMax meet" aria-hidden="true">
       <defs>
         <radialGradient id="tdHalo"><stop offset="0" stopColor="#fff7d1" /><stop offset=".5" stopColor="#ffe58f" stopOpacity=".55" /><stop offset="1" stopColor="#ffe58f" stopOpacity="0" /></radialGradient>
       </defs>
@@ -47,9 +49,9 @@ export function SceneryBack({ cup, banner }: BackProps) {
         <circle className="td-glow" r="230" fill="url(#tdHalo)" />
       </g>
       <g className="td-cloud"><g fill="#fff" opacity=".9"><ellipse cx="330" cy="430" rx="54" ry="15" /><ellipse cx="352" cy="420" rx="30" ry="16" /></g></g>
-      <g className="td-cloud td-c2"><g fill="#fff" opacity=".85"><ellipse cx="900" cy="760" rx="70" ry="20" /><ellipse cx="934" cy="746" rx="40" ry="22" /></g></g>
+      <g className="td-cloud td-c2"><g fill="#fff" opacity=".85"><ellipse cx={Math.max(900, viewW - 40)} cy="760" rx="70" ry="20" /><ellipse cx={Math.max(934, viewW - 6)} cy="746" rx="40" ry="22" /></g></g>
       <g className="td-cloud td-c3"><g fill="#fff" opacity=".7"><ellipse cx="170" cy="250" rx="48" ry="13" /><ellipse cx="190" cy="242" rx="26" ry="14" /></g></g>
-      <g transform="translate(715 640)">
+      <g transform={`translate(${Math.max(715, cup.x + 40)} 640)`}>
         <g className="td-balloon">
           <path d="M0 -70 C40 -70 52 -30 34 0 L14 26 H-14 L-34 0 C-52 -30 -40 -70 0 -70Z" fill="#ff7a9c" />
           <path d="M0 -70 C18 -70 22 -30 14 0 L6 26 H-6 L-14 0 C-22 -30 -18 -70 0 -70Z" fill="#ffc83d" />

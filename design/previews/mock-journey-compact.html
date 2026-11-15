@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--blue:#1c8fe3;--pink:#ff7a9c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1600px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1600px;height:925px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#fff8e1;border-color:#f6dc8f;color:#d99a00}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.top{position:absolute;left:40px;right:40px;top:22px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.top h2{font-weight:900;font-size:26px;letter-spacing:-.6px}
+.seg{display:flex;background:#f1f3f1;border-radius:16px;padding:4px}
+.seg span{padding:8px 16px;border-radius:12px;font-weight:900;font-size:14.5px;color:#5e6962}.seg span.on{background:#fff;color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.06)}
+.box{position:absolute;left:40px;right:40px;top:92px;bottom:24px;border-radius:30px;overflow:hidden}
+.hcard{position:absolute;left:22px;top:22px;width:330px;z-index:4;background:rgba(255,255,255,.95);border-radius:24px;padding:18px 20px;box-shadow:0 8px 0 rgba(47,58,51,.06)}
+.hcard small{font-weight:900;font-size:12.5px;letter-spacing:.4px}
+.hcard h1{font-weight:900;font-size:23px;letter-spacing:-.6px;line-height:1.18;margin-top:4px}.hcard h1 em{font-style:normal;color:#e0970f}
+.hcard .big{font-weight:900;font-size:56px;letter-spacing:-2.5px;line-height:1;margin-top:14px;padding-top:14px;border-top:2px solid #f2f3f2}
+.hcard .big span{font-size:18px;color:var(--mut);letter-spacing:0;margin-left:4px}
+.pill{display:inline-flex;border-radius:99px;padding:4px 11px;font-weight:900;font-size:13px;background:#e3f6e6;color:var(--gd);margin-top:8px}
+.rows{margin-top:10px}
+.rows div{display:flex;justify-content:space-between;font-weight:900;font-size:14.5px;padding:7px 0;border-top:2px solid #f2f3f2}.rows span{font-weight:800;color:var(--mut)}
+.chip{position:absolute;z-index:4;background:rgba(255,255,255,.92);border-radius:16px;padding:4px;display:flex;box-shadow:0 4px 0 rgba(47,58,51,.06)}
+.chip span{padding:7px 14px;border-radius:12px;font-weight:900;font-size:14px;color:#5e6962}.chip span.on{background:#2f3a33;color:#fff}
+.pick{display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:#f3f9ff;border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;box-shadow:0 0 0 2px #dcecf8}
+.bubble{position:absolute;z-index:4;background:#fff;border-radius:16px;padding:10px 14px;font-weight:800;font-size:14px;box-shadow:0 5px 0 rgba(47,58,51,.08)}
+.panel{position:absolute;right:20px;top:20px;width:300px;z-index:5;display:flex;flex-direction:column;gap:12px}
+.pn{background:#fff;border-radius:22px;padding:16px 18px;box-shadow:0 8px 0 rgba(20,90,130,.12)}
+.pn .h{display:flex;justify-content:space-between}.pn .h b{font-weight:900;font-size:20px}.pn .h small{display:block;font-weight:800;font-size:13px;color:var(--mut)}
+.tag{font-weight:900;font-size:12px;border-radius:99px;padding:3px 10px;background:#fff1c9;color:#a87a00;height:fit-content}
+.pbig{display:flex;align-items:baseline;gap:6px;margin-top:8px}.pbig strong{font-weight:900;font-size:42px;color:#e0557f;line-height:1}.pbig span{font-weight:800;font-size:14px;color:var(--mut)}
+.bar{height:11px;border-radius:99px;background:#ffe3ea;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:#7fcf8c;border-radius:99px}
+.btn{display:block;text-align:center;background:var(--g);color:#fff;border-radius:14px;padding:10px;font-weight:900;font-size:14px;box-shadow:0 4px 0 var(--gd);margin-top:12px}
+.rt h4{font-weight:900;font-size:15px}.rt .r{display:flex;align-items:center;gap:10px;margin-top:10px;font-weight:900;font-size:14px}
+.rt .r i{width:24px;height:24px;border-radius:50%;background:#ff7a9c;color:#fff;display:grid;place-items:center;font-style:normal;font-size:12.5px;flex:none}
+.rt .r span{margin-left:auto;font-weight:800;font-size:12.5px;color:var(--mut)}
+.rt .b{height:6px;border-radius:99px;background:#ffe3ea;margin:6px 0 0 34px}
+.an{position:absolute;z-index:7;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap}
+.an b{width:20px;height:20px;border-radius:50%;background:var(--pink);display:grid;place-items:center;font-size:12px}
+</style></head>
+<body>
+<div class="cap">Gọn · Điểm số (cửa sổ 1600×925 như máy bạn)<small>đường điểm đã đi màu vàng viền trắng; đường còn lại là dấu chân trắng đi xuống chỗ trũng rồi dích dắc lên cờ; đầu trang còn 1 dòng (tên trang + tab); câu tiêu đề vào chung thẻ điểm; nút Tổng/Nghe/Đọc nằm trong cảnh; cảnh cao thêm ~110px nên không bị thu nhỏ; núi trải hết bề ngang</small></div>
+<div class="page" id="S"></div>
+<div class="cap">Gọn · Từng Part<small>tiêu đề "Ghé Part … trước" và ô chọn đề vào chung một thẻ góc trái; các đảo trải rộng giữa thẻ đó và cột phải</small></div>
+<div class="page" id="P"></div>
+<div class="cap">Gọn · Điểm số khi mới có 1 đề (đường mòn kiểu chấm nhỏ để so với dấu chân ở bản trên)<small>sườn núi bắt đầu từ mép trái, cọc đầu tiên đứng giữa sườn; không còn khoảng trời trống bên trái</small></div>
+<div class="page" id="S1"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div><div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv on"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const TOP=t=>`<div class="top"><h2>Hành trình điểm</h2><div class="seg"><span class="${t==='s'?'on':''}">Điểm số</span><span class="${t==='p'?'on':''}">Từng Part</span><span>Các đề 7</span></div></div>`;
+const AN=(n,t,x,y)=>`<span class="an" style="left:${x}px;top:${y}px"><b>${n}</b>${t}</span>`;
+const W=1252,H=809;
+const pine=(x,y,s=1,c='#3f9a54')=>`<g transform="translate(${x} ${y}) scale(${s})"><rect x="-3" y="0" width="6" height="12" fill="#8a5a36"/><path d="M0 -40 L16 -12 H8 L20 4 H-20 L-8 -12 H-16Z" fill="${c}"/></g>`;
+function trailMarks(pts,feet){let o='',acc=0;const step=feet?17:13;for(let i=1;i<pts.length;i++){const [ax,ay]=pts[i-1],[bx,by]=pts[i],L=Math.hypot(bx-ax,by-ay),ang=Math.atan2(by-ay,bx-ax);for(let d=(step-acc%step)%step;d<L;d+=step){const x=ax+(bx-ax)*d/L,y=ay+(by-ay)*d/L,k=Math.round((acc+d)/step);if(feet){const side=k%2?1:-1,px=x-Math.sin(ang)*4*side,py=y+Math.cos(ang)*4*side;o+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="4.2" ry="2.6" transform="rotate(${(ang*180/Math.PI).toFixed(0)} ${px.toFixed(1)} ${py.toFixed(1)})" fill="#fff" opacity=".85"/>`}else o+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.4" fill="#fff" opacity=".8"/>`}acc+=L}return o}
+function mountain(T,best,feet=true){
+ const n=T.length,xEnd=1000,xStart=n>1?Math.max(420,xEnd-(n-1)*95):800,dx=n>1?(xEnd-xStart)/(n-1):0;
+ const ys=s=>700-(s-560)*2.15,P=T.map(([d,s],i)=>[n>1?xStart+i*dx:xStart,ys(s)]),last=P[n-1],pkx=last[0]+170,pky=ys(800);
+ let g=`<defs><linearGradient id="sk${n}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaff"/><stop offset=".7" stop-color="#fdf3e3"/></linearGradient><linearGradient id="mt${n}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd18c"/><stop offset="1" stop-color="#3f9a54"/></linearGradient><linearGradient id="pk${n}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9fb7d9"/><stop offset="1" stop-color="#7d95bd"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sk${n})"/>`;
+ g+=`<circle cx="760" cy="120" r="80" fill="#fff3c4" opacity=".35"/><circle cx="760" cy="120" r="46" fill="#fff3c4"/>`;
+ g+=`<path d="M0 560 L160 470 L300 520 L460 400 L600 480 L720 420 L860 500 L1000 380 L1252 440 V${H} H0Z" fill="#d6e6f5"/><path d="M0 620 L200 540 L380 600 L540 520 L700 600 V${H} H0Z" fill="#c4dcef"/>`;
+ g+=`<g fill="#fff" opacity=".95"><ellipse cx="560" cy="230" rx="56" ry="15"/><ellipse cx="590" cy="218" rx="32" ry="17"/><ellipse cx="330" cy="560" rx="46" ry="12"/></g><g fill="none" stroke="#6b7a90" stroke-width="2" stroke-linecap="round"><path d="M860 170 q7 -7 14 0 q7 -7 14 0"/><path d="M900 150 q5 -5 10 0 q5 -5 10 0"/></g>`;
+ g+=`<path d="M${last[0]-140} ${H} L${pkx} ${pky} L${W+160} ${H}Z" fill="url(#pk${n})"/><path d="M${pkx} ${pky} L${W+160} ${H} L${pkx+50} ${H}Z" fill="#6f87b0" opacity=".55"/><path d="M${pkx-46} ${pky+58} L${pkx} ${pky} L${pkx+48} ${pky+60} L${pkx+30} ${pky+52} L${pkx+16} ${pky+66} L${pkx} ${pky+50} L${pkx-14} ${pky+64} L${pkx-28} ${pky+50}Z" fill="#fff"/>`;
+ g+=`<g transform="translate(${pkx} ${pky})"><line x1="0" y1="0" x2="0" y2="-62" stroke="#3a463e" stroke-width="4"/><path d="M2 -62 Q30 -66 52 -56 Q30 -46 2 -40Z" fill="#ff7a9c"/><text x="24" y="-47" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">800</text></g>`;
+ // ridge: lead-in from left edge
+ const lead=n>1?[[0,H-120],[xStart-160,P[0][1]+90]]:[[0,H-110],[260,H-190]];
+ const R=[...lead,...P,[last[0]+60,last[1]+40],[last[0]+100,last[1]+130],[last[0]+124,H]];
+ g+=`<path d="M${R.map(p=>p.join(' ')).join(' L')} V${H} H0Z" fill="url(#mt${n})"/>`;
+ g+=`<path d="M${last[0]} ${last[1]} L${last[0]+60} ${last[1]+40} L${last[0]+100} ${last[1]+130} L${last[0]+124} ${H} L${last[0]-20} ${H}Z" fill="#2f7d43" opacity=".35"/>`;
+ g+=trailMarks([[last[0]+8,last[1]+6],[last[0]+56,last[1]+38],[pkx-6,pky+14]],false);
+ if(n>1)g+=`<path d="M${P.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M${P.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#ffc83d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+ P.forEach(([x,y],i)=>{if(i===n-1){g+=`<g transform="translate(${x} ${y})"><line x1="0" y1="2" x2="0" y2="-34" stroke="#8a5a36" stroke-width="4"/><rect x="-26" y="-60" width="52" height="26" rx="7" fill="#ffc83d" stroke="#d99a00" stroke-width="2.5"/><text y="-41" font-weight="900" font-size="15.5" fill="#5a3d00" text-anchor="middle">${T[i][1]}</text></g>`;return}g+=`<g transform="translate(${x} ${y})"><line x1="0" y1="2" x2="0" y2="-26" stroke="#8a5a36" stroke-width="4"/><rect x="-22" y="-48" width="44" height="22" rx="6" fill="#c98b4e" stroke="#9e6634" stroke-width="2"/><text y="-32" font-weight="900" font-size="13.5" fill="#fff" text-anchor="middle">${T[i][1]}</text></g>`});
+ g+=`<path d="M0 ${H-56} Q300 ${H-92} 640 ${H-60} T${W} ${H-70} V${H} H0Z" fill="#5bb46b"/>`;
+ [[70,H-56,1],[170,H-70,.9],[300,H-60,1.1],[W-170,H-58,1,'#2f8a42'],[W-110,H-44,1.2,'#2f8a42'],[xStart-60,H-150,.8]].forEach(a=>g+=pine(...a));
+ T.forEach(([d],i)=>g+=`<text x="${P[i][0]}" y="${H-20}" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">${d}</text>`);
+ g+=`<g transform="translate(${W-80} ${H-170})"><rect x="-4" y="0" width="8" height="100" fill="#8a5a36"/><path d="M-58 -6 H46 L60 16 L46 38 H-58Z" fill="#c98b4e" stroke="#9e6634" stroke-width="3"/><text x="-4" y="14" font-weight="900" font-size="14" fill="#fff" text-anchor="middle">Thi 23/12</text><text x="-4" y="31" font-weight="800" font-size="11.5" fill="#fff3dc" text-anchor="middle">còn 38 ngày</text></g>`;
+ return {g,last};
+}
+const SO=(x,y,w)=>`<span class="soc-s" style="position:absolute;left:${x}px;top:${y}px;width:${w}px;z-index:4" data-s="hi"></span>`;
+const SEG3=`<div class="chip" style="right:22px;top:22px"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div>`;
+{const T=[['12/10',620],['22/10',665],['30/10',690],['06/11',725],['09/11',710],['09/11',740],['11/11',765]];const m=mountain(T);
+ document.getElementById('S').innerHTML=SIDE+`<main>${TOP('s')}<div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${m.g}</svg>
+ <div class="hcard"><small style="color:#1c8fe3">MÌNH CÓ KỊP KHÔNG?</small><h1>Còn <em>35 điểm</em>, khoảng 2 đề nữa là cắm cờ</h1><div class="big">765<span>/990 · 11/11</span></div><span class="pill">▲ 25 so với đề trước</span><div class="rows"><div>Nghe <span>400</span></div><div>Đọc <span>365</span></div><div>Tăng từ đề đầu <span style="color:#2f8a42">+145</span></div></div></div>
+ ${SEG3}${SO(m.last[0]+1,m.last[1]-41,62)}<div class="bubble" style="left:${m.last[0]-360}px;top:${m.last[1]-130}px">Cọc mới nhất <b>765</b>, cao nhất từ trước tới giờ!</div>
+ ${AN(1,'câu tiêu đề vào thẻ điểm',380,40)}${AN(2,'Tổng/Nghe/Đọc vào trong cảnh',860,80)}</div></main>`}
+{const T=[['15/11',720]];const m=mountain(T,0,false);
+ document.getElementById('S1').innerHTML=SIDE+`<main>${TOP('s')}<div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${m.g}</svg>
+ <div class="hcard"><small style="color:#1c8fe3">MÌNH CÓ KỊP KHÔNG?</small><h1>Ghi thêm một đề nữa để thấy đà của bạn</h1><div class="big">720<span>/990 · 15/11</span></div><span class="pill" style="background:#f1f3f1;color:#5e6962">Đề đầu tiên của bạn</span><div class="rows"><div>Nghe <span>420</span></div><div>Đọc <span>300</span></div></div></div>
+ ${SEG3}${SO(m.last[0]+1,m.last[1]-41,62)}<div class="bubble" style="left:${m.last[0]-310}px;top:${m.last[1]-50}px">Cọc đầu tiên <b>720</b>, mình leo lên nhé!</div></div></main>`}
+
+// islands
+const tree=(x,y,s=1)=>`<g transform="translate(${x} ${y}) scale(${s})"><rect x="-5" y="-8" width="10" height="30" rx="4" fill="#a26c43"/><circle cx="0" cy="-24" r="22" fill="#5bb46b"/><circle cx="-12" cy="-14" r="14" fill="#4fa55f"/><circle cx="11" cy="-31" r="12" fill="#8fdb9c"/></g>`;
+const palm=(x,y,s=1)=>`<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 14 Q4 -10 0 -34" stroke="#a26c43" stroke-width="5" fill="none"/><path d="M0 -34 q-16 -6 -28 4 M0 -34 q16 -8 28 2 M0 -34 q-8 -16 -22 -16 M0 -34 q10 -14 22 -12" stroke="#5bb46b" stroke-width="6" fill="none" stroke-linecap="round"/></g>`;
+const chest=(x,y,n)=>`<g transform="translate(${x} ${y})"><circle r="30" fill="#fff6c8" opacity=".55"/><rect x="-17" y="-6" width="34" height="20" rx="4" fill="#b8763e"/><path d="M-17 -6 Q0 -24 17 -6Z" fill="#d18f4e"/><rect x="-17" y="-8" width="34" height="5" fill="#ffc83d"/><g transform="translate(18 -22)"><circle r="12" fill="#ff7a9c" stroke="#fff" stroke-width="3"/><text y="4.5" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">${n}</text></g></g>`;
+{const PT=[['1',6,3,190,420],['2',25,4,420,260],['3',39,11,360,600],['4',30,7,620,440],['5',30,3,820,230],['6',16,3,760,690],['7',54,12,860,480]];
+ let g=`<defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8ecff"/><stop offset="1" stop-color="#6fc4ee"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sea)"/>`;
+ g+=`<path d="M60 230 C200 160 560 170 680 260 C760 360 740 560 620 700 C480 800 160 790 90 680 C20 560 10 320 60 230Z" fill="#e2f6ff" opacity=".55"/><path d="M700 160 C820 120 960 160 980 260 C1000 420 990 640 920 760 C840 820 720 800 690 700 C660 560 650 220 700 160Z" fill="#e2f6ff" opacity=".55"/>`;
+ for(let i=0;i<40;i++){const x=(i*173+40)%940,y=180+(i*97)%600;g+=`<path d="M${x} ${y} q7 -5 14 0 q7 5 14 0" fill="none" stroke="#fff" stroke-width="2.4" opacity=".55"/>`}
+ g+=`<text x="120" y="250" font-weight="900" font-size="15" fill="#2d84b8" text-anchor="middle" letter-spacing="1.5">NGHE</text><text x="840" y="140" font-weight="900" font-size="15" fill="#2d84b8" text-anchor="middle" letter-spacing="1.5">ĐỌC</text>`;
+ g+=`<path d="M560 740 Q760 640 800 540" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="2 10"/><path d="M780 520 Q560 520 440 610" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="2 10" opacity=".7"/>`;
+ let signs='';
+ PT.forEach(([n,q,w,x,y])=>{const v=Math.round((q-w)/q*100),r=24+Math.sqrt(q)*12.5,st=v>=85?['#7fd18c','#4fae5f','#2f8a42']:v>=75?['#c6e58c','#98bd56','#a87a00']:['#f8dcc0','#e6b48f','#d64570'],sel=n==='7';
+  g+=`<ellipse cx="${x}" cy="${y+r*.36}" rx="${r*1.16}" ry="${r*.52}" fill="#fff" opacity="${sel?.8:.45}"/>${sel?`<ellipse cx="${x}" cy="${y+r*.36}" rx="${r*1.22}" ry="${r*.58}" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="10 8"/>`:''}<ellipse cx="${x}" cy="${y+r*.2}" rx="${r}" ry="${r*.5}" fill="${st[1]}"/><ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.5}" fill="${st[0]}"/>`;
+  g+=v>=75?tree(x-r*.55,y,.75)+tree(x+r*.55,y+2,.8):palm(x+r*.55,y+4,.8);
+  g+=`<line x1="${x}" y1="${y-r*.32-6}" x2="${x}" y2="${y+4}" stroke="#8a5a36" stroke-width="5"/>`;
+  if(n==='7')g+=chest(x+r*.32,y+r*.3,1);if(n==='3')g+=chest(x-r*.4,y+r*.3,2);
+  signs+=`<div style="position:absolute;left:${x-56}px;top:${y-r*.32-42}px;width:112px;height:36px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:16px;z-index:3;box-shadow:0 4px 0 rgba(20,80,120,.18)${sel?',0 0 0 3px #ff7a9c':''}">Part ${n}<b style="color:${st[2]}">${v}%</b></div>`});
+ g+=`<g transform="translate(540 760)"><path d="M-48 0 H48 L36 22 H-36Z" fill="#a26c43"/></g>`;
+ document.getElementById('P').innerHTML=SIDE+`<main>${TOP('p')}<div class="box"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="position:absolute;inset:0">${g}</svg>${signs}
+ <div class="hcard" style="width:300px"><small style="color:#c23c63">MẤT ĐIỂM Ở ĐÂU?</small><h1>Ghé <em>Part 7</em> rồi <em>Part 3</em> trước</h1><span class="pick">Đề 11/11 · ETS 2024 Test 11 ▾</span></div>
+ ${SO(506,694,68)}
+ <div class="panel"><div class="pn"><div class="h"><div><b>Part 7</b><small>Đọc hiểu · 54 câu</small></div><span class="tag">Ổn</span></div><div class="pbig"><strong>12</strong><span>câu sai</span></div><div class="bar"><i style="width:78%"></i></div><div style="font-weight:800;font-size:12.5px;color:#7a857e;margin-top:5px">78% đúng · đang giảm qua 4 đề</div><span class="btn">Bấm giờ Part 7</span><span class="btn" style="background:#fff;color:#2f8a42;box-shadow:0 0 0 2px #d9e7dc,0 4px 0 #d9e7dc">Xem 12 câu sai</span></div>
+ <div class="pn rt"><h4>Lộ trình của Sóc</h4><div class="r"><i>1</i>Part 7 · Đọc hiểu<span>đã ôn 0/12</span></div><div class="b"></div><div class="r"><i>2</i>Part 3 · Hội thoại<span>đã ôn 0/11</span></div><div class="b"></div></div></div>
+ ${AN(1,'tiêu đề + chọn đề chung một thẻ',360,40)}</div></main>`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

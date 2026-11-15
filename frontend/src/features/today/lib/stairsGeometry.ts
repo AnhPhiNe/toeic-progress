@@ -18,13 +18,15 @@ export interface StairsGeometry {
 }
 
 /**
- * blocks = number of stair blocks before the trophy. The whole climb always spans about the same width and
- * height (440 units of rise), so few blocks become bigger steps instead of a tiny staircase.
+ * blocks = number of stair blocks before the trophy; viewW = scene width in units (780 at 1440px, wider on wide
+ * windows). The climb always rises about 440 units and spreads to fill the width up to the right-hand panel, so the
+ * trophy sits near the panel instead of leaving an empty gap on wide screens.
  */
-export function stairsGeometry(blocks: number): StairsGeometry {
+export function stairsGeometry(blocks: number, viewW: number = SCENE_W): StairsGeometry {
   const n = Math.max(1, blocks);
   const dy = Math.min(110, 440 / n);
-  const dx = Math.min(160, 480 / n);
+  const span = Math.max(420, viewW - 300);
+  const dx = Math.min(110, span / n);
   const tw = Math.max(36, Math.min(76, Math.round(dx * 0.66)));
   const th = Math.round(tw * 30 / 58);
   const bx = (i: number) => 135 + i * dx;
@@ -32,7 +34,7 @@ export function stairsGeometry(blocks: number): StairsGeometry {
   return {
     dx, dy, tw, th, bx, by,
     bh: i => 150 + i * dy,
-    cup: { x: Math.min(680, bx(n) + tw + 16), y: by(n) - 40 },
+    cup: { x: Math.min(viewW - 110, bx(n) + tw + 16), y: by(n) - 40 },
     soc: i => ({ x: bx(i) - 39, y: by(i) - 80 })
   };
 }

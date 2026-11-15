@@ -22,13 +22,13 @@ describe('buildMilestones', () => {
     expect(buildMilestones(sessions, 800)).toEqual({ status: 'empty', target: 800 });
   });
 
-  it('builds a 25-point climb from a single test with the base reached on its date', () => {
+  it('always builds eight even stairs, the gap split in 8 and rounded up to 10', () => {
     const plan = buildMilestones([test('2026-10-01', 620)], 800);
-    expect(values(plan)).toEqual([600, 625, 650, 675, 700, 725, 750, 775, 800]);
-    expect(plan).toMatchObject({ status: 'climbing', step: 25, best: 620, currentIndex: 0, next: { index: 1, value: 625, gap: 5 } });
+    expect(values(plan)).toEqual([560, 590, 620, 650, 680, 710, 740, 770, 800]);
+    expect(plan).toMatchObject({ status: 'climbing', step: 30, best: 620, currentIndex: 2, next: { index: 3, value: 650, gap: 30 } });
     if (plan.status === 'empty') throw new Error('unexpected');
-    expect(plan.steps[0]).toEqual({ value: 600, reached: true, reachedDate: '2026-10-01' });
-    expect(plan.steps[1]).toEqual({ value: 625, reached: false });
+    expect(plan.steps[0]).toEqual({ value: 560, reached: true, reachedDate: '2026-10-01' });
+    expect(plan.steps[3]).toEqual({ value: 650, reached: false });
   });
 
   it('is done with a single target step when the target is at or below the first score', () => {
@@ -39,52 +39,40 @@ describe('buildMilestones', () => {
     }
   });
 
-  it('keeps a below-target base when the target sits just above the first score', () => {
+  it('uses 10-point stairs when the target sits just above the first score', () => {
     const plan = buildMilestones([test('2026-10-01', 705)], 710);
-    expect(values(plan)).toEqual([700, 710]);
-    expect(plan).toMatchObject({ status: 'climbing', currentIndex: 0, next: { index: 1, value: 710, gap: 5 } });
+    expect(values(plan)).toEqual([630, 640, 650, 660, 670, 680, 690, 700, 710]);
+    expect(plan).toMatchObject({ status: 'climbing', step: 10, currentIndex: 7, next: { index: 8, value: 710, gap: 5 } });
   });
 
   it('keeps the best score after a later drop and dates each step by the first test reaching it', () => {
     const plan = buildMilestones([test('2026-10-01', 600), test('2026-10-08', 700), test('2026-10-15', 650)], 800);
     if (plan.status === 'empty') throw new Error('unexpected');
-    expect(plan).toMatchObject({ status: 'climbing', best: 700, currentIndex: 4, next: { index: 5, value: 725, gap: 25 } });
-    expect(plan.steps.slice(0, 5).map(s => s.reachedDate)).toEqual(['2026-10-01', '2026-10-08', '2026-10-08', '2026-10-08', '2026-10-08']);
+    expect(plan).toMatchObject({ status: 'climbing', step: 30, best: 700, currentIndex: 4, next: { index: 5, value: 710, gap: 10 } });
+    expect(plan.steps.slice(0, 5).map(s => s.reachedDate)).toEqual(['2026-10-01', '2026-10-01', '2026-10-08', '2026-10-08', '2026-10-08']);
     expect(plan.steps.slice(5).every(s => !s.reached && s.reachedDate === undefined)).toBe(true);
   });
 
-  it('ends on the exact target when it is not a multiple of the step', () => {
-    const plan = buildMilestones([test('2026-10-01', 610)], 785);
-    expect(plan).toMatchObject({ step: 25 });
-    expect(values(plan)).toEqual([600, 625, 650, 675, 700, 725, 750, 775, 785]);
+  it('ends on the exact target, the first stair at or below the first score', () => {
+    expect(values(buildMilestones([test('2026-10-01', 610)], 785))).toEqual([545, 575, 605, 635, 665, 695, 725, 755, 785]);
+    expect(values(buildMilestones([test('2026-10-01', 500)], 800))).toEqual([480, 520, 560, 600, 640, 680, 720, 760, 800]);
+    expect(values(buildMilestones([test('2026-10-01', 300)], 990))).toEqual([270, 360, 450, 540, 630, 720, 810, 900, 990]);
+    expect(values(buildMilestones([test('2026-10-01', 760)], 800))).toEqual([720, 730, 740, 750, 760, 770, 780, 790, 800]);
   });
 
-  it('widens the step to 50 or 100 for larger ranges', () => {
-    expect(buildMilestones([test('2026-10-01', 500)], 800)).toMatchObject({ step: 50 });
-    expect(values(buildMilestones([test('2026-10-01', 500)], 800))).toEqual([500, 550, 600, 650, 700, 750, 800]);
-    const wide = buildMilestones([test('2026-10-01', 300)], 990);
-    expect(wide).toMatchObject({ step: 100 });
-    expect(values(wide)).toEqual([300, 400, 500, 600, 700, 800, 900, 990]);
-  });
-
-  it('still uses 100 when even 100 needs more than 8 steps', () => {
+  it('collapses stairs that would go below zero onto one 0 stair', () => {
     const plan = buildMilestones([test('2026-10-01', 10)], 990);
-    expect(plan).toMatchObject({ step: 100 });
-    expect(values(plan)).toEqual([0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 990]);
-  });
-
-  it('keeps 25 for short ranges even with fewer than 5 steps', () => {
-    const plan = buildMilestones([test('2026-10-01', 760)], 800);
-    expect(plan).toMatchObject({ step: 25 });
-    expect(values(plan)).toEqual([750, 775, 800]);
+    expect(plan).toMatchObject({ step: 130, currentIndex: 0 });
+    expect(values(plan)).toEqual([0, 80, 210, 340, 470, 600, 730, 860, 990]);
   });
 
   it('orders same-day tests by createdAt for the start score', () => {
     const later = test('2026-10-01', 600, { createdAt: '2026-10-01T15:00:00.000Z' });
     const earlier = test('2026-10-01', 650, { createdAt: '2026-10-01T09:00:00.000Z' });
     const plan = buildMilestones([later, earlier], 800);
-    expect(values(plan)[0]).toBe(650);
-    expect(plan).toMatchObject({ best: 650, currentIndex: 0 });
+    // Start 650 (the earlier test): gap 150 gives 20-point stairs from 640.
+    expect(values(plan)[0]).toBe(640);
+    expect(plan).toMatchObject({ step: 20, best: 650, currentIndex: 0 });
   });
 
   it('marks done with every step reached once the best meets the target', () => {

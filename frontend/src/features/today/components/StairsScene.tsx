@@ -31,6 +31,8 @@ function takeNewStep(target: number, index: number): boolean {
 }
 /** Sparkles thrown when the goal changes: [dx, dy, delay s]. */
 const BURST: [number, number, number][] = [[-96, -70, 0], [90, -88, .05], [-70, 20, .1], [104, -10, .15], [-30, -118, .2], [40, -130, .08], [0, -100, .25]];
+/** Room kept for the right-hand panel (matches .td-layer max-width). */
+const PANEL_ROOM = 400;
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Estimated stairs for a learner with no test yet: dashed blocks from a typical first score up to the trophy. */
@@ -43,13 +45,28 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner }: Prop
   const empty = !plan;
   const p = useMemo(() => plan ?? estimatePlan(target), [plan, target]);
   const blocks = p.steps.length - 1;
-  const g = useMemo(() => stairsGeometry(blocks), [blocks]);
+  const sceneRef = useRef<HTMLDivElement>(null);
+  // Scene width in units: the layers scale with the scene's height, so a wide window gives more room up to the panel.
+  const [viewW, setViewW] = useState(SCENE_W);
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const measure = () => {
+      const h = scene.clientHeight, w = scene.clientWidth - PANEL_ROOM;
+      if (h > 0 && w > 0) setViewW(Math.round(Math.max(SCENE_W, Math.min(1500, w * SCENE_H / h))));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(scene);
+    return () => observer.disconnect();
+  }, []);
+  const g = useMemo(() => stairsGeometry(blocks, viewW), [blocks, viewW]);
   const { tw, th } = g;
   const done = p.status === 'done';
   const cur = empty ? -1 : done ? blocks - 1 : p.currentIndex;
   const nextIdx = !empty && !done && p.next && p.next.index < blocks ? p.next.index : -1;
 
-  const sceneRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ html: ReactNode; x: number; y: number; left?: boolean } | null>(null);
   const move = (event: MouseEvent, html: ReactNode, left = false) => {
     const r = sceneRef.current?.getBoundingClientRect();
@@ -117,9 +134,9 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner }: Prop
 
   return (
     <div className="td-scene" ref={sceneRef}>
-      <SceneryBack cup={g.cup} banner={banner} />
+      <SceneryBack cup={g.cup} banner={banner} viewW={viewW} />
 
-      <svg className="td-layer td-stairs" viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} preserveAspectRatio="xMinYMax meet" role="img"
+      <svg className="td-layer td-stairs" viewBox={`0 0 ${viewW} ${SCENE_H}`} preserveAspectRatio="xMinYMax meet" role="img"
         aria-label={empty ? `Cầu thang tới mục tiêu ${p.target}` : `Bậc ${socAt + 1} trên ${blocks + 1}, điểm cao nhất ${p.best}, mục tiêu ${p.target}`}>
         <defs>
           <linearGradient id="tdgT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffe58f" /><stop offset="1" stopColor="#ffc83d" /></linearGradient>

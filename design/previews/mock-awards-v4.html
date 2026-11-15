@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--blue:#1c8fe3;--bd:#136fb3;--pink:#ff7a9c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px;background:#fff;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#eaf5ff;border-color:#b9dcfa;color:var(--bd)}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;padding:22px 32px;background:#f6f8ff}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.bd svg{display:block;width:100%;overflow:visible}
+/* hero */
+.hero{position:relative;height:290px;border-radius:32px;overflow:hidden;background:radial-gradient(circle at 18% 30%,#7c5ce0 0,transparent 55%),radial-gradient(circle at 85% 10%,#ff7a9c 0,transparent 50%),linear-gradient(120deg,#3b2a9e,#1c6fd8 60%,#18b0c9);color:#fff;display:grid;grid-template-columns:330px 1fr;gap:10px;padding:22px 26px}
+.hero .rays{position:absolute;left:150px;top:150px;width:900px;height:900px;margin:-450px 0 0 -450px;background:repeating-conic-gradient(rgba(255,255,255,.09) 0 8deg,transparent 8deg 22deg);border-radius:50%}
+.lvl{position:relative;z-index:2}
+.lvl small{font-weight:900;font-size:13px;letter-spacing:.6px;opacity:.85}
+.lvl h1{font-weight:900;font-size:30px;letter-spacing:-.8px;line-height:1.05;margin-top:2px}
+.lvl h1 em{font-style:normal;color:#ffe58f}
+.ring{position:absolute;left:0;top:76px;width:200px}
+.shelf{position:relative;z-index:2;display:flex;flex-direction:column}
+.shelf h3{font-weight:900;font-size:15px;opacity:.9;display:flex;justify-content:space-between}
+.shelf h3 span{font-weight:800;font-size:13px;opacity:.8}
+.quests{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px}
+.qc{border-radius:24px;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);padding:12px 14px 14px;display:grid;grid-template-columns:78px 1fr;gap:10px;align-items:center;height:206px;position:relative}
+.qc .bd{width:78px}
+.qc b{font-weight:900;font-size:15.5px;display:block;line-height:1.15}
+.qc p{font-weight:700;font-size:13px;opacity:.9;margin-top:3px;line-height:1.35}
+.qc .pb{grid-column:1 / 3;height:12px;border-radius:99px;background:rgba(0,0,0,.18);overflow:hidden;position:relative}
+.qc .pb i{display:block;height:100%;border-radius:99px}
+.qc .meta{grid-column:1 / 3;display:flex;justify-content:space-between;font-weight:900;font-size:12.5px;margin-top:-4px}
+.qc .star{position:absolute;right:12px;top:10px;background:#ffe58f;color:#6b4a00;border-radius:99px;padding:2px 9px;font-weight:900;font-size:12px}
+.conf{position:absolute;z-index:1;border-radius:2px}
+/* collection */
+.col{margin-top:16px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.fam{border-radius:24px;padding:12px 12px 10px;position:relative;overflow:hidden}
+.fam h4{font-weight:900;font-size:14.5px;display:flex;justify-content:space-between;align-items:center}
+.fam h4 span{font-weight:900;font-size:12px;border-radius:99px;padding:2px 8px;background:rgba(255,255,255,.7)}
+.fam .row{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;margin-top:6px;padding:0 6px}
+.fam .bd{width:100%}
+.fam .bd.lock{opacity:.9}
+.recap{display:flex;gap:12px;margin-top:14px}
+.rc{flex:1;border-radius:20px;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
+.rc b{font-weight:900;font-size:26px}.rc span{font-weight:800;font-size:13px;line-height:1.3}
+.rc:after{content:'';position:absolute;right:-20px;top:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.15)}
+/* sheet */
+.sheet{background:#fff;width:1440px;border-radius:24px;padding:26px 30px}
+.sheet h2{font-weight:900;font-size:22px}
+.sheet .fr{display:grid;grid-template-columns:150px repeat(5,1fr);gap:14px;align-items:center;padding:16px 0;border-top:2px solid #f1f3f6}
+.sheet .fr:first-of-type{border:0}
+.sheet .fr>b{font-weight:900;font-size:16px}
+.sheet .cell{text-align:center}
+.sheet .cell .bd{width:120px;margin:0 auto}
+.sheet .cell b{display:block;font-weight:900;font-size:13.5px;margin-top:4px}.sheet .cell small{font-weight:800;font-size:12px;color:var(--mut)}
+.an{position:absolute;z-index:20;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap}
+.an b{width:20px;height:20px;border-radius:50%;background:var(--pink);display:grid;place-items:center;font-size:12px}
+.legend{width:1440px;background:#fff;border-radius:20px;padding:16px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.legend div{font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.45}.legend b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pink);color:#fff;font-size:12px;margin-right:6px}.legend strong{color:var(--ink)}
+</style></head>
+<body>
+<div class="cap">C mới · Thành tích lần đầu mở<small>khối trời tím xanh có tia sáng và confetti; thẻ cấp độ với vòng sao vàng; 3 nhiệm vụ gần đạt nhất ngay trong khối đầu; bộ sưu tập chia 5 ô màu theo nhóm; huy hiệu vẽ lại hoàn toàn</small></div>
+<div class="page" id="P"></div>
+<div class="legend"><div><b>1</b><strong>Lần đầu vào trang:</strong> confetti rơi 1 lần, số sao đếm từ 0 lên, vòng sao chạy tới mức hiện tại.</div><div><b>2</b><strong>Nhiệm vụ:</strong> thanh tiến độ chạy; huy hiệu sắp đạt rung nhẹ mỗi vài giây; xong thì thẻ lật, huy hiệu bay vào ô của nó.</div><div><b>3</b><strong>Huy hiệu đã có:</strong> vệt sáng lướt qua theo chu kỳ; rê chuột thì xoay nghiêng 3D, hiện ngày đạt.</div><div><b>4</b><strong>Chưa có:</strong> hình tối có ổ khoá và vòng tiến độ quanh viền; rê chuột hiện "còn N…".</div></div>
+<div class="cap">Bộ huy hiệu vẽ lại (cỡ lớn)<small>mỗi nhóm một hình riêng + biểu tượng riêng (cúp, lửa, sách, khiên Part, viên ngọc); viền theo hạng vàng / bạc / đồng; dải băng ghi con số; chưa có thì tối màu, có khoá và vòng tiến độ</small></div>
+<div class="sheet" id="S"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div><div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv on"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+let UID=0;
+const RIM={g:['#fff3b0','#ffcf3d','#d98e00'],s:['#ffffff','#cfd8e3','#8796a8'],b:['#ffd9b0','#e39550','#a8561f']};
+const FAMC={score:['#ffb347','#ff7a3d'],streak:['#ff8a5c','#ff3d6e'],effort:['#7be08f','#2fb36b'],part:['#6fc3ff','#3d6dff'],secret:['#c9a3ff','#7c4dff']};
+const ICON={
+ trophy:`<path d="M44 40 H76 V52 A16 16 0 0 1 44 52Z" fill="#fff"/><path d="M44 44 H36 C36 54 40 58 46 58 M76 44 H84 C84 54 80 58 74 58" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="56" y="66" width="8" height="8" fill="#fff"/><rect x="48" y="73" width="24" height="6" rx="3" fill="#fff"/>`,
+ rocket:`<path d="M60 32 C72 40 74 56 70 68 H50 C46 56 48 40 60 32Z" fill="#fff"/><circle cx="60" cy="50" r="5" fill="${'#ff7a3d'}"/><path d="M50 62 L42 72 L50 70 M70 62 L78 72 L70 70" fill="#fff"/><path d="M54 70 Q60 84 66 70" fill="#ffe58f"/>`,
+ chart:`<path d="M38 74 L52 58 L62 66 L80 44" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 42 H82 V54" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`,
+ flag:`<path d="M46 34 V80" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M48 36 Q64 30 78 40 Q64 50 48 46Z" fill="#fff"/><path d="M36 80 L50 62 L60 70 L72 56 L84 80Z" fill="rgba(255,255,255,.55)"/>`,
+ flame:`<path d="M60 32 C64 44 78 48 78 62 A18 17 0 0 1 42 62 C42 54 48 50 50 42 C54 48 58 46 60 32Z" fill="#fff"/><path d="M60 52 C63 58 69 60 69 66 A9 8 0 0 1 51 66 C51 61 56 60 60 52Z" fill="#ffd25e"/>`,
+ book:`<path d="M60 44 C52 38 42 38 34 40 V74 C42 72 52 72 60 78 C68 72 78 72 86 74 V40 C78 38 68 38 60 44Z" fill="#fff"/><path d="M60 44 V78" stroke="${'#2fb36b'}" stroke-width="3"/><path d="M40 48 H54 M40 56 H54 M66 48 H80 M66 56 H80" stroke="#bfe8ca" stroke-width="3" stroke-linecap="round"/>`,
+ pencil:`<path d="M42 76 L46 62 L72 36 L82 46 L56 72Z" fill="#fff"/><path d="M42 76 L46 62 L56 72Z" fill="#ffe58f"/><path d="M68 40 L78 50" stroke="#2fb36b" stroke-width="3"/>`,
+ cards:`<rect x="40" y="40" width="32" height="40" rx="6" fill="rgba(255,255,255,.55)" transform="rotate(-12 56 60)"/><rect x="48" y="36" width="32" height="40" rx="6" fill="#fff"/><path d="M56 56 l5 5 9 -11" fill="none" stroke="#2fb36b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
+ shield:``,
+ owl:`<ellipse cx="60" cy="58" rx="22" ry="24" fill="#fff"/><circle cx="51" cy="54" r="7" fill="#7c4dff"/><circle cx="69" cy="54" r="7" fill="#7c4dff"/><circle cx="52" cy="53" r="2.5" fill="#fff"/><circle cx="70" cy="53" r="2.5" fill="#fff"/><path d="M56 64 L60 70 L64 64Z" fill="#ffc83d"/><path d="M40 38 L48 46 M80 38 L72 46" stroke="#fff" stroke-width="5" stroke-linecap="round"/>`,
+ back:`<path d="M78 58 A18 18 0 1 1 72 44" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M66 36 L76 44 L66 50" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`,
+ up50:`<path d="M60 34 L78 56 H66 V78 H54 V56 H42Z" fill="#fff"/>`,
+ sun:`<circle cx="60" cy="58" r="11" fill="#fff"/>${[0,1,2,3,4,5,6,7].map(k=>{const a=k*Math.PI/4;return `<path d="M${60+Math.cos(a)*16} ${58+Math.sin(a)*16} L${60+Math.cos(a)*23} ${58+Math.sin(a)*23}" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`}).join('')}`,
+ q:`<text x="60" y="70" text-anchor="middle" font-weight="900" font-size="34" fill="rgba(255,255,255,.9)">?</text>`
+};
+function shapePath(f){return {score:'M60 6 L72 16 L88 14 L92 30 L106 40 L100 56 L106 72 L92 82 L88 98 L72 96 L60 106 L48 96 L32 98 L28 82 L14 72 L20 56 L14 40 L28 30 L32 14 L48 16Z',
+ streak:'M60 4 C70 26 104 36 104 70 A44 40 0 0 1 16 70 C16 50 32 40 36 20 C44 34 54 36 60 4Z',
+ effort:'M60 6 L104 30 V82 L60 106 L16 82 V30Z',
+ part:'M60 6 L100 20 V54 C100 82 82 98 60 108 C38 98 20 82 20 54 V20Z',
+ secret:'M30 22 L46 8 H74 L90 22 L104 40 L60 108 L16 40Z'}[f]}
+// badge(fam,tier,icon,label,locked,progress)
+function badge(f,t,ic,label,locked=false,prog=0){const id='b'+(UID++),[r1,r2,r3]=RIM[t]||RIM.s,[c1,c2]=FAMC[f],d=shapePath(f);
+ const L=locked;let s=`<svg viewBox="0 0 120 136"><defs>
+ <linearGradient id="${id}r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${L?'#f4f6fa':r1}"/><stop offset=".5" stop-color="${L?'#dde3ec':r2}"/><stop offset="1" stop-color="${L?'#c3ccda':r3}"/></linearGradient>
+ <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+ <clipPath id="${id}c"><path d="${d}" transform="translate(60 57) scale(.78) translate(-60 -57)"/></clipPath></defs>`;
+ if(!L)s+=`<ellipse cx="60" cy="122" rx="34" ry="6" fill="rgba(0,0,0,.12)"/>`;
+ s+=`<path d="${d}" fill="url(#${id}r)" ${L?'':'filter="drop-shadow(0 3px 0 rgba(0,0,0,.15))"'}/>`;
+ s+=`<path d="${d}" transform="translate(60 57) scale(.78) translate(-60 -57)" fill="${L?'#fff':`url(#${id}f)`}"/>`;if(L)s+=`<path d="${d}" transform="translate(60 57) scale(.78) translate(-60 -57)" fill="url(#${id}f)" opacity=".32"/>`;
+ s+=`<g clip-path="url(#${id}c)"><path d="M0 0 L120 0 L0 70Z" fill="#fff" opacity="${L?.04:.16}"/>${L?'':`<rect class="shine" x="10" y="-20" width="16" height="160" fill="#fff" opacity=".22" transform="rotate(25 60 60)"/>`}</g>`;
+ if(f==='part')s+=`<text x="60" y="68" text-anchor="middle" font-weight="900" font-size="30" fill="#fff" opacity="${L?.85:1}">${label}</text>`;
+ else s+=`<g opacity="${L?.85:1}">${L&&f==='secret'?ICON.q:ICON[ic]}</g>`;
+ // ribbon
+ if(label&&f!=='part'){const txt=L&&f==='part'?label:label;s+=`<path d="M22 100 H98 L92 110 L98 120 H22 L28 110Z" fill="${L?'#b8c1d1':t==='g'?'#ff5c7a':t==='b'?'#c86a2a':'#5b6b80'}"/><path d="M28 100 H92 V118 H28Z" fill="${L?'#cbd2de':t==='g'?'#ff7a9c':t==='b'?'#e08a45':'#7a8aa0'}"/><text x="60" y="114" text-anchor="middle" font-weight="900" font-size="11.5" fill="#fff" letter-spacing=".4">${txt}</text>`}
+ if(L){s+=`<g transform="translate(92 22)"><circle r="13" fill="#8e99ad" stroke="#fff" stroke-width="3"/><rect x="-6" y="-2" width="12" height="9" rx="2" fill="#fff"/><path d="M-4 -2 V-5 A4 4 0 0 1 4 -5 V-2" fill="none" stroke="#fff" stroke-width="2.4"/></g>`;
+  if(prog)s+=`<rect x="30" y="128" width="60" height="6" rx="3" fill="#e3e7ee"/><rect x="30" y="128" width="${60*prog}" height="6" rx="3" fill="${c2}"/>`}
+ else s+=`<g fill="#fff"><path d="M14 18 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5Z"/><path d="M104 86 l2 4.5 4.5 2 -4.5 2 -2 4.5 -2 -4.5 -4.5 -2 4.5 -2Z"/></g>`;
+ return s+'</svg>'}
+const BD=(...a)=>`<div class="bd">${badge(...a)}</div>`;
+const SO=(m,w,st='')=>`<span class="soc-s" style="width:${w}px;${st}" data-s="${m}"></span>`;
+const AN=(n,t,x,y)=>`<span class="an" style="left:${x}px;top:${y}px"><b>${n}</b>${t}</span>`;
+// data: [fam,tier,icon,label,title,have,progress,sub]
+const ALL=[
+ ['score','g','rocket','ĐỀ ĐẦU','Đề đầu tiên',1,0,'12/10'],['score','g','chart','KỶ LỤC','Kỷ lục mới',1,0,'22/10'],['score','s','chart','3 LẦN','Kỷ lục 3 lần liền',1,0,'06/11'],['score','s','up50','+100','Lên 100 điểm',1,0,'06/11'],['score','g','trophy','800','Chạm mục tiêu',0,.85,'còn 35 điểm'],
+ ['streak','b','flame','3 NGÀY','Chuỗi 3 ngày',0,.67,'còn 1 ngày'],['streak','s','flame','7 NGÀY','Chuỗi 7 ngày',0,.28,'còn 5 ngày'],['streak','g','flame','14 NGÀY','Chuỗi 14 ngày',0,.14,'còn 12 ngày'],['streak','g','flame','30 NGÀY','Chuỗi 30 ngày',0,.07,'còn 28 ngày'],
+ ['effort','b','book','5 ĐỀ','5 đề full',1,0,'09/11'],['effort','s','book','20 ĐỀ','20 đề full',0,.35,'còn 13'],['effort','b','pencil','10 BÀI','10 bài luyện',0,.4,'còn 6'],['effort','s','cards','50 CÂU','Ôn 50 câu',0,.2,'còn 40'],['effort','g','cards','200 CÂU','Ôn 200 câu',0,.05,'còn 190'],
+ ['part','s','','P3','Gỡ Part 3',0,.5,'sai 11, cần ≤ 6'],['part','s','','P5','Gỡ Part 5',1,0,'09/11'],['part','s','','P6','Gỡ Part 6',1,0,'11/11'],['part','g','','P7','Gỡ Part 7',0,.6,'sai 12, cần ≤ 10'],
+ ['secret','g','owl','','Cú đêm',0,0,'tự khám phá'],['secret','g','back','TRỞ LẠI','Trở lại',1,0,'22/10'],['secret','g','up50','+50','Làm lại bứt phá',1,0,'11/11'],['secret','g','sun','','Cuối tuần chăm',0,0,'tự khám phá']];
+const FN={score:['Điểm số','#fff4dc','#a86a00'],streak:['Chuỗi ngày','#ffe9ee','#d6416a'],effort:['Chăm chỉ','#e6f8ea','#24894f'],part:['Gỡ Part','#e6f1ff','#2c5fd6'],secret:['Bí mật','#f1e9ff','#6a3fe0']};
+const mk=a=>badge(a[0],a[1],a[2],a[5]?a[3]:(a[0]==='part'?a[3]:a[3]),!a[5],a[6]);
+// page
+{const cf=['#ffe58f','#ff9eb8','#7be08f','#7ec8ff','#fff'];let conf='';for(let i=0;i<34;i++){conf+=`<i class="conf" style="left:${(i*137)%1080}px;top:${(i*53)%280}px;width:${i%3?8:5}px;height:${i%3?4:9}px;background:${cf[i%5]};transform:rotate(${i*41}deg);opacity:.85"></i>`}
+ const Q=[ALL[5],ALL[4],ALL[17]],QT=['Học thêm ngày mai là có.','Khoảng 2 đề nữa nếu giữ đà.','Ôn 12 câu Part 7 trong Sổ tay.'],QC=['#ff8a5c,#ff3d6e','#ffd25e,#ff9a2e','#6fc3ff,#3d6dff'],QS=[1,3,2];
+ const R=80,C=2*Math.PI*R;
+ const cols=['score','streak','effort','part','secret'].map(f=>{const it=ALL.filter(a=>a[0]===f),have=it.filter(a=>a[5]).length;return `<div class="fam" style="background:${FN[f][1]}"><h4 style="color:${FN[f][2]}">${FN[f][0]}<span>${have}/${it.length}</span></h4><div class="row">${it.map(a=>`<div class="bd">${mk(a)}</div>`).join('')}</div></div>`}).join('');
+ document.getElementById('P').innerHTML=SIDE+`<main>
+ <div class="hero"><span class="rays"></span>${conf}
+  <div class="lvl"><small>CẤP CỦA BẠN</small><h1>Cấp 4 · <em>Thợ săn điểm</em></h1>
+   <svg class="ring" viewBox="0 0 200 200"><circle cx="100" cy="100" r="${R}" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.22)" stroke-width="18"/><circle cx="100" cy="100" r="${R}" fill="none" stroke="#ffd25e" stroke-width="18" stroke-linecap="round" stroke-dasharray="${C*.64} ${C}" transform="rotate(-90 100 100)"/><path d="M100 64 l7 14 15 2 -11 11 3 15 -14 -7 -14 7 3 -15 -11 -11 15 -2Z" fill="#ffd25e"/><text x="100" y="134" text-anchor="middle" font-weight="900" font-size="34" fill="#fff">23 ⭑</text><text x="100" y="154" text-anchor="middle" font-weight="800" font-size="12" fill="#d8ecff">còn 13 sao lên cấp 5</text></svg>
+   ${SO('hi',112,'position:absolute;left:196px;top:150px')}
+   <div style="position:absolute;left:206px;top:96px;background:#fff;color:#2f3a33;border-radius:14px;padding:6px 10px;font-weight:900;font-size:12.5px;white-space:nowrap">9/22 huy hiệu!</div></div>
+  <div class="shelf"><h3>Sắp mở khoá <span>vàng 3 ⭑ · bạc 2 ⭑ · đồng 1 ⭑</span></h3>
+   <div class="quests">${Q.map((a,k)=>`<div class="qc"><span class="star">+${QS[k]} ⭑</span><div class="bd">${badge(a[0],a[1],a[2],a[3],true,a[6])}</div><div><b>${a[4]}</b><p>${QT[k]}</p></div><div class="pb"><i style="width:${a[6]*100}%;background:linear-gradient(90deg,${QC[k]})"></i></div><div class="meta"><span>${a[7]}</span><span>${Math.round(a[6]*100)}%</span></div></div>`).join('')}</div></div>
+ </div>
+ <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><b style="font-weight:900;font-size:19px">Bộ sưu tập · 9/22</b><span style="font-weight:800;font-size:13px;color:#7a857e">mới nhất: Gỡ Part 6 · 11/11</span></div>
+ <div class="col" style="margin-top:8px">${cols}</div>
+ <div class="recap">${[['linear-gradient(120deg,#46b35a,#2fb39a)','+35','Tuần 02/11 · kỷ lục 725'],['linear-gradient(120deg,#1c8fe3,#3d6dff)','+25','Tuần 26/10 · kỷ lục 690'],['linear-gradient(120deg,#a78bfa,#ff7a9c)','+45','Tuần 19/10 · kỷ lục 665']].map(([c,n,t],k)=>`<div class="rc" style="background:${c}"><b>${n}</b><span>${t}<br>1 đề full · học 1/7 ngày</span>${k===0?'<i style="margin-left:auto;z-index:2;font-style:normal;background:#fff;color:#d6416a;border-radius:99px;padding:3px 9px;font-weight:900;font-size:12px">MỚI</i>':''}</div>`).join('')}</div>
+ ${AN(1,'confetti + sao đếm lên lần đầu vào',40,800)}${AN(2,'thẻ nhiệm vụ trong suốt trên nền màu',420,800)}
+ </main>`}
+// sheet
+{document.getElementById('S').innerHTML=`<h2>Bộ huy hiệu mới</h2>`+['score','streak','effort','part','secret'].map(f=>{const it=ALL.filter(a=>a[0]===f);return `<div class="fr"><b style="color:${FN[f][2]}">${FN[f][0]}</b>${it.map(a=>`<div class="cell"><div class="bd">${mk(a)}</div><b>${a[5]||a[0]!=='secret'?a[4]:'???'}</b><small>${a[7]}</small></div>`).join('')}${it.length<5?'<div></div>':''}</div>`}).join('')}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

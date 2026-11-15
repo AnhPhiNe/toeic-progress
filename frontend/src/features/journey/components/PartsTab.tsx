@@ -4,7 +4,7 @@ import { PART_NUMBERS, type PartNumber } from '@/shared/domain/questionNumbers';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { PART_NAMES, ddmm, fullTests, partSize, wrongCountsByPart } from '../lib/journeyData';
 import { ISLAND_STATE_LABEL, chestPlan, islandState, partAccuracy, partChests, wrongTrend, type IslandState } from '../lib/islands';
-import { BOAT_POS, ISLAND_POS, MAP_H, MAP_W, SIGN_H, SIGN_W, boatRoute, chestSpot, radiusOf, signBox } from '../lib/islandMap';
+import { MAP_H, MIN_MAP_W, SIGN_H, SIGN_W, boatRoute, chestSpot, mapLayout, radiusOf, signBox } from '../lib/islandMap';
 import { SceneStage } from './SceneStage';
 
 interface Props {
@@ -92,7 +92,6 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
   const now = test ? wrongCountsByPart(test)! : null;
   const chests = useMemo(() => (test && now ? partChests(test, now, mistakes) : null), [test, now, mistakes]);
   const plan = useMemo(() => (chests ? chestPlan(chests) : { numbered: [], opened: [] }), [chests]);
-  const route = useMemo(() => boatRoute(plan.numbered), [plan.numbered]);
 
   if (!test || !now || !chests) {
     return (
@@ -126,7 +125,8 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
     ...plan.numbered.map((part, i) => ({ part, rank: i + 1 })),
     ...plan.opened.slice(0, 2).map(part => ({ part, rank: 0 }))
   ];
-  const order = [...PART_NUMBERS].sort((a, b) => ISLAND_POS[a][1] - ISLAND_POS[b][1]);
+  const baseY = mapLayout(MIN_MAP_W).pos;
+  const order = [...PART_NUMBERS].sort((a, b) => baseY[a][1] - baseY[b][1]);
   const tipChest = tip && chests[tip].wrong > 0 ? chests[tip] : null;
   const detail = chests[shown];
   const look = LOOK[islandState(acc(shown))];
@@ -136,41 +136,37 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
   const spark = series.map((v, i) => [8 + i * (80 / Math.max(1, series.length - 1)), hi === lo ? 15 : 26 - (v - lo) / (hi - lo) * 22] as const);
 
   return (
-    <div>
-      <div className="jr-hl">
-        <div><small className="is-pink">Mất điểm ở đâu?</small><h2>{headline}</h2></div>
-        <label className="jr-dd">
-          <span className="sr-only">Chọn đề</span>
-          <select value={test.id} onChange={e => { setPick(e.target.value); setSel(null); setTip(null); }}>
-            {withParts.map(s => <option key={s.id} value={s.id}>Đề {ddmm(s.date)} · {s.testName}</option>)}
-          </select>
-        </label>
-      </div>
-      <SceneStage width={MAP_W} height={MAP_H} className="jr-sea">
-        <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} role="group" aria-label={`Câu sai theo Part của đề ${ddmm(test.date)}`}>
+    <SceneStage height={MAP_H} minWidth={MIN_MAP_W} className="jr-sea">{W => {
+      const L = mapLayout(W);
+      const route = boatRoute(plan.numbered, L);
+      const sb1 = signBox(1, L), sb5 = signBox(5, L), f = L.space / (MIN_MAP_W - 306);
+      return (<>
+        <svg width={W} height={MAP_H} viewBox={`0 0 ${W} ${MAP_H}`} role="group" aria-label={`Câu sai theo Part của đề ${ddmm(test.date)}`}>
           <defs><linearGradient id="jm-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c8ecff" /><stop offset="1" stopColor="#6fc4ee" /></linearGradient></defs>
-          <rect width={MAP_W} height={MAP_H} fill="url(#jm-sea)" />
-          <path d="M20 120 C120 60 380 70 470 150 C540 230 520 420 430 560 C330 650 120 640 50 560 C-10 470 -20 200 20 120Z" fill="#e2f6ff" opacity=".55" />
-          <path d="M500 90 C600 60 740 90 750 180 C770 300 760 520 700 640 C640 690 520 680 490 600 C470 480 470 180 500 90Z" fill="#e2f6ff" opacity=".55" />
+          <rect width={W} height={MAP_H} fill="url(#jm-sea)" />
+          <g transform={`scale(${W / 1068} 1)`}>
+            <path d="M20 120 C120 60 380 70 470 150 C540 230 520 420 430 560 C330 650 120 640 50 560 C-10 470 -20 200 20 120Z" fill="#e2f6ff" opacity=".55" />
+            <path d="M500 90 C600 60 740 90 750 180 C770 300 760 520 700 640 C640 690 520 680 490 600 C470 480 470 180 500 90Z" fill="#e2f6ff" opacity=".55" />
+          </g>
           {[0, 1].map(g => (
             <g key={g} className="jr-waves" style={{ '--x': g ? '-14px' : '16px', '--t': g ? '11s' : '8s' } as CSSProperties} fill="none" stroke="#fff" strokeWidth="2.4" opacity=".55" strokeLinecap="round">
-              {Array.from({ length: 17 }, (_, k) => { const i = k * 2 + g, x = (i * 173 + 40) % 760, y = 40 + (i * 97) % 640; return <path key={i} d={`M${x} ${y} q7 -5 14 0 q7 5 14 0`} />; })}
+              {Array.from({ length: 17 }, (_, k) => { const i = k * 2 + g, x = (i * 173 + 40) % (W - 40), y = 40 + (i * 97) % 640; return <path key={i} d={`M${x} ${y} q7 -5 14 0 q7 5 14 0`} />; })}
             </g>
           ))}
-          <text x="250" y="52" fontWeight="900" fontSize="15" fill="#2d84b8" textAnchor="middle" letterSpacing="1.5">NGHE</text>
-          <text x="625" y="52" fontWeight="900" fontSize="15" fill="#2d84b8" textAnchor="middle" letterSpacing="1.5">ĐỌC</text>
-          <g className="jr-gull" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M440 110 q7 -7 14 0 q7 -7 14 0" /><path d="M470 92 q5 -5 10 0 q5 -5 10 0" /></g>
-          <g transform="translate(60 450)"><g className="jr-bob"><path d="M-22 0 H22 L14 12 H-14Z" fill="#fff" /><path d="M0 -2 V-40 L22 -6Z" fill="#ffc83d" /><path d="M-2 -6 V-32 L-18 -6Z" fill="#fff" /></g></g>
-          <g transform="translate(720 300)"><path d="M0 0 q-12 -18 -22 -14 q8 6 14 18 q6 -12 14 -18 q-10 -4 -6 14Z" fill="#4a90c2" /><path d="M-16 6 q16 6 32 0" stroke="#fff" strokeWidth="2" fill="none" /></g>
+          <text x={sb1.x + sb1.w / 2} y={sb1.y - 20} fontWeight="900" fontSize="15" fill="#2d84b8" textAnchor="middle" letterSpacing="1.5">NGHE</text>
+          <text x={sb5.x + sb5.w / 2} y={sb5.y - 20} fontWeight="900" fontSize="15" fill="#2d84b8" textAnchor="middle" letterSpacing="1.5">ĐỌC</text>
+          <g className="jr-gull" transform={`translate(${L.space * .6 - 440} 0)`} fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M440 110 q7 -7 14 0 q7 -7 14 0" /><path d="M470 92 q5 -5 10 0 q5 -5 10 0" /></g>
+          <g transform={`translate(${L.boat[0] - 260 * f} ${L.boat[1] - 195})`}><g className="jr-bob"><path d="M-22 0 H22 L14 12 H-14Z" fill="#fff" /><path d="M0 -2 V-40 L22 -6Z" fill="#ffc83d" /><path d="M-2 -6 V-32 L-18 -6Z" fill="#fff" /></g></g>
+          <g transform={`translate(${L.space * .86} 330)`}><path d="M0 0 q-12 -18 -22 -14 q8 6 14 18 q6 -12 14 -18 q-10 -4 -6 14Z" fill="#4a90c2" /><path d="M-16 6 q16 6 32 0" stroke="#fff" strokeWidth="2" fill="none" /></g>
 
           {route.map((leg, i) => <path key={i} className="jr-route" d={leg.d} fill="none" stroke="#fff" strokeWidth="4" strokeDasharray="2 10" strokeLinecap="round" opacity={i ? .7 : 1} />)}
 
           {order.map(p => {
-            const [x, y] = ISLAND_POS[p], r = radiusOf(p), pct = acc(p), state = islandState(pct), c = LOOK[state], on = p === shown;
-            const sb = signBox(p), ch = chests[p];
+            const [x, y] = L.pos[p], r = radiusOf(p), pct = acc(p), state = islandState(pct), c = LOOK[state], on = p === shown;
+            const sb = signBox(p, L), ch = chests[p];
             const rank = plan.numbered.indexOf(p);
             const showChest = rank >= 0 || ch.open;
-            const [cx, cy] = chestSpot(p, rank === 1 ? 1 : 0);
+            const [cx, cy] = chestSpot(p, rank === 1 ? 1 : 0, L);
             return (
               <g key={p} className={'jr-isl' + (on ? ' is-on' : '')} role="button" tabIndex={0}
                 aria-label={`Part ${p}: ${pct}% đúng, ${ch.wrong} câu sai${rank >= 0 ? `, rương số ${rank + 1}` : ''}`} aria-pressed={on}
@@ -196,19 +192,30 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
             );
           })}
 
-          <g transform={`translate(${BOAT_POS[0]} ${BOAT_POS[1]})`}>
+          <g transform={`translate(${L.boat[0]} ${L.boat[1]})`}>
             <g className="jr-bob"><path d="M-48 0 H48 L36 22 H-36Z" fill="#a26c43" /><path d="M-48 0 H48" stroke="#7d4f2e" strokeWidth="4" /></g>
             <path d="M-60 26 q12 -6 24 0 q12 6 24 0 q12 -6 24 0 q12 6 24 0 q12 -6 24 0" stroke="#fff" strokeWidth="2.5" fill="none" />
           </g>
           {tipChest && (() => {
-            const rank = plan.numbered.indexOf(tipChest.part), [tx, ty] = chestSpot(tipChest.part, rank === 1 ? 1 : 0);
+            const rank = plan.numbered.indexOf(tipChest.part), [tx, ty] = chestSpot(tipChest.part, rank === 1 ? 1 : 0, L);
             const text = tipChest.open ? 'Đã gỡ hết câu sai' : `${tipChest.remaining} câu gỡ lại được`;
-            const w = 20 + text.length * 7.4, x = Math.max(8, Math.min(MAP_W - 300 - w, tx - w / 2));
+            const w = 20 + text.length * 7.4, x = Math.max(8, Math.min(L.space - w - 8, tx - w / 2));
             return <g className="jr-tip2" pointerEvents="none"><rect x={x} y={ty - 66} width={w} height="30" rx="15" fill="#2f3a33" /><text x={x + w / 2} y={ty - 46} fontWeight="900" fontSize="13" fill="#fff" textAnchor="middle">{text}</text></g>;
           })()}
         </svg>
 
-        <div className="jr-boat-soc"><span className="jr-bob"><Soc state="hi" size={68} /></span></div>
+        <div className="jr-card is-parts">
+          <small className="jr-kick is-pink">Mất điểm ở đâu?</small>
+          <h2>{headline}</h2>
+          <label className="jr-dd">
+            <span className="sr-only">Chọn đề</span>
+            <select value={test.id} onChange={e => { setPick(e.target.value); setSel(null); setTip(null); }}>
+              {withParts.map(s => <option key={s.id} value={s.id}>Đề {ddmm(s.date)} · {s.testName}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="jr-boat-soc" style={{ left: L.boat[0] - 34, top: L.boat[1] - 66 }}><span className="jr-bob"><Soc state="hi" size={68} /></span></div>
 
         <div className="jr-side">
         <div className="jr-pn" aria-live="polite">
@@ -258,8 +265,8 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
             <button type="button" className="jr-hx" aria-label="Đóng chú thích" onClick={() => setHelp(false)}>×</button>
           </div>
         )}
-      </SceneStage>
-    </div>
+      </>);
+    }}</SceneStage>
   );
 }
 
