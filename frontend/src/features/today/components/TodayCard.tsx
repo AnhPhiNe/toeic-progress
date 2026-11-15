@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import type { Habit } from '@/shared/types';
 import type { StreakWeek, WeeklyGoal } from '@/shared/domain/streakWeek';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -38,12 +38,10 @@ function useFirstDoneCheer(doneCount: number, today: string): boolean {
   return on;
 }
 
-const ICON: Record<TodayTask['kind'], [string, string]> = {
-  REVIEW_MISTAKES: ['📕', '#ffe1e9'],
-  WORD_CARDS: ['🃏', '#fff3d1'],
-  PART_TIMER: ['⏱️', '#f1ecff'],
-  FULL_TEST: ['📝', '#e6f3fd']
-};
+
+function Burst() {
+  return <span className="td-burst" aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(i => <i key={i} style={{ '--a': `${i * 60}deg` } as CSSProperties} />)}</span>;
+}
 
 function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -93,7 +91,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
         </> : <>
           <small>HÔM NAY</small>
           <h2>Không có việc đến hạn</h2>
-          <p>Muốn thì bấm giờ một Part bất kỳ.</p>
+          <p>Muốn thì bấm giờ một Part.</p>
           <div className="td-acts"><button type="button" className="td-go" onClick={onPracticeMore}>Luyện tập</button></div>
         </>}
         <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={96} className="td-hero-soc" />
@@ -105,8 +103,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
           {rows.map(task => (
             <li key={task.id}>
               <button type="button" className={'td-r' + (task.done ? ' is-done' : '')} onClick={() => !task.done && onStartTask(task)} disabled={task.done}>
-                <i className="td-c">{task.done && <Check />}</i>
-                <span className="td-ic" style={{ background: ICON[task.kind][1] }} aria-hidden="true">{ICON[task.kind][0]}</span>
+                <i className="td-c">{task.done && <><Check /><Burst /></>}</i>
                 <span className="td-tx"><b>{task.title}</b><small>{task.reason}</small></span>
                 {!task.done && <span className="td-do">Làm</span>}
                 <span className="td-tm">{task.done ? 'xong' : `${task.minutes} phút`}</span>
@@ -118,8 +115,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
             return (
               <li key={habit.id} className="td-my">
                 <button type="button" className={'td-r' + (on ? ' is-done' : '')} onClick={() => onToggleHabit(habit.id)} aria-pressed={on}>
-                  <i className="td-c is-sq">{on && <Check />}</i>
-                  <span className="td-ic" style={{ background: '#e6f3fd' }} aria-hidden="true">✏️</span>
+                  <i className="td-c is-sq">{on && <><Check /><Burst /></>}</i>
                   <span className="td-tx"><b title={habit.title}>{habit.title}</b><small>việc của mình · mỗi ngày</small></span>
                 </button>
                 <button type="button" className="td-x" onClick={() => onRemoveHabit(habit.id)} aria-label={`Bỏ việc "${habit.title}"`} title="Bỏ việc này">×</button>
