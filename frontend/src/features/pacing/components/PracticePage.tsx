@@ -188,8 +188,8 @@ function PracticeWorkspace({ owner, sessions, initialPart, resultDialogBlocked =
   return (
     <BakeryChoose
       mode={mode} label={label(mode)} choices={choices}
-      reason={suggested === mode && suggestion ? `${suggestion.reason} · cứ như phòng thi: hết giờ là dừng`
-        : suggestion && suggested ? `Gợi ý hôm nay: ${label(suggested)} · ${suggestion.reason}` : 'Cứ như phòng thi: hết giờ là dừng.'}
+      reason={suggested === mode && suggestion ? suggestion.reason
+        : suggestion && suggested ? `Gợi ý hôm nay: ${label(suggested)} · ${suggestion.reason}` : ''}
       lastTime={last === null ? null : short(last)} minutes={Math.round(planned / 60)} canMinus={planned > 60}
       recent={rows} weekCount={thisWeek} error={error || timer.error}
       onPick={pick} onStart={start}

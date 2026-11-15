@@ -34,7 +34,7 @@ const TILT = [-2, 1.5, 0, -1.5];
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
 /** Height kept under the stage for the buttons row and one row of recent bakes, so the page fits the window. */
-const BELOW = 196;
+const BELOW = 244;
 
 /**
  * The stage is drawn at 1068 x 450 and scaled to fit both the column width and the window height, so the buttons
@@ -102,7 +102,7 @@ export function BakeryChoose(p: Props) {
       <div className="bk-col">
       <div className="bk-chead">
         <h1 className="bk-h1">Hôm nay nướng <em>{p.label}</em> nhé?</h1>
-        <p className="bk-sub">{p.reason}</p>
+        {p.reason && <p className="bk-sub">{p.reason}</p>}
       </div>
 
       <div className="bk-fit" ref={fit} style={{ height: H * scale }}>
