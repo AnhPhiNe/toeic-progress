@@ -48,7 +48,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
   const [skipped, skipTask] = useSkippedToday(today);
-  const tasks = useMemo(() => pickTodayTasks(bundle, today).filter(t => !skipped.includes(t.id)), [bundle, today, skipped]);
+  const tasks = useMemo(() => pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), [bundle, today, skipped, profile.suggestOff]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
@@ -144,6 +144,8 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
           onAddHabit={title => onUpdateProfile(p => addHabit(p, title, crypto.randomUUID()))}
           onRemoveHabit={id => onUpdateProfile(p => removeHabit(p, id))}
+          suggestOff={profile.suggestOff ?? []}
+          onToggleSuggest={kind => onUpdateProfile(p => { const off = p.suggestOff ?? []; return { ...p, suggestOff: off.includes(kind) ? off.filter(k => k !== kind) : [...off, kind] }; })}
           onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))}
         /> : <FirstDayPanel task={firstTask} firstStep={estimate.values[0]} week={week} onStartTask={onStartTask} />}
       </aside>

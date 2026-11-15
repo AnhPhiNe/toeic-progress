@@ -1,10 +1,11 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import type { Habit } from '@/shared/types';
 import type { StreakWeek, WeeklyGoal } from '@/shared/domain/streakWeek';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { StreakCake } from './StreakCake';
+import { AddHabitPanel } from './AddHabitPanel';
 import type { TodayTask } from '../lib/todayTasks';
-import { HABIT_TITLE_MAX, MAX_HABITS, habitDoneToday } from '../lib/habits';
+import { habitDoneToday } from '../lib/habits';
 
 interface Props {
   tasks: TodayTask[];
@@ -19,6 +20,8 @@ interface Props {
   onToggleHabit: (id: string) => void;
   onAddHabit: (title: string) => void;
   onRemoveHabit: (id: string) => void;
+  suggestOff: string[];
+  onToggleSuggest: (kind: string) => void;
   onSetWeeklyGoal: (days: number) => void;
 }
 
@@ -49,7 +52,7 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal }: Props) {
+export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
   const hero = open.length ? open[skip % open.length] : null;
@@ -60,16 +63,9 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
   const allDone = !hero && total > 0 && doneCount === total;
   const firstCheer = useFirstDoneCheer(doneCount, today);
 
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState('');
+  const [addAt, setAddAt] = useState<HTMLElement | null>(null);
   const [editGoal, setEditGoal] = useState(false);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (!draft.trim()) return;
-    onAddHabit(draft);
-    setDraft('');
-    setAdding(false);
-  };
+
 
 
   return (
@@ -126,13 +122,8 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
             );
           })}
         </ul>
-        {habits.length < MAX_HABITS && (adding
-          ? <form className="td-addf" onSubmit={submit}>
-              <input autoFocus value={draft} maxLength={HABIT_TITLE_MAX} onChange={e => setDraft(e.target.value)} placeholder="Ví dụ: Học 20 từ Mochi" aria-label="Tên việc của mình" />
-              <button type="submit" className="rd-btn" disabled={!draft.trim()}>Thêm</button>
-              <button type="button" className="td-cancel" onClick={() => { setAdding(false); setDraft(''); }}>Huỷ</button>
-            </form>
-          : <button type="button" className="td-add" onClick={() => setAdding(true)}>+ Thêm việc của mình</button>)}
+        <button type="button" className="td-add" aria-expanded={!!addAt} onClick={e => setAddAt(addAt ? null : e.currentTarget)}>+ Thêm việc của mình</button>
+        {addAt && <AddHabitPanel anchor={addAt} habits={habits} suggestOff={suggestOff} onAdd={onAddHabit} onToggleSuggest={onToggleSuggest} onClose={() => setAddAt(null)} />}
       </div>
     </section>
 

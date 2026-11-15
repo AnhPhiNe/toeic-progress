@@ -181,6 +181,34 @@
 .td-addf input:focus { outline: none; border-color: var(--rd-blue); }
 .td-addf .rd-btn { padding: 8px 12px; font-size: 14px; box-shadow: 0 3px 0 var(--rd-green-d); }
 .td-addf .rd-btn:disabled { opacity: .5; cursor: default; }
+.td-ahp { position: fixed; z-index: 70; width: 360px; background: #fff; border-radius: 24px; padding: 16px 16px 14px; box-shadow: 0 20px 50px rgba(47, 58, 51, .22), 0 0 0 2px #dcecf8; font-family: var(--rd-font); color: var(--rd-ink); animation: td-ahp-in .18s ease-out; }
+@keyframes td-ahp-in { from { opacity: 0; transform: translateX(8px); } }
+.td-ahp h4 { font-weight: 900; font-size: 15.5px; }
+.td-ahp h4 small { font-weight: 700; font-size: 12px; color: var(--rd-mut); margin-left: 6px; }
+.td-ahp h4.is-sm { font-size: 13.5px; margin-bottom: 4px; }
+.td-ahp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.td-ahp-chip { border: 0; border-radius: 14px; padding: 8px 11px; font: 900 13.5px var(--rd-font); color: var(--rd-ink); background: #fff; box-shadow: 0 0 0 2px #e6e9e6, 0 3px 0 #e6e9e6; cursor: pointer; }
+.td-ahp-chip.is-on { background: var(--rd-green-l); color: var(--rd-green-d); box-shadow: 0 0 0 2px var(--rd-green), 0 3px 0 var(--rd-green-d); }
+.td-ahp-chip:disabled { opacity: .45; cursor: default; }
+.td-ahp-chip i { font-style: normal; font-weight: 800; font-size: 11.5px; color: var(--rd-mut); margin-left: 5px; }
+.td-ahp-chip:focus-visible, .td-ahp-ok:focus-visible, .td-ahp-ghost:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+.td-ahp input[type=text], .td-ahp input:not([type]) { display: block; width: 100%; margin-top: 12px; border: 2px solid var(--rd-line); border-radius: 12px; padding: 9px 12px; font: 700 14px var(--rd-font); color: var(--rd-ink); }
+.td-ahp input:not([type]):focus { outline: none; border-color: var(--rd-blue); }
+.td-ahp-full { margin-top: 8px; font-weight: 800; font-size: 12.5px; color: #b4530a; }
+.td-ahp-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.td-ahp-ghost { border: 0; background: none; font: 900 13.5px var(--rd-font); color: var(--rd-mut); cursor: pointer; }
+.td-ahp-ok { padding: 10px 16px; font-size: 14px; }
+.td-ahp-ok:disabled { opacity: .5; cursor: default; }
+.td-ahp-sep { height: 2px; background: #e8eef5; margin: 14px 0 10px; }
+.td-ahp-sw { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-weight: 800; font-size: 13.5px; cursor: pointer; position: relative; }
+.td-ahp-sw small { display: block; font-weight: 700; font-size: 11.5px; color: var(--rd-mut); }
+.td-ahp-sw input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.td-ahp-sw i { width: 38px; height: 22px; border-radius: 99px; background: #d6dbd6; position: relative; flex: none; transition: background .15s; }
+.td-ahp-sw i::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: left .15s; }
+.td-ahp-sw i.is-on { background: var(--rd-green); }
+.td-ahp-sw i.is-on::after { left: 19px; }
+.td-ahp-sw input:focus-visible + i { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .td-ahp { animation: none; } }
 .td-cancel { background: none; border: 0; font-weight: 900; font-size: 13px; color: var(--rd-mut); cursor: pointer; }
 
 /* streak: "lịch tròn có mốc" */

@@ -27,6 +27,8 @@ export interface TodayTask {
 export interface TodayTaskOptions {
   /** Word cards are not built yet; the caller passes how many are due. */
   dueWordCards?: number;
+  /** Kinds the learner switched off in "Sóc được gợi ý". */
+  off?: readonly string[];
 }
 
 export const MAX_TODAY_TASKS = 4;
@@ -157,5 +159,5 @@ export function pickTodayTasks(bundle: DataBundle, today: string, opts: TodayTas
     timerTask(bundle, today),
     wordCardTask(today, dueWordCards),
     fullTestTask(bundle, today),
-  ].filter((item): item is TodayTask => item !== null).slice(0, MAX_TODAY_TASKS);
+  ].filter((item): item is TodayTask => item !== null && !(opts.off ?? []).includes(item.kind)).slice(0, MAX_TODAY_TASKS);
 }

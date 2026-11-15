@@ -323,8 +323,10 @@ export interface UserProfile {
   weeklyGoalDays?: number;
   /** Hôm nay: học viên đã tự chọn mục tiêu (phân biệt với mặc định 990 chưa chọn). */
   goalChosen?: boolean;
-  /** Hôm nay: tối đa 2 "Việc của mình" tự đánh dấu mỗi ngày; ngày đánh dấu tính vào chuỗi. */
+  /** Hôm nay: tối đa 3 "Việc của mình" tự đánh dấu mỗi ngày; ngày đánh dấu tính vào chuỗi. */
   habits?: Habit[];
+  /** Hôm nay: loại việc Sóc không được gợi ý nữa ('REVIEW_MISTAKES' | 'PART_TIMER' | 'FULL_TEST'). */
+  suggestOff?: string[];
 }
 
 /** A learner's own recurring task, ticked by hand. doneDates keeps only recent days. */
