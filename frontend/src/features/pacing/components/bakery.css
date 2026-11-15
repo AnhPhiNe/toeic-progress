@@ -59,7 +59,16 @@
 .bk-ghost:focus-visible, .bk-link:focus-visible, .bk-stop:focus-visible, .bk-row:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 3px; }
 .bk-link { margin-left: auto; border: 0; background: none; font-weight: 900; font-size: 14.5px; color: var(--rd-violet-d); cursor: pointer; }
 
-.bk-recent { margin-top: 26px; }
+.bk-col { margin: 0 auto; }
+.bk-recent { margin-top: 22px; }
+.bk-recent-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.bk-all-dim { position: fixed; inset: 0; z-index: 60; background: rgba(47, 58, 51, .45); display: grid; place-items: center; }
+.bk-all { width: min(640px, calc(100vw - 48px)); max-height: min(640px, calc(100vh - 80px)); background: #fff; border-radius: 28px; padding: 20px 22px 22px; display: flex; flex-direction: column; box-shadow: 0 30px 80px rgba(0, 0, 0, .25); }
+.bk-all-h { display: flex; align-items: center; justify-content: space-between; }
+.bk-all-h h3 { font-weight: 900; font-size: 21px; }
+.bk-all-h h3 span { font-weight: 800; font-size: 13.5px; color: var(--rd-mut); margin-left: 8px; }
+.bk-all-x { width: 36px; height: 36px; border-radius: 50%; border: 0; background: #f3f4f3; font: 900 18px var(--rd-font); color: var(--rd-mut); cursor: pointer; }
+.bk-all-list { margin-top: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 3px; }
 .bk-recent h2 { font-weight: 900; font-size: 17px; }
 .bk-recent h2 span { font-weight: 700; font-size: 13.5px; color: var(--rd-mut); margin-left: 8px; }
 .bk-rows { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }

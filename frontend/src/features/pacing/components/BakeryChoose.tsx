@@ -33,25 +33,48 @@ const XS = [110, 290, 470, 670];
 const TILT = [-2, 1.5, 0, -1.5];
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
-/** The stage is drawn at 1068 x 450 and scaled to the column. */
+/** Height kept under the stage for the buttons row and one row of recent bakes, so the page fits the window. */
+const BELOW = 236;
+
+/**
+ * The stage is drawn at 1068 x 450 and scaled to fit both the column width and the window height, so the buttons
+ * and the recent bakes stay on screen. Very short windows stop at 0.62 and scroll instead.
+ */
 function useFit() {
+  const page = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setScale(Math.min(1.12, Math.max(0.7, el.clientWidth / W)));
+    const root = page.current, el = ref.current;
+    if (!root || !el) return;
+    const measure = () => {
+      const cs = getComputedStyle(root);
+      const width = root.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const byHeight = (window.innerHeight - top - BELOW) / H;
+      setScale(Math.min(1.12, width / W, Math.max(0.62, byHeight)));
+    };
     measure();
+    window.addEventListener('resize', measure);
     const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
+    observer.observe(root);
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
-  return [ref, scale] as const;
+  return [page, ref, scale] as const;
 }
+
+const SHOWN = 4;
 
 /** Chọn món: a bakery whose four display-case items are the four Parts. */
 export function BakeryChoose(p: Props) {
-  const [fit, scale] = useFit();
+  const [page, fit, scale] = useFit();
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    if (!all) return;
+    const close = (e: KeyboardEvent) => { if (e.key === 'Escape') setAll(false); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [all]);
   const [going, setGoing] = useState(false);
   const timeout = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timeout.current), []);
@@ -66,13 +89,22 @@ export function BakeryChoose(p: Props) {
     timeout.current = window.setTimeout(p.onStart, 480);
   };
 
+  const renderRow = (row: RecentRow) => (
+    <button key={row.id} type="button" className="bk-row" onClick={() => p.onOpenSession(row.session)}>
+      <DishIcon dish={row.dish} />
+      <span className="bk-row-text"><b>{row.title}</b><small>{row.sub}</small></span>
+      {row.tag ? <span className={'bk-pill is-' + row.tag.kind}>{row.tag.text}</span> : <span className="bk-pill">không bấm giờ</span>}
+    </button>
+  );
+
   return (
-    <div className="rd bk-root bk-page">
+    <div className="rd bk-root bk-page" ref={page}>
+      <div className="bk-col" style={{ maxWidth: W * scale }}>
       <div className="bk-kick">LUYỆN TẬP</div>
       <h1 className="bk-h1">Hôm nay nướng <em>{p.label}</em> nhé?</h1>
       <p className="bk-sub">{p.reason}</p>
 
-      <div className="bk-fit" ref={fit} style={{ height: H * scale }}>
+      <div className="bk-fit" ref={fit} style={{ height: H * scale, width: W * scale }}>
         <div className="bk-stage" style={{ transform: `scale(${scale})` }}>
           <ShopBackdrop width={W} height={H} />
 
@@ -115,19 +147,27 @@ export function BakeryChoose(p: Props) {
       {p.error && <p role="alert" className="bk-err">{p.error}</p>}
 
       <section className="bk-recent">
-        <h2>Mẻ bánh gần đây<span>Tuần này {p.weekCount} mẻ · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></h2>
+        <div className="bk-recent-h">
+          <h2>Mẻ bánh gần đây<span>Tuần này {p.weekCount} mẻ · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></h2>
+          {p.recent.length > SHOWN && <button type="button" className="bk-link" onClick={() => setAll(true)}>Xem tất cả {p.recent.length} mẻ ›</button>}
+        </div>
         {p.recent.length ? (
           <div className="bk-rows">
-            {p.recent.map(row => (
-              <button key={row.id} type="button" className="bk-row" onClick={() => p.onOpenSession(row.session)}>
-                <DishIcon dish={row.dish} />
-                <span className="bk-row-text"><b>{row.title}</b><small>{row.sub}</small></span>
-                {row.tag ? <span className={'bk-pill is-' + row.tag.kind}>{row.tag.text}</span> : <span className="bk-pill">không bấm giờ</span>}
-              </button>
-            ))}
+            {p.recent.slice(0, SHOWN).map(row => renderRow(row))}
           </div>
         ) : <p className="bk-empty">Chưa có mẻ bánh nào. Bật lò mẻ đầu tiên nhé.</p>}
       </section>
+      </div>
+
+      {all && (
+        <div className="bk-all-dim" onClick={() => setAll(false)}>
+          <div className="bk-all" role="dialog" aria-modal="true" aria-label="Tất cả mẻ bánh" onClick={e => e.stopPropagation()}>
+            <div className="bk-all-h"><h3>Tất cả mẻ bánh<span>{p.recent.length} mẻ</span></h3>
+              <button type="button" className="bk-all-x" aria-label="Đóng" onClick={() => setAll(false)}>×</button></div>
+            <div className="bk-all-list">{p.recent.map(row => renderRow(row))}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

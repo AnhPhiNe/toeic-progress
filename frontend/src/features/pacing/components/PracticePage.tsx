@@ -167,7 +167,7 @@ function PracticeWorkspace({ owner, sessions, initialPart, resultDialogBlocked =
     return { mode: c.mode, label: c.label, questions: PRESETS[c.mode].questions, minutes: PRESETS[c.mode].minutes, record: best === null ? null : short(best) };
   });
   const today = localDate(Date.now());
-  const rows: RecentRow[] = recent.slice(0, 4).map(s => {
+  const rows: RecentRow[] = recent.slice(0, 60).map(s => {
     const parts = getPracticeParts(s), run = runOf(s.id);
     const wrongTotal = parts.reduce((a, p) => a + (p.total - p.correct), 0), total = parts.reduce((a, p) => a + p.total, 0);
     const graded = run ? run.correctAnswers !== undefined : parts.length > 0;
