@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 
 from app.schemas.models import page_output_schema
+from tests.batch_reservation_mock import BatchReservationMock
 from tests.test_api import api  # noqa: F401 - shared fixture
 
 REQUEST_ID = "33333333-3333-4333-8333-333333333333"
@@ -115,6 +116,67 @@ def test_malformed_page_output_is_not_retried(api):  # noqa: F811
         response = client.post("/api/v1/ai/extract-page", json=page())
         assert response.status_code == 502 and "ghi tay" in response.json()["detail"]
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
+
+
+BATCH = "99999999-9999-4999-8999-999999999999"
+OTHER_USER = "55555555-5555-4555-8555-555555555555"
+
+
+def chunk(n, batch_id=BATCH):
+    # Each request of a capture is a new request id; only the batch id is shared.
+    return page(request_id=f"33333333-3333-4333-8333-{n:012d}", **({"batch_id": batch_id} if batch_id else {}))
+
+
+def test_only_the_first_request_of_a_capture_is_charged(api):  # noqa: F811
+    mock = BatchReservationMock()
+    with api(draft={"items": [item(131)]}, batch_mock=mock) as (client, calls):
+        first = client.post("/api/v1/ai/extract-page", json=chunk(1))
+        second = client.post("/api/v1/ai/extract-page", json=chunk(2))
+        assert first.status_code == 200 and second.status_code == 200
+        # The account was charged once, so the second request reports the same remaining uses.
+        assert first.json()["usage"]["remaining"] == second.json()["usage"]["remaining"] == 26
+        assert mock.account_used == {"11111111-1111-4111-8111-111111111111": 1}
+        # Both requests still counted for the shared safety caps and both read their screenshots.
+        assert mock.global_used == 2
+        assert sum(call[1].endswith("reserve_ai_batch_request") for call in calls) == 2
+        assert not any(call[1].endswith("/reserve_ai_request") for call in calls)
+        assert sum(call[0] == "api.openai.com" for call in calls) == 2
+        sent = [call[2] for call in calls if call[1].endswith("reserve_ai_batch_request")]
+        assert all(body["p_batch_id"] == BATCH and body["p_max_chunks"] == 4 and body["p_ttl_seconds"] == 3600 for body in sent)
+
+
+def test_a_fifth_request_of_one_capture_is_refused_before_reading_the_page(api):  # noqa: F811
+    mock = BatchReservationMock()
+    with api(draft={"items": [item(131)]}, batch_mock=mock) as (client, calls):
+        assert [client.post("/api/v1/ai/extract-page", json=chunk(n)).status_code for n in range(1, 5)] == [200] * 4
+        openai_calls = sum(call[0] == "api.openai.com" for call in calls)
+        refused = client.post("/api/v1/ai/extract-page", json=chunk(5))
+        assert refused.status_code == 429 and "lần chụp mới" in refused.json()["detail"]
+        assert sum(call[0] == "api.openai.com" for call in calls) == openai_calls
+        assert mock.global_used == 4 and sum(mock.account_used.values()) == 1
+
+
+def test_owners_never_share_a_capture(api):  # noqa: F811
+    mock = BatchReservationMock()
+    with api(draft={"items": [item(131)]}, batch_mock=mock) as (client, _calls):
+        assert client.post("/api/v1/ai/extract-page", json=chunk(1)).status_code == 200
+    # A different account reusing the same batch id pays for its own capture.
+    with api(draft={"items": [item(131)]}, batch_mock=mock, auth_user={"id": OTHER_USER}) as (client, _calls):
+        assert client.post("/api/v1/ai/extract-page", json=chunk(2)).status_code == 200
+    assert mock.account_used == {"11111111-1111-4111-8111-111111111111": 1, OTHER_USER: 1}
+
+
+def test_a_request_without_a_batch_id_is_charged_as_before(api):  # noqa: F811
+    with api(draft={"items": [item(131)]}) as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=chunk(1, None)).status_code == 200
+        assert sum(call[1].endswith("/reserve_ai_request") for call in calls) == 1
+        assert not any(call[1].endswith("reserve_ai_batch_request") for call in calls)
+
+
+def test_a_malformed_batch_id_never_reserves(api):  # noqa: F811
+    with api() as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=chunk(1, "not-a-uuid")).status_code == 422
+        assert not any("reserve_ai" in call[1] or call[0] == "api.openai.com" for call in calls)
 
 
 def test_health_announces_page_extraction(api):  # noqa: F811

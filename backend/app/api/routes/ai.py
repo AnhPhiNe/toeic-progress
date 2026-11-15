@@ -104,32 +104,48 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     }
 
 
-async def reserve_ai(request: Request, user: dict, access, request_id, captcha_token: str | None, input_hash: str):
-    """Count one AI request against every quota before generation; a refused request raises."""
+# A capture of about ten screenshots is sent as at most four page requests (three images each) sharing one batch id.
+AI_BATCH_MAX_REQUESTS = 4
+AI_BATCH_TTL_SECONDS = 3600
+
+
+async def reserve_ai(request: Request, user: dict, access, request_id, captcha_token: str | None, input_hash: str,
+                     batch_id=None):
+    """Count one AI request against every quota before generation; a refused request raises.
+
+    With a batch id, only the first request of that batch is charged to the account. Later requests of the same
+    batch still count against the shared minute/day/IP safety caps, and a batch accepts a limited number of requests.
+    """
     settings, gateway = request.app.state.settings, request.app.state.gateway
     unlimited = access.unlimited
     if user["is_anonymous"]:
         await gateway.verify_captcha(captcha_token)
-    reservation = await gateway.rpc(
-        "reserve_ai_request",
-        {
-            "p_owner_id": user["id"],
-            "p_guest": user["is_anonymous"],
-            "p_request_id": str(request_id),
-            "p_input_hash": input_hash,
-            "p_ip_hash": gateway.ip_hash(client_address(request.scope, settings)),
-            # These RPC parameters are service-role only. NULL leaves the
-            # corresponding cap unset while still recording usage/idempotency.
-            "p_user_limit": access.limit,
-            "p_day_limit": None if unlimited else settings.ai_global_daily_limit,
-            "p_minute_limit": None if unlimited else settings.ai_global_minute_limit,
-            "p_ip_limit": None if unlimited else settings.ai_ip_daily_limit,
-        },
-    )
+    parameters = {
+        "p_owner_id": user["id"],
+        "p_guest": user["is_anonymous"],
+        "p_request_id": str(request_id),
+        "p_input_hash": input_hash,
+        "p_ip_hash": gateway.ip_hash(client_address(request.scope, settings)),
+        # These RPC parameters are service-role only. NULL leaves the
+        # corresponding cap unset while still recording usage/idempotency.
+        "p_user_limit": access.limit,
+        "p_day_limit": None if unlimited else settings.ai_global_daily_limit,
+        "p_minute_limit": None if unlimited else settings.ai_global_minute_limit,
+        "p_ip_limit": None if unlimited else settings.ai_ip_daily_limit,
+    }
+    if batch_id is None:
+        reservation = await gateway.rpc("reserve_ai_request", parameters)
+    else:
+        reservation = await gateway.rpc("reserve_ai_batch_request", {
+            **parameters, "p_batch_id": str(batch_id),
+            "p_max_chunks": AI_BATCH_MAX_REQUESTS, "p_ttl_seconds": AI_BATCH_TTL_SECONDS,
+        })
     if not reservation["allowed"]:
         duplicate = reservation.get("code") == "duplicate"
         if duplicate:
             raise HTTPException(409, "Yêu cầu này đã được tiếp nhận trước đó. Kiểm tra bản nháp đã có trước khi gửi lại.")
+        if reservation.get("code") == "batch_full":
+            raise HTTPException(429, f"Một lần chụp đọc tối đa {AI_BATCH_MAX_REQUESTS} lượt ảnh (khoảng 10 ảnh). Hãy bắt đầu lần chụp mới để đọc phần còn lại.")
         explanation = await gateway.explain_ai_limit(
             user["id"], user["is_anonymous"], gateway.ip_hash(client_address(request.scope, settings)),
             access.limit,
@@ -158,7 +174,8 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
     input_hash = hashlib.sha256(json.dumps(questions, separators=(",", ":")).encode())
     for image in body.images:
         input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
-    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
+    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
+                                              body.batch_id)
     found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"])
     # The explanations for these questions are written next, without counting another use.
     ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {

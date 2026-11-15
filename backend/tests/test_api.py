@@ -10,6 +10,7 @@ from PIL import Image
 
 from app.core.config import Settings
 from app.main import create_app
+from tests.batch_reservation_mock import BatchReservationMock
 from tests.explanation_ledger_mock import ExplanationLedgerMock
 
 USER_ID = "11111111-1111-4111-8111-111111111111"
@@ -64,8 +65,10 @@ def api():
         ledger_status=200,
         ledger_mock=None,
         ledger_malformed=False,
+        batch_mock=None,
     ):
         calls = []
+        batches = batch_mock or BatchReservationMock()
         ledger = ledger_mock or ExplanationLedgerMock()
 
         def respond(request):
@@ -95,6 +98,8 @@ def api():
             if request.url.path == "/rest/v1/ai_access_grants":
                 rows = ai_grants.pop(0) if ai_grants else [] if ai_grant is None else [ai_grant]
                 return httpx.Response(ai_grant_status, json=rows)
+            if request.url.path.endswith("/reserve_ai_batch_request"):
+                return httpx.Response(200, json=reservation or batches.respond(body))
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
             if request.url.path.endswith("/get_ai_usage"):

@@ -15,6 +15,10 @@ import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/li
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
+import { CaptureModal } from '@/features/mistakes/components/CaptureModal';
+import { ManualQuestionModal } from '@/features/mistakes/components/ManualQuestionModal';
+import { NotebookEmpty } from '@/features/mistakes/components/NotebookEmpty';
+import { captureState, closeCapture, openCapture, dismissBackgroundNotice, subscribeCapture } from '@/features/mistakes/services/captureSession';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
@@ -25,6 +29,7 @@ import { triggerHaptic } from '@/shared/lib/haptics';
 import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
 import './notebook.css';
 import './notebook-rd.css';
+import './capture-rd.css';
 import { MistakeDetail, categoryShort, reviewLabel } from './MistakeDetail';
 import { Soc } from '@/shared/ui/soc/Soc';
 
@@ -104,6 +109,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   // Computers (2026-11 redesign): a list of rows; a row opens one detail card.
   const [detailId, setDetailId] = useState<string | null>(null);
   const [nbTab, setNbTab] = useState<'mistakes' | 'words'>('mistakes');
+  // Word cards do not exist yet: their tab stays hidden until there are some.
+  const wordCards = 0;
+  const [manualOpen, setManualOpen] = useState(false);
+  const capture = useSyncExternalStore(subscribeCapture, captureState);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const feedbackSequence = useRef(0);
   const notify = useCallback((message: string, error = false) => { setFeedback({ id: ++feedbackSequence.current, message, error }); }, []);
@@ -136,8 +145,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã chuyển sang Đã thuộc');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
-  const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); setSessionSource(undefined); }, []);
-  const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setEntry(null); };
+  const closeEntry = useCallback(() => { setEntry(undefined); setManualOpen(false); setReusedReading(null); setSessionSource(undefined); }, []);
+  /** Computers: a new card starts from a screenshot (`entry === null` opens the capture dialog); phones keep the old form. */
+  const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setManualOpen(false); setEntry(null); };
+  const openManual = () => { closeCapture(); setEntry(undefined); setManualOpen(true); };
   const openEdit = (value: MistakeEntry) => { setReusedReading(null); setSessionSource(undefined); setEntry(value); };
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.filter(m => !isRetiredDraft(m)).map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
@@ -391,7 +402,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
       {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone={isPhone} onSave={onUpdateMistake}
         onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
-      {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
+      {!isPhone && entry === null && <CaptureModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
+        initialTestName={reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName} getToken={getToken}
+        onClose={closeEntry} onManual={openManual} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={savedFeedback} />}
+      {!isPhone && manualOpen && <ManualQuestionModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
+        initialTestName={sessionSource?.sourceName ?? defaultSourceName} onClose={closeEntry} onAdd={onAddMistake} onAddBatch={onAddMistakes}
+        onUpdate={onUpdateMistake} onExplain={card => void explain(card)} onSaved={savedFeedback} />}
+      {entry !== undefined && (isPhone || entry !== null) && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
         initialSessionId={sessionSource?.sessionId}
         initialReading={reusedReading?.text}
@@ -399,6 +416,16 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
+      {!isPhone && entry !== null && !manualOpen && (capture.phase === 'reading' || capture.finishedInBackground) && (
+        <div className="cap-toast" role="status" aria-live="polite">
+          <Soc state={capture.phase === 'reading' ? 'think' : 'hi'} size={46} />
+          {capture.phase === 'reading'
+            ? <p>Sóc đang đọc {capture.images.length} ảnh…<small>Đã thấy {capture.items.length} câu sai</small></p>
+            : <p>Sóc đọc xong rồi!<small>{capture.items.length ? `Tìm thấy ${capture.items.length} câu sai để soát` : capture.failures.length ? 'Có ảnh chưa đọc được, mở lại để thử lần nữa' : 'Chưa thấy câu sai nào trong ảnh'}</small></p>}
+          <button type="button" className="rd-btn rd-btn--pink cap-sm" onClick={() => { openCapture(); setManualOpen(false); setEntry(null); }}>{capture.phase === 'reading' ? 'Xem' : 'Soát ngay'}</button>
+          {capture.phase !== 'reading' && <button type="button" className="cap-x" aria-label="Đóng thông báo" onClick={dismissBackgroundNotice}>×</button>}
+        </div>
+      )}
   </>);
 
   if (!isPhone) {
@@ -424,10 +451,15 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     return (
       <div className="rd nb-page">
         <div className="nb-top">
-          <div><h1>Sổ tay</h1><p>Câu sai và từ mới Sóc gom từ các trang chữa bài bạn chụp.</p></div>
-          <div className="nb-tabs" role="tablist" aria-label="Sổ tay">
-            <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{sourcedMistakes.length}</em></button>
-            <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>0</em></button>
+          <div><h1>Sổ tay</h1>{!empty && <p>Câu sai Sóc gom từ các trang chữa bài bạn chụp.</p>}</div>
+          <div className="nb-topr">
+            {wordCards > 0 && (
+              <div className="nb-tabs" role="tablist" aria-label="Sổ tay">
+                <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{sourcedMistakes.length}</em></button>
+                <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>{wordCards}</em></button>
+              </div>
+            )}
+            {!empty && <button type="button" className="rd-btn rd-btn--pink nb-cam" onClick={openCreate}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>}
           </div>
         </div>
 
@@ -437,19 +469,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <div><h2>Thẻ từ sắp có</h2><p>Mỗi thẻ sẽ là một từ làm bạn sai câu, kèm đúng câu gốc trong đề. Sóc đang học cách tách từ mới từ trang chữa bài.</p></div>
           </section>
         ) : empty ? (
-          <section className="nb-hero is-empty">
-            <Soc state="idle" size={210} className="nb-hsoc" />
-            <div>
-              <h2>Sổ tay còn trống</h2>
-              <p>Chụp trang chữa bài của Part sai nhiều nhất. Sóc tự đọc câu sai, ghi lý do và đáp án. Bạn không cần gõ gì.</p>
-              <div className="nb-steps"><div><b>1</b>Mở trang chữa bài của đề vừa làm</div><div><b>2</b>Chụp trang có câu sai, dán vào đây</div><div><b>3</b>Sóc gom câu sai, báo khi xong</div></div>
-              <div className="nb-acts">
-                <button type="button" className="rd-btn" onClick={openCreate}>Chụp trang chữa bài</button>
-                {onOpenSessionLogger && <button type="button" className="nb-ghost" onClick={onOpenSessionLogger}>Ghi điểm một đề trước</button>}
-              </div>
-              <small className="nb-note">Hiện đọc được phần Đọc (Part 5 đến 7).</small>
-            </div>
-          </section>
+          <NotebookEmpty onCapture={openCreate} onManual={openManual} />
         ) : (
           <>
             <section className="nb-hero">
@@ -517,7 +537,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                   </div>
                 )}
               </div>
-              <button type="button" className="nb-add" onClick={openCreate}>+ Thêm câu sai</button>
+              <button type="button" className="nb-add" onClick={openManual}><span aria-hidden="true">✏️</span> Tự gõ một câu</button>
             </div>
             {pickedFilters > 0 && (
               <div className="nb-chips">
