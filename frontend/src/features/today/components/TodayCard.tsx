@@ -13,6 +13,8 @@ interface Props {
   week: StreakWeek;
   goal: WeeklyGoal;
   onStartTask: (task: TodayTask) => void;
+  /** Hide a suggested task until tomorrow. */
+  onSkipTask: (id: string) => void;
   onPracticeMore: () => void;
   onToggleHabit: (id: string) => void;
   onAddHabit: (title: string) => void;
@@ -47,7 +49,7 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal }: Props) {
+export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
   const hero = open.length ? open[skip % open.length] : null;
@@ -81,7 +83,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
           <p>{hero.reason}</p>
           <div className="td-acts">
             <button type="button" className="td-go" onClick={() => onStartTask(hero)}>▶ Bắt đầu</button>
-            {open.length > 1 && <button type="button" className="td-skip" onClick={() => setSkip(s => s + 1)}>Để sau</button>}
+            <button type="button" className="td-skip" onClick={() => open.length > 1 ? setSkip(s => s + 1) : onSkipTask(hero.id)}>{open.length > 1 ? 'Để sau' : 'Bỏ qua hôm nay'}</button>
           </div>
         </> : allDone ? <>
           <small>XONG HẾT HÔM NAY</small>
@@ -101,13 +103,14 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
         {total > 0 && <div className="td-lbl"><span>CÒN LẠI HÔM NAY</span><span>{doneCount}/{total} xong</span></div>}
         <ul className="td-rows">
           {rows.map(task => (
-            <li key={task.id}>
+            <li key={task.id} className={task.done ? undefined : 'td-my'}>
               <button type="button" className={'td-r' + (task.done ? ' is-done' : '')} onClick={() => !task.done && onStartTask(task)} disabled={task.done}>
                 <i className="td-c">{task.done && <><Check /><Burst /></>}</i>
-                <span className="td-tx"><b>{task.title}</b><small>{task.reason}</small></span>
+                <span className="td-tx"><b>{task.title}</b><small>Sóc gợi ý · {task.reason}</small></span>
                 {!task.done && <span className="td-do">Làm</span>}
                 <span className="td-tm">{task.done ? 'xong' : `${task.minutes} phút`}</span>
               </button>
+              {!task.done && <button type="button" className="td-x" onClick={() => onSkipTask(task.id)} aria-label={`Bỏ qua "${task.title}" hôm nay`} title="Bỏ qua hôm nay">×</button>}
             </li>
           ))}
           {habits.map(habit => {
@@ -135,7 +138,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onPra
 
     <StreakCake week={week}>
         <div className="td-wk">
-          <span>Tuần này <b>{goal.done}/{goal.goal}</b> buổi</span>
+          <span>{goal.done >= goal.goal ? <>Đủ mục tiêu tuần 🎉</> : <>Mục tiêu tuần: <b>{goal.done}/{goal.goal}</b> buổi học</>}</span>
           <div className="td-bar is-green"><i style={{ width: `${Math.min(100, goal.done / goal.goal * 100)}%` }} /></div>
           {editGoal
             ? <span className="td-step">

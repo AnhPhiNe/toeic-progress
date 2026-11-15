@@ -26,12 +26,29 @@ interface Props {
 }
 
 const CELEBRATED_KEY = 'rd_goal_celebrated_v1';
+const SKIP_KEY = 'rd_task_skip_v1';
+
+/** Suggested tasks the learner set aside for today (per device; they come back tomorrow if still needed). */
+function useSkippedToday(today: string) {
+  const read = () => {
+    try { const v = JSON.parse(localStorage.getItem(SKIP_KEY) ?? 'null'); return v && v.date === today && Array.isArray(v.ids) ? v.ids as string[] : []; } catch { return []; }
+  };
+  const [ids, setIds] = useState<string[]>(read);
+  useEffect(() => { setIds(read()); }, [today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const skip = (id: string) => setIds(prev => {
+    const next = prev.includes(id) ? prev : [...prev, id];
+    try { localStorage.setItem(SKIP_KEY, JSON.stringify({ date: today, ids: next })); } catch { /* storage blocked */ }
+    return next;
+  });
+  return [ids, skip] as const;
+}
 
 export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile }: Props) {
   const { profile, sessions, mistakes } = bundle;
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
-  const tasks = useMemo(() => pickTodayTasks(bundle, today), [bundle, today]);
+  const [skipped, skipTask] = useSkippedToday(today);
+  const tasks = useMemo(() => pickTodayTasks(bundle, today).filter(t => !skipped.includes(t.id)), [bundle, today, skipped]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
@@ -122,6 +139,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           week={week}
           goal={goal}
           onStartTask={onStartTask}
+          onSkipTask={skipTask}
           onPracticeMore={onPracticeMore}
           onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
           onAddHabit={title => onUpdateProfile(p => addHabit(p, title, crypto.randomUUID()))}
