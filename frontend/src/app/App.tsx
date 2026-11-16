@@ -7,6 +7,7 @@ import { PracticePage } from '@/features/pacing/components/PracticePage';
 import { ReviewSession } from '@/features/mistakes/components/ReviewSession';
 import { AwardsPage, unseenBadges } from '@/features/awards/components/AwardsPage';
 import { computeBadges } from '@/features/awards/lib/badges';
+import { socLook } from '@/features/awards/lib/outfit';
 import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -24,6 +25,7 @@ import { MistakeNotebookView } from '@/features/mistakes/components/MistakeNoteb
 import { ReadingPacingView } from '@/features/pacing/components/ReadingPacingView';
 import { PlanView } from '@/features/plans/components/PlanView';
 import { ResourcesView } from '@/features/resources/components/ResourcesView';
+import { ConvertPage } from '@/features/resources/components/ConvertPage';
 import { VocabularyView } from '@/features/vocabulary/components/VocabularyView';
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
 import { SessionResultScreen } from '@/features/study-sessions/components/SessionResultScreen';
@@ -456,7 +458,9 @@ export const App: React.FC = () => {
   const showPractice = activeTab === 'exam-mode' && !isPhone && !pomodoroOpen;
   const showNotebook = activeTab === 'mistakes' && !isPhone;
   const showAwards = activeTab === 'awards';
-  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards;
+  const showConvert = activeTab === 'resources' && !isPhone;
+  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert;
+  const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
@@ -476,12 +480,11 @@ export const App: React.FC = () => {
       {!(practiceFocus && activeTab === 'exam-mode') && <RdSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        profile={profile}
         dueMistakesCount={dueMistakesCount}
         streak={streakNow}
         newBadges={newBadges}
+        soc={soc}
         onOpenSessionLogger={() => openSessionLogger()}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
       />}
 
       {/* 2. Main Content View Area (Right) */}
@@ -524,6 +527,8 @@ export const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateProfile={updateProfile}
           />
+        ) : showConvert ? (
+          <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
         ) : showAwards ? (
           <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} />
         ) : showPractice ? (

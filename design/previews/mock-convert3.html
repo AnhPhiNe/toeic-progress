@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Quy đổi điểm 2 hướng</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--teal:#14b8a6;--tealD:#0d8a7c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1600px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43}
+.page{width:1600px;height:925px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:#46b35a}.logo span{display:block;color:#46b35a}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}.nv i{width:40px;height:40px;border-radius:13px}
+.nv.on{background:#e8fbf7;border-color:#a7ece0;color:var(--tealD)}
+main{position:relative;overflow:hidden;padding:24px 40px}
+.soc svg{display:block;width:100%}
+.hd{display:flex;align-items:baseline;gap:14px}.hd h2{font-weight:900;font-size:28px;letter-spacing:-.6px}.hd p{font-weight:700;font-size:14px;color:var(--mut)}
+.pull{margin-left:auto;align-self:center;border-radius:14px;padding:8px 14px;font-weight:900;font-size:14px;background:#e8fbf7;color:var(--tealD);box-shadow:inset 0 0 0 2px #a7ece0}
+/* ===== A: arcade scoreboard ===== */
+.arc{margin-top:16px;height:800px;border-radius:32px;background:radial-gradient(circle at 50% 0,#2b2a66,#151536 70%);position:relative;overflow:hidden;color:#fff}
+.arc .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(124,92,224,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,224,.18) 1px,transparent 1px);background-size:40px 40px;mask-image:linear-gradient(180deg,transparent,#000 70%)}
+.board{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:640px;background:#1f1d4d;border-radius:28px;padding:20px 26px 22px;box-shadow:0 0 0 4px #3a3680,0 0 60px rgba(124,92,224,.5);text-align:center}
+.board small{font-weight:900;font-size:13px;letter-spacing:2px;color:#ffc83d}
+.flips{display:flex;justify-content:center;gap:10px;margin-top:12px}
+.fd{width:104px;height:140px;border-radius:14px;background:linear-gradient(180deg,#2e2b6e 50%,#26245e 50%);display:grid;place-items:center;font-weight:900;font-size:112px;line-height:1;color:#fff;position:relative;box-shadow:inset 0 -4px 0 rgba(0,0,0,.3)}
+.fd:after{content:'';position:absolute;left:0;right:0;top:50%;height:3px;background:#151536}
+.of{font-weight:900;font-size:28px;color:#9a96d8;align-self:flex-end;margin:0 0 10px 6px}
+.lr2{display:flex;justify-content:center;gap:14px;margin-top:14px}.lr2 span{border-radius:99px;padding:6px 14px;font-weight:900;font-size:15px}
+.knobs{position:absolute;left:60px;right:60px;bottom:200px;display:flex;justify-content:space-between}
+.knob{width:300px;text-align:center}
+.knob .k{width:170px;height:170px;margin:0 auto;border-radius:50%;position:relative;background:conic-gradient(var(--c) 0 var(--p),#2e2b6e var(--p) 100%);display:grid;place-items:center;box-shadow:0 0 30px var(--g)}
+.knob .k b{width:126px;height:126px;border-radius:50%;background:#1f1d4d;display:grid;place-items:center;font-weight:900;font-size:44px;box-shadow:inset 0 4px 10px rgba(0,0,0,.4)}
+.knob .k b small{display:block;font-size:12px;color:#9a96d8;letter-spacing:1px;margin-top:-30px}
+.knob h4{font-weight:900;font-size:18px;margin-top:10px}.knob p{font-weight:800;font-size:13px;color:#9a96d8}
+.knob .pm{display:flex;justify-content:center;gap:10px;margin-top:8px}.knob .pm i{width:40px;height:36px;border-radius:12px;background:#2e2b6e;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:20px;box-shadow:0 4px 0 #151536}
+.ticket{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:flex;gap:12px}
+.tk{width:170px;border-radius:16px;background:#fff;color:var(--ink);padding:10px 12px;text-align:center;position:relative}
+.tk:before,.tk:after{content:'';position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:#151536;transform:translateY(-50%)}.tk:before{left:-8px}.tk:after{right:-8px}
+.tk small{display:block;font-weight:900;font-size:11.5px;color:var(--mut);letter-spacing:.6px}.tk b{display:block;font-weight:900;font-size:22px;color:var(--c)}
+.cefr{position:absolute;left:50%;top:330px;transform:translateX(-50%);display:flex;gap:6px;align-items:flex-end}
+.cefr i{width:64px;border-radius:10px 10px 4px 4px;font-style:normal;font-weight:900;font-size:15px;text-align:center;padding-top:6px;color:#fff}
+.cefr i.you{box-shadow:0 0 0 3px #ffc83d,0 0 24px #ffc83d}
+/* ===== B: passport ===== */
+.pp{margin-top:16px;position:relative;height:800px;border-radius:32px;background:linear-gradient(160deg,#e8fbf7,#fff6e8);overflow:hidden}
+.book{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:980px;height:520px;display:grid;grid-template-columns:1fr 1fr;border-radius:26px;background:#0d6b61;padding:14px;box-shadow:0 18px 40px rgba(13,107,97,.3)}
+.pg{background:repeating-linear-gradient(135deg,#fffdf6 0 14px,#fbf6e8 14px 28px);position:relative;padding:26px 30px}
+.pg:first-child{border-radius:16px 4px 4px 16px;box-shadow:inset -14px 0 20px -14px rgba(0,0,0,.25)}.pg:last-child{border-radius:4px 16px 16px 4px;box-shadow:inset 14px 0 20px -14px rgba(0,0,0,.25)}
+.pg h3{font-weight:900;font-size:13px;letter-spacing:2px;color:#0d8a7c}
+.idrow{display:flex;gap:18px;margin-top:14px}
+.photo{width:130px;height:150px;border-radius:12px;background:#ffe9d0;display:grid;place-items:end center;overflow:hidden;box-shadow:inset 0 0 0 3px #f2d6b3}
+.fields{flex:1}.fields div{border-bottom:2px dashed #e6dcc4;padding:6px 0}.fields small{display:block;font-weight:900;font-size:10.5px;letter-spacing:1px;color:#a39a80}.fields b{font-weight:900;font-size:17px}
+.big2{margin-top:16px;display:flex;align-items:baseline;gap:8px}.big2 b{font-weight:900;font-size:76px;letter-spacing:-3px;line-height:1;color:#0d6b61}.big2 span{font-weight:900;font-size:20px;color:#a39a80}
+.mrz{position:absolute;left:30px;right:30px;bottom:22px;font-family:monospace;font-size:13px;letter-spacing:2px;color:#b9ae90}
+.stamp{position:absolute;width:150px;height:150px;border-radius:50%;border:5px solid var(--c);color:var(--c);display:grid;place-items:center;text-align:center;transform:rotate(var(--r));opacity:.9;mix-blend-mode:multiply}
+.stamp:before{content:'';position:absolute;inset:8px;border-radius:50%;border:2px dashed var(--c)}
+.stamp small{display:block;font-weight:900;font-size:12px;letter-spacing:2px}.stamp b{display:block;font-weight:900;font-size:28px;line-height:1.1}.stamp em{display:block;font-style:normal;font-weight:800;font-size:10.5px;letter-spacing:1px}
+.stamp.sq{border-radius:18px}.stamp.sq:before{border-radius:12px}
+.ctl{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:980px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sl{background:#fff;border-radius:22px;padding:14px 18px;box-shadow:0 6px 0 rgba(13,107,97,.08)}
+.sl .t{display:flex;justify-content:space-between;align-items:baseline;font-weight:900}.sl .t b{font-size:16px}.sl .t span{font-size:26px;color:var(--c)}
+.sl .t span small{font-size:13px;color:var(--mut);margin-left:4px}
+.bar{position:relative;height:14px;border-radius:99px;background:#eef0ee;margin-top:12px}.bar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--c)}.bar u{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 4px var(--c),0 3px 6px rgba(0,0,0,.2)}
+.sl p{display:flex;justify-content:space-between;font-weight:800;font-size:12.5px;color:var(--mut);margin-top:8px}
+.an{position:absolute;z-index:20;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap}.an b{width:20px;height:20px;border-radius:50%;background:#ff7a9c;display:grid;place-items:center;font-size:12px}
+.legend{width:1600px;background:#fff;border-radius:20px;padding:14px 22px;font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.5}.legend b{color:#2f3a33}
+
+.pp2{margin-top:16px;position:relative;height:800px;border-radius:32px;background:linear-gradient(160deg,#e8fbf7,#fff6e8);overflow:hidden}
+.book2{position:absolute;left:50%;top:30px;transform:translateX(-50%);width:1120px;height:540px;display:grid;grid-template-columns:1.08fr 1fr;border-radius:28px;background:#0d6b61;padding:14px;box-shadow:0 18px 40px rgba(13,107,97,.3)}
+.pick{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pick span{border-radius:12px;padding:6px 10px;font-weight:900;font-size:12.5px;background:#fff;box-shadow:0 0 0 2px #e6dcc4}.pick span.on{background:#e8fbf7;color:#0d8a7c;box-shadow:0 0 0 2px #14b8a6}
+.mode{display:inline-flex;background:#f3ecd8;border-radius:12px;padding:3px;margin-left:auto}.mode i{font-style:normal;font-weight:900;font-size:12.5px;padding:5px 10px;border-radius:9px;color:#8a7f60}.mode i.on{background:#fff;color:#2f3a33;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.skill{margin-top:14px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #efe6cf}
+.skill .t{display:flex;align-items:center;gap:10px}
+.skill .t b{font-weight:900;font-size:15px}.skill .t .pts{margin-left:auto;font-weight:900;font-size:15px;border-radius:10px;padding:3px 9px}
+.st{display:flex;align-items:center;gap:6px;margin-top:10px}
+.st>i{width:38px;height:38px;border-radius:12px;background:#f6f2e6;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:20px;box-shadow:0 3px 0 #e6dcc4}
+.st .n{width:84px;height:44px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 2px var(--c);display:grid;place-items:center;font-weight:900;font-size:26px}
+.st .q{font-weight:800;font-size:12.5px;color:#a39a80;margin-left:4px;line-height:1.3}
+.track{flex:1;margin-left:10px;position:relative;height:12px;border-radius:99px;background:#f0ebdc}
+.track i{position:absolute;top:0;bottom:0;left:0;border-radius:99px;background:var(--c)}
+.track u{position:absolute;top:50%;width:24px;height:24px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 4px var(--c),0 3px 6px rgba(0,0,0,.18)}
+.track em{position:absolute;top:16px;font-style:normal;font-weight:800;font-size:10.5px;color:#b9ae90;transform:translateX(-50%)}
+.res2{display:flex;align-items:center;gap:14px;margin-top:14px}
+.res2 b{font-weight:900;font-size:64px;letter-spacing:-2.5px;line-height:1;color:#0d6b61}.res2 span{font-weight:900;font-size:16px;color:#a39a80}
+.res2 .goal{margin-left:auto;text-align:right;font-weight:900;font-size:13px;color:#0d8a7c}
+.res2 .goal .b{width:150px;height:8px;border-radius:99px;background:#e8e2cf;margin-top:5px;overflow:hidden}.res2 .goal .b i{display:block;height:100%;width:100%;background:#14b8a6}
+.below{position:absolute;left:50%;top:612px;transform:translateX(-50%);width:1120px;display:flex;gap:14px;align-items:center;font-weight:800;font-size:13px;color:#5e6962}
+.below .lad{display:flex;gap:6px;align-items:flex-end}.below .lad i{width:46px;border-radius:8px 8px 3px 3px;font-style:normal;font-weight:900;font-size:12px;color:#fff;text-align:center;padding-top:4px}
+
+.route{position:absolute;left:50%;top:600px;transform:translateX(-50%);width:1120px;background:#fff;border-radius:24px;padding:14px 26px 16px;box-shadow:0 8px 0 rgba(13,107,97,.08)}
+.rt-h{display:flex;align-items:baseline;gap:10px}.rt-h b{font-weight:900;font-size:16px}.rt-h span{font-weight:700;font-size:12.5px;color:#7a857e}
+.rt-line{position:absolute;left:calc(26px + 1120px/12 - 26px*2/6);right:calc(26px + 1120px/12 - 26px*2/6);top:96px;height:8px;border-radius:99px;background:#eef0ee}
+.rt-line i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#7fa6e8,#3d8fe8,#14b8a6)}
+.rt-st{display:grid;grid-template-columns:repeat(6,1fr);margin-top:22px;position:relative}
+.rs{display:flex;flex-direction:column;align-items:center;text-align:center;position:relative}
+.rs-dot{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:16px;background:#fff;color:var(--c);box-shadow:0 0 0 4px var(--c);position:relative;z-index:1}
+.rs.is-past .rs-dot{background:var(--c);color:#fff;font-size:20px}
+.rs.is-now .rs-dot{width:58px;height:58px;margin-top:-6px;background:var(--c);color:#fff;font-size:20px;box-shadow:0 0 0 5px #fff,0 0 0 9px #ffc83d,0 6px 14px rgba(20,184,166,.35)}
+.rs.is-next .rs-dot{box-shadow:0 0 0 4px var(--c);border:3px dashed #fff}
+.rs.is-off .rs-dot{box-shadow:0 0 0 3px #e2deef;color:#b9b2d8}
+.rs b{display:block;margin-top:10px;font-weight:900;font-size:14px}
+.rs.is-past b{color:#7a857e}.rs.is-now b{color:#0d8a7c;font-size:15px}
+.rs small{display:block;font-weight:900;font-size:13px;color:var(--c);margin-top:1px}
+.rs.is-off small{color:#a3aba5}
+.rs-soc{position:absolute;width:62px;top:-70px;left:calc(50% + 18px)}
+.rs-here{position:absolute;top:-34px;left:calc(50% - 98px);background:#ffc83d;color:#5a3d00;border-radius:99px;padding:3px 10px;font-weight:900;font-size:12px;white-space:nowrap}
+.rs-gap{position:absolute;top:-30px;background:#f1e9ff;color:#7c5ce0;border-radius:99px;padding:3px 10px;font-weight:900;font-size:12px;white-space:nowrap}
+.res2.is-top{margin-top:10px;padding:8px 14px;border-radius:18px;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 2px #efe6cf}.res2.is-top b{font-size:58px}
+</style></head><body><div class="cap">B v2 · Hộ chiếu + Hành trình CEFR<small>chọn nhanh đề đã làm; đổi kiểu nhập "câu đúng / câu sai"; mỗi kỹ năng có −/+, ô gõ số và thanh kéo trên cùng một hàng; kết quả và con dấu đổi ngay bên cạnh</small></div>
+<div class="page" id="B2"></div>
+<div class="legend"><b>Thao tác:</b> bấm một đề gần đây để điền sẵn; gõ thẳng số vào ô (Enter/Tab sang ô sau), giữ −/+ để chạy nhanh, hoặc kéo thanh; phím ↑↓ khi ô đang chọn. <b>Hiệu ứng:</b> số 900 đếm theo, con dấu mới đóng xuống khi đổi bậc.</div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>${[['Hôm nay','#46b35a'],['Hành trình điểm','#ffc83d'],['Luyện tập','#a78bfa'],['Sổ tay','#ff7a9c'],['Thành tích','#1c8fe3']].map(([n,c])=>`<div class="nv"><i style="background:${c}"></i>${n}</div>`).join('')}<div style="margin:16px 8px 6px;font-weight:900;font-size:12px;color:#a3aba5">CÔNG CỤ</div><div class="nv on"><i style="background:#14b8a6"></i>Quy đổi điểm</div></aside>`;
+const sk=(ic,name,n,pts,c,bg)=>`<div class="skill" style="--c:${c}"><div class="t"><b>${ic} ${name}</b><span class="pts" style="background:${bg};color:${c}">${pts} điểm</span></div>
+<div class="st"><i>−</i><span class="n">${n}</span><i>+</i><span class="q">/100<br>câu đúng</span><div class="track"><i style="width:${n}%"></i><u style="left:${n}%"></u>${[0,25,50,75,100].map(v=>`<em style="left:${v}%">${v}</em>`).join('')}</div></div></div>`;
+document.getElementById('B2').innerHTML=SIDE+`<main><div class="hd"><h2>Quy đổi điểm</h2><p>Ước tính theo IIBC 2023 · chỉ để tham khảo</p></div><div class="pp2">
+<div class="book2"><div class="pg"><div style="display:flex;align-items:center"><h3>HỘ CHIẾU NGÔN NGỮ · TOEIC L&amp;R</h3><span class="mode"><i class="on">Câu đúng</i><i>Câu sai</i></span></div>
+ <div class="res2 is-top"><div><small style="display:block;font-weight:900;font-size:11px;letter-spacing:1.5px;color:#a39a80">TỔNG ĐIỂM DỰ KIẾN</small><b>900</b><span> / 990</span></div><div class="goal">Mục tiêu 900 · đã chạm 🎉<div class="b"><i></i></div></div></div>
+ <div class="pick"><span style="background:none;box-shadow:none;color:#a39a80;padding-left:0">Lấy từ đề:</span><span class="on">ETS 11 · 11/11</span><span>ETS 10 · 09/11</span><span>Đề khác ▾</span></div>
+ ${sk('🎧','Nghe',88,405,'#1c8fe3','#e6f1ff')}${sk('📖','Đọc',100,495,'#14b8a6','#e8fbf7')}
+ <div class="mrz" style="bottom:14px">P&lt;TOEIC&lt;&lt;SOC&lt;&lt;0405&lt;0495&lt;&lt;0900&lt;&lt;B2&lt;&lt;&lt;&lt;</div></div>
+ <div class="pg"><h3>THỊ THỰC TƯƠNG ĐƯƠNG</h3>
+  <div class="stamp" style="--c:#14b8a6;--r:-10deg;left:44px;top:70px;width:170px;height:170px"><div><small>CEFR</small><b>B2</b><em>TRUNG CẤP TRÊN</em></div></div>
+  <div class="stamp sq" style="--c:#e0557f;--r:8deg;left:270px;top:60px;width:180px;height:130px"><div><small>IELTS</small><b>5.5–6.5</b><em>THAM KHẢO</em></div></div>
+  <div class="stamp sq" style="--c:#2f8a42;--r:-4deg;left:60px;top:310px;width:170px;height:120px"><div><small>VSTEP</small><b>Bậc 4</b><em>B2 · VIỆT NAM</em></div></div>
+  <div class="stamp" style="--c:#7c5ce0;--r:12deg;left:280px;top:290px;width:170px;height:170px"><div><small>TOEFL iBT</small><b>4–4.5</b><em>THANG 1–6</em></div></div>
+  <div style="position:absolute;left:30px;right:30px;bottom:18px;display:flex;justify-content:space-between;font-weight:800;font-size:12px;color:#a39a80"><span>Nghe &amp; Đọc cũng cần đạt ngưỡng riêng</span><span>Sang C1 cần 945+</span></div></div></div>
+<div class="route"><div class="rt-h"><b>Hành trình CEFR</b><span>mỗi trạm là mốc tổng TOEIC tối thiểu</span></div>
+<div class="rt-line"><i style="width:${(3/5)*100}%"></i></div>
+<div class="rt-st">${[['A1','Căn bản','120+','#7fa6e8'],['A2','Sơ cấp','225+','#5b8fe6'],['B1','Trung cấp','550+','#3d8fe8'],['B2','Trung cấp trên','785+','#14b8a6'],['C1','Cao cấp','945+','#7c5ce0'],['C2','Thành thạo','ngoài TOEIC','#b9b2d8']].map(([l,n,v,c],i)=>`<div class="rs ${i<3?'is-past':i===3?'is-now':i===4?'is-next':'is-off'}" style="--c:${c}">
+ ${i===3?`<span class="rs-soc soc">${SOC.idle}</span><span class="rs-here">Bạn ở đây</span>`:''}${i===4?'<span class="rs-gap">còn 45 điểm</span>':''}
+ <span class="rs-dot">${i<3?'✓':l}</span><b>${i<3?l:''}${i<3?' · ':''}${n}</b><small>${v}</small></div>`).join('')}</div></div>
+</div></main>`;
+</script></body></html>
