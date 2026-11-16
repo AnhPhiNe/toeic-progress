@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Sóc đa dạng hơn</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:#bfc4cc;padding:30px;width:1500px}
+.cap{font-weight:900;font-size:21px;margin:22px 0 4px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43}
+.sheet{background:#fff;border-radius:26px;padding:24px;display:flex;gap:16px;flex-wrap:wrap}
+.cell{width:170px;border-radius:22px;background:var(--b,#fbfaf7);padding:12px 10px 14px;text-align:center}
+.cell svg{display:block;width:130px;margin:0 auto}
+.cell b{display:block;font-weight:900;font-size:15px;margin-top:4px}
+.cell small{display:block;font-weight:800;font-size:12px;color:#7a857e;margin-top:2px;line-height:1.35}
+.pick{background:#fff;border-radius:26px;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.ph{width:390px;height:700px;border-radius:40px;background:linear-gradient(180deg,#fff2cf,#ffe3e3);position:relative;overflow:hidden;box-shadow:0 0 0 10px #1d2420;margin:10px auto}
+.ph h3{position:absolute;left:24px;top:40px;font-weight:900;font-size:26px;line-height:1.15}
+.ph h3 em{font-style:normal;color:#f0a500}
+.ph .big{position:absolute;left:50%;top:130px;width:230px;margin-left:-115px}
+.sw{position:absolute;left:20px;right:20px;top:420px;display:flex;justify-content:space-between}
+.sw span{display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:900;font-size:12px}
+.sw i{width:48px;height:48px;border-radius:50%;box-shadow:0 0 0 3px #fff,0 3px 8px rgba(0,0,0,.15)}
+.sw span.on i{box-shadow:0 0 0 3px #fff,0 0 0 6px #ffc83d}
+.nm{position:absolute;left:20px;right:20px;top:520px;border-radius:16px;background:#fff;padding:12px 14px;font-weight:900;font-size:15px;box-shadow:0 0 0 2px #f0e3dc}
+.nm small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5}
+.go{position:absolute;left:20px;right:20px;bottom:30px;border-radius:99px;padding:15px 0;text-align:center;font-weight:900;font-size:16px;color:#fff;background:linear-gradient(90deg,#4cc062,#2f9e4a);box-shadow:0 5px 0 #2a8a40}
+.lg{background:#fbfaf7;border-radius:22px;box-shadow:0 0 0 2px #efede7;overflow:hidden;align-self:start}
+.rw{display:flex;align-items:center;gap:12px;padding:8px 16px;border-top:1.5px solid #f4f2ed;font-weight:900;font-size:15px}
+.rw .rk{width:22px;color:#a3aba5;font-size:14px;text-align:center}
+.rw .av{width:44px;height:44px;border-radius:14px;background:#fff;overflow:hidden;position:relative;flex:none;box-shadow:0 0 0 2px #f0eee8}
+.rw .av svg{position:absolute;width:56px;left:-6px;top:-2px}
+.rw .pts{margin-left:auto}.rw .pts i{font-style:normal;color:#ffb020}
+.rw.me{background:#fff7d6}
+.where{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.wc{background:#fff;border-radius:22px;padding:14px;display:flex;gap:12px;align-items:center}
+.wc svg{width:90px;flex:none}
+.wc b{display:block;font-weight:900;font-size:15px}.wc small{display:block;font-weight:800;font-size:12.5px;color:#7a857e;margin-top:2px;line-height:1.4}
+</style></head><body>
+<div class="cap">1 · Biểu cảm theo tình huống<small>Cùng một Sóc, chỉ đổi mắt, miệng và vài chi tiết. Không tư thế nào giơ tay. Mỗi biểu cảm gắn với một chỗ cụ thể trong app.</small></div>
+<div class="sheet" id="E"></div>
+<div class="cap">2 · Sóc của riêng bạn: chọn màu lông khi bắt đầu<small>5 màu lông; đồ mặc vẫn giữ nguyên. Chọn một lần ở màn chào đón, đổi lại được trong Tủ đồ. Trên giải đấu tuần, mỗi người một Sóc khác nhau.</small></div>
+<div class="pick"><div id="PK"></div><div><div class="lg" id="LG"></div></div></div>
+<div class="cap">Biểu cảm xuất hiện ở đâu</div>
+<div class="where" id="W"></div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const BASE=SOC.idle.replace(/class="s-idle"/,'');
+const COATS={
+  nau:{n:'Nâu cam',m:'#f4a261',d:'#e58a45',f:'#d9773a',b:'#fff1dc',t:'#ffe3c2',e:'#ffb5a7'},
+  xam:{n:'Xám tro',m:'#a9b2bf',d:'#8a94a3',f:'#7b8594',b:'#f3f5f8',t:'#e4e8ee',e:'#f6c7cf'},
+  kem:{n:'Kem sữa',m:'#f2d6aa',d:'#dfbd88',f:'#d1ab73',b:'#fffaf0',t:'#fff3dd',e:'#ffc2b4'},
+  soco:{n:'Sô-cô-la',m:'#9b6a4c',d:'#7d5137',f:'#6b442d',b:'#f3e2d1',t:'#d9b896',e:'#e8a99a'},
+  dau:{n:'Hồng dâu',m:'#f3a7b6',d:'#e3869a',f:'#d77689',b:'#fff2f4',t:'#ffe1e7',e:'#ff9eb2'}
+};
+const coat=(s,c)=>{const k=COATS[c];return s.replaceAll('#f4a261',k.m).replaceAll('#e58a45',k.d).replaceAll('#d9773a',k.f).replaceAll('#fff1dc',k.b).replaceAll('#ffe3c2',k.t).replaceAll('#ffb5a7',k.e);};
+const EYES=/<g class="lid">[\s\S]*?<\/g><\/g><g class="lid">[\s\S]*?<\/g><\/g>/;
+const MOUTH=/<path d="M99 133 Q104\.5 141 110 133 Q115\.5 141 121 133"[^>]*\/>/;
+const st='fill="none" stroke="#3a2a1e" stroke-width="4" stroke-linecap="round"';
+const face=(eyes,mouth,extra='')=>BASE.replace(EYES,eyes).replace(MOUTH,mouth).replace('</g></g></svg>','</g></g>'+extra+'</svg>');
+const dot=(x)=>`<ellipse cx="${x}" cy="112" rx="11.5" ry="13.5" fill="#3a2a1e"/><circle cx="${x+4}" cy="106.5" r="4.8" fill="#fff"/><circle cx="${x-4}" cy="118" r="2.2" fill="#fff"/>`;
+const SMILE='<path d="M99 133 Q104.5 141 110 133 Q115.5 141 121 133" fill="none" stroke="#3a2a1e" stroke-width="3.2" stroke-linecap="round"/>';
+const F={
+ vui:BASE,
+ tuhao:face(`<path d="M71 116 Q82 104 93 116" ${st}/><path d="M127 116 Q138 104 149 116" ${st}/>`,'<path d="M98 132 Q110 148 122 132Z" fill="#7a3a2b"/>',''),
+ ngacnhien:face(`<ellipse cx="82" cy="112" rx="13" ry="15.5" fill="#3a2a1e"/><circle cx="87" cy="106" r="5.5" fill="#fff"/><ellipse cx="138" cy="112" rx="13" ry="15.5" fill="#3a2a1e"/><circle cx="143" cy="106" r="5.5" fill="#fff"/>`,'<ellipse cx="110" cy="138" rx="6" ry="7.5" fill="#7a3a2b"/>',`<g fill="#ffc83d"><path d="M186 52 l4 9 9 2-7 6 2 9-8-5-8 5 2-9-7-6 9-2Z"/><path d="M34 60 l3 6 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1Z"/></g>`),
+ taptrung:face(dot(82)+dot(138)+`<g ${st} stroke-width="3.5"><circle cx="82" cy="112" r="20"/><circle cx="138" cy="112" r="20"/><path d="M102 110 Q110 104 118 110"/></g>`,'<path d="M102 136 H118" '+st+' stroke-width="3.2"/>',''),
+ buon:face(`<ellipse cx="82" cy="116" rx="10" ry="11" fill="#3a2a1e"/><circle cx="85" cy="112" r="3.6" fill="#fff"/><ellipse cx="138" cy="116" rx="10" ry="11" fill="#3a2a1e"/><circle cx="141" cy="112" r="3.6" fill="#fff"/><path d="M68 101 Q80 94 92 92" ${st} stroke-width="3.5"/><path d="M152 101 Q140 94 128 92" ${st} stroke-width="3.5"/>`,'<path d="M101 140 Q110 132 119 140" '+st+' stroke-width="3.2"/>',''),
+ ngu:face(`<path d="M71 114 Q82 122 93 114" ${st}/><path d="M127 114 Q138 122 149 114" ${st}/>`,'<ellipse cx="110" cy="137" rx="4" ry="3" fill="#7a3a2b"/>',`<g font-family="Nunito" font-weight="900" fill="#8a7aa0"><text x="176" y="58" font-size="22">z</text><text x="196" y="36" font-size="16">z</text></g>`)
+};
+const EX=[['vui','Vui','mặc định · Hôm nay, Hành trình','#fff7ea'],['tuhao','Tự hào','kỷ lục mới, lên cấp, cọc đầu tiên','#fff3d6'],['ngacnhien','Ngạc nhiên','huy hiệu mới, lên hạng giải đấu','#f1ebff'],['taptrung','Tập trung (kính đọc)','đang ôn câu sai, đang nướng bánh','#e8f6ff'],['buon','Buồn nhẹ','chuỗi vừa gãy (kèm lời động viên)','#ffeef2'],['ngu','Ngủ gật','3 ngày chưa học · trang trống','#eef0f4']];
+document.getElementById('E').innerHTML=EX.map(([k,n,s,b])=>`<div class="cell" style="--b:${b}">${F[k]}<b>${n}</b><small>${s}</small></div>`).join('');
+const sw=Object.entries(COATS).map(([k,c],i)=>`<span class="${i===1?'on':''}"><i style="background:radial-gradient(circle at 35% 35%,${c.b} 0 28%,${c.m} 30%)"></i>${c.n}</span>`).join('');
+document.getElementById('PK').innerHTML=`<div class="ph"><h3>Sóc của bạn<br><em>trông thế nào?</em></h3><div class="big">${coat(F.vui,'xam')}</div><div class="sw">${sw}</div><div class="nm">Tên Sóc<small>Hạt Tiêu · hiện trên giải đấu tuần</small></div><div class="go">Chọn Sóc xám tro</div></div>`;
+const L=[['Mây Bay','dau',212],['Tí Hon','soco',190],['Kem Dâu','kem',176],['Bắp Rang','nau',164],['Hạt Tiêu (bạn)','xam',151,1],['Hạt Dẻ','soco',140],['Trà Sữa','kem',133]];
+document.getElementById('LG').innerHTML=`<div style="padding:12px 16px;font-weight:900;font-size:15px">Trên giải đấu tuần · mỗi người một Sóc</div>`+L.map(([n,c,p,me],i)=>`<div class="rw ${me?'me':''}"><span class="rk">${i+1}</span><span class="av">${coat(i===0?F.tuhao:i===4?F.taptrung:F.vui,c)}</span>${n}<span class="pts">${p} <i>★</i></span></div>`).join('');
+document.getElementById('W').innerHTML=[['tuhao','Màn kết quả','“Kỷ lục mới!” · Sóc nhắm mắt cười, má hồng'],['buon','Hôm nay khi gãy chuỗi','“Không sao, hôm nay làm lại nhé” · nến tắt'],['ngu','Lâu không vào app','Sóc ngủ gật trên bậc; bấm vào thì Sóc tỉnh dậy']].map(([k,b,s])=>`<div class="wc">${coat(F[k],'xam')}<div><b>${b}</b><small>${s}</small></div></div>`).join('');
+</script></body></html>
