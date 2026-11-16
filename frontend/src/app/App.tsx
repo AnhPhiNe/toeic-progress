@@ -13,12 +13,16 @@ import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { Topbar } from '@/app/components/Topbar';
-import { MobileNav } from '@/app/components/MobileNav';
+import { PhoneNav, PhoneShellContext } from '@/app/components/phone';
+import { TodayPhone } from '@/features/today/components/TodayPhone';
+import { JourneyPhone } from '@/features/journey/components/JourneyPhone';
+import { PracticePhone } from '@/features/pacing/components/PracticePhone';
+import { NotebookPhone } from '@/features/mistakes/components/NotebookPhone';
+import { ConvertPhone } from '@/features/resources/components/ConvertPhone';
 import { profileInitials } from '@/app/components/profileInitials';
 import { StreakCelebration, StreakChip } from '@/app/components/StreakChip';
 import { actualStudyDates } from '@/shared/domain/streak';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
-import { unfinishedDetailCount } from '@/features/dashboard/lib/unfinishedDetails';
 import { AnalyticsView } from '@/features/analytics/components/AnalyticsView';
 import { ExamHistoryView } from '@/features/study-sessions/components/ExamHistoryView';
 import { MistakeNotebookView } from '@/features/mistakes/components/MistakeNotebookView';
@@ -444,7 +448,6 @@ export const App: React.FC = () => {
 
   // Badge điều hướng chỉ việc cần làm HÔM NAY, không phải toàn bộ tồn đọng
   const dueMistakesCount = getDueMistakes(mistakes).length;
-  const unfinishedDetails = unfinishedDetailCount(sessions, mistakes);
   const today = getTodayDateString();
   const studiedDates = actualStudyDates({ sessions, vocabLog, pacingRuns: loadPacingRuns() }, today);
   const hasStudiedToday = studiedDates.has(today) || sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
@@ -459,7 +462,9 @@ export const App: React.FC = () => {
   const showNotebook = activeTab === 'mistakes' && !isPhone;
   const showAwards = activeTab === 'awards';
   const showConvert = activeTab === 'resources' && !isPhone;
-  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert;
+  // Phones: each tab with a redesigned phone page owns the whole screen (no Topbar); plan and vocabulary keep the old layout.
+  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources'].includes(activeTab);
+  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert || phonePageTab;
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
@@ -474,6 +479,7 @@ export const App: React.FC = () => {
   };
 
   return (
+    <PhoneShellContext.Provider value={{ soc, newBadges, goTab: setActiveTab, openSettings: () => setIsSettingsModalOpen(true) }}>
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
       
       {/* 1. Sidebar (Desktop Persistent & Mobile Overlay Drawer Unified) */}
@@ -517,7 +523,77 @@ export const App: React.FC = () => {
           onUseGuest={() => void account.signOut()}
         />
 
-        {showToday ? (
+        {phonePageTab ? (
+          <div className="ph-page" key={activeTab === 'mistakes' || activeTab === 'resources' || activeTab === 'history' || activeTab === 'analytics' ? `${activeTab}:${activeOwner ?? 'guest'}` : activeTab}>
+            {activeTab === 'dashboard' && (
+              <TodayPhone
+                bundle={bundle}
+                today={today}
+                onStartTask={startTodayTask}
+                onPracticeMore={() => setActiveTab('exam-mode')}
+                onOpenSessionLogger={() => openSessionLogger()}
+                onOpenSettings={() => setIsSettingsModalOpen(true)}
+                onUpdateProfile={updateProfile}
+                streak={streakNow}
+                dueMistakesCount={dueMistakesCount}
+                soc={soc}
+                onNavigate={setActiveTab}
+              />
+            )}
+            {(activeTab === 'history' || activeTab === 'analytics') && (
+              <JourneyPhone
+                sessions={sessions}
+                mistakes={mistakes}
+                profile={profile}
+                today={today}
+                initialTab={activeTab === 'analytics' ? 'parts' : 'score'}
+                onOpenNotebook={(name, part) => { setNotebookSourceFilter({ owner: activeOwner, names: [name], part }); setActiveTab('mistakes'); }}
+                onPractice={part => navigateToPacing(`PART_${part}` as ReadingPartType)}
+                onEditSession={openSessionEditor}
+                onDeleteSession={handleDeleteSession}
+                onOpenSessionLogger={() => openSessionLogger()}
+                bundle={bundle}
+                activeTab={activeTab}
+                onNavigate={setActiveTab}
+              />
+            )}
+            {activeTab === 'exam-mode' && (
+              <PracticePhone
+                sessions={sessions}
+                initialPart={pacingInitialPart}
+                resultDialogBlocked={savedTest !== null || isSessionModalOpen || isSettingsModalOpen || editingPacing !== null || reviewCards !== null || Boolean(account.pendingTransfer)}
+                onOpenSessionLogger={openSessionLogger}
+                onEditSession={openSessionEditor}
+                onSessionsChanged={handleSessionsChangedElsewhere}
+                onOpenPomodoro={() => { setPacingInitialPart('POMODORO'); setPomodoroOpen(true); }}
+                onFocusChange={setPracticeFocus}
+              />
+            )}
+            {activeTab === 'mistakes' && (
+              <NotebookPhone
+                key={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest.id : 'notebook'}
+                createRequest={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest : undefined}
+                initialSourceNames={notebookSourceFilter?.owner === activeOwner ? notebookSourceFilter.names : undefined}
+                initialPart={notebookSourceFilter?.owner === activeOwner ? notebookSourceFilter.part : undefined}
+                sessions={sessions}
+                dueCount={dueMistakesCount}
+                onStartReview={openReview}
+                mistakes={mistakes}
+                onAddMistake={handleAddMistake}
+                onAddMistakes={handleAddMistakes}
+                onMarkMastered={handleMarkMastered}
+                onReopenCards={handleReopenCards}
+                onDeleteMistake={handleDeleteMistake}
+                onUpdateMistake={handleUpdateMistake}
+                onOpenSessionLogger={() => openSessionLogger()}
+                onNavigateTab={setActiveTab}
+              />
+            )}
+            {activeTab === 'resources' && (
+              <ConvertPhone sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
+            )}
+          </div>
+        ) : showToday ? (
           <TodayPage
             bundle={bundle}
             today={today}
@@ -687,18 +763,17 @@ export const App: React.FC = () => {
       <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null} />
       <PageScrollCue activeTab={activeTab} />
 
-      <MobileNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        dueMistakesCount={dueMistakesCount}
-        unfinishedDetailsCount={unfinishedDetails}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
-        onRecordSession={() => openSessionLogger()}
-        onRecordMistake={openNewMistake}
-        onRecordVocab={() => openSessionLogger({ sessionType: 'VOCAB' })}
-      />
+      {isPhone && !(practiceFocus && activeTab === 'exam-mode') && (
+        <PhoneNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          dueMistakesCount={dueMistakesCount}
+          onRecordSession={() => openSessionLogger({ sessionType: 'FULL_TEST' })}
+          onRecordPractice={() => openSessionLogger({ sessionType: 'PART_PRACTICE' })}
+          onRecordMistake={openNewMistake}
+          onRecordVocab={() => openSessionLogger({ sessionType: 'VOCAB' })}
+        />
+      )}
 
       {/* Modals */}
       {editingPacing && editingPacing.owner === activeOwner && <PacingResultEditor run={editingPacing.run} owner={editingPacing.owner} onClose={closePacingEditor} onSaved={handleSessionsChangedElsewhere} />}
@@ -763,6 +838,7 @@ export const App: React.FC = () => {
 
 
     </div>
+    </PhoneShellContext.Provider>
   );
 };
 
