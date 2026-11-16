@@ -761,7 +761,8 @@ export const App: React.FC = () => {
       </div>
 
       <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null} />
-      <PageScrollCue activeTab={activeTab} />
+      {/* Redesigned phone pages (and Thành tích) have their own bottom nav; the old floating cue would cover it. */}
+      {!(isPhone && (phonePageTab || activeTab === 'awards')) && <PageScrollCue activeTab={activeTab} />}
 
       {isPhone && !(practiceFocus && activeTab === 'exam-mode') && (
         <PhoneNav
