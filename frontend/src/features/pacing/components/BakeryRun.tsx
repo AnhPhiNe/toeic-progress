@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { RecipeStep } from '../lib/bakery';
-import { BulbString, ChefSoc, Oven, Whisk } from './BakeryArt';
+import { BulbString, ChefSoc, Oven } from './BakeryArt';
 
 interface Props {
   label: string;
@@ -50,7 +50,7 @@ export function BakeryRun(p: Props) {
       <div className="bk-run-main">
         <div className="bk-run-left">
           <div className="bk-bub bk-bub--static">{line}</div>
-          <div className="bk-run-soc"><ChefSoc size={150} mood={p.hot ? 'think' : 'idle'} /><Whisk className="bk-run-whisk" /></div>
+          <div className="bk-run-soc"><ChefSoc size={150} mood={p.hot ? 'think' : 'mix'} /></div>
         </div>
 
         <div className="bk-oven-wrap">

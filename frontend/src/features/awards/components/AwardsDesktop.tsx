@@ -53,7 +53,6 @@ function useCountUp(target: number, on: boolean): number {
 }
 
 const RING_R = 80, RING_C = 2 * Math.PI * RING_R;
-const STAR = 'M100 64 l7 14 15 2 -11 11 3 15 -14 -7 -14 7 3 -15 -11 -11 15 -2Z';
 
 /** Thành tích, desktop (design/previews/mock-awards-v4.html, "C mới"). */
 export function AwardsDesktop({ bundle, today, owner, onUpdateProfile }: Props) {
@@ -134,12 +133,10 @@ export function AwardsDesktop({ bundle, today, owner, onUpdateProfile }: Props) 
             <circle cx="100" cy="100" r={RING_R} fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.22)" strokeWidth="18" />
             <circle className="awd-ring-fill" cx="100" cy="100" r={RING_R} fill="none" stroke="#ffd25e" strokeWidth="18" strokeLinecap="round"
               strokeDasharray={`${RING_C * (ringOn ? lp.ratio : 0)} ${RING_C}`} opacity={lp.ratio > 0 ? 1 : 0} transform="rotate(-90 100 100)" />
-            <path d={STAR} fill="#ffd25e" />
-            <text x="100" y="134" textAnchor="middle" fontWeight="900" fontSize="34" fill="#fff">{shownStars} ★</text>
-            <text x="100" y="154" textAnchor="middle" fontWeight="800" fontSize="12" fill="#d8ecff">{lp.next ? `còn ${lp.toNext} sao lên cấp ${lp.next.n}` : 'cấp cao nhất rồi!'}</text>
+            <text x="100" y="114" textAnchor="middle" fontWeight="900" fontSize="46" fill="#fff">{shownStars}<tspan fontSize="30" fill="#ffd25e" dx="4">★</tspan></text>
           </svg>
-          <span className="awd-bubble">{earned.length}/{badges.length} huy hiệu!</span>
-          <Soc state="hi" size={112} gear={worn} className="awd-soc" />
+          <p className="awd-next">{lp.next ? <>còn <b>{lp.toNext} sao</b> lên cấp {lp.next.n}</> : 'Cấp cao nhất rồi!'}</p>
+          <Soc state="cheerC" size={104} gear={worn} className="awd-soc" />
           <button type="button" className="awd-gearbtn" aria-expanded={gearOpen} onClick={() => setGearOpen(o => !o)} ref={gearBtn}>👕 Đổi đồ cho Sóc</button>
         </div>
         <div className="awd-shelf">

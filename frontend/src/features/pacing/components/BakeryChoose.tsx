@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { StudySession } from '@/shared/types';
 import type { PacingMode } from '../lib/pacingModel';
 import { dishName, dishOf, type Dish, type PaceTag } from '../lib/bakery';
-import { Dome, DishIcon, ChefSoc, ItemArt, ShopBackdrop, Whisk } from './BakeryArt';
+import { Dome, DishIcon, ChefSoc, ItemArt, ShopBackdrop } from './BakeryArt';
 
 export interface BakeryChoice { mode: PacingMode; label: string; questions: number; minutes: number; record: string | null }
 export interface RecentRow { id: string; session: StudySession; dish: Dish; title: string; sub: string; tag: PaceTag | null }
@@ -132,8 +132,7 @@ export function BakeryChoose(p: Props) {
           {selected >= 0 && <div className="bk-dome" style={{ left: XS[selected] - 130 }}><Dome /></div>}
 
           <div className={'bk-shop-soc' + (going ? ' is-going' : '')}>
-            <ChefSoc size={82} mood="hi" />
-            <Whisk className="bk-shop-whisk" />
+            <ChefSoc size={82} mood="mix" />
           </div>
           <div className={'bk-bub' + (selected === 3 ? ' is-left' : '')}>
             {dish} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <> Lần trước bạn xong trong {p.lastTime}!</>}

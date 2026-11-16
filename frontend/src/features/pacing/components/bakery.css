@@ -48,7 +48,7 @@
 .bk-shop-soc { position: absolute; left: 796px; top: 262px; width: 82px; z-index: 5; }
 .bk-shop-soc.is-going { animation: bk-run-in .48s ease-in forwards; }
 .bk-chef { position: relative; display: inline-block; }
-.bk-hat { position: absolute; width: calc(var(--s) * .66); left: calc(var(--s) * .17); top: calc(var(--s) * -.34); z-index: 2; pointer-events: none; }
+.bk-hat { position: absolute; width: calc(var(--s) * .62); left: calc(var(--s) * .17); top: calc(var(--s) * -.2); z-index: 2; pointer-events: none; }
 .bk-shop-whisk { position: absolute; left: 33px; top: 19px; width: 30px; height: 75px; transform: rotate(-22deg); transform-origin: 50% 60%; z-index: 3; }
 .bk-whisk { transform-box: fill-box; transform-origin: 50% 100%; animation: bk-whisk .45s ease-in-out infinite alternate; }
 .bk-bub { position: absolute; left: 596px; top: 148px; width: 220px; background: #fff; border-radius: 16px; padding: 10px 14px; font-weight: 800; font-size: 13.5px; line-height: 1.35; box-shadow: 0 5px 0 rgba(47, 58, 51, .1); z-index: 4; }

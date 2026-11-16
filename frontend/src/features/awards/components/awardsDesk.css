@@ -16,11 +16,11 @@
 .awd-lvl h1 { font-weight: 900; font-size: 30px; letter-spacing: -.8px; line-height: 1.05; margin-top: 2px; color: #fff; }
 .awd-lvl h1.is-long { font-size: 25px; }
 .awd-lvl h1 em { font-style: normal; color: #ffe58f; }
-.awd-ring { position: absolute; left: 0; top: 76px; width: 200px; }
+.awd-ring { position: absolute; left: 4px; top: 82px; width: 140px; }
+.awd-next { position: absolute; left: 0; top: 228px; width: 148px; text-align: center; font-weight: 800; font-size: 12.5px; color: #d8ecff; }
+.awd-next b { color: #ffe58f; font-weight: 900; }
 .awd-ring-fill { transition: stroke-dasharray 1.6s cubic-bezier(.3, .8, .3, 1); }
-.awd-bubble { position: absolute; left: 206px; top: 108px; background: #fff; color: var(--rd-ink); border-radius: 14px; padding: 6px 10px; font-weight: 900; font-size: 12.5px; white-space: nowrap; }
-.awd-bubble::after { content: ''; position: absolute; left: 18px; bottom: -6px; width: 12px; height: 12px; background: #fff; transform: rotate(45deg); border-radius: 2px; }
-.awd-soc { position: absolute; left: 196px; top: 146px; }
+.awd-soc { position: absolute; left: 168px; top: 92px; }
 .awd-shelf { position: relative; z-index: 2; display: flex; flex-direction: column; min-width: 0; }
 .awd-shelf h3 { font-weight: 900; font-size: 15px; opacity: .95; display: flex; justify-content: space-between; }
 .awd-shelf h3 span { font-weight: 800; font-size: 13px; opacity: .8; }
@@ -57,7 +57,7 @@
 .awd-cell > b { display: block; font-weight: 900; font-size: 13.5px; margin-top: 3px; color: var(--rd-ink); line-height: 1.2; }
 .awd-cell > small { display: block; font-weight: 800; font-size: 12px; color: var(--rd-mut); line-height: 1.2; }
 .awd-cell.is-off > b { color: #8b948e; }
-.awd-gearbtn { position: absolute; left: 206px; top: 66px; border: 0; border-radius: 99px; padding: 6px 12px; font-weight: 900; font-size: 12.5px; background: rgba(255, 255, 255, .2); color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .5); cursor: pointer; white-space: nowrap; z-index: 3; font-family: var(--rd-font); }
+.awd-gearbtn { position: absolute; left: 160px; top: 214px; border: 0; border-radius: 99px; padding: 6px 12px; font-weight: 900; font-size: 12.5px; background: rgba(255, 255, 255, .2); color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .5); cursor: pointer; white-space: nowrap; z-index: 3; font-family: var(--rd-font); }
 .awd-gearbtn:hover { background: rgba(255, 255, 255, .32); }
 .awd-gearbtn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .awd-pbrow { grid-column: 1 / 3; display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 13px; }

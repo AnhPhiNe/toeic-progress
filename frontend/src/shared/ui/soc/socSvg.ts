@@ -1,6 +1,6 @@
 /* Port of design/previews/_soc.js (approved 2D Sóc). Keep in sync with the sketches. */
 import { GEAR_MARK, applyGear } from './socGear';
-export type SocState = 'idle' | 'think' | 'yay' | 'sad' | 'zzz' | 'hi';
+export type SocState = 'idle' | 'think' | 'yay' | 'sad' | 'zzz' | 'hi' | 'mix';
 
 const D = '#3a2a1e', F = '#f4a261', F2 = '#e58a45', C = '#fff1dc';
 
@@ -10,18 +10,18 @@ function eye(x: number, s: SocState): string {
   if(s==='think')return `<ellipse cx="${x}" cy="112" rx="11.5" ry="13.5" fill="${D}"/><circle cx="${x+5}" cy="104" r="5" fill="#fff"/><circle cx="${x-2}" cy="115" r="2" fill="#fff"/>`;
   return `<g class="lid"><ellipse cx="${x}" cy="112" rx="11.5" ry="13.5" fill="${D}"/><g class="${s==='sad'?'':'look'}"><circle cx="${x+4}" cy="${s==='sad'?110:106.5}" r="4.8" fill="#fff"/><circle cx="${x-4}" cy="118" r="2.2" fill="#fff"/></g></g>`}
 /** SVG markup for Sóc in one state; layered groups animate via soc.css. */
+const BOWL=`<g transform="translate(110 210)"><g class="bwhisk"><g transform="rotate(18 0 -6)"><path d="M-4 -6 C-13 -18 -11 -38 0 -44 C11 -38 13 -18 4 -6" fill="none" stroke="#b9bcc4" stroke-width="3"/><path d="M0 -6 C-4 -20 -4 -38 0 -44 C4 -38 4 -20 0 -6" fill="none" stroke="#b9bcc4" stroke-width="3"/><rect x="-3.5" y="-62" width="7" height="20" rx="3.5" fill="#a26c43"/></g></g><path d="M-36 -6 H36 C34 18 20 28 0 28 C-20 28 -34 18 -36 -6Z" fill="#fff" stroke="#e6e0f5" stroke-width="3"/><path d="M-33 2 H33" stroke="#ffd1dc" stroke-width="4"/><ellipse cx="0" cy="-6" rx="36" ry="8" fill="#fff6e0" stroke="#e6e0f5" stroke-width="3"/><ellipse cx="0" cy="-5" rx="28" ry="5" fill="#ffe2a8"/></g>`;
 export function socSvg(s: SocState): string {
   const ear=s==='sad'||s==='zzz'?30:0;
   const nut=`<g class="${s==='idle'?'nut':''}"><ellipse cx="0" cy="5" rx="12" ry="14" fill="#e9b872"/><ellipse cx="-4" cy="2" rx="3" ry="6" fill="#fff" opacity=".35"/><path d="M-14 0 Q0 -18 14 0 Q0 6 -14 0Z" fill="#8e5a35"/><rect x="-2" y="-16" width="4" height="7" rx="2" fill="#8e5a35"/></g>`;
   const mouth=s==='yay'?`<path d="M100 130 Q110 150 120 130Z" fill="#8e3b2f"/><ellipse cx="110" cy="140" rx="5" ry="3.5" fill="#ff8f80"/><rect x="106" y="130" width="8" height="5" rx="1.5" fill="#fff"/>`:s==='sad'?`<path d="M103 139 Q110 132 117 139" fill="none" stroke="${D}" stroke-width="3.2" stroke-linecap="round"/>`:(s==='zzz'||s==='think')?`<ellipse cx="110" cy="137" rx="3.5" ry="4.5" fill="#8e3b2f"/>`:`<path d="M99 133 Q104.5 141 110 133 Q115.5 141 121 133" fill="none" stroke="${D}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`;
   const brows=s==='sad'?`<path d="M70 96 L88 90M150 96 L132 90" stroke="${D}" stroke-width="4" stroke-linecap="round"/>`:'';
   const arms=s==='yay'?`<ellipse cx="68" cy="170" rx="10" ry="18" transform="rotate(42 68 170)" fill="${F2}"/><ellipse cx="152" cy="170" rx="10" ry="18" transform="rotate(-42 152 170)" fill="${F2}"/>`
-    :s==='hi'?`<ellipse cx="132" cy="202" rx="10" ry="16" transform="rotate(38 132 202)" fill="${F2}"/><g transform="translate(60 166) rotate(-22)"><g class="wave"><ellipse cx="0" cy="18" rx="11" ry="22" fill="${F2}" stroke="#d9773a" stroke-width="2"/><circle cx="0" cy="-4" r="14" fill="${F}" stroke="#d9773a" stroke-width="2.5"/><ellipse cx="0" cy="-2" rx="7" ry="6" fill="#ffe3c2"/><circle cx="-7" cy="-13" r="3" fill="#ffe3c2"/><circle cx="0" cy="-15.5" r="3" fill="#ffe3c2"/><circle cx="7" cy="-13" r="3" fill="#ffe3c2"/></g></g><g class="wv-lines" fill="none" stroke="#ffb35c" stroke-width="4" stroke-linecap="round"><path d="M36 140 q-8 -10 -4 -22"/><path d="M24 146 q-12 -14 -6 -32"/></g>`
     :`<ellipse cx="88" cy="202" rx="10" ry="16" transform="rotate(-38 88 202)" fill="${F2}"/><ellipse cx="132" cy="202" rx="10" ry="16" transform="rotate(38 132 202)" fill="${F2}"/>`;
-  const nutAt=s==='yay'?`<g transform="translate(110,22)"><g class="toss">${nut}</g></g>`:`<g transform="translate(110,202)">${nut}</g>`;
+  const nutAt=s==='mix'?BOWL:s==='yay'?`<g transform="translate(110,22)"><g class="toss">${nut}</g></g>`:`<g transform="translate(110,202)">${nut}</g>`;
   const cf=s==='yay'?([[30,70,'#ff7a9c'],[196,60,'#ffc83d'],[20,150,'#46b35a'],[214,140,'#a78bfa'],[60,30,'#1c8fe3']] as Array<[number, number, string]>).map((c: [number, number, string], i: number) =>`<rect class="cf" style="animation-delay:${i*.08}s" x="${c[0]}" y="${c[1]}" width="9" height="14" rx="2.5" fill="${c[2]}" transform="rotate(${i*37} ${c[0]} ${c[1]})"/>`).join(''):'';
   const extra=s==='sad'?`<path class="tear" d="M154 128 q6 10 0 15 q-6 -5 0 -15Z" fill="#7dd3fc"/>`:s==='think'?`<g fill="#8fa3b8"><circle class="d1" cx="176" cy="34" r="5.5"/><circle class="d2" cx="192" cy="34" r="5.5"/><circle class="d3" cx="208" cy="34" r="5.5"/></g>`:s==='zzz'?`<g font-family="Nunito" font-weight="900" fill="#8fa3b8"><text class="z1" x="176" y="70" font-size="22">z</text><text class="z2" x="186" y="60" font-size="28">z</text></g>`:'';
-  return `<svg viewBox="0 0 240 260" class="s-${s}"><ellipse class="shadow" cx="112" cy="246" rx="62" ry="8" fill="#2f3a33" opacity=".1"/>${cf}
+  return `<svg viewBox="0 0 240 260" class="s-${s}${s==='hi'?' s-greet':''}"><ellipse class="shadow" cx="112" cy="246" rx="62" ry="8" fill="#2f3a33" opacity=".1"/>${cf}
   <g class="all">${GEAR_MARK.back}
   <g class="tail"><path d="M146 232 C208 240 236 186 216 134 C203 100 164 98 156 128 C151 148 170 158 179 146 C181 170 168 196 140 206Z" fill="${F2}"/><path d="M160 219 C197 214 214 180 201 143 C195 126 177 122 170 133" fill="none" stroke="#ffe3c2" stroke-width="12" stroke-linecap="round"/></g>
   <g class="body">
