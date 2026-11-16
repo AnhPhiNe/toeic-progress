@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Ghi trên điện thoại</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--green:#46b35a;--greenD:#2f8a42}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:30px 30px 40px}
+.cap{font-weight:900;font-size:21px;margin:0 0 4px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;max-width:1700px}
+.row{display:flex;gap:34px;margin:16px 0 40px;align-items:flex-start}
+.fw{display:flex;flex-direction:column;gap:10px;align-items:center}
+.fw>b{font-weight:900;font-size:16px}.fw>span{font-weight:700;font-size:13px;color:#3f4a43;width:390px;text-align:center;line-height:1.35}
+.ph{width:390px;height:844px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 0 0 10px #1d2420,0 24px 50px rgba(0,0,0,.3)}
+.sb{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-weight:900;font-size:15px;z-index:20}
+.sb i{width:70px;height:12px;border-radius:6px;background:currentColor;opacity:.85}
+.soc svg{display:block;width:100%}
+/* bottom nav */
+.nav{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #f0f2f0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;z-index:30}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:900;font-size:11.5px;color:#9aa39d}
+.nav a i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:15px;color:#fff;opacity:.55}
+.nav a.on{color:var(--ink)}.nav a.on i{opacity:1;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.nav a.add i{width:54px;height:54px;border-radius:18px;margin-top:-22px;background:var(--green);opacity:1;font-size:30px;box-shadow:0 5px 0 var(--greenD),0 8px 18px rgba(70,179,90,.35)}
+.nav a.add{color:var(--greenD)}
+.nav .badge{position:absolute;margin:-4px 0 0 26px;background:#ff5c86;color:#fff;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* top bar */
+.top{position:absolute;left:18px;right:18px;top:50px;display:flex;align-items:center;gap:8px;z-index:15}
+.chip{border-radius:99px;background:rgba(255,255,255,.9);padding:5px 11px;font-weight:900;font-size:13.5px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.av{margin-left:auto;width:40px;height:40px;border-radius:14px;background:#fff3e0;box-shadow:0 0 0 2px #fff,0 3px 8px rgba(0,0,0,.12);position:relative}
+.av>s{position:absolute;inset:0;border-radius:14px;overflow:hidden}.av .soc{position:absolute;width:48px;left:-4px;top:-2px}
+.av em{position:absolute;right:-3px;bottom:-3px;width:15px;height:15px;border-radius:50%;background:#7c5ce0;color:#fff;font-style:normal;font-size:9px;font-weight:900;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+/* scene */
+.sky{position:absolute;inset:0;background:radial-gradient(circle at 78% 22%,#fffbe8 0 60px,transparent 61px),linear-gradient(180deg,#fff2cf,#ffe3e3 70%,#ffd9e2)}
+.rays{position:absolute;left:50%;top:0;width:900px;height:900px;margin-left:-450px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,240,190,.55) 0 8deg,transparent 8deg 20deg);mask-image:radial-gradient(circle,#000 25%,transparent 60%)}
+.hill{position:absolute;left:-40px;right:-40px;border-radius:50% 50% 0 0;background:#a8dc95}
+.st{position:absolute}
+.st .f{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0}
+.st .c{position:absolute;left:0;right:0;height:10px;border-radius:3px;transform:translateY(-6px)}
+.st .lb{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;font-size:10.5px;color:#fff;background:rgba(0,0,0,.18);border-radius:99px;padding:1px 5px;white-space:nowrap}
+.troph{position:absolute}
+h1{font-weight:900;letter-spacing:-.6px;line-height:1.08}
+h1 em{font-style:normal;color:#f0a500}
+.dots{display:flex;gap:3px;align-items:center;font-weight:900;font-size:11.5px;color:#d99a00}.dots i{width:13px;height:5px;border-radius:9px;background:#ffc83d}.dots i.o{background:#eadcb4}.dots i.g{background:var(--green)}.dots span{margin-left:6px}
+/* cards */
+.next{border-radius:24px;background:linear-gradient(135deg,#4cc062,#2f9e4a);color:#fff;padding:16px 18px;position:relative;overflow:hidden;box-shadow:0 6px 0 #2a8a40}
+.next small{font-weight:900;font-size:11.5px;letter-spacing:.5px;opacity:.85}
+.next h3{font-weight:900;font-size:24px;letter-spacing:-.4px;margin-top:2px}
+.next p{font-weight:800;font-size:13px;opacity:.9}
+.next .btns{display:flex;align-items:center;gap:14px;margin-top:12px}
+.btn{border-radius:14px;background:#fff;color:var(--greenD);font-weight:900;font-size:16px;padding:11px 22px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.skip{font-weight:900;font-size:13px;text-decoration:underline;opacity:.9}
+.next .soc{position:absolute;right:-8px;bottom:-14px;width:96px}
+.rest{display:flex;align-items:center;font-weight:900;font-size:13px;color:#8c968f;padding:0 4px}
+.rest a{margin-left:auto;color:#1c8fe3}
+.task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #f0f2f0;font-weight:900;font-size:15px}
+.task u{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2.5px #cfd6d1;flex:none}
+.task.done u{background:var(--green);box-shadow:none}.task.done{color:#a3aba5;text-decoration:line-through}
+.task small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5;text-decoration:none}
+/* streak */
+.streak{background:#fff;border-radius:22px;box-shadow:0 0 0 2px #f6eef0;padding:12px 14px}
+.streak .h{display:flex;align-items:center;gap:8px}
+.streak .fl{font-size:26px;line-height:1}.streak b{font-weight:900;font-size:24px;color:#ff7a1a}.streak .h span{font-weight:900;font-size:13.5px;color:#ff7a1a}
+.streak .h small{margin-left:auto;font-weight:900;font-size:11.5px;color:#4f8fd6;background:#e6f1ff;border-radius:99px;padding:2px 8px}
+.cake{position:relative;height:46px;margin:6px 4px 0}
+.cake .tier{position:absolute;left:0;right:0;bottom:0;height:16px;border-radius:8px;background:#ffd1dc;box-shadow:inset 0 5px 0 #fff0f4}
+.cake .cd{position:absolute;bottom:16px;width:7px;height:20px;border-radius:3px;background:#f2e9ec}
+.cake .cd.l{background:#ff7a9c}.cake .cd.l:after{content:'';position:absolute;left:-2px;top:-11px;width:11px;height:12px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#ffb020}
+.days{display:flex;justify-content:space-between;font-weight:900;font-size:10.5px;color:#a3aba5;margin:3px 4px 0}.days b{font-size:10.5px;color:#ff7a1a}
+.goal{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1.5px solid #f3f0f1;font-weight:800;font-size:12.5px;color:#5e6962}
+.goal b{font-size:12.5px;color:var(--ink)}.goal i{flex:1;height:6px;border-radius:9px;background:#eef0ee;overflow:hidden}.goal i:before{content:'';display:block;width:20%;height:100%;background:var(--green)}
+.goal a{font-weight:900;color:#1c8fe3}
+/* sheet */
+.sheet{position:absolute;left:0;right:0;background:#fbfaf7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(120,70,70,.12);padding:10px 16px 0;z-index:10}
+.grab{width:40px;height:5px;border-radius:9px;background:#dcd8cf;margin:0 auto 10px}
+/* mini journey card (B) */
+.jcard{position:relative;border-radius:24px;overflow:hidden;height:186px;box-shadow:0 0 0 2px #fbe6c4}
+.jcard .lab{position:absolute;left:16px;top:12px;z-index:3}
+.jcard .lab b{display:block;font-weight:900;font-size:17px}
+.more{position:absolute;right:12px;top:12px;z-index:3;border-radius:99px;background:#fff;padding:5px 11px;font-weight:900;font-size:12.5px;color:#d99a00;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+/* menus (D, E) */
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);z-index:25}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 30px;z-index:40}
+.mi{display:flex;align-items:center;gap:14px;padding:11px 4px;font-weight:900;font-size:16px}
+.mi i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;color:#fff;font-size:20px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.mi small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.mi .ar{margin-left:auto;color:#c3cac5;font-size:20px}
+.mi .pill{margin-left:auto;background:#ff5c86;color:#fff;border-radius:99px;padding:1px 8px;font-size:12px}
+.lvl{display:flex;align-items:center;gap:12px;border-radius:22px;background:linear-gradient(120deg,#fff3e0,#ffe6ee);padding:12px 14px;margin-bottom:6px}
+.lvl .soc{width:58px}
+.lvl b{font-weight:900;font-size:16px}.lvl small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.lvl .bar{height:7px;border-radius:9px;background:#fff;margin-top:6px;overflow:hidden}.lvl .bar i{display:block;height:100%;width:70%;background:linear-gradient(90deg,#7c5ce0,#1c8fe3)}
+.sep{height:1.5px;background:#f0f2f0;margin:4px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+.big{border-radius:22px;padding:14px 10px 12px;text-align:center;font-weight:900;font-size:14px;line-height:1.2;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+.big i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 8px;border-radius:17px;font-style:normal;font-size:24px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.big small{display:block;font-weight:800;font-size:11.5px;color:var(--mut);margin-top:3px}
+
+.fbg{position:absolute;inset:0;background:#fbfaf7}
+.ftop{position:absolute;left:16px;right:16px;top:52px;display:flex;align-items:center;gap:10px;z-index:4}
+.ftop .x{width:36px;height:36px;border-radius:12px;background:#fff;display:grid;place-items:center;font-weight:900;font-size:16px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.ftop h2{font-weight:900;font-size:20px;letter-spacing:-.4px}
+.ftop .stp{margin-left:auto;font-weight:900;font-size:12px;color:#a3aba5}
+.fld2{position:absolute;left:16px;right:16px}
+.lab{font-weight:900;font-size:12px;color:#a3aba5;letter-spacing:.5px;margin-bottom:6px}
+.chips2{display:flex;gap:8px;flex-wrap:wrap}
+.chips2 span{border-radius:99px;padding:8px 12px;font-weight:900;font-size:13.5px;background:#fff;box-shadow:0 0 0 2px #ebe7df}
+.chips2 span.on{background:#e8f6ff;color:#1c6fc0;box-shadow:0 0 0 2px #1c8fe3}
+.big3{display:flex;align-items:center;gap:14px;border-radius:22px;padding:16px;margin-top:12px;box-shadow:0 4px 0 var(--d);background:var(--b)}
+.big3 i{width:52px;height:52px;border-radius:16px;background:#fff;display:grid;place-items:center;font-style:normal;font-size:24px;flex:none}
+.big3 b{display:block;font-weight:900;font-size:17px}.big3 small{display:block;font-weight:800;font-size:12.5px;color:var(--c);margin-top:2px}
+.big3 .ar{margin-left:auto;font-weight:900;font-size:22px;color:var(--c)}
+.save{position:absolute;left:16px;right:16px;bottom:34px;border-radius:99px;padding:16px 0;text-align:center;font-weight:900;font-size:17px;color:#fff;background:linear-gradient(90deg,#4cc062,#2f9e4a);box-shadow:0 5px 0 #2a8a40}
+.wheel{flex:1;height:170px;border-radius:20px;background:#f3f1ec;position:relative;overflow:hidden;text-align:center}
+.wheel .r{height:38px;line-height:38px;font-weight:900;font-size:17px;color:#c3cac5}
+.wheel .r.n1{font-size:20px;color:#9aa39d}.wheel .r.on{font-size:30px;color:var(--c)}
+.wheel:before{content:'';position:absolute;left:8px;right:8px;top:calc(50% - 19px);height:38px;border-radius:12px;background:#fff;box-shadow:0 0 0 2px var(--c)}
+.wheel .in{position:absolute;left:0;right:0;top:calc(50% - 95px)}
+.wheel .cap2{position:absolute;left:0;right:0;top:0;padding:7px 0 4px;background:#f3f1ec;font-weight:900;font-size:12px;color:var(--c);z-index:2}
+.seg2{display:flex;background:#f1f0ec;border-radius:14px;padding:4px}.seg2 i{flex:1;text-align:center;font-style:normal;font-weight:900;font-size:13px;padding:8px 0;border-radius:11px;color:#7a857e}.seg2 i.on{background:#fff;color:#2f3a33;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.parts{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.parts span{height:46px;border-radius:14px;background:#fff;box-shadow:0 0 0 2px #ebe7df;display:grid;place-items:center;font-weight:900;font-size:15px}
+.parts span small{display:block;font-size:9.5px;color:#a3aba5;line-height:1}
+.parts span.on{background:#7c5ce0;color:#fff;box-shadow:0 3px 0 #5b3fc4}.parts span.on small{color:#e5dcff}
+.stepr{display:flex;align-items:center;gap:10px;border-radius:18px;background:#fff;box-shadow:0 0 0 2px #ebe7df;padding:10px 12px;margin-top:10px}
+.stepr b{font-weight:900;font-size:14.5px}.stepr small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5}
+.stepr .pm2{margin-left:auto;display:flex;align-items:center;gap:10px;font-weight:900;font-size:22px}
+.stepr .pm2 i{font-style:normal;width:38px;height:38px;border-radius:50%;background:#f3efff;color:#7c5ce0;display:grid;place-items:center;font-size:20px}
+.ringA{width:120px;height:120px;border-radius:50%;background:conic-gradient(#7c5ce0 0 80%,#ece6ff 80% 100%);display:grid;place-items:center;margin:0 auto;position:relative}
+.ringA:before{content:'';position:absolute;inset:12px;border-radius:50%;background:#fbfaf7}
+.ringA span{position:relative;font-weight:900;font-size:30px;color:#5b3fc4;text-align:center;line-height:1}.ringA span small{display:block;font-size:11px;color:#a3aba5;margin-top:3px}
+</style></head><body>
+<div class="cap">Các bảng mở từ “+ Ghi” trên điện thoại<small>Mỗi bảng mở toàn màn (ẩn thanh điều hướng), × để đóng, nút Lưu luôn ở đáy. Ghi điểm đề có hai đường: chụp màn kết quả (Sóc đọc điểm + câu sai) hoặc nhập tay bằng bánh xe giống Quy đổi.</small></div>
+<div class="row" id="R1"></div>
+<div class="row" id="R2"></div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const S=k=>`<span class="soc">${SOC[k]}</span>`;
+const sv=d=>`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const icon={home:['#46b35a',sv('<path d="M4 11 12 4l8 7v9h-5v-5H9v5H4z" fill="#fff" stroke="none"/>')],j:['#ffc83d',sv('<path d="M6 19v-4M12 19V10M18 19V5"/>')],p:['#a78bfa',sv('<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M10 3h4"/>')],n:['#ff7a9c',sv('<path d="M5 5h6v14H5zM13 5h6v14h-6z" fill="#fff" stroke="none"/>')]};
+const NAV=(on='home')=>`<nav class="nav">${[['home','Hôm nay'],['j','Hành trình'],['add','Ghi'],['p','Luyện tập'],['n','Sổ tay']].map(([k,l])=>k==='add'?`<a class="add"><i>+</i>${l}</a>`:`<a class="${k===on?'on':''}"><i style="background:${icon[k][0]}">${icon[k][1]}</i>${k==='n'?'<span class="badge">8</span>':''}${l}</a>`).join('')}</nav>`;
+const SB=(c='#2f3a33')=>`<div class="sb" style="color:${c}"><span>9:41</span><i></i></div>`;
+const TOP=`<div class="top"><span class="chip">🔥 6</span><span class="chip" style="color:#7c5ce0">📅 Đặt ngày thi</span><span class="av"><s>${S('idle')}</s><em>4</em></span></div>`;
+/* stairs: x0,y0 = bottom-left; w step width, rise per step */
+function stairs(x0,base,w,rise,h0,cur=5,n=9,labels=true){
+  let o='';const vals=[560,590,620,650,680,710,740,770];
+  for(let i=0;i<n-1;i++){const hh=h0+rise*i, x=x0+i*w;
+    const done=i<cur, now=i===cur;
+    const f=done?'linear-gradient(90deg,#f5b82e 50%,#e39a12 50%)':now?'linear-gradient(90deg,#3fae55 50%,#2a8a40 50%)':'linear-gradient(90deg,#efedf8 50%,#e0dcf1 50%)';
+    const c=done?'#ffd25e':now?'#6fd07f':'#f6f4fc';
+    o+=`<div class="st" style="left:${x}px;top:${base-hh}px;width:${w}px;height:${hh}px"><div class="f" style="top:0;background:${f}"></div><div class="c" style="background:${c}"></div>${labels?`<span class="lb" style="top:${now?8:10}px;${done||now?'':'color:#9a94bb;background:#fff'}">${vals[i]}</span>`:''}</div>`;}
+  return o;}
+const TROPHY=(x,y,s=1)=>`<svg class="troph" style="left:${x}px;top:${y}px;width:${90*s}px" viewBox="0 0 90 100"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#ffc83d"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#fff6d0"/><rect x="38" y="58" width="14" height="12" fill="#f0a500"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d"/><rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33"/><text x="45" y="92" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="12" fill="#ffd25e">800</text></svg>`;
+const DOTS=`<div class="dots">${'iiiiigooo'.split('').map(c=>`<i class="${c==='g'?'g':c==='o'?'o':''}"></i>`).join('')}<span>BẬC 6/9 · CÒN 75 ĐIỂM</span></div>`;
+const NEXT=(soc=true)=>`<div class="next"><small>TIẾP THEO · 8 PHÚT</small><h3>Ôn 8 câu sai</h3><p>Đến hạn hôm nay</p><div class="btns"><span class="btn">▶ Bắt đầu</span><span class="skip">Bỏ qua hôm nay</span></div>${soc?S('idle'):''}</div>`;
+const CANDLES=`<div class="cake"><div class="tier"></div>${[0,1,2,3,4,5,6].map(i=>`<div class="cd ${i===0?'l':''}" style="left:${5+i*14.8}%;margin-left:-3px"></div>`).join('')}</div><div class="days"><b>Nay</b><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>`;
+const STREAK=`<div class="streak"><div class="h"><span class="fl">🔥</span><b>6</b><span>ngày liền · còn 6 nến là xong bánh</span><small>❄ 2</small></div>${CANDLES}<div class="goal">Mục tiêu tuần: <b>1/5</b> buổi<i></i><a>Sửa</a></div></div>`;
+const STREAK_MINI=`<div class="streak" style="display:flex;align-items:center;gap:10px;padding:10px 14px"><span class="fl" style="font-size:22px">🔥</span><div><b style="font-size:20px">6</b> <span style="font-weight:900;font-size:12.5px;color:#ff7a1a">ngày liền</span><div style="font-weight:800;font-size:11.5px;color:var(--mut)">Tuần này 1/5 buổi</div></div><div style="margin-left:auto;display:flex;gap:5px;align-items:flex-end">${[1,0,0,0,0,0,0].map((l,i)=>`<i style="width:7px;height:${l?22:16}px;border-radius:3px;background:${l?'#ff7a9c':'#f2e9ec'};${l?'box-shadow:0 -7px 0 -1px #ffb020':''}"></i>`).join('')}</div></div>`;
+
+
+const TOPF=(t,st)=>`<div class="fbg"></div><div class="ftop"><span class="x">×</span><h2>${t}</h2>${st?`<span class="stp">${st}</span>`:''}</div>`;
+const WH=(n,c,v,step,lab)=>`<div class="wheel" style="--c:${c}"><span class="cap2">${lab}</span><div class="in">${[-2,-1,0,1,2].map(k=>{const x=v+k*step;return `<div class="r ${k===0?'on':Math.abs(k)===1?'n1':''}">${x>495||x<0?'':x}</div>`}).join('')}</div></div>`;
+const PICK=`<div class="ph">${SB()}${TOPF('Ghi điểm đề','1/2')}
+<div class="fld2" style="top:110px"><div class="lab">ĐỀ NÀO?</div><div class="chips2"><span class="on">ETS 2024 · Test 12</span><span>Test 11</span><span>Hackers 3</span><span>🔍 Đề khác</span></div>
+<div class="lab" style="margin-top:16px">NGÀY LÀM</div><div class="chips2"><span class="on">Hôm nay</span><span>Hôm qua</span><span>📅 Chọn ngày</span></div></div>
+<div class="fld2" style="top:300px"><div class="lab">GHI THẾ NÀO?</div>
+<div class="big3" style="--b:#ffeef3;--d:#ffc1cc;--c:#d3456b"><i>📷</i><div><b>Chụp màn kết quả</b><small>Sóc đọc điểm và câu sai · 1 lượt AI</small></div><span class="ar">›</span></div>
+<div class="big3" style="--b:#e8f6ff;--d:#b9dcf7;--c:#1c6fc0"><i>✎</i><div><b>Tự nhập điểm</b><small>Nghe + Đọc, câu sai thêm sau</small></div><span class="ar">›</span></div></div>
+<div style="position:absolute;left:24px;right:24px;top:560px;display:flex;gap:10px;align-items:center"><span class="soc" style="width:56px">${SOC.idle}</span><span style="font-weight:800;font-size:13px;color:var(--mut)">Chụp màn có điểm, thời gian và câu sai là đủ, không cần ghép ảnh.</span></div>
+</div>`;
+const MANUAL=`<div class="ph">${SB()}${TOPF('ETS 2024 · Test 12','2/2')}
+<div class="fld2" style="top:104px;text-align:center"><div style="font-weight:900;font-size:12.5px;color:#a3aba5;letter-spacing:.6px">TỔNG</div><div style="font-weight:900;font-size:58px;letter-spacing:-2px;line-height:1;color:#2f3a33">770</div><span style="display:inline-block;margin-top:6px;border-radius:99px;background:#e6f7e9;color:#2f8a42;font-weight:900;font-size:12.5px;padding:3px 10px">▲ 5 so với đề trước</span></div>
+<div class="fld2" style="top:236px"><div class="seg2"><i class="on">Điểm thang 495</i><i>Số câu đúng</i></div>
+<div style="display:flex;gap:10px;margin-top:12px">${WH('Nghe','#1c8fe3',380,5,'🎧 Nghe')}${WH('Đọc','#14b8a6',390,5,'📖 Đọc')}</div>
+<div style="text-align:center;margin-top:8px;font-weight:900;font-size:12px;color:#a3aba5">Vuốt để chọn · bước 5 điểm</div>
+<div class="stepr" style="margin-top:14px"><div><b>Câu sai</b><small>Thêm số câu để ôn trong Sổ tay</small></div><span style="margin-left:auto;font-weight:900;font-size:13.5px;color:#d3456b">+ Chọn câu ›</span></div>
+<div class="stepr"><div><b>Thời gian làm</b><small>120 phút · chia theo Part</small></div><span style="margin-left:auto;font-weight:900;font-size:13.5px;color:#7a857e">Sửa ›</span></div></div>
+<div class="save">Lưu điểm 770</div></div>`;
+const RESULT=`<div class="ph">${SB('#fff')}<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#5fd07a,#2f9e4a 70%)"></div>
+<div style="position:absolute;left:50%;top:-200px;width:900px;height:900px;margin-left:-450px;background:repeating-conic-gradient(rgba(255,255,255,.08) 0 9deg,transparent 9deg 22deg)"></div>
+<div style="position:absolute;left:0;right:0;top:110px;text-align:center;color:#fff"><div style="font-weight:900;font-size:14px;opacity:.85">ETS 2024 · Test 12</div><div style="font-weight:900;font-size:80px;letter-spacing:-3px;line-height:1">770</div><div style="font-weight:900;font-size:16px;color:#fff6c2">Kỷ lục mới · ▲ 5</div></div>
+<span class="soc" style="position:absolute;left:50%;top:300px;width:150px;margin-left:-75px">${SOC.idle}</span>
+<div style="position:absolute;left:16px;right:16px;top:500px;border-radius:22px;background:#fff;padding:14px 16px"><div style="display:flex;justify-content:space-between;font-weight:900;font-size:14px"><span>Nghe 380</span><span>Đọc 390</span><span style="color:#d99a00">Bậc 7/9</span></div>
+<div style="font-weight:800;font-size:13px;color:var(--mut);margin-top:6px">Còn 30 điểm nữa là chạm cúp 800.</div></div>
+<div style="position:absolute;left:16px;right:16px;bottom:34px;display:flex;gap:10px"><span style="flex:none;width:120px;border-radius:99px;background:rgba(255,255,255,.2);color:#fff;font-weight:900;font-size:16px;padding:15px 0;text-align:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)">Xong</span><span style="flex:1;border-radius:99px;background:#fff;color:#d3456b;font-weight:900;font-size:16px;padding:15px 0;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.15)">📷 Ghi câu sai ngay</span></div></div>`;
+const PRACT=`<div class="ph">${SB()}${TOPF('Ghi buổi luyện')}
+<div class="fld2" style="top:110px"><div class="lab">PART NÀO?</div><div class="parts">${[1,2,3,4,5,6,7].map(n=>`<span class="${n===5?'on':''}"><div>${n}<small>${n<5?'nghe':'đọc'}</small></div></span>`).join('')}</div></div>
+<div class="fld2" style="top:210px"><div class="ringA"><span>80%<small>đúng</small></span></div></div>
+<div class="fld2" style="top:350px">
+<div class="stepr"><div><b>Câu đúng</b><small>trên tổng số câu</small></div><span class="pm2"><i>−</i>24<i>+</i></span></div>
+<div class="stepr"><div><b>Tổng số câu</b><small>Part 5 thường 30 câu</small></div><span class="pm2"><i>−</i>30<i>+</i></span></div>
+<div class="stepr"><div><b>Thời gian</b><small>phút</small></div><span class="pm2"><i>−</i>12<i>+</i></span></div>
+<div style="font-weight:800;font-size:12.5px;color:var(--mut);margin-top:10px;text-align:center">Bấm giờ ở Tiệm bánh thì buổi luyện tự ghi, không cần vào đây.</div></div>
+<div class="save" style="background:linear-gradient(90deg,#a78bfa,#7c5ce0);box-shadow:0 5px 0 #5b3fc4">Lưu buổi luyện</div></div>`;
+const VOCAB=`<div class="ph">${SB()}${TOPF('Từ vựng hôm nay')}
+<div class="fld2" style="top:120px;text-align:center"><span class="soc" style="width:96px;display:inline-block">${SOC.idle}</span>
+<div style="font-weight:900;font-size:14px;color:var(--mut);margin-top:4px">Hôm nay bạn học được</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:22px;margin-top:8px"><span style="width:56px;height:56px;border-radius:50%;background:#e8f6ff;color:#1c6fc0;display:grid;place-items:center;font-weight:900;font-size:28px">−</span><span style="font-weight:900;font-size:72px;letter-spacing:-3px;line-height:1">20</span><span style="width:56px;height:56px;border-radius:50%;background:#e8f6ff;color:#1c6fc0;display:grid;place-items:center;font-weight:900;font-size:28px">+</span></div>
+<div style="font-weight:900;font-size:15px;margin-top:4px">từ mới</div>
+<div class="chips2" style="justify-content:center;margin-top:16px"><span>10</span><span class="on">20</span><span>30</span><span>50</span></div></div>
+<div class="fld2" style="top:520px"><div class="lab">7 NGÀY QUA</div><div style="display:flex;gap:8px;align-items:flex-end;height:70px">${[10,0,20,15,30,20,20].map((v,i)=>`<div style="flex:1;text-align:center"><i style="display:block;height:${v*1.8+4}px;border-radius:8px;background:${i===6?'#1c8fe3':'#cfe5f8'}"></i><small style="font-weight:900;font-size:10.5px;color:#a3aba5">${['T4','T5','T6','T7','CN','T2','Nay'][i]}</small></div>`).join('')}</div></div>
+<div class="save" style="background:linear-gradient(90deg,#3aa6f0,#1c8fe3);box-shadow:0 5px 0 #136fb3">Lưu 20 từ</div></div>`;
+const fw=(t,s,h)=>`<div class="fw"><b>${t}</b>${h}<span>${s}</span></div>`;
+document.getElementById('R1').innerHTML=
+ fw('Ghi điểm đề · bước 1','Chọn đề (chip các đề gần đây) và ngày. Hai cách ghi to, rõ: chụp màn kết quả hoặc tự nhập.',PICK)+
+ fw('Tự nhập điểm','Tổng to ở trên, đổi ngay khi vuốt. Hai bánh xe Nghe/Đọc giống Quy đổi. Câu sai và thời gian là dòng tuỳ chọn.',MANUAL)+
+ fw('Sau khi lưu','Màn chúc mừng như desktop: điểm, kỷ lục, Sóc, còn bao nhiêu tới cúp. Nút chính dẫn sang chụp câu sai.',RESULT);
+document.getElementById('R2').innerHTML=
+ fw('Ghi buổi luyện','7 ô Part, vòng % đúng tự tính, ba dòng −/+. Nhắc rằng bấm giờ ở Tiệm bánh thì tự ghi.',PRACT)+
+ fw('Từ vựng hôm nay','Một con số to với −/+ và các mức nhanh 10/20/30/50, cột 7 ngày bên dưới.',VOCAB);
+</script></body></html>
