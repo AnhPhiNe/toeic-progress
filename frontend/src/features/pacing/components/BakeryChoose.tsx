@@ -144,7 +144,7 @@ export function BakeryChoose(p: Props) {
           <div className={'bk-shop-soc' + (going ? ' is-going' : '')}>
             <ChefSoc size={82} mood="mix" />
           </div>
-          <div className={'bk-bub' + (selected === 3 ? ' is-left' : '')}>
+          <div className="bk-bub">
             {dish} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <> Lần trước bạn xong trong {p.lastTime}!</>}
           </div>
           </div>
