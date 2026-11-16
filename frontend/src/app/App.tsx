@@ -760,7 +760,7 @@ export const App: React.FC = () => {
 
       </div>
 
-      <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null} />
+      <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null || isSessionModalOpen || reviewCards !== null} />
       {/* Redesigned phone pages (and Thành tích) have their own bottom nav; the old floating cue would cover it. */}
       {!(isPhone && (phonePageTab || activeTab === 'awards')) && <PageScrollCue activeTab={activeTab} />}
 

@@ -39,8 +39,8 @@ export function PhoneBakeryRun(p: Props) {
       </header>
 
       <div className="pp-oven">
-        <Oven w={540} h={620} variant="run" rise={p.progress} progress={p.progress} dialLabel={`${p.plannedMinutes}′`}
-          caption={p.paused ? 'đang tạm dừng' : `còn lại trong ${p.plannedClock}`} />
+        <Oven w={540} h={620} variant="run" track={false} rise={p.progress} progress={p.progress} dialLabel={`${p.plannedMinutes}′`}
+          caption={p.paused ? 'đang tạm dừng' : ''} />
         <div className={'bk-lcd' + (p.clock.length > 5 ? ' is-long' : '')} role="timer" aria-live="off" aria-label={`Còn ${p.clock}`}><Colons text={p.clock} /></div>
       </div>
 

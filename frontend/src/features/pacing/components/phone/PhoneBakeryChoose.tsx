@@ -76,6 +76,7 @@ export function PhoneBakeryChoose(p: Props) {
         <div className="pp-say">
           {dishName(p.mode)} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <><br />Lần trước bạn xong trong {p.lastTime}!</>}
         </div>
+        {/* The cake is sized to the case height so a tall case is filled, not left empty above it. */}
         <div className="pp-cake" key={p.mode}><ItemArt dish={dishOf(p.mode)} selected /></div>
         <div className={'pp-soc' + (going ? ' is-going' : '')}><ChefSoc size={72} mood="mix" /></div>
         <div className="pp-shelf" aria-hidden="true" />

@@ -310,13 +310,15 @@ interface OvenProps {
   dialLabel?: string;
   /** Small text under the oven window (run). */
   caption?: string;
+  /** Draw the progress track under the window (run). The phone shows step bars instead. */
+  track?: boolean;
 }
 
 const lerp = (a: number, b: number, t: number) => Math.round(a + (b - a) * t);
 const dough = (t: number) => `rgb(${lerp(246, 224, t)} ${lerp(220, 160, t)} ${lerp(174, 90, t)})`;
 
 /** The oven in three poses: shop (window glow), run (cake rising, dials) and open (door dropped for the result). */
-export function Oven({ x, y, w, h, variant, rise = 0, progress = 0, dialLabel = '', caption = '' }: OvenProps) {
+export function Oven({ x, y, w, h, variant, rise = 0, progress = 0, dialLabel = '', caption = '', track = true }: OvenProps) {
   const gid = 'bk-ovg-' + useId().replace(/[^a-z0-9]/gi, '');
   const r = w * 0.07, wx = w * 0.1, wy = h * 0.28, ww = w * 0.8, wh = h * 0.5;
   const H = 180;
@@ -379,8 +381,8 @@ export function Oven({ x, y, w, h, variant, rise = 0, progress = 0, dialLabel = 
             <text x={cx} y="118" fontWeight="900" fontSize="11" fill="#fff" textAnchor="middle">{k ? dialLabel : '180°'}</text>
           </g>
         ))}
-        <rect x={w * 0.18} y={h * 0.83} width={w * 0.64} height={h * 0.04} rx={h * 0.02} fill="#e6dffa" />
-        <rect className="bk-track" x={w * 0.18} y={h * 0.83} width={w * 0.64 * Math.min(1, Math.max(0, progress))} height={h * 0.04} rx={h * 0.02} fill="#b7a5f3" />
+        {track && <rect x={w * 0.18} y={h * 0.83} width={w * 0.64} height={h * 0.04} rx={h * 0.02} fill="#e6dffa" />}
+        {track && <rect className="bk-track" x={w * 0.18} y={h * 0.83} width={w * 0.64 * Math.min(1, Math.max(0, progress))} height={h * 0.04} rx={h * 0.02} fill="#b7a5f3" />}
       </>}
       {variant !== 'run' && <rect x={w * 0.18} y={h * 0.83} width={w * 0.64} height={h * 0.04} rx={h * 0.02} fill="#cfc4ef" />}
       <rect x={w * 0.1} y={h * 0.9} width={w * 0.8} height={h * 0.06} rx="10" fill="#f3eefc" />
