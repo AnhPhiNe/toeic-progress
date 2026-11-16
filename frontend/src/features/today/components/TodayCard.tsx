@@ -23,6 +23,8 @@ interface Props {
   suggestOff: string[];
   onToggleSuggest: (kind: string) => void;
   onSetWeeklyGoal: (days: number) => void;
+  /** Accessories Sóc wears (Thành tích → Tủ đồ). */
+  gear?: readonly string[];
 }
 
 const FIRST_DONE_KEY = 'rd_first_done_cheer_v1';
@@ -52,7 +54,7 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest }: Props) {
+export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest, gear }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
   const hero = open.length ? open[skip % open.length] : null;
@@ -92,7 +94,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
           <p>Muốn thì bấm giờ một Part.</p>
           <div className="td-acts"><button type="button" className="td-go" onClick={onPracticeMore}>Luyện tập</button></div>
         </>}
-        <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={96} className="td-hero-soc" />
+        <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={96} className="td-hero-soc" gear={gear} />
       </div>
 
       <div className="td-body">

@@ -5,6 +5,7 @@ import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones'
 import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
 import { Soc } from '@/shared/ui/soc/Soc';
+import { socLook } from '@/features/awards/lib/outfit';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
 import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
 import { countWord } from '../lib/stairsGeometry';
@@ -57,6 +58,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
     return f && f.kind === 'rising' ? f.testsAhead : null;
   }, [sessions, target, profile.examDate, today]);
   const examIn = daysUntil(profile.examDate, today);
+  const gear = useMemo(() => socLook(bundle, today).worn, [bundle, today]);
 
   const climbing = plan.status === 'empty' ? null : plan;
   // No test yet: pick a goal (choose), see the estimated stairs (ready), or climb the real ones.
@@ -91,6 +93,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
         testsAhead={ahead}
         cupLabel={chosen || climbing ? undefined : '?'}
         banner={mode === 'choose' ? (chosen ? `Mục tiêu ${target}` : 'Chọn mục tiêu') : undefined}
+        gear={gear}
       />
 
       {mode === 'choose' && (
@@ -133,6 +136,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
             : <button type="button" onClick={onOpenSettings}>📅 Đặt ngày thi</button>}
         </div>}
         {climbing ? <TodayCard
+          gear={gear}
           tasks={tasks}
           habits={profile.habits ?? []}
           today={today}

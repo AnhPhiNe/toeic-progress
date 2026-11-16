@@ -327,6 +327,8 @@ export interface UserProfile {
   habits?: Habit[];
   /** Hôm nay: loại việc Sóc không được gợi ý nữa ('REVIEW_MISTAKES' | 'PART_TIMER' | 'FULL_TEST'). */
   suggestOff?: string[];
+  /** Thành tích: phụ kiện Sóc đang đeo (id trong socGear.ts); thiếu nghĩa là chưa chọn, Sóc đeo món mới nhất. */
+  socGear?: string[];
 }
 
 /** A learner's own recurring task, ticked by hand. doneDates keeps only recent days. */

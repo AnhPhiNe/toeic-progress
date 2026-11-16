@@ -525,7 +525,7 @@ export const App: React.FC = () => {
             onUpdateProfile={updateProfile}
           />
         ) : showAwards ? (
-          <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} />
+          <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} />
         ) : showPractice ? (
           <PracticePage
             sessions={sessions}

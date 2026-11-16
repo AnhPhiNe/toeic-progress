@@ -1,4 +1,5 @@
 /* Port of design/previews/_soc.js (approved 2D Sóc). Keep in sync with the sketches. */
+import { GEAR_MARK, applyGear } from './socGear';
 export type SocState = 'idle' | 'think' | 'yay' | 'sad' | 'zzz' | 'hi';
 
 const D = '#3a2a1e', F = '#f4a261', F2 = '#e58a45', C = '#fff1dc';
@@ -21,7 +22,7 @@ export function socSvg(s: SocState): string {
   const cf=s==='yay'?([[30,70,'#ff7a9c'],[196,60,'#ffc83d'],[20,150,'#46b35a'],[214,140,'#a78bfa'],[60,30,'#1c8fe3']] as Array<[number, number, string]>).map((c: [number, number, string], i: number) =>`<rect class="cf" style="animation-delay:${i*.08}s" x="${c[0]}" y="${c[1]}" width="9" height="14" rx="2.5" fill="${c[2]}" transform="rotate(${i*37} ${c[0]} ${c[1]})"/>`).join(''):'';
   const extra=s==='sad'?`<path class="tear" d="M154 128 q6 10 0 15 q-6 -5 0 -15Z" fill="#7dd3fc"/>`:s==='think'?`<g fill="#8fa3b8"><circle class="d1" cx="176" cy="34" r="5.5"/><circle class="d2" cx="192" cy="34" r="5.5"/><circle class="d3" cx="208" cy="34" r="5.5"/></g>`:s==='zzz'?`<g font-family="Nunito" font-weight="900" fill="#8fa3b8"><text class="z1" x="176" y="70" font-size="22">z</text><text class="z2" x="186" y="60" font-size="28">z</text></g>`:'';
   return `<svg viewBox="0 0 240 260" class="s-${s}"><ellipse class="shadow" cx="112" cy="246" rx="62" ry="8" fill="#2f3a33" opacity=".1"/>${cf}
-  <g class="all">
+  <g class="all">${GEAR_MARK.back}
   <g class="tail"><path d="M146 232 C208 240 236 186 216 134 C203 100 164 98 156 128 C151 148 170 158 179 146 C181 170 168 196 140 206Z" fill="${F2}"/><path d="M160 219 C197 214 214 180 201 143 C195 126 177 122 170 133" fill="none" stroke="#ffe3c2" stroke-width="12" stroke-linecap="round"/></g>
   <g class="body">
     <ellipse cx="90" cy="238" rx="17" ry="9" fill="#d9773a"/><ellipse cx="130" cy="238" rx="17" ry="9" fill="#d9773a"/>
@@ -34,9 +35,9 @@ export function socSvg(s: SocState): string {
       <path d="M48 118 C48 88 84 92 110 106 C136 92 172 88 172 118 C172 148 142 160 110 160 C78 160 48 148 48 118Z" fill="${C}"/>
       <ellipse cx="64" cy="136" rx="13" ry="8" fill="#ff9e8f" opacity=".7"/><ellipse cx="156" cy="136" rx="13" ry="8" fill="#ff9e8f" opacity=".7"/>
       ${brows}${eye(82,s)}${eye(138,s)}
-      <ellipse cx="110" cy="127" rx="5.5" ry="4" fill="#7a4a2b"/>${mouth}${extra}
+      <ellipse cx="110" cy="127" rx="5.5" ry="4" fill="#7a4a2b"/>${mouth}${extra}${GEAR_MARK.head}
     </g>
-    ${nutAt}${arms}
+    ${GEAR_MARK.front}${nutAt}${arms}
   </g></g></svg>`}
 
 
@@ -84,7 +85,10 @@ function cheerSvg(k: 'B' | 'C' | 'D'): string {
 }
 
 /** Any mood: the five base states or a celebration (B toss acorn, C bounce, D star eyes). */
-export function socMoodSvg(m: SocMood): string {
+export function socMoodSvg(m: SocMood, gear?: readonly string[]): string {
+  return applyGear(moodSvg(m), gear);
+}
+function moodSvg(m: SocMood): string {
   if (m === 'cheerCplus') {
     return cheerSvg('C').replace('class="s-cC"', 'class="s-cC s-cCplus"')
       .replace('<g class="all">', burst(112, 150, 14, 120, ['#ff7a9c', '#ffc83d', '#46b35a', '#1c8fe3', '#a78bfa']) + '<g class="all">');

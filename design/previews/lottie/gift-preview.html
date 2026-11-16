@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>Hộp quà lên cấp (Lottie)</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:Nunito,sans-serif;background:rgba(47,58,51,.55)}
+.card{width:420px;background:#fff;border-radius:30px;padding:10px 24px 24px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.25)}
+#a{width:340px;height:340px;margin:0 auto}
+h2{font-weight:900;font-size:26px;margin:0;color:#2f3a33}p{font-weight:700;color:#7a857e;margin:6px 0 16px}
+.row{display:flex;gap:10px;justify-content:center}
+button{border:0;border-radius:14px;padding:11px 18px;font:900 15px Nunito;cursor:pointer}
+.ok{background:#46b35a;color:#fff;box-shadow:0 4px 0 #2f8a42}.no{background:#fff;color:#2f3a33;box-shadow:0 0 0 2px #e6e9e6,0 4px 0 #e6e9e6}
+</style></head><body>
+<div class="card"><div id="a"></div><h2>Lên cấp 4!</h2><p>Sóc nhận kính tròn</p><div class="row"><button class="no" id="re">Xem lại</button><button class="ok">Đeo luôn</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie_light.min.js"></script>
+<script src="gift-data.js"></script>
+<script>
+const anim = lottie.loadAnimation({ container: document.getElementById('a'), renderer: 'svg', loop: false, autoplay: true, animationData: GIFT });
+window.anim = anim;
+document.getElementById('re').onclick = () => anim.goToAndPlay(0, true);
+</script></body></html>

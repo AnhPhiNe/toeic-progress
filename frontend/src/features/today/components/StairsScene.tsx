@@ -17,6 +17,8 @@ interface Props {
   cupLabel?: string;
   /** Text on the balloon's banner; none for no banner. */
   banner?: string;
+  /** Accessories Sóc wears (Thành tích → Tủ đồ). */
+  gear?: readonly string[];
 }
 
 const ddmm = (date?: string) => (date ? `${date.slice(8, 10)}/${date.slice(5, 7)}` : '');
@@ -41,7 +43,7 @@ function estimatePlan(target: number): Plan {
   return { status: 'climbing', target, step, best: 0, currentIndex: 0, steps: values.map(value => ({ value, reached: false })) };
 }
 
-export function StairsScene({ plan, target, testsAhead, cupLabel, banner }: Props) {
+export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear }: Props) {
   const empty = !plan;
   const p = useMemo(() => plan ?? estimatePlan(target), [plan, target]);
   const blocks = p.steps.length - 1;
@@ -121,7 +123,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner }: Prop
   }, [g, socAt, empty, done, target]);
 
   // Inline size beats .soc svg { width: 100% }, which would fill the whole scene.
-  const socHtml = useMemo(() => socMoodSvg(socState).replace('<svg viewBox="0 0 240 260"', '<svg viewBox="0 0 240 260" width="78" height="85" style="width:78px;height:85px"'), [socState]);
+  const socHtml = useMemo(() => socMoodSvg(socState, gear).replace('<svg viewBox="0 0 240 260"', '<svg viewBox="0 0 240 260" width="78" height="85" style="width:78px;height:85px"'), [socState, gear]);
 
   const socNode = <g ref={socRef} className="soc td-socg" pointerEvents="none" dangerouslySetInnerHTML={{ __html: socHtml }} />;
 
