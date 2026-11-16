@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Quy đổi điện thoại v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--green:#46b35a;--greenD:#2f8a42}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:30px 30px 40px}
+.cap{font-weight:900;font-size:21px;margin:0 0 4px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;max-width:1700px}
+.row{display:flex;gap:34px;margin:16px 0 40px;align-items:flex-start}
+.fw{display:flex;flex-direction:column;gap:10px;align-items:center}
+.fw>b{font-weight:900;font-size:16px}.fw>span{font-weight:700;font-size:13px;color:#3f4a43;width:390px;text-align:center;line-height:1.35}
+.ph{width:390px;height:844px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 0 0 10px #1d2420,0 24px 50px rgba(0,0,0,.3)}
+.sb{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-weight:900;font-size:15px;z-index:20}
+.sb i{width:70px;height:12px;border-radius:6px;background:currentColor;opacity:.85}
+.soc svg{display:block;width:100%}
+/* bottom nav */
+.nav{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #f0f2f0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;z-index:30}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:900;font-size:11.5px;color:#9aa39d}
+.nav a i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:15px;color:#fff;opacity:.55}
+.nav a.on{color:var(--ink)}.nav a.on i{opacity:1;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.nav a.add i{width:54px;height:54px;border-radius:18px;margin-top:-22px;background:var(--green);opacity:1;font-size:30px;box-shadow:0 5px 0 var(--greenD),0 8px 18px rgba(70,179,90,.35)}
+.nav a.add{color:var(--greenD)}
+.nav .badge{position:absolute;margin:-4px 0 0 26px;background:#ff5c86;color:#fff;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* top bar */
+.top{position:absolute;left:18px;right:18px;top:50px;display:flex;align-items:center;gap:8px;z-index:15}
+.chip{border-radius:99px;background:rgba(255,255,255,.9);padding:5px 11px;font-weight:900;font-size:13.5px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.av{margin-left:auto;width:40px;height:40px;border-radius:14px;background:#fff3e0;box-shadow:0 0 0 2px #fff,0 3px 8px rgba(0,0,0,.12);position:relative}
+.av>s{position:absolute;inset:0;border-radius:14px;overflow:hidden}.av .soc{position:absolute;width:48px;left:-4px;top:-2px}
+.av em{position:absolute;right:-3px;bottom:-3px;width:15px;height:15px;border-radius:50%;background:#7c5ce0;color:#fff;font-style:normal;font-size:9px;font-weight:900;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+/* scene */
+.sky{position:absolute;inset:0;background:radial-gradient(circle at 78% 22%,#fffbe8 0 60px,transparent 61px),linear-gradient(180deg,#fff2cf,#ffe3e3 70%,#ffd9e2)}
+.rays{position:absolute;left:50%;top:0;width:900px;height:900px;margin-left:-450px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,240,190,.55) 0 8deg,transparent 8deg 20deg);mask-image:radial-gradient(circle,#000 25%,transparent 60%)}
+.hill{position:absolute;left:-40px;right:-40px;border-radius:50% 50% 0 0;background:#a8dc95}
+.st{position:absolute}
+.st .f{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0}
+.st .c{position:absolute;left:0;right:0;height:10px;border-radius:3px;transform:translateY(-6px)}
+.st .lb{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;font-size:10.5px;color:#fff;background:rgba(0,0,0,.18);border-radius:99px;padding:1px 5px;white-space:nowrap}
+.troph{position:absolute}
+h1{font-weight:900;letter-spacing:-.6px;line-height:1.08}
+h1 em{font-style:normal;color:#f0a500}
+.dots{display:flex;gap:3px;align-items:center;font-weight:900;font-size:11.5px;color:#d99a00}.dots i{width:13px;height:5px;border-radius:9px;background:#ffc83d}.dots i.o{background:#eadcb4}.dots i.g{background:var(--green)}.dots span{margin-left:6px}
+/* cards */
+.next{border-radius:24px;background:linear-gradient(135deg,#4cc062,#2f9e4a);color:#fff;padding:16px 18px;position:relative;overflow:hidden;box-shadow:0 6px 0 #2a8a40}
+.next small{font-weight:900;font-size:11.5px;letter-spacing:.5px;opacity:.85}
+.next h3{font-weight:900;font-size:24px;letter-spacing:-.4px;margin-top:2px}
+.next p{font-weight:800;font-size:13px;opacity:.9}
+.next .btns{display:flex;align-items:center;gap:14px;margin-top:12px}
+.btn{border-radius:14px;background:#fff;color:var(--greenD);font-weight:900;font-size:16px;padding:11px 22px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.skip{font-weight:900;font-size:13px;text-decoration:underline;opacity:.9}
+.next .soc{position:absolute;right:-8px;bottom:-14px;width:96px}
+.rest{display:flex;align-items:center;font-weight:900;font-size:13px;color:#8c968f;padding:0 4px}
+.rest a{margin-left:auto;color:#1c8fe3}
+.task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #f0f2f0;font-weight:900;font-size:15px}
+.task u{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2.5px #cfd6d1;flex:none}
+.task.done u{background:var(--green);box-shadow:none}.task.done{color:#a3aba5;text-decoration:line-through}
+.task small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5;text-decoration:none}
+/* streak */
+.streak{background:#fff;border-radius:22px;box-shadow:0 0 0 2px #f6eef0;padding:12px 14px}
+.streak .h{display:flex;align-items:center;gap:8px}
+.streak .fl{font-size:26px;line-height:1}.streak b{font-weight:900;font-size:24px;color:#ff7a1a}.streak .h span{font-weight:900;font-size:13.5px;color:#ff7a1a}
+.streak .h small{margin-left:auto;font-weight:900;font-size:11.5px;color:#4f8fd6;background:#e6f1ff;border-radius:99px;padding:2px 8px}
+.cake{position:relative;height:46px;margin:6px 4px 0}
+.cake .tier{position:absolute;left:0;right:0;bottom:0;height:16px;border-radius:8px;background:#ffd1dc;box-shadow:inset 0 5px 0 #fff0f4}
+.cake .cd{position:absolute;bottom:16px;width:7px;height:20px;border-radius:3px;background:#f2e9ec}
+.cake .cd.l{background:#ff7a9c}.cake .cd.l:after{content:'';position:absolute;left:-2px;top:-11px;width:11px;height:12px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#ffb020}
+.days{display:flex;justify-content:space-between;font-weight:900;font-size:10.5px;color:#a3aba5;margin:3px 4px 0}.days b{font-size:10.5px;color:#ff7a1a}
+.goal{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1.5px solid #f3f0f1;font-weight:800;font-size:12.5px;color:#5e6962}
+.goal b{font-size:12.5px;color:var(--ink)}.goal i{flex:1;height:6px;border-radius:9px;background:#eef0ee;overflow:hidden}.goal i:before{content:'';display:block;width:20%;height:100%;background:var(--green)}
+.goal a{font-weight:900;color:#1c8fe3}
+/* sheet */
+.sheet{position:absolute;left:0;right:0;background:#fbfaf7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(120,70,70,.12);padding:10px 16px 0;z-index:10}
+.grab{width:40px;height:5px;border-radius:9px;background:#dcd8cf;margin:0 auto 10px}
+/* mini journey card (B) */
+.jcard{position:relative;border-radius:24px;overflow:hidden;height:186px;box-shadow:0 0 0 2px #fbe6c4}
+.jcard .lab{position:absolute;left:16px;top:12px;z-index:3}
+.jcard .lab b{display:block;font-weight:900;font-size:17px}
+.more{position:absolute;right:12px;top:12px;z-index:3;border-radius:99px;background:#fff;padding:5px 11px;font-weight:900;font-size:12.5px;color:#d99a00;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+/* menus (D, E) */
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);z-index:25}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 30px;z-index:40}
+.mi{display:flex;align-items:center;gap:14px;padding:11px 4px;font-weight:900;font-size:16px}
+.mi i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;color:#fff;font-size:20px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.mi small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.mi .ar{margin-left:auto;color:#c3cac5;font-size:20px}
+.mi .pill{margin-left:auto;background:#ff5c86;color:#fff;border-radius:99px;padding:1px 8px;font-size:12px}
+.lvl{display:flex;align-items:center;gap:12px;border-radius:22px;background:linear-gradient(120deg,#fff3e0,#ffe6ee);padding:12px 14px;margin-bottom:6px}
+.lvl .soc{width:58px}
+.lvl b{font-weight:900;font-size:16px}.lvl small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.lvl .bar{height:7px;border-radius:9px;background:#fff;margin-top:6px;overflow:hidden}.lvl .bar i{display:block;height:100%;width:70%;background:linear-gradient(90deg,#7c5ce0,#1c8fe3)}
+.sep{height:1.5px;background:#f0f2f0;margin:4px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+.big{border-radius:22px;padding:14px 10px 12px;text-align:center;font-weight:900;font-size:14px;line-height:1.2;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+.big i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 8px;border-radius:17px;font-style:normal;font-size:24px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.big small{display:block;font-weight:800;font-size:11.5px;color:var(--mut);margin-top:3px}
+
+.qhd{position:absolute;left:16px;right:16px;top:52px;display:flex;align-items:center;gap:10px;z-index:6}
+.qhd .bk{width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.9);display:grid;place-items:center;font-weight:900;font-size:18px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.qhd h2{font-weight:900;font-size:20px;letter-spacing:-.4px}
+.qhd .i{margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;font-weight:900;font-size:14px;color:#7a857e}
+.stamp{position:absolute;display:grid;place-items:center;text-align:center;color:var(--c);border:3px solid var(--c);border-radius:50%;transform:rotate(var(--r));font-weight:900}
+.stamp:before{content:'';position:absolute;inset:5px;border:1.5px dashed var(--c);border-radius:inherit}
+.stamp small{display:block;font-size:10px;letter-spacing:1px}.stamp b{display:block;font-size:30px;line-height:1}.stamp em{display:block;font-style:normal;font-size:9px;letter-spacing:.6px}
+.stamp.sq{border-radius:14px}
+.dock{position:absolute;left:0;right:0;bottom:86px;background:#fff;border-radius:28px 28px 0 0;box-shadow:0 -10px 30px rgba(13,107,97,.12);padding:14px 16px 30px;z-index:10}
+.chips{display:flex;gap:8px;overflow:hidden;margin-right:-16px}
+.chips span{flex:none;border-radius:99px;padding:6px 11px;font-weight:900;font-size:12.5px;background:#f3f1ec;color:#5e6962}
+.chips span.on{background:#0d6b61;color:#fff}
+.sl{display:flex;align-items:center;gap:10px;margin-top:14px}
+.sl .lb{width:58px;font-weight:900;font-size:13.5px}.sl .lb small{display:block;font-weight:800;font-size:11px;color:var(--c)}
+.sl .tk{flex:1;position:relative;margin:0 14px 0 6px;height:12px;border-radius:99px;background:#f0ede6}
+.sl .tk i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--c)}
+.sl .tk u{position:absolute;top:50%;width:30px;height:30px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 4px var(--c),0 3px 8px rgba(0,0,0,.18)}
+.sl .num{width:58px;height:40px;border-radius:12px;background:#f7f5f0;display:grid;place-items:center;font-weight:900;font-size:19px}
+.mini{display:flex;gap:4px;align-items:flex-end;justify-content:center}
+.mini i{width:30px;border-radius:7px 7px 3px 3px;font-style:normal;font-weight:900;font-size:10.5px;color:#fff;text-align:center;padding-top:3px}
+/* B */
+.wheel{flex:1;height:150px;border-radius:20px;background:#f7f5f0;position:relative;overflow:hidden;text-align:center}
+.wheel .r{height:38px;line-height:38px;font-weight:900;font-size:17px;color:#c3cac5}
+.wheel .r.n1{font-size:20px;color:#9aa39d}.wheel .r.on{font-size:30px;color:var(--c)}
+.wheel:before{content:'';position:absolute;left:8px;right:8px;top:56px;height:38px;border-radius:12px;background:#fff;box-shadow:0 0 0 2px var(--c)}
+.wheel .in{position:relative}
+.wheel .cap2{position:absolute;left:0;right:0;top:0;padding:6px 0 4px;background:#f7f5f0;font-weight:900;font-size:11.5px;color:var(--c);z-index:2}
+/* C */
+.cards{position:absolute;left:0;right:0;top:250px;height:250px;display:flex;gap:12px;padding:0 40px;overflow:hidden}
+.cd{flex:none;width:300px;height:240px;border-radius:26px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.08);position:relative}
+.cd .k2{position:absolute;left:18px;top:16px;font-weight:900;font-size:13px;color:var(--mut)}
+.dots2{position:absolute;left:0;right:0;top:500px;display:flex;justify-content:center;gap:6px}.dots2 i{width:7px;height:7px;border-radius:9px;background:#d5d9d6}.dots2 i.on{width:20px;background:#0d6b61}
+</style></head><body>
+<div class="cap">Quy đổi điểm trên điện thoại · làm lại<small>Một màn, không cuộn. Kết quả to ở nửa trên; phần nhập gọn trong bảng dưới, trong tầm ngón cái. Không còn hai thẻ nhập to và trang hộ chiếu cao như desktop.</small></div>
+<div class="row" id="R1"></div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const S=k=>`<span class="soc">${SOC[k]}</span>`;
+const sv=d=>`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const icon={home:['#46b35a',sv('<path d="M4 11 12 4l8 7v9h-5v-5H9v5H4z" fill="#fff" stroke="none"/>')],j:['#ffc83d',sv('<path d="M6 19v-4M12 19V10M18 19V5"/>')],p:['#a78bfa',sv('<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M10 3h4"/>')],n:['#ff7a9c',sv('<path d="M5 5h6v14H5zM13 5h6v14h-6z" fill="#fff" stroke="none"/>')]};
+const NAV=(on='home')=>`<nav class="nav">${[['home','Hôm nay'],['j','Hành trình'],['add','Ghi'],['p','Luyện tập'],['n','Sổ tay']].map(([k,l])=>k==='add'?`<a class="add"><i>+</i>${l}</a>`:`<a class="${k===on?'on':''}"><i style="background:${icon[k][0]}">${icon[k][1]}</i>${k==='n'?'<span class="badge">8</span>':''}${l}</a>`).join('')}</nav>`;
+const SB=(c='#2f3a33')=>`<div class="sb" style="color:${c}"><span>9:41</span><i></i></div>`;
+const TOP=`<div class="top"><span class="chip">🔥 6</span><span class="chip" style="color:#7c5ce0">📅 Đặt ngày thi</span><span class="av"><s>${S('idle')}</s><em>4</em></span></div>`;
+/* stairs: x0,y0 = bottom-left; w step width, rise per step */
+function stairs(x0,base,w,rise,h0,cur=5,n=9,labels=true){
+  let o='';const vals=[560,590,620,650,680,710,740,770];
+  for(let i=0;i<n-1;i++){const hh=h0+rise*i, x=x0+i*w;
+    const done=i<cur, now=i===cur;
+    const f=done?'linear-gradient(90deg,#f5b82e 50%,#e39a12 50%)':now?'linear-gradient(90deg,#3fae55 50%,#2a8a40 50%)':'linear-gradient(90deg,#efedf8 50%,#e0dcf1 50%)';
+    const c=done?'#ffd25e':now?'#6fd07f':'#f6f4fc';
+    o+=`<div class="st" style="left:${x}px;top:${base-hh}px;width:${w}px;height:${hh}px"><div class="f" style="top:0;background:${f}"></div><div class="c" style="background:${c}"></div>${labels?`<span class="lb" style="top:${now?8:10}px;${done||now?'':'color:#9a94bb;background:#fff'}">${vals[i]}</span>`:''}</div>`;}
+  return o;}
+const TROPHY=(x,y,s=1)=>`<svg class="troph" style="left:${x}px;top:${y}px;width:${90*s}px" viewBox="0 0 90 100"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#ffc83d"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#fff6d0"/><rect x="38" y="58" width="14" height="12" fill="#f0a500"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d"/><rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33"/><text x="45" y="92" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="12" fill="#ffd25e">800</text></svg>`;
+const DOTS=`<div class="dots">${'iiiiigooo'.split('').map(c=>`<i class="${c==='g'?'g':c==='o'?'o':''}"></i>`).join('')}<span>BẬC 6/9 · CÒN 75 ĐIỂM</span></div>`;
+const NEXT=(soc=true)=>`<div class="next"><small>TIẾP THEO · 8 PHÚT</small><h3>Ôn 8 câu sai</h3><p>Đến hạn hôm nay</p><div class="btns"><span class="btn">▶ Bắt đầu</span><span class="skip">Bỏ qua hôm nay</span></div>${soc?S('idle'):''}</div>`;
+const CANDLES=`<div class="cake"><div class="tier"></div>${[0,1,2,3,4,5,6].map(i=>`<div class="cd ${i===0?'l':''}" style="left:${5+i*14.8}%;margin-left:-3px"></div>`).join('')}</div><div class="days"><b>Nay</b><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>`;
+const STREAK=`<div class="streak"><div class="h"><span class="fl">🔥</span><b>6</b><span>ngày liền · còn 6 nến là xong bánh</span><small>❄ 2</small></div>${CANDLES}<div class="goal">Mục tiêu tuần: <b>1/5</b> buổi<i></i><a>Sửa</a></div></div>`;
+const STREAK_MINI=`<div class="streak" style="display:flex;align-items:center;gap:10px;padding:10px 14px"><span class="fl" style="font-size:22px">🔥</span><div><b style="font-size:20px">6</b> <span style="font-weight:900;font-size:12.5px;color:#ff7a1a">ngày liền</span><div style="font-weight:800;font-size:11.5px;color:var(--mut)">Tuần này 1/5 buổi</div></div><div style="margin-left:auto;display:flex;gap:5px;align-items:flex-end">${[1,0,0,0,0,0,0].map((l,i)=>`<i style="width:7px;height:${l?22:16}px;border-radius:3px;background:${l?'#ff7a9c':'#f2e9ec'};${l?'box-shadow:0 -7px 0 -1px #ffb020':''}"></i>`).join('')}</div></div>`;
+
+
+const HD=(dark)=>`<div class="qhd"><span class="bk">‹</span><h2 style="${dark?'color:#fff':''}">Quy đổi điểm</h2><span class="i">ⓘ</span></div>`;
+const CHIPS=`<div class="chips"><span class="on">ETS 11 · 11/11</span><span>ETS 10</span><span>ETS 9</span><span>Tự nhập</span></div>`;
+const SL=(n,v,pts,c)=>`<div class="sl" style="--c:${c}"><div class="lb">${n}<small>${pts} điểm</small></div><div class="tk"><i style="width:${v}%"></i><u style="left:${v}%"></u></div><span class="num">${v}</span></div>`;
+const LADDER=`<div class="mini">${[['A1',18,'#a3c4f3'],['A2',24,'#7fb3f0'],['B1',32,'#5fa0ec'],['B2',42,'#14b8a6'],['C1',52,'#7c5ce0']].map(([l,h,c])=>`<i style="height:${h}px;background:${c};${l==='B2'?'box-shadow:0 0 0 3px #ffc83d':''}">${l}</i>`).join('')}</div>`;
+
+/* A: tem lớn + thanh trượt */
+const A=`<div class="ph">${SB()}<div style="position:absolute;inset:0;background:linear-gradient(170deg,#e3f8f3,#fff6e8 55%)"></div>${HD()}
+<div style="position:absolute;left:0;right:0;top:104px;text-align:center"><div style="font-weight:900;font-size:13px;color:#0d8a7c;letter-spacing:1px">TỔNG TOEIC</div>
+<div style="font-weight:900;font-size:72px;letter-spacing:-3px;line-height:1;color:#0d6b61">900</div>
+<div style="font-weight:900;font-size:13px;color:#2f8a42;margin-top:2px">Đã chạm mục tiêu 900 🎉</div></div>
+<div class="stamp" style="--c:#14b8a6;--r:-10deg;width:116px;height:116px;left:30px;top:262px;background:rgba(255,255,255,.6)"><div><small>CEFR</small><b>B2</b><em>TRUNG CẤP TRÊN</em></div></div>
+<div class="stamp sq" style="--c:#e0557f;--r:6deg;width:104px;height:72px;left:172px;top:258px;background:rgba(255,255,255,.6)"><div><small>IELTS</small><b style="font-size:21px">5.5–6.5</b></div></div>
+<div class="stamp sq" style="--c:#2f8a42;--r:-5deg;width:96px;height:66px;left:268px;top:322px;background:rgba(255,255,255,.6)"><div><small>VSTEP</small><b style="font-size:20px">Bậc 4</b></div></div>
+<div class="stamp" style="--c:#7c5ce0;--r:10deg;width:84px;height:84px;left:168px;top:338px;background:rgba(255,255,255,.6)"><div><small>TOEFL</small><b style="font-size:19px">4–4.5</b></div></div>
+<div style="position:absolute;left:0;right:0;top:440px;text-align:center;font-weight:900;font-size:12.5px;color:#7c5ce0">Lên C1 cần 945+ · còn 45 điểm ›</div>
+<div class="dock">${CHIPS}${SL('🎧 Nghe',88,405,'#1c8fe3')}${SL('📖 Đọc',100,495,'#14b8a6')}
+<div style="display:flex;justify-content:space-between;margin-top:12px;font-weight:900;font-size:12px;color:#a3aba5"><span>Nhập số câu đúng (0–100)</span><span style="color:#1c8fe3">Câu sai ⇄</span></div></div>${NAV()}</div>`;
+
+/* B: bánh xe chọn số */
+const WH=(n,c,v,pts)=>`<div class="wheel" style="--c:${c}"><span class="cap2">${n} · ${pts}đ</span><div class="in" style="margin-top:-20px">${[v-2,v-1,v,v+1,v+2].map((x,i)=>`<div class="r ${i===2?'on':i===1||i===3?'n1':''}">${x>100||x<0?'':x}</div>`).join('')}</div></div>`;
+const B=`<div class="ph">${SB('#fff')}<div style="position:absolute;left:0;right:0;top:0;height:470px;background:radial-gradient(circle at 70% 30%,#14b8a6,#0d6b61 70%)"></div>${HD(1)}
+<div style="position:absolute;left:22px;top:110px;color:#fff"><div style="font-weight:900;font-size:13px;opacity:.8;letter-spacing:1px">TỔNG TOEIC</div><div style="font-weight:900;font-size:68px;letter-spacing:-3px;line-height:1">880</div><div style="font-weight:900;font-size:13px;color:#ffd25e;margin-top:4px">còn 20 điểm tới mục tiêu 900</div></div>
+<span class="soc" style="position:absolute;right:18px;top:110px;width:110px">${SOC.idle}</span>
+<div style="position:absolute;left:16px;right:16px;top:262px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${[['CEFR','B2','#14b8a6'],['IELTS','5.5–6.5','#e0557f'],['VSTEP','Bậc 4','#2f8a42'],['TOEFL','4–4.5','#7c5ce0']].map(([k,v,c])=>`<div style="border-radius:16px;background:#fff;padding:10px 4px;text-align:center"><div style="font-weight:900;font-size:10.5px;color:#a3aba5;letter-spacing:.6px">${k}</div><div style="font-weight:900;font-size:${v.length>4?15:20}px;color:${c};margin-top:2px">${v}</div></div>`).join('')}</div>
+<div style="position:absolute;left:16px;right:16px;top:356px;border-radius:18px;background:rgba(255,255,255,.14);padding:10px 14px;display:flex;align-items:center;gap:12px;color:#fff">${LADDER}<div style="font-weight:800;font-size:12.5px;line-height:1.35">Bạn ở <b>B2</b>.<br>Lên C1 cần 945+</div></div>
+<div class="dock">${CHIPS}<div style="display:flex;gap:10px;margin-top:12px">${WH('Nghe','#1c8fe3',84,385)}${WH('Đọc','#14b8a6',100,495)}</div>
+<div style="text-align:center;margin-top:10px;font-weight:900;font-size:12px;color:#a3aba5">Vuốt lên xuống để chọn số câu đúng</div></div>${NAV()}</div>`;
+
+/* C: thẻ vuốt */
+const C=`<div class="ph" style="background:#f6f3ee">${SB()}${HD()}
+<div style="position:absolute;left:0;right:0;top:100px;text-align:center"><div style="font-weight:900;font-size:13px;color:#a3aba5;letter-spacing:1px">TỔNG TOEIC</div><div style="font-weight:900;font-size:64px;letter-spacing:-3px;line-height:1;color:#2f3a33">900</div>
+<div style="display:inline-flex;gap:6px;margin-top:8px"><span style="border-radius:99px;background:#e6f7e9;color:#2f8a42;font-weight:900;font-size:12.5px;padding:4px 10px">Nghe 405</span><span style="border-radius:99px;background:#e8fbf7;color:#0d8a7c;font-weight:900;font-size:12.5px;padding:4px 10px">Đọc 495</span></div></div>
+<div class="cards">
+<div class="cd" style="background:linear-gradient(160deg,#e8fbf7,#fff)"><span class="k2">CEFR · khung châu Âu</span><div class="stamp" style="--c:#14b8a6;--r:-8deg;width:130px;height:130px;left:85px;top:50px"><div><small>CEFR</small><b>B2</b><em>TRUNG CẤP TRÊN</em></div></div><div style="position:absolute;left:0;right:0;bottom:16px;text-align:center;font-weight:900;font-size:12.5px;color:#7c5ce0">còn 45 điểm lên C1</div></div>
+<div class="cd" style="background:linear-gradient(160deg,#ffeef3,#fff)"><span class="k2">IELTS</span><div class="stamp sq" style="--c:#e0557f;--r:6deg;width:150px;height:100px;left:75px;top:64px"><div><small>IELTS</small><b>5.5–6.5</b></div></div></div>
+</div><div class="dots2"><i class="on"></i><i></i><i></i><i></i></div>
+<div class="dock" style="padding-top:12px"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-weight:900;font-size:14px">Từ đề <span style="color:#0d6b61">ETS 11 · 11/11</span><div style="font-weight:800;font-size:11.5px;color:#a3aba5">88 + 100 câu đúng</div></div><span style="border-radius:99px;background:#0d6b61;color:#fff;font-weight:900;font-size:13.5px;padding:10px 16px">✎ Đổi số</span></div></div>${NAV()}</div>`;
+
+const fw=(t,s,h)=>`<div class="fw"><b>${t}</b>${h}<span>${s}</span></div>`;
+document.getElementById('R1').innerHTML=
+ fw('A · Tem lớn + thanh trượt','Tổng to và 4 con dấu đóng chéo ở nửa trên. Bảng dưới: chip chọn đề, 2 thanh trượt to (kéo bằng ngón cái), số hiện ngay cạnh.',A)+
+ fw('B · Bánh xe chọn số','Nửa trên xanh đậm: tổng, Sóc, 4 ô quy đổi, bậc CEFR mini. Bảng dưới: hai bánh xe như chọn giờ trên điện thoại.',B)+
+ fw('C · Thẻ vuốt từng thang','Tổng ở trên; mỗi thang điểm là một thẻ vuốt ngang với con dấu to. Phần nhập ẩn sau nút “Đổi số”, vì đa số chỉ xem điểm đề vừa làm.',C);
+</script></body></html>
