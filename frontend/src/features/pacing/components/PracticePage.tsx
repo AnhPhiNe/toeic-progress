@@ -7,7 +7,7 @@ import { usePacingTimer } from '../hooks/usePacingTimer';
 import { PRESETS, elapsedMs, formatClock, isPacingMode, localDate, supportedMode, type PacingMode } from '../lib/pacingModel';
 import { pacingRunsNow, readPomodoroSettings, readTimer, savePacingResult } from '../services/pacingStorage';
 import { pacingError } from '../lib/pacingErrors';
-import { bestSeconds, currentStepIndex, dayLabel, dishName, dishOf, formatSpan, isLastStretch, lastSeconds, paceQuestion, paceTag, recipeSteps, recordGain } from '../lib/bakery';
+import { bestSeconds, currentStepIndex, dayLabel, dishName, dishOf, formatSpan, isLastStretch, lastSeconds, paceQuestion, paceTag, paceWords, recipeSteps, recordGain } from '../lib/bakery';
 import { BakeryChoose, type BakeryChoice, type RecentRow } from './BakeryChoose';
 import { BakeryRun } from './BakeryRun';
 import { BakeryDone } from './BakeryDone';
@@ -201,6 +201,3 @@ function PracticeWorkspace({ owner, sessions, initialPart, resultDialogBlocked =
 }
 
 /** "1 phút" or "30 giây": the seconds one question gets. */
-function paceWords(perQuestion: number): string {
-  return perQuestion >= 60 ? `${Math.round(perQuestion / 6) / 10} phút`.replace('.', ',') : `${Math.round(perQuestion)} giây`;
-}

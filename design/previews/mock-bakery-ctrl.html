@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Hàng nút Bật lò</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:#bfc4cc;padding:30px;display:flex;flex-direction:column;gap:18px}
+.cap{font-weight:900;font-size:20px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43}
+.pg{width:1257px;background:#fff;border-radius:18px;padding:0 30px 26px}
+.pg img{display:block;width:1197px;border-radius:0 0 28px 28px}
+.fire{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:18px;background:linear-gradient(135deg,#ff9a4d,#ff7a1a);color:#fff;font-weight:900;font-size:18px;padding:15px 30px;box-shadow:0 5px 0 #d65d00;white-space:nowrap}
+.step{display:inline-flex;align-items:center;gap:10px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 2px #efe3da;padding:6px 8px;font-weight:900;font-size:20px}
+.step i{font-style:normal;width:36px;height:36px;border-radius:11px;background:#f3efff;color:#7c5ce0;display:grid;place-items:center;font-size:20px}
+.step small{font-size:14px;color:#a3aba5;margin-left:-6px}
+.links{display:flex;justify-content:center;gap:22px;margin-top:14px;font-weight:900;font-size:14px}
+.links a{color:#7a857e}.links a.b{color:#7c5ce0}
+.links .dot{color:#d5d9d6}
+/* A */
+.counter{margin-top:18px;display:flex;align-items:center;gap:18px;border-radius:24px;background:linear-gradient(180deg,#fff6ec,#ffeedd);box-shadow:inset 0 0 0 2px #ffe0c4;padding:14px 16px 14px 20px}
+.pick{display:flex;align-items:center;gap:12px}
+.pick b{display:block;font-weight:900;font-size:18px}.pick small{display:block;font-weight:800;font-size:13px;color:#a39a80}
+.sep{width:2px;height:40px;background:#f6dcc2;border-radius:2px}
+/* B */
+.mid{margin-top:22px;display:flex;justify-content:center;align-items:center;gap:14px}
+/* C */
+.panel{margin-top:18px;display:flex;align-items:center;gap:18px;border-radius:24px;background:#a78bfa;padding:14px 18px;box-shadow:0 6px 0 #8b6fe6}
+.lcd{background:#2a2563;border-radius:14px;padding:6px 16px;font-weight:900;font-size:30px;letter-spacing:1px;color:#8cf0a0;font-variant-numeric:tabular-nums}
+.knob{width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 5px #ddd3ff;display:grid;place-items:center;font-weight:900;font-size:22px;color:#7c5ce0}
+.panel .lab{color:#fff;font-weight:900;font-size:17px}.panel .lab small{display:block;font-weight:800;font-size:12.5px;opacity:.8}
+.ghost{border-radius:14px;background:rgba(255,255,255,.18);color:#fff;font-weight:900;font-size:13.5px;padding:9px 12px;white-space:nowrap}
+.recent{margin-top:22px;font-weight:900;font-size:17px;color:#2f3a33}.recent span{font-weight:700;font-size:13.5px;color:#7a857e;margin-left:8px}
+.rows{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}.rows i{height:66px;border-radius:18px;background:#fffaf5;box-shadow:0 0 0 2px #ffe9d6}
+</style></head><body>
+<div class="cap">Hàng nút dưới Tiệm bánh · 3 hướng<small>Hiện tại nút dồn sang trái, “Đồng hồ Pomodoro” trôi sát lề phải nên bị lệch. Cả 3 hướng đều trải đều theo bề ngang cảnh, đổi “phút” thành “p”, và gom 2 lối phụ thành một dòng chữ nhỏ.</small></div>
+
+<div class="cap">A · Quầy bánh trải ngang</div>
+<div class="pg"><img src="img/bk-scene-crop.png">
+<div class="counter"><div class="pick"><svg width="46" viewBox="0 0 150 120"><rect x="20" y="62" width="110" height="46" rx="6" fill="#ffc9d6"/><rect x="36" y="26" width="78" height="38" rx="6" fill="#fff4dc"/><path d="M36 30 q6.5 10 13 0 q6.5 10 13 0 q6.5 10 13 0 q6.5 10 13 0 q6.5 10 13 0 q6.5 10 13 0 V26 H36Z" fill="#c4b2ff"/><circle cx="75" cy="18" r="9" fill="#ff5c6c"/></svg><div><b>Bánh kem · Part 7</b><small>54 câu · kỷ lục 53:40</small></div></div>
+<span class="sep" style="margin-left:auto"></span>
+<span class="step"><i>−</i>55<small>p</small><i>+</i></span>
+<span class="fire" style="min-width:260px">🔥 Bật lò</span></div>
+<div class="links"><a>Ghi kết quả, không bấm giờ</a><span class="dot">·</span><a class="b">Đồng hồ Pomodoro ›</a></div>
+<div class="recent">Mẻ bánh gần đây<span>Tuần này 1 mẻ · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></div><div class="rows"><i></i><i></i><i></i><i></i></div></div>
+
+<div class="cap">B · Một cụm nút ở giữa</div>
+<div class="pg"><img src="img/bk-scene-crop.png">
+<div class="mid"><span class="step"><i>−</i>55<small>p</small><i>+</i></span><span class="fire" style="min-width:320px">🔥 Bật lò · Part 7</span></div>
+<div class="links"><a>Ghi kết quả, không bấm giờ</a><span class="dot">·</span><a class="b">Đồng hồ Pomodoro ›</a></div>
+<div class="recent">Mẻ bánh gần đây<span>Tuần này 1 mẻ · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></div><div class="rows"><i></i><i></i><i></i><i></i></div></div>
+
+<div class="cap">C · Bảng điều khiển lò</div>
+<div class="pg"><img src="img/bk-scene-crop.png">
+<div class="panel"><div class="lab">Part 7 · bánh kem<small>54 câu · kỷ lục 53:40</small></div>
+<span style="margin-left:auto" class="knob">−</span><span class="lcd">55:00</span><span class="knob">+</span>
+<span class="fire" style="background:#fff;color:#ff7a1a;box-shadow:0 5px 0 #6f53cf;min-width:220px;margin-left:8px">🔥 Bật lò</span>
+<div style="display:flex;flex-direction:column;gap:6px;margin-left:4px"><span class="ghost">Ghi kết quả</span><span class="ghost">Pomodoro ›</span></div></div>
+<div class="recent">Mẻ bánh gần đây<span>Tuần này 1 mẻ · Phần Nghe chạy theo audio nên chỉ ghi kết quả</span></div><div class="rows"><i></i><i></i><i></i><i></i></div></div>
+</body></html>

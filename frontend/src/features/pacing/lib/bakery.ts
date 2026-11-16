@@ -35,6 +35,11 @@ export function recipeSteps(questions: number, at: number): RecipeStep[] {
   });
 }
 
+/** "24 giây" under a minute per question, else "1 phút" / "1,5 phút". */
+export function paceWords(perQuestion: number): string {
+  return perQuestion >= 60 ? `${Math.round(perQuestion / 6) / 10} phút`.replace('.', ',') : `${Math.round(perQuestion)} giây`;
+}
+
 /** Index of the step being worked on (the first that is not done). */
 export const currentStepIndex = (steps: RecipeStep[]) => Math.max(0, steps.findIndex(step => step.state !== 'done'));
 

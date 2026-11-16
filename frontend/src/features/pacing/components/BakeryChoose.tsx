@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { StudySession } from '@/shared/types';
 import type { PacingMode } from '../lib/pacingModel';
-import { dishName, dishOf, type Dish, type PaceTag } from '../lib/bakery';
+import { dishName, dishOf, formatSpan, paceWords, recipeSteps, type Dish, type PaceTag } from '../lib/bakery';
 import { Dome, DishIcon, ChefSoc, ItemArt, ShopBackdrop } from './BakeryArt';
 
 export interface BakeryChoice { mode: PacingMode; label: string; questions: number; minutes: number; record: string | null }
@@ -80,6 +80,16 @@ export function BakeryChoose(p: Props) {
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
   }, [all]);
+  const [recipe, setRecipe] = useState(false);
+  const recipeBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!recipe) return;
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setRecipe(false); };
+    const click = (e: MouseEvent) => { if (!recipeBox.current?.contains(e.target as Node)) setRecipe(false); };
+    window.addEventListener('keydown', key);
+    window.addEventListener('mousedown', click);
+    return () => { window.removeEventListener('keydown', key); window.removeEventListener('mousedown', click); };
+  }, [recipe]);
   const [going, setGoing] = useState(false);
   const timeout = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timeout.current), []);
@@ -142,14 +152,20 @@ export function BakeryChoose(p: Props) {
       </div>
 
       <div className="bk-ctrl">
-        <button type="button" className="rd-btn bk-fire" onClick={light}><span aria-hidden="true">🔥</span> Bật lò · {p.label} · {p.minutes} phút</button>
+        <button type="button" className="rd-btn bk-fire" onClick={light}><span aria-hidden="true">🔥</span> Bật lò</button>
         <div className="bk-step" role="group" aria-label="Số phút">
           <button type="button" aria-label="Bớt một phút" onClick={() => p.onMinutes(-1)} disabled={!p.canMinus}>−</button>
-          <b>{p.minutes}</b><span>phút</span>
+          <b>{p.minutes}</b><span>p</span>
           <button type="button" aria-label="Thêm một phút" onClick={() => p.onMinutes(1)}>+</button>
         </div>
-        <button type="button" className="bk-ghost" onClick={p.onLog}>Ghi kết quả, không bấm giờ</button>
-        <button type="button" className="bk-link" onClick={p.onPomodoro}>Đồng hồ Pomodoro ›</button>
+        <button type="button" className="bk-ghost" onClick={p.onLog}><span aria-hidden="true">✎</span> Chỉ ghi kết quả</button>
+        <div className="bk-recipe-wrap" ref={recipeBox}>
+          <button type="button" className={'bk-ghost' + (recipe ? ' is-on' : '')} aria-expanded={recipe} aria-controls="bk-recipe-pop" onClick={() => setRecipe(v => !v)}>
+            <i className="bk-gi is-gold" aria-hidden="true">📋</i> Công thức
+          </button>
+          {recipe && <RecipePop label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />}
+        </div>
+        <button type="button" className="bk-ghost" onClick={p.onPomodoro}><i className="bk-gi is-violet" aria-hidden="true">⏲</i> Pomodoro</button>
       </div>
       {p.error && <p role="alert" className="bk-err">{p.error}</p>}
 
@@ -175,6 +191,26 @@ export function BakeryChoose(p: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Whole minutes for a recipe step ("10p"); seconds for very short steps. */
+const stepTime = (seconds: number) => (seconds >= 60 ? `${Math.round(seconds / 60)}p` : formatSpan(seconds));
+
+/** "Công thức" preview: the same five steps as the running oven's recipe card, with minutes per step at the chosen time. */
+function RecipePop({ label, questions, minutes }: { label: string; questions: number; minutes: number }) {
+  const total = Math.max(1, questions);
+  const per = (minutes * 60) / total;
+  return (
+    <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức">
+      <b>{label} · {paceWords(per)} một câu</b>
+      <ol>
+        {recipeSteps(total, 0).map((step, i) => (
+          <li key={step.from}><em>{i + 1}</em><span>Câu {step.from}–{step.to} · {step.name.toLowerCase()}</span><small>{stepTime((step.to - step.from + 1) * per)}</small></li>
+        ))}
+      </ol>
+      <p>Quá giờ thì đánh dấu, qua câu sau.</p>
     </div>
   );
 }
