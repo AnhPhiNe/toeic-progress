@@ -120,8 +120,6 @@ h1 em{font-style:normal;color:#f0a500}
 </style></head><body>
 <div class="cap">Hôm nay · hướng C, không cần kéo<small>Bảng dưới luôn hiện đủ việc hôm nay: việc tiếp theo là thẻ xanh, các việc còn lại là dòng gọn có ô tick. Bảng cao theo số việc; cầu thang tự co vào phần còn lại, không bao giờ bị che. Streak chỉ là chip 🔥, bấm mới mở bánh nến.</small></div>
 <div class="row" id="R1"></div>
-<div class="cap">Phương án gọn: chỉ hiện việc tiếp theo + một dòng tóm tắt<small>Bảng luôn thấp như nhau dù có 2 hay 5 việc. Dòng tóm tắt có chấm tiến độ (xanh = xong, vàng = đang làm) và tên các việc còn lại; bấm “Xem” để mở danh sách ngay tại chỗ, bấm “Thu gọn” để đóng.</small></div>
-<div class="row" id="R3"></div>
 <div class="cap">Bấm vào các phần trên cảnh</div>
 <div class="row" id="R2"></div>
 <script src="lottie/soc-strings.js"></script>
@@ -167,35 +165,22 @@ function scene(sheetTop,soc='idle',tip=''){
 ${TOP}
 <div style="position:absolute;left:20px;top:102px;z-index:5">${DOTS}<h1 style="font-size:27px;margin-top:6px">Ba bậc nữa là<br><em>chạm tay vào cúp</em></h1></div>
 ${stairs(sx,base,w,rise,h0,cur,9,rise>14)}
-<span class="soc" style="position:absolute;width:${socW}px;left:${sx+4*w+w/2-socW*.47}px;top:${socTop}px">${SOC[soc]}</span>
+<span class="soc" style="position:absolute;width:${socW}px;left:${sx+4*w+w/2-socW*.47}px;top:${socTop}px">${SOC[soc==="hi"?"idle":soc]}</span>
 ${TROPHY(390-24-90*ts,Math.max(176,base-(h0+rise*7)-100*ts-6),ts)}${tip}`;
 }
 function C(kind){
   if(kind==='done'){
     const sh=14+96+10+40+12, st=844-86-sh;
     return `<div class="ph">${SB()}${scene(st,'hi')}
-<div class="cs" style="height:${sh}px"><div style="display:flex;align-items:center;gap:12px;background:#eef9ef;border-radius:20px;padding:12px 14px;height:96px">${`<span class="soc" style="width:60px;flex:none">${SOC.hi}</span>`}<div><div style="font-weight:900;font-size:20px;color:var(--greenD)">Xong hết hôm nay 🎉</div><div style="font-weight:800;font-size:13px;color:var(--mut)">3/3 việc · mai gặp lại nhé</div></div></div>
+<div class="cs" style="height:${sh}px"><div style="display:flex;align-items:center;gap:12px;background:#eef9ef;border-radius:20px;padding:12px 14px;height:96px">${`<span class="soc" style="width:60px;flex:none">${SOC.idle}</span>`}<div><div style="font-weight:900;font-size:20px;color:var(--greenD)">Xong hết hôm nay 🎉</div><div style="font-weight:800;font-size:13px;color:var(--mut)">3/3 việc · mai gặp lại nhé</div></div></div>
 <div class="ft"><span class="chip" style="background:#fff3eb;color:#ff7a1a">🔥 7 ngày liền</span><span class="chip" style="background:#eef7ee;color:var(--greenD)">Tuần 2/5 buổi</span><a>+ Thêm việc</a></div></div>${NAV()}</div>`;}
   const list=TASKS[kind], sh=sheetH(list), st=844-86-sh;
   const nx=list.find(t=>!t[2]); const rest=list.filter(t=>t!==nx);
   const done=list.filter(t=>t[2]).length;
   return `<div class="ph">${SB()}${scene(st)}
-<div class="cs" style="height:${sh}px"><div class="nx"><div><small>TIẾP THEO${nx[3]?' · '+nx[3].toUpperCase():''}${nx[1]?' · SÓC GỢI Ý':''}</small><b>${nx[0]}</b></div><span class="btn">▶ Bắt đầu</span></div>
+<div class="cs" style="height:${sh}px"><div class="nx"><div><small>TIẾP THEO${nx[3]?' · '+nx[3].toUpperCase():''}</small><b>${nx[0]}</b></div><span class="btn">▶ Bắt đầu</span></div>
 <div class="tl">${rest.map(t=>`<div class="tr ${t[2]?'done':''}"><u>${t[2]?'✓':''}</u><span>${t[0]}</span>${t[1]&&!t[2]?`<small>Sóc gợi ý</small><b class="x">×</b>`:t[3]&&!t[2]?`<b class="min">${t[3]}</b>`:''}</div>`).join('')}</div>
 <div class="ft"><span class="chip" style="background:#fff3eb;color:#ff7a1a">🔥 6</span><span class="chip" style="background:#eef7ee;color:var(--greenD)">${done}/${list.length} xong</span><a>+ Thêm việc</a></div></div>${NAV()}</div>`;
-}
-
-function G(kind,open){
-  const list=TASKS[kind], nx=list.find(t=>!t[2]), rest=list.filter(t=>t!==nx), done=list.filter(t=>t[2]).length;
-  const left=rest.filter(t=>!t[2]).length; const rows=open?rest.length*46+8:left?58:0;
-  const sh=14+70+10+rows+40+12, st=844-86-sh;
-  const dots=list.map(t=>`<i style="width:9px;height:9px;border-radius:50%;background:${t[2]?'var(--green)':t===nx?'#ffc83d':'#dfe3df'}"></i>`).join('');
-  const summary=`<div style="display:flex;align-items:center;gap:10px;height:48px;margin-top:10px;padding:0 14px;border-radius:16px;background:#fff;box-shadow:0 0 0 2px #f0eee8;font-weight:900;font-size:14.5px"><span style="display:flex;gap:4px">${dots}</span><span>Còn ${rest.filter(t=>!t[2]).length} việc khác</span><span style="font-weight:800;font-size:12px;color:#a3aba5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${rest.filter(t=>!t[2]).map(t=>t[0]).join(' · ')}</span><b style="color:#1c8fe3;font-size:13px;white-space:nowrap">Xem ⌄</b></div>`;
-  const full=`<div class="tl">${rest.map(t=>`<div class="tr ${t[2]?'done':''}"><u>${t[2]?'✓':''}</u><span>${t[0]}</span>${t[1]&&!t[2]?`<small>Sóc gợi ý</small><b class="x">×</b>`:''}</div>`).join('')}</div>`;
-  return `<div class="ph">${SB()}${scene(st)}
-<div class="cs" style="height:${sh}px"><div class="nx"><div><small>TIẾP THEO${nx[3]?' · '+nx[3].toUpperCase():''}${nx[1]?' · SÓC GỢI Ý':''}</small><b>${nx[0]}</b></div><span class="btn">▶ Bắt đầu</span></div>
-${open?full:left?summary:''}
-<div class="ft"><span class="chip" style="background:#fff3eb;color:#ff7a1a">🔥 6</span><span class="chip" style="background:#eef7ee;color:var(--greenD)">${done}/${list.length} xong</span>${open?'<a style="color:#7a857e">Thu gọn ⌃</a><a style="margin-left:14px">+ Thêm</a>':'<a>+ Thêm việc</a>'}</div></div>${NAV()}</div>`;
 }
 /* sheets */
 const over=(base,sheet)=>`<div class="ph">${SB()}<div style="position:absolute;inset:0;filter:blur(1px)">${base.replace(/^<div class="ph"[^>]*>/,'').replace(/<\/div>$/,'')}</div><div class="dim"></div><div class="msheet">${sheet}</div></div>`;
@@ -216,11 +201,6 @@ document.getElementById('R1').innerHTML=
  fw('Nhiều việc nhất (2 gợi ý + 3 của mình)','Bảng cao lên, cầu thang co lại nhưng vẫn thấy cúp, Sóc và bậc hiện tại.',C('five'))+
  fw('Còn 1 việc','Hai việc đã tick gạch ngang; thẻ xanh chuyển sang việc còn lại.',C('one'))+
  fw('Xong hết','Bảng thu còn một khối chúc mừng; Sóc vẫy đầu trên bậc, cầu thang to lại.',C('done'));
-document.getElementById('R3').innerHTML=
- fw('Gọn · 5 việc','Cầu thang giữ nguyên kích thước như khi chỉ có 1 việc.',G('five',false))+
- fw('Gọn · 3 việc','Cùng chiều cao; dòng tóm tắt chỉ đổi số và tên.',G('three',false))+
- fw('Bấm “Xem”','Danh sách mở ngay tại chỗ, tick được từng việc; cầu thang co lại tạm thời.',G('five',true))+
- fw('Còn 1 việc (không cần dòng tóm tắt)','Khi không còn việc khác chưa làm thì chỉ hiện thẻ xanh.',G('one',false));
 document.getElementById('R2').innerHTML=
  fw('Bấm chip 🔥','Bánh nến tuần, kỷ lục, băng giữ chuỗi và mục tiêu tuần ở bảng trượt.',STREAK_SHEET)+
  fw('Bấm “+ Thêm việc”','Bản điện thoại của bảng thêm việc: ý tưởng, ô nhập, nút Thêm, công tắc gợi ý của Sóc.',ADD_SHEET)+
