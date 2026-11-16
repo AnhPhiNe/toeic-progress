@@ -5,28 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <meta name="theme-color" content="#EAEFF5" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0B111E" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#EAEFF5" />
     <title>TOEIC Progress — Theo dõi luyện thi TOEIC</title>
     <meta name="description" content="Ghi lại điểm làm đề, lỗi sai, từ vựng và theo dõi tiến bộ TOEIC bằng chế độ khách hoặc đồng bộ tài khoản." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-      // Đặt theme TRƯỚC khi trình duyệt vẽ khung hình đầu tiên để tránh nháy sáng/tối.
-      // Phải là script đồng bộ, đặt trong <head>, không được chuyển thành module hay defer.
-      (function () {
-        try {
-          var saved = localStorage.getItem('toeic_theme_v1');
-          var theme = saved === 'dark' || saved === 'light'
-            ? saved
-            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          if (theme === 'dark') document.documentElement.classList.add('dark');
-        } catch (e) {
-          /* localStorage bị chặn (chế độ riêng tư) - mặc định sáng */
-        }
-      })();
-    </script>
+    <!-- The redesign ships in light only for now: no dark class is ever set. -->
   </head>
   <body class="font-['Plus_Jakarta_Sans',sans-serif] min-h-screen antialiased selection:bg-orange-500 selection:text-white">
     <div id="root"></div>

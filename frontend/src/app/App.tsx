@@ -168,25 +168,12 @@ export const App: React.FC = () => {
   const activeOwner = getActiveAccountId();
   useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); setIsSessionModalOpen(false); setEditingSession(null); setSessionPrefill(undefined); }, [activeOwner]);
 
-  // Theme Management: script chặn trong index.html đã gắn class 'dark' trước khi paint.
-  // Đọc lại từ chính class đó để React luôn khớp với những gì người dùng đã nhìn thấy.
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-  );
-
+  // Light only for now: the redesigned pages have no dark styles yet. Clear any dark class or saved choice from older versions.
+  const theme = 'light' as const;
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    try {
-      localStorage.setItem('toeic_theme_v1', theme);
-    } catch {
-      /* ignore */
-    }
-  }, [theme]);
+    document.documentElement.classList.remove('dark');
+    try { localStorage.removeItem('toeic_theme_v1'); } catch { /* ignore */ }
+  }, []);
 
   // Phím tắt toàn cục: Nhấn phím 'n' để mở nhanh Ghi nhận kết quả thi
   useEffect(() => {
@@ -264,10 +251,6 @@ export const App: React.FC = () => {
     setNotebookSourceFilter(null);
     setSessionMistakeRequest({ id: generateUUID(), owner });
     setActiveTab('mistakes');
-  };
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   // Lưu và cập nhật session
@@ -503,7 +486,6 @@ export const App: React.FC = () => {
           profile={profile}
           hasStudiedToday={hasStudiedToday}
           theme={theme}
-          toggleTheme={toggleTheme}
           onOpenSessionLogger={() => openSessionLogger()}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           syncIndicator={<AccountSyncIndicator available={account.available} status={account.status}
