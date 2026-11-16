@@ -63,7 +63,7 @@ export function FirstDayPanel({ task, firstStep, week, onStartTask }: Props) {
             <small>{task.kicker}</small>
             <h2>{task.title}</h2>
             <p>{task.reason}</p>
-            {task.kind !== 'FULL_TEST' && <div className="td-acts"><button type="button" className="td-go" onClick={() => onStartTask(task)}>▶ Bắt đầu</button></div>}
+            <div className="td-acts"><button type="button" className="td-go" onClick={() => onStartTask(task)}>{task.kind === 'FULL_TEST' ? '+ Ghi điểm' : '▶ Bắt đầu'}</button></div>
           </> : <>
             <small>HÔM NAY</small>
             <h2>Ghi điểm đề đầu tiên</h2>

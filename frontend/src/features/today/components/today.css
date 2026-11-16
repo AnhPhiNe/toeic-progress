@@ -326,3 +326,16 @@
   .td-lab.is-in, .td-page.is-welcome .td-card, .td-page.is-welcome .td-gc, .td-page.is-welcome .td-gc-done { animation: none; }
   .td-lab.is-out { display: none; }
 }
+
+/* Tablets (768-1100px): a narrower right panel, and the heading and goal card shrink to the space left of it. */
+@media (max-width: 1100px) {
+  .td-panel { width: 300px; right: 20px; }
+  .td-hd { left: 32px; max-width: calc(100% - 380px); }
+  .td-hd h1 { font-size: 28px; }
+  .td-gc { left: 20px; min-width: 0; width: calc(100% - 356px); transform: none; padding: 18px 20px; }
+  .td-gc-chips { flex-wrap: wrap; }
+  .td-gc-chip { flex: 1 1 60px; }
+  .td-gc-in { flex: 1 1 100%; }
+  .td-gc-go { flex-wrap: wrap; }
+  .td-gc h2 { font-size: 26px; }
+}

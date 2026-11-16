@@ -72,7 +72,7 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
 
       <nav className="rd-side__nav">{items.map(renderItem)}</nav>
 
-      <button type="button" className="rd-btn rd-side__cta" onClick={onOpenSessionLogger}>
+      <button type="button" className="rd-btn rd-side__cta" onClick={onOpenSessionLogger} aria-label="Ghi điểm" title="Ghi điểm">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4 V20 M4 12 H20" stroke={W} strokeWidth="3.6" strokeLinecap="round" /></svg>
         <span className="rd-side__lbl">Ghi điểm</span>
       </button>

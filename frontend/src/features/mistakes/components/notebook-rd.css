@@ -177,3 +177,11 @@
 .nbe-ghost em { display: block; height: 8px; border-radius: 4px; background: #e9ecea; width: 70%; }
 .nbe-ghost em + em { background: #f1f2f1; width: 45%; margin-top: 7px; }
 .nbe-ghost > span { font-weight: 900; font-size: 12px; color: var(--rd-mut); text-align: right; }
+
+/* Tablets: the toolbar wraps and the search shrinks so nothing runs off the right edge. */
+@media (max-width: 1100px) {
+  .nb-page { padding: 32px 28px; }
+  .nb-tools { flex-wrap: wrap; }
+  .nb-search { width: auto; flex: 1 1 180px; }
+  .nb-top { flex-wrap: wrap; }
+}
