@@ -78,3 +78,8 @@ export function applyGear(svg: string, ids: readonly string[] = []): string {
     .replace(GEAR_MARK.front, layer(FRONT, ids))
     .replace(GEAR_MARK.head, layer(HEAD, ids));
 }
+
+/** All drawing of one item (back, front and head layers together), for animations that drop the item onto Sóc. */
+export function gearFragment(id: SocGearId): string {
+  return (BACK[id] ?? '') + (FRONT[id] ?? '') + (HEAD[id] ?? '');
+}
