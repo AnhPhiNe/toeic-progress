@@ -1,0 +1,25 @@
+/* First-visit welcome moments on Hôm nay (phone + desktop). Sketch: design/previews/mock-welcome.html */
+.wl-greet { position: absolute; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: none; }
+.wl-bubble { position: relative; margin: 0; max-width: 300px; border-radius: 18px; background: #fff; padding: 12px 16px; font-family: var(--rd-font); font-weight: 800; font-size: 14.5px; line-height: 1.35; color: var(--rd-ink, #2f3a33);
+  box-shadow: 0 6px 18px rgba(120, 70, 20, .16); animation: wl-bub-in .35s .1s cubic-bezier(.2, 1.4, .4, 1) both; }
+.wl-bubble b { color: #e0970f; font-weight: 900; }
+.wl-bubble.is-down::after { content: ''; position: absolute; left: 36px; bottom: -9px; border: 9px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.wl-bubble.is-up::after { content: ''; position: absolute; left: 36px; top: -9px; border: 9px solid transparent; border-top: 0; border-bottom-color: #fff; }
+.wl-greet-b { animation-delay: .6s; }
+.wl-greet-b::after { left: calc(50% - 9px); }
+.wl-run { animation: wl-run .6s cubic-bezier(.2, .8, .3, 1) both; }
+.wl-hop { animation: wl-hop .6s ease-in-out both; transform-origin: 50% 100%; }
+.wl-hop .soc { display: block; }
+@keyframes wl-run { from { transform: translateX(-120vw); } to { transform: none; } }
+@keyframes wl-hop { 0%, 100% { transform: none; } 25% { transform: translateY(-14px); } 50% { transform: none; } 75% { transform: translateY(-8px); } }
+@keyframes wl-bub-in { from { opacity: 0; transform: translateY(8px) scale(.9); } to { opacity: 1; transform: none; } }
+
+/* confetti */
+.wl-conf { position: absolute; left: 50%; top: 40%; width: 0; height: 0; z-index: 14; pointer-events: none; }
+.wl-conf i { position: absolute; left: -4px; top: -3px; width: 8px; height: 5px; border-radius: 1.5px; opacity: 0; animation: wl-conf 1.2s cubic-bezier(.2, .8, .4, 1) forwards; }
+@keyframes wl-conf { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 80px)) rotate(var(--r)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-run, .wl-hop, .wl-bubble { animation: none; }
+  .wl-conf { display: none; }
+}

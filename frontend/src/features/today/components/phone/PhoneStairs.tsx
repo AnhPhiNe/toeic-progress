@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 import { phoneStairsLayout } from '../../lib/phoneStairsLayout';
 
@@ -24,6 +24,10 @@ interface Props {
   top: number;
   base: number;
   onCup?: () => void;
+  /** Welcome moments: hide the whole scene (Sóc is greeting), grow the dashed bars in one by one, light the first bar green. */
+  hidden?: boolean;
+  grow?: boolean;
+  lit?: boolean;
 }
 
 const ddmm = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
@@ -34,7 +38,7 @@ const PAL = {
 };
 
 /** Flat stairs of the phone Hôm nay scene (bars, Sóc on the current one, trophy), laid out for the height left above the task panel. */
-export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup }: Props) {
+export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, hidden, grow, lit }: Props) {
   const blocks = Math.max(1, steps.length - 1);
   const layout = useMemo(() => phoneStairsLayout({ w, top, base, blocks, cur: Math.max(0, cur) }), [w, top, base, blocks, cur]);
   const [tip, setTip] = useState<number | null>(null);
@@ -52,6 +56,17 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
     return hit ? `${hit.score} · ${hit.name} · ${ddmm(hit.date)}` : `Bậc ${step.value}`;
   };
 
+  // The trophy base text flips when it changes ("?" to the chosen goal) and the cup wiggles.
+  const cupText = String(cupLabel ?? target);
+  const lastLabel = useRef(cupText);
+  const [flip, setFlip] = useState<{ n: number; from: string } | null>(null);
+  useEffect(() => {
+    if (lastLabel.current === cupText) return;
+    const from = lastLabel.current;
+    lastLabel.current = cupText;
+    setFlip(f => ({ n: (f?.n ?? 0) + 1, from }));
+  }, [cupText]);
+
   const mood: SocMood = estimate ? 'idle' : done ? 'cheerD' : 'cheerC';
   const { bars, soc, cup } = layout;
   const tipBar = tip !== null ? bars[tip] : null;
@@ -68,12 +83,13 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
       <rect x="38" y="58" width="14" height="12" fill="#f0a500" />
       <rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d" />
       <rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33" />
-      <text x="45" y="92" textAnchor="middle" fontWeight="900" fontSize="12" fill="#ffd25e">{cupLabel ?? target}</text>
+      {flip && <text key={`o${flip.n}`} className="tp-lab is-out" x="45" y="92" textAnchor="middle" fontWeight="900" fontSize="12" fill="#ffd25e">{flip.from}</text>}
+      <text key={`i${flip?.n ?? 0}`} className={'tp-lab' + (flip ? ' is-in' : '')} x="45" y="92" textAnchor="middle" fontWeight="900" fontSize="12" fill="#ffd25e">{cupText}</text>
     </svg>
   );
 
   return (
-    <div className="tp-stairs" onClick={() => setTip(null)}>
+    <div className={'tp-stairs' + (hidden ? ' is-hidden' : '') + (grow ? ' is-grow' : '')} onClick={() => setTip(null)}>
       <div className="tp-sun" style={{ left: cupCx - 120, top: cupCy - 110 }} aria-hidden="true" />
       <div className="tp-rays" style={{ left: cupCx - 450, top: cupCy - 450 }} aria-hidden="true" />
       <div className="tp-hill" style={{ top: base - 56 }} aria-hidden="true" />
@@ -81,11 +97,11 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
       <svg className="tp-bars" width={w} height={base + 4} role="img"
         aria-label={estimate ? `Cầu thang ước lượng tới mục tiêu ${target}` : `Bậc ${Math.max(0, cur) + 1} trên ${steps.length}, điểm cao nhất ${best}, mục tiêu ${target}`}>
         {bars.map((b, i) => {
-          const k = estimate ? 'next' : i < cur ? 'done' : i === cur ? 'now' : 'next';
+          const k = estimate ? (lit && i === 0 ? 'now' : 'next') : i < cur ? 'done' : i === cur ? 'now' : 'next';
           const pal = PAL[k];
           const label = String(steps[i].value);
           return (
-            <g key={i} role="button" tabIndex={0} aria-label={tipText(i)} className="tp-bar"
+            <g key={i} role="button" tabIndex={0} aria-label={tipText(i)} className="tp-bar" style={{ '--i': i } as CSSProperties}
               onClick={e => { e.stopPropagation(); setTip(t => (t === i ? null : i)); }}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTip(t => (t === i ? null : i)); } }}>
               <rect x={b.x} y={b.y} width={b.w / 2} height={b.h} fill={pal.l} />
@@ -107,8 +123,8 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
 
       {onCup
         ? <button type="button" className="tp-cup" aria-label={`Cúp mục tiêu ${target}, mở Hành trình`} style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}
-            onClick={e => { e.stopPropagation(); onCup(); }}>{cupSvg}</button>
-        : <div className="tp-cup" aria-hidden="true" style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}>{cupSvg}</div>}
+            onClick={e => { e.stopPropagation(); onCup(); }}><span key={flip?.n ?? 0} className={flip ? 'tp-wig' : undefined}>{cupSvg}</span></button>
+        : <div className="tp-cup" aria-hidden="true" style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}><span key={flip?.n ?? 0} className={flip ? 'tp-wig' : undefined}>{cupSvg}</span></div>}
 
       {tip !== null && tipBar && <div className="tp-tip" role="status" style={{ left: tipLeft, top: tipTop }}>{tipText(tip)}</div>}
     </div>

@@ -24,3 +24,5 @@
 .plr :focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 @keyframes plr-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .plr-rays { animation: none; } }
+.plr-first { width: 100%; margin-top: calc(56px + env(safe-area-inset-top)); }
+.plr-first { width: 100%; margin-top: calc(56px + env(safe-area-inset-top)); }

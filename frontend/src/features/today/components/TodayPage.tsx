@@ -14,6 +14,8 @@ import { FirstDayPanel } from './FirstDayPanel';
 import { GoalCard } from './GoalCard';
 import { StairsScene } from './StairsScene';
 import { TodayCard } from './TodayCard';
+import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
+import { useWelcome } from './welcome/useWelcome';
 import './today.css';
 
 interface Props {
@@ -66,6 +68,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
   const [editingGoal, setEditingGoal] = useState(() => !hasChosenGoal(profile));
   const mode = todayMode({ hasTests: climbing !== null, chosen, editing: editingGoal });
   const estimate = useMemo(() => estimateMilestones(chosen ? target : PREVIEW_TARGET), [chosen, target]);
+  const welcome = useWelcome({ hasTests: climbing !== null, chosen });
   const firstTask = tasks.find(item => !item.done) ?? null;
   const blocks = climbing ? climbing.steps.length - 1 : 0;
   const remaining = climbing ? blocks - climbing.currentIndex : 0;
@@ -86,8 +89,10 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
     .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? '')), [sessions]);
 
   return (
-    <div className="rd td-page">
+    <div className={'rd td-page' + (welcome.fresh ? ' is-welcome' : '') + (welcome.greeting ? ' is-greeting' : '')}>
       <StairsScene
+        key={welcome.grew ? 'grown' : 'plain'}
+        lit={welcome.lit}
         plan={climbing}
         target={chosen || climbing ? target : PREVIEW_TARGET}
         testsAhead={ahead}
@@ -104,7 +109,8 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           onPick={value => onUpdateProfile(p => profileWithGoal(p, value))}
           onExamDate={date => onUpdateProfile(p => ({ ...p, examDate: date }))}
           onLog={onOpenSessionLogger}
-          onDone={chosen ? () => setEditingGoal(false) : undefined}
+          greeting={welcome.greeting}
+          onDone={chosen ? () => { setEditingGoal(false); welcome.confirm(); } : undefined}
         />
       )}
 
@@ -153,6 +159,10 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))}
         /> : <FirstDayPanel task={firstTask} firstStep={estimate.values[0]} week={week} onStartTask={onStartTask} />}
       </aside>
+
+      {welcome.greeting && <GreetSoc size={190} className="td-greet" />}
+      {welcome.leapBubble && mode === 'ready' && <SocBubble tail="down" className="td-leap">Ghi <b>đề đầu tiên</b> là mình leo bậc 1!</SocBubble>}
+      {welcome.confetti && <Confetti className="td-wl-conf" />}
 
       {celebrate && climbing && (
         <div className="td-cele" role="dialog" aria-modal="true" aria-label={`Bạn đã chạm ${target}`}>

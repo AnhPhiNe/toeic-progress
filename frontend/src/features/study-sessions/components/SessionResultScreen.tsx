@@ -8,6 +8,9 @@ import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneSessionResult } from './phone/PhoneSessionResult';
 import type { PartNumber } from '@/shared/domain/questionNumbers';
 import { summarizeSessionResult, type PartLoss } from '../lib/sessionResult';
+import { isFirstFullTest } from '../lib/firstStake';
+import { resultFacts } from './phone/phoneLogLib';
+import { FirstStakeCard } from './FirstStakeCard';
 
 const PART_NAME: Record<PartNumber, string> = { 1: 'Mô tả tranh', 2: 'Hỏi đáp', 3: 'Hội thoại', 4: 'Bài nói', 5: 'Điền câu', 6: 'Điền đoạn văn', 7: 'Đọc hiểu' };
 const PART_INK: Record<PartNumber, [string, string]> = {
@@ -60,6 +63,8 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
   const result = useMemo(() => summarizeSessionResult(session, sessions, mistakes, targetScore), [session, sessions, mistakes, targetScore]);
   const dialogRef = useModalA11y(true, onClose);
   const { goal } = result;
+  const firstTest = useMemo(() => isFirstFullTest(sessions), [sessions]);
+  const facts = useMemo(() => resultFacts(session, sessions, targetScore), [session, sessions, targetScore]);
 
   const primary = result.step === 'mark' ? { label: 'Đánh dấu câu sai', run: onMarkWrong }
     : result.step === 'detail' ? { label: `Ghi chi tiết ${result.detailCount} câu sai`, run: onDetails }
@@ -74,6 +79,9 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
         <section className={'sr-left' + (result.mood === 'happy' ? ' is-happy' : '')}>
           <span className="sr-rays" aria-hidden="true" />
           <p className="sr-test">{session.testName}</p>
+          {firstTest
+            ? <FirstStakeCard variant="panel" score={facts.score} stair={facts.stair} remaining={facts.remaining} target={targetScore} onClose={onClose} />
+            : <>
           <Soc state={result.mood === 'happy' ? 'cheerC' : 'hi'} size={128} className="sr-soc" />
           <h2 id="session-result-title">{result.headline}</h2>
           <p className="sr-sub">{result.subline}</p>
@@ -81,7 +89,8 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
           {result.listening !== undefined && result.reading !== undefined && (
             <p className="sr-lr"><span>Nghe <b>{result.listening}</b></span><span>Đọc <b>{result.reading}</b></span></p>
           )}
-          {goal && (
+            </>}
+          {goal && !firstTest && (
             <div className="sr-goal">
               <p><span>Mục tiêu {goal.target}</span><b>{goal.remaining ? `còn ${goal.remaining} điểm` : 'Đã đạt!'}</b></p>
               <div className="sr-goal-bar" role="img" aria-label={goal.remaining ? `Còn ${goal.remaining} điểm tới mục tiêu ${goal.target}` : `Đã đạt mục tiêu ${goal.target}`}>

@@ -19,6 +19,8 @@ interface Props {
   banner?: string;
   /** Accessories Sóc wears (Thành tích → Tủ đồ). */
   gear?: readonly string[];
+  /** Welcome: no test yet, the first bar is lit green once the goal is confirmed. */
+  lit?: boolean;
 }
 
 const ddmm = (date?: string) => (date ? `${date.slice(8, 10)}/${date.slice(5, 7)}` : '');
@@ -43,7 +45,7 @@ function estimatePlan(target: number): Plan {
   return { status: 'climbing', target, step, best: 0, currentIndex: 0, steps: values.map(value => ({ value, reached: false })) };
 }
 
-export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear }: Props) {
+export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, lit }: Props) {
   const empty = !plan;
   const p = useMemo(() => plan ?? estimatePlan(target), [plan, target]);
   const blocks = p.steps.length - 1;
@@ -84,6 +86,16 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear }
     lastTarget.current = target;
     setBurst(b => b + 1);
   }, [target]);
+  // The trophy base text flips when it changes ("?" to the chosen goal).
+  const cupText = String(cupLabel ?? p.target);
+  const lastText = useRef(cupText);
+  const [flip, setFlip] = useState<{ n: number; from: string } | null>(null);
+  useEffect(() => {
+    if (lastText.current === cupText) return;
+    const from = lastText.current;
+    lastText.current = cupText;
+    setFlip(f => ({ n: (f?.n ?? 0) + 1, from }));
+  }, [cupText]);
   const [socState, setSocState] = useState<SocMood>('idle');
   const socRef = useRef<SVGGElement>(null);
   const socAt = Math.max(0, cur);
@@ -157,7 +169,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear }
         {p.steps.slice(0, blocks).map((step, i) => {
           const x = g.bx(i), y = g.by(i), h = g.bh(i);
           const ok = !empty && i < cur, isCur = i === cur;
-          const k = isCur ? 'c' : ok ? 'g' : 'f';
+          const k = isCur || (empty && lit && i === 0) ? 'c' : ok ? 'g' : 'f';
           const edge = k === 'c' ? '#1f6a33' : k === 'g' ? '#b07a00' : '#b6b3cf';
           const hi = k === 'f' ? '#fff' : k === 'c' ? '#b8f0c2' : '#fff4c4';
           const bands: ReactNode[] = [];
@@ -224,7 +236,8 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear }
             onMouseMove={e => move(e, cupTip, true)} onMouseLeave={() => setTip(null)}>
             <ellipse cx="0" cy="104" rx="84" ry="16" fill="#b0784a" opacity=".18" />
             <path d="M-58 68 L58 68 L66 100 L-66 100Z" fill="#3a463e" /><rect x="-62" y="62" width="124" height="10" rx="5" fill="#2f3a33" />
-            <text x="0" y="93" fontWeight="900" fontSize="20" fill="#ffe58f" textAnchor="middle">{cupLabel ?? p.target}</text>
+            {flip && <text key={`o${flip.n}`} className="td-lab is-out" x="0" y="93" fontWeight="900" fontSize="20" fill="#ffe58f" textAnchor="middle">{flip.from}</text>}
+            <text key={`i${flip?.n ?? 0}`} className={'td-lab' + (flip ? ' is-in' : '')} x="0" y="93" fontWeight="900" fontSize="20" fill="#ffe58f" textAnchor="middle">{cupText}</text>
             <g key={`pop${burst}`} className={burst ? 'td-cuppop' : undefined}><g className="td-cupwrap"><g className="td-cup">
               <rect x="-26" y="48" width="52" height="16" rx="5" fill="#e09a12" /><rect x="-12" y="28" width="24" height="24" fill="url(#tdCup)" />
               <path d="M-64 -64 C-104 -64 -100 -10 -58 -16" fill="none" stroke="#e8a516" strokeWidth="11" strokeLinecap="round" />

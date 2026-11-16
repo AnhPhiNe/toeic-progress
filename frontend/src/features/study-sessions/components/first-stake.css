@@ -1,0 +1,34 @@
+/* First-stake celebration (result screen, first full test only). Sketch: design/previews/mock-welcome.html frame 5. */
+.fsk { text-align: center; font-family: var(--rd-font); }
+.fsk-kick { display: block; font-weight: 900; font-size: 12px; letter-spacing: .6px; }
+.fsk-stage { position: relative; width: min(100%, 300px); margin: 6px auto 0; }
+.fsk-lottie, .fsk-static { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fsk-lottie svg { display: block; }
+.fsk-soc { position: absolute; left: 4%; bottom: 14%; width: 34%; height: auto; animation: fsk-pop .5s .55s cubic-bezier(.2, 1.5, .4, 1) both; transform-origin: 50% 100%; }
+.fsk-soc svg { width: 100%; height: auto; display: block; }
+.fsk-score { position: absolute; display: grid; place-items: center; transform: translate(-50%, -50%); font-weight: 900; font-size: clamp(17px, 6vw, 22px); color: #6b4a00; letter-spacing: -.5px;
+  animation: fsk-score .4s .38s cubic-bezier(.2, 1.5, .4, 1) both; }
+.fsk h3 { margin: 8px 0 0; font-weight: 900; font-size: 28px; letter-spacing: -.6px; line-height: 1.1; }
+.fsk p { margin: 8px auto 0; max-width: 290px; font-weight: 700; font-size: 13.5px; line-height: 1.4; }
+.fsk-go { margin-top: 14px; width: 100%; min-height: 52px; border: 0; border-radius: 99px; font: 900 16px var(--rd-font); cursor: pointer; }
+.fsk-go:focus-visible { outline: 3px solid var(--rd-blue, #1c8fe3); outline-offset: 3px; }
+@keyframes fsk-pop { from { transform: translateY(40%) scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fsk-score { from { transform: translate(-50%, -50%) scale(0); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+.fsk.is-still .fsk-soc, .fsk.is-still .fsk-score { animation: none; }
+@media (prefers-reduced-motion: reduce) { .fsk-soc, .fsk-score { animation: none; } }
+
+/* Phone: a white card. */
+.fsk.is-card { width: 100%; border-radius: 28px; background: #fff; color: #2f3a33; padding: 18px 18px 16px; box-shadow: 0 8px 0 rgba(0, 0, 0, .12); }
+.fsk.is-card .fsk-kick { color: #7a857e; }
+.fsk.is-card h3 { color: #2f9e4a; }
+.fsk.is-card p { color: #7a857e; }
+.fsk.is-card .fsk-go { background: linear-gradient(180deg, #4cc062, #2f9e4a); color: #fff; box-shadow: 0 5px 0 #2a8a40; }
+.fsk.is-card .fsk-go:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a8a40; }
+
+/* Desktop: sits on the coloured left panel. */
+.fsk.is-panel { color: #fff; }
+.fsk.is-panel .fsk-kick { opacity: .9; }
+.fsk.is-panel h3 { color: #fff; }
+.fsk.is-panel p { color: rgba(255, 255, 255, .92); }
+.fsk.is-panel .fsk-go { background: #fff; color: #8a4a00; box-shadow: 0 5px 0 rgba(0, 0, 0, .15); max-width: 300px; }
+.fsk.is-panel .fsk-go:focus-visible { outline-color: #fff; }

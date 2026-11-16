@@ -306,3 +306,23 @@
   .td-confp, .td-burst { display: none; }
   .td-rw li.is-lit svg { filter: drop-shadow(0 0 8px rgba(255, 200, 61, .8)); }
 }
+
+/* first-visit welcome moments (design/previews/mock-welcome.html) */
+.td-page.is-greeting .td-stairs { visibility: hidden; }
+.td-greet { left: 0; width: calc(100% - 420px); top: 400px; bottom: 90px; }
+.td-page.is-greeting .td-socg { visibility: hidden; }
+.td-leap { position: absolute; z-index: 9; left: 120px; bottom: 36%; max-width: 280px; }
+.td-wl-conf { left: calc(50% - 200px); top: 34%; }
+.td-lab { transform-box: fill-box; transform-origin: 50% 50%; }
+.td-lab.is-out { animation: td-flip-out .3s ease-in forwards; }
+.td-lab.is-in { animation: td-flip-in .3s .3s ease-out both; }
+.td-page.is-welcome .td-card, .td-page.is-welcome .td-gc { animation: td-wl-in .5s cubic-bezier(.2, 1.1, .4, 1) both; }
+.td-page.is-welcome .td-gc-done { animation: td-wl-pulse 1.6s ease-in-out infinite; }
+@keyframes td-flip-out { from { transform: none; opacity: 1; } to { transform: perspective(160px) rotateX(90deg); opacity: 0; } }
+@keyframes td-flip-in { from { transform: perspective(160px) rotateX(-90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes td-wl-in { from { transform: translateY(24px); opacity: .2; } to { transform: none; opacity: 1; } }
+@keyframes td-wl-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(70, 179, 90, .5); } 50% { box-shadow: 0 0 0 10px rgba(70, 179, 90, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .td-lab.is-in, .td-page.is-welcome .td-card, .td-page.is-welcome .td-gc, .td-page.is-welcome .td-gc-done { animation: none; }
+  .td-lab.is-out { display: none; }
+}

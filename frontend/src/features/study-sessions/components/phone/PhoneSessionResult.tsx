@@ -4,6 +4,8 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { summarizeSessionResult } from '../../lib/sessionResult';
 import { resultFacts } from './phoneLogLib';
+import { isFirstFullTest } from '../../lib/firstStake';
+import { FirstStakeCard } from '../FirstStakeCard';
 import './phoneResult.css';
 
 interface Props {
@@ -23,6 +25,7 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
   const result = useMemo(() => summarizeSessionResult(session, sessions, mistakes, targetScore), [session, sessions, mistakes, targetScore]);
   const facts = useMemo(() => resultFacts(session, sessions, targetScore), [session, sessions, targetScore]);
   const dialogRef = useModalA11y(true, onClose);
+  const firstTest = useMemo(() => isFirstFullTest(sessions), [sessions]);
   const delta = facts.delta;
   const line = facts.record ? `Kỷ lục mới · ▲ ${delta}`
     : facts.first ? 'Bài đầu tiên, mốc để so sánh'
@@ -38,6 +41,11 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
   return (
     <div className="rd plr" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="session-result-title" tabIndex={-1}>
       <span className="plr-rays" aria-hidden="true" />
+      {firstTest ? (
+        <div className="plr-first">
+          <FirstStakeCard variant="card" score={facts.score} stair={facts.stair} remaining={facts.remaining} target={targetScore} onClose={onClose} />
+        </div>
+      ) : <>
       <div className="plr-top">
         <p className="plr-test">{session.testName}</p>
         <h2 id="session-result-title" className="plr-score">{facts.score}<span className="sr-only"> điểm</span></h2>
@@ -54,6 +62,7 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
           ? <p className="plr-goal">{facts.remaining > 0 ? `Còn ${facts.remaining} điểm nữa là chạm cúp ${targetScore}.` : `Bạn đã chạm cúp ${targetScore}!`}</p>
           : null}
       </div>
+      </>}
       {onSignIn && <p className="plr-sign">Kết quả đang chỉ lưu trên máy này. <button type="button" onClick={onSignIn}>Đăng nhập để không mất khi đổi máy</button></p>}
       <div className="plr-acts">
         <button type="button" className={'plr-done' + (next ? '' : ' is-solo')} onClick={onClose}>Xong</button>

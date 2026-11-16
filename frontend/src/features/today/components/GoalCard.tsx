@@ -11,13 +11,15 @@ interface Props {
   onLog: () => void;
   /** Present once a goal exists: folds the card back into the page header. */
   onDone?: () => void;
+  /** First visit: Sóc is greeting, so the heading introduces her. */
+  greeting?: boolean;
 }
 
 const isPreset = (value: number | null) => TARGET_PRESETS.some(preset => preset === value);
 const SAVE_DELAY_MS = 450;
 
 /** Goal-setting card of the new-user Hôm nay page (S1): target chips, optional exam date, first-test button. */
-export function GoalCard({ target, examDate, today, onPick, onExamDate, onLog, onDone }: Props) {
+export function GoalCard({ target, examDate, today, onPick, onExamDate, onLog, onDone, greeting }: Props) {
   const [draft, setDraft] = useState(() => (target !== null && !isPreset(target) ? String(target) : ''));
   const [touched, setTouched] = useState(false);
   const typed = parseTargetInput(draft);
@@ -47,8 +49,10 @@ export function GoalCard({ target, examDate, today, onPick, onExamDate, onLog, o
 
   return (
     <section className="td-gc" aria-label="Chọn mục tiêu">
-      <small>BẮT ĐẦU</small>
-      <h1>Dựng cầu thang <em>{target !== null ? `lên cúp ${target}` : 'lên cúp của bạn'}</em></h1>
+      <small>{greeting ? 'LẦN ĐẦU GẶP NHAU' : 'BẮT ĐẦU'}</small>
+      {greeting
+        ? <h1>Chào bạn! <em>Mình là Sóc</em></h1>
+        : <h1>Dựng cầu thang <em>{target !== null ? `lên cúp ${target}` : 'lên cúp của bạn'}</em></h1>}
 
       <span className="td-gc-lab" id="td-gc-target">Mục tiêu</span>
       <div className="td-gc-chips" role="group" aria-labelledby="td-gc-target">
