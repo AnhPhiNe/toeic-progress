@@ -17,6 +17,6 @@ interface Props {
 export function AwardsPage({ bundle, today, owner, onUpdateProfile }: Props) {
   const isPhone = useMediaQuery(PHONE_QUERY);
   return isPhone
-    ? <AwardsPhone bundle={bundle} today={today} owner={owner} />
+    ? <AwardsPhone bundle={bundle} today={today} owner={owner} onUpdateProfile={onUpdateProfile} />
     : <AwardsDesktop bundle={bundle} today={today} owner={owner} onUpdateProfile={onUpdateProfile} />;
 }
