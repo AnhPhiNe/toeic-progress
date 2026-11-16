@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Hôm nay trên điện thoại</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--green:#46b35a;--greenD:#2f8a42}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:30px 30px 40px}
+.cap{font-weight:900;font-size:21px;margin:0 0 4px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;max-width:1700px}
+.row{display:flex;gap:34px;margin:16px 0 40px;align-items:flex-start}
+.fw{display:flex;flex-direction:column;gap:10px;align-items:center}
+.fw>b{font-weight:900;font-size:16px}.fw>span{font-weight:700;font-size:13px;color:#3f4a43;width:390px;text-align:center;line-height:1.35}
+.ph{width:390px;height:844px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 0 0 10px #1d2420,0 24px 50px rgba(0,0,0,.3)}
+.sb{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-weight:900;font-size:15px;z-index:20}
+.sb i{width:70px;height:12px;border-radius:6px;background:currentColor;opacity:.85}
+.soc svg{display:block;width:100%}
+/* bottom nav */
+.nav{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #f0f2f0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;z-index:30}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:900;font-size:11.5px;color:#9aa39d}
+.nav a i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:15px;color:#fff;opacity:.55}
+.nav a.on{color:var(--ink)}.nav a.on i{opacity:1;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.nav a.add i{width:54px;height:54px;border-radius:18px;margin-top:-22px;background:var(--green);opacity:1;font-size:30px;box-shadow:0 5px 0 var(--greenD),0 8px 18px rgba(70,179,90,.35)}
+.nav a.add{color:var(--greenD)}
+.nav .badge{position:absolute;margin:-4px 0 0 26px;background:#ff5c86;color:#fff;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* top bar */
+.top{position:absolute;left:18px;right:18px;top:50px;display:flex;align-items:center;gap:8px;z-index:15}
+.chip{border-radius:99px;background:rgba(255,255,255,.9);padding:5px 11px;font-weight:900;font-size:13.5px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.av{margin-left:auto;width:40px;height:40px;border-radius:14px;background:#fff3e0;box-shadow:0 0 0 2px #fff,0 3px 8px rgba(0,0,0,.12);position:relative}
+.av>s{position:absolute;inset:0;border-radius:14px;overflow:hidden}.av .soc{position:absolute;width:48px;left:-4px;top:-2px}
+.av em{position:absolute;right:-3px;bottom:-3px;width:15px;height:15px;border-radius:50%;background:#7c5ce0;color:#fff;font-style:normal;font-size:9px;font-weight:900;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+/* scene */
+.sky{position:absolute;inset:0;background:radial-gradient(circle at 78% 22%,#fffbe8 0 60px,transparent 61px),linear-gradient(180deg,#fff2cf,#ffe3e3 70%,#ffd9e2)}
+.rays{position:absolute;left:50%;top:0;width:900px;height:900px;margin-left:-450px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,240,190,.55) 0 8deg,transparent 8deg 20deg);mask-image:radial-gradient(circle,#000 25%,transparent 60%)}
+.hill{position:absolute;left:-40px;right:-40px;border-radius:50% 50% 0 0;background:#a8dc95}
+.st{position:absolute}
+.st .f{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0}
+.st .c{position:absolute;left:0;right:0;height:10px;border-radius:3px;transform:translateY(-6px)}
+.st .lb{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;font-size:10.5px;color:#fff;background:rgba(0,0,0,.18);border-radius:99px;padding:1px 5px;white-space:nowrap}
+.troph{position:absolute}
+h1{font-weight:900;letter-spacing:-.6px;line-height:1.08}
+h1 em{font-style:normal;color:#f0a500}
+.dots{display:flex;gap:3px;align-items:center;font-weight:900;font-size:11.5px;color:#d99a00}.dots i{width:13px;height:5px;border-radius:9px;background:#ffc83d}.dots i.o{background:#eadcb4}.dots i.g{background:var(--green)}.dots span{margin-left:6px}
+/* cards */
+.next{border-radius:24px;background:linear-gradient(135deg,#4cc062,#2f9e4a);color:#fff;padding:16px 18px;position:relative;overflow:hidden;box-shadow:0 6px 0 #2a8a40}
+.next small{font-weight:900;font-size:11.5px;letter-spacing:.5px;opacity:.85}
+.next h3{font-weight:900;font-size:24px;letter-spacing:-.4px;margin-top:2px}
+.next p{font-weight:800;font-size:13px;opacity:.9}
+.next .btns{display:flex;align-items:center;gap:14px;margin-top:12px}
+.btn{border-radius:14px;background:#fff;color:var(--greenD);font-weight:900;font-size:16px;padding:11px 22px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.skip{font-weight:900;font-size:13px;text-decoration:underline;opacity:.9}
+.next .soc{position:absolute;right:-8px;bottom:-14px;width:96px}
+.rest{display:flex;align-items:center;font-weight:900;font-size:13px;color:#8c968f;padding:0 4px}
+.rest a{margin-left:auto;color:#1c8fe3}
+.task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #f0f2f0;font-weight:900;font-size:15px}
+.task u{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2.5px #cfd6d1;flex:none}
+.task.done u{background:var(--green);box-shadow:none}.task.done{color:#a3aba5;text-decoration:line-through}
+.task small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5;text-decoration:none}
+/* streak */
+.streak{background:#fff;border-radius:22px;box-shadow:0 0 0 2px #f6eef0;padding:12px 14px}
+.streak .h{display:flex;align-items:center;gap:8px}
+.streak .fl{font-size:26px;line-height:1}.streak b{font-weight:900;font-size:24px;color:#ff7a1a}.streak .h span{font-weight:900;font-size:13.5px;color:#ff7a1a}
+.streak .h small{margin-left:auto;font-weight:900;font-size:11.5px;color:#4f8fd6;background:#e6f1ff;border-radius:99px;padding:2px 8px}
+.cake{position:relative;height:46px;margin:6px 4px 0}
+.cake .tier{position:absolute;left:0;right:0;bottom:0;height:16px;border-radius:8px;background:#ffd1dc;box-shadow:inset 0 5px 0 #fff0f4}
+.cake .cd{position:absolute;bottom:16px;width:7px;height:20px;border-radius:3px;background:#f2e9ec}
+.cake .cd.l{background:#ff7a9c}.cake .cd.l:after{content:'';position:absolute;left:-2px;top:-11px;width:11px;height:12px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#ffb020}
+.days{display:flex;justify-content:space-between;font-weight:900;font-size:10.5px;color:#a3aba5;margin:3px 4px 0}.days b{font-size:10.5px;color:#ff7a1a}
+.goal{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1.5px solid #f3f0f1;font-weight:800;font-size:12.5px;color:#5e6962}
+.goal b{font-size:12.5px;color:var(--ink)}.goal i{flex:1;height:6px;border-radius:9px;background:#eef0ee;overflow:hidden}.goal i:before{content:'';display:block;width:20%;height:100%;background:var(--green)}
+.goal a{font-weight:900;color:#1c8fe3}
+/* sheet */
+.sheet{position:absolute;left:0;right:0;background:#fbfaf7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(120,70,70,.12);padding:10px 16px 0;z-index:10}
+.grab{width:40px;height:5px;border-radius:9px;background:#dcd8cf;margin:0 auto 10px}
+/* mini journey card (B) */
+.jcard{position:relative;border-radius:24px;overflow:hidden;height:186px;box-shadow:0 0 0 2px #fbe6c4}
+.jcard .lab{position:absolute;left:16px;top:12px;z-index:3}
+.jcard .lab b{display:block;font-weight:900;font-size:17px}
+.more{position:absolute;right:12px;top:12px;z-index:3;border-radius:99px;background:#fff;padding:5px 11px;font-weight:900;font-size:12.5px;color:#d99a00;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+/* menus (D, E) */
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);z-index:25}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 30px;z-index:40}
+.mi{display:flex;align-items:center;gap:14px;padding:11px 4px;font-weight:900;font-size:16px}
+.mi i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;color:#fff;font-size:20px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.mi small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.mi .ar{margin-left:auto;color:#c3cac5;font-size:20px}
+.mi .pill{margin-left:auto;background:#ff5c86;color:#fff;border-radius:99px;padding:1px 8px;font-size:12px}
+.lvl{display:flex;align-items:center;gap:12px;border-radius:22px;background:linear-gradient(120deg,#fff3e0,#ffe6ee);padding:12px 14px;margin-bottom:6px}
+.lvl .soc{width:58px}
+.lvl b{font-weight:900;font-size:16px}.lvl small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.lvl .bar{height:7px;border-radius:9px;background:#fff;margin-top:6px;overflow:hidden}.lvl .bar i{display:block;height:100%;width:70%;background:linear-gradient(90deg,#7c5ce0,#1c8fe3)}
+.sep{height:1.5px;background:#f0f2f0;margin:4px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+.big{border-radius:22px;padding:14px 10px 12px;text-align:center;font-weight:900;font-size:14px;line-height:1.2;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+.big i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 8px;border-radius:17px;font-style:normal;font-size:24px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.big small{display:block;font-weight:800;font-size:11.5px;color:var(--mut);margin-top:3px}
+
+.cs{position:absolute;left:0;right:0;bottom:86px;background:#fbfaf7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(120,70,70,.12);padding:14px 16px 12px;z-index:10}
+.nx{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#4cc062,#2f9e4a);border-radius:20px;padding:12px 12px 12px 16px;color:#fff;box-shadow:0 5px 0 #2a8a40}
+.nx small{display:block;font-weight:900;font-size:11px;opacity:.85;letter-spacing:.3px}.nx b{display:block;font-weight:900;font-size:20px;letter-spacing:-.3px}
+.nx .btn{padding:10px 15px;font-size:15px;margin-left:auto;white-space:nowrap}
+.tl{margin-top:8px}
+.tr{display:flex;align-items:center;gap:11px;height:46px;padding:0 4px;border-bottom:1.5px solid #f0eee8;font-weight:900;font-size:15px}
+.tr:last-child{border-bottom:0}
+.tr u{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2.5px #cfd6d1;flex:none;display:grid;place-items:center;text-decoration:none;color:#fff;font-size:14px}
+.tr small{font-weight:800;font-size:11.5px;color:#a3aba5;margin-left:2px}
+.tr .x{margin-left:auto;color:#c3cac5;font-size:18px;font-weight:900}
+.tr .min{margin-left:auto;font-weight:800;font-size:12px;color:#a3aba5}
+.tr.done{color:#a3aba5}.tr.done span{text-decoration:line-through}.tr.done u{background:var(--green);box-shadow:none}
+.ft{display:flex;align-items:center;gap:8px;margin-top:10px}
+.ft .chip{font-size:13px;box-shadow:none}
+.ft a{margin-left:auto;font-weight:900;font-size:13.5px;color:#1c8fe3}
+.tip{position:absolute;z-index:12;background:#2f3a33;color:#fff;border-radius:12px;padding:6px 10px;font-weight:900;font-size:12px;white-space:nowrap}
+.tip:after{content:'';position:absolute;left:18px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#2f3a33}
+.chipsheet .chip{background:#f3f1ec;box-shadow:none;font-size:13.5px;padding:8px 12px}
+.inp{display:flex;gap:8px;margin-top:12px}.inp span{flex:1;border-radius:14px;box-shadow:inset 0 0 0 2px #e3e6e3;padding:12px 14px;font-weight:800;font-size:15px;color:#a3aba5}
+.sw{display:flex;align-items:center;padding:9px 2px;font-weight:900;font-size:14.5px}.sw small{display:block;font-weight:800;font-size:12px;color:var(--mut)}
+.sw i{margin-left:auto;width:44px;height:26px;border-radius:99px;background:var(--green);position:relative}.sw i:after{content:'';position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.sw i.off{background:#d9ddd9}.sw i.off:after{right:auto;left:3px}
+</style></head><body>
+<div class="cap">Hôm nay · hướng C, không cần kéo<small>Bảng dưới luôn hiện đủ việc hôm nay: việc tiếp theo là thẻ xanh, các việc còn lại là dòng gọn có ô tick. Bảng cao theo số việc; cầu thang tự co vào phần còn lại, không bao giờ bị che. Streak chỉ là chip 🔥, bấm mới mở bánh nến.</small></div>
+<div class="row" id="R1"></div>
+<div class="cap">Phương án gọn: chỉ hiện việc tiếp theo + một dòng tóm tắt<small>Bảng luôn thấp như nhau dù có 2 hay 5 việc. Dòng tóm tắt có chấm tiến độ (xanh = xong, vàng = đang làm) và tên các việc còn lại; bấm “Xem” để mở danh sách ngay tại chỗ, bấm “Thu gọn” để đóng.</small></div>
+<div class="row" id="R3"></div>
+<div class="cap">Bấm vào các phần trên cảnh</div>
+<div class="row" id="R2"></div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const S=k=>`<span class="soc">${SOC[k]}</span>`;
+const sv=d=>`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const icon={home:['#46b35a',sv('<path d="M4 11 12 4l8 7v9h-5v-5H9v5H4z" fill="#fff" stroke="none"/>')],j:['#ffc83d',sv('<path d="M6 19v-4M12 19V10M18 19V5"/>')],p:['#a78bfa',sv('<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M10 3h4"/>')],n:['#ff7a9c',sv('<path d="M5 5h6v14H5zM13 5h6v14h-6z" fill="#fff" stroke="none"/>')]};
+const NAV=(on='home')=>`<nav class="nav">${[['home','Hôm nay'],['j','Hành trình'],['add','Ghi'],['p','Luyện tập'],['n','Sổ tay']].map(([k,l])=>k==='add'?`<a class="add"><i>+</i>${l}</a>`:`<a class="${k===on?'on':''}"><i style="background:${icon[k][0]}">${icon[k][1]}</i>${k==='n'?'<span class="badge">8</span>':''}${l}</a>`).join('')}</nav>`;
+const SB=(c='#2f3a33')=>`<div class="sb" style="color:${c}"><span>9:41</span><i></i></div>`;
+const TOP=`<div class="top"><span class="chip">🔥 6</span><span class="chip" style="color:#7c5ce0">📅 Đặt ngày thi</span><span class="av"><s>${S('idle')}</s><em>4</em></span></div>`;
+/* stairs: x0,y0 = bottom-left; w step width, rise per step */
+function stairs(x0,base,w,rise,h0,cur=5,n=9,labels=true){
+  let o='';const vals=[560,590,620,650,680,710,740,770];
+  for(let i=0;i<n-1;i++){const hh=h0+rise*i, x=x0+i*w;
+    const done=i<cur, now=i===cur;
+    const f=done?'linear-gradient(90deg,#f5b82e 50%,#e39a12 50%)':now?'linear-gradient(90deg,#3fae55 50%,#2a8a40 50%)':'linear-gradient(90deg,#efedf8 50%,#e0dcf1 50%)';
+    const c=done?'#ffd25e':now?'#6fd07f':'#f6f4fc';
+    o+=`<div class="st" style="left:${x}px;top:${base-hh}px;width:${w}px;height:${hh}px"><div class="f" style="top:0;background:${f}"></div><div class="c" style="background:${c}"></div>${labels?`<span class="lb" style="top:${now?8:10}px;${done||now?'':'color:#9a94bb;background:#fff'}">${vals[i]}</span>`:''}</div>`;}
+  return o;}
+const TROPHY=(x,y,s=1)=>`<svg class="troph" style="left:${x}px;top:${y}px;width:${90*s}px" viewBox="0 0 90 100"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#ffc83d"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#fff6d0"/><rect x="38" y="58" width="14" height="12" fill="#f0a500"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d"/><rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33"/><text x="45" y="92" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="12" fill="#ffd25e">800</text></svg>`;
+const DOTS=`<div class="dots">${'iiiiigooo'.split('').map(c=>`<i class="${c==='g'?'g':c==='o'?'o':''}"></i>`).join('')}<span>BẬC 6/9 · CÒN 75 ĐIỂM</span></div>`;
+const NEXT=(soc=true)=>`<div class="next"><small>TIẾP THEO · 8 PHÚT</small><h3>Ôn 8 câu sai</h3><p>Đến hạn hôm nay</p><div class="btns"><span class="btn">▶ Bắt đầu</span><span class="skip">Bỏ qua hôm nay</span></div>${soc?S('idle'):''}</div>`;
+const CANDLES=`<div class="cake"><div class="tier"></div>${[0,1,2,3,4,5,6].map(i=>`<div class="cd ${i===0?'l':''}" style="left:${5+i*14.8}%;margin-left:-3px"></div>`).join('')}</div><div class="days"><b>Nay</b><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>`;
+const STREAK=`<div class="streak"><div class="h"><span class="fl">🔥</span><b>6</b><span>ngày liền · còn 6 nến là xong bánh</span><small>❄ 2</small></div>${CANDLES}<div class="goal">Mục tiêu tuần: <b>1/5</b> buổi<i></i><a>Sửa</a></div></div>`;
+const STREAK_MINI=`<div class="streak" style="display:flex;align-items:center;gap:10px;padding:10px 14px"><span class="fl" style="font-size:22px">🔥</span><div><b style="font-size:20px">6</b> <span style="font-weight:900;font-size:12.5px;color:#ff7a1a">ngày liền</span><div style="font-weight:800;font-size:11.5px;color:var(--mut)">Tuần này 1/5 buổi</div></div><div style="margin-left:auto;display:flex;gap:5px;align-items:flex-end">${[1,0,0,0,0,0,0].map((l,i)=>`<i style="width:7px;height:${l?22:16}px;border-radius:3px;background:${l?'#ff7a9c':'#f2e9ec'};${l?'box-shadow:0 -7px 0 -1px #ffb020':''}"></i>`).join('')}</div></div>`;
+
+
+const TASKS={
+ five:[['Ôn 8 câu sai','Sóc gợi ý',0,'8 phút'],['Luyện tốc độ Part 7','Sóc gợi ý',0,'15 phút'],['Học 20 từ','',1],['Nghe 15 phút','',0],['Shadowing 10 phút','',0]],
+ three:[['Ôn 8 câu sai','Sóc gợi ý',0,'8 phút'],['Học 20 từ','',1],['Nghe 15 phút','',0]],
+ one:[['Nghe 15 phút','',0,'15 phút'],['Ôn 8 câu sai','Sóc gợi ý',1],['Học 20 từ','',1]],
+};
+const sheetH=list=>{const open=list.filter(t=>!t[2]).length;return 14+70+12+(list.length-1)*46+8+40+12;};
+function scene(sheetTop,soc='idle',tip=''){
+  // stairs fill the space between the heading and the sheet
+  const top=200, base=sheetTop+26, avail=base-top-10;
+  const n=8, h0=Math.max(18,avail*0.16), rise=(avail-h0-40)/(n-1)*0.92, w=Math.min(40,(390-28-80)/n+6);
+  const sx=14, cur=5;
+  const socW=Math.max(40,Math.min(60,rise*1.7)), socTop=base-(h0+rise*4)-socW*1.08+4;
+  const ty=Math.max(150,base-(h0+rise*7)-socW*1.15-40), ts=Math.min(.95,Math.max(.6,(base-top)/420));
+  return `<div class="sky"><div class="rays" style="top:${ty-470}px;left:${300-450+195}px"></div></div>
+<div class="hill" style="top:${base-60}px;height:300px"></div>
+${TOP}
+<div style="position:absolute;left:20px;top:102px;z-index:5">${DOTS}<h1 style="font-size:27px;margin-top:6px">Ba bậc nữa là<br><em>chạm tay vào cúp</em></h1></div>
+${stairs(sx,base,w,rise,h0,cur,9,rise>14)}
+<span class="soc" style="position:absolute;width:${socW}px;left:${sx+4*w+w/2-socW*.47}px;top:${socTop}px">${SOC[soc]}</span>
+${TROPHY(390-24-90*ts,Math.max(176,base-(h0+rise*7)-100*ts-6),ts)}${tip}`;
+}
+function C(kind){
+  if(kind==='done'){
+    const sh=14+96+10+40+12, st=844-86-sh;
+    return `<div class="ph">${SB()}${scene(st,'hi')}
+<div class="cs" style="height:${sh}px"><div style="display:flex;align-items:center;gap:12px;background:#eef9ef;border-radius:20px;padding:12px 14px;height:96px">${`<span class="soc" style="width:60px;flex:none">${SOC.hi}</span>`}<div><div style="font-weight:900;font-size:20px;color:var(--greenD)">Xong hết hôm nay 🎉</div><div style="font-weight:800;font-size:13px;color:var(--mut)">3/3 việc · mai gặp lại nhé</div></div></div>
+<div class="ft"><span class="chip" style="background:#fff3eb;color:#ff7a1a">🔥 7 ngày liền</span><span class="chip" style="background:#eef7ee;color:var(--greenD)">Tuần 2/5 buổi</span><a>+ Thêm việc</a></div></div>${NAV()}</div>`;}
+  const list=TASKS[kind], sh=sheetH(list), st=844-86-sh;
+  const nx=list.find(t=>!t[2]); const rest=list.filter(t=>t!==nx);
+  const done=list.filter(t=>t[2]).length;
+  return `<div class="ph">${SB()}${scene(st)}
+<div class="cs" style="height:${sh}px"><div class="nx"><div><small>TIẾP THEO${nx[3]?' · '+nx[3].toUpperCase():''}${nx[1]?' · SÓC GỢI Ý':''}</small><b>${nx[0]}</b></div><span class="btn">▶ Bắt đầu</span></div>
+<div class="tl">${rest.map(t=>`<div class="tr ${t[2]?'done':''}"><u>${t[2]?'✓':''}</u><span>${t[0]}</span>${t[1]&&!t[2]?`<small>Sóc gợi ý</small><b class="x">×</b>`:t[3]&&!t[2]?`<b class="min">${t[3]}</b>`:''}</div>`).join('')}</div>
+<div class="ft"><span class="chip" style="background:#fff3eb;color:#ff7a1a">🔥 6</span><span class="chip" style="background:#eef7ee;color:var(--greenD)">${done}/${list.length} xong</span><a>+ Thêm việc</a></div></div>${NAV()}</div>`;
+}
+
+function G(kind,open){
+  const list=TASKS[kind], nx=list.find(t=>!t[2]), rest=list.filter(t=>t!==nx), done=list.filter(t=>t[2]).length;
+  const left=rest.filter(t=>!t[2]).length; const rows=open?rest.length*46+8:left?58:0;
+  const sh=14+70+10+rows+40+12, st=844-86-sh;
+  const dots=list.map(t=>`<i style="width:9px;height:9px;border-radius:50%;background:${t[2]?'var(--green)':t===nx?'#ffc83d':'#dfe3df'}"></i>`).join('');
+  const summary=`<div style="display:flex;align-items:center;gap:10px;height:48px;margin-top:10px;padding:0 14px;border-radius:16px;background:#fff;box-shadow:0 0 0 2px #f0eee8;font-weight:900;font-size:14.5px"><span style="display:flex;gap:4px">${dots}</span><span>Còn ${rest.filter(t=>!t[2]).length} việc khác</span><span style="font-weight:800;font-size:12px;color:#a3aba5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${rest.filter(t=>!t[2]).map(t=>t[0]).join(' · ')}</span><b style="color:#1c8fe3;font-size:13px;white-space:nowrap">Xem ⌄</b></div>`;
+  const full=`<div class="tl">${rest.map(t=>`<div class="tr ${t[2]?'done':''}"><u>${t[2]?'✓':''}</u><span>${t[0]}</span>${t[1]&&!t[2]?`<small>Sóc gợi ý</small><b class="x">×</b>`:''}</div>`).join('')}</div>`;
+  return `<div class="ph">${SB()}${scene(st)}
+<div class="cs" style="height:${sh}px"><div class="nx"><div><small>TIẾP THEO${nx[3]?' · '+nx[3].toUpperCase():''}${nx[1]?' · SÓC GỢI Ý':''}</small><b>${nx[0]}</b></div><span class="btn">▶ Bắt đầu</span></div>
+${open?full:left?summary:''}
+<div class="ft"><span class="chip" style="background:#fff3eb;color:#ff7a1a">🔥 6</span><span class="chip" style="background:#eef7ee;color:var(--greenD)">${done}/${list.length} xong</span>${open?'<a style="color:#7a857e">Thu gọn ⌃</a><a style="margin-left:14px">+ Thêm</a>':'<a>+ Thêm việc</a>'}</div></div>${NAV()}</div>`;
+}
+/* sheets */
+const over=(base,sheet)=>`<div class="ph">${SB()}<div style="position:absolute;inset:0;filter:blur(1px)">${base.replace(/^<div class="ph"[^>]*>/,'').replace(/<\/div>$/,'')}</div><div class="dim"></div><div class="msheet">${sheet}</div></div>`;
+const STREAK_SHEET=over(C('three'),`<div class="grab"></div><div style="display:flex;align-items:center;gap:10px;margin:2px 2px 4px"><span style="font-size:30px">🔥</span><div><b style="font-weight:900;font-size:28px;color:#ff7a1a">6</b> <span style="font-weight:900;font-size:15px;color:#ff7a1a">ngày liền</span><div style="font-weight:800;font-size:12.5px;color:var(--mut)">Kỷ lục 14 ngày · còn 6 nến là xong bánh tuần</div></div><small style="margin-left:auto;font-weight:900;font-size:12px;color:#4f8fd6;background:#e6f1ff;border-radius:99px;padding:3px 9px">❄ 2</small></div>
+<div style="background:#fff7f9;border-radius:20px;padding:14px 12px 10px;margin-top:10px">${CANDLES}</div>
+<div class="goal" style="border:0;margin-top:12px;font-size:14px">Mục tiêu tuần: <b>1/5</b> buổi học<i></i><a>Sửa</a></div>
+<div style="font-weight:800;font-size:12.5px;color:var(--mut);margin-top:12px;line-height:1.4">Học ít nhất 1 việc mỗi ngày để giữ lửa. Quên một hôm thì ❄ tự đóng băng giúp bạn.</div>`);
+const ADD_SHEET=over(C('three'),`<div class="grab"></div><div style="font-weight:900;font-size:20px;margin:2px 2px 2px">Thêm việc của mình</div><div style="font-weight:800;font-size:12.5px;color:var(--mut);margin:0 2px">Còn thêm được 1 việc (tối đa 3)</div>
+<div class="chipsheet" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><span class="chip">Đọc 1 bài báo</span><span class="chip">Ôn 10 câu sai</span><span class="chip" style="background:#eef9ef;color:var(--greenD);box-shadow:inset 0 0 0 2px #9fdcaa">Shadowing 10 phút</span></div>
+<div class="inp"><span>Shadowing 10 phút</span><b class="btn" style="background:var(--green);color:#fff;box-shadow:0 4px 0 var(--greenD);font-size:15px;padding:12px 16px">Thêm</b></div>
+<div style="font-weight:900;font-size:12px;color:#a3aba5;margin:16px 2px 2px;letter-spacing:.4px">SÓC GỢI Ý MỖI NGÀY</div>
+<div class="sw">Ôn câu sai đến hạn<i></i></div><div class="sw">Luyện tốc độ theo Part<i></i></div><div class="sw">Làm đề full mỗi tuần<i class="off"></i></div>`);
+const TIP=C('three').replace(/<span class="soc" style="position:absolute;width:([\d.]+)px;left:([\d.]+)px;top:([\d.]+)px">/,(m,w,l,t)=>`<div class="tip" style="left:${+l+10}px;top:${+t-44}px">680 · ETS 9 · 28/10</div>`+m);
+
+const fw=(t,s,h)=>`<div class="fw"><b>${t}</b>${h}<span>${s}</span></div>`;
+document.getElementById('R1').innerHTML=
+ fw('Còn 3 việc','Việc tiếp theo nổi bật; 2 dòng còn lại tick ngay tại chỗ. Việc Sóc gợi ý có × để bỏ qua hôm nay.',C('three'))+
+ fw('Nhiều việc nhất (2 gợi ý + 3 của mình)','Bảng cao lên, cầu thang co lại nhưng vẫn thấy cúp, Sóc và bậc hiện tại.',C('five'))+
+ fw('Còn 1 việc','Hai việc đã tick gạch ngang; thẻ xanh chuyển sang việc còn lại.',C('one'))+
+ fw('Xong hết','Bảng thu còn một khối chúc mừng; Sóc vẫy đầu trên bậc, cầu thang to lại.',C('done'));
+document.getElementById('R3').innerHTML=
+ fw('Gọn · 5 việc','Cầu thang giữ nguyên kích thước như khi chỉ có 1 việc.',G('five',false))+
+ fw('Gọn · 3 việc','Cùng chiều cao; dòng tóm tắt chỉ đổi số và tên.',G('three',false))+
+ fw('Bấm “Xem”','Danh sách mở ngay tại chỗ, tick được từng việc; cầu thang co lại tạm thời.',G('five',true))+
+ fw('Còn 1 việc (không cần dòng tóm tắt)','Khi không còn việc khác chưa làm thì chỉ hiện thẻ xanh.',G('one',false));
+document.getElementById('R2').innerHTML=
+ fw('Bấm chip 🔥','Bánh nến tuần, kỷ lục, băng giữ chuỗi và mục tiêu tuần ở bảng trượt.',STREAK_SHEET)+
+ fw('Bấm “+ Thêm việc”','Bản điện thoại của bảng thêm việc: ý tưởng, ô nhập, nút Thêm, công tắc gợi ý của Sóc.',ADD_SHEET)+
+ fw('Chạm một bậc','Bong bóng nhỏ hiện điểm, đề, ngày; chạm cúp để sang Hành trình.',TIP);
+</script></body></html>
