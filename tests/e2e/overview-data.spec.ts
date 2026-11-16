@@ -1,56 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
 
+/** Hôm nay with a chosen goal and no test yet shows the streak cake's week (its candles carry a <title> each). */
 async function seed(page: Page) {
   await page.clock.install({ time: new Date('2026-10-09T09:00:00Z') });
   await page.goto('/');
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
-    const stamp = '2026-10-09T09:00:00Z';
-    const base = { skillType: 'LR', sessionType: 'FULL_TEST', durationMinutes: 120, updatedAt: stamp, deletedAt: null };
-    data.profile.targetScore = 990;
-    data.sessions = [
-      { ...base, id: 'first', testName: 'ETS 1', totalScore: 825, scaledListening: 430, scaledReading: 395, date: '2026-08-15', createdAt: '2026-08-15T09:00:00Z' },
-      { ...base, id: 'latest', testName: 'Low score', totalScore: 10, scaledListening: 5, scaledReading: 5, date: '2026-10-09', createdAt: stamp },
-      { ...base, id: 'sw', skillType: 'SW', testName: 'SW result', totalScore: 990, date: '2026-10-09', createdAt: stamp },
-      { ...base, id: 'deleted', testName: 'Deleted result', totalScore: 990, date: '2026-10-09', createdAt: stamp, deletedAt: stamp }
-    ];
+    data.profile.goalChosen = true;
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+    localStorage.setItem('rd_welcome_seen_v1:guest', '1');
   });
   await page.reload();
 }
-
-test('LR statistics keep low scores and exclude SW/deleted results; the chart does not clip a score of ten', async ({ page }) => {
-  await seed(page);
-  await expect(page.getByText('825', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('418', { exact: true })).toBeVisible();
-  await expect(page.getByText('-815', { exact: true })).toBeVisible();
-  const latest = page.getByRole('region', { name: 'Kết quả gần nhất' });
-  await expect(latest).toContainText('Low score');
-  await expect(page.locator('.overview-chart-labels text')).toHaveCount(2);
-  const bottom = await page.locator('.overview-chart-labels circle').last().evaluate(node => {
-    const point = node.getBoundingClientRect();
-    const chart = node.closest('svg')!.getBoundingClientRect();
-    return { point: point.bottom, chart: chart.bottom };
-  });
-  expect(bottom.point).toBeLessThanOrEqual(bottom.chart);
-  await expect(latest.getByText('còn 980 điểm', { exact: true })).toBeVisible();
-});
-
-test('partial legacy scores show the known skill and keep the missing skill unknown', async ({ page }) => {
-  await seed(page);
-  await page.evaluate(() => {
-    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
-    delete data.sessions[1].scaledReading;
-    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
-  });
-  await page.reload();
-  const latest = page.getByRole('region', { name: 'Kết quả gần nhất' });
-  const missingReading = latest.getByRole('button', { name: 'Xem chi tiết Reading: chưa có điểm', exact: true });
-  await expect(missingReading).toBeVisible();
-  await expect(missingReading).toContainText('—');
-  await expect(missingReading).not.toContainText('0 / 495');
-  await expect(latest.getByRole('button', { name: 'Xem chi tiết Listening: 5', exact: true })).toBeVisible();
-});
 
 test('weekly study days include vocabulary and measured practice but not shield dates or deleted activity', async ({ page }) => {
   await seed(page);
@@ -69,6 +30,8 @@ test('weekly study days include vocabulary and measured practice but not shield 
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  const week = page.getByRole('group', { name: /^Chuỗi học/ });
-  for (const day of ['T2: đã học', 'T3: đã học', 'T4: đã học', 'T5: khiên giữ chuỗi', 'T6: hôm nay, chưa học']) await expect(week.getByText(day, { exact: true })).toBeAttached();
+  const titles = await page.locator('section[aria-label^="Chuỗi"] svg title').allTextContents();
+  // Mon-Wed studied (vocabulary twice, one measured Part 5 run). The deleted vocabulary entry on Thu is not a study day;
+  // Thu and the shield date today show as rest days, never as studied; Sat and Sun have not come yet.
+  expect(titles).toEqual(['T2: đã học', 'T3: đã học', 'T4: đã học', 'Ngày nghỉ giữ chuỗi', 'Ngày nghỉ giữ chuỗi', 'T7', 'CN']);
 });

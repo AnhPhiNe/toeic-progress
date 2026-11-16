@@ -1,20 +1,21 @@
 import { expect, test } from '@playwright/test';
+import { openSettings } from './helpers/accountGroup';
 
 test('phone bottom bar navigates, traps focus in its sheets, restores it and hands over to the sidebar on resize', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 768 });
-  await page.goto('/quy-doi');
+  await page.goto('/lich-su');
   const bar = page.getByRole('navigation', { name: 'Điều hướng chính', exact: true });
   await expect(bar).toBeVisible();
   await expect(page.locator('aside')).toBeHidden();
+  await expect(bar.getByRole('button', { name: 'Hành trình', exact: true })).toHaveAttribute('aria-current', 'page');
 
-  const more = bar.getByRole('button', { name: 'Thêm trang và cài đặt', exact: true });
-  await more.click();
-  const sheet = page.getByRole('dialog', { name: 'Thêm', exact: true });
+  // The raised "Ghi" button opens the "Ghi lại gì?" sheet; it traps focus and gives it back on Escape.
+  const record = bar.getByRole('button', { name: 'Ghi', exact: true });
+  await record.click();
+  const sheet = page.getByRole('dialog', { name: 'Ghi lại gì?', exact: true });
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Quy đổi điểm', exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(sheet.getByRole('button', { name: 'Kế hoạch học', exact: true })).toBeVisible();
-  const first = sheet.getByRole('button', { name: 'Đóng', exact: true });
-  const last = sheet.getByRole('button', { name: 'Giao diện tối', exact: true });
+  const first = sheet.getByRole('button', { name: /^Điểm đề/ });
+  const last = sheet.getByRole('button', { name: /^Thêm từ vựng/ });
   await expect(first).toBeFocused();
   await last.focus();
   await page.keyboard.press('Tab');
@@ -24,10 +25,11 @@ test('phone bottom bar navigates, traps focus in its sheets, restores it and han
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
-  await expect(more).toBeFocused();
+  await expect(record).toBeFocused();
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
 
-  await more.click();
+  // Resizing to a computer layout drops the bar and the open sheet, and shows the sidebar.
+  await record.click();
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(sheet).toHaveCount(0);
   await expect(bar).toBeHidden();
@@ -36,39 +38,36 @@ test('phone bottom bar navigates, traps focus in its sheets, restores it and han
   await page.setViewportSize({ width: 375, height: 768 });
   await expect(sheet).toHaveCount(0);
 
-  await more.click();
-  await sheet.getByRole('button', { name: 'Lịch sử đề thi', exact: true }).click();
-  await expect(page).toHaveURL(/\/lich-su$/);
-  await expect(sheet).toHaveCount(0);
-  await bar.getByRole('button', { name: 'Tổng quan', exact: true }).click();
+  await bar.getByRole('button', { name: 'Hôm nay', exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(bar.getByRole('button', { name: 'Tổng quan', exact: true })).toHaveAttribute('aria-current', 'page');
-  await page.getByRole('button', { name: 'Đóng (Esc)', exact: true }).click(); // first-run welcome on an empty overview
+  await expect(bar.getByRole('button', { name: 'Hôm nay', exact: true })).toHaveAttribute('aria-current', 'page');
+  await bar.getByRole('button', { name: 'Luyện tập', exact: true }).click();
+  await expect(page).toHaveURL(/\/luyen-toc-do$/);
 
-  await more.click();
-  await sheet.getByRole('button', { name: 'Cài đặt', exact: true }).click();
-  const settings = page.getByRole('dialog', { name: 'Cài đặt', exact: true });
-  await expect(settings).toBeVisible();
+  // Cài đặt (avatar sheet, then the dialog) also traps focus and releases the page on close.
+  await bar.getByRole('button', { name: 'Hôm nay', exact: true }).click();
+  const settings = await openSettings(page);
   await expect(settings.getByRole('button', { name: 'Đóng cài đặt', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(settings).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
 });
 
-test('phone "+" sheet opens each recording form', async ({ page }) => {
+test('phone "Ghi" sheet opens each recording form', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/lich-su');
-  const plus = page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true });
-  const sheet = page.getByRole('dialog', { name: 'Ghi lại', exact: true });
+  const bar = page.getByRole('navigation', { name: 'Điều hướng chính', exact: true });
+  const record = bar.getByRole('button', { name: 'Ghi', exact: true });
+  const sheet = page.getByRole('dialog', { name: 'Ghi lại gì?', exact: true });
 
-  await plus.click();
-  await sheet.getByRole('button', { name: /^Điểm đề thi/ }).click();
+  await record.click();
+  await sheet.getByRole('button', { name: /^Điểm đề/ }).click();
   await expect(sheet).toHaveCount(0);
   await expect(page.getByRole('dialog').first()).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await plus.click();
-  await sheet.getByRole('button', { name: /^Câu sai/ }).click();
-  await expect(page).toHaveURL(/\/so-tay$/);
-  await expect(page.getByRole('heading', { name: 'Thêm câu sai' })).toBeVisible();
+  await record.click();
+  await sheet.getByRole('button', { name: /^Chụp câu sai/ }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByRole('dialog').first()).toBeVisible();
 });

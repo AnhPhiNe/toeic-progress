@@ -1,5 +1,15 @@
 import { test, expect, type Page } from '@playwright/test';
 import { emptyBundle } from '../../frontend/src/shared/data/dataBundle';
+import { openSettings } from './helpers/accountGroup';
+
+/** The profile name the app currently shows in Cài đặt (the old top bar's "Cài đặt hồ sơ <tên>" button is gone). */
+async function profileName(page: Page) {
+  const dialog = await openSettings(page);
+  const name = await dialog.getByLabel('Tên của bạn', { exact: true }).inputValue();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  return name;
+}
 
 // Replace only the transport/auth boundary. The app, hook, storage and merge
 // code remain real, and no request reaches Supabase or the deployed backend.
@@ -68,7 +78,7 @@ async function setupAccount(page: Page) {
     await route.fulfill({ json: { cursor: syncRequests, records, hasRecords: true } });
   });
   await page.goto('/tu-vung');
-  await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Alice' })).toBeVisible();
+  await expect.poll(() => profileName(page)).toBe('Alice');
   await expect(page.getByRole('alertdialog', { name: 'Trạng thái kết nối' })).toHaveCount(0);
   return {
     accounts, uploads, userChecks: () => userChecks, syncRequests: () => syncRequests,
@@ -123,7 +133,7 @@ test('a different account still runs identity initialization', async ({ page }) 
   const state = await setupAccount(page);
   const checksBefore = state.userChecks();
   await confirmSession(page, 'bob');
-  await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Bob' })).toBeVisible();
+  await expect.poll(() => profileName(page)).toBe('Bob');
   expect(state.userChecks()).toBeGreaterThan(checksBefore);
 });
 
@@ -155,7 +165,7 @@ test('failed initialization of a different account detaches the previous owner w
   await expect.poll(state.userChecks).toBeGreaterThan(checksBefore);
   const error = page.getByRole('alert').filter({ hasText: 'Test backend unavailable' });
   await expect(error).toContainText('Test backend unavailable');
-  await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Alice' })).toHaveCount(0);
+  expect(await profileName(page)).not.toBe('Alice');
   await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('toeic_active_account_v1'))).toBeNull();
   const preserved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!));
@@ -164,7 +174,7 @@ test('failed initialization of a different account detaches the previous owner w
   await expect(error.getByRole('button', { name: 'Thử lại', exact: true })).toBeVisible();
   state.setFailure(false);
   await error.getByRole('button', { name: 'Thử lại', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Cài đặt hồ sơ Bob' })).toBeVisible();
+  await expect.poll(() => profileName(page)).toBe('Bob');
   await expect(error).toHaveCount(0);
   await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!).profile.name)).toBe('Alice');

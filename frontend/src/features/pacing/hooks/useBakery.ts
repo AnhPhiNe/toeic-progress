@@ -41,6 +41,8 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
   const timer = usePacingTimer(owner, supportedMode(initialPart ?? 'PART_5'), settings);
   const { snapshot, now } = timer;
   const [runs, setRuns] = useState<PacingRun[]>(pacingRunsNow);
+  // Runs edited elsewhere (the result editor) come back through the sessions prop: re-read them then.
+  useEffect(() => { setRuns(pacingRunsNow()); }, [sessions]);
   const [error, setError] = useState('');
   const [wrong, setWrong] = useState(0);
   const saving = useRef(false);

@@ -446,7 +446,8 @@ export const App: React.FC = () => {
   const showAwards = activeTab === 'awards';
   const showConvert = activeTab === 'resources' && !isPhone;
   // Phones: each tab with a redesigned phone page owns the whole screen (no Topbar); plan and vocabulary keep the old layout.
-  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources'].includes(activeTab);
+  // On phones the Pomodoro clock still uses the older view, so the bakery stub steps aside while it is open.
+  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources'].includes(activeTab) && !(activeTab === 'exam-mode' && pomodoroOpen);
   const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert || phonePageTab;
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
@@ -674,12 +675,12 @@ export const App: React.FC = () => {
               onSessionsChanged={handleSessionsChangedElsewhere}
               theme={theme}
               initialPart={pacingInitialPart}
-              onBack={pomodoroOpen && !isPhone ? () => { setPomodoroOpen(false); setPacingInitialPart('PART_5'); } : pacingReturnTab ? () => {
+              onBack={pomodoroOpen ? () => { setPomodoroOpen(false); setPacingInitialPart('PART_5'); } : pacingReturnTab ? () => {
                 const target = pacingReturnTab;
                 setPacingReturnTab(null);
                 setActiveTab(target);
               } : undefined}
-              backLabel={pomodoroOpen && !isPhone ? 'Luyện tập' : pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
+              backLabel={pomodoroOpen ? 'Luyện tập' : pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
             />
           )}
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openSettings } from './helpers/accountGroup';
 
 async function settings(page: Page, width: number, guest = false) {
   await page.setViewportSize({ width, height: 900 });
@@ -11,10 +12,9 @@ async function settings(page: Page, width: number, guest = false) {
         deleteAccount: async () => {}, resetLearningData: async () => {}, chooseTransfer: async () => {} }; }
     `
   }));
-  await page.goto('/so-tay');
-  if (width < 768) await page.getByRole('button', { name: /^Tài khoản và cài đặt:/ }).click();
-  else await page.getByRole('button', { name: /^Cài đặt hồ sơ/ }).click();
-  return page.getByRole('dialog', { name: 'Cài đặt', exact: true });
+  // Phones reach settings from the avatar sheet on Sổ tay; computers from the top bar that Từ vựng still has.
+  await page.goto(width < 768 ? '/so-tay' : '/tu-vung');
+  return openSettings(page);
 }
 
 for (const width of [375, 1280]) {

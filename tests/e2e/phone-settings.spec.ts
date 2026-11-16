@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openSettings } from './helpers/accountGroup';
 
 const profile = (page: import('@playwright/test').Page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).profile);
@@ -6,8 +7,7 @@ const profile = (page: import('@playwright/test').Page) =>
 test('phone settings list saves one field per sheet and Escape closes the sheet before the dialog', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: /^Tài khoản và cài đặt/ }).click();
-  const settings = page.getByRole('dialog', { name: 'Cài đặt', exact: true });
+  const settings = await openSettings(page);
   await expect(settings.getByText('Chỉ lưu trên máy')).toBeVisible();
 
   await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
