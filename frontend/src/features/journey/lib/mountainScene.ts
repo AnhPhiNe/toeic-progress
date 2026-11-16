@@ -133,13 +133,16 @@ export function buildMountain(points: JourneyPoint[], target: number, metric: Sc
   const reached = lastIdx >= 0 && Number.isFinite(target) && points[lastIdx].score >= target;
 
   // The ridge: lead-in slope that starts at the scene's left edge, the stakes, then the slope down in front of the peak.
-  const line: Pt[] = onRidge.length ? onRidge.map(i => [xs[i], ys[i]] as Pt) : [[X_LAST - 240, Y_LOW - 40], [X_LAST, Y_LOW - 110]];
+  // No test yet: a smooth empty slope (eased, many points) that rises from the meadow to the foot of the peak.
+  const emptyFrom = Math.round(X_LAST * .4);
+  const line: Pt[] = onRidge.length ? onRidge.map(i => [xs[i], ys[i]] as Pt)
+    : Array.from({ length: 9 }, (_, k) => { const t = k / 8, e = t * t * (3 - 2 * t); return [Math.round(emptyFrom + (X_LAST - emptyFrom) * t), Math.round(FLOOR - 22 - (FLOOR - 22 - (Y_LOW - 120)) * (.15 * t + .85 * e))] as Pt; });
   const first = line[0], last = line[line.length - 1];
   // With one stake the slope rises from the edge all the way up to it; with more, the first stake stands on the foot of the climb.
   const single = line.length === 1;
   const edgeY = Math.min(FLOOR - 6, single ? Math.max(SCENE_H - 100, first[1] + 40) : Math.max(SCENE_H - 100, Math.min(FLOOR - 4, first[1] + 77) + 14));
   const bend: Pt = single ? [first[0] * .35, edgeY + (first[1] - edgeY) * .25] : [Math.max(first[0] * .45, first[0] - 137), Math.min(FLOOR - 4, first[1] + 77)];
-  const lead: Pt[] = [[0, edgeY], bend];
+  const lead: Pt[] = onRidge.length ? [[0, edgeY], bend] : [[0, FLOOR - 4], [emptyFrom * .55, FLOOR - 10]];
   const tail: Pt[] = [[last[0] + 58, Math.min(FLOOR, last[1] + 34)], [last[0] + 96, Math.min(FLOOR, last[1] + 120)], [last[0] + 120, SCENE_H]];
   const ridge = [...lead, ...line, ...tail];
 

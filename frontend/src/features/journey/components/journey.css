@@ -220,3 +220,5 @@
 @media (prefers-reduced-motion: reduce) { .jr-dim, .jr-drw { animation: none; } }
 .jr-lnks { display: flex; gap: 16px; }
 .jr-lnk.is-del { color: #c23c63; }
+
+.jr-first { margin-top: 12px; }

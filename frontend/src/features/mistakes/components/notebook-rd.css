@@ -1,5 +1,5 @@
 /* Sổ tay on computers (design/previews/mock-notebook.html, detail: mock-detail-v3.html) */
-.nb-page { min-height: 100vh; padding: 40px 56px; background: #fff; }
+.nb-page { min-height: 100vh; padding: 40px 56px; background: #fffdf8; }
 .nb-page button, .nb-page select, .nb-page input { font-family: var(--rd-font); }
 .nb-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .nb-topr { display: flex; align-items: center; gap: 14px; }
@@ -154,18 +154,24 @@
 .nbe-why b { color: #a87a00; font-weight: 900; }
 
 .nbe-steps { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.nbe-st { border-radius: 24px; background: #fff; padding: 14px 18px; display: flex; gap: 14px; align-items: center; box-shadow: 0 0 0 2px #f6eef1; }
+.nbe-st { border-radius: 24px; background: #fff; padding: 14px 18px; display: flex; gap: 14px; align-items: center; box-shadow: 0 4px 0 rgba(0, 0, 0, .04); }
+/* Each step has its own warm tint so the empty page is not a wall of white. */
+.nbe-st:nth-child(1) { background: #fff6dc; }
+.nbe-st:nth-child(2) { background: #ffeef3; }
+.nbe-st:nth-child(3) { background: #eaf7ec; }
+.nbe-st:nth-child(1) i { background: #e8a516; }
+.nbe-st:nth-child(3) i { background: var(--rd-green); }
 .nbe-st svg { width: 92px; height: 74px; flex: none; }
 .nbe-st b { font-weight: 900; font-size: 16px; display: block; }
 .nbe-st small { font-weight: 700; font-size: 13px; color: var(--rd-mut); display: block; margin-top: 2px; }
 .nbe-st i { font-style: normal; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--rd-pink); color: #fff; font-size: 12px; font-weight: 900; margin-right: 6px; }
 
-.nbe-below { margin-top: 16px; background: #f7f8f7; border-radius: 22px; padding: 14px 20px 16px; }
+.nbe-below { margin-top: 16px; background: #f3efff; border-radius: 22px; padding: 14px 20px 16px; }
 .nbe-below p { margin: 0; }
 .nbe-below b { font-weight: 900; font-size: 15px; }
 .nbe-below p span { font-weight: 700; font-size: 13.5px; color: var(--rd-mut); }
 .nbe-ghosts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
-.nbe-ghost { background: #fff; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; opacity: .75; }
+.nbe-ghost { background: #fff; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; opacity: .85; box-shadow: 0 3px 0 rgba(124, 92, 224, .08); }
 .nbe-ghost > i { width: 10px; height: 40px; border-radius: 5px; flex: none; }
 .nbe-ghost > div { flex: 1; min-width: 0; }
 .nbe-ghost em { display: block; height: 8px; border-radius: 4px; background: #e9ecea; width: 70%; }

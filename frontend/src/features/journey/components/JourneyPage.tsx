@@ -42,7 +42,7 @@ export function JourneyPage({ sessions, mistakes, profile, today, initialTab = '
           ))}
         </div>
       </div>
-      {tab === 'score' && <ScoreTab sessions={sessions} profile={profile} today={today} onOpenTest={setOpenId} onShowTests={() => setTab('tests')} />}
+      {tab === 'score' && <ScoreTab sessions={sessions} profile={profile} today={today} onOpenTest={setOpenId} onShowTests={() => setTab('tests')} onLog={onOpenSessionLogger} />}
       {tab === 'parts' && <PartsTab sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
       {tab === 'tests' && <TestsTab sessions={sessions} onOpenTest={setOpenId} onOpenSessionLogger={onOpenSessionLogger} />}
       {open && (

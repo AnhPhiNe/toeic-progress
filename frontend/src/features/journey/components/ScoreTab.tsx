@@ -2,7 +2,7 @@ import { Children, isValidElement, useMemo, useState, type CSSProperties, type R
 import type { StudySession, UserProfile } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { DEFAULT_LIMIT, daysUntil, forecast, journeySeries, splitTarget, type JourneyPoint, type ScoreMetric } from '../lib/scoreJourney';
-import { FLOOR, MIN_SCENE_W, SCENE_H as H, SCENE_W as W0, buildMountain, dateGroups, deltaText, lastX, placeBubble, pointsToGo, trailDots, type Rect } from '../lib/mountainScene';
+import { FLOOR, MIN_SCENE_W, SCENE_H as H, SCENE_W as W0, buildMountain, dateGroups, deltaText, lastX, placeBubble, pointsToGo, standOn, trailDots, type Rect } from '../lib/mountainScene';
 import { ddmm } from '../lib/journeyData';
 import { SceneStage } from './SceneStage';
 
@@ -12,6 +12,8 @@ interface Props {
   today: string;
   onOpenTest: (id: string) => void;
   onShowTests: () => void;
+  /** Opens the score logger (the empty mountain's first stake and the card button). */
+  onLog?: () => void;
 }
 
 const FORCE_KEY = 'rd_journey_force_v1';
@@ -40,7 +42,7 @@ const textLen = (node: ReactNode): number => {
 };
 
 /** Điểm số tab (design/previews/mock-journey-compact.html): the ridge of the mountain is the score line. */
-export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: Props) {
+export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests, onLog }: Props) {
   const [metric, setMetric] = useState<ScoreMetric>('total');
   const [forced, setForced] = useState<string[]>(readForced);
   const [hover, setHover] = useState<number | null>(null);
@@ -64,7 +66,7 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: 
 
   const sentence = (text: string) => prefix + (prefix ? text : text.charAt(0).toUpperCase() + text.slice(1));
   let headline: ReactNode;
-  if (n === 0) headline = 'Ghi đề đầu tiên để vẽ hành trình';
+  if (n === 0) headline = 'Ghi đề đầu tiên để cắm cọc đầu tiên trên núi';
   else if (fc?.kind === 'reached') headline = sentence(`bạn đã cắm cờ ${target}, giữ phong độ nhé`);
   else if (rising?.inView) headline = <>{prefix}{prefix ? 'còn ' : 'Còn '}<em>{togo} điểm</em>, khoảng {rising.testsAhead} đề nữa là cắm cờ</>;
   else if (rising?.atExam) headline = sentence(`theo đà này, ngày thi bạn khoảng ${rising.atExam}`);
@@ -81,7 +83,7 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: 
   const sitPoint = logic.sitIdx >= 0 ? T[logic.sitIdx] : null;
 
   let bubble: ReactNode = null;
-  if (n === 0) bubble = <>Ghi một đề là mình có <b>cọc đầu tiên</b> trên núi.</>;
+  if (n === 0) bubble = <>Mình dựng trại sẵn rồi. Ghi <b>đề đầu tiên</b> là cắm cọc 1!</>;
   else if (logic.reached) bubble = <>Chạm đỉnh <b>{target}</b> rồi, cắm cờ thôi!</>;
   else if (excludedShown && latest && excludedShown.id === latest.id) bubble = <>Đề {ddmm(excludedShown.date)} lệch hẳn so với các đề quanh nó nên mình chưa tính vào đà. Bấm <b>Vẫn tính đề này</b> nếu đó là điểm thật.</>;
   else if (excludedShown) bubble = <>Đề {ddmm(excludedShown.date)} lệch hẳn nên mình chưa tính vào đà. Bấm <b>Vẫn tính đề này</b> nếu đó là điểm thật.</>;
@@ -104,7 +106,24 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: 
     const slopePines = [.39, .5, .62].map(f => ({ x: Math.round(W * f), y: mt.ridgeAt(W * f) + 84 })).filter(p => p.y < H - 76 && p.y > mt.ridgeAt(p.x) + 40);
     const groups = dateGroups(T);
     const dateY = H - 20;
-    const soc = mt.soc;
+    const empty = n === 0;
+    // Empty mountain: Sóc waits at a base camp on the foot of the slope instead of half-way up.
+    const soc = empty ? standOn(mt.ridgeAt, mt.ridgeLine[0][0] + 70) : mt.soc;
+    // Five waiting stakes along the climb: three on the green slope, two on the trail to the flag.
+    const ghosts = (() => {
+      if (!empty || !mt.trail) return [];
+      const at = (pts: ReadonlyArray<readonly [number, number]>, t: number) => {
+        const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+        let d = t * lens.reduce((a, b) => a + b, 0);
+        for (let i = 0; i < lens.length; i++) {
+          if (d <= lens[i]) { const f = d / lens[i]; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f] as const; }
+          d -= lens[i];
+        }
+        return pts[pts.length - 1];
+      };
+      const tr = mt.trail.slice(1);
+      return [at(mt.ridgeLine, .4), at(mt.ridgeLine, .7), at(mt.ridgeLine, .97), at(tr, .45), at(tr, .8)];
+    })();
     const dots = trailDots(mt.trail, mt.apex);
     const lk = mt.latestIdx;
 
@@ -162,7 +181,7 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: 
         </g>
         <g className="jr-reveal" style={{ '--t': `${DRAW_SECONDS}s` } as CSSProperties}>{slopePines.map((p, i) => pine('sp' + i, p.x, p.y, .8 - i * .03, '#2f8a42'))}</g>
         {dots.length > 0 && <g className="jr-trail">{dots.map((d, i) => <circle key={i} cx={d.x.toFixed(1)} cy={d.y.toFixed(1)} r="2.4" fill={d.snow ? '#a9b6c9' : '#fff'} opacity={d.snow ? 1 : .8} />)}</g>}
-        {mt.ridgeLine.length > 1 && [['#fff', 10], ['#ffc83d', 6]].map(([c, w]) => (
+        {!empty && mt.ridgeLine.length > 1 && [['#fff', 10], ['#ffc83d', 6]].map(([c, w]) => (
           <path key={c} className="jr-ridge" pathLength="1" style={{ '--t': `${DRAW_SECONDS * (lineTo - lineFrom)}s`, '--d': `${DRAW_SECONDS * lineFrom}s` } as CSSProperties} d={`M${ridgePath(mt.ridgeLine)}`} fill="none" stroke={c as string} strokeWidth={w as number} strokeLinecap="round" strokeLinejoin="round" />
         ))}
 
@@ -222,6 +241,25 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: 
           );
         })}
 
+        {empty && soc && (
+          <g transform={`translate(${soc[0] - 96} ${soc[1] - 62})`} aria-hidden="true">
+            <path d="M8 62 L52 6 L96 62Z" fill="#ff9a4d" /><path d="M52 6 L52 62 L38 62Z" fill="#e57a2e" /><path d="M44 62 L52 34 L60 62Z" fill="#7a3f12" />
+            <line x1="52" y1="6" x2="52" y2="-10" stroke="#7a5130" strokeWidth="3" /><path d="M53 -10 L68 -5 L53 0Z" fill="#ffc83d" />
+          </g>
+        )}
+        {ghosts.map(([gx, gy], k) => {
+          const first = k === 0, label = first ? '+ Đề 1' : `Đề ${k + 1}`, w = first ? 64 : 52;
+          return (
+            <g key={'g' + k} transform={`translate(${gx} ${gy})`} className={first && onLog ? 'jr-click' : undefined} role={first && onLog ? 'button' : undefined}
+              tabIndex={first && onLog ? 0 : undefined} aria-label={first ? 'Ghi điểm đề đầu tiên' : undefined}
+              onClick={first ? onLog : undefined} onKeyDown={first && onLog ? e => { if (e.key === 'Enter') onLog(); } : undefined}>
+              <line x1="0" y1="2" x2="0" y2="-26" stroke={first ? '#d99a00' : '#b9b2d8'} strokeWidth="3" strokeDasharray={first ? undefined : '3 4'} strokeLinecap="round" />
+              <rect x={-w / 2} y="-52" width={w} height="26" rx="8" fill={first ? '#fff7d6' : 'rgba(255,255,255,.8)'} stroke={first ? '#ffc83d' : '#b9b2d8'} strokeWidth="2" strokeDasharray={first ? undefined : '4 3'} />
+              <text y="-34" fontWeight="900" fontSize="13" fill={first ? '#a06a00' : '#8a7aa0'} textAnchor="middle">{label}</text>
+            </g>
+          );
+        })}
+
         {/* exam signpost */}
         {examIn !== null && (
           <g transform={`translate(${W - 70} ${FLOOR - 88})`}>
@@ -271,7 +309,8 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests }: 
             </div>
           </>
         ) : (
-          <><small className="jr-lbl">Mục tiêu</small><div className="jr-big">{target}<span>/{METRIC_MAX[metric]}</span></div></>
+          <><small className="jr-lbl">Mục tiêu</small><div className="jr-big">{target}<span>/{METRIC_MAX[metric]}</span></div>
+            {onLog && <button type="button" className="rd-btn jr-first" onClick={onLog}>+ Ghi điểm đề</button>}</>
         )}
       </div>
     </>)}</SceneStage>

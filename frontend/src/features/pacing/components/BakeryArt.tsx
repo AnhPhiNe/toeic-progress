@@ -286,9 +286,9 @@ export function Dome() {
   const star = (x: number, y: number, k: number) => `M${x} ${y} l${k * 4} ${k * 9} ${k * 9} ${k * 4} ${-k * 9} ${k * 4} ${-k * 4} ${k * 9} ${-k * 4} ${-k * 9} ${-k * 9} ${-k * 4} ${k * 9} ${-k * 4}Z`;
   return (
     <svg viewBox="-130 128 260 160" width="260" height="160" aria-hidden="true">
-      <path d="M-92 222 Q-92 150 0 146 Q92 150 92 222Z" fill="#e6f6ff" opacity=".55" stroke="#fff" strokeWidth="4" />
-      <circle cx="0" cy="140" r="8" fill="#fff" stroke="#e6e0f5" strokeWidth="3" />
-      <path d="M-62 210 Q-60 172 -30 160" stroke="#fff" strokeWidth="5" fill="none" opacity=".8" strokeLinecap="round" />
+      <path d="M-92 222 Q-92 172 0 168 Q92 172 92 222Z" fill="#e6f6ff" opacity=".55" stroke="#fff" strokeWidth="4" />
+      <circle cx="0" cy="162" r="8" fill="#fff" stroke="#e6e0f5" strokeWidth="3" />
+      <path d="M-62 212 Q-60 188 -30 180" stroke="#fff" strokeWidth="5" fill="none" opacity=".8" strokeLinecap="round" />
       <g fill="#ffc83d">
         <path className="bk-spark" style={css({ '--d': '0s' })} d={star(-118, 250, 1)} />
         <path className="bk-spark" style={css({ '--d': '.7s' })} d={star(110, 268, 0.8)} />
