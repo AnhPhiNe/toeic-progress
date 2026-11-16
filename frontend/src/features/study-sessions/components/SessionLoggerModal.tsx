@@ -30,6 +30,7 @@ import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
+import { PhoneLogger, type PhoneStep } from './phone/PhoneLogger';
 import { EMPTY_WRONG_NUMBER_DRAFT, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 import { parseQuestionList } from '@/shared/domain/questionNumbers';
 import { hasResultTiming, formatElapsed, parseElapsed } from '@/shared/domain/resultTiming';
@@ -92,6 +93,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const durationEmptyRef = useRef(false);
   const markDurationEmpty = (value: boolean) => { durationEmptyRef.current = value; setDurationEmpty(value); };
   const [vocabCount, setVocabCount] = useState(1);
+  // Phone logger: 'pick' chooses the test and how to log, 'manual' types the score, 'wrong' is the wrong-question screen.
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>('pick');
   const [pendingInitialFiles, setPendingInitialFiles] = useState<File[] | undefined>(undefined);
 
   const [notes, setNotes] = useState('');
@@ -292,7 +295,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
     markDurationEdited(Boolean(e || prefill?.durationMinutes !== undefined));
     markDurationEmpty(Boolean(e) && !(Number(e?.durationMinutes) > 0));
-    setVocabCount(1);
+    setVocabCount(isPhone ? 20 : 1);
+    setPhoneStep(markWrong || prefill?.initialFiles?.length ? 'wrong' : 'pick');
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
     const source = scoreSourceForEditing(e);
@@ -329,7 +333,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       restoredType.current = value.sessionType;
       setSessionType(value.sessionType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
       markDurationEdited(value.durationEdited || value.resultTiming?.totalSeconds != null);
-      setVocabCount(value.vocabCount); setNotes(value.notes); setScoreSource(value.scoreSource); setManualMode(value.manualMode);
+      setVocabCount(value.vocabCount); setNotes(value.notes);
+      setPhoneStep(value.scoreSource !== 'ESTIMATED' || value.sourceScorePending ? 'manual' : value.wrongQuestions.length > 0 ? 'wrong' : 'pick'); setScoreSource(value.scoreSource); setManualMode(value.manualMode);
       setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
       setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
       setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
@@ -345,7 +350,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
     meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
       || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
-      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== 1 || date !== getTodayDateString()
+      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== (isPhone ? 20 : 1) || date !== getTodayDateString()
       || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
     validate: input => {
       const value = parseSessionFormDraft(input);
@@ -377,6 +382,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const formBodyRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
+  // Phones: new logs and "mark wrong questions" use the full-screen flow; editing a saved result keeps the older form.
+  const newPhone = isPhone && (!isEditing || Boolean(prefill?.markWrong));
 
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
@@ -559,7 +566,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           partDurations: finalPartDurations && Object.values(finalPartDurations).some(value => value !== undefined) ? finalPartDurations : undefined,
           ...(finalTiming ? { resultTiming: finalTiming } : {}),
           ...resolved,
-          ...(entry === 'wrong' && (wrongEntry || finalWrong.length > 0) ? { wrongQuestions: normalizeQuestionList(finalWrong) } : {}),
+          // Phone: a typed score with no marked questions says nothing about wrong answers, so the result screen can still offer to mark them.
+          ...(entry === 'wrong' && (wrongEntry || finalWrong.length > 0) && !(newPhone && scoreSource !== 'ESTIMATED' && finalWrong.length === 0) ? { wrongQuestions: normalizeQuestionList(finalWrong) } : {}),
           notes,
           createdAt
         };
@@ -605,6 +613,45 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       setScoreError(reason instanceof Error ? reason.message : 'Chưa lưu được buổi học. Nội dung đang nhập vẫn được giữ.');
     }
   };
+
+  if (newPhone) {
+    const timingNotice = sessionType === 'FULL_TEST' && (
+      <>
+        {timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={discardImageTiming} />}
+        {resultTiming && !timingCandidate && <div role="status" className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900 dark:bg-teal-950/30 dark:text-teal-200">
+          Thời gian đã xác nhận từ ảnh{resultTiming.totalSeconds !== null ? `: ${formatElapsed(resultTiming.totalSeconds)}` : ' · chỉ có từng phần'}.
+          <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
+          <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
+        </div>}
+      </>
+    );
+    return (
+      <div className="rd pl-root">
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="session-logger-title" tabIndex={-1} className="pl-dialog animate-sheet-up">
+          <form onSubmit={handleSubmit} className="pl-form" onKeyDown={event => {
+            // A numeric box on a phone keypad must not save the form by accident: Enter just closes the keypad.
+            if (event.key === 'Enter' && !event.defaultPrevented && event.target instanceof HTMLInputElement && event.target.type !== 'file') { event.preventDefault(); event.target.blur(); }
+          }}>
+            <PhoneLogger key={restoredVersion} sessionType={sessionType} isEditing={isEditing} step={phoneStep} setStep={setPhoneStep} onClose={closeWithDraft}
+              sessions={sessions ?? []} editingId={editingSession?.id}
+              testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes}
+              partDurations={partDurations} onPartDurationsChange={changePartDurations}
+              scoreSource={scoreSource} manualListening={manualListening} manualReading={manualReading} manualTotal={manualTotal}
+              changeSectionScores={changeSectionScores} totalPreview={scorePreview?.totalScore}
+              wrongQuestions={wrongQuestions} onWrong={setWrongQuestions}
+              numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
+              onTiming={readImageTiming} onScores={applySourceScore} onScoresPending={setSourceScorePending}
+              scoreStore={sourceScoreStore} onRevertScore={revertSourceScore}
+              initialFiles={pendingInitialFiles} setInitialFiles={setPendingInitialFiles}
+              timingNotice={timingNotice} scoreError={scoreError}
+              practiceRows={practiceRows} setPracticeRows={setPracticeRows}
+              vocabCount={vocabCount} setVocabCount={setVocabCount} />
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto max-md:items-stretch max-md:p-0 max-md:overflow-hidden animate-backdrop">

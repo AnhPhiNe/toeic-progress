@@ -4,6 +4,8 @@ import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import './session-result.css';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { PhoneSessionResult } from './phone/PhoneSessionResult';
 import type { PartNumber } from '@/shared/domain/questionNumbers';
 import { summarizeSessionResult, type PartLoss } from '../lib/sessionResult';
 
@@ -49,7 +51,12 @@ interface Props {
  * Shown right after a Full Test is saved: an honest reaction from Mầm, the score against the goal, where the
  * points were lost, and the one next step that leads toward reviewing those mistakes.
  */
-export function SessionResultScreen({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn }: Props) {
+export function SessionResultScreen(props: Props) {
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  return isPhone ? <PhoneSessionResult {...props} /> : <DesktopSessionResult {...props} />;
+}
+
+function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn }: Props) {
   const result = useMemo(() => summarizeSessionResult(session, sessions, mistakes, targetScore), [session, sessions, mistakes, targetScore]);
   const dialogRef = useModalA11y(true, onClose);
   const { goal } = result;
