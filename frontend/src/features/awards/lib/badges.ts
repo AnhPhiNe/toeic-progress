@@ -226,25 +226,3 @@ export function computeBadges(bundle: DataBundle, today: string): Badge[] {
   return specs.map(finish);
 }
 
-export interface WeekRecap { start: string; end: string; delta: number | null; best: number | null; record: boolean; days: number; tests: number }
-
-/** The last `n` finished weeks (Mon–Sun) that had any study, newest first. */
-export function weekRecaps(bundle: DataBundle, today: string, n = 3): WeekRecap[] {
-  const tests = scoredFullTests(bundle.sessions);
-  const studied = doneDates(bundle, today, extraStudyDates(bundle.profile, bundle.mistakes));
-  const t = dayNo(today), weekday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
-  const iso = (k: number) => new Date(k * DAY).toISOString().slice(0, 10);
-  const out: WeekRecap[] = [];
-  for (let w = 1; w <= 26 && out.length < n; w++) {
-    const s = t - weekday - 7 * w, e = s + 6;
-    const days = [...studied].filter(d => dayNo(d) >= s && dayNo(d) <= e).length;
-    if (!days) continue;
-    const inWeek = tests.filter(x => dayNo(x.date) >= s && dayNo(x.date) <= e).map(x => x.totalScore ?? 0);
-    const before = tests.filter(x => dayNo(x.date) < s).map(x => x.totalScore ?? 0);
-    const best = inWeek.length ? Math.max(...inWeek) : null;
-    const prevBest = before.length ? Math.max(...before) : null;
-    out.push({ start: iso(s), end: iso(e), best, days, tests: inWeek.length,
-      delta: best !== null && prevBest !== null ? best - prevBest : null, record: best !== null && (prevBest === null || best > prevBest) });
-  }
-  return out;
-}

@@ -24,20 +24,6 @@
 .aw-it b { display: block; font-weight: 900; font-size: 13.5px; margin-top: 4px; color: var(--rd-ink); }
 .aw-it small { display: block; font-weight: 700; font-size: 12px; color: var(--rd-mut); }
 .aw-it.is-off b { color: #a3aba5; }
-.aw-weeks { margin-top: 36px; }
-.aw-weeks h3 { font-weight: 900; font-size: 24px; letter-spacing: -.4px; }
-.aw-weeks > p { font-weight: 700; font-size: 14.5px; color: var(--rd-mut); margin-top: 2px; }
-.aw-wgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 14px; }
-.aw-week { border-radius: 24px; padding: 18px 22px; color: #fff; min-height: 190px; display: flex; flex-direction: column; }
-.aw-week.c0 { background: var(--rd-green); }
-.aw-week.c1 { background: var(--rd-blue); }
-.aw-week.c2 { background: var(--rd-violet); }
-.aw-week small { font-weight: 900; font-size: 13.5px; opacity: .9; }
-.aw-week > b { font-weight: 900; font-size: 52px; letter-spacing: -2px; line-height: 1.05; margin-top: 8px; }
-.aw-week p { font-weight: 800; font-size: 14.5px; line-height: 1.5; margin-top: 6px; }
-.aw-week.is-next { background: #fff; color: var(--rd-mut); border: 3px dashed var(--rd-line); align-items: center; justify-content: center; text-align: center; }
-.aw-week.is-next b { font-size: 20px; letter-spacing: 0; color: #5c675f; margin: 0; }
-.aw-week.is-next span { font-weight: 700; font-size: 14.5px; }
 
 /* Flip card for a new badge */
 .aw-flipwrap { position: fixed; inset: 0; z-index: 60; background: rgba(47, 58, 51, .55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; perspective: 1200px; animation: aw-fade .25s ease-out; }
@@ -60,5 +46,5 @@
 .aw-flipbtns { display: flex; align-items: center; gap: 16px; color: #fff; font-weight: 800; }
 .aw-flipbtns .rd-btn { min-width: 160px; font-size: 17px; }
 
-@media (max-width: 1279px) { .aw-page { padding: 32px 36px; } .aw-wgrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1279px) { .aw-page { padding: 32px 36px; } }
 @media (prefers-reduced-motion: reduce) { .aw-flip { transition: none; animation: none; } .aw-shine, .aw-flipwrap { animation: none; } }

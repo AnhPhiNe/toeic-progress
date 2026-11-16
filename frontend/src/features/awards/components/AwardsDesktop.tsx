@@ -3,7 +3,7 @@ import type { DataBundle } from '@/shared/data/dataBundle';
 import type { UserProfile } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { gearAtLevel, sanitizeGear, toggleGear, wornGear, type SocGearId } from '@/shared/ui/soc/socGear';
-import { FAMILY_COLOR, FAMILY_LABEL, FAMILY_ORDER, badgeStars, badgeTip, computeBadges, ddmm, pickQuests, totalStars, weekRecaps, type Badge, type BadgeFamily } from '../lib/badges';
+import { FAMILY_COLOR, FAMILY_LABEL, FAMILY_ORDER, badgeStars, badgeTip, computeBadges, ddmm, pickQuests, totalStars, type Badge, type BadgeFamily } from '../lib/badges';
 import { levelProgress, markLevelSeen, pendingLevelUps } from '../lib/levels';
 import { isFirstVisit, markVisited } from '../lib/seen';
 import { useBadgeReveal } from '../lib/useBadgeReveal';
@@ -28,11 +28,9 @@ const TINT: Record<BadgeFamily, [string, string]> = {
 const QUEST_BAR: Record<BadgeFamily, string> = {
   score: '#ffd25e,#ff9a2e', streak: '#ff8a5c,#ff3d6e', effort: '#7be08f,#2fb36b', part: '#6fc3ff,#3d6dff', speed: '#5eead4,#0ea5b7', secret: '#c9a3ff,#7c4dff'
 };
-const RECAP_BG = ['linear-gradient(120deg,#46b35a,#2fb39a)', 'linear-gradient(120deg,#1c8fe3,#3d6dff)', 'linear-gradient(120deg,#a78bfa,#ff7a9c)'];
 const TAB_KEY = 'rd_awards_tab_v1';
 const CONFETTI = ['#ffe58f', '#ff9eb8', '#7be08f', '#7ec8ff', '#ffffff'];
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 
 /** 0 → target over about a second, only when `on`; otherwise the target at once. */
 function useCountUp(target: number, on: boolean): number {
@@ -57,7 +55,6 @@ const RING_R = 80, RING_C = 2 * Math.PI * RING_R;
 /** Thành tích, desktop (design/previews/mock-awards-v4.html, "C mới"). */
 export function AwardsDesktop({ bundle, today, owner, onUpdateProfile }: Props) {
   const badges = useMemo(() => computeBadges(bundle, today), [bundle, today]);
-  const weeks = useMemo(() => weekRecaps(bundle, today), [bundle, today]);
   const quests = useMemo(() => pickQuests(badges), [badges]);
   const reveal = useBadgeReveal(badges, owner);
   const stars = totalStars(badges);
@@ -105,7 +102,6 @@ export function AwardsDesktop({ bundle, today, owner, onUpdateProfile }: Props) 
 
   const earned = badges.filter(b => b.earned);
   const newest = [...earned].filter(b => b.date).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))[0];
-  const nextSunday = (() => { const d = new Date(`${today}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7)); return d.toISOString().slice(0, 10); })();
   const nearIdx = quests.findIndex(q => q.progress >= 0.6);
 
   // Family tabs: the remembered one, else the newest badge's family, else the first quest's.
@@ -195,20 +191,6 @@ export function AwardsDesktop({ bundle, today, owner, onUpdateProfile }: Props) 
           })}
         </div>
       </section>
-
-      <div className="awd-rechead"><b>Bản tin tuần</b><small>Sóc gói bản tin vào Chủ nhật {ddmm(nextSunday)}</small></div>
-      {weeks.length > 0 && <section className="awd-recap">
-        {weeks.map((w, i) => {
-          const fresh = i === 0 && daysBetween(w.end, today) <= 7;
-          return (
-            <div key={w.start} className="awd-rc" style={{ background: RECAP_BG[i % 3] }}>
-              <b>{w.delta !== null ? `${w.delta >= 0 ? '+' : '−'}${Math.abs(w.delta)}` : `${w.days}d`}</b>
-              <span>Tuần {ddmm(w.start)}{w.best !== null ? ` · ${w.record ? 'kỷ lục' : 'cao nhất'} ${w.best}` : ''}<br />{w.tests ? `${w.tests} đề full · ` : ''}học {w.days}/7 ngày</span>
-              {fresh && <i>MỚI</i>}
-            </div>
-          );
-        })}
-      </section>}
 
       {gearOpen && gearBtn.current && <GearPanel anchor={gearBtn.current} level={lvl} worn={worn} onToggle={toggle} onClose={() => setGearOpen(false)} />}
       {tip && <div className="awd-tip" style={{ left: tip.x, top: tip.y } as CSSProperties} role="tooltip">{tip.text}</div>}

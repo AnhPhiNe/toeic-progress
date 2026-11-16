@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { StudySession } from '@/shared/types';
-import { computeBadges, weekRecaps } from './badges';
+import { computeBadges } from './badges';
 
 const test = (id: string, date: string, totalScore: number, extra: Partial<StudySession> = {}) =>
   ({ id, skillType: 'LR', sessionType: 'FULL_TEST', testName: extra.testName ?? `T${id}`, date, durationMinutes: 120, totalScore, createdAt: `${date}T10:00:00`, ...extra }) as StudySession;
@@ -41,10 +41,3 @@ describe('computeBadges', () => {
   });
 });
 
-describe('weekRecaps', () => {
-  it('summarises finished weeks with study, newest first', () => {
-    const r = weekRecaps(bundle([test('1', '2026-10-27', 600), test('2', '2026-11-04', 650), test('3', '2026-11-05', 640)]), '2026-11-13');
-    expect(r.map(w => w.start)).toEqual(['2026-11-02', '2026-10-26']);
-    expect(r[0]).toMatchObject({ best: 650, delta: 50, record: true, days: 2, tests: 2 });
-  });
-});
