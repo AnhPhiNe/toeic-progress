@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, noteModal, openNoteForm, openAnswerKey } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 const question = 'Reports should ____ submitted.';
 const options = ['(A) are', '(B) be', '(C) were', '(D) being'];
@@ -17,8 +19,8 @@ async function mockFreeform(page: Page, issue = false) {
         explanation: null, missingInformation: [] } };
     }
   ` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page); await chooseNoteSource(modal);
   await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   return modal;
 }

@@ -1,5 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
+
+// Only phones open the full note form to add a card now.
+test.use({ viewport: PHONE_VIEWPORT });
 
 for (const [status, message] of [
   ['pending', 'Tài khoản đang chờ được duyệt sử dụng AI. Bạn vẫn có thể nhập và lưu thủ công.'],
@@ -7,19 +12,18 @@ for (const [status, message] of [
 ] as const) {
   test(`managed AI ${status} explains access, permits manual saving and rechecks approval`, async ({ page }, info) => {
     await mockAccess(page, status, message);
-    await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-    const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+    await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page); await chooseNoteSource(modal);
     await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
     await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
     await expect(modal.getByRole('status').filter({ hasText: message })).toBeVisible();
     await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeDisabled();
-    for (const width of [375,1440]) { await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+    for (const width of [320, 390]) { await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
     await page.screenshot({ path: info.outputPath('ai-access-' + status + '.png') });
     await page.evaluate(() => { (window as Window & {__approved: boolean}).__approved = true; });
     await modal.getByRole('button', { name: 'Kiểm tra quyền AI', exact: true }).click();
     await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeEnabled();
     await expect(modal.getByText(message, { exact: true })).toHaveCount(0);
-    for (const width of [375, 1440]) {
+    for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeInViewport();
       await expect(modal.getByRole('button', { name: 'Lưu thủ công', exact: true })).toBeInViewport();
@@ -35,8 +39,7 @@ for (const [status, message] of [
 test('a guest is invited to sign in with Google instead of waiting for approval, and can still save by hand', async ({ page }) => {
   const message = 'Đăng nhập Google để dùng AI. Bạn vẫn có thể nhập và lưu thủ công.';
   await mockAccess(page, 'login_required', message);
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page); await chooseNoteSource(modal);
   await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
   await expect(modal.getByRole('status').filter({ hasText: message })).toBeVisible();

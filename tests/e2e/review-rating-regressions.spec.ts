@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gotoPage } from './helpers/nav';
 
 async function openReview(page: Page) {
-  await page.goto('/so-tay');
+  await gotoPage(page, '/so-tay');
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const now = new Date().toISOString();
@@ -13,15 +14,21 @@ async function openReview(page: Page) {
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: /^Ôn 1 (thẻ|câu đến hạn)$/ }).click();
-  return page.getByRole('dialog', { name: 'Ôn tập', exact: true });
+  await page.getByRole('button', { name: /^Ôn 1 câu/ }).click();
+  return page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
 }
 
-for (const [label, stage, days] of [['Quên', 0, 1], ['Khó', 2, 4], ['Tốt', 3, 14], ['Dễ', 4, 30]] as const) {
+// The old four self-ratings (Quên / Khó / Tốt / Dễ) became two buttons: "Vẫn chưa chắc" is AGAIN, "Hiểu rồi" is GOOD after a
+// right pick and HARD after a wrong one. The "Dễ" (EASY) rating is no longer offered, so its case was dropped.
+for (const [label, pick, button, stage, days] of [
+  ['Vẫn chưa chắc after a right pick (again)', 'B', 'Vẫn chưa chắc', 0, 1],
+  ['Hiểu rồi after a wrong pick (hard)', 'A', 'Hiểu rồi', 2, 4],
+  ['Hiểu rồi after a right pick (good)', 'B', 'Hiểu rồi', 3, 14],
+] as const) {
   test(`self-rating ${label} persists its own schedule and survives reload`, async ({ page }) => {
     const review = await openReview(page);
-    await review.getByRole('button', { name: 'Xem giải thích / Đáp án', exact: true }).last().click();
-    await review.getByRole('button', { name: label, exact: true }).click();
+    await review.getByRole('button', { name: new RegExp(`^\\(${pick}\\)`) }).click();
+    await review.getByRole('button', { name: button, exact: true }).click();
     const saved = await page.evaluate(() => {
       const card = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0];
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -31,37 +38,23 @@ for (const [label, stage, days] of [['Quên', 0, 1], ['Khó', 2, 4], ['Tốt', 3
         days: Math.round((due.getTime() - today.getTime()) / 86400000), date: card.nextReviewDate };
     });
     expect(saved).toMatchObject({ stage, count: 3, status: 'NEEDS_REVIEW', days });
-    await expect(review.getByRole('status')).toContainText(label);
-    await review.getByRole('button', { name: 'Xem kết quả', exact: true }).click();
-    await expect(review.getByRole('button', { name: 'Đóng', exact: true })).toBeFocused();
+    const done = page.getByRole('dialog', { name: 'Ôn xong', exact: true });
+    await expect(done).toContainText(button === 'Hiểu rồi' ? 'Hiểu rồi 1' : 'Ôn lại ngày mai 1');
+    await done.getByRole('button', { name: 'Về Sổ tay', exact: true }).click();
     await page.reload();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0].nextReviewDate)).toBe(saved.date);
   });
 }
 
-test('keyboard traversal never enters an inactive flashcard face and wraps on the visible controls', async ({ page }) => {
+test('keyboard traversal stays inside the phone review dialog and wraps on its visible controls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   const review = await openReview(page);
-  const close = review.getByRole('button', { name: 'Đóng phiên ôn tập', exact: true });
-  await expect(close).toBeFocused();
-  const assertVisibleFocus = async () => {
-    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[inert], [aria-hidden="true"]')))).toBe(false);
-    await expect(review.locator(':focus')).toBeVisible();
-  };
-  // Shift+Tab from the first control wraps to the visible front-face footer.
-  await page.keyboard.press('Shift+Tab');
-  await expect(review.getByRole('button', { name: 'Xem giải thích / Đáp án', exact: true }).last()).toBeFocused();
-  await page.keyboard.press('Tab');
-  await expect(close).toBeFocused();
-  for (let i = 0; i < 8; i++) { await page.keyboard.press('Tab'); await assertVisibleFocus(); }
-  await review.getByRole('button', { name: 'Xem giải thích / Đáp án', exact: true }).last().click();
-  const flipBack = review.getByRole('button', { name: 'Xem lại câu hỏi', exact: true });
-  await expect(flipBack).toBeFocused();
-  await expect(review.locator('[aria-hidden="true"][inert]')).toHaveCount(1);
-  await close.focus();
-  await page.keyboard.press('Shift+Tab');
-  await expect(review.getByRole('button', { name: 'Dễ', exact: true })).toBeFocused();
-  for (let i = 0; i < 10; i++) { await page.keyboard.press('Shift+Tab'); await assertVisibleFocus(); }
-  await flipBack.click();
-  await expect(review.getByRole('button', { name: /^A\s*are/ })).toBeFocused();
-  await assertVisibleFocus();
+  const inside = () => page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"][aria-label="Ôn câu sai"]')));
+  const wrongPick = review.getByRole('button', { name: /^A\s*are/ });
+  for (let i = 0; i < 8; i++) { await page.keyboard.press('Tab'); expect(await inside()).toBe(true); }
+  for (let i = 0; i < 8; i++) { await page.keyboard.press('Shift+Tab'); expect(await inside()).toBe(true); }
+  await wrongPick.click();
+  await expect(review.getByRole('button', { name: 'Hiểu rồi', exact: true })).toBeVisible();
+  for (let i = 0; i < 8; i++) { await page.keyboard.press('Tab'); expect(await inside()).toBe(true); }
+  for (let i = 0; i < 8; i++) { await page.keyboard.press('Shift+Tab'); expect(await inside()).toBe(true); }
 });

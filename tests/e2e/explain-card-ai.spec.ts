@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { openCard } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 const QUESTION = 'Mr. Osei ____ a daily report of each delivery to the regional office.';
 const OPTIONS = ['(A) posting', '(B) was posted', '(C) post', '(D) posts'];
@@ -21,7 +23,7 @@ test('a card read from a screenshot gets its explanation on request, once', asyn
       export async function extractPageWithAI() { throw new Error('not used'); }
       export async function readResultsWithAI() { throw new Error('not used'); }`
   }));
-  await page.goto('/so-tay');
+  await gotoPage(page, '/so-tay');
   await page.evaluate(([question, options]) => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const stamp = '2026-10-20T09:00:00.000Z';
@@ -31,10 +33,12 @@ test('a card read from a screenshot gets its explanation on request, once', asyn
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   }, [QUESTION, OPTIONS] as const);
   await page.reload();
-  await page.getByRole('button', { name: /Mr\. Osei/ }).first().click();
-  const explain = page.getByRole('button', { name: 'Giải thích với AI', exact: true });
+  await openCard(page);
+  const explain = page.getByRole('button', { name: /^Giải thích với AI/ });
   await explain.click();
   await expect(page.getByRole('status').filter({ hasText: 'Đã thêm giải thích' })).toBeVisible();
+  // The card keeps explanations folded; "Xem giải thích" opens the tip.
+  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
   await expect(page.getByText(TIP).first()).toBeVisible();
   await expect(explain).toHaveCount(0);
   const input = await page.evaluate(() => (window as Window & { __explainInput: unknown }).__explainInput);

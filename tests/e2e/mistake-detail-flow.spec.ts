@@ -1,18 +1,27 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gotoPage, openScoreLogger } from './helpers/nav';
 
-/** Logs "ETS Detail" on a phone with one Listening and three Reading wrong questions; only the Reading ones get cards. */
+/**
+ * A phone-logged Full Test with one Listening and three Reading wrong questions; only the Reading ones get cards.
+ * The redesigned phone logger no longer takes a list of wrong questions (it says "câu sai thêm sau"), so the test and its
+ * draft cards are stored directly, exactly as saving a test with those wrong questions leaves them.
+ */
 async function logTest(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await form.locator('#session-test-name').fill('ETS Detail');
-  await form.getByRole('button', { name: 'Gõ số câu thay vì chạm', exact: true }).click();
-  await form.getByLabel('Số câu sai', { exact: true }).fill('3 103 107 151');
-  await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
-  await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
+  await gotoPage(page, '/so-tay');
+  await page.evaluate(() => {
+    const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const now = new Date().toISOString();
+    bundle.sessions = [{ id: 'detail-session', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'ETS Detail', date: '2026-11-10', durationMinutes: 120,
+      scaledListening: 400, scaledReading: 350, totalScore: 750, wrongQuestions: [3, 103, 107, 151], createdAt: now, updatedAt: now, deletedAt: null }];
+    bundle.mistakes = [[103, 5], [107, 5], [151, 7]].map(([number, part]) => ({
+      id: `draft:detail-session:${number}`, sessionId: 'detail-session', sourceTestName: 'ETS Detail', part, questionNumber: number,
+      questionContext: '', question: '', userMistake: '', correctAnswer: '', answerSource: 'MISSING', userChoiceState: 'UNKNOWN',
+      category: 'OTHER', tags: [], status: 'NEEDS_REVIEW', createdAt: now, updatedAt: now, deletedAt: null }));
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
   return page.getByRole('dialog', { name: /^Ghi câu sai/ });
 }
 
@@ -43,9 +52,9 @@ test('on a phone the wrong questions are one list; answers and reasons are fille
   const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
   expect(card).toMatchObject({ part: 5, userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(B)', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
   // Without its question the card waits in the pending group; one row per test, not one per question.
-  const pending = page.getByRole('region', { name: 'Chưa ghi chi tiết · 3' });
+  const pending = page.locator('.pn-pend');
   await expect(pending.getByRole('button', { name: /^Ghi chi tiết/ })).toHaveCount(1);
-  await expect(pending.getByText('3 câu Reading sai', { exact: true })).toBeVisible();
+  await expect(pending).toContainText('3 câu chưa ghi chi tiết');
 });
 
 test('the pending group restores unsaved filled rows after closing on a phone', async ({ page }) => {

@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { PHONE_VIEWPORT, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 test('new notes offer only the Reading Parts and the instructions follow the chosen Part', async ({ page }) => {
-  // Tablet and desktop layout; the phone form is covered in phone-mistake-form.spec.ts.
-  await page.setViewportSize({ width: 768, height: 820 });
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'), parts = modal.getByRole('group', { name: 'Part', exact: true });
+  // Only phones open the full note form to add a card now (computers use the camera or "Tự gõ một câu").
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page);
+  const parts = modal.getByRole('group', { name: 'Part', exact: true });
   await expect(parts).toBeInViewport();
   await expect(parts.getByRole('button')).toHaveText(['5', '6', '7']);
   await expect(modal.getByRole('combobox', { name: 'Loại ảnh', exact: true })).toHaveCount(0);
@@ -16,9 +18,10 @@ test('new notes offer only the Reading Parts and the instructions follow the cho
   const pasted = await paste.inputValue();
   await parts.getByRole('button', { name: 'Part 7', exact: true }).click();
   await expect(paste).toHaveValue(pasted);
-  await expect(modal.getByText('Dán một câu hỏi kèm phương án. Bài đọc thêm bằng chữ hoặc ảnh ở khung bên dưới.', { exact: true })).toBeVisible();
+  await expect(modal.getByText('Dán một câu hỏi kèm phương án. Bài đọc thêm bằng chữ hoặc ảnh ở khung bên trên.', { exact: true })).toBeVisible();
   await expect(modal.getByLabel('Đoạn đọc', { exact: true })).toBeVisible();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
-  await expect(modal.getByRole('button', { name: 'Thêm ảnh', exact: true })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Chụp trang', exact: true })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Chọn ảnh', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

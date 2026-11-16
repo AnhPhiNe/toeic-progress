@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openDesktopFlow, screenshot } from './helpers/detailAI';
+import { openDesktopFlow, openPendingList, screenshot } from './helpers/detailAI';
 
 test('read questions and learner corrections survive reload without another AI request', async ({ page }) => {
   const flow = await openDesktopFlow(page);
@@ -10,7 +10,7 @@ test('read questions and learner corrections survive reload without another AI r
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await flow.getByRole('group', { name: 'Đáp án', exact: true }).getByRole('button', { name: 'D', exact: true }).click();
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Table', exact: true }).click();
+  await openPendingList(page);
   await expect(flow.getByRole('button', { name: 'Câu 104 Bạn chọn C, đáp án D', exact: true })).toBeVisible();
   await expect(flow.getByText('Đã khôi phục nháp trên trình duyệt này.', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls ?? [])).toEqual([]);
@@ -27,7 +27,7 @@ test('discarding a detail draft keeps persisted notebook cards unchanged', async
   await expect(flow.getByLabel('Vì sao sai câu 104')).toHaveValue('');
   await expect(flow.getByRole('button', { name: 'Lưu', exact: true })).toBeDisabled();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Table', exact: true }).click();
+  await openPendingList(page);
   await expect(flow.getByLabel('Vì sao sai câu 104')).toHaveValue('');
 });
 

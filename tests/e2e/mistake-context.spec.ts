@@ -1,5 +1,9 @@
 import { chooseNoteSource } from './helpers/noteSource';
 import { test, expect } from '@playwright/test';
+import { PHONE_VIEWPORT, choosePart, openCard, openCardEditor, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
+
+test.use({ viewport: PHONE_VIEWPORT });
 
 const question = 'What problem does the man mention?';
 const transcript = '(M-Cn) The warehouse was out of the small food containers.\n(W-Am) Sales are slow today.';
@@ -21,10 +25,9 @@ test('AI extracts the stem in one analysis; context folds without changing choic
         } };
       }`
   }));
-  await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog');
-  await chooseNoteSource(modal); await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
+  await gotoPage(page, '/so-tay');
+  const modal = await openNoteForm(page);
+  await chooseNoteSource(modal); await choosePart(modal, '7');
   await modal.getByLabel('Câu hỏi + phương án').fill(
     'Questions 53 through 55 refer to the following conversation.\n' + transcript + '\n\n' + question + '\n' + options.join('\n')
   );
@@ -48,11 +51,11 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   expect(calls.input.question).toContain(question);
   expect(calls.input.options).toEqual(options);
   await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
-  const row = page.getByRole('button', { name: `Mở câu: ${question}`, exact: true });
-  await expect(row).toBeVisible();
-  await row.click();
-  await expect(page.locator('.notebook-card').getByText(transcript, { exact: true })).not.toBeVisible();
-  await expect(page.locator('.notebook-card').getByText('AI đề xuất', { exact: true })).toBeVisible();
+  await expect(page.locator('.pn-row')).toHaveCount(1);
+  await openCard(page);
+  // The redesigned card shows the reading text under its heading instead of folding it.
+  await expect(page.locator('.nbd-q')).toHaveText(question);
+  await expect(page.locator('.nbd-ctx').getByText(transcript, { exact: true })).toBeVisible();
   for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -63,20 +66,19 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   expect(saved.question).toBe(question); expect(saved.context).toBe(transcript);
   expect(saved.userChoice).toBe('A');
   expect(saved.correctAnswer).toBe(options[2]);
+  await page.setViewportSize(PHONE_VIEWPORT); await page.reload(); await openCard(page);
   await page.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
-  const review = page.getByRole('dialog', { name: 'Ôn tập' });
+  const review = page.getByRole('dialog', { name: 'Ôn câu sai' });
   await expect(review.getByText(transcript, { exact: true })).toBeVisible();
-  await review.getByRole('button', { name: /^C\s+An order is incomplete/ }).click();
-  await expect(review.getByRole('status')).toContainText('Đúng · ôn sau 3 ngày');
-  await review.getByRole('button', { name: 'Xem kết quả' }).click();
-  await review.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await review.getByRole('button', { name: /^C\s*An order is incomplete/ }).click();
+  await review.getByRole('button', { name: 'Hiểu rồi', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Ôn xong' })).toContainText('Hiểu rồi 1');
+  await page.getByRole('button', { name: 'Về Sổ tay', exact: true }).click();
   await page.reload();
-  await expect(page.getByRole('button', { name: `Mở câu: ${question}`, exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
-  await expect(page.getByRole('dialog').getByLabel('Câu hỏi + phương án')).toHaveValue(question + '\n' + options.join('\n'));
-  await expect(page.getByRole('dialog').getByLabel('Đoạn đọc', { exact: true })).toHaveValue(transcript);
-  await page.getByRole('dialog').getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
+  const editor = await openCardEditor(page);
+  await expect(editor.getByLabel('Câu hỏi + phương án')).toHaveValue(question + '\n' + options.join('\n'));
+  await expect(editor.getByLabel('Đoạn đọc', { exact: true })).toHaveValue(transcript);
+  await editor.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   const edited = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(edited.question).toBe(question); expect(edited.context).toBe(transcript);
   expect(edited.correctAnswer).toBe(options[2]); expect(edited.reviewStage).toBe(1);

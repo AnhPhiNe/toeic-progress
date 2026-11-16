@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, openCard, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 const question = 'What is indicated about delivery?';
 const options = ['(A) It is free in every region.', '(B) It takes three business days.', '(C) It is available only on weekends.', '(D) It requires a membership.'];
@@ -16,8 +18,8 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
         userMistake: '', category: 'OTHER', tags: [], trapTip: '', explanation: null, missingInformation: [],
         optionNotes: meanings.map((meaning, index) => ({ label: 'ABCD'[index], pos: '', meaning })) } };
     }` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page); await chooseNoteSource(modal);
   await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
   await expect(modal.getByRole('button', { name: 'Phân tích với AI', exact: true })).toBeEnabled();
@@ -28,21 +30,20 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
   for (const meaning of meanings) await expect(modal.getByRole('region', { name: 'Nghĩa các phương án' }).getByText(meaning, { exact: true })).toBeVisible();
   await expect(modal.getByText('It takes three business days.', { exact: true }).locator('..')).not.toContainText(meanings[1]);
   await modal.getByRole('button', { name: 'Lưu câu sai', exact: true }).click();
+  // The saved card and the review are read on a computer.
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.reload();
-  await page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }).click();
-  const card = page.locator('.notebook-card');
-  for (const meaning of meanings) await expect(card.getByText(meaning, { exact: true })).toHaveCount(0);
-  await card.getByRole('button', { name: 'Xem giải thích', exact: true }).click();
-  for (const meaning of meanings) await expect(card.getByRole('region', { name: 'Nghĩa các phương án' }).getByText(meaning, { exact: true })).toBeVisible();
-  await card.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
-  const review = page.getByRole('dialog', { name: 'Ôn tập', exact: true });
-  await expect(review.getByRole('button', { name: 'Xem giải thích', exact: true })).toHaveCount(0);
+  await openCard(page, question);
+  for (const meaning of meanings) await expect(page.locator('.nbd').getByText(meaning, { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
+  for (const meaning of meanings) await expect(page.locator('.nbd-mean').getByText(meaning, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
   for (const meaning of meanings) await expect(review.getByText(meaning, { exact: true })).toHaveCount(0);
-  await review.getByRole('button', { name: /^B\s+It takes three business days/ }).click();
+  await review.getByRole('button', { name: /^\(B\)\s*It takes three business days/ }).click();
   for (const meaning of meanings) await expect(review.getByText(meaning, { exact: true })).toHaveCount(0);
-  const activeFace = review.locator('[aria-hidden="false"]');
-  await activeFace.getByRole('button', { name: 'Xem giải thích', exact: true }).click();
-  for (const meaning of meanings) await expect(activeFace.getByRole('region', { name: 'Nghĩa các phương án' }).getByText(meaning, { exact: true })).toBeVisible();
+  await review.getByRole('button', { name: 'Xem nghĩa từng phương án', exact: true }).click();
+  for (const meaning of meanings) await expect(review.getByText(meaning, { exact: true })).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.optionNotes.map((note: { meaning: string }) => note.meaning)).toEqual(meanings);
 });

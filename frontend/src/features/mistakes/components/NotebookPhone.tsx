@@ -86,7 +86,8 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   const scopeKeys = useMemo(() => new Set((initialSourceNames ?? []).map(testNameKey)), [initialSourceNames]);
   const sourceSuggestions = useMemo(() => collectTestNames(sessions, mistakes), [sessions, mistakes]);
   const pending = useMemo(() => sourced.filter(needsSupplement), [sourced]);
-  const reviewable = useMemo(() => sourced.filter(m => !needsSupplement(m)), [sourced]);
+  // Cards waiting for details of a logged test sit in the pending strip; a hand-typed note missing its key stays in the list so it can be opened and completed.
+  const reviewable = useMemo(() => sourced.filter(m => !needsSupplement(m) || !(m.sessionId && m.questionNumber !== undefined)), [sourced]);
   const matching = useMemo(() => {
     const q = term.trim().toLowerCase();
     return reviewable.filter(m => (!q || [m.questionContext, m.userMistake, m.userReason, m.correctAnswer, m.trapTip, m.sourceTestName, ...(m.tags ?? [])]

@@ -1,6 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { resolve } from 'node:path';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
+
+// Page-scan mode lives inside the full note form, which only phones open for a new card now.
 
 const screenshot = resolve('tests/fixtures/part7-notice.png');
 const result = (number: number) => ({ number, draft: {
@@ -26,9 +30,9 @@ async function openBatch(page: Page, delayed = false, oversized = false) {
       export async function extractMistakeWithAI() { throw new Error('unused'); }
     `
   }));
-  await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const form = page.getByRole('dialog');
+  if ((page.viewportSize()?.width ?? 0) > PHONE_VIEWPORT.width) await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay');
+  const form = await openNoteForm(page);
   await form.getByRole('tab', { name: /Quét ảnh AI/ }).click();
   await chooseNoteSource(form, 'ETS Batch');
   return form;
@@ -58,7 +62,7 @@ test('closing the modal discards a late read and stops the remaining image chunk
   await form.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(form).toHaveCount(0);
   await page.evaluate(() => (window as typeof window & { __releaseBatch?: () => void }).__releaseBatch?.());
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
+  await openNoteForm(page);
   await page.getByRole('dialog').getByRole('tab', { name: /Quét ảnh AI/ }).click();
   await expect(page.getByText('Đã quét được 2 câu:', { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => (window as typeof window & { __batchCalls?: number }).__batchCalls)).toBe(1);

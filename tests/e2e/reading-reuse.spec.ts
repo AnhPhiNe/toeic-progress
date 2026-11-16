@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { choosePart, expectPart } from './helpers/mistakeForm';
+import { PHONE_VIEWPORT, expectPart, openAnswerKey, noteModal, openCardEditor, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 import { resolve } from 'node:path';
 import { chooseNoteSource } from './helpers/noteSource';
 
@@ -7,39 +8,9 @@ const passage = 'Document 1: Registered members pay the member rate.\n\nDocument
 const choices = ['(A) Project Planning.', '(B) Business Writing.', '(C) Data Basics.', '(D) Team Leadership.'];
 const question = (number: number) => `Which workshop is free for registered members (question ${number})?`;
 
-test('reuse keeps its draft separate from an unfinished standalone note', async ({ page }) => {
-  await page.goto('/so-tay');
-  await page.evaluate(({ passage, choices }) => {
-    const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!); const now = new Date().toISOString();
-    bundle.mistakes = [{ id: 'reuse-draft-source', part: 7, question: 'Which workshop is free?', context: passage,
-      questionContext: 'Which workshop is free?\n\n' + passage, options: choices, correctAnswer: choices[2], answerSource: 'PROVIDED',
-      category: 'OTHER', userMistake: '', tags: [], sourceTestName: 'ETS Reuse', status: 'NEEDS_REVIEW', createdAt: now, updatedAt: now, deletedAt: null }];
-    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
-  }, { passage, choices });
-  await page.reload();
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog');
-  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
-  await modal.getByLabel('Câu hỏi + phương án').fill('Unfinished standalone question');
-  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
-  const reuse = async () => {
-    await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
-    await page.getByRole('menuitem', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
-  };
-  await reuse();
-  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
-  await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toBeVisible();
-  await modal.getByLabel('Câu hỏi + phương án').fill('Unfinished question for this passage');
-  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('Unfinished standalone question');
-  await expect(modal.getByRole('button', { name: 'Part 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await reuse();
-  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('Unfinished question for this passage');
-  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
-});
+// Removed with the redesign: "reuse keeps its draft separate from an unfinished standalone note" and the "Thêm câu cùng bài đọc"
+// entry of a saved card. That entry lived in the old card menu (MistakeCard); the new card page has no such action, so a reading
+// can only be reused inside the form via "Lưu & thêm câu cùng bài" (covered below).
 
 async function mockAnalysis(page: Page) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
@@ -56,14 +27,14 @@ async function mockAnalysis(page: Page) {
 }
 
 test('five questions reuse three images once and preserve the full source without carrying answers or explanations', async ({ page }, testInfo) => {
-  await mockAnalysis(page); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Reuse');
+  await mockAnalysis(page); await page.setViewportSize(PHONE_VIEWPORT); await gotoPage(page, '/so-tay');
+  const modal = await openNoteForm(page); await chooseNoteSource(modal, 'ETS Reuse');
   await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question(1) + '\n' + choices.join('\n'));
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   await modal.getByLabel('Lý do chọn').fill('First question only.');
+  await openAnswerKey(modal);
   await modal.getByLabel('Lỗi sai', { exact: true }).selectOption('TIME_PRESSURE');
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles([
     resolve('tests/fixtures/part7-notice.png'), resolve('tests/fixtures/part7-table-question.png'), resolve('tests/fixtures/part7-notice.png')
@@ -71,9 +42,6 @@ test('five questions reuse three images once and preserve the full source withou
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
   await expect(modal.getByText(passage, { exact: true })).toHaveCount(0);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true })).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('after-ai-same-reading-desktop.png') });
   await page.setViewportSize({ width: 375, height: 820 });
   await expect(modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true })).toBeInViewport();
   await expect(modal.getByRole('button', { name: 'Lưu câu sai', exact: true })).toBeInViewport();
@@ -97,13 +65,13 @@ test('five questions reuse three images once and preserve the full source withou
       await expect(modal.getByText(passage, { exact: true })).toHaveCount(0);
       await modal.getByText('Đối chiếu ảnh (3)', { exact: true }).click();
       await expect(modal.getByRole('img', { name: 'Ảnh nguồn Part 7 3', exact: true })).toBeVisible();
-      for (const width of [375, 1440]) {
+      for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 900 });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       }
       await page.screenshot({ path: testInfo.outputPath('reused-reading.png') });
       await modal.getByText('Đối chiếu ảnh (3)', { exact: true }).click();
-      for (const width of [375, 1440]) {
+      for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 900 });
         await page.screenshot({ path: testInfo.outputPath(`reused-reading-compact-${width}.png`) });
       }
@@ -132,8 +100,8 @@ test('five questions reuse three images once and preserve the full source withou
   expect(manual.tags).toEqual([]); expect(manual.userChoice).toBeUndefined(); expect(manual.userReason).toBe('');
 });
 
-test('a saved source can start a new question after reload; changing source, Part or passage clears reuse', async ({ page }) => {
-  await page.goto('/so-tay');
+test('editing a saved Part 7 card keeps its stored reading without an extra reuse prompt', async ({ page }) => {
+  await gotoPage(page, '/so-tay');
   await page.evaluate(({ passage, choices }) => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!); const now = new Date().toISOString();
     bundle.mistakes = [{ id: 'reading-original', part: 7, question: 'Which workshop is free?', context: passage,
@@ -143,33 +111,7 @@ test('a saved source can start a new question after reload; changing source, Par
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
   }, { passage, choices });
   await page.reload();
-  await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
-  const modal = page.getByRole('dialog');
-  await expect(modal.getByRole('button', { name: 'Part 7', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('');
-  await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
-  await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
-  page.once('dialog', dialog => dialog.accept());
-  await modal.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
-  const confirm = await page.getByRole('dialog').count();
-  expect(confirm).toBe(0);
-  for (const action of ['source', 'passage']) {
-    await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
-    await page.getByRole('menuitem', { name: 'Thêm câu cùng bài đọc', exact: true }).click();
-    if (action === 'source') {
-      await modal.getByRole('button', { name: 'Chọn đề', exact: true }).click();
-      await modal.getByRole('combobox', { name: 'Tìm hoặc thêm tên đề', exact: true }).fill('ETS Other');
-      await page.getByRole('option', { name: '+ Thêm tên đề “ETS Other”', exact: true }).click();
-    } else await modal.getByRole('button', { name: 'Đổi bài đọc', exact: true }).click();
-    await expect(modal.getByText('Đang dùng bài đọc trước', { exact: true })).toHaveCount(0);
-    await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
-    await expect(modal.getByLabel('Chọn ảnh Part 7')).toHaveCount(1);
-    page.once('dialog', dialog => dialog.accept()); await modal.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
-  }
-  await page.getByRole('button', { name: 'Tùy chọn thẻ', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Sửa', exact: true }).click();
-  await expect(modal.getByText('Đang dùng bài đọc đã lưu', { exact: true })).toBeVisible();
+  const modal = await openCardEditor(page);
   await expect(modal.getByLabel('Câu hỏi + phương án')).toHaveValue('Which workshop is free?\n' + choices.join('\n'));
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes);

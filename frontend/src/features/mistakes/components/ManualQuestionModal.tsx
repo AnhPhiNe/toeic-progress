@@ -116,7 +116,7 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
     if (getActiveAccountId() !== owner) { setError('Tài khoản đã thay đổi. Chưa lưu câu sai.'); return; }
     setSaving(true); setError('');
     try {
-      const entry = buildManualEntry({ part: effectivePart, testName, question: parsed.question, options: parsed.options, choice, answer, reason, category, tags: '' });
+      const entry = buildManualEntry({ part: effectivePart, testName, sessionId: questionsToFind(sessions, testName).sessionId, question: parsed.question, options: parsed.options, choice, answer, reason, category, tags: '' });
       if (new TextEncoder().encode(JSON.stringify(entry)).byteLength > 32768) throw new Error('Thẻ vượt giới hạn 32 KiB. Rút gọn câu hỏi/đoạn trích trước khi lưu; bản nháp được giữ.');
       onAdd(entry);
       finish(aiReady ? 'Đã lưu, Sóc đang viết lời giải…' : 'Đã lưu ghi chú. Mở thẻ để nhờ Sóc giải thích khi AI sẵn sàng.', entry);

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { openDesktopFlow, screenshot, TIP } from './helpers/detailAI';
+import { openDesktopFlow, openPendingList, screenshot, TIP } from './helpers/detailAI';
+import { openCard } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 test('a computer reads all screenshots of a test in turns and saves the whole list at once', async ({ page }) => {
   const flow = await openDesktopFlow(page);
@@ -72,7 +74,7 @@ test('closing the list keeps filled rows as a recoverable draft', async ({ page 
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Table', exact: true }).click();
+  await openPendingList(page);
   await expect(flow.getByLabel('Vì sao sai câu 104')).toHaveValue('TIME_PRESSURE');
   await expect(flow.getByText('Đã khôi phục nháp trên trình duyệt này.', { exact: true })).toBeVisible();
 });
@@ -87,7 +89,8 @@ test('a doubt left open when saving stays on the notebook card until the learner
   const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
     .find((card: { questionNumber?: number; sourceTestName?: string }) => card.questionNumber === 131 && card.sourceTestName === 'ETS Table'));
   expect(await stored()).toMatchObject({ correctAnswer: '(A) accommodates', answerDoubt: 'C' });
-  await page.getByRole('button', { name: /The new reading room/ }).first().click();
+  await gotoPage(page, '/so-tay');
+  await openCard(page, /The new reading room/);
   await expect(page.getByRole('note')).toContainText('AI chọn C, trang đề chọn A.');
   await page.getByRole('button', { name: 'Giữ A', exact: true }).click();
   await expect(page.getByRole('note')).toHaveCount(0);

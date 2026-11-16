@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, noteModal, openNoteForm, openAnswerKey } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 const passage = 'Email 1: Registration opens Monday.\n\nEmail 2: Members can join the workshop for free.\n\nNotice 3: The event is on Friday.';
 const options = ['(A) Writing.', '(B) Planning.', '(C) Data Basics.', '(D) Leadership.'];
@@ -25,8 +27,8 @@ test('the shared context area retains text and pictures across mode changes and 
         optionNotes: [], explanation: null, missingInformation: []}};
     }
   ` }));
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page); await chooseNoteSource(modal);
   await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('Which workshop is free?\n' + options.join('\n'));
   await modal.getByLabel('Đoạn đọc', { exact: true }).fill(passage);
@@ -46,7 +48,7 @@ test('the shared context area retains text and pictures across mode changes and 
   await expect(modal.getByLabel('Đoạn đọc', { exact: true })).toHaveValue(passage);
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
-  for (const width of [375, 1440]) {
+  for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
@@ -66,8 +68,8 @@ test('the shared context area retains text and pictures across mode changes and 
 });
 
 test('Part 5 context is optional and collapsed; Part 6 manual save keeps the question and reading separate', async ({ page }) => {
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay'); const modal = await openNoteForm(page); await chooseNoteSource(modal);
   await modal.getByRole('button', { name: 'Part 5', exact: true }).click();
   await expect(modal.getByLabel('Ngữ cảnh', { exact: true })).toBeHidden();
   await modal.locator('summary', { hasText: 'Ngữ cảnh' }).click();
