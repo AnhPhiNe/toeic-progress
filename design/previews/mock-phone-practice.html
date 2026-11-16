@@ -101,7 +101,7 @@ h1 em{font-style:normal;color:#f0a500}
 .bulbs{position:absolute;left:0;right:0;top:106px;height:20px;display:flex;justify-content:space-around}
 .bulbs i{width:9px;height:12px;border-radius:50%;background:#ffd25e}.bulbs i:nth-child(3n){background:#b9a6ff}.bulbs i:nth-child(3n+1){background:#9be3a6}
 .hd3{position:absolute;left:18px;right:18px;top:128px;z-index:15;display:flex;align-items:center;gap:8px}
-.hd3 h2{font-weight:900;font-size:23px;letter-spacing:-.5px}.hd3 h2 em{font-style:normal;color:#7c5ce0}
+.hd3 h2{font-weight:900;font-size:21px;white-space:nowrap;letter-spacing:-.5px}.hd3 h2 em{font-style:normal;color:#7c5ce0}
 .case{position:absolute;left:16px;right:16px;border-radius:24px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 3px rgba(255,255,255,.9);overflow:hidden}
 .shelf{position:absolute;left:0;right:0;bottom:0;height:18px;background:#ff9ab3;box-shadow:inset 0 5px 0 #ffc2d0}
 .say{position:absolute;z-index:6;background:#fff;border-radius:16px;padding:8px 11px;font-weight:800;font-size:12.5px;line-height:1.35;box-shadow:0 3px 0 rgba(0,0,0,.06)}
@@ -112,9 +112,12 @@ h1 em{font-style:normal;color:#f0a500}
 .pc b{display:block;font-weight:900;font-size:14.5px}.pc small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5}
 .pc em{font-style:normal;float:right;font-weight:900;font-size:13px;color:#ff7a1a}
 .pc.on{box-shadow:0 0 0 3px #ffc83d,0 5px 0 #f0b400;background:#fffaf0}
-.fire{border-radius:18px;background:linear-gradient(135deg,#ff9a4d,#ff7a1a);color:#fff;font-weight:900;font-size:17px;padding:15px 0;text-align:center;box-shadow:0 5px 0 #d65d00;flex:1}
-.mins{display:flex;align-items:center;gap:6px;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 2px #f0e3dc;padding:0 8px;font-weight:900;font-size:17px}
-.mins i{font-style:normal;width:30px;height:30px;border-radius:10px;background:#f3efff;color:#7c5ce0;display:grid;place-items:center;font-size:18px}
+.fire{border-radius:99px;background:linear-gradient(90deg,#ff7a1a,#ff5c86);color:#fff;font-weight:900;font-size:17px;padding:15px 0;text-align:center;box-shadow:0 5px 0 #c44a3a,0 8px 18px rgba(255,92,134,.25);flex:1}
+.mins{display:flex;align-items:center;gap:6px;border-radius:99px;background:#fff1e6;box-shadow:0 4px 0 #ffd7bd;padding:0 6px;font-weight:900;font-size:17px;color:#d9661f}
+.mins i{font-style:normal;width:32px;height:32px;border-radius:50%;background:#fff;color:#ff6a3d;display:grid;place-items:center;font-size:18px;box-shadow:0 2px 0 #ffd7bd}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.tool{display:flex;align-items:center;gap:6px;border-radius:99px;padding:4px 8px 4px 4px;font-weight:900;font-size:12.5px;white-space:nowrap;background:var(--b);box-shadow:0 3px 0 var(--d);color:var(--c)}
+.tool i{width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;font-style:normal;font-size:14px;flex:none}
 .mins small{font-size:11px;color:#a3aba5;margin-left:-2px}
 .oven{position:absolute;left:50%;transform:translateX(-50%);width:290px;border-radius:30px;background:#fff;box-shadow:0 0 0 4px #e3dcff,0 10px 0 #d6ccff;overflow:hidden}
 .oven .otop{height:96px;background:#a78bfa;display:flex;align-items:center;justify-content:center;gap:14px}
@@ -171,7 +174,7 @@ const HAT=(x,y,s=1)=>`<div class="hat" style="left:${x}px;top:${y}px;width:${40*
 
 /* 1. chọn mẻ */
 const CHOOSE=`<div class="ph"><div class="shop"></div><div class="awn" style="top:44px"></div>${SB()}<div class="bulbs">${'<i></i>'.repeat(12)}</div>
-<div class="hd3"><h2>Hôm nay nướng <em>Part 7</em> nhé?</h2><span class="av"><s>${S('idle')}</s><em>4</em></span></div>
+<div class="hd3"><h2>Hôm nay nướng <em>Part 7</em> nhé?</h2><span title="Mẻ cũ" style="margin-left:auto;width:40px;height:40px;flex:none;display:grid;place-items:center;background:#fff;border-radius:14px;font-size:18px;box-shadow:0 2px 0 rgba(0,0,0,.06)">🕘</span><span class="av" style="margin-left:6px"><s>${S('idle')}</s><em>4</em></span></div>
 <div class="case" style="top:184px;height:290px"><div class="shelf"></div>
 <div style="position:absolute;left:50%;bottom:16px;transform:translateX(-50%)">${CAKE(190)}</div>
 <div style="position:absolute;left:50%;top:6px;width:240px;height:230px;margin-left:-120px;border-radius:50%;background:radial-gradient(circle,rgba(255,236,170,.6),transparent 65%)"></div></div>
@@ -181,8 +184,8 @@ const CHOOSE=`<div class="ph"><div class="shop"></div><div class="awn" style="to
 ${[[CUP,'Part 5','30 câu',"12'"],[COOK,'Part 6','16 câu',"8'"],[MINI,'Part 7','54 câu',"55'",1],[BREAD,'Cả Đọc','100 câu',"75'"]].map(([f,n,q,m,on])=>`<div class="pc ${on?'on':''}"><div class="ic">${f(50)}</div><b>${n}<em>${m}</em></b><small>${q}</small></div>`).join('')}
 </div>
 <div class="panel" style="position:absolute;left:0;right:0;bottom:86px;background:#fbfaf7;border-radius:28px 28px 0 0;padding:16px 16px 32px;box-shadow:0 -8px 24px rgba(200,80,120,.1);z-index:10">
-<div style="display:flex;gap:10px"><span class="fire">🔥 Bật lò · 55 phút</span><span class="mins"><i>−</i>55<small>p</small><i>+</i></span></div>
-<div style="display:flex;margin-top:12px;font-weight:900;font-size:13.5px"><a style="color:#7a857e">Ghi kết quả, không bấm giờ</a><a style="margin-left:auto;color:#1c8fe3">Mẻ gần đây ›</a></div></div>${NAV('p')}</div>`;
+<div style="display:flex;gap:10px"><span class="fire">🔥 Bật lò</span><span class="mins"><i>−</i>55<small>p</small><i>+</i></span></div>
+<div class="tools"><span class="tool" style="--b:#e3f7e7;--d:#b6e5c0;--c:#2f8a42"><i>✎</i>Ghi kết quả</span><span class="tool" style="--b:#fff4d1;--d:#f3d98a;--c:#a06a00"><i>📋</i>Công thức</span><span class="tool" style="--b:#ffe6ea;--d:#ffc1cc;--c:#d3456b"><i>🍅</i>Pomodoro</span></div></div>${NAV('p')}</div>`;
 
 /* 2. đang nướng */
 const RUN=`<div class="ph" style="background:#fff3f6">${SB()}<div class="shop" style="opacity:.6"></div><div class="floor"></div>
@@ -208,7 +211,7 @@ const DONE=`<div class="ph" style="background:#fff3f6">${SB()}<div class="shop" 
 
 const fw=(t,s,h)=>`<div class="fw"><b>${t}</b>${h}<span>${s}</span></div>`;
 document.getElementById('R1').innerHTML=
- fw('Chọn mẻ','Tủ kính trưng một chiếc bánh của Part đang chọn; vuốt hàng thẻ để đổi Part. Bảng dưới: Bật lò + số phút. Mẻ gần đây mở bằng liên kết.',CHOOSE)+
+ fw('Chọn mẻ','Tủ kính trưng một chiếc bánh của Part đang chọn; vuốt hàng thẻ để đổi Part. Bảng dưới: viên Bật lò + ô phút riêng, 3 nút phụ như desktop. Nút 🕘 ở góc trên mở các mẻ cũ.',CHOOSE)+
  fw('Đang nướng','Toàn màn là lò, không có thanh điều hướng. Công thức thu thành 1 dòng + 5 vạch. Hai nút ở đáy.',RUN)+
  fw('Ra lò','Một thẻ: bánh, thời gian, kỷ lục, số câu sai −/+. Nút Lưu vào sổ ở đáy.',DONE);
 </script></body></html>

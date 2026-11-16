@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Sổ tay trên điện thoại</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--green:#46b35a;--greenD:#2f8a42}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:30px 30px 40px}
+.cap{font-weight:900;font-size:21px;margin:0 0 4px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;max-width:1700px}
+.row{display:flex;gap:34px;margin:16px 0 40px;align-items:flex-start}
+.fw{display:flex;flex-direction:column;gap:10px;align-items:center}
+.fw>b{font-weight:900;font-size:16px}.fw>span{font-weight:700;font-size:13px;color:#3f4a43;width:390px;text-align:center;line-height:1.35}
+.ph{width:390px;height:844px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 0 0 10px #1d2420,0 24px 50px rgba(0,0,0,.3)}
+.sb{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-weight:900;font-size:15px;z-index:20}
+.sb i{width:70px;height:12px;border-radius:6px;background:currentColor;opacity:.85}
+.soc svg{display:block;width:100%}
+/* bottom nav */
+.nav{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #f0f2f0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;z-index:30}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:900;font-size:11.5px;color:#9aa39d}
+.nav a i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:15px;color:#fff;opacity:.55}
+.nav a.on{color:var(--ink)}.nav a.on i{opacity:1;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.nav a.add i{width:54px;height:54px;border-radius:18px;margin-top:-22px;background:var(--green);opacity:1;font-size:30px;box-shadow:0 5px 0 var(--greenD),0 8px 18px rgba(70,179,90,.35)}
+.nav a.add{color:var(--greenD)}
+.nav .badge{position:absolute;margin:-4px 0 0 26px;background:#ff5c86;color:#fff;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* top bar */
+.top{position:absolute;left:18px;right:18px;top:50px;display:flex;align-items:center;gap:8px;z-index:15}
+.chip{border-radius:99px;background:rgba(255,255,255,.9);padding:5px 11px;font-weight:900;font-size:13.5px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.av{margin-left:auto;width:40px;height:40px;border-radius:14px;background:#fff3e0;box-shadow:0 0 0 2px #fff,0 3px 8px rgba(0,0,0,.12);position:relative}
+.av>s{position:absolute;inset:0;border-radius:14px;overflow:hidden}.av .soc{position:absolute;width:48px;left:-4px;top:-2px}
+.av em{position:absolute;right:-3px;bottom:-3px;width:15px;height:15px;border-radius:50%;background:#7c5ce0;color:#fff;font-style:normal;font-size:9px;font-weight:900;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+/* scene */
+.sky{position:absolute;inset:0;background:radial-gradient(circle at 78% 22%,#fffbe8 0 60px,transparent 61px),linear-gradient(180deg,#fff2cf,#ffe3e3 70%,#ffd9e2)}
+.rays{position:absolute;left:50%;top:0;width:900px;height:900px;margin-left:-450px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,240,190,.55) 0 8deg,transparent 8deg 20deg);mask-image:radial-gradient(circle,#000 25%,transparent 60%)}
+.hill{position:absolute;left:-40px;right:-40px;border-radius:50% 50% 0 0;background:#a8dc95}
+.st{position:absolute}
+.st .f{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0}
+.st .c{position:absolute;left:0;right:0;height:10px;border-radius:3px;transform:translateY(-6px)}
+.st .lb{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;font-size:10.5px;color:#fff;background:rgba(0,0,0,.18);border-radius:99px;padding:1px 5px;white-space:nowrap}
+.troph{position:absolute}
+h1{font-weight:900;letter-spacing:-.6px;line-height:1.08}
+h1 em{font-style:normal;color:#f0a500}
+.dots{display:flex;gap:3px;align-items:center;font-weight:900;font-size:11.5px;color:#d99a00}.dots i{width:13px;height:5px;border-radius:9px;background:#ffc83d}.dots i.o{background:#eadcb4}.dots i.g{background:var(--green)}.dots span{margin-left:6px}
+/* cards */
+.next{border-radius:24px;background:linear-gradient(135deg,#4cc062,#2f9e4a);color:#fff;padding:16px 18px;position:relative;overflow:hidden;box-shadow:0 6px 0 #2a8a40}
+.next small{font-weight:900;font-size:11.5px;letter-spacing:.5px;opacity:.85}
+.next h3{font-weight:900;font-size:24px;letter-spacing:-.4px;margin-top:2px}
+.next p{font-weight:800;font-size:13px;opacity:.9}
+.next .btns{display:flex;align-items:center;gap:14px;margin-top:12px}
+.btn{border-radius:14px;background:#fff;color:var(--greenD);font-weight:900;font-size:16px;padding:11px 22px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.skip{font-weight:900;font-size:13px;text-decoration:underline;opacity:.9}
+.next .soc{position:absolute;right:-8px;bottom:-14px;width:96px}
+.rest{display:flex;align-items:center;font-weight:900;font-size:13px;color:#8c968f;padding:0 4px}
+.rest a{margin-left:auto;color:#1c8fe3}
+.task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #f0f2f0;font-weight:900;font-size:15px}
+.task u{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2.5px #cfd6d1;flex:none}
+.task.done u{background:var(--green);box-shadow:none}.task.done{color:#a3aba5;text-decoration:line-through}
+.task small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5;text-decoration:none}
+/* streak */
+.streak{background:#fff;border-radius:22px;box-shadow:0 0 0 2px #f6eef0;padding:12px 14px}
+.streak .h{display:flex;align-items:center;gap:8px}
+.streak .fl{font-size:26px;line-height:1}.streak b{font-weight:900;font-size:24px;color:#ff7a1a}.streak .h span{font-weight:900;font-size:13.5px;color:#ff7a1a}
+.streak .h small{margin-left:auto;font-weight:900;font-size:11.5px;color:#4f8fd6;background:#e6f1ff;border-radius:99px;padding:2px 8px}
+.cake{position:relative;height:46px;margin:6px 4px 0}
+.cake .tier{position:absolute;left:0;right:0;bottom:0;height:16px;border-radius:8px;background:#ffd1dc;box-shadow:inset 0 5px 0 #fff0f4}
+.cake .cd{position:absolute;bottom:16px;width:7px;height:20px;border-radius:3px;background:#f2e9ec}
+.cake .cd.l{background:#ff7a9c}.cake .cd.l:after{content:'';position:absolute;left:-2px;top:-11px;width:11px;height:12px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#ffb020}
+.days{display:flex;justify-content:space-between;font-weight:900;font-size:10.5px;color:#a3aba5;margin:3px 4px 0}.days b{font-size:10.5px;color:#ff7a1a}
+.goal{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1.5px solid #f3f0f1;font-weight:800;font-size:12.5px;color:#5e6962}
+.goal b{font-size:12.5px;color:var(--ink)}.goal i{flex:1;height:6px;border-radius:9px;background:#eef0ee;overflow:hidden}.goal i:before{content:'';display:block;width:20%;height:100%;background:var(--green)}
+.goal a{font-weight:900;color:#1c8fe3}
+/* sheet */
+.sheet{position:absolute;left:0;right:0;background:#fbfaf7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(120,70,70,.12);padding:10px 16px 0;z-index:10}
+.grab{width:40px;height:5px;border-radius:9px;background:#dcd8cf;margin:0 auto 10px}
+/* mini journey card (B) */
+.jcard{position:relative;border-radius:24px;overflow:hidden;height:186px;box-shadow:0 0 0 2px #fbe6c4}
+.jcard .lab{position:absolute;left:16px;top:12px;z-index:3}
+.jcard .lab b{display:block;font-weight:900;font-size:17px}
+.more{position:absolute;right:12px;top:12px;z-index:3;border-radius:99px;background:#fff;padding:5px 11px;font-weight:900;font-size:12.5px;color:#d99a00;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+/* menus (D, E) */
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);z-index:25}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 30px;z-index:40}
+.mi{display:flex;align-items:center;gap:14px;padding:11px 4px;font-weight:900;font-size:16px}
+.mi i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;color:#fff;font-size:20px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.mi small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.mi .ar{margin-left:auto;color:#c3cac5;font-size:20px}
+.mi .pill{margin-left:auto;background:#ff5c86;color:#fff;border-radius:99px;padding:1px 8px;font-size:12px}
+.lvl{display:flex;align-items:center;gap:12px;border-radius:22px;background:linear-gradient(120deg,#fff3e0,#ffe6ee);padding:12px 14px;margin-bottom:6px}
+.lvl .soc{width:58px}
+.lvl b{font-weight:900;font-size:16px}.lvl small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.lvl .bar{height:7px;border-radius:9px;background:#fff;margin-top:6px;overflow:hidden}.lvl .bar i{display:block;height:100%;width:70%;background:linear-gradient(90deg,#7c5ce0,#1c8fe3)}
+.sep{height:1.5px;background:#f0f2f0;margin:4px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+.big{border-radius:22px;padding:14px 10px 12px;text-align:center;font-weight:900;font-size:14px;line-height:1.2;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+.big i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 8px;border-radius:17px;font-style:normal;font-size:24px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.big small{display:block;font-weight:800;font-size:11.5px;color:var(--mut);margin-top:3px}
+
+.hd4{position:absolute;left:18px;right:18px;top:52px;z-index:15;display:flex;align-items:center;gap:8px}
+.hd4 h2{font-weight:900;font-size:26px;letter-spacing:-.6px}
+.cam{margin-left:auto;display:flex;align-items:center;gap:6px;border-radius:99px;background:linear-gradient(90deg,#ff7a9c,#ff5c86);color:#fff;font-weight:900;font-size:13.5px;padding:9px 13px;box-shadow:0 4px 0 #d43d66}
+.due{position:absolute;left:16px;right:16px;top:108px;border-radius:26px;background:linear-gradient(135deg,#ffe3ea,#fff0f3);padding:16px 18px;overflow:hidden}
+.due h3{font-weight:900;font-size:22px;letter-spacing:-.4px;line-height:1.15}
+.due p{font-weight:800;font-size:12.5px;color:#9a6b76;margin-top:3px}
+.due .soc{position:absolute;right:-6px;bottom:-12px;width:96px}
+.go{display:inline-flex;align-items:center;gap:6px;margin-top:12px;border-radius:99px;background:linear-gradient(90deg,#4cc062,#2f9e4a);color:#fff;font-weight:900;font-size:15px;padding:11px 18px;box-shadow:0 4px 0 #2a8a40}
+.tabs{position:absolute;left:16px;right:16px;top:276px;display:flex;gap:8px;align-items:center}
+.tabs span{border-radius:99px;padding:7px 12px;font-weight:900;font-size:13px;background:#f3f1ec;color:#7a857e}
+.tabs span.on{background:#2f3a33;color:#fff}
+.tabs span b{margin-left:4px;opacity:.7}
+.tabs .srch{margin-left:auto;width:36px;height:36px;border-radius:12px;background:#f3f1ec;display:grid;place-items:center;padding:0}
+.list{position:absolute;left:16px;right:16px;top:326px;bottom:86px;overflow:hidden}
+.mrow{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1.5px solid #f0eee8}
+.pt{flex:none;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-weight:900;font-size:12.5px;color:#fff}
+.mrow b{display:block;font-weight:900;font-size:15px}
+.mrow small{display:block;font-weight:800;font-size:12px;color:#a3aba5}
+.mrow .tr{margin-left:auto;text-align:right;font-weight:900;font-size:12px}
+.trap{display:inline-block;border-radius:99px;padding:2px 8px;font-size:11.5px;font-weight:900}
+/* review */
+.rv{position:absolute;inset:0;background:linear-gradient(180deg,#fff0f3,#fbfaf7 40%)}
+.rtop{position:absolute;left:18px;right:18px;top:54px;display:flex;align-items:center;gap:10px}
+.rtop .x{width:36px;height:36px;border-radius:12px;background:#fff;display:grid;place-items:center;font-weight:900;font-size:16px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.rbar{flex:1;height:10px;border-radius:9px;background:#f3dfe4;overflow:hidden}.rbar i{display:block;height:100%;width:37%;background:linear-gradient(90deg,#ff7a9c,#ff5c86)}
+.rtop small{font-weight:900;font-size:13px;color:#d3456b}
+.qcard{position:absolute;left:16px;right:16px;top:108px;border-radius:26px;background:#fff;padding:18px;box-shadow:0 8px 24px rgba(200,80,120,.12)}
+.qcard .meta{display:flex;gap:6px;align-items:center;font-weight:900;font-size:12px}
+.qcard .q{font-weight:800;font-size:17px;line-height:1.45;margin-top:12px}
+.qcard .q u{text-decoration:none;border-bottom:3px solid #ffb3c6;padding:0 22px}
+.opt{display:flex;align-items:center;gap:10px;border-radius:16px;background:#f7f5f0;padding:13px 14px;margin-top:10px;font-weight:900;font-size:15.5px}
+.opt em{font-style:normal;width:28px;height:28px;border-radius:9px;background:#fff;display:grid;place-items:center;font-size:13px;color:#7a857e;flex:none}
+.opt.ok{background:#e3f7e7;box-shadow:inset 0 0 0 2.5px #46b35a;color:#2f8a42}.opt.ok em{background:#46b35a;color:#fff}
+.opt.bad{background:#ffe9ee;box-shadow:inset 0 0 0 2.5px #ff7a9c;color:#d3456b}.opt.bad em{background:#ff7a9c;color:#fff}
+.why{display:flex;gap:10px;align-items:flex-start;border-radius:18px;background:#fff8e6;padding:12px;margin-top:12px;font-weight:800;font-size:13.5px;line-height:1.4}
+.why .soc{width:46px;flex:none;margin:-4px 0 -8px}
+.why b{color:#a06a00}
+.bot{position:absolute;left:16px;right:16px;bottom:34px;display:flex;gap:10px}
+.bbtn{flex:1;border-radius:99px;padding:15px 0;text-align:center;font-weight:900;font-size:16px}
+/* capture */
+.cv{position:absolute;inset:0;background:#1d2420}
+.vf{position:absolute;left:16px;right:16px;top:96px;height:470px;border-radius:24px;background:linear-gradient(160deg,#f4f1ea,#e6e1d6);overflow:hidden}
+.vf .pg{position:absolute;left:30px;right:30px;top:24px;bottom:24px;background:#fff;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.18);transform:rotate(-2deg);padding:18px}
+.vf .pg i{display:block;height:7px;border-radius:4px;background:#e4e7ea;margin-top:9px}
+.vf .pg i.r{background:#ffc1cc}.vf .pg i.h{background:#1c8fe3;height:12px;width:60%;margin-top:0}
+.corner{position:absolute;width:34px;height:34px;border:4px solid #fff;border-radius:6px}
+.thumbs{position:absolute;left:16px;right:16px;top:584px;display:flex;gap:8px;align-items:center}
+.thumbs i{width:52px;height:66px;border-radius:10px;background:repeating-linear-gradient(180deg,#fff 0 7px,#e4e7ea 7px 9px);box-shadow:inset 0 0 0 2px #46b35a;position:relative}
+.thumbs i:after{content:'✓';position:absolute;right:-5px;top:-6px;width:18px;height:18px;border-radius:50%;background:#46b35a;color:#fff;font-size:11px;font-weight:900;display:grid;place-items:center}
+.thumbs span{font-weight:800;font-size:12.5px;color:#c9cfcb;margin-left:6px;line-height:1.3}
+.shoot{position:absolute;left:50%;bottom:116px;width:78px;height:78px;margin-left:-39px;border-radius:50%;background:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.3)}
+.send{position:absolute;left:16px;right:16px;bottom:34px;border-radius:99px;background:linear-gradient(90deg,#ff7a9c,#ff5c86);color:#fff;font-weight:900;font-size:16px;padding:15px 0;text-align:center;box-shadow:0 5px 0 #b8324f}
+.psg{position:absolute;left:16px;right:16px;top:100px;border-radius:22px;background:#fff;box-shadow:0 6px 18px rgba(200,80,120,.1);overflow:hidden}
+.psg .phd{display:flex;align-items:center;gap:6px;padding:12px 14px 6px;font-weight:900;font-size:12px}
+.psg .ptx{padding:0 14px 30px;font-weight:700;font-size:14px;line-height:1.55;color:#3f4a43;height:var(--h);overflow:hidden;position:relative}
+.psg .ptx:after{content:'';position:absolute;left:0;right:0;bottom:0;height:46px;background:linear-gradient(transparent,#fff)}
+.psg .pmore{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);border-radius:99px;background:#f3f1ec;padding:5px 12px;font-weight:900;font-size:12px;color:#5e6962;z-index:2;white-space:nowrap}
+.hl{background:#fff1b8;border-radius:4px;padding:0 2px;box-shadow:0 0 0 2px #fff1b8}
+.blank{display:inline-block;border-radius:6px;background:#ffe3ea;color:#d3456b;font-weight:900;padding:0 6px;font-size:12.5px}
+.qq{position:absolute;left:16px;right:16px}
+.qq .qt{font-weight:900;font-size:15.5px;line-height:1.35;margin-bottom:2px}
+.qq .opt{padding:10px 12px;margin-top:8px;font-size:14.5px}
+.quote{display:block;margin-top:6px;border-left:3px solid #ffc83d;padding-left:8px;font-weight:700;font-size:12.5px;color:#7a6a3e;font-style:italic}
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);z-index:25}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 30px;z-index:40}
+
+.src{border-radius:99px;background:#f3f1ec;padding:3px 9px;font-weight:900;font-size:11.5px;color:#5e6962;white-space:nowrap}
+.shot{position:relative;margin:0 14px 14px;height:var(--h);border-radius:14px;overflow:hidden;background:#f4f1ea}
+.shot .pg{position:absolute;left:-10px;right:-10px;top:-40px;background:#fff;padding:14px 20px;transform:rotate(-1.5deg)}
+.shot .pg i{display:block;height:7px;border-radius:4px;background:#d9dde1;margin-top:9px}
+.shot .box,.vpg .box{position:absolute;border:3px solid #ffc83d;border-radius:8px;background:rgba(255,200,61,.18)}
+.zoom{position:absolute;right:10px;bottom:10px;border-radius:99px;background:rgba(47,58,51,.75);color:#fff;font-weight:900;font-size:12px;padding:5px 10px}
+.viewer{position:absolute;inset:0;background:#111}
+.vpg i{display:block;height:8px;border-radius:4px;background:#d9dde1;margin-top:11px}
+
+.tip{position:absolute;left:16px;right:16px;top:96px;z-index:4;display:flex;align-items:center;gap:8px;border-radius:14px;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:12.5px;padding:8px 12px}
+.tipcard{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tc{border-radius:16px;padding:8px;text-align:center;font-weight:900;font-size:12.5px}
+.tc .im{height:96px;border-radius:10px;background:#fff;position:relative;overflow:hidden;margin-bottom:6px;box-shadow:inset 0 0 0 1px #eee}
+.tc .im i{display:block;height:5px;border-radius:3px;background:#cfd4d8;margin:7px 10px 0}
+.tl{display:flex;align-items:center;gap:10px;padding:8px 2px;font-weight:900;font-size:14px}
+.tl em{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex:none}
+.thumbs i.warn{box-shadow:inset 0 0 0 2.5px #ffb020;filter:blur(1.2px)}
+.thumbs i.warn:after{content:'!';background:#ffb020}
+.warnbar{position:absolute;left:16px;right:16px;top:670px;display:flex;align-items:center;gap:10px;border-radius:16px;background:#fff4d1;padding:10px 12px;font-weight:800;font-size:12.5px;color:#7a5a00;z-index:4}
+.warnbar b{color:#5a3d00}
+.warnbar span.re{margin-left:auto;border-radius:99px;background:#ffb020;color:#fff;padding:6px 11px;font-weight:900;white-space:nowrap}
+
+</style></head><body>
+<div class="cap">Sổ tay trên điện thoại<small>Danh sách → ôn thẻ → chụp trang chữa bài. Mỗi màn một nút chính. Khi ôn hoặc chụp thì ẩn thanh điều hướng.</small></div>
+<div class="row" id="R1"></div>
+<div class="cap">Part 6 và Part 7: câu có đoạn văn<small>Câu chụp trang chữa bài được Sóc chép thành chữ, câu dán giữ nguyên chữ, nên cả hai hiện cùng một khung. Khung cao cố định, tự cuộn tới câu đang hỏi và tô vàng câu đó; “Xem cả đoạn” mở toàn bộ. Câu hỏi, lựa chọn và nút luôn nằm cố định bên dưới, không bị đoạn văn đẩy xuống. Giải thích trích đúng câu trong đoạn.</small></div>
+<div class="row" id="R2"></div>
+<div class="cap">Câu ghi tay kèm ảnh (Part 1 / Part 7)<small>Câu chụp trang chữa bài và câu dán đều đã thành chữ nên dùng khung ở trên. Chỉ câu ghi tay có đính kèm ảnh mới hiện ảnh trong cùng khung; bấm để phóng to. Bằng chứng nằm trong lời giải thích của Sóc, không khoanh trên ảnh.</small></div>
+<div class="row" id="R3"></div>
+<div class="cap">Nhắc chụp rõ<small>Lần đầu mở camera: một bảng 3 mẹo kèm ảnh mẫu đúng/sai. Lúc chụp: một dòng nhắc nhỏ trên khung. Sau khi chụp: máy tự kiểm ảnh (mờ, tối, nghiêng) ngay trên điện thoại, không tốn lượt AI; ảnh có vấn đề gắn dấu “!” và gợi ý chụp lại, nhưng vẫn cho gửi.</small></div>
+<div class="row" id="R4"></div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const S=k=>`<span class="soc">${SOC[k]}</span>`;
+const sv=d=>`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const icon={home:['#46b35a',sv('<path d="M4 11 12 4l8 7v9h-5v-5H9v5H4z" fill="#fff" stroke="none"/>')],j:['#ffc83d',sv('<path d="M6 19v-4M12 19V10M18 19V5"/>')],p:['#a78bfa',sv('<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M10 3h4"/>')],n:['#ff7a9c',sv('<path d="M5 5h6v14H5zM13 5h6v14h-6z" fill="#fff" stroke="none"/>')]};
+const NAV=(on='home')=>`<nav class="nav">${[['home','Hôm nay'],['j','Hành trình'],['add','Ghi'],['p','Luyện tập'],['n','Sổ tay']].map(([k,l])=>k==='add'?`<a class="add"><i>+</i>${l}</a>`:`<a class="${k===on?'on':''}"><i style="background:${icon[k][0]}">${icon[k][1]}</i>${k==='n'?'<span class="badge">8</span>':''}${l}</a>`).join('')}</nav>`;
+const SB=(c='#2f3a33')=>`<div class="sb" style="color:${c}"><span>9:41</span><i></i></div>`;
+const TOP=`<div class="top"><span class="chip">🔥 6</span><span class="chip" style="color:#7c5ce0">📅 Đặt ngày thi</span><span class="av"><s>${S('idle')}</s><em>4</em></span></div>`;
+/* stairs: x0,y0 = bottom-left; w step width, rise per step */
+function stairs(x0,base,w,rise,h0,cur=5,n=9,labels=true){
+  let o='';const vals=[560,590,620,650,680,710,740,770];
+  for(let i=0;i<n-1;i++){const hh=h0+rise*i, x=x0+i*w;
+    const done=i<cur, now=i===cur;
+    const f=done?'linear-gradient(90deg,#f5b82e 50%,#e39a12 50%)':now?'linear-gradient(90deg,#3fae55 50%,#2a8a40 50%)':'linear-gradient(90deg,#efedf8 50%,#e0dcf1 50%)';
+    const c=done?'#ffd25e':now?'#6fd07f':'#f6f4fc';
+    o+=`<div class="st" style="left:${x}px;top:${base-hh}px;width:${w}px;height:${hh}px"><div class="f" style="top:0;background:${f}"></div><div class="c" style="background:${c}"></div>${labels?`<span class="lb" style="top:${now?8:10}px;${done||now?'':'color:#9a94bb;background:#fff'}">${vals[i]}</span>`:''}</div>`;}
+  return o;}
+const TROPHY=(x,y,s=1)=>`<svg class="troph" style="left:${x}px;top:${y}px;width:${90*s}px" viewBox="0 0 90 100"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#ffc83d"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#fff6d0"/><rect x="38" y="58" width="14" height="12" fill="#f0a500"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d"/><rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33"/><text x="45" y="92" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="12" fill="#ffd25e">800</text></svg>`;
+const DOTS=`<div class="dots">${'iiiiigooo'.split('').map(c=>`<i class="${c==='g'?'g':c==='o'?'o':''}"></i>`).join('')}<span>BẬC 6/9 · CÒN 75 ĐIỂM</span></div>`;
+const NEXT=(soc=true)=>`<div class="next"><small>TIẾP THEO · 8 PHÚT</small><h3>Ôn 8 câu sai</h3><p>Đến hạn hôm nay</p><div class="btns"><span class="btn">▶ Bắt đầu</span><span class="skip">Bỏ qua hôm nay</span></div>${soc?S('idle'):''}</div>`;
+const CANDLES=`<div class="cake"><div class="tier"></div>${[0,1,2,3,4,5,6].map(i=>`<div class="cd ${i===0?'l':''}" style="left:${5+i*14.8}%;margin-left:-3px"></div>`).join('')}</div><div class="days"><b>Nay</b><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>`;
+const STREAK=`<div class="streak"><div class="h"><span class="fl">🔥</span><b>6</b><span>ngày liền · còn 6 nến là xong bánh</span><small>❄ 2</small></div>${CANDLES}<div class="goal">Mục tiêu tuần: <b>1/5</b> buổi<i></i><a>Sửa</a></div></div>`;
+const STREAK_MINI=`<div class="streak" style="display:flex;align-items:center;gap:10px;padding:10px 14px"><span class="fl" style="font-size:22px">🔥</span><div><b style="font-size:20px">6</b> <span style="font-weight:900;font-size:12.5px;color:#ff7a1a">ngày liền</span><div style="font-weight:800;font-size:11.5px;color:var(--mut)">Tuần này 1/5 buổi</div></div><div style="margin-left:auto;display:flex;gap:5px;align-items:flex-end">${[1,0,0,0,0,0,0].map((l,i)=>`<i style="width:7px;height:${l?22:16}px;border-radius:3px;background:${l?'#ff7a9c':'#f2e9ec'};${l?'box-shadow:0 -7px 0 -1px #ffb020':''}"></i>`).join('')}</div></div>`;
+
+
+const PT={5:'#7c5ce0',6:'#1c8fe3',7:'#e0557f',3:'#d99a00'};
+const TRAP={'Bẫy từ vựng':['#fff4d1','#a06a00'],'Ngữ pháp':['#e6f1ff','#1c6fc0'],'Suy luận':['#f1ebff','#6a4fd0'],'Đọc sót':['#ffe9ee','#d3456b']};
+const rows=[[5,101,'Bẫy từ vựng','ôn hôm nay'],[5,104,'Ngữ pháp','ôn hôm nay'],[6,135,'Ngữ pháp','ôn hôm nay'],[7,162,'Suy luận','ôn hôm nay'],[7,171,'Đọc sót','ôn hôm nay'],[5,118,'Bẫy từ vựng','sau 3 ngày'],[3,48,'Đọc sót','sau 5 ngày']];
+const LIST=`<div class="ph" style="background:#fbfaf7">${SB()}
+<div class="hd4"><h2>Sổ tay</h2><span class="cam">📷 Chụp</span><span class="av" style="margin-left:6px"><s>${S('idle')}</s><em>4</em></span></div>
+<div class="due"><h3>8 câu đến hạn<br>ôn hôm nay</h3><p>Nhiều nhất Part 5 · khoảng 6 phút</p><span class="go">▶ Ôn 8 câu</span>${S('idle')}</div>
+<div class="tabs"><span class="on">Cần ôn<b>8</b></span><span>Đã thuộc<b>12</b></span><span>Tất cả<b>20</b></span><span class="srch">🔍</span></div>
+<div class="list">${rows.map(([p,n,t,d])=>`<div class="mrow"><span class="pt" style="background:${PT[p]}">P${p}</span><div><b>Câu ${n}</b><span class="trap" style="background:${TRAP[t][0]};color:${TRAP[t][1]}">${t}</span></div><span class="tr" style="color:${d==='ôn hôm nay'?'#d3456b':'#a3aba5'}">${d}</span></div>`).join('')}</div>
+${NAV('n')}</div>`;
+
+const Q=`<div class="meta"><span class="pt" style="width:auto;height:auto;padding:3px 9px;border-radius:99px;background:#7c5ce0">Part 5 · câu 101</span><span class="trap" style="background:#fff4d1;color:#a06a00">Bẫy từ vựng</span></div>
+<div class="q">The manager asked all staff to <u>&nbsp;</u> the new safety rules by Friday.</div>`;
+const REVIEW=`<div class="ph">${SB()}<div class="rv"></div>
+<div class="rtop"><span class="x">×</span><span class="rbar"><i></i></span><small>3/8</small></div>
+<div class="qcard">${Q}
+${['comply','follow','obey to','agree'].map((o,i)=>`<div class="opt"><em>${'ABCD'[i]}</em>${o}</div>`).join('')}</div>
+<div style="position:absolute;left:24px;right:16px;top:500px;display:flex;gap:10px;align-items:center"><span class="soc" style="width:58px">${SOC.think}</span><span style="font-weight:800;font-size:13px;color:var(--mut)">Lần trước bạn chọn (A). Thử lại nhé!</span></div>
+</div>`;
+const FLIP=`<div class="ph">${SB()}<div class="rv"></div>
+<div class="rtop"><span class="x">×</span><span class="rbar"><i></i></span><small>3/8</small></div>
+<div class="qcard">${Q}
+<div class="opt bad"><em>A</em>comply<span style="margin-left:auto;font-size:12px">bạn chọn</span></div><div class="opt ok"><em>B</em>follow<span style="margin-left:auto;font-size:12px">đúng</span></div>
+<div class="why"><span class="soc">${SOC.idle}</span><div><b>“comply” phải đi với “with”.</b> Ở đây không có “with” nên chọn “follow”.</div></div></div>
+<div class="bot"><span class="bbtn" style="background:#fff;box-shadow:0 4px 0 #e8e3dc;color:#d3456b">Vẫn chưa chắc</span><span class="bbtn" style="background:linear-gradient(90deg,#4cc062,#2f9e4a);color:#fff;box-shadow:0 5px 0 #2a8a40">Hiểu rồi</span></div>
+</div>`;
+const CAPTURE=`<div class="ph" style="background:#1d2420">${SB('#fff')}<div class="cv"></div>
+<div style="position:absolute;left:18px;right:18px;top:52px;display:flex;align-items:center;color:#fff;z-index:3"><span class="x" style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900">×</span><b style="margin-left:12px;font-size:17px">Chụp trang chữa bài</b><span style="margin-left:auto;font-weight:900;font-size:13px;opacity:.75">🖼 Thư viện</span></div>
+<div class="vf"><div class="pg"><i class="h"></i>${'<i></i>'.repeat(5)}<i class="r" style="width:80%"></i><i></i><i></i><i class="r" style="width:60%"></i>${'<i></i>'.repeat(6)}<i class="r" style="width:70%"></i><i></i><i></i></div>
+<span class="corner" style="left:14px;top:14px;border-right:0;border-bottom:0"></span><span class="corner" style="right:14px;top:14px;border-left:0;border-bottom:0"></span><span class="corner" style="left:14px;bottom:14px;border-right:0;border-top:0"></span><span class="corner" style="right:14px;bottom:14px;border-left:0;border-top:0"></span></div>
+<div class="thumbs"><i></i><i></i><i></i><span>3 trang · chụp thêm<br>hoặc gửi Sóc đọc</span></div>
+<div class="shoot"></div>
+<div class="send">Gửi Sóc đọc 3 trang · 1 lượt AI</div></div>`;
+
+const TOPR=(n,t)=>`<div class="rv"></div><div class="rtop"><span class="x">×</span><span class="rbar"><i style="width:${n}%"></i></span><small>${t}</small></div>`;
+const P6=`<div class="ph">${SB()}${TOPR(62,'5/8')}
+<div class="psg"><div class="phd"><span class="trap" style="background:#1c8fe3;color:#fff">Part 6 · câu 135</span><span class="trap" style="background:#e6f1ff;color:#1c6fc0">Ngữ pháp</span><span style="margin-left:auto;color:#a3aba5">Email · 4 câu</span></div>
+<div class="ptx" style="--h:236px">Dear Ms. Patel,<br>Thank you for choosing Lakeview Hotel for your company retreat. We are pleased to confirm your booking for 25 guests from June 3 to June 5. <span class="hl">All rooms <span class="blank">135 ____</span> with a view of the lake.</span> Breakfast is served daily from 6:30 to 10:00 in the main dining hall. Should you need any changes, please contact us at least 48 hours in advance…</div><span class="pmore">Xem cả đoạn ⌄</span></div>
+<div class="qq" style="top:388px">${['are equipped','equipping','has equipped','to equip'].map((o,i)=>`<div class="opt"><em>${'ABCD'[i]}</em>${o}</div>`).join('')}</div>
+<div style="position:absolute;left:24px;right:16px;top:626px;display:flex;gap:10px;align-items:center"><span class="soc" style="width:52px">${SOC.think}</span><span style="font-weight:800;font-size:13px;color:var(--mut)">Chỗ trống đã tô vàng trong đoạn.</span></div>
+</div>`;
+const P7=`<div class="ph">${SB()}${TOPR(75,'6/8')}
+<div class="psg"><div class="phd"><span class="trap" style="background:#e0557f;color:#fff">Part 7 · câu 171</span><span class="trap" style="background:#ffe9ee;color:#d3456b">Đọc sót</span><span style="margin-left:auto;color:#a3aba5">171–174</span></div>
+<div class="ptx" style="--h:200px">…The renovation of the east wing will begin on Monday, March 4. During this period, the staff cafeteria will be closed. <span class="hl">Employees may use the temporary food court set up in the lobby of Building B,</span> which will be open from 7:00 A.M. to 3:00 P.M. Parking spaces in Lot C will also be unavailable…</div><span class="pmore">Xem cả đoạn ⌄</span></div>
+<div class="qq" style="top:352px"><div class="qt">Where can employees get lunch during the renovation?</div>
+${['In the east wing','In Building B','At a nearby restaurant','In Lot C'].map((o,i)=>`<div class="opt"><em>${'ABCD'[i]}</em>${o}</div>`).join('')}</div>
+</div>`;
+const P7A=`<div class="ph">${SB()}${TOPR(75,'6/8')}
+<div class="psg"><div class="phd"><span class="trap" style="background:#e0557f;color:#fff">Part 7 · câu 171</span><span class="trap" style="background:#ffe9ee;color:#d3456b">Đọc sót</span><span style="margin-left:auto;color:#a3aba5">171–174</span></div>
+<div class="ptx" style="--h:120px">…During this period, the staff cafeteria will be closed. <span class="hl">Employees may use the temporary food court set up in the lobby of Building B,</span> which will be open…</div><span class="pmore">Xem cả đoạn ⌄</span></div>
+<div class="qq" style="top:272px"><div class="qt">Where can employees get lunch during the renovation?</div>
+<div class="opt bad"><em>A</em>In the east wing<span style="margin-left:auto;font-size:12px">bạn chọn</span></div><div class="opt ok"><em>B</em>In Building B<span style="margin-left:auto;font-size:12px">đúng</span></div>
+<div class="why" style="margin-top:10px"><span class="soc">${SOC.idle}</span><div><b>East wing là chỗ đang sửa.</b> Đáp án nằm ở câu tô vàng:<span class="quote">“…food court set up in the lobby of Building B”</span></div></div></div>
+<div class="bot"><span class="bbtn" style="background:#fff;box-shadow:0 4px 0 #e8e3dc;color:#d3456b">Vẫn chưa chắc</span><span class="bbtn" style="background:linear-gradient(90deg,#4cc062,#2f9e4a);color:#fff;box-shadow:0 5px 0 #2a8a40">Hiểu rồi</span></div>
+</div>`;
+const FULL=`<div class="ph">${SB()}<div style="position:absolute;inset:0;filter:blur(1px)">${P7.replace(/^<div class="ph">/,'').replace(/<\/div>$/,'')}</div><div class="dim"></div>
+<div class="msheet" style="top:90px;padding-top:10px"><div class="grab"></div>
+<div style="display:flex;align-items:center;gap:8px"><b style="font-weight:900;font-size:17px">Thông báo · câu 171–174</b><span style="margin-left:auto;width:32px;height:32px;border-radius:10px;background:#f3f1ec;display:grid;place-items:center;font-weight:900">×</span></div>
+<div style="font-weight:700;font-size:14.5px;line-height:1.6;color:#3f4a43;margin-top:10px">To all staff,<br>The renovation of the east wing will begin on Monday, March 4. During this period, the staff cafeteria will be closed. <span class="hl">Employees may use the temporary food court set up in the lobby of Building B,</span> which will be open from 7:00 A.M. to 3:00 P.M.<br><br>Parking spaces in Lot C will also be unavailable. Staff who normally park there should use Lot A until further notice. We expect the work to be completed by the end of April.<br><br>Facilities Management</div>
+<div style="display:flex;gap:6px;margin-top:14px;font-weight:900;font-size:12px;color:#a3aba5;align-items:center">Câu trong nhóm: <span class="trap" style="background:#e0557f;color:#fff">171</span><span class="trap" style="background:#f3f1ec">172</span><span class="trap" style="background:#f3f1ec">173</span><span class="trap" style="background:#f3f1ec">174</span></div>
+</div></div>`;
+
+
+const PHOTO=`<div class="ph">${SB()}${TOPR(75,'6/8')}
+<div class="psg"><div class="phd"><span class="trap" style="background:#e0557f;color:#fff">Part 7 · câu 171</span><span class="trap" style="background:#ffe9ee;color:#d3456b">Đọc sót</span><span class="src" style="margin-left:auto">📷 Ảnh bạn đính kèm</span></div>
+<div class="shot" style="--h:196px"><div class="pg"><i style="width:95%"></i><i style="width:88%"></i><i style="width:92%"></i><i style="width:70%"></i><i style="width:96%"></i><i style="width:90%"></i><i style="width:85%"></i><i style="width:93%"></i><i style="width:60%"></i><i style="width:94%"></i><i style="width:89%"></i><i style="width:91%"></i><i style="width:76%"></i></div><span class="zoom">⤢ Phóng to</span></div></div>
+<div class="qq" style="top:352px"><div class="qt">Where can employees get lunch during the renovation?</div>
+${['In the east wing','In Building B','At a nearby restaurant','In Lot C'].map((o,i)=>`<div class="opt"><em>${'ABCD'[i]}</em>${o}</div>`).join('')}</div>
+</div>`;
+const VIEW=`<div class="ph" style="background:#111">${SB('#fff')}<div class="viewer"></div>
+<div style="position:absolute;left:18px;right:18px;top:52px;display:flex;align-items:center;color:#fff;z-index:3"><span style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900">×</span><b style="margin-left:12px;font-size:16px">Ảnh đính kèm</b></div>
+<div style="position:absolute;left:10px;right:10px;top:110px;height:560px;background:#fff;border-radius:6px;padding:20px 22px;transform:rotate(-1deg)" class="vpg"><i style="width:95%"></i><i style="width:88%"></i><i style="width:92%"></i><i style="width:70%"></i><i style="width:96%"></i><i style="width:90%"></i><i style="width:85%"></i><i style="width:93%"></i><i style="width:60%"></i><i style="width:94%"></i><i style="width:89%"></i><i style="width:91%"></i><i style="width:76%"></i><i style="width:95%"></i><i style="width:88%"></i><i style="width:92%"></i><i style="width:70%"></i><i style="width:96%"></i><i style="width:90%"></i><i style="width:85%"></i><i style="width:93%"></i><i style="width:60%"></i><i style="width:94%"></i><i style="width:89%"></i><i style="width:91%"></i><i style="width:76%"></i></div>
+<div style="position:absolute;left:16px;right:16px;bottom:40px;text-align:center;color:#c9cfcb;font-weight:800;font-size:12.5px">Chụm hai ngón để phóng to</div></div>`;
+
+
+const pageLines=`<i style="width:80%"></i><i style="width:70%"></i><i style="width:85%"></i><i style="width:60%"></i><i style="width:78%"></i><i style="width:72%"></i><i style="width:66%"></i><i style="width:82%"></i>`;
+const TIPS=`<div class="ph" style="background:#1d2420">${SB('#fff')}<div class="cv"></div><div class="dim"></div>
+<div class="msheet"><div class="grab"></div><div style="display:flex;align-items:center;gap:10px"><span class="soc" style="width:54px">${SOC.idle}</span><div><b style="font-weight:900;font-size:18px">Chụp sao cho Sóc đọc rõ</b><div style="font-weight:800;font-size:12.5px;color:var(--mut)">Chỉ hiện lần đầu · xem lại ở nút ⓘ</div></div></div>
+<div class="tipcard"><div class="tc" style="background:#e3f7e7;color:#2f8a42"><div class="im">${pageLines}</div>✓ Thẳng, đủ trang</div><div class="tc" style="background:#ffe9ee;color:#d3456b"><div class="im" style="transform:rotate(-8deg) scale(.92);filter:blur(1.6px)">${pageLines}</div>✕ Nghiêng, mờ</div></div>
+<div class="tl"><em style="background:#fff4d1">☀️</em>Đủ sáng, không bị bóng hay loá màn hình</div>
+<div class="tl"><em style="background:#e6f1ff">📐</em>Cầm thẳng, trang nằm gọn trong khung</div>
+<div class="tl"><em style="background:#ffe9ee">✔️</em>Thấy rõ số câu và đáp án đúng/sai</div>
+<span class="send" style="position:static;display:block;margin-top:10px">Hiểu rồi, mở camera</span></div></div>`;
+const CAMWARN=`<div class="ph" style="background:#1d2420">${SB('#fff')}<div class="cv"></div>
+<div style="position:absolute;left:18px;right:18px;top:52px;display:flex;align-items:center;color:#fff;z-index:3"><span style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900">×</span><b style="margin-left:12px;font-size:17px">Chụp trang chữa bài</b><span style="margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:900">ⓘ</span></div>
+<div class="vf" style="top:96px;height:450px"><div class="pg">${'<i></i>'.repeat(14)}</div></div>
+<div class="tip" style="top:108px">📐 Cầm thẳng hơn một chút</div>
+<div class="thumbs" style="top:564px"><i></i><i class="warn"></i><i></i><span>3 trang</span></div>
+<div class="warnbar"><div><b>Ảnh 2 hơi mờ.</b> Sóc có thể đọc sót câu.</div><span class="re">Chụp lại</span></div>
+<div class="send">Gửi Sóc đọc 3 trang · 1 lượt AI</div></div>`;
+
+const fw=(t,s,h)=>`<div class="fw"><b>${t}</b>${h}<span>${s}</span></div>`;
+document.getElementById('R1').innerHTML=
+ fw('Danh sách','Thẻ hồng: số câu đến hạn + nút Ôn. Nút Chụp ở góc trên. Ba tab Cần ôn / Đã thuộc / Tất cả; mỗi dòng chỉ còn Part, số câu, loại bẫy, hạn ôn.',LIST)+
+ fw('Ôn một câu','Toàn màn, không có thanh điều hướng. Câu hỏi và 4 lựa chọn to, dễ bấm. Sóc nhắc lần trước bạn chọn gì.',REVIEW)+
+ fw('Sau khi chọn','Đáp án đúng xanh, đáp án đã chọn hồng, Sóc giải thích một câu. Hai nút ở đáy như desktop: Vẫn chưa chắc / Hiểu rồi.',FLIP)+
+ fw('Chụp trang chữa bài','Mở camera ngay. Chụp nhiều trang, ảnh nhỏ hiện bên dưới. Một nút gửi cả loạt, tính 1 lượt AI.',CAPTURE);
+document.getElementById('R2').innerHTML=
+ fw('Part 6 · chỗ trống trong đoạn','Khung đoạn văn cao cố định, tự cuộn tới chỗ trống 135 và tô vàng. 4 lựa chọn luôn nằm dưới.',P6)+
+ fw('Part 7 · câu hỏi đọc hiểu','Câu chứa đáp án được tô vàng sẵn (đây là câu đã sai, ôn lại). Câu hỏi + 4 lựa chọn bên dưới.',P7)+
+ fw('Part 7 · sau khi chọn','Khung đoạn thu còn 3 dòng quanh câu tô vàng để chừa chỗ giải thích. Sóc trích đúng câu trong đoạn.',P7A)+
+ fw('Bấm “Xem cả đoạn”','Bảng trượt hiện cả đoạn, câu đáp án vẫn tô vàng; dưới cùng là các câu cùng nhóm 171–174.',FULL);
+document.getElementById('R3').innerHTML=
+ fw('Part 7 · câu kèm ảnh','Khung đoạn văn hiện ảnh bạn đính kèm, cùng chiều cao như khung chữ. Câu hỏi và lựa chọn vẫn ở chỗ cũ.',PHOTO)+
+ fw('Bấm “Phóng to”','Toàn màn tối, chụm hai ngón để phóng to, × để quay lại câu hỏi.',VIEW);
+document.getElementById('R4').innerHTML=
+ fw('Lần đầu mở camera','3 mẹo ngắn + ảnh mẫu đúng/sai. Chỉ hiện một lần; nút ⓘ trên camera mở lại.',TIPS)+
+ fw('Ảnh chưa rõ','Ảnh 2 mờ: viền cam, dấu “!”, thanh vàng gợi ý Chụp lại. Vẫn gửi được nếu muốn.',CAMWARN);
+</script></body></html>
