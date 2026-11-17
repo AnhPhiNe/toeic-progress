@@ -10,6 +10,9 @@ import { useBadgeReveal } from '../lib/useBadgeReveal';
 import { BadgeIcon } from './BadgeIcon';
 import { FlipReveal } from './FlipReveal';
 import { LevelUpGift } from './LevelUpGift';
+import { SocCoatPicker } from './SocCoatPicker';
+import type { SocCoatId } from '@/shared/ui/soc/socCoat';
+import { socIdentity, withSocCoat, withSocName, type SocIdentity } from '@/shared/ui/soc/socIdentity';
 import { FAMILY_SHORT, badgeAction, badgePercent } from './phone/awardsPhoneLogic';
 import './awards.css';
 import './awardsDesk.css';
@@ -157,9 +160,10 @@ export function AwardsPhone({ bundle, today, owner, onUpdateProfile }: Props) {
       </div>
 
       {detail && <BadgeSheet badge={detail} onClose={() => setDetail(null)} onGo={tab => { setDetail(null); goTab(tab); }} />}
-      {gearOpen && <WardrobeSheet level={lvl} worn={worn} onToggle={toggle} onClose={() => setGearOpen(false)} />}
+      {gearOpen && <WardrobeSheet level={lvl} worn={worn} onToggle={toggle} identity={socIdentity(bundle.profile)}
+        onCoat={coat => onUpdateProfile(p => withSocCoat(p, coat))} onName={name => onUpdateProfile(p => withSocName(p, name))} onClose={() => setGearOpen(false)} />}
       {reveal.current && <FlipReveal badge={reveal.current} remaining={reveal.remaining} flipped={reveal.flipped} onFlip={() => reveal.setFlipped(true)} onNext={reveal.next} />}
-      {giftLevel && giftItem && <LevelUpGift key={giftLevel} level={giftLevel} item={giftItem} worn={worn} onWear={() => closeGift(true)} onLater={() => closeGift(false)} />}
+      {giftLevel && giftItem && <LevelUpGift key={giftLevel} level={giftLevel} item={giftItem} worn={worn} socName={socIdentity(bundle.profile).name} onWear={() => closeGift(true)} onLater={() => closeGift(false)} />}
     </div>
   );
 }
@@ -192,13 +196,19 @@ function BadgeSheet({ badge, onClose, onGo }: { badge: Badge; onClose: () => voi
   );
 }
 
-function WardrobeSheet({ level, worn, onToggle, onClose }: { level: number; worn: SocGearId[]; onToggle: (id: SocGearId) => void; onClose: () => void }) {
+interface WardrobeProps {
+  level: number; worn: SocGearId[]; onToggle: (id: SocGearId) => void;
+  identity: SocIdentity; onCoat: (coat: SocCoatId) => void; onName: (name: string) => void; onClose: () => void;
+}
+
+function WardrobeSheet({ level, worn, onToggle, identity, onCoat, onName, onClose }: WardrobeProps) {
   return (
     <PhoneSheet title="Đồ cho Sóc" onClose={onClose} hideTitle>
       <div className="awp-wh">
         <Soc state="idle" size={92} gear={worn} />
         <div><b>Đồ cho Sóc</b><small>Mỗi cấp mở một món · đang mặc {worn.length} món. Món đội đầu chỉ chọn một.</small></div>
       </div>
+      <SocCoatPicker className="awp-coat" coat={identity.coat} name={identity.name} onCoat={onCoat} onName={onName} />
       <div className="awp-wd">
         {GEAR.map(g => {
           const owned = g.level <= level, on = worn.includes(g.id);

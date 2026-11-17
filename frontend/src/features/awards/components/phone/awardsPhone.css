@@ -93,3 +93,5 @@
 .awp .awd-gift-btns .rd-btn { min-width: 0; flex: 1; min-height: 48px; }
 
 @media (prefers-reduced-motion: reduce) { .awp-rays { animation: none; } .awp-top, .awp-mini { transition: none; } }
+/* Sóc của bạn inside Đồ cho Sóc */
+.awp-coat { margin-top: 12px; padding: 12px 10px; border-radius: 20px; background: #fbfaf7; }

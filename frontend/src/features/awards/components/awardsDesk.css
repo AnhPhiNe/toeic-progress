@@ -119,3 +119,6 @@
   .awd-lid, .awd-item, .awd-pop, .awd-gift, .awd-gift-card { animation: none !important; transition: none !important; }
   .awd-cell.is-on:hover .awd-bd { transform: none; }
 }
+/* Sóc của bạn inside Tủ đồ */
+.awd-gp-coat { margin-top: 10px; padding: 10px 10px 12px; border-radius: 18px; background: #fbfaf7; }
+.awd-gp-coat .scp-it i { width: 38px; height: 38px; }

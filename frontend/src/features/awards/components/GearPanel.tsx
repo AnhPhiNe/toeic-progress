@@ -2,6 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { GEAR, type SocGearId } from '@/shared/ui/soc/socGear';
+import type { SocCoatId } from '@/shared/ui/soc/socCoat';
+import type { SocIdentity } from '@/shared/ui/soc/socIdentity';
+import { SocCoatPicker } from './SocCoatPicker';
 
 interface Props {
   /** The "Đổi đồ cho Sóc" button: the panel opens beside it. */
@@ -9,11 +12,15 @@ interface Props {
   level: number;
   worn: SocGearId[];
   onToggle: (id: SocGearId) => void;
+  /** Coat and name of the learner's Sóc, changed here too. */
+  identity: SocIdentity;
+  onCoat: (coat: SocCoatId) => void;
+  onName: (name: string) => void;
   onClose: () => void;
 }
 
 /** Floating wardrobe, in the style of the Hôm nay "Thêm việc của mình" panel: Esc or a click outside closes it. */
-export function GearPanel({ anchor, level, worn, onToggle, onClose }: Props) {
+export function GearPanel({ anchor, level, worn, onToggle, identity, onCoat, onName, onClose }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: 0, top: 0 });
 
@@ -42,6 +49,7 @@ export function GearPanel({ anchor, level, worn, onToggle, onClose }: Props) {
         <Soc state="hi" size={92} gear={worn} />
         <div><h4>Tủ đồ của Sóc</h4><p>Chạm món để Sóc đeo hoặc cởi. Món đội đầu chỉ chọn một.</p></div>
       </div>
+      <SocCoatPicker className="awd-gp-coat" coat={identity.coat} name={identity.name} onCoat={onCoat} onName={onName} />
       <ul>
         {GEAR.map(g => {
           const owned = g.level <= level, on = worn.includes(g.id);
