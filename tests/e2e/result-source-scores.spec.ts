@@ -1,7 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { resolve } from 'node:path';
+import { openManualEntry } from './helpers/manualEntry';
+import { sessionDialog } from './helpers/sessionForm';
+import { openScoreLogger } from './helpers/nav';
 
-async function openScores(page: Page, scores: { listening: number | null; reading: number | null; total: number | null }, width = 390) {
+async function openScores(page: Page, scores: { listening: number | null; reading: number | null; total: number | null }, width = 1280) {
   await page.setViewportSize({ width, height: 900 });
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
     contentType: 'application/javascript', body: `
@@ -15,49 +18,67 @@ async function openScores(page: Page, scores: { listening: number | null; readin
   await page.goto('/lich-su');
   await page.evaluate(() => localStorage.setItem('toeic_onboarding_done_v1', 'true'));
   await page.reload();
-  if (width < 768) {
-    await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-    await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
-  } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-  const form = page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
+  await openScoreLogger(page);
+  const form = sessionDialog(page);
+  // The paste view has no name field; the grid view behind "Nhập tay" does and keeps the "Ảnh kết quả" picker.
+  await openManualEntry(page, form);
   await form.locator('#session-test-name').fill('QA source score');
+  await form.getByRole('heading', { name: 'Ghi điểm' }).click();
   return form;
 }
 const upload = async (form: ReturnType<Page['getByRole']>) => form.getByLabel('Ảnh kết quả').setInputFiles(resolve('tests/fixtures/part7-notice.png'));
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.find((row: { testName: string }) => row.testName === 'QA source score'));
 
-for (const width of [390, 1280]) {
-  test(`source L/R overrides the estimate only after review and retains wrong questions at ${width}px`, async ({ page }, testInfo) => {
-    const form = await openScores(page, { listening: 375, reading: 370, total: 745 }, width);
-    await upload(form);
-    const review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
-    await expect(review).toBeVisible();
-    await expect(review.getByLabel('Điểm từ ảnh: Listening')).toHaveValue('375');
-    await expect(form.getByText('745', { exact: true })).toHaveCount(0);
-    await page.keyboard.press('Escape');
-    await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
-    await expect(form.getByRole('alert')).toContainText('Kiểm tra và áp dụng điểm từ đề');
-    expect(await saved(page)).toBeUndefined();
-    await page.screenshot({ path: testInfo.outputPath(`source-score-${width}.png`), fullPage: true });
-    await form.getByRole('button', { name: /Kiểm tra điểm chưa áp dụng|Điểm từ đề: Cần kiểm tra/ }).click();
-    await review.getByLabel('Điểm từ ảnh: Reading').fill('375');
-    await review.getByLabel('Điểm từ ảnh: Tổng').fill('750');
-    await review.getByRole('button', { name: 'Áp dụng điểm từ đề', exact: true }).click();
-    await expect(review).toHaveCount(0);
-    await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
-    await expect.poll(() => saved(page)).toMatchObject({ scoreSource: 'MANUAL_SECTIONS', totalScore: 750,
-      scaledListening: 375, scaledReading: 375, wrongQuestions: [3, 107, 117, 153] });
-    const drafts = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.map((row: { questionNumber: number }) => row.questionNumber));
-    expect(drafts).toEqual([107, 117, 153]);
-    await page.reload();
-    expect(await saved(page)).toMatchObject({ totalScore: 750, wrongQuestions: [3, 107, 117, 153] });
-  });
-}
+test('consistent source L/R apply on their own, replace the estimate and retain wrong questions', async ({ page }, testInfo) => {
+  const form = await openScores(page, { listening: 375, reading: 370, total: 745 });
+  await upload(form);
+  // Nothing to review: the sections add up to the total, so the official score is applied straight away.
+  await expect(page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' })).toHaveCount(0);
+  await expect(form.getByText('Chính thức', { exact: true })).toBeVisible();
+  await expect(form.getByText('745', { exact: true })).toBeVisible();
+  await expect(form).toContainText(/L\s*375\s*R\s*370/);
+  await page.screenshot({ path: testInfo.outputPath('source-score-1280.png'), fullPage: true });
+  await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
+  await expect.poll(() => saved(page)).toMatchObject({ scoreSource: 'MANUAL_SECTIONS', totalScore: 745,
+    scaledListening: 375, scaledReading: 370, wrongQuestions: [3, 107, 117, 153] });
+  const drafts = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.map((row: { questionNumber: number }) => row.questionNumber));
+  expect(drafts).toEqual([107, 117, 153]);
+  await page.reload();
+  expect(await saved(page)).toMatchObject({ totalScore: 745, wrongQuestions: [3, 107, 117, 153] });
+});
+
+test('image scores that do not add up replace the estimate only after review and retain wrong questions', async ({ page }, testInfo) => {
+  const form = await openScores(page, { listening: 375, reading: 370, total: 800 });
+  await upload(form);
+  const review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
+  await expect(review).toBeVisible();
+  await expect(review.getByLabel('Điểm từ ảnh: Listening')).toHaveValue('375');
+  await expect(form.getByText('800', { exact: true })).toHaveCount(0);
+  // Reading the image alone does not block saving; once the learner edits a value it must be applied (or dropped) first.
+  await review.getByLabel('Điểm từ ảnh: Reading').fill('375');
+  await page.keyboard.press('Escape');
+  await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
+  await expect(form.getByRole('alert')).toContainText('Kiểm tra và áp dụng điểm từ đề');
+  expect(await saved(page)).toBeUndefined();
+  await page.screenshot({ path: testInfo.outputPath('source-score-review-1280.png'), fullPage: true });
+  await form.getByRole('button', { name: /Kiểm tra điểm chưa áp dụng|Điểm từ đề: Cần kiểm tra/ }).click();
+  await review.getByLabel('Điểm từ ảnh: Tổng').fill('750');
+  await review.getByRole('button', { name: 'Áp dụng điểm từ đề', exact: true }).click();
+  await expect(review).toHaveCount(0);
+  await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
+  await expect.poll(() => saved(page)).toMatchObject({ scoreSource: 'MANUAL_SECTIONS', totalScore: 750,
+    scaledListening: 375, scaledReading: 375, wrongQuestions: [3, 107, 117, 153] });
+  const drafts = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes.map((row: { questionNumber: number }) => row.questionNumber));
+  expect(drafts).toEqual([107, 117, 153]);
+  await page.reload();
+  expect(await saved(page)).toMatchObject({ totalScore: 750, wrongQuestions: [3, 107, 117, 153] });
+});
 
 test('total-only image scores remain total-only and retain the marked questions', async ({ page }) => {
   const form = await openScores(page, { listening: null, reading: null, total: 800 });
   await upload(form);
-  await page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' }).getByRole('button', { name: 'Áp dụng điểm từ đề', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' })).toHaveCount(0);
+  await expect(form.getByText('800', { exact: true })).toBeVisible();
   await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
   await expect.poll(() => saved(page)).toMatchObject({ totalScore: 800, scoreSource: 'MANUAL_TOTAL', wrongQuestions: [3, 107, 117, 153] });
   expect(await saved(page)).not.toHaveProperty('scaledListening');
@@ -81,7 +102,7 @@ test('a result without visible scores permits manual source entry without anothe
   const form = await openScores(page, { listening: null, reading: null, total: null });
   await upload(form);
   await expect(page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' })).toHaveCount(0);
-  await form.getByRole('button', { name: 'Nhập điểm từ đề (tùy chọn)', exact: true }).click();
+  await form.getByRole('button', { name: /^Điểm từ đề thi/ }).click();
   const review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await review.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await review.getByLabel('Điểm từ ảnh: Tổng').fill('805');
@@ -90,20 +111,24 @@ test('a result without visible scores permits manual source entry without anothe
   await expect.poll(() => saved(page)).toMatchObject({ scoreSource: 'MANUAL_TOTAL', totalScore: 805 });
 });
 
-test('using the estimate requires an explicit choice when the image contains source scores', async ({ page }) => {
+test('dropping the applied source scores is the explicit choice to use the estimate', async ({ page }) => {
   const form = await openScores(page, { listening: 375, reading: 370, total: 745 });
   await upload(form);
-  await page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' }).getByRole('button', { name: 'Dùng điểm ước tính', exact: true }).click();
+  await expect(form.getByText('Chính thức', { exact: true })).toBeVisible();
+  await form.getByRole('button', { name: '✕ Bỏ' }).click();
+  await expect(form.getByText('Chính thức', { exact: true })).toHaveCount(0);
   await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
   await expect.poll(() => saved(page)).toMatchObject({ scoreSource: 'ESTIMATED', wrongQuestions: [3, 107, 117, 153] });
 });
 
-test('unapplied source scores and learner corrections survive the responsive layout change', async ({ page }) => {
-  const form = await openScores(page, { listening: 375, reading: 370, total: 745 });
+test('unapplied source scores and learner corrections survive a window resize', async ({ page }) => {
+  const form = await openScores(page, { listening: 375, reading: 370, total: 800 });
   await upload(form);
   let review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await review.getByLabel('Điểm từ ảnh: Listening').fill('400');
   await review.getByLabel('Điểm từ ảnh: Reading').fill('345');
+  // Phones (<768px) log through the full-screen PhoneLogger instead, so the resize stays within the computer form.
+  await page.setViewportSize({ width: 800, height: 900 });
   await page.setViewportSize({ width: 1280, height: 900 });
   review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await expect(review.getByLabel('Điểm từ ảnh: Listening')).toHaveValue('400');

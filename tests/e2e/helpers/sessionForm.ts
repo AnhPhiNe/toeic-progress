@@ -1,4 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { openScoreLogger } from './nav';
+import { openManualEntry } from './manualEntry';
 
 /** A new Full Test ends on its result screen; tests that keep working in the app close it first. */
 export async function closeTestResult(page: Page) {
@@ -25,12 +27,12 @@ export async function useOfficialScore(dialog: Locator) {
   await dialog.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
 }
 
-/** Rows carry a pencil on larger screens; on phones the edit lives in the session detail. */
+/** Hành trình: the "Các đề" tab lists full tests; a row opens the test drawer (desktop) or sheet (phone), whose "Sửa điểm" opens the edit form. */
 export async function openHistoryEdit(page: Page, testName: string) {
-  const pencil = page.getByRole('button', { name: `Sửa bản ghi ${testName}` });
-  if (await pencil.isVisible()) { await pencil.click(); return; }
-  await page.getByRole('button', { name: new RegExp(`^Xem chi tiết ${testName}`) }).first().click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Sửa kết quả', exact: true }).click();
+  if (!page.url().includes('/lich-su')) await page.goto('/lich-su', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('tab', { name: /^Các đề/ }).click();
+  await page.getByRole('button', { name: testName }).first().click();
+  await page.getByRole('button', { name: 'Sửa điểm', exact: true }).click();
 }
 
 /** Phones log a Full Test by its wrong questions; tests that type per-Part counts switch to the counts entry first. */
@@ -42,4 +44,51 @@ export async function usePartCounts(dialog: Locator) {
   }
   const link = dialog.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true });
   if (await link.isVisible()) await link.click();
+}
+
+/** A Part practice is edited from its row under "Mẻ bánh gần đây" on Luyện tập (a sheet behind the clock button on phones); rows read "Part 7 · 1 sai". */
+export async function openPracticeEdit(page: Page, rowTitle: string) {
+  if (!page.url().includes('/luyen-toc-do')) await page.goto('/luyen-toc-do', { waitUntil: 'domcontentloaded' });
+  const recent = page.getByRole('button', { name: 'Mẻ bánh gần đây', exact: true });
+  if (await recent.isVisible()) await recent.click();
+  await page.getByRole('button', { name: rowTitle }).first().click();
+}
+
+/** The computer score form on its grid view: the paste view has no test-name field, the "Nhập tay" views do. */
+export async function openGridForm(page: Page) {
+  await openScoreLogger(page);
+  const form = sessionDialog(page);
+  await openManualEntry(page, form);
+  return form;
+}
+
+/** The full-screen PhoneLogger (phones log new results here; its header changes per step, so it is found by its class). */
+export const phoneLogger = (page: Page) => page.locator('[role="dialog"].pl-dialog');
+
+/** PhoneLogger step 1: choose the test from the chips, or type a new name under "Đề khác". */
+export async function pickPhoneTestName(page: Page, name: string) {
+  const dialog = phoneLogger(page);
+  const chip = dialog.getByRole('group', { name: 'Đề', exact: true }).getByRole('button', { name, exact: true });
+  if (await chip.count()) { await chip.click(); return; }
+  await dialog.getByRole('button', { name: /Đề khác/ }).click();
+  await page.keyboard.type(name);
+  const existing = page.getByRole('option', { name, exact: true });
+  await ((await existing.count()) ? existing : page.getByRole('option', { name: `+ Thêm tên đề “${name}”`, exact: true })).click();
+}
+
+/** PhoneLogger: step 1 (name) then "Tự nhập điểm" to reach the Nghe/Đọc wheels. */
+export async function phoneManualScore(page: Page, name: string) {
+  await pickPhoneTestName(page, name);
+  await phoneLogger(page).getByRole('button', { name: /^Tự nhập điểm/ }).click();
+}
+
+/** Moves a wheel to a value with the keyboard (Home, then PageDown = 10 rows, ArrowDown = 1 row). */
+export async function setWheel(dialog: Locator, label: 'Điểm Nghe' | 'Điểm Đọc', target: number, step = 5, min = 5) {
+  const wheel = dialog.getByRole('spinbutton', { name: label, exact: true });
+  await wheel.focus();
+  await wheel.press('Home');
+  const rows = Math.round((target - min) / step);
+  for (let jump = Math.floor(rows / 10); jump > 0; jump--) await wheel.press('PageDown');
+  for (let one = rows % 10; one > 0; one--) await wheel.press('ArrowDown');
+  await expect(wheel).toHaveAttribute('aria-valuenow', String(target));
 }

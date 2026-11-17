@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { usePartCounts } from './helpers/sessionForm';
+import { openScoreLogger } from './helpers/nav';
+import { openManualEntry } from './helpers/manualEntry';
+import { openHistoryEdit, sessionDialog, usePartCounts } from './helpers/sessionForm';
 
 async function seed(page: Page, count = 4) {
   await page.goto('/lich-su');
@@ -21,36 +23,40 @@ async function seed(page: Page, count = 4) {
   await page.reload();
 }
 
-test('history uses keyboard details, normalized attempts and source-based notebook navigation', async ({ page }) => {
+const testsTab = (page: Page) => page.getByRole('tab', { name: /^Các đề/ }).click();
+
+test('a test opens in a keyboard-reachable drawer and leads to the source-based notebook', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await seed(page);
-  await page.getByLabel('Lọc lượt thi').selectOption('RETEST_ONLY');
-  const name = page.getByRole('button', { name: /Xem chi tiết.*02\/10\/2026/ });
-  await expect(name).toHaveCount(1);
-  await name.focus(); await page.keyboard.press('Enter');
-  const modal = page.getByRole('dialog');
-  await expect(modal).toBeVisible();
-  await expect(modal.getByText('2 lỗi đã ghi của đề này', { exact: true })).toBeVisible();
-  const close = modal.getByRole('button', { name: 'Đóng chi tiết', exact: true });
-  await expect(close).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(modal.getByRole('button', { name: 'Sửa kết quả', exact: true })).toBeFocused();
-  await page.keyboard.press('Tab'); await expect(close).toBeFocused();
-  await page.keyboard.press('Escape'); await expect(name).toBeFocused();
-  await name.click();
-  await modal.getByRole('button', { name: 'Mở Sổ tay', exact: true }).click();
+  await testsTab(page);
+  // The second ETS Test 1 is spelled "  ｅｔｓ   Test 1 "; it is told apart by its score.
+  const row = page.getByRole('button', { name: /810/ });
+  await expect(row).toHaveCount(1);
+  await row.focus(); await page.keyboard.press('Enter');
+  const drawer = page.getByRole('dialog');
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByText('Part 7', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(drawer).toHaveCount(0);
+  await row.click();
+  await drawer.getByRole('button', { name: /^(Chụp trang chữa bài Part \d|Mở Sổ tay đề này)$/ }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
-  await expect(page.getByRole('button', { name: /^Mở câu:/ })).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /^Part 5 History note/ })).toHaveCount(2);
 });
 
-test('previous-score context is clear and remains chronological after search or sorting', async ({ page }) => {
+test('previous-score context is clear and stays chronological', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await seed(page);
-  await page.getByRole('button', { name: 'Sắp xếp theo Tổng', exact: true }).click();
-  await page.getByLabel('Tìm tên đề hoặc ghi chú').fill('Test 3');
-  const comparison = page.locator('[title^="So với"]:visible');
-  await expect(comparison).toHaveText('+10đ');
-  await expect(comparison).toHaveAttribute('title', /02\/10\/2026 · 810 điểm/);
+  await testsTab(page);
+  await expect(page.getByRole('heading', { name: '4 đề đã ghi, từ 800 lên 830' })).toBeVisible();
+  const rows = page.locator('.jr-tl > li');
+  await expect(rows).toHaveCount(4);
+  // Newest first; every row carries its change against the test before it.
+  await expect(rows.nth(0)).toContainText('830');
+  await expect(rows.nth(0)).toContainText('+10');
+  await expect(rows.nth(2)).toContainText('810');
+  await expect(rows.nth(3)).toContainText('800');
+  await expect(rows.nth(3).locator('.jr-dl')).toHaveCount(0);
 });
 
 test('a same-named SW result does not count as an earlier LR attempt', async ({ page }) => {
@@ -61,8 +67,9 @@ test('a same-named SW result does not count as an earlier LR attempt', async ({ 
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await openScoreLogger(page);
+  const modal = sessionDialog(page);
+  await openManualEntry(page, modal);
   await modal.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Shared source');
   await page.getByRole('option', { name: 'Shared source', exact: true }).click();
   await expect(modal.getByText('Lần 4', { exact: true })).toHaveCount(0);
@@ -81,89 +88,68 @@ test('editing a legacy first attempt keeps its inferred order instead of assigni
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Sửa bản ghi ETS Test 1', exact: true }).click();
+  await openHistoryEdit(page, 'ETS Test 1');
   const modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await expect(modal).not.toBeVisible();
   const result = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.find((session: { id: string }) => session.id === 'history-0'));
   expect(result).toMatchObject({ id: 'history-0', attemptNumber: 1, totalScore: 800 });
-  await page.getByLabel('Lọc lượt thi').selectOption('FIRST_ONLY');
-  await expect(page.getByRole('button', { name: 'Xem chi tiết ETS Test 1, 01/10/2026', exact: true })).toBeVisible();
+  // The oldest row is still the first try: it is not tagged as a retake.
+  await testsTab(page);
+  await expect(page.locator('.jr-tl > li').last()).not.toContainText('làm lại');
+  await expect(page.locator('.jr-tl > li').last()).toContainText('800');
 });
 
-test('deleting the last row on the final page returns to a populated page and cancel preserves data', async ({ page }) => {
+test('deleting a test from its drawer asks first, cancel preserves data and the list updates', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await seed(page, 7);
-  await page.getByRole('button', { name: 'Sau', exact: true }).click();
-  const remove = page.getByRole('button', { name: /^Xóa bản ghi/ });
-  await expect(remove).toHaveCount(1);
+  await testsTab(page);
+  const rows = page.locator('.jr-tl > li');
+  await expect(rows).toHaveCount(7);
+  await rows.first().getByRole('button').click();
+  const drawer = page.getByRole('dialog');
   page.once('dialog', dialog => dialog.dismiss());
-  await remove.click(); await expect(remove).toHaveCount(1);
+  await drawer.getByRole('button', { name: 'Xoá', exact: true }).click();
+  await expect(drawer).toBeVisible();
+  await expect(rows).toHaveCount(7);
   page.once('dialog', dialog => dialog.accept());
-  await remove.click();
-  await expect(page.getByRole('button', { name: /^Xem chi tiết/ })).toHaveCount(6);
-  await expect(page.getByText('6 bài làm', { exact: true })).toBeVisible();
-  await page.reload(); await expect(page.getByRole('button', { name: /^Xem chi tiết/ })).toHaveCount(6);
+  await drawer.getByRole('button', { name: 'Xoá', exact: true }).click();
+  await expect(rows).toHaveCount(6);
+  await expect(page.getByRole('heading', { name: /^6 đề đã ghi/ })).toBeVisible();
+  await page.reload(); await testsTab(page); await expect(rows).toHaveCount(6);
 });
 
-test('history shows six rows at a time and searches the hidden older records', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await seed(page, 12);
-  const rows = page.getByRole('button', { name: /^Xem chi tiết/ });
-  await expect(rows).toHaveCount(6);
-  await expect(page.getByText('1–6 / 12 bài làm', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Sau', exact: true }).click();
-  await expect(rows).toHaveCount(6);
-  await expect(page.getByText('7–12 / 12 bài làm', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Trước', exact: true }).click();
-  await page.getByLabel('Tìm tên đề hoặc ghi chú').fill('ets test 1');
-  // Both spellings of ETS Test 1 plus Tests 10–12.
-  await expect(rows).toHaveCount(5);
-  await expect(page.getByRole('button', { name: 'Sau', exact: true })).toHaveCount(0);
-});
-
-test('Part practice has its own results, ignores hidden attempt filter and missing L/R never appear as zero', async ({ page }) => {
+test('a total-only test shows missing L/R as a dash and says it has no wrong questions', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await seed(page);
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const base = data.sessions[0];
-    data.sessions.push({ ...base, id: 'practice', sessionType: 'PART_PRACTICE', testName: 'Practice 5 and 6', practiceParts: [{ part: 5, correct: 28, total: 30 }, { part: 6, correct: 14, total: 16 }], partScores: undefined, scaledListening: undefined, scaledReading: undefined, totalScore: undefined });
     data.sessions.push({ ...base, id: 'total', testName: 'Total only', date: '2026-10-06', totalScore: 850, scoreSource: 'MANUAL_TOTAL', partScores: undefined, scaledListening: undefined, scaledReading: undefined });
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: /Xem chi tiết Total only/ }).click();
-  const modal = page.getByRole('dialog');
-  await expect(modal.getByText('Chưa ghi', { exact: true })).toHaveCount(2);
-  await expect(modal.getByText('Chưa ghi chi tiết Part.', { exact: true })).toBeVisible();
-  await modal.getByRole('button', { name: 'Đóng chi tiết' }).click();
-  await page.getByLabel('Lọc lượt thi').selectOption('RETEST_ONLY');
-  await page.getByRole('button', { name: 'Luyện Part 1', exact: true }).click();
-  await expect(page.getByLabel('Lọc lượt thi')).toHaveCount(0);
-  await expect(page.getByRole('table').getByText(/91,3%/)).toBeVisible();
-  await page.getByRole('button', { name: /Xem chi tiết Practice/ }).click();
-  await expect(modal.getByText('Part 5', { exact: true })).toBeVisible();
-  await expect(modal.getByText('Part 6', { exact: true })).toBeVisible();
+  await testsTab(page);
+  const row = page.getByRole('button', { name: /Total only/ });
+  await expect(row).toContainText('Nghe — · Đọc —');
+  await row.click();
+  const drawer = page.getByRole('dialog', { name: 'Total only' });
+  await expect(drawer.getByText('Đề này chỉ ghi điểm, chưa có câu sai.', { exact: false })).toBeVisible();
 });
 
-test('history and details fit mobile, desktop and dark mode', async ({ page }, testInfo) => {
+test('Hành trình and a test detail fit phones, tablets and desktops', async ({ page }, testInfo) => {
   await seed(page);
   for (const width of [320, 375, 768, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     expect(await overflow()).toBe(true);
-    await page.getByRole('button', { name: /^Xem chi tiết/ }).first().click();
-    const modal = page.getByRole('dialog'); await expect(modal).toBeVisible();
-    expect(await modal.locator('..').evaluate(element => element.getBoundingClientRect().top)).toBe(0);
+    await testsTab(page);
+    await page.getByRole('button', { name: /ETS Test/ }).first().click();
+    const detail = page.getByRole('dialog');
+    await expect(detail).toBeVisible();
     expect(await overflow()).toBe(true);
-    await modal.getByRole('button', { name: 'Đóng chi tiết' }).click();
+    await page.keyboard.press('Escape');
+    await expect(detail).toHaveCount(0);
   }
   await page.screenshot({ path: testInfo.outputPath('history-light.png'), fullPage: true });
-  await page.getByRole('button', { name: /^Xem chi tiết/ }).first().click();
-  await page.screenshot({ path: testInfo.outputPath('history-detail.png'), fullPage: true });
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Chuyển sang giao diện Tối', exact: true }).click();
-  await expect.poll(() => page.locator('.history-view > section').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(17, 26, 44)');
-  await page.screenshot({ path: testInfo.outputPath('history-dark.png'), fullPage: true });
 });

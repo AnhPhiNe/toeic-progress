@@ -1,13 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openScoreLogger } from './helpers/nav';
 
 async function openMinimal(page: Page, name: string) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  // The paste view has no name field (the picture names the test); the short "Nhập tay" view does.
+  await form.getByRole('button', { name: /^Nhập tay/ }).click();
   await form.locator('#session-test-name').fill(name);
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
-  await form.getByRole('button', { name: /^Nhập tay/ }).click();
   return form;
 }
 

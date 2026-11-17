@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { useOfficialScore } from './helpers/sessionForm';
+import { openHistoryEdit, openPracticeEdit, useOfficialScore } from './helpers/sessionForm';
+import { openManualEntry } from './helpers/manualEntry';
+import { openScoreLogger } from './helpers/nav';
 
 async function seed(page: Page, practice = false) {
   await page.goto('/lich-su');
@@ -13,7 +15,8 @@ async function seed(page: Page, practice = false) {
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
   }, practice);
   await page.reload();
-  await page.getByRole('button', { name: 'Sửa bản ghi Audit session', exact: true }).click();
+  if (practice) await openPracticeEdit(page, 'Part 5 · 10 sai');
+  else await openHistoryEdit(page, 'Audit session');
   return page.getByRole('dialog', { name: 'Sửa kết quả', exact: true });
 }
 
@@ -64,8 +67,9 @@ test('a Part practice change made elsewhere stays intact', async ({ page }) => {
 
 test('an open guest logger cannot write its draft into a newly active account', async ({ page }) => {
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  await openScoreLogger(page);
   const editor = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await openManualEntry(page, editor);
   await editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/, { exact: true }).fill('Guest draft');
   await useOfficialScore(editor);
   await editor.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();

@@ -19,21 +19,23 @@ async function seedUnfinished(page: Page) {
   await page.reload();
 }
 
-test('the overview has no resume banner; the notebook nav carries the unfinished-details reminder on a computer', async ({ page }) => {
+test('the overview has no resume banner; Sổ tay lists the unfinished details on a computer', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await seedUnfinished(page);
   await expect(page.getByRole('button', { name: /Tiếp tục ghi chi tiết/ })).toHaveCount(0);
-  const notebook = page.getByRole('button', { name: 'Sổ tay', exact: true });
-  await expect(notebook).toHaveAccessibleDescription('2 câu Reading chưa ghi chi tiết');
-  await notebook.click();
+  await page.getByRole('button', { name: /^Sổ tay/ }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
-  await expect(page.getByRole('region', { name: /^Chưa ghi chi tiết/ })).toBeVisible();
+  const pending = page.locator('.nb-pend');
+  await expect(pending.first()).toContainText('Same source');
+  await expect(pending.first()).toContainText('chưa ghi chi tiết');
+  await expect(pending.first().getByRole('button', { name: 'Ghi chi tiết', exact: true })).toBeVisible();
 });
 
-test('on a phone the review tab names the unfinished details', async ({ page }) => {
+test('on a phone Sổ tay names the unfinished details', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await seedUnfinished(page);
-  const bar = page.getByRole('navigation', { name: 'Điều hướng chính' });
-  await expect(bar.getByRole('button', { name: /^Ôn tập, .*2 câu chưa ghi chi tiết$/ })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: /^Sổ tay/ }).click();
+  await expect(page).toHaveURL(/\/so-tay$/);
+  await expect(page.getByRole('button', { name: /^Ghi chi tiết \d+ câu, Same source/ }).first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

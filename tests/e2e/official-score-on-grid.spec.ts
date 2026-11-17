@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openManualEntry } from './helpers/manualEntry';
+import { openScoreLogger } from './helpers/nav';
 
 test('entering official score stays on the 200-question grid and saves directly', async ({ page }) => {
   await page.setViewportSize({ width: 1240, height: 950 });
@@ -11,13 +12,13 @@ test('entering official score stays on the 200-question grid and saves directly'
   await page.waitForLoadState('networkidle');
 
   // Open 'Ghi điểm'
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await expect(form).toBeVisible();
 
   // Test name
-  await form.locator('#session-test-name').fill('Test Lưu Điểm Trực Tiếp');
   await openManualEntry(page, form);
+  await form.locator('#session-test-name').fill('Test Lưu Điểm Trực Tiếp');
 
   // Click "+ Nhập ›" on "Điểm từ đề thi"
   const enterScoreBtn = form.getByRole('button', { name: /Điểm từ đề thi/i });

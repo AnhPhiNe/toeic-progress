@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openHistoryEdit } from './helpers/sessionForm';
 
 async function seed(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -9,7 +10,7 @@ async function seed(page: Page) {
     const stamp = '2026-10-09T09:00:00Z';
     data.sessions = [{
       id: 'unrecorded', testName: 'ETS Chưa ghi giờ', skillType: 'LR', sessionType: 'FULL_TEST', date: '2026-10-08',
-      durationMinutes: 0, wrongQuestions: [3, 105], scoreSource: 'ESTIMATED', createdAt: stamp, updatedAt: stamp, deletedAt: null
+      durationMinutes: 0, wrongQuestions: [3, 105], scoreSource: 'ESTIMATED', totalScore: 980, scaledListening: 495, scaledReading: 485, createdAt: stamp, updatedAt: stamp, deletedAt: null
     }];
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   });
@@ -20,7 +21,7 @@ const storedDuration = (page: Page) => page.evaluate(() => JSON.parse(localStora
   .find((item: { id: string }) => item.id === 'unrecorded').durationMinutes);
 
 async function openEdit(page: Page) {
-  await page.getByRole('button', { name: 'Sửa bản ghi ETS Chưa ghi giờ' }).first().click();
+  await openHistoryEdit(page, 'ETS Chưa ghi giờ');
   const form = page.getByRole('dialog').first();
   await expect(form.locator('#session-test-name')).toHaveValue('ETS Chưa ghi giờ');
   return form;

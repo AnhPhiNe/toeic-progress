@@ -1,19 +1,16 @@
 import { test, expect } from '@playwright/test';
-import { openManualEntry } from './helpers/manualEntry';
+import { openGridForm } from './helpers/sessionForm';
 
-for (const width of [390, 1280]) {
+// Phones (<768px) log a Full Test through the full-screen PhoneLogger, covered in phone-session-form.spec.ts.
+for (const width of [1280]) {
   test(`actual Part time records only known values, preserves decimals, and isolates Escape at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 700 });
     await page.goto('/lich-su');
     await page.evaluate(() => localStorage.setItem('toeic_onboarding_done_v1', 'true'));
     await page.reload();
-    if (width < 768) {
-      await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-      await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
-    } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-    const form = page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
+const form = await openGridForm(page);
     await form.locator('#session-test-name').fill('QA actual Part time');
-    await openManualEntry(page, form);
+    await form.getByRole('heading', { name: 'Ghi điểm' }).click();
     // Record an actual wrong answer so saving does not invoke the separate
     // 990-point confirmation (Playwright dismisses unhandled native dialogs).
     await form.getByRole('button', { name: 'Câu 3', exact: true }).click();
