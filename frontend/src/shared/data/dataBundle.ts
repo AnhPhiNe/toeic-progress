@@ -78,7 +78,10 @@ export const DEFAULT_CHECKLIST: Record<string, boolean> = {
 export function defaultProfile(): UserProfile {
   return {
     name: 'Học viên',
+    // Placeholder only (the field is required, 10-990): goalChosen says the learner has not picked a goal yet,
+    // so screens show "Chưa chọn" via shownGoal()/goalLabel() in features/today/lib/goalSetup.
     targetScore: 990,
+    goalChosen: false,
     examDate: '',
     currentStreak: 0,
     longestStreak: 0,

@@ -21,6 +21,10 @@ interface Props {
   gear?: readonly string[];
   /** Welcome: no test yet, the first bar is lit green once the goal is confirmed. */
   lit?: boolean;
+  /** Clicking the trophy (with its ✎ dot) opens the goal editor beside it; hovering shows "✎ Đổi mục tiêu". */
+  onEditGoal?: (cup: SVGGElement) => void;
+  /** After a goal edit: blocks from index `from` on are new and rise in; the others stay put (`key` changes per save). */
+  added?: { key: number; from: number } | null;
 }
 
 const ddmm = (date?: string) => (date ? `${date.slice(8, 10)}/${date.slice(5, 7)}` : '');
@@ -45,7 +49,7 @@ function estimatePlan(target: number): Plan {
   return { status: 'climbing', target, step, best: 0, currentIndex: 0, steps: values.map(value => ({ value, reached: false })) };
 }
 
-export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, lit }: Props) {
+export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, lit, onEditGoal, added }: Props) {
   const empty = !plan;
   const p = useMemo(() => plan ?? estimatePlan(target), [plan, target]);
   const blocks = p.steps.length - 1;
@@ -78,6 +82,12 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
   };
 
   const [wiggle, setWiggle] = useState(0);
+  // "✎ Đổi mục tiêu" sits above the trophy while it is hovered or focused.
+  const [cupHover, setCupHover] = useState<{ x: number; y: number } | null>(null);
+  const showCupTag = (el: Element) => {
+    const s = sceneRef.current?.getBoundingClientRect(), r = el.getBoundingClientRect();
+    if (s) setCupHover({ x: r.left + r.width / 2 - s.left, y: r.top - s.top + 4 });
+  };
   // Choosing a new goal makes the trophy bounce and throws a few sparkles.
   const [burst, setBurst] = useState(0);
   const lastTarget = useRef(target);
@@ -181,8 +191,11 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
           const tipHtml = empty ? null : step.reached
             ? (i === 0 ? <>Xuất phát <b>{step.value}</b><br />{ddmm(step.reachedDate)}</> : <>Bậc <b>{step.value}</b> · đạt {ddmm(step.reachedDate)}</>)
             : <>Bậc <b>{step.value}</b> · còn {step.value - p.best} điểm</>;
+          const fresh = !!added && i >= added.from;
+          const blkKey = added ? `${fresh ? 'n' : 'e'}${added.key}:${i}` : `${p.target}:${i}`;
           return (
-            <g key={`${p.target}:${i}`} className="td-blk" style={{ animationDelay: `${0.09 * i}s` }}
+            <g key={blkKey} className={'td-blk' + (added && !fresh ? ' is-still' : '')}
+              style={{ animationDelay: fresh ? `${0.25 + 0.12 * (i - added.from)}s` : `${0.09 * i}s` }}
               onMouseMove={tipHtml ? e => move(e, tipHtml) : undefined} onMouseLeave={() => setTip(null)}>
               <path d={`M${x - tw} ${y} L${x} ${y + th} L${x} ${y + th + h} L${x - tw} ${y + h}Z`} fill={`url(#td${k}L)`} />
               <path d={`M${x} ${y + th} L${x + tw} ${y} L${x + tw} ${y + h} L${x} ${y + th + h}Z`} fill={`url(#td${k}R)`} />
@@ -231,9 +244,15 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
 
         <g transform={`translate(${g.cup.x} ${g.cup.y})`}>
           <g className={'td-cupbox' + (wiggle % 2 ? ' is-wig' : '') + (wiggle && wiggle % 2 === 0 ? ' is-wig2' : '')}
-            role="button" tabIndex={0} aria-label={`Cúp mục tiêu ${p.target}`}
-            onClick={() => setWiggle(w => w + 1)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setWiggle(w => w + 1); } }}
-            onMouseMove={e => move(e, cupTip, true)} onMouseLeave={() => setTip(null)}>
+            role="button" tabIndex={0} aria-label={onEditGoal ? `Cúp mục tiêu ${p.target}, đổi mục tiêu` : `Cúp mục tiêu ${p.target}`}
+            onClick={e => { setWiggle(w => w + 1); setCupHover(null); onEditGoal?.(e.currentTarget); }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setWiggle(w => w + 1); onEditGoal?.(e.currentTarget); } }}
+            onMouseEnter={onEditGoal ? e => showCupTag(e.currentTarget) : undefined}
+            onFocus={onEditGoal ? e => { if (e.currentTarget.matches(':focus-visible')) showCupTag(e.currentTarget); } : undefined}
+            onBlur={() => setCupHover(null)}
+            onMouseMove={onEditGoal ? undefined : e => move(e, cupTip, true)} onMouseLeave={() => { setTip(null); setCupHover(null); }}>
+            {/* Whole trophy (cup, base, ✎ dot) is one hit area, also while sparkles fly. */}
+            <rect x="-104" y="-92" width="208" height="206" fill="transparent" />
             <ellipse cx="0" cy="104" rx="84" ry="16" fill="#b0784a" opacity=".18" />
             <path d="M-58 68 L58 68 L66 100 L-66 100Z" fill="#3a463e" /><rect x="-62" y="62" width="124" height="10" rx="5" fill="#2f3a33" />
             {flip && <text key={`o${flip.n}`} className="td-lab is-out" x="0" y="93" fontWeight="900" fontSize="20" fill="#ffe58f" textAnchor="middle">{flip.from}</text>}
@@ -253,6 +272,12 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
                   d="M0 -9 l3 6 6 3 -6 3 -3 6 -3 -6 -6 -3 6 -3Z" fill={i % 2 ? '#fff' : '#ffe58f'} />
               ))}
             </g>}
+            {onEditGoal && <g transform="translate(74 86)" aria-hidden="true">
+              <circle r="17" fill="#fff" stroke="#ffd36b" strokeWidth="3" />
+              <g transform="translate(-9 -9) scale(.75)" fill="none" stroke="#a06a00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+              </g>
+            </g>}
             <path className="td-tw" d="M-92 -96 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z" fill="#fff" />
             <path className="td-tw" style={{ animationDelay: '.6s' }} d="M92 -118 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3Z" fill="#fff" />
             <path className="td-tw" style={{ animationDelay: '1.1s' }} d="M70 -20 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="#fff" />
@@ -264,6 +289,9 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
 
       <SceneryFront>{empty && socNode}</SceneryFront>
 
+      {cupHover && <div className="td-cuptag" style={{ left: cupHover.x, top: cupHover.y }} role="tooltip">
+        ✎ Đổi mục tiêu{!done && !empty && testsAhead ? <small>còn {cupLeft} điểm · khoảng {testsAhead} đề nữa</small> : null}
+      </div>}
       {tip && <div className={'td-tip' + (tip.left ? ' is-left' : '')} style={{ left: tip.x, top: tip.y }} role="tooltip">{tip.html}</div>}
     </div>
   );

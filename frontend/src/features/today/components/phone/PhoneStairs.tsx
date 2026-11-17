@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 import { phoneStairsLayout } from '../../lib/phoneStairsLayout';
+import { PencilIcon } from '../goal/GoalEditor';
 
 export interface StairTest { score: number; name: string; date: string }
 export interface StairStep { value: number; reached: boolean }
@@ -23,11 +24,14 @@ interface Props {
   w: number;
   top: number;
   base: number;
-  onCup?: () => void;
+  /** Tapping the trophy (with its ✎ dot) opens the goal editor. */
+  onCup?: (cup: HTMLElement) => void;
   /** Welcome moments: hide the whole scene (Sóc is greeting), grow the dashed bars in one by one, light the first bar green. */
   hidden?: boolean;
   grow?: boolean;
   lit?: boolean;
+  /** After a goal edit: bars from index `from` on are new and grow in (`key` changes once per save). */
+  added?: { key: number; from: number } | null;
 }
 
 const ddmm = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
@@ -38,7 +42,7 @@ const PAL = {
 };
 
 /** Flat stairs of the phone Hôm nay scene (bars, Sóc on the current one, trophy), laid out for the height left above the task panel. */
-export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, hidden, grow, lit }: Props) {
+export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, hidden, grow, lit, added }: Props) {
   const blocks = Math.max(1, steps.length - 1);
   const layout = useMemo(() => phoneStairsLayout({ w, top, base, blocks, cur: Math.max(0, cur) }), [w, top, base, blocks, cur]);
   const [tip, setTip] = useState<number | null>(null);
@@ -100,13 +104,16 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
           const k = estimate ? (lit && i === 0 ? 'now' : 'next') : i < cur ? 'done' : i === cur ? 'now' : 'next';
           const pal = PAL[k];
           const label = String(steps[i].value);
+          const fresh = !!added && i >= added.from;
           return (
-            <g key={i} role="button" tabIndex={0} aria-label={tipText(i)} className="tp-bar" style={{ '--i': i } as CSSProperties}
+            <g key={fresh ? `n${added.key}:${i}` : i} role="button" tabIndex={0} aria-label={tipText(i)} className={'tp-bar' + (fresh ? ' is-new' : '')}
+              style={{ '--i': i, '--n': fresh ? i - added.from : 0 } as CSSProperties}
               onClick={e => { e.stopPropagation(); setTip(t => (t === i ? null : i)); }}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTip(t => (t === i ? null : i)); } }}>
               <rect x={b.x} y={b.y} width={b.w / 2} height={b.h} fill={pal.l} />
               <rect x={b.x + b.w / 2} y={b.y} width={b.w / 2} height={b.h} fill={pal.r} />
               <rect x={b.x} y={b.y - 4} width={b.w} height="10" rx="3" fill={pal.cap} />
+              {fresh && <rect className="tp-newdash" x={b.x + 1} y={b.y - 3} width={b.w - 2} height={b.h + 3} rx="3" fill="#fff" stroke="#b9a6ff" strokeWidth="2" strokeDasharray="5 4" />}
               {estimate && <rect x={b.x + 1} y={b.y - 3} width={b.w - 2} height={b.h + 3} rx="3" fill="none" stroke="#c9c3e6" strokeWidth="2" strokeDasharray="5 5" />}
               {b.h > 54 && <>
                 <rect x={b.x + b.w / 2 - 16} y={b.y + 9} width="32" height="17" rx="8.5" fill={k === 'next' ? '#fff' : 'rgba(0,0,0,.18)'} />
@@ -122,8 +129,9 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
       </span>
 
       {onCup
-        ? <button type="button" className="tp-cup" aria-label={`Cúp mục tiêu ${target}, mở Hành trình`} style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}
-            onClick={e => { e.stopPropagation(); onCup(); }}><span key={flip?.n ?? 0} className={flip ? 'tp-wig' : undefined}>{cupSvg}</span></button>
+        ? <button type="button" className="tp-cup" aria-label={`Cúp mục tiêu ${target}, đổi mục tiêu`} style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}
+            onClick={e => { e.stopPropagation(); onCup(e.currentTarget); }}><span key={flip?.n ?? 0} className={flip ? 'tp-wig' : undefined}>{cupSvg}</span>
+            <span className="ge-pen tp-pen" aria-hidden="true"><PencilIcon size={13} /></span></button>
         : <div className="tp-cup" aria-hidden="true" style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}><span key={flip?.n ?? 0} className={flip ? 'tp-wig' : undefined}>{cupSvg}</span></div>}
 
       {tip !== null && tipBar && <div className="tp-tip" role="status" style={{ left: tipLeft, top: tipTop }}>{tipText(tip)}</div>}

@@ -19,6 +19,8 @@ import { StreakSheet } from './phone/StreakSheet';
 import { AddHabitSheet } from './phone/AddHabitSheet';
 import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
 import { useWelcome } from './welcome/useWelcome';
+import { GoalSheet } from './goal/GoalEditor';
+import { useGoalEdit } from './goal/useGoalEdit';
 import './today.css';
 import './phone/todayPhone.css';
 
@@ -41,12 +43,13 @@ export interface TodayPhoneProps {
   /** Mistake cards due today. */
   dueMistakesCount: number;
   soc: SocLook;
-  onNavigate: (tab: NavTabId) => void;
+  /** Unused since the trophy opens the goal editor instead of Hành trình (kept so App's call site needs no change). */
+  onNavigate?: (tab: NavTabId) => void;
 }
 
 interface Size { w: number; h: number; head: number; panel: number }
 
-export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc, onNavigate }: TodayPhoneProps) {
+export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc }: TodayPhoneProps) {
   const { profile, sessions, mistakes } = bundle;
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
@@ -66,6 +69,8 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
   const examIn = daysUntil(profile.examDate, today);
+  const goalEdit = useGoalEdit({ profile, sessions, today, onUpdateProfile });
+  const canEdit = mode !== 'choose' && !welcome.greeting;
 
   const tests = useMemo<StairTest[]>(() => sessions
     .filter(s => !s.deletedAt && s.sessionType === 'FULL_TEST' && s.skillType === 'LR' && Number.isFinite(s.totalScore))
@@ -108,21 +113,32 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
     : { kicker: 'HÔM NAY', title: 'Không có việc đến hạn', button: 'Luyện tập', onClick: onPracticeMore };
 
   return (
-    <div className={'rd tp' + (welcome.fresh ? ' is-welcome' : '')} ref={root}>
+    <div className={'rd tp' + (welcome.fresh ? ' is-welcome' : '') + (canEdit && goalEdit.pastTip ? ' has-pasttip' : '')} ref={root}>
       <PhoneStairs
         steps={steps} cur={cur} best={climbing?.best ?? 0} done={finished} estimate={!climbing}
         target={shownTarget} cupLabel={chosen || climbing ? undefined : '?'} tests={tests} gear={soc.worn}
         w={size.w} top={size.head + 6} base={base}
-        onCup={climbing ? () => onNavigate('history') : undefined}
-        hidden={welcome.greeting} grow={welcome.grew} lit={welcome.lit}
+        onCup={canEdit ? goalEdit.open : undefined}
+        hidden={welcome.greeting} grow={welcome.grew} lit={welcome.lit} added={goalEdit.grow}
       />
 
       <header className="tp-top">
-        {examIn !== null
-          ? <span className="tp-chip is-exam">{examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`}</span>
-          : <button type="button" className="tp-chip is-exam" onClick={onOpenSettings}><CalendarDays size={15} aria-hidden="true" />Đặt ngày thi</button>}
+        {!canEdit
+          ? (examIn !== null
+            ? <span className="tp-chip is-exam">{examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`}</span>
+            : <button type="button" className="tp-chip is-exam" onClick={onOpenSettings}><CalendarDays size={15} aria-hidden="true" />Đặt ngày thi</button>)
+          : goalEdit.exam.kind === 'past'
+            ? <button type="button" className="tp-chip is-exam is-exam-past" onClick={e => goalEdit.open(e.currentTarget)}>Đã qua ngày thi · Cập nhật</button>
+            : <button type="button" className="tp-chip is-exam" onClick={e => goalEdit.open(e.currentTarget)}>
+                {examIn !== null ? (examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`) : <><CalendarDays size={15} aria-hidden="true" />Đặt ngày thi</>}
+              </button>}
         <PhoneAvatarButton />
       </header>
+      {canEdit && goalEdit.pastTip && (
+        <SocBubble tail="up" className="tp-pasttip">
+          Thi xong chưa? <button type="button" className="ge-tipbtn" onClick={() => { goalEdit.hidePastTip(); onOpenSessionLogger(); }}>Ghi điểm thật</button> hoặc đặt ngày mới.
+        </SocBubble>
+      )}
 
       <div className="tp-head" ref={headRef}>
         {welcome.greeting
@@ -144,7 +160,7 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
           : mode === 'choose'
             ? <h1>Bạn muốn lên<br /><em>cúp bao nhiêu?</em></h1>
             : <h1>Cầu thang lên<br /><em>cúp {target}</em> đã dựng</h1>}
-        {mode === 'ready' && <button type="button" className="tp-edit" onClick={() => setEditingGoal(true)}>Sửa mục tiêu</button>}
+        {mode === 'ready' && <button type="button" className="tp-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button>}
       </div>
 
       {mode === 'choose' ? (
@@ -177,6 +193,12 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
       {welcome.greeting && <GreetSoc size={150} style={{ left: 0, right: 0, top: size.head + 6, bottom: size.panel + 12 }} />}
       {welcome.leapBubble && mode === 'ready' && <SocBubble tail="down" className="tp-leap" style={{ bottom: size.panel + 120 }}>Ghi <b>đề đầu tiên</b> là mình leo bậc 1!</SocBubble>}
       {welcome.confetti && <Confetti style={{ top: size.head + 60 }} />}
+      {goalEdit.said && <SocBubble tail="down" className="tp-said" style={{ top: size.head + 14 }}>{goalEdit.said}</SocBubble>}
+
+      {goalEdit.isOpen && (
+        <GoalSheet sessions={sessions} current={target} initial={target} best={goalEdit.best}
+          examDate={profile.examDate} today={today} onSave={goalEdit.save} onClose={goalEdit.close} />
+      )}
 
       {sheet === 'streak' && (
         <StreakSheet week={week} goal={goal} onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))} onClose={() => setSheet(null)} />
