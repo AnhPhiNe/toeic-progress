@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Pomodoro trong Tiệm bánh</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<link rel="stylesheet" href="_goalguide.css">
+<style>
+:root{--or:#ff8a3d;--orD:#d9661f;--vio:#a78bfa;--vioD:#7c5ce0}
+.bkbg{position:absolute;inset:0;background:repeating-linear-gradient(90deg,#fff4f7 0 44px,#ffecf2 44px 88px)}
+.bkbg.rest{background:repeating-linear-gradient(90deg,#f6f3ff 0 44px,#efeaff 44px 88px)}
+.floor{position:absolute;left:0;right:0;bottom:0;height:150px;background:repeating-conic-gradient(#f1e3d6 0 25%,#e9d6c5 0 50%) 0 0/80px 80px}
+.back{position:absolute;left:18px;top:56px;z-index:12;font-weight:900;font-size:14px;background:#fff;border-radius:14px;padding:8px 14px;box-shadow:0 0 0 2px #e6e9e6,0 3px 0 #e6e9e6}
+.kick{font-weight:900;font-size:12.5px;color:var(--vioD);letter-spacing:.5px}
+.h1{font-weight:900;font-size:27px;letter-spacing:-.8px;line-height:1.1}.h1 em{font-style:normal;color:var(--vioD)}
+.sub{font-weight:700;font-size:13.5px;color:var(--mut);margin-top:4px;line-height:1.35}
+.bake{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;padding:16px 0;font-weight:900;font-size:18px;color:#fff;background:linear-gradient(90deg,#ff7a1a,#ff5c7a);box-shadow:0 5px 0 #c84a3a}
+.wb{display:flex;align-items:center;justify-content:center;border-radius:99px;padding:15px 0;font-weight:900;font-size:16px;background:#fff;color:var(--ink);box-shadow:0 0 0 2px #e6e9e6,0 4px 0 #e6e9e6}
+.opt{flex:1;background:#fff;border-radius:22px;padding:14px 12px 12px;box-shadow:0 0 0 2px #fbe3ea,0 4px 0 #fbe3ea;position:relative;text-align:center}
+.opt.on{background:#fffbe9;box-shadow:0 0 0 3px #ffc83d,0 5px 0 #e8b62c}
+.opt b.n{display:block;font-weight:900;font-size:34px;letter-spacing:-1px;line-height:1}.opt b.n s{text-decoration:none;color:#9aa39d;font-size:26px;margin:0 2px}
+.opt small{display:block;font-weight:800;font-size:12.5px;color:var(--mut);margin-top:6px;line-height:1.3}
+.opt .tag{position:absolute;right:-4px;top:-8px;background:#46b35a;color:#fff;font-weight:900;font-size:10.5px;border-radius:99px;padding:2px 8px}
+.stp{display:flex;align-items:center;gap:10px;background:#fff3e8;border-radius:22px;padding:10px 12px;box-shadow:0 0 0 2px #ffe3cc}
+.stp i{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--or);font-style:normal;font-weight:900;font-size:24px;display:grid;place-items:center;box-shadow:0 2px 0 rgba(0,0,0,.08)}
+.stp b{font-weight:900;font-size:22px;color:#e8730c;min-width:34px;text-align:center}
+.stp span{font-weight:900;font-size:14.5px;flex:1}.stp span small{display:block;font-weight:800;font-size:12px;color:#c08a5e}
+.rd{display:flex;gap:8px;justify-content:center}.rd i{width:46px;height:12px;border-radius:9px;background:#e6e0f5;position:relative;overflow:hidden}
+.rd i.d{background:#46b35a}.rd i.c{background:#ffd9b8}.rd i.c:after{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--w,40%);background:var(--or);border-radius:9px}
+.rd i.rs{background:#cfe9ff}
+.bub{position:absolute;background:#fff;border-radius:16px;padding:10px 14px;font-weight:800;font-size:13.5px;line-height:1.35;box-shadow:0 5px 0 rgba(47,58,51,.1);z-index:6}
+.bub b{font-weight:900;color:var(--vioD)}
+.sc{position:absolute;z-index:6}.sc .soc{width:100%}
+.hat{position:absolute;z-index:7}
+.pills{display:flex;gap:10px}
+.tp{flex:1;display:flex;align-items:center;gap:8px;border-radius:99px;padding:5px 12px 5px 5px;font-weight:900;font-size:14.5px}
+.tp i{width:34px;height:34px;border-radius:50%;background:#fff;display:grid;place-items:center;font-style:normal;flex:none;font-size:15px}
+.tp.g{background:#d9f3de;color:#2f8a42;box-shadow:0 3px 0 #bfe3c6}.tp.y{background:#fdf0c2;color:#a77300;box-shadow:0 3px 0 #efd98a}
+.tp.p{background:#ffdbe5;color:#d64570;box-shadow:0 3px 0 #f4b9c9}
+.tp.gone{background:transparent;box-shadow:none;border:2.5px dashed #d64570;color:#d64570;opacity:.9}
+.tp.gone span{text-decoration:line-through}
+.note{width:1100px;background:#fff;border-radius:24px;padding:20px 22px;box-shadow:0 8px 0 rgba(47,58,51,.08)}
+.note h4{font-weight:900;font-size:16px;margin-bottom:12px}
+.mv{display:flex;align-items:flex-start;gap:10px;font-weight:800;font-size:14px;line-height:1.4;margin-top:10px}
+.mv b{font-weight:900}.mv u{flex:none;text-decoration:none;font-weight:900;color:#fff;background:#46b35a;border-radius:8px;padding:1px 8px;margin-top:1px;font-size:12px}
+.sect{margin:26px 0 0;font-weight:900;font-size:26px;letter-spacing:-.5px}.sect em{font-style:normal;color:var(--vioD)}
+.sect.b em{color:#d64570}
+.dkmain{position:absolute;inset:0;background:repeating-linear-gradient(90deg,#fff4f7 0 44px,#ffecf2 44px 88px)}
+.cf{position:absolute;z-index:3;width:9px;height:14px;border-radius:3px}
+</style></head>
+<body>
+<h2 class="sect" style="margin-top:0"><em style="color:#2f9e4a">C</em> · Mẻ tự do <span style="font-weight:700;font-size:15px;color:#3f4a43">Pomodoro biến mất, học tự do thành một món nữa trong tủ kính, đi cùng luồng chọn bánh → Bật lò → lò → ra lò</span></h2>
+<div class="cap"><small>Giữ nguyên những gì Pomodoro làm: chuông báo, rung, giữ màn hình sáng, phút tính vào "Đã luyện hôm nay" và chuỗi ngày, nghỉ dài sau 4 mẻ. Muốn mẻ khác 25 phút thì chỉnh bằng nút −/+ cạnh "Bật lò"; hết mẻ gợi ý nghỉ 5 phút.</small></div>
+<div class="row" id="rowC"></div>
+<div class="row" id="rowCD"></div>
+<h2 class="sect"><em>A</em> · Hẹn giờ lò 25/5 <span style="font-weight:700;font-size:15px;color:#3f4a43">nằm ngay trong Tiệm bánh, thay nút "Pomodoro" và màn "Đồng hồ phòng thi"</span></h2>
+<div class="row" id="rowA"></div>
+<div class="row" id="rowD"></div>
+
+<script src="lottie/soc-strings.js"></script>
+<script src="_goalguide.js"></script>
+<script>
+/* Local helpers; every name starts with pm to stay clear of _soc.js globals */
+const pmAwning=(W,h=46)=>{let s='';const n=Math.round(W/60);for(let i=0;i<n;i++)s+=`<rect x="${i*W/n}" y="0" width="${W/n+1}" height="${h}" fill="${i%2?'#fff':'#ff8fab'}"/><path d="M${i*W/n} ${h} Q${(i+.5)*W/n} ${h+22} ${(i+1)*W/n} ${h}Z" fill="${i%2?'#fff':'#ff8fab'}"/>`;return `<svg viewBox="0 0 ${W} ${h+26}" width="${W}" style="position:absolute;left:0;top:0;z-index:2">${s}<rect width="${W}" height="9" fill="#ff7a9c"/></svg>`};
+const pmBulbs=(W,y)=>{const n=Math.round(W/28);let s=`<path d="M0 0 ${Array.from({length:n},(_,i)=>`Q${(i+.5)*W/n} 22 ${(i+1)*W/n} 0`).join(' ')}" fill="none" stroke="#7a5b4a" stroke-width="2"/>`;for(let i=0;i<n;i++){const x=(i+.5)*W/n;s+=`<circle cx="${x}" cy="17" r="9" fill="#fff3a8" opacity=".35"/><ellipse cx="${x}" cy="16" rx="4.5" ry="6" fill="${['#ffe08a','#ffb3c6','#c8b6ff','#b6f0c0'][i%4]}"/>`}return `<svg viewBox="0 0 ${W} 34" width="${W}" style="position:absolute;left:0;top:${y}px;z-index:2">${s}</svg>`};
+const pmHat=(x,y,w)=>`<svg class="hat" style="left:${x}px;top:${y}px;width:${w}px" viewBox="0 0 60 46"><rect x="13" y="30" width="34" height="12" rx="3" fill="#fff" stroke="#e6e0f5" stroke-width="2"/><circle cx="18" cy="21" r="11" fill="#fff" stroke="#efeaf8" stroke-width="1.5"/><circle cx="30" cy="14" r="13" fill="#fff" stroke="#efeaf8" stroke-width="1.5"/><circle cx="42" cy="21" r="11" fill="#fff" stroke="#efeaf8" stroke-width="1.5"/></svg>`;
+const pmSteam=(x,y,s=1,op=.8)=>`<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="${op}"><path d="M-10 0 q-8 -12 0 -24 q8 -12 0 -24"/><path d="M10 -6 q-8 -12 0 -24 q8 -12 0 -24"/></g>`;
+/* Oven: top panel with clock, glass window with a loaf. state: bake | cool */
+const pmOven=(w,h,time,state='bake',label='')=>{
+  const wx=w*.1,wy=h*.3,ww=w*.8,wh=h*.46,cool=state==='cool',hot=state==='hot',r=w*.07;
+  return `<svg viewBox="0 0 ${w+14} ${h+16}" width="${w+14}" style="display:block"><defs><radialGradient id="pmg${state}" cy=".95" r=".9"><stop offset="0" stop-color="#ffe08a" stop-opacity=".95"/><stop offset=".6" stop-color="#ff9a4d" stop-opacity=".25"/><stop offset="1" stop-color="#ff9a4d" stop-opacity="0"/></radialGradient></defs>
+  <rect x="8" y="10" width="${w}" height="${h}" rx="${r}" fill="#d9cdf5"/><rect x="2" y="2" width="${w}" height="${h}" rx="${r}" fill="#fff" stroke="#e6e0f5" stroke-width="5"/>
+  <path d="M2 ${h*.22} V${r+2} Q2 2 ${r+2} 2 H${w-r+2} Q${w+2} 2 ${w+2} ${r+2} V${h*.22}Z" fill="${cool?'#8fb8e8':'#a78bfa'}"/>
+  <rect x="${w*.2}" y="${h*.035}" width="${w*.6}" height="${h*.13}" rx="10" fill="#2b2160"/><text x="${w/2+2}" y="${h*.135}" font-weight="900" font-size="${h*.1}" fill="${cool?'#8fd4ff':hot?'#ffb36b':'#9cf0a8'}" text-anchor="middle" letter-spacing="2" font-family="Nunito">${time}</text>
+  <circle cx="${w*.1+2}" cy="${h*.1}" r="${w*.055}" fill="#fff"/><line x1="${w*.1+2}" y1="${h*.1}" x2="${w*.1+2+w*.025}" y2="${h*.1-w*.03}" stroke="#7c5ce0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="${w*.9+2}" cy="${h*.1}" r="${w*.055}" fill="#fff"/><line x1="${w*.9+2}" y1="${h*.1}" x2="${w*.9+2-w*.025}" y2="${h*.1-w*.03}" stroke="#7c5ce0" stroke-width="5" stroke-linecap="round"/>
+  <rect x="${wx+2}" y="${wy}" width="${ww}" height="${wh}" rx="${w*.04}" fill="#3a2418"/>
+  <rect x="${wx+14}" y="${wy+12}" width="${ww-24}" height="${wh-24}" rx="${w*.03}" fill="${cool?'#8d7a6e':hot?'#ff5a3a':'#ff9a4d'}" opacity="${cool?.55:hot?.9:.75}"/>${cool?'':`<rect x="${wx+14}" y="${wy+12}" width="${ww-24}" height="${wh-24}" rx="${w*.03}" fill="url(#pmg${state})"/>`}
+  <line x1="${wx+24}" y1="${wy+wh-38}" x2="${wx+ww-12}" y2="${wy+wh-38}" stroke="#2b1a10" stroke-width="5"/>
+  <g transform="translate(${wx+ww/2+2} ${wy+wh-40})"><rect x="${-ww*.24}" y="-24" width="${ww*.48}" height="24" rx="6" fill="#c7cbd1"/><path d="M${-ww*.22} -24 Q${-ww*.24} -${24+wh*.2} 0 -${36+wh*.2} Q${ww*.24} -${24+wh*.2} ${ww*.22} -24Z" fill="${cool?'#e6c08c':'#f2c27a'}"/></g>
+  ${cool?'':`<g>${pmSteam(wx+ww*.25,wy+wh*.55,.45,.35)}${pmSteam(wx+ww*.75,wy+wh*.5,.45,.35)}</g>`}
+  <text x="${w/2+2}" y="${h*.86}" font-weight="900" font-size="${w*.036}" fill="#a593d8" text-anchor="middle" font-family="Nunito">${label}</text>
+  <rect x="${w*.1+2}" y="${h*.9}" width="${w*.8}" height="${h*.06}" rx="10" fill="#f3eefc"/></svg>`};
+const pmChef=(l,t,w)=>pmHat(Math.round(l+.27*w),Math.round(t-.25*w),Math.round(.56*w));
+const pmConf=(n,x0,y0,dx)=>ggConf(n,x0,y0,dx);
+const pmPhone=(inner,nav='p')=>`<div class="ph">${ggSb()}${inner}${ggNav(nav)}</div>`;
+
+/* ---- A1 choose */
+const pmA1=pmPhone(`<div class="bkbg"></div>${pmAwning(390,34)}${pmBulbs(390,52)}
+ <div class="back" style="top:100px">‹ Tiệm bánh</div>
+ <div style="position:absolute;left:20px;right:20px;top:156px;z-index:5"><div class="kick">HẸN GIỜ LÒ</div><div class="h1">Làm một việc,<br><em>nướng một mẻ</em></div><div class="sub">Tập trung hết mẻ, rồi nghỉ cho bánh nguội.</div></div>
+ <div style="position:absolute;left:18px;right:18px;top:314px;z-index:5;display:flex;gap:12px">
+  <div class="opt on"><span class="tag">Phổ biến</span><b class="n">25<s>/</s>5</b><small>nướng 25 phút<br>nghỉ 5 phút</small></div>
+  <div class="opt"><b class="n">50<s>/</s>10</b><small>nướng 50 phút<br>nghỉ 10 phút</small></div></div>
+ <div style="position:absolute;left:18px;right:18px;top:464px;z-index:5"><div class="stp"><i>−</i><b>4</b><i>+</i><span style="margin-left:6px">mẻ liên tiếp<small>tổng khoảng 1 giờ 55</small></span></div></div>
+ <div class="sc" style="left:18px;top:568px;width:110px">${ggSoc('idle')}</div>${pmChef(18,568,110)}
+ <div class="bub" style="left:132px;top:576px;width:222px">4 mẻ 25 phút là <b>100 phút</b> luyện đó!</div>
+ <div class="floor" style="height:0"></div>
+ <div style="position:absolute;left:18px;right:18px;top:680px;z-index:5"><div class="bake">🔥 Bật lò · mẻ 1/4</div></div>`);
+
+/* ---- A2 running focus */
+const pmA2=pmPhone(`<div class="bkbg"></div><div class="floor"></div>${pmBulbs(390,40)}
+ <div style="position:absolute;left:24px;top:62px;z-index:8"><b style="font-weight:900;font-size:22px">Mẻ 2/4</b><span style="display:block;font-weight:800;font-size:14px;color:var(--mut)">tập trung · 25/5</span></div>
+ <div style="position:absolute;right:20px;top:62px;z-index:8"><span class="wb" style="padding:9px 16px;font-size:14px;border-radius:14px">× Dừng</span></div>
+ <div style="position:absolute;left:46px;top:128px;width:298px;z-index:4">${pmOven(284,330,'18:42','bake','còn lại trong mẻ 25:00')}</div>
+ <div style="position:absolute;left:0;right:0;top:482px;z-index:5"><div class="rd"><i class="d"></i><i class="c" style="--w:25%"></i><i></i><i></i></div>
+  <div style="text-align:center;font-weight:900;font-size:15px;margin-top:12px">Xong mẻ này nghỉ <span style="color:#2a8fd6">5 phút</span></div></div>
+ <div class="sc" style="left:22px;top:572px;width:104px">${ggSoc('idle')}</div>${pmChef(22,572,104)}
+ <div class="bub" style="left:134px;top:582px;width:220px">Chỉ một việc thôi, <b>25 phút</b> nữa là nghỉ.</div>
+ <div style="position:absolute;left:18px;right:18px;top:680px;z-index:5;display:flex;gap:12px"><span class="wb" style="flex:1">Tạm dừng</span><span class="bake" style="flex:1.35;font-size:16px">Xong sớm · ra lò</span></div>`);
+
+/* ---- A3 rest */
+const pmA3=pmPhone(`<div class="bkbg rest"></div><div class="floor" style="filter:hue-rotate(200deg) saturate(.5) brightness(1.05)"></div>${pmBulbs(390,40)}
+ <div style="position:absolute;left:24px;top:62px;z-index:8"><b style="font-weight:900;font-size:22px">Nghỉ 5 phút</b><span style="display:block;font-weight:800;font-size:14px;color:var(--mut)">sau mẻ 2/4 · bánh đang nguội</span></div>
+ <div style="position:absolute;right:20px;top:62px;z-index:8"><span class="wb" style="padding:9px 16px;font-size:14px;border-radius:14px">× Dừng</span></div>
+ <div style="position:absolute;left:46px;top:128px;width:298px;z-index:4">${pmOven(284,330,'04:12','cool','nghỉ còn lại 5:00')}</div>
+ <div style="position:absolute;left:0;right:0;top:482px;z-index:5"><div class="rd"><i class="d"></i><i class="d"></i><i class="rs" style="background:linear-gradient(90deg,#8fc8f5 70%,#dbeeff 70%)"></i><i></i></div>
+  <div style="text-align:center;font-weight:900;font-size:15px;margin-top:12px">Xong nghỉ là tới <span style="color:var(--or)">mẻ 3</span></div></div>
+ <div class="sc" style="left:24px;top:578px;width:104px">${ggSoc('idle')}</div>
+ <svg style="position:absolute;left:100px;top:628px;z-index:8" width="40" height="46" viewBox="0 0 46 46"><path d="M10 18h22v9a11 11 0 0 1-22 0z" fill="#fff" stroke="#d8cdf2" stroke-width="3"/><path d="M32 20h4a5 5 0 0 1 0 10h-4" fill="none" stroke="#d8cdf2" stroke-width="3"/><path d="M16 12q-3-4 0-8M24 12q-3-4 0-8" stroke="#bda8ee" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+ <div class="bub" style="left:140px;top:590px;width:214px">Uống nước, <b>đứng dậy</b> duỗi người nhé.</div>
+ <div style="position:absolute;left:18px;right:18px;top:690px;z-index:5;display:flex;gap:12px"><span class="wb" style="flex:1">Nghỉ thêm</span><span class="bake" style="flex:1.35;font-size:16px">Nướng mẻ 3 ngay</span></div>`);
+
+/* ---- A4 finished */
+const pmTray=`<svg viewBox="-120 -70 240 100" width="250" style="display:block;margin:0 auto">${[-78,-26,26,78].map((x,i)=>`<g transform="translate(${x} 0)"><path d="M-20 0 L20 0 L15 28 L-15 28Z" fill="#ffc83d"/><path d="M-23 2 Q-27 -18 -8 -20 Q0 -36 9 -20 Q28 -18 23 2Z" fill="${['#ffd1dc','#c8b6ff','#ffd1dc','#c8b6ff'][i]}"/><circle cy="-31" r="5.5" fill="#ff5c7a"/></g>`).join('')}<rect x="-112" y="26" width="224" height="9" rx="4.5" fill="#c7cbd1"/></svg>`;
+const pmA4=pmPhone(`<div class="bkbg"></div>${pmBulbs(390,40)}${pmConf(26,16,120,14)}
+ <div style="position:absolute;left:18px;right:18px;top:96px;z-index:5;background:#fff;border-radius:30px;padding:20px 18px 20px;box-shadow:0 8px 0 rgba(47,58,51,.07),0 20px 40px rgba(200,120,80,.15);text-align:center">
+  <div style="position:absolute;left:50%;top:-16px;transform:translateX(-50%);background:#ffc83d;color:#6b4a00;font-weight:900;font-size:13px;border-radius:12px;padding:6px 14px;box-shadow:0 3px 0 #d99a00;white-space:nowrap">Xong cả 4 mẻ</div>
+  <div style="margin-top:18px">${pmTray}</div>
+  <div class="h1" style="font-size:28px;margin-top:8px">Ra lò 100 phút!</div>
+  <div class="sub" style="margin-top:6px">Sóc đã cộng vào <b style="color:var(--ink)">Đã luyện hôm nay</b> và chuỗi ngày học.</div>
+  <div style="display:flex;gap:10px;margin-top:16px"><div style="flex:1;background:#f7f5f0;border-radius:18px;padding:10px 6px"><small style="font-weight:800;font-size:12px;color:var(--mut)">Hôm nay trước đó</small><b style="display:block;font-weight:900;font-size:19px;margin-top:2px">25 phút</b></div>
+   <div style="display:grid;place-items:center;font-weight:900;font-size:22px;color:#46b35a">+</div>
+   <div style="flex:1;background:#eaf6ec;border-radius:18px;padding:10px 6px"><small style="font-weight:800;font-size:12px;color:#2f8a42">Hẹn giờ lò</small><b style="display:block;font-weight:900;font-size:19px;margin-top:2px;color:#2f8a42">100 phút</b></div></div>
+  <div style="margin-top:12px;font-weight:900;font-size:16px">= 2 giờ 5 phút hôm nay</div></div>
+ <div class="sc" style="left:24px;top:580px;width:110px">${ggSoc('idle')}</div>
+ <div class="bub" style="left:140px;top:590px;width:214px">Nướng hay quá! Muốn <b>ghi số câu sai</b> của đề vừa làm không?</div>
+ <div style="position:absolute;left:18px;right:18px;top:690px;z-index:5;display:flex;gap:12px"><span class="wb" style="flex:1">Nướng thêm</span><span class="bake" style="flex:1.35;font-size:16px;background:linear-gradient(90deg,#4cc062,#2f9e4a);box-shadow:0 5px 0 #2a8a40">Xong</span></div>`);
+
+document.getElementById('rowA').innerHTML=
+ ggFw('A1 · Chọn nhịp','Chọn 25/5 hoặc 50/10 và số mẻ; nút "Bật lò" cùng kiểu với Tiệm bánh.',pmA1)+
+ ggFw('A2 · Đang nướng','Lò đếm ngược, chấm tròn là các mẻ; không có tab Part hay bước nhịp câu.',pmA2)+
+ ggFw('A3 · Nghỉ 5 phút','Lò nguội, nền tím nhạt; Sóc ngồi uống nước, tay xuôi, không giơ tay.',pmA3)+
+ ggFw('A4 · Ra lò','Phút tập trung cộng thẳng vào "Đã luyện hôm nay" và chuỗi ngày học.',pmA4);
+
+/* ---- Desktop A (choose + running side by side inside one frame is too tight: show running) */
+const pmDk=`<div class="dk">${ggSide('p')}<div class="main"><div class="dkmain"></div>${pmBulbs(880,0).replace('width="880"','width="880"')}
+ <div style="position:absolute;left:36px;top:46px;z-index:5"><div class="kick">HẸN GIỜ LÒ · 25/5</div><div class="h1" style="font-size:28px;margin-top:2px">Mẻ 2/4 · tập trung</div></div>
+ <div style="position:absolute;right:34px;top:48px;z-index:5"><span class="wb" style="padding:9px 18px;font-size:14px;border-radius:14px">× Dừng</span></div>
+ <div style="position:absolute;left:36px;top:128px;width:360px;z-index:4">${pmOven(346,400,'18:42','bake','còn lại trong mẻ 25:00')}</div>
+ <div class="sc" style="left:420px;top:416px;width:130px">${ggSoc('idle')}</div>${pmChef(420,416,130)}
+ <div class="bub" style="left:400px;top:300px;width:170px;font-size:14px">Chỉ một việc thôi, <b>25 phút</b> nữa là nghỉ.</div>
+ <div style="position:absolute;left:580px;top:128px;width:264px;z-index:5;background:#fff;border-radius:24px;padding:18px;box-shadow:0 0 0 2px #ffe9d6,0 5px 0 #ffe9d6">
+  <div style="font-weight:900;font-size:12px;color:#e8730c;letter-spacing:.4px">CÁC MẺ</div>
+  ${[['Mẻ 1','25 phút · xong','d'],['Mẻ 2','đang nướng','c'],['Mẻ 3','chờ','o'],['Mẻ 4','chờ','o']].map(([a,b,s])=>`<div style="display:flex;align-items:center;gap:10px;margin-top:11px"><i style="width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:12px;color:#fff;background:${s==='d'?'#46b35a':s==='c'?'#ff8a3d':'#e6e0f5'}">${s==='d'?'✓':s==='c'?'●':''}</i><div style="font-weight:900;font-size:15px">${a}<small style="display:block;font-weight:800;font-size:12px;color:var(--mut)">${b}</small></div></div>`).join('')}
+  <div style="border-top:2px solid #f3ece4;margin-top:14px;padding-top:12px;font-weight:800;font-size:13px;color:#4f5a53">Nghỉ 5 phút giữa các mẻ.<br>Hôm nay đã luyện <b style="color:var(--ink)">25 phút</b>.</div></div>
+ <div style="position:absolute;left:36px;right:36px;bottom:24px;z-index:5;display:flex;gap:14px;justify-content:flex-start"><span class="wb" style="padding:14px 28px">Tạm dừng</span><span class="bake" style="padding:14px 30px;font-size:16px">Xong sớm · ra lò</span><span style="align-self:center;font-weight:700;font-size:13px;color:var(--mut)">Phím cách để tạm dừng · chuông kêu khi hết mẻ</span></div></div></div>`;
+
+/* ---- B */
+const pmB1=pmPhone(`<div class="bkbg"></div>${pmAwning(390,34)}${pmBulbs(390,52)}
+ <div style="position:absolute;left:20px;right:20px;top:106px;z-index:5"><div class="h1" style="font-size:24px">Hôm nay nướng <em>Part 5</em> nhé?</div></div>
+ <div style="position:absolute;left:18px;right:18px;top:170px;height:330px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,236,242,.9));box-shadow:inset 0 0 0 3px #fff;z-index:3"></div>
+ <svg style="position:absolute;left:110px;top:240px;z-index:4" width="170" height="220" viewBox="-85 -130 170 200"><ellipse cx="0" cy="50" rx="70" ry="10" fill="#e6e0f5"/><rect x="-62" y="38" width="124" height="12" rx="6" fill="#e6e0f5"/><path d="M-36 24 L36 24 L28 -34 L-28 -34Z" fill="#ffc83d" transform="translate(0 0)"/><path d="M-42 -30 Q-52 -74 -16 -78 Q0 -112 18 -78 Q52 -74 42 -30Z" fill="#ffd1dc"/><circle cy="-100" r="10" fill="#ff5c7a"/></svg>
+ <div class="sc" style="left:262px;top:380px;width:96px">${ggSoc('idle')}</div>${pmChef(262,380,96)}
+ <div style="position:absolute;left:18px;right:18px;top:522px;z-index:5;display:flex;gap:10px"><div class="bake" style="flex:1;font-size:17px">🔥 Bật lò</div><div class="stp" style="flex:none;padding:6px 8px;gap:6px"><i style="width:30px;height:30px;font-size:19px">−</i><b style="font-size:19px;min-width:30px">12</b><i style="width:30px;height:30px;font-size:19px">+</i></div></div>
+ <div style="position:absolute;left:18px;right:18px;top:604px;z-index:5"><div class="pills"><div class="tp g"><i style="color:#2f8a42">✎</i>Ghi kết quả</div><div class="tp y"><i style="color:#d99a00">≡</i>Công thức</div></div>
+  <div class="pills" style="margin-top:12px"><div class="tp gone" style="flex:none;width:176px;justify-content:center;padding:8px 12px"><span>Pomodoro</span></div><span style="flex:1;align-self:center;font-weight:800;font-size:12.5px;color:var(--mut);line-height:1.3">bỏ khỏi hàng nút</span></div></div>`);
+
+document.getElementById('rowD').innerHTML=
+ `<div style="display:flex;flex-direction:column;gap:30px;align-items:center"><div class="fw wide" style="width:1100px"><b>A · Trên máy tính</b>${pmDk}<span style="width:1100px">Cùng một lò ở giữa Tiệm bánh, thêm bảng các mẻ bên phải thay cho tờ công thức.</span></div><div class="note" style="width:1100px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px"><h4 style="grid-column:1/-1;margin:0">Cái gì chuyển đi đâu</h4>
+  <div class="mv"><u>Học tự do</u><span>Học phút nào ghi bằng <b>Ghi kết quả</b>: nhập thời gian, không cần số câu.</span></div>
+  <div class="mv"><u>Đếm giờ</u><span>Muốn có đồng hồ thì <b>Bật lò</b> theo Part, hoặc chỉnh −/+ phút tuỳ ý.</span></div>
+  <div class="mv"><u>Nghỉ ngắn</u><span>Không còn nghỉ 5 phút / nghỉ dài, không còn bảng chỉnh Pomodoro.</span></div>
+  <div class="mv"><u>Phút luyện</u><span>"Đã luyện hôm nay" và chuỗi ngày vẫn tính từ mọi buổi đã ghi hoặc đã nướng.</span></div>
+  <div class="mv"><u>Dữ liệu cũ</u><span>Các phiên Pomodoro đã lưu vẫn hiện trong lịch sử và vẫn tính vào chuỗi.</span></div></div></div>`+
+ `<div style="display:flex;flex-direction:column;align-items:center;gap:22px"><h2 class="sect b" style="margin:0 0 0 -4px;width:390px"><em>B</em> · Bỏ Pomodoro</h2>${ggFw('B · Hàng nút gọn lại','Còn hai nút: Ghi kết quả và Công thức; Pomodoro biến mất.',pmB1)}</div>`;
+
+/* ===== C · Mẻ tự do ===== */
+const pmBun=(x,y,sc=1)=>`<g transform="translate(${x} ${y}) scale(${sc})"><ellipse cy="26" rx="46" ry="9" fill="#e6e0f5"/><path d="M-42 22 Q-46 -22 0 -26 Q46 -22 42 22Z" fill="#f2c27a"/><path d="M-42 22 Q-46 -22 0 -26 Q46 -22 42 22Z" fill="none" stroke="#d99a4a" stroke-width="2.5"/><path d="M-22 -12 Q0 -4 22 -12M-26 2 Q0 10 26 2" fill="none" stroke="#e0a35a" stroke-width="4" stroke-linecap="round"/><g fill="#fff"><circle cx="-12" cy="-18" r="2"/><circle cx="8" cy="-20" r="2"/><circle cx="20" cy="-8" r="2"/></g></g>`;
+const pmItem=(k)=>{const a=[`<g transform="translate(0 8)"><path d="M-22 0 L22 0 L16 30 L-16 30Z" fill="#ffc83d"/><path d="M-26 2 Q-30 -20 -9 -22 Q0 -40 10 -22 Q30 -20 26 2Z" fill="#ffd1dc"/><circle cy="-34" r="6" fill="#ff5c7a"/></g>`,
+ `<g transform="translate(0 8)">${[0,1,2].map(i=>`<ellipse cy="${24-i*11}" rx="30" ry="8" fill="#e8ad6c" stroke="#d39256" stroke-width="2"/>`).join('')}</g>`,
+ `<g transform="translate(0 6)"><rect x="-34" y="-4" width="68" height="34" rx="8" fill="#ffd1dc" stroke="#eadff5" stroke-width="2"/><rect x="-24" y="-30" width="48" height="28" rx="8" fill="#fff" stroke="#eadff5" stroke-width="2"/><circle cy="-36" r="6" fill="#ff5c7a"/></g>`,
+ `<g transform="translate(0 6)"><rect x="-38" y="6" width="76" height="26" rx="8" fill="#ffd1dc" stroke="#eadff5" stroke-width="2"/><rect x="-28" y="-14" width="56" height="22" rx="8" fill="#fff" stroke="#eadff5" stroke-width="2"/><rect x="-18" y="-32" width="36" height="20" rx="7" fill="#ffe9a3" stroke="#eadff5" stroke-width="2"/><circle cy="-38" r="5" fill="#ff5c7a"/></g>`,
+ pmBun(0,2,.85)][k];return `<svg viewBox="-50 -50 100 90" width="100" height="90">${a}</svg>`};
+const pmCardsPhone=`<div style="position:absolute;left:18px;top:476px;z-index:5;display:flex;gap:10px">${[['Part 7','54 câu','55′',2],['Cả phần','100 câu','75′',3],['Mẻ tự do','học tự do','25′',4]].map(([a,b,c,k],i)=>`<div style="width:112px;height:104px;border-radius:20px;background:${i===2?'#fffbe9':'#fff'};box-shadow:${i===2?'0 0 0 3px #ffc83d,0 5px 0 #e8b62c':'0 0 0 2px #fbe3ea,0 4px 0 #fbe3ea'};padding:6px 10px;position:relative"><div style="display:flex;justify-content:center;height:50px;overflow:visible"><div style="transform:scale(.55);transform-origin:top center;width:100px;height:90px">${pmItem(k)}</div></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:2px"><b style="font-weight:900;font-size:12.5px;white-space:nowrap">${a}</b><b style="font-weight:900;font-size:12.5px;color:#e8730c">${c}</b></div><small style="font-weight:800;font-size:11px;color:var(--mut)">${b}</small></div>`).join('')}</div>`;
+const pmC1=pmPhone(`<div class="bkbg"></div>${pmAwning(390,34)}${pmBulbs(390,52)}
+ <div style="position:absolute;left:20px;right:20px;top:106px;z-index:5"><div class="h1" style="font-size:24px">Hôm nay nướng <em style="color:#2f9e4a">Mẻ tự do</em> nhé?</div></div>
+ <div style="position:absolute;left:18px;right:18px;top:158px;height:262px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,236,242,.9));box-shadow:inset 0 0 0 3px #fff;z-index:3"></div>
+ <svg style="position:absolute;left:70px;top:208px;z-index:4" width="190" height="190" viewBox="-70 -50 140 100"><ellipse cx="0" cy="34" rx="62" ry="9" fill="#e6e0f5"/><rect x="-54" y="26" width="108" height="9" rx="4.5" fill="#e6e0f5"/><g transform="translate(0 6) scale(1.15)"><path d="M-42 22 Q-46 -22 0 -26 Q46 -22 42 22Z" fill="#f2c27a" stroke="#d99a4a" stroke-width="2.5"/><path d="M-22 -12 Q0 -4 22 -12M-26 2 Q0 10 26 2" fill="none" stroke="#e0a35a" stroke-width="4" stroke-linecap="round"/><g fill="#fff"><circle cx="-12" cy="-18" r="2"/><circle cx="8" cy="-20" r="2"/><circle cx="20" cy="-8" r="2"/></g></g></svg>
+ <div class="bub" style="left:30px;top:172px;width:200px;font-size:13px;padding:8px 12px">Mẻ tự do: <b>25 phút</b>, học gì cũng được.</div>
+ <div class="sc" style="left:262px;top:316px;width:96px">${ggSoc('idle')}</div>${pmChef(262,316,96)}
+ <div style="position:absolute;left:20px;right:20px;top:432px;z-index:5;font-weight:800;font-size:12.5px;color:#7a857e;text-align:center">Học từ, nghe, shadowing… phút vẫn tính vào chuỗi.</div>
+ ${pmCardsPhone}
+ <div style="position:absolute;left:0;right:0;top:600px;bottom:86px;background:#fbfaf7;border-radius:28px 28px 0 0;z-index:4;box-shadow:0 -8px 24px rgba(120,70,70,.1)"></div>
+ <div style="position:absolute;left:18px;right:18px;top:616px;z-index:6;display:flex;gap:10px"><div class="bake" style="flex:1;font-size:17px">🔥 Bật lò</div><div class="stp" style="flex:none;padding:6px 8px;gap:6px"><i style="width:30px;height:30px;font-size:19px">−</i><b style="font-size:19px;min-width:34px">25′</b><i style="width:30px;height:30px;font-size:19px">+</i></div></div>
+ <div style="position:absolute;left:18px;right:18px;top:686px;z-index:6"><div class="pills"><div class="tp g"><i style="color:#2f8a42">✎</i>Ghi kết quả</div><div class="tp y"><i style="color:#d99a00">≡</i>Công thức</div></div></div>`);
+
+const pmC2=pmPhone(`<div class="bkbg"></div><div class="floor"></div>${pmBulbs(390,40)}
+ <div style="position:absolute;left:24px;top:62px;z-index:8"><b style="font-weight:900;font-size:22px">Mẻ tự do</b><span style="display:block;font-weight:800;font-size:14px;color:var(--mut)">25 phút · 5 phút cuối</span></div>
+ <div style="position:absolute;right:20px;top:62px;z-index:8"><span class="wb" style="padding:9px 16px;font-size:14px;border-radius:14px">× Dừng</span></div>
+ <div style="position:absolute;left:46px;top:128px;width:298px;z-index:4">${pmOven(284,330,'04:38','hot','sắp chín')}</div>
+ <div style="position:absolute;left:60px;right:60px;top:486px;z-index:5;height:12px;border-radius:9px;background:#ffd9b8"><div style="width:82%;height:100%;border-radius:9px;background:#ff6a3d"></div></div>
+ <div class="sc" style="left:22px;top:572px;width:104px">${ggSoc('idle')}</div>${pmChef(22,572,104)}
+ <div class="bub" style="left:134px;top:582px;width:220px">Sắp chín rồi, cố nốt nhé!</div>
+ <div style="position:absolute;left:18px;right:18px;top:680px;z-index:5;display:flex;gap:12px"><span class="wb" style="flex:1">Tạm dừng</span><span class="bake" style="flex:1.35;font-size:16px">Xong sớm · ra lò</span></div>`);
+
+const pmDone=(dots,total,primary,sub)=>pmPhone(`<div class="bkbg"></div>${pmBulbs(390,40)}${pmConf(22,16,120,16)}
+ <div style="position:absolute;left:18px;right:18px;top:100px;z-index:5;background:#fff;border-radius:30px;padding:22px 18px;box-shadow:0 8px 0 rgba(47,58,51,.07),0 20px 40px rgba(200,120,80,.15);text-align:center">
+  <svg viewBox="-70 -40 140 80" width="190" style="display:block;margin:0 auto">${pmBun(0,0,1.3)}</svg>
+  <div class="h1" style="font-size:30px;margin-top:6px">+25 phút</div>
+  <div class="sub" style="margin-top:6px">Mẻ tự do ra lò rồi.</div>
+  <div style="background:#eaf6ec;border-radius:18px;padding:12px;margin-top:14px"><small style="font-weight:800;font-size:12px;color:#2f8a42">Đã luyện hôm nay</small><b style="display:block;font-weight:900;font-size:24px;color:#2f8a42;margin-top:2px">${total}</b></div>
+  ${dots?`<div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px">${[1,2,3,4].map(()=>`<i style="width:14px;height:14px;border-radius:50%;background:#46b35a"></i>`).join('')}<span style="font-weight:800;font-size:12.5px;color:var(--mut);margin-left:6px">${sub}</span></div>`:''}</div>
+ <div class="sc" style="left:24px;top:562px;width:96px">${ggSoc('idle')}</div>
+ <div class="bub" style="left:130px;top:572px;width:224px">${dots?'4 mẻ rồi, nghỉ dài cho đã nhé!':'Nghỉ chút cho đầu óc nguội đã.'}</div>
+ <div style="position:absolute;left:18px;right:18px;top:680px;z-index:5;display:flex;gap:12px"><span class="wb" style="flex:1;font-size:15px">Nướng mẻ nữa</span><span class="bake" style="flex:1.4;font-size:16px">${primary}</span></div>`);
+const pmC3=pmDone(false,'1 giờ 10','Nghỉ 5 phút','');
+const pmC4=pmDone(true,'2 giờ 10','Nghỉ dài 15 phút','Mẻ thứ 4 hôm nay');
+
+const pmC5=pmPhone(`<div class="bkbg rest"></div><div class="floor" style="filter:hue-rotate(200deg) saturate(.5) brightness(1.05)"></div>${pmBulbs(390,40)}
+ <div style="position:absolute;left:24px;top:62px;z-index:8"><b style="font-weight:900;font-size:22px">Nghỉ 5 phút</b><span style="display:block;font-weight:800;font-size:14px;color:var(--mut)">bánh đang nguội</span></div>
+ <div style="position:absolute;left:46px;top:128px;width:298px;z-index:4">${pmOven(284,330,'03:40','cool','nghỉ còn lại 5:00')}</div>
+ <div style="position:absolute;left:60px;right:60px;top:486px;z-index:5;height:12px;border-radius:9px;background:#dbeeff"><div style="width:26%;height:100%;border-radius:9px;background:#8fc8f5"></div></div>
+ <div class="sc" style="left:24px;top:578px;width:104px">${ggSoc('idle')}</div>
+ <svg style="position:absolute;left:100px;top:628px;z-index:8" width="40" height="40" viewBox="0 0 46 46"><path d="M10 18h22v9a11 11 0 0 1-22 0z" fill="#fff" stroke="#d8cdf2" stroke-width="3"/><path d="M32 20h4a5 5 0 0 1 0 10h-4" fill="none" stroke="#d8cdf2" stroke-width="3"/><path d="M16 12q-3-4 0-8M24 12q-3-4 0-8" stroke="#bda8ee" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+ <div class="bub" style="left:140px;top:590px;width:214px">Uống nước, <b>đứng dậy</b> duỗi người nhé.</div>
+ <div style="position:absolute;left:18px;right:18px;top:690px;z-index:5"><span class="wb" style="width:100%">Bỏ nghỉ · nướng tiếp</span></div>`);
+
+document.getElementById('rowC').innerHTML=
+ ggFw('C1 · Chọn món','Mẻ tự do là món thứ 5 trong tủ kính; −/+ chỉnh 25′, chỉ còn hai nút công cụ.',pmC1)+
+ ggFw('C2 · Đang nướng','Chỉ có đồng hồ lò và bánh nở, không bước nhịp; 5 phút cuối lò chuyển cam.',pmC2)+
+ ggFw('C3 · Ra lò','Cộng 25 phút vào hôm nay, rồi nghỉ 5 phút hoặc nướng tiếp.',pmC3)+
+ ggFw('C4 · Mẻ thứ 4','Sau mẻ thứ 4 nút chính đổi thành nghỉ dài 15 phút.',pmC4);
+
+const pmDkC=`<div class="dk">${ggSide('p')}<div class="main"><div class="dkmain"></div>${pmAwning(880,26)}${pmBulbs(880,40)}
+ <div style="position:absolute;left:36px;top:84px;z-index:5"><div class="kick">LUYỆN TẬP</div><div class="h1" style="font-size:28px;margin-top:2px">Hôm nay nướng <em style="color:#2f9e4a">Mẻ tự do</em> nhé?</div></div>
+ <div style="position:absolute;left:36px;top:170px;width:808px;height:250px;border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,236,242,.9));box-shadow:inset 0 0 0 3px #fff;z-index:3"></div>
+ <div style="position:absolute;left:52px;top:182px;z-index:5;display:flex;gap:10px">${[['Part 5','30 câu · 12′'],['Part 6','16 câu · 8′'],['Part 7','54 câu · 55′'],['Cả phần Đọc','100 câu · 75′'],['Mẻ tự do','học tự do · 25′']].map(([a,b],i)=>`<div style="width:146px;height:206px;border-radius:20px;background:${i===4?'#fffbe9':'rgba(255,255,255,.8)'};box-shadow:${i===4?'0 0 0 3px #ffc83d,0 5px 0 #e8b62c':'0 0 0 2px #fbe3ea'};text-align:center;padding-top:20px;position:relative"><div style="height:98px;display:flex;align-items:center;justify-content:center">${pmItem(i)}</div><b style="display:block;font-weight:900;font-size:15px;margin-top:14px">${a}</b><small style="display:block;font-weight:800;font-size:12px;color:var(--mut);margin-top:3px">${b}</small></div>`).join('')}</div>
+ <div style="position:absolute;left:36px;top:432px;z-index:5;font-weight:800;font-size:13px;color:#7a857e">Học từ, nghe, shadowing… phút vẫn tính vào chuỗi.</div>
+ <div style="position:absolute;left:36px;top:480px;z-index:5;display:flex;gap:14px;align-items:center"><div class="bake" style="padding:15px 36px;font-size:18px">🔥 Bật lò · Mẻ tự do</div><div class="stp" style="gap:8px"><i>−</i><b style="min-width:44px">25′</b><i>+</i></div></div>
+ <div style="position:absolute;left:36px;top:566px;z-index:5;display:flex;gap:12px;width:440px"><div class="tp g"><i style="color:#2f8a42">✎</i>Ghi kết quả</div><div class="tp y"><i style="color:#d99a00">≡</i>Công thức</div></div></div></div>`;
+document.getElementById('rowCD').innerHTML=`<div class="fw wide" style="width:1100px"><b>C · Trên máy tính</b>${pmDkC}<span style="width:1100px">Mẻ tự do được chọn trong tủ kính, chỉnh phút bằng −/+ và chỉ còn hai nút công cụ.</span></div>`+ggFw('C5 · Nghỉ','Lò nguội, Sóc uống nước, tay xuôi; có thể bỏ nghỉ để nướng tiếp.',pmC5);
+</script></body></html>
