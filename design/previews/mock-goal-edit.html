@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Đổi mục tiêu</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<link rel="stylesheet" href="_goalguide.css">
+<style>
+.stepper{display:flex;align-items:center;justify-content:center;gap:18px}
+.stepper u{width:48px;height:48px;border-radius:16px;background:#f3f4f2;box-shadow:0 4px 0 #dfe3e0;display:grid;place-items:center;text-decoration:none;font-weight:900;font-size:26px;color:#4f5a53}
+.stepper strong{font-weight:900;font-size:46px;letter-spacing:-1.5px;min-width:120px;text-align:center;color:#a06a00}
+.presets{display:flex;gap:7px;justify-content:center;margin-top:12px}
+.presets span{border-radius:12px;padding:7px 0;width:58px;text-align:center;font-weight:900;font-size:15px;background:#fff;box-shadow:0 0 0 2px #ebe7df}
+.presets span.on{background:#fff7d6;box-shadow:0 0 0 2.5px #ffc83d,0 3px 0 #f0b400;color:#a06a00}
+.presets span.past{color:#b9bfba;background:#f7f7f5;box-shadow:0 0 0 2px #efefec}
+.preview{display:flex;align-items:center;gap:12px;margin-top:14px;border-radius:18px;background:#fffaf0;padding:10px 14px;box-shadow:0 0 0 2px #fbeccb}
+.mini{display:flex;align-items:flex-end;gap:3px;height:40px;flex:none}
+.mini i{width:9px;border-radius:2px 2px 0 0;background:#e4e0f3}
+.mini i.y{background:#f5b82e}.mini i.g{background:#3fae55}.mini i.n{background:#fff;outline:2px dashed #b9a6ff;outline-offset:-2px}
+.preview p{font-weight:800;font-size:13px;color:#6b5a2e;line-height:1.35}.preview p b{color:#2f3a33;font-weight:900}
+.split{font-weight:800;font-size:12.5px;color:#9aa39d;text-align:center;margin-top:8px}
+.date{display:flex;align-items:center;gap:12px;border-radius:18px;background:#fff;box-shadow:0 0 0 2px #ebe7df;padding:11px 12px}
+.date i{width:40px;height:40px;border-radius:13px;background:#efe9ff;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
+.date b{font-weight:900;font-size:16px}.date small{display:block;font-weight:800;font-size:12.5px;color:#7c5ce0}
+.date .ch{margin-left:auto;font-weight:900;font-size:13.5px;color:#1c8fe3}
+.date .clr{width:30px;height:30px;border-radius:10px;background:#f3f4f2;display:grid;place-items:center;font-weight:900;font-size:13px;color:#9aa39d;flex:none}
+.note{display:flex;gap:10px;margin-top:12px;border-radius:18px;background:#fff7e0;box-shadow:0 0 0 2px #ffe3a1;padding:11px 13px;font-weight:800;font-size:13.5px;line-height:1.4;color:#6b5a2e}
+.note .soc{width:44px;flex:none;margin-top:-2px}
+.note b{color:#2f3a33}
+.hover-tag{position:absolute;z-index:7;background:#2f3a33;color:#fff;font-weight:900;font-size:12.5px;border-radius:10px;padding:5px 10px;white-space:nowrap}
+.pop{position:absolute;z-index:20;width:350px;background:#fff;border-radius:24px;padding:16px 18px 18px;box-shadow:0 18px 40px rgba(60,40,10,.22),0 0 0 2px #fbeccb}
+.pop:before{content:"";position:absolute;right:-11px;top:50px;border:11px solid transparent;border-right:0;border-left-color:#fff}
+.dkpanel{position:absolute;right:24px;top:70px;width:300px;border-radius:26px;background:#fff;box-shadow:0 10px 30px rgba(120,70,70,.12);overflow:hidden}
+.dkpanel .g{background:linear-gradient(135deg,#4cc062,#2f9e4a);color:#fff;padding:16px 18px 18px}
+.dkpanel .g small{font-weight:900;font-size:11px;opacity:.85}.dkpanel .g b{display:block;font-weight:900;font-size:22px}.dkpanel .g span{display:inline-block;margin-top:10px}
+.dkpanel .l{padding:12px 18px 16px;font-weight:900;font-size:12px;color:#9aa39d}
+.dkpanel .l div{height:36px;border-radius:12px;background:#f6f7f5;margin-top:8px}
+</style></head><body>
+
+<div class="cap">Đổi mục tiêu · chạm vào cúp (hoặc chip ngày thi) để mở cùng một bảng<small>Hiện tại, sau khi có đề thì Hôm nay không còn chỗ đổi mục tiêu; người dùng phải vào Tài khoản & cài đặt. Bản này đặt lối vào ngay chỗ mục tiêu hiện ra: cúp có nút bút chì nhỏ (thấy được, không phải cử chỉ ẩn), chip “Thi sau N ngày” mở cùng bảng. Bảng gồm điểm mục tiêu (−/+ theo bậc 25, 5 mốc nhanh) và ngày thi. Cầu thang mới được xem trước ngay trong bảng.</small></div>
+<div class="row" id="R1"></div>
+
+<div class="cap">Các trường hợp khó<small>Hạ mục tiêu xuống dưới điểm cao nhất: không chặn, nhưng nói rõ trước khi lưu và không bắn pháo hoa “chạm cúp” bất ngờ. Ngày thi đã qua: chip đổi màu, mời cập nhật. Desktop: cùng nội dung trong một bảng nổi cạnh cúp, không mở modal che cả trang.</small></div>
+<div class="row" id="R2"></div>
+
+<script src="lottie/soc-strings.js"></script>
+<script src="_goalguide.js"></script>
+<script>
+const gV=[560,590,620,650,680,710,740,770];
+const gHead=(dots,h)=>`<div class="hd">${dots}<h1>${h}</h1></div>`;
+
+/* Today scene used behind sheets */
+function gToday({hdTop=100,chip='Thi sau 37 ngày',chipStyle='',vals=gV,cur=4,trophy=800,fresh=[],w=40,head='Bốn bậc nữa là<br><em>chạm tay vào cúp</em>',dots=ggDots(9,4,'BẬC 5/9 · CÒN 120 ĐIỂM'),extra='',done=false}={}){
+  const n=vals.length,x0=14,h0=50,rise=Math.min(34,280/n);
+  const lastTop=566-(h0+rise*(n-1));
+  const socX=x0+cur*w+w/2-30, socTop=566-(h0+rise*cur)-58;
+  return `${ggSb()}<div class="sky"><div class="rays"></div></div>
+  <div class="top">${chip?`<span class="chip" style="${chipStyle}">${chip}</span>`:''}<span class="av"><s>${ggSoc('idle')}</s><em>2</em></span></div>
+  ${gHead(dots,head).replace('class="hd"',`class="hd" style="top:${hdTop}px"`)}
+  ${ggStairs(vals,{cur,x0,w,h0,rise,fresh,done})}
+  ${ggTrophy(trophy,x0+n*w-58,lastTop-108)}
+  ${done?'':ggSoc('idle',`position:absolute;width:56px;left:${socX}px;top:${socTop}px;z-index:6`)}
+  ${extra}${ggPanel}${ggNav()}`;}
+
+function gSheet({val=850,on=850,preview,note='',cta='Lưu · cúp 850',ctaCls='',past=[]}){
+  return `<div class="dim"></div><div class="sheet"><div class="grab"></div>
+  <div class="sh-h"><b>Mục tiêu của bạn</b><span class="x">✕</span></div>
+  <div class="lbl">ĐIỂM MỤC TIÊU</div>
+  <div class="stepper"><u>−</u><strong>${val}</strong><u>+</u></div>
+  <div class="presets">${[650,700,800,850,900].map(v=>`<span class="${v===on?'on':past.includes(v)?'past':''}">${v}</span>`).join('')}</div>
+  ${note||preview}
+  <div class="lbl">NGÀY THI</div>
+  <div class="date"><i>📅</i><div><b>Thứ Tư, 23/12</b><small>còn 37 ngày</small></div><span class="ch">Đổi ngày</span><span class="clr">✕</span></div>
+  <span class="cta ${ctaCls}">${cta}</span></div>`;}
+
+const prevUp=`<div class="preview"><div class="mini">${[0,1,2,3].map(i=>`<i class="y" style="height:${10+i*3}px"></i>`).join('')}<i class="g" style="height:22px"></i>${[0,1,2,3,4].map(i=>`<i class="${i>2?'n':''}" style="height:${25+i*3}px"></i>`).join('')}</div><p><b>Thêm 2 bậc</b> · còn 6 bậc tới cúp 850.<br>Tự chia: Nghe 440 · Đọc 410</p></div>`;
+
+const P1=`<div class="ph"><span class="step">1 · Hôm nay</span>${gToday()}
+<div class="hover-tag" style="left:200px;top:300px">Chạm cúp để đổi mục tiêu</div>
+<div class="motion" style="left:150px;top:62px">← chip ngày thi cũng mở bảng này</div></div>`;
+
+const P2=`<div class="ph"><span class="step">2 · chọn 850</span>${gToday()}${gSheet({preview:prevUp})}</div>`;
+
+const P3=`<div class="ph"><span class="step">3 · bấm Lưu</span>${gToday({vals:[560,590,620,650,680,710,740,770,800,825],w:34,trophy:850,fresh:[8,9],head:'Sáu bậc nữa là<br><em>chạm tay vào cúp</em>',dots:ggDots(11,4,'BẬC 5/11 · CÒN 170 ĐIỂM'),
+ extra:`<div class="say" style="left:96px;top:248px;--tail:60px">Thêm <b>2 bậc</b> nữa, mình leo tiếp nhé!</div><div class="motion" style="left:150px;top:300px">2 bậc mới mọc, cúp lật 850</div>`})}</div>`;
+
+const fw1=ggFw('1 · Lối vào ngay chỗ mục tiêu','Cúp có nút bút chì nhỏ. Desktop: rê chuột vào cúp hiện “Đổi mục tiêu”. Chip “Thi sau 37 ngày” mở cùng bảng.',P1)
+ +ggFw('2 · Một bảng, hai việc','−/+ đi theo bậc 25; 5 mốc nhanh. Ô vàng xem trước cầu thang mới và cách chia Nghe/Đọc. Ngày thi có nút ✕ để bỏ.',P2)
+ +ggFw('3 · Lưu xong','Bậc mới mọc nét đứt rồi tô màu, cúp lật số. Sóc nói một câu. Hạ mục tiêu thì bậc thừa thu lại, không có pháo hoa.',P3);
+document.getElementById('R1').innerHTML=fw1;
+
+const noteLow=`<div class="note">${ggSoc('think')}<div>Bạn đã chạm <b>680</b> rồi, cao hơn mốc này. Lưu thì cúp 650 hiện là <b>đã đạt</b>. Muốn có bậc mới để leo thì chọn trên 680.</div></div>`;
+const P4=`<div class="ph"><span class="step">4 · hạ xuống 650</span>${gToday()}${gSheet({val:650,on:650,past:[650],note:noteLow,cta:'Vẫn lưu 650',ctaCls:'gold'})}</div>`;
+
+const P5=`<div class="ph"><span class="step">5 · ngày thi đã qua</span>${gToday({hdTop:146,chip:'Đã qua ngày thi · Cập nhật',chipStyle:'background:#fff3d6;color:#a06a00;box-shadow:0 0 0 2px #ffd36b,0 2px 0 rgba(0,0,0,.06)'})}
+<div class="say up" style="left:22px;top:100px;--tail:40px;z-index:16;white-space:nowrap;padding:8px 13px">Thi xong chưa? <b>Ghi điểm thật</b> hoặc đặt ngày mới.</div></div>`;
+
+/* Desktop */
+function dkStairs(){let o='';const vals=[560,590,620,650,680,710,740,770],x0=40,base=690,w=52;
+  vals.forEach((v,i)=>{const h=90+i*48,x=x0+i*w,cur=4,passed=i<cur,now=i===cur;
+   const face=passed?'linear-gradient(90deg,#f5b82e 50%,#e39a12 50%)':now?'linear-gradient(90deg,#3fae55 50%,#2a8a40 50%)':'linear-gradient(90deg,#f1effa 50%,#e4e0f3 50%)';
+   o+=`<div class="bar" style="left:${x}px;width:${w-3}px;height:${h}px;top:${base-h}px"><i style="background:${face}"></i><b style="background:${passed?'#ffd25e':now?'#6fd07f':'#f8f7fd'}"></b><span style="${passed||now?'background:rgba(0,0,0,.18);color:#fff':'background:#fff;color:#9a94bb'};font-size:12px">${v}</span></div>`;});
+  return o;}
+const popBody=`<div class="sh-h"><b style="font-size:18px">Mục tiêu của bạn</b><span class="x" style="width:30px;height:30px">✕</span></div>
+<div class="lbl" style="margin-top:10px">ĐIỂM MỤC TIÊU</div>
+<div class="stepper"><u style="width:42px;height:42px">−</u><strong style="font-size:40px">850</strong><u style="width:42px;height:42px">+</u></div>
+<div class="presets">${[650,700,800,850,900].map(v=>`<span class="${v===850?'on':''}" style="width:54px">${v}</span>`).join('')}</div>${prevUp}
+<div class="lbl">NGÀY THI</div><div class="date"><i>📅</i><div><b>Thứ Tư, 23/12</b><small>còn 37 ngày</small></div><span class="ch">Đổi</span><span class="clr">✕</span></div>
+<span class="cta" style="margin-top:14px">Lưu · cúp 850</span>`;
+const DK=`<div class="dk"><span class="step" style="top:-26px">Desktop · rê chuột rồi bấm cúp</span>${ggSide('home')}
+<div class="main"><div class="sky"><div class="rays" style="top:-300px"></div></div>
+<div style="position:absolute;left:40px;top:28px;z-index:3">${ggDots(9,4,'BẬC 5/9 · CÒN 120 ĐIỂM')}<h1 style="font-size:34px;margin-top:8px">Bốn bậc nữa là <em>chạm tay<br>vào cúp</em></h1></div>
+${dkStairs()}${ggSoc('idle','position:absolute;width:64px;left:234px;top:344px;z-index:6')}
+${ggTrophy(800,452,150,90)}
+<div class="hover-tag" style="left:446px;top:118px">✎ Đổi mục tiêu</div>
+<div class="pop" style="left:86px;top:140px">${popBody}</div>
+<div class="dkpanel"><div class="g"><small>TIẾP THEO · 20 PHÚT</small><b>Bấm giờ Part 7</b><span class="wbtn">▶ Bắt đầu</span></div><div class="l">CÒN LẠI HÔM NAY<div></div><div></div></div></div>
+<span class="chip" style="position:absolute;right:24px;top:22px;z-index:3">Thi sau 37 ngày</span>
+</div></div>`;
+
+document.getElementById('R2').innerHTML=
+  ggFw('4 · Hạ dưới điểm cao nhất','Mốc đã vượt hiện xám. Không chặn, Sóc nói rõ hệ quả, nút đổi sang vàng “Vẫn lưu”. Lưu xong là trạng thái “đã chạm cúp” có sẵn, không bắn pháo hoa.',P4)
+ +ggFw('5 · Ngày thi đã qua','Chip đổi vàng “Đã qua ngày thi · Cập nhật”, bong bóng chỉ hiện một lần. Chạm chip mở cùng bảng.',P5)
+ +ggFw('Desktop · bảng nổi cạnh cúp','Rê chuột vào cúp hiện nhãn “✎ Đổi mục tiêu”; bấm mở bảng nổi cạnh cúp. Bấm ra ngoài hoặc Esc để đóng. Chip ngày thi góc phải mở cùng bảng.',DK,true);
+</script></body></html>
