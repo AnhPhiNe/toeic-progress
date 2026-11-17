@@ -15,6 +15,10 @@ export interface RdSidebarProps {
   /** Level and worn gear for the level card at the bottom. */
   soc: SocLook;
   onOpenSessionLogger: () => void;
+  /** Opens Cài đặt (account, sync, backup). */
+  onOpenSettings?: () => void;
+  /** Sync state line under the settings row, e.g. "Chỉ lưu trên máy". */
+  syncLabel?: string;
 }
 
 const W = '#fff';
@@ -29,7 +33,7 @@ const ICONS: Record<string, ReactNode> = {
 
 interface Item { key: keyof typeof ICONS; label: string; tab?: NavTabId; also?: NavTabId[]; color: string; lip: string; tint: string; badge?: number }
 
-export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, newBadges = 0, soc, onOpenSessionLogger }: RdSidebarProps) {
+export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, newBadges = 0, soc, onOpenSessionLogger, onOpenSettings, syncLabel }: RdSidebarProps) {
   // While pages are rebuilt one by one, each item opens the current page that will merge into it.
   const items: Item[] = [
     { key: 'today', label: 'Hôm nay', tab: 'dashboard', also: ['plan'], color: 'var(--rd-green)', lip: 'var(--rd-green-d)', tint: 'var(--rd-green)' },
@@ -79,6 +83,14 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
 
       <p className="rd-side__grp">CÔNG CỤ</p>
       {tools.map(renderItem)}
+      {onOpenSettings && (
+        <button type="button" className="rd-side__it is-tool" style={{ ['--it-tint' as string]: 'var(--rd-teal-d)' }} onClick={onOpenSettings} aria-haspopup="dialog" title="Tài khoản & cài đặt">
+          <span className="rd-side__ic" style={{ background: '#9aa39d', boxShadow: '0 3px 0 #7b857f' }} aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill={W} /><path d="M3.5 21 C3.5 15.5 8 14 12 14 S20.5 15.5 20.5 21Z" fill={W} /></svg>
+          </span>
+          <span className="rd-side__lbl rd-side__set"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small>{syncLabel}</small>}</span>
+        </button>
+      )}
 
       <button type="button" className="rd-side__me" onClick={() => setActiveTab('awards')}
         aria-label={`Cấp ${progress.level.n} · ${progress.level.name}, chuỗi ${streak} ngày · Mở Thành tích`}>

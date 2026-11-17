@@ -65,3 +65,6 @@
   .rd-side__fire { position: static; }
 }
 @media (prefers-reduced-motion: reduce) { .rd-side__ic, .rd-side__it, .rd-side__me { transition: none; } .rd-side__me:hover { transform: none; } }
+
+.rd-side__set { display: grid; line-height: 1.15; }
+.rd-side__set small { font-weight: 800; font-size: 12px; color: var(--rd-mut); }

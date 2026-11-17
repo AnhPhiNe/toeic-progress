@@ -34,12 +34,12 @@ import { VocabularyView } from '@/features/vocabulary/components/VocabularyView'
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
 import { SessionResultScreen } from '@/features/study-sessions/components/SessionResultScreen';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
+import { TransferChoiceDialog } from '@/features/account/components/TransferChoiceDialog';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
 import { AccountSyncIndicator, describeSync } from '@/features/account/components/AccountSyncIndicator';
 import { AccountAvatarButton } from '@/features/account/components/AccountAvatarButton';
 import { OnboardingCard } from '@/app/components/OnboardingCard';
-import { CARD } from '@/shared/ui/surfaces';
 import { clearTimer, readTimer } from '@/features/pacing/services/pacingStorage';
 import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
 import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
@@ -475,6 +475,8 @@ export const App: React.FC = () => {
         newBadges={newBadges}
         soc={soc}
         onOpenSessionLogger={() => openSessionLogger()}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        syncLabel={describeSync(account.available, account.status).label}
       />}
 
       {/* 2. Main Content View Area (Right) */}
@@ -798,27 +800,15 @@ export const App: React.FC = () => {
         onLoadDemo={canLoadDemo ? handleLoadDemo : undefined}
         onImportSuccess={handleImportSuccess}
         syncLabel={describeSync(account.available, account.status).label}
+        accountAvailable={account.available}
+        accountStatus={account.status}
         onSignOut={account.email ? account.signOut : undefined}
         accountPanel={<AccountPanel available={account.available} status={account.status} email={account.email} error={account.error}
           onGoogle={account.signInGoogle} onSendOtp={account.sendOtp} onVerifyOtp={account.verifyOtp}
           onRetry={() => void account.retry()} onSignOut={account.signOut} onDelete={account.deleteAccount} showSignOut={false} />}
       />
 
-      {account.pendingTransfer && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
-          <div className={`${CARD} w-full max-w-lg space-y-4`}>
-            <h2 id="transfer-title" className="text-lg font-bold">Chọn dữ liệu để đồng bộ</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300">Máy này và tài khoản đều có dữ liệu. Bản dữ liệu khách trên máy luôn được giữ riêng.</p>
-            {account.error && <p role="alert" className="text-sm text-rose-600">{account.error}</p>}
-            <div className="grid gap-2">
-              <button type="button" autoFocus onClick={() => void account.chooseTransfer('merge')} className="rounded-xl border border-blue-400 bg-blue-50 px-4 py-3 text-left font-semibold text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">Gộp — khuyên dùng <span className="block text-xs font-normal">Bản cập nhật mới hơn của mỗi mục được giữ.</span></button>
-              <button type="button" onClick={() => void account.chooseTransfer('account')} className="rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold dark:border-slate-700">Dùng dữ liệu tài khoản <span className="block text-xs font-normal">Bỏ qua dữ liệu máy trong tài khoản; bản khách vẫn ở máy.</span></button>
-              <button type="button" onClick={() => void account.chooseTransfer('device')} className="rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold dark:border-slate-700">Dùng dữ liệu máy này <span className="block text-xs font-normal">Thay dữ liệu trên máy chủ bằng bản trên máy.</span></button>
-              <button type="button" onClick={() => void account.signOut()} className="px-4 py-2 text-left text-sm font-semibold text-slate-500 dark:text-slate-400">Để sau · tiếp tục chế độ khách</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {account.pendingTransfer && <TransferChoiceDialog error={account.error} onChoose={account.chooseTransfer} onSkip={account.signOut} />}
 
 
     </div>

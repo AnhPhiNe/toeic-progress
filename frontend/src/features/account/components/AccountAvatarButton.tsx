@@ -16,9 +16,9 @@ export function AccountAvatarButton({ initials, available, status, onOpenSetting
   return (
     <div role="status" aria-label="Trạng thái đồng bộ" aria-live="polite" aria-atomic="true">
       <button type="button" onClick={onOpenSettings} aria-label={`Tài khoản và cài đặt: ${label}`} title={label}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-900 bg-[#DDD6FE] text-[12px] font-black text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-300 cursor-pointer">
+        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[#f1ecff] text-[12px] font-black text-[#7c5ce0] shadow-[0_3px_0_#e0d6fb] outline-none focus-visible:ring-2 focus-visible:ring-[#1c8fe3] cursor-pointer">
         {initials}
-        <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-[#0B132B] ${dot}`} aria-hidden="true" />
+        <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${dot}`} aria-hidden="true" />
       </button>
     </div>
   );
