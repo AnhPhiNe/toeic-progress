@@ -12,7 +12,7 @@ async function seed(page: Page, examDate: string) {
     const tpl = data.sessions.find((s: { sessionType: string }) => s.sessionType === 'FULL_TEST');
     const mk = (i: number, date: string, total: number, l: number) => ({ ...tpl, id: `g${i}`, date, createdAt: `${date}T09:00:00Z`, updatedAt: `${date}T09:00:00Z`,
       testName: `ETS Test 0${i}`, totalScore: total, scaledListening: l, scaledReading: total - l, attemptNumber: 1 });
-    // 560 -> 680 with goal 800: stairs of 30, Sóc on 680.
+    // 560 -> 680 with goal 800: stairs 560 600 680 700 750, Sóc on 680.
     data.sessions = [mk(1, '2026-10-01', 560, 290), mk(2, '2026-10-15', 620, 320), mk(3, '2026-11-01', 680, 350)];
     data.mistakes = [];
     data.profile = { ...data.profile, targetScore: 800, goalChosen: true, examDate };
@@ -38,13 +38,13 @@ test('desktop: the trophy opens a popover; raising adds stairs, lowering below t
 
   await page.getByRole('button', { name: 'Thi sau 36 ngày' }).click();
   await editor(page).getByRole('button', { name: '850', exact: true }).click();
-  await expect(editor(page)).toContainText('Thêm 1 bậc · còn 5 bậc tới cúp 850');
+  await expect(editor(page)).toContainText('Thêm 1 bậc · còn 4 bậc tới cúp 850');
   await expect(editor(page)).toContainText(/Tự chia: Nghe \d+ · Đọc \d+/);
   await editor(page).getByRole('button', { name: 'Lưu · cúp 850' }).click();
   await expect(editor(page)).toBeHidden();
   await expect(cup(page, 850)).toBeVisible();
   await expect(page.getByText('Thêm 1 bậc nữa, mình leo tiếp nhé!')).toBeVisible();
-  await expect(page.getByText('BẬC 4/9 · CÒN 170 ĐIỂM')).toBeVisible();
+  await expect(page.getByText('BẬC 3/7 · CÒN 170 ĐIỂM')).toBeVisible();
 
   await cup(page, 850).click({ force: true });
   await editor(page).getByRole('button', { name: '650', exact: true }).click();

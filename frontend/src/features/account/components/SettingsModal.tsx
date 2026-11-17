@@ -7,6 +7,7 @@ import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { getActiveAccountId, live, readDataBundle } from '@/shared/data/dataBundle';
 import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
+import { goalLabel, shownGoal } from '@/features/today/lib/goalSetup';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneSettings, type PhoneSettingsField } from './PhoneSettings';
 import { describeSync } from './AccountSyncIndicator';
@@ -162,6 +163,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const modalRef = useModalA11y(isOpen, closeWhenIdle);
 
   if (!isOpen) return null;
+  // A fresh profile keeps the placeholder 990 until a goal is chosen: the field reads "Chưa chọn" instead.
+  const goalSet = shownGoal(formData) !== null;
 
   const savePhoneField = (patch: Partial<UserProfile>): string | null => {
     setResetError('');
@@ -316,7 +319,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <h4 className="st-h">Mục tiêu</h4>
                 <div className="st-group">
                   {field('settings-target', 'Điểm mục tiêu', 'st-b', <Target size={19} />,
-                    <input id="settings-target" type="number" required min="10" max="990" step="5" value={formData.targetScore} onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value) })} />)}
+                    <input id="settings-target" type="number" required={goalSet} min="10" max="990" step="5" placeholder={goalLabel(formData)}
+                      value={goalSet ? formData.targetScore : ''} onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value), goalChosen: true })} />)}
                   {field('settings-exam-date', 'Ngày thi', 'st-v', <Calendar size={19} />,
                     <input id="settings-exam-date" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} />)}
                   {field('settings-daily-minutes', 'Học mỗi ngày (phút)', 'st-g', <Timer size={19} />,

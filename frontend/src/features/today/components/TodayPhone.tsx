@@ -193,7 +193,7 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
       {welcome.greeting && <GreetSoc size={150} style={{ left: 0, right: 0, top: size.head + 6, bottom: size.panel + 12 }} />}
       {welcome.leapBubble && mode === 'ready' && <SocBubble tail="down" className="tp-leap" style={{ bottom: size.panel + 120 }}>Ghi <b>đề đầu tiên</b> là mình leo bậc 1!</SocBubble>}
       {welcome.confetti && <Confetti style={{ top: size.head + 60 }} />}
-      {goalEdit.said && <SocBubble tail="down" className="tp-said" style={{ top: size.head + 14 }}>{goalEdit.said}</SocBubble>}
+      {goalEdit.said && <SocBubble tail="down" className="tp-said" style={{ bottom: size.panel + 24 }}>{goalEdit.said}</SocBubble>}
 
       {goalEdit.isOpen && (
         <GoalSheet sessions={sessions} current={target} initial={target} best={goalEdit.best}

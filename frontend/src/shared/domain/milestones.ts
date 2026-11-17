@@ -28,7 +28,7 @@ export type MilestonePlan =
       next?: MilestoneNext;
     };
 
-/** Every climb has this many stairs before the trophy; only the points per stair change. */
+/** Estimated stairs (before the first test) have this many blocks before the trophy; only the points per stair change. */
 export const STAIR_COUNT = 8;
 
 interface ScoredTest { date: string; createdAt: string; score: number }
@@ -59,6 +59,41 @@ export function stairSteps(start: number, target: number): { step: number; value
   return { step, values };
 }
 
+/** Stair sizes for real stairs, smallest first. */
+export const STAIR_SIZES = [25, 50, 100] as const;
+
+/**
+ * Points per stair once a first test exists. It depends only on the first score, never on the goal or later tests:
+ * the smallest of 25 / 50 / 100 that fits the whole road from the first score to 990 in at most 10 stairs.
+ * A typical goal then gets 5 to 8 stairs; raising the goal adds stairs and lowering it removes some.
+ */
+export function stairSize(start: number): number {
+  return STAIR_SIZES.find(size => (990 - start) / size <= 10) ?? STAIR_SIZES[STAIR_SIZES.length - 1];
+}
+
+/** Round multiples of `size` more than a quarter stair above lo, up to `hi` (inclusive or not). */
+function roundStairs(lo: number, hi: number, size: number, inclusive: boolean): number[] {
+  const values: number[] = [];
+  for (let v = Math.floor((lo + size / 4) / size) * size + size; inclusive ? v <= hi : v < hi; v += size) values.push(v);
+  return values;
+}
+
+/**
+ * Stair values of a climb: the first score, round multiples of the stair size, then the goal last.
+ * Stairs up to the best score are climbed; the last one is Sóc's step and carries the best score as its label
+ * when the best sits between two boundaries. The climbed part never depends on the goal, so changing the goal
+ * only redraws the stairs above Sóc and never moves her down.
+ */
+export function stairValues(start: number, best: number, target: number): { step: number; climbed: number[]; above: number[] } {
+  const size = stairSize(start);
+  // Climbed: boundaries up to the best; the last one (Sóc's step) shows the best score.
+  const climbed = [start, ...roundStairs(start, best, size, true)];
+  climbed[climbed.length - 1] = best;
+  // Above: boundaries more than a quarter stair above the best and below the goal, then the goal.
+  return { step: size, climbed, above: best >= target ? [] : [...roundStairs(best, target - size / 4, size, false), target] };
+}
+
+/** Real stairs once a full test exists (see stairValues). */
 export function buildMilestones(sessions: StudySession[], targetScore: number): MilestonePlan {
   const target = targetScore;
   const tests = scoredFullTests(sessions);
@@ -66,18 +101,17 @@ export function buildMilestones(sessions: StudySession[], targetScore: number): 
 
   const start = tests[0].score;
   const best = Math.max(...tests.map(t => t.score));
-  const { step, values } = stairSteps(start, target);
+  const reachedOn = (value: number) => tests.find(t => t.score >= value)?.date;
+  const { step, climbed: done, above } = stairValues(start, best, target);
+  const climbed: MilestoneStep[] = done.map(value => ({ value, reached: true, reachedDate: reachedOn(value) }));
+  const currentIndex = climbed.length - 1;
 
-  // Base sits at or below the first score, so the first test always reaches it.
-  const steps: MilestoneStep[] = values.map(value => {
-    const hit = tests.find(t => t.score >= value);
-    return hit ? { value, reached: true, reachedDate: hit.date } : { value, reached: false };
-  });
-
-  let currentIndex = 0;
-  steps.forEach((s, i) => { if (s.reached) currentIndex = i; });
-
-  if (best >= target) return { status: 'done', target, step, best, steps, currentIndex };
+  if (best >= target) {
+    // The goal is at or below the best: the trophy stands right after Sóc's step, already reached.
+    const steps = [...climbed, { value: target, reached: true, reachedDate: reachedOn(target) }];
+    return { status: 'done', target, step, best, steps, currentIndex: steps.length - 1 };
+  }
+  const steps: MilestoneStep[] = [...climbed, ...above.map(value => ({ value, reached: false }))];
   const index = currentIndex + 1;
   const value = steps[index].value;
   return { status: 'climbing', target, step, best, steps, currentIndex, next: { index, value, gap: value - best } };

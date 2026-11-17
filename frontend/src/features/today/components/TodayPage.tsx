@@ -172,7 +172,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
       {welcome.greeting && <GreetSoc size={190} className="td-greet" />}
       {welcome.leapBubble && mode === 'ready' && <SocBubble tail="down" className="td-leap">Ghi <b>đề đầu tiên</b> là mình leo bậc 1!</SocBubble>}
       {welcome.confetti && <Confetti className="td-wl-conf" />}
-      {goalEdit.said && <SocBubble tail="down" className="td-leap">{goalEdit.said}</SocBubble>}
+      {goalEdit.said && <SocBubble tail="down" className="td-said">{goalEdit.said}</SocBubble>}
       {mode !== 'choose' && goalEdit.pastTip && (
         <SocBubble tail="up" className="td-pasttip">
           Thi xong chưa? <button type="button" className="ge-tipbtn" onClick={() => { goalEdit.hidePastTip(); onOpenSessionLogger(); }}>Ghi điểm thật</button> hoặc đặt ngày mới.

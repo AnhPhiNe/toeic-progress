@@ -46,6 +46,11 @@ describe('goalPreview', () => {
     expect(p.bars).toContain('now');
     expect(previewHeadline(p, 850)).toEqual({ lead: `Thêm ${p.delta} bậc`, rest: `còn ${p.left} bậc tới cúp 850` });
   });
+  it('matches what the stairs then show: Sóc stays on 680, only the stairs above change', () => {
+    expect(previewHeadline(goalPreview(climb, 800, 850), 850)).toEqual({ lead: 'Thêm 1 bậc', rest: 'còn 4 bậc tới cúp 850' });
+    expect(previewHeadline(goalPreview(climb, 800, 750), 750)).toEqual({ lead: 'Bớt 1 bậc', rest: 'còn 2 bậc tới cúp 750' });
+    expect(goalPreview(climb, 800, 850).bars).toEqual(['passed', 'passed', 'now', 'next', 'next', 'new']);
+  });
   it('says how many stairs a lower goal removes', () => {
     const p = goalPreview(climb, 900, 750);
     expect(p.delta).toBeLessThan(0);

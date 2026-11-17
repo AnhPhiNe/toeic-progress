@@ -44,7 +44,7 @@ const PAL = {
 /** Flat stairs of the phone Hôm nay scene (bars, Sóc on the current one, trophy), laid out for the height left above the task panel. */
 export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, hidden, grow, lit, added }: Props) {
   const blocks = Math.max(1, steps.length - 1);
-  const layout = useMemo(() => phoneStairsLayout({ w, top, base, blocks, cur: Math.max(0, cur) }), [w, top, base, blocks, cur]);
+  const layout = useMemo(() => phoneStairsLayout({ w, top, base, blocks, cur: Math.max(0, cur), done }), [w, top, base, blocks, cur, done]);
   const [tip, setTip] = useState<number | null>(null);
   useEffect(() => {
     if (tip === null) return;

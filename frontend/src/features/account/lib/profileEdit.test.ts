@@ -15,6 +15,13 @@ describe('settings profile edits', () => {
     expect(() => mergeProfileEdit({ ...snapshot, targetScore: 850 }, snapshot, edited)).toThrow(/thay đổi ở nơi khác/);
     expect(mergeProfileEdit({ ...snapshot, targetScore: 800 }, snapshot, edited).targetScore).toBe(800);
   });
+  it('marks the goal chosen when the target is edited or explicitly kept', () => {
+    const snapshot = defaultProfile();
+    expect(snapshot.goalChosen).toBe(false);
+    expect(mergeProfileEdit(snapshot, snapshot, { ...snapshot, targetScore: 800 }).goalChosen).toBe(true);
+    expect(mergeProfileEdit(snapshot, snapshot, { ...snapshot, goalChosen: true }).goalChosen).toBe(true);
+    expect(mergeProfileEdit(snapshot, snapshot, { ...snapshot, motto: 'Go' }).goalChosen).toBe(false);
+  });
   it('keeps a newly consumed shield when settings did not edit the shield count', () => {
     const snapshot = { ...defaultProfile(), streakFreezes: 2 };
     expect(mergeProfileEdit({ ...snapshot, streakFreezes: 1 }, snapshot, { ...snapshot, motto: 'Keep learning' }).streakFreezes).toBe(1);

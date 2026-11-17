@@ -3,6 +3,7 @@ import { Calendar, ChevronRight, Cloud, Database, Download, Minus, Plus, Quote, 
 import type { UserProfile } from '@/shared/types';
 import { PhoneSheet } from '@/app/components/phone/PhoneSheet';
 import { profileDisplayName, profileInitials } from '@/app/components/profileInitials';
+import { goalLabel } from '@/features/today/lib/goalSetup';
 import './account.css';
 
 export type PhoneSettingsField = 'account' | 'targetScore' | 'examDate' | 'dailyMinGoalMinutes' | 'streakFreezes' | 'motto';
@@ -66,7 +67,7 @@ export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveF
       <section>
         <h4 className="st-h">Mục tiêu</h4>
         <div className="st-group">
-          {row('targetScore', <Icon tone="st-b"><Target size={19} /></Icon>, 'Điểm mục tiêu', <span className="st-pill st-b">{profile.targetScore}</span>)}
+          {row('targetScore', <Icon tone="st-b"><Target size={19} /></Icon>, 'Điểm mục tiêu', <span className="st-pill st-b">{goalLabel(profile)}</span>)}
           {row('examDate', <Icon tone="st-v"><Calendar size={19} /></Icon>, 'Ngày thi',
             profile.examDate ? <>{formatDate(profile.examDate)}{days !== null && <span className="st-pill st-v">D-{days}</span>}</> : 'Chưa đặt')}
           {row('dailyMinGoalMinutes', <Icon tone="st-g"><Timer size={19} /></Icon>, 'Học mỗi ngày', `${profile.dailyMinGoalMinutes} phút`)}
@@ -124,7 +125,7 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
   const [error, setError] = useState('');
   const stepper = STEPPERS[field as keyof typeof STEPPERS];
   const save = () => {
-    const patch: Partial<UserProfile> = stepper ? { [field]: number } : field === 'account' ? { name: text } : { [field]: text };
+    const patch: Partial<UserProfile> = stepper ? { [field]: number, ...(field === 'targetScore' ? { goalChosen: true } : {}) } : field === 'account' ? { name: text } : { [field]: text };
     const message = onSave(patch);
     if (message) setError(message); else onClose();
   };
