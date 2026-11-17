@@ -29,7 +29,7 @@ export function ScrollableModalBody({ children, resetKey, compact = false }: { c
         <div ref={content} className={`px-4 pt-4 sm:px-6 ${compact ? 'space-y-3 pb-8' : 'space-y-4 pb-16'}`}>{children}</div>
       </div>
       {hasMore && isPhone && (
-        <div className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 z-20 transition-all duration-200">
+        <div className="flex flex-none justify-center py-1.5">
           <button
             type="button"
             onClick={() => {

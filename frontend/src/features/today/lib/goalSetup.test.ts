@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estimateMilestones } from '@/shared/domain/milestones';
-import { hasChosenGoal, parseTargetInput, profileWithGoal, stairsSummary, todayMode } from './goalSetup';
+import { goalLabel, hasChosenGoal, shownGoal, parseTargetInput, profileWithGoal, stairsSummary, todayMode } from './goalSetup';
 import { defaultProfile } from '@/shared/data/dataBundle';
 
 describe('estimateMilestones', () => {
@@ -52,6 +52,19 @@ describe('goal state', () => {
     expect(hasChosenGoal(profile)).toBe(false);
     expect(hasChosenGoal({ ...profile, goalChosen: true })).toBe(true);
     expect(hasChosenGoal({ ...profile, targetScore: 850 })).toBe(true);
+  });
+  it('counts a profile saved before the flag existed (goalChosen missing) as chosen', () => {
+    const { goalChosen: _flag, ...legacy } = defaultProfile();
+    expect(legacy.targetScore).toBe(990);
+    expect(hasChosenGoal(legacy)).toBe(true);
+    expect(shownGoal(legacy)).toBe(990);
+    expect(goalLabel(legacy)).toBe('990');
+    expect(goalLabel({ ...legacy, targetScore: 750 })).toBe('750');
+  });
+  it('keeps goalChosen false as not chosen and true as chosen', () => {
+    expect(hasChosenGoal({ targetScore: 990, goalChosen: false })).toBe(false);
+    expect(goalLabel({ targetScore: 990, goalChosen: false })).toBe('Chưa chọn');
+    expect(hasChosenGoal({ targetScore: 990, goalChosen: true })).toBe(true);
   });
   it('profileWithGoal saves the goal and marks it chosen', () => {
     const next = profileWithGoal(defaultProfile(), 990);

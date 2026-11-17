@@ -136,3 +136,10 @@ button.st-row:active { background: #e6ebe6; }
   .st-modal__head { padding: calc(12px + env(safe-area-inset-top)) 16px 4px; }
 }
 .st-group > .st-acct { border-top: 0; }
+
+/* Desktop goal row: shows the goal and opens the Hôm nay editor. */
+.st-goal { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 8px 4px 14px; border: 2px solid transparent; border-radius: 12px; background: #fff; color: var(--rd-ink);
+  font-family: var(--rd-font); font-weight: 800; font-size: 15px; cursor: pointer; }
+.st-goal b { font-variant-numeric: tabular-nums; font-weight: 900; }
+.st-goal span { padding: 4px 12px; border-radius: 999px; background: var(--rd-blue-l, #e3f2fd); color: var(--rd-blue-d); font-size: 13px; }
+.st-goal:hover, .st-goal:focus-visible, .st-goal[aria-expanded="true"] { border-color: var(--rd-green); outline: none; }

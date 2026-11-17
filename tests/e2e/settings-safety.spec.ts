@@ -16,9 +16,11 @@ async function backup(page: Page) {
 
 test('settings fields are labelled, preserve a draft across background activity and merge current profile data', async ({ page }) => {
   const modal = await open(page);
-  for (const name of ['Tên của bạn', 'Điểm mục tiêu', 'Ngày thi', 'Học mỗi ngày (phút)', 'Khiên cứu chuỗi', 'Châm ngôn']) {
+  for (const name of ['Tên của bạn', 'Ngày thi', 'Học mỗi ngày (phút)', 'Khiên cứu chuỗi', 'Châm ngôn']) {
     await expect(modal.getByLabel(name, { exact: true })).toHaveCount(1);
   }
+  // The goal is a button that opens the same editor as Hôm nay.
+  await expect(modal.getByRole('button', { name: /^Điểm mục tiêu/ })).toHaveCount(1);
   await modal.getByLabel('Tên của bạn', { exact: true }).fill('Draft learner');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);

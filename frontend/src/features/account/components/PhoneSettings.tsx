@@ -4,6 +4,7 @@ import type { UserProfile } from '@/shared/types';
 import { PhoneSheet } from '@/app/components/phone/PhoneSheet';
 import { profileDisplayName, profileInitials } from '@/app/components/profileInitials';
 import { goalLabel } from '@/features/today/lib/goalSetup';
+import { SettingsGoalEditor } from './SettingsGoalEditor';
 import './account.css';
 
 export type PhoneSettingsField = 'account' | 'targetScore' | 'examDate' | 'dailyMinGoalMinutes' | 'streakFreezes' | 'motto';
@@ -96,7 +97,8 @@ export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveF
         {dataNotice && <div className="mt-3 space-y-3">{dataNotice}</div>}
       </section>
 
-      {editing && <EditSheet field={editing} profile={profile} accountPanel={accountPanel} onSave={onSaveField} onClose={() => setEditing(null)} />}
+      {editing === 'targetScore' && <SettingsGoalEditor phone profile={profile} onSaveField={onSaveField} onClose={() => setEditing(null)} />}
+      {editing && editing !== 'targetScore' && <EditSheet field={editing} profile={profile} accountPanel={accountPanel} onSave={onSaveField} onClose={() => setEditing(null)} />}
     </div>
   );
 }
@@ -105,13 +107,11 @@ const TITLES: Record<PhoneSettingsField, string> = {
   account: 'Tài khoản', targetScore: 'Điểm mục tiêu', examDate: 'Ngày thi', dailyMinGoalMinutes: 'Học mỗi ngày', streakFreezes: 'Khiên cứu chuỗi', motto: 'Châm ngôn'
 };
 const HINTS: Partial<Record<PhoneSettingsField, string>> = {
-  targetScore: 'Dùng để tính khoảng cách và kế hoạch tuần',
   examDate: 'Thanh trên đếm ngược tới ngày này',
   dailyMinGoalMinutes: 'Thời gian tối thiểu để tính là đã học trong ngày',
   streakFreezes: 'Giữ chuỗi khi lỡ một ngày (tối đa 5)'
 };
 const STEPPERS = {
-  targetScore: { min: 10, max: 990, step: 5, presets: [650, 750, 850, 900, 990] },
   dailyMinGoalMinutes: { min: 5, max: 300, step: 5, presets: [15, 30, 45, 60, 90] },
   streakFreezes: { min: 0, max: 5, step: 1, presets: [0, 1, 2, 3, 5] }
 } as const;
@@ -125,7 +125,7 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
   const [error, setError] = useState('');
   const stepper = STEPPERS[field as keyof typeof STEPPERS];
   const save = () => {
-    const patch: Partial<UserProfile> = stepper ? { [field]: number, ...(field === 'targetScore' ? { goalChosen: true } : {}) } : field === 'account' ? { name: text } : { [field]: text };
+    const patch: Partial<UserProfile> = stepper ? { [field]: number } : field === 'account' ? { name: text } : { [field]: text };
     const message = onSave(patch);
     if (message) setError(message); else onClose();
   };

@@ -16,7 +16,7 @@ for (const close of ['Escape', 'Back'] as const) {
     await openSettings(page);
     const settings = page.getByRole('dialog', { name: 'Cài đặt', exact: true, includeHidden: true });
     await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
-    const sheet = page.getByRole('dialog', { name: 'Điểm mục tiêu', exact: true });
+    const sheet = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
     await expectFocusWithin(page, sheet);
     await expect.poll(() => settings.evaluate(node => !!node.closest('[inert]'))).toBe(true);
     if (close === 'Escape') await page.keyboard.press('Escape'); else await page.goBack();

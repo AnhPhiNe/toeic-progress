@@ -19,7 +19,7 @@ import {
   getPracticeParts
 } from '@/shared/domain/etsScoring';
 import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions, loadVocabLog } from '@/shared/data/storage';
-import { dayMonth, vocabDayTotal, type VocabEditApi } from './phone/phoneLogLib';
+import { VOCAB_DEFAULT, dayMonth, vocabDayTotal, type VocabEditApi } from './phone/phoneLogLib';
 import { collectTestNames, normalizeTestName, suggestNextTestName, testNameKey } from '@/shared/domain/testNames';
 import { normalizeQuestionList, partScoresFromWrong } from '@/shared/domain/questionNumbers';
 import { DesktopPracticeBody } from './DesktopPracticeBody';
@@ -100,7 +100,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [durationEmpty, setDurationEmpty] = useState(false);
   const durationEmptyRef = useRef(false);
   const markDurationEmpty = (value: boolean) => { durationEmptyRef.current = value; setDurationEmpty(value); };
-  const [vocabCount, setVocabCount] = useState(1);
+  const [vocabCount, setVocabCount] = useState(VOCAB_DEFAULT);
   // A past day (or a logged today) picked from the "7 ngày qua" strip; false = the plain "log today" form.
   const [vocabPicked, setVocabPicked] = useState(false);
   const [, setVocabTick] = useState(0);
@@ -308,7 +308,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
     markDurationEdited(Boolean(e || prefill?.durationMinutes !== undefined));
     markDurationEmpty(Boolean(e) && !(Number(e?.durationMinutes) > 0));
-    setVocabCount(isPhone ? 20 : 1);
+    setVocabCount(VOCAB_DEFAULT);
     setVocabPicked(false);
     setPhoneStep(markWrong || prefill?.initialFiles?.length ? 'wrong' : 'pick');
     setNotes(e?.notes ?? '');
@@ -348,7 +348,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   }, [sessionType]);
 
   const vocabToday = getTodayDateString();
-  const vocabDefault = isPhone ? 20 : 1;
+  const vocabDefault = VOCAB_DEFAULT;
   const vocabExisting = sessionType === 'VOCAB' ? vocabDayTotal(loadVocabLog(), date) : 0;
   const vocabApi: VocabEditApi = {
     edit: vocabPicked || date !== vocabToday,
@@ -389,7 +389,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
     meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
       || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
-      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== (isPhone ? 20 : 1) || date !== getTodayDateString()
+      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== VOCAB_DEFAULT || date !== getTodayDateString()
       || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
     validate: input => {
       const value = parseSessionFormDraft(input);

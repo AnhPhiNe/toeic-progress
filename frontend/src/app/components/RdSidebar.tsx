@@ -86,7 +86,7 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
       <p className="rd-side__grp">CÔNG CỤ</p>
       {tools.map(renderItem)}
       {onOpenSettings && (
-        <button type="button" className="rd-side__it is-tool" style={{ ['--it-tint' as string]: 'var(--rd-teal-d)' }} onClick={onOpenSettings} aria-haspopup="dialog" title="Tài khoản & cài đặt">
+        <button type="button" className="rd-side__it is-tool" style={{ ['--it-tint' as string]: 'var(--rd-teal-d)' }} onClick={onOpenSettings} aria-haspopup="dialog" aria-label="Tài khoản & cài đặt" title="Tài khoản & cài đặt">
           <span className="rd-side__ic" style={{ background: '#9aa39d', boxShadow: '0 3px 0 #7b857f' }} aria-hidden="true">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill={W} /><path d="M3.5 21 C3.5 15.5 8 14 12 14 S20.5 15.5 20.5 21Z" fill={W} /></svg>
           </span>
