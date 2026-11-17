@@ -4,6 +4,7 @@ import { useBakery } from '../hooks/useBakery';
 import { PhoneBakeryChoose } from './phone/PhoneBakeryChoose';
 import { PhoneBakeryRun } from './phone/PhoneBakeryRun';
 import { PhoneBakeryDone } from './phone/PhoneBakeryDone';
+import { PageTip } from '@/features/guide/PageTip';
 import './bakery.css';
 import './phone/practice-phone.css';
 
@@ -51,6 +52,8 @@ function PracticePhoneWorkspace({ owner, resultDialogBlocked = false, onEditSess
     );
   }
   return (
+    <>
+    <PageTip id="practice" />
     <PhoneBakeryChoose
       mode={b.mode} label={b.label} choices={b.choices}
       lastTime={b.lastTime} minutes={b.plannedMinutes} canMinus={b.canMinus}
@@ -58,5 +61,6 @@ function PracticePhoneWorkspace({ owner, resultDialogBlocked = false, onEditSess
       onPick={b.pick} onStart={b.start} onMinutes={b.setMinutes}
       onLog={b.logResult} onPomodoro={onOpenPomodoro} onOpenSession={onEditSession}
     />
+    </>
   );
 }

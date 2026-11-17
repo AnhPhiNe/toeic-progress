@@ -80,6 +80,8 @@ import { persistSessionResult } from '@/features/study-sessions/lib/persistSessi
 import { undoMistakeDeletion, undoMistakeGrade } from '@/features/mistakes/lib/persistMistakeUndo';
 import { AISignInPrompt } from '@/features/account/components/AISignInPrompt';
 import { AI_SIGN_IN_EVENT } from '@/shared/lib/aiSignIn';
+import { GuidePage } from '@/features/guide/GuidePage';
+import { GuideContext } from '@/features/guide/GuideContext';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -445,10 +447,11 @@ export const App: React.FC = () => {
   const showNotebook = activeTab === 'mistakes' && !isPhone;
   const showAwards = activeTab === 'awards';
   const showConvert = activeTab === 'resources' && !isPhone;
+  const showGuide = activeTab === 'guide' && !isPhone;
   // Phones: each tab with a redesigned phone page owns the whole screen (no Topbar); plan and vocabulary keep the old layout.
   // On phones the Pomodoro clock still uses the older view, so the bakery stub steps aside while it is open.
-  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources'].includes(activeTab) && !(activeTab === 'exam-mode' && pomodoroOpen);
-  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert || phonePageTab;
+  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources', 'guide'].includes(activeTab) && !(activeTab === 'exam-mode' && pomodoroOpen);
+  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert || showGuide || phonePageTab;
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
@@ -457,6 +460,9 @@ export const App: React.FC = () => {
     else if (task.kind === 'FULL_TEST') openSessionLogger();
     else if (task.kind === 'WORD_CARDS') setActiveTab('vocabulary');
   };
+  // First-visit page tips wait while anything else holds the screen.
+  const tipsHeld = isSessionModalOpen || savedTest !== null || reviewCards !== null || practiceFocus || isSettingsModalOpen || editingPacing !== null || aiSignInOpen || Boolean(account.pendingTransfer);
+  const guidePage = <GuidePage onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} onOpenSessionLogger={() => openSessionLogger()} onNavigate={setActiveTab} />;
   const updateProfile = (update: (current: UserProfile) => UserProfile) => {
     saveUserProfile(update(loadUserProfile()));
     setProfile(loadUserProfile());
@@ -464,6 +470,7 @@ export const App: React.FC = () => {
 
   return (
     <PhoneShellContext.Provider value={{ soc, newBadges, goTab: setActiveTab, openSettings: () => setIsSettingsModalOpen(true) }}>
+    <GuideContext.Provider value={{ tipsHeld }}>
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
       
       {/* 1. Sidebar (Desktop Persistent & Mobile Overlay Drawer Unified) */}
@@ -575,6 +582,7 @@ export const App: React.FC = () => {
             {activeTab === 'resources' && (
               <ConvertPhone sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
             )}
+            {activeTab === 'guide' && guidePage}
           </div>
         ) : showToday ? (
           <TodayPage
@@ -586,7 +594,7 @@ export const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateProfile={updateProfile}
           />
-        ) : showConvert ? (
+        ) : showGuide ? guidePage : showConvert ? (
           <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
         ) : showAwards ? (
           <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} />
@@ -822,6 +830,7 @@ export const App: React.FC = () => {
 
 
     </div>
+    </GuideContext.Provider>
     </PhoneShellContext.Provider>
   );
 };

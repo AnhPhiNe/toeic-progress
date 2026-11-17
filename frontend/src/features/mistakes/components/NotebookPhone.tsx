@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { PhoneAvatarButton } from '@/app/components/phone';
+import { PageTip } from '@/features/guide/PageTip';
 import type { MistakeUndoAction } from '../lib/mistakeUndo';
 import type { MistakeEntry, NavTabId, StudySession } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -234,9 +235,10 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
     <div className="rd pn">
       <header className="pn-head">
         <h1>Sổ tay</h1>
-        {!empty && <button type="button" className="pn-cam" onClick={openCamera}><CameraIcon /> Chụp</button>}
+        {!empty && <button type="button" className="pn-cam" data-guide="notebook" onClick={openCamera}><CameraIcon /> Chụp</button>}
         <PhoneAvatarButton />
       </header>
+      <PageTip id="notebook" ready={!empty} />
 
       {empty ? (
         <PhoneNotebookEmpty onCapture={openCamera} onManual={() => setEntry(null)} />

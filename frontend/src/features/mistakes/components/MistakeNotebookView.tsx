@@ -27,6 +27,7 @@ import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { triggerHaptic } from '@/shared/lib/haptics';
 import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
+import { PageTip } from '@/features/guide/PageTip';
 import './notebook.css';
 import './notebook-rd.css';
 import './capture-rd.css';
@@ -459,7 +460,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                 <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>{wordCards}</em></button>
               </div>
             )}
-            {!empty && <button type="button" className="rd-btn rd-btn--pink nb-cam" onClick={openCreate}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>}
+            <PageTip id="notebook" ready={!empty} />
+            {!empty && <button type="button" className="rd-btn rd-btn--pink nb-cam" data-guide="notebook" onClick={openCreate}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>}
           </div>
         </div>
 

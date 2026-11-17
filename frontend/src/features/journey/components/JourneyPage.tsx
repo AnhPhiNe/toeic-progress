@@ -5,6 +5,7 @@ import { ScoreTab } from './ScoreTab';
 import { PartsTab } from './PartsTab';
 import { TestsTab } from './TestsTab';
 import { TestDrawer } from './TestDrawer';
+import { PageTip } from '@/features/guide/PageTip';
 import './journey.css';
 
 type Tab = 'score' | 'parts' | 'tests';
@@ -45,6 +46,7 @@ export function JourneyPage({ sessions, mistakes, profile, today, initialTab = '
       {tab === 'score' && <ScoreTab sessions={sessions} profile={profile} today={today} onOpenTest={setOpenId} onShowTests={() => setTab('tests')} onLog={onOpenSessionLogger} />}
       {tab === 'parts' && <PartsTab sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
       {tab === 'tests' && <TestsTab sessions={sessions} onOpenTest={setOpenId} onOpenSessionLogger={onOpenSessionLogger} />}
+      <PageTip id="journey" ready={tests.length > 0} />
       {open && (
         <TestDrawer session={open} sessions={sessions} mistakes={mistakes} target={profile.targetScore}
           onClose={() => setOpenId(null)} onOpenNotebook={name => { setOpenId(null); onOpenNotebook(name); }}

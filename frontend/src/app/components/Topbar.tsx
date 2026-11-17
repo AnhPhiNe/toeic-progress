@@ -102,7 +102,8 @@ export const Topbar: React.FC<TopbarProps> = ({
       short: 'Thành tích',
       category: 'Hành trình',
       icon: Calculator
-    }
+    },
+    guide: { title: 'Cách dùng app', short: 'Cách dùng', category: 'Công cụ', icon: Calculator }
   };
 
   const currentTab = tabConfig[activeTab] || tabConfig.dashboard;
