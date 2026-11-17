@@ -25,7 +25,21 @@ export function hasChosenGoal(profile: Pick<UserProfile, 'targetScore' | 'goalCh
   return profile.goalChosen === true || profile.targetScore !== DEFAULT_TARGET;
 }
 
-export type TodayMode = 'choose' | 'ready' | 'climb';
+/**
+ * The goal to show next to "Điểm mục tiêu" (Cài đặt, sidebar): null while the learner has not picked one,
+ * so a fresh profile reads "Chưa chọn" instead of the stored placeholder 990.
+ */
+export function shownGoal(profile: Pick<UserProfile, 'targetScore' | 'goalChosen'>): number | null {
+  return hasChosenGoal(profile) ? profile.targetScore : null;
+}
+
+/** "850" or "Chưa chọn". */
+export function goalLabel(profile: Pick<UserProfile, 'targetScore' | 'goalChosen'>): string {
+  const goal = shownGoal(profile);
+  return goal === null ? 'Chưa chọn' : String(goal);
+}
+
+export type TodayMode ='choose' | 'ready' | 'climb';
 
 /** choose = pick a goal (S1), ready = goal set but no test yet (S2), climb = real stairs after a test (S3). */
 export function todayMode(input: { hasTests: boolean; chosen: boolean; editing: boolean }): TodayMode {
