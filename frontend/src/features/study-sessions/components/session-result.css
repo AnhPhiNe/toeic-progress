@@ -53,3 +53,10 @@
   .sr-scroll { padding-right: 0; overflow: visible; }
 }
 @media (prefers-reduced-motion: reduce) { .sr-dim, .sr-box, .sr-rays { animation: none; } }
+
+/* "Nhờ Sóc xem đề này" row */
+.sr-ask { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 14px; border: 0; border-radius: 16px; padding: 8px 14px 8px 10px; background: #fff8e1;
+  box-shadow: 0 0 0 2px #ffe9a8; font: 900 14.5px var(--rd-font); color: var(--rd-ink); text-align: left; cursor: pointer; }
+.sr-ask .soc { flex: none; }
+.sr-ask i { margin-left: auto; font-style: normal; color: var(--rd-mut); }
+.sr-ask:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }

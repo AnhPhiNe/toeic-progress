@@ -340,3 +340,12 @@
   .td-gc-go { flex-wrap: wrap; }
   .td-gc h2 { font-size: 26px; }
 }
+
+/* A one-off task added from Soc’s advice on a test (mock-test-advice.html, row 9). */
+.td-sug { margin: 4px 0; border-radius: 12px; background: #fff8e1; box-shadow: 0 0 0 2px #ffe08a; }
+.td-sug.is-done { background: none; box-shadow: none; }
+.td-sug .td-r { margin: 0; width: 100%; padding-right: 64px; }
+.td-sug .td-tx small { color: #a87a00; font-weight: 800; }
+.td-sgo { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 2px solid #bfe6c6; border-radius: 10px; background: #fff; padding: 3px 10px;
+  font: 900 12.5px var(--rd-font); color: var(--rd-green-d); box-shadow: 0 2px 0 #bfe6c6; cursor: pointer; }
+.td-sgo:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }

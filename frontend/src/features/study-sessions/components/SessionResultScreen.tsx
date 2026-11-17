@@ -11,6 +11,7 @@ import { summarizeSessionResult, type PartLoss } from '../lib/sessionResult';
 import { isFirstFullTest } from '../lib/firstStake';
 import { resultFacts } from './phone/phoneLogLib';
 import { FirstStakeCard } from './FirstStakeCard';
+import { AskAdviceRow } from './AskAdviceRow';
 
 const PART_NAME: Record<PartNumber, string> = { 1: 'Mô tả tranh', 2: 'Hỏi đáp', 3: 'Hội thoại', 4: 'Bài nói', 5: 'Điền câu', 6: 'Điền đoạn văn', 7: 'Đọc hiểu' };
 const PART_INK: Record<PartNumber, [string, string]> = {
@@ -48,6 +49,8 @@ interface Props {
   onReview: (mistakeIds: string[]) => void;
   /** Guests only: their data lives on this device, so the screen offers a Google sign-in to keep it safe. */
   onSignIn?: () => void;
+  /** Opens this test in Hành trình with Sóc's advice block in view; absent when the build has no backend. */
+  onAskAdvice?: () => void;
 }
 
 /**
@@ -59,7 +62,7 @@ export function SessionResultScreen(props: Props) {
   return isPhone ? <PhoneSessionResult {...props} /> : <DesktopSessionResult {...props} />;
 }
 
-function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn }: Props) {
+function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn, onAskAdvice }: Props) {
   const result = useMemo(() => summarizeSessionResult(session, sessions, mistakes, targetScore), [session, sessions, mistakes, targetScore]);
   const dialogRef = useModalA11y(true, onClose);
   const { goal } = result;
@@ -131,6 +134,7 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
               <p className="sr-sign">Kết quả đang chỉ lưu trên máy này. <button type="button" onClick={onSignIn}>Đăng nhập để không mất khi đổi máy</button></p>
             )}
           </div>
+          {onAskAdvice && <AskAdviceRow onClick={onAskAdvice} />}
           <div className="sr-acts">
             <button type="button" onClick={primary.run} className="rd-btn sr-main">{primary.label}</button>
             {result.step !== 'done' && <button type="button" onClick={onClose} className="sr-later">Để sau</button>}

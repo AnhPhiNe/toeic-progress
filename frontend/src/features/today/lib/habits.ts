@@ -1,5 +1,6 @@
 import type { Habit, MistakeEntry, UserProfile } from '@/shared/types';
 import { localDate } from './todayTasks';
+import { suggestionStudyDates } from './suggestedTasks';
 
 export const MAX_HABITS = 3;
 export const HABIT_TITLE_MAX = 40;
@@ -36,12 +37,13 @@ export function toggleHabit(profile: UserProfile, id: string, today: string): Us
 export const habitDoneToday = (habit: Habit, today: string) => habit.doneDates.includes(today);
 
 /**
- * Days that count for the streak beyond logged results: habit ticks and
- * mistake reviews (only the latest review per card is stored).
+ * Days that count for the streak beyond logged results: habit ticks, ticked
+ * suggestions from Sóc and mistake reviews (only the latest review per card is stored).
  */
 export function extraStudyDates(profile: UserProfile, mistakes: MistakeEntry[]): string[] {
   const dates = new Set<string>();
   for (const habit of profile.habits ?? []) for (const date of habit.doneDates) dates.add(date);
+  for (const date of suggestionStudyDates(profile)) dates.add(date);
   for (const card of mistakes) {
     if (card.deletedAt || !card.lastReviewedAt) continue;
     const date = localDate(card.lastReviewedAt);

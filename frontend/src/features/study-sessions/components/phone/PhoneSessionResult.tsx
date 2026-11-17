@@ -6,6 +6,7 @@ import { summarizeSessionResult } from '../../lib/sessionResult';
 import { resultFacts } from './phoneLogLib';
 import { isFirstFullTest } from '../../lib/firstStake';
 import { FirstStakeCard } from '../FirstStakeCard';
+import { AskAdviceRow } from '../AskAdviceRow';
 import './phoneResult.css';
 
 interface Props {
@@ -18,10 +19,11 @@ interface Props {
   onDetails: () => void;
   onReview: (mistakeIds: string[]) => void;
   onSignIn?: () => void;
+  onAskAdvice?: () => void;
 }
 
 /** Phone result after saving a Full Test: score, record, Sóc and the one next step. Sketch: design/previews/mock-phone-log.html */
-export function PhoneSessionResult({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn }: Props) {
+export function PhoneSessionResult({ session, sessions, mistakes, targetScore, onClose, onMarkWrong, onDetails, onReview, onSignIn, onAskAdvice }: Props) {
   const result = useMemo(() => summarizeSessionResult(session, sessions, mistakes, targetScore), [session, sessions, mistakes, targetScore]);
   const facts = useMemo(() => resultFacts(session, sessions, targetScore), [session, sessions, targetScore]);
   const dialogRef = useModalA11y(true, onClose);
@@ -63,6 +65,7 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
           : null}
       </div>
       </>}
+      {onAskAdvice && <AskAdviceRow onClick={onAskAdvice} className="plr-ask" />}
       {onSignIn && <p className="plr-sign">Kết quả đang chỉ lưu trên máy này. <button type="button" onClick={onSignIn}>Đăng nhập để không mất khi đổi máy</button></p>}
       <div className="plr-acts">
         <button type="button" className={'plr-done' + (next ? '' : ' is-solo')} onClick={onClose}>Xong</button>

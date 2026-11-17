@@ -160,3 +160,13 @@ button.tp-cup { cursor: pointer; }
   .tp-stairs.is-grow .tp-bar,.tp-stairs.is-grow .tp-soc, .tp-stairs.is-grow .tp-cup, .tp-lab.is-in, .tp-wig, .tp.is-welcome .tp-panel, .tp.is-welcome .tp-go--wide:not(:disabled) { animation: none; }
   .tp-lab.is-out { display: none; }
 }
+
+/* Tasks added from Soc’s advice stay visible under the next-task card (mock-test-advice.html, row 9). */
+.tp-pin { margin-top: 8px; flex: none; }
+.tp-pin li.tp-sug { border-top: 0; border-radius: 14px; background: #fff8e1; box-shadow: 0 0 0 2px #ffe08a; padding-left: 6px; }
+.tp-pin li.tp-sug + li.tp-sug { margin-top: 6px; }
+.tp-pin li.tp-sug.is-done { background: none; box-shadow: none; }
+.tp-tick { flex: none; width: 40px; height: 48px; border: 0; background: none; display: grid; place-items: center; padding: 0; }
+.tp-sug .tp-row { padding-left: 0; }
+.tp-sug .tp-row__t small { color: #a87a00; }
+.tp-sug .tp-row__t { flex-direction: column; align-items: flex-start; gap: 0; }
