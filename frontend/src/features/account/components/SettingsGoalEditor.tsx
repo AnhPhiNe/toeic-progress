@@ -15,10 +15,12 @@ interface Props {
   /** Phone: bottom sheet. Computers: popover beside `anchor`. */
   phone: boolean;
   anchor?: HTMLElement | null;
+  /** Computers: the settings dialog, so the popover sits beside it and covers none of its rows. */
+  beside?: HTMLElement | null;
 }
 
 /** The Hôm nay goal editor opened from Cài đặt, so goal, stairs preview and exam date behave the same in both places. */
-export function SettingsGoalEditor({ profile, onSaveField, onClose, phone, anchor }: Props) {
+export function SettingsGoalEditor({ profile, onSaveField, onClose, phone, anchor, beside }: Props) {
   const sessions = useMemo(() => live(readDataBundle().sessions), []);
   const best = useMemo(() => bestScore(sessions), [sessions]);
   const save = (target: number, examDate: string) => {
@@ -27,5 +29,5 @@ export function SettingsGoalEditor({ profile, onSaveField, onClose, phone, ancho
     if (onSaveField({ targetScore: target, examDate, goalChosen: true }) === null) onClose();
   };
   const common = { sessions, current: profile.targetScore, initial: profile.targetScore, best, examDate: profile.examDate, today: localDate(Date.now()), onSave: save, onClose };
-  return phone ? <GoalSheet {...common} /> : <GoalPopover {...common} anchor={anchor ?? null} id={SETTINGS_GOAL_POPOVER_ID} />;
+  return phone ? <GoalSheet {...common} /> : <GoalPopover {...common} anchor={anchor ?? null} beside={beside} id={SETTINGS_GOAL_POPOVER_ID} />;
 }

@@ -370,7 +370,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </form>
         )}
 
-        {!isPhone && goalOpen && <SettingsGoalEditor phone={false} anchor={goalButton.current} profile={formData} onSaveField={savePhoneField} onClose={() => setGoalOpen(false)} />}
+        {!isPhone && goalOpen && <SettingsGoalEditor phone={false} anchor={goalButton.current} beside={modalRef.current} profile={formData} onSaveField={savePhoneField} onClose={() => setGoalOpen(false)} />}
       </div>
     </div>
   );
