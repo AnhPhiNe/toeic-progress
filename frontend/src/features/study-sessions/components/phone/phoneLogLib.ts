@@ -72,6 +72,10 @@ export function vocabDayTotal(log: { date: string; count: number }[], date: stri
   return log.filter(item => item.date === date).reduce((sum, item) => sum + item.count, 0);
 }
 
+/** New vocabulary entries start at 20 words, with the same quick picks, on phone and desktop. */
+export const VOCAB_DEFAULT = 20;
+export const VOCAB_CHIPS = [10, 20, 30, 50] as const;
+
 /** "2026-11-09" -> "09/11". */
 export function dayMonth(date: string): string {
   const [, m, d] = date.split('-');

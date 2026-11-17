@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadVocabLog } from '@/shared/data/storage';
-import { dayMonth, vocabWeek, type VocabEditApi } from './phone/phoneLogLib';
+import { VOCAB_CHIPS, dayMonth, vocabWeek, type VocabEditApi } from './phone/phoneLogLib';
 
 const INK = 'border-2 border-slate-900 dark:border-slate-300';
 
@@ -43,11 +43,11 @@ export const DesktopVocabBody = ({ count, setCount, date, today, vocab }: Props)
           <button type="button" aria-label="Thêm 1 từ" onClick={() => step(1)} className={stepBtn}>+</button>
         </div>
         <div className="mt-1 text-base font-bold text-slate-500 dark:text-slate-400">từ</div>
-        <div className="mt-3.5 grid grid-cols-5 gap-2">
-          {[5, 10, 20, 30, 50].map(n => (
-            <button key={n} type="button" onClick={() => setCount((Number(count) || 0) + n)}
-              className={`cursor-pointer rounded-[10px] bg-white py-2 text-[13px] font-extrabold tabular-nums text-slate-900 hover:bg-blue-100 hover:text-blue-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-blue-900 dark:hover:text-blue-100 ${INK}`}>
-              +{n}
+        <div className="mt-3.5 grid grid-cols-4 gap-2" role="group" aria-label="Chọn nhanh số từ">
+          {VOCAB_CHIPS.map(n => (
+            <button key={n} type="button" aria-pressed={Number(count) === n} onClick={() => setCount(n)}
+              className={`cursor-pointer rounded-[10px] py-2 text-[13px] font-extrabold tabular-nums ${Number(count) === n ? "bg-blue-600 text-white" : "bg-white text-slate-900 hover:bg-blue-100 hover:text-blue-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-blue-900 dark:hover:text-blue-100"} ${INK}`}>
+              {n}
             </button>
           ))}
         </div>

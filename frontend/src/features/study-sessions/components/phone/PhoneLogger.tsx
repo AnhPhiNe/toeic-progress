@@ -12,7 +12,7 @@ import { PartTimingModal } from '../PartTimingModal';
 import type { AppliedResultScore, ResultScoreStore } from '../ResultScoreReview';
 import type { WrongNumberDraft } from '../../lib/wrongNumberDraft';
 import { WheelPicker } from './WheelPicker';
-import { chipNames, clamp, countFromScaled, dayLabel, percent, previousDay, previousScored, recentTestNames, scaledFromCount, vocabWeek, dayMonth, type VocabEditApi } from './phoneLogLib';
+import { chipNames, clamp, countFromScaled, dayLabel, percent, previousDay, previousScored, recentTestNames, scaledFromCount, vocabWeek, dayMonth, VOCAB_CHIPS, type VocabEditApi } from './phoneLogLib';
 import './phoneLog.css';
 
 export type PhoneStep = 'pick' | 'manual' | 'wrong';
@@ -163,7 +163,7 @@ export function PhoneLogger(props: PhoneLoggerProps) {
           </div>
           <p className="pl-unit">từ mới</p>
           <div className="pl-chips pl-chips--c" role="group" aria-label="Chọn nhanh số từ">
-            {[10, 20, 30, 50].map(n => <button key={n} type="button" aria-pressed={props.vocabCount === n} className={'pl-chip' + (props.vocabCount === n ? ' is-on' : '')} onClick={() => props.setVocabCount(n)}>{n}</button>)}
+            {VOCAB_CHIPS.map(n => <button key={n} type="button" aria-pressed={props.vocabCount === n} className={'pl-chip' + (props.vocabCount === n ? ' is-on' : '')} onClick={() => props.setVocabCount(n)}>{n}</button>)}
           </div>
           <div className="pl-week">
             <p className="pl-lab">7 NGÀY QUA · CHẠM ĐỂ SỬA</p>
@@ -190,7 +190,7 @@ export function PhoneLogger(props: PhoneLoggerProps) {
             )
             : <button type="button" className="pl-del" onClick={() => setConfirmDel(true)}>Xóa ngày này</button>)}
         </div>
-        {saveBtn(edit ? `Lưu ngày ${dm}` : `Lưu ${props.vocabCount} từ`, 'blue')}
+        {saveBtn(edit ? `Lưu ngày ${dm}` : `Lưu ${props.vocabCount} từ`, 'green')}
       </div>
     );
   }
