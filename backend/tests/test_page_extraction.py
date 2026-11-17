@@ -227,7 +227,7 @@ def test_result_scores_copy_visible_values_without_converting_wrong_counts(api, 
 
 @pytest.mark.parametrize("patch", [{"totalSeconds": 6721}, {"readingSeconds": 4490},
                                    {"parts": {"part5": 870}}, {}])
-def test_elapsed_timing_uses_same_paid_request_without_inference(api, patch):
+def test_elapsed_timing_uses_same_paid_request_without_inference(api, patch):  # noqa: F811 - pytest fixture
     timing = {"totalSeconds": None, "listeningSeconds": None, "readingSeconds": None,
               "parts": {f"part{part}": None for part in range(1, 8)}}
     timing.update(patch)
@@ -249,7 +249,7 @@ def test_elapsed_timing_uses_same_paid_request_without_inference(api, patch):
 
 
 @pytest.mark.parametrize("value", [-1, 86401, True, "112", 1.5])
-def test_invalid_elapsed_timing_is_not_retried(api, value):
+def test_invalid_elapsed_timing_is_not_retried(api, value):  # noqa: F811 - pytest fixture
     with api(draft={"wrong": [], "skipped": [], "timing": {"totalSeconds": value}}) as (client, calls):
         assert client.post("/api/v1/ai/read-results", json=results()).status_code == 502
         assert sum(call[0] == "api.openai.com" for call in calls) == 1

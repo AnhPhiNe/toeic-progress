@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import identity
 from app.core.runtime import client_address
+from app.schemas.attempt_analysis import AnalyzeAttemptRequest
 from app.schemas.models import ExplainBatchRequest, ExtractRequest, PageExtractRequest, ResultsReadRequest
 from app.services import explain_tickets
-from app.schemas.attempt_analysis import AnalyzeAttemptRequest
-from app.services.attempt_analysis import load_snapshot, snapshot_hash, generate_analysis
+from app.services.attempt_analysis import generate_analysis, load_snapshot, snapshot_hash
 
 router = APIRouter()
 
