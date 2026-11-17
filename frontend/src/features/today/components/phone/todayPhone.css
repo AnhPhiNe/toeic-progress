@@ -82,10 +82,11 @@ button.tp-cup { cursor: pointer; }
 .tp-x { flex: none; width: 44px; height: 44px; border: 0; background: none; color: #b3bbb5; display: grid; place-items: center; }
 
 /* footer */
-.tp-ft { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex: none; }
+.tp-ft { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex: none; flex-wrap: wrap; row-gap: 6px; }
 .tp-ft .tp-chip { box-shadow: none; font-size: 13px; }
 .tp-chip.is-fire { background: #fff3eb; color: #ff7a1a; cursor: pointer; min-height: 40px; }
 .tp-chip.is-count { background: #eef7ee; color: var(--rd-green-d); }
+.tp-chip.is-league { background: #e8f0fd; color: #2a6bc7; cursor: pointer; min-height: 40px; white-space: nowrap; }
 .tp-add { margin-left: auto; min-height: 44px; border: 0; background: none; font-weight: 900; font-size: 13.5px; color: var(--rd-blue); padding: 0 2px; }
 .tp-ft.is-links { justify-content: space-between; }
 .tp-ft.is-links .tp-add { margin-left: 0; }

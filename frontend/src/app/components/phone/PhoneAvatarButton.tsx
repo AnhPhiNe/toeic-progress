@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeftRight, ChevronRight, Settings, Trophy } from 'lucide-react';
+import { ArrowLeftRight, ChevronRight, Settings, Shield, Trophy } from 'lucide-react';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { PhoneSheet } from './PhoneSheet';
 import { usePhoneShell } from './PhoneShellContext';
@@ -22,7 +22,7 @@ export function PhoneAvatarButton({ className }: { className?: string }) {
 }
 
 function AvatarSheet({ onClose }: { onClose: () => void }) {
-  const { soc, newBadges, goTab, openSettings } = usePhoneShell();
+  const { soc, newBadges, goTab, openSettings, league } = usePhoneShell();
   const { level, next, stars, toNext, ratio } = soc.progress;
   const go = (run: () => void) => () => { onClose(); run(); };
   return (
@@ -41,6 +41,11 @@ function AvatarSheet({ onClose }: { onClose: () => void }) {
         <i style={{ background: 'var(--rd-blue)' }}><Trophy size={20} aria-hidden="true" /></i>
         <span><b>Thành tích</b><small>Huy hiệu và đồ cho Sóc</small></span>
         {newBadges > 0 ? <em className="ph-pill">{newBadges} mới</em> : <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />}
+      </button>
+      <button type="button" className="ph-row" onClick={go(() => goTab('league'))}>
+        <i style={{ background: '#3b7ddd' }}><Shield size={20} fill="currentColor" aria-hidden="true" /></i>
+        <span><b>Giải đấu tuần</b><small>{league?.label === 'Tham gia' || !league ? 'So sao với bạn cùng hạng · tham gia' : league.label}</small></span>
+        <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />
       </button>
       <button type="button" className="ph-row" onClick={go(() => goTab('resources'))}>
         <i style={{ background: '#14b8a6' }}><ArrowLeftRight size={20} aria-hidden="true" /></i>

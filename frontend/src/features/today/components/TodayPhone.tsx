@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { PhoneAvatarButton } from '@/app/components/phone';
+import { PhoneAvatarButton, usePhoneShell } from '@/app/components/phone';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { NavTabId, SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
@@ -54,6 +54,7 @@ interface Size { w: number; h: number; head: number; panel: number }
 
 export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc }: TodayPhoneProps) {
   const { profile, sessions, mistakes } = bundle;
+  const shell = usePhoneShell();
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
   const climbing = plan.status === 'empty' ? null : plan;
@@ -193,6 +194,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
           onToggleSuggestion={id => onUpdateProfile(p => toggleSuggestion(p, id, today))}
           onPracticeMore={onPracticeMore}
           onOpenStreak={() => setSheet('streak')} onOpenAdd={() => setSheet('add')}
+          league={shell.league ? { text: shell.league.chip, short: shell.league.chipShort, aria: shell.league.chipAria, onOpen: () => shell.goTab('league') } : undefined}
         />
       )}
 

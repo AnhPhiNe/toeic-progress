@@ -72,6 +72,9 @@ import { AI_SIGN_IN_EVENT } from '@/shared/lib/aiSignIn';
 import { GuidePage } from '@/features/guide/GuidePage';
 import { GuideContext } from '@/features/guide/GuideContext';
 import { adviceEnabled } from '@/features/journey/services/adviceTransport';
+import { LeaguePage } from '@/features/league/components/LeaguePage';
+import { useLeague } from '@/features/league/hooks/useLeague';
+import { chipLabel, sidebarLabel } from '@/features/league/lib/league';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -91,6 +94,8 @@ export const App: React.FC = () => {
   const account = useCloudAccount(refreshFromStorage);
   // Guests who reach for AI get one sign-in prompt; it only appears when signing in is possible.
   const isGuest = account.available && !account.hasAccountSession;
+  // Giải đấu tuần needs a permanent account; guests see the opt-in card asking them to sign in.
+  const signedIn = account.hasAccountSession && Boolean(account.email);
   const [aiSignInOpen, setAISignInOpen] = useState(false);
   useEffect(() => {
     if (!isGuest) { setAISignInOpen(false); return; }
@@ -152,6 +157,9 @@ export const App: React.FC = () => {
   const [journeyOpen, setJourneyOpen] = useState<{ id: string; nonce: number; owner: string | null } | null>(null);
   useEffect(() => { if (activeTab !== 'history' && activeTab !== 'analytics') setJourneyOpen(null); }, [activeTab]);
   const activeOwner = getActiveAccountId();
+  const league = useLeague({ enabled: signedIn, owner: activeOwner, synced: account.status === 'synced', pageOpen: activeTab === 'league' });
+  const leagueChip = chipLabel(league.state);
+  const leagueShell = { label: sidebarLabel(league.state), chip: leagueChip.text, chipShort: leagueChip.short, chipAria: leagueChip.aria };
   useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); setIsSessionModalOpen(false); setEditingSession(null); setSessionPrefill(undefined); }, [activeOwner]);
 
   // Light only for now: the redesigned pages have no dark styles yet. Clear any dark class or saved choice from older versions.
@@ -426,6 +434,8 @@ export const App: React.FC = () => {
   const showPractice = activeTab === 'exam-mode' && !isPhone;
   const showNotebook = activeTab === 'mistakes' && !isPhone;
   const showAwards = activeTab === 'awards';
+  // Giải đấu is one page for both layouts; on phones it fills the screen (opened from the avatar sheet or the 🛡 chip).
+  const showLeague = activeTab === 'league';
   const showConvert = activeTab === 'resources' && !isPhone;
   const showGuide = activeTab === 'guide' && !isPhone;
   // Phones: each tab with a redesigned phone page owns the whole screen.
@@ -458,7 +468,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <PhoneShellContext.Provider value={{ soc, newBadges, goTab: setActiveTab, openSettings: () => setIsSettingsModalOpen(true) }}>
+    <PhoneShellContext.Provider value={{ soc, newBadges, goTab: setActiveTab, openSettings: () => setIsSettingsModalOpen(true), league: leagueShell }}>
     <GuideContext.Provider value={{ tipsHeld }}>
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
       
@@ -473,6 +483,7 @@ export const App: React.FC = () => {
         onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         syncLabel={describeSync(account.available, account.status).label}
+        leagueLabel={leagueShell.label}
       />}
 
       {/* 2. Main Content View Area (Right) */}
@@ -573,6 +584,10 @@ export const App: React.FC = () => {
           />
         ) : showGuide ? guidePage : showConvert ? (
           <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
+        ) : showLeague ? (
+          <LeaguePage league={league} signedIn={signedIn} gear={soc.worn}
+            onSignIn={() => (account.available ? void account.signInGoogle() : setIsSettingsModalOpen(true))}
+            onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} />
         ) : showAwards ? (
           <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} />
         ) : showPractice ? (
@@ -627,7 +642,7 @@ export const App: React.FC = () => {
 
       <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null || isSessionModalOpen || reviewCards !== null} />
       {/* Redesigned phone pages (and Thành tích) have their own bottom nav; the old floating cue would cover it. */}
-      {!(isPhone && (phonePageTab || activeTab === 'awards')) && <PageScrollCue activeTab={activeTab} />}
+      {!(isPhone && (phonePageTab || activeTab === 'awards' || activeTab === 'league')) && <PageScrollCue activeTab={activeTab} />}
 
       {isPhone && !(practiceFocus && activeTab === 'exam-mode') && (
         <PhoneNav
