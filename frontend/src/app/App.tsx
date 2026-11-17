@@ -52,6 +52,7 @@ import {
   resetToCleanSlate,
   loadVocabLog,
   upsertVocabLog,
+  deleteVocabLog,
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
@@ -259,6 +260,11 @@ export const App: React.FC = () => {
   const handleSaveVocab = (date: string, count: number, details?: VocabDetails) => {
     setVocabLog(upsertVocabLog(date, count, details));
     setProfile(recordDailyActivity(profile, date));
+  };
+
+  const handleDeleteVocab = (date: string) => {
+    setVocabLog(deleteVocabLog(`vocab:${date}`));
+    setProfile(loadUserProfile());
   };
 
   /**
@@ -621,6 +627,7 @@ export const App: React.FC = () => {
         onClose={closeSessionLogger}
         onSaveSession={handleSaveSession}
         onSaveVocab={handleSaveVocab}
+        onDeleteVocab={handleDeleteVocab}
         sessions={sessions}
         prefill={sessionPrefill}
         editingSession={editingSession}

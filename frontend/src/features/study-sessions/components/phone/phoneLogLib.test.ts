@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StudySession } from '@/shared/types';
-import { chipNames, countFromScaled, dayLabel, percent, previousDay, resultFacts, scaledFromCount, vocabWeek } from './phoneLogLib';
+import { chipNames, countFromScaled, dayLabel, percent, previousDay, resultFacts, scaledFromCount, vocabWeek, vocabDayTotal, dayMonth } from './phoneLogLib';
 
 const test = (id: string, date: string, totalScore: number, name = id): StudySession => ({
   id, skillType: 'LR', sessionType: 'FULL_TEST', testName: name, date, durationMinutes: 120, totalScore, notes: '', createdAt: `${date}T08:00:00Z`
@@ -34,6 +34,12 @@ describe('phoneLogLib', () => {
     expect(week[6]).toEqual({ date: '2026-11-16', count: 25 });
     expect(week[0].date).toBe('2026-11-10');
     expect(week[0].count).toBe(9);
+  });
+  it('adds up one day of vocabulary and formats dd/mm', () => {
+    const log = [{ date: '2026-11-16', count: 20 }, { date: '2026-11-16', count: 5 }, { date: '2026-11-10', count: 9 }];
+    expect(vocabDayTotal(log, '2026-11-16')).toBe(25);
+    expect(vocabDayTotal(log, '2026-11-12')).toBe(0);
+    expect(dayMonth('2026-11-09')).toBe('09/11');
   });
   it('detects a record and delta', () => {
     const a = test('a', '2026-11-01', 700), b = test('b', '2026-11-10', 765);

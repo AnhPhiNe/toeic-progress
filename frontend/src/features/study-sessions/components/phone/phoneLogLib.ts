@@ -67,6 +67,28 @@ export function vocabWeek(log: { date: string; count: number }[], today: string)
   return days.map(date => ({ date, count: log.filter(item => item.date === date).reduce((sum, item) => sum + item.count, 0) }));
 }
 
+/** Words logged on one day (all of its live entries added up). */
+export function vocabDayTotal(log: { date: string; count: number }[], date: string): number {
+  return log.filter(item => item.date === date).reduce((sum, item) => sum + item.count, 0);
+}
+
+/** "2026-11-09" -> "09/11". */
+export function dayMonth(date: string): string {
+  const [, m, d] = date.split('-');
+  return `${d}/${m}`;
+}
+
+/** What the vocabulary form needs to pick, fix, or clear a past day. */
+export interface VocabEditApi {
+  /** True while a day other than a fresh "today" is selected. */
+  edit: boolean;
+  /** Words already logged on the selected day (0 = nothing to delete). */
+  existing: number;
+  onPick: (date: string) => void;
+  onBack: () => void;
+  onDelete: () => void;
+}
+
 /** Facts for the phone result screen, from recorded data only. */
 export function resultFacts(session: StudySession, sessions: StudySession[], target?: number) {
   const score = session.totalScore ?? 0;

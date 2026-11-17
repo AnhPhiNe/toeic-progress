@@ -99,11 +99,20 @@
 .pl-big-count input { width: 150px; border: 0; background: none; text-align: center; font: 900 72px/1 var(--rd-font) ; letter-spacing: -3px; color: inherit; font-variant-numeric: tabular-nums; }
 .pl-unit { margin: 2px 0 0; font-weight: 900; font-size: 15px; }
 .pl-week { margin-top: 28px; text-align: left; }
-.pl-bars { display: flex; align-items: flex-end; gap: 8px; height: 90px; }
-.pl-bars > div { flex: 1; text-align: center; }
-.pl-bars i { display: block; border-radius: 8px; background: #cfe5f8; }
-.pl-bars i.is-today { background: #1c8fe3; }
-.pl-bars small { font-weight: 900; font-size: 10.5px; color: var(--pl-faint); }
+.pl-bars { display: flex; align-items: flex-end; gap: 6px; }
+.pl-bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 4px; height: 96px; padding: 0 2px; border: 0; border-radius: 10px; background: none; text-align: center; font-family: var(--rd-font); color: inherit; cursor: pointer; }
+.pl-bar i { display: block; border-radius: 8px; background: #cfe5f8; }
+.pl-bar.is-on i { background: #1c8fe3; }
+.pl-bar.is-on small { color: #1c6fc0; }
+.pl-bar:not(.is-on):active i { background: #a9d2f2; }
+.pl-bar small { font-weight: 900; font-size: 10.5px; color: var(--pl-faint); }
+.pl-back { display: flex; align-items: center; margin: 2px auto 0; min-height: 36px; border: 0; background: none; padding: 0 10px; font: 900 13.5px var(--rd-font); color: #1c6fc0; cursor: pointer; }
+.pl-del { display: block; margin: 14px auto 0; min-height: 44px; border: 0; background: none; padding: 0 12px; font: 800 13.5px var(--rd-font); color: #d6416a; cursor: pointer; }
+.pl-del-ask { margin-top: 14px; text-align: center; font-weight: 800; font-size: 13.5px; }
+.pl-del-ask div { display: flex; justify-content: center; gap: 10px; margin-top: 6px; }
+.pl-del-ask button { min-height: 44px; border: 0; border-radius: 99px; padding: 0 18px; font: 900 13.5px var(--rd-font); cursor: pointer; background: var(--pl-card); box-shadow: 0 0 0 2px var(--pl-line); color: inherit; }
+.pl-del-ask button.is-danger { background: #ffeef3; box-shadow: 0 0 0 2px #ffc1cc; color: #d6416a; }
+.dark .pl-del-ask button.is-danger { background: #3a1b2b; box-shadow: 0 0 0 2px #5a2a40; }
 
 .pl-score-mini { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .pl-score-mini span { flex-basis: 100%; font-weight: 800; font-size: 13px; color: var(--pl-mut); }
