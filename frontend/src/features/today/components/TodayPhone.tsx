@@ -6,7 +6,8 @@ import type { NavTabId, SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import type { SocLook } from '@/features/awards/lib/outfit';
 import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
-import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
+import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
+import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
 import { daysUntil } from '@/features/journey/lib/scoreJourney';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
 import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
@@ -20,6 +21,8 @@ import { StreakSheet } from './phone/StreakSheet';
 import { AddHabitSheet } from './phone/AddHabitSheet';
 import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
 import { useWelcome } from './welcome/useWelcome';
+import { CoatPanel } from './welcome/CoatStep';
+import { Soc } from '@/shared/ui/soc/Soc';
 import { GoalSheet } from './goal/GoalEditor';
 import { useGoalEdit } from './goal/useGoalEdit';
 import './today.css';
@@ -71,10 +74,15 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
   const items = useMemo(() => buildPhoneItems(tasks, habits, today, suggestions), [tasks, habits, today, suggestions]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
+  const lastDone = useMemo(() => lastDoneDate(doneDates(bundle, today, extra), today), [bundle, today, extra]);
+  const [rest, wake] = useWake(todaySocMood({ today, lastDone, current: week.current, longest: week.longest }));
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
   const examIn = daysUntil(profile.examDate, today);
   const goalEdit = useGoalEdit({ profile, sessions, today, onUpdateProfile });
   const canEdit = mode !== 'choose' && !welcome.greeting;
+  // First visit: after the goal, one compact step to pick Sóc's coat and name (skippable), then the confetti.
+  const [coatStep, setCoatStep] = useState(false);
+  const finishGoal = () => { setCoatStep(false); setEditingGoal(false); welcome.confirm(); };
 
   const tests = useMemo<StairTest[]>(() => sessions
     .filter(s => !s.deletedAt && s.sessionType === 'FULL_TEST' && s.skillType === 'LR' && Number.isFinite(s.totalScore))
@@ -120,10 +128,10 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
     <div className={'rd tp' + (welcome.fresh ? ' is-welcome' : '') + (canEdit && goalEdit.pastTip ? ' has-pasttip' : '')} ref={root}>
       <PhoneStairs
         steps={steps} cur={cur} best={climbing?.best ?? 0} done={finished} estimate={!climbing}
-        target={shownTarget} cupLabel={chosen || climbing ? undefined : '?'} tests={tests} gear={soc.worn}
+        target={shownTarget} cupLabel={chosen || climbing ? undefined : '?'} tests={tests} gear={soc.worn} rest={rest} onWake={wake}
         w={size.w} top={size.head + 6} base={base}
         onCup={canEdit ? goalEdit.open : undefined}
-        hidden={welcome.greeting} grow={welcome.grew} lit={welcome.lit} added={goalEdit.grow}
+        hidden={welcome.greeting || coatStep} grow={welcome.grew} lit={welcome.lit} added={goalEdit.grow}
       />
 
       <header className="tp-top">
@@ -145,8 +153,8 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
       )}
 
       <div className="tp-head" ref={headRef}>
-        {welcome.greeting
-          ? <div className="tp-prog"><small className="tp-kick">LẦN ĐẦU GẶP NHAU</small></div>
+        {welcome.greeting || coatStep
+          ? <div className="tp-prog"><small className="tp-kick">{coatStep ? 'SÓC CỦA BẠN' : 'LẦN ĐẦU GẶP NHAU'}</small></div>
           : welcome.lit && mode === 'ready'
             ? <div className="tp-prog"><small className="tp-kick">MỤC TIÊU {target}</small></div>
             : <div className="tp-prog">
@@ -157,7 +165,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
             ? (finished ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${blocks + 1} · CÒN ${target - climbing.best} ĐIỂM`)
             : `${estimate.values.length} BẬC ƯỚC LƯỢNG · ${estimate.values[0]} → ${shownTarget}`}</small>
         </div>}
-        {welcome.greeting ? <h1>Chào bạn!<br /><em>Mình là Sóc</em></h1> : climbing
+        {welcome.greeting ? <h1>Chào bạn!<br /><em>Mình là Sóc</em></h1> : coatStep ? <h1>Sóc của bạn<br /><em>trông thế nào?</em></h1> : climbing
           ? (finished
             ? <h1>Bạn đã<br /><em>chạm tay vào cúp</em></h1>
             : <h1>{countWord(remaining)} bậc nữa là<br /><em>chạm tay vào cúp</em></h1>)
@@ -167,7 +175,9 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
         {mode === 'ready' && <button type="button" className="tp-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button>}
       </div>
 
-      {mode === 'choose' ? (
+      {mode === 'choose' && coatStep ? (
+        <CoatPanel ref={panelRef} profile={profile} onUpdateProfile={onUpdateProfile} onDone={finishGoal} />
+      ) : mode === 'choose' ? (
         <section ref={panelRef} className="tp-panel" aria-label="Chọn mục tiêu">
           <h2 className="tp-gh">Mục tiêu điểm TOEIC</h2>
           <div className="tp-presets" role="group" aria-label="Mục tiêu điểm">
@@ -176,7 +186,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
                 onClick={() => onUpdateProfile(p => profileWithGoal(p, v))}>{v}</button>
             ))}
           </div>
-          <button type="button" className="tp-go tp-go--wide" disabled={!chosen} onClick={() => { setEditingGoal(false); welcome.confirm(); }}>{chosen ? `Xong, mục tiêu ${target}` : 'Chọn một mục tiêu'}</button>
+          <button type="button" className="tp-go tp-go--wide" disabled={!chosen} onClick={() => (welcome.fresh ? setCoatStep(true) : finishGoal())}>{chosen ? `Xong, mục tiêu ${target}` : 'Chọn một mục tiêu'}</button>
           <div className="tp-ft is-links">
             <button type="button" className="tp-add" onClick={onOpenSettings}>Số khác trong Cài đặt</button>
             <button type="button" className="tp-add" onClick={onOpenSessionLogger}>Ghi đề đã làm</button>
@@ -196,6 +206,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
         />
       )}
 
+      {coatStep && <div className="tp-coat-stage" style={{ top: size.head + 6, bottom: size.panel + 12 }}><Soc state="hi" size={Math.min(190, Math.max(110, size.h - size.head - size.panel - 40))} /></div>}
       {welcome.greeting && <GreetSoc size={150} style={{ left: 0, right: 0, top: size.head + 6, bottom: size.panel + 12 }} />}
       {welcome.leapBubble && mode === 'ready' && <SocBubble tail="down" className="tp-leap" style={{ bottom: size.panel + 120 }}>Ghi <b>đề đầu tiên</b> là mình leo bậc 1!</SocBubble>}
       {welcome.confetti && <Confetti style={{ top: size.head + 60 }} />}
@@ -207,7 +218,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
       )}
 
       {sheet === 'streak' && (
-        <StreakSheet week={week} goal={goal} onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))} onClose={() => setSheet(null)} />
+        <StreakSheet week={week} goal={goal} broke={rest === 'sad'} onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))} onClose={() => setSheet(null)} />
       )}
       {sheet === 'add' && (
         <AddHabitSheet

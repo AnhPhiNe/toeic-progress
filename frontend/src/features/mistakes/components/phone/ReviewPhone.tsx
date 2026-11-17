@@ -144,7 +144,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
             </div>
           </div>
         ) : (
-          <div className="pr-hint"><Soc state="think" size={52} /><span>{before ? `Lần trước bạn chọn (${before}). Thử lại nhé!` : 'Thử chọn lại, Sóc đợi nhé!'}</span></div>
+          <div className="pr-hint"><Soc state="focus" size={52} /><span>{before ? `Lần trước bạn chọn (${before}). Thử lại nhé!` : 'Thử chọn lại, Sóc đợi nhé!'}</span></div>
         )}
         {error && <p role="alert" className="pr-err">{error}</p>}
       </div>

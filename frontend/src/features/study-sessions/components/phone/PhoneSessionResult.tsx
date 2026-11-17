@@ -53,7 +53,7 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
         <h2 id="session-result-title" className="plr-score">{facts.score}<span className="sr-only"> điểm</span></h2>
         {line && <p className="plr-line">{line}</p>}
       </div>
-      <Soc state="idle" size={150} className="plr-soc" />
+      <Soc state={facts.record ? 'proud' : 'idle'} size={150} className="plr-soc" />
       <div className="plr-card">
         <p className="plr-row">
           {result.listening !== undefined && <span>Nghe {result.listening}</span>}

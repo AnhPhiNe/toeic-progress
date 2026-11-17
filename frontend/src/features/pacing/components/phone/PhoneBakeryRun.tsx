@@ -57,7 +57,7 @@ export function PhoneBakeryRun(p: Props) {
       )}
 
       <div className="pp-run-soc">
-        <ChefSoc size={70} mood={p.hot ? 'think' : 'mix'} />
+        <ChefSoc size={70} mood={p.hot ? 'think' : p.paused ? 'mix' : 'focusMix'} />
         <div className="pp-say pp-say--side">{line}</div>
       </div>
 

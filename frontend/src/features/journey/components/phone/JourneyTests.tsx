@@ -19,7 +19,7 @@ export function JourneyTests({ sessions, onOpenTest, onOpenSessionLogger }: Prop
   if (!oldestFirst.length) {
     return (
       <div className="jp-empty is-list">
-        <Soc state="idle" size={110} />
+        <Soc state="zzz" size={110} wakeable />
         <p>Chưa có đề nào. Ghi điểm đề đầu tiên để bắt đầu hành trình.</p>
         <button type="button" className="rd-btn" onClick={onOpenSessionLogger}>+ Ghi điểm</button>
       </div>

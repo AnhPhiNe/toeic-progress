@@ -170,3 +170,16 @@ button.tp-cup { cursor: pointer; }
 .tp-sug .tp-row { padding-left: 0; }
 .tp-sug .tp-row__t small { color: #a87a00; }
 .tp-sug .tp-row__t { flex-direction: column; align-items: flex-start; gap: 0; }
+/* Welcome: Sóc của bạn (coat + name) after the goal pick */
+.tp-coat-stage { position: absolute; z-index: 4; left: 0; right: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; animation: tp-panel-in .5s cubic-bezier(.2, 1.1, .4, 1) both; }
+.tp-coat { padding-top: 18px; }
+.tp-coat .tp-ft.is-links { justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .tp-coat-stage { animation: none; } }
+/* Sóc's rest faces on the stairs: tap to wake a dozing Sóc; a kind line when the streak broke */
+.tp-wake { pointer-events: auto; border: 0; padding: 0; background: none; cursor: pointer; line-height: 0; -webkit-tap-highlight-color: transparent; z-index: 3; }
+.tp-wake:focus-visible { outline: 3px solid #8a7aa0; outline-offset: 2px; border-radius: 50%; }
+.tp-say { position: absolute; z-index: 6; max-width: 170px; background: #fff; color: var(--rd-ink); border-radius: 16px; padding: 8px 12px;
+  font-weight: 900; font-size: 13px; line-height: 1.3; box-shadow: 0 4px 14px rgba(47, 58, 51, .14); pointer-events: none; }
+.tp-say::after { content: ''; position: absolute; top: 14px; border: 7px solid transparent; }
+.tp-say.is-left::after { right: -13px; border-left-color: #fff; }
+.tp-say.is-right::after { left: -13px; border-right-color: #fff; }

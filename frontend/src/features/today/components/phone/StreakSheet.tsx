@@ -8,14 +8,16 @@ interface Props {
   goal: WeeklyGoal;
   onSetWeeklyGoal: (days: number) => void;
   onClose: () => void;
+  /** The streak just broke: the cake says "Không sao, hôm nay làm lại nhé". */
+  broke?: boolean;
 }
 
 /** Candle cake, record, freezes and the weekly goal (with Sửa) in a bottom sheet; same pieces as the desktop card. */
-export function StreakSheet({ week, goal, onSetWeeklyGoal, onClose }: Props) {
+export function StreakSheet({ week, goal, broke, onSetWeeklyGoal, onClose }: Props) {
   const [edit, setEdit] = useState(false);
   return (
     <PhoneSheet title="Chuỗi học" onClose={onClose} hideTitle>
-      <StreakCake week={week}>
+      <StreakCake week={week} broke={broke}>
         <div className="td-wk">
           <span>{goal.done >= goal.goal ? 'Đủ mục tiêu tuần' : <>Mục tiêu tuần: <b>{goal.done}/{goal.goal}</b> buổi học</>}</span>
           <div className="td-bar is-green"><i style={{ width: `${Math.min(100, goal.done / goal.goal * 100)}%` }} /></div>

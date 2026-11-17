@@ -3,7 +3,8 @@ import type { DataBundle } from '@/shared/data/dataBundle';
 import type { SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
-import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
+import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
+import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
 import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { socLook } from '@/features/awards/lib/outfit';
@@ -17,6 +18,7 @@ import { StairsScene } from './StairsScene';
 import { TodayCard } from './TodayCard';
 import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
 import { useWelcome } from './welcome/useWelcome';
+import { CoatCard } from './welcome/CoatStep';
 import { GoalPopover } from './goal/GoalEditor';
 import { useGoalEdit } from './goal/useGoalEdit';
 import { CELEBRATED_KEY } from '../lib/goalEdit';
@@ -61,6 +63,8 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
   const tasks = useMemo(() => withoutRepeatedTimers(pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), suggestions), [bundle, today, skipped, profile.suggestOff, suggestions]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
+  const lastDone = useMemo(() => lastDoneDate(doneDates(bundle, today, extra), today), [bundle, today, extra]);
+  const [rest, wake] = useWake(todaySocMood({ today, lastDone, current: week.current, longest: week.longest }));
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
   const ahead = useMemo(() => {
     const f = forecast(journeyPoints(sessions), target, profile.examDate, today);
@@ -78,6 +82,9 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
   const welcome = useWelcome({ hasTests: climbing !== null, chosen });
   const goalEdit = useGoalEdit({ profile, sessions, today, onUpdateProfile });
   const canEdit = mode !== 'choose' && !welcome.greeting;
+  // First visit: after the goal, one compact step to pick Sóc's coat and name (skippable), then the confetti.
+  const [coatStep, setCoatStep] = useState(false);
+  const finishGoal = () => { setCoatStep(false); setEditingGoal(false); welcome.confirm(); };
   const firstTask = tasks.find(item => !item.done) ?? null;
   const blocks = climbing ? climbing.steps.length - 1 : 0;
   const remaining = climbing ? blocks - climbing.currentIndex : 0;
@@ -108,11 +115,14 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
         cupLabel={chosen || climbing ? undefined : '?'}
         banner={mode === 'choose' ? (chosen ? `Mục tiêu ${target}` : 'Chọn mục tiêu') : undefined}
         gear={gear}
+        rest={rest}
+        onWake={wake}
         onEditGoal={canEdit ? goalEdit.open : undefined}
         added={goalEdit.grow}
       />
 
-      {mode === 'choose' && (
+      {mode === 'choose' && coatStep && <CoatCard profile={profile} onUpdateProfile={onUpdateProfile} onDone={finishGoal} />}
+      {mode === 'choose' && !coatStep && (
         <GoalCard
           target={chosen ? target : null}
           examDate={profile.examDate}
@@ -121,7 +131,7 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
           onExamDate={date => onUpdateProfile(p => ({ ...p, examDate: date }))}
           onLog={onOpenSessionLogger}
           greeting={welcome.greeting}
-          onDone={chosen ? () => { setEditingGoal(false); welcome.confirm(); } : undefined}
+          onDone={chosen ? () => (welcome.fresh ? setCoatStep(true) : finishGoal()) : undefined}
         />
       )}
 
@@ -156,6 +166,8 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
         </div>}
         {climbing ? <TodayCard
           gear={gear}
+          rest={rest}
+          onWake={wake}
           tasks={tasks}
           habits={profile.habits ?? []}
           today={today}

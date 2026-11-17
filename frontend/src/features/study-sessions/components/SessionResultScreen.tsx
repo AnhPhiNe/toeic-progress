@@ -85,7 +85,7 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
           {firstTest
             ? <FirstStakeCard variant="panel" score={facts.score} stair={facts.stair} remaining={facts.remaining} target={targetScore} onClose={onClose} />
             : <>
-          <Soc state={result.mood === 'happy' ? 'cheerC' : 'hi'} size={128} className="sr-soc" />
+          <Soc state={facts.record ? 'proud' : result.mood === 'happy' ? 'cheerC' : 'hi'} size={128} className="sr-soc" />
           <h2 id="session-result-title">{result.headline}</h2>
           <p className="sr-sub">{result.subline}</p>
           <p className="sr-score"><b>{result.score}</b><span>/ 990</span></p>

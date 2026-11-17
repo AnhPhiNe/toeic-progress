@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import type { MilestonePlan } from '@/shared/domain/milestones';
 import { socMoodSvg, type SocMood } from '@/shared/ui/soc/socSvg';
+import { useSocCoat } from '@/shared/ui/soc/Soc';
+import { stairsMood, type RestMood } from '../lib/socMood';
 import '@/shared/ui/soc/soc.css';
 import { estimateMilestones } from '@/shared/domain/milestones';
 import { SCENE_H, SCENE_W, stairsGeometry } from '../lib/stairsGeometry';
@@ -19,6 +21,10 @@ interface Props {
   banner?: string;
   /** Accessories Sóc wears (Thành tích → Tủ đồ). */
   gear?: readonly string[];
+  /** Buồn nhẹ / Ngủ gật instead of the resting bounce ('hi' while a tapped Sóc is awake). */
+  rest?: RestMood | 'hi';
+  /** Tapping the dozing Sóc wakes it up. */
+  onWake?: () => void;
   /** Welcome: no test yet, the first bar is lit green once the goal is confirmed. */
   lit?: boolean;
   /** Clicking the trophy (with its ✎ dot) opens the goal editor beside it; hovering shows "✎ Đổi mục tiêu". */
@@ -49,7 +55,7 @@ function estimatePlan(target: number): Plan {
   return { status: 'climbing', target, step, best: 0, currentIndex: 0, steps: values.map(value => ({ value, reached: false })) };
 }
 
-export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, lit, onEditGoal, added }: Props) {
+export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, rest, onWake, lit, onEditGoal, added }: Props) {
   const empty = !plan;
   const p = useMemo(() => plan ?? estimatePlan(target), [plan, target]);
   const blocks = p.steps.length - 1;
@@ -145,9 +151,16 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
   }, [g, socAt, empty, done, target]);
 
   // Inline size beats .soc svg { width: 100% }, which would fill the whole scene.
-  const socHtml = useMemo(() => socMoodSvg(socState, gear).replace('<svg viewBox="0 0 240 260"', '<svg viewBox="0 0 240 260" width="78" height="85" style="width:78px;height:85px"'), [socState, gear]);
+  const coat = useSocCoat();
+  const shownMood = stairsMood(socState, rest ?? null);
+  const socHtml = useMemo(() => socMoodSvg(shownMood, gear, coat).replace('<svg viewBox="0 0 240 260"', '<svg viewBox="0 0 240 260" width="78" height="85" style="width:78px;height:85px"'), [shownMood, gear, coat]);
 
-  const socNode = <g ref={socRef} className="soc td-socg" pointerEvents="none" dangerouslySetInnerHTML={{ __html: socHtml }} />;
+  const sleeping = shownMood === 'zzz' && !!onWake;
+  // One element in both cases: the climb effect positions it through socRef.
+  const socNode = <g ref={socRef} className={'soc td-socg' + (sleeping ? ' is-wake' : '')} pointerEvents={sleeping ? 'auto' : 'none'}
+    role={sleeping ? 'button' : undefined} tabIndex={sleeping ? 0 : undefined} aria-label={sleeping ? 'Sóc đang ngủ gật trên bậc, chạm để đánh thức' : undefined}
+    onClick={sleeping ? onWake : undefined} onKeyDown={sleeping ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onWake?.(); } } : undefined}
+    dangerouslySetInnerHTML={{ __html: socHtml }} />;
 
   const cupLeft = p.target - (p.best || 0);
   const cupTip = done

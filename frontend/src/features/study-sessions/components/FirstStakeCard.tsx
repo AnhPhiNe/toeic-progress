@@ -53,7 +53,7 @@ export function FirstStakeCard({ score, stair, remaining, target, onClose, varia
               <rect x={STAKE_W * SIGN.x - 37} y="94" width="74" height="46" rx="9" fill="#ffc83d" />
             </svg>
           : <div ref={host} className="fsk-lottie" aria-hidden="true" />}
-        <Soc state="idle" size={104} className="fsk-soc" />
+        <Soc state="proud" size={104} className="fsk-soc" />
         <b className="fsk-score" style={{ left: `${SIGN.x * 100}%`, top: `${SIGN.y * 100}%`, width: `${SIGN.w * 100}%`, height: `${SIGN.h * 100}%` }}>{score}</b>
       </div>
       <h3>Cắm cọc {score}!</h3>

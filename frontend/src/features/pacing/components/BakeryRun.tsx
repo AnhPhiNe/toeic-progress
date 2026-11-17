@@ -52,7 +52,7 @@ export function BakeryRun(p: Props) {
       <div className="bk-run-main">
         <div className="bk-run-left">
           <div className="bk-bub bk-bub--static">{line}</div>
-          <div className="bk-run-soc"><ChefSoc size={150} mood={p.hot ? 'think' : 'mix'} /></div>
+          <div className="bk-run-soc"><ChefSoc size={150} mood={p.hot ? 'think' : p.paused ? 'mix' : 'focusMix'} /></div>
         </div>
 
         <div className="bk-oven-wrap">
