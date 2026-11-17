@@ -771,8 +771,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           {/* Mode switcher: one soft segmented bar on every screen */}
           <div className="rdl-seg">
             {(isPhone ? [['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const
-              // Redesign: the daily word counter is dropped on computers (a VOCAB log opened elsewhere keeps its tab).
-              : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part'], ...(sessionType === 'VOCAB' ? [['VOCAB', 'Từ vựng']] as const : [])] as const)
+              : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part'], ['VOCAB', 'Từ vựng']] as const)
               .filter(([type]) => !(isEditing && type === 'VOCAB'))
               .map(([type, label]) => {
                 const on = sessionType === type;

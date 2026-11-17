@@ -14,12 +14,11 @@ const saved = (page: Page) => page.evaluate(() => {
   return out;
 });
 
-/** The desktop logger has no entry for words (dropped in the redesign); reach its form by opening it on a phone and widening the window. */
+/** Phone: "+ Ghi" sheet. Desktop: sidebar "Ghi điểm", then the "Từ vựng" mode. */
 async function openVocab(page: Page, desktop: boolean) {
   if (!desktop) { await openRecordSheet(page, 'vocab'); return; }
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openRecordSheet(page, 'vocab');
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByRole('button', { name: 'Ghi điểm', exact: true }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Từ vựng', exact: true }).click();
 }
 const pick = (page: Page, offset: number, text: string) => page.getByRole('dialog').getByRole('button', { name: new RegExp(`^Ngày ${dm(offset)}: ${text}`) });
 
