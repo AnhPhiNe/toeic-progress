@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { PhoneAvatarButton } from '@/app/components/phone';
 import { PageTip } from '@/features/guide/PageTip';
 import type { MistakeUndoAction } from '../lib/mistakeUndo';
-import type { MistakeEntry, NavTabId, StudySession } from '@/shared/types';
+import type { MistakeEntry, StudySession } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
 import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
@@ -50,7 +50,6 @@ export interface NotebookPhoneProps {
   onDeleteMistake: (id: string) => MistakeUndoAction | void;
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   onOpenSessionLogger?: () => void;
-  onNavigateTab?: (tab: NavTabId) => void;
 }
 
 type Tab = 'due' | 'mastered' | 'all';

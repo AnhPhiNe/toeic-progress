@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openRecordSheet } from './helpers/nav';
 import { openSettings } from './helpers/accountGroup';
 
 test('direct routes and public legal pages are available without an account', async ({ page }) => {
@@ -27,25 +28,28 @@ test('direct routes and public legal pages are available without an account', as
   expect((await page.request.get('/sw.js')).ok()).toBe(true);
 });
 
-test('guest vocabulary entry persists and counts as study activity', async ({ page }) => {
-  await page.goto('/tu-vung');
+test('guest vocabulary entry persists', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
   const original = await page.evaluate(() => ({ ...localStorage }));
   try {
-    await page.getByRole('spinbutton', { name: 'Số từ đã học' }).fill('12');
-    await page.getByRole('button', { name: 'Lưu từ vựng' }).click();
-    await expect(page.getByText('12 từ tích lũy', { exact: true })).toBeVisible();
+    await openRecordSheet(page, 'vocab');
+    await page.getByRole('dialog').getByRole('button', { name: '10', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /^Lưu \d+ từ/ }).click();
+    const saved = () => page.evaluate(() => {
+      const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+      return { words: data.vocabLog.filter((entry: { deletedAt: string | null }) => !entry.deletedAt).map((entry: { count: number }) => entry.count) };
+    });
+    await expect.poll(saved).toEqual({ words: [10] });
     await page.reload();
-    await expect(page.getByText('12 từ tích lũy', { exact: true })).toBeVisible();
-    await page.goto('/');
-    await expect(page.getByRole('region', { name: 'Chuỗi 1 ngày' })).toBeVisible();
+    expect(await saved()).toEqual({ words: [10] });
   } finally {
     await page.evaluate(saved => { localStorage.clear(); for (const [key, value] of Object.entries(saved)) localStorage.setItem(key, value); }, original);
   }
 });
 
 test('invalid backup is rejected without changing saved data', async ({ page }) => {
-  // The old top bar (with its exam countdown) still frames Từ vựng; Hôm nay only offers settings once a goal exists.
-  await page.goto('/tu-vung');
+  await page.goto('/');
   await openSettings(page);
   const before = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
   await page.locator('input[type="file"]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"version":2,"sessions":[{"id":1}]}') });

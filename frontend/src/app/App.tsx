@@ -12,33 +12,23 @@ import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { Topbar } from '@/app/components/Topbar';
 import { PhoneNav, PhoneShellContext } from '@/app/components/phone';
 import { TodayPhone } from '@/features/today/components/TodayPhone';
 import { JourneyPhone } from '@/features/journey/components/JourneyPhone';
 import { PracticePhone } from '@/features/pacing/components/PracticePhone';
 import { NotebookPhone } from '@/features/mistakes/components/NotebookPhone';
 import { ConvertPhone } from '@/features/resources/components/ConvertPhone';
-import { profileInitials } from '@/app/components/profileInitials';
-import { StreakCelebration, StreakChip } from '@/app/components/StreakChip';
+import { StreakCelebration } from '@/app/components/StreakChip';
 import { actualStudyDates } from '@/shared/domain/streak';
-import { Dashboard } from '@/features/dashboard/components/Dashboard';
-import { AnalyticsView } from '@/features/analytics/components/AnalyticsView';
-import { ExamHistoryView } from '@/features/study-sessions/components/ExamHistoryView';
 import { MistakeNotebookView } from '@/features/mistakes/components/MistakeNotebookView';
-import { PlanView } from '@/features/plans/components/PlanView';
-import { ResourcesView } from '@/features/resources/components/ResourcesView';
 import { ConvertPage } from '@/features/resources/components/ConvertPage';
-import { VocabularyView } from '@/features/vocabulary/components/VocabularyView';
 import { SessionLoggerModal } from '@/features/study-sessions/components/SessionLoggerModal';
 import { SessionResultScreen } from '@/features/study-sessions/components/SessionResultScreen';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { TransferChoiceDialog } from '@/features/account/components/TransferChoiceDialog';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
-import { AccountSyncIndicator, describeSync } from '@/features/account/components/AccountSyncIndicator';
-import { AccountAvatarButton } from '@/features/account/components/AccountAvatarButton';
-import { OnboardingCard } from '@/app/components/OnboardingCard';
+import { describeSync } from '@/features/account/components/AccountSyncIndicator';
 import { clearTimer, readTimer } from '@/features/pacing/services/pacingStorage';
 import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
 import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
@@ -62,7 +52,6 @@ import {
   resetToCleanSlate,
   loadVocabLog,
   upsertVocabLog,
-  deleteVocabLog,
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
@@ -73,7 +62,6 @@ import { commitMistakeBatch } from '@/features/mistakes/lib/persistMistakeBatch'
 import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
 import { MISTAKES_CHANGED_EVENT } from '@/features/mistakes/services/explanationQueue';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
-import { collectTestNames } from '@/shared/domain/testNames';
 import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
 import { persistSessionResult } from '@/features/study-sessions/lib/persistSessionResult';
 import { undoMistakeDeletion, undoMistakeGrade } from '@/features/mistakes/lib/persistMistakeUndo';
@@ -88,13 +76,7 @@ export const App: React.FC = () => {
   const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions);
   const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes);
   const [vocabLog, setVocabLog] = useState(loadVocabLog);
-  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('toeic_onboarding_done_v1') && !hasPersonalData(readDataBundle()));
   const [dataVersion, setDataVersion] = useState(0);
-
-  const dismissOnboarding = () => {
-    localStorage.setItem('toeic_onboarding_done_v1', 'true');
-    setShowOnboarding(false);
-  };
 
   const refreshFromStorage = useCallback(() => {
     setProfile(loadUserProfile());
@@ -167,7 +149,6 @@ export const App: React.FC = () => {
   useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); setIsSessionModalOpen(false); setEditingSession(null); setSessionPrefill(undefined); }, [activeOwner]);
 
   // Light only for now: the redesigned pages have no dark styles yet. Clear any dark class or saved choice from older versions.
-  const theme = 'light' as const;
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     try { localStorage.removeItem('toeic_theme_v1'); } catch { /* ignore */ }
@@ -258,8 +239,6 @@ export const App: React.FC = () => {
     setProfile(result.profile);
     setMistakes(result.mistakes);
     // Cosmetic follow-ups must not turn an already committed result into a failed save.
-    setShowOnboarding(false);
-    try { localStorage.setItem('toeic_onboarding_done_v1', 'true'); } catch { /* The result is already saved. */ }
     if (result.isRecord) { try { triggerCelebrationConfetti(); } catch { /* Optional animation. */ } }
   };
 
@@ -279,13 +258,7 @@ export const App: React.FC = () => {
 
   const handleSaveVocab = (date: string, count: number, details?: VocabDetails) => {
     setVocabLog(upsertVocabLog(date, count, details));
-    dismissOnboarding();
     setProfile(recordDailyActivity(profile, date));
-  };
-
-  const handleDeleteVocab = (id: string) => {
-    setVocabLog(deleteVocabLog(id));
-    setProfile(loadUserProfile());
   };
 
   /**
@@ -444,16 +417,15 @@ export const App: React.FC = () => {
   const showAwards = activeTab === 'awards';
   const showConvert = activeTab === 'resources' && !isPhone;
   const showGuide = activeTab === 'guide' && !isPhone;
-  // Phones: each tab with a redesigned phone page owns the whole screen (no Topbar); plan and vocabulary keep the old layout.
+  // Phones: each tab with a redesigned phone page owns the whole screen.
   const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources', 'guide'].includes(activeTab);
-  const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert || showGuide || phonePageTab;
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
     else if (task.kind === 'FULL_TEST') openSessionLogger();
-    else if (task.kind === 'WORD_CARDS') setActiveTab('vocabulary');
+    else if (task.kind === 'WORD_CARDS') openSessionLogger({ sessionType: 'VOCAB' });
   };
   // First-visit page tips wait while anything else holds the screen.
   const tipsHeld = isSessionModalOpen || savedTest !== null || reviewCards !== null || practiceFocus || isSettingsModalOpen || editingPacing !== null || aiSignInOpen || Boolean(account.pendingTransfer);
@@ -484,22 +456,6 @@ export const App: React.FC = () => {
       {/* 2. Main Content View Area (Right) */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         
-        {/* Topbar Header */}
-        {!fullPage && <Topbar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          profile={profile}
-          hasStudiedToday={hasStudiedToday}
-          theme={theme}
-          onOpenSessionLogger={() => openSessionLogger()}
-          onOpenSettings={() => setIsSettingsModalOpen(true)}
-          syncIndicator={<AccountSyncIndicator available={account.available} status={account.status}
-            onOpenSettings={() => setIsSettingsModalOpen(true)} onRetry={account.retry} />}
-          accountButton={<AccountAvatarButton initials={profileInitials(profile.name)} available={account.available} status={account.status}
-            onOpenSettings={() => setIsSettingsModalOpen(true)} />}
-          streakButton={<StreakChip streak={profile.currentStreak} longestStreak={profile.longestStreak || 0} studiedDates={studiedDates} today={today} />}
-        />}
-
         <ConnectionBanner
           accountActive={Boolean(getActiveAccountId() || account.hasAccountSession)}
           status={account.status}
@@ -572,7 +528,6 @@ export const App: React.FC = () => {
                 onDeleteMistake={handleDeleteMistake}
                 onUpdateMistake={handleUpdateMistake}
                 onOpenSessionLogger={() => openSessionLogger()}
-                onNavigateTab={setActiveTab}
               />
             )}
             {activeTab === 'resources' && (
@@ -618,60 +573,8 @@ export const App: React.FC = () => {
             onDeleteSession={handleDeleteSession}
             onOpenSessionLogger={() => openSessionLogger()}
           />
-        ) : (
-        /* Body Container */
-        <main key={activeTab === 'mistakes' || activeTab === 'resources' ? `${activeTab}:${activeOwner ?? 'guest'}` : dataVersion} className={showNotebook ? 'flex-1 w-full flex flex-col min-h-0' : "flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 lg:pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-5 lg:pb-6 flex flex-col min-h-0"}>
-          {activeTab === 'dashboard' && (
-            <div className="w-full space-y-3 sm:space-y-4">
-              {showOnboarding && <OnboardingCard onSetGoal={() => setIsSettingsModalOpen(true)} onRecord={() => openSessionLogger()} onDismiss={dismissOnboarding} />}
-              <Dashboard
-                profile={profile}
-                sessions={sessions}
-                vocabLog={vocabLog}
-                pacingRuns={loadPacingRuns()}
-                theme={theme}
-                onOpenSessionLogger={openSessionLogger}
-                onNavigateToAnalytics={() => setActiveTab('analytics')}
-                dueMistakesCount={dueMistakesCount}
-                onStartReview={openReview}
-                onNavigateToPacing={navigateToPacing}
-                mistakes={mistakes}
-                onNavigateToPlan={() => setActiveTab('plan')}
-              />
-            </div>
-          )}
-
-          {activeTab === 'history' && (
-            <ExamHistoryView
-              sessions={sessions}
-              pacingRuns={loadPacingRuns()}
-              mistakes={mistakes}
-              theme={theme}
-              onDeleteSession={handleDeleteSession}
-              onEditSession={openSessionEditor}
-              onOpenSessionLogger={() => openSessionLogger()}
-              onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
-            />
-          )}
-
-          {activeTab === 'analytics' && (
-            <AnalyticsView
-              key={activeOwner ?? 'guest'}
-              profile={profile}
-              sessions={sessions}
-              mistakes={mistakes}
-              vocabLog={vocabLog}
-              theme={theme}
-              onOpenSessionLogger={openSessionLogger}
-              onNavigateToMistakes={sourceNames => { setNotebookSourceFilter({ owner: activeOwner, names: sourceNames }); setActiveTab('mistakes'); }}
-              onAddMistakeForSession={openSessionMistake}
-              onEditSession={openSessionEditor}
-              onNavigateToTimer={(part = 'POMODORO') => navigateToPacing(part)}
-              onNavigateToPlan={() => setActiveTab('plan')}
-            />
-          )}
-
-          {activeTab === 'mistakes' && (
+        ) : showNotebook ? (
+          <main key={`mistakes:${activeOwner ?? 'guest'}`} className="flex-1 w-full flex flex-col min-h-0">
             <MistakeNotebookView
               key={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest.id : 'notebook'}
               createRequest={sessionMistakeRequest?.owner === activeOwner ? sessionMistakeRequest : undefined}
@@ -688,45 +591,9 @@ export const App: React.FC = () => {
               onDeleteMistake={handleDeleteMistake}
               onUpdateMistake={handleUpdateMistake}
               onOpenSessionLogger={() => openSessionLogger()}
-              onNavigateTab={setActiveTab}
             />
-          )}
-
-          {activeTab === 'vocabulary' && (
-            <VocabularyView
-              key={activeOwner ?? 'guest'}
-              vocabLog={vocabLog}
-              theme={theme}
-              dueMistakesCount={dueMistakesCount}
-              totalMistakesCount={mistakes.length}
-              onNavigateTab={setActiveTab}
-              onSaveVocab={handleSaveVocab}
-              onDeleteVocab={handleDeleteVocab}
-              sourceNames={collectTestNames(sessions, mistakes)}
-            />
-          )}
-
-          {activeTab === 'resources' && (
-            <ResourcesView sessions={sessions} targetScore={profile.targetScore} />
-          )}
-
-          {activeTab === 'plan' && (
-            <PlanView
-              key={activeOwner ?? 'guest'}
-              storageVersion={dataVersion}
-              profile={profile}
-              sessions={sessions}
-              mistakes={mistakes}
-              vocabLog={vocabLog}
-              pacingRuns={loadPacingRuns()}
-              onOpenSettings={() => setIsSettingsModalOpen(true)}
-              onOpenSessionLogger={openSessionLogger}
-              onNavigateToMistakes={() => setActiveTab('mistakes')}
-              onNavigateToTimer={() => navigateToPacing('POMODORO')}
-            />
-          )}
-        </main>
-        )}
+          </main>
+        ) : null}
 
       </div>
 
