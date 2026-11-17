@@ -41,6 +41,27 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 800 }], ['ph
   });
 }
 
+test('desktop: saving the goal does not save other pending settings edits', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await demo(page);
+  const before = await profile(page);
+  const settings = await openSettings(page);
+  await settings.getByLabel('Tên của bạn', { exact: true }).fill('Tên chưa lưu');
+  await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
+  const editor = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
+  await editor.getByRole('button', { name: '700', exact: true }).click();
+  await editor.getByRole('button', { name: /^(Lưu · cúp|Vẫn lưu) 700/ }).click();
+  await expect(editor).toHaveCount(0);
+  // The form shows the new goal and keeps the pending name.
+  await expect(settings.getByRole('button', { name: /^Điểm mục tiêu/ })).toContainText('700');
+  await expect(settings.getByLabel('Tên của bạn', { exact: true })).toHaveValue('Tên chưa lưu');
+  await settings.getByRole('button', { name: 'Hủy', exact: true }).click();
+  await expect(settings).toHaveCount(0);
+  const after = await profile(page);
+  expect(after.name).toBe(before.name);
+  expect(after).toMatchObject({ targetScore: 700, goalChosen: true });
+});
+
 test('phone Sổ tay rows show the question text, not "Tự ghi"', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await demo(page, '/so-tay');

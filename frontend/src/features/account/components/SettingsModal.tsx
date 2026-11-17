@@ -171,6 +171,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // A fresh profile keeps the placeholder 990 until a goal is chosen: the field reads "Chưa chọn" instead.
   const goalSet = shownGoal(formData) !== null;
 
+  // Goal editor (desktop): only the goal fields reach storage; other pending edits in the form stay pending until "Lưu cài đặt".
+  const saveGoalOnly = (patch: Partial<UserProfile>): string | null => {
+    setResetError('');
+    try {
+      const session = requireSession();
+      const latest = loadUserProfile();
+      const merged = mergeProfileEdit(latest, latest, { ...latest, ...patch });
+      requireSession(session);
+      onSaveProfile(merged);
+      setFormData(current => ({ ...current, targetScore: merged.targetScore, examDate: merged.examDate, goalChosen: merged.goalChosen }));
+      return null;
+    } catch (reason) {
+      return reason instanceof Error ? reason.message : 'Chưa lưu được. Hãy thử lại.';
+    }
+  };
+
   const savePhoneField = (patch: Partial<UserProfile>): string | null => {
     setResetError('');
     try {
@@ -370,7 +386,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </form>
         )}
 
-        {!isPhone && goalOpen && <SettingsGoalEditor phone={false} anchor={goalButton.current} beside={modalRef.current} profile={formData} onSaveField={savePhoneField} onClose={() => setGoalOpen(false)} />}
+        {!isPhone && goalOpen && <SettingsGoalEditor phone={false} anchor={goalButton.current} beside={modalRef.current} profile={formData} onSaveField={saveGoalOnly} onClose={() => setGoalOpen(false)} />}
       </div>
     </div>
   );
