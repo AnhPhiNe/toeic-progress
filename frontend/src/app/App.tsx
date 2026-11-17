@@ -10,6 +10,7 @@ import { computeBadges } from '@/features/awards/lib/badges';
 import { socLook } from '@/features/awards/lib/outfit';
 import type { TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
+import { addSuggestion } from '@/features/today/lib/suggestedTasks';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneNav, PhoneShellContext } from '@/app/components/phone';
@@ -56,7 +57,7 @@ import {
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
-import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
+import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType, SuggestedTask } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
 import type { ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
 import { commitMistakeBatch } from '@/features/mistakes/lib/persistMistakeBatch';
@@ -70,6 +71,7 @@ import { AISignInPrompt } from '@/features/account/components/AISignInPrompt';
 import { AI_SIGN_IN_EVENT } from '@/shared/lib/aiSignIn';
 import { GuidePage } from '@/features/guide/GuidePage';
 import { GuideContext } from '@/features/guide/GuideContext';
+import { adviceEnabled } from '@/features/journey/services/adviceTransport';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -146,6 +148,9 @@ export const App: React.FC = () => {
   const [reviewCards, setReviewCards] = useState<MistakeEntry[] | null>(null);
   const [savedTest, setSavedTest] = useState<StudySession | null>(null);
   const closeSavedTest = useCallback(() => setSavedTest(null), []);
+  // "Nhờ Sóc xem đề này" on the result screen opens that test in Hành trình with the advice block in view.
+  const [journeyOpen, setJourneyOpen] = useState<{ id: string; nonce: number; owner: string | null } | null>(null);
+  useEffect(() => { if (activeTab !== 'history' && activeTab !== 'analytics') setJourneyOpen(null); }, [activeTab]);
   const activeOwner = getActiveAccountId();
   useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); setIsSessionModalOpen(false); setEditingSession(null); setSessionPrefill(undefined); }, [activeOwner]);
 
@@ -440,6 +445,17 @@ export const App: React.FC = () => {
     saveUserProfile(update(loadUserProfile()));
     setProfile(loadUserProfile());
   };
+  const addSuggestedTask = (task: Omit<SuggestedTask, 'addedDate' | 'doneDate'>) => updateProfile(p => addSuggestion(p, task, getTodayDateString()));
+  const startSuggestedTask = (task: SuggestedTask) => {
+    if (task.kind === 'timer' && (task.part === 5 || task.part === 6 || task.part === 7)) navigateToPacing(`PART_${task.part}` as ReadingPartType);
+    else { setNotebookSourceFilter({ owner: activeOwner, names: [task.testName], part: task.part ?? undefined }); setActiveTab('mistakes'); }
+  };
+  const journeyRequest = journeyOpen && journeyOpen.owner === activeOwner ? journeyOpen : null;
+  const askAdvice = (session: StudySession) => {
+    setSavedTest(null);
+    setJourneyOpen({ id: session.id, nonce: Date.now(), owner: activeOwner });
+    setActiveTab('history');
+  };
 
   return (
     <PhoneShellContext.Provider value={{ soc, newBadges, goTab: setActiveTab, openSettings: () => setIsSettingsModalOpen(true) }}>
@@ -479,6 +495,7 @@ export const App: React.FC = () => {
                 bundle={bundle}
                 today={today}
                 onStartTask={startTodayTask}
+                onStartSuggestion={startSuggestedTask}
                 onPracticeMore={() => setActiveTab('exam-mode')}
                 onOpenSessionLogger={() => openSessionLogger()}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
@@ -501,6 +518,8 @@ export const App: React.FC = () => {
                 onEditSession={openSessionEditor}
                 onDeleteSession={handleDeleteSession}
                 onOpenSessionLogger={() => openSessionLogger()}
+                onAddSuggestion={addSuggestedTask}
+                openRequest={journeyRequest}
                 bundle={bundle}
                 activeTab={activeTab}
                 onNavigate={setActiveTab}
@@ -546,6 +565,7 @@ export const App: React.FC = () => {
             bundle={bundle}
             today={today}
             onStartTask={startTodayTask}
+            onStartSuggestion={startSuggestedTask}
             onPracticeMore={() => setActiveTab('exam-mode')}
             onOpenSessionLogger={() => openSessionLogger()}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
@@ -578,6 +598,8 @@ export const App: React.FC = () => {
             onEditSession={openSessionEditor}
             onDeleteSession={handleDeleteSession}
             onOpenSessionLogger={() => openSessionLogger()}
+            onAddSuggestion={addSuggestedTask}
+            openRequest={journeyRequest}
           />
         ) : showNotebook ? (
           <main key={`mistakes:${activeOwner ?? 'guest'}`} className="flex-1 w-full flex flex-col min-h-0">
@@ -640,7 +662,8 @@ export const App: React.FC = () => {
         onSignIn={isGuest ? () => void account.signInGoogle() : undefined}
         onClose={closeSavedTest} onMarkWrong={() => markSessionWrong(savedTest)}
         onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }}
-        onReview={ids => { setSavedTest(null); openReview(ids); }} />}
+        onReview={ids => { setSavedTest(null); openReview(ids); }}
+        onAskAdvice={adviceEnabled() ? () => askAdvice(savedTest) : undefined} />}
 
       {aiSignInOpen && <AISignInPrompt onClose={() => setAISignInOpen(false)}
         onSignIn={() => { setAISignInOpen(false); void account.signInGoogle(); }} />}

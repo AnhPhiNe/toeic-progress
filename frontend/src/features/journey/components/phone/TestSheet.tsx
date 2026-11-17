@@ -1,5 +1,7 @@
 import { PhoneSheet } from '@/app/components/phone';
-import type { StudySession } from '@/shared/types';
+import type { MistakeEntry, StudySession, SuggestedTask, UserProfile } from '@/shared/types';
+import { TestAdvice } from '../advice/TestAdvice';
+import type { AdviceAction } from '../../lib/attemptAdvice';
 import { ISLAND_STATE_LABEL, islandState } from '../../lib/islands';
 import { ddmm, fullTests } from '../../lib/journeyData';
 import { partBars } from '../../lib/phoneJourney';
@@ -11,13 +13,19 @@ interface Props {
   onOpenNotebook: (testName: string) => void;
   onEdit: (session: StudySession) => void;
   onDelete: (session: StudySession) => void;
+  mistakes: MistakeEntry[];
+  profile: UserProfile;
+  today: string;
+  onAddTask: (task: Omit<SuggestedTask, 'addedDate' | 'doneDate'>) => void;
+  onStartAdvice: (action: AdviceAction) => void;
+  focusAdvice?: boolean;
 }
 
 const BAR = { strong: '#46b35a', ok: '#ffc83d', weak: '#ff7a9c' } as const;
 const INK = { strong: '#2f8a42', ok: '#a87a00', weak: '#d6416a' } as const;
 
 /** Detail sheet of one test: score, change, Nghe/Đọc, % per Part, wrong questions and edit/delete. */
-export function TestSheet({ session, sessions, onClose, onOpenNotebook, onEdit, onDelete }: Props) {
+export function TestSheet({ session, sessions, onClose, onOpenNotebook, onEdit, onDelete, mistakes, profile, today, onAddTask, onStartAdvice, focusAdvice }: Props) {
   const list = fullTests(sessions);
   const at = list.findIndex(s => s.id === session.id);
   const prev = at > 0 ? list[at - 1] : null;
@@ -36,6 +44,10 @@ export function TestSheet({ session, sessions, onClose, onOpenNotebook, onEdit, 
         <div className="jp-ts__lr">
           <div><small>Nghe</small><b>{session.scaledListening ?? '–'}</b></div>
           <div><small>Đọc</small><b>{session.scaledReading ?? '–'}</b></div>
+        </div>
+        <div className="jp-ts__ad">
+          <TestAdvice session={session} sessions={sessions} mistakes={mistakes} profile={profile} today={today}
+            onAddTask={onAddTask} onStart={onStartAdvice} focus={focusAdvice} />
         </div>
         {bars ? (
           <>

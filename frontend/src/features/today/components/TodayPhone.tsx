@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { PhoneAvatarButton } from '@/app/components/phone';
 import type { DataBundle } from '@/shared/data/dataBundle';
-import type { NavTabId, UserProfile } from '@/shared/types';
+import type { NavTabId, SuggestedTask, UserProfile } from '@/shared/types';
+import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import type { SocLook } from '@/features/awards/lib/outfit';
 import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
@@ -33,6 +34,8 @@ export interface TodayPhoneProps {
   bundle: DataBundle;
   today: string;
   onStartTask: (task: TodayTask) => void;
+  /** A task added from Sóc's advice: the Part timer or that test in Sổ tay. */
+  onStartSuggestion: (task: SuggestedTask) => void;
   onPracticeMore: () => void;
   /** Opens the score logger (full test). */
   onOpenSessionLogger: () => void;
@@ -49,7 +52,7 @@ export interface TodayPhoneProps {
 
 interface Size { w: number; h: number; head: number; panel: number }
 
-export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc }: TodayPhoneProps) {
+export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc }: TodayPhoneProps) {
   const { profile, sessions, mistakes } = bundle;
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
@@ -62,9 +65,10 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
   const estimate = useMemo(() => estimateMilestones(shownTarget), [shownTarget]);
 
   const [skipped, skipTask] = useSkippedToday(today);
-  const tasks = useMemo(() => pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), [bundle, today, skipped, profile.suggestOff]);
+  const suggestions = useMemo(() => suggestionsToday(profile, bundle.pacingRuns, today), [profile, bundle.pacingRuns, today]);
+  const tasks = useMemo(() => withoutRepeatedTimers(pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), suggestions), [bundle, today, skipped, profile.suggestOff, suggestions]);
   const habits = useMemo(() => profile.habits ?? [], [profile.habits]);
-  const items = useMemo(() => buildPhoneItems(tasks, habits, today), [tasks, habits, today]);
+  const items = useMemo(() => buildPhoneItems(tasks, habits, today, suggestions), [tasks, habits, today, suggestions]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
@@ -185,6 +189,8 @@ export function TodayPhone({ bundle, today, onStartTask, onPracticeMore, onOpenS
           onToggleExpanded={() => setExpanded(v => !v)}
           onStartTask={onStartTask} onSkipTask={skipTask}
           onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
+          onStartSuggestion={onStartSuggestion}
+          onToggleSuggestion={id => onUpdateProfile(p => toggleSuggestion(p, id, today))}
           onPracticeMore={onPracticeMore}
           onOpenStreak={() => setSheet('streak')} onOpenAdd={() => setSheet('add')}
         />

@@ -26,3 +26,9 @@
 @media (prefers-reduced-motion: reduce) { .plr-rays { animation: none; } }
 .plr-first { width: 100%; margin-top: calc(56px + env(safe-area-inset-top)); }
 .plr-first { width: 100%; margin-top: calc(56px + env(safe-area-inset-top)); }
+
+/* "Nhờ Sóc xem đề này" row */
+.plr-ask { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; border: 0; border-radius: 18px; padding: 8px 14px 8px 10px;
+  background: rgba(255,255,255,.22); color: #fff; font: 900 14.5px var(--rd-font); text-align: left; cursor: pointer; }
+.plr-ask .soc { flex: none; }
+.plr-ask i { margin-left: auto; font-style: normal; opacity: .8; }

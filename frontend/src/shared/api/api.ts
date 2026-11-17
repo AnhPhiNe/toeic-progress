@@ -10,7 +10,9 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function backendRequest<T>(path: string, method = 'GET', body?: unknown, expectedUserId?: string, isCurrent: () => boolean = () => true): Promise<T> {
+export async function backendRequest<T>(path: string, method = 'GET', body?: unknown, expectedUserId?: string, isCurrent: () => boolean = () => true,
+  /** Lets the caller stop waiting (e.g. a Huỷ button); the 90 s limit still applies. */
+  cancel?: AbortSignal): Promise<T> {
   if (!apiAvailable || !cloud) throw new Error('Backend chưa được cấu hình. Bạn vẫn có thể dùng chế độ khách.');
   if (!isCurrent()) throw new Error('Tác vụ đã đóng hoặc thay đổi. Chưa gửi yêu cầu.');
   const { data, error } = await cloud.auth.getSession();
@@ -24,13 +26,24 @@ export async function backendRequest<T>(path: string, method = 'GET', body?: unk
   }
   if (expectedUserId && data.session.user.id !== expectedUserId) throw new Error('Tài khoản đã thay đổi. Vui lòng thử đồng bộ lại.');
   let response: Response;
+  const timeout = AbortSignal.timeout(90_000);
+  let signal = timeout;
+  if (cancel) {
+    const both = new AbortController();
+    for (const source of [cancel, timeout]) {
+      if (source.aborted) both.abort(source.reason);
+      else source.addEventListener('abort', () => both.abort(source.reason), { once: true });
+    }
+    signal = both.signal;
+  }
   try {
     response = await fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}${path}`, {
       method,
       headers: { Authorization: `Bearer ${data.session.access_token}`, 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(90_000)
+      body: body === undefined ? undefined : JSON.stringify(body), signal
     });
   } catch {
+    if (cancel?.aborted) throw new DOMException('Đã huỷ yêu cầu.', 'AbortError');
     throw new Error('Chưa kết nối được backend. Vui lòng thử lại sau; dữ liệu trên máy vẫn được giữ.');
   }
   const value = await response.json().catch(() => null);

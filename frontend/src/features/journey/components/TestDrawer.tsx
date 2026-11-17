@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
-import type { MistakeEntry, StudySession } from '@/shared/types';
+import type { MistakeEntry, StudySession, SuggestedTask, UserProfile } from '@/shared/types';
 import { PART_NUMBERS, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { ddmm, notebookQuestions, testStory, wrongCountsByPart } from '../lib/journeyData';
 import { TestTicket } from './TestTicket';
+import { TestAdvice } from './advice/TestAdvice';
+import type { AdviceAction } from '../lib/attemptAdvice';
 
 interface Props {
   session: StudySession;
@@ -14,13 +16,19 @@ interface Props {
   onOpenNotebook: (testName: string) => void;
   onEdit: (session: StudySession) => void;
   onDelete: (session: StudySession) => void;
+  profile: UserProfile;
+  today: string;
+  onAddTask: (task: Omit<SuggestedTask, 'addedDate' | 'doneDate'>) => void;
+  onStartAdvice: (action: AdviceAction) => void;
+  /** Opened from "Nhờ Sóc xem đề này": scroll to the advice block. */
+  focusAdvice?: boolean;
 }
 
 const CAP = 16;
 const shortName = (name: string) => name.replace(/^.*?(Test\s*\d+)$/i, '$1');
 
 /** Test drawer (design/previews/mock-journey-tabs.html): ticket, Sóc's line, wrong questions per Part. */
-export function TestDrawer({ session, sessions, mistakes, target, onClose, onOpenNotebook, onEdit, onDelete }: Props) {
+export function TestDrawer({ session, sessions, mistakes, target, onClose, onOpenNotebook, onEdit, onDelete, profile, today, onAddTask, onStartAdvice, focusAdvice }: Props) {
   const story = testStory(session, sessions, target);
   const score = session.totalScore ?? 0;
   const byPart = session.wrongQuestions ? wrongQuestionsByPart(session.wrongQuestions) : null;
@@ -53,7 +61,10 @@ export function TestDrawer({ session, sessions, mistakes, target, onClose, onOpe
         <div className="jr-dtop"><span>{session.testName}</span><button type="button" className="jr-x" onClick={onClose} aria-label="Đóng">×</button></div>
         <TestTicket kind={story.kind} first={story.first} score={score} goal={target} delta={story.delta}
           listening={session.scaledListening} reading={session.scaledReading} date={ddmm(session.date)} test={shortName(session.testName)} retake={retake} />
+        <div className="jr-dbody">
         <div className="jr-say"><Soc state={story.kind === 'rec' || story.kind === 'goal' ? 'cheerC' : 'idle'} size={56} /><p>{say}</p></div>
+        <TestAdvice session={session} sessions={sessions} mistakes={mistakes} profile={profile} today={today}
+          onAddTask={onAddTask} onStart={onStartAdvice} focus={focusAdvice} />
         {counts ? <>
           <div className="jr-h5"><b>{total} câu sai</b>{inNotebook.size > 0 && <span><i className="jr-lg" />đã có trong Sổ tay</span>}</div>
           <div className="jr-sec">
@@ -77,6 +88,7 @@ export function TestDrawer({ session, sessions, mistakes, target, onClose, onOpe
             })}
           </div>
         </> : <p className="jr-none jr-pad">Đề này chỉ ghi điểm, chưa có câu sai. Bấm <b>Sửa điểm</b> để thêm.</p>}
+        </div>
         <div className="jr-foot">
           <button type="button" className="rd-btn" onClick={() => onOpenNotebook(session.testName)}>{worst >= 5 && total ? `Chụp trang chữa bài Part ${worst}` : 'Mở Sổ tay đề này'}</button>
           <div className="jr-lnks">

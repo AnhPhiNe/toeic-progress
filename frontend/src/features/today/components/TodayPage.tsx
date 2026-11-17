@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
-import type { UserProfile } from '@/shared/types';
+import type { SuggestedTask, UserProfile } from '@/shared/types';
+import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
@@ -25,6 +26,8 @@ interface Props {
   bundle: DataBundle;
   today: string;
   onStartTask: (task: TodayTask) => void;
+  /** A task added from Sóc's advice: the Part timer or that test in Sổ tay. */
+  onStartSuggestion: (task: SuggestedTask) => void;
   onPracticeMore: () => void;
   onOpenSessionLogger: () => void;
   /** Unused since the goal and exam date are edited in place (kept so App's call site needs no change). */
@@ -49,12 +52,13 @@ function useSkippedToday(today: string) {
   return [ids, skip] as const;
 }
 
-export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onUpdateProfile }: Props) {
+export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onUpdateProfile }: Props) {
   const { profile, sessions, mistakes } = bundle;
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
   const [skipped, skipTask] = useSkippedToday(today);
-  const tasks = useMemo(() => pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), [bundle, today, skipped, profile.suggestOff]);
+  const suggestions = useMemo(() => suggestionsToday(profile, bundle.pacingRuns, today), [profile, bundle.pacingRuns, today]);
+  const tasks = useMemo(() => withoutRepeatedTimers(pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), suggestions), [bundle, today, skipped, profile.suggestOff, suggestions]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
@@ -158,6 +162,9 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           week={week}
           goal={goal}
           onStartTask={onStartTask}
+          suggestions={suggestions}
+          onStartSuggestion={onStartSuggestion}
+          onToggleSuggestion={id => onUpdateProfile(p => toggleSuggestion(p, id, today))}
           onSkipTask={skipTask}
           onPracticeMore={onPracticeMore}
           onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}

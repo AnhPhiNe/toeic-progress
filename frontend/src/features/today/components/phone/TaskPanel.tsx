@@ -3,6 +3,8 @@ import { Check, ChevronDown, ChevronUp, Flame, Play, X } from 'lucide-react';
 import { Soc } from '@/shared/ui/soc/Soc';
 import type { PhoneItem, PhoneItems } from '../../lib/phoneToday';
 import type { TodayTask } from '../../lib/todayTasks';
+import type { SuggestedTask } from '@/shared/types';
+import { suggestionFrom, suggestionLabel } from '../../lib/suggestedTasks';
 
 export interface HeroFallback { kicker: string; title: string; button: string; onClick: () => void }
 
@@ -18,6 +20,8 @@ interface Props {
   onStartTask: (task: TodayTask) => void;
   onSkipTask: (id: string) => void;
   onToggleHabit: (id: string) => void;
+  onStartSuggestion: (task: SuggestedTask) => void;
+  onToggleSuggestion: (id: string) => void;
   onPracticeMore: () => void;
   onOpenStreak: () => void;
   onOpenAdd: () => void;
@@ -26,9 +30,9 @@ interface Props {
 /** Fixed bottom panel: next-task card, ONE summary row (expandable in place), footer with streak chip, count and "+ Thêm việc". */
 export const TaskPanel = forwardRef<HTMLElement, Props>(function TaskPanel(p, ref) {
   const { items, fallback, expanded } = p;
-  const { hero, rest, restOpen, doneCount, total } = items;
+  const { hero, rest, pinned, restOpen, doneCount, total } = items;
   const allDone = !hero && total > 0;
-  const allItems: PhoneItem[] = hero ? [hero, ...rest] : rest;
+  const allItems: PhoneItem[] = hero ? [hero, ...pinned, ...rest] : [...pinned, ...rest];
   const names = rest.filter(i => !i.done).map(i => i.title).join(' · ');
 
   return (
@@ -45,18 +49,38 @@ export const TaskPanel = forwardRef<HTMLElement, Props>(function TaskPanel(p, re
       ) : (
         <div className="tp-next">
           <div className="tp-next__tx">
-            <small>{hero ? (hero.task ? `${hero.task.kicker} · SÓC GỢI Ý` : 'VIỆC CỦA MÌNH') : fallback.kicker}</small>
+            <small>{hero ? (hero.task ? `${hero.task.kicker} · SÓC GỢI Ý` : hero.suggestion ? `${hero.suggestion.minutes} PHÚT · ${suggestionFrom(hero.suggestion).toUpperCase()}` : 'VIỆC CỦA MÌNH') : fallback.kicker}</small>
             <b>{hero ? hero.title : fallback.title}</b>
           </div>
-          {hero?.task
+          {hero?.suggestion
+            ? <button type="button" className="tp-go" onClick={() => p.onStartSuggestion(hero.suggestion!)}><Play size={15} fill="currentColor" aria-hidden="true" />Bắt đầu</button>
+            : hero?.task
             ? <button type="button" className="tp-go" onClick={() => p.onStartTask(hero.task!)}><Play size={15} fill="currentColor" aria-hidden="true" />Bắt đầu</button>
             : hero?.habit
               ? <button type="button" className="tp-go" onClick={() => p.onToggleHabit(hero.habit!.id)}><Check size={16} strokeWidth={3.2} aria-hidden="true" />Xong</button>
               : <button type="button" className="tp-go" onClick={fallback.onClick}>{fallback.button}</button>}
+          {hero?.suggestion && (
+            <button type="button" className="tp-skip" aria-label={`Đánh dấu xong: ${suggestionLabel(hero.suggestion)}`} onClick={() => p.onToggleSuggestion(hero.suggestion!.id)}><Check size={16} strokeWidth={3} aria-hidden="true" /></button>
+          )}
           {hero?.task && restOpen === 0 && (
             <button type="button" className="tp-skip" aria-label={`Bỏ qua "${hero.title}" hôm nay`} onClick={() => p.onSkipTask(hero.task!.id)}><X size={16} aria-hidden="true" /></button>
           )}
         </div>
+      )}
+
+      {!allDone && pinned.length > 0 && (
+        <ul className="tp-list tp-pin">
+          {pinned.map(item => (
+            <li key={item.key} className={'tp-sug' + (item.done ? ' is-done' : '')}>
+              <button type="button" className="tp-tick" aria-pressed={item.done} aria-label={`${item.done ? 'Bỏ đánh dấu' : 'Đánh dấu xong'}: ${suggestionLabel(item.suggestion!)}`} onClick={() => p.onToggleSuggestion(item.key)}>
+                <i className={'tp-box' + (item.done ? ' is-on' : '')}>{item.done && <Check size={15} strokeWidth={3.4} aria-hidden="true" />}</i>
+              </button>
+              <button type="button" className="tp-row" disabled={item.done} onClick={() => p.onStartSuggestion(item.suggestion!)}>
+                <span className="tp-row__t">{suggestionLabel(item.suggestion!)}<small>{suggestionFrom(item.suggestion!)}</small></span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       {(restOpen > 0 || expanded) && !allDone && (
