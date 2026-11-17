@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { Check, ChevronDown, ChevronUp, Flame, Play, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Flame, Play, Shield, X } from 'lucide-react';
 import { Soc } from '@/shared/ui/soc/Soc';
 import type { PhoneItem, PhoneItems } from '../../lib/phoneToday';
 import type { TodayTask } from '../../lib/todayTasks';
@@ -25,6 +25,8 @@ interface Props {
   onPracticeMore: () => void;
   onOpenStreak: () => void;
   onOpenAdd: () => void;
+  /** Giải đấu tuần chip next to the streak (shown even before joining). */
+  league?: { text: string; short: string; aria: string; onOpen: () => void };
 }
 
 /** Fixed bottom panel: next-task card, ONE summary row (expandable in place), footer with streak chip, count and "+ Thêm việc". */
@@ -120,6 +122,11 @@ export const TaskPanel = forwardRef<HTMLElement, Props>(function TaskPanel(p, re
         <button type="button" className="tp-chip is-fire" onClick={p.onOpenStreak} aria-label={`Chuỗi ${p.streak} ngày, mở bánh nến`}>
           <Flame size={15} fill="currentColor" aria-hidden="true" />{allDone ? `${p.streak} ngày liền` : p.streak}
         </button>
+        {p.league && (
+          <button type="button" className="tp-chip is-league" onClick={p.league.onOpen} aria-label={p.league.aria}>
+            <Shield size={14} fill="currentColor" aria-hidden="true" />{allDone ? p.league.short : p.league.text}
+          </button>
+        )}
         <span className="tp-chip is-count">{allDone ? `Tuần ${p.weekDone}/${p.weekGoal} buổi` : total > 0 ? `${doneCount}/${total} xong` : 'Chưa có việc'}</span>
         <button type="button" className="tp-add" onClick={p.onOpenAdd}>+ Thêm việc</button>
       </div>

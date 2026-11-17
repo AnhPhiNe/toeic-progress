@@ -132,6 +132,27 @@ Gói cục bộ v3 gồm cả kế hoạch tuần. Chuyển v2 sang v3 giữ l�
 
 Giới hạn hiện tại: 10.000 bản ghi/tài khoản, 32 KiB/bản ghi, 4 MiB/request. Dữ liệu tài khoản chỉ sửa khi có mạng và đồng bộ đã thành công. Xóa tài khoản xóa Auth user cùng dữ liệu server qua FK; các bản cục bộ vẫn có thể xuất/xóa riêng.
 
+## Giải đấu tuần
+
+Tự chọn tham gia, cần tài khoản (khách nhận 403). Xếp theo **sao kiếm trong tuần**, không theo điểm TOEIC. Tuần bắt đầu 00:00 thứ Hai giờ Việt Nam (UTC+7). Nhóm tối đa 20 người cùng hạng: Đồng → Bạc → Vàng → Kim cương.
+
+Sao do backend tính từ các dòng đã đồng bộ của chính người học (`services/league.py`), không nhận con số từ trình duyệt:
+
+| Việc làm thật trong app | Sao |
+| --- | --- |
+| Ghi một đề Full Test có điểm | 20 |
+| Ghi một buổi luyện Part (có số câu từng Part hoặc ≥ 5 phút) | 8 |
+| Nướng xong một mẻ bánh / luyện tốc độ (chạy hết, ≥ 3 phút) | 6 |
+| Một ngày có ghi từ vựng (mỗi ngày tính một lần) | 5 |
+| Ôn một thẻ câu sai (lần ôn gần nhất của thẻ) | 2 |
+| Thêm một thẻ câu sai vào Sổ tay | 1 |
+
+Tối đa **60 sao/ngày**. Một việc chỉ được tính khi ngày học nằm trong tuần này và không sau hôm nay, và mốc thời gian của dòng nằm giữa đầu tuần và hiện tại (+5 phút sai lệch đồng hồ như sync). Dòng đặt ngày tương lai hoặc sửa lùi về tuần trước không được tính. Việc Hôm nay không có sao riêng: chúng dẫn tới chính các việc trên. Tích thói quen tự khai không được tính.
+
+Endpoint (giới hạn chung với nhóm `sync`): `GET /api/v1/league` (trạng thái, nhóm, số ngày còn lại, dữ liệu "so với tuần trước"), `POST /api/v1/league/join` `{nickname, coat?}`, `POST /api/v1/league/leave`, `PATCH /api/v1/league/me` `{nickname?, coat?}`. Biệt danh 2–20 ký tự, chữ tiếng Việt/số/dấu cách, lọc từ thô tục tối thiểu. Bảng chỉ trả biệt danh, màu áo Sóc, sao và hạng.
+
+Migration `20261118000000_weekly_league.sql` tạo `league_members`, `league_weeks`, `league_groups`, `league_standings` và các RPC chỉ service role gọi được. Chuyển tuần chạy lười ở request giải đấu đầu tiên của tuần mới, có khóa và khóa chính tuần nên chỉ chạy một lần: chốt hạng tuần trước, top 5 lên hạng (cần > 0 sao), 5 cuối xuống hạng. Nhóm dưới 6 người không có vùng lên/xuống và app hiện "Bạn so với tuần trước". Rời giải khi đang ở vùng xuống hạng vẫn bị xuống hạng.
+
 ## Kiểm thử
 
 ```powershell

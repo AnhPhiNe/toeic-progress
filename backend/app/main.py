@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.routes import account, ai, health, images, sync
+from app.api.routes import account, ai, health, images, league, sync
 from app.core.config import Settings
 from app.core.middleware import BodyLimitMiddleware
 from app.core.runtime import RuntimeMiddleware, configure_logging
@@ -48,7 +48,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST", "DELETE"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
         expose_headers=["X-Request-ID", "Retry-After", "X-Error-Code"],
     )
@@ -67,7 +67,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     async def unavailable(_request, _error):
         return JSONResponse({"detail": "Kết nối dịch vụ bị gián đoạn. Vui lòng thử lại sau."}, status_code=503)
 
-    for router in (health.router, sync.router, ai.router, account.router, images.router):
+    for router in (health.router, sync.router, ai.router, account.router, images.router, league.router):
         app.include_router(router)
     return app
 

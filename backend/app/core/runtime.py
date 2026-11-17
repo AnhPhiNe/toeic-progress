@@ -36,6 +36,11 @@ ROUTES = {
     "/api/v1/mistake-images": "sync",
     "/api/v1/mistake-images/urls": "sync",
     "/api/v1/mistake-images/cleanup": "destructive",
+    # League requests share the sync budget (same DB-backed per-account limits).
+    "/api/v1/league": "sync",
+    "/api/v1/league/join": "sync",
+    "/api/v1/league/leave": "sync",
+    "/api/v1/league/me": "sync",
 }
 
 
@@ -211,7 +216,7 @@ class RuntimeMiddleware:
                         "event": "request",
                         "request_id": request_id,
                         "route": path if path in ROUTES else "unmatched",
-                        "method": method if method in ("GET", "POST", "DELETE", "OPTIONS", "HEAD") else "OTHER",
+                        "method": method if method in ("GET", "POST", "PATCH", "DELETE", "OPTIONS", "HEAD") else "OTHER",
                         "status": status,
                         "duration_ms": round((time.monotonic() - started) * 1000, 2),
                     }
