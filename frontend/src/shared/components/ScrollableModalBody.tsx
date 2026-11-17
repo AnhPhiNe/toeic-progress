@@ -14,7 +14,8 @@ export function ScrollableModalBody({ children, resetKey, compact = false }: { c
     const body = content.current;
     if (!node || !body) return;
     node.scrollTop = 0;
-    const measure = () => setHasMore(node.scrollHeight - node.scrollTop - node.clientHeight > 12);
+    // The cue sits over the bottom of the body: once the last row is on screen (only the bottom padding is left to scroll) it goes away instead of covering that row.
+    const measure = () => setHasMore(node.scrollHeight - node.scrollTop - node.clientHeight > (parseFloat(getComputedStyle(body).paddingBottom) || 0) + 12);
     const observer = new ResizeObserver(measure);
     observer.observe(node); observer.observe(body);
     const frame = requestAnimationFrame(measure);

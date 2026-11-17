@@ -75,20 +75,42 @@ export function releaseTip(id: TipId): void {
 }
 
 export type Placement = { left: number; top: number; width: number; below: boolean; tail: number };
+export type Rect = { left: number; top: number; width: number; height: number };
+
+const overlapArea = (a: Rect, b: Rect) => {
+  const w = Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left);
+  const h = Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top);
+  return w > 0 && h > 0 ? w * h : 0;
+};
 
 /**
  * Where the card sits next to the spotlighted control: below it when there is room, otherwise above,
  * centred on it and kept inside a 16px gutter. `tail` is the arrow's x inside the card.
+ *
+ * `avoid` lists neighbouring things the card should not hide (the other stakes on the Hành trình page).
+ * The card then slides to whichever side of the control, or flips above/below, covers the least of them;
+ * on a tie the default placement above wins. `tail` still points at the control.
  */
-export function placeCard(target: { left: number; top: number; width: number; height: number }, viewport: { width: number; height: number }, card: { width: number; height: number }, gap = 14): Placement {
+export function placeCard(target: Rect, viewport: { width: number; height: number }, card: { width: number; height: number }, gap = 14, avoid: Rect[] = []): Placement {
   const gutter = 16;
   const width = Math.min(card.width, viewport.width - gutter * 2);
   const cx = target.left + target.width / 2;
-  const left = Math.round(Math.min(Math.max(cx - width / 2, gutter), viewport.width - gutter - width));
+  const clampLeft = (left: number) => Math.round(Math.min(Math.max(left, gutter), viewport.width - gutter - width));
   const roomBelow = viewport.height - (target.top + target.height) - gap;
   const roomAbove = target.top - gap;
-  const below = roomBelow >= card.height + gutter || roomBelow >= roomAbove;
-  const top = below ? target.top + target.height + gap : target.top - gap - card.height;
-  const tail = Math.round(Math.min(Math.max(cx - left, 26), width - 26));
-  return { left, top: Math.round(Math.max(gutter, top)), width, below, tail };
+  const preferBelow = roomBelow >= card.height + gutter || roomBelow >= roomAbove;
+  const build = (below: boolean, left: number): Placement => {
+    const top = below ? target.top + target.height + gap : target.top - gap - card.height;
+    return { left, top: Math.round(Math.max(gutter, top)), width, below, tail: Math.round(Math.min(Math.max(cx - left, 26), width - 26)) };
+  };
+  const first = build(preferBelow, clampLeft(cx - width / 2));
+  if (!avoid.length) return first;
+  const lefts = [first.left, clampLeft(target.left), clampLeft(target.left + target.width - width)];
+  const candidates = [first, ...[preferBelow, !preferBelow].flatMap(below => lefts.map(left => build(below, left)))];
+  const fits = (p: Placement) => p.below ? p.top + card.height <= viewport.height : p.top >= 0;
+  const cost = (p: Placement) => {
+    const box = { left: p.left, top: p.top, width: p.width, height: card.height };
+    return avoid.reduce((sum, rect) => sum + overlapArea(box, rect), 0) + (fits(p) ? 0 : 1e9);
+  };
+  return candidates.reduce((best, p) => cost(p) < cost(best) ? p : best, first);
 }

@@ -23,6 +23,10 @@ function boxOf(el: Element): Box | null {
   return { left: r.left, top: r.top, width: r.width, height: r.height, radius: px ? `${px + PAD}px` : '16px' };
 }
 
+/** Things next to the target that the card should not cover, marked data-guide-avoid="<id>". */
+const avoidRects = (id: TipId) => [...document.querySelectorAll<Element>(`[data-guide-avoid="${id}"]`)].map(el => el.getBoundingClientRect()).filter(r => r.width > 0 || r.height > 0)
+  .map(r => ({ left: r.left, top: r.top, width: r.width, height: r.height }));
+
 const sameBox = (a: Box | null, b: Box | null) => !!a && !!b && Math.abs(a.left - b.left) < .5 && Math.abs(a.top - b.top) < .5 && Math.abs(a.width - b.width) < .5 && Math.abs(a.height - b.height) < .5;
 
 /**
@@ -110,7 +114,7 @@ export function PageTip({ id, ready = true }: { id: TipId; ready?: boolean }) {
 
   const tip = TIPS[id];
   const spot = { left: box.left - PAD, top: box.top - PAD, width: box.width + PAD * 2, height: box.height + PAD * 2 };
-  const place = placeCard(spot, { width: window.innerWidth, height: window.innerHeight }, { width: CARD_W, height: cardH });
+  const place = placeCard(spot, { width: window.innerWidth, height: window.innerHeight }, { width: CARD_W, height: cardH }, 14, avoidRects(id));
   // Two buttons: keep Tab inside the card.
   const trap = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;

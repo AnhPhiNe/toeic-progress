@@ -125,7 +125,8 @@ export function ContainerScrollCue({
 
     const measure = () => {
       const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-      setHasMore(remaining > 20);
+      // Only the bottom padding left to scroll: the last row is already visible, so the cue would just cover it.
+      setHasMore(remaining > (parseFloat(getComputedStyle(el).paddingBottom) || 0) + 20);
     };
 
     measure();

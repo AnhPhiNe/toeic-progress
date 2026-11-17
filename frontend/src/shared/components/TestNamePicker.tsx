@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Folder, Search, X } from 'lucide-react';
+import './test-name-picker.css';
 import { normalizeTestName, testNameKey, uniqueTestNames } from '@/shared/domain/testNames';
 
 interface Props {
@@ -113,7 +114,7 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
   const searchInput = <input ref={inputRef} id={id} role="combobox" aria-label={label} aria-autocomplete="list" aria-expanded={open}
         aria-controls={open ? listId : undefined} aria-activedescendant={open && choices[active] ? `${listId}-${active}` : undefined}
         required={required} disabled={disabled} maxLength={300} value={search} placeholder={searchInPopup ? 'Tìm hoặc thêm đề…' : 'Tìm hoặc thêm tên đề…'}
-        className={`min-h-11 min-w-0 rounded-lg border border-slate-300 bg-white py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${searchInPopup ? 'w-full pl-9 pr-3' : compact ? 'flex-1 px-3' : 'w-full px-3'}`}
+        className={`tnp-field ${searchInPopup ? 'w-full !pl-9' : compact ? 'flex-1' : 'w-full'}`}
         onFocus={() => { if (!open) beforeEdit.current = value; setOpen(true); setActive(0); }}
         onChange={event => { if (compact) setQuery(event.target.value); else onChange(event.target.value); setActive(0); setOpen(true); }}
         onBlur={event => {
@@ -145,7 +146,7 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
     {compact && !field && <Folder className="h-4 w-4 shrink-0" aria-hidden="true" />}
     {searchInPopup ? <button ref={triggerRef} type="button" disabled={disabled} aria-label="Chọn đề" aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined}
       onPointerDown={event => { if (open) event.preventDefault(); }} onClick={() => { if (open) cancel(); else showPicker(); }}
-      className="flex min-h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-base text-slate-900 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+      className="tnp-field flex w-full cursor-pointer items-center justify-between gap-2 text-left">
       <span className="truncate">{value || (required ? 'Chọn đề' : 'Chọn đề (tùy chọn)')}</span><ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
     </button> : compact && !editing ? <><span className="min-w-0 break-words">{value || 'Chưa gắn đề'}</span>
       <button ref={triggerRef} type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded="false" onClick={showPicker}
@@ -155,7 +156,7 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
     </>}
     {open && createPortal(<div ref={popupRef} data-modal-owner={listId}
       style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.height }}
-      className={`fixed z-[70] rounded-xl border border-slate-300 bg-white shadow-lg dark:border-slate-600 dark:bg-[#111A2C] ${searchInPopup ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-1'}`}>
+      className={`tnp-pop fixed z-[70] ${searchInPopup ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-1'}`}>
       {searchInPopup && <div className="relative shrink-0 border-b border-slate-200 p-2 dark:border-slate-700"><Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />{searchInput}</div>}
       {optionList}
     </div>, searchInPopup ? rootRef.current?.closest('[role="dialog"]') ?? document.body : document.body)}

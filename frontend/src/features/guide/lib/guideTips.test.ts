@@ -93,4 +93,24 @@ describe('card placement', () => {
   it('narrows to the screen on very small phones', () => {
     expect(placeCard({ left: 0, top: 0, width: 20, height: 20 }, { width: 300, height: 600 }, card).width).toBe(268);
   });
+  it('keeps clear of neighbouring stakes: slides to the side that hides none', () => {
+    const wide = { width: 1440, height: 900 };
+    const target = { left: 1056, top: 204, width: 88, height: 126 };
+    const stake = { left: 880, top: 330, width: 100, height: 120 };
+    const plain = placeCard(target, wide, card);
+    const clear = placeCard(target, wide, card, 14, [stake]);
+    expect(plain.left).toBeLessThan(stake.left + stake.width);
+    expect(clear.left).toBeGreaterThanOrEqual(stake.left + stake.width);
+    expect(clear.left + clear.width).toBeLessThanOrEqual(wide.width - 16);
+    expect(clear.below).toBe(plain.below);
+    expect(clear.left + clear.tail).toBeGreaterThan(target.left);
+  });
+  it('flips above or below when no sideways slide clears the neighbour', () => {
+    const p = placeCard({ left: 100, top: 300, width: 80, height: 40 }, { width: 390, height: 844 }, card, 14, [{ left: 10, top: 354, width: 370, height: 120 }]);
+    expect(p.below).toBe(false);
+  });
+  it('is unchanged when nothing needs avoiding', () => {
+    const t = { left: 300, top: 90, width: 76, height: 44 };
+    expect(placeCard(t, vp, card, 14, [{ left: 0, top: 700, width: 50, height: 50 }])).toEqual(placeCard(t, vp, card));
+  });
 });

@@ -212,7 +212,7 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests, on
           const step = k > 0 ? p.score - T[k - 1].score : 0;
           const top = -pole - (gold ? 26 : 22);
           return (
-            <g key={p.id} transform={`translate(${x} ${y})`} className="jr-pt" data-guide={gold ? 'journey' : undefined} role="button" tabIndex={0} aria-label={`${ddmm(p.date)} · ${p.testName}: ${p.score}`}
+            <g key={p.id} transform={`translate(${x} ${y})`} className="jr-pt" data-guide={gold ? 'journey' : undefined} data-guide-avoid={gold ? undefined : 'journey'} role="button" tabIndex={0} aria-label={`${ddmm(p.date)} · ${p.testName}: ${p.score}`}
               onClick={() => onOpenTest(p.id)} onKeyDown={e => { if (e.key === 'Enter') onOpenTest(p.id); }}
               onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(h => (h === k ? null : h))} onFocus={() => setHover(k)} onBlur={() => setHover(h => (h === k ? null : h))}>
               <rect x={-28} y={top - (p.retake ? 28 : 4)} width="56" height={pole + 34 + (p.retake ? 28 : 4) - (gold ? 0 : 4)} fill="transparent" />
