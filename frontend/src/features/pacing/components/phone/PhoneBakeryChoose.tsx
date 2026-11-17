@@ -94,7 +94,7 @@ export function PhoneBakeryChoose(p: Props) {
       </div>
 
       <div className="pp-panel">
-        <div className="pp-fire-row">
+        <div className="pp-fire-row" data-guide="practice">
           <button type="button" className="rd-btn bk-fire pp-fire" onClick={light}><FlameIcon /> Bật lò</button>
           <div className="pp-mins" role="group" aria-label="Số phút">
             <button type="button" aria-label="Bớt một phút" onClick={() => p.onMinutes(-1)} disabled={!p.canMinus}>−</button>

@@ -13,7 +13,8 @@ export default defineConfig({
     command: `npm run dev -- --host 127.0.0.1 --port ${port} --strictPort`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: false,
-    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_PUBLISHABLE_KEY: '', VITE_API_URL: '' },
+    // VITE_GUIDE_TIPS=off: first-visit page tips stay hidden; guide.spec.ts turns them on with window.__GUIDE_TIPS__.
+    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_PUBLISHABLE_KEY: '', VITE_API_URL: '', VITE_GUIDE_TIPS: 'off' },
     timeout: 60_000
   }
 });

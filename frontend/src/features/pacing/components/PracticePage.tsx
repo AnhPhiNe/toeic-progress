@@ -5,6 +5,7 @@ import { dishName, paceWords } from '../lib/bakery';
 import { BakeryChoose } from './BakeryChoose';
 import { BakeryRun } from './BakeryRun';
 import { BakeryDone } from './BakeryDone';
+import { PageTip } from '@/features/guide/PageTip';
 import './bakery.css';
 
 interface Props {
@@ -52,6 +53,8 @@ function PracticeWorkspace({ owner, resultDialogBlocked = false, onEditSession, 
   }
   const { suggestion, suggested } = b;
   return (
+    <>
+    <PageTip id="practice" />
     <BakeryChoose
       mode={mode} label={label} choices={b.choices}
       reason={suggested === mode && suggestion ? suggestion.reason
@@ -61,5 +64,6 @@ function PracticeWorkspace({ owner, resultDialogBlocked = false, onEditSession, 
       onPick={b.pick} onStart={b.start} onMinutes={b.setMinutes}
       onLog={b.logResult} onPomodoro={onOpenPomodoro} onOpenSession={onEditSession}
     />
+    </>
   );
 }

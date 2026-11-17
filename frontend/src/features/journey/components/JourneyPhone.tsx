@@ -7,6 +7,7 @@ import { JourneyScore } from './phone/JourneyScore';
 import { JourneyParts } from './phone/JourneyParts';
 import { JourneyTests } from './phone/JourneyTests';
 import { TestSheet } from './phone/TestSheet';
+import { PageTip } from '@/features/guide/PageTip';
 import './phone/journeyPhone.css';
 
 type Tab = 'score' | 'parts' | 'tests';
@@ -55,6 +56,7 @@ export function JourneyPhone({ sessions, mistakes, profile, today, initialTab, o
       {tab === 'score' && <JourneyScore sessions={sessions} profile={profile} today={today} onOpenTest={setOpenId} onLog={onOpenSessionLogger} />}
       {tab === 'parts' && <JourneyParts sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
       {tab === 'tests' && <JourneyTests sessions={sessions} onOpenTest={setOpenId} onOpenSessionLogger={onOpenSessionLogger} />}
+      <PageTip id="journey" ready={tests.length > 0} />
       {open && (
         <TestSheet session={open} sessions={sessions} onClose={() => setOpenId(null)}
           onOpenNotebook={name => { setOpenId(null); onOpenNotebook(name); }}

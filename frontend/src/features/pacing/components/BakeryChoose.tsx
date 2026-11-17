@@ -152,7 +152,7 @@ export function BakeryChoose(p: Props) {
       </div>
 
       <div className="bk-ctrl">
-        <button type="button" className="rd-btn bk-fire" onClick={light}><FlameIcon /> Bật lò</button>
+        <button type="button" className="rd-btn bk-fire" data-guide="practice" onClick={light}><FlameIcon /> Bật lò</button>
         <div className="bk-step" role="group" aria-label="Số phút">
           <button type="button" aria-label="Bớt một phút" onClick={() => p.onMinutes(-1)} disabled={!p.canMinus}>−</button>
           <b>{p.minutes}</b><span>p</span>

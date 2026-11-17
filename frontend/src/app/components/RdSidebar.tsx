@@ -28,6 +28,7 @@ const ICONS: Record<string, ReactNode> = {
   practice: <><rect x="9" y="1" width="6" height="3" rx="1.5" fill={W} /><circle cx="12" cy="14" r="8.5" fill="none" stroke={W} strokeWidth="3" /><path d="M12 9.5 V14 L15 16" fill="none" stroke={W} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /></>,
   notebook: <><path d="M3 4.5 C6 3 9.5 3 12 5 C14.5 3 18 3 21 4.5 V20 C18 18.5 14.5 18.5 12 20.5 C9.5 18.5 6 18.5 3 20Z" fill={W} /><path d="M12 5 V20.5" stroke="rgba(0,0,0,.18)" strokeWidth="1.6" /></>,
   convert: <><path d="M4 8 H17 M13.5 4 L17.5 8 L13.5 12" fill="none" stroke={W} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M20 16 H7 M10.5 12 L6.5 16 L10.5 20" fill="none" stroke={W} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /></>,
+  guide: <><circle cx="12" cy="12" r="9.5" fill="none" stroke={W} strokeWidth="2.6" /><path d="M9.2 9.4 a2.9 2.9 0 1 1 4.1 2.6 c-.9.4 -1.3 1 -1.3 1.9 v.6" fill="none" stroke={W} strokeWidth="2.6" strokeLinecap="round" /><circle cx="12" cy="17.6" r="1.6" fill={W} /></>,
   awards: <><path d="M6 3 H18 V9 A6 6 0 0 1 6 9Z" fill={W} /><path d="M6 5 H3 C3 9 5 10.5 6.5 10.5 M18 5 H21 C21 9 19 10.5 17.5 10.5" fill="none" stroke={W} strokeWidth="2.2" strokeLinecap="round" /><rect x="10.5" y="14" width="3" height="4" fill={W} /><rect x="7" y="18" width="10" height="3.5" rx="1.5" fill={W} /></>
 };
 
@@ -43,7 +44,8 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
     { key: 'awards', label: 'Thành tích', tab: 'awards', color: 'var(--rd-blue)', lip: 'var(--rd-blue-d)', tint: 'var(--rd-blue-d)', badge: newBadges || undefined }
   ];
   const tools: Item[] = [
-    { key: 'convert', label: 'Quy đổi điểm', tab: 'resources', color: 'var(--rd-teal)', lip: 'var(--rd-teal-d)', tint: 'var(--rd-teal-d)' }
+    { key: 'convert', label: 'Quy đổi điểm', tab: 'resources', color: 'var(--rd-teal)', lip: 'var(--rd-teal-d)', tint: 'var(--rd-teal-d)' },
+    { key: 'guide', label: 'Cách dùng app', tab: 'guide', color: 'var(--rd-gold)', lip: 'var(--rd-gold-d)', tint: 'var(--rd-gold-d)' }
   ];
   const { progress, worn } = soc;
   const starsLabel = progress.next ? `${progress.stars}/${progress.next.stars} sao` : 'Cấp cao nhất';

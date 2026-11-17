@@ -47,6 +47,11 @@ function AvatarSheet({ onClose }: { onClose: () => void }) {
         <span><b>Quy đổi điểm</b><small>TOEIC, CEFR, IELTS, VSTEP</small></span>
         <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />
       </button>
+      <button type="button" className="ph-row" onClick={go(() => goTab('guide'))}>
+        <i style={{ background: 'var(--rd-gold)', color: '#5a3d00', fontStyle: 'normal', fontWeight: 900, fontSize: 21 }} aria-hidden="true">?</i>
+        <span><b>Cách dùng app</b><small>3 bước, xem lại gợi ý</small></span>
+        <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />
+      </button>
       <div className="ph-sep" />
       <button type="button" className="ph-row" onClick={go(openSettings)}>
         <i style={{ background: '#9aa39d' }}><Settings size={20} aria-hidden="true" /></i>
