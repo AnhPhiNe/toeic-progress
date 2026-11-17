@@ -123,7 +123,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await expect(scoreSource).toHaveValue('ETS 2025 Test 03');
   await useOfficialScore(modal);
   await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
-  await modal.getByLabel('Tổng điểm TOEIC /990').fill('750');
+  await modal.getByLabel('Tổng điểm /990').fill('750');
   await modal.getByRole('button', { name: 'Lưu kết quả' }).click();
   await closeTestResult(page);
   await openScoreLogger(page);
@@ -150,8 +150,8 @@ test('adding a source from notes creates no score, and total/part forms reuse on
 });
 
 test('the picker can be canceled by Escape and the floating cue exposes the lower content', async ({ page }) => {
+  // A short phone keeps content below the fold, so the cue has something to expose.
   await page.setViewportSize({ width: 375, height: 620 });
-  await page.setViewportSize(PHONE_VIEWPORT);
   await page.goto('/so-tay');
   await openNoteForm(page);
   const modal = page.getByRole('dialog');

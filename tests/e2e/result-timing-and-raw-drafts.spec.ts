@@ -156,9 +156,9 @@ test('image timing stays editable, an unreadable edit blocks saving and a readab
   expect(await page.evaluate(() => localStorage.getItem('__timingCalls'))).toBe('1');
 });
 
-// REAL APP BUG: opening "Kiểm tra / sửa thời gian" on an already confirmed timing copies its `source` key into the draft's strict timingCandidate schema
-// (studyFormDrafts.ts / resultTiming.ts), so the draft fails validation, shows "Chưa tự lưu được nháp" and the edit is lost on reload.
-test.fixme('an edited, unapplied image timing survives a reload', async ({ page }) => {
+// Regression: reopening "Kiểm tra / sửa thời gian" on a confirmed timing used to copy its `source` key into the draft's strict timingCandidate schema
+// (studyFormDrafts.ts), so the draft failed validation and the edit was lost on reload. timingCandidate() now keeps only the timing fields.
+test('an edited, unapplied image timing survives a reload', async ({ page }) => {
   const timing = { ...allNull, totalSeconds: 6763, readingSeconds: 4500, parts: { ...allNull.parts, part5: 720 } };
   await mockTiming(page, timing);
   let form = await openForm(page);

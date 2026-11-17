@@ -22,7 +22,7 @@ async function openSession(page: Page, practice = false) {
   if (!practice) {
     await useOfficialScore(modal);
     await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
-    await modal.getByLabel('Tổng điểm TOEIC /990').fill('800');
+    await modal.getByLabel('Tổng điểm /990').fill('800');
   }
   return modal;
 }
@@ -77,11 +77,11 @@ test('a note typed right after logging a test is linked to that test session', a
 
 test('invalid input and a failed save retain the result form; retry opens the notebook only after persistence', async ({ page }) => {
   const modal = await openSession(page);
-  await modal.getByLabel('Tổng điểm TOEIC /990').fill('995');
+  await modal.getByLabel('Tổng điểm /990').fill('995');
   await modal.getByRole('button', { name: 'Lưu & thêm câu sai', exact: true }).click();
   await expect(modal).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions)).toHaveLength(0);
-  await modal.getByLabel('Tổng điểm TOEIC /990').fill('800');
+  await modal.getByLabel('Tổng điểm /990').fill('800');
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     (window as Window & { restoreHandoffWrites?: () => void }).restoreHandoffWrites = () => { Storage.prototype.setItem = original; };
@@ -92,7 +92,7 @@ test('invalid input and a failed save retain the result form; retry opens the no
   });
   await modal.getByRole('button', { name: 'Lưu & thêm câu sai', exact: true }).click();
   await expect(modal.getByRole('alert')).toBeVisible();
-  await expect(modal.getByLabel('Tổng điểm TOEIC /990')).toHaveValue('800');
+  await expect(modal.getByLabel('Tổng điểm /990')).toHaveValue('800');
   await expect(captureDialog(page)).toHaveCount(0);
   await page.evaluate(() => (window as Window & { restoreHandoffWrites?: () => void }).restoreHandoffWrites?.());
   await modal.getByRole('button', { name: 'Lưu & thêm câu sai', exact: true }).click();
@@ -104,7 +104,7 @@ test('invalid input and a failed save retain the result form; retry opens the no
 // old top bar; the Enter-to-save half stays.
 test('Enter saves the result without opening notes', async ({ page }) => {
   const modal = await openSession(page);
-  await modal.getByLabel('Tổng điểm TOEIC /990').press('Enter');
+  await modal.getByLabel('Tổng điểm /990').press('Enter');
   await expect(modal).toHaveCount(0);
   await expect(captureDialog(page)).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions)).toHaveLength(1);

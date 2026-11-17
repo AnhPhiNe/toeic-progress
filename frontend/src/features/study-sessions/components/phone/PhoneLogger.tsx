@@ -43,6 +43,8 @@ export interface PhoneLoggerProps {
   initialFiles?: File[]; setInitialFiles: (files: File[] | undefined) => void;
   timingNotice: ReactNode;
   scoreError: string;
+  /** Same test already logged that day: shown above the save button, which then saves anyway. */
+  duplicateNotice?: ReactNode;
   practiceRows: PracticePartResult[]; setPracticeRows: (rows: PracticePartResult[]) => void;
   vocabCount: number; setVocabCount: (value: number) => void;
 }
@@ -129,7 +131,10 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   const saveBtn = (label: string, tone: 'green' | 'violet' | 'blue') => (
     <footer className="pl-foot">
       {err}
-      <button type="submit" name="afterSave" value="close" className={'pl-save pl-save--' + tone}>{label}</button>
+      {props.duplicateNotice}
+      {props.duplicateNotice
+        ? <button type="submit" name="afterSave" value="duplicate" className={'pl-save pl-save--' + tone}>Vẫn lưu</button>
+        : <button type="submit" name="afterSave" value="close" className={'pl-save pl-save--' + tone}>{label}</button>}
     </footer>
   );
 

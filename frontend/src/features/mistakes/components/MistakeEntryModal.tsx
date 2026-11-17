@@ -18,6 +18,7 @@ import { PartBadge } from '@/features/mistakes/components/MistakeCard';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
 import { normalizeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
+import './entry-rd.css';
 import { ScrollableModalBody } from '@/shared/components/ScrollableModalBody';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { QuestionContext } from '@/features/mistakes/components/QuestionContext';
@@ -61,9 +62,9 @@ interface Props {
   onSaved?: (message: string) => void;
 }
 
-const inputClass = 'w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 font-sans text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
-const linkClass = 'cursor-pointer text-[13px] font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300';
-const primaryClass = 'cursor-pointer rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-extrabold shadow-[3px_3px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40';
+const inputClass = 'rdm-in w-full';
+const linkClass = 'rdm-link cursor-pointer';
+const primaryClass = 'rd-btn rdm-btn disabled:cursor-not-allowed disabled:opacity-40';
 const categoryChoices = CATEGORY_CHOICES;
 
 function storedDraft(entry: MistakeEntry): AIMistakeParseResult {
@@ -603,18 +604,16 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
             <div className="flex gap-1.5" role="group" aria-label="Part">
               {partChoices.map(value => <button key={value} type="button" aria-pressed={effectivePart === value} aria-label={`Part ${value}`}
                 onClick={() => choosePart(value)}
-                className={'h-11 min-w-11 cursor-pointer rounded-xl border-2 px-3 text-[15px] font-black max-md:flex-1 ' + (effectivePart === value
-                  ? (value <= 4 ? 'border-slate-900 bg-indigo-600 text-white' : 'border-slate-900 bg-teal-600 text-white') + ' shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none'
-                  : (value <= 4 ? 'border-indigo-200 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300' : 'border-teal-200 text-teal-700 dark:border-teal-800 dark:text-teal-300') + ' bg-white dark:bg-slate-900')}>{value}</button>)}
+                className="rdm-pchip max-md:flex-1">{value}</button>)}
             </div>
   );
-  const optional = <span className="ml-1 text-xs font-semibold text-slate-400 dark:text-slate-500">không bắt buộc</span>;
+  const optional = <span className="rdm-opt">không bắt buộc</span>;
   const canReadClipboard = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.readText);
 
   const choiceButton = (letter: ChoiceLetter) => {
     const option = options.find(value => value.startsWith(`(${letter})`));
     return <button type="button" key={letter} disabled={!choicesReady || (!freeformReady && !option)} aria-pressed={choice === letter} aria-label={`Bạn chọn ${letter}`} title={option?.replace(/^\([A-D]\)\s*/, '')}
-      onClick={() => { setChoice(value => value === letter ? '' : letter); setChanged(true); }} className={`h-9 w-9 cursor-pointer rounded-full border-2 text-sm font-extrabold max-md:h-[50px] max-md:w-auto max-md:flex-1 max-md:rounded-xl max-md:text-lg disabled:cursor-not-allowed disabled:opacity-40 ${choice === letter ? 'border-slate-900 bg-rose-500 text-white dark:border-slate-200' : 'border-slate-300 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-300'}`}>{letter}</button>;
+      onClick={() => { setChoice(value => value === letter ? '' : letter); setChanged(true); }} className="rdm-abcd is-me max-md:flex-1">{letter}</button>;
   };
 
   const contextBlock = (
@@ -630,58 +629,45 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                 onAdd={files => void addImages(files)} onRemove={id => { setImages(value => value.filter(image => image.id !== id)); setSourceImageIds([]); uploadedImageKey.current = ''; invalidateContext(); }} />} />
   );
   const answerDetails = (
-<details open={isPhone || keyOpen} onToggle={event => { if (!isPhone) setKeyOpen(event.currentTarget.open); }} className="text-sm text-slate-600 dark:text-slate-300"><summary className="min-h-11 cursor-pointer py-2 font-semibold">{source ? `Đáp án từ đề: ${source}` : <>Đáp án đúng từ đề{optional}</>}</summary><fieldset className="mt-1"><legend className="sr-only">Đáp án từ đề</legend><div className="flex flex-wrap gap-2">{choiceLetters.map(letter => { const option = options.find(value => value.startsWith(`(${letter})`)); return <button type="button" key={letter} disabled={!choicesReady || (!freeformReady && !option)} aria-label={`Đáp án từ đề: ${letter}`} aria-pressed={source === letter} onClick={() => { setSource(value => value === letter ? '' : letter); setChanged(true); }} className={`min-h-11 min-w-11 rounded-lg border text-base font-extrabold disabled:cursor-not-allowed disabled:opacity-40 ${source === letter ? 'border-slate-900 bg-slate-200 ring-1 ring-slate-900 dark:border-slate-200 dark:bg-slate-700' : 'border-slate-300 dark:border-slate-700'}`}>{letter}</button>; })}</div></fieldset>{!choicesReady && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Dán câu hỏi để chọn đáp án từ đề.</p>}{source && <button type="button" className="mt-1 py-1 text-xs text-slate-500 dark:text-slate-400" onClick={() => { setSource(''); setChanged(true); }}>Bỏ chọn</button>}</details>
+<details open={isPhone || keyOpen} onToggle={event => { if (!isPhone) setKeyOpen(event.currentTarget.open); }} className="rdm-key"><summary>{source ? `Đáp án từ đề: ${source}` : <>Đáp án đúng từ đề{optional}</>}</summary><fieldset className="mt-1"><legend className="sr-only">Đáp án từ đề</legend><div className="flex flex-wrap gap-2">{choiceLetters.map(letter => { const option = options.find(value => value.startsWith(`(${letter})`)); return <button type="button" key={letter} disabled={!choicesReady || (!freeformReady && !option)} aria-label={`Đáp án từ đề: ${letter}`} aria-pressed={source === letter} onClick={() => { setSource(value => value === letter ? '' : letter); setChanged(true); }} className="rdm-abcd is-ok">{letter}</button>; })}</div></fieldset>{!choicesReady && <p className="rdm-hint">Dán câu hỏi để chọn đáp án từ đề.</p>}{source && <button type="button" className="rdm-link is-quiet mt-1" onClick={() => { setSource(''); setChanged(true); }}>Bỏ chọn</button>}</details>
   );
   const categorySelect = (
-          <label className="w-[200px] shrink-0 text-sm font-bold max-md:col-span-2 max-md:w-full">Lỗi sai{optional}
-            <select aria-label="Lỗi sai" className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-base font-normal dark:border-slate-700 dark:bg-slate-900"
+          <label className="rdm-lab w-[200px] shrink-0 max-md:col-span-2 max-md:w-full">Lỗi sai{optional}
+            <select aria-label="Lỗi sai" className="rdm-in rdm-select mt-1.5"
               value={selectedCategory} onChange={event => { setSelectedCategory(event.target.value as ErrorCategory | ''); setChanged(true); }}>
               <option value="">Chưa chọn</option>{Object.entries(categoryChoices).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
   );
 
-  return <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 sm:items-center sm:p-4" onClick={event => { if (event.target === event.currentTarget && event.detail <= 1) close(); }}>
-    <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="mistake-entry-title" className="flex max-h-[100dvh] w-full flex-col max-md:h-[100dvh] max-md:border-0 border-2 border-slate-900 bg-white text-slate-900 dark:border-slate-200 dark:bg-[#111A2C] dark:text-slate-100 sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-2xl sm:shadow-[6px_6px_0px_#0f172a] dark:sm:shadow-[6px_6px_0px_#cbd5e1]">
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
+  return <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(47,58,51,.45)] sm:items-center sm:p-4" onClick={event => { if (event.target === event.currentTarget && event.detail <= 1) close(); }}>
+    <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="mistake-entry-title" className="rd rdm flex max-h-[100dvh] w-full flex-col bg-white max-md:h-[100dvh] sm:max-h-[92dvh] sm:max-w-3xl">
+      <header className="rdm-head flex shrink-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <h2 id="mistake-entry-title" className="shrink-0 text-lg font-extrabold sm:text-xl">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
+          <h2 id="mistake-entry-title" className="rdm-title shrink-0">{saveMoreReceipt ? <span role="status" className="entry-more-receipt inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><SuccessMark />Đã lưu ghi chú</span>
             : <span>{step === 'preview' ? 'Kiểm tra và lưu' : original ? 'Sửa câu sai' : 'Thêm câu sai'}</span>}</h2>
         </div>
-        <button type="button" onClick={close} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
+        <button type="button" onClick={close} aria-label="Đóng" className="rdm-x"><X className="h-5 w-5" /></button>
       </header>
-      {step !== 'saved' && <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
+      {step !== 'saved' && <div className="rdm-draft flex shrink-0 items-center justify-between gap-3">
         <span role="status">{persistentDraft.state === 'unavailable' ? 'Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.' : persistentDraft.state === 'restored' ? 'Đã khôi phục bản nháp trên thiết bị này.' : 'Nội dung được tự lưu nháp trên thiết bị này.'}
-          {(formDraft.hadUnsavedImages || missingDraftImages) && <span className="mt-1 block text-amber-800 dark:text-amber-300">Ảnh chưa tải lên không nằm trong bản nháp. Sau khi tải lại trang, cần chọn lại ảnh; nội dung đã nhập và câu AI đã đọc vẫn được giữ.</span>}
+          {(formDraft.hadUnsavedImages || missingDraftImages) && <span className="mt-1 block text-[#8a6500]">Ảnh chưa tải lên không nằm trong bản nháp. Sau khi tải lại trang, cần chọn lại ảnh; nội dung đã nhập và câu AI đã đọc vẫn được giữ.</span>}
         </span>
-        <button type="button" disabled={busy || persisting} className="min-h-9 shrink-0 font-bold text-slate-600 underline disabled:opacity-50 dark:text-slate-300" onClick={() => {
+        <button type="button" disabled={busy || persisting} className="rdm-link is-quiet shrink-0 disabled:opacity-50" onClick={() => {
           if (window.confirm('Xóa bản nháp đang nhập và đóng form? Câu sai đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) { requestEpoch.current++; removeCaptcha(); onClose(); }
         }}>Bỏ nháp</button>
       </div>}
       {!original && step === 'input' && (
-        <div className="shrink-0 border-b border-slate-200 px-4 py-2.5 dark:border-slate-700 sm:px-6">
-          <div role="tablist" aria-label="Chế độ thêm câu sai" className="grid grid-cols-2 gap-1.5 rounded-xl border-2 border-slate-900 bg-slate-100 p-1 dark:border-slate-400 dark:bg-slate-900 sm:max-w-sm">
+        <div className="rdm-tabwrap shrink-0">
+          <div role="tablist" aria-label="Chế độ thêm câu sai" className="rdm-tabs grid grid-cols-2 sm:max-w-sm">
             {([['single', 'Nhập tay', PenLine], ['batch', 'Quét ảnh', ScanLine]] as const).map(([mode, label, Icon]) => {
               const active = entryMode === mode;
-              const isSingle = mode === 'single';
-              const activeClass = isSingle
-                ? 'border-2 border-slate-900 bg-blue-100/90 text-blue-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-blue-950/80 dark:text-blue-100 dark:shadow-[2px_2px_0_0_#cbd5e1]'
-                : 'border-2 border-slate-900 bg-purple-100/90 text-purple-950 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-purple-950/80 dark:text-purple-100 dark:shadow-[2px_2px_0_0_#cbd5e1]';
-              const iconColor = active
-                ? (isSingle ? 'text-blue-600 dark:text-blue-400' : 'text-purple-600 dark:text-purple-400')
-                : 'text-slate-400 dark:text-slate-500';
 
               return <button key={mode} type="button" role="tab" aria-selected={active} onClick={() => { if (entryMode !== mode) { requestEpoch.current++; batchRunning.current = false; setBatchProgress(null); removeCaptcha(); setBusy(false); setImageBusy(false); } setEntryMode(mode); setError(''); }}
-                className={'flex min-h-10 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-black transition-all ' + (active
-                  ? activeClass
-                  : 'border-2 border-transparent text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white')}>
-                <Icon className={'h-4 w-4 shrink-0 ' + iconColor} strokeWidth={2.5} aria-hidden="true" />
+                className="rdm-tab">
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
                 <span>{label}</span>
-                {mode === 'batch' && (
-                  <span className="rounded-md border border-purple-900/30 bg-purple-600 px-1 py-0.2 text-[9.5px] font-black text-white uppercase tracking-wider dark:border-purple-300">
-                    AI
-                  </span>
-                )}
+                {mode === 'batch' && <span className="rdm-ai">AI</span>}
               </button>;
             })}
           </div>
@@ -843,47 +829,47 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           ) : (
             <fieldset disabled={busy || imageBusy || persisting} className="space-y-2 border-0 p-0">
           {isPhone ? <>
-          <div><p className="mb-2 text-[13.5px] font-black text-slate-700 dark:text-slate-200">Part <span className="text-rose-600" aria-hidden="true">*</span></p>
+          <div><p className="rdm-lab mb-2">Part</p>
             {partButtons}
           </div>
-          <div><span className="mb-2 block text-[13.5px] font-black text-slate-700 dark:text-slate-200">Đề <span className="text-rose-600" aria-hidden="true">*</span></span>
+          <div><span className="rdm-lab mb-2 block">Đề</span>
             <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={busy}
             onChange={name => { if ((reading || imageIdsDraft.length) && testNameKey(name) !== testNameKey(sourceTestName)) clearReading(); setSourceTest(name); setChanged(true); }} />
           </div>
           {contextBlock}
           </> : <>
           <div className="flex w-full items-end gap-4">
-          <div><span className="mb-1.5 block text-sm font-bold">Part <span className="ml-1 text-xs font-semibold text-slate-400 dark:text-slate-500">(Reading)</span></span>{partButtons}</div>
-          <div className="min-w-0 flex-1"><span className="mb-1.5 block text-sm font-bold">Đề</span>
+          <div><span className="rdm-lab mb-1.5 block">Part</span>{partButtons}</div>
+          <div className="min-w-0 flex-1"><span className="rdm-lab mb-1.5 block">Đề</span>
           <TestNamePicker compact field required value={sourceTestName} suggestions={sourceSuggestions} disabled={busy}
             onChange={name => { if ((reading || imageIdsDraft.length) && testNameKey(name) !== testNameKey(sourceTestName)) clearReading(); setSourceTest(name); setChanged(true); }} />
           </div>
           {categorySelect}
           </div>
           </>}
-          <div><div className="mb-1"><label htmlFor="mistake-paste" className="text-sm font-bold">{instructions.label}</label></div>
-            <p id="mistake-input-hint" className="mb-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300 max-md:sr-only">{reading ? sourceImageIds.length ? 'Dán câu mới kèm phương án. Dùng lại ảnh bài đọc, không cần thêm lại.' : 'Dán câu mới kèm phương án; bài đọc được dùng lại.' : isPhone ? instructions.hint.replace('bên dưới', 'bên trên') : instructions.hint}</p>
+          <div><div className="mb-1"><label htmlFor="mistake-paste" className="rdm-lab">{instructions.label}</label></div>
+            <p id="mistake-input-hint" className="rdm-hint mb-1.5 max-md:sr-only">{reading ? sourceImageIds.length ? 'Dán câu mới kèm phương án. Dùng lại ảnh bài đọc, không cần thêm lại.' : 'Dán câu mới kèm phương án; bài đọc được dùng lại.' : isPhone ? instructions.hint.replace('bên dưới', 'bên trên') : instructions.hint}</p>
             <div className="relative"><textarea id="mistake-paste" aria-describedby="mistake-input-hint" maxLength={8000} spellCheck={false} value={raw} onChange={event => { setRaw(event.target.value); setCorrected(null); setChanged(true); }} rows={3}
               onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length) { event.preventDefault(); void addImages(files); } }}
               placeholder={effectivePart === 1 ? 'Dán bốn mô tả nghe A–D…' : effectivePart === 2 ? 'Dán câu hỏi và ba phản hồi A–C…' : 'Dán một câu hỏi và các phương án…'}
-              className={twMerge(inputClass, 'min-h-[148px] resize-y border-2 border-slate-900 bg-[#FFFDF7] dark:border-slate-300 dark:bg-slate-900 max-md:min-h-[128px] max-md:pb-12')} />
+              className="rdm-in rdm-ta min-h-[148px] w-full resize-y max-md:min-h-[128px] max-md:pb-12" />
             {isPhone && canReadClipboard && !raw && <button type="button" onClick={() => void navigator.clipboard.readText().then(text => { if (text) { setRaw(text); setCorrected(null); setChanged(true); } }).catch(() => undefined)}
-              className="absolute bottom-2.5 right-2.5 flex h-9 items-center gap-1.5 rounded-xl border-[1.5px] border-blue-200 bg-white px-3 text-[13px] font-black text-blue-700 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300">
+              className="rdm-paste absolute bottom-2.5 right-2.5">
               <ClipboardPaste className="h-4 w-4" aria-hidden="true" />Dán</button>}</div>
-            {!config?.freeformInput && !corrected && raw && parsed.error && <p role="alert" className="mt-2 text-sm text-rose-600 dark:text-rose-300">{parsed.error}</p>}
+            {!config?.freeformInput && !corrected && raw && parsed.error && <p role="alert" className="rdm-err mt-2">{parsed.error}</p>}
           </div>
           {!isPhone && contextBlock}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><fieldset><legend className="mb-1 text-sm font-bold">Bạn đã chọn{optional}</legend><div className="flex flex-wrap gap-2 max-md:flex-nowrap">{choiceLetters.map(choiceButton)}</div><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{choicesReady ? 'Không chọn nếu chưa nhớ. Bấm lại để bỏ chọn.' : 'Dán câu hỏi để chọn phương án.'}</p></fieldset>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><fieldset><legend className="rdm-lab mb-1.5">Bạn đã chọn{optional}</legend><div className="flex flex-wrap gap-2 max-md:flex-nowrap">{choiceLetters.map(choiceButton)}</div><p className="rdm-hint mt-1.5">{choicesReady ? 'Không chọn nếu chưa nhớ. Bấm lại để bỏ chọn.' : 'Dán câu hỏi để chọn phương án.'}</p></fieldset>
             {!isPhone && answerDetails}
           </div>
           {(!isPhone || choice || reason) && <>
-          <div><label htmlFor="mistake-reason" className="mb-1 block text-sm font-bold">Lý do chọn{optional}</label><textarea id="mistake-reason" maxLength={2000} rows={1} value={reason} onChange={event => { setReason(event.target.value); event.currentTarget.style.height = 'auto'; event.currentTarget.style.height = `${Math.max(36, Math.min(120, event.currentTarget.scrollHeight))}px`; setChanged(true); }} placeholder="Mình chọn vì…" className={twMerge(inputClass, 'min-h-9 border-2 border-slate-300 bg-white py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900')} /></div>
+          <div><label htmlFor="mistake-reason" className="rdm-lab mb-1.5 block">Lý do chọn{optional}</label><textarea id="mistake-reason" maxLength={2000} rows={1} value={reason} onChange={event => { setReason(event.target.value); event.currentTarget.style.height = 'auto'; event.currentTarget.style.height = `${Math.max(36, Math.min(120, event.currentTarget.scrollHeight))}px`; setChanged(true); }} placeholder="Mình chọn vì…" className="rdm-in min-h-11 w-full" /></div>
           </>}
-          {isPhone && <details className="group rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 dark:border-slate-700 dark:bg-slate-900">
-            <summary className="flex min-h-[50px] cursor-pointer list-none items-center justify-between text-[14px] font-bold [&::-webkit-details-marker]:hidden">Đáp án, loại lỗi<span className="flex items-center gap-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">{source ? `Đáp án ${source}` : 'Tùy chọn'}<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" /></span></summary>
-            <div className="space-y-3 border-t border-stone-200 py-3 dark:border-slate-700">{answerDetails}{categorySelect}</div>
+          {isPhone && <details className="rdm-more group">
+            <summary>Đáp án, loại lỗi<span>{source ? `Đáp án ${source}` : 'Tùy chọn'}<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" /></span></summary>
+            <div className="space-y-3 pb-3">{answerDetails}{categorySelect}</div>
           </details>}
-          {original && original.userReason === undefined && original.userMistake && <details className="text-sm"><summary className="cursor-pointer font-semibold">Ghi chú cũ</summary><p className="mt-2 whitespace-pre-line text-base leading-relaxed">{original.userMistake}</p></details>}
+          {original && original.userReason === undefined && original.userMistake && <details className="rdm-key"><summary>Ghi chú cũ</summary><p className="mt-2 whitespace-pre-line text-base leading-relaxed">{original.userMistake}</p></details>}
         </fieldset>)) : step === 'saved' ? <div role="status" className="flex flex-col items-center gap-3 py-5 text-center"><SuccessMark /><p className="text-lg font-bold">Đã lưu lỗi sai</p>{sourceTestName && <p className="text-sm text-slate-500 dark:text-slate-400">{sourceTestName}</p>}<p className="text-sm text-slate-500 dark:text-slate-400">{draft?.correctAnswer ? `${draft.answerSource === 'AI_PROPOSED' ? 'AI đề xuất' : 'Đáp án đã lưu'}: ${draft.correctAnswer}` : 'Chưa có đáp án · bổ sung trước khi ôn'}</p></div> : draft && <>
           <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2">{draft.part !== null ? <PartBadge part={draft.part} /> : <span className="text-sm text-rose-600">Chọn Part trước khi lưu</span>}{sourceTestName && <span className="truncate text-xs text-slate-500 dark:text-slate-400" title={sourceTestName}>{sourceTestName}</span>}</div><button type="button" className={linkClass} onClick={() => { setStep('input'); setError(''); requestAnimationFrame(() => ref.current?.querySelector<HTMLTextAreaElement>('#mistake-paste')?.focus()); }}>Chỉnh nội dung</button></div>
           <p className="whitespace-pre-line text-base font-bold leading-relaxed">{draftQuestion.question || 'Chưa trích được câu hỏi'}</p>
@@ -902,20 +888,20 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
           {draft.missingInformation.length > 0 && <div className="text-sm text-amber-800 dark:text-amber-300" role="status">{draft.missingInformation.map((message, index) => <p key={index}>{message}</p>)}</div>}
           {draft.part === null && <label className="block text-sm font-semibold">Part<select aria-label="Part" className={`${inputClass} mt-1`} value="" onChange={event => { const value = Number(event.target.value) as MistakeEntry['part']; setDraft({ ...draft, part: value || null }); setPart(value || null); draftInput.current = inputText({ ...input, part: value || null }); setChanged(true); }}><option value="">Chọn Part</option>{partChoices.map(value => <option key={value} value={value}>Part {value}</option>)}</select></label>}
         </>}
-        {step === 'input' && aiAccess?.enabled === false && <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+        {step === 'input' && aiAccess?.enabled === false && <div role="status" className="rdm-warn">
           <p>{aiAccess.accessMessage}</p>{aiAccess.accessStatus === 'login_required'
             ? <button type="button" onClick={requestAISignIn} className="min-h-10 font-semibold underline">Đăng nhập Google</button>
             : <button type="button" disabled={configBusy} onClick={() => setConfigAttempt(value => value + 1)} className="min-h-10 font-semibold underline">Kiểm tra quyền AI</button>}
         </div>}
-        {error && <div className="space-y-1 text-sm text-rose-600 dark:text-rose-300" role="alert"><p>{error}</p>{step === 'input' && !configBusy && !config && <button type="button" onClick={() => setConfigAttempt(value => value + 1)} className="font-bold underline">Thử kết nối lại</button>}
+        {error && <div className="rdm-err space-y-1" role="alert"><p>{error}</p>{step === 'input' && !configBusy && !config && <button type="button" onClick={() => setConfigAttempt(value => value + 1)} className="font-bold underline">Thử kết nối lại</button>}
           {original && error.includes('nơi khác') && <button type="button" onClick={() => { if (window.confirm('Tải lại thẻ và bỏ các thay đổi chưa lưu?')) onReload(); }} className="font-bold underline">Tải lại thẻ</button>}</div>}
         {step === 'input' && <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />}
       </ScrollableModalBody>
-      <footer className="flex shrink-0 items-center justify-between gap-2.5 sm:gap-3 border-t border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-[#111A2C] sm:px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <footer className="rdm-foot flex shrink-0 items-center justify-between gap-2.5 sm:gap-3">
         {step === 'input' ? (
           entryMode === 'batch' ? (
             <>
-              <div className="max-w-[50%] truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <div className="rdm-hint max-w-[50%] truncate">
                 {batchItems.length ? `Đã quét ${batchItems.length} câu sai` : 'Chọn đề rồi tải ảnh các câu sai Reading'}
               </div>
               <div className="flex items-center gap-3">
@@ -926,7 +912,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                   type="button"
                   onClick={saveBatch}
                   disabled={!batchItems.length || Boolean(batchProgress)}
-                  className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>
+                  className={`${primaryClass} rd-btn--pink`}>
                   {`Lưu ${batchItems.length ? `${batchItems.length} ` : ''}câu sai`}
                 </button>
               </div>
@@ -939,7 +925,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                   onClick={quickSave}
                   disabled={busy || imageBusy || persisting}
                   aria-label={original ? undefined : 'Lưu thủ công'}
-                  className="min-h-11 min-w-0 flex-1 sm:flex-initial cursor-pointer inline-flex items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:border-slate-900 hover:bg-slate-50 active:translate-x-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400 transition-all"
+                  className={`${primaryClass} ${original ? 'rd-btn--pink' : 'rd-btn--white'} min-w-0 flex-1 sm:flex-initial`}
                 >
                   {original ? 'Lưu thay đổi' : 'Lưu thủ công'}
                 </button>
@@ -947,7 +933,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                   type="button"
                   onClick={() => void analyze()}
                   disabled={!aiAvailable || busy || imageBusy || persisting || (!raw.trim() && !images.length)}
-                  className="min-h-11 min-w-0 flex-[1.4] sm:flex-initial cursor-pointer inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-blue-600 px-2 sm:px-4 py-2 text-xs sm:text-sm font-extrabold text-white shadow-[2.5px_2.5px_0_0_#0f172a] hover:bg-blue-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none dark:border-slate-200 dark:shadow-none transition-all"
+                  className={`${primaryClass} ${original ? 'rd-btn--white' : 'rd-btn--pink'} min-w-0 flex-[1.4] whitespace-nowrap sm:flex-initial`}
                 >
                   <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>{busy ? (images.length || sourceImageIds.length ? 'Đang đọc ảnh…' : 'Đang phân tích…') : 'Phân tích với AI'}</span>
@@ -957,7 +943,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
                 <button
                   type="button"
                   onClick={close}
-                  className="w-full sm:w-auto py-1 text-center text-xs sm:text-[13px] font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer transition-colors"
+                  className="rdm-link is-quiet"
                 >
                   Hủy
                 </button>
@@ -965,8 +951,8 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
             </>
           )
         )
-          : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm câu tiếp'}</button></div></>
-          : <><button type="button" disabled={persisting} onClick={() => { setStep('input'); setError(''); }} className={linkClass}>Quay lại</button><div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">{!original && <button type="button" disabled={persisting} onClick={() => void save(true, draft, false, canReuseReading)} className={`${primaryClass} min-h-11 bg-white text-slate-950 hover:bg-slate-50 dark:border-slate-300 dark:bg-slate-900 dark:text-white`}>{canReuseReading ? 'Lưu & thêm câu cùng bài' : 'Lưu & thêm tiếp'}</button>}<button type="button" disabled={persisting} onClick={() => void save()} className={`${primaryClass} bg-blue-600 text-white hover:bg-blue-500 dark:border-slate-200`}>{persisting ? 'Đang lưu…' : original ? 'Lưu thay đổi' : 'Lưu câu sai'}</button></div></>}
+          : step === 'saved' ? <><button type="button" onClick={onClose} className={linkClass}>Đóng</button><div className="flex flex-wrap items-center justify-end gap-3">{canReuseReading && <button type="button" onClick={() => resetEntry()} className={linkClass}>Bài đọc mới</button>}<button type="button" onClick={() => resetEntry(canReuseReading)} className={`${primaryClass} rd-btn--pink`}>{canReuseReading ? 'Thêm câu cùng bài đọc' : 'Thêm câu tiếp'}</button></div></>
+          : <><button type="button" disabled={persisting} onClick={() => { setStep('input'); setError(''); }} className={linkClass}>Quay lại</button><div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">{!original && <button type="button" disabled={persisting} onClick={() => void save(true, draft, false, canReuseReading)} className={`${primaryClass} rd-btn--white`}>{canReuseReading ? 'Lưu & thêm câu cùng bài' : 'Lưu & thêm tiếp'}</button>}<button type="button" disabled={persisting} onClick={() => void save()} className={`${primaryClass} rd-btn--pink`}>{persisting ? 'Đang lưu…' : original ? 'Lưu thay đổi' : 'Lưu câu sai'}</button></div></>}
       </footer>
     </div>
   </div>;

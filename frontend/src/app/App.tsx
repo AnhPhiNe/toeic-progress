@@ -773,6 +773,7 @@ export const App: React.FC = () => {
         onUpdateSession={handleUpdateSession}
         onAddMistakeForSession={openSessionMistake}
         onSavedFullTest={setSavedTest}
+        onOpenExistingSession={openSessionEditor}
       />
       {savedTest && <SessionResultScreen session={savedTest} sessions={sessions} mistakes={mistakes} targetScore={profile.targetScore}
         onSignIn={isGuest ? () => void account.signInGoogle() : undefined}
