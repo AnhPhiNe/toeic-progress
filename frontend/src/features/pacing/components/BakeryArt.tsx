@@ -189,6 +189,29 @@ export function Cookies({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: n
   );
 }
 
+/** Croissant for Mẻ tự do: five folded segments, the middle one on top, in the cookie browns. Bottom sits on y = 0. */
+export function Croissant({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number }) {
+  const seg = (cx: number, cy: number, rx: number, ry: number, rot: number, fill: string) => (
+    <g transform={`translate(${cx} ${cy}) rotate(${rot})`}>
+      <ellipse rx={rx} ry={ry} fill={fill} stroke="#c98442" strokeWidth="3" />
+      <path d={`M${-rx * 0.45} ${-ry * 0.55} Q0 ${-ry * 0.85} ${rx * 0.45} ${-ry * 0.55}`} stroke="#fff" strokeWidth="3" fill="none" opacity=".45" strokeLinecap="round" />
+    </g>
+  );
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <ellipse cx="0" cy="-2" rx="54" ry="6" fill="#000" opacity=".06" />
+      {seg(-46, -10, 14, 10, -38, '#d39256')}
+      {seg(46, -10, 14, 10, 38, '#d39256')}
+      {seg(-27, -20, 17, 17, -22, '#e8ad6c')}
+      {seg(27, -20, 17, 17, 22, '#e8ad6c')}
+      {seg(0, -26, 20, 23, 0, '#f2bf7c')}
+      <g fill="#fff3d6" opacity=".9">
+        <circle cx="-6" cy="-36" r="1.8" /><circle cx="5" cy="-30" r="1.8" /><circle cx="-2" cy="-22" r="1.8" /><circle cx="-28" cy="-26" r="1.5" /><circle cx="27" cy="-24" r="1.5" />
+      </g>
+    </g>
+  );
+}
+
 const TIERS: Array<[number, number, string, string]> = [[80, 52, '#ffd1dc', '#ff9eb8'], [60, 44, '#fff', '#c8b6ff'], [42, 38, '#ffe9a3', '#ffc83d']];
 /** Layer cake, bottom tier sitting on y = 0 of its own group. `cherry` crowns it; strawberries are drawn by BerryCake. */
 export function LayerCake({ x = 0, y = 0, s = 1, tiers, cherry = true }: { x?: number; y?: number; s?: number; tiers: 1 | 2 | 3; cherry?: boolean }) {
@@ -242,6 +265,17 @@ export function CakePlate({ count }: { count: number }) {
   );
 }
 
+/** Mẻ tự do's result: the croissant on the same plate as the decorated cake. */
+export function CroissantPlate() {
+  return (
+    <svg className="bk-card-cake bk-card-cake--free" viewBox="-160 -110 320 130" aria-hidden="true">
+      <ellipse cx="0" cy="8" rx="130" ry="16" fill="#e6e0f5" />
+      <rect x="-118" y="-6" width="236" height="12" rx="6" fill="#fff" stroke="#e6e0f5" strokeWidth="3" />
+      <Croissant y={-4} s={1.6} />
+    </svg>
+  );
+}
+
 export function Steam({ x = 0, y = 0, s = 1, delay = 0 }: { x?: number; y?: number; s?: number; delay?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
@@ -260,6 +294,7 @@ function DishG({ dish, y = 0 }: { dish: Dish; y?: number }) {
       {dish === 'cookies' && <Cookies y={-44} s={1.1} />}
       {dish === 'layer' && <LayerCake y={-4} s={1.05} tiers={2} />}
       {dish === 'tiers' && <LayerCake y={-4} s={0.82} tiers={3} />}
+      {dish === 'croissant' && <Croissant y={-6} s={1.15} />}
     </g>
   );
 }
@@ -276,7 +311,7 @@ export function ItemArt({ dish, selected }: { dish: Dish; selected: boolean }) {
         <ellipse cx="0" cy="0" rx="50" ry="9" fill="#e6e0f5" />
       </g>
       <g className="bk-food"><DishG dish={dish} /></g>
-      <Steam x={dish === 'tiers' ? 20 : 0} y={dish === 'cupcake' ? -100 : dish === 'cookies' ? -76 : dish === 'layer' ? -130 : -160} s={0.6} delay={dish === 'cookies' ? 0.8 : 0} />
+      <Steam x={dish === 'tiers' ? 20 : 0} y={dish === 'cupcake' ? -100 : dish === 'cookies' ? -76 : dish === 'croissant' ? -70 : dish === 'layer' ? -130 : -160} s={0.6} delay={dish === 'cookies' || dish === 'croissant' ? 0.8 : 0} />
     </svg>
   );
 }
@@ -425,12 +460,12 @@ export function Whisk({ className }: { className?: string }) {
   );
 }
 
-/** Tray with a cupcake that Sóc carries out of the oven. */
-export function Tray() {
+/** Tray with a cupcake (or Mẻ tự do's croissant) that Sóc carries out of the oven. */
+export function Tray({ croissant = false }: { croissant?: boolean }) {
   return (
     <svg viewBox="-80 -60 160 70" aria-hidden="true">
       <rect x="-70" y="-6" width="140" height="10" rx="5" fill="#c7cbd1" />
-      <Cupcake y={-12} s={0.6} />
+      {croissant ? <Croissant y={-5} s={0.7} /> : <Cupcake y={-12} s={0.6} />}
     </svg>
   );
 }
@@ -443,6 +478,7 @@ export function DishIcon({ dish }: { dish: Dish }) {
       {dish === 'tiers' && <LayerCake y={30} s={0.4} tiers={3} />}
       {dish === 'cupcake' && <Cupcake y={-10} s={0.7} />}
       {dish === 'cookies' && <Cookies y={-8} s={0.7} />}
+      {dish === 'croissant' && <Croissant y={14} s={0.78} />}
     </svg>
   );
 }

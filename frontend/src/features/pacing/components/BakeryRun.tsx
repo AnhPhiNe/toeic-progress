@@ -26,6 +26,8 @@ interface Props {
   onResume: () => void;
   onFinish: () => void;
   onStop: () => void;
+  /** Mẻ tự do: no questions and no recipe card, only the countdown and the rising cake. */
+  free?: boolean;
 }
 
 function Colons({ text }: { text: string }) {
@@ -37,13 +39,13 @@ function Colons({ text }: { text: string }) {
 
 /** Đang nướng: the big oven with a rising cake and the pinned recipe card. */
 export function BakeryRun(p: Props) {
-  const line = p.hot ? 'Sắp chín rồi! Còn ít phút nữa thôi.' : p.paused ? 'Sóc giữ lò ấm cho bạn nhé.' : 'Thơm quá! Câu nào kẹt thì đánh dấu, qua câu sau đã.';
+  const line = p.hot ? 'Sắp chín rồi! Còn ít phút nữa thôi.' : p.paused ? 'Sóc giữ lò ấm cho bạn nhé.' : p.free ? 'Chỉ một việc thôi, xong là nghỉ.' : 'Thơm quá! Câu nào kẹt thì đánh dấu, qua câu sau đã.';
   return (
     <div className={'rd bk-root bk-run' + (p.hot ? ' is-hot' : '') + (p.paused ? ' is-paused' : '')}>
       <BulbString />
       <div className="bk-floor" aria-hidden="true" />
       <header className="bk-head">
-        <div><b>{p.label}</b><span>{p.questions} câu · {p.plannedMinutes} phút</span></div>
+        <div><b>{p.label}</b><span>{p.free ? `${p.plannedMinutes} phút` : `${p.questions} câu · ${p.plannedMinutes} phút`}</span></div>
         <button type="button" className="bk-stop" onClick={p.onStop}>× Dừng</button>
       </header>
 
@@ -59,7 +61,7 @@ export function BakeryRun(p: Props) {
           <div className={'bk-lcd' + (p.clock.length > 5 ? ' is-long' : '')} role="timer" aria-live="off" aria-label={`Còn ${p.clock}`}><Colons text={p.clock} /></div>
         </div>
 
-        <aside className="bk-recipe" aria-label="Công thức">
+        {!p.free && <aside className="bk-recipe" aria-label="Công thức">
           <i className="bk-tape" aria-hidden="true" />
           <div className="bk-recipe-kick">CÔNG THỨC</div>
           <h2>{p.recipe}</h2>
@@ -75,7 +77,7 @@ export function BakeryRun(p: Props) {
               </li>
             ))}
           </ol>
-        </aside>
+        </aside>}
       </div>
 
       <div className="bk-acts">
@@ -83,9 +85,9 @@ export function BakeryRun(p: Props) {
           {p.paused
             ? <button type="button" className="rd-btn rd-btn--white" onClick={p.onResume}>Tiếp tục</button>
             : <button type="button" className="rd-btn rd-btn--white" onClick={p.onPause}>Tạm dừng</button>}
-          <button type="button" className="rd-btn bk-fire" onClick={p.onFinish}>Xong rồi · ra lò</button>
+          <button type="button" className="rd-btn bk-fire" onClick={p.onFinish}>{p.free ? 'Xong sớm · ra lò' : 'Xong rồi · ra lò'}</button>
         </div>
-        <p>Đồng hồ vẫn chạy khi bạn chuyển sang tab làm đề. Phím cách để tạm dừng.</p>
+        <p>{p.free ? 'Đồng hồ vẫn chạy khi bạn chuyển tab. Phím cách để tạm dừng.' : 'Đồng hồ vẫn chạy khi bạn chuyển sang tab làm đề. Phím cách để tạm dừng.'}</p>
         {p.error && <p role="alert" className="bk-err">{p.error}</p>}
       </div>
     </div>

@@ -26,7 +26,6 @@ import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { AnalyticsView } from '@/features/analytics/components/AnalyticsView';
 import { ExamHistoryView } from '@/features/study-sessions/components/ExamHistoryView';
 import { MistakeNotebookView } from '@/features/mistakes/components/MistakeNotebookView';
-import { ReadingPacingView } from '@/features/pacing/components/ReadingPacingView';
 import { PlanView } from '@/features/plans/components/PlanView';
 import { ResourcesView } from '@/features/resources/components/ResourcesView';
 import { ConvertPage } from '@/features/resources/components/ConvertPage';
@@ -67,7 +66,7 @@ import {
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
-import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType, NavTabId } from '@/shared/types';
+import { StudySession, MistakeEntry, PacingRun, UserProfile, ReadingPartType } from '@/shared/types';
 import { getDueMistakes, canReview, compareReviewPriority } from '@/features/mistakes/lib/spacedRepetition';
 import type { ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
 import { commitMistakeBatch } from '@/features/mistakes/lib/persistMistakeBatch';
@@ -139,12 +138,10 @@ export const App: React.FC = () => {
   const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
 
-  const [pacingReturnTab, setPacingReturnTab] = useState<NavTabId | null>(null);
-  const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>('PART_5');
-  // Pomodoro keeps the older clock view; the redesigned Luyện tập handles Reading presets.
-  const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  // POMODORO opens the bakery on Mẻ tự do (the old Pomodoro); the old /phong-thi link lands there too.
+  const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>(() => window.location.pathname.replace(/\/+$/, '') === '/phong-thi' ? 'POMODORO' : 'PART_5');
   const [practiceFocus, setPracticeFocus] = useState(false);
-  useEffect(() => { if (activeTab !== 'exam-mode') setPomodoroOpen(false); }, [activeTab]);
+  useEffect(() => { if (activeTab !== 'exam-mode') setPacingInitialPart(part => part === 'POMODORO' ? 'PART_5' : part); }, [activeTab]);
   const navigateToPacing = (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
     if (draft && (draft.mode !== target || target === 'POMODORO' && draft.phase !== 'WORK')) {
@@ -153,7 +150,6 @@ export const App: React.FC = () => {
       if (draft.status !== 'ready' && !window.confirm(`Phiên ${currentName} đang được giữ trên máy. Làm mới để luyện ${targetName}?`)) return;
       clearTimer(owner, draft.id);
     }
-    setPacingReturnTab(activeTab);
     setPacingInitialPart(supportedMode(part)); setActiveTab('exam-mode');
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -443,14 +439,13 @@ export const App: React.FC = () => {
   const showToday = activeTab === 'dashboard' && !isPhone;
   // Hành trình điểm replaces Lịch sử thi + Phân tích on computers.
   const showJourney = (activeTab === 'history' || activeTab === 'analytics') && !isPhone;
-  const showPractice = activeTab === 'exam-mode' && !isPhone && !pomodoroOpen;
+  const showPractice = activeTab === 'exam-mode' && !isPhone;
   const showNotebook = activeTab === 'mistakes' && !isPhone;
   const showAwards = activeTab === 'awards';
   const showConvert = activeTab === 'resources' && !isPhone;
   const showGuide = activeTab === 'guide' && !isPhone;
   // Phones: each tab with a redesigned phone page owns the whole screen (no Topbar); plan and vocabulary keep the old layout.
-  // On phones the Pomodoro clock still uses the older view, so the bakery stub steps aside while it is open.
-  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources', 'guide'].includes(activeTab) && !(activeTab === 'exam-mode' && pomodoroOpen);
+  const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources', 'guide'].includes(activeTab);
   const fullPage = showToday || showJourney || showPractice || showNotebook || showAwards || showConvert || showGuide || phonePageTab;
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
@@ -557,7 +552,6 @@ export const App: React.FC = () => {
                 onOpenSessionLogger={openSessionLogger}
                 onEditSession={openSessionEditor}
                 onSessionsChanged={handleSessionsChangedElsewhere}
-                onOpenPomodoro={() => { setPacingInitialPart('POMODORO'); setPomodoroOpen(true); }}
                 onFocusChange={setPracticeFocus}
               />
             )}
@@ -608,7 +602,6 @@ export const App: React.FC = () => {
             onOpenSessionLogger={openSessionLogger}
             onEditSession={openSessionEditor}
             onSessionsChanged={handleSessionsChangedElsewhere}
-            onOpenPomodoro={() => { setPacingInitialPart('POMODORO'); setPomodoroOpen(true); }}
             onFocusChange={setPracticeFocus}
           />
         ) : showJourney ? (
@@ -675,22 +668,6 @@ export const App: React.FC = () => {
               onEditSession={openSessionEditor}
               onNavigateToTimer={(part = 'POMODORO') => navigateToPacing(part)}
               onNavigateToPlan={() => setActiveTab('plan')}
-            />
-          )}
-
-          {activeTab === 'exam-mode' && (
-            <ReadingPacingView
-              resultDialogBlocked={savedTest !== null || isSessionModalOpen || isSettingsModalOpen || editingPacing !== null || reviewCards !== null || Boolean(account.pendingTransfer)}
-              onOpenSessionLogger={openSessionLogger}
-              onSessionsChanged={handleSessionsChangedElsewhere}
-              theme={theme}
-              initialPart={pacingInitialPart}
-              onBack={pomodoroOpen ? () => { setPomodoroOpen(false); setPacingInitialPart('PART_5'); } : pacingReturnTab ? () => {
-                const target = pacingReturnTab;
-                setPacingReturnTab(null);
-                setActiveTab(target);
-              } : undefined}
-              backLabel={pomodoroOpen ? 'Luyện tập' : pacingReturnTab === 'analytics' ? 'Phân tích' : pacingReturnTab === 'plan' ? 'Kế hoạch' : 'Tổng quan'}
             />
           )}
 

@@ -149,23 +149,6 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
   });
 }
 
-test('the Pomodoro button opens the classic clock on a computer', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page);
-  await page.getByRole('button', { name: 'Pomodoro', exact: true }).click();
-  await expect(page.getByRole('group', { name: 'Giai đoạn Pomodoro' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Kết quả', exact: true })).toBeVisible();
-});
-
-// Real app bug: on phones the Pomodoro button does nothing, because App keeps the phone bakery on screen for the whole Luyện tập tab
-// (phonePageTab) while the classic clock that holds Pomodoro, Kết quả and the statistics only renders on computers.
-test('the Pomodoro button opens the classic clock on a phone', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await open(page);
-  await page.getByRole('button', { name: 'Pomodoro', exact: true }).click();
-  await expect(page.getByRole('group', { name: 'Giai đoạn Pomodoro' })).toBeVisible();
-});
-
 // Real app bug: after a saved bake is edited from its row, the row keeps showing the old wrong count until the page reloads
 // (useBakery keeps `runs` in state that only changes on its own save, so the edit made through PacingResultEditor is not picked up).
 test('editing a bake from its row updates the row at once', async ({ page }) => {
@@ -181,4 +164,98 @@ test('editing a bake from its row updates the row at once', async ({ page }) => 
   await editor.getByRole('spinbutton', { name: 'Số câu đúng' }).fill('20');
   await editor.getByRole('button', { name: 'Lưu kết quả', exact: true }).click();
   await expect(page.getByRole('button', { name: /^Part 5 · 10 sai/ })).toBeVisible();
+});
+
+// Mẻ tự do (free study) replaced the Pomodoro button: a fifth item in the case, the same oven, a ra-lò card and a cooling break.
+const free = (page: Page) => page.getByRole('button', { name: /^Mẻ tự do, học tự do, \d+ phút$/ });
+async function seedFocusRuns(page: Page, count: number) {
+  await page.evaluate(count => {
+    const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    bundle.pacingRuns = Array.from({ length: count }, (_, i) => ({ id: `focus-${i}`, presetId: 'POMODORO_WORK', presetName: 'Pomodoro', partType: 'POMODORO', date: '2026-10-09',
+      createdAt: `2026-10-09T0${i + 5}:00:00Z`, updatedAt: '2026-10-09T08:00:00Z', deletedAt: null, plannedMinutes: 25, actualMinutes: 25, actualSeconds: 1500, finishedNaturally: true, phases: [] }));
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
+  }, count);
+  await page.reload();
+}
+
+for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['phone', { width: 390, height: 844 }]] as const) {
+  test.describe(`Mẻ tự do on a ${name}`, () => {
+    test.beforeEach(async ({ page }) => { await page.setViewportSize(viewport); });
+
+    test('choose a short free bake, let it finish, start the break and skip it', async ({ page }) => {
+      await open(page);
+      await expect(page.getByRole('button', { name: 'Pomodoro', exact: true })).toHaveCount(0);
+      await free(page).click();
+      await expect(free(page)).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
+      await expect(page.getByText('Học từ, nghe, shadowing… phút vẫn tính vào chuỗi.', { exact: true })).toHaveCount(1);
+      const minutes = page.getByRole('group', { name: 'Số phút', exact: true });
+      await expect(minutes).toContainText('25');
+      const less = minutes.getByRole('button', { name: 'Bớt một phút', exact: true });
+      for (const shown of ['20', '15', '10', '5', '4', '3', '2', '1']) { await less.click(); await expect(minutes).toContainText(shown); }
+      await expect(less).toBeDisabled();
+      // The choice is remembered for this account.
+      await page.reload();
+      await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
+      await expect(page.getByRole('group', { name: 'Số phút', exact: true })).toContainText('1');
+
+      await fire(page).click();
+      await expect(clock(page, '01:00')).toBeVisible();
+      await expect(page.getByText(/nên ở khoảng câu/)).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Xong sớm · ra lò', exact: true })).toBeVisible();
+      await page.clock.fastForward(61000);
+      const done = page.getByRole('dialog', { name: '+1 phút', exact: true });
+      await expect(done).toBeVisible();
+      await expect(done).toContainText('Đã luyện hôm nay1 phút');
+      await expect(page.getByRole('spinbutton', { name: 'Số câu sai' })).toHaveCount(0);
+      let bundle = await data(page);
+      expect(bundle.pacingRuns).toHaveLength(1);
+      expect(bundle.pacingRuns[0]).toMatchObject({ partType: 'POMODORO', presetId: 'POMODORO_WORK', actualSeconds: 60, finishedNaturally: true });
+      expect(bundle.sessions).toHaveLength(1);
+      expect(bundle.sessions[0]).toMatchObject({ id: bundle.pacingRuns[0].id, sessionType: 'PART_PRACTICE', testName: 'Pomodoro: tập trung' });
+
+      await page.getByRole('button', { name: 'Nghỉ 5 phút', exact: true }).click();
+      await expect(clock(page, '05:00')).toBeVisible();
+      await expect(page.getByText('Uống nước, đứng dậy duỗi người nhé.', { exact: true })).toBeVisible();
+      await page.clock.fastForward(3000);
+      await page.getByRole('button', { name: 'Bỏ nghỉ · nướng tiếp', exact: true }).click();
+      await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
+      await expect(fire(page)).toBeVisible();
+      bundle = await data(page);
+      expect(bundle.pacingRuns).toHaveLength(2);
+      expect(bundle.pacingRuns[0]).toMatchObject({ partType: 'POMODORO', presetId: 'POMODORO_SHORT_BREAK', finishedNaturally: false });
+      expect(bundle.sessions).toHaveLength(1);
+      // The free bake is listed with the others.
+      await expect(await recentRow(page, /^Mẻ tự do · 1 phút/)).toBeVisible();
+    });
+
+    test('the fourth bake of the day offers the long break, which ends by itself back at the case', async ({ page }) => {
+      await open(page);
+      await seedFocusRuns(page, 3);
+      await free(page).click();
+      const less = page.getByRole('group', { name: 'Số phút', exact: true }).getByRole('button', { name: 'Bớt một phút', exact: true });
+      for (let i = 0; i < 8; i++) await less.click();
+      await fire(page).click();
+      await page.clock.fastForward(30000);
+      await page.getByRole('button', { name: 'Xong sớm · ra lò', exact: true }).click();
+      const done = page.getByRole('dialog', { name: '+30 giây', exact: true });
+      await expect(done).toContainText('Mẻ thứ 4 hôm nay');
+      await expect(done).toContainText('Đã luyện hôm nay1 giờ 15 phút');
+      await page.getByRole('button', { name: 'Nghỉ dài 15 phút', exact: true }).click();
+      await expect(clock(page, '15:00')).toBeVisible();
+      await page.clock.fastForward(15 * 60 * 1000 + 1000);
+      await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
+      const bundle = await data(page);
+      expect(bundle.pacingRuns[0]).toMatchObject({ presetId: 'POMODORO_LONG_BREAK', finishedNaturally: true, actualSeconds: 900 });
+      expect(bundle.sessions).toHaveLength(1);
+    });
+  });
+}
+
+test('the old /phong-thi link opens the bakery on Mẻ tự do', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/phong-thi');
+  await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
+  await expect(free(page)).toHaveAttribute('aria-pressed', 'true');
 });

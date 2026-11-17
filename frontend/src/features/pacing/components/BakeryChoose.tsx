@@ -24,13 +24,13 @@ interface Props {
   onStart: () => void;
   onMinutes: (delta: number) => void;
   onLog: () => void;
-  onPomodoro: () => void;
   onOpenSession: (session: StudySession) => void;
 }
 
 const W = 1068, H = 450;
-const XS = [110, 290, 470, 670];
-const TILT = [-2, 1.5, 0, -1.5];
+// Five items on the counter (x 24–800): the four Parts and Mẻ tự do.
+const XS = [96, 248, 400, 552, 704];
+const TILT = [-2, 1.5, 0, -1.5, 1];
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
 /** Height kept under the stage for the buttons row and one row of recent bakes, so the page fits the window. */
@@ -69,7 +69,7 @@ function useFit() {
 
 const SHOWN = 4;
 
-/** Chọn món: a bakery whose four display-case items are the four Parts. */
+/** Chọn món: a bakery whose display-case items are the four Parts and Mẻ tự do (free study). */
 export function BakeryChoose(p: Props) {
   const [page, fit, scale, wide] = useFit();
   const off = (wide - W) / 2;
@@ -96,6 +96,7 @@ export function BakeryChoose(p: Props) {
   const selected = p.choices.findIndex(c => c.mode === p.mode);
   const chosen = p.choices[selected];
   const dish = dishName(p.mode);
+  const free = p.mode === 'POMODORO';
 
   const light = () => {
     if (going) return;
@@ -126,15 +127,20 @@ export function BakeryChoose(p: Props) {
           <div className="bk-shop" style={{ left: off }}>
 
           {p.choices.map((c, i) => {
-            const on = i === selected;
+            const on = i === selected, isFree = c.mode === 'POMODORO';
             return (
               <button key={c.mode} type="button" className={'bk-item' + (on ? ' is-on' : '')} style={{ left: XS[i] - 90 }}
-                aria-pressed={on} aria-label={`${c.label}, ${c.questions} câu, ${c.minutes} phút, ${c.record ? 'kỷ lục ' + c.record : 'kỷ lục chưa có'}`}
+                aria-pressed={on} aria-label={isFree ? `${c.label}, học tự do, ${c.minutes} phút` : `${c.label}, ${c.questions} câu, ${c.minutes} phút, ${c.record ? 'kỷ lục ' + c.record : 'kỷ lục chưa có'}`}
                 onClick={() => p.onPick(c.mode)}>
                 <ItemArt dish={dishOf(c.mode)} selected={on} />
                 <span className="bk-tag" style={{ transform: `rotate(${TILT[i]}deg)` }}>
-                  <span className="bk-tag-top"><b>{c.label}</b><b className="bk-tag-min">{c.minutes}′</b></span>
-                  <span className="bk-tag-sub">{c.questions} câu · {c.record ? `kỷ lục ${c.record}` : 'kỷ lục chưa có'}</span>
+                  {isFree ? <>
+                    <span className="bk-tag-top"><b>{c.label}</b></span>
+                    <span className="bk-tag-sub">Học tự do · {c.minutes}′</span>
+                  </> : <>
+                    <span className="bk-tag-top"><b>{c.label}</b><b className="bk-tag-min">{c.minutes}′</b></span>
+                    <span className="bk-tag-sub">{c.questions} câu · {c.record ? `kỷ lục ${c.record}` : 'kỷ lục chưa có'}</span>
+                  </>}
                 </span>
               </button>
             );
@@ -144,9 +150,10 @@ export function BakeryChoose(p: Props) {
           <div className={'bk-shop-soc' + (going ? ' is-going' : '')}>
             <ChefSoc size={82} mood="mix" />
           </div>
-          <div className="bk-bub">
+          {/* Mẻ tự do says its one hint under the heading; Sóc stays quiet so it is not said twice. */}
+          {!free && <div className="bk-bub">
             {dish} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <> Lần trước bạn xong trong {p.lastTime}!</>}
-          </div>
+          </div>}
           </div>
         </div>
       </div>
@@ -163,9 +170,10 @@ export function BakeryChoose(p: Props) {
           <button type="button" className={'bk-tool is-gold' + (recipe ? ' is-on' : '')} aria-expanded={recipe} aria-controls="bk-recipe-pop" onClick={() => setRecipe(v => !v)}>
             <i aria-hidden="true"><CardIcon /></i>Công thức
           </button>
-          {recipe && <RecipePop label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />}
+          {recipe && (free
+            ? <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức"><p className="bk-recipe-free">{FREE_RECIPE(p.minutes)}</p></div>
+            : <RecipePop label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />)}
         </div>
-        <button type="button" className="bk-tool is-rose" onClick={p.onPomodoro}><i aria-hidden="true"><TomatoIcon /></i>Pomodoro</button>
       </div>
       {p.error && <p role="alert" className="bk-err">{p.error}</p>}
 
@@ -195,6 +203,10 @@ export function BakeryChoose(p: Props) {
   );
 }
 
+/** Mẻ tự do has no steps: its Công thức is one line, shared with the phone sheet. */
+export const FREE_HINT = 'Học từ, nghe, shadowing… phút vẫn tính vào chuỗi.';
+export const FREE_RECIPE = (minutes: number) => `Chọn một việc, học ${minutes} phút rồi nghỉ 5 phút; sau 4 mẻ nghỉ dài 15 phút.`;
+
 /** Whole minutes for a recipe step ("10p"); seconds for very short steps. */
 const stepTime = (seconds: number) => (seconds >= 60 ? `${Math.round(seconds / 60)}p` : formatSpan(seconds));
 
@@ -223,7 +235,4 @@ const PenIcon = () => (
 );
 const CardIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18"><rect x="2" y="2" width="14" height="14" rx="3" fill="#e0a100" /><path d="M5 7h8M5 10h8M5 13h5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></svg>
-);
-const TomatoIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="11.5" r="7.5" fill="#ff5c6c" /><path d="M10 4l-2-2M10 4l3-1.5M10 4v-2" stroke="#46b35a" strokeWidth="2" strokeLinecap="round" /><path d="M10 8v4l2.5 1.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" /></svg>
 );

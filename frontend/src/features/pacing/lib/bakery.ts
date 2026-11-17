@@ -4,15 +4,37 @@ import { isTooShortRun, runSeconds } from './pacingStats';
 
 /** Pure helpers behind the bakery-themed Luyện tập page (design/previews/mock-practice-bakery.html). */
 
-export type Dish = 'cupcake' | 'cookies' | 'layer' | 'tiers';
+export type Dish = 'cupcake' | 'cookies' | 'layer' | 'tiers' | 'croissant';
 const DISHES: Partial<Record<PacingMode, { dish: Dish; name: string }>> = {
   PART_5: { dish: 'cupcake', name: 'Cupcake' },
   PART_6: { dish: 'cookies', name: 'Bánh quy' },
   PART_7: { dish: 'layer', name: 'Bánh kem' },
-  FULL_READING: { dish: 'tiers', name: 'Bánh ba tầng' }
+  FULL_READING: { dish: 'tiers', name: 'Bánh ba tầng' },
+  POMODORO: { dish: 'croissant', name: 'Bánh sừng bò' }
 };
 export const dishOf = (mode: PacingMode) => DISHES[mode]?.dish ?? 'layer';
 export const dishName = (mode: PacingMode) => DISHES[mode]?.name ?? 'Bánh kem';
+
+// ----- Mẻ tự do: free study on the Pomodoro timer (mode POMODORO, phases WORK / SHORT_BREAK / LONG_BREAK) -----
+export const FREE_MIN = 1;
+export const FREE_MAX = 120;
+/** −/+ on the minutes pill: steps of 5 (25 → 20 → … → 5), single minutes below 5, kept within 1–120. */
+export function stepFreeMinutes(current: number, delta: number): number {
+  const now = Math.min(FREE_MAX, Math.max(FREE_MIN, Math.round(current)));
+  if (delta > 0) return Math.min(FREE_MAX, now < 5 ? now + 1 : Math.floor(now / 5) * 5 + 5);
+  if (delta < 0) return Math.max(FREE_MIN, now <= 5 ? now - 1 : Math.ceil(now / 5) * 5 - 5);
+  return now;
+}
+/** A saved focus run (not a break) of the Pomodoro timer, the same test the old clock and the streak use. */
+export const isFocusRun = (run: PacingRun) => !run.deletedAt && run.partType === 'POMODORO' && !run.presetId.includes('BREAK');
+export const focusRunsOn = (runs: PacingRun[], date: string) => runs.filter(run => isFocusRun(run) && run.date === date).length;
+/** The break after a bake: long after every `longBreakInterval`-th focus run of the day, short otherwise. */
+export function nextBreak(focusToday: number, settings: { shortBreakMinutes: number; longBreakMinutes: number; longBreakInterval: number }) {
+  const long = focusToday > 0 && focusToday % settings.longBreakInterval === 0;
+  return { phase: long ? 'LONG_BREAK' as const : 'SHORT_BREAK' as const, minutes: long ? settings.longBreakMinutes : settings.shortBreakMinutes, long };
+}
+/** "+25 phút" on the ra-lò card; under a minute it counts seconds. */
+export const gainLabel = (seconds: number) => seconds >= 60 ? `+${Math.round(seconds / 60)} phút` : `+${Math.max(0, Math.round(seconds))} giây`;
 
 // ----- recipe card: five steps split by question ranges -----
 export const RECIPE_NAMES = ['Trộn bột', 'Cho vào lò', 'Bánh nở', 'Phủ kem', 'Trang trí'] as const;
