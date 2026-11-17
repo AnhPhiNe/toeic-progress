@@ -72,5 +72,5 @@ test('a computer can still log per-Part counts or an official score', async ({ p
   await form.getByRole('button', { name: 'Đánh dấu câu sai', exact: true }).click();
   await expect(form.getByRole('button', { name: 'Câu 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await form.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
-  await expect(form.getByLabel('Điểm Listening /495')).toBeVisible();
+  await expect(form.getByLabel('Điểm Nghe /495')).toBeVisible();
 });

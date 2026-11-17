@@ -41,9 +41,9 @@ test('entering official score stays on the 200-question grid and saves directly'
   await expect(reviewDialog).toBeHidden();
 
   // 2. VERIFY: The 200-question grid is STILL MOUNTED and visible!
-  // It must NOT show Hình 1 (the manual input form with 'Điểm Listening /495' input)!
+  // It must NOT show Hình 1 (the manual input form with 'Điểm Nghe /495' input)!
   await expect(form.getByRole('button', { name: 'Câu 200', exact: true })).toBeVisible();
-  await expect(form.getByLabel('Điểm Listening /495')).toHaveCount(0);
+  await expect(form.getByLabel('Điểm Nghe /495')).toHaveCount(0);
 
   // 3. VERIFY: Score Card shows 900, L 450, R 450, and 'Điểm từ đề thi'
   await expect(form.getByText('Điểm từ đề thi').first()).toBeVisible();

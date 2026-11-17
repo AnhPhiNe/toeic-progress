@@ -23,7 +23,7 @@ async function seed(page: Page, practice = false) {
 test('a metadata edit cannot overwrite a score updated while the editor was open', async ({ page }) => {
   const editor = await seed(page);
   await editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/, { exact: true }).fill('Draft name');
-  await editor.getByLabel('Ghi Chú Buổi Học', { exact: true }).fill('Draft notes');
+  await editor.getByLabel('Ghi chú', { exact: true }).fill('Draft notes');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     Object.assign(bundle.sessions[0], { totalScore: 900, notes: 'Latest external note', updatedAt: '2026-10-10T09:00:00Z' });
@@ -32,7 +32,7 @@ test('a metadata edit cannot overwrite a score updated while the editor was open
   await editor.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await expect(editor.getByRole('alert')).toContainText('Buổi học đã được sửa ở nơi khác');
   await expect(editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/)).toHaveValue('Draft name');
-  await expect(editor.getByLabel('Ghi Chú Buổi Học')).toHaveValue('Draft notes');
+  await expect(editor.getByLabel('Ghi chú', { exact: true })).toHaveValue('Draft notes');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions[0])).toMatchObject({ totalScore: 900, notes: 'Latest external note' });
   await expect(editor.getByLabel(/^(Ngày Luyện Đề|Ngày làm)$/)).toHaveValue('2026-10-09');
   await expect(editor.getByLabel(/^Thời (Gian Làm \(Phút\)|gian làm \(phút\))$/)).toHaveValue('120');
@@ -73,7 +73,7 @@ test('an open guest logger cannot write its draft into a newly active account', 
   await editor.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/, { exact: true }).fill('Guest draft');
   await useOfficialScore(editor);
   await editor.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
-  await editor.getByLabel('Tổng điểm TOEIC /990').fill('800');
+  await editor.getByLabel('Tổng điểm /990').fill('800');
   // Replace identity only; exercise the real draft guard and local storage writers.
   await page.evaluate(async () => {
     const path = '/src/shared/data/dataBundle.ts';

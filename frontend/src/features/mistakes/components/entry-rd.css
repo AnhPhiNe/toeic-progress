@@ -1,0 +1,101 @@
+/* "Thêm / Sửa câu sai" note form in the Sổ tay pink language (2026-11 redesign; same chips and fields as "Tự gõ một câu sai"). */
+.rdm { font-family: var(--rd-font); color: var(--rd-ink); border-radius: 0; }
+.rdm :is(input, textarea, select, button) { font-family: var(--rd-font); }
+.rdm :focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+@media (min-width: 640px) {
+  .rdm { border-radius: 30px; box-shadow: 0 30px 80px rgba(0, 0, 0, .25); overflow: hidden; }
+}
+
+.rdm-head { padding: 20px 24px 6px; }
+.rdm-title { font-weight: 900; font-size: 23px; letter-spacing: -.5px; }
+.rdm-x { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #f3f4f3; color: var(--rd-mut); cursor: pointer; }
+.rdm-x:hover { background: #e9ece9; color: var(--rd-ink); }
+.rdm-draft { padding: 0 24px 8px; font-weight: 700; font-size: 12.5px; color: #a3aba5; }
+.rdm-foot { padding: 12px 24px calc(18px + env(safe-area-inset-bottom)); background: #fff; }
+
+.rdm-lab, .rdm legend.rdm-lab { display: block; font-weight: 900; font-size: 14px; color: var(--rd-ink); }
+.rdm-opt { margin-left: 6px; font-weight: 700; font-size: 12.5px; color: #a3aba5; }
+.rdm-hint { font-weight: 700; font-size: 12.5px; line-height: 1.45; color: var(--rd-mut); }
+.rdm-err { font-weight: 800; font-size: 13.5px; color: #c23c63; }
+.rdm-warn { border-radius: 14px; background: #fff6d6; padding: 10px 12px; font-weight: 700; font-size: 13.5px; color: #6b5310; }
+.rdm-warn button { font-weight: 900; text-decoration: underline; }
+.rdm-err button { font-weight: 900; text-decoration: underline; }
+
+.rdm-link { border: 0; background: none; padding: 4px 0; font: 900 14px var(--rd-font); color: var(--rd-pink-d); }
+.rdm-link:hover { text-decoration: underline; }
+.rdm-link.is-quiet { font-size: 13px; color: var(--rd-mut); }
+.rdm-link.is-quiet:hover { color: var(--rd-ink); }
+
+/* Fields */
+.rdm-in { display: block; border: 0; border-radius: 14px; background: #f6f7f6; box-shadow: inset 0 0 0 2px transparent; padding: 10px 13px;
+  font-weight: 700; font-size: 15px; line-height: 1.5; color: #4d5850; transition: box-shadow .15s, background .15s; }
+.rdm-in::placeholder { color: #a3aba5; }
+.rdm-in:focus { outline: none; background: #fff; box-shadow: inset 0 0 0 2px var(--rd-blue); }
+.rdm-ta { border-radius: 16px; background: #fffaf0; box-shadow: inset 0 0 0 2px #f6e6c3; }
+.rdm-ta:focus { background: #fffdf7; }
+.rdm-select { min-height: 46px; padding: 8px 12px; cursor: pointer; }
+.rdm-paste { display: inline-flex; align-items: center; gap: 6px; height: 36px; border: 0; border-radius: 99px; background: #fff; padding: 0 12px; box-shadow: 0 0 0 2px #f6e6c3;
+  font: 900 13px var(--rd-font); color: var(--rd-pink-d); cursor: pointer; }
+
+/* Part chips and A–D */
+.rdm-pchip { min-width: 46px; height: 46px; border: 0; border-radius: 14px; padding: 0 14px; background: #fff; box-shadow: 0 0 0 2px var(--rd-line), 0 3px 0 var(--rd-line);
+  font: 900 16px var(--rd-font); color: var(--rd-ink); cursor: pointer; transition: transform .08s; }
+.rdm-pchip:hover { box-shadow: 0 0 0 2px #ffc1cc, 0 3px 0 #ffc1cc; }
+.rdm-pchip[aria-pressed="true"] { background: #fff0f4; color: var(--rd-pink-d); box-shadow: 0 0 0 2px var(--rd-pink), 0 3px 0 var(--rd-pink-d); }
+.rdm-pchip:active { transform: translateY(2px); }
+.rdm-abcd { min-width: 46px; height: 44px; border: 0; border-radius: 13px; padding: 0 12px; background: #f6f7f6; font: 900 16px var(--rd-font); color: var(--rd-ink); cursor: pointer; }
+.rdm-abcd:hover:not(:disabled) { background: #eef0ee; }
+.rdm-abcd:disabled { opacity: .45; cursor: not-allowed; }
+.rdm-abcd.is-me[aria-pressed="true"] { background: #ffe3ea; color: var(--rd-pink-d); box-shadow: 0 0 0 2px var(--rd-pink); }
+.rdm-abcd.is-ok[aria-pressed="true"] { background: #e3f6e6; color: var(--rd-green-d); box-shadow: 0 0 0 2px var(--rd-green); }
+
+/* Folded rows */
+.rdm-key summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 900; font-size: 14px; color: var(--rd-mut); }
+.rdm-key summary:hover { color: var(--rd-ink); }
+.rdm-key[open] summary { color: var(--rd-ink); }
+.rdm-more { border-radius: 18px; background: #f6f7f6; padding: 0 14px; }
+.rdm-more summary { display: flex; min-height: 52px; align-items: center; justify-content: space-between; list-style: none; cursor: pointer; font-weight: 900; font-size: 14.5px; }
+.rdm-more summary::-webkit-details-marker { display: none; }
+.rdm-more summary span { display: flex; align-items: center; gap: 4px; font-weight: 800; font-size: 13px; color: var(--rd-mut); }
+
+/* New-note tabs */
+.rdm-tabwrap { padding: 4px 24px 8px; }
+.rdm-tabs { gap: 4px; padding: 4px; border-radius: 14px; background: #f1f3f1; }
+.rdm-tab { display: flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 11px; background: none; white-space: nowrap;
+  font: 800 14px var(--rd-font); color: #5c675f; cursor: pointer; }
+.rdm-tab[aria-selected="true"] { background: #fff; color: var(--rd-pink-d); font-weight: 900; box-shadow: 0 2px 0 rgba(47, 58, 51, .1); }
+.rdm-ai { border-radius: 6px; background: var(--rd-violet); padding: 0 5px; font-weight: 900; font-size: 10px; color: #fff; }
+
+/* Buttons */
+.rdm .rdm-btn { min-height: 46px; padding: 11px 18px; font-size: 15px; gap: 6px; }
+.rdm .rdm-btn.rd-btn--white { box-shadow: 0 0 0 2px var(--rd-line), 0 4px 0 var(--rd-line); }
+.rdm .rdm-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; transform: none; }
+
+.rdm-key summary::before { content: '▸'; width: 16px; font-size: 13px; }
+.rdm-key[open] summary::before { content: '▾'; }
+
+/* Passage / context box (MistakeContextInput) */
+.rdm section[aria-label^="Khu vực"], .rdm details:has(> #mistake-context), .rdm details:has(textarea#mistake-context) { border: 0 !important; border-radius: 18px; background: #f6f7f6; padding: 10px 14px 12px !important; }
+.rdm section[aria-label^="Khu vực"] :is(label, span).text-sm { font-weight: 900; font-size: 14px; }
+.rdm #mistake-context { border: 0; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--rd-line); font-weight: 700; font-size: 15px; color: #4d5850; }
+.rdm #mistake-context:focus { outline: none; box-shadow: inset 0 0 0 2px var(--rd-blue); }
+.rdm [role="group"][aria-label="Loại ngữ cảnh"] { gap: 3px; border: 0; border-radius: 12px; background: #e9ece9; padding: 3px; }
+.rdm [role="group"][aria-label="Loại ngữ cảnh"] button { min-height: 34px; border-radius: 9px; background: none; font-weight: 800; font-size: 13px; color: #5c675f; }
+.rdm [role="group"][aria-label="Loại ngữ cảnh"] button[aria-pressed="true"] { background: #fff; color: var(--rd-pink-d); font-weight: 900; box-shadow: 0 2px 0 rgba(47, 58, 51, .1); }
+
+/* Soft layer for the remaining Neo pieces (batch scan, context input) */
+.rdm [class*="border-slate-900"] { border-color: var(--rd-line) !important; }
+.rdm [class*="shadow-[2px_2px"], .rdm [class*="shadow-[3px_3px"], .rdm [class*="shadow-[2.5px"], .rdm [class*="shadow-[1.5px"] { box-shadow: 0 3px 0 var(--rd-line) !important; }
+.rdm .bg-blue-600 { background: var(--rd-pink) !important; }
+.rdm .bg-\[\#FFFDF7\] { background: #fffaf0 !important; }
+
+@media (max-width: 639px) {
+  .rdm-head { padding: calc(12px + env(safe-area-inset-top)) 16px 4px; }
+  .rdm-title { font-size: 20px; }
+  .rdm-draft { padding: 0 16px 6px; }
+  .rdm-tabwrap { padding: 4px 16px 8px; }
+  .rdm-foot { padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); }
+  .rdm-pchip { height: 50px; }
+  .rdm-abcd { height: 50px; font-size: 18px; }
+  .rdm .rdm-btn { min-height: 50px; border-radius: 99px; font-size: 15px; }
+}

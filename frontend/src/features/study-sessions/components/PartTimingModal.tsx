@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import type { PartTimingDurations } from '@/shared/types';
 import { triggerHaptic } from '@/shared/lib/haptics';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
+import './edit-rd.css';
 
 interface PartTimingModalProps {
   isOpen: boolean;
@@ -45,30 +46,25 @@ export function PartTimingModal({ isOpen, onClose, value, onChange }: PartTiming
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
       <div aria-hidden="true" className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px] pointer-events-none animate-backdrop" />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="timing-modal-title" tabIndex={-1}
-        className="relative max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full max-w-[460px] rounded-3xl border-2 border-slate-900 bg-white p-6 shadow-[8px_8px_0_0_#0f172a] animate-modal-pop dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[8px_8px_0_0_#cbd5e1] space-y-4 text-slate-900 dark:text-white">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white font-black text-sm shadow-[2px_2px_0_0_#0f172a]">⏱️</span>
-            <div><h3 id="timing-modal-title" className="text-base font-black">Thời gian thực tế Part 5 – 7</h3>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Nhập thời gian từ kết quả thi. Part chưa biết để trống.</p></div>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Đóng thời gian" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 cursor-pointer"><X size={18} /></button>
+        className="rd rdt relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto overscroll-contain animate-modal-pop">
+        <div className="flex items-start justify-between gap-3">
+          <div><h3 id="timing-modal-title" className="rdt-title">Thời gian thực tế Part 5 – 7</h3>
+            <p className="rdt-sub">Part chưa biết thì để trống.</p></div>
+          <button type="button" onClick={onClose} aria-label="Đóng thời gian" className="rdl-x shrink-0 cursor-pointer"><X size={18} /></button>
         </div>
-        <div className="grid grid-cols-3 gap-2.5 pt-1">
-          {(['part5', 'part6', 'part7'] as const).map((key, index) => <label key={key} className="min-w-0 rounded-2xl border-2 border-indigo-200 bg-indigo-50/40 p-2.5 text-center dark:border-indigo-800/80 dark:bg-indigo-950/30 focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-500/20">
-            <span className="text-xs font-black uppercase text-indigo-700 dark:text-indigo-400 block mb-1">Part {index + 5}</span>
+        <div className="rdt-grid">
+          {(['part5', 'part6', 'part7'] as const).map((key, index) => <label key={key} className="rdt-cell">
+            <span>Part {index + 5}</span>
             <input type="number" inputMode="decimal" min="0" max="1440" step="any" aria-label={`Thời gian Part ${index + 5} (phút)`} placeholder="—" value={fields[key]}
-              onChange={event => { setFields(current => ({ ...current, [key]: event.target.value })); setError(''); }}
-              className="w-full min-w-0 text-center font-black text-2xl tabular-nums bg-transparent text-slate-950 dark:text-white focus-visible:outline-indigo-500" />
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mt-1">phút</span>
+              onChange={event => { setFields(current => ({ ...current, [key]: event.target.value })); setError(''); }} />
+            <small>phút</small>
           </label>)}
         </div>
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Chỉ lưu các ô bạn nhập; không tự chia thời gian còn lại cho Part khác.</p>
-        {error && <p role="alert" className="text-sm font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          {value && <button type="button" onClick={() => { onChange(undefined); onClose(); }} className="min-h-11 px-3 rounded-xl border border-slate-200 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:border-slate-700 dark:text-rose-400 dark:hover:bg-rose-950/30 cursor-pointer">Xóa thời gian</button>}
-          <button type="button" onClick={onClose} className="min-h-11 flex-1 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer">Hủy</button>
-          <button type="button" onClick={apply} className="min-h-11 flex-1 px-3 rounded-xl border-2 border-slate-900 bg-indigo-600 text-white font-black text-xs shadow-[2px_2px_0_0_#0f172a] hover:bg-indigo-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-200 cursor-pointer">Áp dụng thời gian</button>
+        {error && <p role="alert" className="rdt-err">{error}</p>}
+        <div className="rdt-foot">
+          {value && <button type="button" onClick={() => { onChange(undefined); onClose(); }} className="rdt-del">Xóa thời gian</button>}
+          <button type="button" onClick={onClose} className="rdt-cancel">Hủy</button>
+          <button type="button" onClick={apply} className="rd-btn rdt-save">Áp dụng thời gian</button>
         </div>
       </div>
     </div>, document.body
@@ -97,15 +93,10 @@ export function PartTimingStrip({
           triggerHaptic(6);
           onOpenEdit();
         }}
-        className="flex w-full cursor-pointer items-center justify-between text-xs font-black text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 transition-colors py-0.5"
+        className="rdt-strip"
       >
-        <span className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="text-indigo-500">⏱️</span>
-          <span>Thời gian Part 5 – 7</span>
-        </span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 font-bold dark:bg-slate-800 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" aria-hidden="true">
-          + Nhập ›
-        </span>
+        <span>Thời gian Part 5 – 7</span>
+        <span className="rdt-strip-a" aria-hidden="true">+ Nhập ›</span>
       </button>
     );
   }

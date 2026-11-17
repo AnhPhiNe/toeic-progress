@@ -156,8 +156,8 @@ test('a restored draft asks for missing local images before making another AI re
   expect(JSON.stringify(await draftRecords(page))).not.toContain('data:image');
 });
 
-// REAL APP BUG (intermittent): after "Bỏ nháp" a following persist can re-write the discarded draft (or a blank default one) before pagehide; passes alone, fails under load.
-test.fixme('pending score corrections survive reload and explicit discard stays cleared on pagehide', async ({ page }) => {
+// Regression: "Bỏ nháp" used to reset the form one commit late, so the persist in between re-wrote the discarded draft (then a blank one).
+test('pending score corrections survive reload and explicit discard stays cleared on pagehide', async ({ page }) => {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
     export async function getAIConfiguration() { return {provider:'openai',resultImages:true}; }
     export async function getAIUsage() { return null; }
@@ -181,7 +181,7 @@ test.fixme('pending score corrections survive reload and explicit discard stays 
   await page.keyboard.press('Escape');
   page.once('dialog', dialog => dialog.accept()); await form.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
-  // APP BUG (reported): discarding then pagehide leaves a blank default draft behind (scope session:new, empty name) instead of no record; the discarded content itself must be gone.
+  // The discarded content must be gone, also after pagehide.
   expect(JSON.stringify(await draftRecords(page))).not.toContain('QA pending score draft');
   expect(JSON.stringify(await draftRecords(page))).not.toContain('"sourceScoreDraft":{');
   await page.reload(); form = await openResult(page);

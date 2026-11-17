@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import './logger-rd.css';
+import './edit-rd.css';
 import { 
   X, 
   CheckCircle2, 
-  Headphones, 
-  BookOpen, 
   RotateCcw,
   ArrowLeft
 } from 'lucide-react';
@@ -43,6 +42,8 @@ import type { AppliedResultScore, ResultScoreDraft } from './ResultScoreReview';
 import type { PartTimingDurations } from '@/shared/types';
 import { useFormDraft } from '@/shared/hooks/useFormDraft';
 import { parseSessionFormDraft, type SessionFormDraft } from '@/shared/data/studyFormDrafts';
+import { findDuplicateFullTest } from '../lib/duplicateTest';
+import { DuplicateTestNotice } from './DuplicateTestNotice';
 
 interface SessionLoggerModalProps {
   isOpen: boolean;
@@ -62,8 +63,11 @@ interface SessionLoggerModalProps {
   onAddMistakeForSession?: (session: StudySession) => void;
   /** A new Full Test was saved: the form closes and the app shows its result screen. */
   onSavedFullTest?: (session: StudySession) => void;
+  /** "Mở đề cũ" on the duplicate warning: open that saved test in this form instead. */
+  onOpenExistingSession?: (session: StudySession) => void;
 }
 
+const PART_LABELS: Record<number, string> = { 1: 'Mô tả tranh', 2: 'Hỏi – đáp', 3: 'Hội thoại', 4: 'Bài nói', 5: 'Điền câu', 6: 'Điền đoạn văn', 7: 'Đọc hiểu' };
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
 
 export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
@@ -76,7 +80,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   editingSession,
   onUpdateSession,
   onAddMistakeForSession,
-  onSavedFullTest
+  onSavedFullTest,
+  onOpenExistingSession
 }) => {
   const isEditing = !!editingSession;
   // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
@@ -209,13 +214,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [wrongNumberDraft, setWrongNumberDraft] = useState<WrongNumberDraft>(EMPTY_WRONG_NUMBER_DRAFT);
   const suggestedName = useRef('');
   const [scoreError, setScoreError] = useState('');
+  // A new Full Test with the same name and date as one already logged: asked once, just above the save button.
+  const [duplicate, setDuplicate] = useState<{ session: StudySession; addMistake: boolean } | null>(null);
+  useEffect(() => { setDuplicate(null); }, [testName, date, sessionType]);
   const [sourceScorePending, setSourceScorePending] = useState(false);
   const sourceScoreStore = useRef<ResultScoreDraft | null>(null);
   const draftOwner = useRef(getActiveAccountId());
   const savedSession = useRef(false);
   const [restoredVersion, setRestoredVersion] = useState(0);
   // Computer: "Bỏ nháp" clears the form at once and offers 8 seconds to undo instead of a confirm dialog.
-  const [resetNonce, setResetNonce] = useState(0);
   const [discarded, setDiscarded] = useState<SessionFormDraft | null>(null);
   const undoTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(undoTimer.current), []);
@@ -271,10 +278,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
    * nên trước đây lần mở sau còn nguyên số của lần nhập trước - và với chế
    * độ sửa, sửa xong rồi bấm "Nhập điểm" sẽ thấy dữ liệu của buổi vừa sửa.
    */
-  useEffect(() => {
-    if (!isOpen) { sourceScoreStore.current = null; setPendingInitialFiles(undefined); return; }
-    draftOwner.current = getActiveAccountId();
-    savedSession.current = false;
+  // Called from the open effect and, synchronously, from "Bỏ nháp": the reset must land in the same render that
+  // remounts the bodies and before the draft hook persists again, or that persist re-writes the discarded draft.
+  const resetForm = () => {
+    setDuplicate(null);
     const e = editingSession;
     setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
     // A new Full Test starts with the next numbered test after the latest one (Test 3 -> Test 4) on both Desktop and Mobile.
@@ -314,7 +321,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
     setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: isPhone ? 0 : PART_MAX_QUESTIONS[`part${part}`], total: PART_MAX_QUESTIONS[`part${part}`] }]);
-  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles, resetNonce]);
+  };
+  useEffect(() => {
+    if (!isOpen) { sourceScoreStore.current = null; setPendingInitialFiles(undefined); return; }
+    draftOwner.current = getActiveAccountId();
+    savedSession.current = false;
+    resetForm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the form opens or its target changes
+  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
@@ -360,9 +374,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   });
   const discardDraft = () => {
     const snapshot = { ...formDraft, sourceScoreDraft: sourceScoreStore.current };
-    if (!persistentDraft.clear()) return;
-    setResetNonce(value => value + 1);
+    // Reset first (state and the score-review ref), then remove the stored draft: the remounted bodies start empty
+    // and the next persist sees an untouched form, so nothing is written back.
+    resetForm();
     setRestoredVersion(value => value + 1);
+    if (!persistentDraft.clear()) { restoreFormDraft(snapshot); return; }
     setDiscarded(snapshot);
     window.clearTimeout(undoTimer.current);
     undoTimer.current = window.setTimeout(() => setDiscarded(null), 8000);
@@ -476,7 +492,10 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     e.preventDefault();
     if (savedSession.current) return;
     const submitter = (e.nativeEvent as SubmitEvent).submitter;
-    const addMistakeAfterSave = submitter instanceof HTMLButtonElement && submitter.value === 'mistake';
+    const submitValue = submitter instanceof HTMLButtonElement ? submitter.value : '';
+    // "Vẫn lưu" on the duplicate warning repeats the save the learner first asked for.
+    const duplicateConfirmed = submitValue === 'duplicate' && duplicate !== null;
+    const addMistakeAfterSave = duplicateConfirmed ? duplicate.addMistake : submitValue === 'mistake';
     try {
       if (draftOwner.current !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Nội dung đang nhập được giữ để bạn sao chép; hãy mở lại form trước khi lưu.');
       setScoreError('');
@@ -593,6 +612,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         };
       }
 
+      if (!editingSession && newSession.sessionType === 'FULL_TEST' && !duplicateConfirmed) {
+        const existing = findDuplicateFullTest(sessions ?? loadStudySessions(), newSession.testName, newSession.date);
+        if (existing) { setDuplicate({ session: existing, addMistake: addMistakeAfterSave }); return; }
+      }
+      setDuplicate(null);
       if (editingSession && onUpdateSession) {
         onUpdateSession(newSession, editingSession);
       } else {
@@ -613,6 +637,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       setScoreError(reason instanceof Error ? reason.message : 'Chưa lưu được buổi học. Nội dung đang nhập vẫn được giữ.');
     }
   };
+
+  const openExisting = duplicate && onOpenExistingSession ? () => {
+    // Keep what was typed as a draft for next time, then switch the form to the saved test.
+    persistentDraft.persist();
+    const target = duplicate.session;
+    setDuplicate(null);
+    onOpenExistingSession(target);
+  } : undefined;
+  const duplicateNotice = duplicate ? <DuplicateTestNotice session={duplicate.session} onOpen={openExisting} /> : null;
 
   if (newPhone) {
     const timingNotice = sessionType === 'FULL_TEST' && (
@@ -644,7 +677,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               onTiming={readImageTiming} onScores={applySourceScore} onScoresPending={setSourceScorePending}
               scoreStore={sourceScoreStore} onRevertScore={revertSourceScore}
               initialFiles={pendingInitialFiles} setInitialFiles={setPendingInitialFiles}
-              timingNotice={timingNotice} scoreError={scoreError}
+              timingNotice={timingNotice} scoreError={scoreError} duplicateNotice={duplicateNotice}
               practiceRows={practiceRows} setPracticeRows={setPracticeRows}
               vocabCount={vocabCount} setVocabCount={setVocabCount} />
           </form>
@@ -661,19 +694,19 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`${isPhone ? '' : 'rd rdl rdl-modal '}relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : !isPhone && sessionType === 'PART_PRACTICE' ? 'max-w-[600px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`rd rdl rdl-modal relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : !isPhone && sessionType === 'PART_PRACTICE' ? 'max-w-[600px]' : 'max-w-3xl'} my-4 bg-white overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
-        <div className={(isPhone ? '' : 'rdl-head ') + "flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]"}>
+        <div className="rdl-head flex items-center justify-between bg-white">
           <div className="flex items-center space-x-3">
             <div>
-              <h2 id="session-logger-title" className={(isPhone ? '' : 'rdl-title ') + 'text-base sm:text-lg font-bold text-slate-900 dark:text-white'}>{sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
+              <h2 id="session-logger-title" className="rdl-title">{sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
             </div>
           </div>
           <button
             onClick={closeWithDraft}
             aria-label="Đóng form ghi nhận buổi học"
-            className={(isPhone ? '' : 'rdl-x ') + "p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"}
+            className="rdl-x cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -681,11 +714,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
         {persistentDraft.state === 'restored' && isPhone && (
           <div className="flex shrink-0 items-center justify-end px-4 py-1.5 sm:px-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-300">
-              <span role="status">📝 Đã khôi phục bản nháp trên thiết bị này</span>
+            <div className="rde-pill">
+              <span role="status">Đã khôi phục bản nháp trên thiết bị này</span>
               <button
                 type="button"
-                className="font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 pl-2 border-l border-slate-300 dark:border-slate-700 cursor-pointer"
+                className="rde-pill-x"
                 onClick={() => {
                   if (window.confirm('Xóa bản nháp đang nhập và đóng form? Kết quả đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) onClose();
                 }}
@@ -704,28 +737,22 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         <form onSubmit={handleSubmit} onKeyDown={event => {
           if (event.key !== 'Enter' || event.defaultPrevented || !(event.target instanceof HTMLInputElement)) return;
           event.preventDefault();
-          const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
+          const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][data-primary]');
           if (primary) event.currentTarget.requestSubmit(primary);
         }} className="flex min-h-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1 flex flex-col">
             <div ref={formBodyRef} className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-3 p-4 sm:px-5 sm:py-3.5' : 'space-y-4 p-5'} overflow-y-auto max-md:p-4`}>
           
-          {/* Mode Switcher: computers use the Neo segmented bar (2px ink frame, selected cell tinted); phones keep the soft tabs */}
-          <div className={isPhone
-            ? `grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`
-            : 'rdl-seg'}>
+          {/* Mode switcher: one soft segmented bar on every screen */}
+          <div className="rdl-seg">
             {(isPhone ? [['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const
               // Redesign: the daily word counter is dropped on computers (a VOCAB log opened elsewhere keeps its tab).
               : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part'], ...(sessionType === 'VOCAB' ? [['VOCAB', 'Từ vựng']] as const : [])] as const)
               .filter(([type]) => !(isEditing && type === 'VOCAB'))
-              .map(([type, label], index) => {
+              .map(([type, label]) => {
                 const on = sessionType === type;
-                const phoneOn = type === 'PART_PRACTICE' ? 'text-amber-600 dark:text-amber-300' : 'text-blue-600 dark:text-blue-300';
                 return (
-                  <button key={type} type="button" onClick={() => setSessionType(type)} aria-pressed={on}
-                    className={isPhone
-                      ? `py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center cursor-pointer ${on ? `bg-white dark:bg-slate-800 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold ${phoneOn}` : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`
-                      : `py-2 text-[13px] font-extrabold transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${index > 0 ? 'border-l-2 border-slate-900 dark:border-slate-300' : ''} ${on ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#121A2B] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+                  <button key={type} type="button" onClick={() => setSessionType(type)} aria-pressed={on}>
                     {label}
                   </button>
                 );
@@ -777,34 +804,34 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           )}
 
           {sessionType === 'FULL_TEST' && timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={discardImageTiming} />}
-          {sessionType === 'FULL_TEST' && resultTiming && !timingCandidate && <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900 dark:bg-teal-950/30 dark:text-teal-200">
+          {sessionType === 'FULL_TEST' && resultTiming && !timingCandidate && <div role="status" className="rde-note">
             Thời gian đã xác nhận từ ảnh{resultTiming.totalSeconds !== null ? `: ${formatElapsed(resultTiming.totalSeconds)}` : ' · chỉ có từng phần'}.
             <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
             <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
           </div>}
           {sessionType === 'FULL_TEST' && !isPhone && (<>
           {/* General Info Row */}
-          {(!aiDesktop || metaOpen) && <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+          {(!aiDesktop || metaOpen) && <div className="rde grid grid-cols-1 sm:grid-cols-12 gap-3.5">
             <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
-              <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="session-test-name" className="rde-lab block">
                 Tên đề
               </label>
               <TestNamePicker id="session-test-name" label="Tên đề" required={sessionType === 'FULL_TEST'}
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
             <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
-              <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày làm</label>
+              <label htmlFor="session-date" className="rde-lab block">Ngày làm</label>
               <input
                 id="session-date"
                 type="date"
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
+                className="rde-in"
               />
             </div>
             <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
-              <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời gian làm (phút)</label>
+              <label htmlFor="session-duration" className="rde-lab block">Thời gian làm (phút)</label>
               <input
                 id="session-duration"
                 type="number"
@@ -815,42 +842,29 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 placeholder={durationBlank ? 'Chưa ghi' : undefined}
                 value={durationBlank ? '' : durationMinutes}
                 onChange={e => { changeDurationMinutes(Number(e.target.value)); if (e.target.value === '') markDurationEmpty(true); }}
-                className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
+                className="rde-in"
               />
             </div>
           </div>}
 
           {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && detailsOpen && (
-            <div className="space-y-1">
-              <label htmlFor="session-notes-details" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Ghi chú bài thi (tùy chọn)</label>
+            <div className="rde space-y-1">
+              <label htmlFor="session-notes-details" className="rde-lab block">Ghi chú bài thi (tùy chọn)</label>
               <textarea id="session-notes-details" rows={2} value={notes} onChange={event => setNotes(event.target.value)}
                 placeholder="VD: Làm lúc mệt, mất tập trung Part 7..."
-                className="w-full rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:border-slate-300 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-700" />
+                className="rde-in" />
             </div>
           )}
           {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (!aiDesktop || metaOpen) && (
             <button type="button" onClick={() => { if (aiDesktop && detailsOpen) setMetaOpen(false); setDetailsOpen(open => !open); }} aria-expanded={detailsOpen}
               title="Đổi ngày, thêm thời lượng và ghi chú"
-              className="-mt-1 w-fit cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[13px] font-black text-slate-800 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
+              className="rde-quiet -mt-1">
               {detailsOpen ? 'Ẩn chi tiết ▴' : `Ngày: ${date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().join('/')} · giờ, ghi chú ▾`}
             </button>
           )}
 
-          {/* Smart Retest Detection Alert */}
           {isExistingTest && (
-            <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 text-xs text-purple-950 dark:text-purple-200 flex items-start gap-2.5 shadow-2xs animate-fade-in">
-              <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-purple-900 dark:text-purple-100">
-                  Phát hiện đề thi làm lại (Retest):{' '}
-                </span>
-                Bạn đã làm đề này <strong>{previousAttemptsForTest.length} lần</strong> (Điểm cao nhất: <strong>{bestPreviousScore}đ</strong>). Buổi thi này sẽ tự động ghi nhận là{' '}
-                <span className="px-1.5 py-0.5 rounded font-black bg-purple-200/80 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200">
-                  Lần {nextAttemptNumber}
-                </span>{' '}
-                để đo lường mức độ bứt phá!
-              </div>
-            </div>
+            <p className="rde-retest"><RotateCcw className="h-4 w-4 shrink-0" aria-hidden="true" /><span>Làm lại · <b>Lần {nextAttemptNumber}</b> · cao nhất trước {bestPreviousScore}</span></p>
           )}
 
           {wrongEntry && (
@@ -877,320 +891,84 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               partDurations={partDurations} onPartDurationsChange={changePartDurations} />
           )}
 
-          {/* FULL TEST MODE */}
           {sessionType === 'FULL_TEST' && !wrongEntry && (
-            <div className="space-y-4">
-              {/* Header thanh điều hướng: Nút Quay về Lưới 200 câu & Chuyển đổi chế độ */}
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-[#FFFDF7] p-3 shadow-[2px_2px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setManualViewOverride(false);
-                    changeEntry('wrong');
-                  }}
-                  className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-3.5 py-2 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-100 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-400 dark:bg-slate-900 dark:text-white transition-all"
-                >
+            <div className="rde space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <button type="button" onClick={() => { setManualViewOverride(false); changeEntry('wrong'); }} className="rde-quiet">
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                   <span>Đánh dấu câu sai</span>
                 </button>
-
-                <div className="flex items-center gap-1.5" role="group" aria-label="Chế độ nhập">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setScoreSource('ESTIMATED');
-                      setEntry('counts');
-                    }}
-                    className={`rounded-xl px-3 py-2 text-xs font-black transition-all cursor-pointer ${
-                      scoreSource === 'ESTIMATED'
-                        ? 'border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300'
-                        : 'border border-slate-300 bg-white text-slate-600 hover:text-slate-950 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                    }`}
-                  >
-                    Số câu đúng mỗi Part
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchManual(true)}
-                    className={`rounded-xl px-3 py-2 text-xs font-black transition-all cursor-pointer ${
-                      scoreSource !== 'ESTIMATED'
-                        ? 'border-2 border-slate-900 bg-amber-400 text-slate-950 shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300'
-                        : 'border border-slate-300 bg-white text-slate-600 hover:text-slate-950 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                    }`}
-                  >
-                    Điểm chính thức
-                  </button>
+                <div className="rde-seg" role="group" aria-label="Chế độ nhập">
+                  <button type="button" aria-pressed={scoreSource === 'ESTIMATED'} onClick={() => { setScoreSource('ESTIMATED'); setEntry('counts'); }}>Số câu đúng mỗi Part</button>
+                  <button type="button" aria-pressed={scoreSource !== 'ESTIMATED'} onClick={() => switchManual(true)}>Điểm chính thức</button>
                 </div>
-
               </div>
 
-              {scoreSource !== 'ESTIMATED' && <div className="rounded-xl border border-slate-200 p-4 space-y-3 dark:border-slate-700">
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Cách nhập điểm trực tiếp">
-                  {(['MANUAL_SECTIONS','MANUAL_TOTAL'] as const).map(mode => <button key={mode} type="button" aria-pressed={scoreSource === mode}
-                    onClick={() => { setScoreSource(mode); setManualMode(mode); setScoreError(''); }}
-                    className={`rounded-lg px-3 py-2 text-xs font-semibold ${scoreSource === mode ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
-                    {mode === 'MANUAL_SECTIONS' ? 'Listening + Reading' : 'Chỉ tổng điểm'}
+              {scoreSource !== 'ESTIMATED' && <div className="rde-box space-y-3">
+                <div className="rde-seg rde-seg--sm" role="group" aria-label="Cách nhập điểm trực tiếp">
+                  {(['MANUAL_SECTIONS', 'MANUAL_TOTAL'] as const).map(mode => <button key={mode} type="button" aria-pressed={scoreSource === mode}
+                    onClick={() => { setScoreSource(mode); setManualMode(mode); setScoreError(''); }}>
+                    {mode === 'MANUAL_SECTIONS' ? 'Nghe + Đọc' : 'Chỉ tổng điểm'}
                   </button>)}
                 </div>
-                {scoreSource === 'MANUAL_SECTIONS' ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Điểm Listening /495
-                    <input type="number" min="5" max="495" step="5" required value={manualListening} onChange={event => setManualListening(event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white" />
+                {scoreSource === 'MANUAL_SECTIONS' ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="rde-lab rde-lab--l">Điểm Nghe /495
+                    <input type="number" min="5" max="495" step="5" required value={manualListening} onChange={event => setManualListening(event.target.value)} className="rde-in rde-in--big" />
                   </label>
-                  <label className="text-xs font-semibold text-teal-700 dark:text-teal-300">Điểm Reading /495
-                    <input type="number" min="5" max="495" step="5" required value={manualReading} onChange={event => setManualReading(event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white" />
+                  <label className="rde-lab rde-lab--r">Điểm Đọc /495
+                    <input type="number" min="5" max="495" step="5" required value={manualReading} onChange={event => setManualReading(event.target.value)} className="rde-in rde-in--big" />
                   </label>
-                </div> : <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Tổng điểm TOEIC /990
-                  <input type="number" min="10" max="990" step="5" required value={manualTotal} onChange={event => setManualTotal(event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white" />
+                </div> : <label className="rde-lab">Tổng điểm /990
+                  <input type="number" min="10" max="990" step="5" required value={manualTotal} onChange={event => setManualTotal(event.target.value)} className="rde-in rde-in--big" />
                 </label>}
-                <p className="text-xs text-slate-500 dark:text-slate-400">L/R: 5–495, tổng: 10–990; theo bước 5 điểm. Điểm nhập được dùng cho lịch sử và biểu đồ. Chỉ nhập tổng thì không suy ra điểm từng kỹ năng.</p>
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <label className="rde-check">
                   <input type="checkbox" checked={includePartDetails} onChange={event => setIncludePartDetails(event.target.checked)} />
-                  Ghi thêm số câu đúng từng Part để phân tích
+                  <span>Ghi thêm số câu đúng từng Part</span>
                 </label>
               </div>}
-              
-              {/* Live ETS Score Conversion Banner */}
-              <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
-                    {scoreSource === 'ESTIMATED' ? 'Ước tính tham khảo' : 'Điểm nhập từ kết quả đề'}
-                  </span>
-                  <div className="flex items-baseline space-x-2 mt-0.5">
-                    <span className="text-3xl font-black text-blue-600 dark:text-blue-400">
-                      {scorePreview?.totalScore ?? '—'}
-                    </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ 990 điểm</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center space-x-3 text-xs font-semibold">
-                  <div className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
-                    <span className="text-cyan-600 dark:text-cyan-400 block font-bold">Listening: {scorePreview?.scaledListening ?? '—'}</span>
-                    <span className="text-[10px] text-slate-400">{scorePreview?.rawListening === undefined ? 'Chưa ghi số câu' : `(${scorePreview.rawListening}/100 câu)`}</span>
-                  </div>
-                  <div className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
-                    <span className="text-emerald-600 dark:text-emerald-400 block font-bold">Reading: {scorePreview?.scaledReading ?? '—'}</span>
-                    <span className="text-[10px] text-slate-400">{scorePreview?.rawReading === undefined ? 'Chưa ghi số câu' : `(${scorePreview.rawReading}/100 câu)`}</span>
-                  </div>
+              <div className="rde-score" aria-live="polite">
+                <div>
+                  <span className="rde-score-k">{scoreSource === 'ESTIMATED' ? 'Ước tính tham khảo' : 'Điểm từ đề'}</span>
+                  <p className="rde-score-t"><b>{scorePreview?.totalScore ?? '—'}</b><small>/990</small></p>
+                </div>
+                <div className="rde-score-lr">
+                  {([['Nghe', scorePreview?.scaledListening, scorePreview?.rawListening, 'l'], ['Đọc', scorePreview?.scaledReading, scorePreview?.rawReading, 'r']] as const).map(([label, scaled, raw, tone]) => (
+                    <div key={label} className={'rde-bar rde-bar--' + tone}>
+                      <span><b>{label}</b> {scaled ?? '—'}<small>{raw === undefined ? '' : ` · ${raw}/100 câu`}</small></span>
+                      <i><em style={{ width: `${Math.min(100, ((scaled ?? 0) / 495) * 100)}%` }} /></i>
+                    </div>
+                  ))}
                 </div>
               </div>
-              {scoreSource === 'ESTIMATED' && <p className="text-xs text-slate-500 dark:text-slate-400">Ước tính mới dùng cận dưới khoảng tham khảo IIBC 2023; đúng 100/100 quy ước 495đ mỗi kỹ năng. Chưa hiệu chuẩn cho đề của bạn. Bản ghi cũ giữ điểm khi số câu không đổi. Nếu đề có bảng điểm hoặc kết quả sẵn, hãy nhập trực tiếp.</p>}
 
-              {/* Part 1-7 Inputs Grid */}
-              {(scoreSource === 'ESTIMATED' || includePartDetails) && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* Listening Column */}
-                <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-2">
-                    <div className="flex items-center space-x-1.5 text-cyan-600 dark:text-cyan-400 font-bold text-xs">
-                      <Headphones className="w-4 h-4" />
-                      <span>LISTENING (100 CÂU)</span>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Đúng: {calculated.rawListening}/100
-                    </span>
+              {(scoreSource === 'ESTIMATED' || includePartDetails) && <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {([['Nghe', [1, 2, 3, 4], calculated.rawListening, 'l'], ['Đọc', [5, 6, 7], calculated.rawReading, 'r']] as const).map(([title, parts, raw, tone]) => (
+                  <div key={title} className={'rde-parts rde-parts--' + tone}>
+                    <p className="rde-parts-h"><span>{title}</span><span>{raw}/100 câu</span></p>
+                    {parts.map(part => {
+                      const key = `part${part}` as keyof LRPartScore;
+                      return (
+                        <div key={part} className="rde-part">
+                          <b>P{part}</b>
+                          <span>{PART_LABELS[part]}</span>
+                          <input type="number" min="0" max={PART_MAX_QUESTIONS[key]} step="1" aria-label={`Số câu đúng Part ${part}`}
+                            value={partScores[key]} onChange={event => handlePartScoreChange(key, parseInt(event.target.value))} className="rde-in rde-in--num" />
+                          <small>/{PART_MAX_QUESTIONS[key]}</small>
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  <div className="space-y-2 text-xs">
-                    {/* Part 1 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 1: Mô tả tranh</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part1 / PART_MAX_QUESTIONS.part1) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part1}
-                          aria-label="Số câu đúng Part 1"
-                          step="1"
-                          value={partScores.part1}
-                          onChange={e => handlePartScoreChange('part1', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part1}</span>
-                      </div>
-                    </div>
-
-                    {/* Part 2 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 2: Hỏi & Đáp</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part2 / PART_MAX_QUESTIONS.part2) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part2}
-                          aria-label="Số câu đúng Part 2"
-                          step="1"
-                          value={partScores.part2}
-                          onChange={e => handlePartScoreChange('part2', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part2}</span>
-                      </div>
-                    </div>
-
-                    {/* Part 3 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 3: Hội thoại</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part3 / PART_MAX_QUESTIONS.part3) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part3}
-                          aria-label="Số câu đúng Part 3"
-                          step="1"
-                          value={partScores.part3}
-                          onChange={e => handlePartScoreChange('part3', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part3}</span>
-                      </div>
-                    </div>
-
-                    {/* Part 4 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 4: Bài nói</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part4 / PART_MAX_QUESTIONS.part4) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part4}
-                          aria-label="Số câu đúng Part 4"
-                          step="1"
-                          value={partScores.part4}
-                          onChange={e => handlePartScoreChange('part4', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part4}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reading Column */}
-                <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-2">
-                    <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                      <BookOpen className="w-4 h-4" />
-                      <span>READING (100 CÂU)</span>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Đúng: {calculated.rawReading}/100
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    {/* Part 5 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 5: Điền câu</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part5 / PART_MAX_QUESTIONS.part5) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part5}
-                          aria-label="Số câu đúng Part 5"
-                          step="1"
-                          value={partScores.part5}
-                          onChange={e => handlePartScoreChange('part5', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part5}</span>
-                      </div>
-                    </div>
-
-                    {/* Part 6 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 6: Điền đoạn văn</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part6 / PART_MAX_QUESTIONS.part6) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part6}
-                          aria-label="Số câu đúng Part 6"
-                          step="1"
-                          value={partScores.part6}
-                          onChange={e => handlePartScoreChange('part6', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part6}</span>
-                      </div>
-                    </div>
-
-                    {/* Part 7 */}
-                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
-                      <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">Part 7: Đọc hiểu</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {Math.round((partScores.part7 / PART_MAX_QUESTIONS.part7) * 100)}% chính xác
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          max={PART_MAX_QUESTIONS.part7}
-                          aria-label="Số câu đúng Part 7"
-                          step="1"
-                          value={partScores.part7}
-                          onChange={e => handlePartScoreChange('part7', parseInt(e.target.value))}
-                          className="w-14 px-2 py-1 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                        />
-                        <span className="text-[11px] font-bold text-slate-400">/{PART_MAX_QUESTIONS.part7}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
+                ))}
               </div>}
-
             </div>
           )}
 
           {/* Session Notes (the wrong-question layout keeps its own, folded) */}
-          {!wrongEntry && <div>
-            <label htmlFor="session-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Ghi Chú Buổi Học
-            </label>
-            <textarea
-              id="session-notes"
-              rows={2}
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="vd: Part 7 bài đọc đôi quản lý thời gian tốt hơn..."
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
-            />
+          {!wrongEntry && <div className="rde">
+            <label htmlFor="session-notes" className="rde-lab block">Ghi chú</label>
+            <textarea id="session-notes" rows={2} value={notes} onChange={event => setNotes(event.target.value)}
+              placeholder="vd: Part 7 bài đọc đôi quản lý thời gian tốt hơn..." className="rde-in mt-1.5" />
           </div>}
           </>)}
 
@@ -1243,35 +1021,36 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
             <ContainerScrollCue containerRef={formBodyRef} resetKey={`${sessionType}-${wrongEntry}`} />
           </div>
-          <div className={(isPhone ? '' : 'rdl-foot ') + "shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"}>
+          <div className="rdl-foot shrink-0 space-y-2 bg-white">
           {/* Submit Button */}
-          {scoreError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
+          {scoreError && <p role="alert" className="rdl-err text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
+          {duplicateNotice}
           <div className="flex flex-wrap items-center justify-end gap-2 max-md:flex-nowrap">
             {/* Điện thoại: đã có nút X ở đầu form, nên bỏ "Hủy" để hai nút lưu đủ rộng */}
             <button
               type="button"
               onClick={closeWithDraft}
-              className="rdl-cancel max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="rdl-cancel max-md:hidden mr-auto min-h-10 px-3 py-2 cursor-pointer"
             >
               Hủy
             </button>
-            {sessionType !== 'VOCAB' && !wrongEntry && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
+            {sessionType !== 'VOCAB' && !wrongEntry && !duplicate && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
               <button
                 type="submit"
                 name="afterSave"
                 value="mistake"
-                className="min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                className="rdl-second max-md:flex-1 cursor-pointer"
               >
                 Lưu & thêm câu sai
               </button>
             )}
             <button
               type="submit"
-              name="afterSave" value="close"
-              className="rdl-save min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-[3px_3px_0_0_#0f172a] dark:shadow-none flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
+              name="afterSave" value={duplicate ? 'duplicate' : 'close'} data-primary
+              className="rdl-save max-md:flex-1 max-md:justify-center flex items-center space-x-1.5 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
+              <span>{duplicate ? 'Vẫn lưu' : sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
             </button>
           </div>
           </div>
