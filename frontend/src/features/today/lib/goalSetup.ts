@@ -20,9 +20,13 @@ export function parseTargetInput(text: string): number | null {
   return value >= MIN_TARGET && value <= MAX_TARGET && value % 5 === 0 ? value : null;
 }
 
-/** Has the learner chosen a goal? The default 990 only counts once they picked it (goalChosen). */
+/**
+ * Has the learner chosen a goal? Only a profile made by defaultProfile() carries goalChosen: false (the 990 is a
+ * placeholder). Profiles saved before the flag existed, and the demo data, have no flag: their stored targetScore is the goal.
+ */
 export function hasChosenGoal(profile: Pick<UserProfile, 'targetScore' | 'goalChosen'>): boolean {
-  return profile.goalChosen === true || profile.targetScore !== DEFAULT_TARGET;
+  if (profile.goalChosen !== false) return true;
+  return profile.targetScore !== DEFAULT_TARGET;
 }
 
 /**
