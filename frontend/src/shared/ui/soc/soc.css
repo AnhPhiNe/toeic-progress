@@ -1,6 +1,6 @@
 /* Port of design/previews/_soc.css, scoped under .soc */
 /* ---- motion: every layer has its own rhythm ---- */
-.soc{display:inline-block;line-height:0}.soc svg{overflow:visible;width:100%;height:auto}.soc :is(.body,.head,.tail,.earL,.earR,.lid,.look,.wave,.nut,.all,.toss,.shadow,.cf,.tear,.z1,.z2){transform-box:fill-box}
+.soc{display:inline-block;line-height:0}.soc svg{overflow:visible;width:100%;height:auto}.soc :is(.body,.head,.tail,.earL,.earR,.lid,.look,.wave,.nut,.all,.toss,.shadow,.cf,.tear,.z1,.z2,.spark){transform-box:fill-box}
 .soc .body{transform-origin:50% 100%;animation:soc-breathe 3.2s ease-in-out infinite}
 .soc .head{transform-origin:50% 95%;animation:soc-bob 3.2s ease-in-out -.5s infinite}
 .soc .tail{transform-origin:8% 96%;animation:soc-tail 2.7s cubic-bezier(.45,0,.55,1) infinite}
@@ -88,4 +88,22 @@
 @keyframes soc-burstD{0%,26%{opacity:0;transform:translate(0,0) scale(.3)}32%{opacity:1}70%{opacity:1;transform:translate(var(--tx),var(--ty)) scale(1)}100%{opacity:0;transform:translate(var(--tx),calc(var(--ty) - 14px)) scale(.6)}}
 .soc .s-cCplus .all{animation-duration:.8s}.soc .s-cCplus .pt{animation:soc-burstD 2.2s ease-out infinite;opacity:0}
 .soc .bwhisk{transform-box:view-box;transform-origin:110px 204px;animation:soc-stir 1s ease-in-out infinite}@keyframes soc-stir{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}.soc .s-greet .head{transform-origin:50% 90%;animation:soc-greet 2.6s ease-in-out infinite}.soc .s-greet .tail{transform-origin:10% 90%;animation:soc-flick 2.6s ease-in-out infinite}.soc .s-greet .earL,.soc .s-greet .earR{transform-origin:50% 100%;animation:soc-perk 2.6s ease-in-out infinite}@keyframes soc-greet{0%,60%,100%{transform:rotate(0)}15%,42%{transform:rotate(-8deg)}}@keyframes soc-flick{0%,60%,100%{transform:rotate(0)}20%{transform:rotate(8deg)}36%{transform:rotate(-4deg)}}@keyframes soc-perk{0%,60%,100%{transform:scale(1)}18%,40%{transform:scale(1.08,1.14)}}
+/* ---- expressions (mock-soc-variety.html): faces change, the body only sways ---- */
+.soc .spark{transform-origin:center;animation:soc-spark 1.8s ease-in-out infinite}.soc .spark+.spark{animation-delay:-.9s}
+@keyframes soc-spark{0%,100%{transform:scale(.7) rotate(0);opacity:.6}50%{transform:scale(1.1) rotate(20deg);opacity:1}}
+/* proud: chest out, a slow happy sway */
+.soc .s-proud .head{animation:soc-proud 2.8s ease-in-out infinite}
+.soc .s-proud .tail{animation:soc-tailfast 1.4s ease-in-out infinite}
+@keyframes soc-proud{0%,100%{transform:translateY(-2px) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+/* surprised: a small start, ears up */
+.soc .s-surprised .all{transform-origin:50% 100%;animation:soc-startle 2.6s ease-out infinite}
+.soc .s-surprised .earL,.soc .s-surprised .earR{animation:soc-perk 2.6s ease-in-out infinite}
+@keyframes soc-startle{0%,40%,100%{transform:none}8%{transform:translateY(-8px) scale(.98,1.03)}16%{transform:translateY(0) scale(1.03,.97)}24%{transform:none}}
+/* focus: very still, tiny nods while reading */
+.soc .s-focus .head{animation:soc-read 4s ease-in-out infinite}
+.soc .s-focus .look{animation:none}
+@keyframes soc-read{0%,100%{transform:translateY(2px) rotate(2deg)}50%{transform:translateY(3px) rotate(-1deg)}}
+/* tap a dozing Sóc to wake it */
+.soc-wake{border:0;padding:0;margin:0;background:none;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent}
+.soc-wake:focus-visible{outline:3px solid #8a7aa0;outline-offset:4px}
 @media (prefers-reduced-motion:reduce){.soc svg *{animation:none!important}}
