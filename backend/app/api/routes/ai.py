@@ -27,7 +27,8 @@ async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=De
     gateway = request.app.state.gateway
     snapshot = await load_snapshot(gateway, user["id"], body)
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, None, snapshot_hash(snapshot))
-    report = await generate_analysis(gateway, snapshot)
+    # Reservation is committed before generation; OpenAI gets exactly one request.
+    report = await generate_analysis(gateway, snapshot, user["id"])
     return {"report": report, "usage": {"remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"], "guest": False, "unlimited": unlimited,
             **(access.usage_fields() if settings.ai_access_managed else {})}}

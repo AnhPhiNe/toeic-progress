@@ -92,7 +92,7 @@ export function JourneyScore({ sessions, profile, today, onOpenTest, onLog }: Pr
       {T.map((pt, k) => {
         const cls = 'jp-sign' + (k === latestIdx ? ' is-now' : '') + (sel && k === shownIdx ? ' is-sel' : '') + (pt.excluded ? ' is-out' : '');
         return (
-          <button key={pt.id} type="button" className={cls} style={{ left: m.xs[k], top: m.ys[k], '--hit': `${Math.max(34, Math.min(48, dx))}px` } as CSSProperties}
+          <button key={pt.id} type="button" className={cls} data-guide={k === latestIdx ? 'journey' : undefined} data-guide-avoid={k === latestIdx ? undefined : 'journey'} style={{ left: m.xs[k], top: m.ys[k], '--hit': `${Math.max(34, Math.min(48, dx))}px` } as CSSProperties}
             aria-label={`${ddmm(pt.date)} · ${pt.testName}: ${pt.score}`} aria-pressed={sel ? k === shownIdx : k === latestIdx}
             onClick={() => setPick(k === latestIdx ? null : pt.id)}><b>{pt.score}</b></button>
         );

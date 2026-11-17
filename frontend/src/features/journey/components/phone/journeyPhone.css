@@ -115,6 +115,9 @@
 .jp-ts__lr > div { border-radius: 14px; background: #fff; box-shadow: 0 0 0 2px #f0eee8; padding: 8px 12px; }
 .jp-ts__lr small { display: block; font-weight: 800; font-size: 12.5px; color: var(--rd-mut); }
 .jp-ts__lr b { font-weight: 900; font-size: 20px; }
+.jp-ts__ad:not(:empty) { margin-top: 14px; }
+/* Opened from the result screen: keep the title and score above the advice in view. */
+.jp-ts__ad .ta-wrap { scroll-margin-top: 160px; }
 .jp-ts h3 { margin: 16px 4px 6px; font-weight: 900; font-size: 11.5px; letter-spacing: .5px; text-transform: uppercase; color: var(--rd-mut); }
 .jp-ts__bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
 .jp-ts__bars li { display: grid; grid-template-columns: 26px 1fr 42px; align-items: center; gap: 10px; font-weight: 900; font-size: 13px; color: var(--rd-mut); }

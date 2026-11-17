@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PacingRun } from '@/shared/types';
-import { bestSeconds, currentStepIndex, dayLabel, dishName, dishOf, formatSpan, isLastStretch, lastSeconds, paceQuestion, paceTag, recipeSteps, recordGain, sprinkles, strawberryCount } from './bakery';
+import { bestSeconds, currentStepIndex, dayLabel, dishName, dishOf, formatSpan, isLastStretch, lastSeconds, paceQuestion, paceTag, recipeSteps, recordGain, sprinkles, strawberryCount, stepFreeMinutes, focusRunsOn, nextBreak, gainLabel } from './bakery';
 
 const run = (id: string, patch: Partial<PacingRun> = {}): PacingRun => ({ id, presetId: 'PART_7', presetName: 'Part 7', partType: 'PART_7', date: '2026-11-13', createdAt: `2026-11-13T00:00:${id.padStart(2, '0')}Z`, plannedMinutes: 55, actualMinutes: 52, actualSeconds: 3130, finishedNaturally: false, phases: [], totalQuestions: 54, ...patch });
 
@@ -129,5 +129,44 @@ describe('dishes and sprinkles', () => {
     expect(list.length).toBeGreaterThan(40);
     expect(list.every(s => !(s.x > 27 && s.x < 72 && s.y > 14 && s.y < 88))).toBe(true);
     expect(sprinkles()).toEqual(list);
+  });
+});
+
+describe('Mẻ tự do', () => {
+  it('steps minutes by five, single minutes under five, within 1–120', () => {
+    expect(stepFreeMinutes(25, -1)).toBe(20);
+    expect(stepFreeMinutes(25, 1)).toBe(30);
+    expect(stepFreeMinutes(5, -1)).toBe(4);
+    expect(stepFreeMinutes(4, 1)).toBe(5);
+    expect(stepFreeMinutes(1, -1)).toBe(1);
+    expect(stepFreeMinutes(120, 1)).toBe(120);
+    expect(stepFreeMinutes(23, 1)).toBe(25);
+    expect(stepFreeMinutes(23, -1)).toBe(20);
+    expect(stepFreeMinutes(500, 0)).toBe(120);
+  });
+  it('counts only today\'s live focus runs, not breaks, other days or deleted ones', () => {
+    const runs = [
+      run('1', { partType: 'POMODORO', presetId: 'POMODORO_WORK' }),
+      run('2', { partType: 'POMODORO', presetId: 'POMODORO_SHORT_BREAK' }),
+      run('3', { partType: 'POMODORO', presetId: 'POMODORO_WORK', date: '2026-11-12' }),
+      run('4', { partType: 'POMODORO', presetId: 'POMODORO_WORK', deletedAt: '2026-11-13T01:00:00Z' }),
+      run('5')
+    ];
+    expect(focusRunsOn(runs, '2026-11-13')).toBe(1);
+  });
+  it('takes a long break after every fourth focus run, a short one otherwise', () => {
+    const settings = { shortBreakMinutes: 5, longBreakMinutes: 15, longBreakInterval: 4 };
+    expect(nextBreak(1, settings)).toEqual({ phase: 'SHORT_BREAK', minutes: 5, long: false });
+    expect(nextBreak(3, settings)).toEqual({ phase: 'SHORT_BREAK', minutes: 5, long: false });
+    expect(nextBreak(4, settings)).toEqual({ phase: 'LONG_BREAK', minutes: 15, long: true });
+    expect(nextBreak(8, settings).long).toBe(true);
+    expect(nextBreak(0, settings).long).toBe(false);
+  });
+  it('writes the gained time in minutes, or seconds under a minute', () => {
+    expect(gainLabel(1500)).toBe('+25 phút');
+    expect(gainLabel(42)).toBe('+42 giây');
+  });
+  it('draws a croissant of its own', () => {
+    expect(dishOf('POMODORO')).toBe('croissant');
   });
 });

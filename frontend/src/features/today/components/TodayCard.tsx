@@ -1,10 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import type { Habit } from '@/shared/types';
+import type { Habit, SuggestedTask } from '@/shared/types';
+import { suggestionFrom, suggestionLabel, type SuggestionView } from '../lib/suggestedTasks';
 import type { StreakWeek, WeeklyGoal } from '@/shared/domain/streakWeek';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { StreakCake } from './StreakCake';
 import { AddHabitPanel } from './AddHabitPanel';
-import type { TodayTask } from '../lib/todayTasks';
+import { todayKicker, type TodayTask } from '../lib/todayTasks';
 import { habitDoneToday } from '../lib/habits';
 
 interface Props {
@@ -25,6 +26,10 @@ interface Props {
   onSetWeeklyGoal: (days: number) => void;
   /** Accessories Sóc wears (Thành tích → Tủ đồ). */
   gear?: readonly string[];
+  /** One-off tasks added from Sóc's advice on a test. */
+  suggestions?: SuggestionView[];
+  onStartSuggestion?: (task: SuggestedTask) => void;
+  onToggleSuggestion?: (id: string) => void;
 }
 
 const FIRST_DONE_KEY = 'rd_first_done_cheer_v1';
@@ -54,15 +59,18 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest, gear }: Props) {
+export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest, gear, suggestions = [], onStartSuggestion, onToggleSuggestion }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
   const hero = open.length ? open[skip % open.length] : null;
   const rows = tasks.filter(t => t !== hero);
+  // With no suggested task left, Sóc's advice task (if any) leads the card.
+  const sugHero = hero ? null : suggestions.find(v => !v.done) ?? null;
+  const sugRows = suggestions.filter(v => v !== sugHero);
   const habitsDone = habits.filter(h => habitDoneToday(h, today)).length;
-  const total = tasks.length + habits.length;
-  const doneCount = tasks.length - open.length + habitsDone;
-  const allDone = !hero && total > 0 && doneCount === total;
+  const total = tasks.length + habits.length + suggestions.length;
+  const doneCount = tasks.length - open.length + habitsDone + suggestions.filter(v => v.done).length;
+  const allDone = !hero && !sugHero && total > 0 && doneCount === total;
   const firstCheer = useFirstDoneCheer(doneCount, today);
 
   const [addAt, setAddAt] = useState<HTMLElement | null>(null);
@@ -82,6 +90,14 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
           <div className="td-acts">
             <button type="button" className="td-go" onClick={() => onStartTask(hero)}>▶ Bắt đầu</button>
             <button type="button" className="td-skip" onClick={() => open.length > 1 ? setSkip(s => s + 1) : onSkipTask(hero.id)}>{open.length > 1 ? 'Để sau' : 'Bỏ qua hôm nay'}</button>
+          </div>
+        </> : sugHero ? <>
+          <small>{todayKicker(sugHero.task.minutes)}</small>
+          <h2>{sugHero.task.title}</h2>
+          <p>{suggestionFrom(sugHero.task)}</p>
+          <div className="td-acts">
+            <button type="button" className="td-go" onClick={() => onStartSuggestion?.(sugHero.task)}>▶ Bắt đầu</button>
+            <button type="button" className="td-skip" onClick={() => onToggleSuggestion?.(sugHero.task.id)}>Xong rồi</button>
           </div>
         </> : allDone ? <>
           <small>XONG HẾT HÔM NAY</small>
@@ -109,6 +125,15 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
                 <span className="td-tm">{task.done ? 'xong' : `${task.minutes} phút`}</span>
               </button>
               {!task.done && <button type="button" className="td-x" onClick={() => onSkipTask(task.id)} aria-label={`Bỏ qua "${task.title}" hôm nay`} title="Bỏ qua hôm nay">×</button>}
+            </li>
+          ))}
+          {sugRows.map(({ task, done }) => (
+            <li key={task.id} className={'td-my td-sug' + (done ? ' is-done' : '')}>
+              <button type="button" className={'td-r' + (done ? ' is-done' : '')} onClick={() => onToggleSuggestion?.(task.id)} aria-pressed={done} aria-label={`${done ? 'Bỏ đánh dấu' : 'Đánh dấu xong'}: ${suggestionLabel(task)}`}>
+                <i className="td-c is-sq">{done && <><Check /><Burst /></>}</i>
+                <span className="td-tx"><b>{suggestionLabel(task)}</b><small>{suggestionFrom(task)}</small></span>
+              </button>
+              {!done && <button type="button" className="td-sgo" onClick={() => onStartSuggestion?.(task)}>Làm</button>}
             </li>
           ))}
           {habits.map(habit => {

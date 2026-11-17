@@ -12,8 +12,8 @@ async function settings(page: Page, width: number, guest = false) {
         deleteAccount: async () => {}, resetLearningData: async () => {}, chooseTransfer: async () => {} }; }
     `
   }));
-  // Phones reach settings from the avatar sheet on Sổ tay; computers from the top bar that Từ vựng still has.
-  await page.goto(width < 768 ? '/so-tay' : '/tu-vung');
+  // Phones reach settings from the avatar sheet on Sổ tay; computers from the sidebar.
+  await page.goto(width < 768 ? '/so-tay' : '/');
   return openSettings(page);
 }
 

@@ -5,7 +5,8 @@ import type { PacingMode } from '../../lib/pacingModel';
 import { dishName, dishOf, formatSpan, paceWords, recipeSteps } from '../../lib/bakery';
 import { Awning, BulbsG, ChefSoc, DishIcon, ItemArt } from '../BakeryArt';
 import type { BakeryChoice, RecentRow } from '../BakeryChoose';
-import { CardIcon, ClockIcon, FlameIcon, PenIcon, TomatoIcon } from './PracticePhoneIcons';
+import { CardIcon, ClockIcon, FlameIcon, PenIcon } from './PracticePhoneIcons';
+import { FREE_HINT, FREE_RECIPE } from '../BakeryChoose';
 
 interface Props {
   mode: PacingMode;
@@ -20,7 +21,6 @@ interface Props {
   onStart: () => void;
   onMinutes: (delta: number) => void;
   onLog: () => void;
-  onPomodoro: () => void;
   onOpenSession: (session: StudySession) => void;
 }
 
@@ -37,6 +37,7 @@ export function PhoneBakeryChoose(p: Props) {
   useEffect(() => () => window.clearTimeout(timeout.current), []);
   const strip = useRef<HTMLDivElement>(null);
   const chosen = p.choices.find(c => c.mode === p.mode);
+  const free = p.mode === 'POMODORO';
 
   // Bring the selected card into view (also when the page opens on a remembered Part).
   useEffect(() => {
@@ -67,14 +68,14 @@ export function PhoneBakeryChoose(p: Props) {
         <BulbsG width={390} count={12} y={82} />
       </svg>
       <header className="pp-head">
-        <h1>Hôm nay nướng <em>{p.label}</em> nhé?</h1>
+        <h1 className={free ? 'is-long' : undefined}>Hôm nay nướng <em>{p.label}</em> nhé?</h1>
         <button type="button" className="pp-recent" aria-label="Mẻ bánh gần đây" onClick={() => setSheet('recent')}><ClockIcon /></button>
         <PhoneAvatarButton />
       </header>
 
       <div className="pp-case">
         <div className="pp-say">
-          {dishName(p.mode)} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <><br />Lần trước bạn xong trong {p.lastTime}!</>}
+          {free ? FREE_HINT : <>{dishName(p.mode)} cần <b>{chosen?.minutes ?? p.minutes} phút</b>.{p.lastTime && <><br />Lần trước bạn xong trong {p.lastTime}!</>}</>}
         </div>
         {/* The cake is sized to the case height so a tall case is filled, not left empty above it. */}
         <div className="pp-cake" key={p.mode}><ItemArt dish={dishOf(p.mode)} selected /></div>
@@ -85,16 +86,16 @@ export function PhoneBakeryChoose(p: Props) {
       <div className="pp-cards" ref={strip} role="group" aria-label="Chọn Part">
         {p.choices.map(c => (
           <button key={c.mode} type="button" className={'pp-pc' + (c.mode === p.mode ? ' is-on' : '')} aria-pressed={c.mode === p.mode}
-            aria-label={`${c.label}, ${c.questions} câu, ${c.minutes} phút, ${c.record ? 'kỷ lục ' + c.record : 'kỷ lục chưa có'}`} onClick={() => p.onPick(c.mode)}>
+            aria-label={c.mode === 'POMODORO' ? `${c.label}, học tự do, ${c.minutes} phút` : `${c.label}, ${c.questions} câu, ${c.minutes} phút, ${c.record ? 'kỷ lục ' + c.record : 'kỷ lục chưa có'}`} onClick={() => p.onPick(c.mode)}>
             <DishIcon dish={dishOf(c.mode)} />
             <b>{cardName(c)}<em>{c.minutes}′</em></b>
-            <small>{c.questions} câu</small>
+            <small>{c.mode === 'POMODORO' ? 'học tự do' : `${c.questions} câu`}</small>
           </button>
         ))}
       </div>
 
       <div className="pp-panel">
-        <div className="pp-fire-row">
+        <div className="pp-fire-row" data-guide="practice">
           <button type="button" className="rd-btn bk-fire pp-fire" onClick={light}><FlameIcon /> Bật lò</button>
           <div className="pp-mins" role="group" aria-label="Số phút">
             <button type="button" aria-label="Bớt một phút" onClick={() => p.onMinutes(-1)} disabled={!p.canMinus}>−</button>
@@ -103,10 +104,9 @@ export function PhoneBakeryChoose(p: Props) {
           </div>
         </div>
         {p.error && <p role="alert" className="bk-err">{p.error}</p>}
-        <div className="pp-tools">
+        <div className="pp-tools pp-tools--two">
           <button type="button" className="bk-tool is-mint" onClick={p.onLog}><i><PenIcon /></i>Ghi kết quả</button>
           <button type="button" className="bk-tool is-gold" aria-haspopup="dialog" onClick={() => setSheet('recipe')}><i><CardIcon /></i>Công thức</button>
-          <button type="button" className="bk-tool is-rose" onClick={p.onPomodoro}><i><TomatoIcon /></i>Pomodoro</button>
         </div>
       </div>
 
@@ -115,7 +115,10 @@ export function PhoneBakeryChoose(p: Props) {
           {p.recent.length ? <div className="pp-rows">{p.recent.map(row)}</div> : <p className="bk-empty pp-empty">Chưa có mẻ bánh nào. Bật lò mẻ đầu tiên nhé.</p>}
         </PhoneSheet>
       )}
-      {sheet === 'recipe' && <RecipeSheet label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} onClose={() => setSheet(null)} />}
+      {sheet === 'recipe' && free && (
+        <PhoneSheet title="Mẻ tự do" onClose={() => setSheet(null)}><p className="pp-steps-note">{FREE_RECIPE(p.minutes)}</p></PhoneSheet>
+      )}
+      {sheet === 'recipe' && !free && <RecipeSheet label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} onClose={() => setSheet(null)} />}
     </div>
   );
 }

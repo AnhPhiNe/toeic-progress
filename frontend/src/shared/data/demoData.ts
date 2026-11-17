@@ -3,6 +3,7 @@ import { StudySession, MistakeEntry, UserProfile } from '@/shared/types';
 export const INITIAL_USER_PROFILE: UserProfile = {
   name: 'Minh Tuấn',
   targetScore: 990,
+  goalChosen: true,
   examDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 45 ngày nữa
   currentStreak: 18,
   longestStreak: 24,

@@ -2,7 +2,7 @@
 export type SkillType = 'LR' | 'SW';
 
 // Các tab điều hướng chính của hệ thống
-export type NavTabId = 'dashboard' | 'plan' | 'exam-mode' | 'history' | 'analytics' | 'mistakes' | 'vocabulary' | 'resources' | 'awards';
+export type NavTabId = 'dashboard' | 'exam-mode' | 'history' | 'analytics' | 'mistakes' | 'resources' | 'awards' | 'guide';
 
 // Chi tiết số câu đúng của từng Part trong bài thi TOEIC Listening & Reading
 export interface LRPartScore {
@@ -329,6 +329,24 @@ export interface UserProfile {
   suggestOff?: string[];
   /** Thành tích: phụ kiện Sóc đang đeo (id trong socGear.ts); thiếu nghĩa là chưa chọn, Sóc đeo món mới nhất. */
   socGear?: string[];
+  /** Hôm nay: việc một lần Sóc gợi ý từ nhận xét một đề (thêm bằng tay, mất sau khi xong hoặc sau 7 ngày). */
+  suggestedTasks?: SuggestedTask[];
+}
+
+/** A one-off task added from Sóc's advice on one test; done once, gone after that day or after 7 days. */
+export interface SuggestedTask {
+  /** `${attemptId}:${part ?? 0}:${kind}`: the same advice is added only once. */
+  id: string;
+  kind: 'timer' | 'notebook';
+  /** "Bấm giờ Part 7" / "Ôn 9 câu trong Sổ tay" */
+  title: string;
+  minutes: number;
+  part: number | null;
+  testName: string;
+  /** Date of the test, for "Sóc gợi ý từ đề dd/mm". */
+  testDate: string;
+  addedDate: string;
+  doneDate?: string;
 }
 
 /** A learner's own recurring task, ticked by hand. doneDates keeps only recent days. */

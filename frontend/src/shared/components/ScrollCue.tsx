@@ -125,7 +125,8 @@ export function ContainerScrollCue({
 
     const measure = () => {
       const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-      setHasMore(remaining > 20);
+      // Only the bottom padding left to scroll: the last row is already visible, so the cue would just cover it.
+      setHasMore(remaining > (parseFloat(getComputedStyle(el).paddingBottom) || 0) + 20);
     };
 
     measure();
@@ -155,7 +156,7 @@ export function ContainerScrollCue({
   };
 
   return (
-    <div className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 z-20 transition-all duration-200 animate-fade-in">
+    <div className="flex flex-none justify-center py-1.5">
       <button
         type="button"
         onClick={handleScroll}

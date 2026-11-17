@@ -56,6 +56,14 @@ def schema_issues(error: ValidationError) -> list[dict]:
             for issue in error.errors(include_input=False, include_context=False)[:8]]
 
 
+class OpenAIError(HTTPException):
+    """A failed OpenAI request. `code` lets a caller replace the wording; the response is unchanged otherwise."""
+
+    def __init__(self, status_code: int, detail: str, code: str, headers: dict | None = None):
+        super().__init__(status_code, detail, headers=headers)
+        self.code = code
+
+
 class OpenAIProvider:
     def __init__(self, settings: Settings, client: httpx.AsyncClient):
         self.settings, self.client = settings, client
@@ -78,12 +86,14 @@ class OpenAIProvider:
             }))
             # A timed-out request may already be generating a billed result.
             # Never automatically retry a possibly billed generation or change keys.
+            timed_out = isinstance(error, (httpx.TimeoutException, TimeoutError))
             message = (
                 "OpenAI phản hồi quá thời gian chờ; chưa nhận được kết quả phân tích."
-                if isinstance(error, (httpx.TimeoutException, TimeoutError))
+                if timed_out
                 else "Kết nối tới OpenAI bị gián đoạn; chưa nhận được kết quả phân tích."
             )
-            raise HTTPException(503, message + " Nội dung đang nhập vẫn được giữ. Bạn có thể thử lại hoặc lưu thủ công.") from error
+            raise OpenAIError(503, message + " Nội dung đang nhập vẫn được giữ. Bạn có thể thử lại hoặc lưu thủ công.",
+                              "TIMEOUT" if timed_out else "CONNECTION") from error
         logger.info(json.dumps({
             "event": "openai_attempt", "request_id": request_id_context.get(), "model": self.settings.openai_model,
             "status": response.status_code, "duration_ms": round((time.monotonic() - started) * 1000, 2),
@@ -96,21 +106,21 @@ class OpenAIProvider:
                 except (ValueError, AttributeError):
                     billing = False
                 if billing:
-                    raise HTTPException(503, "Dịch vụ OpenAI đã hết ngân sách hoặc hạn mức thanh toán. "
-                                        "Đây không phải giới hạn lượt của tài khoản bạn. Bạn vẫn có thể lưu thủ công.")
+                    raise OpenAIError(503, "Dịch vụ OpenAI đã hết ngân sách hoặc hạn mức thanh toán. "
+                                      "Đây không phải giới hạn lượt của tài khoản bạn. Bạn vẫn có thể lưu thủ công.", "BILLING")
                 try:
                     delay = max(1, min(86400, math.ceil(float(response.headers.get("Retry-After", "60")))))
                 except (ValueError, OverflowError):
                     delay = 60
-                raise HTTPException(429, "OpenAI đang giới hạn tốc độ xử lý. Nội dung đang nhập vẫn được giữ.",
-                                    headers={"Retry-After": str(delay)})
+                raise OpenAIError(429, "OpenAI đang giới hạn tốc độ xử lý. Nội dung đang nhập vẫn được giữ.", "RATE",
+                                  headers={"Retry-After": str(delay)})
             if response.status_code in (401, 403):
-                raise HTTPException(503, "Ứng dụng chưa được OpenAI cho phép xử lý yêu cầu. "
-                                    "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
+                raise OpenAIError(503, "Ứng dụng chưa được OpenAI cho phép xử lý yêu cầu. "
+                                  "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.", "ACCESS")
             if response.status_code >= 500:
-                raise HTTPException(503, "Dịch vụ OpenAI tạm gặp sự cố. Hãy thử lại sau hoặc lưu thủ công.")
-            raise HTTPException(503, "OpenAI từ chối yêu cầu phân tích. "
-                                "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.")
+                raise OpenAIError(503, "Dịch vụ OpenAI tạm gặp sự cố. Hãy thử lại sau hoặc lưu thủ công.", "UNAVAILABLE")
+            raise OpenAIError(503, "OpenAI từ chối yêu cầu phân tích. "
+                              "Cần kiểm tra cấu hình dịch vụ; bạn vẫn có thể lưu thủ công.", "CONFIG")
         value = response.json()
         usage = value.get("usage") or {}
         # Record counts only. No raw output, prompt, key, email or headers.

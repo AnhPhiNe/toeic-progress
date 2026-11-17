@@ -99,3 +99,13 @@
 .pp-fld small { display: block; font-weight: 800; font-size: 11.5px; color: #a3aba5; }
 .pp-fld .pp-val { font-size: 17px; }
 .pp-done-soc { position: relative; z-index: 3; align-self: flex-start; margin: 22px 0 0 24px; }
+
+/* ---------- Mẻ tự do ---------- */
+.pp-tools--two { grid-template-columns: repeat(2, 1fr); }
+.pp-card .bk-card-cake--free { width: 190px; margin-top: 18px; }
+.pp-card .bk-free-today { padding: 8px 14px; margin-top: 10px; }
+.pp-card .bk-free-today b { font-size: 20px; }
+.pp-free-soc { margin-bottom: 104px; }
+.pp-btns .pp-skip { flex: 1; }
+.pp-head h1.is-long { font-size: 18px; letter-spacing: -.6px; white-space: normal; line-height: 1.15; }
+.pp-btns .pp-again { width: 146px; white-space: nowrap; font-size: 15.5px; }

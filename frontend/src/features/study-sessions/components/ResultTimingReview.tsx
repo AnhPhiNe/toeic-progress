@@ -6,7 +6,14 @@ type TimingKey = 'totalSeconds' | 'listeningSeconds' | 'readingSeconds' | keyof 
 const labels: [TimingKey, string][] = [['totalSeconds', 'Tổng thời gian'], ['listeningSeconds', 'Listening'], ['readingSeconds', 'Reading'],
   ...Array.from({ length: 7 }, (_, index) => [`part${index + 1}` as keyof ResultImageTiming['parts'], `Part ${index + 1}`] as [TimingKey, string])];
 export interface TimingCandidate { timing: ResultImageTiming; fields: Partial<Record<TimingKey, string>>; edited: boolean }
-export function timingCandidate(timing: ResultImageTiming): TimingCandidate {
+/**
+ * The candidate keeps only the image-timing fields. Reopening an already confirmed timing passes a ConfirmedResultTiming,
+ * whose extra `source` key used to ride along and fail the strict draft schema, so the form draft was never saved.
+ */
+export function timingCandidate(input: ResultImageTiming): TimingCandidate {
+  const { totalSeconds, listeningSeconds, readingSeconds, parts } = input;
+  const timing: ResultImageTiming = { totalSeconds, listeningSeconds, readingSeconds,
+    parts: { part1: parts.part1, part2: parts.part2, part3: parts.part3, part4: parts.part4, part5: parts.part5, part6: parts.part6, part7: parts.part7 } };
   return { timing, fields: Object.fromEntries(labels.map(([key]) => { const value = key.startsWith('part') ? timing.parts[key as keyof ResultImageTiming['parts']] : timing[key as 'totalSeconds']; return [key, value === null ? '' : formatElapsed(value)]; })), edited: false };
 }
 

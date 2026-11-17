@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Inbox, Tag } from 'lucide-react';
-import { ReviewSegmentedControl } from './ReviewSegmentedControl';
-import type { NavTabId, MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
+import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
 import { DetailListFlow } from '@/features/mistakes/components/DetailListFlow';
@@ -27,6 +26,7 @@ import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { triggerHaptic } from '@/shared/lib/haptics';
 import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
+import { PageTip } from '@/features/guide/PageTip';
 import './notebook.css';
 import './notebook-rd.css';
 import './capture-rd.css';
@@ -75,14 +75,13 @@ interface MistakeNotebookViewProps {
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
   onOpenSessionLogger?: () => void;
-  onNavigateTab?: (tab: NavTabId) => void;
 }
 
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
 export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, initialPart, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
-  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger, onNavigateTab }: MistakeNotebookViewProps) {
+  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>(initialPart ?? 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
@@ -459,7 +458,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                 <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>{wordCards}</em></button>
               </div>
             )}
-            {!empty && <button type="button" className="rd-btn rd-btn--pink nb-cam" onClick={openCreate}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>}
+            <PageTip id="notebook" ready={!empty} />
+            {!empty && <button type="button" className="rd-btn rd-btn--pink nb-cam" data-guide="notebook" onClick={openCreate}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>}
           </div>
         </div>
 
@@ -587,21 +587,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   return (
     <div className={'notebook-view animate-fade-in ' + (isPhone && reviewCount > 0 ? 'pb-28' : 'pb-10')}>
-      {/* Mobile top bar: Segmented Control */}
-      {isPhone && onNavigateTab && (
-        <div className="mb-3">
-          <ReviewSegmentedControl
-            activeTab="mistakes"
-            onNavigateTab={(tab) => {
-              triggerHaptic(8);
-              onNavigateTab(tab);
-            }}
-            dueCount={dueCount}
-            totalCount={mistakes.length}
-          />
-        </div>
-      )}
-
       {/* Filter Chip Indicator when active filters exist */}
       {activeFilterCount > 0 && (
         <div className="w-full mb-2.5 flex items-center justify-between rounded-xl border-2 border-slate-900 bg-indigo-50/90 px-3.5 py-2 text-xs shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-indigo-950/40 dark:shadow-[1.5px_1.5px_0_0_#cbd5e1]">

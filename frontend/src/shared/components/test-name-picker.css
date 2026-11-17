@@ -1,0 +1,8 @@
+/* Test name field: the same soft 2px input look as the logger forms (.rde-in in edit-rd.css), usable in any dialog. */
+.tnp-field { min-height: 44px; min-width: 0; padding: 9px 13px; border: 2px solid var(--rd-line, #e6e9e6); border-radius: 14px; background: #fff;
+  font: 800 15px var(--rd-font, 'Nunito', system-ui, sans-serif); color: var(--rd-ink, #2f3a33); outline: none; transition: border-color .15s, background .15s; }
+.tnp-field::placeholder { color: #b3bab4; font-weight: 700; }
+.tnp-field:hover:not(:disabled) { border-color: #d6dbd6; }
+.tnp-field:focus, .tnp-field:focus-visible { outline: none !important; box-shadow: none !important; border-color: var(--rd-blue, #1c8fe3); background: #fbfdff; }
+.tnp-field:disabled { opacity: .45; }
+.tnp-pop { font-family: var(--rd-font, 'Nunito', system-ui, sans-serif); font-weight: 700; color: var(--rd-ink, #2f3a33); border: 2px solid var(--rd-line, #e6e9e6); border-radius: 16px; background: #fff; box-shadow: 0 10px 28px rgba(47, 58, 51, .16); }

@@ -1,0 +1,9 @@
+/* Same test, same day: a warm note above the save button (redesign 2026-11). */
+.rdd { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px 10px 10px 14px; border-radius: 16px;
+  background: var(--rd-gold-l); color: #6b4e00; font-family: var(--rd-font); text-align: left; }
+.rdd-t { flex: 1; min-width: 0; margin: 0; font-weight: 800; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.rdd-open { flex: none; min-height: 40px; border: 2px solid #f3dc9b; border-radius: 12px; padding: 0 12px; background: #fff;
+  box-shadow: 0 3px 0 #f3dc9b; font: 900 13.5px var(--rd-font); color: var(--rd-ink); cursor: pointer; white-space: nowrap; }
+.rdd-open:active { transform: translateY(2px); box-shadow: 0 1px 0 #f3dc9b; }
+.rdd-open:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+.rdl-foot .rdd { width: 100%; }

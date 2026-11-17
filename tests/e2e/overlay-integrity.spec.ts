@@ -16,7 +16,7 @@ for (const close of ['Escape', 'Back'] as const) {
     await openSettings(page);
     const settings = page.getByRole('dialog', { name: 'Cài đặt', exact: true, includeHidden: true });
     await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
-    const sheet = page.getByRole('dialog', { name: 'Điểm mục tiêu', exact: true });
+    const sheet = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
     await expectFocusWithin(page, sheet);
     await expect.poll(() => settings.evaluate(node => !!node.closest('[inert]'))).toBe(true);
     if (close === 'Escape') await page.keyboard.press('Escape'); else await page.goBack();
@@ -28,30 +28,6 @@ for (const close of ['Escape', 'Back'] as const) {
     expect(await page.locator('body').evaluate(node => node.style.overflow)).not.toBe('hidden');
     // The sheet that opened Cài đặt closes with it, so focus cannot return to a control; it must at least stay on the page.
     expect(await page.evaluate(() => !!document.activeElement?.isConnected)).toBe(true);
-  });
-
-  test(`nested vocabulary portals keep edit focus and preserve history on ${close}`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/tu-vung');
-    await page.evaluate(() => {
-      const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
-      data.vocabLog = [{ id: 'qa-overlay-vocab', date: '2026-10-22', count: 20, updatedAt: '2026-10-23T09:00:00Z', deletedAt: null }];
-      localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
-    });
-    await page.reload();
-    await page.getByRole('button', { name: /^Lịch sử ghi nhận/ }).click();
-    const history = page.getByRole('dialog', { name: 'Lịch sử ghi nhận', exact: true, includeHidden: true });
-    await history.getByRole('button', { name: 'Sửa ghi nhận ngày 22/10/2026', exact: true }).click();
-    const edit = page.getByRole('dialog', { name: 'Sửa ghi nhận', exact: true });
-    await edit.getByRole('button', { name: 'Cập nhật', exact: true }).focus();
-    await expectFocusWithin(page, edit);
-    await expect.poll(() => history.evaluate(node => !!node.closest('[inert]'))).toBe(true);
-    if (close === 'Escape') await page.keyboard.press('Escape'); else await page.goBack();
-    await expect(edit).toHaveCount(0);
-    await expect(history).toBeVisible();
-    await expect(history.getByRole('button', { name: 'Sửa ghi nhận ngày 22/10/2026', exact: true })).toBeFocused();
-    await page.keyboard.press('Escape');
-    await expect(history).toHaveCount(0);
   });
 }
 

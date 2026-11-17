@@ -10,6 +10,8 @@ export interface PhoneStairsInput {
   blocks: number;
   /** Index of the bar Sóc stands on (0 when there is no test yet). */
   cur: number;
+  /** Goal reached: Sóc is on the last bar and the trophy stands apart at the right edge. */
+  done?: boolean;
 }
 
 export interface Bar { x: number; y: number; w: number; h: number }
@@ -23,12 +25,12 @@ export interface PhoneStairsLayout {
 const SX = 14;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-export function phoneStairsLayout({ w, top, base, blocks, cur }: PhoneStairsInput): PhoneStairsLayout {
+export function phoneStairsLayout({ w, top, base, blocks, cur, done = false }: PhoneStairsInput): PhoneStairsLayout {
   const n = Math.max(1, blocks);
   const avail = Math.max(90, base - top - 10);
   const scale = clamp((base - top) / 420, 0.6, 0.95);
   const cupW = 90 * scale, cupH = 100 * scale;
-  const barW = clamp((w - SX - 12 - cupW / 2 - 6) / (n - 0.5), 18, 52);
+  const barW = clamp((w - SX - 12 - cupW / 2 - 6 - (done ? cupW : 0)) / (n - 0.5), 18, 52);
   const h0 = Math.max(18, avail * 0.16);
   const rise = n > 1 ? Math.max(5, ((avail - h0 - 40) / (n - 1)) * 0.92) : 0;
   const bars: Bar[] = Array.from({ length: n }, (_, i) => {
@@ -37,7 +39,8 @@ export function phoneStairsLayout({ w, top, base, blocks, cur }: PhoneStairsInpu
   });
   const at = bars[clamp(cur, 0, n - 1)];
   const socW = clamp(rise * 1.7, 40, 60);
-  const cupCenter = Math.min(w - 12 - cupW / 2, SX + (n - 0.5) * barW + 6);
+  // Goal reached: Sóc stands on the last bar, so the trophy moves to the right edge instead of sitting on her.
+  const cupCenter = done ? w - 12 - cupW / 2 : Math.min(w - 12 - cupW / 2, SX + (n - 0.5) * barW + 6);
   return {
     bars,
     barW,

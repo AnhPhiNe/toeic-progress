@@ -3,13 +3,13 @@ import { expect, test } from '@playwright/test';
 import { openSettings } from './helpers/accountGroup';
 
 test('sample data is offered only on an empty guest device', async ({ page }) => {
-  await page.goto('/tu-vung');
+  await page.goto('/');
   const modal = await openSettings(page);
   await expect(modal.getByRole('button', { name: 'Nạp dữ liệu mẫu', exact: true })).toBeVisible();
 });
 
 test('sample data cannot replace a learner record that already exists', async ({ page }) => {
-  await page.goto('/tu-vung');
+  await page.goto('/');
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const now = new Date().toISOString();

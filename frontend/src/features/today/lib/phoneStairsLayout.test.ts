@@ -12,6 +12,13 @@ describe('phoneStairsLayout', () => {
     expect(l.bars[7].x + l.bars[7].w).toBeLessThanOrEqual(input.w);
   });
 
+  it('moves the trophy off the last bar once the goal is reached, so it never sits on Sóc', () => {
+    const l = phoneStairsLayout({ w: 390, top: 200, base: 560, blocks: 3, cur: 2, done: true });
+    expect(l.cup.left).toBeGreaterThanOrEqual(l.bars[2].x + l.bars[2].w);
+    expect(l.cup.left + l.cup.width).toBeLessThanOrEqual(390);
+    expect(l.soc.left + l.soc.width).toBeLessThanOrEqual(l.cup.left);
+  });
+
   it('puts the trophy on screen above the last bar and Sóc on the current bar', () => {
     const l = phoneStairsLayout(input);
     expect(l.cup.left + l.cup.width).toBeLessThanOrEqual(input.w);

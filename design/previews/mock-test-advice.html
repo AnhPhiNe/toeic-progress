@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Sóc nhận xét đề này</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<link rel="stylesheet" href="_goalguide.css">
+<style>
+body{padding:30px 30px 50px;width:1800px}
+.row{gap:30px}
+.dkf{width:540px;height:800px;background:#8d9399;border-radius:18px;position:relative;overflow:hidden;box-shadow:0 0 0 8px #1d2420,0 24px 50px rgba(0,0,0,.3)}
+.dkf .drw3{position:absolute;right:0;top:0;bottom:0;width:480px;background:#fff;padding:20px 22px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.dkf .ghost{position:absolute;left:0;top:0;bottom:0;width:60px;background:#a9aeb4}
+.fw.wide>span{width:540px}
+.shd{display:flex;align-items:center;justify-content:space-between;font-weight:900;font-size:15px;flex:none}
+.xx{width:32px;height:32px;border-radius:10px;background:#f3f4f2;display:grid;place-items:center;font-weight:900;font-size:16px;color:#7a857e}
+.strip{display:flex;align-items:center;gap:14px;background:#fff8e1;border-radius:18px;padding:10px 16px;flex:none}
+.strip .n{font-weight:900;font-size:34px;letter-spacing:-1.2px;line-height:1}
+.strip .lr{display:flex;gap:12px;font-weight:800;font-size:11px;color:var(--mut)}.strip .lr b{display:block;font-weight:900;font-size:16px;color:var(--ink)}
+.strip .d{margin-left:auto;font-weight:900;font-size:12px;color:#a87a00;text-align:right;line-height:1.35}
+.wq{font-weight:800;font-size:12.5px;color:var(--mut);flex:none}
+.adv{border-radius:22px;background:#fffbee;box-shadow:0 0 0 2px #ffe9a8;padding:14px 16px 16px;position:relative;flex:none}
+.adv.plain{background:#fff;box-shadow:0 0 0 2px #eceee9}
+.ah{display:flex;align-items:center;gap:12px}
+.ah .soc{width:52px;flex:none}
+.ah b{display:block;font-weight:900;font-size:16.5px;line-height:1.2}
+.ah small{display:block;font-weight:800;font-size:12.5px;color:var(--mut);margin-top:2px}
+.go{display:block;margin-top:12px;border-radius:99px;padding:12px 0;text-align:center;font-weight:900;font-size:15.5px;color:#5a3d00;background:linear-gradient(90deg,#ffcf4a,#f5b400);box-shadow:0 4px 0 #d99a00}
+.go.green{color:#fff;background:linear-gradient(90deg,#4cc062,#2f9e4a);box-shadow:0 4px 0 #2a8a40}
+.go.off{background:#eceee9;color:#a3aba5;box-shadow:0 4px 0 #dcdfd9}
+.quota{text-align:center;font-weight:800;font-size:12px;color:var(--mut);margin-top:8px}
+.cons{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-weight:800;font-size:13.5px;line-height:1.35;background:#fff;border-radius:14px;padding:10px 12px}
+.cons i{width:22px;height:22px;border-radius:7px;flex:none;margin-top:1px;border:2.5px solid #cfd4cf;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:14px;color:#fff}
+.cons i.on{background:#2f9e4a;border-color:#2f9e4a}
+.cons small{display:block;font-weight:700;font-size:11.5px;color:var(--mut);margin-top:2px}
+.sec{font-weight:900;font-size:12px;letter-spacing:.5px;color:#a87a00;margin:14px 0 8px;display:flex;justify-content:space-between}
+.sec em{font-style:normal;color:var(--mut);letter-spacing:0;font-weight:800}
+.pc{background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 3px 0 #f1e3b3;margin-bottom:10px}
+.pc .t{display:flex;align-items:center;gap:8px}
+.pc .t b{font-weight:900;font-size:15.5px;line-height:1.25}
+.pt{flex:none;font-weight:900;font-size:12.5px;border-radius:99px;padding:3px 10px;color:#fff}
+.pc p{font-weight:700;font-size:13.5px;line-height:1.4;color:#4d5850;margin-top:6px}
+.pc .try{background:#f6f8f6;border-radius:12px;padding:8px 10px;margin-top:8px;font-weight:800;font-size:13.5px;line-height:1.38}
+.pc .try small{display:block;font-weight:900;font-size:11px;color:var(--mut);letter-spacing:.4px;margin-bottom:2px}
+.pc .ev{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px;font-weight:800;font-size:11.5px;color:var(--mut)}
+.pc .ev i{font-style:normal;font-weight:800;font-size:12px;border-radius:8px;padding:2px 7px;background:#fff0f4;color:#d6416a}
+.pc .act{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.pc .min{font-weight:900;font-size:12.5px;color:#a87a00}
+.lk{font-weight:900;font-size:13.5px;color:var(--blue)}
+.fine{flex-wrap:wrap;gap:2px 10px;display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:12px;color:var(--mut);margin-top:4px}
+.stale{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:8px 10px 8px 12px;margin-top:12px;font-weight:800;font-size:12.5px;line-height:1.3;box-shadow:0 0 0 2px #ffe08a}
+.stale .b{margin-left:auto;flex:none;border-radius:99px;padding:6px 12px;font-weight:900;font-size:12.5px;color:#5a3d00;background:#ffd45a;box-shadow:0 3px 0 #d99a00}
+.cancel{display:block;text-align:center;margin-top:14px;font-weight:900;font-size:14px;color:var(--mut)}
+.dots3{display:flex;gap:6px;justify-content:center;margin-top:12px}.dots3 i{width:9px;height:9px;border-radius:50%;background:#ffd45a}.dots3 i:nth-child(2){opacity:.6}.dots3 i:nth-child(3){opacity:.3}
+.think{text-align:center;padding:6px 0 4px}.think .soc{width:92px;margin:0 auto}
+.think b{display:block;font-weight:900;font-size:18px;margin-top:4px}.think small{display:block;font-weight:700;font-size:13px;color:var(--mut);margin-top:3px;line-height:1.4}
+.na{display:flex;gap:12px;align-items:center}.na .soc{width:56px;flex:none}.na b{display:block;font-weight:900;font-size:15.5px;line-height:1.25}.na small{display:block;font-weight:700;font-size:12.5px;color:var(--mut);margin-top:2px;line-height:1.35}
+.shp{position:absolute;left:0;right:0;bottom:0;top:78px;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 20px;z-index:40;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.bgp{position:absolute;inset:0;background:linear-gradient(#cfeaff,#eaf6ff)}
+.shp .grab{margin:0 auto 0;flex:none}
+.scrl{position:absolute;left:0;right:0;bottom:0;height:46px;background:linear-gradient(transparent,#fff 80%);z-index:3}
+.clip{overflow:hidden;flex:1;position:relative}
+.clip>.inner{position:relative}
+.pr{font-weight:900;font-size:12.5px;color:#2f8a42;margin-bottom:2px}
+.hl b{display:block;font-weight:900;font-size:16px;line-height:1.3}
+.pc{margin-top:12px;margin-bottom:0}
+.pc p.ob{margin-top:0;font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc p.tr{margin-top:6px;font-weight:800;font-size:14px;line-height:1.4;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.go.done{background:#e7f6ea;color:#2f8a42;box-shadow:0 4px 0 #cfeed5}
+.quiet{display:block;text-align:center;margin-top:10px;font-weight:900;font-size:13.5px;color:#5c675f;border-radius:99px;padding:8px 0;background:#f3f4f2}
+.more{display:flex;justify-content:space-between;margin-top:10px;background:#fff;border-radius:14px;padding:10px 14px;font-weight:900;font-size:14px;box-shadow:0 3px 0 #f1e3b3}.more i{font-style:normal;color:var(--mut)}
+.lkb{color:var(--blue);font-weight:900}
+.fine{margin-top:12px}
+.rs{position:absolute;inset:0;background:linear-gradient(#4cc062,#2f9e4a);color:#fff;text-align:center}
+.rs .t{position:absolute;left:0;right:0;top:96px;font-weight:900;font-size:16px;opacity:.9}.rs .n{position:absolute;left:0;right:0;top:118px;font-weight:900;font-size:96px;letter-spacing:-3px;line-height:1}
+.rs .k{position:absolute;left:0;right:0;top:232px;font-weight:900;font-size:17px;color:#fff3b0}
+.rs>.soc{position:absolute;left:125px;top:280px;width:140px}
+.rs .cardw{position:absolute;left:16px;right:16px;bottom:206px;background:#fff;color:var(--ink);border-radius:22px;padding:14px 16px;text-align:left;font-weight:900;font-size:17px}
+.rs .cardw small{display:block;font-weight:800;font-size:13.5px;color:var(--mut);margin-top:4px}
+.rs .ask{position:absolute;left:16px;right:16px;bottom:140px;background:rgba(255,255,255,.22);border-radius:18px;padding:8px 14px 8px 10px;display:flex;align-items:center;gap:10px;font-weight:900;font-size:14.5px;text-align:left}.rs .ask .soc{width:36px;flex:none}.rs .ask i{margin-left:auto;font-style:normal;opacity:.8}
+.rs .b1,.rs .b2{position:absolute;bottom:40px;height:54px;border-radius:99px;display:grid;place-items:center;font-weight:900;font-size:16px}
+.rs .b1{left:16px;width:110px;background:rgba(255,255,255,.25)}.rs .b2{right:16px;left:140px;background:#fff;color:#d6416a;box-shadow:0 5px 0 rgba(0,0,0,.15)}
+.tdl{position:absolute;left:0;right:0;bottom:86px;background:#fbfaf7;border-radius:28px 28px 0 0;padding:16px 16px 6px;z-index:10}
+.tdl .it{display:flex;align-items:center;gap:12px;padding:10px 8px;border-top:1px solid #eceee9;font-weight:900;font-size:16px}
+.tdl .it i{width:26px;height:26px;border-radius:8px;border:2.5px solid #cfd4cf;flex:none}.tdl .it.dn{color:#9aa39d;text-decoration:line-through}.tdl .it.dn i{background:#46b35a;border-color:#46b35a}
+.tdl .it small{display:block;font-weight:800;font-size:12px;color:#a87a00;text-decoration:none;margin-top:1px}
+.tdl .it.new{background:#fff8e1;border-radius:14px;border-top-color:transparent;box-shadow:0 0 0 2px #ffe08a}
+</style></head><body>
+<script src="lottie/soc-strings.js"></script>
+<script src="_goalguide.js"></script>
+<script>
+const taPart=(n)=>`<span class="pt" style="background:${n<5?'#1c8fe3':'#46b35a'}">Part ${n}</span>`;
+const taStrip=()=>`<div class="strip"><span class="n">765</span><div class="lr"><div>Nghe<b>390</b></div><div>Đọc<b>375</b></div></div><span class="d">11/11<br>Test 03</span></div>`;
+const taHead=(t='ETS 2024 Test 03')=>`<div class="shd"><span>${t}</span><span class="xx">×</span></div>`;
+const taWrong=`<div class="wq">46 câu sai · đã có trong Sổ tay</div>`;
+const taSoc=(k)=>`<span class="soc">${SOC[k]}</span>`;
+const taCons=(on)=>`<div class="cons"><i class="${on?'on':''}">${on?'✓':''}</i><div>Gửi điểm và câu sai của đề này cho OpenAI để nhận xét<small>Chỉ gửi khi bạn bấm nút. Không kèm tên hay email.</small></div></div>`;
+const taEntry=(o={})=>`<div class="adv"><div class="ah">${taSoc('idle')}<div><b>Sóc nhận xét đề này</b><small>Sóc đọc điểm từng Part và các câu sai bạn đã ghi.</small></div></div>
+ ${o.first?taCons(o.on):''}
+ <span class="go ${o.first&&!o.on?'off':''}">Nhờ Sóc xem</span><div class="quota">còn 8 lượt tháng này</div></div>`;
+const taThink=`<div class="adv"><div class="think">${taSoc('think')}<b>Sóc đang đọc đề…</b><small>Có thể mất tới một phút. Bạn cứ để màn hình này, điểm và câu sai vẫn nguyên.</small><div class="dots3"><i></i><i></i><i></i></div></div><span class="cancel">Huỷ</span></div>`;
+const taPr=(t)=>`<div class="pr">${t}</div>`;
+const taCard=(o,state)=>`<div class="pc"><p class="ob">${o.obs}</p><p class="tr"><b>Thử:</b> ${o.prac}</p>
+ ${state==='added'?`<span class="go done">✓ Đã thêm vào Hôm nay</span>`:`<span class="go green">＋ Thêm vào việc hôm nay</span>`}
+ <span class="quiet">${o.link}</span></div>`;
+const P1={head:'Part 7 đang kéo điểm nhiều nhất, gỡ nó trước nhé.',obs:'Part 7 sai 16/54 câu, nhiều nhất đề này, và bạn ghi mất 62 phút cho cả Part.',prac:'bấm giờ một đoạn kép, đọc câu hỏi trước rồi mới tìm trong bài.',link:'Làm ngay: Bấm giờ Part 7 · 20′'};
+const P2={obs:'Part 3 sai 9 câu, phần lớn ghi chú nhắc nhầm con số và giờ.',prac:'nghe lại 9 câu trong Sổ tay, tự đoán trước khi xem đáp án.',link:'Làm ngay: Ôn 9 câu trong Sổ tay · 15′'};
+const taResult=(o={})=>`<div class="adv"><div class="ah">${taSoc('idle')}<div class="hl">${taPr('Đọc tăng 25 so với đề trước')}<b>${P1.head}</b></div></div>
+ ${o.stale?`<div class="stale"><span>Bạn vừa sửa điểm hoặc câu sai, nhận xét có thể lệch.</span><span class="b">Cập nhật lại</span></div>`:''}
+ ${taCard(P1,o.added?'added':'')}
+ ${o.open?taCard(P2,''):(o.more===0?'':`<div class="more">Còn 1 việc nữa<i>›</i></div>`)}
+ <div class="fine"><span>Làm ngày 14/11</span>${o.stale?'':'<span class="lkb">Cập nhật lại · còn 7 lượt</span>'}</div></div>`;
+const taGuest=`<div class="adv plain"><div class="na">${taSoc('idle')}<div><b>Đăng nhập để nhờ Sóc nhận xét</b><small>Điểm và câu sai của đề vẫn xem được bình thường.</small></div></div><span class="go green">Đăng nhập</span></div>`;
+const taQuota=`<div class="adv plain"><div class="na">${taSoc('idle')}<div><b>Hết lượt nhận xét tháng này</b><small>Lượt mới vào ngày 1/12. Nhận xét đã có vẫn xem lại được.</small></div></div><span class="go off">Nhờ Sóc xem</span><div class="quota">còn 0 lượt tháng này</div></div>`;
+const taErr=`<div class="adv plain"><div class="na">${taSoc('think')}<div><b>Sóc chưa đọc xong đề này</b><small>Lượt này đã được tính. Bạn thử lại sau ít phút nhé.</small></div></div><span class="go">Thử lại</span><div class="quota">còn 8 lượt tháng này</div></div>`;
+const dk=(t,s,inner)=>ggFw(t,s,`<div class="dkf"><div class="ghost"></div><div class="drw3">${taHead()}${taStrip()}${inner}</div></div>`,1);
+const ph=(t,s,inner,off=0)=>ggFw(t,s,`<div class="ph"><div class="bgp"></div>${ggSb()}<div class="dim" style="z-index:30"></div><div class="shp"><div class="grab"></div>${taHead()}${off?'':taStrip()}<div class="clip"><div class="inner" style="margin-top:-${off}px;display:flex;flex-direction:column;gap:12px">${off?'':taWrong}${inner}</div></div>${off?'':''}</div></div>`);
+</script>
+<div class="cap">Sóc nhận xét đề này<small>Kết quả rút gọn: (1) một dòng khen do app tự tính từ dữ liệu đề, không do AI: chọn mức tăng lớn nhất so với đề trước, nếu không có thì Part đúng cao nhất theo %; (2) Sóc nói một câu lấy từ tên trọng tâm đầu tiên; (3) một thẻ gồm nhận xét và việc thử; (4) nút chính thêm vào Hôm nay, nút phụ làm ngay; (5) trọng tâm còn lại gập sau một dòng; (6) chân trang chỉ có ngày và Cập nhật lại.</small></div>
+<div class="cap" style="margin-top:22px;font-size:17px">Máy tính</div>
+<div class="row" id="d1"></div><div class="row" id="d2"></div><div class="row" id="d3"></div>
+<div class="cap" style="margin-top:10px;font-size:17px">Điện thoại</div>
+<div class="row" id="p1"></div><div class="row" id="p2"></div><div class="row" id="p3"></div>
+<script>
+const $=id=>document.getElementById(id);
+$('d1').innerHTML=
+ dk('1 · Lần đầu: tick đồng ý','Nút xám cho tới khi tick ô đồng ý. Đã tick một lần thì các đề sau chỉ còn dòng quota.',taWrong+taEntry({first:1,on:0}))+
+ dk('2 · Đã đồng ý, sẵn sàng','Một thẻ gọn, một nút vàng, dòng quota nhỏ bên dưới.',taWrong+taEntry({}))+
+ dk('3 · Sóc đang đọc','Sóc ở dáng nghĩ, có nút Huỷ. Gọi AI có thể tới khoảng 45 giây.',taWrong+taThink);
+$('d2').innerHTML=
+ dk('4 · Kết quả','Lời khen app tự tính; Sóc nói một câu; một thẻ duy nhất. Việc thứ hai gập sau một dòng.',taResult({}))+
+ dk('5 · Mở "Còn 1 việc nữa", đã thêm','Nút chính thành dấu đã thêm. Việc thứ hai mở tại chỗ, cùng dạng thẻ gọn.',taResult({open:1,added:1}))+
+ dk('6 · Đề đã đổi, nhận xét cũ','Dải vàng nhẹ + Cập nhật lại; không cảnh báo đỏ.',taResult({stale:1,more:0}));
+$('d3').innerHTML=
+ dk('7 · Không dùng được','Chưa đăng nhập, hết lượt, lỗi: một khung, mỗi cái một nút.',`<div style="display:flex;flex-direction:column;gap:10px">${taGuest}${taQuota}${taErr}</div>`);
+$('p1').innerHTML=
+ ph('1 · Lần đầu: tick đồng ý','Nút xám tới khi tick ô.',taEntry({first:1,on:0}))+
+ ph('2 · Đã đồng ý','Thẻ gọn + quota.',taEntry({}))+
+ ph('3 · Sóc đang đọc','Có nút Huỷ.',taThink)+
+ ph('4 · Kết quả','Một lời khen, một câu của Sóc, một thẻ.',taResult({}));
+$('p2').innerHTML=
+ ph('5 · Mở việc thứ hai, đã thêm','Bấm "Còn 1 việc nữa" mở tại chỗ.',taResult({open:1,added:1}))+
+ ph('6 · Đề đã đổi','Cập nhật lại ngay dưới câu của Sóc.',taResult({stale:1,more:0}))+
+ ph('7 · Chưa đăng nhập / hết lượt','Hiện cái hợp với tài khoản.',`<div style="display:flex;flex-direction:column;gap:10px">${taGuest}${taQuota}</div>`)+
+ ph('8 · Lỗi','Lượt lỗi vẫn bị tính (backend giữ lượt trước khi gọi).',taErr);
+$('p3').innerHTML=
+ ggFw('9 · Hôm nay sau khi thêm','Việc Sóc gợi ý nằm trong danh sách như mọi việc khác, tính vào chuỗi ngày.',`<div class="ph"><div class="sky"><div class="rays"></div></div>${ggSb()}${ggTop('Thi sau 37 ngày',2)}<div class="hd">${ggDots(9,4,'BẬC 5/9 · CÒN 120 ĐIỂM')}<h1>Bốn bậc nữa là<br><em>chạm tay vào cúp</em></h1></div>${ggStairs([590,620,650,680,710,740,770],{cur:3,x0:6,base:470,w:54,h0:40,rise:28})}<div class="tdl"><div class="next"><div style="flex:1"><small>TIẾP THEO · 120 PHÚT</small><strong>Làm 1 đề full</strong></div><span class="wbtn">▶ Bắt đầu</span></div><div style="margin-top:8px"><div class="it new"><i></i><div>Bấm giờ Part 7 · 20′<small>Sóc gợi ý từ đề 11/11</small></div></div><div class="it dn"><i></i>Học 20 từ</div></div></div>${ggNav('home')}</div>`)+
+ ggFw('10 · Kết quả sau khi lưu đề','Hàng nhỏ "Nhờ Sóc xem đề này" nằm giữa thẻ điểm và nút; bấm mở ngăn nhận xét của đề.',`<div class="ph"><div class="rs"><div class="t">ETS 2024 · Test 12</div><div class="n">755</div><div class="k">Kỷ lục mới · ▲ 30</div>${taSoc('idle')}<div class="cardw">Nghe 385 · Đọc 370<small>Còn 45 điểm nữa là chạm cúp 800.</small></div><div class="ask">${taSoc('idle')}Nhờ Sóc xem đề này<i>›</i></div><div class="b1">Xong</div><div class="b2">📷 Ghi câu sai ngay</div></div>${ggSb('#fff')}</div>`);
+</script>
+</body></html>

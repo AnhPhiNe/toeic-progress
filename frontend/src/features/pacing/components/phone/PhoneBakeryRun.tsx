@@ -18,6 +18,8 @@ interface Props {
   onResume: () => void;
   onFinish: () => void;
   onStop: () => void;
+  /** Mẻ tự do: no questions and no steps; the oven's own progress track shows the time instead. */
+  free?: boolean;
 }
 
 function Colons({ text }: { text: string }) {
@@ -28,18 +30,18 @@ function Colons({ text }: { text: string }) {
 
 /** Đang nướng on phones: the whole screen is the oven; the recipe shrinks to one line and five bars. */
 export function PhoneBakeryRun(p: Props) {
-  const line = p.hot ? 'Sắp chín rồi! Còn ít phút nữa thôi.' : p.paused ? 'Sóc giữ lò ấm cho bạn nhé.' : 'Câu nào kẹt thì đánh dấu, qua câu sau đã.';
-  const now = p.steps.find(s => s.state === 'now') ?? p.steps[p.steps.length - 1];
+  const line = p.hot ? 'Sắp chín rồi! Còn ít phút nữa thôi.' : p.paused ? 'Sóc giữ lò ấm cho bạn nhé.' : p.free ? 'Chỉ một việc thôi, xong là nghỉ.' : 'Câu nào kẹt thì đánh dấu, qua câu sau đã.';
+  const now = p.free ? undefined : p.steps.find(s => s.state === 'now') ?? p.steps[p.steps.length - 1];
   return (
     <div className={'rd bk-run pp pp-run' + (p.hot ? ' is-hot' : '') + (p.paused ? ' is-paused' : '')}>
       <div className="bk-floor pp-floor" aria-hidden="true" />
       <header className="pp-run-head">
-        <div><b>{p.label}</b><span>{p.questions} câu · {p.plannedMinutes} phút</span></div>
+        <div><b>{p.label}</b><span>{p.free ? `${p.plannedMinutes} phút` : `${p.questions} câu · ${p.plannedMinutes} phút`}</span></div>
         <button type="button" className="bk-stop" onClick={p.onStop}>× Dừng</button>
       </header>
 
       <div className="pp-oven">
-        <Oven w={540} h={620} variant="run" track={false} rise={p.progress} progress={p.progress} dialLabel={`${p.plannedMinutes}′`}
+        <Oven w={540} h={620} variant="run" track={Boolean(p.free)} rise={p.progress} progress={p.progress} dialLabel={`${p.plannedMinutes}′`}
           caption={p.paused ? 'đang tạm dừng' : ''} />
         <div className={'bk-lcd' + (p.clock.length > 5 ? ' is-long' : '')} role="timer" aria-live="off" aria-label={`Còn ${p.clock}`}><Colons text={p.clock} /></div>
       </div>
@@ -65,7 +67,7 @@ export function PhoneBakeryRun(p: Props) {
           {p.paused
             ? <button type="button" className="rd-btn rd-btn--white pp-side" onClick={p.onResume}>Tiếp tục</button>
             : <button type="button" className="rd-btn rd-btn--white pp-side" onClick={p.onPause}>Tạm dừng</button>}
-          <button type="button" className="rd-btn bk-fire pp-fire" onClick={p.onFinish}>Xong rồi · ra lò</button>
+          <button type="button" className="rd-btn bk-fire pp-fire" onClick={p.onFinish}>{p.free ? 'Xong sớm · ra lò' : 'Xong rồi · ra lò'}</button>
         </div>
       </div>
     </div>

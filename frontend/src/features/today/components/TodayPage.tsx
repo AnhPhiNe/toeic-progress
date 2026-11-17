@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
-import type { UserProfile } from '@/shared/types';
+import type { SuggestedTask, UserProfile } from '@/shared/types';
+import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
@@ -16,19 +17,24 @@ import { StairsScene } from './StairsScene';
 import { TodayCard } from './TodayCard';
 import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
 import { useWelcome } from './welcome/useWelcome';
+import { GoalPopover } from './goal/GoalEditor';
+import { useGoalEdit } from './goal/useGoalEdit';
+import { CELEBRATED_KEY } from '../lib/goalEdit';
 import './today.css';
 
 interface Props {
   bundle: DataBundle;
   today: string;
   onStartTask: (task: TodayTask) => void;
+  /** A task added from Sóc's advice: the Part timer or that test in Sổ tay. */
+  onStartSuggestion: (task: SuggestedTask) => void;
   onPracticeMore: () => void;
   onOpenSessionLogger: () => void;
-  onOpenSettings: () => void;
+  /** Unused since the goal and exam date are edited in place (kept so App's call site needs no change). */
+  onOpenSettings?: () => void;
   onUpdateProfile: (update: (profile: UserProfile) => UserProfile) => void;
 }
 
-const CELEBRATED_KEY = 'rd_goal_celebrated_v1';
 const SKIP_KEY = 'rd_task_skip_v1';
 
 /** Suggested tasks the learner set aside for today (per device; they come back tomorrow if still needed). */
@@ -46,12 +52,13 @@ function useSkippedToday(today: string) {
   return [ids, skip] as const;
 }
 
-export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile }: Props) {
+export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onUpdateProfile }: Props) {
   const { profile, sessions, mistakes } = bundle;
   const target = profile.targetScore;
   const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
   const [skipped, skipTask] = useSkippedToday(today);
-  const tasks = useMemo(() => pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), [bundle, today, skipped, profile.suggestOff]);
+  const suggestions = useMemo(() => suggestionsToday(profile, bundle.pacingRuns, today), [profile, bundle.pacingRuns, today]);
+  const tasks = useMemo(() => withoutRepeatedTimers(pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), suggestions), [bundle, today, skipped, profile.suggestOff, suggestions]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
@@ -69,6 +76,8 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
   const mode = todayMode({ hasTests: climbing !== null, chosen, editing: editingGoal });
   const estimate = useMemo(() => estimateMilestones(chosen ? target : PREVIEW_TARGET), [chosen, target]);
   const welcome = useWelcome({ hasTests: climbing !== null, chosen });
+  const goalEdit = useGoalEdit({ profile, sessions, today, onUpdateProfile });
+  const canEdit = mode !== 'choose' && !welcome.greeting;
   const firstTask = tasks.find(item => !item.done) ?? null;
   const blocks = climbing ? climbing.steps.length - 1 : 0;
   const remaining = climbing ? blocks - climbing.currentIndex : 0;
@@ -89,7 +98,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
     .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? '')), [sessions]);
 
   return (
-    <div className={'rd td-page' + (welcome.fresh ? ' is-welcome' : '') + (welcome.greeting ? ' is-greeting' : '')}>
+    <div className={'rd td-page' + (welcome.fresh ? ' is-welcome' : '') + (welcome.greeting ? ' is-greeting' : '') + (mode !== 'choose' && goalEdit.pastTip ? ' has-pasttip' : '')}>
       <StairsScene
         key={welcome.grew ? 'grown' : 'plain'}
         lit={welcome.lit}
@@ -99,6 +108,8 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
         cupLabel={chosen || climbing ? undefined : '?'}
         banner={mode === 'choose' ? (chosen ? `Mục tiêu ${target}` : 'Chọn mục tiêu') : undefined}
         gear={gear}
+        onEditGoal={canEdit ? goalEdit.open : undefined}
+        added={goalEdit.grow}
       />
 
       {mode === 'choose' && (
@@ -123,7 +134,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
             <small>{plan.status === 'done' ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${blocks + 1} · CÒN ${target - climbing.best} ĐIỂM`}</small>
           </div>
           {plan.status === 'done'
-            ? <><h1>Bạn đã <em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} · đặt mục tiêu mới trong cài đặt</p></>
+            ? <><h1>Bạn đã <em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} ·<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Đặt mục tiêu mới</button></p></>
             : <><h1>{countWord(remaining)} bậc nữa là <em>chạm tay vào cúp</em></h1><p>Mỗi bậc {climbing.step} điểm · rê chuột để xem ngày đạt</p></>}
         </> : <>
           <div className="td-row">
@@ -131,15 +142,17 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
             <small>{estimate.values.length} BẬC ƯỚC LƯỢNG · {estimate.values[0]} → {target}</small>
           </div>
           <h1>Cầu thang lên <em>cúp {target}</em><br />đã dựng xong</h1>
-          <p>Ghi đề đầu tiên để Sóc đặt bạn lên đúng bậc.<button type="button" className="td-edit" onClick={() => setEditingGoal(true)}>Sửa mục tiêu</button></p>
+          <p>Ghi đề đầu tiên để Sóc đặt bạn lên đúng bậc.<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button></p>
         </>}
       </header>}
 
       <aside className="td-panel">
         {mode !== 'choose' && <div className="td-chips">
-          {examIn !== null
-            ? <span style={{ color: 'var(--rd-blue)' }}>{examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`}</span>
-            : <button type="button" onClick={onOpenSettings}>📅 Đặt ngày thi</button>}
+          {goalEdit.exam.kind === 'past'
+            ? <button type="button" className="is-exam-past" onClick={e => goalEdit.open(e.currentTarget)}>Đã qua ngày thi · Cập nhật</button>
+            : examIn !== null
+              ? <button type="button" onClick={e => goalEdit.open(e.currentTarget)}>{examIn === 0 ? 'Thi hôm nay!' : `Thi sau ${examIn} ngày`}</button>
+              : <button type="button" onClick={e => goalEdit.open(e.currentTarget)}>📅 Đặt ngày thi</button>}
         </div>}
         {climbing ? <TodayCard
           gear={gear}
@@ -149,6 +162,9 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
           week={week}
           goal={goal}
           onStartTask={onStartTask}
+          suggestions={suggestions}
+          onStartSuggestion={onStartSuggestion}
+          onToggleSuggestion={id => onUpdateProfile(p => toggleSuggestion(p, id, today))}
           onSkipTask={skipTask}
           onPracticeMore={onPracticeMore}
           onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
@@ -163,6 +179,16 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
       {welcome.greeting && <GreetSoc size={190} className="td-greet" />}
       {welcome.leapBubble && mode === 'ready' && <SocBubble tail="down" className="td-leap">Ghi <b>đề đầu tiên</b> là mình leo bậc 1!</SocBubble>}
       {welcome.confetti && <Confetti className="td-wl-conf" />}
+      {goalEdit.said && <SocBubble tail="down" className="td-said">{goalEdit.said}</SocBubble>}
+      {mode !== 'choose' && goalEdit.pastTip && (
+        <SocBubble tail="up" className="td-pasttip">
+          Thi xong chưa? <button type="button" className="ge-tipbtn" onClick={() => { goalEdit.hidePastTip(); onOpenSessionLogger(); }}>Ghi điểm thật</button> hoặc đặt ngày mới.
+        </SocBubble>
+      )}
+      {goalEdit.isOpen && (
+        <GoalPopover anchor={goalEdit.anchor} sessions={sessions} current={target} initial={target} best={goalEdit.best}
+          examDate={profile.examDate} today={today} onSave={goalEdit.save} onClose={goalEdit.close} />
+      )}
 
       {celebrate && climbing && (
         <div className="td-cele" role="dialog" aria-modal="true" aria-label={`Bạn đã chạm ${target}`}>
@@ -183,7 +209,7 @@ export function TodayPage({ bundle, today, onStartTask, onPracticeMore, onOpenSe
             <h1>Bạn đã chạm {target}!</h1>
             <p>Từ {scored[0]?.totalScore} lên {climbing.best} sau {scored.length} đề.</p>
             <div className="td-cele-bt">
-              <button type="button" className="rd-btn" onClick={() => { setCelebrate(false); onOpenSettings(); }}>Đặt mục tiêu mới</button>
+              <button type="button" className="rd-btn" onClick={() => { setCelebrate(false); goalEdit.open(); }}>Đặt mục tiêu mới</button>
               <button type="button" className="rd-btn rd-btn--white" onClick={() => setCelebrate(false)}>Đóng</button>
             </div>
           </div>

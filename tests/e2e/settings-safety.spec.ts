@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/*', route => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
 });
 async function open(page: Page) {
-  await page.goto('/tu-vung');
+  await page.goto('/');
   return openSettings(page);
 }
 async function backup(page: Page) {
@@ -16,16 +16,18 @@ async function backup(page: Page) {
 
 test('settings fields are labelled, preserve a draft across background activity and merge current profile data', async ({ page }) => {
   const modal = await open(page);
-  for (const name of ['Tên của bạn', 'Điểm mục tiêu', 'Ngày thi', 'Học mỗi ngày (phút)', 'Khiên cứu chuỗi', 'Châm ngôn']) {
+  for (const name of ['Tên của bạn', 'Ngày thi', 'Học mỗi ngày (phút)', 'Khiên cứu chuỗi', 'Châm ngôn']) {
     await expect(modal.getByLabel(name, { exact: true })).toHaveCount(1);
   }
+  // The goal is a button that opens the same editor as Hôm nay.
+  await expect(modal.getByRole('button', { name: /^Điểm mục tiêu/ })).toHaveCount(1);
   await modal.getByLabel('Tên của bạn', { exact: true }).fill('Draft learner');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     bundle.profile.motto = 'Synced elsewhere';
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
-    // A background activity update exercises App's current profile props while the modal stays open.
-    [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.trim() === 'Lưu từ vựng')!.click();
+    // A background profile update (picking a goal on Hôm nay) exercises App's current profile props while the modal stays open.
+    [...document.querySelectorAll<HTMLButtonElement>('.td-gc-chip')].find(button => button.textContent?.trim() === '700')!.click();
   });
   await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveValue('Draft learner');
   await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
@@ -33,8 +35,7 @@ test('settings fields are labelled, preserve a draft across background activity 
   const bundle = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
   expect(bundle.profile.name).toBe('Draft learner');
   expect(bundle.profile.motto).toBe('Synced elsewhere');
-  expect(bundle.vocabLog.some((entry: { count: number }) => entry.count > 0)).toBe(true);
-  expect(bundle.profile.currentStreak).toBe(1);
+  expect(bundle.profile.targetScore).toBe(700);
 });
 
 test('same-field conflicts and storage failures preserve the draft with an error', async ({ page }) => {

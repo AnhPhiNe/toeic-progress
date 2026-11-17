@@ -11,8 +11,8 @@ test('phone settings list saves one field per sheet and Escape closes the sheet 
   await expect(settings.getByText('Chỉ lưu trên máy')).toBeVisible();
 
   await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'Điểm mục tiêu', exact: true });
-  await sheet.getByRole('button', { name: 'Tăng', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
+  await sheet.getByRole('button', { name: 'Bớt 25 điểm', exact: true }).click();
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
   await expect(settings).toBeVisible();
@@ -20,7 +20,7 @@ test('phone settings list saves one field per sheet and Escape closes the sheet 
 
   await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
   await sheet.getByRole('button', { name: '850', exact: true }).click();
-  await sheet.getByRole('button', { name: 'Lưu', exact: true }).click();
+  await sheet.getByRole('button', { name: /^Lưu · cúp/ }).click();
   await expect(sheet).toHaveCount(0);
   expect((await profile(page)).targetScore).toBe(850);
   await expect(settings.getByRole('button', { name: /^Điểm mục tiêu/ })).toContainText('850');

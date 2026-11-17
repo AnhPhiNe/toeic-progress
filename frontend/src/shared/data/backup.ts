@@ -18,7 +18,7 @@ const profile = z.object({
   name: z.string().min(1), targetScore: z.number().int().min(10).max(990), examDate: z.union([date, z.literal('')]),
   currentStreak: z.number().int().nonnegative(), longestStreak: z.number().int().nonnegative(),
   streakFreezes: z.number().int().min(0).max(5), lastStudyDate: z.union([date, z.literal('')]),
-  shieldAllowance: z.number().int().nonnegative().optional(),
+  shieldAllowance: z.number().int().nonnegative().optional(), goalChosen: z.boolean().optional(),
   dailyMinGoalMinutes: z.number().int().positive(), motto: z.string(), selectedSkill: z.enum(['LR', 'SW']),
   ...metadata
 }).passthrough();

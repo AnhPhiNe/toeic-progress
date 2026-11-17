@@ -7,7 +7,8 @@ describe('tab routes', () => {
   });
   it('handles trailing slashes and unknown paths', () => {
     expect(tabFromPath('/phan-tich/')).toBe('analytics');
-    expect(tabFromPath('/tu-vung/')).toBe('vocabulary');
+    expect(tabFromPath('/tu-vung/')).toBe('dashboard');
+    expect(tabFromPath('/ke-hoach')).toBe('dashboard');
     expect(tabFromPath('/tai-lieu')).toBe('resources');
     expect(tabFromPath('/khong-co')).toBe('dashboard');
   });

@@ -198,7 +198,9 @@
 .jr-h5 b { font-weight: 900; font-size: 17px; }
 .jr-h5 span { font-weight: 700; font-size: 13px; color: var(--rd-mut); display: flex; align-items: center; gap: 6px; }
 .jr-lg { width: 14px; height: 14px; border-radius: 5px; background: var(--rd-pink); display: inline-block; }
-.jr-sec { flex: 1; min-height: 0; overflow-y: auto; margin-top: -6px; padding-right: 4px; -webkit-mask-image: linear-gradient(#000 88%, transparent); mask-image: linear-gradient(#000 88%, transparent); }
+/* Sóc's line, the advice block and the wrong questions scroll together between the ticket and the footer. */
+.jr-dbody { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; margin: 0 -8px; padding: 2px 8px 8px; }
+.jr-sec { margin-top: -6px; }
 .jr-pr { display: grid; grid-template-columns: 66px 1fr 56px; gap: 10px; align-items: start; padding: 7px 0; border-top: 2px solid #f1f3f1; }
 .jr-pr > b { font-weight: 900; font-size: 15px; padding-top: 5px; }
 .jr-pc { font-weight: 900; font-size: 13.5px; color: var(--rd-mut); text-align: right; padding-top: 6px; }

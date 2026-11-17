@@ -31,7 +31,7 @@ test('device Back closes the top sheet or form first and only then leaves the pa
   await page.getByRole('dialog', { name: 'Hồ sơ', exact: true }).getByRole('button', { name: /^Tài khoản & cài đặt/ }).click();
   const settings = page.getByRole('dialog', { name: 'Cài đặt', exact: true });
   await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
-  const targetSheet = page.getByRole('dialog', { name: 'Điểm mục tiêu', exact: true });
+  const targetSheet = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
   await expect(targetSheet).toBeVisible();
   await page.goBack();
   await expect(targetSheet).toHaveCount(0);

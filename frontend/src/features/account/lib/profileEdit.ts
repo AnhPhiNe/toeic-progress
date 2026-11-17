@@ -13,6 +13,9 @@ export function mergeProfileEdit(latest: UserProfile, snapshot: UserProfile, edi
     }
     Object.assign(result, { [field]: edited[field] });
   }
+  // A goal set here counts as chosen (Hôm nay stops asking): an edited target, or the target field touched
+  // (goalChosen in the draft) even when the learner kept the placeholder 990.
+  if (edited.targetScore !== snapshot.targetScore || (edited.goalChosen === true && snapshot.goalChosen !== true)) result.goalChosen = true;
   if (!result.name.trim()) throw new Error('Vui lòng nhập tên học viên.');
   if (!Number.isInteger(result.targetScore) || result.targetScore < 10 || result.targetScore > 990 || result.targetScore % 5 !== 0)
     throw new Error('Mục tiêu điểm cần từ 10 đến 990, theo bước 5.');

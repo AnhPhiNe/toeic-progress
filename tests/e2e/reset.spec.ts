@@ -1,11 +1,20 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { openSettings } from './helpers/accountGroup';
 
+/** Puts one day of word counts into the guest bundle (the page that used to record them is gone), then reloads. */
+async function seedVocab(page: Page, count: number) {
+  await page.evaluate(count => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const stamp = new Date().toISOString();
+    data.vocabLog = [{ id: 'vocab:2026-10-01', date: '2026-10-01', count, updatedAt: stamp, deletedAt: null }];
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  }, count);
+  await page.reload();
+}
+
 test('guest reset removes content and retired copies with one confirmation', async ({ page }) => {
-  await page.goto('/tu-vung');
-  await page.getByRole('spinbutton', { name:'Số từ đã học' }).fill('12');
-  await page.getByRole('button', { name:'Lưu từ vựng' }).click();
-  await expect(page.getByText('12 từ tích lũy',{exact:true})).toBeVisible();
+  await page.goto('/');
+  await seedVocab(page, 12);
   await page.evaluate(() => {
     localStorage.setItem('toeic_progress_bundle_v2','Sensitive retired copy');
     localStorage.setItem('toeic_990_sessions_v1','Private old test');
@@ -28,13 +37,12 @@ test('guest reset removes content and retired copies with one confirmation', asy
   expect(result.records).toHaveLength(1);
   expect(Object.keys(result.records[0]).sort()).toEqual(['deletedAt','id','updatedAt']);
   await page.reload();
-  await expect(page.getByText('0 từ tích lũy',{exact:true})).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).vocabLog.filter((entry: { deletedAt: string | null }) => !entry.deletedAt))).toHaveLength(0);
 });
 
 test('canceling reset retains guest content', async ({ page }) => {
-  await page.goto('/tu-vung');
-  await page.getByRole('spinbutton',{name:'Số từ đã học'}).fill('4');
-  await page.getByRole('button',{name:'Lưu từ vựng'}).click();
+  await page.goto('/');
+  await seedVocab(page, 4);
   const before=await page.evaluate(()=>localStorage.getItem('toeic_progress_bundle_v3'));
   await openSettings(page);
   page.once('dialog',dialog=>dialog.dismiss());

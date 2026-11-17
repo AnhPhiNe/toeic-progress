@@ -1,0 +1,66 @@
+/* Sóc nhận xét đề này (design/previews/mock-test-advice.html, compact result). */
+.ta-wrap { flex: none; scroll-margin-top: 12px; }
+.ta { position: relative; border-radius: 22px; background: #fffbee; box-shadow: 0 0 0 2px #ffe9a8; padding: 14px 16px 16px; font-family: var(--rd-font); color: var(--rd-ink); }
+.ta.is-plain { background: #fff; box-shadow: 0 0 0 2px #eceee9; }
+.ta button { font-family: var(--rd-font); cursor: pointer; }
+.ta button:focus-visible, .ta input:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+
+.ta-head { display: flex; align-items: center; gap: 12px; }
+.ta-head > .soc { flex: none; }
+.ta-head > div { min-width: 0; }
+.ta-head b { display: block; font-weight: 900; font-size: 16.5px; line-height: 1.25; }
+.ta-head small { display: block; font-weight: 700; font-size: 12.5px; line-height: 1.35; color: var(--rd-mut); margin-top: 2px; }
+.ta-head.is-na b { font-size: 15.5px; }
+.ta-praise { margin: 0 0 2px; font-weight: 900; font-size: 12.5px; color: var(--rd-green-d); }
+.ta-say { font-size: 16px !important; line-height: 1.3 !important; }
+
+.ta-go { display: block; width: 100%; margin-top: 12px; border: 0; border-radius: 99px; padding: 12px 0; text-align: center; font-weight: 900; font-size: 15.5px;
+  color: #5a3d00; background: linear-gradient(90deg, #ffcf4a, #f5b400); box-shadow: 0 4px 0 #d99a00; }
+.ta-go:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #d99a00; }
+.ta-go.is-green { color: #fff; background: linear-gradient(90deg, #4cc062, #2f9e4a); box-shadow: 0 4px 0 #2a8a40; }
+.ta-go:disabled { background: #eceee9; color: #a3aba5; box-shadow: 0 4px 0 #dcdfd9; cursor: default; }
+.ta-go.is-done { margin-bottom: 0; background: #e7f6ea; color: var(--rd-green-d); box-shadow: 0 4px 0 #cfeed5; }
+.ta-quota { margin: 8px 0 0; text-align: center; font-weight: 800; font-size: 12px; color: var(--rd-mut); }
+
+.ta-consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; background: #fff; border-radius: 14px; padding: 10px 12px; font-weight: 800; font-size: 13.5px; line-height: 1.35; cursor: pointer; }
+.ta-consent input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--rd-green-d); cursor: pointer; }
+.ta-consent small { display: block; font-weight: 700; font-size: 11.5px; color: var(--rd-mut); margin-top: 2px; }
+
+.ta-think { text-align: center; padding: 6px 0 4px; }
+.ta-think .soc { display: block; margin: 0 auto; }
+.ta-think b { display: block; font-weight: 900; font-size: 18px; margin-top: 4px; }
+.ta-think small { display: block; font-weight: 700; font-size: 13px; line-height: 1.4; color: var(--rd-mut); margin-top: 3px; }
+.ta-dots { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+.ta-dots i { width: 9px; height: 9px; border-radius: 50%; background: #ffd45a; animation: ta-blink 1.2s ease-in-out infinite; }
+.ta-dots i:nth-child(2) { animation-delay: .2s; }
+.ta-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes ta-blink { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+.ta-cancel { display: block; margin: 10px auto 0; border: 0; background: none; padding: 6px 14px; font-weight: 900; font-size: 14px; color: var(--rd-mut); }
+
+.ta-stale { display: flex; align-items: center; gap: 10px; margin-top: 12px; background: #fff; border-radius: 14px; padding: 8px 10px 8px 12px; box-shadow: 0 0 0 2px #ffe08a;
+  font-weight: 800; font-size: 12.5px; line-height: 1.3; }
+.ta-stale button { margin-left: auto; flex: none; border: 0; border-radius: 99px; padding: 6px 12px; font-weight: 900; font-size: 12.5px; color: #5a3d00; background: #ffd45a; box-shadow: 0 3px 0 #d99a00; }
+.ta-stale.is-note b { font-weight: 900; }
+
+.ta-card { margin-top: 12px; background: #fff; border-radius: 18px; padding: 12px 14px; box-shadow: 0 3px 0 #f1e3b3; }
+.ta-ob { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; width: 100%; border: 0; background: none; padding: 0; text-align: left;
+  font-weight: 700; font-size: 14px; line-height: 1.4; color: #4d5850; }
+.ta-ob.is-open { display: block; -webkit-line-clamp: unset; }
+.ta-try { margin: 6px 0 0; font-weight: 800; font-size: 14px; line-height: 1.4; }
+.ta-try b { font-weight: 900; }
+.ta-quiet { display: block; width: 100%; margin-top: 10px; border: 0; border-radius: 99px; padding: 8px 10px; background: #f3f4f2; text-align: center; font-weight: 900; font-size: 13.5px; color: #5c675f; }
+.ta-quiet:hover { background: #eceee9; }
+.ta-more { display: flex; justify-content: space-between; width: 100%; margin-top: 10px; border: 0; background: #fff; border-radius: 14px; padding: 10px 14px; box-shadow: 0 3px 0 #f1e3b3;
+  font-weight: 900; font-size: 14px; color: var(--rd-ink); }
+.ta-more i { font-style: normal; color: var(--rd-mut); }
+.ta-fine { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; margin-top: 12px; font-weight: 800; font-size: 12px; color: var(--rd-mut); }
+.ta-link { border: 0; background: none; padding: 4px 0; font-weight: 900; font-size: 12px; color: var(--rd-blue); }
+
+@media (prefers-reduced-motion: reduce) { .ta-dots i { animation: none; } }
+
+/* Guest: one quiet row instead of a card. */
+.ta-guest { display: flex; align-items: center; gap: 10px; padding: 6px 2px; font-family: var(--rd-font); font-weight: 800; font-size: 13.5px; color: var(--rd-mut); }
+.ta-guest > .soc { flex: none; }
+.ta-guest span { flex: 1; min-width: 0; line-height: 1.3; }
+.ta-guest button { flex: none; border: 0; background: none; padding: 6px 4px; font-family: var(--rd-font); font-weight: 900; font-size: 13.5px; color: var(--rd-blue); cursor: pointer; }
+.ta-guest button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; border-radius: 6px; }

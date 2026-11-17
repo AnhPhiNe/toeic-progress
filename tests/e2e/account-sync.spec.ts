@@ -77,7 +77,7 @@ async function setupAccount(page: Page) {
     ];
     await route.fulfill({ json: { cursor: syncRequests, records, hasRecords: true } });
   });
-  await page.goto('/tu-vung');
+  await page.goto('/');
   await expect.poll(() => profileName(page)).toBe('Alice');
   await expect(page.getByRole('alertdialog', { name: 'Trạng thái kết nối' })).toHaveCount(0);
   return {
@@ -95,27 +95,35 @@ async function confirmSession(page: Page, id = 'alice') {
   }, id);
 }
 
+/** The sidebar's account button carries the sync state ("Đã đồng bộ", "Đang đồng bộ", "Đồng bộ lỗi"). */
+const syncState = (page: Page) => page.getByRole('button', { name: /^Tài khoản & cài đặt/ });
+/** Word counts stored in a bundle, read from the active account's copy (or the guest copy once detached). */
+async function storedVocab(page: Page, key: string) {
+  return page.evaluate(storageKey => (JSON.parse(localStorage.getItem(storageKey) ?? '{"vocabLog":[]}').vocabLog as Array<{ count?: number; deletedAt: string | null }>)
+    .filter(entry => !entry.deletedAt).map(entry => entry.count), key);
+}
+
 test('returning to an existing session syncs in the background and preserves edits', async ({ page }) => {
   const state = await setupAccount(page);
-  const indicator = page.getByRole('status', { name: 'Trạng thái đồng bộ' });
-  await expect(indicator).toHaveText('Đã đồng bộ');
+  await expect(syncState(page)).toContainText('Đã đồng bộ');
   const checksBefore = state.userChecks();
   const requestsBefore = state.syncRequests();
   const release = state.hold();
-  const input = page.getByRole('spinbutton', { name: 'Số từ đã học' });
-  await input.fill('21');
+  const modal = await openSettings(page);
+  const name = modal.getByLabel('Tên của bạn', { exact: true });
+  await name.fill('Alice edited');
   await confirmSession(page);
   await expect.poll(state.syncRequests).toBe(requestsBefore + 1);
-  await expect(indicator).toHaveText('Đang đồng bộ');
   await expect(page.getByRole('alertdialog', { name: 'Trạng thái kết nối' })).toHaveCount(0);
-  await expect(input).toHaveValue('21');
-  await expect(input).toBeFocused();
+  await expect(name).toHaveValue('Alice edited');
+  await expect(name).toBeFocused();
   // A real edit during that request must still queue a subsequent upload.
-  await page.getByRole('button', { name: 'Lưu từ vựng' }).click();
-  await expect(page.getByText('21 từ tích lũy', { exact: true })).toBeVisible();
+  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
+  await expect(modal).toHaveCount(0);
+  await expect(syncState(page)).toContainText('Đang đồng bộ');
   release();
-  await expect.poll(() => state.uploads.some(row => row.entity_type === 'vocabLog' && row.payload.count === 21)).toBe(true);
-  await expect(indicator).toHaveText('Đã đồng bộ');
+  await expect.poll(() => state.uploads.some(row => row.entity_type === 'profile' && (row.payload as { name?: string }).name === 'Alice edited')).toBe(true);
+  await expect(syncState(page)).toContainText('Đã đồng bộ');
   expect(state.userChecks()).toBe(checksBefore);
 });
 
@@ -124,7 +132,7 @@ test('confirming the session pulls changes made on another device', async ({ pag
   const checksBefore = state.userChecks();
   state.accounts.alice.vocabLog = [{ id: 'remote', date: '2026-10-06', count: 12, updatedAt: new Date().toISOString(), deletedAt: null }];
   await confirmSession(page);
-  await expect(page.getByText('12 từ tích lũy', { exact: true })).toBeVisible();
+  await expect.poll(() => storedVocab(page, 'toeic_progress_account_alice_v3')).toEqual([12]);
   await expect(page.getByRole('alertdialog', { name: 'Trạng thái kết nối' })).toHaveCount(0);
   expect(state.userChecks()).toBe(checksBefore);
 });
@@ -147,10 +155,10 @@ test('failed background sync keeps the connection error visible', async ({ page 
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(error).toContainText('Test backend unavailable');
   await expect(error.getByRole('button', { name: 'Thử lại', exact: true })).toBeVisible();
-  await expect(page.getByRole('status', { name: 'Trạng thái đồng bộ' })).toHaveText('Đồng bộ lỗi');
+  await expect(syncState(page)).toContainText('Đồng bộ lỗi');
   state.setFailure(false);
   await error.getByRole('button', { name: 'Thử lại', exact: true }).click();
-  await expect(page.getByRole('status', { name: 'Trạng thái đồng bộ' })).toHaveText('Đã đồng bộ');
+  await expect(syncState(page)).toContainText('Đã đồng bộ');
   await expect(error).toHaveCount(0);
 });
 
@@ -158,7 +166,7 @@ test('failed initialization of a different account detaches the previous owner w
   const state = await setupAccount(page);
   state.accounts.alice.vocabLog = [{ id: 'alice-private', date: '2026-10-06', count: 23, updatedAt: new Date().toISOString(), deletedAt: null }];
   await confirmSession(page);
-  await expect(page.getByText('23 từ tích lũy', { exact: true })).toBeVisible();
+  await expect.poll(() => storedVocab(page, 'toeic_progress_account_alice_v3')).toEqual([23]);
   state.setFailure();
   const checksBefore = state.userChecks();
   await confirmSession(page, 'bob');
@@ -166,7 +174,7 @@ test('failed initialization of a different account detaches the previous owner w
   const error = page.getByRole('alert').filter({ hasText: 'Test backend unavailable' });
   await expect(error).toContainText('Test backend unavailable');
   expect(await profileName(page)).not.toBe('Alice');
-  await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);
+  expect(await storedVocab(page, 'toeic_progress_bundle_v3')).not.toContain(23);
   expect(await page.evaluate(() => localStorage.getItem('toeic_active_account_v1'))).toBeNull();
   const preserved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!));
   expect(preserved.profile.name).toBe('Alice');
@@ -176,6 +184,6 @@ test('failed initialization of a different account detaches the previous owner w
   await error.getByRole('button', { name: 'Thử lại', exact: true }).click();
   await expect.poll(() => profileName(page)).toBe('Bob');
   await expect(error).toHaveCount(0);
-  await expect(page.getByText('23 từ tích lũy', { exact: true })).toHaveCount(0);
+  expect(await storedVocab(page, 'toeic_progress_bundle_v3')).not.toContain(23);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!).profile.name)).toBe('Alice');
 });
