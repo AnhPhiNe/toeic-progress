@@ -1,0 +1,46 @@
+/* Redesign 2026-11 foundation: flat saturated colours, Nunito, lip buttons.
+   Every area has one colour; the goal symbol is a trophy. See design/previews. */
+:root {
+  --rd-ink: #2f3a33;
+  --rd-mut: #7a857e;
+  --rd-line: #e6e9e6;
+  --rd-soft: #f6f8f6;
+
+  /* Area colours: base / lip (darker, for box-shadow) / tint */
+  --rd-green: #46b35a;  --rd-green-d: #2f8a42;  --rd-green-l: #e7f6ea;  /* Hôm nay */
+  --rd-gold: #ffc83d;   --rd-gold-d: #d99a00;   --rd-gold-l: #fff3d1;   /* Hành trình điểm */
+  --rd-violet: #a78bfa; --rd-violet-d: #7c5ce0; --rd-violet-l: #f1ecff; /* Luyện tập */
+  --rd-pink: #ff7a9c;   --rd-pink-d: #d6416a;   --rd-pink-l: #ffe1e9;   /* Sổ tay */
+  --rd-blue: #1c8fe3;   --rd-blue-d: #136fb3;   --rd-blue-l: #e6f3fd;   /* Thành tích */
+  --rd-fire: #e2701a;   --rd-fire-l: #fff1e3;
+
+  --rd-font: 'Nunito', system-ui, -apple-system, sans-serif;
+}
+
+.rd { font-family: var(--rd-font); color: var(--rd-ink); }
+.rd svg text { font-family: var(--rd-font); }
+
+/* Lip button: solid colour with a darker 5px lip that presses in. */
+.rd-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 16px; padding: 12px 18px; cursor: pointer; user-select: none;
+  font-family: var(--rd-font); font-weight: 900; font-size: 16px; line-height: 1.1;
+  background: var(--rd-btn, var(--rd-green)); color: #fff;
+  box-shadow: 0 5px 0 var(--rd-btn-d, var(--rd-green-d));
+  transition: transform .08s, box-shadow .08s, filter .15s;
+}
+.rd-btn:hover { filter: brightness(1.05); }
+.rd-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--rd-btn-d, var(--rd-green-d)); }
+.rd-btn:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 3px; }
+.rd-btn--white { --rd-btn: #fff; --rd-btn-d: var(--rd-line); color: var(--rd-ink); }
+.rd-btn--gold { --rd-btn: var(--rd-gold); --rd-btn-d: var(--rd-gold-d); color: var(--rd-ink); }
+.rd-btn--violet { --rd-btn: var(--rd-violet); --rd-btn-d: var(--rd-violet-d); }
+.rd-btn--pink { --rd-btn: var(--rd-pink); --rd-btn-d: var(--rd-pink-d); }
+.rd-btn--blue { --rd-btn: var(--rd-blue); --rd-btn-d: var(--rd-blue-d); }
+
+/* Soft card: white, no ink outline, faint lip. */
+.rd-card { background: #fff; border-radius: 22px; box-shadow: 0 4px 0 var(--rd-line); border: 2px solid var(--rd-line); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-btn { transition: none; }
+}

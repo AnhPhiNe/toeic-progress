@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tổng quan Neo chỉnh nhẹ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBFAF6;--card:#fff;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+    --edge:#334155;--shade:#CBD5E1;
+    --blue:#2563EB;--blue-soft:#DBEAFE;--blue-ink:#1D4ED8;
+    --amber:#D97706;--amber-soft:#FEF3C7;--amber-ink:#92400E;
+    --green:#059669;--green-soft:#D1FAE5;--green-ink:#047857;
+    --teal-soft:#ECFDF5;--lis-soft:#EFF6FF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#E5E7EB;color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1600px;margin:0 auto;padding:18px 16px 50px}
+  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .switch{display:flex;gap:4px;background:#fff;border-radius:999px;padding:4px;box-shadow:0 6px 18px -8px rgba(0,0,0,.3)}
+  .switch button{border:0;font:inherit;font-weight:700;font-size:14px;padding:8px 16px;border-radius:999px;cursor:pointer;background:transparent;color:var(--muted)}
+  .switch button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .bar span{font-size:13px;color:var(--muted)}
+  .shot{width:100%;display:block;border-radius:16px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .pair .cap{font-weight:700;margin:0 0 8px}
+
+  /* ===== trang ===== */
+  .page{background:var(--bg);border-radius:16px;padding:28px 40px;display:grid;grid-template-columns:repeat(3,1fr) 1.45fr;gap:20px;align-items:start}
+  .card{background:var(--card);border:2px solid var(--edge);border-radius:20px;box-shadow:3px 3px 0 var(--shade)}
+  h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:8px}
+  .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .ico svg{width:22px;height:22px}
+
+  .kpi{padding:22px 24px;align-self:stretch}
+  .kpi .top{display:flex;justify-content:space-between;align-items:flex-start}
+  .num{font-size:46px;font-weight:800;line-height:1;letter-spacing:-.03em;margin-top:-4px;font-variant-numeric:tabular-nums}
+  .num small{font-size:15px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:4px}
+  .kpi .row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px}
+  .kpi p{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:14px;font-weight:600}
+
+  .streak{grid-column:4;grid-row:1;padding:22px 24px}
+  .streak .head{display:flex;align-items:center;gap:12px}
+  .streak .count{margin-left:auto;font-size:14px;font-weight:700;color:var(--muted)}
+  .todo{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 12px 12px 16px;background:var(--amber-soft);border:1.5px solid #F2C94C;border-radius:14px;text-decoration:none;color:var(--ink)}
+  .todo small{display:block;font-size:12.5px;font-weight:600;color:var(--amber-ink)}
+  .todo b{font-size:15px}
+  .todo .go{margin-left:auto;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--ink);color:#fff;flex:none}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:16px;text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+  .week i{display:block;height:44px;margin-top:6px;border-radius:12px;background:#F1F5F9}
+  .week .now{color:var(--amber)}
+  .week .now i{background:#FFFBEB;border:1.5px dashed #F59E0B}
+
+  .chart{grid-column:1 / 4;align-self:stretch;padding:20px 24px 14px;position:relative}
+  .chart .head{display:flex;justify-content:space-between;align-items:center}
+  .seg{display:flex;gap:2px;padding:3px;background:#F1F5F9;border-radius:10px;font-size:13px;font-weight:700}
+  .seg span{padding:5px 12px;border-radius:8px;color:var(--muted)}
+  .seg .on{background:var(--ink);color:#fff}
+  .link{font-size:13px;font-weight:700;padding:6px 12px;border:1.5px solid var(--line);border-radius:10px;margin-left:8px}
+  svg.line{width:100%;height:392px;display:block;margin-top:8px;overflow:visible}
+  .dot{cursor:pointer}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:8px;transform:translate(-50%,-130%);white-space:nowrap;opacity:0;transition:opacity .12s}
+  .tip span{display:block;font-weight:500;opacity:.8}
+
+  .last{grid-column:4;grid-row:2;padding:22px 24px;align-self:stretch;display:flex;flex-direction:column}
+  .last .more{margin-top:auto}
+  .lr{margin-bottom:20px}
+  .last .head{display:flex;justify-content:space-between;align-items:center}
+  .last .meta{font-size:14px;font-weight:700}
+  .last .meta span{color:var(--muted);font-weight:600;margin-left:6px}
+  .last .name{font-size:19px;font-weight:800;margin-top:12px}
+  .big{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+  .big b{font-size:60px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .big small{font-size:20px;font-weight:600;color:var(--muted)}
+  .big em{margin-left:auto;font-style:normal;font-size:13.5px;font-weight:600;color:var(--muted)}
+  .goal{display:flex;justify-content:space-between;font-size:15px;font-weight:600;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+  .goal em{font-style:normal;font-weight:700;color:var(--blue-ink)}
+  .track{height:10px;border-radius:99px;background:#E2E8F0;margin-top:12px;overflow:hidden}
+  .track i{display:block;height:100%;width:87%;background:var(--blue);border-radius:99px}
+  .lr{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+  .lr div{padding:14px 16px;border-radius:16px;border:1.5px solid var(--line)}
+  .lr .l{background:var(--lis-soft);border-color:#BFDBFE} .lr .r{background:var(--teal-soft);border-color:#A7F3D0}
+  .lr small{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
+  .lr small svg{width:16px;height:16px}
+  .lr b{display:block;font-size:34px;font-weight:800;margin-top:8px;letter-spacing:-.02em}
+  .lr b span{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
+  .lr .q{display:inline-block;margin-top:8px;font-size:13px;font-weight:700;padding:3px 10px;border-radius:8px;background:#fff;border:1.5px solid var(--line)}
+  .more{display:block;margin-top:20px;text-align:center;padding:12px;border:2px solid var(--edge);border-radius:14px;font-size:17px;font-weight:800;color:var(--blue-ink);box-shadow:3px 3px 0 var(--shade)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="switch" role="group" aria-label="Chọn bản"><button type="button" data-v="new" aria-pressed="true">Chỉnh nhẹ</button><button type="button" data-v="old" aria-pressed="false">Hiện tại</button><button type="button" data-v="pair" aria-pressed="false">Song song</button></div>
+    <span>Rê chuột lên điểm trên biểu đồ để xem số của từng bài.</span>
+  </div>
+  <div id="stage"></div>
+</div>
+
+<template id="page">
+  <div class="page">
+    <div class="kpi card">
+      <div class="top"><span class="pill" style="background:var(--amber-soft);color:var(--amber-ink)">Kỷ lục</span><span class="ico" style="background:var(--amber-soft);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 10h12l4-10-6 4-4-7-4 7z"/></svg></span></div>
+      <div class="num" style="color:var(--amber)">960<small>/ 990đ</small></div>
+      <p>ETS 2024 Test 04</p>
+    </div>
+    <div class="kpi card">
+      <div class="top"><span class="pill" style="background:var(--blue-soft);color:var(--blue-ink)">Trung bình 10 đề</span><span class="ico" style="background:var(--blue-soft);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></span></div>
+      <div class="num" style="color:var(--blue)">909<small>/ 990đ</small></div>
+      <p>Dao động: 825đ → 960đ</p>
+    </div>
+    <div class="kpi card">
+      <div class="top"><span class="pill" style="background:var(--green-soft);color:var(--green-ink)">So với bài đầu</span><span class="ico" style="background:var(--green-soft);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg></span></div>
+      <div class="num" style="color:var(--green)">+40<small>điểm</small></div>
+      <p>Từ bài đầu: 825đ → 865đ</p>
+    </div>
+
+    <div class="streak card">
+      <div class="head"><span class="ico" style="background:var(--amber-soft);color:var(--amber);width:40px;height:40px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-6 1-9.5z"/></svg></span><h3>Chuỗi ngày học</h3><span class="count">0 ngày</span></div>
+      <a class="todo" href="#"><div><small>Việc hôm nay</small><b>Ghi nốt 4 câu Reading của đề hihihi</b></div><span class="go" aria-hidden="true">→</span></a>
+      <div class="week"><div>T2<i></i></div><div>T3<i></i></div><div>T4<i></i></div><div>T5<i></i></div><div class="now">T6<i></i></div><div>T7<i></i></div><div>CN<i></i></div></div>
+    </div>
+
+    <div class="chart card">
+      <div class="head"><h3>Tiến bộ qua từng bài thi</h3><div style="display:flex;align-items:center"><span class="seg"><span class="on">Tất cả</span><span>Lần đầu</span></span><span class="link">Chi tiết →</span></div></div>
+      <svg class="line" viewBox="0 0 900 380" data-h preserveAspectRatio="none"></svg>
+      <div class="tip"></div>
+    </div>
+
+    <div class="last card">
+      <div class="head"><span class="meta">Kết quả gần nhất<span>23/10</span></span><span class="pill" style="background:var(--blue-soft);color:var(--blue-ink)">Trình độ B2</span></div>
+      <div class="name">hihihi</div>
+      <div class="big"><b>865</b><small>/ 990</small><em>Thấp hơn bài trước 70đ</em></div>
+      <div class="goal"><span>Mục tiêu 990</span><em>còn 125 điểm</em></div>
+      <div class="track"><i></i></div>
+      <div class="lr">
+        <div class="l"><small style="color:var(--blue-ink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg>Listening</small><b>405 <span>/495</span></b><span class="q">90/100 câu</span></div>
+        <div class="r"><small style="color:var(--green-ink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>Reading</small><b>460 <span>/495</span></b><span class="q">96/100 câu</span></div>
+      </div>
+      <span class="more">Xem 7 Part chi tiết →</span>
+    </div>
+  </div>
+</template>
+
+<script>
+  const data = [['15/08',825],['22/08',870],['02/09',920],['08/09',910],['10/09',930],['13/09',960],['20/10',935],['23/10',935],['23/10',935],['23/10',865]];
+  function drawChart(root) {
+    const svg = root.querySelector('svg.line'), tip = root.querySelector('.tip');
+    const X0 = 60, X1 = 870, y = s => 20 + (1000 - s) / 200 * 300; // 800..1000
+    const x = i => X0 + i * (X1 - X0) / (data.length - 1);
+    let g = '';
+    for (const s of [800, 850, 900, 950]) g += `<line x1="${X0 - 20}" x2="${X1 + 10}" y1="${y(s)}" y2="${y(s)}" stroke="#E2E8F0" stroke-dasharray="4 4"/><text x="30" y="${y(s) + 4}" font-size="13" fill="#64748B" text-anchor="end">${s}</text>`;
+    g += `<line x1="${X0 - 20}" x2="${X1 + 10}" y1="${y(990)}" y2="${y(990)}" stroke="#2563EB" stroke-dasharray="6 5" opacity=".7"/><text x="${X0 - 16}" y="${y(990) - 7}" font-size="13" font-weight="700" fill="#1D4ED8">Mục tiêu 990</text>`;
+    const pts = data.map((d, i) => `${x(i)},${y(d[1])}`).join(' ');
+    g += `<polygon points="${X0},${y(800)} ${pts} ${X1},${y(800)}" fill="#DBEAFE" opacity=".45"/>`;
+    g += `<polyline points="${pts}" fill="none" stroke="#2563EB" stroke-width="3" stroke-linejoin="round"/>`;
+    const best = 5, last = data.length - 1;
+    data.forEach((d, i) => {
+      const r = i === last ? 7 : i === best ? 6 : 4.5;
+      const fill = i === last ? '#2563EB' : i === best ? '#D97706' : '#fff';
+      const stroke = i === best ? '#fff' : '#2563EB';
+      g += `<circle class="dot" data-i="${i}" cx="${x(i)}" cy="${y(d[1])}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/><circle class="dot" data-i="${i}" cx="${x(i)}" cy="${y(d[1])}" r="16" fill="transparent"/>`;
+    });
+    g += `<text x="${x(best)}" y="${y(960) - 14}" font-size="14" font-weight="800" fill="#0F172A" text-anchor="middle">960 · cao nhất</text>`;
+    g += `<text x="${x(last) - 2}" y="${y(865) + 26}" font-size="14" font-weight="800" fill="#0F172A" text-anchor="middle">865</text>`;
+    // trục ngày: gộp các bài cùng ngày
+    const seen = {};
+    data.forEach((d, i) => { (seen[d[0]] ||= []).push(i); });
+    for (const [day, idx] of Object.entries(seen)) {
+      const cx = (x(idx[0]) + x(idx[idx.length - 1])) / 2;
+      g += `<text x="${cx}" y="360" font-size="13" fill="#64748B" text-anchor="middle">${day}${idx.length > 1 ? ` (${idx.length} bài)` : ''}</text>`;
+      if (idx.length > 1) g += `<line x1="${x(idx[0])}" x2="${x(idx[idx.length - 1])}" y1="342" y2="342" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>`;
+    }
+    svg.innerHTML = g;
+    svg.addEventListener('mousemove', e => {
+      const t = e.target.closest('.dot');
+      if (!t) { tip.style.opacity = 0; return; }
+      const d = data[+t.dataset.i], box = svg.getBoundingClientRect(), host = root.querySelector('.chart').getBoundingClientRect();
+      const c = t.getBoundingClientRect();
+      tip.innerHTML = `${d[1]} điểm<span>${d[0]}</span>`;
+      tip.style.left = (c.left + c.width / 2 - host.left) + 'px';
+      tip.style.top = (c.top - host.top) + 'px';
+      tip.style.opacity = 1;
+    });
+    svg.addEventListener('mouseleave', () => tip.style.opacity = 0);
+  }
+  const stage = document.getElementById('stage');
+  let view = 'new';
+  function page() { const f = document.getElementById('page').content.cloneNode(true); const el = f.firstElementChild; drawChart(el); return el; }
+  function render() {
+    stage.innerHTML = '';
+    if (view === 'new') stage.appendChild(page());
+    else if (view === 'old') stage.innerHTML = '<img class="shot" src="img/current-overview.png" alt="Tổng quan hiện tại">';
+    else {
+      const p = document.createElement('div'); p.className = 'pair';
+      p.innerHTML = '<div><p class="cap">Hiện tại</p><img class="shot" src="img/current-overview.png" alt="Tổng quan hiện tại"></div><div><p class="cap">Chỉnh nhẹ</p><div class="slot" style="zoom:.62"></div></div>';
+      p.querySelector('.slot').appendChild(page()); stage.appendChild(p);
+    }
+    for (const b of document.querySelectorAll('[data-v]')) b.setAttribute('aria-pressed', String(b.dataset.v === view));
+  }
+  for (const b of document.querySelectorAll('[data-v]')) b.addEventListener('click', () => { view = b.dataset.v; render(); });
+  render();
+</script>
+</body>
+</html>

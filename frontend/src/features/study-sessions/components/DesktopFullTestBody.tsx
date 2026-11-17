@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Soc } from '@/shared/ui/soc/Soc';
 import { Keyboard } from 'lucide-react';
 import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { ResultImageButton } from './WrongQuestionGrid';
@@ -6,9 +7,11 @@ import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import type { ScoreSource } from '../lib/fullTestScore';
 import type { PartTimingDurations, ResultImageTiming } from '@/shared/types';
 import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
+import { DesktopManualEntry } from './DesktopManualEntry';
 import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
+const fmtMinutes = (minutes: number) => { const m = Math.round(minutes); return m >= 60 ? `${Math.floor(m / 60)}g ${String(m % 60).padStart(2, '0')}p` : `${m} phút`; };
 
 interface Props {
   onTiming?: (value: ResultImageTiming) => void;
@@ -31,13 +34,28 @@ interface Props {
   onRevertScore?: () => void;
   partDurations?: PartTimingDurations;
   onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
+  initialFiles?: File[];
+  onInitialFilesHandled?: () => void;
+  /** false = AI-first view (paste a result image); true = the manual tools (200-question grid, typed numbers, scores). */
+  manualOpen: boolean;
+  onManualOpenChange: (open: boolean) => void;
+  /** The short manual view (official L/R plus a typed wrong list) between the paste view and the grid. */
+  minimalOpen: boolean;
+  onMinimalOpenChange: (open: boolean) => void;
+  onSections: (listening: string, reading: string) => void;
+  /** Minutes of the total time once known (typed or read from an image); undefined while unrecorded. */
+  knownMinutes?: number;
+  onOpenDetails: () => void;
+  /** Test name, date and time shown as chips inside the review card; a chip opens the fields to edit them. */
+  meta?: { name: string; dateLabel: string; onEdit: () => void };
 }
 
 /**
- * Computer Full Test: all 200 questions on one screen; clicking a number marks it wrong.
+ * Computer Full Test. By default one large area to paste the result screenshot; "Nhập tay" opens the
+ * manual tools: all 200 questions on one screen, where clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming }: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange, minimalOpen, onMinimalOpenChange, onSections, knownMinutes, onOpenDetails , meta}: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -81,9 +99,65 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
   );
 
   const hasMarks = wrong.length > 0;
+  const aiFirst = !manualOpen && !minimalOpen;
+  const showSummary = aiFirst && (hasMarks || isOfficial);
+  const shownTotal = isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—';
+  const shownL = isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—';
+  const shownR = isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—';
+  // AI-first review (design/previews/mock-log-v3.html, 3B): green score card, then all 200 numbered
+  // questions laid out like the answer sheet so the learner can check what Sóc read; a click toggles a question.
+  const pen = <svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="currentColor" /></svg>;
+  const bar = (value: number | string) => typeof value === 'number' ? `${Math.min(100, value / 495 * 100)}%` : '0%';
+  const sheet = (title: string, parts: PartNumber[], first: boolean) => (
+    <div>
+      <div className="rdl-sec">{title}{first && <span>{wrong.length} câu sai</span>}</div>
+      {parts.map(part => (
+        <div key={part} className="rdl-pg">
+          <b>P{part}</b>
+          <div className="rdl-cells" role="group" aria-label={`Câu sai Part ${part}`}>
+            {questionsOfPart(part).map(question => {
+              const on = marked.has(question);
+              return <button key={question} type="button" aria-pressed={on} aria-label={`Câu ${question}${on ? ', đang tính là sai' : ''}`} className={on ? 'is-w' : undefined} onClick={() => toggle(question)}>{question}</button>;
+            })}
+          </div>
+          <em>{byPart[part].length || ''}</em>
+        </div>
+      ))}
+    </div>
+  );
+  const summaryTable = (api: { editScore: () => void }) => (
+    <div className="rdl-review">
+      <div className="rdl-hero">
+        <span className="rdl-ring" aria-hidden="true" />
+        <div className="rdl-hl">
+          <button type="button" className="rdl-big" onClick={api.editScore} aria-label="Sửa điểm" title={isOfficial ? 'Điểm từ đề · bấm để sửa' : 'Điểm ước tính từ câu sai · bấm để sửa'}>
+            {!isOfficial && hasMarks ? <i>~</i> : null}{shownTotal}<small>/990</small>
+          </button>
+          <div className="rdl-lr">
+            <div><span>Nghe <b>{shownL}</b></span><i><b style={{ width: bar(shownL) }} /></i></div>
+            <div><span>Đọc <b>{shownR}</b></span><i><b style={{ width: bar(shownR) }} /></i></div>
+          </div>
+        </div>
+        {meta && (
+          <div className="rdl-hm">
+            <button type="button" className="rdl-hp is-name" onClick={meta.onEdit} title={meta.name || 'Đặt tên đề'}><span className="rdl-hp-t">{meta.name || 'Đặt tên đề'}</span>{pen}</button>
+            <div>
+              <button type="button" className="rdl-hp" onClick={meta.onEdit}>{meta.dateLabel}{pen}</button>
+              <button type="button" className="rdl-hp" onClick={onOpenDetails}>{knownMinutes ? fmtMinutes(knownMinutes) : 'Thời gian'}{pen}</button>
+            </div>
+          </div>
+        )}
+        <Soc state="idle" size={104} className="rdl-hero-soc" />
+      </div>
+      {sheet('NGHE', PART_NUMBERS.filter(listening), true)}
+      {sheet('ĐỌC', PART_NUMBERS.filter(part => !listening(part)), false)}
+      <div className="rdl-leg"><span><i className="is-w" />sai</span><span><i />đúng</span><span className="rdl-leg-tip">Bấm ô để đổi đúng/sai</span></div>
+    </div>
+  );
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_276px]">
-      <div className="min-w-0 overflow-x-auto [scrollbar-gutter:stable] pb-2">
+    <div className={manualOpen ? 'grid gap-6 lg:grid-cols-[1fr_276px]' : 'mx-auto grid w-full max-w-[560px] gap-3'}>
+      {/* Kept mounted (just hidden) so the image reader and its drafts survive switching views */}
+      <div className={manualOpen ? 'min-w-0 overflow-x-auto [scrollbar-gutter:stable] pb-2' : 'hidden'}>
         <div className="flex flex-nowrap gap-x-6 items-start">
           {section('Listening', PART_NUMBERS.filter(listening))}
           {section('Reading', PART_NUMBERS.filter(part => !listening(part)))}
@@ -91,10 +165,28 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
       </div>
 
       <div className="flex flex-col gap-2.5 max-lg:order-first">
+        {manualOpen && (
+          <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(true); }}
+            className="w-fit cursor-pointer text-[13px] font-black text-indigo-700 hover:underline dark:text-indigo-300">
+            ‹ Quay lại
+          </button>
+        )}
+        {minimalOpen && !manualOpen && (
+          <DesktopManualEntry wrong={wrong} onWrong={onWrong} numberDraft={numberDraft} onNumberDraft={onNumberDraft}
+            listening={manualListening ?? ''} reading={manualReading ?? ''} officialTotal={scoreSource === 'MANUAL_TOTAL' ? manualTotal : undefined}
+            onSections={onSections} onBack={() => onMinimalOpenChange(false)} onGrid={() => onManualOpenChange(true)} />
+        )}
+        <div className={minimalOpen && !manualOpen ? 'hidden' : undefined}>
         <ResultImageButton
+          pasteEnabled={!minimalOpen || manualOpen}
+          compactDrop={showSummary}
+          flatCard={aiFirst}
           onTiming={onTiming}
+          initialFiles={initialFiles}
+          onInitialFilesHandled={onInitialFilesHandled}
           desktop
-          scoreCard={
+          dropzone={aiFirst}
+          scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
                 isOfficial ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
@@ -142,7 +234,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           } : undefined}
           onRevertScore={onRevertScore}
           onRead={numbers => onWrong(normalizeQuestionList([...wrong, ...numbers]))}
-          isTyping={typing}
+          isTyping={manualOpen && typing}
           typingContent={
             <div className="space-y-2">
               <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
@@ -183,9 +275,18 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
             />
           }
         />
+        </div>
+
+        {aiFirst && !minimalOpen && (
+          <button type="button" onClick={() => onMinimalOpenChange(true)}
+            title="Chạm câu sai, gõ số câu, nhập điểm"
+            className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-[13.5px] font-black text-indigo-700 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300">
+            Nhập tay <span aria-hidden="true">›</span>
+          </button>
+        )}
 
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+        <div className={'rounded-xl border border-slate-200 bg-slate-50/70 p-2 items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400 ' + (manualOpen ? 'flex' : 'hidden')}>
           <button
             type="button"
             onClick={() => setShowNotes(prev => !prev)}

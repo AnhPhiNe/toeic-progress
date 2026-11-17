@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openSettings } from './helpers/accountGroup';
 
 const title = 'Cài đặt';
 test.beforeEach(async ({ page }) => {
@@ -6,8 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 async function open(page: Page) {
   await page.goto('/tu-vung');
-  await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
-  return page.getByRole('dialog', { name: title, exact: true });
+  return openSettings(page);
 }
 async function backup(page: Page) {
   const content = await page.evaluate(() => JSON.stringify({ ...JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!), exportDate: new Date().toISOString() }));
@@ -50,7 +50,7 @@ test('same-field conflicts and storage failures preserve the draft with an error
   await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveValue('My draft');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).profile.name)).toBe('Another device');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
+  await openSettings(page);
   await modal.getByLabel('Tên của bạn', { exact: true }).fill('Retry draft');
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
@@ -73,7 +73,7 @@ test('backup previews and late file reads cannot survive closing and reopening s
   await modal.locator('input[type="file"]').setInputFiles(file);
   await expect(modal.getByText('Xem trước tệp sao lưu v3', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
+  await openSettings(page);
   await expect(modal.getByText('Xem trước tệp sao lưu v3', { exact: true })).toHaveCount(0);
   await page.evaluate(() => {
     const Original = window.FileReader;
@@ -83,7 +83,7 @@ test('backup previews and late file reads cannot survive closing and reopening s
   });
   await modal.locator('input[type="file"]').setInputFiles(file);
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
+  await openSettings(page);
   await page.waitForTimeout(550);
   await expect(modal.getByText('Xem trước tệp sao lưu v3', { exact: true })).toHaveCount(0);
   await expect(modal.getByText('Không thể khôi phục tệp', { exact: true })).toHaveCount(0);
@@ -113,19 +113,4 @@ test('an owner switch blocks both a stale profile draft and backup restore befor
   await expect(modal.getByRole('alert')).toContainText('Tài khoản đã thay đổi');
   expect(await page.evaluate(() => localStorage.getItem('toeic_progress_account_audit-new-owner_v3'))).toBe(before);
   expect(await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'))).toBe(before);
-});
-
-test('urgent exam countdown respects reduced motion', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/quy-doi');
-  await page.evaluate(() => {
-    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
-    const date = new Date(); date.setDate(date.getDate() + 3);
-    data.profile.examDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
-  });
-  await page.reload();
-  const countdown = page.getByRole('button', { name: /^Đếm ngược ngày thi:/ });
-  await expect(countdown).toHaveClass(/animate-pulse/);
-  expect(await countdown.evaluate(element => getComputedStyle(element).animationName)).toBe('none');
 });

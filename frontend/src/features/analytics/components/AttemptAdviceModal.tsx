@@ -181,7 +181,7 @@ export function AttemptAdviceModal({
                     <span>🎯</span> Nhận xét Tổng quan lần làm này
                   </div>
                   <p className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-                    {observedScores || 'Chưa có điểm Listening/Reading riêng cho lần làm này.'} Đã xem {report.sampledNotes}/{report.linkedNotes} câu sai có chi tiết. Số liệu theo Part cho biết nơi cần ưu tiên; nguyên nhân chỉ có thể nhận xét trong phạm vi bằng chứng đã lưu.
+                    {observedScores ? `${observedScores}.` : 'Chưa có điểm Listening/Reading riêng cho lần làm này.'} Đã xem {report.sampledNotes}/{report.linkedNotes} câu sai có chi tiết. Số liệu theo Part cho biết nơi cần ưu tiên; nguyên nhân chỉ có thể nhận xét trong phạm vi bằng chứng đã lưu.
                   </p>
                 </div>
 
@@ -207,13 +207,20 @@ export function AttemptAdviceModal({
 
                 {/* 2. Danh sách Ưu tiên Cải thiện từng Part */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
                       Các Part cần tập trung cải thiện
                     </h4>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                      {report.priorities.length} trọng tâm chính
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {report.priorities.length > 0 && (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-300">
+                          ✓ Đã đồng bộ vào Kế hoạch tuần
+                        </span>
+                      )}
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                        {report.priorities.length} trọng tâm chính
+                      </span>
+                    </div>
                   </div>
 
                   {report.priorities.map((priority, index) => {

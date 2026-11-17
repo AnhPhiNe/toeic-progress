@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Kiểu nút Tiệm bánh</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:#bfc4cc;padding:30px;display:flex;flex-direction:column;gap:14px}
+.cap{font-weight:900;font-size:20px;margin-top:10px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43}
+.pg{width:1257px;background:#fff;border-radius:18px;padding:0 30px 26px}
+.pg img{display:block;width:1197px;border-radius:0 0 28px 28px}
+.g{margin-top:18px;display:grid;grid-template-columns:1.5fr auto 1fr 1fr 1fr;gap:12px;align-items:stretch}
+.g>*{display:flex;align-items:center;justify-content:center;gap:9px;font-weight:900;font-size:16px;white-space:nowrap}
+.ic{display:grid;place-items:center;flex:none}
+.num{font-size:22px;font-variant-numeric:tabular-nums}
+.num small{font-size:13px;opacity:.6;margin-left:2px}
+.pm{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:20px;font-weight:900}
+
+/* 1 kẹo pastel 3D */
+.s1>*{border-radius:18px;padding:14px 16px}
+.s1 .fire{background:linear-gradient(180deg,#ff9f55,#ff7a1a);color:#fff;box-shadow:0 6px 0 #d65d00,inset 0 2px 0 rgba(255,255,255,.35);font-size:19px}
+.s1 .min{background:#f1ebff;box-shadow:0 5px 0 #d8ccff;color:#5b3fc4;gap:12px}.s1 .min .pm{background:#fff;color:#7c5ce0;box-shadow:0 3px 0 #d8ccff}
+.s1 .log{background:#e3f7e7;box-shadow:0 5px 0 #b6e5c0;color:#2f8a42}
+.s1 .rec{background:#fff4d1;box-shadow:0 5px 0 #f3d98a;color:#a06a00}
+.s1 .pom{background:#ffe6ea;box-shadow:0 5px 0 #ffc1cc;color:#d3456b}
+.s1 .ic{width:30px;height:30px;border-radius:10px;background:#fff}
+
+/* 2 quầy gỗ + bảng tên treo */
+.s2wrap{margin-top:16px;border-radius:22px;background:linear-gradient(180deg,#d9a46a,#c98b4e);padding:14px;box-shadow:inset 0 3px 0 #e8be8a,0 6px 0 #9e6634}
+.s2{margin-top:0}
+.s2>*{border-radius:14px;padding:13px 14px;background:#fff8ee;color:#7a4a1e;box-shadow:0 4px 0 #a8743f;position:relative}
+.s2>*:before{content:'';position:absolute;top:6px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#d9a46a;box-shadow:inset 0 1px 0 rgba(0,0,0,.2)}
+.s2 .fire{background:linear-gradient(180deg,#ff6b5b,#e8453a);color:#fff;box-shadow:0 5px 0 #a8302a;font-size:19px}
+.s2 .fire:before{background:#ffb3a8}
+.s2 .min .pm{background:#f3dfc4;color:#7a4a1e}
+
+/* 3 bảng điều khiển lò */
+.s3wrap{margin-top:16px;border-radius:24px;background:#a78bfa;padding:12px;box-shadow:0 6px 0 #8b6fe6}
+.s3{margin-top:0}
+.s3>*{border-radius:16px;padding:12px 14px;background:#fff;color:#4b3a8f;box-shadow:0 4px 0 #8b6fe6}
+.s3 .fire{background:radial-gradient(circle at 30% 30%,#ffb36b,#ff6a1a);color:#fff;box-shadow:0 4px 0 #b84a00,0 0 0 4px rgba(255,255,255,.35);font-size:19px}
+.s3 .min{background:#2a2563;color:#8cf0a0;box-shadow:0 4px 0 #1a1640;gap:12px}.s3 .min .pm{background:#3c3590;color:#c9bbff}
+.s3 .knob{width:30px;height:30px;border-radius:50%;background:#efe9ff;box-shadow:inset 0 0 0 4px #d9ceff;position:relative}.s3 .knob:after{content:'';position:absolute;left:13px;top:5px;width:4px;height:11px;border-radius:2px;background:#7c5ce0;transform:rotate(var(--r,30deg));transform-origin:50% 100%}
+
+/* 4 nhãn dán (sticker) */
+.s4>*{border-radius:16px;padding:13px 14px;background:#fff;border:2.5px dashed currentColor;outline:5px solid #fff;box-shadow:0 0 0 7px var(--bg),0 8px 14px rgba(0,0,0,.12);margin:7px;color:var(--c)}
+.s4 .fire{--c:#fff;--bg:#ff7a1a;background:#ff7a1a;border-color:rgba(255,255,255,.7);transform:rotate(-1.5deg);font-size:19px}
+.s4 .min{--c:#7c5ce0;--bg:#e9e2ff;transform:rotate(1deg)}
+.s4 .log{--c:#2f8a42;--bg:#dff3e3;transform:rotate(-1deg)}
+.s4 .rec{--c:#b07800;--bg:#fff0c4;transform:rotate(1.5deg)}
+.s4 .pom{--c:#d3456b;--bg:#ffe0e7;transform:rotate(-1deg)}
+.s4 .min .pm{background:#f3efff}
+
+/* 5 kem phủ (frosting drip) */
+.s5>*{border-radius:18px;padding:16px 14px 12px;position:relative;overflow:hidden;color:#5a3a2a;background:#fbe9d7;box-shadow:0 5px 0 #e5c7a7}
+.s5>*:before{content:'';position:absolute;left:0;right:0;top:0;height:16px;background:radial-gradient(circle at 10px 0,var(--k) 11px,transparent 12px) 0 0/20px 16px,linear-gradient(var(--k),var(--k)) 0 0/100% 5px no-repeat}
+.s5 .fire{--k:#fff;background:linear-gradient(180deg,#ff9a4d,#ff7a1a);color:#fff;box-shadow:0 5px 0 #d65d00;font-size:19px}
+.s5 .min{--k:#c4b2ff}.s5 .log{--k:#9be3a6}.s5 .rec{--k:#ffd25e}.s5 .pom{--k:#ff9ab3}
+.s5 .min .pm{background:#fff;color:#7c5ce0}
+
+/* 6 một nút chính + 4 chip tròn */
+.s6{grid-template-columns:2fr auto auto auto auto;align-items:center}
+.s6 .fire{border-radius:99px;padding:16px;background:linear-gradient(90deg,#ff7a1a,#ff5c86);color:#fff;font-size:19px;box-shadow:0 6px 0 #c44a3a,0 10px 24px rgba(255,92,134,.3)}
+.s6 .min{border-radius:99px;background:#f6f3ef;padding:8px 10px;gap:10px}.s6 .min .pm{border-radius:50%;background:#fff;color:#ff7a1a;box-shadow:0 2px 0 #e8ded6}
+.s6 .chip{flex-direction:column;gap:4px;font-size:12.5px;color:#7a857e;width:96px}
+.s6 .chip .ic{width:52px;height:52px;border-radius:50%;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+
+/* 7 vé (ticket) */
+.s7>*{border-radius:14px;padding:13px 16px;position:relative;background:#fff;color:#2f3a33;box-shadow:0 0 0 2px #f0e3da,0 4px 0 #f0e3da;
+ -webkit-mask:radial-gradient(circle at 0 50%,transparent 8px,#000 8.5px) left/51% 100% no-repeat,radial-gradient(circle at 100% 50%,transparent 8px,#000 8.5px) right/51% 100% no-repeat}
+.s7 .fire{background:repeating-linear-gradient(135deg,#ff7a1a 0 14px,#ff8f3d 14px 28px);color:#fff;font-size:19px}
+.s7 .min{background:#f3efff}.s7 .log{background:#e3f7e7;color:#2f8a42}.s7 .rec{background:#fff4d1;color:#a06a00}.s7 .pom{background:#ffe6ea;color:#d3456b}.s7 .ic{background:#fff!important}.s7 .min .pm{background:#ffe9d6;color:#d9661f}
+.s7 .ic{width:26px;height:26px;border-radius:8px}
+
+/* 6b gọn: viên thuốc chứa luôn số phút + 3 nút tròn trải đều */
+.s6b{grid-template-columns:1.7fr 1fr 1fr 1fr;align-items:center}
+.cap6{display:flex;align-items:center;border-radius:99px;background:linear-gradient(90deg,#ff7a1a,#ff5c86);box-shadow:0 6px 0 #c44a3a,0 10px 24px rgba(255,92,134,.28);padding:6px 6px 6px 28px;gap:16px;color:#fff;justify-content:space-between}
+.cap6 b{font-size:19px;display:flex;align-items:center;gap:8px}
+.cap6 .min{display:flex;align-items:center;gap:8px;border-radius:99px;background:rgba(255,255,255,.22);padding:6px}
+.cap6 .pm{border-radius:50%;background:#fff;color:#ff6a3d;width:34px;height:34px}
+.cap6 .num{color:#fff}
+.s6b .chip{flex-direction:row;gap:10px;font-size:15px;color:#4d5850;justify-content:flex-start;border-radius:99px;padding:6px 18px 6px 6px;background:var(--b);box-shadow:0 4px 0 var(--d)}
+.s6b .chip .ic{width:46px;height:46px;border-radius:50%;background:#fff!important;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+
+.s6c{grid-template-columns:1.25fr auto 1fr 1fr 1fr;align-items:center}
+.s6c .fire{border-radius:99px;padding:17px;background:linear-gradient(90deg,#ff7a1a,#ff5c86);color:#fff;font-size:19px;box-shadow:0 6px 0 #c44a3a,0 10px 24px rgba(255,92,134,.28)}
+.s6c .min{border-radius:99px;background:#fff1e6;box-shadow:0 4px 0 #ffd7bd;padding:7px;gap:10px;color:#d9661f}
+.s6c .min .pm{border-radius:50%;background:#fff;color:#ff6a3d;box-shadow:0 2px 0 #ffd7bd}
+.s6c .chip{gap:10px;font-size:15px;justify-content:flex-start;border-radius:99px;padding:6px 18px 6px 6px;background:var(--b);box-shadow:0 4px 0 var(--d)}
+.s6c .chip .ic{width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+</style></head><body>
+<div class="cap">Kiểu nút cho hàng dưới Tiệm bánh · 7 ý tưởng<small>Cùng 5 nút, cùng vị trí; chỉ đổi màu, hình và cảm giác bấm. Biểu tượng vẽ tay thay emoji.</small></div>
+<div class="pg"><img src="img/bk-scene-crop.png">
+<div class="cap" style="font-size:16px">1 · Kẹo pastel nổi khối: mỗi nút một màu kem</div>
+<div class="g s1" id="r1"></div>
+<div class="cap" style="font-size:16px">2 · Quầy gỗ, bảng tên treo đinh</div>
+<div class="s2wrap"><div class="g s2" id="r2"></div></div>
+<div class="cap" style="font-size:16px">3 · Bảng điều khiển lò: núm vặn, màn LCD, nút lửa</div>
+<div class="s3wrap"><div class="g s3" id="r3"></div></div>
+<div class="cap" style="font-size:16px">4 · Nhãn dán, viền chỉ khâu, hơi nghiêng</div>
+<div class="g s4" id="r4"></div>
+<div class="cap" style="font-size:16px">5 · Kem phủ chảy trên đầu nút</div>
+<div class="g s5" id="r5"></div>
+<div class="cap" style="font-size:16px">6 · Một nút chính viên thuốc + 3 nút tròn có nhãn</div>
+<div class="g s6" id="r6"></div>
+<div class="cap" style="font-size:16px">6 thu gọn · số phút nằm trong viên thuốc, nút Bật lò ngắn lại, 3 nút tròn trải đều</div>
+<div class="g s6b" id="r6b"></div>
+<div class="cap" style="font-size:16px">6 tách ô phút · Bật lò viên thuốc vừa phải, ô phút đứng riêng cạnh nó</div>
+<div class="g s6c" id="r6c"></div>
+<div class="cap" style="font-size:16px">7 · Vé bánh có khấc hai bên</div>
+<div class="g s7" id="r7"></div>
+</div>
+<script>
+const I={
+ fire:(c='#fff')=>`<svg width="20" height="22" viewBox="0 0 20 22"><path d="M10 1c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-3-1-6 1-9z" fill="${c}"/><path d="M10 12c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1 1-2 1-3 1 1 2 0 2-2z" fill="#ffd25e"/></svg>`,
+ pen:c=>`<svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 15l1-4 8-8 3 3-8 8z" fill="${c}"/><path d="M11 4l3 3" stroke="#fff" stroke-width="1.5"/></svg>`,
+ card:c=>`<svg width="18" height="18" viewBox="0 0 18 18"><rect x="2" y="2" width="14" height="14" rx="3" fill="${c}"/><path d="M5 7h8M5 10h8M5 13h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+ tomato:c=>`<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="11.5" r="7.5" fill="${c}"/><path d="M10 4l-2-2M10 4l3-1.5M10 4v-2" stroke="#46b35a" stroke-width="2" stroke-linecap="round"/><path d="M10 8v4l2.5 1.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>`,
+};
+const row=(o={})=>`
+<span class="fire">${I.fire()} Bật lò</span>
+<span class="min"><span class="pm">−</span><span class="num">75<small>p</small></span><span class="pm">+</span></span>
+<span class="log"><span class="ic">${I.pen(o.pen||'#2f8a42')}</span>Chỉ ghi kết quả</span>
+<span class="rec"><span class="ic">${I.card(o.card||'#e0a100')}</span>Công thức</span>
+<span class="pom"><span class="ic">${I.tomato(o.tom||'#ff5c6c')}</span>Pomodoro</span>`;
+r1.innerHTML=row();
+r2.innerHTML=row({pen:'#a8743f',card:'#a8743f',tom:'#e8453a'});
+r3.innerHTML=`<span class="fire">${I.fire()} Bật lò</span><span class="min"><span class="pm">−</span><span class="num">75:00</span><span class="pm">+</span></span><span class="log"><i class="knob" style="--r:-40deg"></i>Chỉ ghi kết quả</span><span class="rec"><i class="knob" style="--r:20deg"></i>Công thức</span><span class="pom"><i class="knob" style="--r:70deg"></i>Pomodoro</span>`;
+r4.innerHTML=row({pen:'#2f8a42',card:'#b07800',tom:'#d3456b'});
+r5.innerHTML=row({pen:'#2f8a42',card:'#c08a00',tom:'#e0557f'});
+r6.innerHTML=`<span class="fire">${I.fire()} Bật lò</span><span class="min"><span class="pm">−</span><span class="num">75<small>p</small></span><span class="pm">+</span></span>
+<span class="chip"><span class="ic" style="background:#e3f7e7">${I.pen('#2f8a42')}</span>Ghi kết quả</span><span class="chip"><span class="ic" style="background:#fff4d1">${I.card('#e0a100')}</span>Công thức</span><span class="chip"><span class="ic" style="background:#ffe6ea">${I.tomato('#ff5c6c')}</span>Pomodoro</span>`;
+r6b.innerHTML=`<span class="cap6"><b>${I.fire()} Bật lò</b><span class="min"><span class="pm">−</span><span class="num">75<small>p</small></span><span class="pm">+</span></span></span>
+<span class="chip" style="--b:#e3f7e7;--d:#b6e5c0;color:#2f8a42"><span class="ic">${I.pen('#2f8a42')}</span>Chỉ ghi kết quả</span><span class="chip" style="--b:#fff4d1;--d:#f3d98a;color:#a06a00"><span class="ic">${I.card('#e0a100')}</span>Công thức</span><span class="chip" style="--b:#ffe6ea;--d:#ffc1cc;color:#d3456b"><span class="ic">${I.tomato('#ff5c6c')}</span>Pomodoro</span>`;
+r6c.innerHTML=`<span class="fire">${I.fire()} Bật lò</span><span class="min"><span class="pm">−</span><span class="num">75<small>p</small></span><span class="pm">+</span></span>
+<span class="chip" style="--b:#e3f7e7;--d:#b6e5c0;color:#2f8a42"><span class="ic">${I.pen('#2f8a42')}</span>Chỉ ghi kết quả</span><span class="chip" style="--b:#fff4d1;--d:#f3d98a;color:#a06a00"><span class="ic">${I.card('#e0a100')}</span>Công thức</span><span class="chip" style="--b:#ffe6ea;--d:#ffc1cc;color:#d3456b"><span class="ic">${I.tomato('#ff5c6c')}</span>Pomodoro</span>`;
+r7.innerHTML=row().replace('class="log"><span class="ic">','class="log"><span class="ic" style="background:#e3f7e7">').replace('class="rec"><span class="ic">','class="rec"><span class="ic" style="background:#fff4d1">').replace('class="pom"><span class="ic">','class="pom"><span class="ic" style="background:#ffe6ea">');
+</script></body></html>

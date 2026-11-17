@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hành trình điểm</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--bluel:#e3f2fd;--pink:#ff7a9c;--pinkl:#ffe9ef;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#page{width:1440px;background:#fff;display:grid;grid-template-columns:268px 1fr;position:relative}
+.side{border-right:2px solid var(--line);padding:26px 16px;display:flex;flex-direction:column;height:900px;position:sticky;top:0}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;white-space:nowrap;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--gl);border-color:#a9dfb3;color:var(--gd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15.5px;border-radius:14px;padding:12px 20px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--blue);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:40px 56px 70px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px}
+.top h1{font-weight:900;font-size:38px;letter-spacing:-1px}
+.top p{font-weight:700;font-size:16px;color:var(--mut);margin-top:2px}
+.sec{display:grid;grid-template-columns:840px 1fr;gap:36px;margin-top:54px;align-items:start}
+.q{display:inline-block;font-weight:900;font-size:13.5px;border-radius:99px;padding:5px 14px;margin-bottom:10px}
+.sec h2{font-weight:900;font-size:30px;letter-spacing:-.6px;line-height:1.2;max-width:760px}
+.panel{border-radius:26px;margin-top:20px;position:relative;overflow:hidden}
+.panel svg text{font-family:'Nunito'}
+.seg{display:inline-flex;background:#fff;border-radius:99px;padding:4px;font-weight:800;font-size:14px;position:absolute;left:20px;top:16px;box-shadow:0 3px 0 rgba(47,58,51,.1)}
+.seg span{padding:6px 16px;border-radius:99px;color:#5c675f}.seg span.on{background:var(--ink);color:#fff}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.facts div{background:#f6f8f6;border-radius:18px;padding:14px 18px;font-weight:700;font-size:14px;color:#5c675f}
+.facts b{display:block;font-weight:900;font-size:26px;color:var(--ink);letter-spacing:-.5px}
+.note{padding-top:66px}
+.note .s{width:120px;margin-left:8px}
+.note .s svg{display:block;width:100%}
+.say{background:#f6f8f6;border-radius:20px 20px 20px 6px;padding:16px 18px;font-weight:700;font-size:15px;line-height:1.5;margin-bottom:6px}
+.say b{font-weight:900}
+.say .btn{margin-top:12px;font-size:14.5px;padding:10px 16px}
+/* parts */
+.parts{display:grid;grid-template-columns:repeat(7,1fr);gap:16px;padding:30px 30px 24px;background:#f6f8f6}
+.pc{text-align:center}
+.pc .tr{height:210px;border-radius:18px;background:#fff;position:relative;overflow:hidden}
+.pc .tr i{position:absolute;left:0;right:0;bottom:0;border-radius:18px 18px 0 0}
+.pc .tr u{position:absolute;left:10px;right:10px;height:0;border-top:3px dashed rgba(47,58,51,.55)}
+.pc .pct{position:absolute;left:0;right:0;font-weight:900;font-size:19px;color:#fff}
+.pc b{display:block;font-weight:900;font-size:16.5px;margin-top:10px}
+.pc small{font-weight:700;font-size:13px;color:var(--mut)}
+.pc em{display:inline-block;font-style:normal;font-weight:900;font-size:12.5px;border-radius:99px;padding:1px 9px;margin-top:5px;background:var(--gl);color:var(--gd)}
+.pc em.z{background:#eceeec;color:#7a857e}
+.lg{display:flex;gap:22px;font-weight:800;font-size:13.5px;color:#5c675f;padding:0 30px 22px;background:#f6f8f6;align-items:center}
+.lg i{display:inline-block;width:14px;height:14px;border-radius:5px;margin-right:7px;vertical-align:-2px}
+.prs{background:#f6f8f6;padding:22px 30px 14px}
+.gh{font-weight:900;font-size:14px;margin:8px 0 2px}
+.pr{display:grid;grid-template-columns:168px 1fr 86px 128px 92px;gap:16px;align-items:center;padding:9px 0}
+.pr b{font-weight:900;font-size:17px;display:block}.pr small{font-weight:700;font-size:13px;color:var(--mut)}
+.pr .bar{height:26px;border-radius:99px;background:#fff;position:relative}
+.pr .bar i{display:block;height:100%;border-radius:99px;min-width:26px}
+.pr .bar u{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;border-radius:2px;background:#2f3a33}
+.pr .num{font-weight:900;font-size:26px;letter-spacing:-.5px;line-height:1}.pr .num small{display:block;font-size:12.500px;letter-spacing:0;margin-top:2px}
+.pr .tr4{font-weight:700;font-size:13.500px;color:var(--mut);white-space:nowrap}.pr .tr4 b{display:inline;font-size:15px;color:var(--ink);font-weight:900}
+.pr.hd{padding:0 0 4px;font-weight:800;font-size:12.500px;color:var(--mut)}.pr.hd div:last-child{text-align:center}
+.pr em{font-style:normal;font-weight:900;font-size:13px;border-radius:99px;padding:3px 0;text-align:center;background:var(--gl);color:var(--gd)}
+.pr em.z{background:#eceeec;color:#7a857e}
+/* bubbles */
+.bub{background:#f6f8f6;padding:26px 30px}
+.bub h4{font-weight:900;font-size:15px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(25,1fr);gap:6px;margin-bottom:8px}.cap2{font-weight:700;font-size:13px;color:var(--mut);margin-bottom:22px}
+.grid i{aspect-ratio:1;border-radius:50%;background:#fff;display:block}
+.sc{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13.5px;color:#5c675f}
+.sc i{width:18px;height:18px;border-radius:50%;display:inline-block}
+/* list */
+.row{display:grid;grid-template-columns:64px 1fr 120px 150px 110px 24px;align-items:center;gap:14px;padding:16px 22px;border-radius:20px;background:#f6f8f6;margin-top:12px}
+.row .n{width:52px;height:46px;border-radius:50%;background:var(--gold);box-shadow:0 6px 0 var(--goldd);display:grid;place-items:center}
+.row b{font-weight:900;font-size:18px}.row small{display:block;font-weight:700;font-size:13.5px;color:var(--mut)}
+.row .sco{font-weight:900;font-size:32px;letter-spacing:-1px}
+.row .d{display:inline-block;font-weight:900;font-size:13px;border-radius:99px;padding:2px 10px;background:var(--gl);color:var(--gd);vertical-align:8px;margin-left:6px}
+.row .lr{font-weight:800;font-size:14.5px;color:#5c675f}
+.add{border:3px dashed #cfd5cf;border-radius:20px;padding:18px;text-align:center;font-weight:900;font-size:16px;color:var(--blue);margin-top:12px}
+</style>
+</head>
+<body>
+<div id="page">
+  <aside class="side">
+    <div class="logo">toeic progress</div>
+    <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+    <div class="nv on"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+    <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+    <div class="nv"><i style="background:var(--pink)"></i>Sổ tay</div>
+    <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+    <div class="btn g" style="margin:16px 4px 0">+ Ghi điểm</div>
+    <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>
+  </aside>
+  <main>
+    <div class="top"><div><h1>Hành trình điểm</h1><p>4 đề đã ghi, từ 12/10 tới nay. Mỗi phần dưới đây trả lời một câu hỏi.</p></div></div>
+
+    <!-- 1 -->
+    <div class="sec" style="margin-top:34px">
+      <div>
+        <span class="q" style="background:var(--bluel);color:#1269ad">Mình có kịp không?</span>
+        <h2>Giữ đà này, bạn chạm 800 khoảng 01/12, trước ngày thi gần 3 tuần</h2>
+        <div class="panel" style="background:#e9f6ff">
+          <div class="seg"><span class="on">Tổng</span><span>Nghe</span><span>Đọc</span></div>
+          <svg viewBox="0 0 840 400" style="display:block">
+            <path d="M0 330 Q200 290 420 330 T840 320 V400 H0Z" fill="#cdeed2"/>
+            <g fill="#fff"><ellipse cx="330" cy="62" rx="50" ry="18"/><ellipse cx="358" cy="48" rx="32" ry="20"/></g>
+            <polygon points="338,170 810,40 810,118" fill="#ffe9a8" opacity=".75"/>
+            <line x1="50" y1="92" x2="810" y2="92" stroke="#ff7a9c" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/>
+            <path d="M338 170 Q470 110 606 92 T810 66" fill="none" stroke="#d99a00" stroke-width="3.5" stroke-dasharray="2 10" stroke-linecap="round"/>
+            <polyline points="70,279 177,232 263,206 338,170" fill="none" stroke="#ffc83d" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+            <g fill="#fff" stroke="#d99a00" stroke-width="5"><circle cx="70" cy="279" r="11"/><circle cx="177" cy="232" r="11"/><circle cx="263" cy="206" r="11"/></g>
+            <circle cx="338" cy="170" r="14" fill="#46b35a" stroke="#fff" stroke-width="5"/>
+            <circle cx="606" cy="92" r="10" fill="#fff" stroke="#ff7a9c" stroke-width="5"/>
+            <g font-weight="900" font-size="17" text-anchor="middle" fill="#2f3a33"><text x="70" y="312">620</text><text x="177" y="265">665</text><text x="263" y="239">690</text><text x="338" y="206" font-size="22">725</text></g>
+            <g><rect x="532" y="112" width="148" height="34" rx="17" fill="#2f3a33"/><text x="606" y="135" fill="#fff" font-weight="900" font-size="15" text-anchor="middle">Chạm 800 ở đây</text></g>
+            <text x="56" y="116" font-weight="900" font-size="15" fill="#d9547a">Mục tiêu 800</text>
+            <text x="700" y="170" font-weight="800" font-size="13.5" fill="#8a6a10">vùng ước tính</text>
+            <line x1="392" y1="60" x2="392" y2="350" stroke="#2f3a33" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 7"/>
+            <line x1="810" y1="34" x2="810" y2="350" stroke="#5c675f" stroke-width="5" stroke-linecap="round"/><path d="M812 36 L770 50 L812 66Z" fill="#ff7a9c"/>
+            <g font-weight="800" font-size="13.5" fill="#5c675f" text-anchor="middle"><text x="70" y="382">12/10</text><text x="392" y="382">Hôm nay</text><text x="606" y="382">01/12</text><text x="790" y="382">Thi 20/12</text></g>
+          </svg>
+        </div>
+        <div class="facts"><div><b>+35 điểm</b>trung bình sau mỗi đề</div><div><b>Nghe +55</b>phần lên nhanh nhất, Đọc +50</div><div><b>Khoảng 3 đề</b>nữa là tới mục tiêu nếu giữ đà</div></div>
+      </div>
+      <div class="note"><div class="say">Đường chấm là mình <b>ước tính</b> từ 4 đề của bạn thôi nha. Ghi thêm đề thì mình đoán chuẩn hơn.</div><span class="s" data-s="idle"></span></div>
+    </div>
+
+    <!-- 2 -->
+    <div class="sec">
+      <div>
+        <span class="q" style="background:var(--pinkl);color:#c23c63">Mất điểm ở đâu?</span>
+        <h2>Part 7 là chỗ rơi điểm nhiều nhất: 16 trong 46 câu sai nằm ở đây</h2>
+        <div class="panel"><div class="prs" id="parts"></div>
+        <div class="lg" style="padding-top:4px"><span><i style="background:var(--blue)"></i>Nghe</span><span><i style="background:var(--g)"></i>Đọc</span><span><i style="background:var(--pink)"></i>Sai nhiều nhất</span></div></div>
+      </div>
+      <div class="note"><div class="say">Tin vui nè: Part 7 vẫn sai nhiều nhất nhưng <b>ít hơn đề trước 3 câu</b>, và giảm đều qua cả 4 đề.<br><span class="btn g">Luyện Part 7</span></div><span class="s" data-s="yay" style="margin-top:44px"></span></div>
+    </div>
+
+    <!-- 3 -->
+    <div class="sec">
+      <div>
+        <span class="q" style="background:#f1ecff;color:#6a4fd0">Sai vì không biết hay vì hết giờ?</span>
+        <h2>10 câu cuối Part 7 đỏ ở cả 4 đề: bạn hết giờ, không phải không biết</h2>
+        <div class="panel"><div class="bub">
+          <h4 style="color:#1269ad">Nghe, câu 1 đến 100</h4><div class="grid" id="gL"></div><div class="cap2">Đọc từ trái sang phải, trên xuống dưới. Part 1: câu 1 đến 6. Part 2: 7 đến 31. Part 3: 32 đến 70. Part 4: 71 đến 100.</div>
+          <h4 style="color:var(--gd)">Đọc, câu 101 đến 200</h4><div class="grid" id="gR"></div><div class="cap2">Part 5: câu 101 đến 130. Part 6: 131 đến 146. Part 7: 147 đến 200, hàng cuối cùng là 25 câu cuối đề.</div>
+          <div class="sc">Câu này sai ở mấy đề: <i style="background:#fff"></i>0 <i style="background:#ffd3de"></i>1 <i style="background:#ff9db5"></i>2 <i style="background:#f0527c"></i>3 <i style="background:#b3254f"></i>4</div>
+        </div></div>
+      </div>
+      <div class="note"><div class="say">Mỗi chấm là một ô trên phiếu trả lời. Chấm càng đậm là vị trí đó bạn sai ở càng nhiều đề.</div><span class="s" data-s="think"></span></div>
+    </div>
+
+    <!-- 4 -->
+    <div class="sec">
+      <div>
+        <span class="q" style="background:var(--gl);color:var(--gd)">Mình đã đi qua những đâu?</span>
+        <h2>4 trạm đã qua</h2>
+        <div id="rows" style="margin-top:8px"></div>
+        <div class="add">+ Ghi điểm đề mới</div>
+      </div>
+      <div></div>
+    </div>
+  </main>
+</div>
+<script src="_soc.js"></script>
+<script>
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+// parts: [part, name, total, wrong over 4 tests]
+const P=[[1,'Mô tả tranh',6,[2,1,1,1]],[2,'Hỏi đáp',25,[6,5,4,3]],[3,'Hội thoại',39,[13,11,10,9]],[4,'Bài nói ngắn',30,[8,8,7,6]],[5,'Điền câu',30,[9,8,7,6]],[6,'Điền đoạn',16,[6,5,5,5]],[7,'Đọc hiểu',54,[22,20,19,16]]];
+const MX=24;
+document.getElementById('parts').innerHTML='<div class="pr hd"><div></div><div>Số câu sai ở đề gần nhất (06/11)</div><div></div><div>Qua 4 đề, cũ tới mới</div><div>So với đề trước</div></div>'+P.map(([p,nm,t,w])=>{const now=w[3],pv=w[2],d=now-pv,c=p===7?'var(--pink)':p<5?'var(--blue)':'var(--g)';
+ const pts=w.map((v,i)=>`${6+i*22},${30-v/MX*26}`).join(' ');
+ return `${p===1?'<div class="gh" style="color:#1269ad">Nghe</div>':p===5?'<div class="gh" style="color:var(--gd)">Đọc</div>':''}<div class="pr"><div><b>Part ${p}</b><small>${nm}, ${t} câu</small></div>
+ <div class="bar"><i style="width:${now/MX*100}%;background:${c}"></i></div>
+ <div class="num" style="${p===7?'color:#d9547a':''}">${now}<small>câu sai</small></div>
+ <div class="tr4">${w.slice(0,3).join(" → ")} → <b>${now}</b></div>
+ <em class="${d?'':'z'}">${d?'ít hơn '+(-d):'như cũ'}</em></div>`}).join('');
+// answer bubbles
+const col=['#fff','#ffd3de','#ff9db5','#f0527c','#b3254f'];let seed=11;const r=()=>(seed=(seed*9301+49297)%233280)/233280;
+const cnt=n=>{if(n>=191)return r()<.8?4:3;if(n>=184)return r()<.6?3:2;if(n>=147)return r()<.3?1:r()<.12?2:0;if(n>=131)return r()<.3?1:0;if(n>=101)return r()<.22?1:r()<.06?2:0;if(n>=71)return r()<.2?1:0;if(n>=32)return r()<.26?1:r()<.1?2:0;if(n>=7)return r()<.12?1:0;return 0};
+let L='',R='';for(let n=1;n<=200;n++){const h=`<i style="background:${col[cnt(n)]}"></i>`;n<=100?L+=h:R+=h}
+document.getElementById('gL').innerHTML=L;document.getElementById('gR').innerHTML=R;
+// rows
+const T=[['ETS 2024 Test 04','06/11',725,'+35',365,360,46],['ETS 2024 Test 03','30/10',690,'+25',350,340,53],['ETS 2024 Test 02','22/10',665,'+45',330,335,58],['ETS 2024 Test 01','12/10',620,'',310,310,66]];
+const chk='<svg width="22" height="17" viewBox="0 0 26 20"><path d="M3 10 L10 17 L23 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+document.getElementById('rows').innerHTML=T.map(t=>`<div class="row"><div class="n">${chk}</div><div><b>${t[0]}</b><small>${t[1]}</small></div><div><span class="sco">${t[2]}</span>${t[3]?`<span class="d">${t[3]}</span>`:''}</div><div class="lr">Nghe ${t[4]}, Đọc ${t[5]}</div><div class="lr">${t[6]} câu sai</div><svg width="12" height="20" viewBox="0 0 12 20"><path d="M2 2 L10 10 L2 18" fill="none" stroke="#a3aba5" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Màn kết quả</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4EFE6; --paper:#FFFCF7; --ink:#1E2430; --muted:#6B7280; --line:#ECE4D6;
+    --teal:#0E7C70; --teal-2:#2BB3A3; --teal-soft:#DDF3EF;
+    --sun:#FFB020; --sun-soft:#FFF1D6; --coral:#F26B4F; --coral-soft:#FDE6DF;
+    --plum:#7C5CD6; --plum-soft:#ECE6FB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1240px;margin:0 auto;padding:40px 16px 64px}
+  .page h1{font-size:22px;margin:0 0 4px}
+  .page > p{margin:0 0 28px;color:var(--muted);font-size:14px}
+  .row{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 10px 4px}
+
+  /* phone frame */
+  .phone{width:360px;max-width:100%;height:760px;background:var(--paper);border-radius:36px;box-shadow:0 1px 0 rgba(0,0,0,.04),0 24px 60px -24px rgba(60,40,10,.25);position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:10px;padding:18px 20px 6px;font-size:13px;color:var(--muted);font-weight:600}
+  .x{width:32px;height:32px;border-radius:50%;background:#F1EBE0;display:grid;place-items:center;font-size:16px;color:var(--ink)}
+  .scroll{flex:1;overflow:auto;padding:0 20px 120px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+
+  .hero{text-align:center;padding:6px 0 4px;position:relative}
+  .hero.up{background:radial-gradient(120% 80% at 50% 10%,var(--sun-soft),transparent 70%)}
+  .hero.down{background:radial-gradient(120% 80% at 50% 10%,var(--teal-soft),transparent 70%)}
+  .owl{width:112px;height:112px;display:block;margin:4px auto 0}
+  .headline{font-size:24px;font-weight:800;margin:6px 0 2px;letter-spacing:-.01em}
+  .sub{font-size:14px;color:var(--muted);margin:0 auto;max-width:270px;line-height:1.45}
+  .score{display:flex;align-items:baseline;justify-content:center;gap:6px;margin:14px 0 2px}
+  .score b{font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .score span{color:var(--muted);font-weight:600}
+  .lr{display:flex;justify-content:center;gap:18px;font-size:13px;color:var(--muted);font-weight:600}
+  .lr strong{color:var(--ink)}
+
+  .goal{margin:20px 0 6px;background:#F7F1E7;border-radius:18px;padding:14px 16px}
+  .goal-top{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:10px}
+  .goal-top em{font-style:normal;color:var(--teal);font-weight:800}
+  .track{height:10px;border-radius:99px;background:#E9E0D1;position:relative;overflow:hidden}
+  .fill{position:absolute;inset:0 auto 0 0;border-radius:99px;background:linear-gradient(90deg,var(--teal-2),var(--teal))}
+  .gain{position:absolute;top:0;bottom:0;border-radius:0 99px 99px 0;background:var(--sun)}
+
+  h3{font-size:15px;margin:22px 0 10px;font-weight:800}
+  .loss{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .loss:last-child{border-bottom:0}
+  .tag{font-size:11px;font-weight:800;border-radius:8px;padding:5px 7px;min-width:34px;text-align:center}
+  .t-p7{background:var(--coral-soft);color:#B4412A}
+  .t-p5{background:var(--plum-soft);color:#5B3DB3}
+  .t-p3{background:var(--sun-soft);color:#A86A00}
+  .loss-name{flex:1;font-size:14px;font-weight:600;line-height:1.3}
+  .loss-name small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+  .count{font-size:14px;font-weight:800;white-space:nowrap}
+
+  .cta-wrap{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 22px;background:linear-gradient(to top,var(--paper) 70%,rgba(255,252,247,0))}
+  .cta{display:block;width:100%;border:0;border-radius:18px;padding:16px;font:inherit;font-size:16px;font-weight:800;color:#fff;background:var(--teal);box-shadow:0 6px 0 #0A5E55;cursor:pointer}
+  .cta-sub{display:block;text-align:center;margin-top:12px;font-size:13px;font-weight:700;color:var(--teal)}
+
+  /* confetti */
+  .confetti i{position:absolute;width:7px;height:12px;border-radius:2px;opacity:.85}
+
+  /* desktop frame */
+  .desk{flex:1;min-width:300px;max-width:820px;background:var(--paper);border-radius:24px;box-shadow:0 24px 60px -24px rgba(60,40,10,.25);overflow:hidden}
+  .desk-bar{display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);font-weight:600}
+  .dot{width:10px;height:10px;border-radius:50%;background:#E6DDCD}
+  .desk-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .desk-left{padding:28px 28px 32px;background:radial-gradient(110% 70% at 50% 0%,var(--sun-soft),transparent 70%);text-align:center;position:relative}
+  .desk-right{padding:28px 28px 32px;border-left:1px solid var(--line);display:flex;flex-direction:column}
+  .desk-right h3{margin-top:0}
+  .desk-right .cta-sub{text-align:left}
+  .ai{margin-top:auto;padding-top:18px}
+  .ai-box{background:#F7F1E7;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.5;color:#3B4150}
+  .ai-box b{color:var(--ink)}
+  @media (max-width:760px){.desk-body{grid-template-columns:1fr}.desk-right{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Màn kết quả sau khi ghi điểm</h1>
+  <p>Hiện ngay sau khi bấm Lưu điểm. Một câu chúc đúng với kết quả, ba chỗ mất điểm nhiều nhất, một việc tiếp theo.</p>
+
+  <div class="row">
+    <!-- Phone A: tăng điểm -->
+    <div>
+      <div class="label">Điện thoại · điểm tăng</div>
+      <div class="phone">
+        <div class="topbar"><span class="x">✕</span>ETS 2024 Test 05 · hôm nay</div>
+        <div class="scroll">
+          <div class="hero up">
+            <div class="confetti" aria-hidden="true">
+              <i style="left:30px;top:20px;background:var(--sun);transform:rotate(20deg)"></i>
+              <i style="left:70px;top:70px;background:var(--coral);transform:rotate(-30deg)"></i>
+              <i style="right:40px;top:28px;background:var(--teal-2);transform:rotate(40deg)"></i>
+              <i style="right:76px;top:84px;background:var(--plum);transform:rotate(-15deg)"></i>
+              <i style="left:110px;top:6px;background:var(--teal-2);transform:rotate(60deg)"></i>
+              <i style="right:118px;top:4px;background:var(--sun);transform:rotate(-50deg)"></i>
+            </div>
+            <svg class="owl" viewBox="0 0 120 120" aria-hidden="true">
+              <ellipse cx="60" cy="112" rx="30" ry="5" fill="#000" opacity=".07"/>
+              <path d="M22 70 Q10 50 18 34 Q26 52 34 58Z" fill="#0E7C70"/>
+              <path d="M98 70 Q110 50 102 34 Q94 52 86 58Z" fill="#0E7C70"/>
+              <path d="M30 40 L36 18 L48 32Z" fill="#0E7C70"/>
+              <path d="M90 40 L84 18 L72 32Z" fill="#0E7C70"/>
+              <ellipse cx="60" cy="68" rx="36" ry="40" fill="#2BB3A3"/>
+              <ellipse cx="60" cy="80" rx="22" ry="24" fill="#FFF6E6"/>
+              <circle cx="46" cy="56" r="13" fill="#fff"/><circle cx="74" cy="56" r="13" fill="#fff"/>
+              <path d="M39 58 Q46 50 53 58" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <path d="M67 58 Q74 50 81 58" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <path d="M55 66 L65 66 L60 74Z" fill="#FFB020"/>
+              <circle cx="38" cy="70" r="4" fill="#F26B4F" opacity=".35"/><circle cx="82" cy="70" r="4" fill="#F26B4F" opacity=".35"/>
+              <path d="M50 104 l-4 6 M54 104 l0 7 M70 104 l4 6 M66 104 l0 7" stroke="#FFB020" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="headline">Tăng 35 điểm!</div>
+            <p class="sub">Điểm cao nhất của bạn từ trước tới giờ.</p>
+            <div class="score"><b>745</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>400</strong></span><span>Reading <strong>345</strong></span></div>
+          </div>
+
+          <div class="goal">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 105 điểm</em></div>
+            <div class="track"><div class="fill" style="width:83.5%"></div><div class="gain" style="left:83.5%;width:4.1%"></div></div>
+          </div>
+
+          <h3>Mất điểm nhiều nhất ở</h3>
+          <div class="loss"><span class="tag t-p7">P7</span><div class="loss-name">Câu hỏi suy luận<small>Đoạn đơn · đoạn kép</small></div><span class="count">7 câu</span></div>
+          <div class="loss"><span class="tag t-p5">P5</span><div class="loss-name">Từ loại<small>Tính từ / trạng từ</small></div><span class="count">5 câu</span></div>
+          <div class="loss"><span class="tag t-p3">P3</span><div class="loss-name">Hỏi chi tiết<small>Hội thoại 3 người</small></div><span class="count">4 câu</span></div>
+        </div>
+        <div class="cta-wrap">
+          <button class="cta">Ôn 18 câu sai vừa lưu</button>
+          <span class="cta-sub">Xem chi tiết 7 Part</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone B: giảm điểm -->
+    <div>
+      <div class="label">Điện thoại · điểm giảm</div>
+      <div class="phone">
+        <div class="topbar"><span class="x">✕</span>Hacker 3 Test 02 · hôm nay</div>
+        <div class="scroll">
+          <div class="hero down">
+            <svg class="owl" viewBox="0 0 120 120" aria-hidden="true">
+              <ellipse cx="60" cy="112" rx="30" ry="5" fill="#000" opacity=".07"/>
+              <path d="M30 40 L36 18 L48 32Z" fill="#0E7C70"/>
+              <path d="M90 40 L84 18 L72 32Z" fill="#0E7C70"/>
+              <ellipse cx="60" cy="68" rx="36" ry="40" fill="#2BB3A3"/>
+              <ellipse cx="60" cy="80" rx="22" ry="24" fill="#FFF6E6"/>
+              <path d="M26 66 Q22 88 40 96 Q44 84 40 70Z" fill="#0E7C70"/>
+              <path d="M94 66 Q98 88 80 96 Q76 84 80 70Z" fill="#0E7C70"/>
+              <circle cx="46" cy="56" r="13" fill="#fff"/><circle cx="74" cy="56" r="13" fill="#fff"/>
+              <circle cx="47" cy="58" r="5.5" fill="#1E2430"/><circle cx="75" cy="58" r="5.5" fill="#1E2430"/>
+              <circle cx="49" cy="56" r="1.8" fill="#fff"/><circle cx="77" cy="56" r="1.8" fill="#fff"/>
+              <path d="M38 44 Q46 41 54 45" stroke="#0E7C70" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path d="M66 45 Q74 41 82 44" stroke="#0E7C70" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path d="M55 68 L65 68 L60 75Z" fill="#FFB020"/>
+              <path d="M50 104 l-4 6 M54 104 l0 7 M70 104 l4 6 M66 104 l0 7" stroke="#FFB020" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="headline">Giảm 20 điểm lần này</div>
+            <p class="sub">Không sao. Trung bình 3 bài gần nhất của bạn vẫn tăng 15 điểm.</p>
+            <div class="score"><b>690</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>380</strong></span><span>Reading <strong>310</strong></span></div>
+          </div>
+
+          <div class="goal">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 160 điểm</em></div>
+            <div class="track"><div class="fill" style="width:81.2%"></div></div>
+          </div>
+
+          <h3>Lần này hụt nhiều ở</h3>
+          <div class="loss"><span class="tag t-p7">P7</span><div class="loss-name">Đoạn ba<small>Hết giờ trước 8 câu cuối</small></div><span class="count">9 câu</span></div>
+          <div class="loss"><span class="tag t-p5">P5</span><div class="loss-name">Liên từ<small>Although / Despite / Since</small></div><span class="count">5 câu</span></div>
+          <div class="loss"><span class="tag t-p3">P3</span><div class="loss-name">Hỏi ý định người nói<small>Câu trích dẫn</small></div><span class="count">4 câu</span></div>
+        </div>
+        <div class="cta-wrap">
+          <button class="cta">Bấm giờ luyện Part 7</button>
+          <span class="cta-sub">Ôn 21 câu sai vừa lưu</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop -->
+    <div style="flex-basis:100%">
+    <div class="label">Desktop · điểm tăng</div>
+    <div class="desk">
+      <div class="desk-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:10px">Kết quả · ETS 2024 Test 05</span></div>
+      <div class="desk-body">
+        <div class="desk-left">
+          <svg class="owl" viewBox="0 0 120 120" aria-hidden="true" style="width:128px;height:128px">
+            <ellipse cx="60" cy="112" rx="30" ry="5" fill="#000" opacity=".07"/>
+            <path d="M22 70 Q10 50 18 34 Q26 52 34 58Z" fill="#0E7C70"/>
+            <path d="M98 70 Q110 50 102 34 Q94 52 86 58Z" fill="#0E7C70"/>
+            <path d="M30 40 L36 18 L48 32Z" fill="#0E7C70"/>
+            <path d="M90 40 L84 18 L72 32Z" fill="#0E7C70"/>
+            <ellipse cx="60" cy="68" rx="36" ry="40" fill="#2BB3A3"/>
+            <ellipse cx="60" cy="80" rx="22" ry="24" fill="#FFF6E6"/>
+            <circle cx="46" cy="56" r="13" fill="#fff"/><circle cx="74" cy="56" r="13" fill="#fff"/>
+            <path d="M39 58 Q46 50 53 58" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+            <path d="M67 58 Q74 50 81 58" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+            <path d="M55 66 L65 66 L60 74Z" fill="#FFB020"/>
+            <circle cx="38" cy="70" r="4" fill="#F26B4F" opacity=".35"/><circle cx="82" cy="70" r="4" fill="#F26B4F" opacity=".35"/>
+            <path d="M50 104 l-4 6 M54 104 l0 7 M70 104 l4 6 M66 104 l0 7" stroke="#FFB020" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <div class="headline" style="font-size:28px">Tăng 35 điểm!</div>
+          <p class="sub">Điểm cao nhất của bạn từ trước tới giờ.</p>
+          <div class="score"><b style="font-size:64px">745</b><span>/ 990</span></div>
+          <div class="lr"><span>Listening <strong>400</strong></span><span>Reading <strong>345</strong></span></div>
+          <div class="goal" style="text-align:left">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 105 điểm</em></div>
+            <div class="track"><div class="fill" style="width:83.5%"></div><div class="gain" style="left:83.5%;width:4.1%"></div></div>
+          </div>
+        </div>
+        <div class="desk-right">
+          <h3>Mất điểm nhiều nhất ở</h3>
+          <div class="loss"><span class="tag t-p7">P7</span><div class="loss-name">Câu hỏi suy luận<small>Đoạn đơn · đoạn kép</small></div><span class="count">7 câu</span></div>
+          <div class="loss"><span class="tag t-p5">P5</span><div class="loss-name">Từ loại<small>Tính từ / trạng từ</small></div><span class="count">5 câu</span></div>
+          <div class="loss"><span class="tag t-p3">P3</span><div class="loss-name">Hỏi chi tiết<small>Hội thoại 3 người</small></div><span class="count">4 câu</span></div>
+          <div class="ai">
+            <div class="ai-box"><b>Gợi ý:</b> 5 câu từ loại đều là chỗ cần trạng từ đứng trước tính từ. Ôn nhóm này trước sẽ nhanh lấy lại điểm nhất.</div>
+            <button class="cta" style="margin-top:16px">Ôn 18 câu sai vừa lưu</button>
+            <span class="cta-sub">Xem chi tiết 7 Part</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

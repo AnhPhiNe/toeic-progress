@@ -1,0 +1,57 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);width:1220px;padding:24px 30px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:start}
+.tag{font-size:14px;font-weight:800;margin-bottom:4px}.sub{font-size:12px;color:var(--muted);margin-bottom:10px;min-height:32px;line-height:1.35}
+.card{background:#fff;border:2px solid var(--ink);border-radius:18px;box-shadow:3px 3px 0 var(--ink);padding:18px 20px}
+.k{font-size:11px;font-weight:800;letter-spacing:.07em;color:#475569;display:flex;gap:8px;justify-content:space-between;align-items:center}
+.pill{font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:#CCFBF1;color:#0F766E;letter-spacing:0}
+.name{font-size:17px;font-weight:800;margin-top:6px}
+.big{display:flex;align-items:baseline;gap:8px;margin-top:6px}.big b{font-size:52px;font-weight:800;line-height:1}.big span{font-size:17px;font-weight:700;color:var(--muted)}
+.delta{font-size:12px;font-weight:800;color:#BE123C;background:#FFE4E6;padding:3px 10px;border-radius:8px;margin-left:auto;white-space:nowrap}
+.big .delta.plain{background:none;padding:0;font-size:13px;color:#E11D48;font-weight:800}
+.goal{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-top:14px;padding-top:12px;border-top:1px solid #E2E8F0}.goal i{font-style:normal;color:#C2410C}
+.bar{height:10px;border-radius:5px;background:#E2E8F0;margin-top:8px;overflow:hidden}.bar u{display:block;height:100%;background:#2563EB;border-radius:5px}
+.lr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.lbox{border-radius:14px;padding:10px 12px;border:1px solid}.lbox.l{background:#EEF2FF;border-color:#C7D2FE}.lbox.r{background:#ECFDF5;border-color:#A7F3D0}
+.lbox small{font-size:11px;font-weight:800;letter-spacing:.06em}.lbox.l small{color:#3730A3}.lbox.r small{color:#047857}
+.lbox b{display:block;font-size:26px;font-weight:800;margin-top:2px}.lbox b em{font-style:normal;font-size:12px;color:var(--muted);font-weight:700}
+.lbox .p{display:inline-block;background:#fff;border:1px solid #CBD5E1;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;margin-top:6px}
+.btnw{margin-top:14px;border:2px solid var(--ink);border-radius:12px;padding:10px;text-align:center;font-weight:800;font-size:14px;color:#4338CA;box-shadow:2px 2px 0 var(--ink)}
+/* mới */
+.split{display:grid;grid-template-columns:1fr 1fr;margin-top:14px;padding-top:12px;border-top:1px solid #E2E8F0}
+.split div{padding:0 4px}.split div+div{border-left:1px solid #E2E8F0;padding-left:16px}
+.split small{font-size:11px;font-weight:800;letter-spacing:.07em}.split .l small{color:#4338CA}.split .r small{color:#0F766E}
+.split b{display:block;font-size:30px;font-weight:800;line-height:1.1;margin-top:2px}.split b em{font-style:normal;font-size:12px;color:var(--muted);font-weight:700}.split span{font-size:12px;color:var(--muted);font-weight:600}
+.sk{margin-top:14px;display:grid;grid-template-columns:86px 1fr 62px;align-items:center;gap:10px;font-size:13px;font-weight:800}.sk .bar{margin:0}.sk span{text-align:right;color:var(--muted);font-weight:700}
+.next{margin-top:16px;padding-top:14px;border-top:1px solid #E2E8F0}
+.next p{font-size:13px;font-weight:700;color:var(--muted)}.next p b{color:var(--ink)}
+.next .go{margin-top:10px;display:flex;gap:10px;align-items:center}
+.go .main{flex:1;background:#2563EB;color:#fff;border:2px solid var(--ink);border-radius:12px;padding:10px;text-align:center;font-weight:800;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+.go .link{font-size:12px;font-weight:800;color:#4338CA;white-space:nowrap}
+</style>
+<div class="row">
+<div><div class="tag">Hiện tại</div><div class="sub">Pill ở 4 chỗ, bốn lớp nói về khoảng cách tới mục tiêu, hai ô nền màu lồng trong thẻ.</div>
+<div class="card"><div class="k"><span>KẾT QUẢ GẦN NHẤT · 06/11</span><span class="pill">● Trình độ A2</span></div><div class="name">Test đồng bộ 21</div>
+<div class="big"><b>400</b><span>/ 990</span><span class="delta">▼ 535 so với bài trước</span></div>
+<div class="goal"><span>Mục tiêu 990</span><i>còn 590 điểm</i></div><div class="bar"><u style="width:40%"></u></div>
+<div class="lr"><div class="lbox l"><small>🎧 LISTENING</small><b>200 <em>/495</em></b><span class="p">97/100 câu</span></div><div class="lbox r"><small>📖 READING</small><b>200 <em>/495</em></b><span class="p">100/100 câu</span></div></div>
+<div class="btnw">Xem 7 Part chi tiết →</div></div></div>
+
+<div><div class="tag">A · bỏ pill, bỏ hộp lồng, thêm "bước tiếp theo"</div><div class="sub">Chênh lệch là chữ màu. L/R là hai cột ngăn bằng vạch mảnh. Nút chính là việc nên làm tiếp.</div>
+<div class="card"><div class="k"><span>KẾT QUẢ GẦN NHẤT · 06/11</span><span style="color:#0F766E">Trình độ A2</span></div><div class="name">Test đồng bộ 21</div>
+<div class="big"><b>400</b><span>/ 990</span><span class="delta plain" style="margin-left:auto">▼ 535 so với bài trước</span></div>
+<div class="goal"><span>Mục tiêu 990</span><i>còn 590 điểm</i></div><div class="bar"><u style="width:40%"></u></div>
+<div class="split"><div class="l"><small>LISTENING</small><b>200 <em>/495</em></b><span>97/100 câu</span></div><div class="r"><small>READING</small><b>200 <em>/495</em></b><span>100/100 câu</span></div></div>
+<div class="next"><p>Mất nhiều điểm nhất: <b>Part 7</b> (sai 16 câu)</p><div class="go"><div class="main">Luyện Part 7</div><span class="link">Xem 7 Part →</span></div></div></div></div>
+
+<div><div class="tag">B · L/R thành hai thanh, bớt một lớp số</div><div class="sub">Listening và Reading là hai hàng có thanh như phần Part. Gọn hơn A, bỏ cả hai ô số lớn.</div>
+<div class="card"><div class="k"><span>KẾT QUẢ GẦN NHẤT · 06/11</span><span style="color:#0F766E">Trình độ A2</span></div><div class="name">Test đồng bộ 21</div>
+<div class="big"><b>400</b><span>/ 990</span><span class="delta plain" style="margin-left:auto">▼ 535 so với bài trước</span></div>
+<div class="goal"><span>Mục tiêu 990</span><i>còn 590 điểm</i></div><div class="bar"><u style="width:40%"></u></div>
+<div class="sk" style="margin-top:16px"><span style="text-align:left;color:#4338CA">Listening</span><div class="bar"><u style="width:40%;background:#6366F1"></u></div><span>200/495</span></div>
+<div class="sk" style="margin-top:10px"><span style="text-align:left;color:#0F766E">Reading</span><div class="bar"><u style="width:40%;background:#14B8A6"></u></div><span>200/495</span></div>
+<div class="next"><p>Mất nhiều điểm nhất: <b>Part 7</b> (sai 16 câu)</p><div class="go"><div class="main">Luyện Part 7</div><span class="link">Xem 7 Part →</span></div></div></div></div>
+</div></html>

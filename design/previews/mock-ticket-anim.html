@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vé lên đỉnh: hiệu ứng bay</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#eef6fc;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:30px 16px}
+svg text{font-family:'Nunito'}
+.ctrl{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.seg{display:flex;background:#fff;border-radius:16px;padding:5px;gap:4px;box-shadow:0 3px 0 #dde6ee}
+.seg button{font:inherit;font-weight:900;font-size:15px;border:0;background:none;padding:9px 16px;border-radius:12px;color:#5c675f;cursor:pointer}
+.seg button.on{background:var(--ink);color:#fff}
+.btn{font:inherit;font-weight:900;font-size:15px;border:0;border-radius:14px;padding:11px 18px;cursor:pointer;background:var(--g);color:#fff;box-shadow:0 4px 0 var(--gd)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gd)}
+label.rm{font-weight:800;font-size:14px;color:#5c675f;display:flex;align-items:center;gap:6px;cursor:pointer}
+
+.t{width:560px;max-width:100%;height:224px;display:grid;grid-template-columns:1fr 128px;filter:drop-shadow(0 12px 22px rgba(47,58,51,.14))}
+.m{border-radius:22px 0 0 22px;background:#fff;overflow:hidden;display:flex;flex-direction:column;-webkit-mask:radial-gradient(circle 13px at 100% 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 100% 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle 13px at 100% 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 100% 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.s{border-radius:0 22px 22px 0;background:#fff;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;-webkit-mask:radial-gradient(circle 13px at 0 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 0 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle 13px at 0 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle 13px at 0 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.s::before{content:"";position:absolute;left:0;top:16px;bottom:16px;border-left:2.5px dashed #dfe4df}
+.sky{height:112px;background:linear-gradient(#bfe6ff,#eaf7ff);position:relative}
+.sky svg{display:block;width:100%;height:100%}
+.low{flex:1;display:flex;align-items:center;padding:0 26px;gap:20px}
+.big{font-weight:900;font-size:62px;letter-spacing:-2.5px;line-height:1;min-width:128px;font-variant-numeric:tabular-nums}
+.vr{width:2px;height:54px;background:#eef0ee}
+.lr{display:flex;gap:22px}.lr div{font-weight:800;font-size:12px;color:var(--mut)}.lr b{display:block;font-weight:900;font-size:22px;color:var(--ink)}
+.d{font-weight:900;font-size:38px;letter-spacing:-1px;line-height:1}
+.tag{font-weight:900;font-size:12px;border-radius:99px;padding:3px 12px}
+.re{font-weight:900;font-size:11.5px;color:#6a4fd0;background:#efeaff;border-radius:99px;padding:2px 9px}
+.dt{font-weight:800;font-size:12px;color:var(--mut);text-align:center;line-height:1.35}
+.s>*{position:relative}
+.pop{animation:pop .45s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* idle motion */
+.bob{animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.flap{transform-box:fill-box;transform-origin:100% 50%;animation:flap 1.8s ease-in-out infinite}
+@keyframes flap{0%,100%{transform:skewY(0deg)}50%{transform:skewY(-3deg)}}
+.cloud{animation:drift 26s linear infinite}
+.cloud.c2{animation-duration:34s;animation-delay:-12s}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-140px)}}
+.wave{transform-box:fill-box;transform-origin:0 50%;animation:wave 1.6s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.82)}}
+.tt,.tb{transition:transform .5s cubic-bezier(.3,1.4,.5,1),opacity .6s .3s;transform-box:fill-box}
+.tt{transform-origin:50% 0%}.tb{transform-origin:50% 100%}
+.broke .tt{transform:rotate(-70deg) translateY(-6px);opacity:0}.broke .tb{transform:rotate(70deg) translateY(6px);opacity:0}
+.fw{opacity:0;animation:burst 1.1s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes burst{0%{opacity:1;transform:translate(0,0)}70%{opacity:1}100%{opacity:0;transform:translate(var(--tx),calc(var(--ty) + 8px))}}
+.fwc{opacity:0;transform-box:fill-box;transform-origin:center;animation:flash .5s ease-out forwards}
+@keyframes flash{0%{opacity:.95;transform:scale(.4)}100%{opacity:0;transform:scale(2.4)}}
+.conf rect{animation:fall 1.4s ease-in forwards}
+@keyframes fall{from{transform:translateY(-20px) rotate(0)}to{transform:translateY(120px) rotate(260deg);opacity:0}}
+.still .bob,.still .flap,.still .cloud,.still .wave{animation:none}
+.note{font-weight:700;font-size:14px;color:var(--mut);max-width:560px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="ctrl">
+  <div class="seg" id="cases">
+    <button data-k="rec" class="on">Kỷ lục mới</button><button data-k="down">Giảm điểm</button><button data-k="first">Đề đầu tiên</button><button data-k="goal">Chạm mục tiêu</button>
+  </div>
+  <button class="btn" id="replay">Phát lại</button>
+  <label class="rm"><input type="checkbox" id="rm"> Giảm chuyển động</label>
+</div>
+
+<div class="t" id="ticket">
+  <div class="m">
+    <div class="sky"><svg viewBox="0 0 432 112" id="sky"></svg></div>
+    <div class="low"><div class="big" id="big">0</div><div class="vr"></div><div class="lr" id="lr"></div></div>
+  </div>
+  <div class="s" id="stub"></div>
+</div>
+<div class="note">Mở ngăn chi tiết đề thì máy bay bay một lần tới đúng điểm của bạn, rồi chỉ nhấp nhô nhẹ tại chỗ. Bật "Giảm chuyển động" để xem bản tĩnh.</div>
+
+<script>
+const GOAL=800,W=432;
+const D={
+ rec:{date:'11/11',test:'Test 03',re:1,first:620,prev:740,sc:765,d:25,L:390,R:375,ban:'Kỷ lục mới!',tag:['Kỷ lục mới','#ffc83d','#5a4410'],conf:1},
+ down:{date:'09/11',test:'Test 05',first:620,prev:725,sc:710,d:-15,L:360,R:350,ban:'Lần sau nha!',tag:['Chững lại','#eef1f5','#5c675f']},
+ first:{date:'12/10',test:'Test 01',first:620,prev:null,sc:620,d:0,L:310,R:310,ban:'Cất cánh!',tag:['Đề đầu tiên','#e7f6ea','#2f8a42']},
+ goal:{date:'14/12',test:'Test 08',first:620,prev:765,sc:805,d:40,L:410,R:395,ban:'Chạm 800 rồi!',tag:['Chạm mục tiêu','#ff7a9c','#fff'],conf:1}};
+const x0=34,x1=W-98,yb=96,ya=36;
+const arc=t=>[x0+(x1-x0)*t, t>1?ya:yb-(yb-ya)*Math.sin(t*Math.PI/2)];
+const path=(a,b)=>{let s='';for(let i=0;i<=48;i++){const [x,y]=arc(a+(b-a)*i/48);s+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)}return s};
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const plane=`<path d="M-30 2 C-30 -8 -20 -12 -8 -12 L14 -12 C26 -12 34 -6 36 0 C34 6 26 10 14 10 L-8 10 C-20 10 -30 8 -30 2Z" fill="#fff" stroke="#1c8fe3" stroke-width="2.5"/>
+ <path d="M-26 -8 L-34 -26 L-22 -26 L-14 -11Z" fill="#1c8fe3"/><path d="M-4 2 L-14 20 L-2 20 L10 4Z" fill="#46b35a"/>
+ <path d="M26 -9 C31 -7 35 -3 36 0 L24 0 Z" fill="#9ed6ff"/><circle cx="-14" cy="-3" r="3" fill="#9ed6ff"/><circle cx="-4" cy="-3" r="3" fill="#9ed6ff"/><circle cx="6" cy="-3" r="3" fill="#9ed6ff"/>
+ <path d="M-30 4 L36 4" stroke="#ffc83d" stroke-width="3"/>`;
+let raf=0;
+function render(k){
+ cancelAnimationFrame(raf);
+ const d=D[k],reduce=document.getElementById('rm').checked||matchMedia('(prefers-reduced-motion: reduce)').matches;
+ document.getElementById('ticket').classList.toggle('still',reduce);
+ const p=Math.max(0,Math.min(1,(d.sc-d.first)/(GOAL-d.first)));
+ const pg=k==='goal'?1.2:Math.max(p,.36),pt=k==='goal'?1.2:p;
+ const bw=d.ban.length*7.1+22,down=k==='down';
+ const sky=document.getElementById('sky');
+ sky.innerHTML=`<g class="cloud"><g fill="#fff" opacity=".9"><ellipse cx="96" cy="22" rx="30" ry="10"/><ellipse cx="114" cy="14" rx="18" ry="11"/><ellipse cx="236" cy="24" rx="22" ry="8"/></g></g>
+  <g class="cloud c2"><g fill="#fff" opacity=".85"><ellipse cx="320" cy="92" rx="26" ry="8"/><ellipse cx="470" cy="60" rx="24" ry="8"/></g></g>
+  <path d="${path(0,1)}" fill="none" stroke="#9fd0f5" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <path id="trail" d="" fill="none" stroke="#1c8fe3" stroke-width="3.5" stroke-linecap="round" opacity=".55"/>
+  <circle cx="${x0}" cy="${yb}" r="5" fill="#1c8fe3"/><text x="${x0}" y="${yb+14}" font-weight="900" font-size="11.5" fill="#4d6a80" text-anchor="middle">${d.first}</text>
+  <g transform="translate(${x1+4} ${ya-6})"><circle r="26" fill="#fff6c8" opacity=".75"/><path d="M-13 -14 C-22 -14 -21 -3 -12 -4" fill="none" stroke="#e8a516" stroke-width="3.5" stroke-linecap="round"/><path d="M13 -14 C22 -14 21 -3 12 -4" fill="none" stroke="#d99a00" stroke-width="3.5" stroke-linecap="round"/><path d="M-14 -17 H14 C14 -2 7 6 0 7 C-7 6 -14 -2 -14 -17Z" fill="#ffc83d"/><ellipse cx="0" cy="-17" rx="14" ry="2.5" fill="#ffe9a3"/><rect x="-3" y="6" width="6" height="6" fill="#e8a516"/><rect x="-9" y="11" width="18" height="5" rx="2" fill="#2f3a33"/><path d="M0 -13 l2 4 4.4 .6 -3.2 3.1 .8 4.3 -4 -2.1 -4 2.1 .8 -4.3 -3.2 -3.1 4.4 -.6Z" fill="#fff"/></g>
+  <text x="${x1+4}" y="${ya+28}" font-weight="900" font-size="14" fill="#d9547a" text-anchor="middle">800</text>
+  <g id="tape"></g>
+  <defs><pattern id="chk" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#fff"/><rect width="3" height="3" fill="#2f3a33"/><rect x="3" y="3" width="3" height="3" fill="#2f3a33"/></pattern></defs>
+  <g id="pg"><g class="bob"><g id="ban" transform="translate(-44 0) scale(0 1) translate(44 0)"><g class="flap"><line x1="-30" y1="0" x2="-44" y2="0" stroke="#7a857e" stroke-width="1.5"/><path d="M${-44-bw} -10 H-44 V10 H${-44-bw} L${-50-bw} 0Z" fill="${down?'#fff':'#ffd766'}" stroke="${down?'#d5dcd6':'#e8b62c'}" stroke-width="1.5"/><text x="${-44-bw/2-2}" y="4.5" font-weight="900" font-size="12" fill="${down?'#4d5850':'#5a4410'}" text-anchor="middle">${d.ban}</text></g></g>${plane}</g></g>
+  <g class="conf" id="conf"></g>`;
+ document.getElementById('lr').innerHTML=`<div>Nghe<b>${d.L}</b></div><div>Đọc<b>${d.R}</b></div><div>${k==='goal'?'Vượt 800':'Còn tới 800'}<b>${k==='goal'?d.sc-GOAL:GOAL-d.sc}</b></div>`;
+ const stub=document.getElementById('stub');stub.innerHTML='';
+ const fillStub=()=>{stub.innerHTML=`<div class="d pop" style="color:${down?'#7a857e':'#2f8a42'}">${k==='first'?'#1':(d.d>0?'+':'−')+Math.abs(d.d)}</div><span class="tag pop" style="background:${d.tag[1]};color:${d.tag[2]};animation-delay:.08s">${d.tag[0]}</span>${d.re?'<span class="re pop" style="animation-delay:.14s">làm lại</span>':''}<div class="dt">${d.date}<br>${d.test}</div>`};
+ const tape=document.getElementById('tape'),big=document.getElementById('big'),pgEl=document.getElementById('pg'),trail=document.getElementById('trail'),ban=document.getElementById('ban');
+ const from=d.prev??d.first;
+ const place=u=>{const [x,y]=arc(u),[tx,ty]=arc(u+.01);const ang=Math.atan2(ty-y,tx-x)*180/Math.PI;pgEl.setAttribute('transform',`translate(${x} ${y}) rotate(${ang}) scale(.9)`);trail.setAttribute('d',path(0,Math.min(u,pt)));if(k==='goal'&&u>=1&&!tape.classList.contains('broke')){tape.classList.add('broke');fireworks()}};
+ const unfurl=(sx)=>ban.setAttribute('transform',`translate(-44 0) scale(${sx} 1) translate(44 0)`);
+ const fireworks=()=>{const c=document.getElementById('conf');const cols=['#ffd766','#ff7a9c','#46b35a','#1c8fe3','#a78bfa'];const B=[[150,40,0],[250,28,.35],[205,72,.7],[110,70,1.05]];let h='';B.forEach(([cx,cy,dl],j)=>{for(let i=0;i<14;i++){const a=i/14*Math.PI*2,r=26+(i%2)*6;h+=`<g class="fw" style="animation-delay:${dl}s;--tx:${(Math.cos(a)*r).toFixed(1)}px;--ty:${(Math.sin(a)*r).toFixed(1)}px"><circle cx="${cx}" cy="${cy}" r="2.6" fill="${cols[(i+j)%5]}"/></g>`}h+=`<circle class="fwc" cx="${cx}" cy="${cy}" r="5" fill="#fff" style="animation-delay:${dl}s"/>`});c.innerHTML=h};
+ const confetti=()=>{if(!d.conf)return;const c=document.getElementById('conf');const cols=['#ffd766','#ff7a9c','#46b35a','#1c8fe3','#a78bfa'];let h='';for(let i=0;i<22;i++){const x=200+Math.random()*220,dl=Math.random()*.4;h+=`<rect x="${x}" y="${-10-Math.random()*20}" width="5" height="9" rx="1.5" fill="${cols[i%5]}" style="animation-delay:${dl}s;transform-box:fill-box;transform-origin:center"/>`}c.innerHTML=h};
+ if(reduce){place(pg);unfurl(1);tape.innerHTML='';big.textContent=d.sc;fillStub();return}
+ const T=1500+1100*pg,t0=performance.now();
+ const step=now=>{const el=now-t0,t=Math.min(1,el/T),e=ease(t);place(pg*e);big.textContent=Math.round(from+(d.sc-from)*e);
+  unfurl(Math.min(1,1-Math.pow(1-Math.min(1,el/450),3)));
+  if(t<1){raf=requestAnimationFrame(step)}else{fillStub();if(k!=='goal')confetti()}};
+ place(0);unfurl(0);raf=requestAnimationFrame(step);
+}
+let cur='rec';
+document.querySelectorAll('#cases button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#cases button').forEach(x=>x.classList.toggle('on',x===b));cur=b.dataset.k;render(cur)});
+document.getElementById('replay').onclick=()=>render(cur);
+document.getElementById('rm').onchange=()=>render(cur);
+render(cur);
+</script>
+</body>
+</html>

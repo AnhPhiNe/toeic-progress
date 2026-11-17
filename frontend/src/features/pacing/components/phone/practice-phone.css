@@ -1,0 +1,101 @@
+/* Luyện tập on phones. Sketch: design/previews/mock-phone-practice.html. Builds on bakery.css (bk-fire, bk-tool, bk-lcd, bk-row ...). */
+.pp { font-family: var(--rd-font); color: var(--rd-ink); }
+.pp button { font-family: var(--rd-font); }
+.pp-say { background: #fff; border-radius: 16px; padding: 8px 11px; font-weight: 800; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 0 rgba(0, 0, 0, .06); }
+.pp-say b { font-weight: 900; color: var(--rd-violet-d); }
+
+.pp .pp-fire { flex: 1; width: auto; min-width: 0; border-radius: 99px; padding: 15px 12px; font-size: 17px; white-space: nowrap; --rd-btn-d: #c44a3a;
+  background: linear-gradient(90deg, #ff7a1a, #ff5c86); box-shadow: 0 5px 0 #c44a3a, 0 8px 18px rgba(255, 92, 134, .25); }
+.pp .pp-fire:active { box-shadow: 0 1px 0 #c44a3a; }
+.pp-mins { display: inline-flex; align-items: center; gap: 6px; flex: none; border-radius: 99px; background: #fff1e6; box-shadow: 0 4px 0 #ffd7bd; padding: 0 6px; height: 54px; font-weight: 900; font-size: 17px; color: #d9661f; }
+.pp-mins b { min-width: 24px; text-align: center; }
+.pp-mins span { font-size: 11px; color: #a3aba5; font-weight: 800; margin-left: -4px; }
+.pp-mins button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; color: #ff6a3d; font-weight: 900; font-size: 20px; box-shadow: 0 2px 0 #ffd7bd; cursor: pointer; }
+.pp-mins button:disabled { opacity: .4; }
+.pp-mins--white { background: #fff; box-shadow: 0 0 0 2px #eee8e2; height: 48px; }
+.pp-mins input { width: 44px; border: 0; background: transparent; text-align: center; font: 900 18px var(--rd-font); color: #d9661f; -moz-appearance: textfield; }
+.pp-mins input::-webkit-inner-spin-button, .pp-mins input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.pp-mins--white { gap: 2px; padding: 0 4px; }
+.pp-mins--white input { width: 30px; }
+.pp-mins--white button { width: 34px; height: 34px; box-shadow: 0 2px 0 #eee8e2; }
+
+.pp-bottom { position: absolute; left: 16px; right: 16px; bottom: calc(26px + env(safe-area-inset-bottom)); z-index: 5; }
+.pp-btns { display: flex; gap: 10px; }
+.pp-btns .rd-btn { font-size: 16.5px; padding: 15px 10px; border-radius: 18px; }
+.pp-btns .pp-fire { border-radius: 99px; }
+.pp-side { flex: none; width: 120px; }
+.pp .pp-save { flex: 1; --rd-btn-d: #2a8a40; background: linear-gradient(135deg, #4cc062, #2f9e4a); box-shadow: 0 5px 0 #2a8a40; }
+
+/* ---------- Chọn mẻ ---------- */
+.pp-choose { position: relative; display: flex; flex-direction: column; overflow: hidden; min-height: calc(100dvh - 86px - env(safe-area-inset-bottom));
+  background: repeating-linear-gradient(90deg, #fff3f6 0 26px, #ffe8ee 26px 52px); }
+.pp-awn { position: absolute; left: 0; top: env(safe-area-inset-top); width: 100%; height: 120px; pointer-events: none; }
+.pp-head { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 0 18px; margin-top: calc(122px + env(safe-area-inset-top)); }
+.pp-head h1 { flex: 1; min-width: 0; font-weight: 900; font-size: 20px; letter-spacing: -.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-head h1 em { font-style: normal; color: var(--rd-violet-d); }
+.pp-recent { flex: none; width: 40px; height: 40px; border: 0; border-radius: 14px; background: #fff; display: grid; place-items: center; box-shadow: 0 2px 0 rgba(0, 0, 0, .06); cursor: pointer; }
+.pp-case { position: relative; flex: 1; min-height: 230px; margin: 14px 16px 0; border-radius: 24px; background: rgba(255, 255, 255, .55); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .9); overflow: hidden; }
+.pp-shelf { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; background: #ff9ab3; box-shadow: inset 0 5px 0 #ffc2d0; }
+.pp-case .pp-say { position: absolute; left: 12px; top: 12px; z-index: 3; max-width: 70%; }
+
+.pp-cake { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(66%, 260px); }
+.pp-cake .bk-art { position: static; display: block; width: 100%; height: auto; }
+.pp-soc { position: absolute; right: 10px; bottom: 8px; z-index: 4; }
+.pp-soc.is-going { animation: bk-run-in .38s ease-in forwards; }
+.pp-cards { display: flex; gap: 10px; padding: 14px 16px 14px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.pp-cards::-webkit-scrollbar { display: none; }
+.pp-pc { flex: none; width: 112px; scroll-snap-align: center; border: 0; border-radius: 20px; background: #fff; padding: 8px 10px 10px; text-align: left; color: var(--rd-ink); cursor: pointer;
+  box-shadow: 0 0 0 2px #ffe0e8, 0 4px 0 #ffe0e8; }
+.pp-pc .bk-dish-icon { display: block; width: 56px; height: 50px; margin: 0 auto 2px; }
+.pp-pc b { display: flex; justify-content: space-between; align-items: baseline; font-weight: 900; font-size: 14.5px; white-space: nowrap; }
+.pp-pc em { font-style: normal; font-weight: 900; font-size: 13px; color: #ff7a1a; }
+.pp-pc small { display: block; font-weight: 800; font-size: 11.5px; color: #a3aba5; }
+.pp-pc.is-on { background: #fffaf0; box-shadow: 0 0 0 3px #ffc83d, 0 5px 0 #f0b400; }
+.pp-panel { position: relative; background: #fbfaf7; border-radius: 28px 28px 0 0; padding: 16px 16px 18px; box-shadow: 0 -8px 24px rgba(200, 80, 120, .1); }
+.pp-fire-row { display: flex; gap: 10px; align-items: center; }
+.pp-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.pp-tools .bk-tool { min-width: 0; gap: 5px; padding: 4px 6px 4px 4px; font-size: 12px; justify-content: flex-start; }
+.pp-tools .bk-tool i { width: 30px; height: 30px; }
+.pp-choose .bk-err { margin-top: 8px; }
+
+/* sheets (rendered in a portal, outside .pp) */
+.pp-rows { display: flex; flex-direction: column; gap: 10px; padding: 4px 3px 0; }
+.pp-empty { padding: 12px 0; text-align: center; font-weight: 800; color: var(--rd-mut); }
+.pp-steps-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.pp-steps-list li { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-weight: 900; font-size: 15px; }
+.pp-steps-list li em { font-style: normal; width: 26px; height: 26px; border-radius: 50%; background: #fff1e6; color: #ff7a1a; display: grid; place-items: center; font-size: 12px; flex: none; }
+.pp-steps-list li small { margin-left: auto; font-weight: 800; color: var(--rd-mut); }
+.pp-steps-note { margin-top: 14px; font-weight: 800; font-size: 13px; color: var(--rd-mut); }
+
+/* ---------- Đang nướng ---------- */
+.pp-run, .pp-done { display: flex; flex-direction: column; align-items: center; min-height: 100dvh; margin-bottom: calc(-86px - env(safe-area-inset-bottom)); padding-top: calc(14px + env(safe-area-inset-top)); }
+.pp-floor { height: 130px; }
+.pp-run-head { position: relative; z-index: 5; width: 100%; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; }
+.pp-run-head b { display: block; font-weight: 900; font-size: 20px; }
+.pp-run-head span { display: block; font-weight: 800; font-size: 12.5px; color: var(--rd-mut); }
+.pp-run .bk-stop { padding: 9px 14px; min-height: 40px; }
+.pp-oven { position: relative; flex: none; container-type: inline-size; margin-top: 10px; z-index: 3; transition: filter .6s;
+  width: min(320px, 82vw, calc((100dvh - 470px) * 550 / 634)); min-width: 200px; aspect-ratio: 550 / 634; }
+.pp-oven .bk-oven { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pp-run.is-hot .pp-oven { filter: drop-shadow(0 0 26px rgba(255, 90, 40, .38)); }
+.pp-step { position: relative; z-index: 3; margin-top: 14px; text-align: center; padding: 0 16px; }
+.pp-step b { display: block; font-weight: 900; font-size: 16px; }
+.pp-step small { display: block; font-weight: 800; font-size: 12.5px; color: var(--rd-mut); margin-top: 2px; }
+.pp-bars { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+.pp-bars i { height: 8px; width: 36px; border-radius: 9px; background: #efe9ff; }
+.pp-bars i.d { background: #46b35a; }
+.pp-bars i.n { background: #ff9a4d; width: 52px; }
+.pp-run-soc { position: relative; z-index: 3; display: flex; align-items: center; gap: 14px; align-self: flex-start; margin: auto 22px 118px; padding-top: 22px; }
+.pp-say--side { max-width: 190px; }
+
+/* ---------- Ra lò ---------- */
+.pp-card { position: relative; z-index: 3; width: calc(100% - 32px); margin-top: 54px; background: #fff; border-radius: 28px; padding: 4px 16px 18px; box-shadow: 0 10px 30px rgba(200, 80, 120, .15); }
+.pp-ribbon { position: absolute; left: 50%; top: -16px; transform: translateX(-50%); background: #ffc83d; color: #5a3d00; border-radius: 12px; padding: 5px 12px; font-weight: 900; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #d99a00; }
+.pp-card .bk-card-cake { width: 210px; margin: 28px auto 0; }
+.pp-card h2 { text-align: center; font-weight: 900; font-size: 22px; letter-spacing: -.5px; margin-top: 4px; }
+.pp-card-sub { text-align: center; font-weight: 800; font-size: 13px; color: var(--rd-mut); margin-top: 2px; }
+.pp-fld { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f7f4f0; border-radius: 16px; padding: 10px 12px; margin-top: 10px; }
+.pp-fld b { font-weight: 900; font-size: 14.5px; }
+.pp-fld small { display: block; font-weight: 800; font-size: 11.5px; color: #a3aba5; }
+.pp-fld .pp-val { font-size: 17px; }
+.pp-done-soc { position: relative; z-index: 3; align-self: flex-start; margin: 22px 0 0 24px; }

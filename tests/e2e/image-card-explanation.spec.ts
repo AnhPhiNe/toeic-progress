@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openCard } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 const question = 'When will the library reopen?';
 const sourceImageIds = ['a'.repeat(64), 'b'.repeat(64)];
@@ -25,7 +27,7 @@ async function openImageCard(page: Page) {
       }
     `
   }));
-  await page.goto('/so-tay');
+  await gotoPage(page, '/so-tay');
   // This is the persisted shape produced by saving a manual note with context images.
   await page.evaluate(({ question, sourceImageIds }) => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
@@ -39,13 +41,14 @@ async function openImageCard(page: Page) {
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
   }, { question, sourceImageIds });
   await page.reload();
-  await page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }).click();
+  await openCard(page, question);
 }
 
 test('explaining an image-only Part 7 card forwards its source images and preserves learner facts after reload', async ({ page }) => {
   await openImageCard(page);
-  await page.getByRole('button', { name: 'Giải thích với AI', exact: true }).click();
-  await expect(page.getByText(`Mẹo 10s: ${tip}`, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Giải thích với AI/ }).click();
+  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
+  await expect(page.getByText(tip, { exact: true })).toBeVisible();
 
   const call = await page.evaluate(() => (window as Window & { __imageExplanationCall: {
     input: { context: string; sourceAnswer: string; userChoice: string; userChoiceState: string; userReason: string };
@@ -59,17 +62,18 @@ test('explaining an image-only Part 7 card forwards its source images and preser
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved).toMatchObject({ sourceImageIds, question, context: '', correctAnswer: '(A) Monday', answerSource: 'PROVIDED',
     answerProvidedBy: 'SOURCE', userChoice: 'B', userChoiceState: 'CHOSEN', userReason: 'Nhầm ngày trong ảnh', explanation: { quickTip: tip } });
-  await page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }).click();
-  await expect(page.getByText(`Mẹo 10s: ${tip}`, { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Giải thích với AI', exact: true })).toHaveCount(0);
+  await openCard(page, question);
+  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
+  await expect(page.getByText(tip, { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Giải thích với AI/ })).toHaveCount(0);
 });
 
 for (const changedField of ['question', 'sourceImageIds', 'deletedAt'] as const) {
   test(`a late image explanation cannot overwrite a card whose ${changedField} changed`, async ({ page }) => {
     await openImageCard(page);
     await page.evaluate(() => { (window as Window & { __holdImageExplanation: boolean }).__holdImageExplanation = true; });
-    await page.getByRole('button', { name: 'Giải thích với AI', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Đang viết lời giải…', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: /^Giải thích với AI/ }).click();
+    await expect(page.getByRole('button', { name: 'Sóc đang viết lời giải…', exact: true })).toBeDisabled();
     await page.waitForFunction(() => typeof (window as Window & { __releaseImageExplanation?: () => void }).__releaseImageExplanation === 'function');
     await page.evaluate(changedField => {
       const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);

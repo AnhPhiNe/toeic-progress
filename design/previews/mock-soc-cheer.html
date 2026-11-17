@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sóc ăn mừng: 4 kiểu</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#sheet{width:1400px;background:#fff;padding:36px 40px 44px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:24px}
+.stage{height:360px;border-radius:24px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px;overflow:hidden}
+.stage .s{width:220px}.stage .s svg{display:block;width:100%;overflow:visible}
+.cap{margin-top:12px}.cap b{font-weight:900;font-size:17px}.cap .use{display:inline-block;margin-left:6px;font-weight:900;font-size:12px;border-radius:99px;padding:2px 9px;vertical-align:2px}
+.cap span{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:4px;line-height:1.45}
+.cf{display:none}
+.pt,.ov{transform-box:fill-box;transform-origin:center}
+
+/* ===== A: nhảy xoay vòng ===== */
+.s-cA .all{transform-origin:50% 60%;animation:cA 2.6s cubic-bezier(.3,0,.3,1) infinite}
+@keyframes cA{0%,6%{transform:none}14%{transform:translateY(8px) scale(1.12,.86)}32%{transform:translateY(-58px) scale(.94,1.08) rotate(0)}50%{transform:translateY(-68px) rotate(360deg)}62%{transform:translateY(0) rotate(360deg) scale(1.12,.86)}70%{transform:rotate(360deg) scale(.96,1.05)}78%,100%{transform:rotate(360deg)}}
+.s-cA .shadow{transform-origin:50% 50%;animation:cAsh 2.6s cubic-bezier(.3,0,.3,1) infinite}
+@keyframes cAsh{0%,14%{transform:none}32%,50%{transform:scale(.45);opacity:.05}62%{transform:scale(1.15)}78%,100%{transform:none}}
+.s-cA .tail{animation:tailfast .45s ease-in-out infinite}
+.s-cA .pt{animation:burstA 2.6s ease-out infinite;opacity:0}
+@keyframes burstA{0%,60%{opacity:0;transform:translate(0,0) scale(.3)}64%{opacity:1;transform:translate(calc(var(--tx)*.4),calc(var(--ty)*.4)) scale(1)}86%{opacity:1;transform:translate(var(--tx),calc(var(--ty) + 26px)) rotate(var(--r))}100%{opacity:0;transform:translate(var(--tx),calc(var(--ty) + 46px)) rotate(var(--r))}}
+
+/* ===== B: tung hạt dẻ ===== */
+.s-cB .all{transform-origin:50% 100%;animation:cB 2.4s ease-in-out infinite}
+@keyframes cB{0%,8%{transform:none}16%{transform:translateY(6px) scale(1.06,.92)}24%{transform:translateY(-10px) scale(.97,1.04)}32%,50%{transform:none}58%{transform:translateY(6px) scale(1.08,.9)}66%{transform:translateY(-14px)}76%,100%{transform:none}}
+.s-cB .toss{animation:cBn 2.4s cubic-bezier(.35,0,.4,1) infinite}
+@keyframes cBn{0%,16%{transform:none}38%{transform:translateY(-170px) rotate(540deg)}58%{transform:translateY(0) rotate(720deg)}100%{transform:rotate(720deg)}}
+.s-cB .head{animation:cBh 2.4s ease-in-out infinite}
+@keyframes cBh{0%,16%{transform:none}34%,42%{transform:translateY(-6px) rotate(-5deg)}58%,100%{transform:none}}
+.s-cB .ov{animation:heart 2.4s ease-out infinite;opacity:0}
+@keyframes heart{0%,58%{opacity:0;transform:translateY(0) scale(.3)}64%{opacity:1;transform:translateY(-10px) scale(1.1)}90%{opacity:1;transform:translateY(-44px) scale(1)}100%{opacity:0;transform:translateY(-56px) scale(.9)}}
+
+/* ===== C: nhún nhảy ===== */
+.s-cC .all{transform-origin:50% 100%;animation:cC 1.2s ease-in-out infinite}
+@keyframes cC{0%,100%{transform:rotate(-7deg) translateX(-8px)}25%{transform:translateY(-24px) scale(.97,1.04)}50%{transform:rotate(7deg) translateX(8px)}75%{transform:translateY(-24px) scale(.97,1.04)}}
+.s-cC .head{animation:cCh 1.2s ease-in-out infinite}
+@keyframes cCh{0%,100%{transform:rotate(6deg)}50%{transform:rotate(-6deg)}}
+.s-cC .tail{transform-origin:8% 96%;animation:cCt .6s ease-in-out infinite}
+@keyframes cCt{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(16deg)}}
+.s-cC .shadow{transform-origin:50% 50%;animation:cCs .6s ease-in-out infinite}
+@keyframes cCs{0%,100%{transform:scale(1)}50%{transform:scale(.7)}}
+.s-cC .ov{animation:note 2.4s linear infinite;opacity:0}
+@keyframes note{0%{opacity:0;transform:translate(0,0) rotate(-10deg)}15%{opacity:1}100%{opacity:0;transform:translate(var(--tx),-90px) rotate(14deg)}}
+
+/* ===== D: mắt sao + đuôi bung ===== */
+.s-cD .all{transform-origin:50% 100%;animation:cD 2.2s ease-in-out infinite}
+@keyframes cD{0%,10%{transform:none}18%{transform:translateY(6px) scale(1.1,.9)}28%{transform:translateY(-34px) scale(.95,1.06)}38%{transform:translateY(4px) scale(1.08,.92)}46%{transform:translateY(-20px)}56%,100%{transform:none}}
+.s-cD .tail{transform-origin:8% 96%;animation:cDt 2.2s ease-in-out infinite}
+@keyframes cDt{0%,14%{transform:none}30%,60%{transform:scale(1.22) rotate(6deg)}76%,100%{transform:none}}
+.s-cD .star-e{transform-box:fill-box;transform-origin:center;animation:twk 1.1s ease-in-out infinite}
+@keyframes twk{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.18) rotate(18deg)}}
+.s-cD .ring{transform-box:fill-box;transform-origin:center;animation:ringA 2.2s ease-out infinite;opacity:0}
+@keyframes ringA{0%,24%{opacity:0;transform:scale(.4)}30%{opacity:1;transform:scale(.8)}70%{opacity:.9;transform:scale(1.15) rotate(25deg)}100%{opacity:0;transform:scale(1.3) rotate(40deg)}}
+.s-cD .pt{animation:burstD 2.2s ease-out infinite;opacity:0}
+@keyframes burstD{0%,26%{opacity:0;transform:translate(0,0) scale(.3)}32%{opacity:1}70%{opacity:1;transform:translate(var(--tx),var(--ty)) scale(1)}100%{opacity:0;transform:translate(var(--tx),calc(var(--ty) - 14px)) scale(.6)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="sheet">
+ <h1>Sóc ăn mừng: 4 kiểu</h1>
+ <div class="lead">Không có kiểu giơ tay (bạn đã thấy dài và xấu). Mỗi kiểu dành cho một mức vui khác nhau trong app. Mở file để xem chuyển động thật.</div>
+ <div class="row" id="row"></div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const IDLE_ARMS=`<ellipse cx="88" cy="202" rx="10" ry="16" transform="rotate(-38 88 202)" fill="#e58a45"/><ellipse cx="132" cy="202" rx="10" ry="16" transform="rotate(38 132 202)" fill="#e58a45"/>`;
+const YAY_ARMS=/<ellipse cx="68" cy="170"[^>]*\/><ellipse cx="152" cy="170"[^>]*\/>/;
+const heart=(x,y,c,d)=>`<g transform="translate(${x} ${y})"><path class="ov" style="animation-delay:${d}s" d="M0 4 C-7 -5 -16 2 0 14 C16 2 7 -5 0 4Z" fill="${c}"/></g>`;
+const noteG=(x,y,c,d,tx)=>`<g transform="translate(${x} ${y})"><g class="ov" style="animation-delay:${d}s;--tx:${tx}px"><rect x="6" y="-18" width="3.5" height="20" rx="1.5" fill="${c}"/><path d="M9.5 -18 q10 2 10 10 q-3 -5 -10 -5Z" fill="${c}"/><ellipse cx="3" cy="3" rx="6" ry="4.6" fill="${c}"/></g></g>`;
+const burst=(cx,cy,n,cls,R,cols)=>{let h='';for(let i=0;i<n;i++){const a=i/n*Math.PI*2-Math.PI/2,r=R*(0.8+(i%3)*.15);h+=`<g transform="translate(${cx} ${cy})"><rect class="pt" style="--tx:${(Math.cos(a)*r).toFixed(1)}px;--ty:${(Math.sin(a)*r).toFixed(1)}px;--r:${i*47}deg" x="-4" y="-6" width="${i%2?8:9}" height="${i%2?8:13}" rx="2.5" fill="${cols[i%cols.length]}"/></g>`}return h};
+const starP=(x,y,r,c)=>{let p='';for(let i=0;i<10;i++){const rr=i%2?r*.45:r,a=-Math.PI/2+i*Math.PI/5;p+=(i?'L':'M')+(x+rr*Math.cos(a)).toFixed(1)+' '+(y+rr*Math.sin(a)).toFixed(1)}return `<path class="star-e" d="${p}Z" fill="${c}" stroke="#3a2a1e" stroke-width="2.5" stroke-linejoin="round"/>`};
+const COLS=['#ff7a9c','#ffc83d','#46b35a','#1c8fe3','#a78bfa'];
+function cheer(k){
+ let s=soc('yay').replace('class="s-yay"',`class="s-c${k}"`);
+ if(k==='A'){s=s.replace(YAY_ARMS,IDLE_ARMS).replace('<g transform="translate(110,22)">','<g transform="translate(110,202)">').replace('</svg>',burst(112,190,14,'pt',120,COLS)+'</svg>')}
+ if(k==='B'||k==='C'){s=s.replace(YAY_ARMS,IDLE_ARMS).replace('<g transform="translate(110,22)">','<g transform="translate(110,202)">')}
+ if(k==='B'){s=s.replace('</svg>',heart(78,58,'#ff7a9c',0)+heart(150,46,'#ff9eb8',.12)+heart(116,30,'#ff7a9c',.24)+'</svg>')}
+ if(k==='C'){s=s.replace('</svg>',noteG(176,96,'#a78bfa',0,18)+noteG(44,110,'#1c8fe3',.8,-16)+noteG(190,150,'#46b35a',1.6,22)+'</svg>')}
+ if(k==='D'){
+  s=s.replace(YAY_ARMS,IDLE_ARMS).replace('<g transform="translate(110,22)">','<g transform="translate(110,202)">');
+  s=s.replace(/<path d="M70 116 Q82 99 94 116"[^>]*\/>/,starP(82,112,15,'#ffd766')).replace(/<path d="M126 116 Q138 99 150 116"[^>]*\/>/,starP(138,112,15,'#ffd766'));
+  let ring='';for(let i=0;i<8;i++){const a=i/8*Math.PI*2,x=112+Math.cos(a)*112,y=130+Math.sin(a)*100;ring+=`<g transform="translate(${x} ${y})"><path class="ring" style="animation-delay:${i*.05}s" d="M0 -9 l2.6 6 6.4 3 -6.4 3 -2.6 6 -2.6 -6 -6.4 -3 6.4 -3Z" fill="${['#ffd766','#ffffff','#ffb35c'][i%3]}"/></g>`}
+  s=s.replace('<g class="all">',ring+burst(112,110,12,'pt',130,['#ffd766','#ff7a9c','#ffb35c'])+'<g class="all">');
+ }
+ return s}
+const V=[['A','Nhảy xoay vòng','Vượt mốc · kỷ lục mới','#fff3d1','#a87a00','Lấy đà, bật cao, xoay một vòng trên không, đáp đất nhún xuống và pháo giấy bung ra. Mạnh và rõ, hợp lúc lên một bậc mới.','linear-gradient(180deg,#fff7df,#ffe7b8)'],
+ ['B','Tung hạt dẻ','Xong việc · giữ chuỗi','#e7f6ea','#2f8a42','Ôm hạt dẻ, tung lên trời, ngước nhìn theo rồi bắt lại; tim bay lên. Nhẹ nhàng, hợp lúc tick xong một việc.','linear-gradient(180deg,#f2fbf4,#dcf3e1)'],
+ ['C','Nhún nhảy','Vui chung · chờ trên bậc','#efeaff','#6a4fd0','Lắc lư trái phải, nhún theo nhịp, đuôi vẫy, nốt nhạc bay lên. Chạy liên tục được mà không gây mệt mắt.','linear-gradient(180deg,#f6f2ff,#e7e0ff)'],
+ ['D','Mắt sao lấp lánh','Chạm mục tiêu','#ffe9ef','#d6416a','Mắt thành hai ngôi sao, đuôi bung to, nhún hai nhịp; vòng sao toả quanh và lấp lánh bay ra. Dành cho khoảnh khắc lớn nhất.','linear-gradient(180deg,#fff0f5,#ffd9e6)']];
+document.getElementById('row').innerHTML=V.map(([k,t,use,ub,uc,d,bg])=>`<div><div class="stage" style="background:${bg}" id="st${k}"><span class="s">${cheer(k)}</span></div><div class="cap"><b>${k}. ${t}</b><span class="use" style="background:${ub};color:${uc}">${use}</span><span>${d}</span></div></div>`).join('');
+</script>
+</body>
+</html>

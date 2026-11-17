@@ -6,6 +6,9 @@ import { analyzeAttempt, analysisFingerprint, attemptAnalysisInput, readAnalysis
 import type { AttemptAnalysisReport } from '../services/attemptAnalysis';
 import { AttemptAdviceModal } from './AttemptAdviceModal';
 import { triggerHaptic } from '@/shared/lib/haptics';
+import { syncPrioritiesToWeeklyPlan } from '@/features/plans/lib/studyPlan';
+
+const AI_CONSENT_STORAGE_KEY = 'toeic_ai_advice_consent_v1';
 
 interface Props {
   attempt: StudySession | null;
@@ -22,7 +25,18 @@ export function AttemptAdvicePanel({ attempt, mistakes, onNavigateToMistakes, on
   const [preparedScope, setPreparedScope] = useState('');
   const [saved, setSaved] = useState<{ fingerprint: string; generatedAt: string; report: AttemptAnalysisReport } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsentState] = useState(() => {
+    try { return typeof localStorage !== 'undefined' && localStorage.getItem(AI_CONSENT_STORAGE_KEY) === 'true'; }
+    catch { return false; }
+  });
+  const setConsent = useCallback((value: boolean) => {
+    setConsentState(value);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(AI_CONSENT_STORAGE_KEY, value ? 'true' : 'false');
+      }
+    } catch { /* ignore storage errors */ }
+  }, []);
   const [error, setError] = useState('');
   const [cacheNotice, setCacheNotice] = useState('');
   const [cacheSaved, setCacheSaved] = useState(false);
@@ -54,6 +68,9 @@ export function AttemptAdvicePanel({ attempt, mistakes, onNavigateToMistakes, on
         setPreparedScope(scope);
         setSaved(cached);
         setCacheSaved(Boolean(cached));
+        if (cached?.report?.priorities?.length) {
+          syncPrioritiesToWeeklyPlan(cached.report.priorities);
+        }
       }).catch(() => {
         if (sequence.current === run) setError('Chưa chuẩn bị được dữ liệu phân tích trong trình duyệt này.');
       });
@@ -61,10 +78,6 @@ export function AttemptAdvicePanel({ attempt, mistakes, onNavigateToMistakes, on
     return invalidate;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot, owner]);
-
-  useEffect(() => {
-    setConsent(false);
-  }, [owner]);
 
   const stale = preparedScope === scope && !!saved && saved.fingerprint !== fingerprint;
   const report = preparedScope === scope && saved ? saved.report : null;
@@ -85,6 +98,9 @@ export function AttemptAdvicePanel({ attempt, mistakes, onNavigateToMistakes, on
       setSaved(row);
       const stored = saveAnalysisCache(owner, row);
       setCacheSaved(stored);
+      if (result.priorities?.length) {
+        syncPrioritiesToWeeklyPlan(result.priorities);
+      }
       if (!stored) setCacheNotice('Báo cáo đang hiển thị nhưng chưa lưu được trên trình duyệt.');
     } catch (reason) {
       if (current()) setError(reason instanceof Error ? reason.message : 'Chưa phân tích được. Dữ liệu vẫn được giữ.');

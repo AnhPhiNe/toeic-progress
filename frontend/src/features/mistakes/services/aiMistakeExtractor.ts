@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { generateUUID } from '@/shared/domain/uuid';
 import { backendRequest, apiAvailable } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
+import { requestAISignIn } from '@/shared/lib/aiSignIn';
 import { aiDraftSchema as draftSchema } from '@/features/mistakes/lib/aiDraftSchema';
 import { resultImageTimingSchema } from '@/shared/domain/resultTiming';
 export { resultImageTimingSchema } from '@/shared/domain/resultTiming';
@@ -61,6 +62,21 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
     ...(value.result_image_reading === true ? { resultImages: true } : {}) };
 }
 
+const SIGN_IN_FOR_AI = 'Đăng nhập Google để dùng AI. Bạn vẫn có thể nhập và lưu thủ công.';
+
+/**
+ * With managed access only signed-in accounts may use AI, so a guest is invited to sign in instead of solving a
+ * captcha for a guest session the backend would refuse. Without that setting the guest session path is unchanged.
+ */
+async function requireSignInWhenManaged() {
+  let managed = false;
+  try { managed = Boolean((await getAIConfiguration()).managedAccess); } catch { /* The request below reports connection errors. */ }
+  if (managed) {
+    requestAISignIn();
+    throw new Error(SIGN_IN_FOR_AI);
+  }
+}
+
 export async function getAIUsage(): Promise<AIUsage | null> {
   if (!apiAvailable || !cloud) return null;
   const { data: { session } } = await cloud.auth.getSession();
@@ -85,6 +101,8 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   let { data: { session } } = await cloud.auth.getSession();
   checkOwner(session);
   if (!session) {
+    await requireSignInWhenManaged();
+    checkCurrent();
     const token = await getCaptcha();
     checkCurrent();
     const latest = await cloud.auth.getSession();
@@ -167,9 +185,12 @@ const pageSchema = z.object({
 });
 export type PageItem = z.infer<typeof pageSchema>['items'][number];
 
-/** Read the learner's wrong questions from 1–3 screenshots; one call counts as one AI use. */
+/**
+ * Read the learner's wrong questions from 1–3 screenshots. One capture sends several readings that share a `batchId`;
+ * the backend counts the whole capture as one AI use (only its first reading is charged).
+ */
 export async function extractPageWithAI(questions: { number: number; part: number }[], images: PreparedImage[], getCaptcha: () => Promise<string>,
-  expectedOwner?: string | null, isCurrent: () => boolean = () => true)
+  expectedOwner?: string | null, isCurrent: () => boolean = () => true, batchId?: string)
   : Promise<{ items: PageItem[]; missing: number[]; explainTicket?: string | null; usage: AIUsage }> {
   if (!questions.length) throw new Error('Không còn câu sai nào để tìm trong ảnh.');
   if (!images.length || images.length > 3) throw new Error('Chọn 1 đến 3 ảnh màn hình.');
@@ -185,6 +206,8 @@ export async function extractPageWithAI(questions: { number: number; part: numbe
   let { data: { session } } = await cloud.auth.getSession();
   checkOwner(session);
   if (!session) {
+    await requireSignInWhenManaged();
+    checkCurrent();
     const token = await getCaptcha();
     checkCurrent();
     // A Google sign-in may have completed while the CAPTCHA was open.
@@ -201,6 +224,7 @@ export async function extractPageWithAI(questions: { number: number; part: numbe
   checkOwner(session);
   const value = await backendRequest<{ items: unknown; missing: unknown; explainTicket?: unknown; usage: AIUsage }>('/api/v1/ai/extract-page', 'POST', {
     request_id: generateUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
+    ...(batchId ? { batch_id: batchId } : {}),
     questions, images: images.map(image => ({ dataUrl: image.dataUrl }))
   }, session.user.id, isCurrent);
   checkCurrent();
@@ -240,6 +264,8 @@ export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () 
   let { data: { session } } = await cloud.auth.getSession();
   checkOwner(session);
   if (!session) {
+    await requireSignInWhenManaged();
+    checkCurrent();
     const token = await getCaptcha();
     checkCurrent();
     // A Google sign-in may have completed while the CAPTCHA was open.

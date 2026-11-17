@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thẻ chuỗi ngày học</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--orange:#F97316;--blue:#3B82F6}
+  *{box-sizing:border-box}
+  body{margin:0;background:#F1F5F9;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;padding:24px 28px}
+  h2{font-size:21px;font-weight:900;margin:6px 0 2px}
+  .note{font-size:14px;color:#475569;margin:0 0 14px;max-width:1240px}
+  .row{display:grid;grid-template-columns:repeat(2,400px);gap:22px;margin-bottom:26px}
+  .cap{font-size:13px;font-weight:700;color:#475569;margin:0 0 8px}
+  .card{background:#fff;border:2px solid var(--ink);border-radius:18px;padding:18px 20px}
+  .shadow{box-shadow:3px 3px 0 var(--ink)}
+  .head{display:flex;align-items:center;gap:14px}
+  .num{font-size:40px;font-weight:900;line-height:1;letter-spacing:-.03em}
+  .lbl{font-size:15px;font-weight:600;color:var(--muted);margin-top:2px}
+  .best{margin-left:auto;align-self:flex-start;text-align:right;font-size:12px;font-weight:600;color:var(--muted)}
+  .best b{display:block;font-size:14px;font-weight:800;color:var(--ink)}
+  .wk{display:grid;grid-template-columns:repeat(7,1fr);margin-top:18px;text-align:center;row-gap:6px}
+  .o{width:34px;height:34px;margin:0 auto;border-radius:50%;display:grid;place-items:center}
+  .o.done{background:var(--orange);border:2px solid var(--ink)}
+  .o.shield{background:#DBEAFE;border:2px solid var(--blue)}
+  .o.miss{background:#E2E8F0}
+  .o.today{border:2px dashed var(--orange);background:#FFF7ED}
+  .o.future{border:2px solid #E2E8F0}
+  .d{font-size:12px;font-weight:700;color:#94A3B8}
+  .d.now{color:#C2410C}
+  .msg{display:flex;align-items:center;gap:10px;margin-top:16px;padding:10px 12px;border-radius:12px;background:#FFF7ED;font-size:13.5px;font-weight:600}
+  .msg.cold{background:#F8FAFC}
+  .msg b{color:#C2410C;white-space:nowrap}
+  .msg button{margin-left:auto;font:inherit;font-size:12.5px;font-weight:800;padding:7px 12px;border-radius:10px;border:2px solid var(--ink);background:var(--orange);color:#fff;box-shadow:2px 2px 0 var(--ink);white-space:nowrap}
+  .bar{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);background:var(--orange);border:2px solid var(--ink);border-radius:999px;height:38px;align-items:center;justify-items:center}.perfect{margin-top:12px;font-size:13.5px;font-weight:800;color:#C2410C}.legend{display:flex;gap:16px;font-size:13px;color:#475569;font-weight:600;margin:0 0 20px;align-items:center}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend .o{width:20px;height:20px;margin:0}
+  @media (prefers-reduced-motion:no-preference){.o.today{animation:p 1.8s ease-in-out infinite}@keyframes p{50%{transform:scale(1.1)}}}
+</style>
+</head>
+<body>
+<h2>Thẻ chuỗi ngày học · theo mẫu cậu gửi, chuyển sang kiểu Neo</h2>
+<p class="note">Ngọn lửa và số ngày cùng một hàng; mỗi ngày là một vòng tròn riêng. Lời nhắc chỉ hiện khi chưa có chuỗi hoặc sắp mất chuỗi. Ngày được khiên cứu chuỗi giữ lại có dấu khiên xanh (app đã có khiên tự động: <code>shieldDays</code>, <code>streakFreezes</code>).</p>
+<div class="legend" id="legend"></div>
+<div class="row" id="cards"></div>
+<script>
+const flame=(on)=>`<svg width="56" height="60" viewBox="4.5 1 15 21" aria-hidden="true"><path d="M12 1.5c1.4 4.2 7 6.6 7 12.8a7 7 0 0 1-14 0c0-2.8 1.4-4.9 2.8-6.3 0 2.8 1.4 4.2 2.8 4.2 0-4.2-1.4-7.7 1.4-10.7z" fill="${on?'#F97316':'#E2E8F0'}" stroke="#0F172A" stroke-width="${on?1.5:0}" stroke-linejoin="round"/><path d="M12 14.2c.9 1.8 2.9 2.7 2.9 5a2.9 2.9 0 0 1-5.8 0c0-1.9 1.8-2.9 2.9-5z" fill="${on?'#FED7AA':'#fff'}"/></svg>`;
+const tick=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+const shield=`<svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/></svg>`;
+const L=['T2','T3','T4','T5','T6','T7','CN'],T=4;
+const circle=k=>`<span class="o ${k}">${k==='done'?tick:k==='shield'?shield:''}</span>`;
+document.getElementById('legend').innerHTML=[['done','Đã học'],['shield','Khiên giữ chuỗi'],['miss','Bỏ lỡ'],['today','Hôm nay, chưa học'],['future','Chưa tới']].map(([k,t])=>`<span>${circle(k).replace(/<svg[^]*?<\/svg>/,'')}${t}</span>`).join('');
+const S=[
+ {cap:'Chưa có chuỗi',n:0,best:12,days:['miss','miss','done','miss','today','future','future'],msg:'Học một bài hôm nay để bắt đầu chuỗi.',btn:'Bắt đầu'},
+ {cap:'Đã học hôm nay (có một ngày được khiên giữ)',n:5,best:12,days:['done','shield','done','done','done','future','future']},
+ {cap:'Học đủ 7/7 ngày: tuần hoàn hảo',n:11,best:12,perfect:true,days:['done','done','done','done','done','done','done']},
+ {cap:'Hôm nay chưa học, sắp mất chuỗi',n:4,best:12,days:['done','done','done','done','today','future','future'],msg:'Học trước 24h để giữ chuỗi <b>4 ngày</b>.',btn:'Học ngay'},
+];
+document.getElementById('cards').innerHTML=S.map(s=>`<div><p class="cap">${s.cap}</p><div class="card ${s.btn&&s.n?'shadow':''}">
+ <div class="head">${flame(s.n>0)}<div><div class="num" style="color:${s.n?'var(--ink)':'#94A3B8'}">${s.n}</div><div class="lbl">ngày liên tiếp</div></div><div class="best">Kỷ lục<b>${s.best} ngày</b></div></div>
+ <div class="wk">${s.perfect?`<div class="bar">${L.map(()=>tick).join('')}</div>`:s.days.map(circle).join('')}${L.map((d,i)=>`<span class="d ${i===T?'now':''}">${i===T?'Nay':d}</span>`).join('')}</div>
+ ${s.perfect?`<div class="perfect">Tuần hoàn hảo! Còn 1 ngày nữa là bằng kỷ lục.</div>`:''}${s.msg?`<div class="msg ${s.n?'':'cold'}"><span>${s.msg}</span><button>${s.btn}</button></div>`:''}</div></div>`).join('');
+</script>
+</body>
+</html>

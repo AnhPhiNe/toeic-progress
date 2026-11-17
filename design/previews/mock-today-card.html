@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thẻ Hôm nay: 4 ý tưởng</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa;--org:#ff9a3d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+svg text{font-family:'Nunito'}
+#sheet{width:1640px;background:#fff;padding:36px 40px 44px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:24px}
+.stage{height:820px;border-radius:24px;background:linear-gradient(180deg,#fff3d1,#ffe0ec);padding:22px 18px;display:flex;justify-content:center;align-items:flex-start}
+.cap{margin-top:12px}.cap b{font-weight:900;font-size:17px}.cap span{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:2px;line-height:1.4}
+.soc svg{display:block;width:100%}
+.btn{display:block;text-align:center;font-weight:900;font-size:16px;border-radius:14px;padding:13px 18px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.w{width:100%}
+.cardbase{background:#fff;border-radius:26px;box-shadow:0 10px 0 rgba(47,58,51,.08),0 20px 40px rgba(180,120,60,.12)}
+.chk{width:26px;height:26px;border-radius:50%;border:3px solid #cfd5cf;flex:none;display:grid;place-items:center}
+.chk.on{background:var(--g);border-color:var(--g)}
+
+/* A quest board */
+.qa{padding:18px 18px 20px}
+.qa .hd{display:flex;align-items:center;gap:12px}
+.qa .hd h2{font-weight:900;font-size:22px}.qa .hd small{display:block;font-weight:700;font-size:13px;color:var(--mut)}
+.qa .chest{margin-left:auto;width:62px;position:relative}
+.qa .bar{margin-top:14px;height:16px;border-radius:99px;background:#f1efe6;position:relative;overflow:hidden}
+.qa .bar i{display:block;height:100%;width:25%;border-radius:99px;background:linear-gradient(90deg,#ffd766,#ffb02e);box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+.qa .bar b{position:absolute;right:10px;top:-1px;font-weight:900;font-size:12px;color:#8a6a10}
+.q{display:flex;align-items:center;gap:12px;margin-top:10px;border:2px solid var(--line);border-radius:18px;padding:11px 12px;box-shadow:0 3px 0 var(--line)}
+.q .ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex:none;font-size:20px}
+.q b{display:block;font-weight:900;font-size:15px}.q small{font-weight:700;font-size:12.5px;color:var(--mut)}
+.q .rw{margin-left:auto;display:flex;align-items:center;gap:3px;font-weight:900;font-size:13px;color:#a8652f;background:#fff4e0;border-radius:99px;padding:3px 9px;flex:none}
+.q.done{background:#f6f8f6;box-shadow:none}.q.done b{color:#a3aba5;text-decoration:line-through}.q.done .rw{background:var(--gl);color:var(--gd)}
+.q.my{border-style:dashed;box-shadow:none}
+.qa .add{font-weight:900;font-size:14px;color:var(--blue);margin:10px 4px 0}
+.qa .wk{margin-top:14px;font-weight:800;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:8px}
+.qa .wk .dots{display:flex;gap:4px}.qa .wk .dots i{width:14px;height:14px;border-radius:50%;background:#e2e6e2}.qa .wk .dots i.on{background:var(--g)}
+
+/* B path */
+.pb{padding:20px 20px 22px;background:linear-gradient(180deg,#ffffff,#f7fbf8)}
+.pb h2{font-weight:900;font-size:22px}.pb .sub{font-weight:700;font-size:13px;color:var(--mut)}
+.path{position:relative;height:430px;margin-top:6px}
+.path svg.ln{position:absolute;inset:0}
+.nd{position:absolute;display:flex;align-items:center;gap:12px;transform:translate(-30px,-30px)}
+.nd .c{width:60px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:24px;flex:none}
+.nd b{display:block;font-weight:900;font-size:14.5px;white-space:nowrap;line-height:1.25}.nd small{font-weight:700;font-size:12px;color:var(--mut)}
+.nd.done .c{background:var(--gold);box-shadow:0 6px 0 var(--goldd)}
+.nd.now .c{background:var(--g);box-shadow:0 6px 0 var(--gd),0 0 0 8px rgba(70,179,90,.18)}
+.nd.lock .c{background:#eef1ee;box-shadow:0 6px 0 #d5dbd5}
+.nd.gift .c{background:#ff7a9c;box-shadow:0 6px 0 #d6416a}
+.nd.my .c{background:#fff;border:3px dashed #c9cfc9;box-shadow:none}
+.nd.R{flex-direction:row-reverse;transform:translate(calc(-100% + 30px),-30px);text-align:right}
+.start{position:absolute;background:#fff;border:2px solid var(--line);border-radius:12px;padding:4px 10px;font-weight:900;font-size:12.5px;color:var(--gd);transform:translate(-50%,-150%);box-shadow:0 3px 0 var(--line)}
+.pb .foot{display:flex;align-items:center;gap:10px;margin-top:8px;background:#f6f8f6;border-radius:14px;padding:10px 12px;font-weight:800;font-size:13px}
+.pb .foot a{margin-left:auto;font-weight:900;color:var(--blue)}
+
+/* C sticky notes */
+.nc{width:100%;position:relative;padding-top:8px}
+.nc .board{background:#c89a6a;border-radius:22px;padding:16px 14px 18px;box-shadow:inset 0 0 0 6px #b5865a,0 12px 24px rgba(120,80,40,.25)}
+.nc .title{display:flex;align-items:center;justify-content:space-between;background:#fffdf6;border-radius:12px;padding:8px 14px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.nc .title b{font-family:'Caveat',cursive;font-size:30px;line-height:1}.nc .title span{font-weight:900;font-size:13px;color:#8a6a3a}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.nt{position:relative;padding:16px 12px 12px;min-height:118px;box-shadow:0 6px 10px rgba(0,0,0,.15)}
+.nt::before{content:"";position:absolute;left:50%;top:-6px;width:14px;height:14px;border-radius:50%;background:#e2554a;box-shadow:0 2px 0 rgba(0,0,0,.25);transform:translateX(-50%)}
+.nt b{display:block;font-family:'Caveat',cursive;font-size:24px;line-height:1.05;color:#3a2f1e}
+.nt small{display:block;font-weight:800;font-size:12px;color:#6b5a3a;margin-top:6px}
+.nt .stamp{position:absolute;right:6px;bottom:6px;border:3px solid #2f8a42;color:#2f8a42;border-radius:8px;font-weight:900;font-size:12px;padding:1px 6px;transform:rotate(-12deg);background:rgba(255,255,255,.5)}
+.nt.wide{grid-column:1/-1;min-height:70px}
+.nt.add{background:transparent;border:3px dashed rgba(255,255,255,.7);box-shadow:none;display:grid;place-items:center;color:#fff;font-weight:900;font-size:14px}
+.nt.add::before{display:none}
+.nc .go{margin-top:14px}
+.nc .wk{margin-top:12px;display:flex;align-items:center;gap:8px;color:#fff;font-weight:900;font-size:13.5px}
+.nc .wk i{width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.3);display:grid;place-items:center;font-style:normal;font-size:12px}.nc .wk i.on{background:#fff;color:var(--gd)}
+
+/* D focus */
+.fd{padding:0;overflow:hidden}
+.fd .top{background:linear-gradient(135deg,#46b35a,#2f8a42);color:#fff;padding:18px 20px 20px;position:relative;overflow:hidden}
+.fd .top small{font-weight:900;font-size:12.5px;opacity:.85;letter-spacing:.4px}
+.fd .top h2{font-weight:900;font-size:27px;letter-spacing:-.6px;line-height:1.1;margin-top:4px;max-width:210px}
+.fd .top p{font-weight:700;font-size:13.5px;opacity:.9;margin-top:6px;max-width:210px}
+.fd .top .soc{position:absolute;right:6px;bottom:-14px;width:120px}
+.fd .top .go{display:inline-block;margin-top:14px;background:#fff;color:var(--gd);border-radius:14px;padding:11px 18px;font-weight:900;font-size:15px;box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.fd .top .ring{position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;border:24px solid rgba(255,255,255,.08)}
+.fd .body{padding:16px 20px 20px}
+.fd .lbl{font-weight:900;font-size:12px;color:var(--mut);letter-spacing:.5px;margin-bottom:8px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:99px;padding:7px 12px 7px 8px;font-weight:800;font-size:13.5px}
+.pill .chk{width:20px;height:20px;border-width:2.5px}
+.pill.done{background:#f6f8f6;color:#a3aba5}.pill.done span{text-decoration:line-through}
+.pill.my{border-style:dashed}
+.pill.add{color:var(--blue);font-weight:900;border-color:#cfe4f7}
+.fd .meter{margin-top:16px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;background:#fff6ec;border-radius:18px;padding:12px 14px}
+.fd .meter b{display:block;font-weight:900;font-size:16px;color:#e2701a}.fd .meter small{font-weight:700;font-size:12px;color:#8a6a3a}
+.fd .days{display:flex;gap:4px;margin-top:6px}.fd .days i{flex:1;height:8px;border-radius:99px;background:#f0e3d2}.fd .days i.on{background:#ff9a3d}
+.fd .wk{margin-top:10px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:13px;color:var(--mut)}
+.fd .wk .bar{flex:1;height:8px;border-radius:99px;background:#e2e6e2;overflow:hidden}.fd .wk .bar i{display:block;height:100%;width:60%;background:var(--g)}
+.fd .wk a{font-weight:900;color:var(--blue)}
+</style>
+</head>
+<body>
+<div id="sheet">
+ <h1>Thẻ Hôm nay: 4 ý tưởng</h1>
+ <div class="lead">Cùng nội dung: 3 việc app gợi ý (1 đã xong), 1 việc của mình, mục tiêu tuần 3/5, chuỗi 7 ngày. Mỗi bản một cách làm cho việc hằng ngày hấp dẫn hơn.</div>
+ <div class="row" id="row"></div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const CK='<svg width="13" height="11" viewBox="0 0 14 12"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const acorn=`<svg width="14" height="16" viewBox="-10 -12 20 26"><ellipse cx="0" cy="5" rx="8" ry="9" fill="#c48a5c"/><path d="M-10 0 Q0 -12 10 0 Q0 4 -10 0Z" fill="#8e5a35"/></svg>`;
+const chest=(open)=>`<svg viewBox="0 0 64 54"><rect x="6" y="20" width="52" height="30" rx="6" fill="#c07a3c"/><rect x="6" y="20" width="52" height="8" fill="#a8652f"/><path d="M6 22 Q32 ${open?-4:2} 58 22 V20 Q32 0 6 20Z" fill="#d98a48"/><rect x="28" y="22" width="8" height="12" rx="2" fill="#ffc83d"/><rect x="6" y="36" width="52" height="4" fill="#ffc83d"/><g fill="#ffd766"><path d="M50 6 l2 4 4 .6 -3 3 .7 4 -3.7 -2 -3.7 2 .7 -4 -3 -3 4 -.6Z"/></g></svg>`;
+
+function tA(){return `<div class="w cardbase qa">
+ <div class="hd"><div><h2>Nhiệm vụ hôm nay</h2><small>Xong cả 4 để mở rương</small></div><span class="chest">${chest()}</span></div>
+ <div class="bar"><i></i><b>1/4</b></div>
+ <div class="q done"><span class="ic" style="background:#ffe1e9">📕</span><div><b>Ôn 3 câu sai</b><small>đến hạn hôm nay · 5 phút</small></div><span class="rw">✓ xong</span></div>
+ <div class="q"><span class="ic" style="background:#efeaff">⏱️</span><div><b>Bấm giờ Part 7</b><small>Part sai nhiều nhất · 20 phút</small></div><span class="rw">${acorn}+1</span></div>
+ <div class="q"><span class="ic" style="background:#fff3d1">🃏</span><div><b>Ôn 8 thẻ từ</b><small>10 phút</small></div><span class="rw">${acorn}+1</span></div>
+ <div class="q my"><span class="ic" style="background:#e6f3fd">✏️</span><div><b>Học 20 từ Mochi</b><small>việc của mình · mỗi ngày</small></div><span class="rw">${acorn}+1</span></div>
+ <div class="add">+ Thêm việc của mình</div>
+ <div class="btn g" style="margin-top:14px">Bắt đầu: Bấm giờ Part 7</div>
+ <div class="wk">Tuần này<div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>3/5 buổi · <b style="color:var(--blue)">Sửa</b></div>
+</div>`}
+
+function tB(){
+ const P=[[40,40,'done','📕','Ôn 3 câu sai','xong'],[130,125,'now','⏱️','Bấm giờ Part 7','20 phút'],[40,210,'lock','🃏','Ôn 8 thẻ từ','10 phút'],[130,295,'my','✏️','Học 20 từ Mochi','việc của mình'],[40,385,'gift','🎁','Rương hôm nay','xong 4 việc để mở']];
+ let d='M'+P[0][0]+' '+P[0][1];for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];d+=` C${a[0]} ${a[1]+50} ${b[0]} ${b[1]-50} ${b[0]} ${b[1]}`}
+ return `<div class="w cardbase pb"><h2>Đường hôm nay</h2><div class="sub">Đi hết đường là mở rương, giữ chuỗi từ chặng đầu</div>
+ <div class="path"><svg class="ln" width="316" height="430"><path d="${d}" fill="none" stroke="#e8ece8" stroke-width="14" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#c9cfc9" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/></svg>
+ ${P.map(([x,y,k,e,t,s])=>`<div class="nd ${k}" style="left:${x}px;top:${y}px"><span class="c">${e}</span><div><b>${t}</b><small>${s}</small></div></div>`).join('')}
+ <span class="start" style="left:130px;top:102px">BẮT ĐẦU</span>
+ <span class="soc" data-s="idle" style="position:absolute;left:200px;top:20px;width:60px"></span></div>
+ <div class="btn g">Bấm giờ Part 7</div>
+ <div class="foot">🔥 7 ngày · Tuần này 3/5 buổi<a>+ Thêm việc</a></div></div>`}
+
+function tC(){return `<div class="nc"><div class="board">
+ <div class="title"><b>Hôm nay nè!</b><span>1/4 xong · 🔥 7</span></div>
+ <div class="notes">
+  <div class="nt" style="background:#ffd3de;transform:rotate(-2deg)"><b>Ôn 3 câu sai</b><small>5 phút</small><span class="stamp">XONG</span></div>
+  <div class="nt" style="background:#e6dcff;transform:rotate(2deg)"><b>Bấm giờ Part 7</b><small>20 phút · Part yếu nhất</small></div>
+  <div class="nt" style="background:#fff1a8;transform:rotate(1.5deg)"><b>Ôn 8 thẻ từ</b><small>10 phút</small></div>
+  <div class="nt" style="background:#cdeffb;transform:rotate(-1.5deg)"><b>Học 20 từ Mochi</b><small>việc của mình</small></div>
+  <div class="nt add wide">+ Dán thêm việc của mình</div>
+ </div>
+ <div class="btn g go">Bấm giờ Part 7</div>
+ <div class="wk">Tuần này <i class="on">✓</i><i class="on">✓</i><i class="on">✓</i><i></i><i></i> 3/5 buổi</div>
+</div></div>`}
+
+function tD(){return `<div class="w cardbase fd">
+ <div class="top"><span class="ring"></span><small>VIỆC TIẾP THEO · 20 PHÚT</small><h2>Bấm giờ một bài Part 7</h2><p>Part bạn sai nhiều nhất ở đề gần đây.</p><span class="go">▶ Bắt đầu</span><span class="soc" data-s="idle"></span></div>
+ <div class="body"><div class="lbl">CÒN LẠI HÔM NAY · 1/4 XONG</div>
+  <div class="pills"><span class="pill done"><i class="chk on">${CK}</i><span>Ôn 3 câu sai</span></span><span class="pill"><i class="chk"></i>Ôn 8 thẻ từ</span><span class="pill my"><i class="chk" style="border-radius:7px"></i>Học 20 từ Mochi</span><span class="pill add">+ Thêm việc</span></div>
+  <div class="meter"><span style="font-size:30px">🔥</span><div><b>7 ngày liền</b><small>Đã giữ chuỗi hôm nay · kỷ lục 9</small><div class="days"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div></div>
+  <div class="wk">Tuần này 3/5 buổi<div class="bar"><i></i></div><a>Sửa</a></div>
+ </div></div>`}
+
+const TC=[['A. Bảng nhiệm vụ','Mỗi việc là một nhiệm vụ có thưởng hạt dẻ. Thanh tiến độ đổ đầy, xong hết thì mở rương.',tA],
+ ['B. Đường hôm nay','Các việc nối thành một con đường nhỏ như bản đồ bài học, Sóc đứng ở chặng hiện tại, cuối đường là rương.',tB],
+ ['C. Bảng ghim giấy note','Mỗi việc là một tờ note màu ghim trên bảng gỗ, xong thì đóng dấu. Thân thiện, giống góc học tập.',tC],
+ ['D. Một việc chính','Việc tiếp theo chiếm cả khối xanh với nút Bắt đầu; việc còn lại thu thành nút nhỏ. Chuỗi ngày nằm gọn bên dưới.',tD]];
+document.getElementById('row').innerHTML=TC.map(([t,d,f])=>`<div><div class="stage">${f()}</div><div class="cap"><b>${t}</b><span>${d}</span></div></div>`).join('');
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script>
+</body>
+</html>

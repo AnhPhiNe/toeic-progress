@@ -134,7 +134,7 @@ export function PhonePlan(props: Props) {
           </div>
           {summary.completedTasks === summary.totalTasks && (
             <p className="mt-3 text-[13px] font-bold text-emerald-700 dark:text-emerald-400">
-              🎉 Đã xong tất cả mục tiêu tuần này!
+              ✓ Đã xong tất cả mục tiêu tuần này!
             </p>
           )}
         </section>

@@ -1,6 +1,5 @@
-import React, { useMemo, useState, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircle2,
   ArrowRight,
   Target,
   PlusCircle,
@@ -21,17 +20,17 @@ import {
   Customized
 } from 'recharts';
 import { StudySession, UserProfile, PacingRun, ReadingPartType, MistakeEntry } from '@/shared/types';
-import { resumeDetails } from '@/features/dashboard/lib/resumeDetails';
 import type { VocabLog } from '@/shared/data/dataBundle';
+import { live, readDataBundle } from '@/shared/data/dataBundle';
 import { actualStudyDates } from '@/shared/domain/streak';
 import { getTodayDateString, computeSessionAttemptMap } from '@/shared/data/storage';
-import { CARD } from '@/shared/ui/surfaces';
 import { useChartMotion } from '@/shared/hooks/useChartMotion';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { OverviewChartLabels } from './OverviewChartLabels';
 import { PhoneSummary } from './PhoneOverview';
 import { ScoreReportCard } from './ScoreReportCard';
 import { SkillDetailModal } from './SkillDetailModal';
+import { StreakCard } from './StreakCard';
 import './dashboard-motion.css';
 
 interface DashboardProps {
@@ -40,14 +39,20 @@ interface DashboardProps {
   vocabLog: VocabLog[];
   pacingRuns: PacingRun[];
   theme: 'light' | 'dark';
-  onOpenSessionLogger: () => void;
+  onOpenSessionLogger: (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; initialFiles?: File[] }) => void;
   onNavigateToAnalytics: () => void;
   dueMistakesCount?: number;
   onStartReview?: () => void;
   onNavigateToPacing?: (part: ReadingPartType) => void;
   mistakes?: MistakeEntry[];
-  onResumeDetails?: (session: StudySession) => void;
+  /** Where the streak card's "Học ngay" button leads. */
+  onNavigateToPlan?: () => void;
 }
+
+/** Neo surfaces on Tổng quan: every card has the black border; only the key numbers and the latest score are raised. */
+const NEO_FLAT = 'rounded-2xl border-2 border-slate-900 bg-white dark:border-slate-200 dark:bg-[#111A2C]';
+const NEO_RAISED = `${NEO_FLAT} shadow-[3px_3px_0_0_#0f172a] dark:shadow-[3px_3px_0_0_#cbd5e1]`;
+const KPI_CARD = `${NEO_RAISED} p-3 sm:p-3.5 xl:p-4 2xl:p-5 flex flex-col justify-center gap-2.5 sm:gap-3 group`;
 
 // Bề mặt thẻ dùng chung với các màn hình khác (xem surfaces.ts)
 
@@ -72,53 +77,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
   dueMistakesCount = 0,
   onStartReview,
   onNavigateToPacing,
-  mistakes = [],
-  onResumeDetails
+  onNavigateToPlan
 }) => {
   const today = getTodayDateString();
-  const unfinished = useMemo(() => resumeDetails(sessions, mistakes), [sessions, mistakes]);
+  // Shield days change only when the profile's streak is recomputed, so its streak fields are the cache key.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const shieldDates = useMemo(() => new Set(live(readDataBundle().shieldDays).filter(day => day.date <= today).map(day => day.date)), [profile.currentStreak, profile.streakFreezes, today]);
   const isDark = theme === 'dark';
   const chartMotion = useChartMotion(700);
   // Phones render PhoneSummary instead of the KPI and latest-test cards (streak lives in the top-bar chip); only one version is ever in the DOM.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [chartFilter, setChartFilter] = useState<'ALL' | 'FIRST'>('ALL');
   const [desktopSkillModal, setDesktopSkillModal] = useState<'listening' | 'reading' | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    const main = grid.closest('main');
-    const media = window.matchMedia('(min-width: 1280px)');
-    const resize = () => {
-      if (!media.matches) {
-        grid.style.minHeight = '';
-        return;
-      }
-      const bounds = grid.getBoundingClientRect();
-      // DOM rectangles include CSS zoom; min-height uses layout pixels.
-      const scale = grid.offsetWidth > 0 ? bounds.width / grid.offsetWidth : 1;
-      const bottomPadding = main ? parseFloat(getComputedStyle(main).paddingBottom) : 24;
-      const available = (window.innerHeight - bounds.top) / scale - bottomPadding - 5;
-      const height = `${Math.max(0, Math.floor(available))}px`;
-      if (grid.style.minHeight !== height) grid.style.minHeight = height;
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(grid);
-    if (main) observer.observe(main);
-    if (grid.parentElement?.parentElement) observer.observe(grid.parentElement.parentElement);
-    window.addEventListener('resize', resize);
-    media.addEventListener('change', resize);
-    resize();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', resize);
-      media.removeEventListener('change', resize);
-    };
-  }, []);
 
   const studiedDates = useMemo(() => actualStudyDates({ sessions, vocabLog, pacingRuns }, today), [sessions, vocabLog, pacingRuns, today]);
-  const hasStudiedToday = studiedDates.has(today);
 
   const fullTests = useMemo(
     () => sessions.filter(s => !s.deletedAt && s.skillType === 'LR' && s.sessionType === 'FULL_TEST' && Number.isFinite(s.totalScore) && (s.totalScore || 0) > 0 && (s.totalScore || 0) <= 990),
@@ -148,13 +121,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Dữ liệu biểu đồ, sắp theo ngày tăng dần để đường đi lên từ trái sang phải
   const allChartData = useMemo(() => {
+    const seenOnDay = new Map<string, number>();
     return [...fullTests]
       .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || '').localeCompare(b.createdAt || ''))
       .map(session => {
         const attemptNumber = attemptMap[session.id]?.attemptNumber || session.attemptNumber || 1;
+        // Nhiều đề cùng một ngày: đề thứ hai trở đi ghi "(2)", "(3)" để nhãn trục không lặp.
+        const nth = (seenOnDay.get(session.date) || 0) + 1;
+        seenOnDay.set(session.date, nth);
         return {
           id: session.id,
-          date: formatShortDate(session.date),
+          date: nth > 1 ? `${formatShortDate(session.date)} (${nth})` : formatShortDate(session.date),
           name: session.testName,
           total: session.totalScore || 0,
           listening: session.scaledListening,
@@ -229,34 +206,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (ceiling - s < (step === 100 ? 50 : 35)) continue;
       ticks.push(s);
     }
-    if (!ticks.includes(ceiling)) ticks.push(ceiling);
+    // Chỉ đặt mốc ở trần khi nó rơi đúng bước, để các vạch cách đều; mục tiêu đã có đường xanh lá riêng.
+    if (!ticks.includes(ceiling) && (ceiling - floor) % step === 0) ticks.push(ceiling);
 
     return { domain: [floor, ceiling] as [number, number], ticks };
   }, [chartData, targetScore]);
-
-  // 7 ngày trong tuần, chỉ tô những ngày THỰC SỰ có buổi học được ghi
-  const weekDays = useMemo(() => {
-    const labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    const now = new Date(`${today}T00:00:00`);
-    const dayOfWeek = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
-
-    const toIso = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    return labels.map((label, index) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + index);
-      const iso = toIso(d);
-      return {
-        label,
-        isCompleted: studiedDates.has(iso),
-        isCurrent: iso === today,
-        isMissed: iso < today && !studiedDates.has(iso)
-      };
-    });
-  }, [studiedDates, today]);
 
   // Kỹ năng HIỆN TẠI lấy từ bài Full Test gần nhất, không phải bài cao nhất
   const latestTest = stats ? fullTests.find(s => s.id === stats.latest.id) || bestTest : bestTest;
@@ -267,24 +221,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const diff = stats?.diff ?? 0;
 
   /**
-   * 3 THẺ CHỈ SỐ GAME HÓA THÀNH TÍCH (Gamified Mastery Badges & Rank Tier):
-   * - Thẻ 1: Cấp bậc năng lực ETS & Kỷ Lục (Gold/Silver/Bronze Tier 🏆)
-   * - Thẻ 2: Cột mốc bài thi gần nhất (Checkpoint 🎯) với phân rã L/R
-   * - Thẻ 3: Xung lực phong độ (Pulse Status ⚡) với chỉ số tăng giảm
+   * 3 THẺ CHỈ SỐ THÀNH TÍCH:
+   * - Thẻ 1: Cấp bậc năng lực ETS & Kỷ Lục
+   * - Thẻ 2: Điểm trung bình & dải phong độ
+   * - Thẻ 3: Xung lực phong độ so với bài đầu
    */
   const toeicTier = useMemo(() => {
     const score = highestScore || 0;
-    if (score >= 905) return { tier: 'Gold Tier 🏆', rank: 'Cột mốc 905+', badgeBg: 'bg-amber-300 text-slate-950 border-slate-900', iconBg: 'bg-amber-400 text-slate-950' };
-    if (score >= 785) return { tier: 'Silver Tier ⭐', rank: 'Cột mốc 785+', badgeBg: 'bg-sky-200 text-slate-950 border-slate-900', iconBg: 'bg-sky-300 text-slate-950' };
-    if (score >= 605) return { tier: 'Bronze Tier 🥉', rank: 'Cột mốc 605+', badgeBg: 'bg-orange-200 text-slate-950 border-slate-900', iconBg: 'bg-orange-300 text-slate-950' };
-    if (score >= 405) return { tier: 'Starter 🌱', rank: 'Cột mốc 405+', badgeBg: 'bg-emerald-200 text-slate-950 border-slate-900', iconBg: 'bg-emerald-300 text-slate-950' };
-    return { tier: 'Explorer 🚀', rank: 'Đang khởi đầu', badgeBg: 'bg-slate-200 text-slate-800 border-slate-900', iconBg: 'bg-slate-200 text-slate-800' };
+    if (score >= 905) return { tier: 'Gold Tier', rank: 'Cột mốc 905+', badgeBg: 'bg-amber-300 text-slate-950 border-slate-900', iconBg: 'bg-amber-400 text-slate-950' };
+    if (score >= 785) return { tier: 'Silver Tier', rank: 'Cột mốc 785+', badgeBg: 'bg-sky-200 text-slate-950 border-slate-900', iconBg: 'bg-sky-300 text-slate-950' };
+    if (score >= 605) return { tier: 'Bronze Tier', rank: 'Cột mốc 605+', badgeBg: 'bg-orange-200 text-slate-950 border-slate-900', iconBg: 'bg-orange-300 text-slate-950' };
+    if (score >= 405) return { tier: 'Starter', rank: 'Cột mốc 405+', badgeBg: 'bg-emerald-200 text-slate-950 border-slate-900', iconBg: 'bg-emerald-300 text-slate-950' };
+    return { tier: 'Explorer', rank: 'Đang khởi đầu', badgeBg: 'bg-slate-200 text-slate-800 border-slate-900', iconBg: 'bg-slate-200 text-slate-800' };
   }, [highestScore]);
 
   const hasDiff = Boolean(stats && stats.totalTests > 1);
   const latestTotal = latestTest ? (latestTest.totalScore || (listeningScore ?? 0) + (readingScore ?? 0)) : 0;
   const previousTotal = allChartData.length > 1 ? allChartData[allChartData.length - 2].total : undefined;
-  const highestPercent = targetScore > 0 ? Math.min(100, Math.round(((highestScore || 0) / targetScore) * 100)) : 0;
 
   const weakestPart = useMemo(() => {
     if (!latestTest?.partScores) return 7;
@@ -308,18 +261,71 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return weakest;
   }, [latestTest]);
 
-  return (
-    <div className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in">
-      {unfinished && onResumeDetails && <button type="button" onClick={() => onResumeDetails(unfinished.session)}
-        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border-2 border-slate-900 bg-amber-50 px-4 py-3 text-left shadow-[2px_2px_0_0_#0f172a] hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-400 dark:bg-amber-950/30 dark:text-slate-100">
-        <span className="min-w-0"><span className="block break-words text-sm font-extrabold">Tiếp tục ghi chi tiết {unfinished.session.testName || 'đề chưa đặt tên'}</span>
-          <span className="block text-xs text-slate-600 dark:text-slate-300">Còn {unfinished.remaining} câu Reading chưa hoàn thành · {unfinished.session.date.split('-').reverse().join('/')}</span></span>
-        <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0" />
-      </button>}
-      <div ref={gridRef} data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 xl:gap-6 items-stretch">
+  // Desktop next step: the Reading Part that lost the most questions in the latest test (by count, so the sentence
+  // "Mất nhiều điểm nhất" is literally true). undefined when no Reading Part score was recorded. Phones keep weakestPart.
+  const mostLost = useMemo(() => {
+    let best: { part: 5 | 6 | 7; wrong: number } | undefined;
+    for (const [part, max] of [[5, 30], [6, 16], [7, 54]] as const) {
+      const correct = latestTest?.partScores?.[`part${part}`];
+      if (correct === undefined) continue;
+      const wrong = Math.max(0, max - correct);
+      if (!best || wrong > best.wrong) best = { part, wrong };
+    }
+    return best;
+  }, [latestTest]);
 
-        {/* ================= CỘT TRÁI (3 KPI Game Hóa Thành Tích & Biểu đồ tiến độ) ================= */}
-        <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
+  // What the latest-result card suggests next, from the learner's own data only (no AI call):
+  // 1) mistakes due for review, 2) the weakest Part with a recorded score, 3) a prompt to record Part scores.
+  const nextStep = dueMistakesCount > 0 && onStartReview
+    ? { kind: 'review' as const, count: dueMistakesCount }
+    : mostLost && mostLost.wrong > 0 && onNavigateToPacing
+      ? { kind: 'part' as const, part: mostLost.part, wrong: mostLost.wrong }
+      : !mostLost
+        ? { kind: 'record' as const }
+        : null;
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+      const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
+      if (files.length > 0) {
+        event.preventDefault();
+        onOpenSessionLogger({ sessionType: 'FULL_TEST', initialFiles: files });
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [onOpenSessionLogger]);
+
+  return (
+    <div
+      className="overview-dashboard w-full space-y-3 sm:space-y-4 animate-fade-in"
+      onDragOver={event => {
+        if (event.dataTransfer?.types?.includes('Files')) {
+          event.preventDefault();
+        }
+      }}
+      onDrop={event => {
+        const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/'));
+        if (files.length > 0) {
+          event.preventDefault();
+          onOpenSessionLogger({ sessionType: 'FULL_TEST', initialFiles: files });
+        }
+      }}
+    >
+      <div data-overview-grid className="grid grid-cols-1 xl:grid-cols-12 xl:grid-rows-[auto_auto] gap-4 sm:gap-5 xl:gap-6 items-stretch">
+
+        {/* ================= CỘT TRÁI (3 KPI & Biểu đồ tiến độ) ================= */}
+        <div className="flex flex-col gap-4 sm:gap-5 min-w-0 xl:contents">
 
           {isPhone && (
             <PhoneSummary
@@ -340,7 +346,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               dueMistakesCount={dueMistakesCount}
               weakestPart={weakestPart}
               motto={profile.motto}
-              onOpenSessionLogger={onOpenSessionLogger}
+              onOpenSessionLogger={() => onOpenSessionLogger()}
               onStartReview={onStartReview}
               onNavigateToPacing={onNavigateToPacing}
               onViewDetails={onNavigateToAnalytics}
@@ -348,24 +354,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
 
           {/* 1. DẢI 3 THẺ CHỈ SỐ — từ tablet trở lên; điện thoại dùng PhoneSummary ở trên */}
-          {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4">
+          {!isPhone && <div className="grid grid-cols-3 gap-3 sm:gap-3.5 xl:gap-4 xl:col-span-8 xl:row-start-1">
             
             {/* THẺ 1: HUY HIỆU CẤP BẬC & KỶ LỤC CÁ NHÂN */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className={KPI_CARD}>
               {/* Top Bar: Nhãn Kỷ Lục Gọn bên trái, % Đích bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                 <span
-                  className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border border-amber-950/20 bg-amber-300 text-slate-950 shadow-2xs cursor-default"
+                  className="flex items-center gap-1.5 whitespace-nowrap text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 cursor-default"
                   title={`${toeicTier.tier} (${toeicTier.rank})`}
                 >
-                  KỶ LỤC 🏆
-                </span>
-                <span className="text-[10px] sm:text-[10.5px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-amber-300/40">
-                  {pointsRemaining === 0 && (highestScore || 0) > 0
-                    ? 'Đạt đích 🎯'
-                    : pointsRemaining > 0
-                    ? `Thiếu ${pointsRemaining}đ`
-                    : `${highestPercent}% Đích`}
+                  KỶ LỤC
                 </span>
               </div>
 
@@ -376,7 +375,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {highestScore || 0}
                   </span>
                   {targetScore > 0 && (
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
+                    <span className="whitespace-nowrap text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
                       / {targetScore}đ
                     </span>
                   )}
@@ -388,25 +387,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Footer: Tên đề kỷ lục trọn vẹn, thoáng đãng */}
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+              <div className="text-[11px]">
                 <span className="truncate block text-slate-900 dark:text-slate-100 font-bold" title={bestTest?.testName || 'Chưa có bài thi'}>
                   {bestTest?.testName || 'Chưa có bài thi'}
+                  {bestTest && (highestScore || 0) > 0 && (
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">
+                      {pointsRemaining > 0 ? ` · thiếu ${pointsRemaining}đ` : pointsRemaining === 0 ? ' · đạt mục tiêu' : ''}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
 
             {/* THẺ 2: ĐIỂM TRUNG BÌNH (TRÁNH LẶP LẠI VỚI BÀI GẦN NHẤT) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className={KPI_CARD}>
               {/* Top Bar: Trung bình Badge bên trái, Tổng số đề bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
-                <span className="px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider bg-sky-200 text-slate-950 border border-blue-950/20 shadow-2xs">
-                  TRUNG BÌNH 📊
-                </span>
-                <span
-                  className="text-[10px] sm:text-[10.5px] font-black text-blue-700 dark:text-blue-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md whitespace-nowrap border border-sky-300/40"
-                  title="Tổng số bài thi đã hoàn thành"
-                >
-                  {stats ? `${stats.totalTests} Đề Thi` : '0 Đề'}
+                <span className="flex items-center gap-1.5 whitespace-nowrap text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                  TRUNG BÌNH
                 </span>
               </div>
 
@@ -417,7 +415,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {stats?.avgScore || 0}
                   </span>
                   {targetScore > 0 && (
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
+                    <span className="whitespace-nowrap text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
                       / {targetScore}đ
                     </span>
                   )}
@@ -429,38 +427,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Footer: Dải phong độ Min -> Max */}
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-                <span className="truncate block text-slate-700 dark:text-slate-300 font-bold" title={stats ? `Dải phong độ: ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}>
-                  {stats ? `Dải phong độ: ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}
+              <div className="text-[11px]">
+                <span className="truncate block text-slate-700 dark:text-slate-300 font-bold" title={stats ? `${stats.totalTests} đề · dải phong độ ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}>
+                  {stats ? `${stats.totalTests} đề · ${stats.minScore}đ → ${stats.maxScore}đ` : 'Chưa có bài thi'}
                 </span>
               </div>
             </div>
 
             {/* THẺ 3: XUNG LỰC PHONG ĐỘ & SO VỚI BÀI ĐẦU (CHUYỂN MÀU ĐỘNG THEO DIFF) */}
-            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3 sm:p-3.5 xl:p-4 2xl:p-5 shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,0.22)] dark:shadow-[1.5px_1.5px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-2.5 group">
+            <div className={KPI_CARD}>
               {/* Top Bar: Nhãn đổi màu theo số dương (xanh lá) / số âm (hồng) bên trái, Trạng thái bên phải */}
               <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
-                <span className={`px-1.5 py-0.5 rounded-md whitespace-nowrap text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
+                <span className={`flex items-center gap-1.5 whitespace-nowrap text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider ${
                   !hasDiff
-                    ? 'bg-slate-200 text-slate-800 border-slate-900/20'
+                    ? 'text-slate-500 dark:text-slate-400'
                     : diff > 0
-                    ? 'bg-emerald-300 text-slate-950 border-emerald-950/20'
+                    ? 'text-emerald-600 dark:text-emerald-400'
                     : diff < 0
-                    ? 'bg-rose-200 text-slate-950 border-rose-950/20'
-                    : 'bg-sky-200 text-slate-950 border-sky-950/20'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-sky-600 dark:text-sky-400'
                 }`}>
                   SO VỚI BÀI ĐẦU
-                </span>
-                <span className={`text-[10px] sm:text-[10.5px] font-black px-1.5 py-0.5 rounded-md whitespace-nowrap border ${
-                  !hasDiff
-                    ? 'text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                    : diff > 0
-                    ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300/50'
-                    : diff < 0
-                    ? 'text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/60 border-rose-300/50'
-                    : 'text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-950/60 border-sky-300/50'
-                }`}>
-                  {!hasDiff ? 'Chờ thi' : diff > 0 ? 'Bứt phá 🚀' : diff < 0 ? 'Cần ôn ⚠️' : 'Giữ vững 🎯'}
                 </span>
               </div>
 
@@ -505,7 +492,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Footer: Điểm đầu ➔ cuối trọn vẹn */}
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+              <div className="text-[11px]">
                 <span className="truncate block text-slate-900 dark:text-slate-100 font-bold">
                   {hasDiff && stats
                     ? `Từ bài đầu: ${stats.first.total}đ ➔ ${stats.latest.total}đ`
@@ -521,7 +508,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* 3. BIỂU ĐỒ TIẾN BỘ */}
           {/* Điện thoại: khi chưa có đề, thẻ PhoneSummary đã mời ghi điểm nên ẩn biểu đồ trống */}
           {!isPhone && (
-          <div className={`${CARD} flex-1 flex flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5`}>
+          <div className={`${NEO_FLAT} flex-1 flex flex-col gap-2.5 sm:gap-3 p-3 sm:p-3.5 min-w-0 xl:col-span-8 xl:row-start-2`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-[15px] md:text-sm font-black text-slate-900 dark:text-white">
                 Tiến bộ qua từng bài thi
@@ -544,30 +531,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </button>
                   ))}
                 </div>}
-
-                <button
-                  onClick={onNavigateToAnalytics}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:border-slate-900 dark:hover:border-slate-400 shadow-2xs text-[11px] font-bold transition-all cursor-pointer"
-                  title="Xem phân tích chi tiết"
-                >
-                  Chi tiết
-                  <ArrowRight className="w-2.5 h-2.5 stroke-[2]" />
-                </button>
               </div>
             </div>
 
             {/* Điện thoại: biểu đồ lấp phần màn hình còn lại thay vì để trống phía dưới */}
-            <div className="relative w-full h-[max(220px,calc(100dvh-520px))] md:h-[180px] xl:h-auto xl:flex-1 xl:min-h-[160px]">
+            <div className="relative w-full h-[max(220px,calc(100dvh-520px))] md:h-[180px] xl:h-auto xl:flex-1 xl:min-h-[clamp(240px,calc(100dvh-400px),460px)]">
               <div className="absolute inset-0">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 20, right: 16, left: -4, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563EB" stopOpacity={isDark ? 0.3 : 0.16} />
-                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+                  <AreaChart data={chartData} margin={{ top: 28, right: 104, left: -4, bottom: 0 }}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
@@ -599,11 +571,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <div className="text-xs text-slate-500 dark:text-slate-400 font-black flex items-center justify-between gap-3">
                               <span>Ngày {label}</span>
                               {d.isRetest ? (
-                                <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-slate-900 text-[10px] font-black">
+                                <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300/80 text-[10px] font-black">
                                   Lần {d.attemptNumber}
                                 </span>
                               ) : (
-                                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 border border-slate-900 text-[10px] font-black">
+                                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 border border-blue-300/80 text-[10px] font-black">
                                   Lần đầu
                                 </span>
                               )}
@@ -611,7 +583,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <div className="font-black text-slate-900 dark:text-white text-xs truncate max-w-[200px]">
                               {d.name || 'Đề thi ETS'}
                             </div>
-                            <div className="pt-1 border-t-2 border-slate-900/10 dark:border-slate-700 flex items-center justify-between gap-4">
+                            <div className="pt-1 border-t border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-4">
                               <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Tổng điểm:</span>
                               <span className="font-black text-blue-600 dark:text-blue-400 text-base tabular-nums">
                                 {d.total}đ
@@ -629,31 +601,50 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     />
                     <ReferenceLine
                       y={targetScore}
-                      stroke={isDark ? '#60A5FA' : '#93C5FD'}
-                      strokeDasharray="6 3"
+                      stroke={isDark ? '#34D399' : '#059669'}
+                      strokeWidth={2}
+                      strokeDasharray="7 5"
                       label={{
                         value: `Mục tiêu ${targetScore}`,
-                        position: 'insideBottomLeft',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        fill: isDark ? '#93C5FD' : '#2563EB',
+                        position: 'right',
+                        fontSize: 13,
+                        fontWeight: 800,
+                        fill: isDark ? '#6EE7B7' : '#047857',
                         fontFamily: 'Plus Jakarta Sans, sans-serif'
                       }}
+                    />
+                    {/* Ink outline under the blue line, the same trick the Neo cards use for their borders */}
+                    <Area
+                      type="linear"
+                      dataKey="total"
+                      stroke={isDark ? '#E2E8F0' : '#0F172A'}
+                      strokeWidth={8}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      fill="none"
+                      isAnimationActive={chartMotion.enabled}
+                      animationBegin={0}
+                      animationDuration={chartMotion.duration}
+                      animationEasing="ease-out"
+                      dot={false}
+                      activeDot={false}
                     />
                     <Area
                       className="overview-score-area"
                       type="linear"
                       dataKey="total"
-                      stroke="#2563EB"
-                      strokeWidth={2.5}
-                      fill="url(#scoreFill)"
+                      stroke="#60A5FA"
+                      strokeWidth={4}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      fill="none"
                       isAnimationActive={chartMotion.enabled}
                       animationBegin={0}
                       animationDuration={chartMotion.duration}
                       animationEasing="ease-out"
                       onAnimationEnd={chartMotion.finish}
                       dot={false}
-                      activeDot={{ r: 6.5, fill: '#2563EB', stroke: isDark ? '#FFFFFF' : '#0F172A', strokeWidth: 2 }}
+                      activeDot={{ r: 9, fill: '#F59E0B', stroke: isDark ? '#E2E8F0' : '#0F172A', strokeWidth: 3 }}
                     />
                     <Customized component={<OverviewChartLabels isDark={isDark} ceiling={yAxisConfig.domain[1]} markRetests={false} />} />
                   </AreaChart>
@@ -665,7 +656,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </p>
                   {allChartData.length === 0 && (
                     <button
-                      onClick={onOpenSessionLogger}
+                      onClick={() => onOpenSessionLogger()}
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-linear-primary text-sm cursor-pointer"
                     >
                       <PlusCircle className="w-4 h-4" />
@@ -682,124 +673,55 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* ================= CỘT PHẢI (Khoảng cách cân đối, kích thước vừa vặn không bị tràn màn hình) ================= */}
-        <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-5 xl:gap-6 min-w-0">
+        <div className="flex flex-col gap-4 sm:gap-5 min-w-0 xl:contents">
 
 
-          {/* 5. CHUỖI NGÀY HỌC: TINH GỌN & DỊU MẮT (CHUẨN NEO-BRUTALISM) */}
-          {!isPhone && <div role="group" aria-label={`Chuỗi học ${profile.currentStreak} ngày`} className="rounded-2xl border-2 border-slate-900 dark:border-slate-200 bg-white dark:bg-[#111A2C] hover:bg-slate-50 dark:hover:bg-slate-800/50 p-3.5 sm:p-4 xl:p-4 2xl:p-5 shadow-[3px_3px_0px_0px_#0f172a] dark:shadow-[3px_3px_0px_0px_#cbd5e1] transition-all duration-200 space-y-2.5 sm:space-y-3 group">
-            {/* Header: Đuốc kem bơ tĩnh + Title sắc nét + Streak Badge */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {/* 1280–1535px: cột phải hẹp, bỏ icon trang trí để tiêu đề và chip nằm một dòng */}
-                <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-slate-900 flex xl:hidden 2xl:flex items-center justify-center text-base shrink-0 select-none">
-                  <span className="text-base sm:text-lg leading-none select-none">
-                    {profile.currentStreak > 0 ? '🔥' : '🕯️'}
-                  </span>
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
-                  Chuỗi Ngày Học
-                </h2>
-              </div>
-
-              {/* Huy hiệu streak: Nền vàng nhạt viền đen thanh lịch */}
-              <span
-                className="px-2.5 py-1 rounded-xl bg-amber-200 dark:bg-amber-950 text-amber-950 dark:text-amber-200 border-2 border-slate-900 dark:border-slate-700 text-xs font-black shadow-[1.5px_1.5px_0px_#0f172a] shrink-0 inline-flex items-center gap-1"
-                title="Số ngày học liên tục"
-              >
-                <span className="text-sm font-black tabular-nums leading-none">
-                  {profile.currentStreak}
-                </span>
-                <span className="font-black text-[11px]">ngày</span>
-                <span className="text-sm leading-none select-none">
-                  {profile.currentStreak > 0 ? '🔥' : '🕯️'}
-                </span>
-              </span>
-            </div>
-
-            {/* Hàng tuần & Trạng thái hôm nay */}
-            <div className="flex items-center justify-between text-xs font-bold pt-1 border-t border-slate-100 dark:border-slate-800">
-              <span className="text-slate-600 dark:text-slate-400 text-[11px] font-bold">
-                Tuần này: <strong className="font-black text-slate-950 dark:text-white text-xs tabular-nums">{weekDays.filter(d => d.isCompleted).length}/7</strong> ngày
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10.5px] font-black border shadow-2xs transition-all inline-flex items-center gap-1 ${
-                  hasStudiedToday
-                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-500'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-400'
-                }`}
-              >
-                {hasStudiedToday ? (
-                  <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400 stroke-[2.5]" />
-                    Đã học hôm nay 🎉
-                  </>
-                ) : (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse border border-slate-900" />
-                    Chưa học hôm nay
-                  </>
-                )}
-              </span>
-            </div>
-
-            {/* 7 ngày */}
-            <div className="grid grid-cols-7 gap-1.5 pt-0.5 text-center font-bold">
-              {weekDays.map(d => (
-                <div key={d.label} className="space-y-1">
-                  <span
-                    className={`text-[10px] sm:text-[10.5px] font-black block leading-none ${
-                      d.isCurrent
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : d.isCompleted
-                        ? 'text-slate-900 dark:text-white'
-                        : 'text-slate-400 dark:text-slate-500'
-                    }`}
-                  >
-                    {d.label}
-                  </span>
-
-                  {d.isCompleted ? (
-                    <div
-                      className="relative w-full aspect-square rounded-lg bg-amber-400 text-slate-950 border-2 border-slate-900 shadow-[1.5px_1.5px_0px_#0f172a] flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
-                      title={`${d.label}: Đã học`}
-                    >
-                      <span className="text-base sm:text-lg animate-fire-flicker leading-none select-none">🔥</span>
-                    </div>
-                  ) : d.isCurrent ? (
-                    <div
-                      className="relative w-full aspect-square rounded-lg bg-amber-100/60 dark:bg-amber-950/40 border-2 border-dashed border-amber-500 flex items-center justify-center cursor-pointer hover:bg-amber-100 hover:scale-105 transition-all group/today"
-                      title="Hôm nay: Luyện tập để thắp sáng ngọn lửa!"
-                    >
-                      <span className="text-base sm:text-lg opacity-40 leading-none select-none group-hover/today:opacity-80 transition-all">
-                        🔥
-                      </span>
-                    </div>
-                  ) : (
-                    <div
-                      className="w-full aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"
-                      title={`${d.label}: Chưa học`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-          </div>}
+          {/* 5. CHUỖI NGÀY HỌC — mỗi ngày một vòng tròn; lời nhắc chỉ khi chưa có chuỗi hoặc sắp mất chuỗi */}
+          {!isPhone && <StreakCard streak={profile.currentStreak} longestStreak={profile.longestStreak || 0}
+            studiedDates={studiedDates} shieldDates={shieldDates} today={today} onStart={onNavigateToPlan}
+            className="xl:col-span-4 xl:row-start-1" />}
 
           {/* 6. PHIẾU KẾT QUẢ GẦN NHẤT — cùng thẻ với điện thoại; kỷ lục, trung bình và tiến bộ đã nằm ở 3 thẻ trên */}
-          {!isPhone && latestTest && <ScoreReportCard roomy latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
+          {!isPhone && latestTest && <ScoreReportCard roomy className="xl:col-span-4 xl:row-start-2" latestTest={latestTest} latestTotal={latestTotal} previousTotal={previousTotal}
             listeningScore={listeningScore} readingScore={readingScore} targetScore={targetScore}
             newRecord={Boolean(bestTest) && bestTest?.id === latestTest.id && (stats?.totalTests ?? 0) > 1}
             onOpenListening={() => setDesktopSkillModal('listening')}
             onOpenReading={() => setDesktopSkillModal('reading')}>
-            <div className="px-5 pt-3.5 pb-4">
-              <button type="button" onClick={onNavigateToAnalytics}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white py-2.5 text-sm font-black text-indigo-700 shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group">
-                <span>Xem 7 Part chi tiết</span>
-                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-              </button>
+            <div className="mx-5 mt-1 border-t border-slate-200/80 pb-4 pt-3.5 dark:border-slate-800">
+              {nextStep?.kind === 'review' && (
+                <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300">
+                  Sổ tay có <b className="font-black text-slate-950 dark:text-white">{nextStep.count} câu</b> đến hạn ôn
+                </p>
+              )}
+              {nextStep?.kind === 'part' && (
+                <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300">
+                  Mất nhiều điểm nhất: <b className="font-black text-slate-950 dark:text-white">Part {nextStep.part}</b> (sai {nextStep.wrong} câu)
+                </p>
+              )}
+              {nextStep?.kind === 'record' && (
+                <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300">
+                  Ghi điểm từng Part để biết nên luyện gì tiếp.
+                </p>
+              )}
+              <div className="mt-2.5 flex items-center gap-3">
+                {nextStep?.kind === 'review' && (
+                  <button type="button" onClick={onStartReview}
+                    className="flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 py-2.5 text-sm font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:shadow-[2px_2px_0_0_#cbd5e1]">
+                    Ôn {nextStep.count} câu ngay
+                  </button>
+                )}
+                {nextStep?.kind === 'part' && onNavigateToPacing && (
+                  <button type="button" onClick={() => onNavigateToPacing(`PART_${nextStep.part}` as ReadingPartType)}
+                    className="flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 py-2.5 text-sm font-black text-white shadow-[2px_2px_0_0_#0f172a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:border-slate-300 dark:shadow-[2px_2px_0_0_#cbd5e1]">
+                    Luyện Part {nextStep.part}
+                  </button>
+                )}
+                <button type="button" onClick={onNavigateToAnalytics}
+                  className={`group flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3.5 py-2 text-[13px] font-black text-indigo-700 transition active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300 ${nextStep?.kind === 'review' || nextStep?.kind === 'part' ? 'shrink-0' : 'flex-1'}`}>
+                  <span>Xem 7 Part</span>
+                  <ArrowRight className="h-3.5 w-3.5 stroke-[2.5] transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </button>
+              </div>
             </div>
           </ScoreReportCard>}
 

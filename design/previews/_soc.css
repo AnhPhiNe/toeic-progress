@@ -1,0 +1,52 @@
+/* ---- motion: every layer has its own rhythm ---- */
+svg{overflow:visible}.body,.head,.tail,.earL,.earR,.lid,.look,.wave,.nut,.all,.toss,.shadow,.cf,.tear,.z1,.z2{transform-box:fill-box}
+.body{transform-origin:50% 100%;animation:breathe 3.2s ease-in-out infinite}
+.head{transform-origin:50% 95%;animation:bob 3.2s ease-in-out -.5s infinite}
+.tail{transform-origin:8% 96%;animation:tail 2.7s cubic-bezier(.45,0,.55,1) infinite}
+.earL{transform-origin:70% 100%;animation:twitch 5.5s ease-in-out infinite}
+.earR{transform-origin:30% 100%;animation:twitchR 5.5s ease-in-out -2.1s infinite}
+.lid{transform-origin:50% 50%;animation:blink 6.3s infinite}
+.look{animation:look 8s ease-in-out infinite}
+.wave{transform-origin:50% 50%;animation:wave 3.6s ease-in-out infinite}
+.s-hi .head{animation:hitilt 3.6s ease-in-out infinite}
+@keyframes hitilt{0%,10%,76%,100%{transform:rotate(-1deg)}24%,62%{transform:translateY(1px) rotate(4deg)}}
+.nut{transform-origin:50% 50%;animation:nibble 4.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.022,.978)}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-1.4deg)}50%{transform:translateY(2.5px) rotate(1.6deg)}}
+@keyframes tail{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(7deg)}}
+@keyframes twitch{0%,76%,100%{transform:rotate(0)}80%{transform:rotate(-16deg)}84%{transform:rotate(2deg)}88%{transform:rotate(-9deg)}93%{transform:rotate(0)}}
+@keyframes twitchR{0%,76%,100%{transform:rotate(0)}80%{transform:rotate(16deg)}84%{transform:rotate(-2deg)}88%{transform:rotate(9deg)}93%{transform:rotate(0)}}
+@keyframes blink{0%,45%,49.5%,54%,100%{transform:scaleY(1)}47%,51.5%{transform:scaleY(.08)}}
+@keyframes look{0%,18%,100%{transform:translate(0,0)}24%,46%{transform:translate(3px,-1px)}54%,78%{transform:translate(-3px,0)}86%{transform:translate(0,0)}}
+@keyframes wave{0%,8%,78%,100%{transform:rotate(112deg)}20%{transform:rotate(-14deg)}30%{transform:rotate(14deg)}40%{transform:rotate(-12deg)}50%{transform:rotate(14deg)}60%{transform:rotate(-6deg)}}
+@keyframes nibble{0%,60%,100%{transform:translateY(0) rotate(0)}66%{transform:translateY(-5px) rotate(-6deg)}72%{transform:translateY(-3px) rotate(4deg)}78%{transform:translateY(-5px) rotate(-4deg)}86%{transform:translateY(0) rotate(0)}}
+/* celebrate: anticipation, jump, landing squash */
+.s-yay .all{transform-origin:50% 100%;animation:jump 1.5s cubic-bezier(.3,0,.3,1) infinite}
+.s-yay .tail{animation:tailfast .5s ease-in-out infinite}
+.s-yay .toss{animation:toss 1.5s cubic-bezier(.3,0,.3,1) infinite}
+.s-yay .shadow{transform-origin:50% 50%;animation:shadow 1.5s cubic-bezier(.3,0,.3,1) infinite}
+.s-yay .cf{animation:pop 1.5s ease-out infinite}
+@keyframes jump{0%,100%{transform:translateY(0) scale(1,1)}12%{transform:translateY(0) scale(1.08,.9)}40%{transform:translateY(-30px) scale(.95,1.07)}62%{transform:translateY(0) scale(1.1,.88)}76%{transform:translateY(0) scale(.98,1.03)}}
+@keyframes tailfast{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(10deg)}}
+@keyframes toss{0%,12%,62%,100%{transform:translateY(0) rotate(0)}40%{transform:translateY(-30px) rotate(200deg)}}
+@keyframes shadow{0%,12%,62%,100%{transform:scale(1)}40%{transform:scale(.72)}}
+@keyframes pop{0%,10%{opacity:0;transform:translateY(10px) scale(.4)}35%{opacity:1;transform:translateY(-14px) scale(1)}80%,100%{opacity:0;transform:translateY(10px) scale(.8)}}
+.s-think .head{animation:ponder 3.4s ease-in-out infinite}
+.d1,.d2,.d3{transform-box:fill-box;animation:dot 1.2s ease-in-out infinite}.d2{animation-delay:.15s}.d3{animation-delay:.3s}
+@keyframes ponder{0%,100%{transform:rotate(5deg)}50%{transform:translateY(2px) rotate(9deg)}}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-9px)}}
+/* sad: slow, heavy */
+.s-sad .body{animation-duration:5s}.s-sad .head{animation:droop 5s ease-in-out infinite}
+.s-sad .tail{animation:taillow 5s ease-in-out infinite}.s-sad .earL,.s-sad .earR{animation:none}
+.s-sad .tear{animation:tear 3.4s ease-in infinite}
+@keyframes droop{0%,100%{transform:translateY(3px) rotate(-3deg)}50%{transform:translateY(6px) rotate(-5deg)}}
+@keyframes taillow{0%,100%{transform:rotate(16deg)}50%{transform:rotate(20deg)}}
+@keyframes tear{0%,40%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(26px)}}
+/* sleep */
+.s-zzz .body{animation:deep 4.4s ease-in-out infinite}.s-zzz .head{animation:nod 4.4s ease-in-out infinite}
+.s-zzz .tail{animation:taillow 6s ease-in-out infinite}.s-zzz .earL,.s-zzz .earR{animation:none}
+.s-zzz .z1{animation:zz 4.4s linear infinite}.s-zzz .z2{animation:zz 4.4s linear -2.2s infinite}
+@keyframes deep{0%,100%{transform:scale(1,1)}50%{transform:scale(1.04,.96)}}
+@keyframes nod{0%,100%{transform:translateY(4px) rotate(5deg)}50%{transform:translateY(8px) rotate(9deg)}}
+@keyframes zz{0%{opacity:0;transform:translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translate(16px,-40px) scale(1.2)}}
+@media (prefers-reduced-motion:reduce){svg *{animation:none!important}}

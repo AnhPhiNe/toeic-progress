@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chi tiết câu sai: một thẻ</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--ink:#2f3a33;--mut:#7a857e;--line:#e9ece9;--pink:#ff7a9c;--pinkl:#fff0f4;--pinkd:#d6416a;--gold:#ffc83d;--blue:#1c8fe3;--vio:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+.page{width:1440px;min-height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr}
+.side{border-right:2px solid var(--line);padding:26px 16px}
+.logo{font-weight:900;font-size:26px;color:var(--g);letter-spacing:-.8px;padding:0 14px 26px}
+.nv{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;font-weight:800;font-size:15.5px;color:#5c675f;border:2px solid transparent;margin-bottom:6px}
+.nv.on{background:var(--pinkl);border-color:#ffc7d5;color:var(--pinkd)}
+.nv i{width:34px;height:34px;border-radius:10px;flex:none}
+.btn{display:inline-block;text-align:center;font-weight:900;font-size:15px;border-radius:14px;padding:10px 18px}
+.btn.g{background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.grp{font-weight:800;font-size:13px;color:var(--mut);padding:24px 14px 6px}
+.tool{font-weight:800;font-size:14.5px;color:#5c675f;padding:8px 14px}
+main{padding:30px 56px 50px}
+.back{font-weight:900;font-size:15px;color:var(--mut)}
+.card{max-width:860px;margin:18px auto 0;border:2px solid var(--line);border-radius:28px;padding:28px 34px 26px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.top h1{font-weight:900;font-size:24px;letter-spacing:-.4px}
+.top .meta{font-weight:800;font-size:14px;color:var(--mut)}
+.top .meta b{color:var(--pinkd);font-weight:900}
+.links{display:flex;gap:16px;font-weight:900;font-size:14px;color:var(--mut)}
+.psg{margin-top:18px;font-weight:700;font-size:16.5px;line-height:1.65;color:#3f4a43;background:#f7f8f7;border-radius:18px;padding:16px 20px}
+mark{background:var(--gl);color:var(--gd);font-weight:900;padding:1px 4px;border-radius:6px}
+.tr{display:block;margin-top:8px;font-weight:700;font-size:14.5px;color:var(--mut);line-height:1.55}
+.q{font-weight:900;font-size:19px;margin:22px 0 10px}
+.o{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border:2px solid var(--line);border-radius:16px;padding:11px 16px;margin-bottom:8px}
+.o b{font-weight:800;font-size:16px}
+.o em{font-style:normal;font-weight:900;font-size:13px;flex:none;margin-top:2px}
+.o.me{border-color:#ffc7d5;background:var(--pinkl)}.o.me em{color:var(--pinkd)}
+.o.ok{border-color:#a9dfb3;background:var(--gl)}.o.ok em{color:var(--gd)}
+.o .vn{display:block;font-weight:700;font-size:14.5px;color:var(--mut);margin-top:1px}
+.o .no{display:block;font-weight:700;font-size:14.5px;color:#4d5850;margin-top:4px}.o .no::before{content:"Loại vì ";font-weight:900}
+.o .why{display:block;font-weight:700;font-size:14.5px;color:#4d5850;margin-top:4px}
+.o.me .why::before{content:"Sai vì ";font-weight:900;color:var(--pinkd)}
+.o.ok .why::before{content:"Đúng vì ";font-weight:900;color:var(--gd)}
+.foot{display:flex;justify-content:center;margin-top:16px}
+.exp{font-weight:900;font-size:15.5px;color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:11px 22px;box-shadow:0 3px 0 var(--line);display:inline-flex;gap:8px;align-items:center}
+.exp i{font-style:normal;color:var(--mut)}
+.more{margin-top:18px;padding-top:16px;border-top:2px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.more h4{font-weight:900;font-size:14px;color:var(--mut);margin-bottom:4px}
+.more p{font-weight:700;font-size:15px;line-height:1.5;color:#3f4a43}.more p b{font-weight:900;color:var(--ink)}
+.cap{font-weight:800;font-size:15px;color:var(--mut);text-align:center;margin-top:18px}
+.acts{display:flex;justify-content:center;gap:12px;margin-top:22px}
+.psg .big{font-weight:800;font-size:19px;color:var(--ink)}
+.blank{display:inline-block;width:90px;border-bottom:3px solid #c9cfc9;vertical-align:-2px}.blank.sm{width:60px}
+.o .pos{display:inline-block;font-weight:900;font-size:12.5px;color:#56637a;background:#eef1f6;border-radius:6px;padding:1px 7px;margin-left:10px;vertical-align:1px}
+.o .vni{font-weight:700;font-size:14.5px;color:var(--mut);margin-left:10px}
+.o .pos + .vni{margin-left:8px}
+</style>
+</head>
+<body>
+
+<!-- Mặc định -->
+<div class="page" id="p1">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="back">← Sổ tay</div>
+    <div class="card">
+      <div class="top"><div><h1>Câu 176, Part 7</h1><div class="meta">ETS 2024 Test 04 · Từ vựng · <b>ôn hôm nay</b></div></div><div class="links"><span>Ảnh gốc</span><span>Sửa</span></div></div>
+      <div class="psg">… Ms. Tran, who joined our Hanoi office last spring, will lead the new client training program starting in June. …</div>
+      <div class="q">What is suggested about Ms. Tran?</div>
+      <div class="o me"><b>(A) She recently moved to Hanoi.</b><em>bạn chọn</em></div>
+      <div class="o"><b>(B) She has worked at the company for ten years.</b></div>
+      <div class="o ok"><b>(C) She will take on a new responsibility.</b><em>đáp án</em></div>
+      <div class="o"><b>(D) She organized last year's training.</b></div>
+      <div class="foot"><span class="exp">Xem giải thích <i>▾</i></span></div>
+    </div>
+  </main>
+</div>
+
+<!-- Đã mở giải thích -->
+<div class="page" id="p2">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="back">← Sổ tay</div>
+    <div class="card">
+      <div class="top"><div><h1>Câu 176, Part 7</h1><div class="meta">ETS 2024 Test 04 · Từ vựng · <b>ôn hôm nay</b></div></div><div class="links"><span>Ảnh gốc</span><span>Sửa</span></div></div>
+      <div class="psg">… Ms. Tran, who joined our Hanoi office last spring, <mark>will lead the new client training program</mark> starting in June. …
+        <span class="tr">Chị Tran, vào văn phòng Hà Nội từ mùa xuân năm ngoái, sẽ phụ trách chương trình đào tạo khách hàng mới từ tháng 6.</span></div>
+      <div class="q">What is suggested about Ms. Tran?</div>
+      <div class="o me"><div><b>(A) She recently moved to Hanoi.</b><span class="vn">Chị mới chuyển tới Hà Nội.</span><span class="why">lặp chữ "Hanoi" để bẫy. Bài chỉ nói chị vào văn phòng Hà Nội.</span></div><em>bạn chọn</em></div>
+      <div class="o"><div><b>(B) She has worked at the company for ten years.</b><span class="vn">Chị đã làm ở công ty mười năm.</span><span class="no">bài không nhắc chị làm bao lâu.</span></div></div>
+      <div class="o ok"><div><b>(C) She will take on a new responsibility.</b><span class="vn">Chị sẽ đảm nhận một trách nhiệm mới.</span><span class="why">là cách viết lại của chỗ tô xanh trong bài.</span></div><em>đáp án</em></div>
+      <div class="o"><div><b>(D) She organized last year's training.</b><span class="vn">Chị đã tổ chức khoá đào tạo năm ngoái.</span><span class="no">bài nói chương trình mới từ tháng 6.</span></div></div>
+      <div class="more">
+        <div><h4>Từ cần nhớ</h4><p><b>take on</b> đảm nhận · <b>lead</b> phụ trách</p></div>
+        <div><h4>Mẹo</h4><p>Câu "suggested" hay viết lại bằng chữ khác. Cẩn thận đáp án lặp đúng chữ trong bài.</p></div>
+      </div>
+      <div class="foot"><span class="exp">Ẩn giải thích <i>▴</i></span></div>
+    </div>
+  </main>
+</div>
+
+
+<div class="page" id="p3">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="back">← Sổ tay</div>
+    <div class="card">
+      <div class="top"><div><h1>Câu 104, Part 5</h1><div class="meta">ETS 2024 Test 04 · Ngữ pháp · <b>ôn hôm nay</b></div></div><div class="links"><span>Ảnh gốc</span><span>Sửa</span></div></div>
+      <div class="psg"><span class="big">The hotel offers <mark>comfortable</mark> <span class="blank"></span> for business travelers.</span><span class="tr">Khách sạn cung cấp ____ thoải mái cho khách đi công tác.</span></div>
+      <div class="q">Chọn từ điền vào chỗ trống</div>
+      <div class="o "><div><b>(A) accommodate<span class="pos">v</span><span class="vni">chứa được, đáp ứng</span></b><span class="no">động từ không đứng ngay sau tính từ.</span></div></div><div class="o ok"><div><b>(B) accommodations<span class="pos">n</span><span class="vni">chỗ ở</span></b><span class="why">đứng sau tính từ "comfortable" cần một danh từ.</span></div><em>đáp án</em></div><div class="o me"><div><b>(C) accommodating<span class="pos">adj</span><span class="vni">dễ chịu, chiều khách</span></b><span class="why">là tính từ, mà ngay trước chỗ trống đã có tính từ "comfortable".</span></div><em>bạn chọn</em></div><div class="o "><div><b>(D) accommodatingly<span class="pos">adv</span><span class="vni">một cách chiều khách</span></b><span class="no">trạng từ không làm tân ngữ cho "offers".</span></div></div>
+      <div class="more"><div><h4>Từ cần nhớ</h4><p><b>accommodations</b> chỗ ở</p></div><div><h4>Mẹo</h4><p>Bốn đáp án cùng gốc từ là câu từ loại. Không cần dịch, nhìn từ ngay trước và sau chỗ trống.</p></div></div>
+      <div class="foot"><span class="exp">Ẩn giải thích <i>▴</i></span></div>
+    </div>
+  </main>
+</div>
+
+<div class="page" id="p4">
+  <aside class="side" data-side></aside>
+  <main>
+    <div class="back">← Sổ tay</div>
+    <div class="card">
+      <div class="top"><div><h1>Câu 139, Part 6</h1><div class="meta">ETS 2024 Test 04 · Ngữ pháp · <b>ôn 16/11</b></div></div><div class="links"><span>Ảnh gốc</span><span>Sửa</span></div></div>
+      <div class="psg">Starting next month, all expense reports will be submitted through our new online system. <mark>The system automatically checks each report for missing receipts.</mark> <span class="blank sm"></span>, managers will spend less time reviewing paperwork.<span class="tr">Từ tháng sau, mọi báo cáo chi phí sẽ nộp qua hệ thống trực tuyến mới. Hệ thống tự kiểm tra từng báo cáo có thiếu hoá đơn không. ____, quản lý sẽ mất ít thời gian xem giấy tờ hơn.</span></div>
+      <div class="q">Chọn từ nối điền vào chỗ trống</div>
+      <div class="o me"><div><b>(A) However<span class="vni">tuy nhiên</span></b><span class="why">dùng khi hai câu ngược ý. Ở đây câu sau là lợi ích nối tiếp, không có gì trái ngược.</span></div><em>bạn chọn</em></div><div class="o ok"><div><b>(B) As a result<span class="vni">do đó, vì vậy</span></b><span class="why">câu tô xanh là nguyên nhân, câu có chỗ trống là kết quả.</span></div><em>đáp án</em></div><div class="o "><div><b>(C) Otherwise<span class="vni">nếu không thì</span></b><span class="no">dùng để nói hậu quả khi điều trước không xảy ra.</span></div></div><div class="o "><div><b>(D) Instead<span class="vni">thay vào đó</span></b><span class="no">dùng khi thay việc này bằng việc khác.</span></div></div>
+      <div class="more"><div><h4>Thẻ từ</h4><p>Đã thêm <b>As a result</b>, <b>Otherwise</b>, <b>Instead</b></p></div><div><h4>Mẹo</h4><p>Câu từ nối: đọc câu ngay trước chỗ trống, hỏi hai câu cùng chiều hay ngược chiều.</p></div></div>
+      <div class="foot"><span class="exp">Ẩn giải thích <i>▴</i></span></div>
+    </div>
+  </main>
+</div>
+<script>
+const SIDE=`<div class="logo">toeic progress</div>
+ <div class="nv"><i style="background:var(--g)"></i>Hôm nay</div>
+ <div class="nv"><i style="background:var(--gold)"></i>Hành trình điểm</div>
+ <div class="nv"><i style="background:var(--vio)"></i>Luyện tập</div>
+ <div class="nv on"><i style="background:var(--pink)"></i>Sổ tay</div>
+ <div class="nv"><i style="background:var(--blue)"></i>Thành tích</div>
+ <div class="btn g" style="margin:16px 4px 0;display:block">+ Ghi điểm</div>
+ <div class="grp">Công cụ</div><div class="tool">Quy đổi điểm</div><div class="tool">Tài liệu</div>`;
+document.querySelectorAll('[data-side]').forEach(e=>e.innerHTML=SIDE);
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 export type SkillType = 'LR' | 'SW';
 
 // Các tab điều hướng chính của hệ thống
-export type NavTabId = 'dashboard' | 'plan' | 'exam-mode' | 'history' | 'analytics' | 'mistakes' | 'vocabulary' | 'resources';
+export type NavTabId = 'dashboard' | 'plan' | 'exam-mode' | 'history' | 'analytics' | 'mistakes' | 'vocabulary' | 'resources' | 'awards';
 
 // Chi tiết số câu đúng của từng Part trong bài thi TOEIC Listening & Reading
 export interface LRPartScore {
@@ -319,6 +319,23 @@ export interface UserProfile {
   dailyMinGoalMinutes: number; // vd: 30 phút
   motto: string;             // Câu châm ngôn hoặc cam kết cá nhân
   selectedSkill: SkillType;  // 'LR' | 'SW'
+  /** Hôm nay: số buổi muốn học mỗi tuần (mặc định 5). */
+  weeklyGoalDays?: number;
+  /** Hôm nay: học viên đã tự chọn mục tiêu (phân biệt với mặc định 990 chưa chọn). */
+  goalChosen?: boolean;
+  /** Hôm nay: tối đa 3 "Việc của mình" tự đánh dấu mỗi ngày; ngày đánh dấu tính vào chuỗi. */
+  habits?: Habit[];
+  /** Hôm nay: loại việc Sóc không được gợi ý nữa ('REVIEW_MISTAKES' | 'PART_TIMER' | 'FULL_TEST'). */
+  suggestOff?: string[];
+  /** Thành tích: phụ kiện Sóc đang đeo (id trong socGear.ts); thiếu nghĩa là chưa chọn, Sóc đeo món mới nhất. */
+  socGear?: string[];
+}
+
+/** A learner's own recurring task, ticked by hand. doneDates keeps only recent days. */
+export interface Habit {
+  id: string;
+  title: string;
+  doneDates: string[];
 }
 
 // ================= KẾ HOẠCH TUẦN SMART =================

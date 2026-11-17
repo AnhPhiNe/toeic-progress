@@ -1,13 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openScoreLogger } from './helpers/nav';
+import { openManualEntry } from './helpers/manualEntry';
 import { openHistoryEdit, sessionDialog, useOfficialScore, usePartCounts } from './helpers/sessionForm';
 
 test.setTimeout(60_000);
 
 async function openLogger(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
-  return sessionDialog(page);
+  await openScoreLogger(page);
+  const dialog = sessionDialog(page);
+  await openManualEntry(page, dialog);
+  return dialog;
 }
 
 async function savedSession(page: Page) {
@@ -16,7 +19,7 @@ async function savedSession(page: Page) {
 
 test('manual section scores override the estimate and survive reload and editing', async ({ page }) => {
   let dialog = await openLogger(page);
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual sections');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Manual sections');
   await usePartCounts(dialog);
   for (const [index, count] of [5, 20, 35, 27, 25, 12, 33].entries()) await dialog.getByLabel(`Số câu đúng Part ${index + 1}`, { exact: true }).fill(String(count));
   await expect(dialog.getByText('Ước tính tham khảo', { exact: true })).toBeVisible();
@@ -31,7 +34,7 @@ test('manual section scores override the estimate and survive reload and editing
   expect(original).toMatchObject({ totalScore: 795, scaledListening: 445, scaledReading: 350, rawListening: 87, rawReading: 70, scoreSource: 'MANUAL_SECTIONS' });
   await page.goto('/lich-su', { waitUntil: 'domcontentloaded' });
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Sửa bản ghi Manual sections' }).click();
+  await openHistoryEdit(page, 'Manual sections');
   dialog = page.getByRole('dialog');
   await expect(dialog.getByLabel('Điểm Listening /495')).toHaveValue('445');
   await expect(dialog.getByLabel('Điểm Reading /495')).toHaveValue('350');
@@ -41,9 +44,10 @@ test('manual section scores override the estimate and survive reload and editing
 });
 
 test('total-only entry validates limits and can later add or remove section scores', async ({ page }) => {
+  // Phones now log a Full Test on the wheel-based PhoneLogger (no total-only mode); the narrowest layout that keeps this form is a 768px tablet.
+  await page.setViewportSize({ width: 768, height: 900 });
   let dialog = await openLogger(page);
-  await page.setViewportSize({ width: 375, height: 900 });
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Manual total');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Manual total');
   await useOfficialScore(dialog);
   await dialog.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await expect(dialog.getByLabel('Số câu đúng Part 1', { exact: true })).not.toBeVisible();
@@ -58,9 +62,10 @@ test('total-only entry validates limits and can later add or remove section scor
   await expect(dialog).not.toBeVisible();
   expect(await savedSession(page)).toMatchObject({ totalScore: 800, scoreSource: 'MANUAL_TOTAL' });
   for (const field of ['scaledListening', 'scaledReading', 'partScores', 'rawListening', 'rawReading']) expect(await savedSession(page)).not.toHaveProperty(field);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Bài gần nhất chỉ có tổng điểm; chưa ghi điểm Listening/Reading.')).toBeVisible();
   await page.goto('/lich-su', { waitUntil: 'domcontentloaded' });
+  // Hành trình's test list shows a total-only result without inventing Listening/Reading scores.
+  await page.getByRole('tab', { name: /^Các đề/ }).click();
+  await expect(page.getByRole('button', { name: /Manual total/ }).getByText('Nghe — · Đọc —')).toBeVisible();
   await openHistoryEdit(page, 'Manual total');
   dialog = page.getByRole('dialog');
   await expect(dialog.getByLabel('Tổng điểm TOEIC /990')).toHaveValue('800');
@@ -90,14 +95,14 @@ test('old estimates retain their version on metadata edits and switch only when 
     localStorage.setItem('toeic_progress_bundle_v3',JSON.stringify(bundle));
   });
   await page.reload();
-  await page.getByRole('button',{name:'Sửa bản ghi Legacy estimate'}).click();
+  await openHistoryEdit(page, 'Legacy estimate');
   const dialog=page.getByRole('dialog');
   await expect(dialog.getByText('855',{exact:true})).toBeVisible();
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Legacy renamed');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Legacy renamed');
   await dialog.getByRole('button',{name:'Lưu thay đổi'}).click();
   await expect(dialog).not.toBeVisible();
   expect(await savedSession(page)).toMatchObject({totalScore:855,scoreConversionVersion:'legacy-reference-v1'});
-  await page.getByRole('button',{name:'Sửa bản ghi Legacy renamed'}).click();
+  await openHistoryEdit(page, 'Legacy renamed');
   await dialog.getByLabel('Số câu đúng Part 3',{exact:true}).fill('39');
   await expect(dialog.getByText('720',{exact:true})).toBeVisible();
   await dialog.getByRole('button',{name:'Lưu thay đổi'}).click();
@@ -108,7 +113,7 @@ test('old estimates retain their version on metadata edits and switch only when 
 
 test('a newly saved perfect Full Test receives 495 per section and 990 total', async ({ page }) => {
   const dialog = await openLogger(page);
-  await dialog.getByLabel('Tên Đề Thi / Nguồn').fill('Perfect estimate');
+  await dialog.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Perfect estimate');
   await usePartCounts(dialog);
   for (const [index,count] of [6,25,39,30,30,16,54].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1), {exact:true}).fill(String(count));
   await expect(dialog.getByText('990',{exact:true})).toBeVisible();

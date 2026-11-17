@@ -1,4 +1,6 @@
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, noteModal, openCard, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -24,16 +26,18 @@ async function mockAI(page: Page, capable = true) {
           missingInformation: ['Nội dung trích từ ảnh; kiểm tra chữ, số và phương án trước khi lưu.'] } };
       }`
   }));
-  await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  await chooseNoteSource(page.getByRole('dialog'));
-  await page.getByRole('button', { name: 'Part 7', exact: true }).click();
-  await page.getByRole('button', { name: 'Ảnh', exact: true }).click();
+  // Only phones type a note through the full form now; they take the picture with "Chụp trang" / "Chọn ảnh".
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay');
+  const modal = await openNoteForm(page);
+  await chooseNoteSource(modal);
+  await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
+  await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
 }
 
 test('Part 7 requires pasted text and uses images solely for context while saving an image-free card', async ({ page }, testInfo) => {
   await mockAI(page);
-  const modal = page.getByRole('dialog');
+  const modal = noteModal(page);
   await modal.getByLabel('Chọn ảnh Part 7').setInputFiles([notice, table]);
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 2', exact: true })).toBeVisible();
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
@@ -51,7 +55,7 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   await expect(modal.getByText('AI đề xuất', { exact: true })).toBeVisible();
   await modal.getByText('Đối chiếu ảnh (2)', { exact: true }).click();
   await expect(modal.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeVisible();
-  for (const width of [375, 1440]) {
+  for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
@@ -75,17 +79,17 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   expect(saved.question).toBe(question); expect(saved.context).toBe(context); expect(saved.options).toEqual(options);
   expect(saved.userChoice).toBe('A'); expect(saved.userMistake).toBe(options[0]); expect(saved.correctAnswer).toBe(options[2]);
   expect(JSON.stringify(saved)).not.toContain('data:image'); expect(saved.images).toBeUndefined();
-  await page.reload(); await page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 800 }); await page.reload(); await openCard(page, question);
   await page.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
-  const review = page.getByRole('dialog', { name: 'Ôn tập' });
+  const review = page.getByRole('dialog', { name: 'Ôn câu sai' });
   await expect(review.getByText(context, { exact: true })).toBeVisible();
-  await review.getByRole('button', { name: /^C\s+Data Basics/ }).click();
-  await expect(review.getByRole('status')).toContainText('Đúng');
+  await review.getByRole('button', { name: /^\(C\)\s*Data Basics/ }).click();
+  await expect(review.getByText('đúng rồi', { exact: true })).toBeVisible();
 });
 
 test('invalid files and too many images retain the current attachments; changing an image invalidates quick save', async ({ page }) => {
   await mockAI(page);
-  const modal = page.getByRole('dialog'), picker = modal.getByLabel('Chọn ảnh Part 7');
+  const modal = noteModal(page), picker = modal.getByLabel('Chọn ảnh Part 7');
   await picker.setInputFiles(notice);
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
   await picker.setInputFiles({ name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
@@ -111,7 +115,7 @@ test('invalid files and too many images retain the current attachments; changing
 test('clipboard paste works and an older backend cannot silently drop the image', async ({ page }) => {
   await mockAI(page, false);
   const bytes = (await readFile(notice)).toString('base64');
-  const modal = page.getByRole('dialog');
+  const modal = noteModal(page);
   await modal.getByLabel('Câu hỏi + phương án').evaluate((element, encoded) => {
     const data = new DataTransfer();
     const values = Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
@@ -126,22 +130,21 @@ test('clipboard paste works and an older backend cannot silently drop the image'
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
 });
 
-test('the illustrated area supports file picking, keyboard paste and dropping without calling AI', async ({ page }, testInfo) => {
+test('the picture area supports file picking, paste and dropping without calling AI', async ({ page }, testInfo) => {
   await mockAI(page);
-  const modal = page.getByRole('dialog');
+  const modal = noteModal(page);
   const group = modal.getByRole('group', { name: 'Ảnh ngữ cảnh · Part 7', exact: true });
-  const zone = modal.getByRole('button', { name: 'Vùng thêm ảnh Part 7', exact: true });
-  await expect(zone).toContainText('Kéo ảnh vào đây');
-  await zone.focus(); await expect(zone).toBeFocused();
+  // Phones offer "Chụp trang" / "Chọn ảnh" buttons; the computer's keyboard drop-zone button ("Vùng thêm ảnh Part 7") and its
+  // "Kéo ảnh vào đây / Thả ảnh để thêm" texts only exist on tablets and computers, which no longer open this form for new notes.
+  await expect(modal.getByRole('button', { name: 'Vùng thêm ảnh Part 7', exact: true })).toHaveCount(0);
   const chooser = page.waitForEvent('filechooser');
-  await zone.press('Enter');
+  await modal.getByRole('button', { name: 'Chọn ảnh', exact: true }).click();
   await (await chooser).setFiles(notice);
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
   await modal.getByRole('button', { name: 'Bỏ ảnh 1', exact: true }).click();
 
   const encoded = (await readFile(notice)).toString('base64');
-  await zone.focus();
-  await zone.evaluate((element, encoded) => {
+  await group.evaluate((element, encoded) => {
     const bytes = Uint8Array.from(atob(encoded), value => value.charCodeAt(0));
     const transfer = new DataTransfer(); transfer.items.add(new File([bytes], 'pasted.png', { type: 'image/png' }));
     element.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
@@ -155,11 +158,9 @@ test('the illustrated area supports file picking, keyboard paste and dropping wi
     return transfer;
   }, encoded);
   await group.dispatchEvent('dragenter', { dataTransfer: transfer });
-  await expect(zone).toContainText('Thả ảnh để thêm');
   await group.dispatchEvent('dragover', { dataTransfer: transfer });
   await group.dispatchEvent('drop', { dataTransfer: transfer });
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
-  await expect(zone).not.toContainText('Thả ảnh để thêm');
   await transfer.dispose();
   const invalid = await page.evaluateHandle(() => {
     const transfer = new DataTransfer(); transfer.items.add(new File(['<svg/>'], 'invalid.svg', { type: 'image/svg+xml' }));
@@ -170,7 +171,7 @@ test('the illustrated area supports file picking, keyboard paste and dropping wi
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
   await invalid.dispose();
   expect(await page.evaluate(() => (window as Window & { __visionCalls?: number }).__visionCalls ?? 0)).toBe(0);
-  for (const width of [375, 1440]) {
+  for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }

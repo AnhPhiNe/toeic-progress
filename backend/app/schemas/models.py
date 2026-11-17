@@ -742,6 +742,8 @@ class PageExtractRequest(BaseModel):
     consent: Literal[True]
     provider: Literal["openai"]
     captcha_token: str | None = Field(default=None, max_length=2048)
+    # One capture sends several requests (at most 3 images each). They share a batch id and count as one AI use.
+    batch_id: UUID | None = None
     questions: list[PageQuestion] = Field(min_length=1, max_length=200)
     images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
 

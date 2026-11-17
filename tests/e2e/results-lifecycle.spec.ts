@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openManualEntry } from './helpers/manualEntry';
 import { resolve } from 'node:path';
+import { openScoreLogger } from './helpers/nav';
+import { sessionDialog } from './helpers/sessionForm';
 
 async function delayedResults(page: Page) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
@@ -21,20 +24,18 @@ async function openForm(page: Page, navigate = true) {
     await page.evaluate(() => localStorage.setItem('toeic_onboarding_done_v1', 'true'));
     await page.reload();
   }
-  const desktopEntry = page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true });
-  if (await desktopEntry.isVisible()) await desktopEntry.click();
-  else {
-    await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-    await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
-  }
-  return page.getByRole('dialog', { name: /^(Ghi điểm|Nhập kết quả học tập)$/ });
+  await openScoreLogger(page);
+  const form = sessionDialog(page);
+  await openManualEntry(page, form);
+  return form;
 }
 
 async function finish(page: Page) {
   await page.evaluate(() => (window as Window & { __finishResults: () => void }).__finishResults());
 }
 
-for (const width of [390, 1280]) {
+// Phones (<768px) log a Full Test through the full-screen PhoneLogger, covered in phone-session-form.spec.ts.
+for (const width of [1280]) {
   test(`result reading preserves additions and explicit clears made while waiting at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await delayedResults(page);
@@ -53,11 +54,11 @@ for (const width of [390, 1280]) {
 }
 
 test('a result response after closing cannot populate the next form', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 900 });
+  await page.setViewportSize({ width: 1280, height: 900 });
   await delayedResults(page);
   let form = await openForm(page);
   await form.getByLabel('Ảnh kết quả').setInputFiles(resolve('tests/fixtures/part7-notice.png'));
-  await expect(form.getByRole('button', { name: /^AI đang đọc ảnh…/ })).toBeVisible();
+  await expect(form.getByRole('button', { name: /^(AI đang đọc ảnh…|Đang đọc…)/ })).toBeVisible();
   await form.getByRole('button', { name: 'Đóng form ghi nhận buổi học', exact: true }).click();
   await expect(form).not.toBeVisible();
   form = await openForm(page, false);

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Ba hướng giao diện mới</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f172a; --bg:#f6f8f7; --muted:#5f6966; --line:#dfe4e2;
+  --green:#387f48; --green50:#6dbe6a; --green20:#dcefd3; --green10:#f1f8ee;
+  --sun:#f2b93b; --sun20:#fff3d3; --red:#c93c4b; --red20:#fde3e5;
+  --lis:#5b5bd6; --lis20:#e7e7fb; --rea:#2e8f7e; --rea20:#ddf2ee;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:#cfd6d3;padding:40px;display:flex;flex-direction:column;gap:60px;align-items:center}
+.frame{width:1440px;height:900px;position:relative;overflow:hidden;background:var(--bg);display:flex}
+.neo{border:2px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);background:#fff}
+.btn{font:800 15px 'Plus Jakarta Sans';border:2px solid var(--ink);border-radius:14px;padding:12px 20px;background:#fff;color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--green);color:#fff;box-shadow:0 5px 0 var(--ink)}
+.btn.sun{background:var(--sun);box-shadow:0 5px 0 #000}
+.muted{color:var(--muted)}
+h2{font-size:18px;font-weight:800}
+
+/* sidebar */
+.side{width:216px;border-right:2px solid var(--ink);background:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:6px;flex:none}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;margin:0 6px 22px}
+.brand svg{width:38px;height:42px}
+.nav{padding:11px 14px;border-radius:12px;font-weight:600;font-size:14.5px;color:#3a4240;display:flex;justify-content:space-between;align-items:center}
+.nav.on{background:var(--green20);color:#1d4526;font-weight:800;border:2px solid var(--ink)}
+.nav b{background:var(--red);color:#fff;border-radius:99px;font-size:12px;padding:1px 8px}
+.side .me{margin-top:auto;font-size:13px;font-weight:700;padding:10px 8px;border-top:2px solid var(--line)}
+.main{flex:1;padding:26px 34px;display:flex;flex-direction:column;gap:22px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center}
+.top .day{font-size:15px;font-weight:600;color:var(--muted)}
+
+/* ---------- A ---------- */
+.hero{background:var(--green20);padding:28px 34px 0;height:372px;position:relative}
+.hero h1{font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+.hero p{font-size:17px;margin-top:10px;max-width:640px;line-height:1.5}
+.count{position:absolute;right:30px;top:28px;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:10px 18px;text-align:center}
+.count b{font-size:34px;font-weight:800;display:block;line-height:1}
+.count span{font-size:13px;font-weight:600}
+.track{position:absolute;left:0;bottom:0;width:100%;height:210px}
+.rowA{display:grid;grid-template-columns:1.2fr 1fr .9fr;gap:22px;flex:1;min-height:0}
+.card{padding:22px 24px;display:flex;flex-direction:column}
+.today{background:var(--sun20)}
+.streak{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;margin:12px 0 4px}
+.dots{display:flex;gap:6px;margin-left:auto}
+.dots i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);background:var(--green50);font:700 10px 'Plus Jakarta Sans';display:grid;place-items:center;font-style:normal}
+.dots i.now{background:#fff;border-style:dashed}
+.dots i.off{background:#fff;border-color:#b9c0bd;color:#878f8c}
+.task{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1.5px solid #ecd9a4;font-weight:700;font-size:15px}
+.task:last-of-type{border:0}
+.task .box{width:22px;height:22px;border:2px solid var(--ink);border-radius:6px;background:#fff;flex:none}
+.task span{margin-left:auto;font-weight:600;font-size:13.5px;color:#6f4f05}
+.bars{display:flex;align-items:flex-end;gap:12px;flex:1;margin:14px 0 12px;padding-top:22px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;font-weight:700;font-size:13px}
+.bar div{width:100%;border:2px solid var(--ink);border-radius:8px 8px 3px 3px}
+.bar small{font-weight:800;font-size:12.5px}
+.big{font-size:76px;font-weight:800;letter-spacing:-3px;line-height:1}
+.gain{display:inline-block;background:var(--sun);border:2px solid var(--ink);border-radius:99px;font-weight:800;font-size:14px;padding:3px 12px;margin-left:10px;vertical-align:18px;letter-spacing:0}
+.lr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+.lr div{border:2px solid var(--ink);border-radius:12px;padding:10px 14px;color:#fff;font-weight:600;font-size:13px}
+.lr b{display:block;font-size:28px;font-weight:800}
+
+/* ---------- B ---------- */
+#B{background:var(--green10)}
+.rowB1{display:grid;grid-template-columns:1fr 300px;gap:22px}
+.talk{display:flex;align-items:center;gap:8px}
+.bubble{padding:22px 26px;position:relative;flex:1}
+.bubble:before{content:"";position:absolute;left:-13px;top:54px;width:22px;height:22px;background:#fff;border-left:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
+.bubble h1{font-size:30px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.bubble p{margin:8px 0 16px;font-size:16px}
+.sunc{background:var(--sun20);padding:16px 20px;display:flex;align-items:center;gap:16px}
+.sunc b{font-size:20px;font-weight:800;line-height:1.2;display:block}
+.shelf{padding:20px 30px 18px;position:relative}
+.pots{display:grid;grid-template-columns:repeat(7,1fr);align-items:end;height:250px;border-bottom:10px solid var(--ink);border-radius:0 0 4px 4px}
+.pot{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.pot svg{display:block}
+.plabels{display:grid;grid-template-columns:repeat(7,1fr);margin-top:12px;text-align:center;font-weight:800;font-size:15px}
+.plabels span{display:block;font-weight:600;font-size:13px;color:var(--muted)}
+.plabels .bad span{color:var(--red);font-weight:800}
+.grp{display:grid;grid-template-columns:4fr 3fr;gap:14px;margin-top:10px;font-weight:800;font-size:13.5px;text-align:center}
+.grp div{border-top:4px solid;padding-top:5px}
+.rowB3{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;flex:1;min-height:0}
+.stages{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex:1;align-items:end;text-align:center;font-weight:800;font-size:14px}
+.stages span{display:block;font-weight:600;font-size:12.5px;color:var(--muted)}
+.stages .lock svg{filter:grayscale(1);opacity:.35}
+.stages .cur{background:var(--green20);border:2px solid var(--ink);border-radius:14px;padding:6px 0 8px}
+.week{display:flex;align-items:flex-end;gap:10px;flex:1;margin-top:10px}
+.week div{flex:1;text-align:center;font-weight:700;font-size:12.5px;display:flex;flex-direction:column;justify-content:flex-end;gap:5px;height:100%}
+.week i{display:block;border:2px solid var(--ink);border-radius:7px;background:var(--green50)}
+
+/* ---------- C ---------- */
+#C{background:var(--ink);color:#fff;flex-direction:column;padding:0 48px}
+.navc{display:flex;align-items:center;gap:6px;height:72px;border-bottom:1.5px solid #334155;font-weight:600;font-size:14.5px;flex:none}
+.navc .brand{margin:0 26px 0 0;color:#fff}
+.navc a{padding:8px 14px;border-radius:99px;color:#a5b4c8}
+.navc a.on{background:#fff;color:var(--ink);font-weight:800}
+.navc .btn{margin-left:auto;padding:9px 16px;font-size:14px}
+.bodyc{display:grid;grid-template-columns:1fr 470px;gap:56px;flex:1;padding:34px 0 0;min-height:0}
+.lead{font-size:17px;font-weight:600;color:#a5b4c8}
+.mega{font-size:230px;font-weight:800;letter-spacing:-12px;line-height:.88;color:var(--sun);margin:6px 0 0 -8px}
+.mega small{font-size:40px;letter-spacing:0;color:#64748b;font-weight:700;margin-left:14px}
+.say{font-size:30px;font-weight:800;letter-spacing:-.5px;margin-top:16px;line-height:1.25}
+.say em{font-style:normal;color:var(--sun)}
+.spark{margin-top:20px}
+.strip{margin-top:auto}
+.cells{display:flex;gap:3px;margin:10px 0 8px}
+.cells i{width:9px;height:26px;border-radius:3px;background:#6dbe6a;flex:1}
+.cells i.miss{background:#334155}
+.cells i.next{background:transparent;border:1.5px solid #475569}
+.cells i.today{background:#fff;outline:2px solid var(--sun);outline-offset:2px}
+.cells i.exam{background:var(--sun);flex:1.6}
+.cap{display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:#a5b4c8}
+.cap b{color:#fff}
+.ticket{background:#fffdf6;color:var(--ink);border-radius:18px;padding:26px 28px 24px;transform:rotate(1.6deg);box-shadow:10px 10px 0 #000;align-self:start;position:relative;margin-top:4px}
+.ticket:before,.ticket:after{content:"";position:absolute;top:150px;width:26px;height:26px;border-radius:50%;background:var(--ink)}
+.ticket:before{left:-13px}.ticket:after{right:-13px}
+.ticket h3{font-size:21px;font-weight:800}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 20px}
+.two div{border-radius:12px;padding:10px 14px;font-weight:700;font-size:13px}
+.two b{font-size:36px;font-weight:800;display:block;letter-spacing:-1px}
+.cut{border-top:2px dashed #b9c0bd;margin:0 -6px 14px}
+.prow{display:grid;grid-template-columns:58px 1fr 54px;align-items:center;gap:12px;font-weight:700;font-size:14px;padding:5px 0}
+.prow .t{height:12px;background:#eef1f0;border-radius:99px;overflow:hidden}
+.prow .t i{display:block;height:100%;border-radius:99px}
+.prow span{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.prow.bad{color:var(--red)}
+.ticket .foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;font-weight:700;font-size:14.5px}
+.tag{position:absolute;right:0;bottom:0;background:#fff;color:#000;font:800 13px 'Plus Jakarta Sans';padding:6px 12px;border-radius:10px 0 0 0;z-index:5;border:2px solid #000;border-width:2px 0 0 2px}
+</style>
+</head>
+<body>
+
+<!-- ================= A ================= -->
+<div class="frame" id="A">
+  <div class="tag">A. Đường lên 800</div>
+  <aside class="side">
+    <div class="brand"><span data-mam="calm,leaves"></span>TOEIC Progress</div>
+    <div class="nav on">Hôm nay</div>
+    <div class="nav">Hành trình điểm</div>
+    <div class="nav">Luyện tập</div>
+    <div class="nav">Sổ tay câu sai <b>3</b></div>
+    <div class="nav">Từ vựng</div>
+    <div class="me">Học viên</div>
+  </aside>
+  <div class="main">
+    <div class="top"><div class="day">Thứ Tư, 11/11</div><div class="btn">+ Ghi điểm</div></div>
+
+    <div class="neo hero">
+      <h1>Còn 75 điểm nữa là tới 800</h1>
+      <p>Bốn đề vừa rồi bạn đã lên 105 điểm. Giữ đà này thì khoảng 3 đề nữa là chạm đích.</p>
+      <div class="count"><b>39</b><span>ngày tới ngày thi</span></div>
+      <svg class="track" viewBox="0 0 1150 210">
+        <!-- 600..820 => x 60..1090 -->
+        <line x1="40" y1="130" x2="1110" y2="130" stroke="#0f172a" stroke-width="20" stroke-linecap="round"/>
+        <line x1="40" y1="130" x2="1110" y2="130" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
+        <line x1="40" y1="130" x2="528" y2="130" stroke="#387f48" stroke-width="14" stroke-linecap="round"/>
+        <line x1="482" y1="130" x2="645" y2="130" stroke="#f2b93b" stroke-width="14"/>
+        <line x1="660" y1="130" x2="990" y2="130" stroke="#0f172a" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/>
+        <g font-family="Plus Jakarta Sans" text-anchor="middle" fill="#0f172a">
+          <g><circle cx="154" cy="130" r="11" fill="#fff" stroke="#0f172a" stroke-width="3"/><text x="154" y="168" font-weight="800" font-size="17">620</text><text x="154" y="187" font-size="12.5" font-weight="600" fill="#3a4240">12/10, đề đầu</text></g>
+          <g><circle cx="364" cy="130" r="11" fill="#fff" stroke="#0f172a" stroke-width="3"/><text x="364" y="168" font-weight="800" font-size="17">665</text><text x="364" y="187" font-size="12.5" font-weight="600" fill="#3a4240">22/10</text></g>
+          <g><circle cx="482" cy="130" r="11" fill="#fff" stroke="#0f172a" stroke-width="3"/><text x="482" y="168" font-weight="800" font-size="17">690</text><text x="482" y="187" font-size="12.5" font-weight="600" fill="#3a4240">30/10</text></g>
+          <g><circle cx="645" cy="130" r="14" fill="#f2b93b" stroke="#0f172a" stroke-width="3"/><text x="645" y="172" font-weight="800" font-size="22">725</text><text x="645" y="191" font-size="12.5" font-weight="700">06/11, kỷ lục</text></g>
+          <g><line x1="926" y1="116" x2="926" y2="144" stroke="#0f172a" stroke-width="3"/><text x="926" y="168" font-weight="800" font-size="15">785</text><text x="926" y="187" font-size="12.5" font-weight="600" fill="#3a4240">lên bậc B2</text></g>
+          <g><line x1="996" y1="130" x2="996" y2="58" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/><path d="M998 60 L1052 74 L998 92Z" fill="#c93c4b" stroke="#0f172a" stroke-width="3" stroke-linejoin="round"/><circle cx="996" cy="130" r="11" fill="#0f172a"/><text x="996" y="172" font-weight="800" font-size="22">800</text><text x="996" y="191" font-size="12.5" font-weight="700">mục tiêu</text></g>
+        </g>
+      </svg>
+      <span data-mam="happy,leaves" style="position:absolute;left:588px;bottom:84px;width:140px"></span>
+    </div>
+
+    <div class="rowA">
+      <div class="neo card today">
+        <h2>Việc hôm nay</h2>
+        <div class="streak">
+          <svg width="22" height="28" viewBox="0 0 22 28"><path d="M11 1 C13 8 21 11 21 18 a10 9.5 0 0 1 -20 0 C1 13 5 11 6 6 C8 8 9 9 11 1Z" fill="#f97316" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/><path d="M11 13 c2 3 5 4 5 7 a5 5 0 0 1 -10 0 c0-3 3-4 5-7Z" fill="#fde047"/></svg>
+          6 ngày liên tiếp
+          <div class="dots"><i>T2</i><i>T3</i><i class="now">Nay</i><i class="off">T5</i><i class="off">T6</i><i class="off">T7</i><i class="off">CN</i></div>
+        </div>
+        <div class="task"><div class="box"></div>Ôn 3 câu sai đến hạn<span>5 phút</span></div>
+        <div class="task"><div class="box"></div>Bấm giờ một bài Part 7<span>20 phút</span></div>
+        <div class="task"><div class="box"></div>Ghi 20 từ mới<span>10 phút</span></div>
+        <div style="margin-top:auto"><div class="btn primary">Ôn 3 câu đến hạn</div></div>
+      </div>
+
+      <div class="neo card">
+        <h2>Bạn mất điểm ở đâu</h2>
+        <div class="bars" id="barsA"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14.5px">Part 7 sai 16 câu, nhiều nhất<div class="btn" style="padding:8px 14px;font-size:14px">Xem Part 7</div></div>
+      </div>
+
+      <div class="neo card">
+        <h2>Đề gần nhất</h2>
+        <div class="muted" style="font-weight:600;font-size:14px;margin-top:2px">ETS 2024 Test 04</div>
+        <div class="big" style="margin-top:14px">725<span class="gain">+35</span></div>
+        <div class="muted" style="font-weight:600;font-size:14px;margin-top:6px">so với đề trước là 690</div>
+        <div class="lr"><div style="background:var(--lis)">Listening<b>365</b></div><div style="background:var(--rea)">Reading<b>360</b></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= B ================= -->
+<div class="frame" id="B">
+  <div class="tag">B. Khu vườn Mầm</div>
+  <aside class="side">
+    <div class="brand"><span data-mam="calm,leaves"></span>TOEIC Progress</div>
+    <div class="nav on">Khu vườn</div>
+    <div class="nav">Hành trình điểm</div>
+    <div class="nav">Luyện tập</div>
+    <div class="nav">Sổ tay câu sai <b>3</b></div>
+    <div class="nav">Từ vựng</div>
+    <div class="me">Học viên</div>
+  </aside>
+  <div class="main" style="gap:18px;padding-top:22px">
+    <div class="rowB1">
+      <div class="talk">
+        <span data-mam="calm,leaves" style="width:150px;flex:none"></span>
+        <div class="neo bubble">
+          <h1>Chậu Part 7 đang héo nhất</h1>
+          <p>Đề vừa rồi bạn sai 16 câu ở đây. Tưới 20 phút hôm nay nhé?</p>
+          <div style="display:flex;align-items:center;gap:18px"><div class="btn primary">Luyện Part 7</div><span style="font-weight:700;font-size:14.5px;text-decoration:underline">Ôn 3 câu đến hạn trước</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="neo sunc">
+          <svg width="62" height="62" viewBox="0 0 62 62"><g stroke="#0f172a" stroke-width="3" stroke-linecap="round"><path d="M31 3v8M31 51v8M3 31h8M51 31h8M11 11l6 6M45 45l6 6M51 11l-6 6M11 51l6-6"/></g><circle cx="31" cy="31" r="15" fill="#f2b93b" stroke="#0f172a" stroke-width="3"/></svg>
+          <div><b>6 ngày nắng</b><span style="font-weight:600;font-size:13.5px">liên tiếp có học</span></div>
+        </div>
+        <div class="neo" style="padding:14px 20px;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:14px"><b style="font-size:34px;font-weight:800">39</b>ngày nữa thi,<br>còn 75 điểm tới 800</div>
+      </div>
+    </div>
+
+    <div class="neo shelf">
+      <div class="pots" id="pots"></div>
+      <div class="plabels">
+        <div>Part 1<span>83%</span></div><div>Part 2<span>88%</span></div><div>Part 3<span>77%</span></div><div>Part 4<span>80%</span></div>
+        <div>Part 5<span>80%</span></div><div>Part 6<span>69%</span></div><div class="bad">Part 7<span>70%, sai 16 câu</span></div>
+      </div>
+      <div class="grp"><div style="border-color:var(--lis);color:#3a3a9e">Listening 365</div><div style="border-color:var(--rea);color:#1f6457">Reading 360</div></div>
+    </div>
+
+    <div class="rowB3">
+      <div class="neo card" style="padding:16px 22px">
+        <h2>Mầm lớn theo điểm cao nhất của bạn</h2>
+        <div class="stages">
+          <div><span data-mam="calm,sprout" style="width:104px;display:block;margin:0 auto 2px"></span>Nảy mầm<span>dưới 600</span></div>
+          <div class="cur"><span data-mam="happy,leaves" style="width:104px;display:block;margin:0 auto 2px"></span>Ra lá<span>bạn đang ở 725</span></div>
+          <div class="lock"><span data-mam="calm,lush" style="width:104px;display:block;margin:0 auto 2px"></span>Sum suê<span>từ 785</span></div>
+          <div class="lock"><span data-mam="calm,bloom" style="width:104px;display:block;margin:0 auto 2px"></span>Nở hoa<span>chạm 800</span></div>
+        </div>
+      </div>
+      <div class="neo card" style="padding:16px 22px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><h2>Tuần này đã tưới</h2><span style="font-weight:700;font-size:14px">65 / 210 phút</span></div>
+        <div class="week">
+          <div><i style="height:62%"></i>T2</div><div><i style="height:46%"></i>T3</div>
+          <div><i style="height:8%;background:#fff;border-style:dashed"></i><b>Nay</b></div>
+          <div><i style="height:8%;background:#fff;border-color:#b9c0bd"></i>T5</div><div><i style="height:8%;background:#fff;border-color:#b9c0bd"></i>T6</div><div><i style="height:8%;background:#fff;border-color:#b9c0bd"></i>T7</div><div><i style="height:8%;background:#fff;border-color:#b9c0bd"></i>CN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= C ================= -->
+<div class="frame" id="C">
+  <div class="tag">C. Phiếu điểm</div>
+  <div class="navc">
+    <div class="brand"><span data-mam="calm,leaves"></span>TOEIC Progress</div>
+    <a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a><a>Từ vựng</a>
+    <div class="btn sun">+ Ghi điểm</div>
+  </div>
+  <div class="bodyc">
+    <div style="display:flex;flex-direction:column;min-height:0;padding-bottom:34px">
+      <div class="lead">Điểm cao nhất của bạn</div>
+      <div class="mega">725<small>/ 990</small></div>
+      <div class="say">Còn <em>75 điểm</em> nữa là tới 800.<br>Bạn đã lên 105 điểm sau 4 đề.</div>
+      <svg class="spark" width="840" height="180" viewBox="0 0 560 120">
+        <line x1="0" y1="14" x2="560" y2="14" stroke="#f2b93b" stroke-width="2" stroke-dasharray="6 7"/>
+        <text x="560" y="34" text-anchor="end" fill="#f2b93b" font-family="Plus Jakarta Sans" font-weight="700" font-size="13">800</text>
+        <polyline points="20,104 180,78 330,64 480,44" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <g fill="#0f172a" stroke="#fff" stroke-width="4"><circle cx="20" cy="104" r="7"/><circle cx="180" cy="78" r="7"/><circle cx="330" cy="64" r="7"/></g>
+        <circle cx="480" cy="44" r="9" fill="#f2b93b" stroke="#fff" stroke-width="4"/>
+        <g fill="#a5b4c8" font-family="Plus Jakarta Sans" font-weight="700" font-size="13" text-anchor="middle"><text x="24" y="86">620</text><text x="180" y="60">665</text><text x="330" y="46">690</text></g>
+      </svg>
+      <div class="strip">
+        <div class="cap"><span><b>30 ngày đã qua</b>, trong đó 21 ngày có học</span><span><b>39 ngày</b> còn lại tới ngày thi 20/12</span></div>
+        <div class="cells" id="cells"></div>
+        <div class="cap"><span>12/10, đề đầu tiên</span><span>Mỗi ô là một ngày</span></div>
+      </div>
+    </div>
+
+    <div class="ticket">
+      <div class="muted" style="font-weight:700;font-size:13.5px">Phiếu điểm, 06/11</div>
+      <h3>ETS 2024 Test 04</h3>
+      <div class="two"><div style="background:var(--lis20);color:#3a3a9e">Listening<b>365</b></div><div style="background:var(--rea20);color:#1f6457">Reading<b>360</b></div></div>
+      <div class="cut"></div>
+      <div id="prows"></div>
+      <div class="foot">Mất điểm nhiều nhất ở Part 7<div class="btn sun" style="padding:9px 16px;font-size:14px">Luyện Part 7</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let n=0;
+function mam(mood,stage){const id='m'+(n++),h=mood==='happy';const I='#3A2A1E',MO='#9C4434',CH='#FF8F80',AR='#DDA263',ST='#4E9A4A',SU='#F2B93B';
+return `<svg viewBox="0 -14 120 134" style="display:block;width:100%"><defs><linearGradient id="${id}a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E08F"/><stop offset="1" stop-color="#4C9F55"/></linearGradient><linearGradient id="${id}b" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient><radialGradient id="${id}p" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient></defs>
+${h?`<g transform="translate(60,86) scale(0.82,1) translate(-60,-78)" fill="${AR}"><ellipse cx="18" cy="78" rx="6.5" ry="11.5" transform="rotate(62 18 78)"/><ellipse cx="102" cy="78" rx="6.5" ry="11.5" transform="rotate(-62 102 78)"/></g>`:`<g transform="translate(60,88) scale(0.84,1) translate(-60,-88)" fill="${AR}"><ellipse cx="25" cy="88" rx="6.5" ry="10.5" transform="rotate(-22 25 88)"/><ellipse cx="95" cy="88" rx="6.5" ry="10.5" transform="rotate(22 95 88)"/></g>`}
+<ellipse cx="60" cy="113" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/><path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#${id}p)"/><rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/><rect x="33" y="58.5" width="22" height="4" rx="2" fill="#fff" opacity=".38"/><ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+${stage==='bloom'?`<path d="M30 62 L90 62" stroke="${SU}" stroke-width="7" stroke-linecap="round"/><circle cx="80" cy="62" r="4.5" fill="${SU}"/>`:''}
+<g transform="translate(0,6)">${h?`<path d="M39 80 Q46.5 71 54 80" stroke="${I}" stroke-width="4.2" fill="none" stroke-linecap="round"/><path d="M66 80 Q73.5 71 81 80" stroke="${I}" stroke-width="4.2" fill="none" stroke-linecap="round"/><ellipse cx="37" cy="90" rx="6.5" ry="4.2" fill="${CH}" opacity=".55"/><ellipse cx="83" cy="90" rx="6.5" ry="4.2" fill="${CH}" opacity=".55"/><path d="M51 87 Q60 100 69 87 Z" fill="${MO}"/>`:`<ellipse cx="47" cy="79" rx="6.2" ry="7.6" fill="${I}"/><ellipse cx="73" cy="79" rx="6.2" ry="7.6" fill="${I}"/><circle cx="49.2" cy="75.8" r="2.5" fill="#fff"/><circle cx="75.2" cy="75.8" r="2.5" fill="#fff"/><ellipse cx="36" cy="90" rx="6.5" ry="4.2" fill="${CH}" opacity=".45"/><ellipse cx="84" cy="90" rx="6.5" ry="4.2" fill="${CH}" opacity=".45"/><path d="M54.5 90 Q60 94.5 65.5 90" stroke="${MO}" stroke-width="3" fill="none" stroke-linecap="round"/>`}</g>
+<g transform="translate(0,13)">${stage==='sprout'?`<path d="M60 43 Q59 36 61 31" stroke="${ST}" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M61 33 C66 22 80 21 83 28 C75 36 67 36 61 33Z" fill="url(#${id}b)"/>`:stage==='leaves'?`<path d="M60 44 Q58 32 60 22" stroke="${ST}" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M59 29 C46 13 27 14 21 25 C32 36 49 37 59 29Z" fill="url(#${id}a)"/><path d="M61 25 C70 6 92 3 101 13 C91 28 73 31 61 25Z" fill="url(#${id}b)"/>`:`<path d="M60 44 Q58 26 60 4" stroke="${ST}" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#${id}a)"/><path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#${id}b)"/>${stage==='lush'?`<path d="M60 12 C52 0 40 -2 34 4 C42 14 52 15 60 12Z" fill="url(#${id}a)"/><path d="M60 8 C66 -4 78 -6 84 -1 C78 9 68 11 60 8Z" fill="url(#${id}b)"/>`:`<g transform="translate(60,-2)" fill="#FFD36B"><circle cx="0" cy="-8" r="6.5"/><circle cx="7.6" cy="-2.5" r="6.5"/><circle cx="4.7" cy="6.5" r="6.5"/><circle cx="-4.7" cy="6.5" r="6.5"/><circle cx="-7.6" cy="-2.5" r="6.5"/><circle r="5.5" fill="#F29E4C"/></g>`}`}</g>
+${h?`<g fill="${SU}"><circle cx="12" cy="38" r="3"/><circle cx="104" cy="62" r="2.2"/></g>`:''}</svg>`}
+document.querySelectorAll('[data-mam]').forEach(e=>{const[m,s]=e.dataset.mam.split(',');e.innerHTML=mam(m,s);if(!e.style.width){e.style.display='block';e.style.width='38px'}});
+
+const parts=[[1,5,6],[2,22,25],[3,30,39],[4,24,30],[5,24,30],[6,11,16],[7,38,54]];
+// A: bars
+document.getElementById('barsA').innerHTML=parts.map(([p,a,b])=>{const pc=Math.round(a/b*100),c=p===7?'var(--red)':p<5?'var(--lis)':'var(--rea)';return `<div class="bar"><small style="${p===7?'color:var(--red)':''}">${pc}%</small><div style="height:${(pc-50)*2.1}%;background:${c}"></div>P${p}</div>`}).join('');
+// C: rows
+document.getElementById('prows').innerHTML=parts.map(([p,a,b])=>{const pc=a/b*100,c=p===7?'var(--red)':p<5?'var(--lis)':'var(--rea)';return `<div class="prow ${p===7?'bad':''}">Part ${p}<div class="t"><i style="width:${pc}%;background:${c}"></i></div><span>${a}/${b}</span></div>`}).join('');
+// C: day cells
+const miss=[3,4,9,10,11,17,18,24,25];let c='';for(let i=0;i<30;i++)c+=`<i class="${miss.includes(i)?'miss':''}"></i>`;c+='<i class="today"></i>';for(let i=0;i<38;i++)c+='<i class="next"></i>';c+='<i class="exam"></i>';document.getElementById('cells').innerHTML=c;
+// B: pots
+function pot(pc,p){const lis=p<5,fill=lis?'#e7e7fb':'#ddf2ee',wilt=p===7,h=Math.round((pc-55)*4.2),top=150-h;
+ const leafC=wilt?'#d8c66a':'#6dbe6a',leafD=wilt?'#b9a544':'#387f48';let s='';
+ if(wilt){s=`<path d="M50 150 C50 110 54 96 74 98" fill="none" stroke="#8a8f3a" stroke-width="5" stroke-linecap="round"/><path d="M72 97 C84 92 96 100 94 114 C82 114 74 108 72 97Z" fill="${leafC}" stroke="#0f172a" stroke-width="2.5"/><path d="M52 122 C40 118 30 126 30 138 C42 140 50 134 52 122Z" fill="${leafC}" stroke="#0f172a" stroke-width="2.5"/>`}
+ else{s=`<path d="M50 150 L50 ${top}" stroke="#387f48" stroke-width="5" stroke-linecap="round"/>`;const k=Math.max(1,Math.round(h/34));for(let i=0;i<k;i++){const y=top+6+i*30,f=i%2?leafD:leafC;s+=`<path d="M50 ${y+14} C34 ${y+6} 20 ${y+12} 16 ${y-6} C32 ${y-12} 46 ${y-2} 50 ${y+14}Z" fill="${f}" stroke="#0f172a" stroke-width="2.5"/><path d="M50 ${y+8} C66 ${y} 80 ${y+6} 84 ${y-12} C68 ${y-18} 54 ${y-8} 50 ${y+8}Z" fill="${i%2?leafC:leafD}" stroke="#0f172a" stroke-width="2.5"/>`}
+  s+=`<path d="M50 ${top+4} C44 ${top-14} 50 ${top-24} 50 ${top-24} C50 ${top-24} 56 ${top-14} 50 ${top+4}Z" fill="${leafC}" stroke="#0f172a" stroke-width="2.5"/>`}
+ return `<div class="pot"><svg width="100" height="210" viewBox="0 -10 100 220" overflow="visible">${s}<path d="M22 152 L78 152 L71 198 Q50 203 29 198Z" fill="${fill}" stroke="#0f172a" stroke-width="3" stroke-linejoin="round"/><rect x="16" y="142" width="68" height="16" rx="8" fill="${lis?'#5b5bd6':'#2e8f7e'}" stroke="#0f172a" stroke-width="3"/><circle cx="42" cy="176" r="3" fill="#0f172a"/><circle cx="58" cy="176" r="3" fill="#0f172a"/><path d="${wilt?'M44 188 Q50 183 56 188':'M44 184 Q50 190 56 184'}" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/></svg></div>`}
+document.getElementById('pots').innerHTML=parts.map(([p,a,b])=>pot(Math.round(a/b*100),p)).join('');
+</script>
+</body>
+</html>

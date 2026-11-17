@@ -1,0 +1,89 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"><style>
+:root{--page:#E2E8F0;--ink:#0F172A;--line:#0F172A;--shadow:#0F172A;--bg:#fff;--soft:#F8FAFC;--foot:#FAFAF9;--txt:#0F172A;--sub:#334155;--muted:#64748B;--hair:#E2E8F0;
+--tabon:#DBEAFE;--tabonT:#1D4ED8;--link:#4338CA;--danger:#BE123C;--amber:#B45309;--green:#047857;--blue:#2563EB;--est:#F1F5F9;--estT:#475569;--toast:#0F172A;--toastT:#F8FAFC}
+body.dark{--page:#060B16;--ink:#E2E8F0;--line:#CBD5E1;--shadow:#CBD5E1;--bg:#121A2B;--soft:#0B1220;--foot:#0E1626;--txt:#F1F5F9;--sub:#CBD5E1;--muted:#94A3B8;--hair:#1E293B;
+--tabon:#1E3A8A;--tabonT:#BFDBFE;--link:#A5B4FC;--danger:#FDA4AF;--amber:#FCD34D;--green:#6EE7B7;--blue:#2563EB;--est:#1E293B;--estT:#CBD5E1;--toast:#F1F5F9;--toastT:#0F172A}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--page);color:var(--txt);width:1300px;padding:22px 26px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:26px 28px;align-items:start}
+.tag{font-size:14px;font-weight:800;margin-bottom:2px}.sub{font-size:12px;color:var(--muted);margin-bottom:9px;line-height:1.45;min-height:34px}
+.modal{background:var(--bg);border:2px solid var(--line);border-radius:20px;box-shadow:4px 4px 0 var(--shadow);overflow:hidden;position:relative}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px}.hd b{font-size:18px;font-weight:800}.hd i{font-style:normal;font-size:18px;color:var(--muted)}
+.tabs{display:flex;margin:0 20px;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.tabs span{flex:1;text-align:center;padding:8px;font-size:13px;font-weight:800;color:var(--sub);background:var(--bg)}.tabs span+span{border-left:2px solid var(--line)}.tabs .on{background:var(--tabon);color:var(--tabonT)}
+.draft{display:flex;justify-content:space-between;align-items:center;margin:10px 20px 0;font-size:12.5px;font-weight:700;color:var(--muted)}.draft a{color:var(--danger);font-weight:800}
+.body{padding:16px 20px}
+.lab{font-size:12px;font-weight:800;color:var(--sub);margin-bottom:5px;display:flex;justify-content:space-between}.lab em{font-style:normal;font-weight:600;color:var(--muted)}
+.inp{border:2px solid var(--line);border-radius:12px;padding:9px 12px;font-size:14px;font-weight:700;background:var(--bg);display:flex;justify-content:space-between;align-items:center;color:var(--txt)}
+.inp small{font-size:11px;font-weight:700;color:var(--muted)}.inp.ph{color:var(--muted);font-weight:600}
+.datebtn{display:inline-block;margin-top:10px;border:2px solid var(--line);border-radius:12px;padding:6px 12px;font-size:13px;font-weight:800;background:var(--bg)}
+.ft{display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--line);padding:12px 20px;background:var(--foot)}
+.btn{border:2px solid var(--line);border-radius:12px;padding:9px 16px;font-size:13px;font-weight:800;background:var(--bg);color:var(--txt)}
+.btn.p{background:var(--blue);color:#fff;box-shadow:3px 3px 0 var(--shadow)}.btn.g{border:0;background:none;color:var(--muted)}
+.tbl{margin-top:14px;border:2px solid var(--line);border-radius:14px;overflow:hidden}
+.th{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--soft);border-bottom:2px solid var(--line);font-size:12px;font-weight:800;color:var(--sub)}
+.th a{color:var(--link)}.th em{font-style:normal;font-weight:600;color:var(--muted)}
+.tr{display:grid;grid-template-columns:100px 1fr;align-items:center;padding:0 16px;min-height:50px;border-bottom:1px solid var(--hair);font-size:14px}
+.tr:last-child{border-bottom:0}.tr .k{font-size:13px;font-weight:700;color:var(--muted)}
+.val{font-weight:800;font-size:16px;border-bottom:2px dotted var(--muted);padding-bottom:1px;width:fit-content}.val small{font-size:12px;color:var(--muted);font-weight:600;margin-left:8px}
+.tr.tall{align-items:start;padding-top:12px}.tr.tall .k{padding-top:2px}
+.parts{grid-column:1/3;display:grid;grid-template-columns:repeat(7,1fr);margin:10px 0 12px;border:1.5px solid var(--hair);border-radius:10px;overflow:hidden}
+.parts div{text-align:center;padding:6px 0 7px}.parts div+div{border-left:1px solid var(--hair)}
+.parts small{display:block;font-size:11px;font-weight:700;color:var(--muted)}.parts b{display:block;font-size:16px;font-weight:800;margin-top:1px}.parts .hi b{color:var(--amber)}
+.hint{font-size:12px;color:var(--muted);font-weight:600;margin-top:10px}
+.lr{display:grid;grid-template-columns:1fr 1fr 120px;gap:10px;align-items:end;margin-top:14px}
+.tot{padding-bottom:6px}.tot .t{font-size:11px;font-weight:800;color:var(--muted)}.tot b{display:block;font-size:24px;font-weight:800;line-height:1.1}
+.src{display:inline-block;margin-top:2px;font-size:11px;font-weight:800;color:var(--green)}.src.est{color:var(--estT)}
+.ta{border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;min-height:62px;background:var(--bg);line-height:1.5}
+.cap{font-size:11px;color:var(--muted);font-weight:600;margin-top:4px}
+.rowlinks{display:flex;justify-content:space-between;margin-top:12px;font-size:13px;font-weight:800}.rowlinks a{color:var(--link)}.rowlinks a.m{color:var(--muted)}
+.segf{display:grid;grid-template-columns:repeat(7,1fr);border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.segf span{text-align:center;padding:9px 0;font-weight:800;font-size:14px;background:var(--bg)}.segf span+span{border-left:2px solid var(--line)}.segf .on{background:var(--tabon);color:var(--tabonT)}.segf .used{color:var(--muted);text-decoration:line-through}
+.prow{margin-top:12px;border:2px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.prow .pp{font-size:13px;font-weight:800;border:2px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--tabon);color:var(--tabonT)}
+.cnt{display:flex;align-items:center;gap:10px;justify-content:center}
+.pm{width:34px;height:34px;border:2px solid var(--line);border-radius:10px;display:grid;place-items:center;font-size:18px;font-weight:800;background:var(--bg)}
+.num{min-width:74px;text-align:center;border:2px solid var(--line);border-radius:12px;padding:3px 8px;font-size:30px;font-weight:800;line-height:1.1;background:var(--bg)}
+.num.focus{box-shadow:0 0 0 3px #93C5FD}
+.of{font-size:15px;font-weight:700;color:var(--muted)}.of u{text-decoration:none;border-bottom:2px dotted var(--muted);color:var(--sub)}
+.acc{font-size:13px;font-weight:800;color:var(--green);text-align:right}.acc small{display:block;font-size:11px;color:var(--muted)}
+.del{font-size:12px;font-weight:800;color:var(--muted);text-align:right;margin-top:2px}
+.hero{margin-top:6px;padding:10px 0 4px;text-align:center}
+.hero .q{font-size:13px;font-weight:700;color:var(--sub)}
+.hero .big{display:inline-flex;align-items:baseline;gap:8px;margin-top:8px}
+.hero .big b{min-width:150px;border:2px solid var(--line);border-radius:16px;padding:2px 18px;font-size:56px;font-weight:800;line-height:1.15}
+.hero .big span{font-size:18px;font-weight:700;color:var(--muted)}
+.chips5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px}.chips5 span{border:2px solid var(--line);border-radius:10px;padding:8px 0;font-weight:800;font-size:13px;background:var(--bg);text-align:center}
+.hero .dt{margin-top:12px;font-size:12px;font-weight:700;color:var(--sub)}
+.toast{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);background:var(--toast);color:var(--toastT);border-radius:12px;padding:9px 14px;font-size:13px;font-weight:700;display:flex;gap:16px;box-shadow:3px 3px 0 var(--shadow);white-space:nowrap}
+.toast a{color:#93C5FD;font-weight:800}body.dark .toast a{color:#1D4ED8}
+.muted{opacity:.45}
+
+body{width:1300px}
+.grid{grid-template-columns:1fr 1fr}
+.sec{grid-column:1/3;font-size:16px;font-weight:800;margin-top:6px;border-top:2px solid var(--line);padding-top:14px}
+.box{background:var(--bg);border:2px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:4px 4px 0 var(--shadow)}
+.lr2{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center}
+.pre{display:flex;align-items:center;border:2px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
+.pre b{padding:9px 11px;font-size:13px;font-weight:800;background:var(--soft);border-right:2px solid var(--line);color:var(--sub)}
+.pre span{padding:9px 12px;font-size:14px;font-weight:700}.pre span.ph{color:var(--muted);font-weight:600}
+.eq{font-size:14px;font-weight:700;color:var(--muted);white-space:nowrap}.eq b{font-size:22px;color:var(--txt)}
+.line{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:8px}
+.link{font-size:13px;font-weight:800;color:var(--link)}
+.est{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--hair);padding-top:12px;margin-top:12px}
+.est .k{font-size:13px;font-weight:700;color:var(--muted)}.est .v{font-size:22px;font-weight:800}.est .v small{font-size:12px;color:var(--muted);font-weight:600;margin-left:6px}
+.seg2{display:grid;grid-template-columns:repeat(7,1fr);border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.seg2 span{text-align:center;padding:9px 0;font-weight:800;font-size:14px;background:var(--bg)}.seg2 span+span{border-left:2px solid var(--line)}
+.seg2 .on{background:var(--tabon);color:var(--tabonT)}
+.row{margin-top:10px;border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center}
+.row .pp{font-size:13px;font-weight:800;border:2px solid var(--line);border-radius:10px;padding:5px 10px;background:var(--tabon);color:var(--tabonT)}
+.x{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--muted);border:2px solid transparent}
+.x.hover{border-color:var(--line);color:var(--danger)}
+.cap2{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:6px}
+.vstep{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px}
+.vstep .pm{width:46px;height:46px;font-size:22px}
+.vnum{min-width:130px;text-align:center;border:2px solid var(--line);border-radius:16px;padding:2px 14px;font-size:52px;font-weight:800;line-height:1.15}
+.vnum.edit{box-shadow:0 0 0 3px #93C5FD}
+.unit{font-size:16px;font-weight:700;color:var(--muted)}
+.pencil{font-size:12px;font-weight:700;color:var(--muted);margin-top:6px}
+</style><body><div class="grid"><div class="sec">1 · Nhập tay: điểm L/R</div><div><div class="tag">1A · Một nhãn, tiền tố L/R trong ô</div><div class="sub">Bỏ hai chữ "nếu có" và cột "Tổng" khi chưa có gì. Một nhãn cho cả hàng; L và R là tiền tố trong ô. Tổng chỉ hiện khi đã gõ đủ hai ô. Dòng dưới nói một lần điểm sẽ lấy từ đâu.</div><div class="box"><div class="lab">Điểm từ đề thi <em>không bắt buộc</em></div><div class="lr2"><div class="pre"><b>L</b><span class="ph">Listening</span></div><div class="pre"><b>R</b><span class="ph">Reading</span></div><span></span></div><div class="line">Để trống thì điểm được ước tính từ số câu sai.</div><div class="lab" style="margin-top:14px">Số câu sai</div><div class="ta">3, 14, 22, 35, 41, 58, 63, 77, 89, 96, 105, 112, 118…</div><div class="parts" style="margin-top:10px"><div><small>P1</small><b>1</b></div><div><small>P2</small><b>2</b></div><div><small>P3</small><b>4</b></div><div><small>P4</small><b>3</b></div><div><small>P5</small><b>3</b></div><div><small>P6</small><b>2</b></div><div class="hi"><small>P7</small><b>9</b></div></div><div class="est"><span class="k">Điểm sẽ lưu</span><span class="v">~805<small>ước tính từ câu sai</small></span></div><div style="height:14px"></div><div class="lab">Khi đã gõ đủ L và R</div><div class="lr2"><div class="pre"><b>L</b><span>405</span></div><div class="pre"><b>R</b><span>400</span></div><span class="eq">= <b>805</b></span></div></div></div><div><div class="tag">1B · Ẩn L/R sau một liên kết</div><div class="sub">Mặc định chỉ có ô câu sai và một dòng "Điểm sẽ lưu". Ai có điểm chính thức thì bấm "+ Có điểm L/R từ đề thi" để mở hai ô. Ít chữ nhất, một việc chính.</div><div class="box"><div class="lab">Số câu sai</div><div class="ta">3, 14, 22, 35, 41, 58, 63, 77, 89, 96, 105, 112, 118…</div><div class="parts" style="margin-top:10px"><div><small>P1</small><b>1</b></div><div><small>P2</small><b>2</b></div><div><small>P3</small><b>4</b></div><div><small>P4</small><b>3</b></div><div><small>P5</small><b>3</b></div><div><small>P6</small><b>2</b></div><div class="hi"><small>P7</small><b>9</b></div></div><div class="est"><span class="k">Điểm sẽ lưu</span><span class="v">~805<small>ước tính từ câu sai</small></span></div><div style="margin-top:10px"><span class="link">+ Có điểm L/R từ đề thi</span></div><div style="height:16px"></div><div class="lab">Sau khi bấm</div><div class="lr2"><div class="pre"><b>L</b><span>405</span></div><div class="pre"><b>R</b><span>400</span></div><span class="eq">= <b>805</b></span></div><div class="line">Điểm này sẽ được lưu thay cho ước tính. <span class="link">Bỏ</span></div></div></div><div class="sec">2 · Luyện Part: bỏ một Part</div><div><div class="tag">2A · Nút × trên từng hàng</div><div class="sub">Mỗi hàng có nút × ở cuối (chỉ hiện khi có từ 2 Part). Bỏ dòng "Bỏ Part N" ở dưới. Thanh 7 ô: Part đang có tô xanh thay vì gạch ngang.</div><div class="box"><div class="lab">Part đã luyện</div><div class="seg2"><span>1</span><span>2</span><span>3</span><span class="on">4</span><span class="on">5</span><span>6</span><span>7</span></div><div class="row"><span class="pp">Part 4</span><div class="cnt"><span class="pm">−</span><span class="num">22</span><span class="pm">＋</span><span class="of">/ <u>30</u> câu</span></div><div class="acc">73%<small>đúng</small></div><span class="x hover">×</span></div><div class="row"><span class="pp">Part 5</span><div class="cnt"><span class="pm">−</span><span class="num">24</span><span class="pm">＋</span><span class="of">/ <u>30</u> câu</span></div><div class="acc">80%<small>đúng</small></div><span class="x">×</span></div><div class="cap2">Bấm × để bỏ một Part.</div></div></div><div><div class="tag">2B · Thanh 7 ô bật/tắt</div><div class="sub">Thanh 7 ô là công tắc: bấm Part chưa có để thêm, bấm lại Part đang tô để bỏ (giống bản điện thoại). Không cần nút xóa riêng; câu gợi ý nói rõ cách bỏ.</div><div class="box"><div class="lab">Part đã luyện <em>bấm lại để bỏ</em></div><div class="seg2"><span>1</span><span>2</span><span>3</span><span class="on">4</span><span class="on">5</span><span>6</span><span>7</span></div><div class="row"><span class="pp">Part 4</span><div class="cnt"><span class="pm">−</span><span class="num">22</span><span class="pm">＋</span><span class="of">/ <u>30</u> câu</span></div><div class="acc">73%<small>đúng</small></div></div><div class="row"><span class="pp">Part 5</span><div class="cnt"><span class="pm">−</span><span class="num">24</span><span class="pm">＋</span><span class="of">/ <u>30</u> câu</span></div><div class="acc">80%<small>đúng</small></div></div></div></div><div class="sec">3 · Từ vựng: chỉnh số từ</div><div><div class="tag">3A · Nút − / + quanh số</div><div class="sub">Giống hàng Luyện Part: − và + chỉnh từng từ, số ở giữa vẫn gõ được. Các nút +5…+50 giữ để cộng nhanh. Xoá trống ô không nhảy về 0.</div><div class="box"><div class="hero"><div class="q">Hôm nay bạn học bao nhiêu từ?</div><div class="vstep"><span class="pm">−</span><span class="vnum">21</span><span class="pm">＋</span></div><div class="unit" style="margin-top:4px">từ</div><div class="chips5"><span>＋5</span><span>＋10</span><span>＋20</span><span>＋30</span><span>＋50</span></div></div></div></div><div><div class="tag">3B · Ô số có gợi ý "gõ để sửa"</div><div class="sub">Không thêm nút; khi rê chuột hoặc bấm vào, ô có viền xanh và con trỏ nhập. Dưới số có dòng nhỏ "Bấm vào số để gõ". Nút nhanh có cả "−5".</div><div class="box"><div class="hero"><div class="q">Hôm nay bạn học bao nhiêu từ?</div><div class="big"><b class="vnum edit" style="display:inline-block">21|</b><span>từ</span></div><div class="pencil">Bấm vào số để gõ</div><div class="chips5" style="grid-template-columns:repeat(6,1fr)"><span>−5</span><span>＋5</span><span>＋10</span><span>＋20</span><span>＋30</span><span>＋50</span></div></div></div></div></div></body></html>

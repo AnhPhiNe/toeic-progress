@@ -1,0 +1,69 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thẻ streak hoàn chỉnh</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B;--o:#F97316;--o50:#FFF7ED;--o200:#FED7AA;--blue:#2563EB}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);padding:28px 36px;max-width:1320px}
+h1{font-size:22px;font-weight:800}.lead{font-size:14px;color:var(--muted);margin:4px 0 22px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 24px;align-items:start}
+.tag{font-size:13px;font-weight:800;margin-bottom:8px}.tag span{font-weight:600;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+.card{background:var(--o50);border:2px solid var(--ink);border-radius:18px;padding:18px 20px}
+.card.risk{box-shadow:4px 4px 0 var(--ink)}
+.top{display:flex;align-items:center;gap:12px}
+.n{font-size:38px;font-weight:800;line-height:1}.u{font-size:14px;font-weight:600;color:var(--muted);margin-left:6px}
+.rec{font-size:13px;color:var(--muted);font-weight:600;margin-top:4px}.rec b{color:var(--ink)}.rec em{font-style:normal;font-weight:800;color:#C2410C}
+.btn{margin-left:auto;border:2px solid var(--ink);border-radius:10px;background:var(--o);color:#fff;font-size:12px;font-weight:800;padding:6px 12px;box-shadow:2px 2px 0 var(--ink);cursor:pointer;white-space:nowrap;font-family:inherit}
+.btn:active{transform:translate(1px,1px);box-shadow:none}
+/* lửa */
+.fire{width:56px;height:62px;overflow:visible;flex:none;transform-origin:50% 92%}
+.fire .outer{transform-origin:50% 95%;fill:var(--o);stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round}
+.fire .core{transform-origin:50% 80%;fill:#FDE68A}
+.fire .spark{fill:#FDBA74;stroke:var(--ink);stroke-width:1.2;opacity:0}
+.hot .fire{animation:sway 2.6s ease-in-out infinite}.hot .outer{animation:flick 1.1s ease-in-out infinite}.hot .core{animation:flick .8s ease-in-out infinite reverse}
+.hot .spark{animation:spark 2.2s ease-out infinite}.hot .spark.b{animation-delay:1.1s}
+.big .fire{width:66px;height:73px}
+.weak .fire{transform:scale(.82);animation:sway 4.2s ease-in-out infinite}.weak .outer{fill:#FDBA74;animation:flick 2.4s ease-in-out infinite}.weak .core{fill:#FEF3C7;animation:flick 2s ease-in-out infinite reverse}
+.cold .outer{fill:#E2E8F0;stroke:#CBD5E1}.cold .core{fill:#F1F5F9}.cold .n{color:#94A3B8}
+@keyframes flick{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(.95,1.07) skewX(-3deg)}50%{transform:scale(1.04,.96) skewX(2deg)}75%{transform:scale(.97,1.05) skewX(-1.5deg)}}
+@keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2.5deg)}}
+@keyframes spark{0%{opacity:0;transform:translate(0,6px) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx,6px),-22px) scale(.2)}}
+/* tuần */
+.days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:16px;row-gap:4px}
+.c{width:28px;height:28px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-size:14px;font-weight:800;color:#fff}
+.done{background:var(--o);border:2px solid var(--ink)}.miss{background:#FFE4CC}.fut{background:#fff;border:2px solid var(--o200)}
+.shield{background:#DBEAFE;border:2px solid var(--blue);color:var(--blue);font-size:13px}
+.now{background:#fff;border:2px dashed var(--o)}.pop{background:var(--o);border:2px solid var(--ink);box-shadow:0 0 0 4px #FDBA74;animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1.1)}}
+.lb{font-size:11px;font-weight:700;color:#94A3B8}.lb.t{color:#EA580C}
+.perfect{grid-column:1/-1;height:30px;border-radius:999px;background:var(--o);border:2px solid var(--ink);display:grid;grid-template-columns:repeat(7,1fr);place-items:center;color:#fff;font-weight:800;font-size:14px}
+.remind{margin-top:14px;background:#FFEDD5;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px}
+.banner{margin-top:14px;background:#FEF3C7;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:800;display:flex;justify-content:space-between;align-items:center;animation:rise .5s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+.more{margin-top:12px;font-size:12px;font-weight:800;color:var(--blue);cursor:pointer;background:none;border:0;font-family:inherit;padding:0}
+.long{display:none;margin-top:12px;padding-top:12px;border-top:1.5px solid var(--o200)}.long.open{display:block}
+.grid12{display:grid;grid-template-rows:repeat(7,13px);grid-auto-flow:column;grid-auto-columns:13px;gap:4px}
+.grid12 i{border-radius:3px;display:block}
+.stats{display:flex;gap:26px;margin-top:12px;font-size:12px;color:var(--muted);font-weight:700}.stats b{display:block;font-size:18px;color:var(--ink);font-weight:800}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<h1>Thẻ streak · bản hoàn chỉnh</h1>
+<p class="lead">Lửa chạy thật, nút "Tuyệt" và "Xem 12 tuần" bấm được. Neo hiện tại: viền ink 2px, bóng cứng khi sắp mất chuỗi.</p>
+<div class="row" id="row"></div>
+<script>
+const FLAME='<path class="outer" d="M28 4c2.5 9 14 14 14 29a14 14 0 0 1-28 0c0-6 3-9 5-12 .8 3.4 2.8 5.4 5 6C23 21 23.4 11 28 4Z"/><path class="core" d="M28 21c1.6 4.4 7.4 7.4 7.4 14.2a7.4 7.4 0 0 1-14.8 0c0-3 1.4-4.8 2.8-6.2.4 1.8 1.2 2.8 2.6 3.2C25.6 29 26 25 28 21Z"/>';
+const fire=(sp)=>`<svg class="fire" viewBox="0 0 56 62">${FLAME}${sp?'<circle class="spark a" cx="14" cy="22" r="2.2" style="--dx:-8px"/><circle class="spark b" cx="42" cy="20" r="2.2" style="--dx:8px"/>':''}</svg>`;
+const L=['T2','T3','T4','T5','T6','T7','CN'];
+const week=(pat,pop)=>{if(pat==='perfect')return `<div class="days"><div class="perfect">${'<span>✓</span>'.repeat(7)}</div>${L.map(x=>`<span class="lb">${x}</span>`).join('')}</div>`;
+ const m={d:'done',m:'miss',f:'fut',n:'now',s:'shield'};let c='',l='';pat.split('').forEach((s,i)=>{c+=`<span class="c ${m[s]} ${i===pop?'pop':''}">${s==='d'?'✓':s==='s'?'🛡':''}</span>`;l+=`<span class="lb ${s==='n'||i===pop?'t':''}">${s==='n'||i===pop?'Nay':L[i]}</span>`});return `<div class="days">${c}${l}</div>`};
+const head=(n,rec,k,sp,btn)=>`<div class="top ${k}">${fire(sp)}<div><div><span class="n">${n}</span><span class="u">ngày liên tiếp</span></div><div class="rec">${rec}</div></div>${btn||''}</div>`;
+const lv=['#FFE9D6','#FDBA74','#F97316','#C2410C'];let g='';for(let i=0;i<84;i++){const v=Math.abs((Math.sin(i*12.9898)*43758.5453)%1);const t=i>76?3:v>.72?3:v>.5?2:v>.3?1:0;g+=`<i style="background:${i===83?'#fff;border:2px solid #0F172A;box-sizing:border-box':lv[t]}"></i>`}
+const card=(cls,inner)=>`<div class="card ${cls||''}">${inner}</div>`;
+document.getElementById('row').innerHTML=[
+`<div><div class="tag">1 · Chưa có chuỗi</div>${card('',head(0,'Học một bài để bắt đầu chuỗi','cold',0,'<button class="btn">Bắt đầu</button>')+week('mmmmnff',-1))}<p class="note">Lửa xám đứng yên, một nút bắt đầu, không thêm gì khác.</p></div>`,
+`<div><div class="tag">2 · Đã học hôm nay <span>(có khiên giữ chuỗi)</span></div>${card('',head(5,'Kỷ lục <b>12 ngày</b>','hot',1)+week('dsdddff',4)+`<button class="more" onclick="this.nextElementSibling.classList.toggle('open');this.textContent=this.nextElementSibling.classList.contains('open')?'Ẩn 12 tuần ▴':'Xem 12 tuần ▾'">Xem 12 tuần ▾</button><div class="long"><div class="grid12">${g}</div><div class="stats"><div>Hiện tại<b>5 ngày</b></div><div>Kỷ lục<b>12 ngày</b></div><div>12 tuần<b>31 ngày</b></div></div></div>`)}<p class="note">Vòng "Nay" bật lên khi học xong. Bấm "Xem 12 tuần" để mở lưới.</p></div>`,
+`<div><div class="tag">3 · Sắp mất chuỗi</div>${card('risk',head(4,'Kỷ lục <b>12 ngày</b>','weak',0,'<button class="btn">Học ngay</button>')+week('mdddnff',-1)+'<div class="remind">Học trước 24h để giữ chuỗi <em>4 ngày</em></div>')}<p class="note">Lửa nhỏ, nhạt, lắc chậm. Thẻ có bóng cứng để gọi chú ý.</p></div>`,
+`<div><div class="tag">4 · Mốc 7 ngày <span>(ăn mừng một lần)</span></div><div id="mile">${card('big',head(7,'Kỷ lục <b>12 ngày</b> · còn 5 ngày để phá kỷ lục','hot',1)+week('ddddddd',6)+'<div class="banner" id="bn"><span>Mốc mới: 7 ngày liên tiếp!</span><button class="btn" style="margin:0" onclick="document.getElementById(\'bn\').remove()">Tuyệt</button></div>')}</div><p class="note">Dòng mốc hiện một lần, bấm "Tuyệt" thì biến mất. Lửa to hơn một cỡ.</p></div>`,
+`<div><div class="tag">5 · Tuần hoàn hảo</div>${card('big',head(11,'<em>Tuần hoàn hảo!</em> Còn 1 ngày nữa là bằng kỷ lục','hot',1)+week('perfect',-1))}<p class="note">7 ngày nối thành một thanh cam (như bản đang chạy).</p></div>`
+].join('');
+</script></html>

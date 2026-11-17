@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Giải đấu tuần</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--green:#46b35a;--greenD:#2f8a42}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;padding:30px 30px 40px}
+.cap{font-weight:900;font-size:21px;margin:0 0 4px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;max-width:1700px}
+.row{display:flex;gap:34px;margin:16px 0 40px;align-items:flex-start}
+.fw{display:flex;flex-direction:column;gap:10px;align-items:center}
+.fw>b{font-weight:900;font-size:16px}.fw>span{font-weight:700;font-size:13px;color:#3f4a43;width:390px;text-align:center;line-height:1.35}
+.ph{width:390px;height:844px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 0 0 10px #1d2420,0 24px 50px rgba(0,0,0,.3)}
+.sb{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-weight:900;font-size:15px;z-index:20}
+.sb i{width:70px;height:12px;border-radius:6px;background:currentColor;opacity:.85}
+.soc svg{display:block;width:100%}
+/* bottom nav */
+.nav{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #f0f2f0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;z-index:30}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:900;font-size:11.5px;color:#9aa39d}
+.nav a i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:15px;color:#fff;opacity:.55}
+.nav a.on{color:var(--ink)}.nav a.on i{opacity:1;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.nav a.add i{width:54px;height:54px;border-radius:18px;margin-top:-22px;background:var(--green);opacity:1;font-size:30px;box-shadow:0 5px 0 var(--greenD),0 8px 18px rgba(70,179,90,.35)}
+.nav a.add{color:var(--greenD)}
+.nav .badge{position:absolute;margin:-4px 0 0 26px;background:#ff5c86;color:#fff;font-size:10px;border-radius:99px;padding:0 5px;line-height:15px}
+/* top bar */
+.top{position:absolute;left:18px;right:18px;top:50px;display:flex;align-items:center;gap:8px;z-index:15}
+.chip{border-radius:99px;background:rgba(255,255,255,.9);padding:5px 11px;font-weight:900;font-size:13.5px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.av{margin-left:auto;width:40px;height:40px;border-radius:14px;background:#fff3e0;box-shadow:0 0 0 2px #fff,0 3px 8px rgba(0,0,0,.12);position:relative}
+.av>s{position:absolute;inset:0;border-radius:14px;overflow:hidden}.av .soc{position:absolute;width:48px;left:-4px;top:-2px}
+.av em{position:absolute;right:-3px;bottom:-3px;width:15px;height:15px;border-radius:50%;background:#7c5ce0;color:#fff;font-style:normal;font-size:9px;font-weight:900;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+/* scene */
+.sky{position:absolute;inset:0;background:radial-gradient(circle at 78% 22%,#fffbe8 0 60px,transparent 61px),linear-gradient(180deg,#fff2cf,#ffe3e3 70%,#ffd9e2)}
+.rays{position:absolute;left:50%;top:0;width:900px;height:900px;margin-left:-450px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,240,190,.55) 0 8deg,transparent 8deg 20deg);mask-image:radial-gradient(circle,#000 25%,transparent 60%)}
+.hill{position:absolute;left:-40px;right:-40px;border-radius:50% 50% 0 0;background:#a8dc95}
+.st{position:absolute}
+.st .f{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0}
+.st .c{position:absolute;left:0;right:0;height:10px;border-radius:3px;transform:translateY(-6px)}
+.st .lb{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;font-size:10.5px;color:#fff;background:rgba(0,0,0,.18);border-radius:99px;padding:1px 5px;white-space:nowrap}
+.troph{position:absolute}
+h1{font-weight:900;letter-spacing:-.6px;line-height:1.08}
+h1 em{font-style:normal;color:#f0a500}
+.dots{display:flex;gap:3px;align-items:center;font-weight:900;font-size:11.5px;color:#d99a00}.dots i{width:13px;height:5px;border-radius:9px;background:#ffc83d}.dots i.o{background:#eadcb4}.dots i.g{background:var(--green)}.dots span{margin-left:6px}
+/* cards */
+.next{border-radius:24px;background:linear-gradient(135deg,#4cc062,#2f9e4a);color:#fff;padding:16px 18px;position:relative;overflow:hidden;box-shadow:0 6px 0 #2a8a40}
+.next small{font-weight:900;font-size:11.5px;letter-spacing:.5px;opacity:.85}
+.next h3{font-weight:900;font-size:24px;letter-spacing:-.4px;margin-top:2px}
+.next p{font-weight:800;font-size:13px;opacity:.9}
+.next .btns{display:flex;align-items:center;gap:14px;margin-top:12px}
+.btn{border-radius:14px;background:#fff;color:var(--greenD);font-weight:900;font-size:16px;padding:11px 22px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.skip{font-weight:900;font-size:13px;text-decoration:underline;opacity:.9}
+.next .soc{position:absolute;right:-8px;bottom:-14px;width:96px}
+.rest{display:flex;align-items:center;font-weight:900;font-size:13px;color:#8c968f;padding:0 4px}
+.rest a{margin-left:auto;color:#1c8fe3}
+.task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 0 0 2px #f0f2f0;font-weight:900;font-size:15px}
+.task u{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2.5px #cfd6d1;flex:none}
+.task.done u{background:var(--green);box-shadow:none}.task.done{color:#a3aba5;text-decoration:line-through}
+.task small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5;text-decoration:none}
+/* streak */
+.streak{background:#fff;border-radius:22px;box-shadow:0 0 0 2px #f6eef0;padding:12px 14px}
+.streak .h{display:flex;align-items:center;gap:8px}
+.streak .fl{font-size:26px;line-height:1}.streak b{font-weight:900;font-size:24px;color:#ff7a1a}.streak .h span{font-weight:900;font-size:13.5px;color:#ff7a1a}
+.streak .h small{margin-left:auto;font-weight:900;font-size:11.5px;color:#4f8fd6;background:#e6f1ff;border-radius:99px;padding:2px 8px}
+.cake{position:relative;height:46px;margin:6px 4px 0}
+.cake .tier{position:absolute;left:0;right:0;bottom:0;height:16px;border-radius:8px;background:#ffd1dc;box-shadow:inset 0 5px 0 #fff0f4}
+.cake .cd{position:absolute;bottom:16px;width:7px;height:20px;border-radius:3px;background:#f2e9ec}
+.cake .cd.l{background:#ff7a9c}.cake .cd.l:after{content:'';position:absolute;left:-2px;top:-11px;width:11px;height:12px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#ffb020}
+.days{display:flex;justify-content:space-between;font-weight:900;font-size:10.5px;color:#a3aba5;margin:3px 4px 0}.days b{font-size:10.5px;color:#ff7a1a}
+.goal{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1.5px solid #f3f0f1;font-weight:800;font-size:12.5px;color:#5e6962}
+.goal b{font-size:12.5px;color:var(--ink)}.goal i{flex:1;height:6px;border-radius:9px;background:#eef0ee;overflow:hidden}.goal i:before{content:'';display:block;width:20%;height:100%;background:var(--green)}
+.goal a{font-weight:900;color:#1c8fe3}
+/* sheet */
+.sheet{position:absolute;left:0;right:0;background:#fbfaf7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(120,70,70,.12);padding:10px 16px 0;z-index:10}
+.grab{width:40px;height:5px;border-radius:9px;background:#dcd8cf;margin:0 auto 10px}
+/* mini journey card (B) */
+.jcard{position:relative;border-radius:24px;overflow:hidden;height:186px;box-shadow:0 0 0 2px #fbe6c4}
+.jcard .lab{position:absolute;left:16px;top:12px;z-index:3}
+.jcard .lab b{display:block;font-weight:900;font-size:17px}
+.more{position:absolute;right:12px;top:12px;z-index:3;border-radius:99px;background:#fff;padding:5px 11px;font-weight:900;font-size:12.5px;color:#d99a00;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+/* menus (D, E) */
+.dim{position:absolute;inset:0;background:rgba(47,58,51,.45);z-index:25}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px 30px;z-index:40}
+.mi{display:flex;align-items:center;gap:14px;padding:11px 4px;font-weight:900;font-size:16px}
+.mi i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;color:#fff;font-size:20px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.mi small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.mi .ar{margin-left:auto;color:#c3cac5;font-size:20px}
+.mi .pill{margin-left:auto;background:#ff5c86;color:#fff;border-radius:99px;padding:1px 8px;font-size:12px}
+.lvl{display:flex;align-items:center;gap:12px;border-radius:22px;background:linear-gradient(120deg,#fff3e0,#ffe6ee);padding:12px 14px;margin-bottom:6px}
+.lvl .soc{width:58px}
+.lvl b{font-weight:900;font-size:16px}.lvl small{display:block;font-weight:800;font-size:12.5px;color:var(--mut)}
+.lvl .bar{height:7px;border-radius:9px;background:#fff;margin-top:6px;overflow:hidden}.lvl .bar i{display:block;height:100%;width:70%;background:linear-gradient(90deg,#7c5ce0,#1c8fe3)}
+.sep{height:1.5px;background:#f0f2f0;margin:4px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+.big{border-radius:22px;padding:14px 10px 12px;text-align:center;font-weight:900;font-size:14px;line-height:1.2;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+.big i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 8px;border-radius:17px;font-style:normal;font-size:24px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.big small{display:block;font-weight:800;font-size:11.5px;color:var(--mut);margin-top:3px}
+
+.desk{width:1440px;height:900px;background:#fbfaf7;border-radius:18px;overflow:hidden;position:relative;display:grid;grid-template-columns:250px 1fr;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.side{background:#fff;border-right:2px solid #f0eee8;padding:22px 14px}
+.side .lg{display:flex;align-items:center;gap:8px;font-weight:900;font-size:18px;line-height:1;margin:0 6px 22px}.side .lg i{width:40px;height:40px;border-radius:13px;background:#fff3e0}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15px;color:#4d5850;margin-bottom:6px}
+.nv i{width:38px;height:38px;border-radius:12px}.nv.on{background:#eef6ff;box-shadow:inset 0 0 0 2px #b9dcf7;color:#1c6fc0}
+.main{padding:28px 36px;position:relative;overflow:hidden}
+.ttl{display:flex;align-items:center;gap:14px}.ttl h1{font-weight:900;font-size:32px;letter-spacing:-.8px}
+.tabs2{margin-left:auto;display:flex;background:#f1f0ec;border-radius:14px;padding:4px}.tabs2 i{font-style:normal;font-weight:900;font-size:14px;padding:8px 16px;border-radius:11px;color:#7a857e}.tabs2 i.on{background:#fff;color:#2f3a33;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:22px;margin-top:18px}
+.hero{border-radius:26px;padding:20px 24px;color:#fff;position:relative;overflow:hidden;background:radial-gradient(circle at 80% 20%,#c9d3e3,#8a9bb8 70%)}
+.hero:before{content:'';position:absolute;inset:-200px;background:repeating-conic-gradient(from 0deg at 82% 40%,rgba(255,255,255,.1) 0 8deg,transparent 8deg 20deg)}
+.hero>*{position:relative}
+.hero small{font-weight:900;font-size:12px;letter-spacing:.6px;opacity:.9}
+.hero h2{font-weight:900;font-size:30px;letter-spacing:-.6px;margin-top:2px}
+.hero p{font-weight:800;font-size:14px;opacity:.95;margin-top:2px}
+.shield{position:absolute;right:26px;top:14px;width:110px}
+.tiers{display:flex;gap:6px;margin-top:14px}
+.tiers span{border-radius:99px;padding:4px 11px;font-weight:900;font-size:12px;background:rgba(255,255,255,.22)}
+.tiers span.on{background:#fff;color:#5b6b86}
+.list{margin-top:14px;background:#fff;border-radius:22px;box-shadow:0 0 0 2px #efede7;overflow:hidden}
+.zone{display:flex;align-items:center;gap:8px;padding:7px 18px;font-weight:900;font-size:12px;letter-spacing:.4px}
+.zone.up{background:#e9f8ec;color:#2f8a42}.zone.dn{background:#ffeef2;color:#d3456b}
+.rw{display:flex;align-items:center;gap:12px;padding:8px 18px;border-top:1.5px solid #f4f2ed;font-weight:900;font-size:15px}
+.rw .rk{width:26px;text-align:center;color:#a3aba5;font-size:14px}
+.rw .rk.g{color:#e0a100}.rw .rk.s{color:#8a9bb8}.rw .rk.b{color:#c97b3a}
+.rw .av2{width:40px;height:40px;border-radius:13px;background:var(--b);position:relative;overflow:hidden;flex:none}
+.rw .av2 .soc{position:absolute;width:48px;left:-4px;top:-2px}
+.rw small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5}
+.rw .pts2{margin-left:auto;font-size:16px}.rw .pts2 i{font-style:normal;color:#ffb020}
+.rw.me{background:#fff7d6;box-shadow:inset 4px 0 0 #ffc83d}
+.card{background:#fff;border-radius:22px;box-shadow:0 0 0 2px #efede7;padding:16px 18px}
+.card h3{font-weight:900;font-size:16px}
+.how{display:flex;align-items:center;gap:10px;margin-top:10px;font-weight:900;font-size:14px}
+.how i{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-style:normal;font-size:16px;flex:none}
+.how b{margin-left:auto;color:#e0a100}
+.vs{display:flex;align-items:flex-end;gap:14px;margin-top:12px}
+.vs div{flex:1;text-align:center}.vs i{display:block;border-radius:10px 10px 4px 4px;margin:0 auto 6px;width:56px}
+.vs b{display:block;font-weight:900;font-size:20px}.vs small{font-weight:800;font-size:12px;color:#a3aba5}
+.lock{display:flex;align-items:center;gap:10px;margin-top:12px;border-radius:16px;background:#f6f4ef;padding:10px 12px;font-weight:800;font-size:12.5px;color:#5e6962}
+/* phone */
+.phd{position:absolute;left:16px;right:16px;top:52px;display:flex;align-items:center;gap:10px;z-index:4}
+.phd h2{font-weight:900;font-size:22px}
+.pseg{position:absolute;left:16px;right:16px;top:100px;display:flex;background:#f1f0ec;border-radius:14px;padding:4px;z-index:4}.pseg i{flex:1;text-align:center;font-style:normal;font-weight:900;font-size:13px;padding:7px 0;border-radius:11px;color:#7a857e}.pseg i.on{background:#fff;color:#2f3a33}
+.phero{position:absolute;left:16px;right:16px;top:150px;border-radius:22px;padding:14px 16px;color:#fff;overflow:hidden;background:radial-gradient(circle at 80% 20%,#c9d3e3,#8a9bb8 70%)}
+.phero small{font-weight:900;font-size:11px;letter-spacing:.5px;opacity:.9}.phero b{display:block;font-weight:900;font-size:22px}.phero p{font-weight:800;font-size:12.5px}
+.phero .shield{width:72px;right:12px;top:10px}
+.plist{position:absolute;left:16px;right:16px;top:268px;bottom:86px;overflow:hidden;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 0 0 2px #efede7}
+.plist .rw{padding:7px 12px;font-size:14px}.plist .av2{width:34px;height:34px;border-radius:11px}.plist .av2 .soc{width:40px}
+.plist .zone{padding:6px 12px;font-size:11px}
+.optin{position:absolute;left:16px;right:16px;top:150px;text-align:center}
+.optin .bigsh{width:140px;margin:0 auto}
+.optin h3{font-weight:900;font-size:24px;margin-top:6px}
+.optin p{font-weight:800;font-size:13.5px;color:var(--mut);margin-top:4px;line-height:1.45}
+.fld3{display:flex;align-items:center;gap:10px;border-radius:16px;background:#fff;box-shadow:0 0 0 2px #ebe7df;padding:10px 12px;margin-top:10px;text-align:left;font-weight:900;font-size:14px}
+.fld3 small{display:block;font-weight:800;font-size:11.5px;color:#a3aba5}
+.sw{margin-left:auto;width:44px;height:26px;border-radius:99px;background:#46b35a;position:relative}.sw:after{content:'';position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.go3{display:block;border-radius:99px;padding:15px 0;text-align:center;font-weight:900;font-size:16px;color:#fff;background:linear-gradient(90deg,#8a9bb8,#5b6b86);box-shadow:0 5px 0 #44526b}
+.res{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#ffe08a,#f0a500 75%);text-align:center;color:#5a3d00}
+.res:before{content:'';position:absolute;inset:-300px;background:repeating-conic-gradient(rgba(255,255,255,.14) 0 9deg,transparent 9deg 22deg)}
+.res>*{position:relative}
+</style></head><body>
+<div class="cap">Giải đấu tuần · đặt trong Thành tích, xếp theo sao kiếm trong tuần (không theo điểm thi)<small>Nhóm 20 người cùng hạng, làm mới mỗi thứ Hai. Top 5 lên hạng, 5 cuối xuống hạng (Đồng → Bạc → Vàng → Kim cương). Tự chọn tham gia, hiện biệt danh và Sóc đang mặc đồ, không hiện tên thật hay điểm TOEIC. Cần đăng nhập.</small></div>
+<div class="row" id="D"></div>
+<div class="cap">Điện thoại</div>
+<div class="row" id="P"></div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const S=k=>`<span class="soc">${SOC[k]}</span>`;
+const sv=d=>`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const icon={home:['#46b35a',sv('<path d="M4 11 12 4l8 7v9h-5v-5H9v5H4z" fill="#fff" stroke="none"/>')],j:['#ffc83d',sv('<path d="M6 19v-4M12 19V10M18 19V5"/>')],p:['#a78bfa',sv('<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M10 3h4"/>')],n:['#ff7a9c',sv('<path d="M5 5h6v14H5zM13 5h6v14h-6z" fill="#fff" stroke="none"/>')]};
+const NAV=(on='home')=>`<nav class="nav">${[['home','Hôm nay'],['j','Hành trình'],['add','Ghi'],['p','Luyện tập'],['n','Sổ tay']].map(([k,l])=>k==='add'?`<a class="add"><i>+</i>${l}</a>`:`<a class="${k===on?'on':''}"><i style="background:${icon[k][0]}">${icon[k][1]}</i>${k==='n'?'<span class="badge">8</span>':''}${l}</a>`).join('')}</nav>`;
+const SB=(c='#2f3a33')=>`<div class="sb" style="color:${c}"><span>9:41</span><i></i></div>`;
+const TOP=`<div class="top"><span class="chip">🔥 6</span><span class="chip" style="color:#7c5ce0">📅 Đặt ngày thi</span><span class="av"><s>${S('idle')}</s><em>4</em></span></div>`;
+/* stairs: x0,y0 = bottom-left; w step width, rise per step */
+function stairs(x0,base,w,rise,h0,cur=5,n=9,labels=true){
+  let o='';const vals=[560,590,620,650,680,710,740,770];
+  for(let i=0;i<n-1;i++){const hh=h0+rise*i, x=x0+i*w;
+    const done=i<cur, now=i===cur;
+    const f=done?'linear-gradient(90deg,#f5b82e 50%,#e39a12 50%)':now?'linear-gradient(90deg,#3fae55 50%,#2a8a40 50%)':'linear-gradient(90deg,#efedf8 50%,#e0dcf1 50%)';
+    const c=done?'#ffd25e':now?'#6fd07f':'#f6f4fc';
+    o+=`<div class="st" style="left:${x}px;top:${base-hh}px;width:${w}px;height:${hh}px"><div class="f" style="top:0;background:${f}"></div><div class="c" style="background:${c}"></div>${labels?`<span class="lb" style="top:${now?8:10}px;${done||now?'':'color:#9a94bb;background:#fff'}">${vals[i]}</span>`:''}</div>`;}
+  return o;}
+const TROPHY=(x,y,s=1)=>`<svg class="troph" style="left:${x}px;top:${y}px;width:${90*s}px" viewBox="0 0 90 100"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#ffc83d"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#fff6d0"/><rect x="38" y="58" width="14" height="12" fill="#f0a500"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d"/><rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33"/><text x="45" y="92" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="12" fill="#ffd25e">800</text></svg>`;
+const DOTS=`<div class="dots">${'iiiiigooo'.split('').map(c=>`<i class="${c==='g'?'g':c==='o'?'o':''}"></i>`).join('')}<span>BẬC 6/9 · CÒN 75 ĐIỂM</span></div>`;
+const NEXT=(soc=true)=>`<div class="next"><small>TIẾP THEO · 8 PHÚT</small><h3>Ôn 8 câu sai</h3><p>Đến hạn hôm nay</p><div class="btns"><span class="btn">▶ Bắt đầu</span><span class="skip">Bỏ qua hôm nay</span></div>${soc?S('idle'):''}</div>`;
+const CANDLES=`<div class="cake"><div class="tier"></div>${[0,1,2,3,4,5,6].map(i=>`<div class="cd ${i===0?'l':''}" style="left:${5+i*14.8}%;margin-left:-3px"></div>`).join('')}</div><div class="days"><b>Nay</b><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>`;
+const STREAK=`<div class="streak"><div class="h"><span class="fl">🔥</span><b>6</b><span>ngày liền · còn 6 nến là xong bánh</span><small>❄ 2</small></div>${CANDLES}<div class="goal">Mục tiêu tuần: <b>1/5</b> buổi<i></i><a>Sửa</a></div></div>`;
+const STREAK_MINI=`<div class="streak" style="display:flex;align-items:center;gap:10px;padding:10px 14px"><span class="fl" style="font-size:22px">🔥</span><div><b style="font-size:20px">6</b> <span style="font-weight:900;font-size:12.5px;color:#ff7a1a">ngày liền</span><div style="font-weight:800;font-size:11.5px;color:var(--mut)">Tuần này 1/5 buổi</div></div><div style="margin-left:auto;display:flex;gap:5px;align-items:flex-end">${[1,0,0,0,0,0,0].map((l,i)=>`<i style="width:7px;height:${l?22:16}px;border-radius:3px;background:${l?'#ff7a9c':'#f2e9ec'};${l?'box-shadow:0 -7px 0 -1px #ffb020':''}"></i>`).join('')}</div></div>`;
+
+
+const SH=(c1,c2,t)=>`SHIELDX`;
+const SILVER=`<svg class="shield" viewBox="0 0 120 130"><path d="M60 6 L110 24 V62 C110 96 86 118 60 126 C34 118 10 96 10 62 V24Z" fill="#8a9bb8"/><path d="M60 16 L100 31 V62 C100 90 81 108 60 115 C39 108 20 90 20 62 V31Z" fill="#b8c4d6"/><path d="M60 40 l7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2Z" fill="#fff"/><text x="60" y="104" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="13" fill="#fff">BẠC</text></svg>`;
+const GOLD=`<svg class="shield" viewBox="0 0 120 130"><path d="M60 6 L110 24 V62 C110 96 86 118 60 126 C34 118 10 96 10 62 V24Z" fill="#f0a500"/><path d="M60 16 L100 31 V62 C100 90 81 108 60 115 C39 108 20 90 20 62 V31Z" fill="#ffd25e"/><path d="M60 40 l7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2Z" fill="#fff"/><text x="60" y="104" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="13" fill="#fff">VÀNG</text></svg>`;
+const BG=['#fff3e0','#e8f6ff','#f1ebff','#e9f8ec','#ffeef2','#fff7d6'];
+const PEOPLE=[['Mây Bay',212,'5 đề · ôn 60 câu'],['Tí Hon',190,''],['Kem Dâu',176,''],['Bắp Rang',164,''],['Bạn (Sóc Nâu)',151,'+38 so với tuần trước',1],['Hạt Dẻ',140,''],['Trà Sữa',133,''],['Mèo Mun',120,''],['Gấu Bông',112,''],['Su Su',98,''],['Cam Cam',90,''],['Na Na',81,''],['Tôm Tít',74,''],['Bơ Xanh',60,''],['Mít Ướt',52,''],['Hồng Trà',40,''],['Kẹo Gừng',31,''],['Lá Me',22,''],['Bông Gòn',12,''],['Ổi Chua',5,'']];
+const rows=(n,start=0)=>{let o='';PEOPLE.slice(start,start+n).forEach((p,k)=>{const i=start+k;
+ if(i===0) o+=`<div class="zone up">▲ VÙNG LÊN HẠNG VÀNG · TOP 5</div>`;
+ if(i===15) o+=`<div class="zone dn">▼ VÙNG XUỐNG HẠNG ĐỒNG</div>`;
+ o+=`<div class="rw ${p[3]?'me':''}"><span class="rk ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</span><span class="av2" style="--b:${BG[i%6]}"><span class="soc">${SOC.idle}</span></span><div>${p[0]}${p[2]?`<small>${p[2]}</small>`:''}</div><span class="pts2">${p[1]} <i>★</i></span></div>`;});return o;};
+const SIDE=`<aside class="side"><div class="lg"><i></i>toeic progress</div>${[['Hôm nay','#46b35a'],['Hành trình điểm','#ffc83d'],['Luyện tập','#a78bfa'],['Sổ tay','#ff7a9c'],['Thành tích','#1c8fe3',1]].map(([n,c,on])=>`<div class="nv ${on?'on':''}"><i style="background:${c}"></i>${n}</div>`).join('')}</aside>`;
+const DESK=`<div class="desk">${SIDE}<main class="main"><div class="ttl"><h1>Thành tích</h1><div class="tabs2"><i>Cấp & huy hiệu</i><i class="on">Giải đấu tuần</i></div></div>
+<div class="grid"><div>
+<div class="hero">${SILVER}<small>GIẢI BẠC · TUẦN 16/11 – 22/11</small><h2>Bạn đang hạng 5/20</h2><p>Còn 13 sao nữa là vượt Bắp Rang · kết thúc sau 3 ngày 14 giờ</p>
+<div class="tiers"><span>Đồng</span><span class="on">Bạc</span><span>Vàng</span><span>Kim cương</span></div></div>
+<div class="list">${rows(9)}<div class="rw" style="justify-content:center;color:#a3aba5;font-size:13px">· · · 11 người nữa · Xem hết</div></div>
+</div><div style="display:flex;flex-direction:column;gap:16px">
+<div class="card"><h3>Kiếm sao tuần này</h3>
+<div class="how"><i style="background:#fff7d6">📝</i>Ghi điểm một đề full<b>+30★</b></div>
+<div class="how"><i style="background:#ffeef2">🔁</i>Ôn 10 câu sai<b>+10★</b></div>
+<div class="how"><i style="background:#f1ebff">🧁</i>Nướng một mẻ bánh<b>+8★</b></div>
+<div class="how"><i style="background:#e9f8ec">🔥</i>Giữ chuỗi mỗi ngày<b>+5★</b></div>
+<div class="lock">⏱ Tối đa 60★ mỗi ngày · chỉ tính việc làm thật trong app</div></div>
+<div class="card"><h3>Bạn so với tuần trước</h3><div class="vs"><div><i style="height:56px;background:#e3e6e3"></i><b>113★</b><small>tuần trước</small></div><div><i style="height:76px;background:linear-gradient(#ffd25e,#f0a500)"></i><b>151★</b><small>tuần này</small></div></div></div>
+<div class="card" style="display:flex;align-items:center;gap:12px"><span class="soc" style="width:64px">${SOC.idle}</span><div style="font-weight:800;font-size:13.5px;line-height:1.4">Top 5 cuối tuần nhận <b style="color:#e0a100">khiên Vàng</b> và món đồ mới cho Sóc.</div></div>
+</div></div></main></div>`;
+const P1=`<div class="ph" style="background:#fbfaf7">${SB()}<div class="phd"><h2>Thành tích</h2><span class="av" style="margin-left:auto"><s>${S('idle')}</s><em>4</em></span></div>
+<div class="pseg"><i>Cấp & huy hiệu</i><i class="on">Giải đấu</i></div>
+<div class="phero">${SILVER}<small>GIẢI BẠC · CÒN 3 NGÀY</small><b>Hạng 5/20</b><p>Còn 13★ là vượt Bắp Rang</p></div>
+<div class="plist">${rows(11)}</div>${NAV()}</div>`;
+const P2=`<div class="ph" style="background:#fbfaf7">${SB()}<div class="phd"><h2>Thành tích</h2><span class="av" style="margin-left:auto"><s>${S('idle')}</s><em>4</em></span></div>
+<div class="pseg"><i>Cấp & huy hiệu</i><i class="on">Giải đấu</i></div>
+<div class="optin"><div class="bigsh">${SILVER.replace('class="shield"','style="width:140px"')}</div><h3>Tham gia giải đấu tuần?</h3><p>So sao với 19 bạn cùng hạng. Chăm thì lên hạng,<br>không ai thấy điểm TOEIC của bạn.</p>
+<div class="fld3"><span class="soc" style="width:44px">${SOC.idle}</span><div>Biệt danh<small>Sóc Nâu · đổi được</small></div><span style="margin-left:auto;color:#1c8fe3">Sửa</span></div>
+<div class="fld3"><div>Hiện Sóc đang mặc đồ<small>khăn len, kính tròn</small></div><span class="sw"></span></div>
+<span class="go3" style="margin-top:14px">Vào giải Đồng</span>
+<div style="font-weight:800;font-size:12px;color:#a3aba5;margin-top:10px">Cần đăng nhập để lưu bảng · rời giải lúc nào cũng được</div></div>${NAV()}</div>`;
+const P3=`<div class="ph">${SB()}<div class="res"><div style="margin-top:110px;font-weight:900;font-size:13px;letter-spacing:.6px">KẾT THÚC TUẦN 16/11 – 22/11</div>
+<div style="width:150px;margin:14px auto 0">${GOLD.replace('class="shield"','style="width:150px"')}</div>
+<div style="font-weight:900;font-size:30px;margin-top:8px">Lên giải Vàng!</div><div style="font-weight:800;font-size:14px;margin-top:4px">Bạn về hạng 3 với 228★</div>
+<span class="soc" style="display:block;width:120px;margin:16px auto 0">${SOC.idle}</span>
+<div style="margin:6px 30px 0;background:#fff;border-radius:18px;padding:10px;font-weight:900;font-size:14px">🎁 Mở món mới cho Sóc: <span style="color:#7c5ce0">khiên vàng</span></div>
+<span class="go3" style="margin:18px 30px 0;background:#fff;color:#a06a00;box-shadow:0 5px 0 rgba(0,0,0,.15)">Xem nhóm mới</span></div></div>`;
+const fw=(t,s,h)=>`<div class="fw"><b>${t}</b>${h}<span>${s}</span></div>`;
+document.getElementById('D').innerHTML=`<div class="fw"><b>Desktop · tab “Giải đấu tuần” trong Thành tích</b>${DESK}<span style="width:1440px">Trái: khiên hạng, thứ hạng của bạn và khoảng cách tới người phía trên; bảng 20 người với vùng lên/xuống hạng. Phải: cách kiếm sao, so với tuần trước, phần thưởng.</span></div>`;
+document.getElementById('P').innerHTML=
+ fw('Bảng xếp hạng','Khiên + hạng của bạn; danh sách cuộn, dòng của bạn tô vàng.',P1)+
+ fw('Lần đầu: tham gia','Tự chọn vào giải. Biệt danh và Sóc thay cho tên thật; không hiện điểm TOEIC.',P2)+
+ fw('Cuối tuần: lên hạng','Màn chúc mừng khi lên hạng, mở món đồ mới cho Sóc.',P3);
+</script></body></html>

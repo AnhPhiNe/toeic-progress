@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getWeekMonday, getOrCreateWeeklyPlan } from '@/shared/data/storage';
-import { buildWeeklyStudyPlan } from '@/features/plans/lib/studyPlan';
+import { buildWeeklyStudyPlan, syncPrioritiesToWeeklyPlan } from '@/features/plans/lib/studyPlan';
 import { UserProfile, StudySession, PacingRun } from '@/shared/types';
 
 describe('studyPlan SMART engine', () => {
@@ -163,5 +163,22 @@ describe('studyPlan SMART engine', () => {
     expect(summary.fullTestsThisWeek).toBe(0);
     const detailed = { ...session, practiceParts: [{ part: 7 as const, correct: 5, total: 10 }, { part: 7 as const, correct: 4, total: 10 }] };
     expect(buildWeeklyStudyPlan(plan.weekKey, mockProfile, [detailed], [], [], plan, [measured]).tasks[0].done).toBe(1);
+  });
+
+  it('syncs AI priority weak parts to the current weekly plan without duplicating existing part goals', () => {
+    const firstSync = syncPrioritiesToWeeklyPlan([
+      { part: 5, title: 'Ôn ngữ pháp Part 5' },
+      { part: 7, title: 'Đọc nhanh Part 7' },
+      { part: 5, title: 'Duplicate Part 5' },
+      { part: null, title: 'General tip' },
+    ]);
+    expect(firstSync).toBe(true);
+    const secondSync = syncPrioritiesToWeeklyPlan([
+      { part: 5, title: 'Part 5 again' },
+      { part: 3, title: 'Nghe Part 3' },
+    ]);
+    expect(secondSync).toBe(true);
+    const emptySync = syncPrioritiesToWeeklyPlan([{ part: null, title: 'General' }]);
+    expect(emptySync).toBe(false);
   });
 });

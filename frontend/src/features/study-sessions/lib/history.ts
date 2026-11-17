@@ -32,6 +32,7 @@ export function historyDate(date: string): string {
 }
 
 export function historyDuration(minutes?: number): string {
-  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return '0 phút';
+  // 0 means the duration was not recorded (see the Full Test form), not that the test took no time.
+  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return 'Chưa ghi giờ';
   return minutes < 1 ? `${Math.round(minutes * 60)} giây` : `${minutes.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} phút`;
 }

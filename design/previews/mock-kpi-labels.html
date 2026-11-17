@@ -1,0 +1,42 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);width:1100px;padding:26px 30px}
+h2{font-size:15px;font-weight:800;margin:22px 0 4px}h2:first-child{margin-top:0}
+.sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:#fff;border:2px solid var(--ink);border-radius:18px;box-shadow:3px 3px 0 var(--ink);padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.mid{display:flex;justify-content:space-between;align-items:center}
+.num{font-size:38px;font-weight:800;line-height:1;letter-spacing:-.02em}.num small{font-size:12px;font-weight:700;color:#94A3B8;letter-spacing:0;margin-left:4px}
+.ico{width:38px;height:38px;border:2px solid var(--ink);border-radius:12px;display:grid;place-items:center;font-size:17px}
+.foot{font-size:11px;font-weight:700}.foot span{color:var(--muted);font-weight:600}
+/* nhãn cũ: pill màu */
+.chip{align-self:flex-start;font-size:10px;font-weight:800;letter-spacing:.07em;padding:3px 8px;border-radius:7px;border:1px solid rgba(15,23,42,.2)}
+/* A: chữ xám trơn */
+.lab{font-size:11px;font-weight:800;letter-spacing:.08em;color:#475569}
+/* B: chữ màu theo số, có chấm */
+.labc{font-size:11px;font-weight:800;letter-spacing:.08em;display:flex;align-items:center;gap:6px}.labc i{width:8px;height:8px;border-radius:50%;display:block}
+.am{color:#D97706}.bl{color:#2563EB}.rd{color:#E11D48}
+</style>
+<h2>Hiện tại · nhãn là pill nền màu</h2><div class="sub">Ba pill ba màu khác nhau, màu số bên dưới lại nói đúng điều đó thêm lần nữa.</div>
+<div class="row">
+<div class="card"><span class="chip" style="background:#FCD34D">KỶ LỤC</span><div class="mid"><div class="num am">960<small>/ 990đ</small></div><div class="ico" style="background:#FBBF24">♛</div></div><div class="foot">ETS 2024 Test 04 <span>· thiếu 30đ</span></div></div>
+<div class="card"><span class="chip" style="background:#BAE6FD">TRUNG BÌNH</span><div class="mid"><div class="num bl">868<small>/ 990đ</small></div><div class="ico" style="background:#BAE6FD">◎</div></div><div class="foot">12 đề <span>· 400đ → 960đ</span></div></div>
+<div class="card"><span class="chip" style="background:#FECDD3">SO VỚI BÀI ĐẦU</span><div class="mid"><div class="num rd">−425<small>điểm</small></div><div class="ico" style="background:#FECDD3">↘</div></div><div class="foot">Từ bài đầu: 825đ → 400đ</div></div>
+</div>
+
+<h2>Phương án A · nhãn xám trơn</h2><div class="sub">Nhãn chỉ là chữ viết hoa xám đậm; màu nằm ở số và ô icon.</div>
+<div class="row">
+<div class="card"><span class="lab">KỶ LỤC</span><div class="mid"><div class="num am">960<small>/ 990đ</small></div><div class="ico" style="background:#FBBF24">♛</div></div><div class="foot">ETS 2024 Test 04 <span>· thiếu 30đ</span></div></div>
+<div class="card"><span class="lab">TRUNG BÌNH</span><div class="mid"><div class="num bl">868<small>/ 990đ</small></div><div class="ico" style="background:#BAE6FD">◎</div></div><div class="foot">12 đề <span>· 400đ → 960đ</span></div></div>
+<div class="card"><span class="lab">SO VỚI BÀI ĐẦU</span><div class="mid"><div class="num rd">−425<small>điểm</small></div><div class="ico" style="background:#FECDD3">↘</div></div><div class="foot">Từ bài đầu: 825đ → 400đ</div></div>
+</div>
+
+<h2>Phương án B · nhãn cùng màu với số, thêm chấm nhỏ</h2><div class="sub">Màu nhãn khớp màu số nên chỉ còn một màu cho mỗi thẻ, không còn nền pill.</div>
+<div class="row">
+<div class="card"><span class="labc am"><i style="background:#F59E0B"></i>KỶ LỤC</span><div class="mid"><div class="num am">960<small>/ 990đ</small></div><div class="ico" style="background:#FBBF24">♛</div></div><div class="foot">ETS 2024 Test 04 <span>· thiếu 30đ</span></div></div>
+<div class="card"><span class="labc bl"><i style="background:#2563EB"></i>TRUNG BÌNH</span><div class="mid"><div class="num bl">868<small>/ 990đ</small></div><div class="ico" style="background:#BAE6FD">◎</div></div><div class="foot">12 đề <span>· 400đ → 960đ</span></div></div>
+<div class="card"><span class="labc rd"><i style="background:#E11D48"></i>SO VỚI BÀI ĐẦU</span><div class="mid"><div class="num rd">−425<small>điểm</small></div><div class="ico" style="background:#FECDD3">↘</div></div><div class="foot">Từ bài đầu: 825đ → 400đ</div></div>
+</div>
+</html>

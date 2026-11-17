@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linh vật và màu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1E2430;--muted:#6B7280}
+  *{box-sizing:border-box}
+  body{margin:0;background:#EFEDE8;color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1200px;margin:0 auto;padding:40px 16px 64px}
+  h1{font-size:22px;margin:0 0 4px}
+  .intro{margin:0 0 28px;color:var(--muted);font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:24px}
+  @media (max-width:560px){.grid{grid-template-columns:1fr}}
+
+  .opt{background:var(--bg);border-radius:28px;padding:24px;display:grid;grid-template-columns:1fr 210px;gap:20px;align-items:start}
+  @media (max-width:560px){.opt{grid-template-columns:1fr}}
+  .opt h2{margin:0;font-size:20px;display:flex;align-items:center;gap:10px}
+  .num{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;font-size:13px;display:grid;place-items:center}
+  .why{font-size:13.5px;line-height:1.5;color:#4B5160;margin:8px 0 14px}
+  .sw{display:flex;gap:6px;margin-bottom:16px}
+  .sw span{width:30px;height:30px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .faces{display:flex;gap:10px}
+  .face{flex:1;background:var(--card);border-radius:20px;padding:10px 6px 8px;text-align:center;font-size:11.5px;font-weight:700;color:var(--muted)}
+  .face svg{width:96px;height:96px;display:block;margin:0 auto 2px}
+
+  .mini{background:var(--card);border-radius:24px;padding:14px 14px 16px;text-align:center;box-shadow:0 14px 30px -18px rgba(40,30,10,.35)}
+  .mini svg{width:72px;height:72px;display:block;margin:0 auto}
+  .mini .hl{font-weight:800;font-size:17px;margin:4px 0 0}
+  .mini .sc{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+  .mini .sc small{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:0}
+  .bar{height:8px;border-radius:99px;background:var(--track);position:relative;overflow:hidden;margin:10px 4px 4px}
+  .bar i{position:absolute;top:0;bottom:0;left:0;width:83.5%;background:var(--primary);border-radius:99px 0 0 99px}
+  .bar b{position:absolute;top:0;bottom:0;left:83.5%;width:4.1%;background:var(--accent)}
+  .goal{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);padding:0 4px}
+  .goal em{font-style:normal;color:var(--primary-ink)}
+  .btn{margin-top:12px;border-radius:14px;padding:11px 8px;font-size:13px;font-weight:800;color:#fff;background:var(--primary);box-shadow:0 4px 0 var(--primary-dark)}
+
+  .o1{--bg:#FBF1E6;--card:#FFFaF4;--primary:#C8553D;--primary-dark:#9C3F2B;--primary-ink:#B0472F;--accent:#F2B134;--track:#EFE1D0}
+  .o2{--bg:#FFF1EC;--card:#FFFAF8;--primary:#2F3E73;--primary-dark:#1F2A52;--primary-ink:#2F3E73;--accent:#FF9F80;--track:#F4E2DB}
+  .o3{--bg:#F3F1FF;--card:#FCFBFF;--primary:#5A48D8;--primary-dark:#3F30A8;--primary-ink:#5A48D8;--accent:#FF8A3D;--track:#E4E0F8}
+  .o4{--bg:#EEF6EA;--card:#FAFDF8;--primary:#3E8A4F;--primary-dark:#2B6638;--primary-ink:#357A45;--accent:#F2B93B;--track:#DCEAD5}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Bốn hướng linh vật và màu</h1>
+  <p class="intro">Mỗi hướng có hai nét mặt (vui khi tăng điểm, bình tĩnh khi giảm điểm) và một khung nhỏ của màn kết quả để thấy màu khi dùng thật. Đây là phác thảo nhanh; hướng nào được chọn sẽ vẽ kỹ lại.</p>
+
+  <div class="grid">
+
+    <!-- 1. Nghé -->
+    <section class="opt o1">
+      <div>
+        <h2><span class="num">1</span>Nghé · đỏ gạch</h2>
+        <p class="why">Chú trâu con, gần gũi với sinh viên Việt, gợi tính "chăm, bền bỉ". Tông đỏ gạch như gốm, kèm vàng nắng.</p>
+        <div class="sw"><span style="background:#C8553D"></span><span style="background:#F2B134"></span><span style="background:#FBF1E6"></span><span style="background:#1E2430"></span></div>
+        <div class="faces">
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M36 38 Q16 34 16 14 Q28 28 46 30Z" fill="#F3E3C6"/><path d="M84 38 Q104 34 104 14 Q92 28 74 30Z" fill="#F3E3C6"/>
+              <ellipse cx="22" cy="54" rx="13" ry="7" transform="rotate(-18 22 54)" fill="#6E7A89"/><ellipse cx="98" cy="54" rx="13" ry="7" transform="rotate(18 98 54)" fill="#6E7A89"/>
+              <rect x="38" y="90" width="44" height="22" rx="11" fill="#86929F"/>
+              <ellipse cx="60" cy="58" rx="34" ry="32" fill="#86929F"/>
+              <rect x="38" y="86" width="44" height="9" rx="4.5" fill="#C8553D"/>
+              <ellipse cx="60" cy="76" rx="21" ry="14" fill="#EADFD3"/>
+              <ellipse cx="53" cy="75" rx="3" ry="2.2" fill="#6B5B4E"/><ellipse cx="67" cy="75" rx="3" ry="2.2" fill="#6B5B4E"/>
+              <path d="M40 56 Q46 49 52 56" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M68 56 Q74 49 80 56" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <path d="M54 82 Q60 87 66 82" stroke="#6B5B4E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <circle cx="36" cy="66" r="4" fill="#C8553D" opacity=".35"/><circle cx="84" cy="66" r="4" fill="#C8553D" opacity=".35"/>
+            </svg>Tăng điểm
+          </div>
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M36 38 Q16 34 16 14 Q28 28 46 30Z" fill="#F3E3C6"/><path d="M84 38 Q104 34 104 14 Q92 28 74 30Z" fill="#F3E3C6"/>
+              <ellipse cx="22" cy="58" rx="13" ry="7" transform="rotate(10 22 58)" fill="#6E7A89"/><ellipse cx="98" cy="58" rx="13" ry="7" transform="rotate(-10 98 58)" fill="#6E7A89"/>
+              <rect x="38" y="90" width="44" height="22" rx="11" fill="#86929F"/>
+              <ellipse cx="60" cy="58" rx="34" ry="32" fill="#86929F"/>
+              <rect x="38" y="86" width="44" height="9" rx="4.5" fill="#C8553D"/>
+              <ellipse cx="60" cy="76" rx="21" ry="14" fill="#EADFD3"/>
+              <ellipse cx="53" cy="75" rx="3" ry="2.2" fill="#6B5B4E"/><ellipse cx="67" cy="75" rx="3" ry="2.2" fill="#6B5B4E"/>
+              <circle cx="46" cy="55" r="5.5" fill="#1E2430"/><circle cx="74" cy="55" r="5.5" fill="#1E2430"/><circle cx="48" cy="53" r="1.8" fill="#fff"/><circle cx="76" cy="53" r="1.8" fill="#fff"/>
+              <path d="M55 83 L65 83" stroke="#6B5B4E" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>Giảm điểm
+          </div>
+        </div>
+      </div>
+      <div class="mini">
+        <svg viewBox="0 0 120 120"><path d="M36 38 Q16 34 16 14 Q28 28 46 30Z" fill="#F3E3C6"/><path d="M84 38 Q104 34 104 14 Q92 28 74 30Z" fill="#F3E3C6"/><ellipse cx="22" cy="54" rx="13" ry="7" transform="rotate(-18 22 54)" fill="#6E7A89"/><ellipse cx="98" cy="54" rx="13" ry="7" transform="rotate(18 98 54)" fill="#6E7A89"/><rect x="38" y="90" width="44" height="22" rx="11" fill="#86929F"/><ellipse cx="60" cy="58" rx="34" ry="32" fill="#86929F"/><rect x="38" y="86" width="44" height="9" rx="4.5" fill="#C8553D"/><ellipse cx="60" cy="76" rx="21" ry="14" fill="#EADFD3"/><ellipse cx="53" cy="75" rx="3" ry="2.2" fill="#6B5B4E"/><ellipse cx="67" cy="75" rx="3" ry="2.2" fill="#6B5B4E"/><path d="M40 56 Q46 49 52 56" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M68 56 Q74 49 80 56" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>
+        <div class="hl">Tăng 35 điểm!</div>
+        <div class="sc">745 <small>/ 990</small></div>
+        <div class="bar"><i></i><b></b></div>
+        <div class="goal"><span>Mục tiêu 850</span><em>còn 105</em></div>
+        <div class="btn">Ôn 18 câu sai</div>
+      </div>
+    </section>
+
+    <!-- 2. Mướp -->
+    <section class="opt o2">
+      <div>
+        <h2><span class="num">2</span>Mướp · xanh đêm + đào</h2>
+        <p class="why">Mèo mướp thích "ghi sổ" và tò mò. Màu xanh đêm cho cảm giác học nghiêm túc, màu đào làm mềm lại, hợp với sinh viên nữ lẫn nam.</p>
+        <div class="sw"><span style="background:#2F3E73"></span><span style="background:#FF9F80"></span><span style="background:#FFF1EC"></span><span style="background:#F4A259"></span></div>
+        <div class="faces">
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M28 46 L30 14 L54 32Z" fill="#F4A259"/><path d="M92 46 L90 14 L66 32Z" fill="#F4A259"/>
+              <path d="M33 38 L34 22 L46 31Z" fill="#FFC9B8"/><path d="M87 38 L86 22 L74 31Z" fill="#FFC9B8"/>
+              <path d="M44 100 Q60 116 76 100 L76 96 L44 96Z" fill="#F4A259"/>
+              <ellipse cx="60" cy="62" rx="36" ry="33" fill="#F4A259"/>
+              <path d="M52 32 l2 10 M60 30 l0 11 M68 32 l-2 10" stroke="#D9772E" stroke-width="3.5" stroke-linecap="round"/>
+              <ellipse cx="60" cy="78" rx="18" ry="13" fill="#FFF6EE"/>
+              <path d="M56 72 L64 72 L60 77Z" fill="#E86F6F"/>
+              <path d="M60 77 Q56 83 51 81 M60 77 Q64 83 69 81" stroke="#7A4A2A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              <path d="M40 60 Q46 53 52 60" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M68 60 Q74 53 80 60" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <path d="M22 74 L38 76 M22 82 L38 80 M98 74 L82 76 M98 82 L82 80" stroke="#7A4A2A" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
+              <circle cx="36" cy="70" r="4" fill="#FF9F80" opacity=".6"/><circle cx="84" cy="70" r="4" fill="#FF9F80" opacity=".6"/>
+            </svg>Tăng điểm
+          </div>
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M28 46 L24 18 L52 32Z" fill="#F4A259"/><path d="M92 46 L96 18 L68 32Z" fill="#F4A259"/>
+              <path d="M32 38 L30 24 L44 31Z" fill="#FFC9B8"/><path d="M88 38 L90 24 L76 31Z" fill="#FFC9B8"/>
+              <path d="M44 100 Q60 116 76 100 L76 96 L44 96Z" fill="#F4A259"/>
+              <ellipse cx="60" cy="62" rx="36" ry="33" fill="#F4A259"/>
+              <path d="M52 32 l2 10 M60 30 l0 11 M68 32 l-2 10" stroke="#D9772E" stroke-width="3.5" stroke-linecap="round"/>
+              <ellipse cx="60" cy="78" rx="18" ry="13" fill="#FFF6EE"/>
+              <path d="M56 72 L64 72 L60 77Z" fill="#E86F6F"/>
+              <path d="M55 82 Q60 80 65 82" stroke="#7A4A2A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              <ellipse cx="46" cy="59" rx="5.5" ry="6.5" fill="#1E2430"/><ellipse cx="74" cy="59" rx="5.5" ry="6.5" fill="#1E2430"/><circle cx="48" cy="57" r="1.8" fill="#fff"/><circle cx="76" cy="57" r="1.8" fill="#fff"/>
+              <path d="M22 74 L38 76 M22 82 L38 80 M98 74 L82 76 M98 82 L82 80" stroke="#7A4A2A" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
+            </svg>Giảm điểm
+          </div>
+        </div>
+      </div>
+      <div class="mini">
+        <svg viewBox="0 0 120 120"><path d="M28 46 L30 14 L54 32Z" fill="#F4A259"/><path d="M92 46 L90 14 L66 32Z" fill="#F4A259"/><path d="M33 38 L34 22 L46 31Z" fill="#FFC9B8"/><path d="M87 38 L86 22 L74 31Z" fill="#FFC9B8"/><ellipse cx="60" cy="62" rx="36" ry="33" fill="#F4A259"/><path d="M52 32 l2 10 M60 30 l0 11 M68 32 l-2 10" stroke="#D9772E" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="60" cy="78" rx="18" ry="13" fill="#FFF6EE"/><path d="M56 72 L64 72 L60 77Z" fill="#E86F6F"/><path d="M40 60 Q46 53 52 60" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M68 60 Q74 53 80 60" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>
+        <div class="hl">Tăng 35 điểm!</div>
+        <div class="sc">745 <small>/ 990</small></div>
+        <div class="bar"><i></i><b></b></div>
+        <div class="goal"><span>Mục tiêu 850</span><em>còn 105</em></div>
+        <div class="btn">Ôn 18 câu sai</div>
+      </div>
+    </section>
+
+    <!-- 3. Cáo -->
+    <section class="opt o3">
+      <div>
+        <h2><span class="num">3</span>Cáo nhỏ · tím + cam</h2>
+        <p class="why">Cáo "tinh ranh", hợp với việc bắt bẫy đề TOEIC (paraphrase, đáp án gây nhiễu). Tím cho cảm giác công nghệ, AI; cam làm điểm nhấn ấm.</p>
+        <div class="sw"><span style="background:#5A48D8"></span><span style="background:#FF8A3D"></span><span style="background:#F3F1FF"></span><span style="background:#1E2430"></span></div>
+        <div class="faces">
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M46 98 Q60 112 74 98 L72 92 L48 92Z" fill="#FF8A3D"/>
+              <path d="M60 100 Q28 90 24 58 L30 18 L50 38 Q60 34 70 38 L90 18 L96 58 Q92 90 60 100Z" fill="#FF8A3D"/>
+              <path d="M33 42 L34 26 L45 37Z" fill="#3A2A55"/><path d="M87 42 L86 26 L75 37Z" fill="#3A2A55"/>
+              <path d="M60 100 Q38 94 30 70 Q46 72 60 86 Q74 72 90 70 Q82 94 60 100Z" fill="#FFF8F2"/>
+              <ellipse cx="60" cy="86" rx="5" ry="3.6" fill="#2A2238"/>
+              <path d="M40 62 Q46 55 52 62" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M68 62 Q74 55 80 62" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <path d="M54 92 Q60 96 66 92" stroke="#2A2238" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              <circle cx="38" cy="74" r="4" fill="#5A48D8" opacity=".25"/><circle cx="82" cy="74" r="4" fill="#5A48D8" opacity=".25"/>
+            </svg>Tăng điểm
+          </div>
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M46 98 Q60 112 74 98 L72 92 L48 92Z" fill="#FF8A3D"/>
+              <path d="M60 100 Q28 90 24 58 L26 22 L50 38 Q60 34 70 38 L94 22 L96 58 Q92 90 60 100Z" fill="#FF8A3D"/>
+              <path d="M30 42 L30 30 L44 38Z" fill="#3A2A55"/><path d="M90 42 L90 30 L76 38Z" fill="#3A2A55"/>
+              <path d="M60 100 Q38 94 30 70 Q46 72 60 86 Q74 72 90 70 Q82 94 60 100Z" fill="#FFF8F2"/>
+              <ellipse cx="60" cy="86" rx="5" ry="3.6" fill="#2A2238"/>
+              <circle cx="46" cy="61" r="5.5" fill="#1E2430"/><circle cx="74" cy="61" r="5.5" fill="#1E2430"/><circle cx="48" cy="59" r="1.8" fill="#fff"/><circle cx="76" cy="59" r="1.8" fill="#fff"/>
+              <path d="M55 93 L65 93" stroke="#2A2238" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>Giảm điểm
+          </div>
+        </div>
+      </div>
+      <div class="mini">
+        <svg viewBox="0 0 120 120"><path d="M60 100 Q28 90 24 58 L30 18 L50 38 Q60 34 70 38 L90 18 L96 58 Q92 90 60 100Z" fill="#FF8A3D"/><path d="M33 42 L34 26 L45 37Z" fill="#3A2A55"/><path d="M87 42 L86 26 L75 37Z" fill="#3A2A55"/><path d="M60 100 Q38 94 30 70 Q46 72 60 86 Q74 72 90 70 Q82 94 60 100Z" fill="#FFF8F2"/><ellipse cx="60" cy="86" rx="5" ry="3.6" fill="#2A2238"/><path d="M40 62 Q46 55 52 62" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M68 62 Q74 55 80 62" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>
+        <div class="hl">Tăng 35 điểm!</div>
+        <div class="sc">745 <small>/ 990</small></div>
+        <div class="bar"><i></i><b></b></div>
+        <div class="goal"><span>Mục tiêu 850</span><em>còn 105</em></div>
+        <div class="btn">Ôn 18 câu sai</div>
+      </div>
+    </section>
+
+    <!-- 4. Mầm -->
+    <section class="opt o4">
+      <div>
+        <h2><span class="num">4</span>Mầm · xanh lá + vàng</h2>
+        <p class="why">Hạt mầm lớn dần theo điểm số: điểm càng gần mục tiêu, lá càng nhiều. Hợp với một app theo dõi tiến bộ. Tông xanh lá dịu, vàng là màu điểm vừa tăng.</p>
+        <div class="sw"><span style="background:#3E8A4F"></span><span style="background:#F2B93B"></span><span style="background:#EEF6EA"></span><span style="background:#B98552"></span></div>
+        <div class="faces">
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M60 46 Q58 32 60 22" stroke="#3E8A4F" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M60 30 Q40 12 24 24 Q40 40 60 30Z" fill="#6DBE6A"/><path d="M60 26 Q80 6 98 18 Q82 36 60 26Z" fill="#4FA65A"/>
+              <path d="M60 30 Q44 22 32 24" stroke="#3E8A4F" stroke-width="1.6" fill="none" opacity=".6"/>
+              <circle cx="22" cy="40" r="3" fill="#F2B93B"/><circle cx="100" cy="36" r="2.5" fill="#F2B93B"/><circle cx="96" cy="52" r="2" fill="#F2B93B"/>
+              <path d="M60 44 Q90 44 92 76 Q92 108 60 108 Q28 108 28 76 Q30 44 60 44Z" fill="#E2B27A"/>
+              <path d="M40 60 Q60 52 80 60" stroke="#C99560" stroke-width="2" fill="none" opacity=".6"/>
+              <path d="M42 78 Q48 71 54 78" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M66 78 Q72 71 78 78" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              <path d="M53 88 Q60 95 67 88" stroke="#7A4A2A" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <circle cx="40" cy="88" r="4" fill="#F28B6E" opacity=".45"/><circle cx="80" cy="88" r="4" fill="#F28B6E" opacity=".45"/>
+            </svg>Tăng điểm
+          </div>
+          <div class="face">
+            <svg viewBox="0 0 120 120"><ellipse cx="60" cy="114" rx="28" ry="4" fill="#000" opacity=".07"/>
+              <path d="M60 46 Q60 38 62 32" stroke="#3E8A4F" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M61 36 Q46 26 36 34 Q48 44 61 36Z" fill="#6DBE6A"/><path d="M62 34 Q74 22 86 30 Q76 42 62 34Z" fill="#4FA65A"/>
+              <path d="M60 44 Q90 44 92 76 Q92 108 60 108 Q28 108 28 76 Q30 44 60 44Z" fill="#E2B27A"/>
+              <path d="M40 60 Q60 52 80 60" stroke="#C99560" stroke-width="2" fill="none" opacity=".6"/>
+              <circle cx="48" cy="77" r="5.5" fill="#1E2430"/><circle cx="72" cy="77" r="5.5" fill="#1E2430"/><circle cx="50" cy="75" r="1.8" fill="#fff"/><circle cx="74" cy="75" r="1.8" fill="#fff"/>
+              <path d="M55 90 Q60 88 65 90" stroke="#7A4A2A" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+            </svg>Giảm điểm
+          </div>
+        </div>
+      </div>
+      <div class="mini">
+        <svg viewBox="0 0 120 120"><path d="M60 46 Q58 32 60 22" stroke="#3E8A4F" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M60 30 Q40 12 24 24 Q40 40 60 30Z" fill="#6DBE6A"/><path d="M60 26 Q80 6 98 18 Q82 36 60 26Z" fill="#4FA65A"/><path d="M60 44 Q90 44 92 76 Q92 108 60 108 Q28 108 28 76 Q30 44 60 44Z" fill="#E2B27A"/><path d="M42 78 Q48 71 54 78" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M66 78 Q72 71 78 78" stroke="#1E2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M53 88 Q60 95 67 88" stroke="#7A4A2A" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>
+        <div class="hl">Tăng 35 điểm!</div>
+        <div class="sc">745 <small>/ 990</small></div>
+        <div class="bar"><i></i><b></b></div>
+        <div class="goal"><span>Mục tiêu 850</span><em>còn 105</em></div>
+        <div class="btn">Ôn 18 câu sai</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</body>
+</html>

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 test('a single-question form passes its captured owner and invalidates the request when closed', async ({ page }) => {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
@@ -15,9 +17,9 @@ test('a single-question form passes its captured owner and invalidates the reque
       }
     `
   }));
-  await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const form = page.getByRole('dialog');
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await gotoPage(page, '/so-tay');
+  const form = await openNoteForm(page);
   await chooseNoteSource(form, 'QA single cancellation');
   await form.getByRole('button', { name: 'Part 5', exact: true }).click();
   await form.getByLabel('Câu hỏi + phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be\n(C) were\n(D) been');

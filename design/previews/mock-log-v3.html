@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--pinkd:#d6416a;--pinkl:#ffe1e9}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#eef0ee;padding:36px 40px}
+h1{font-weight:900;font-size:30px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15px;color:var(--mut);margin-top:4px;max-width:1100px}
+.cols{display:grid;grid-template-columns:repeat(2,620px);gap:40px;margin-top:24px}
+.ttl{display:flex;align-items:center;gap:10px;font-weight:900;font-size:19px;margin-bottom:12px}
+.ttl i{font-style:normal;padding:0 10px;height:30px;border-radius:99px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:14px}
+.ttl small{font-weight:700;font-size:13px;color:var(--mut)}
+.m{background:#fff;border-radius:26px;padding:20px 24px 22px;box-shadow:0 8px 0 rgba(47,58,51,.07);display:flex;flex-direction:column;position:relative}
+.mh{display:flex;justify-content:space-between;align-items:center}.mh b{font-weight:900;font-size:21px}
+.x{width:34px;height:34px;border-radius:11px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900}
+.btn{font-weight:900;font-size:15.5px;border-radius:15px;padding:12px 22px;background:var(--g);color:#fff;box-shadow:0 5px 0 var(--gd)}
+.btn.w{background:#fff;color:var(--blue);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);padding:9px 15px;font-size:14.5px}
+.foot{margin-top:18px;display:flex;justify-content:space-between;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#f1f3f1;border-radius:99px;padding:6px 12px;font-weight:800;font-size:13.5px}
+.chip::after{content:'';width:11px;height:11px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14 L3 10 L11 2 L14 5 L6 13Z' fill='%237a857e'/%3E%3C/svg%3E") center/contain no-repeat}
+/* shared top */
+.sc{display:flex;align-items:center;gap:16px;margin-top:14px;background:#f6f8f6;border-radius:18px;padding:12px 16px}
+.sc .big{font-weight:900;font-size:46px;letter-spacing:-1.5px;line-height:1}
+.sc .lr{display:flex;flex-direction:column;gap:2px;font-weight:800;font-size:14px;color:var(--mut)}.sc .lr b{color:var(--ink);font-weight:900}
+.sc .w{margin-left:auto;text-align:right}.sc .w b{display:block;font-weight:900;font-size:30px;line-height:1;color:var(--pinkd)}.sc .w small{font-weight:800;font-size:12.5px;color:var(--mut)}
+.meta{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.sec{display:flex;align-items:center;gap:8px;font-weight:900;font-size:12px;letter-spacing:.5px;color:var(--mut);margin:16px 0 6px}
+.sec::after{content:'';flex:1;height:2px;background:#f1f3f1}
+.note{display:flex;align-items:center;gap:8px;margin-top:12px;background:#fff6d6;border-radius:12px;padding:8px 12px;font-weight:800;font-size:13px;color:#7a5a00}
+.note i{font-style:normal;width:20px;height:20px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-weight:900;font-size:12px;color:#6b4a00}
+.note a{margin-left:auto;font-weight:900;color:var(--blue)}
+/* A: chips of wrong numbers */
+.pr{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start;padding:6px 0}
+.pr .pl b{display:block;font-weight:900;font-size:15px}.pr .pl small{font-weight:800;font-size:11.5px;color:var(--mut)}
+.nums{display:flex;flex-wrap:wrap;gap:5px}
+.nums span{min-width:38px;text-align:center;border-radius:10px;padding:5px 7px;font-weight:900;font-size:13.5px;background:var(--pinkl);color:var(--pinkd);box-shadow:0 2px 0 #f5bccb}
+.nums span.u{background:#fff6d6;color:#7a5a00;box-shadow:0 0 0 2px var(--gold)}
+.nums span.add{background:#fff;color:var(--mut);box-shadow:none;border:2px dashed var(--line);padding:3px 7px}
+.nums .none{font-weight:800;font-size:13px;color:#a3aba5;padding:5px 0}
+/* B: numbered grid */
+.pg{display:grid;grid-template-columns:44px 1fr 26px;gap:8px;align-items:start;padding:4px 0}
+.pg>b{font-weight:900;font-size:13.5px;padding-top:3px}
+.pg>em{font-style:normal;font-weight:900;font-size:13px;color:var(--pinkd);text-align:right;padding-top:3px}
+.cells{display:grid;grid-template-columns:repeat(18,1fr);gap:3px}
+.cells i{font-style:normal;height:22px;border-radius:6px;background:#f3f5f3;color:#b3bab4;font-weight:800;font-size:10px;display:grid;place-items:center}
+.cells i.w{background:var(--pink);color:#fff;font-weight:900;box-shadow:0 2px 0 var(--pinkd)}
+.cells i.u{background:#fff6d6;color:#7a5a00;box-shadow:0 0 0 2px var(--gold);font-weight:900}
+.leg{display:flex;gap:14px;margin-top:10px;font-weight:800;font-size:12.5px;color:var(--mut)}
+.leg span{display:flex;align-items:center;gap:6px}.leg i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.hero{position:relative;margin-top:14px;display:flex;align-items:center;gap:18px;padding-right:118px!important;border-radius:22px;background:linear-gradient(135deg,#4fc066,#2f8a42);color:#fff;padding:14px 18px 16px;overflow:hidden}
+.hero .big{font-weight:900;font-size:56px;letter-spacing:-2px;line-height:.95}.hero .big small{font-size:16px;letter-spacing:0;opacity:.85;margin-left:4px}
+.hl{flex:1;min-width:0}.lr2{display:flex;gap:16px;margin-top:10px}.lr2 div{flex:1}.lr2 span{display:flex;justify-content:space-between;font-weight:800;font-size:12.5px}
+.lr2 i{display:block;height:8px;border-radius:99px;background:rgba(255,255,255,.25);margin-top:3px;overflow:hidden}.lr2 i b{display:block;height:100%;background:#fff;border-radius:99px}
+.hero .ring{position:absolute;right:-50px;top:-50px;width:160px;height:160px;border-radius:50%;border:22px solid rgba(255,255,255,.08)}
+.hero .sq{position:absolute;right:6px;bottom:-14px;width:104px}.hero .sq svg{display:block;width:100%}
+.hm{display:flex;flex-direction:column;align-items:flex-start;gap:6px;position:relative;z-index:1}.hm div{display:flex;gap:6px}
+.hp{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border-radius:99px;padding:5px 11px;font-weight:800;font-size:13px;white-space:nowrap;cursor:pointer}
+.hp.nm{background:#fff;color:#2f8a42;font-weight:900;font-size:14px}
+.hp::after{content:'';width:10px;height:10px;opacity:.8;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14 L3 10 L11 2 L14 5 L6 13Z' fill='%23ffffff'/%3E%3C/svg%3E") center/contain no-repeat}
+.hp.nm::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14 L3 10 L11 2 L14 5 L6 13Z' fill='%232f8a42'/%3E%3C/svg%3E")}
+.sec .wn{margin-left:auto;order:2;color:var(--pinkd);letter-spacing:0;font-size:13px}
+</style></head>
+<body>
+<h1>Xem lại sau khi Sóc đọc ảnh · hướng 3, làm rõ từng câu sai</h1>
+<div class="lead">Màn này để bạn so với tờ đáp án: Sóc đọc nhầm số câu là chuyện có thể xảy ra, nên hiện đúng số câu sai thay vì biểu đồ. Không trùng với Hành trình điểm (ở đó là xu hướng qua nhiều đề).</div>
+<div class="cols">
+
+<div>
+ <div class="ttl"><i>3A</i>Số câu sai theo Part<small>chỉ hiện câu sai · bấm số để bỏ, + để thêm</small></div>
+ <div class="m"><div class="mh"><b>Sóc đọc được</b><div class="x">×</div></div>
+  <div class="sc"><span class="big">745</span><span class="lr"><span>Nghe <b>375</b></span><span>Đọc <b>370</b></span></span><span class="w"><b>41</b><small>câu sai</small></span></div>
+  <div class="meta"><span class="chip">ETS 2024 Test 05</span><span class="chip">Hôm nay</span><span class="chip">1g 58p</span></div>
+  <div id="A"></div>
+  <div class="note"><i>?</i>Câu 132 bị mờ, Sóc đang tính là sai<a>Xem ảnh</a></div>
+  <div class="foot"><span class="btn w">Dán ảnh khác</span><span class="btn">Lưu điểm</span></div></div>
+</div>
+
+<div>
+ <div class="ttl"><i>3B</i>Lưới có số<small>đủ 200 câu · bấm ô để đổi đúng/sai</small></div>
+ <div class="m"><div class="mh"><b>Sóc đọc được</b><div class="x">×</div></div>
+  <div class="hero"><span class="ring"></span>
+   <div class="hl"><div class="big">745<small>/990</small></div>
+    <div class="lr2"><div><span>Nghe <b>375</b></span><i><b style="width:76%"></b></i></div><div><span>Đọc <b>370</b></span><i><b style="width:75%"></b></i></div></div></div>
+   <div class="hm"><span class="hp nm">ETS 2024 Test 05</span><div><span class="hp">Hôm nay</span><span class="hp">1g 58p</span></div></div>
+   <span class="sq" id="sq"></span></div>
+  <div id="B"></div>
+  <div class="leg"><span><i style="background:var(--pink)"></i>sai</span><span><i style="background:#fff6d6;box-shadow:0 0 0 2px var(--gold)"></i>chưa chắc</span><span><i style="background:#f3f5f3"></i>đúng</span><span style="margin-left:auto;color:var(--blue);font-weight:900">Câu 132 bị mờ · Xem ảnh</span></div>
+  <div class="foot"><span class="btn w">Dán ảnh khác</span><span class="btn">Lưu điểm</span></div></div>
+</div>
+
+</div>
+<script>
+const PARTS=[[1,6],[7,31],[32,70],[71,100],[101,130],[131,146],[147,200]];
+const WR=[[4],[9,15,27],[34,37,41,45,52,56,61,68],[73,80,88,94,99],[104,112,118,121,127],[132,134,137,140,141,143,146],[149,153,158,162,167,171,176,181,186,190,195,199]];
+const UN=132;
+let a='';PARTS.forEach(([s,e],i)=>{if(i===0)a+='<div class="sec">NGHE</div>';if(i===4)a+='<div class="sec">ĐỌC</div>';
+ a+=`<div class="pr"><div class="pl"><b>P${i+1}</b><small>${WR[i].length}/${e-s+1}</small></div><div class="nums">${WR[i].map(n=>`<span class="${n===UN?'u':''}">${n}${n===UN?' ?':''}</span>`).join('')}<span class="add">+</span></div></div>`});
+document.getElementById('A').innerHTML=a;
+let b='';PARTS.forEach(([s,e],i)=>{if(i===0)b+='<div class="sec">NGHE</div>';if(i===4)b+='<div class="sec">ĐỌC</div>';let c='';for(let n=s;n<=e;n++){c+=`<i class="${n===UN?'u':WR[i].includes(n)?'w':''}">${n}</i>`}
+ b+=`<div class="pg"><b>P${i+1}</b><div class="cells">${c}</div><em>${WR[i].length}</em></div>`});
+document.getElementById('B').innerHTML=b.replace('<div class="sec">NGHE</div>','<div class="sec">NGHE<span class="wn">41 câu sai</span></div>');
+</script>
+<script src="_soc.js"></script><script>document.getElementById("sq").innerHTML=soc("idle")</script></body></html>

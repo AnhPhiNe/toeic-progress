@@ -1,5 +1,5 @@
 import { StudySession, MistakeEntry, UserProfile, SmartWeeklyTask, WeeklyPlanRecord, PacingRun } from '@/shared/types';
-import { getTodayDateString, getWeekMonday, addDays, getOrCreateWeeklyPlan } from '@/shared/data/storage';
+import { getTodayDateString, getWeekMonday, addDays, getOrCreateWeeklyPlan, loadUserProfile, loadWeeklyPlans, saveWeeklyPlans } from '@/shared/data/storage';
 import { getPracticeParts } from '@/shared/domain/etsScoring';
 import { causePriority } from '@/shared/domain/learningAnalytics';
 import type { VocabLog } from '@/shared/data/dataBundle';
@@ -38,6 +38,8 @@ export interface WeeklyStudyPlanSummary {
 
   minutesThisWeek: number;
   minutesGoalThisWeek: number;
+  /** Minutes logged on each day Monday..Sunday, same source as minutesThisWeek. */
+  minutesByDay: number[];
   daysStudiedThisWeek: number;
   fullTestsThisWeek: number;
 
@@ -95,7 +97,12 @@ export function buildWeeklyStudyPlan(
   const thisWeekSessions = sessions.filter(s => !s.deletedAt && s.date >= weekStart && s.date <= weekEnd);
   // Chỉ đếm Full Test có điểm; bản ghi Sprint Reading cũ từng bị lưu là FULL_TEST không điểm
   const fullTestsThisWeek = thisWeekSessions.filter(s => s.skillType === 'LR' && s.sessionType === 'FULL_TEST' && (s.totalScore || 0) > 0).length;
-  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + (Number.isFinite(s.durationMinutes) && s.durationMinutes > 0 ? s.durationMinutes : 0), 0);
+  const sessionMinutes = (s: StudySession) => Number.isFinite(s.durationMinutes) && s.durationMinutes > 0 ? s.durationMinutes : 0;
+  const minutesThisWeek = thisWeekSessions.reduce((acc, s) => acc + sessionMinutes(s), 0);
+  const minutesByDay = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(weekStart, i);
+    return thisWeekSessions.filter(s => s.date === day).reduce((acc, s) => acc + sessionMinutes(s), 0);
+  });
 
   const daysStudiedThisWeek = new Set([
     ...thisWeekSessions.map(s => s.date),
@@ -226,9 +233,63 @@ export function buildWeeklyStudyPlan(
     completionPercent,
     minutesThisWeek,
     minutesGoalThisWeek,
+    minutesByDay,
     daysStudiedThisWeek,
     fullTestsThisWeek,
     tasks: evaluatedTasks,
     recommendation
   };
 }
+
+export function syncPrioritiesToWeeklyPlan(
+  priorities: Array<{ part: number | null; title: string; practice?: string; minutes?: number }>
+): boolean {
+  try {
+    const validPriorities = priorities.filter(
+      (p): p is { part: number; title: string; practice?: string; minutes?: number } =>
+        typeof p.part === 'number' && Number.isInteger(p.part) && p.part >= 1 && p.part <= 7
+    );
+    if (validPriorities.length === 0) return false;
+
+    const weekKey = getWeekMonday(getTodayDateString());
+    const profile = loadUserProfile();
+    const currentPlan = getOrCreateWeeklyPlan(weekKey, profile, false);
+    const existingTasks = [...currentPlan.tasks];
+    let added = false;
+
+    for (const priority of validPriorities) {
+      if (existingTasks.length >= 15) break;
+      const alreadyHasPart = existingTasks.some(
+        task => task.type === 'AUTO_PART_PRACTICE' && task.partNumber === priority.part
+      );
+      if (!alreadyHasPart) {
+        const cleanTitle = priority.title.trim();
+        const title = cleanTitle.toLowerCase().includes(`part ${priority.part}`)
+          ? cleanTitle
+          : `Luyện Part ${priority.part}: ${cleanTitle}`;
+        existingTasks.push({
+          id: `task-ai-part-${priority.part}-${weekKey}`,
+          title: title.slice(0, 120),
+          type: 'AUTO_PART_PRACTICE',
+          partNumber: priority.part,
+          target: 2,
+          unit: 'bài',
+          notes: (priority.practice || `Ưu tiên từ chẩn đoán AI cho Part ${priority.part}`).slice(0, 300),
+          color: priority.part === 7 ? 'amber' : priority.part <= 4 ? 'rose' : 'sky',
+          createdAt: new Date().toISOString()
+        });
+        added = true;
+      }
+    }
+
+    const plans = loadWeeklyPlans();
+    if (added || !plans[weekKey]) {
+      plans[weekKey] = { ...currentPlan, weekKey, tasks: existingTasks };
+      saveWeeklyPlans(plans);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+

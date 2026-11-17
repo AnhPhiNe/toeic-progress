@@ -1,0 +1,39 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);width:1500px;padding:22px 28px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;align-items:start}
+.tag{font-size:14px;font-weight:800;margin-bottom:3px}.sub{font-size:12px;color:var(--muted);margin-bottom:9px;min-height:48px;line-height:1.4}
+.card{background:#fff;border:2px solid var(--ink);border-radius:18px;box-shadow:3px 3px 0 var(--ink);padding:16px 18px}
+.k{font-size:11px;font-weight:800;letter-spacing:.07em;color:#475569;display:flex;justify-content:space-between}.k i{font-style:normal;color:#0F766E;letter-spacing:0}.k em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:700}
+.name{font-size:16px;font-weight:800;margin-top:5px}
+.big{display:flex;align-items:baseline;gap:8px;margin-top:5px}.big b{font-size:44px;font-weight:800;line-height:1}.big span{font-size:15px;font-weight:700;color:var(--muted)}.big .d{margin-left:auto;font-size:12px;font-weight:800}
+.big .red{color:#E11D48}.big .grn{color:#059669}.big .calm{color:#475569}
+.goal{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0}.goal i{font-style:normal;color:#C2410C}
+.bar{height:9px;border-radius:5px;background:#E2E8F0;margin-top:7px;overflow:hidden}.bar u{display:block;height:100%;background:#2563EB}
+.split{display:grid;grid-template-columns:1fr 1fr;margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0}
+.split div+div{border-left:1px solid #E2E8F0;padding-left:14px}
+.split small{font-size:10px;font-weight:800;letter-spacing:.07em;display:flex;justify-content:space-between;padding-right:6px}.split .l small{color:#4338CA}.split .r small{color:#0F766E}
+.split b{display:block;font-size:26px;font-weight:800;line-height:1.1}.split b em{font-style:normal;font-size:11px;color:var(--muted)}.split span{font-size:11px;color:var(--muted);font-weight:600}
+.next{margin-top:14px;padding-top:12px;border-top:1px solid #E2E8F0}.next p{font-size:12px;font-weight:700;color:var(--muted)}.next p b{color:var(--ink);font-weight:800}
+.go{margin-top:9px;display:flex;gap:10px;align-items:center}
+.main{flex:1;background:#2563EB;color:#fff;border:2px solid var(--ink);border-radius:12px;padding:9px;text-align:center;font-weight:800;font-size:13px;box-shadow:2px 2px 0 var(--ink)}
+.sec{border:2px solid var(--ink);border-radius:12px;padding:7px 12px;font-weight:800;font-size:12px;color:#4338CA;white-space:nowrap}
+.rec{font-style:normal;background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;letter-spacing:0;text-transform:none}
+</style>
+<div class="row" id="row"></div>
+<script>
+const split=`<div class="split"><div class="l"><small>LISTENING <span>›</span></small><b>200 <em>/495</em></b><span>97/100 câu</span></div><div class="r"><small>READING <span>›</span></small><b>200 <em>/495</em></b><span>100/100 câu</span></div></div>`;
+const nxt=`<div class="next"><p>Sổ tay có <b>3 câu</b> đến hạn ôn</p><div class="go"><div class="main">Ôn 3 câu ngay</div><span class="sec">Xem 7 Part →</span></div></div>`;
+const card=(date,score,delta,goal,extra='')=>`<div class="card"><div class="k"><span>KẾT QUẢ GẦN NHẤT · ${date}</span><i>Trình độ A2</i></div><div class="name">Test đồng bộ 21</div><div class="big"><b>${score}</b><span>/ 990</span>${delta}</div>${goal}${split}${nxt}</div>`;
+const oldGoal=`<div class="goal"><span>Mục tiêu 990</span><i>còn 590 điểm</i></div><div class="bar"><u style="width:40%"></u></div>`;
+const newGoal=`<div class="goal"><span>Lên bậc B1 · 550</span><i>còn 150 điểm</i></div><div class="bar"><u style="width:73%"></u></div>`;
+const items=[
+['Hiện tại','Đỏ đậm khi giảm, ngày "06/11", thanh tới 990 gần như trống.',card('06/11',400,'<span class="d red">▼ 535 so với bài trước</span>',oldGoal)],
+['Mới · điểm giảm','Giảm thì xám đậm, lời trung tính, ngày "Hôm qua". Thanh tính tới bậc B1 (gần hơn).',card('Hôm qua',400,'<span class="d calm">thấp hơn lần trước 535</span>',newGoal)],
+['Mới · điểm tăng','Tăng thì xanh lá nổi (thưởng). Cùng thanh tới bậc kế.',card('Hôm qua',655,'<span class="d grn">▲ 95 so với bài trước</span>',`<div class="goal"><span>Lên bậc B2 · 785</span><i>còn 130 điểm</i></div><div class="bar"><u style="width:84%"></u></div>`)],
+['Mới · kỷ lục','Có pill ăn mừng duy nhất, vì là dịp hiếm.',card('Hôm nay',725,'<span class="d grn">▲ 35 so với bài trước</span>',`<div class="goal"><span>Lên bậc B2 · 785</span><i>còn 60 điểm</i></div><div class="bar"><u style="width:92%"></u></div>`).replace('<i>Trình độ A2</i>','<i class="rec">★ Kỷ lục mới</i>')]
+];
+document.getElementById('row').innerHTML=items.map(i=>`<div><div class="tag">${i[0]}</div><div class="sub">${i[1]}</div>${i[2]}</div>`).join('');
+</script></html>

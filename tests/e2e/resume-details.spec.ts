@@ -1,7 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-for (const width of [390, 1280]) test(`overview resumes the right unfinished attempt at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 900 });
+async function seedUnfinished(page: Page) {
   await page.goto('/');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
@@ -18,15 +17,25 @@ for (const width of [390, 1280]) test(`overview resumes the right unfinished att
     localStorage.setItem('toeic_onboarding_done_v1', 'true');
   });
   await page.reload();
-  const resume = page.getByRole('button', { name: /Tiếp tục ghi chi tiết Same source/ });
-  await expect(resume).toContainText('Còn 1 câu');
-  await expect(resume).toContainText('23/10/2026');
-  await expect(resume).toBeInViewport();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await resume.click();
+}
+
+test('the overview has no resume banner; Sổ tay lists the unfinished details on a computer', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await seedUnfinished(page);
+  await expect(page.getByRole('button', { name: /Tiếp tục ghi chi tiết/ })).toHaveCount(0);
+  await page.getByRole('button', { name: /^Sổ tay/ }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
-  const flow = page.getByRole('dialog');
-  await expect(flow.getByRole('button', { name: /^Câu 153(?:\s|$)/ }).first()).toBeVisible();
-  await expect(flow.getByRole('button', { name: /^Câu 156(?:\s|$)/ })).toHaveCount(0);
-  await expect(flow.getByRole('button', { name: /^Câu 154(?:\s|$)/ })).toHaveCount(0);
+  const pending = page.locator('.nb-pend');
+  await expect(pending.first()).toContainText('Same source');
+  await expect(pending.first()).toContainText('chưa ghi chi tiết');
+  await expect(pending.first().getByRole('button', { name: 'Ghi chi tiết', exact: true })).toBeVisible();
+});
+
+test('on a phone Sổ tay names the unfinished details', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await seedUnfinished(page);
+  await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: /^Sổ tay/ }).click();
+  await expect(page).toHaveURL(/\/so-tay$/);
+  await expect(page.getByRole('button', { name: /^Ghi chi tiết \d+ câu, Same source/ }).first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

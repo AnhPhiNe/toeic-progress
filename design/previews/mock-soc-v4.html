@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sóc v4: A và C vẽ kỹ hơn</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#sheet{width:1440px;background:#fff;padding:44px 52px 52px}
+h1{font-weight:900;font-size:36px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:16.5px;color:var(--mut);margin-top:4px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:28px}
+.c{border-radius:36px;padding:30px 30px 30px;display:grid;grid-template-columns:330px minmax(0,1fr);column-gap:22px;align-items:center}
+.c .art svg{display:block;width:100%;overflow:visible}
+.c .tag{font-weight:900;font-size:14px;opacity:.8}
+.c h2{font-weight:900;font-size:34px;letter-spacing:-.8px;margin:2px 0 14px}
+.d{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;font-weight:700;font-size:14.5px;line-height:1.4}
+.d i{flex:none;width:26px;height:26px;border-radius:9px;margin-top:-1px}
+.d b{font-weight:900;display:block}
+.sw{display:flex;gap:8px;margin-top:18px}
+.sw i{width:34px;height:34px;border-radius:13px;display:block}
+.mini{display:flex;align-items:flex-end;gap:14px;margin-top:20px;font-weight:800;font-size:13px;color:#5c675f}
+.mini span{display:block;flex:none}
+.mini .s1{width:64px}.mini .s2{width:40px}.mini .s3{width:24px}
+.mini svg{display:block;width:100%;overflow:visible;filter:brightness(0)}
+.mini svg .gs{display:none}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <h1>Sóc v4: A và C vẽ kỹ hơn</h1>
+  <div class="lead">Màu dịu hơn, thêm chi tiết nhỏ, sửa đuôi của A và phần áo choàng của C.</div>
+  <div class="row">
+    <div class="c" style="background:#fff3e6">
+      <div class="art" id="a"></div>
+      <div>
+        <div class="tag" style="color:#b0591c">Hướng A</div><h2>Sóc Mũ Hạt</h2>
+        <div class="d"><i style="background:#a66a42"></i><span><b>Mũ vỏ hạt dẻ</b>có cuống và một chiếc lá non</span></div>
+        <div class="d"><i style="background:#4fc06a"></i><span><b>Khăn xanh màu app</b>cài một ngôi sao vàng</span></div>
+        <div class="d"><i style="background:#ffa468"></i><span><b>Đuôi xù cuộn tròn</b>ôm sát lưng, có lõi màu kem</span></div>
+        <div class="d"><i style="background:#ffb9ab"></i><span><b>Mặt</b>mắt to, má hồng, ba chấm tàn nhang</span></div>
+        <div class="sw"><i style="background:#ffa468"></i><i style="background:#fff3e0"></i><i style="background:#a66a42"></i><i style="background:#4fc06a"></i><i style="background:#ffc83d"></i></div>
+        <div class="mini"><span class="s1" data-k="a"></span><span class="s2" data-k="a"></span><span class="s3" data-k="a"></span>Bóng đen</div>
+      </div>
+    </div>
+    <div class="c" style="background:#f1ecff">
+      <div class="art" id="c"></div>
+      <div>
+        <div class="tag" style="color:#6a4fd0">Hướng C</div><h2>Sóc Bay</h2>
+        <div class="d"><i style="background:#ffc83d"></i><span><b>Kính phi công vàng</b>tròng xanh bạc hà, đẩy lên trán</span></div>
+        <div class="d"><i style="background:#ff9ec4"></i><span><b>Áo choàng</b>ngoài tím, lót hồng</span></div>
+        <div class="d"><i style="background:#b39cff"></i><span><b>Tai nhọn</b>để bóng không giống gấu</span></div>
+        <div class="d"><i style="background:#ffd766"></i><span><b>Sao vàng</b>cài ở cổ áo, đuôi xù sau lưng</span></div>
+        <div class="sw"><i style="background:#b39cff"></i><i style="background:#fbf7ff"></i><i style="background:#ff9ec4"></i><i style="background:#ffc83d"></i><i style="background:#7fe0c8"></i></div>
+        <div class="mini"><span class="s1" data-k="c"></span><span class="s2" data-k="c"></span><span class="s3" data-k="c"></span>Bóng đen</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let uid=0;
+function grad(id,l,m,d){return `<radialGradient id="${id}" cx="36%" cy="28%" r="80%"><stop offset="0" stop-color="${l}"/><stop offset=".55" stop-color="${m}"/><stop offset="1" stop-color="${d}"/></radialGradient>`}
+function eye(x,y,rx=15,ry=18,iris='#6a4630'){return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#33241a"/><ellipse cx="${x}" cy="${y+ry*.45}" rx="${rx*.72}" ry="${ry*.42}" fill="${iris}" opacity=".75"/><circle cx="${x+rx*.32}" cy="${y-ry*.36}" r="${rx*.42}" fill="#fff"/><circle cx="${x-rx*.4}" cy="${y+ry*.34}" r="${rx*.2}" fill="#fff"/>`}
+function star(cx,cy,R,fill){let p='';for(let i=0;i<10;i++){const r=i%2?R*.46:R,a=-Math.PI/2+i*Math.PI/5;p+=(i?'L':'M')+(cx+r*Math.cos(a)).toFixed(1)+' '+(cy+r*Math.sin(a)).toFixed(1)}return `<path d="${p}Z" fill="${fill}" stroke="${fill}" stroke-width="3" stroke-linejoin="round"/>`}
+const BEAN='M150 62 C212 62 238 108 238 160 C238 190 226 206 214 218 C222 250 200 284 150 284 C100 284 78 250 86 218 C74 206 62 190 62 160 C62 108 88 62 150 62Z';
+const MASK='M150 132 C124 116 86 124 80 158 C76 186 96 204 112 212 C104 240 118 272 150 272 C182 272 196 240 188 212 C204 204 224 186 220 158 C214 124 176 116 150 132Z';
+const shadow='<ellipse class="gs" cx="160" cy="300" rx="104" ry="10" fill="#2f3a33" opacity=".1"/>';
+const VB='viewBox="-6 -6 320 322"';
+
+function A(){const u='a'+(uid++);return `<svg ${VB}><defs>${grad(u+'b','#ffc79a','#ffa468','#f58845')}${grad(u+'t','#ffb682','#fb9552','#ea7a38')}${grad(u+'h','#c48a5c','#a66a42','#80502f')}${grad(u+'c','#fffdf7','#fff3e0','#f8e0c2')}</defs>${shadow}
+ <path d="M170 284 C250 298 306 254 302 186 C299 134 262 98 231 109 C208 118 207 147 227 156 C214 182 200 202 190 232Z" fill="url(#${u}t)"/>
+ <path d="M238 262 C272 244 288 204 277 166 C271 146 256 134 243 139" fill="none" stroke="#fff0d9" stroke-width="16" stroke-linecap="round"/>
+ <ellipse cx="122" cy="287" rx="23" ry="11" fill="#ea7a38"/><ellipse cx="178" cy="287" rx="23" ry="11" fill="#ea7a38"/>
+ <ellipse cx="118" cy="284" rx="11" ry="4.500" fill="#ffc79a" opacity=".8"/><ellipse cx="174" cy="284" rx="11" ry="4.500" fill="#ffc79a" opacity=".8"/>
+ <path d="M80 104 C56 54 86 38 112 80Z" fill="#ffa468"/><path d="M85 94 C71 64 88 54 103 80Z" fill="#ffb9ab"/>
+ <path d="M220 104 C244 54 214 38 188 80Z" fill="#ffa468"/><path d="M215 94 C229 64 212 54 197 80Z" fill="#ffb9ab"/>
+ <path d="${BEAN}" fill="url(#${u}b)"/>
+ <path d="${MASK}" fill="url(#${u}c)"/>
+ <ellipse cx="95" cy="190" rx="15" ry="9.500" fill="#ff9d8e" opacity=".65"/><ellipse cx="205" cy="190" rx="15" ry="9.500" fill="#ff9d8e" opacity=".65"/>
+ <g fill="#e9a17c"><circle cx="88" cy="176" r="1.800"/><circle cx="95" cy="173" r="1.800"/><circle cx="102" cy="176" r="1.800"/><circle cx="198" cy="176" r="1.800"/><circle cx="205" cy="173" r="1.800"/><circle cx="212" cy="176" r="1.800"/></g>
+ ${eye(119,160)}${eye(181,160)}
+ <path d="M105 137 Q114 131 124 134" fill="none" stroke="#c9763f" stroke-width="3.500" stroke-linecap="round"/><path d="M195 137 Q186 131 176 134" fill="none" stroke="#c9763f" stroke-width="3.500" stroke-linecap="round"/>
+ <ellipse cx="150" cy="183" rx="7" ry="5" fill="#8a5231"/><path d="M138 191 Q144 200 150 191 Q156 200 162 191" fill="none" stroke="#33241a" stroke-width="3.600" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="M178 240 L204 232 C213 247 216 260 214 274 L192 267 C193 256 187 248 178 240Z" fill="#35a352"/>
+ <path d="M87 210 C112 229 188 229 213 210 L216 230 C190 250 110 250 84 230Z" fill="#4fc06a"/>
+ <path d="M90 214 C114 231 186 231 210 214" fill="none" stroke="#8be09c" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+ ${star(120,236,10,'#ffc83d')}
+ <ellipse cx="106" cy="258" rx="11" ry="16" transform="rotate(-26 106 258)" fill="#f58845"/><ellipse cx="194" cy="258" rx="11" ry="16" transform="rotate(26 194 258)" fill="#f58845"/>
+ <path d="M154 26 C166 4 192 4 200 22 C186 36 166 36 154 26Z" fill="#6fd082"/><path d="M158 25 Q178 16 196 22" fill="none" stroke="#35a352" stroke-width="2.500" stroke-linecap="round"/>
+ <rect x="143" y="12" width="13" height="28" rx="6.500" transform="rotate(-12 150 30)" fill="#80502f"/>
+ <path d="M76 96 C76 48 116 28 150 28 C184 28 224 48 224 96 C198 111 102 111 76 96Z" fill="url(#${u}h)"/>
+ <g fill="none" stroke="#dba878" stroke-width="3" stroke-linecap="round" opacity=".6"><path d="M100 56 Q108 64 101 74"/><path d="M124 44 Q132 54 125 66"/><path d="M150 40 Q158 50 151 62"/><path d="M176 44 Q184 54 177 66"/><path d="M200 56 Q207 66 200 76"/><path d="M112 76 Q120 84 114 93"/><path d="M138 72 Q146 82 140 93"/><path d="M164 72 Q172 82 166 93"/><path d="M190 76 Q197 85 191 93"/></g>
+ <path d="M76 96 C102 111 198 111 224 96" fill="none" stroke="#6b4226" stroke-width="11" stroke-linecap="round"/>
+ <ellipse cx="112" cy="50" rx="22" ry="9" transform="rotate(-26 112 50)" fill="#fff" opacity=".22"/></svg>`}
+
+function C(){const u='c'+(uid++);return `<svg ${VB}><defs>${grad(u+'b','#ddd0ff','#b9a4ff','#9b84f2')}${grad(u+'c','#ffffff','#fbf7ff','#eadfff')}${grad(u+'l','#e2fff6','#8fe6d0','#4fc9ae')}</defs>${shadow}
+ <path d="M170 284 C250 298 306 254 302 186 C299 134 262 98 231 109 C208 118 207 147 227 156 C214 182 200 202 190 232Z" fill="#a48cf6"/><path d="M246 258 C276 240 290 204 279 166 C273 146 258 134 245 139" fill="none" stroke="#e4daff" stroke-width="13" stroke-linecap="round"/>
+ <path d="M72 168 C34 176 24 224 46 258 C72 274 228 274 254 258 C276 224 266 176 228 168Z" fill="#8a70ea"/>
+ <path d="M80 182 C52 190 44 222 58 248 C82 260 218 260 242 248 C256 222 248 190 220 182Z" fill="#ff9ec4"/>
+ <ellipse cx="122" cy="287" rx="23" ry="11" fill="#8a70ea"/><ellipse cx="178" cy="287" rx="23" ry="11" fill="#8a70ea"/>
+ <ellipse cx="118" cy="284" rx="11" ry="4.500" fill="#ddd0ff" opacity=".8"/><ellipse cx="174" cy="284" rx="11" ry="4.500" fill="#ddd0ff" opacity=".8"/>
+ <path d="M80 106 C52 52 84 34 114 80Z" fill="#b39cff"/><path d="M85 96 C69 62 88 52 105 80Z" fill="#ffb5d0"/>
+ <path d="M220 106 C248 52 216 34 186 80Z" fill="#b39cff"/><path d="M215 96 C231 62 212 52 195 80Z" fill="#ffb5d0"/>
+ <path d="${BEAN}" fill="url(#${u}b)"/>
+ <path d="${MASK}" fill="url(#${u}c)"/>
+ <ellipse cx="95" cy="192" rx="15" ry="9.500" fill="#ff9ec4" opacity=".6"/><ellipse cx="205" cy="192" rx="15" ry="9.500" fill="#ff9ec4" opacity=".6"/>
+ ${eye(119,165,15,18,'#6b4fb8')}${eye(181,165,15,18,'#6b4fb8')}
+ <ellipse cx="150" cy="186" rx="7" ry="5" fill="#7a4f8f"/>
+ <path d="M135 194 Q150 216 165 194Z" fill="#5a2f4a"/><path d="M142 204 Q150 213 158 204 Q150 199 142 204Z" fill="#ff8fa8"/>
+ <path d="M90 212 C114 229 186 229 210 212 L212 224 C188 242 112 242 88 224Z" fill="#ff9ec4"/>
+ ${star(150,236,12,'#ffd766')}
+ <ellipse cx="76" cy="206" rx="12" ry="19" transform="rotate(54 76 206)" fill="#9b84f2"/><ellipse cx="224" cy="206" rx="12" ry="19" transform="rotate(-54 224 206)" fill="#9b84f2"/>
+ <path d="M66 120 C96 94 204 94 234 120" fill="none" stroke="#4a3a86" stroke-width="10" stroke-linecap="round"/>
+ <rect x="139" y="92" width="22" height="11" rx="5.500" fill="#e0a51a"/>
+ <circle cx="119" cy="98" r="26" fill="#ffc83d"/><circle cx="119" cy="98" r="20" fill="#e0a51a"/><circle cx="119" cy="98" r="17" fill="url(#${u}l)"/><path d="M108 92 Q114 83 125 85" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+ <circle cx="181" cy="98" r="26" fill="#ffc83d"/><circle cx="181" cy="98" r="20" fill="#e0a51a"/><circle cx="181" cy="98" r="17" fill="url(#${u}l)"/><path d="M170 92 Q176 83 187 85" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/></svg>`}
+
+const F={a:A,c:C};
+['a','c'].forEach(k=>document.getElementById(k).innerHTML=F[k]());
+document.querySelectorAll('[data-k]').forEach(e=>e.innerHTML=F[e.dataset.k]());
+</script>
+</body>
+</html>

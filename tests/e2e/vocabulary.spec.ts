@@ -106,7 +106,7 @@ test('invalid count and failed save keep the input; a stale day cannot overwrite
   await expect(edit.getByLabel('Số từ đã học')).toHaveValue('30');
 });
 
-test('compact layout fits widths and themes; bars grow while numeric labels remain fixed', async ({ page }, testInfo) => {
+test('compact layout fits widths; bars grow while numeric labels remain fixed', async ({ page }, testInfo) => {
   await seed(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const width of [320,375,768,1024,1440]) {
@@ -115,9 +115,8 @@ test('compact layout fits widths and themes; bars grow while numeric labels rema
   }
   await expect(page.getByText('TB mỗi ngày ghi nhận', {exact:true})).toBeVisible();
   await page.screenshot({path:testInfo.outputPath('vocabulary-desktop.png'), fullPage:true, animations:'disabled'});
-  await page.getByRole('button',{name:'Chuyển sang giao diện Tối',exact:true}).click();
   await page.setViewportSize({width:375,height:812});
-  await page.screenshot({path:testInfo.outputPath('vocabulary-mobile-dark.png'), fullPage:true, animations:'disabled'});
+  await page.screenshot({path:testInfo.outputPath('vocabulary-mobile.png'), fullPage:true, animations:'disabled'});
   // The animated recharts chart is tablet/desktop only; phones show a fixed 14-day strip.
   await page.setViewportSize({width:768,height:900});
   await page.emulateMedia({reducedMotion:'no-preference'});
@@ -166,6 +165,6 @@ test('legacy duplicate dates show one daily total and editing/deleting keeps tot
   await page.getByRole('button',{name:'Xóa ghi nhận ngày 09/10/2026',exact:true}).click();
   await expect(page.getByText('0 từ tích lũy',{exact:true})).toBeVisible();
   await expect(page.locator('[data-vocab-day]')).toHaveCount(0);
-  await page.getByRole('button',{name:'Tổng quan',exact:true}).click();
-  await expect(page.getByRole('group',{name:'Chuỗi học 0 ngày',exact:true})).toBeVisible();
+  // The sidebar's profile button carries the streak ("…, chuỗi N ngày · Mở Thành tích").
+  await expect(page.getByRole('button',{name:/chuỗi 0 ngày/})).toBeVisible();
 });

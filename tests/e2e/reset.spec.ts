@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openSettings } from './helpers/accountGroup';
 
 test('guest reset removes content and retired copies with one confirmation', async ({ page }) => {
   await page.goto('/tu-vung');
@@ -11,7 +12,7 @@ test('guest reset removes content and retired copies with one confirmation', asy
     localStorage.setItem('toeic_weekly_plans_v1_owner','guest');
     localStorage.setItem('toeic_smart_weekly_plans_v1','Private old plan');
   });
-  await page.getByRole('button',{name:'Cài đặt hồ sơ Học viên'}).click();
+  await openSettings(page);
   let confirmations=0;
   page.on('dialog',async dialog => { confirmations++; await dialog.accept(); });
   await page.getByRole('button',{name:'Xóa toàn bộ dữ liệu'}).click();
@@ -35,7 +36,7 @@ test('canceling reset retains guest content', async ({ page }) => {
   await page.getByRole('spinbutton',{name:'Số từ đã học'}).fill('4');
   await page.getByRole('button',{name:'Lưu từ vựng'}).click();
   const before=await page.evaluate(()=>localStorage.getItem('toeic_progress_bundle_v3'));
-  await page.getByRole('button',{name:'Cài đặt hồ sơ Học viên'}).click();
+  await openSettings(page);
   page.once('dialog',dialog=>dialog.dismiss());
   await page.getByRole('button',{name:'Xóa toàn bộ dữ liệu'}).click();
   await expect(page.getByRole('dialog')).toBeVisible();

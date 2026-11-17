@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BarChart3, Clock3, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronDown, Clock3, History, Pause, Play, RotateCcw, Settings2, Timer, Volume2, VolumeX } from 'lucide-react';
 import type { PacingRun, ReadingPartType } from '@/shared/types';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { getActiveAccountId, readDataBundle } from '@/shared/data/dataBundle';
@@ -10,6 +10,7 @@ import { pacingError } from '@/features/pacing/lib/pacingErrors';
 import { usePacingTimer } from '@/features/pacing/hooks/usePacingTimer';
 import { PacingHistory } from './PacingHistory';
 import { PacingCharts } from './PacingCharts';
+import { PacingResults } from './PacingResults';
 import { PacingResultModal, PomodoroSettingsModal, ReadingSettingsModal, pacingPrimary, pacingSecondary } from './PacingDialogs';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { Sheet } from '@/app/components/MobileNav';
@@ -41,13 +42,28 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
   const timer = usePacingTimer(owner, supportedMode(initialPart), settings);
   const { snapshot, now } = timer;
   const { start: startClock, pause: pauseClock, saved: finishSaved, returnToClock } = timer;
-  const [tab, setTab] = useState<'timer' | 'history' | 'stats'>('timer');
+  // Computers show two tabs (Luyện tập, Kết quả); phones keep history and stats apart until their redesign.
+  const [tab, setTab] = useState<'timer' | 'history' | 'stats' | 'results'>('timer');
+  const [tipOpen, setTipOpen] = useState(false);
   const [runs, setRuns] = useState<PacingRun[]>(pacingRunsNow), [suggestions, setSuggestions] = useState(sourcesNow);
   const [configOpen, setConfigOpen] = useState(false), [settingsOpen, setSettingsOpen] = useState(false);
   const [sound, setSound] = useState(() => initialSound(owner));
   const isPhone = useMediaQuery(PHONE_QUERY);
+  // Crossing the phone breakpoint maps between the merged and the separate result tabs.
+  if (!isPhone && (tab === 'history' || tab === 'stats')) setTab('results');
+  if (isPhone && tab === 'results') setTab('history');
   const [part7Open, setPart7Open] = useState(false);
   if (!isPhone && part7Open) setPart7Open(false);
+  const [part7MenuOpen, setPart7MenuOpen] = useState(false);
+  const part7MenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!part7MenuOpen) return;
+    const clickOutside = (e: MouseEvent | PointerEvent) => {
+      if (!part7MenuRef.current?.contains(e.target as Node)) setPart7MenuOpen(false);
+    };
+    document.addEventListener('pointerdown', clickOutside);
+    return () => document.removeEventListener('pointerdown', clickOutside);
+  }, [part7MenuOpen]);
   const phoneModes = useRef<HTMLDivElement>(null);
   // The chosen mode can sit past the edge of the scrolling row (Pomodoro on narrow phones).
   useEffect(() => { phoneModes.current?.querySelector('.is-selected')?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' }); }, [snapshot.mode, isPhone]);
@@ -174,7 +190,7 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
     try {
       setRuns(edit ? updatePacingResult(edit.run, owner, edit.name, edit.correct, edit.study) : savePacingResult(snapshot));
       if (edit) setEdit(null); else timer.saved();
-      setSuggestions(sourcesNow()); onSessionsChanged?.(); setError(''); setTab('history');
+      setSuggestions(sourcesNow()); onSessionsChanged?.(); setError(''); setTab(isPhone ? 'history' : 'results');
     } catch (reason) { setError(pacingError(reason, 'Chưa lưu được kết quả. Dữ liệu nhập vẫn được giữ.')); }
     finally { savingRef.current = false; setSaving(false); }
   };
@@ -204,7 +220,6 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
       <button type="button" aria-pressed={snapshot.mode === 'PART_6'} data-mode-tone="part6" className={selectedMode('PART_6')} onClick={() => selectMode('PART_6')}>Part 6</button>
       <button type="button" aria-pressed={snapshot.mode.startsWith('PART_7')} aria-haspopup="dialog" data-mode-tone="part7" className={`pacing-mode ${snapshot.mode.startsWith('PART_7') ? 'is-selected' : ''}`} onClick={() => setPart7Open(true)}>{snapshot.mode.startsWith('PART_7') ? PART_7_SHORT[snapshot.mode as Part7Mode] : 'Part 7'}</button>
       <button type="button" aria-pressed={snapshot.mode === 'FULL_READING'} data-mode-tone="reading" className={selectedMode('FULL_READING')} onClick={() => selectMode('FULL_READING')}>Reading 75p</button>
-      <button type="button" aria-pressed={isPomodoro} data-mode-tone="pomodoro" className={selectedMode('POMODORO')} onClick={() => selectMode('POMODORO')}>Pomodoro</button>
     </div>
     {isPomodoro && <div role="group" aria-label="Giai đoạn Pomodoro" className="pacing-phases mt-4 justify-center">{([['WORK', 'Tập trung'], ['SHORT_BREAK', 'Nghỉ ngắn'], ['LONG_BREAK', 'Nghỉ dài']] as const).map(([phase, label]) => <button type="button" key={phase} aria-pressed={snapshot.phase === phase} className={`pacing-phase-button transition-all duration-200 ${snapshot.phase === phase ? 'is-selected' : ''}`} onClick={() => { triggerHaptic(8); selectMode('POMODORO', phase); }}>{label}</button>)}</div>}
     {wakeLockActive && (
@@ -270,30 +285,152 @@ function PacingWorkspace({ owner, onSessionsChanged, theme = 'light', initialPar
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         <span>{backLabel || 'Quay lại'}</span>
       </button>
-    )}<div role="tablist" aria-label="Luyện tốc độ" className="pacing-tabs">{([['timer', 'Luyện tập', Timer], ['history', 'Lịch sử', History], ['stats', 'Thống kê', BarChart3]] as const).map(([id, label, Icon], index) => <button type="button" key={id} role="tab" aria-selected={tab === id} aria-controls={`pacing-${id}`} id={`pacing-${id}-tab`} className={`pacing-tab ${tab === id ? 'is-selected' : ''}`} onClick={() => setTab(id)} onKeyDown={event => {
+    )}{isPhone ? <div role="tablist" aria-label="Luyện tốc độ" className="pacing-tabs">{([['timer', 'Luyện tập', Timer], ['history', 'Lịch sử', History], ['stats', 'Thống kê', BarChart3]] as const).map(([id, label, Icon], index) => <button type="button" key={id} role="tab" aria-selected={tab === id} aria-controls={`pacing-${id}`} id={`pacing-${id}-tab`} className={`pacing-tab ${tab === id ? 'is-selected' : ''}`} onClick={() => setTab(id)} onKeyDown={event => {
       const tabs = ['timer', 'history', 'stats'] as const;
       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
       event.preventDefault(); const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + 3) % 3]; setTab(next); document.getElementById(`pacing-${next}-tab`)?.focus();
-    }}><Icon className="h-4 w-4" aria-hidden="true" />{label}</button>)}</div>{!isPhone && <div className="pacing-header-tools">
+    }}><Icon className="h-4 w-4" aria-hidden="true" />{label}</button>)}</div>
+      : <div role="tablist" aria-label="Luyện tốc độ" className="-mb-[18px] flex items-end gap-7 self-end">{([['timer', 'Luyện tập', Timer], ['results', 'Kết quả', BarChart3]] as const).map(([id, label, Icon], index) => <button type="button" key={id} role="tab" aria-selected={tab === id} aria-controls={`pacing-${id}`} id={`pacing-${id}-tab`}
+        className={`flex cursor-pointer items-center gap-2 border-b-4 px-0.5 pb-3 pt-1 text-[15px] font-extrabold transition-colors ${tab === id ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+        onClick={() => setTab(id)} onKeyDown={event => {
+          if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+          event.preventDefault(); const next = (['timer', 'results'] as const)[(index + 1) % 2]; setTab(next); document.getElementById(`pacing-${next}-tab`)?.focus();
+        }}><Icon className="h-4 w-4" aria-hidden="true" />{label}</button>)}</div>}{!isPhone && <div className="pacing-header-tools">
       <div className="pacing-today" title="Thời gian luyện Reading và Pomodoro tập trung đã lưu hôm nay; không gồm lượt nghỉ."><Clock3 className="h-4 w-4" aria-hidden="true" /><span>Đã luyện hôm nay <strong>{studyTimeLabel(todaySeconds)}</strong></span></div>
       {soundButton}
     </div>}</div>
       {tab !== 'timer' && snapshot.status !== 'ready' && <div className="pacing-resume"><span>{config.name} · {formatClock(remaining)} · {snapshot.status === 'running' ? 'Đang chạy' : snapshot.status === 'finished' ? 'Chờ kết quả' : 'Đã tạm dừng'}</span><button type="button" className="pacing-link" onClick={() => setTab('timer')}>Trở về đồng hồ →</button></div>}
       {(error || timer.error) && !edit && snapshot.status !== 'finished' && <p role="alert" className="mx-4 mt-3 text-sm text-rose-700 dark:text-rose-300">{error || timer.error}</p>}
       {tab === 'timer' && isPhone && phonePanel}
-      {tab === 'timer' && !isPhone && <section id="pacing-timer" role="tabpanel" aria-labelledby="pacing-timer-tab" className="pacing-panel" data-clock-tone={clockTone} data-mode-tone={modeTone}><div className="pacing-practice"><div className="pacing-mode-row"><div role="group" aria-label="Chế độ luyện" className="pacing-modes"><button type="button" aria-pressed={snapshot.mode === 'PART_5'} data-mode-tone="part5" className={selectedMode('PART_5')} onClick={() => selectMode('PART_5')}>Part 5</button><button type="button" aria-pressed={snapshot.mode === 'PART_6'} data-mode-tone="part6" className={selectedMode('PART_6')} onClick={() => selectMode('PART_6')}>Part 6</button><select data-mode-tone="part7" aria-label="Chọn Part 7" value={snapshot.mode.startsWith('PART_7') ? snapshot.mode : 'PART_7_INACTIVE'} className={`pacing-mode ${snapshot.mode.startsWith('PART_7') ? 'is-selected' : ''}`} onChange={event => selectMode(event.target.value as PacingMode)}><option value="PART_7_INACTIVE" hidden>Part 7 · Toàn bộ</option><option value="PART_7">Part 7 · Toàn bộ</option><option value="PART_7_SINGLE">Part 7 · Đoạn đơn</option><option value="PART_7_MULTI">Part 7 · Đôi/ba</option></select><button type="button" aria-pressed={snapshot.mode === 'FULL_READING'} data-mode-tone="reading" className={selectedMode('FULL_READING')} onClick={() => selectMode('FULL_READING')}>Reading 75p</button><button type="button" aria-pressed={isPomodoro} data-mode-tone="pomodoro" className={selectedMode('POMODORO')} onClick={() => selectMode('POMODORO')}>Pomodoro</button></div></div>
-        <div className={`pacing-setup ${isPomodoro ? 'is-pomodoro' : ''}`}>{isPomodoro ? <div role="group" aria-label="Giai đoạn Pomodoro" className="pacing-phases">{([['WORK', 'Tập trung'], ['SHORT_BREAK', 'Nghỉ ngắn'], ['LONG_BREAK', 'Nghỉ dài']] as const).map(([phase, label]) => <button type="button" key={phase} aria-pressed={snapshot.phase === phase} className={`pacing-phase-button transition-all duration-200 ${snapshot.phase === phase ? 'is-selected' : ''}`} onClick={() => { triggerHaptic(8); selectMode('POMODORO', phase); }}>{label}</button>)}</div> : <span><strong>{config.name}</strong>{snapshot.questions ? ` · ${snapshot.questions} câu` : ''}</span>}{snapshot.status === 'ready' && <button type="button" className="pacing-settings" aria-expanded={configOpen || settingsOpen} onClick={() => isPomodoro ? setSettingsOpen(true) : setConfigOpen(!configOpen)}><Settings2 className="h-4 w-4" aria-hidden="true" />Điều chỉnh</button>}</div>
-        <div className="pacing-clock">
-          {wakeLockActive && (
-            <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-950/60 dark:text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Màn hình luôn sáng (Wake Lock Active)</span>
+      {tab === 'timer' && !isPhone && (
+        <section id="pacing-timer" role="tabpanel" aria-labelledby="pacing-timer-tab" className="pacing-panel !px-6 !pt-7 !pb-6 flex min-h-[calc(100dvh-12rem)] flex-col" data-clock-tone={clockTone} data-mode-tone={modeTone}>
+          <div className="flex flex-1 flex-col">
+            {/* Một cột trung tâm: chế độ, đồng hồ, điều khiển, mẹo */}
+            <div className="flex flex-1 flex-col items-center text-center">
+              {/* Chế độ: một khung viền đen, mỗi ô ghi thời gian và số câu; ô đang chọn tô màu */}
+              <div role="group" aria-label="Chế độ luyện Reading" className="mb-2 grid w-full max-w-3xl grid-cols-4 rounded-2xl border-2 border-slate-900 dark:border-slate-300">
+                {([['PART_5', 'Part 5'], ['PART_6', 'Part 6'], ['PART_7', 'Part 7'], ['FULL_READING', 'Reading']] as const).map(([mode, label], index) => {
+                  const isPart7 = mode === 'PART_7';
+                  const on = isPart7 ? snapshot.mode.startsWith('PART_7') : snapshot.mode === mode;
+                  const shown = isPart7 && on ? snapshot.mode as Part7Mode : mode;
+                  const cell = `flex w-full cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-2.5 transition-colors ${index > 0 ? 'border-l-2 border-slate-900 dark:border-slate-300' : ''} ${index === 0 ? 'rounded-l-[14px]' : ''} ${index === 3 ? 'rounded-r-[14px]' : ''} ${
+                    on ? 'bg-indigo-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-50 dark:bg-[#111A2C] dark:text-white dark:hover:bg-slate-800'
+                  }`;
+                  const body = <>
+                    <span className="inline-flex items-center gap-1 text-[15px] font-black">{isPart7 && on ? PART_7_SHORT[shown as Part7Mode] : label}{isPart7 && <ChevronDown className={`h-3.5 w-3.5 transition-transform ${part7MenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />}</span>
+                    <span className={`text-xs font-semibold tabular-nums ${on ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>{PRESETS[shown].minutes} phút · {PRESETS[shown].questions} câu</span>
+                  </>;
+                  if (!isPart7) return <button key={mode} type="button" aria-pressed={on} className={cell} onClick={() => selectMode(mode)}>{body}</button>;
+                  return (
+                    <div key={mode} ref={part7MenuRef} className="relative">
+                      <button type="button" aria-pressed={on} aria-expanded={part7MenuOpen} className={`${cell} h-full`} onClick={() => setPart7MenuOpen(v => !v)}>{body}</button>
+                      {part7MenuOpen && (
+                        <div className="absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 rounded-xl border-2 border-slate-900 bg-white p-1.5 text-left shadow-[3px_3px_0_0_#0f172a] dark:border-slate-700 dark:bg-slate-900">
+                          {(['PART_7', 'PART_7_SINGLE', 'PART_7_MULTI'] as const).map(part7 => (
+                            <button key={part7} type="button" onClick={() => { selectMode(part7); setPart7MenuOpen(false); }}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-bold transition-colors ${snapshot.mode === part7 ? 'bg-indigo-50 font-black text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-200' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`}>
+                              <span>{PRESETS[part7].name}</span>
+                              <span className="font-semibold tabular-nums text-slate-500 dark:text-slate-400">{PRESETS[part7].questions} câu · {PRESETS[part7].minutes}p</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pomodoro Phases */}
+              {isPomodoro && (
+                <div role="group" aria-label="Giai đoạn Pomodoro" className="pacing-phases mb-3">
+                  {([['WORK', 'Tập trung'], ['SHORT_BREAK', 'Nghỉ ngắn'], ['LONG_BREAK', 'Nghỉ dài']] as const).map(([phase, label]) => (
+                    <button
+                      type="button"
+                      key={phase}
+                      aria-pressed={snapshot.phase === phase}
+                      className={`pacing-phase-button transition-all duration-200 ${snapshot.phase === phase ? 'is-selected' : ''}`}
+                      onClick={() => { triggerHaptic(8); selectMode('POMODORO', phase); }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Wake Lock */}
+              {wakeLockActive && (
+                <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Màn hình luôn sáng (Wake Lock Active)</span>
+                </div>
+              )}
+
+              {/* Đồng hồ số lớn */}
+              <div className="pacing-clock w-full">
+                <div role="timer" className="pacing-time !text-8xl xl:!text-[148px] !leading-none !my-10" aria-label={`Còn ${formatClock(remaining)}`}>
+                  {formatClock(remaining)}
+                </div>
+                {(snapshot.status === 'paused' || snapshot.status === 'finished') && (
+                  <p className="pacing-status">
+                    {snapshot.status === 'paused' ? 'Đã tạm dừng' : remaining <= 0 ? 'Hết thời gian' : 'Chờ nhập kết quả'}
+                  </p>
+                )}
+                {/* Chưa chạy thì thanh để xám; chỉ tô màu khi thời gian bắt đầu trôi */}
+                <div role="progressbar" aria-label="Thời gian còn lại" aria-valuemin={0} aria-valuemax={100} aria-valuenow={remainingPercent} aria-valuetext={`Còn ${formatClock(remaining)}`} className={`pacing-track ${snapshot.status === 'ready' ? '!bg-slate-200 dark:!bg-slate-700' : ''}`}>
+                  <div style={{ width: `${remaining / snapshot.plannedSeconds * 100}%`, ...(snapshot.status === 'ready' ? { background: 'transparent' } : {}) }} />
+                </div>
+                {(actualMs > 0 || snapshot.questions > 0) && (
+                  <p className="pacing-clock-meta !text-sm !font-semibold">
+                    {actualMs > 0 && `Đã dùng ${formatClock(actualMs / 1000)}`}
+                    {actualMs > 0 && snapshot.questions > 0 && ' · '}
+                    {snapshot.questions > 0 && `Mục tiêu ≤ ${formatNumber(snapshot.plannedSeconds / snapshot.questions)} giây mỗi câu`}
+                  </p>
+                )}
+              </div>
+
+              {/* Hàng nút điều khiển */}
+              <div className="pacing-controls mt-8">
+                {snapshot.status === 'ready' ? (
+                  <button type="button" aria-keyshortcuts="Space" className={`${pacingPrimary} !min-h-12 !px-5 !text-base active:scale-95 transition-transform duration-100`} onClick={toggle}>
+                    <Play className="h-4 w-4" aria-hidden="true" />Bắt đầu
+                    <kbd aria-hidden="true" className="rounded-md border-[1.5px] border-slate-900 bg-white px-1.5 text-[11px] font-extrabold leading-5">Space</kbd>
+                  </button>
+                ) : (
+                  <>
+                    {remaining > 0 && (
+                      <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}>
+                        {snapshot.status === 'running' ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+                        {snapshot.status === 'running' ? 'Tạm dừng' : 'Tiếp tục'}
+                      </button>
+                    )}
+                    <button type="button" className={`${pacingSecondary} !border-slate-900 !bg-blue-600 !text-white active:scale-95 transition-transform duration-100`} onClick={() => { initAudio(); timer.finish(); }}>
+                      {isPomodoro ? 'Kết thúc phiên' : remaining ? 'Xong bài' : 'Nhập kết quả'}
+                    </button>
+                    <button type="button" className="pacing-reset active:scale-95 transition-transform duration-100" onClick={() => selectMode(snapshot.mode, snapshot.phase)}>
+                      Làm lại
+                    </button>
+                  </>
+                )}
+                {snapshot.status === 'ready' && (
+                  <button type="button" className="inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 text-sm font-extrabold text-slate-900 hover:bg-slate-100 dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800" aria-expanded={configOpen || settingsOpen} onClick={() => isPomodoro ? setSettingsOpen(true) : setConfigOpen(!configOpen)}>
+                    <Settings2 className="h-4 w-4" aria-hidden="true" />Điều chỉnh
+                  </button>
+                )}
+              </div>
+
+              {/* Mẹo: một dòng, bấm "Xem thêm" để đọc đủ */}
+              <div className="mt-auto w-full max-w-3xl pt-10">
+                <div className="flex items-start gap-2.5 rounded-xl bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+                  <span aria-hidden="true">💡</span>
+                  <p className={`min-w-0 flex-1 ${tipOpen ? '' : 'truncate'}`}><strong className="font-extrabold text-slate-900 dark:text-white">Mẹo {config.name}:</strong> {config.tip}</p>
+                  <button type="button" aria-expanded={tipOpen} onClick={() => setTipOpen(open => !open)} className="shrink-0 cursor-pointer text-xs font-extrabold text-blue-600 hover:underline dark:text-blue-400">{tipOpen ? 'Thu gọn' : 'Xem thêm'}</button>
+                </div>
+              </div>
             </div>
-          )}
-          <div role="timer" className="pacing-time" aria-label={`Còn ${formatClock(remaining)}`}>{formatClock(remaining)}</div>{(snapshot.status === 'paused' || snapshot.status === 'finished') && <p className="pacing-status">{snapshot.status === 'paused' ? 'Đã tạm dừng' : remaining <= 0 ? 'Hết thời gian' : 'Chờ nhập kết quả'}</p>}<div role="progressbar" aria-label="Thời gian còn lại" aria-valuemin={0} aria-valuemax={100} aria-valuenow={remainingPercent} aria-valuetext={`Còn ${formatClock(remaining)}`} className="pacing-track"><div style={{ width: `${remaining / snapshot.plannedSeconds * 100}%` }} /></div>{(actualMs > 0 || snapshot.questions > 0) && <p className="pacing-clock-meta">{actualMs > 0 && `Đã dùng ${formatClock(actualMs / 1000)}`}{actualMs > 0 && snapshot.questions > 0 && ' · '}{snapshot.questions > 0 && `Mục tiêu gợi ý ≤ ${formatNumber(snapshot.plannedSeconds / snapshot.questions)} giây/câu`}</p>}</div>
-        <div className="pacing-controls">{snapshot.status === 'ready' ? <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}><Play className="h-4 w-4" aria-hidden="true" />Bắt đầu</button> : <>{remaining > 0 && <button type="button" className={`${pacingPrimary} active:scale-95 transition-transform duration-100`} onClick={toggle}>{snapshot.status === 'running' ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}{snapshot.status === 'running' ? 'Tạm dừng' : 'Tiếp tục'}</button>}<button type="button" className={`${pacingSecondary} !border-slate-900 !bg-blue-600 !text-white active:scale-95 transition-transform duration-100`} onClick={() => { initAudio(); timer.finish(); }}>{isPomodoro ? 'Kết thúc phiên' : remaining ? 'Xong bài' : 'Nhập kết quả'}</button><button type="button" className="pacing-reset active:scale-95 transition-transform duration-100" onClick={() => selectMode(snapshot.mode, snapshot.phase)}>Làm lại</button></>}</div>
-        <details className="pacing-tip"><summary>{isPomodoro ? 'Gợi ý tập trung' : `Mẹo luyện ${config.name}`}</summary><p>{config.tip}</p></details>
-      </div></section>}
+          </div>
+        </section>
+      )}
+      {tab === 'results' && !isPhone && <div id="pacing-results" role="tabpanel" aria-labelledby="pacing-results-tab"><PacingResults runs={runs} initialMode={snapshot.mode} theme={theme} onPractice={selectMode} onEdit={run => { setEdit({ run, name: run.testName ?? '', correct: run.correctAnswers?.toString() ?? '', study: linkedStudyVersion(run) }); setError(''); }} onDelete={deleteRun} /></div>}
       {tab === 'history' && <div id="pacing-history" role="tabpanel" aria-labelledby="pacing-history-tab"><PacingHistory runs={runs} onNew={() => setTab('timer')} onEdit={run => { setEdit({ run, name: run.testName ?? '', correct: run.correctAnswers?.toString() ?? '', study: linkedStudyVersion(run) }); setError(''); }} onDelete={deleteRun} /></div>}
       {tab === 'stats' && <div id="pacing-stats" role="tabpanel" aria-labelledby="pacing-stats-tab"><PacingCharts runs={runs} initialMode={snapshot.mode} theme={theme} onPractice={selectMode} /></div>}
     </div>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--blue:#1c8fe3;--bd:#136fb3;--pink:#ff7a9c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px;background:#fff;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#eaf5ff;border-color:#b9dcfa;color:var(--bd)}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;padding:26px 40px}
+svg text{font-family:'Nunito'}
+.soc-s svg{display:block;width:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:14px;padding:10px 16px;font-weight:900;font-size:14.5px;background:var(--blue);color:#fff;box-shadow:0 4px 0 var(--bd)}
+.bdg{width:78px}.bdg svg{display:block;width:100%}
+.lab b{display:block;font-weight:900;font-size:13.5px}.lab small{font-weight:800;font-size:12px;color:var(--mut)}
+.bar{height:9px;border-radius:99px;background:#eef0ee;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px}
+.an{position:absolute;z-index:20;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap}
+.an b{width:20px;height:20px;border-radius:50%;background:var(--pink);display:grid;place-items:center;font-size:12px}
+.legend{width:1440px;background:#fff;border-radius:20px;padding:16px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.legend div{font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.45}.legend b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pink);color:#fff;font-size:12px;margin-right:6px}.legend strong{color:var(--ink)}
+/* A cabinet */
+.cab{position:absolute;left:40px;right:40px;top:232px;bottom:26px;border-radius:30px;background:linear-gradient(180deg,#8c5a3a,#6e4329);padding:16px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.col{border-radius:18px;background:linear-gradient(180deg,#fff7ea,#f6e6d0);position:relative;overflow:hidden;display:flex;flex-direction:column;padding:12px 10px 0}
+.col h4{font-weight:900;font-size:15px;text-align:center}.col h4 small{display:block;font-weight:800;font-size:12px;color:var(--mut)}
+.col .glass{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.55) 0 8%,transparent 8% 20%,rgba(255,255,255,.3) 20% 24%,transparent 24%);pointer-events:none}
+.slot{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;border-bottom:9px solid #c98b4e;padding-bottom:4px;position:relative}
+.slot .bdg{width:62px}.slot .bdg.off{filter:grayscale(1) brightness(1.45);opacity:.45}
+.slot .light{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:90px;height:70px;background:radial-gradient(ellipse at bottom,rgba(255,220,120,.6),transparent 70%)}
+.hero{display:grid;grid-template-columns:1fr 430px;gap:22px;margin-top:12px}
+.next{border-radius:24px;background:#eaf5ff;padding:12px 16px;display:flex;align-items:center;gap:16px}
+.next .bdg{width:70px;flex:none}
+.next b{font-weight:900;font-size:16px}.next p{font-weight:700;font-size:13px;color:#4d5850}
+/* B album */
+.album{position:absolute;left:40px;right:74px;top:110px;bottom:26px;display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:24px;background:#f4ead8;box-shadow:0 10px 0 #d8c7a6}
+.pg{padding:28px 30px;position:relative;background:repeating-linear-gradient(#fffaf0 0 31px,#f2e6cf 31px 32px)}
+.pg:first-child{border-radius:24px 0 0 24px;box-shadow:inset -18px 0 24px -16px rgba(120,80,40,.3)}.pg:last-child{border-radius:0 24px 24px 0;box-shadow:inset 18px 0 24px -16px rgba(120,80,40,.3)}
+.pg h3{font-weight:900;font-size:22px}.pg h3 small{font-weight:800;font-size:13px;color:var(--mut);margin-left:8px}
+.stk{position:absolute;text-align:center;width:120px}
+.stk .bdg{width:96px;margin:0 auto;filter:drop-shadow(0 4px 0 rgba(0,0,0,.12))}
+.stk.empty .bdg{filter:none}
+.stk b{font-weight:900;font-size:13px;display:block}.stk small{font-weight:800;font-size:11.5px;color:var(--mut)}
+.tabs{position:absolute;right:-30px;top:40px;display:flex;flex-direction:column;gap:8px}
+.tabs span{writing-mode:vertical-rl;padding:12px 6px;border-radius:0 12px 12px 0;font-weight:900;font-size:13px;color:#fff}
+.tape{position:absolute;width:56px;height:18px;background:rgba(255,230,150,.7);transform:rotate(-8deg)}
+/* C quest */
+.lvl{display:grid;grid-template-columns:330px 1fr;gap:22px;margin-top:14px}
+.ring{border-radius:28px;background:linear-gradient(160deg,#1c8fe3,#136fb3);color:#fff;padding:20px;position:relative;overflow:hidden;height:300px}
+.ring h4{font-weight:900;font-size:14px;opacity:.85}.ring b{font-weight:900;font-size:30px;display:block}
+.qs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.q{border-radius:24px;background:#fff;box-shadow:0 0 0 2px #edf1f5,0 6px 0 #edf1f5;padding:16px;display:flex;flex-direction:column;gap:8px;position:relative}
+.q .bdg{width:70px}
+.q b{font-weight:900;font-size:16px}.q p{font-weight:700;font-size:13px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(11,1fr);gap:16px 10px;margin-top:12px;background:#f7f9fb;border-radius:22px;padding:22px 20px}
+.grid .bdg{width:100%}.grid .off{filter:grayscale(1) brightness(1.15);opacity:.45}
+.recap{display:flex;gap:12px;margin-top:22px}
+.rc{flex:1;border-radius:20px;color:#fff;padding:18px 18px;display:flex;align-items:center;gap:12px}
+.rc b{font-weight:900;font-size:26px}.rc span{font-weight:800;font-size:13px;line-height:1.3}
+.h1{font-weight:900;font-size:30px;letter-spacing:-.8px}.h1 em{font-style:normal;color:var(--blue)}
+.sub{font-weight:700;font-size:14.5px;color:var(--mut);margin-top:2px}
+</style></head>
+<body>
+<div class="cap">A · Tủ kính trưng bày<small>5 ngăn tủ gỗ, mỗi ngăn một nhóm; huy hiệu đã có đứng trên kệ có đèn rọi, chưa có là bóng mờ; trên cùng là "Huy hiệu sắp mở" để biết làm gì tiếp</small></div>
+<div class="page" id="A"></div>
+<div class="legend"><div><b>1</b><strong>Đèn rọi:</strong> huy hiệu mới có ánh đèn vàng chiếu xuống, lấp lánh 3 giây.</div><div><b>2</b><strong>Rê chuột:</strong> huy hiệu xoay nhẹ 3D, hiện ngày đạt và cách đạt.</div><div><b>3</b><strong>Bóng mờ:</strong> bấm vào hiện "còn N…"; sắp đạt thì rung nhẹ.</div><div><b>4</b><strong>Mở khoá:</strong> cửa kính trượt mở, huy hiệu bay lên kệ.</div></div>
+<div class="cap">B · Sổ sưu tập sticker<small>một cuốn album mở đôi; trang trái là nhóm đang xem, trang phải là nhóm kế; sticker đã có dán lệch có băng keo, ô trống là viền nét đứt; tab màu bên mép để lật nhóm</small></div>
+<div class="page" id="B"></div>
+<div class="legend"><div><b>1</b><strong>Dán sticker:</strong> huy hiệu mới bay vào, "bộp" xuống ô với hiệu ứng bóc dán.</div><div><b>2</b><strong>Lật trang:</strong> bấm tab mép phải thì trang lật như sách thật.</div><div><b>3</b><strong>Ô trống:</strong> rê chuột hiện gợi ý cách đạt.</div><div><b>4</b><strong>Trang đầy:</strong> dán đủ một trang thì được con dấu "Hoàn thành".</div></div>
+<div class="cap">C · Cấp độ + nhiệm vụ<small>vòng cấp độ (mỗi huy hiệu cộng sao), 3 nhiệm vụ gần đạt nhất to và rõ, bảng tất cả huy hiệu gọn một hàng, bản tin tuần dạng thẻ nhỏ dưới cùng</small></div>
+<div class="page" id="C"></div>
+<div class="legend"><div><b>1</b><strong>Vòng cấp độ:</strong> sao đếm lên, vòng chạy tới mức hiện tại; lên cấp thì Sóc đổi phụ kiện.</div><div><b>2</b><strong>Nhiệm vụ:</strong> thanh tiến độ chạy; xong thì thẻ lật ra huy hiệu.</div><div><b>3</b><strong>Bảng huy hiệu:</strong> rê chuột phóng to, hiện tên và ngày.</div><div><b>4</b><strong>Bản tin tuần:</strong> thẻ mới có chấm đỏ, mở ra xem như story.</div></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div><div class="nv"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv on"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+const T={b:['#e9a46a','#c97b3d','#fff'],s:['#d5dde5','#9aa8b5','#3d4a55'],g:['#ffd766','#e0a400','#6b4a00']};
+function shape(kind,tier,label,sub){const [f,d,ink]=T[tier]||['#e6e9e6','#c3c8c3','#a3aba5'];let p='';
+ if(kind==='round')p=`<circle cx="50" cy="46" r="34" fill="${f}" stroke="${d}" stroke-width="5"/><circle cx="50" cy="46" r="25" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="2 4" opacity=".8"/><path d="M34 74 L28 96 L40 90 L46 100 L50 80Z M66 74 L72 96 L60 90 L54 100 L50 80Z" fill="${tier?'#ff7a9c':'#e6e9e6'}"/>`;
+ if(kind==='flame')p=`<path d="M50 6 C58 26 84 34 84 60 a34 32 0 0 1 -68 0 C16 44 28 36 32 20 C38 30 44 32 50 6Z" fill="${tier?'#ff9a3d':f}" stroke="${tier?'#e2701a':d}" stroke-width="5" stroke-linejoin="round"/>`;
+ if(kind==='star')p=`<path d="M50 6 l12 26 28 3 -21 19 6 28 -25 -14 -25 14 6 -28 -21 -19 28 -3Z" fill="${f}" stroke="${d}" stroke-width="5" stroke-linejoin="round"/>`;
+ if(kind==='hex')p=`<path d="M50 6 L88 28 V70 L50 92 L12 70 V28Z" fill="${tier?'#7ec4f5':f}" stroke="${tier?'#1c8fe3':d}" stroke-width="5" stroke-linejoin="round"/>`;
+ if(kind==='gem')p=`<path d="M22 32 L36 14 H64 L78 32 L50 90Z" fill="${tier?'#c9b8fd':'#e6e9e6'}" stroke="${tier?'#7c5ce0':'#c3c8c3'}" stroke-width="5" stroke-linejoin="round"/><path d="M22 32 H78 M36 14 L44 32 L50 90 M64 14 L56 32 L50 90" fill="none" stroke="#fff" stroke-width="2" opacity=".6"/>`;
+ if(kind==='cup')p=`<path d="M26 14 H74 V36 A24 24 0 0 1 26 36Z" fill="${f}" stroke="${d}" stroke-width="5"/><path d="M26 20 H14 C14 36 22 42 30 42 M74 20 H86 C86 36 78 42 70 42" fill="none" stroke="${d}" stroke-width="5" stroke-linecap="round"/><rect x="44" y="58" width="12" height="14" fill="${d}"/><rect x="30" y="72" width="40" height="12" rx="4" fill="#2f3a33"/>`;
+ const ty=kind==='cup'?40:kind==='star'?56:kind==='flame'?66:50;
+ const fill=kind==='gem'&&tier?'#fff':(kind==='flame'||kind==='hex')&&tier?'#fff':ink;
+ return `<svg viewBox="0 0 100 104">${p}<text x="50" y="${ty}" text-anchor="middle" font-weight="900" font-size="${String(label).length>2?20:26}" fill="${fill}">${label}</text>${sub?`<text x="50" y="${ty+14}" text-anchor="middle" font-weight="800" font-size="10" fill="${fill}">${sub}</text>`:''}</svg>`}
+const B=(k,t,l,s,cls='')=>`<div class="bdg ${cls}">${shape(k,t,l,s)}</div>`;
+const AN=(n,t,x,y)=>`<span class="an" style="left:${x}px;top:${y}px"><b>${n}</b>${t}</span>`;
+const SO=(m,w,st='')=>`<span class="soc-s" style="width:${w}px;${st}" data-s="${m}"></span>`;
+const FAM=[['Điểm số','#ffc83d',[['round','g','1','đề',1],['round','g','↑','',1],['round','s','3','lần',1],['round','s','+100','',1],['cup','','800','',0]]],
+ ['Chuỗi ngày','#ff8a2a',[['flame','b','3','ngày',0],['flame','','7','ngày',0],['flame','','14','ngày',0],['flame','','30','ngày',0]]],
+ ['Chăm chỉ','#46b35a',[['star','b','5','đề',1],['star','','20','đề',0],['star','','10','bài',0],['star','','50','câu',0],['star','','200','câu',0]]],
+ ['Gỡ Part','#1c8fe3',[['hex','','P3','',0],['hex','s','P5','',1],['hex','s','P6','',1],['hex','','P7','',0]]],
+ ['Bí mật','#a78bfa',[['gem','','?','',0],['gem','g','↺','',1],['gem','g','+50','',1],['gem','','?','',0]]]];
+const NEXT=[['flame','b','3','ngày','Chuỗi 3 ngày','còn 1 ngày',67,'#ff8a2a','Học thêm ngày mai là có.'],['cup','g','800','','Chạm mục tiêu','còn 35 điểm',85,'#ffc83d','Khoảng 2 đề nữa nếu giữ đà.'],['hex','s','P7','','Gỡ Part 7','sai 12, cần ≤ 10',60,'#1c8fe3','Ôn 12 câu Part 7 trong Sổ tay.']];
+
+// A
+{let cols=FAM.map(([n,c,items])=>{const have=items.filter(i=>i[4]).length;const rows=[items.slice(0,2),items.slice(2,4),items.slice(4)].filter(r=>r.length);
+ return `<div class="col"><h4 style="color:${c==='#ffc83d'?'#a87a00':c}">${n}<small>${have}/${items.length} đã có</small></h4>${rows.map(r=>`<div class="slot">${r.some(i=>i[4])?'<span class="light"></span>':''}${r.map(i=>B(i[0],i[4]?i[1]:'',i[2],i[3],i[4]?'':'off')).join('')}</div>`).join('')}<span class="glass"></span></div>`}).join('');
+ document.getElementById('A').innerHTML=SIDE+`<main><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="h1">Tủ thành tích · <em>9/22</em></div><div class="sub">4 vàng · 4 bạc · 1 đồng. Huy hiệu mới nhất: Gỡ Part 6 (11/11).</div></div>${SO('hi',70)}</div>
+ <div class="hero" style="grid-template-columns:repeat(3,1fr)">${NEXT.map(n=>`<div class="next">${B(n[0],'',n[2],n[3],'')}<div style="flex:1"><b>${n[4]}</b><p>${n[8]}</p><div class="bar" style="margin-top:6px"><i style="width:${n[6]}%;background:${n[7]}"></i></div><small style="font-weight:800;font-size:12px;color:#7a857e">${n[5]}</small></div></div>`).join('')}</div>
+ <div class="cab">${cols}</div>${AN(1,'đèn rọi huy hiệu đã có',150,330)}${AN(3,'bóng mờ là chưa có',470,520)}</main>`}
+
+// B
+{const L=FAM[0][2],R=FAM[3][2],L2=FAM[1][2];
+ const pos=[[40,90,-6],[200,80,5],[360,100,-3],[60,300,4],[230,310,-5],[400,290,3],[90,500,-4],[260,500,6]];
+ const st=(i,k,P,name)=>{const [x,y,r]=P[k];return i[4]?`<div class="stk" style="left:${x}px;top:${y}px;transform:rotate(${r}deg)"><span class="tape" style="left:32px;top:-6px"></span>${B(i[0],i[1],i[2],i[3])}<b>${name}</b><small>đạt 06/11</small></div>`:`<div class="stk empty" style="left:${x}px;top:${y}px"><div class="bdg"><svg viewBox="0 0 100 104"><circle cx="50" cy="50" r="42" fill="#fffdf6" stroke="#d9c79a" stroke-width="3" stroke-dasharray="7 6"/><text x="50" y="58" text-anchor="middle" font-weight="900" font-size="22" fill="#cbb98a">${i[2]}</text></svg></div><b style="color:#a3916a">${name}</b><small>còn …</small></div>`};
+ const NL=['Đề đầu tiên','Kỷ lục mới','Kỷ lục 3 lần','Lên 100 điểm','Chạm mục tiêu'],NS=['Chuỗi 3 ngày','Chuỗi 7 ngày','Chuỗi 14 ngày'];
+ const left=L.map((i,k)=>st(i,k,pos,NL[k])).join('')+L2.slice(0,3).map((i,k)=>st(i,k+5,pos,NS[k])).join('');
+ const NR=['Gỡ Part 3','Gỡ Part 5','Gỡ Part 6','Gỡ Part 7'];const pos2=[[40,90,4],[220,100,-5],[400,80,6],[120,300,-3]];
+ const right=R.map((i,k)=>st(i,k,pos2,NR[k])).join('')+FAM[4][2].slice(1,3).map((i,k)=>st(i,1,[[0,0,0],[[300,310,5],[200,500,-4]][k]],['Trở lại','Làm lại bứt phá'][k])).join('');
+ document.getElementById('B').innerHTML=SIDE+`<main><div style="display:flex;justify-content:space-between;align-items:center"><div class="h1">Sổ sưu tập · <em>9/22 sticker</em></div><span class="btn">Xem bản tin tuần</span></div>
+ <div class="album"><div class="pg"><h3>Điểm số & Chuỗi ngày<small>7 / 9</small></h3>${left}</div><div class="pg"><h3>Gỡ Part & Bí mật<small>4 / 8</small></h3>${right}
+ <div style="position:absolute;right:30px;bottom:24px;transform:rotate(-10deg);border:4px solid #46b35a;color:#46b35a;border-radius:14px;padding:6px 12px;font-weight:900;font-size:16px;opacity:.5">GẦN ĐẦY</div>
+ ${SO('hi',90,'position:absolute;right:120px;top:80px')}</div>
+ <div class="tabs">${FAM.map(([n,c])=>`<span style="background:${c}">${n}</span>`).join('')}</div></div>
+ ${AN(1,'sticker dán lệch có băng keo',300,170)}${AN(2,'tab lật nhóm',940,96)}</main>`}
+
+// C
+{const all=FAM.flatMap(f=>f[2]);
+ const r=78,c=2*Math.PI*r;
+ document.getElementById('C').innerHTML=SIDE+`<main><div class="h1">Thành tích</div>
+ <div class="lvl"><div class="ring"><h4>CẤP CỦA BẠN</h4><b>Cấp 4 · Chăm chỉ</b>
+ <svg viewBox="0 0 200 200" style="position:absolute;left:20px;top:92px;width:190px"><circle cx="100" cy="100" r="${r}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="16"/><circle cx="100" cy="100" r="${r}" fill="none" stroke="#ffd766" stroke-width="16" stroke-linecap="round" stroke-dasharray="${c*.64} ${c}" transform="rotate(-90 100 100)"/><text x="100" y="102" text-anchor="middle" font-weight="900" font-size="40" fill="#fff">⭐ 23</text><text x="100" y="128" text-anchor="middle" font-weight="800" font-size="13" fill="#d8ecff">còn 13 sao lên cấp 5</text></svg>
+ ${SO('hi',100,'position:absolute;right:16px;bottom:14px')}</div>
+ <div><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-weight:900;font-size:18px">Sắp mở khoá</b><span style="font-weight:800;font-size:13px;color:#7a857e">vàng 3 sao · bạc 2 · đồng 1</span></div>
+ <div class="qs" style="margin-top:10px">${NEXT.map(n=>`<div class="q"><div style="display:flex;justify-content:space-between">${B(n[0],'',n[2],n[3])}<span style="font-weight:900;font-size:13px;color:#a87a00">+${n[1]==='g'?3:n[1]==='s'?2:1} ⭐</span></div><b>${n[4]}</b><p>${n[8]}</p><div class="bar"><i style="width:${n[6]}%;background:${n[7]}"></i></div><small style="font-weight:800;font-size:12px;color:#7a857e">${n[5]}</small></div>`).join('')}</div></div></div>
+ <div style="display:flex;justify-content:space-between;margin-top:18px"><b style="font-weight:900;font-size:18px">Bộ sưu tập · 9/22</b><span style="font-weight:800;font-size:13px;color:#1c8fe3">Xem theo nhóm ›</span></div>
+ <div class="grid">${all.slice(0,22).map(i=>B(i[0],i[4]?i[1]:'',i[2],i[3],i[4]?'':'off')).join('')}</div>
+ <div class="recap">${[['#46b35a','+35','Tuần 02/11 · kỷ lục 725'],['#1c8fe3','+25','Tuần 26/10 · kỷ lục 690'],['#a78bfa','+45','Tuần 19/10 · kỷ lục 665']].map(([c,n,t],k)=>`<div class="rc" style="background:${c}"><b>${n}</b><span>${t}<br>1 đề full · học 1/7 ngày</span>${k===0?'<i style="margin-left:auto;width:10px;height:10px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 0 3px #fff"></i>':''}</div>`).join('')}</div>
+ ${AN(1,'mỗi huy hiệu cộng sao',60,330)}${AN(2,'3 nhiệm vụ gần đạt nhất',700,100)}</main>`}
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

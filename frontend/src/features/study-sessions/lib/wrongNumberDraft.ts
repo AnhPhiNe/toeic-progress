@@ -10,6 +10,6 @@ export function useWrongNumberDraft(wrong: number[], external?: WrongNumberDraft
   const value = external ?? local;
   const change = (patch: Partial<WrongNumberDraft>) => (onChange ?? setLocal)({ ...value, ...patch });
   return { typing: value.typing, text: value.text, setTyping: (typing: boolean) => change({ typing }),
-    setText: (text: string) => change({ text }), open: () => change({ typing: true, text: formatQuestionList(wrong) }),
+    setText: (text: string) => change({ text }), edit: (text: string) => change({ typing: true, text }), open: () => change({ typing: true, text: formatQuestionList(wrong) }),
     cancel: () => change({ typing: false, text: formatQuestionList(wrong) }) };
 }

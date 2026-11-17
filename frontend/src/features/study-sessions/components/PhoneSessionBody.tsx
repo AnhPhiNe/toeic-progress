@@ -10,7 +10,6 @@ import { WrongQuestionGrid } from './WrongQuestionGrid';
 import type { WrongNumberDraft } from '../lib/wrongNumberDraft';
 import type { ResultImageTiming } from '@/shared/types';
 import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
-import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 
 type PartNumber = PracticePartResult['part'];
 const PART_NAMES: Record<PartNumber, string> = {
@@ -101,6 +100,9 @@ interface FullTestProps {
   date: string; setDate: (value: string) => void; duration: number; setDuration: (value: number) => void; notes: string; setNotes: (value: string) => void;
   partDurations?: PartTimingDurations;
   onPartDurationsChange?: (durations: PartTimingDurations | undefined) => void;
+  onRevertScore?: () => void;
+  initialFiles?: File[];
+  onInitialFilesHandled?: () => void;
 }
 
 /** Phone Full Test: per-Part counts stay the main input, with the score updating live in a card that sticks while scrolling. */
@@ -159,15 +161,17 @@ export function PhoneFullTestBody(props: FullTestProps) {
         {props.retest && <p className="mt-1.5 text-[13px] font-semibold text-violet-700 dark:text-violet-300">Làm lại lần {props.retest.attempt} · cao nhất trước đây {props.retest.best}đ</p>}
       </div>
 
-      <div className={`${LIVE_CARD} sticky top-0 z-10 flex items-center gap-4 px-4 py-3`} aria-live="polite">
-        <div className="shrink-0">
-          <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
-          <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
-          {marked && <p className="mt-1 text-[12px] font-black tabular-nums text-rose-600 dark:text-rose-400">{props.wrongQuestions.length} câu sai</p>}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
-          <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown.scaledListening ?? '—'}</span>{bar(shown.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
-          <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown.scaledReading ?? '—'}</span>{bar(shown.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
+      <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-[#FDFBF7]/95 backdrop-blur-xs dark:bg-[#070C16]/95 border-b border-slate-200/80 dark:border-slate-800">
+        <div className={`${LIVE_CARD} flex items-center gap-4 px-4 py-3`} aria-live="polite">
+          <div className="shrink-0">
+            <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">{manual ? 'Điểm đã nhập' : 'Ước tính'}</p>
+            <p className="flex items-baseline leading-none"><span className="text-[34px] font-black tracking-tight tabular-nums text-slate-950 dark:text-white">{shown.totalScore ?? '—'}</span><span className="ml-0.5 text-[13px] font-bold text-slate-400">/990</span></p>
+            {marked && <p className="mt-1 text-[12px] font-black tabular-nums text-rose-600 dark:text-rose-400">{props.wrongQuestions.length} câu sai</p>}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12.5px] font-black tabular-nums">
+            <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><span className="w-11">L {shown.scaledListening ?? '—'}</span>{bar(shown.scaledListening, 'bg-indigo-600 dark:bg-indigo-400')}</span>
+            <span className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><span className="w-11">R {shown.scaledReading ?? '—'}</span>{bar(shown.scaledReading, 'bg-teal-600 dark:bg-teal-400')}</span>
+          </div>
         </div>
       </div>
 
@@ -208,7 +212,7 @@ export function PhoneFullTestBody(props: FullTestProps) {
         </div>
       )}
 
-      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onTiming={props.onTiming} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft} />}
+      {fromWrong && <WrongQuestionGrid wrong={props.wrongQuestions} onTiming={props.onTiming} onChange={props.onWrong} onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore} numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft} appliedScore={manual ? { listening: props.manualListening, reading: props.manualReading, total: props.manualTotal || (preview?.totalScore ? String(preview.totalScore) : '') } : undefined} onRevertScore={props.onRevertScore} initialFiles={props.initialFiles} onInitialFilesHandled={props.onInitialFilesHandled} />}
 
       {showParts && <>
         {section('Listening', [1, 2, 3, 4], listeningRaw)}
@@ -326,41 +330,6 @@ export function PhonePracticeBody(props: PracticeProps) {
       </div>
 
       <DetailsRow date={props.date} setDate={props.setDate} duration={props.duration} setDuration={props.setDuration} notes={props.notes} setNotes={props.setNotes} />
-    </div>
-  );
-}
-
-/** After a test is logged by its wrong questions: the score, correct answers per Part, and where the mistakes went. */
-export function PhoneSavedResult({ session, onClose, onDetails }: { session: StudySession; onClose: () => void; onDetails: () => void }) {
-  const parts = session.partScores, wrong = draftQuestions(session).length;
-  const correct = parts ? Object.values(parts).reduce((sum, value) => sum + value, 0) : 0;
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-        <div className={`${LIVE_CARD} px-4 py-4 text-center`}>
-          <p className="truncate text-[13px] font-semibold text-slate-500 dark:text-slate-400">{session.testName}</p>
-          <p className="text-[44px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">{session.totalScore}</p>
-          <p className="text-[13.5px] font-black tabular-nums"><span className="text-indigo-600 dark:text-indigo-300">L {session.scaledListening}</span> · <span className="text-teal-700 dark:text-teal-300">R {session.scaledReading}</span></p>
-        </div>
-        {parts && <section aria-labelledby="saved-parts-heading" className="rounded-2xl border-[1.5px] border-stone-300 bg-white px-4 py-3 dark:border-slate-700 dark:bg-[#111A2C]">
-          <div className="mb-1 flex items-baseline justify-between"><h3 id="saved-parts-heading" className="text-[14.5px] font-black text-slate-950 dark:text-white">Số câu đúng</h3><span className="text-[12.5px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">{correct}/200</span></div>
-          <ul>
-            {([1, 2, 3, 4, 5, 6, 7] as const).map(part => {
-              const value = parts[`part${part}` as keyof LRPartScore], max = partMax(part);
-              return <li key={part} className="flex items-center gap-3 py-1.5">
-                <PartBadge part={part} />
-                <span className="block h-2 flex-1 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-800" aria-hidden="true"><span className={'block h-full rounded-full ' + (isListening(part) ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400')} style={{ width: `${value / max * 100}%` }} /></span>
-                <span className="w-12 text-right text-[14px] font-black tabular-nums text-slate-950 dark:text-white">{value}/{max}</span>
-              </li>;
-            })}
-          </ul>
-        </section>}
-        <p className="text-[14px] font-bold text-slate-800 dark:text-slate-100">{wrong} câu Reading sai đã vào Sổ tay.</p>
-      </div>
-      <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-[#121A2B]">
-        <button type="button" onClick={onClose} className="min-h-12 w-[34%] cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[15px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Để sau</button>
-        <button type="button" onClick={onDetails} className="min-h-12 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 text-[15px] font-black text-white shadow-[2px_2px_0_0_#0f172a] dark:border-slate-200 dark:shadow-none">Ghi chi tiết câu sai ›</button>
-      </div>
     </div>
   );
 }

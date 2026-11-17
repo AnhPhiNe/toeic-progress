@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle } from 'lucide-react';
+import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Inbox, Tag } from 'lucide-react';
 import { ReviewSegmentedControl } from './ReviewSegmentedControl';
 import type { NavTabId, MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
@@ -15,6 +15,10 @@ import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/li
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
+import { CaptureModal } from '@/features/mistakes/components/CaptureModal';
+import { ManualQuestionModal } from '@/features/mistakes/components/ManualQuestionModal';
+import { NotebookEmpty } from '@/features/mistakes/components/NotebookEmpty';
+import { captureState, closeCapture, openCapture, dismissBackgroundNotice, subscribeCapture } from '@/features/mistakes/services/captureSession';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
@@ -24,8 +28,12 @@ import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { triggerHaptic } from '@/shared/lib/haptics';
 import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
 import './notebook.css';
+import './notebook-rd.css';
+import './capture-rd.css';
+import { MistakeDetail, categoryShort, reviewLabel } from './MistakeDetail';
+import { Soc } from '@/shared/ui/soc/Soc';
 
-const NOTEBOOK_PAGE_SIZE = 6;
+const NOTEBOOK_PAGE_SIZE = 8;
 /** Phones list each status group in steps of this many rows. */
 const PHONE_GROUP_STEP = 10;
 const STATUS_FILTER_STYLE = {
@@ -53,6 +61,8 @@ interface MistakeNotebookViewProps {
   mistakes: MistakeEntry[];
   sessions?: StudySession[];
   initialSourceNames?: string[];
+  /** Opens the notebook already filtered to one Part (from a treasure chest in Hành trình điểm). */
+  initialPart?: number;
   /** Opens the note form for a test, or with `detailSessionId` the detail flow for that test's draft cards. */
   createRequest?: { sourceName?: string; sessionId?: string; detailSessionId?: string };
   dueCount: number;
@@ -71,10 +81,10 @@ interface MistakeNotebookViewProps {
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
-export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
+export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, initialPart, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onOpenSessionLogger, onNavigateTab }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPart, setSelectedPart] = useState<number | 'ALL'>('ALL');
+  const [selectedPart, setSelectedPart] = useState<number | 'ALL'>(initialPart ?? 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'DUE' | 'MASTERED'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<ErrorCategory | 'ALL'>('ALL');
   const [selectedTest, setSelectedTest] = useState(() => initialSourceNames === undefined ? 'ALL'
@@ -96,6 +106,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const [sessionSource, setSessionSource] = useState(createRequest);
   const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[]; cardId: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
+  // Computers (2026-11 redesign): a list of rows; a row opens one detail card.
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [nbTab, setNbTab] = useState<'mistakes' | 'words'>('mistakes');
+  // Word cards do not exist yet: their tab stays hidden until there are some.
+  const wordCards = 0;
+  const [manualOpen, setManualOpen] = useState(false);
+  const capture = useSyncExternalStore(subscribeCapture, captureState);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const feedbackSequence = useRef(0);
   const notify = useCallback((message: string, error = false) => { setFeedback({ id: ++feedbackSequence.current, message, error }); }, []);
@@ -128,8 +145,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã chuyển sang Đã thuộc');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
-  const closeEntry = useCallback(() => { setEntry(undefined); setReusedReading(null); setSessionSource(undefined); }, []);
-  const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setEntry(null); };
+  const closeEntry = useCallback(() => { setEntry(undefined); setManualOpen(false); setReusedReading(null); setSessionSource(undefined); }, []);
+  /** Computers: a new card starts from a screenshot (`entry === null` opens the capture dialog); phones keep the old form. */
+  const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setManualOpen(false); setEntry(null); };
+  const openManual = () => { closeCapture(); setEntry(undefined); setManualOpen(true); };
   const openEdit = (value: MistakeEntry) => { setReusedReading(null); setSessionSource(undefined); setEntry(value); };
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.filter(m => !isRetiredDraft(m)).map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
@@ -295,7 +314,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       return (
         <div className="mx-4 my-2.5 rounded-2xl border-2 border-slate-900 bg-white p-6 text-center space-y-3 shadow-[2.5px_2.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[2.5px_2.5px_0_0_#cbd5e1]">
           <div className="space-y-1">
-            <span className="text-3xl block mb-2" aria-hidden="true">📭</span>
+            <Inbox className="h-8 w-8 mx-auto text-slate-400 mb-2 stroke-[1.5]" aria-hidden="true" />
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
               {activeTestName && !sourceHasNotes
                 ? `Chưa có câu sai nào thuộc đề "${activeTestName}"`
@@ -369,6 +388,203 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     })}</div>;
   };
 
+  const overlays = (<>
+      <div role="status" aria-live="polite" className="notebook-feedback-region">
+        {feedback && <div key={feedback.id} className={`notebook-feedback ${feedback.error ? 'is-error' : ''}`}>
+          {feedback.error ? <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" /> : <SuccessMark />}
+          <p className="min-w-0 flex-1 text-sm font-semibold">{feedback.message}</p>
+          {feedback.undo && feedback.owner === getActiveAccountId() && <button type="button" onClick={undoDelete}
+            className="min-h-11 shrink-0 cursor-pointer rounded-lg px-3 text-sm font-extrabold text-blue-700 underline dark:text-blue-300">Hoàn tác</button>}
+          <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" aria-hidden="true" /></button>
+        </div>}
+      </div>
+
+      <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
+      {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone={isPhone} onSave={onUpdateMistake}
+        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
+      {!isPhone && entry === null && <CaptureModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
+        initialTestName={reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName} getToken={getToken}
+        onClose={closeEntry} onManual={openManual} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={savedFeedback} />}
+      {!isPhone && manualOpen && <ManualQuestionModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
+        initialTestName={sessionSource?.sourceName ?? defaultSourceName} onClose={closeEntry} onAdd={onAddMistake} onAddBatch={onAddMistakes}
+        onUpdate={onUpdateMistake} onExplain={card => void explain(card)} onSaved={savedFeedback} />}
+      {entry !== undefined && (isPhone || entry !== null) && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
+        sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
+        initialSessionId={sessionSource?.sessionId}
+        initialReading={reusedReading?.text}
+        draftScope={reusedReading ? `reuse:${reusedReading.cardId}` : undefined}
+        initialSourceImageIds={reusedReading?.sourceImageIds}
+        onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
+        onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
+      {!isPhone && entry !== null && !manualOpen && (capture.phase === 'reading' || capture.finishedInBackground) && (
+        <div className="cap-toast" role="status" aria-live="polite">
+          <Soc state={capture.phase === 'reading' ? 'think' : 'hi'} size={46} />
+          {capture.phase === 'reading'
+            ? <p>Sóc đang đọc {capture.images.length} ảnh…<small>Đã thấy {capture.items.length} câu sai</small></p>
+            : <p>Sóc đọc xong rồi!<small>{capture.items.length ? `Tìm thấy ${capture.items.length} câu sai để soát` : capture.failures.length ? 'Có ảnh chưa đọc được, mở lại để thử lần nữa' : 'Chưa thấy câu sai nào trong ảnh'}</small></p>}
+          <button type="button" className="rd-btn rd-btn--pink cap-sm" onClick={() => { openCapture(); setManualOpen(false); setEntry(null); }}>{capture.phase === 'reading' ? 'Xem' : 'Soát ngay'}</button>
+          {capture.phase !== 'reading' && <button type="button" className="cap-x" aria-label="Đóng thông báo" onClick={dismissBackgroundNotice}>×</button>}
+        </div>
+      )}
+  </>);
+
+  if (!isPhone) {
+    const opened = detailId ? sourcedMistakes.find(m => m.id === detailId) : undefined;
+    if (opened) {
+      const p = cardProps(opened);
+      return (
+        <div className="rd nb-page">
+          <MistakeDetail mistake={opened} testName={opened.sourceTestName ?? undefined} onBack={() => setDetailId(null)}
+            actions={{ ...p, onDelete: () => { p.onDelete(); if (!loadMistakes().some(x => x.id === opened.id && !x.deletedAt)) setDetailId(null); } }} />
+          {overlays}
+        </div>
+      );
+    }
+    const dueList = matchingMistakes.filter(m => isDueForReview(m) && !(needsSupplement(m) && fromLoggedTest(m)));
+    const dueParts = [...new Set(dueList.map(m => m.part))].sort();
+    const dueTests = uniqueTestNames(dueList.map(m => m.sourceTestName));
+    const pendingGroups = groupDetailAttempts(desktopPending, sessions);
+    const empty = mistakes.length === 0;
+    const pickedFilters = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL');
+    const partsPresent = [...new Set(sourcedMistakes.map(m => m.part))].sort();
+    const statusTabs: Array<['ALL' | 'DUE' | 'MASTERED', string, number]> = [['ALL', 'Tất cả', stats.total], ['DUE', 'Cần ôn', stats.due], ['MASTERED', 'Đã thuộc', stats.mastered]];
+    return (
+      <div className="rd nb-page">
+        <div className="nb-top">
+          <div><h1>Sổ tay</h1>{!empty && <p>Câu sai Sóc gom từ các trang chữa bài bạn chụp.</p>}</div>
+          <div className="nb-topr">
+            {wordCards > 0 && (
+              <div className="nb-tabs" role="tablist" aria-label="Sổ tay">
+                <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{sourcedMistakes.length}</em></button>
+                <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>{wordCards}</em></button>
+              </div>
+            )}
+            {!empty && <button type="button" className="rd-btn rd-btn--pink nb-cam" onClick={openCreate}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>}
+          </div>
+        </div>
+
+        {nbTab === 'words' ? (
+          <section className="nb-hero is-empty">
+            <Soc state="think" size={200} className="nb-hsoc" />
+            <div><h2>Thẻ từ sắp có</h2><p>Mỗi thẻ sẽ là một từ làm bạn sai câu, kèm đúng câu gốc trong đề. Sóc đang học cách tách từ mới từ trang chữa bài.</p></div>
+          </section>
+        ) : empty ? (
+          <NotebookEmpty onCapture={openCreate} onManual={openManual} />
+        ) : (
+          <>
+            <section className="nb-hero">
+              <div>
+                {reviewCount > 0 ? <>
+                  <h2>{reviewCount} câu đến hạn ôn hôm nay</h2>
+                  <p>{dueParts.length ? `Toàn câu ${dueParts.map(p => `Part ${p}`).join(' và ')}` : 'Các câu'}{dueTests.length === 1 ? ` từ đề ${dueTests[0]}` : ''}. Ôn xong là tính vào chuỗi ngày.</p>
+                  <button type="button" className="rd-btn" onClick={() => onStartReview(activeFilterCount ? dueList.map(m => m.id) : undefined)}>Ôn {reviewCount} câu, khoảng {Math.max(1, Math.round(reviewCount * 0.8))} phút</button>
+                </> : <>
+                  <h2>Hôm nay không có câu nào đến hạn</h2>
+                  <p>Sóc sẽ nhắc khi tới lúc ôn lại. Có trang chữa bài mới thì chụp vào đây nhé.</p>
+                  <button type="button" className="rd-btn" onClick={openCreate}>Chụp trang chữa bài</button>
+                </>}
+              </div>
+              <Soc state={reviewCount > 0 ? 'idle' : 'cheerC'} size={170} className="nb-hsoc" />
+            </section>
+
+            {pendingGroups.length > 0 && (
+              <div className="nb-pending">
+                {pendingGroups.map(group => (
+                  <div key={group.id} className="nb-pend">
+                    <span><b>{group.title}</b> · {group.cards.length} câu chưa ghi chi tiết</span>
+                    <button type="button" className="nb-ghost is-sm" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}>Ghi chi tiết</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="nb-tools">
+              <div className="nb-seg" role="group" aria-label="Trạng thái">
+                {statusTabs.map(([id, label, count]) => (
+                  <button key={id} type="button" aria-pressed={selectedStatus === id} className={id === 'DUE' ? 'is-due' : undefined} onClick={() => { setSelectedStatus(id); setPage(1); }}>{label}<em>{count}</em></button>
+                ))}
+              </div>
+              <span className="nb-sp" />
+              <label className="nb-search">
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="M11 11 L14.5 14.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+                <input type="search" value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} placeholder="Tìm câu hỏi, mẹo…" aria-label="Tìm trong Sổ tay" />
+              </label>
+              <div className="nb-fwrap" ref={filterRef}>
+                <button type="button" className={'nb-fbtn' + (pickedFilters ? ' is-on' : '')} aria-expanded={filterOpen} onClick={() => setFilterOpen(o => !o)}>
+                  <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M1 2 H15 M4 7 H12 M6.5 12 H9.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
+                  Lọc{pickedFilters > 0 && <b>{pickedFilters}</b>}
+                </button>
+                {filterOpen && (
+                  <div className="nb-pop" role="dialog" aria-label="Bộ lọc">
+                    <h5>ĐỀ</h5>
+                    <div className="nb-cs">
+                      <button type="button" aria-pressed={selectedTest === 'ALL'} onClick={() => { setSelectedTest('ALL'); setPage(1); }}>Tất cả</button>
+                      {initialSourceNames && initialSourceNames.length > 1 && <button type="button" aria-pressed={selectedTest === 'SCOPE'} onClick={() => { setSelectedTest('SCOPE'); setPage(1); }}>Các đề đang xem</button>}
+                      {filterSourceNames.map(name => { const v = `test:${testNameKey(name)}`; return <button key={name} type="button" aria-pressed={selectedTest === v} onClick={() => { setSelectedTest(v); setPage(1); }}>{name}</button>; })}
+                      <button type="button" aria-pressed={selectedTest === 'NONE'} onClick={() => { setSelectedTest('NONE'); setPage(1); }}>Chưa gắn đề</button>
+                    </div>
+                    <h5>PART</h5>
+                    <div className="nb-cs">
+                      <button type="button" aria-pressed={selectedPart === 'ALL'} onClick={() => { setSelectedPart('ALL'); setPage(1); }}>Tất cả</button>
+                      {partsPresent.map(n => <button key={n} type="button" aria-pressed={selectedPart === n} onClick={() => { setSelectedPart(n); setPage(1); }}>{n}</button>)}
+                    </div>
+                    <h5>LÝ DO SAI</h5>
+                    <div className="nb-cs">
+                      <button type="button" aria-pressed={selectedCategory === 'ALL'} onClick={() => { setSelectedCategory('ALL'); setPage(1); }}>Tất cả</button>
+                      {(Object.keys(ERROR_CATEGORY_LABELS) as ErrorCategory[]).map(c => <button key={c} type="button" aria-pressed={selectedCategory === c} onClick={() => { setSelectedCategory(c); setPage(1); }}>{categoryShort(c)}</button>)}
+                    </div>
+                    <div className="nb-pft"><span>{filteredMistakes.length} câu khớp</span><button type="button" onClick={() => setFilterOpen(false)}>Xong</button></div>
+                  </div>
+                )}
+              </div>
+              <button type="button" className="nb-add" onClick={openManual}><span aria-hidden="true">✏️</span> Tự gõ một câu</button>
+            </div>
+            {pickedFilters > 0 && (
+              <div className="nb-chips">
+                {selectedTest !== 'ALL' && <button type="button" onClick={() => { setSelectedTest('ALL'); setPage(1); }} aria-label="Bỏ lọc đề">Đề {selectedTest === 'NONE' ? 'chưa gắn' : selectedTest === 'SCOPE' ? 'đang xem' : defaultSourceName}<i>×</i></button>}
+                {selectedPart !== 'ALL' && <button type="button" onClick={() => { setSelectedPart('ALL'); setPage(1); }} aria-label="Bỏ lọc Part">Part {selectedPart}<i>×</i></button>}
+                {selectedCategory !== 'ALL' && <button type="button" onClick={() => { setSelectedCategory('ALL'); setPage(1); }} aria-label="Bỏ lọc lý do">{categoryShort(selectedCategory)}<i>×</i></button>}
+                <button type="button" className="nb-clear" onClick={() => { setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedCategory('ALL'); setPage(1); }}>Bỏ lọc</button>
+              </div>
+            )}
+
+            {visibleMistakes.length ? (
+              <ul className="nb-rows">
+                {visibleMistakes.map(m => {
+                  const due = reviewLabel(m);
+                  return (
+                    <li key={m.id}>
+                      <button type="button" className="nb-row" onClick={() => setDetailId(m.id)}>
+                        <span className={'nb-part p' + m.part}>Part {m.part}</span>
+                        <span className="nb-q"><b>{(m.question ?? m.questionContext ?? '').trim() || m.correctAnswer || 'Câu sai'}</b>
+                          <small>{m.questionNumber ? `Câu ${m.questionNumber}` : 'Tự ghi'}{m.sourceTestName ? ` · ${m.sourceTestName}` : ''}</small></span>
+                        <span className={'nb-cat c-' + m.category}>{categoryShort(m.category)}</span>
+                        <span className={'nb-due' + (due.due ? ' is-due' : '')}>{due.text}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="nb-none">
+                <p>Không có câu nào khớp bộ lọc.</p>
+                <button type="button" className="nb-ghost" onClick={resetFilters}>Bỏ lọc</button>
+              </div>
+            )}
+            {pageCount > 1 && (
+              <nav className="nb-pager" aria-label="Trang Sổ tay">
+                <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹ Trước</button>
+                <span>{currentPage} / {pageCount}</span>
+                <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Sau ›</button>
+              </nav>
+            )}
+          </>
+        )}
+        {overlays}
+      </div>
+    );
+  }
+
   return (
     <div className={'notebook-view animate-fade-in ' + (isPhone && reviewCount > 0 ? 'pb-28' : 'pb-10')}>
       {/* Mobile top bar: Segmented Control */}
@@ -390,7 +606,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       {activeFilterCount > 0 && (
         <div className="w-full mb-2.5 flex items-center justify-between rounded-xl border-2 border-slate-900 bg-indigo-50/90 px-3.5 py-2 text-xs shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-300 dark:bg-indigo-950/40 dark:shadow-[1.5px_1.5px_0_0_#cbd5e1]">
           <span className="flex items-center gap-1.5 font-bold text-indigo-900 dark:text-indigo-200 min-w-0 truncate">
-            <span aria-hidden="true">🏷️</span>
+            <Tag className="h-3.5 w-3.5 text-indigo-700 dark:text-indigo-300 shrink-0" aria-hidden="true" />
             <span className="truncate">
               {selectedTest !== 'ALL' && (
                 <span>Đang lọc đề: <strong className="font-black text-indigo-950 dark:text-white">{defaultSourceName || (selectedTest === 'NONE' ? 'Chưa gắn đề' : 'Theo đề')}</strong></span>
@@ -564,7 +780,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           ))}
           {filteredMistakes.length === 0 && !(selectedStatus === 'ALL' && desktopPending.length > 0) && (
             <div className="m-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-3 dark:border-slate-700 dark:bg-slate-900/30">
-              <span className="text-3xl block" aria-hidden="true">📭</span>
+              <Inbox className="h-8 w-8 mx-auto text-slate-400 mb-2 stroke-[1.5]" aria-hidden="true" />
               <h3 className="text-sm font-black text-slate-900 dark:text-white">
                 {defaultSourceName && !sourceHasNotes
                   ? `Chưa có thẻ câu sai nào thuộc đề "${defaultSourceName}"`
@@ -631,27 +847,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         </div>
       )}
 
-      <div role="status" aria-live="polite" className="notebook-feedback-region">
-        {feedback && <div key={feedback.id} className={`notebook-feedback ${feedback.error ? 'is-error' : ''}`}>
-          {feedback.error ? <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" /> : <SuccessMark />}
-          <p className="min-w-0 flex-1 text-sm font-semibold">{feedback.message}</p>
-          {feedback.undo && feedback.owner === getActiveAccountId() && <button type="button" onClick={undoDelete}
-            className="min-h-11 shrink-0 cursor-pointer rounded-lg px-3 text-sm font-extrabold text-blue-700 underline dark:text-blue-300">Hoàn tác</button>}
-          <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="flex min-h-9 min-w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" aria-hidden="true" /></button>
-        </div>}
-      </div>
-
-      <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
-      {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone={isPhone} onSave={onUpdateMistake}
-        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
-      {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
-        sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
-        initialSessionId={sessionSource?.sessionId}
-        initialReading={reusedReading?.text}
-        draftScope={reusedReading ? `reuse:${reusedReading.cardId}` : undefined}
-        initialSourceImageIds={reusedReading?.sourceImageIds}
-        onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
-        onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
+      {overlays}
     </div>
   );
 }

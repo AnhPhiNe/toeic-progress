@@ -10,9 +10,9 @@ from datetime import datetime
 import httpx
 from fastapi import HTTPException
 
+from app.core.runtime import request_id_context
 from app.schemas.attempt_analysis import AnalysisAdvice, AnalyzeAttemptRequest
 from app.schemas.models import ConfirmedResultTiming
-from app.core.runtime import request_id_context
 
 logger = logging.getLogger('toeic.attempt_analysis')
 

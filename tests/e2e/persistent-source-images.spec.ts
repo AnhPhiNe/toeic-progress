@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chooseNoteSource } from './helpers/noteSource';
+import { PHONE_VIEWPORT, noteModal, openCard, openNoteForm } from './helpers/mistakeForm';
+import { gotoPage } from './helpers/nav';
 
 const ids = ['a'.repeat(64), 'b'.repeat(64)];
 const fixture = resolve('tests/fixtures/part7-notice.png');
@@ -31,9 +33,8 @@ async function mockImages(page: Page, failure = false) {
 }
 
 test('Part 7 retains source images after save/reload/review and reuses them for each new question without OCR', async ({ page }, testInfo) => {
-  await mockImages(page); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal, 'ETS Images');
+  await mockImages(page); await page.setViewportSize(PHONE_VIEWPORT); await gotoPage(page, '/so-tay');
+  const modal = await openNoteForm(page); await chooseNoteSource(modal, 'ETS Images');
   await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill('**Câu hỏi**\n**178**\n**' + question + '**\n' + options.join('&#x20;\n') + '\u00a0');
@@ -59,28 +60,29 @@ test('Part 7 retains source images after save/reload/review and reuses them for 
   });
   expect(calls.__uploads).toBe(1); expect(calls.__imageCalls).toHaveLength(2);
   expect(calls.__imageCalls.every(call => call.images.length === 0 && call.sourceImageIds.join(',') === ids.join(',') && call.input.context === '')).toBe(true);
-  await page.reload();
+  await page.setViewportSize({ width: 1280, height: 800 }); await page.reload();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes);
   expect(saved).toHaveLength(2);
   for (const entry of saved) { expect(entry.sourceImageIds).toEqual(ids); expect(entry.context).toBe(''); expect(JSON.stringify(entry)).not.toContain('data:image'); }
-  const row = page.getByRole('button', { name: `Mở câu: ${question}`, exact: true }); await row.click();
-  const card = page.locator('.notebook-card').filter({ hasText: question });
+  await openCard(page, question);
+  await expect(page.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Ảnh gốc', exact: true }).click();
+  const card = page.locator('.nbd-img');
   await expect(card.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeHidden();
   await card.getByText('Ảnh nguồn (2)', { exact: true }).click();
   await expect(card.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeVisible();
-  await card.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
-  const review = page.getByRole('dialog', { name: 'Ôn tập', exact: true });
-  await expect(review.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeHidden();
-  await review.getByText('Ảnh nguồn (2)', { exact: true }).click();
-  await expect(review.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeVisible();
+  // The review shows an attached photo on phones (computers' review has no photo area).
+  for (const width of [320, 390]) { await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+  await page.reload(); await openCard(page);
+  await page.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
+  await expect(review.getByRole('img', { name: 'Ảnh bạn đính kèm' })).toBeVisible();
   await expect(review.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
-  for (const width of [375, 1440]) { await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
 });
 
 test('upload failure preserves the selected image and manual save can retry without an AI call', async ({ page }) => {
-  await mockImages(page, true); await page.goto('/so-tay');
-  await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
-  const modal = page.getByRole('dialog'); await chooseNoteSource(modal);
+  await mockImages(page, true); await page.setViewportSize(PHONE_VIEWPORT); await gotoPage(page, '/so-tay');
+  const modal = await openNoteForm(page); await chooseNoteSource(modal);
   await modal.getByRole('button', { name: 'Part 7', exact: true }).click();
   await modal.getByRole('button', { name: 'Ảnh', exact: true }).click();
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));

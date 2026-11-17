@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghi điểm mới</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page:#E7F0E2; --paper:#FBFDF8; --ink:#1E2430; --muted:#66705F; --line:#E4ECDD; --soft:#F0F6EB;
+    --green:#3E8A4F; --green-dark:#2B6638; --green-soft:#DCEFD3; --sun:#F2B93B; --sun-soft:#FFF3D3;
+    --coral:#E9967F; --coral-soft:#FDE6DF; --coral-ink:#B4412A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1180px;margin:0 auto;padding:40px 16px 72px}
+  .page > h1{font-size:22px;margin:0 0 4px}
+  .page > p{margin:0 0 30px;color:var(--muted);font-size:14px;max-width:780px;line-height:1.5}
+  .step{margin-bottom:44px}
+  .step-head{display:flex;align-items:baseline;gap:10px;margin:0 0 4px 2px}
+  .num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;flex:none}
+  .step-head h2{margin:0;font-size:17px}
+  .step > .note{margin:0 0 12px 38px;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:820px}
+
+  /* app frame */
+  .app{display:grid;grid-template-columns:212px 1fr;background:#F6FAF3;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px -28px rgba(30,60,20,.45);min-height:600px;position:relative}
+  .side{background:var(--paper);border-right:1px solid var(--line);padding:18px 12px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin:0 6px 18px}
+  .brand i{width:28px;height:28px;border-radius:9px;background:var(--green);display:block}
+  .sec{font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#8C9686;margin:14px 8px 6px}
+  .item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-size:13.5px;font-weight:600;color:#3B4537}
+  .item b{width:16px;height:16px;border-radius:5px;background:#D7E5CF;display:block}
+  .item.on{background:var(--green-soft);color:var(--green-dark)}
+  .item.on b{background:var(--green)}
+  .main{padding:14px 20px}
+  .top{display:flex;justify-content:flex-end;align-items:center;gap:10px}
+  .chip{font-size:12px;font-weight:700;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 11px;color:#4B5546}
+  .primary-sm{font-size:12.5px;font-weight:800;color:#fff;background:var(--green);border-radius:11px;padding:8px 13px;box-shadow:0 3px 0 var(--green-dark)}
+  .ghost-rows{margin-top:18px;display:grid;gap:10px}
+  .ghost-rows div{height:54px;border-radius:14px;background:#EDF3E8}
+
+  .scrim{position:absolute;inset:0;background:rgba(24,34,20,.38);display:flex;align-items:center;justify-content:center;padding:24px}
+  .modal{width:640px;max-width:100%;background:var(--paper);border-radius:26px;box-shadow:0 30px 70px -30px rgba(20,40,10,.6);overflow:hidden}
+  .m-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 6px}
+  .m-head h3{margin:0;font-size:18px}
+  .x{width:32px;height:32px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:14px}
+  .m-body{padding:8px 22px 18px}
+  .m-foot{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 20px;border-top:1px solid var(--line)}
+  .btn{border:0;border-radius:16px;padding:13px 20px;font:inherit;font-size:15px;font-weight:800;color:#fff;background:var(--green);box-shadow:0 5px 0 var(--green-dark)}
+  .link{font-size:13.5px;font-weight:700;color:var(--green)}
+
+  .name-row{display:flex;gap:10px;align-items:center;background:var(--soft);border-radius:16px;padding:10px 14px;font-size:13.5px}
+  .name-row strong{font-size:15px}
+  .name-row .hint{color:var(--muted);font-size:12px}
+  .name-row .edit{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--green)}
+
+  .drop{margin-top:14px;border:2px dashed #B9D3AE;border-radius:22px;background:radial-gradient(90% 80% at 50% 0%,#F3FAEE,transparent 70%);padding:22px 18px 20px;text-align:center}
+  .drop svg{width:96px;height:106px;display:block;margin:0 auto 2px}
+  .drop h4{margin:0;font-size:18px}
+  .drop p{margin:6px auto 14px;color:var(--muted);font-size:13.5px;max-width:420px;line-height:1.5}
+  .drop .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .pill{border-radius:14px;padding:11px 16px;font-size:14px;font-weight:800}
+  .pill.main{background:var(--green);color:#fff;box-shadow:0 4px 0 var(--green-dark)}
+  .pill.alt{background:#fff;border:1.5px solid #CFE0C6;color:#2F4A28}
+  kbd{font-family:inherit;font-size:11.5px;font-weight:800;background:#fff;border:1px solid #D6E2CE;border-bottom-width:2px;border-radius:6px;padding:1px 6px}
+  .guest{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12.5px;font-weight:700;color:#7A5A12;background:var(--sun-soft);border-radius:999px;padding:5px 11px}
+
+  .manual{margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .manual span.tag{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-weight:700;color:#3B4537}
+  .more{margin-top:12px;font-size:13px;font-weight:700;color:#4B5546;display:flex;gap:6px;align-items:center}
+
+  /* confirm */
+  .ok-head{display:flex;gap:14px;align-items:center;background:var(--green-soft);border-radius:18px;padding:12px 16px}
+  .ok-head svg{width:62px;height:68px;flex:none}
+  .ok-head p{margin:0;font-size:13.5px;color:#2F4A28;line-height:1.45}
+  .ok-head p b{display:block;font-size:15.5px;color:var(--ink)}
+  .scores{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;margin-top:14px}
+  .sc{background:var(--soft);border-radius:16px;padding:10px 14px}
+  .sc small{display:block;font-size:11.5px;font-weight:700;color:var(--muted)}
+  .sc strong{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .sc.total strong{font-size:32px}
+  .sc em{font-style:normal;font-size:11px;font-weight:700;color:var(--green)}
+  .sec-t{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px}
+  .sec-t h5{margin:0;font-size:14.5px}
+  .sec-t span{font-size:12.5px;font-weight:700;color:var(--green)}
+  .grid{display:grid;grid-template-columns:repeat(40,1fr);gap:3px}
+  .grid i{aspect-ratio:1;border-radius:3px;background:#EEF3EA;font-style:normal}
+  .grid i.w{background:var(--coral)}
+  .grid i.q{background:var(--sun);outline:2px solid #C98C10;outline-offset:-2px}
+  .parts{border-radius:16px;background:var(--soft);padding:4px 14px}
+  .prow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .prow:last-child{border-bottom:0}
+  .ptag{min-width:34px;text-align:center;border-radius:8px;padding:4px 6px;font-size:11px;font-weight:800;background:#E3ECDD;color:#3B4537}
+  .prow.r .ptag{background:var(--coral-soft);color:var(--coral-ink)}
+  .nums{flex:1;display:flex;flex-wrap:wrap;gap:5px}
+  .nums span{background:#fff;border:1px solid #E1EADA;border-radius:8px;padding:3px 8px;font-weight:700;font-variant-numeric:tabular-nums;color:#2C3428}
+  .nums span.q{background:var(--sun-soft);border-color:#E8C76A;color:#6B4E08}
+  .nums em{font-style:normal;color:var(--muted);font-size:12.5px}
+  .pc{font-weight:800;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .legend{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .doubt{margin-top:12px;display:flex;align-items:center;gap:10px;background:var(--sun-soft);border-radius:14px;padding:10px 14px;font-size:13px;color:#5E4708}
+  .doubt .opts{margin-left:auto;display:flex;gap:6px}
+  .doubt .opts span{background:#fff;border-radius:10px;padding:6px 10px;font-weight:800;font-size:12.5px;color:#3B4537;border:1px solid #EBD9A6}
+  .meta{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .meta span{font-size:12.5px;background:var(--soft);border-radius:999px;padding:6px 11px;color:#3B4537}
+  .meta span b{font-weight:800}
+
+  /* manual expanded */
+  .tabs{display:flex;gap:6px;background:var(--soft);border-radius:14px;padding:4px;margin-top:6px}
+  .tabs span{flex:1;text-align:center;padding:9px 6px;border-radius:11px;font-size:13px;font-weight:700;color:#4B5546}
+  .tabs span.on{background:#fff;color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.06)}
+  .typed{margin-top:12px;border:1.5px solid #CFE0C6;border-radius:14px;background:#fff;padding:12px 14px;font-size:14px;color:#3B4537}
+  .typed small{display:block;color:var(--muted);font-size:12px;margin-top:6px}
+  .est{margin-top:12px;display:flex;justify-content:space-between;align-items:center;background:var(--soft);border-radius:14px;padding:10px 14px;font-size:13px}
+  .est strong{font-size:20px}
+
+  .callouts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 0}
+  .callouts div{background:var(--paper);border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.5;color:#3B4537}
+  .callouts b{display:block;font-size:13.5px;color:var(--ink);margin-bottom:2px}
+  @media (max-width:860px){.app{grid-template-columns:1fr}.side{display:none}.callouts{grid-template-columns:1fr}.scores{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E08F"/><stop offset="1" stop-color="#4C9F55"/></linearGradient>
+    <linearGradient id="lg2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient>
+    <radialGradient id="pg" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient>
+    <g id="potBase">
+      <ellipse cx="60" cy="113" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/>
+      <path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#pg)"/>
+      <rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/>
+      <rect x="33" y="58.5" width="22" height="4" rx="2" fill="#fff" opacity=".38"/>
+      <ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+      <g transform="translate(0,13)">
+        <path d="M60 44 Q58 32 60 22" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 29 C46 13 27 14 21 25 C32 36 49 37 59 29Z" fill="url(#lg1)"/>
+        <path d="M61 25 C70 6 92 3 101 13 C91 28 73 31 61 25Z" fill="url(#lg2)"/>
+      </g>
+    </g>
+    <g id="calmFace" transform="translate(0,6)">
+      <ellipse cx="47" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/><ellipse cx="73" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/>
+      <circle cx="49.2" cy="75.8" r="2.5" fill="#fff"/><circle cx="75.2" cy="75.8" r="2.5" fill="#fff"/>
+      <ellipse cx="36" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/><ellipse cx="84" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/>
+      <path d="M54.5 90 Q60 94.5 65.5 90" stroke="#9C4434" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <g id="happyFace" transform="translate(0,6)">
+      <path d="M39 80 Q46.5 71 54 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+      <path d="M66 80 Q73.5 71 81 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+      <ellipse cx="37" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/><ellipse cx="83" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/>
+      <path d="M51 87 Q60 100 69 87 Z" fill="#9C4434"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="page">
+  <h1>Ghi điểm mới trên desktop</h1>
+  <p>Ảnh là cách chính: AI đọc điểm, câu sai và thời gian, người dùng chỉ xác nhận một lần. Nhập tay vẫn còn nhưng nằm sau một liên kết. Khung app dùng giao diện sáng và sidebar 6 mục đã chốt.</p>
+
+  <!-- STEP 1 -->
+  <section class="step">
+    <div class="step-head"><span class="num">1</span><h2>Mở Ghi điểm: một việc chính là dán ảnh</h2></div>
+    <p class="note">Tên đề tự gợi ý bài kế tiếp. Ngày, thời lượng, ghi chú thu vào "Thêm chi tiết". Dán bằng Ctrl+V ở bất kỳ đâu trong cửa sổ.</p>
+    <div class="app">
+      <aside class="side">
+        <div class="brand"><i></i>TOEIC Progress</div>
+        <div class="sec">HỌC</div>
+        <div class="item on"><b></b>Tổng quan</div>
+        <div class="item"><b></b>Sổ tay</div>
+        <div class="item"><b></b>Từ vựng</div>
+        <div class="sec">LUYỆN ĐỀ</div>
+        <div class="item"><b></b>Lịch sử thi</div>
+        <div class="item"><b></b>Đồng hồ phòng thi</div>
+        <div class="sec">TIẾN BỘ</div>
+        <div class="item"><b></b>Phân tích điểm</div>
+      </aside>
+      <div class="main">
+        <div class="top"><span class="chip">🔥 3</span><span class="chip">Thi: D-45</span><span class="primary-sm">＋ Ghi điểm</span></div>
+        <div class="ghost-rows"><div></div><div></div><div></div><div></div></div>
+      </div>
+      <div class="scrim">
+        <div class="modal">
+          <div class="m-head"><h3>Ghi điểm</h3><span class="x">✕</span></div>
+          <div class="m-body">
+            <div class="name-row"><div><span class="hint">Đề</span><br><strong>ETS 2024 Test 06</strong> <span class="hint">· gợi ý tiếp theo Test 05</span></div><span class="edit">Đổi đề</span></div>
+            <div class="drop">
+              <svg viewBox="0 -14 120 134"><use href="#potBase"/><use href="#calmFace"/></svg>
+              <h4>Dán ảnh kết quả vào đây</h4>
+              <p>Ảnh màn hình trang kết quả trên web hoặc ứng dụng luyện đề bạn dùng. Mầm đọc điểm, câu sai và thời gian giúp bạn.</p>
+              <div class="row"><span class="pill main">Chọn ảnh</span><span class="pill alt">Dán <kbd>Ctrl</kbd> + <kbd>V</kbd></span></div>
+            </div>
+            <div class="manual">Không có ảnh? Nhập tay: <span class="tag">Gõ số câu sai</span><span class="tag">Điểm chính thức</span><span class="tag">Số câu đúng mỗi Part</span></div>
+            <div class="more">▸ Thêm chi tiết <span style="font-weight:500;color:#8C9686">ngày, thời lượng, ghi chú</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callouts">
+      <div><b>Thay vì 6 cách nhập</b>Một vùng dán lớn là việc chính; ba cách nhập tay gom thành một dòng phía dưới.</div>
+      <div><b>Không hỏi điều đã biết</b>Tên đề gợi ý như trên điện thoại; ngày mặc định hôm nay; thời lượng để trống thì lưu "không rõ".</div>
+      <div><b>Khách chưa đăng nhập</b>Vùng dán ghi rõ "Cần đăng nhập Google" trước khi bấm (xem bước 1b).</div>
+    </div>
+  </section>
+
+  <!-- STEP 1b guest -->
+  <section class="step">
+    <div class="step-head"><span class="num">1b</span><h2>Khách chưa đăng nhập</h2></div>
+    <p class="note">Báo trước, không để khách bấm rồi mới biết. Nhập tay vẫn dùng được ngay.</p>
+    <div class="modal" style="margin:0 auto 0 0">
+      <div class="m-head"><h3>Ghi điểm</h3><span class="x">✕</span></div>
+      <div class="m-body">
+        <div class="drop">
+          <svg viewBox="0 -14 120 134"><use href="#potBase"/><use href="#calmFace"/></svg>
+          <h4>Dán ảnh kết quả vào đây</h4>
+          <p>AI đọc ảnh giúp bạn sau khi đăng nhập Google một lần. Dữ liệu trên máy này vẫn được giữ.</p>
+          <div class="row"><span class="pill main">Đăng nhập Google để dùng ảnh</span></div>
+        </div>
+        <div class="manual">Hoặc nhập tay ngay: <span class="tag">Gõ số câu sai</span><span class="tag">Điểm chính thức</span><span class="tag">Số câu đúng mỗi Part</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2 confirm -->
+  <section class="step">
+    <div class="step-head"><span class="num">2</span><h2>Một thẻ xác nhận gộp</h2></div>
+    <p class="note">Điểm, câu sai và thời gian trong một màn. Chỉ hỏi những gì AI chưa chắc. Thay cho 3 lần xác nhận riêng (hộp điểm, khối thời gian, cửa sổ thời gian Part).</p>
+    <div class="modal" style="width:720px;margin:0 auto 0 0">
+      <div class="m-head"><h3>Kiểm tra trước khi lưu</h3><span class="x">✕</span></div>
+      <div class="m-body">
+        <div class="ok-head">
+          <svg viewBox="0 -14 120 134"><use href="#potBase"/><use href="#happyFace"/></svg>
+          <p><b>Mầm đã đọc xong ảnh</b>ETS 2024 Test 06 · hôm nay. Bấm vào số nào để sửa nếu đọc nhầm.</p>
+        </div>
+        <div class="scores">
+          <div class="sc total"><small>Tổng điểm</small><strong>745</strong> <em>từ ảnh</em></div>
+          <div class="sc"><small>Listening</small><strong>400</strong></div>
+          <div class="sc"><small>Reading</small><strong>345</strong></div>
+        </div>
+        <div class="sec-t"><h5>23 câu sai</h5><span>Sửa câu sai</span></div>
+        <div class="parts" id="parts"></div>
+        <div class="doubt">⚠ Câu 188 trong ảnh bị mờ. Câu này bạn làm đúng hay sai?<div class="opts"><span>Sai</span><span>Đúng</span></div></div>
+        <div class="meta"><span>⏱ Thời gian <b>1:52:30</b> · từ ảnh</span><span>Part 7 <b>48 phút</b></span><span>▸ Thêm ghi chú</span></div>
+      </div>
+      <div class="m-foot"><span class="link">← Đổi ảnh</span><button class="btn">Lưu và xem kết quả</button></div>
+    </div>
+    <div class="callouts">
+      <div><b>Một nút lưu</b>Lưu xong là tới màn kết quả Mầm đã làm. Không còn bước "Áp dụng điểm từ đề" riêng.</div>
+      <div><b>Chỉ hỏi chỗ chưa chắc</b>Câu mờ, điểm thiếu, thời gian không đọc được mới hiện câu hỏi; phần còn lại đã điền sẵn.</div>
+      <div><b>Sửa khi cần</b>"Sửa câu sai" mở lưới 200 câu để chạm thêm hoặc bỏ; mặc định chỉ xem.</div>
+    </div>
+  </section>
+
+  <!-- STEP 3 manual -->
+  <section class="step">
+    <div class="step-head"><span class="num">3</span><h2>Nhập tay (dự phòng)</h2></div>
+    <p class="note">Mở từ dòng "Nhập tay". Ba cách cũ giữ nguyên dữ liệu, gom thành ba tab. Điểm chính thức chỉ còn một nơi nhập.</p>
+    <div class="modal" style="margin:0 auto 0 0">
+      <div class="m-head"><h3>Ghi điểm · nhập tay</h3><span class="x">✕</span></div>
+      <div class="m-body">
+        <div class="tabs"><span class="on">Gõ số câu sai</span><span>Điểm chính thức</span><span>Số câu đúng mỗi Part</span></div>
+        <div class="typed">3 15 40 101 105 150-153 160 175<small>Cách nhau bằng dấu cách; 150-153 là một dải. Hoặc <u>chạm trên lưới 200 câu</u>.</small></div>
+        <div class="est"><span>Điểm ước tính từ 11 câu sai</span><strong>905</strong></div>
+      </div>
+      <div class="m-foot"><span class="link">← Dùng ảnh</span><button class="btn">Lưu và xem kết quả</button></div>
+    </div>
+  </section>
+</div>
+<script>
+  // Mock data: wrong questions listed per Part, consecutive runs shown as a range, the uncertain one marked.
+  const wrong = [3,15,22,40,41,57,88,101,105,112,118,131,150,151,152,153,160,166,175,181,190,194,199];
+  const unsure = [188];
+  const ranges = { 1:[1,6], 2:[7,31], 3:[32,70], 4:[71,100], 5:[101,130], 6:[131,146], 7:[147,200] };
+  const box = document.getElementById('parts');
+  for (const [part, [first, last]] of Object.entries(ranges)) {
+    const inPart = wrong.filter(n => n >= first && n <= last);
+    const doubt = unsure.filter(n => n >= first && n <= last);
+    const runs = [];
+    for (const n of inPart) {
+      const run = runs[runs.length - 1];
+      if (run && n === run[1] + 1) run[1] = n; else runs.push([n, n]);
+    }
+    const chips = runs.map(([a, b]) => `<span>${a === b ? a : a + '–' + b}</span>`).join('')
+      + doubt.map(n => `<span class="q">${n} ?</span>`).join('');
+    const row = document.createElement('div');
+    row.className = 'prow' + (Number(part) >= 5 ? ' r' : '');
+    row.innerHTML = `<span class="ptag">P${part}</span><div class="nums">${chips || '<em>Không sai câu nào</em>'}</div>`
+      + `<span class="pc">${inPart.length} / ${last - first + 1}</span>`;
+    box.appendChild(row);
+  }
+</script>
+</body>
+</html>

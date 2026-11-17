@@ -108,8 +108,9 @@ class Gateway:
             rows = response.json()
             if not isinstance(rows, list) or len(rows) > 1:
                 raise ValueError("Invalid AI access response")
+            # Signing in grants AI within the default monthly cap; an admin row can still block or change it.
             if not rows:
-                return AIAccess("pending", 0)
+                return AIAccess("active", self.settings.ai_account_monthly_limit)
             row = rows[0]
             status, limit = row["status"], row["monthly_limit"]
             if status not in ("pending", "active", "blocked") or (limit is not None and

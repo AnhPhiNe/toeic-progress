@@ -1,16 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { openSettings } from './helpers/accountGroup';
 
 test('direct routes and public legal pages are available without an account', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
-  await page.getByRole('button', { name: 'Phân tích điểm' }).click();
-  await expect(page).toHaveURL(/\/phan-tich$/);
+  await page.getByRole('button', { name: 'Hành trình điểm', exact: true }).click();
+  await expect(page).toHaveURL(/\/lich-su$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
+  // /phan-tich opens Hành trình on its "Từng Part" tab.
   await page.goto('/phan-tich');
-  await expect(page.getByRole('heading', { name: /^(Độ chính xác 7 Part|Mất điểm ở đâu)$/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Từng Part', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.reload();
   await expect(page).toHaveURL(/\/phan-tich$/);
+  await expect(page.getByRole('tab', { name: 'Từng Part', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.goto('/chinh-sach-quyen-rieng-tu');
   await expect(page.getByRole('heading', { name: 'Chính sách quyền riêng tư' })).toBeVisible();
   await page.goto('/dieu-khoan');
@@ -35,16 +37,16 @@ test('guest vocabulary entry persists and counts as study activity', async ({ pa
     await page.reload();
     await expect(page.getByText('12 từ tích lũy', { exact: true })).toBeVisible();
     await page.goto('/');
-    await expect(page.getByRole('group', { name: 'Chuỗi học 1 ngày' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Chuỗi 1 ngày' })).toBeVisible();
   } finally {
     await page.evaluate(saved => { localStorage.clear(); for (const [key, value] of Object.entries(saved)) localStorage.setItem(key, value); }, original);
   }
 });
 
 test('invalid backup is rejected without changing saved data', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Khám phá Dashboard ngay' }).click();
-  await page.getByRole('button', { name: 'Cài đặt hồ sơ Học viên' }).click();
+  // The old top bar (with its exam countdown) still frames Từ vựng; Hôm nay only offers settings once a goal exists.
+  await page.goto('/tu-vung');
+  await openSettings(page);
   const before = await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
   await page.locator('input[type="file"]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"version":2,"sessions":[{"id":1}]}') });
   await expect(page.getByText('Không thể khôi phục tệp')).toBeVisible();
@@ -69,7 +71,7 @@ test('new feature cards do not overflow supported widths or 125% zoom', async ({
   for (const width of [375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/phan-tich');
-    await expect(page.getByRole('heading', { name: /^(Độ chính xác 7 Part|Mất điểm ở đâu)$/ })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Từng Part', exact: true })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${width}px horizontal overflow`).toBeLessThanOrEqual(1);
   }

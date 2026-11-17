@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import './logger-rd.css';
 import { 
   X, 
   CheckCircle2, 
   Headphones, 
   BookOpen, 
-  Plus, 
-  Trash2,
   RotateCcw,
   ArrowLeft
 } from 'lucide-react';
@@ -23,15 +22,18 @@ import {
 import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
 import { collectTestNames, normalizeTestName, suggestNextTestName, testNameKey } from '@/shared/domain/testNames';
 import { normalizeQuestionList, partScoresFromWrong } from '@/shared/domain/questionNumbers';
+import { DesktopPracticeBody } from './DesktopPracticeBody';
+import { DesktopVocabBody } from './DesktopVocabBody';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { PhoneFullTestBody, PhonePracticeBody, PhoneSavedResult } from './PhoneSessionBody';
+import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
+import { PhoneLogger, type PhoneStep } from './phone/PhoneLogger';
 import { EMPTY_WRONG_NUMBER_DRAFT, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 import { parseQuestionList } from '@/shared/domain/questionNumbers';
-import { hasResultTiming, formatElapsed } from '@/shared/domain/resultTiming';
+import { hasResultTiming, formatElapsed, parseElapsed } from '@/shared/domain/resultTiming';
 import type { ResultImageTiming, ConfirmedResultTiming } from '@/shared/types';
 import { ResultTimingReview, timingCandidate as createTimingCandidate, type TimingCandidate } from './ResultTimingReview';
 import { DesktopFullTestBody } from './DesktopFullTestBody';
@@ -49,7 +51,8 @@ interface SessionLoggerModalProps {
   onSaveVocab: (date: string, count: number) => void;
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3) */
-  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number };
+  /** `markWrong` reopens a saved Full Test straight on its wrong-question grid. */
+  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] };
   /**
    * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
@@ -57,10 +60,8 @@ interface SessionLoggerModalProps {
   editingSession?: StudySession | null;
   onUpdateSession?: (session: StudySession, original: StudySession, newMistakes?: MistakeEntry[]) => void;
   onAddMistakeForSession?: (session: StudySession) => void;
-  /** After a test is logged by its wrong questions: open those draft cards. */
-  onOpenSessionDrafts?: (session: StudySession) => void;
-  /** Computers: the form closes after such a save and the app offers the detail flow in a note. */
-  onSavedWrongTest?: (session: StudySession) => void;
+  /** A new Full Test was saved: the form closes and the app shows its result screen. */
+  onSavedFullTest?: (session: StudySession) => void;
 }
 
 const EMPTY_PART_SCORES: LRPartScore = { part1: 0, part2: 0, part3: 0, part4: 0, part5: 0, part6: 0, part7: 0 };
@@ -75,8 +76,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   editingSession,
   onUpdateSession,
   onAddMistakeForSession,
-  onOpenSessionDrafts,
-  onSavedWrongTest
+  onSavedFullTest
 }) => {
   const isEditing = !!editingSession;
   // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
@@ -88,7 +88,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [durationEdited, setDurationEdited] = useState(false);
   const durationEditedRef = useRef(false);
   const markDurationEdited = (value: boolean) => { durationEditedRef.current = value; setDurationEdited(value); };
+  // Giờ làm để trống (đề cũ lưu 0 hoặc learner xoá ô): lưu 0 chứ không bịa 120.
+  const [durationEmpty, setDurationEmpty] = useState(false);
+  const durationEmptyRef = useRef(false);
+  const markDurationEmpty = (value: boolean) => { durationEmptyRef.current = value; setDurationEmpty(value); };
   const [vocabCount, setVocabCount] = useState(1);
+  // Phone logger: 'pick' chooses the test and how to log, 'manual' types the score, 'wrong' is the wrong-question screen.
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>('pick');
+  const [pendingInitialFiles, setPendingInitialFiles] = useState<File[] | undefined>(undefined);
 
   const [notes, setNotes] = useState('');
   const [scoreSource, setScoreSource] = useState<ScoreSource>('ESTIMATED');
@@ -98,11 +105,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualTotal, setManualTotal] = useState('');
   const [includePartDetails, setIncludePartDetails] = useState(true);
   const [manualViewOverride, setManualViewOverride] = useState(false);
+  // Computer Full Test opens on the paste-an-image view; editing an existing test or restoring typed marks opens the manual tools.
+  const [fullTestManual, setFullTestManual] = useState(() => Boolean(editingSession));
+  // Between the paste view and the 200-question grid: official L/R plus a typed wrong list.
+  const [manualMinimal, setManualMinimal] = useState(false);
+  // Computer Full Test: date and duration stay folded away until asked for, so the form opens on the name and the paste area.
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Computer AI-first view keeps name/date/time inside the review card; this opens their fields.
+  const [metaOpen, setMetaOpen] = useState(false);
   const [partDurations, setPartDurations] = useState<PartTimingDurations | undefined>(() => editingSession?.partDurations);
   const [resultTiming, setResultTiming] = useState<ConfirmedResultTiming | null>(null);
   const [timingCandidate, setTimingCandidate] = useState<TimingCandidate | null>(null);
   const changeDurationMinutes = (value: number) => {
     markDurationEdited(true);
+    if (value > 0) markDurationEmpty(false);
     setDurationMinutes(value);
     setResultTiming(current => {
       if (!current || current.totalSeconds === null || Math.abs(current.totalSeconds / 60 - value) < 0.01) return current;
@@ -121,30 +137,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       return hasResultTiming(next) ? next : null;
     });
   };
-  const readImageTiming = (value: ResultImageTiming) => {
-    if (hasResultTiming(value)) setTimingCandidate(current => {
-      const previous = current?.timing ?? resultTiming;
-      const next = createTimingCandidate({
-        totalSeconds: value.totalSeconds ?? previous?.totalSeconds ?? null,
-        listeningSeconds: value.listeningSeconds ?? previous?.listeningSeconds ?? null,
-        readingSeconds: value.readingSeconds ?? previous?.readingSeconds ?? null,
-        parts: Object.fromEntries(Object.entries(value.parts).map(([key, seconds]) =>
-          [key, seconds ?? previous?.parts[key as keyof ResultImageTiming['parts']] ?? null])) as ResultImageTiming['parts'],
-      });
-      // Supplemental screenshots fill missing scopes without discarding pending edits.
-      if (current?.edited) {
-        const original = createTimingCandidate(current.timing).fields;
-        for (const key of Object.keys(current.fields) as (keyof TimingCandidate['fields'])[]) {
-          if (current.fields[key] !== original[key]) next.fields[key] = current.fields[key];
-        }
-        next.edited = true;
-      }
-      return next;
-    });
-  };
   const applyImageTiming = (value: ConfirmedResultTiming) => {
     setResultTiming(value); setTimingCandidate(null); setScoreError('');
-    if (value.totalSeconds !== null) { setDurationMinutes(Math.round(value.totalSeconds / 60 * 100) / 100); markDurationEdited(true); }
+    if (value.totalSeconds !== null) { setDurationMinutes(Math.round(value.totalSeconds / 60 * 100) / 100); markDurationEdited(true); markDurationEmpty(false); }
     const parts = { ...partDurations };
     for (const key of ['part5', 'part6', 'part7'] as const) {
       if (value.parts[key] !== null) parts[key] = Math.round(value.parts[key]! / 60 * 100) / 100;
@@ -152,11 +147,66 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     }
     setPartDurations(Object.keys(parts).length ? parts : undefined);
   };
+  const discardImageTiming = () => {
+    if (resultTiming) {
+      if (resultTiming.totalSeconds !== null && Math.abs(durationMinutes - Math.round(resultTiming.totalSeconds / 60 * 100) / 100) < 0.01) {
+        setDurationMinutes(editingSession?.durationMinutes ?? prefill?.durationMinutes ?? 120);
+        markDurationEmpty(Boolean(editingSession) && !(Number(editingSession?.durationMinutes) > 0));
+        markDurationEdited(Boolean(editingSession || prefill?.durationMinutes !== undefined));
+      }
+      const parts = { ...partDurations };
+      for (const key of ['part5', 'part6', 'part7'] as const) {
+        if (resultTiming.parts[key] != null && parts[key] != null && Math.abs(parts[key]! - Math.round(resultTiming.parts[key]! / 60 * 100) / 100) < 0.01) {
+          delete parts[key];
+        }
+      }
+      setPartDurations(Object.keys(parts).length ? parts : undefined);
+    }
+    setResultTiming(null);
+    setTimingCandidate(null);
+    setScoreError('');
+  };
+  const readImageTiming = (value: ResultImageTiming) => {
+    if (!hasResultTiming(value)) return;
+    const previous = timingCandidate?.timing ?? resultTiming;
+    const merged: ResultImageTiming = {
+      totalSeconds: (value.totalSeconds && value.totalSeconds > 0 ? value.totalSeconds : null) ?? previous?.totalSeconds ?? null,
+      listeningSeconds: value.listeningSeconds ?? previous?.listeningSeconds ?? null,
+      readingSeconds: value.readingSeconds ?? previous?.readingSeconds ?? null,
+      parts: Object.fromEntries(Object.entries(value.parts).map(([key, seconds]) =>
+        [key, seconds ?? previous?.parts[key as keyof ResultImageTiming['parts']] ?? null])) as ResultImageTiming['parts'],
+    };
+    if (timingCandidate?.edited) {
+      setTimingCandidate(current => {
+        if (!current) return null;
+        const next = createTimingCandidate(merged);
+        const original = createTimingCandidate(current.timing).fields;
+        for (const key of Object.keys(current.fields) as (keyof TimingCandidate['fields'])[]) {
+          if (current.fields[key] !== original[key]) next.fields[key] = current.fields[key];
+        }
+        next.edited = true;
+        return next;
+      });
+      return;
+    }
+    if (hasResultTiming(merged)) {
+      applyImageTiming({ ...merged, source: 'IMAGE_CONFIRMED' });
+    }
+  };
   // A Full Test is logged by its wrong questions; per-Part counts and official scores stay as alternatives.
   const [entry, setEntry] = useState<'wrong' | 'counts'>('wrong');
-  const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
+  const [wrongQuestions, setWrongQuestionsState] = useState<number[]>([]);
+  const latestWrongQuestions = useRef<number[]>([]);
+  latestWrongQuestions.current = wrongQuestions;
+  const setWrongQuestions = (next: number[]) => {
+    latestWrongQuestions.current = next;
+    setWrongQuestionsState(next);
+    if (entry === 'wrong') {
+      setPartScores(partScoresFromWrong(next));
+      if (next.length > 0) setIncludePartDetails(true);
+    }
+  };
   const [wrongNumberDraft, setWrongNumberDraft] = useState<WrongNumberDraft>(EMPTY_WRONG_NUMBER_DRAFT);
-  const [savedResult, setSavedResult] = useState<StudySession | null>(null);
   const suggestedName = useRef('');
   const [scoreError, setScoreError] = useState('');
   const [sourceScorePending, setSourceScorePending] = useState(false);
@@ -164,6 +214,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const draftOwner = useRef(getActiveAccountId());
   const savedSession = useRef(false);
   const [restoredVersion, setRestoredVersion] = useState(0);
+  // Computer: "Bỏ nháp" clears the form at once and offers 8 seconds to undo instead of a confirm dialog.
+  const [resetNonce, setResetNonce] = useState(0);
+  const [discarded, setDiscarded] = useState<SessionFormDraft | null>(null);
+  const undoTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(undoTimer.current), []);
   const restoredType = useRef<string | null>(null);
 
   // Tìm kiếm xem đề thi này đã từng làm chưa
@@ -211,64 +266,37 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     { part: 5, correct: 0, total: 30 }
   ]);
 
-  const practiceTotals = practiceRows.reduce(
-    (acc, r) => ({ correct: acc.correct + (r.correct || 0), total: acc.total + (r.total || 0) }),
-    { correct: 0, total: 0 }
-  );
-  const practiceAccuracy = practiceTotals.total > 0
-    ? Math.round((practiceTotals.correct / practiceTotals.total) * 100)
-    : 0;
-
-  const updatePracticeRow = (index: number, patch: Partial<PracticePartResult>) => {
-    setPracticeRows(prev => prev.map((row, i) => {
-      if (i !== index) return row;
-      const next = { ...row, ...patch };
-      // Choosing another Part starts a whole-Part row; editing its result keeps
-      // a historical partial drill's denominator intact.
-      if (next.part !== row.part) next.total = PART_MAX_QUESTIONS[`part${next.part}` as keyof typeof PART_MAX_QUESTIONS];
-      // Số câu đúng không bao giờ vượt quá số câu đã làm
-      if (next.correct > next.total) next.correct = next.total;
-      return next;
-    }));
-  };
-
-  const addPracticeRow = () => {
-    const used = new Set(practiceRows.map(r => r.part));
-    const nextPart = ([1, 2, 3, 4, 5, 6, 7] as const).find(p => !used.has(p)) || 5;
-    setPracticeRows(prev => [...prev, { part: nextPart, correct: 0, total: PART_MAX_QUESTIONS[`part${nextPart}` as keyof typeof PART_MAX_QUESTIONS] }]);
-  };
-
-  const removePracticeRow = (index: number) => {
-    setPracticeRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== index));
-  };
-
   /**
    * Nạp lại form MỖI LẦN mở. Component không bị gỡ khi đóng (chỉ trả null),
    * nên trước đây lần mở sau còn nguyên số của lần nhập trước - và với chế
    * độ sửa, sửa xong rồi bấm "Nhập điểm" sẽ thấy dữ liệu của buổi vừa sửa.
    */
   useEffect(() => {
-    if (!isOpen) { sourceScoreStore.current = null; return; }
+    if (!isOpen) { sourceScoreStore.current = null; setPendingInitialFiles(undefined); return; }
     draftOwner.current = getActiveAccountId();
     savedSession.current = false;
     const e = editingSession;
     setSessionType(e?.sessionType ?? prefill?.sessionType ?? 'FULL_TEST');
-    // A new Full Test on a phone starts with the next numbered test after the latest one (Test 3 -> Test 4).
-    const phone = typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
-    suggestedName.current = !e && phone && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
+    // A new Full Test starts with the next numbered test after the latest one (Test 3 -> Test 4) on both Desktop and Mobile.
+    suggestedName.current = !e && (prefill?.sessionType ?? 'FULL_TEST') === 'FULL_TEST' ? suggestNextTestName(loadStudySessions()) : '';
     setTestName(e?.testName ?? suggestedName.current);
-    setEntry(e?.partScores && !e.wrongQuestions ? 'counts' : 'wrong');
-    setManualViewOverride(Boolean(e && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
+    const markWrong = Boolean(e && prefill?.markWrong);
+    setEntry(e?.partScores && !e.wrongQuestions && !markWrong ? 'counts' : 'wrong');
+    setManualViewOverride(Boolean(e && !markWrong && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
+    setFullTestManual(Boolean(e));
+    setManualMinimal(false);
+    setDetailsOpen(false);
     setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
     setPartDurations(e?.partDurations);
     setResultTiming(e?.resultTiming ?? null); setTimingCandidate(null);
-    setSavedResult(null);
     setDate(e?.date ?? getTodayDateString());
     // Bộ đếm nhịp truyền sang thời gian THẬT đã dùng - ghi đè mặc định 120 phút
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
     markDurationEdited(Boolean(e || prefill?.durationMinutes !== undefined));
-    setVocabCount(1);
+    markDurationEmpty(Boolean(e) && !(Number(e?.durationMinutes) > 0));
+    setVocabCount(isPhone ? 20 : 1);
+    setPhoneStep(markWrong || prefill?.initialFiles?.length ? 'wrong' : 'pick');
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
     const source = scoreSourceForEditing(e);
@@ -282,10 +310,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const parts = e && e.sessionType === 'PART_PRACTICE' ? getPracticeParts(e) : [];
     setSourceScorePending(false);
     sourceScoreStore.current = null;
+    setPendingInitialFiles(prefill?.initialFiles?.length ? prefill.initialFiles : undefined);
     const requestedPart = prefill?.partNumber;
     const part = typeof requestedPart === 'number' && Number.isInteger(requestedPart) && requestedPart >= 1 && requestedPart <= 7 ? requestedPart as PracticePartResult['part'] : 5;
-    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: 0, total: PART_MAX_QUESTIONS[`part${part}`] }]);
-  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber]);
+    setPracticeRows(parts.length > 0 ? parts.map(p => ({ ...p })) : [{ part, correct: isPhone ? 0 : PART_MAX_QUESTIONS[`part${part}`], total: PART_MAX_QUESTIONS[`part${part}`] }]);
+  }, [isOpen, editingSession, prefill?.durationMinutes, prefill?.sessionType, prefill?.partNumber, prefill?.markWrong, prefill?.initialFiles, resetNonce]);
 
   // Switching tabs swaps the untouched default duration (Full Test 120, Part practice 30); a typed value stays.
   useEffect(() => {
@@ -300,31 +329,51 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const formDraft: SessionFormDraft = { sessionType, testName, date, durationMinutes, durationEdited, vocabCount, notes,
     scoreSource, manualMode, manualListening, manualReading, manualTotal, includePartDetails, entry, wrongQuestions,
     partScores, practiceRows, sourceScorePending, sourceScoreDraft: sourceScoreStore.current, originalUpdatedAt: editingSession?.updatedAt, wrongNumberDraft, partDurations, resultTiming, timingCandidate };
+  const restoreFormDraft = (value: SessionFormDraft) => {
+      restoredType.current = value.sessionType;
+      setSessionType(value.sessionType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
+      markDurationEdited(value.durationEdited || value.resultTiming?.totalSeconds != null);
+      setVocabCount(value.vocabCount); setNotes(value.notes);
+      setPhoneStep(value.scoreSource !== 'ESTIMATED' || value.sourceScorePending ? 'manual' : value.wrongQuestions.length > 0 ? 'wrong' : 'pick'); setScoreSource(value.scoreSource); setManualMode(value.manualMode);
+      setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
+      setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
+      setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
+      setFullTestManual(false);
+      setManualMinimal(value.wrongQuestions.length > 0 || value.wrongNumberDraft.typing);
+      setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
+      setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
+      setRestoredVersion(version => version + 1);
+  };
   const persistentDraft = useFormDraft({
     scope: `session:${editingSession?.id ?? (prefill?.sessionType ? `prefill:${prefill.sessionType}:${prefill.partNumber ?? 'all'}` : 'new')}`,
     enabled: isOpen && !savedSession.current, value: formDraft,
     snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
     meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
       || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
-      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== 1 || date !== getTodayDateString()
+      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== (isPhone ? 20 : 1) || date !== getTodayDateString()
       || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
     validate: input => {
       const value = parseSessionFormDraft(input);
       return value && value.originalUpdatedAt === editingSession?.updatedAt ? value : null;
     },
-    restore: value => {
-      restoredType.current = value.sessionType;
-      setSessionType(value.sessionType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
-      markDurationEdited(value.durationEdited || value.resultTiming?.totalSeconds != null);
-      setVocabCount(value.vocabCount); setNotes(value.notes); setScoreSource(value.scoreSource); setManualMode(value.manualMode);
-      setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
-      setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
-      setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
-      setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
-      setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
-      setRestoredVersion(version => version + 1);
-    }
+    restore: value => restoreFormDraft(value)
   });
+  const discardDraft = () => {
+    const snapshot = { ...formDraft, sourceScoreDraft: sourceScoreStore.current };
+    if (!persistentDraft.clear()) return;
+    setResetNonce(value => value + 1);
+    setRestoredVersion(value => value + 1);
+    setDiscarded(snapshot);
+    window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setDiscarded(null), 8000);
+  };
+  const undoDiscard = () => {
+    if (!discarded) return;
+    window.clearTimeout(undoTimer.current);
+    restoreFormDraft(discarded);
+    setDiscarded(null);
+    persistentDraft.restart();
+  };
   const closeWithDraft = () => {
     if (!persistentDraft.persist() && !window.confirm('Chưa tự lưu được nháp. Đóng form sẽ mất nội dung đang nhập. Vẫn đóng?')) return;
     onClose();
@@ -333,15 +382,23 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const formBodyRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
+  // Phones: new logs and "mark wrong questions" use the full-screen flow; editing a saved result keeps the older form.
+  const newPhone = isPhone && (!isEditing || Boolean(prefill?.markWrong));
 
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
-  const effectiveParts = wrongEntry ? partScoresFromWrong(wrongQuestions) : partScores;
+  // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
+  const aiDesktop = sessionType === 'FULL_TEST' && !isPhone && wrongEntry && !fullTestManual && !manualMinimal;
+  const compactTop = sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && !detailsOpen;
+  const durationBlank = sessionType === 'FULL_TEST' && !isPhone && ((!isEditing && !durationEdited) || durationEmpty);
+  const typedWrongParsed = wrongEntry && wrongNumberDraft.typing ? parseQuestionList(wrongNumberDraft.text) : null;
+  const activeWrongQuestions = typedWrongParsed && !typedWrongParsed.invalid.length ? typedWrongParsed.questions : wrongQuestions;
+  const effectiveParts = wrongEntry ? partScoresFromWrong(activeWrongQuestions) : partScores;
   // Tính điểm trực tiếp từ partScores
   const calculated = calculateFromPartScores(effectiveParts);
-  const resolveScores = () => resolveFullTestScore({
+  const resolveScores = (overrideParts = effectiveParts, overrideIncludePartDetails = includePartDetails) => resolveFullTestScore({
     previous: editingSession,
     source: scoreSource,
-    partScores: scoreSource === 'ESTIMATED' || includePartDetails ? effectiveParts : undefined,
+    partScores: scoreSource === 'ESTIMATED' || overrideIncludePartDetails ? overrideParts : undefined,
     listening: manualListening.trim() ? Number(manualListening) : undefined,
     reading: manualReading.trim() ? Number(manualReading) : undefined,
     total: manualTotal.trim() ? Number(manualTotal) : undefined
@@ -370,13 +427,28 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     else if (on) setIncludePartDetails(Object.values(partScores).some(count => count > 0));
     setScoreError('');
   };
+  // Minimal manual view: both Listening and Reading filled = official sections score; otherwise back to the estimate from the wrong list.
+  const changeSectionScores = (listeningValue: string, readingValue: string) => {
+    setSourceScorePending(false);
+    sourceScoreStore.current = null;
+    setManualListening(listeningValue);
+    setManualReading(readingValue);
+    setScoreError('');
+    if (listeningValue.trim() && readingValue.trim()) {
+      setScoreSource('MANUAL_SECTIONS'); setManualMode('MANUAL_SECTIONS');
+      setManualTotal(String(Number(listeningValue) + Number(readingValue)));
+    } else if (scoreSource === 'MANUAL_SECTIONS') {
+      setScoreSource('ESTIMATED'); setManualTotal('');
+    }
+  };
   const applySourceScore = (score: AppliedResultScore) => {
+    const currentWrong = latestWrongQuestions.current;
     setScoreSource(score.source); setManualMode(score.source);
     setManualListening(score.source === 'MANUAL_SECTIONS' ? String(score.listening) : '');
     setManualReading(score.source === 'MANUAL_SECTIONS' ? String(score.reading) : '');
     setManualTotal(String(score.source === 'MANUAL_TOTAL' ? score.total : score.listening + score.reading));
-    setPartScores(partScoresFromWrong(wrongQuestions));
-    setIncludePartDetails(wrongQuestions.length > 0);
+    setPartScores(partScoresFromWrong(currentWrong));
+    setIncludePartDetails(currentWrong.length > 0);
     if (score.partDurations) {
       changePartDurations(score.partDurations);
     }
@@ -417,23 +489,69 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         return;
       }
 
+      if (sessionType === 'FULL_TEST' && !testName.trim()) {
+        setMetaOpen(true);
+        setScoreError('Đặt tên đề trước khi lưu.');
+        return;
+      }
+
       const sessionId = editingSession?.id ?? `session-${Date.now()}`;
       const createdAt = editingSession?.createdAt ?? new Date().toISOString();
       let newSession: StudySession;
 
       if (sessionType === 'FULL_TEST') {
-        if (timingCandidate) { setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.'); return; }
+        let finalTiming = resultTiming;
+        // A computer Full Test whose duration was never typed, read from an image or edited is saved as "not recorded" (0),
+        // not as the 120-minute placeholder: that number was never the learner's real time and would count as study minutes.
+        const durationUnknown = !isPhone && ((!isEditing && !durationEditedRef.current) || durationEmptyRef.current);
+        let finalDuration = durationUnknown ? 0 : Number(durationMinutes) || 120;
+        let finalPartDurations = partDurations;
+        if (timingCandidate) {
+          const parsedTiming: ResultImageTiming = {
+            totalSeconds: null, listeningSeconds: null, readingSeconds: null,
+            parts: { part1: null, part2: null, part3: null, part4: null, part5: null, part6: null, part7: null }
+          };
+          const timingKeys = ['totalSeconds', 'listeningSeconds', 'readingSeconds', 'part1', 'part2', 'part3', 'part4', 'part5', 'part6', 'part7'] as const;
+          for (const key of timingKeys) {
+            const val = parseElapsed(timingCandidate.fields[key] ?? '');
+            if (val === 'invalid') {
+              setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.');
+              return;
+            }
+            if (key.startsWith('part')) parsedTiming.parts[key as keyof ResultImageTiming['parts']] = val;
+            else parsedTiming[key as 'totalSeconds'] = val;
+          }
+          if (parsedTiming.totalSeconds === 0 || !hasResultTiming(parsedTiming)) {
+            setScoreError('Kiểm tra và áp dụng thời gian từ ảnh, hoặc chọn “Bỏ qua thời gian” trước khi lưu.');
+            return;
+          }
+          finalTiming = { ...parsedTiming, source: 'IMAGE_CONFIRMED' };
+          if (finalTiming.totalSeconds !== null) finalDuration = Math.round(finalTiming.totalSeconds / 60 * 100) / 100;
+          const nextParts = { ...finalPartDurations };
+          for (const key of ['part5', 'part6', 'part7'] as const) {
+            if (finalTiming.parts[key] !== null) nextParts[key] = Math.round(finalTiming.parts[key]! / 60 * 100) / 100;
+          }
+          finalPartDurations = Object.keys(nextParts).length ? nextParts : undefined;
+          applyImageTiming(finalTiming);
+        }
+
+        let finalWrong = wrongQuestions;
         if (entry === 'wrong' && wrongNumberDraft.typing) {
           const parsed = parseQuestionList(wrongNumberDraft.text);
-          if (parsed.invalid.length || JSON.stringify(parsed.questions) !== JSON.stringify(normalizeQuestionList(wrongQuestions))) {
+          if (parsed.invalid.length) {
             setScoreError('Áp dụng danh sách số câu đang gõ, hoặc bấm Hủy tại ô số câu trước khi lưu. Nội dung đang gõ đã được giữ trong nháp.');
             return;
           }
+          finalWrong = parsed.questions;
+          setWrongQuestions(parsed.questions);
+          setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
         }
         if (sourceScorePending) { setScoreError('Kiểm tra và áp dụng điểm từ đề, hoặc chọn “Dùng điểm ước tính” trước khi lưu.'); return; }
-        if (wrongEntry && scoreSource === 'ESTIMATED' && !wrongQuestions.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        if (wrongEntry && scoreSource === 'ESTIMATED' && !finalWrong.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        const submitParts = wrongEntry ? partScoresFromWrong(finalWrong) : partScores;
+        const submitIncludeParts = includePartDetails || (entry === 'wrong' && finalWrong.length > 0);
         let resolved: ReturnType<typeof resolveFullTestScore>;
-        try { resolved = resolveScores(); setScoreError(''); }
+        try { resolved = resolveScores(submitParts, submitIncludeParts); setScoreError(''); }
         catch (reason) { setScoreError(reason instanceof Error ? reason.message : 'Điểm chưa hợp lệ.'); return; }
         newSession = {
           id: sessionId,
@@ -444,11 +562,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             ? computeSessionAttemptMap(sessions ?? loadStudySessions())[editingSession.id]?.attemptNumber ?? editingSession.attemptNumber ?? 1
             : isExistingTest ? nextAttemptNumber : 1,
           date,
-          durationMinutes: Number(durationMinutes) || 120,
-          partDurations: partDurations && Object.values(partDurations).some(value => value !== undefined) ? partDurations : undefined,
-          ...(resultTiming ? { resultTiming } : {}),
+          durationMinutes: finalDuration,
+          partDurations: finalPartDurations && Object.values(finalPartDurations).some(value => value !== undefined) ? finalPartDurations : undefined,
+          ...(finalTiming ? { resultTiming: finalTiming } : {}),
           ...resolved,
-          ...(entry === 'wrong' && (wrongEntry || wrongQuestions.length > 0) ? { wrongQuestions: normalizeQuestionList(wrongQuestions) } : {}),
+          // Phone: a typed score with no marked questions says nothing about wrong answers, so the result screen can still offer to mark them.
+          ...(entry === 'wrong' && (wrongEntry || finalWrong.length > 0) && !(newPhone && scoreSource !== 'ESTIMATED' && finalWrong.length === 0) ? { wrongQuestions: normalizeQuestionList(finalWrong) } : {}),
           notes,
           createdAt
         };
@@ -481,11 +600,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       }
       savedSession.current = true;
       persistentDraft.clear();
-      // Only Reading questions become notebook cards, so a test with no Reading mistakes has nothing to fill in.
-      if (!isEditing && draftQuestions(newSession).length) {
-        if (isPhone || !onSavedWrongTest) { setSavedResult(newSession); return; }
+      // A new Full Test ends on its result screen, unless the learner asked to add a mistake right away.
+      const addsMistake = addMistakeAfterSave && !draftQuestions(newSession).length;
+      if (newSession.sessionType === 'FULL_TEST' && onSavedFullTest && (!isEditing || prefill?.markWrong) && !addsMistake) {
         onClose();
-        onSavedWrongTest(newSession);
+        onSavedFullTest(newSession);
         return;
       }
       onClose();
@@ -495,6 +614,45 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     }
   };
 
+  if (newPhone) {
+    const timingNotice = sessionType === 'FULL_TEST' && (
+      <>
+        {timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={discardImageTiming} />}
+        {resultTiming && !timingCandidate && <div role="status" className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900 dark:bg-teal-950/30 dark:text-teal-200">
+          Thời gian đã xác nhận từ ảnh{resultTiming.totalSeconds !== null ? `: ${formatElapsed(resultTiming.totalSeconds)}` : ' · chỉ có từng phần'}.
+          <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
+          <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
+        </div>}
+      </>
+    );
+    return (
+      <div className="rd pl-root">
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="session-logger-title" tabIndex={-1} className="pl-dialog animate-sheet-up">
+          <form onSubmit={handleSubmit} className="pl-form" onKeyDown={event => {
+            // A numeric box on a phone keypad must not save the form by accident: Enter just closes the keypad.
+            if (event.key === 'Enter' && !event.defaultPrevented && event.target instanceof HTMLInputElement && event.target.type !== 'file') { event.preventDefault(); event.target.blur(); }
+          }}>
+            <PhoneLogger key={restoredVersion} sessionType={sessionType} isEditing={isEditing} step={phoneStep} setStep={setPhoneStep} onClose={closeWithDraft}
+              sessions={sessions ?? []} editingId={editingSession?.id}
+              testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes}
+              partDurations={partDurations} onPartDurationsChange={changePartDurations}
+              scoreSource={scoreSource} manualListening={manualListening} manualReading={manualReading} manualTotal={manualTotal}
+              changeSectionScores={changeSectionScores} totalPreview={scorePreview?.totalScore}
+              wrongQuestions={wrongQuestions} onWrong={setWrongQuestions}
+              numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
+              onTiming={readImageTiming} onScores={applySourceScore} onScoresPending={setSourceScorePending}
+              scoreStore={sourceScoreStore} onRevertScore={revertSourceScore}
+              initialFiles={pendingInitialFiles} setInitialFiles={setPendingInitialFiles}
+              timingNotice={timingNotice} scoreError={scoreError}
+              practiceRows={practiceRows} setPracticeRows={setPracticeRows}
+              vocabCount={vocabCount} setVocabCount={setVocabCount} />
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto max-md:items-stretch max-md:p-0 max-md:overflow-hidden animate-backdrop">
       <div
@@ -503,25 +661,25 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`relative w-full ${wrongEntry && !isPhone && !savedResult ? 'max-w-[1100px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`${isPhone ? '' : 'rd rdl rdl-modal '}relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : !isPhone && sessionType === 'PART_PRACTICE' ? 'max-w-[600px]' : 'max-w-3xl'} my-4 rounded-3xl bg-white dark:bg-[#121A2B] border-2 border-slate-900 dark:border-slate-200 shadow-[6px_6px_0_0_#0f172a] dark:shadow-[6px_6px_0_0_#cbd5e1] overflow-hidden flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
-        <div className="flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]">
+        <div className={(isPhone ? '' : 'rdl-head ') + "flex items-center justify-between px-6 py-3.5 max-md:px-4 max-md:py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121A2B]"}>
           <div className="flex items-center space-x-3">
             <div>
-              <h2 id="session-logger-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{isPhone && savedResult ? 'Đã lưu' : sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
+              <h2 id="session-logger-title" className={(isPhone ? '' : 'rdl-title ') + 'text-base sm:text-lg font-bold text-slate-900 dark:text-white'}>{sessionType === 'VOCAB' ? 'Ghi từ vựng' : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
             </div>
           </div>
           <button
             onClick={closeWithDraft}
             aria-label="Đóng form ghi nhận buổi học"
-            className="p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className={(isPhone ? '' : 'rdl-x ') + "p-1.5 max-md:p-2.5 max-md:-mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {!savedResult && persistentDraft.state === 'restored' && (
+        {persistentDraft.state === 'restored' && isPhone && (
           <div className="flex shrink-0 items-center justify-end px-4 py-1.5 sm:px-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-300">
               <span role="status">📝 Đã khôi phục bản nháp trên thiết bị này</span>
@@ -537,14 +695,13 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           </div>
         )}
-        {!savedResult && persistentDraft.state === 'unavailable' && (
+        {persistentDraft.state === 'unavailable' && (
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-6">
             <span role="status">Chưa tự lưu được nháp trên trình duyệt. Giữ form mở để tránh mất nội dung.</span>
           </div>
         )}
         {/* Form Content */}
-        {savedResult ? <PhoneSavedResult session={savedResult} onClose={onClose} onDetails={() => { onClose(); onOpenSessionDrafts?.(savedResult); }} />
-        : <form onSubmit={handleSubmit} onKeyDown={event => {
+        <form onSubmit={handleSubmit} onKeyDown={event => {
           if (event.key !== 'Enter' || event.defaultPrevented || !(event.target instanceof HTMLInputElement)) return;
           event.preventDefault();
           const primary = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"][value="close"]');
@@ -553,41 +710,47 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           <div className="relative min-h-0 flex-1 flex flex-col">
             <div ref={formBodyRef} className={`min-h-0 flex-1 ${wrongEntry && !isPhone ? 'space-y-3 p-4 sm:px-5 sm:py-3.5' : 'space-y-4 p-5'} overflow-y-auto max-md:p-4`}>
           
-          {/* Mode Switcher */}
-          <div className={`grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`}>
-            <button
-              type="button"
-              onClick={() => setSessionType('FULL_TEST')}
-              className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
-                sessionType === 'FULL_TEST'
-                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <span>Full Test</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSessionType('PART_PRACTICE')}
-              className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 cursor-pointer ${
-                sessionType === 'PART_PRACTICE'
-                  ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <span>Luyện Part</span>
-            </button>
-            {!isEditing && (
-              <button type="button" onClick={() => setSessionType('VOCAB')}
-                className={`${wrongEntry && !isPhone ? 'py-1.5' : 'py-2'} rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer ${sessionType === 'VOCAB' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-300 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
-                Từ vựng
-              </button>
-            )}
+          {/* Mode Switcher: computers use the Neo segmented bar (2px ink frame, selected cell tinted); phones keep the soft tabs */}
+          <div className={isPhone
+            ? `grid ${isEditing ? 'grid-cols-2' : 'grid-cols-3'} gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800`
+            : 'rdl-seg'}>
+            {(isPhone ? [['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const
+              // Redesign: the daily word counter is dropped on computers (a VOCAB log opened elsewhere keeps its tab).
+              : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part'], ...(sessionType === 'VOCAB' ? [['VOCAB', 'Từ vựng']] as const : [])] as const)
+              .filter(([type]) => !(isEditing && type === 'VOCAB'))
+              .map(([type, label], index) => {
+                const on = sessionType === type;
+                const phoneOn = type === 'PART_PRACTICE' ? 'text-amber-600 dark:text-amber-300' : 'text-blue-600 dark:text-blue-300';
+                return (
+                  <button key={type} type="button" onClick={() => setSessionType(type)} aria-pressed={on}
+                    className={isPhone
+                      ? `py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center cursor-pointer ${on ? `bg-white dark:bg-slate-800 shadow-xs border border-slate-200/80 dark:border-slate-700/80 font-bold ${phoneOn}` : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`
+                      : `py-2 text-[13px] font-extrabold transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${index > 0 ? 'border-l-2 border-slate-900 dark:border-slate-300' : ''} ${on ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#121A2B] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+                    {label}
+                  </button>
+                );
+              })}
           </div>
+
+          {!isPhone && discarded && (
+            <div role="status" className="flex items-center justify-between text-[12.5px] font-bold text-slate-500 dark:text-slate-400">
+              <span>Đã bỏ bản nháp</span>
+              <button type="button" onClick={undoDiscard} className="cursor-pointer font-extrabold text-blue-700 hover:underline dark:text-blue-300">Hoàn tác</button>
+            </div>
+          )}
+          {!isPhone && !discarded && persistentDraft.state === 'restored' && (
+            <div className="flex items-center justify-between text-[12.5px] font-bold text-slate-500 dark:text-slate-400">
+              <span role="status">Đang tiếp tục bản nháp chưa lưu</span>
+              <button type="button" onClick={discardDraft} className="cursor-pointer font-extrabold text-rose-700 hover:underline dark:text-rose-300">Bỏ nháp</button>
+            </div>
+          )}
 
           {isPhone && sessionType === 'FULL_TEST' && (
             <PhoneFullTestBody key={restoredVersion} testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
               onTiming={readImageTiming}
+              initialFiles={pendingInitialFiles}
+              onInitialFilesHandled={() => setPendingInitialFiles(undefined)}
+              onRevertScore={revertSourceScore}
               numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
               retest={isExistingTest ? { attempt: nextAttemptNumber, best: bestPreviousScore } : undefined}
               partScores={effectiveParts} onPart={handlePartScoreChange} preview={scorePreview}
@@ -613,50 +776,65 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes} notes={notes} setNotes={setNotes} />
           )}
 
-          {sessionType === 'FULL_TEST' && timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={() => { setTimingCandidate(null); setScoreError(''); }} />}
+          {sessionType === 'FULL_TEST' && timingCandidate && <ResultTimingReview candidate={timingCandidate} onChange={setTimingCandidate} onApply={applyImageTiming} onDiscard={discardImageTiming} />}
           {sessionType === 'FULL_TEST' && resultTiming && !timingCandidate && <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900 dark:bg-teal-950/30 dark:text-teal-200">
             Thời gian đã xác nhận từ ảnh{resultTiming.totalSeconds !== null ? `: ${formatElapsed(resultTiming.totalSeconds)}` : ' · chỉ có từng phần'}.
             <button type="button" onClick={() => setTimingCandidate(createTimingCandidate(resultTiming))} className="ml-2 min-h-9 font-bold underline">Kiểm tra / sửa thời gian</button>
+            <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
           </div>}
-          {sessionType !== 'VOCAB' && !isPhone && (<>
+          {sessionType === 'FULL_TEST' && !isPhone && (<>
           {/* General Info Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-            <div className="sm:col-span-6">
+          {(!aiDesktop || metaOpen) && <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+            <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
               <label htmlFor="session-test-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Tên Đề Thi / Nguồn
-                {sessionType === 'PART_PRACTICE' && (
-                  <span className="font-normal text-slate-400 dark:text-slate-500"> (không bắt buộc)</span>
-                )}
+                Tên đề
               </label>
-              <TestNamePicker id="session-test-name" label="Tên Đề Thi / Nguồn" required={sessionType === 'FULL_TEST'}
+              <TestNamePicker id="session-test-name" label="Tên đề" required={sessionType === 'FULL_TEST'}
                 value={testName} onChange={setTestName} suggestions={uniqueTestNameSuggestions} />
             </div>
-            <div className="sm:col-span-3">
-              <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày Luyện Đề</label>
+            <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
+              <label htmlFor="session-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày làm</label>
               <input
                 id="session-date"
                 type="date"
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
+                className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
               />
             </div>
-            <div className="sm:col-span-3">
-              <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời Gian Làm (Phút)</label>
+            <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
+              <label htmlFor="session-duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Thời gian làm (phút)</label>
               <input
                 id="session-duration"
                 type="number"
                 min="0.01"
                 max="1440"
                 step="any"
-                required
-                value={durationMinutes}
-                onChange={e => changeDurationMinutes(Number(e.target.value))}
-                className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-2xs"
+                required={!durationBlank}
+                placeholder={durationBlank ? 'Chưa ghi' : undefined}
+                value={durationBlank ? '' : durationMinutes}
+                onChange={e => { changeDurationMinutes(Number(e.target.value)); if (e.target.value === '') markDurationEmpty(true); }}
+                className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border-2 border-slate-900 dark:border-slate-300 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700"
               />
             </div>
-          </div>
+          </div>}
+
+          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && detailsOpen && (
+            <div className="space-y-1">
+              <label htmlFor="session-notes-details" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Ghi chú bài thi (tùy chọn)</label>
+              <textarea id="session-notes-details" rows={2} value={notes} onChange={event => setNotes(event.target.value)}
+                placeholder="VD: Làm lúc mệt, mất tập trung Part 7..."
+                className="w-full rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:border-slate-300 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-700" />
+            </div>
+          )}
+          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (!aiDesktop || metaOpen) && (
+            <button type="button" onClick={() => { if (aiDesktop && detailsOpen) setMetaOpen(false); setDetailsOpen(open => !open); }} aria-expanded={detailsOpen}
+              title="Đổi ngày, thêm thời lượng và ghi chú"
+              className="-mt-1 w-fit cursor-pointer rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[13px] font-black text-slate-800 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
+              {detailsOpen ? 'Ẩn chi tiết ▴' : `Ngày: ${date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().join('/')} · giờ, ghi chú ▾`}
+            </button>
+          )}
 
           {/* Smart Retest Detection Alert */}
           {isExistingTest && (
@@ -676,8 +854,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           )}
 
           {wrongEntry && (
-            <DesktopFullTestBody key={restoredVersion} wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
+            <DesktopFullTestBody key={restoredVersion} manualOpen={fullTestManual} onManualOpenChange={setFullTestManual}
+              minimalOpen={manualMinimal} onMinimalOpenChange={setManualMinimal} onSections={changeSectionScores}
+              knownMinutes={durationBlank ? undefined : durationMinutes} onOpenDetails={() => { setMetaOpen(true); setDetailsOpen(true); }}
+              meta={{ name: testName, dateLabel: date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().slice(0, 2).join('/'), onEdit: () => { setMetaOpen(true); setDetailsOpen(true); } }}
+              wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
               onTiming={readImageTiming}
+              initialFiles={pendingInitialFiles}
+              onInitialFilesHandled={() => setPendingInitialFiles(undefined)}
               numberDraft={wrongNumberDraft} onNumberDraft={setWrongNumberDraft}
               onScores={applySourceScore}
               onScoresPending={setSourceScorePending}
@@ -994,99 +1178,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
           )}
 
-          {/* PART PRACTICE MODE */}
-          {sessionType === 'PART_PRACTICE' && (
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  Các Part Đã Luyện
-                </span>
-                {practiceTotals.total > 0 && (
-                  <span className={`px-2.5 py-0.5 rounded-md border text-xs font-black tabular-nums whitespace-nowrap shrink-0 ${
-                    practiceAccuracy >= 80
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                      : practiceAccuracy >= 60
-                      ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                      : 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                  }`}>
-                    {practiceTotals.correct}/{practiceTotals.total} câu · {practiceAccuracy}%
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                {practiceRows.map((row, index) => {
-                  const maxQuestions = row.total;
-                  const rowAccuracy = maxQuestions > 0 ? Math.round((row.correct / maxQuestions) * 100) : 0;
-                  return (
-                    <div key={index} className="flex flex-wrap items-end gap-2">
-                      <div className="flex-1 min-w-[140px]">
-                        {index === 0 && (
-                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Part</label>
-                        )}
-                        <select
-                          value={row.part}
-                          onChange={e => updatePracticeRow(index, { part: Number(e.target.value) as PracticePartResult['part'] })}
-                          className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white"
-                        >
-                          {([1, 2, 3, 4, 5, 6, 7] as const).map(p => (
-                            <option key={p} value={p}>Part {p}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="shrink-0">
-                        {index === 0 && (
-                          <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Số câu đúng</label>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            max={maxQuestions}
-                            value={row.correct}
-                            aria-label={`Số câu đúng Part ${row.part}`}
-                            onChange={e => updatePracticeRow(index, { correct: Math.max(0, Number(e.target.value) || 0) })}
-                            className="w-20 px-2.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums text-center font-bold"
-                          />
-                          <span className="text-xs font-bold tabular-nums text-slate-400 dark:text-slate-500 whitespace-nowrap">
-                            / {maxQuestions} câu
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="h-[38px] flex items-center gap-1.5 shrink-0">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums w-10 text-right">
-                          {rowAccuracy}%
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removePracticeRow(index)}
-                          disabled={practiceRows.length <= 1}
-                          aria-label={`Xóa dòng Part ${row.part}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {practiceRows.length < 7 && (
-                <button
-                  type="button"
-                  onClick={addPracticeRow}
-                  className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Thêm Part khác
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Session Notes (the wrong-question layout keeps its own, folded) */}
           {!wrongEntry && <div>
             <label htmlFor="session-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1103,7 +1194,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>}
           </>)}
 
-          {sessionType === 'VOCAB' && (
+          {sessionType === 'PART_PRACTICE' && !isPhone && (
+            <DesktopPracticeBody key={restoredVersion} rows={practiceRows} setRows={setPracticeRows}
+              testName={testName} setTestName={setTestName} suggestions={uniqueTestNameSuggestions}
+              date={date} setDate={setDate} duration={durationMinutes} setDuration={changeDurationMinutes}
+              notes={notes} setNotes={setNotes} today={getTodayDateString()}
+              // Only details the learner actually wrote open the section; the Full Test name suggestion is cleared on switching tabs.
+              initialDetailOpen={Boolean(editingSession?.testName || editingSession?.notes || notes.trim())} />
+          )}
+
+          {sessionType === 'VOCAB' && !isPhone && (
+            <DesktopVocabBody count={vocabCount} setCount={setVocabCount} date={date} setDate={setDate} today={getTodayDateString()} />
+          )}
+
+          {sessionType === 'VOCAB' && isPhone && (
             <div className="space-y-3.5 rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Ngày học
@@ -1139,7 +1243,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
             <ContainerScrollCue containerRef={formBodyRef} resetKey={`${sessionType}-${wrongEntry}`} />
           </div>
-          <div className="shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <div className={(isPhone ? '' : 'rdl-foot ') + "shrink-0 space-y-2 border-t-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#121A2B] px-4 py-2.5 sm:px-6 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"}>
           {/* Submit Button */}
           {scoreError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{scoreError}</p>}
           <div className="flex flex-wrap items-center justify-end gap-2 max-md:flex-nowrap">
@@ -1147,7 +1251,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="button"
               onClick={closeWithDraft}
-              className="max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="rdl-cancel max-md:hidden mr-auto min-h-10 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
             >
               Hủy
             </button>
@@ -1164,7 +1268,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button
               type="submit"
               name="afterSave" value="close"
-              className="min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-[3px_3px_0_0_#0f172a] dark:shadow-none flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
+              className="rdl-save min-h-10 max-md:min-h-12 max-md:flex-1 max-md:text-sm max-md:justify-center px-4 py-2 rounded-xl border-2 border-slate-900 dark:border-slate-200 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-[3px_3px_0_0_#0f172a] dark:shadow-none flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{sessionType === 'VOCAB' ? 'Lưu từ vựng' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
@@ -1172,7 +1276,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           </div>
           </div>
 
-        </form>}
+        </form>
 
       </div>
     </div>

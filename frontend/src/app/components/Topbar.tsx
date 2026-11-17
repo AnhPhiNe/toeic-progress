@@ -1,9 +1,6 @@
 import React, { useMemo } from 'react';
 import { 
   PlusCircle, 
-  Calendar, 
-  Sun, 
-  Moon, 
   LayoutDashboard, 
   TrendingUp, 
   BookOpen, 
@@ -20,8 +17,9 @@ export interface TopbarProps {
   setActiveTab?: (tab: NavTabId) => void;
   profile: UserProfile;
   hasStudiedToday?: boolean;
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
+  /** Theme now lives in the sidebar's profile menu; kept optional so existing callers still compile. */
+  theme?: 'light' | 'dark';
+  toggleTheme?: () => void;
   onOpenSessionLogger: () => void;
   onOpenSettings: () => void;
   syncIndicator?: React.ReactNode;
@@ -35,8 +33,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   activeTab,
   profile,
   hasStudiedToday: _hasStudiedToday = false,
-  theme,
-  toggleTheme,
   onOpenSessionLogger,
   onOpenSettings,
   syncIndicator,
@@ -100,13 +96,19 @@ export const Topbar: React.FC<TopbarProps> = ({
       short: 'Quy đổi',
       category: 'Đo lường & chẩn đoán',
       icon: Calculator
+    },
+    awards: {
+      title: 'Thành tích',
+      short: 'Thành tích',
+      category: 'Hành trình',
+      icon: Calculator
     }
   };
 
   const currentTab = tabConfig[activeTab] || tabConfig.dashboard;
-  const TabIcon = currentTab.icon;
 
-  const isExamUrgent = daysUntilExam !== null && daysUntilExam <= 14;
+  // Calm amber from 30 days out; deliberately no red or blinking so the countdown reads as planning, not an alarm.
+  const isExamSoon = daysUntilExam !== null && daysUntilExam <= 30;
 
   return (
     <header className="sticky top-0 z-20 w-full bg-white dark:bg-[#0B132B] border-b-2 border-slate-900 dark:border-slate-700 transition-colors">
@@ -115,19 +117,12 @@ export const Topbar: React.FC<TopbarProps> = ({
           
           {/* 1. Left: Single-line page title (phones show it large; navigation lives in the bottom bar) */}
           <div className="flex min-h-14 items-center space-x-2.5 sm:min-h-15 sm:space-x-3 min-w-0">
-            <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hidden md:flex items-center justify-center shrink-0">
-                <TabIcon className="w-4 h-4 stroke-[2.5]" />
-              </div>
-              {/* Một dòng: nhóm chỉ hiện khi đủ rộng, tên trang co lại thay vì xuống dòng */}
-              <div className="flex items-center space-x-1.5 min-w-0 text-sm whitespace-nowrap">
-                <span className="text-slate-500 dark:text-slate-400 font-bold hidden xl:inline">{currentTab.category}</span>
-                <span className="text-slate-400 dark:text-slate-600 font-bold hidden xl:inline">/</span>
-                <span className="font-black text-slate-950 dark:text-white truncate tracking-tight">
-                  <span className="md:hidden text-[22px] leading-none">{currentTab.short}</span>
-                  <span className="hidden md:inline">{currentTab.title}</span>
-                </span>
-              </div>
+            <div className="flex items-center min-w-0">
+              {/* Chỉ tên trang: nhóm điều hướng đã có ở thanh bên nên không lặp lại ở đây */}
+              <span className="min-w-0 truncate whitespace-nowrap font-black tracking-tight text-slate-950 dark:text-white">
+                <span className="md:hidden text-[22px] leading-none">{currentTab.short}</span>
+                <span className="hidden md:inline text-[20px] leading-none">{currentTab.title}</span>
+              </span>
             </div>
           </div>
 
@@ -136,22 +131,18 @@ export const Topbar: React.FC<TopbarProps> = ({
             
             {streakButton && <div className="md:hidden">{streakButton}</div>}
 
-            {/* D-Day Countdown Chip - Neo Brutalism */}
+            {/* Đếm ngược ngày thi: chữ thường (vẫn bấm được để đổi ngày), không khung như nút */}
             <button
               onClick={onOpenSettings}
-              className={`h-9 flex items-center space-x-1.5 px-3 rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] text-xs font-bold transition-all cursor-pointer group active:translate-x-[1px] active:translate-y-[1px] active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
-                isExamUrgent
-                  ? 'bg-[#FECDD3] text-slate-950 animate-pulse motion-reduce:animate-none'
-                  : 'bg-[#BAE6FD] text-slate-950 hover:bg-[#7dd3fc]'
+              className={`h-9 rounded-lg px-2 text-[13px] font-bold transition-colors cursor-pointer whitespace-nowrap hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                isExamSoon ? 'text-amber-700 dark:text-amber-300' : 'text-slate-700 dark:text-slate-200'
               }`}
               title="Đếm ngược ngày thi chính thức (Bấm để đổi ngày thi trong Cài đặt)"
-              aria-label={daysUntilExam !== null ? `Đếm ngược ngày thi: D-${daysUntilExam}. Bấm để cài đặt.` : "Chưa đặt ngày thi. Bấm để cài đặt."}
+              aria-label={daysUntilExam !== null ? `Còn ${daysUntilExam} ngày thi. Bấm để cài đặt.` : "Chưa đặt ngày thi. Bấm để cài đặt."}
             >
-              <Calendar className="w-4 h-4 text-slate-950" />
-              <span className="text-slate-950 font-bold hidden sm:inline text-xs">Thi:</span>
-              <span className="font-black text-slate-950">
-                {daysUntilExam !== null ? `D-${daysUntilExam}` : 'Chưa đặt'}
-              </span>
+              {daysUntilExam !== null
+                ? <>Còn <span className={'font-black ' + (isExamSoon ? 'text-amber-700 dark:text-amber-300' : 'text-slate-950 dark:text-white')}>{daysUntilExam} ngày</span> thi</>
+                : 'Chưa đặt ngày thi'}
             </button>
 
             {/* Global Primary Action CTA: High Contrast Neo-Brutalist Slate - Clean & Non-glaring */}
@@ -163,23 +154,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             >
               <PlusCircle className="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
               <span>Ghi điểm</span>
-              <kbd className="hidden lg:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black bg-blue-800 text-blue-50 rounded border border-blue-400 leading-none ml-0.5">
-                N
-              </kbd>
-            </button>
-
-            {/* Theme Toggle Button: Neo-Brutalist Box */}
-            <button
-              onClick={toggleTheme}
-              className="w-9 h-9 rounded-xl hidden md:flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-2 border-slate-900 dark:border-slate-200 text-slate-900 dark:text-slate-100 shadow-[2px_2px_0px_0px_#0f172a] dark:shadow-[2px_2px_0px_0px_#cbd5e1] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              title={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
-              aria-label={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform duration-300" />
-              ) : (
-                <Moon className="w-4 h-4 text-slate-900 hover:-rotate-12 transition-transform duration-300" />
-              )}
             </button>
             {accountButton && <div className="md:hidden">{accountButton}</div>}
           </div>

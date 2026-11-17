@@ -1,18 +1,18 @@
 import { chooseNoteSource } from './helpers/noteSource';
 import { choosePart, openAnswerKey, openNoteForm } from './helpers/mistakeForm';
 import { test, expect } from '@playwright/test';
-import { useOfficialScore } from './helpers/sessionForm';
+import { PHONE_VIEWPORT } from './helpers/mistakeForm';
+import { openManualEntry } from './helpers/manualEntry';
+import { closeTestResult, openGridForm, useOfficialScore } from './helpers/sessionForm';
+import { openScoreLogger } from './helpers/nav';
 
-for (const width of [390, 1280]) {
+// Phones (<768px) pick the test from chips in the PhoneLogger; this is the computer form's dropdown.
+for (const width of [1280]) {
   test(`source suggestions follow the animated form and leave Save reachable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/lich-su');
-    if (width < 768) {
-      await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-      await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
-    } else await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-    const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-    const input = form.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn', exact: true });
+    const form = await openGridForm(page);
+    const input = form.getByRole('combobox', { name: /^Tên (đề|Đề Thi \/ Nguồn)$/, exact: true });
     // Fill as soon as the form is visible, while the sheet may still be moving.
     await input.fill('QA animated source');
     await expect(input).toHaveAttribute('aria-expanded', 'true');
@@ -33,12 +33,14 @@ for (const width of [390, 1280]) {
 }
 
 test('search stays inside the dropdown, keeps the field stable and marks the selected source', async ({ page }, testInfo) => {
+  await page.setViewportSize(PHONE_VIEWPORT);
   await page.goto('/so-tay');
   await openNoteForm(page);
   const modal = page.getByRole('dialog');
   await chooseNoteSource(modal, 'ETS 2025 Test 03');
   const trigger = modal.getByRole('button', { name: 'Chọn đề', exact: true });
-  for (const width of [320, 375, 1440]) {
+  // The note form is the phone form now, so only phone widths apply.
+  for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 900 });
     // Crossing the phone breakpoint swaps the form layout; measure once the picker is back.
     await expect(trigger).toBeVisible();
@@ -67,9 +69,10 @@ test('search stays inside the dropdown, keeps the field stable and marks the sel
 });
 
 test('empty answers are visible but disabled, source key is separate and Part buttons fit', async ({ page }, testInfo) => {
-  await page.goto('/so-tay'); await page.getByRole('button', { name: 'Thêm câu sai', exact: true }).click();
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await page.goto('/so-tay'); await openNoteForm(page);
   const modal = page.getByRole('dialog');
-  for (const width of [320, 375, 1440]) {
+  for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 900 });
     // Poll: right after a resize the previous layout can still be measured.
     await expect.poll(() => modal.getByRole('group', { name: 'Part', exact: true }).evaluate(element => element.getBoundingClientRect().right <= innerWidth)).toBe(true);
@@ -90,6 +93,7 @@ test('empty answers are visible but disabled, source key is separate and Part bu
 });
 
 test('adding a source from notes creates no score, and total/part forms reuse one canonical name', async ({ page }) => {
+  await page.setViewportSize(PHONE_VIEWPORT);
   await page.goto('/so-tay');
   await openNoteForm(page);
   let modal = page.getByRole('dialog');
@@ -105,9 +109,13 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
   await modal.getByRole('button', { name: 'Lưu thủ công', exact: true }).click();
   await modal.getByRole('button', { name: 'Đóng', exact: true }).last().click();
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
+  // The score forms below are the computer ones.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/lich-su');
+  await openScoreLogger(page);
   modal = page.getByRole('dialog');
-  const scoreSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
+  await openManualEntry(page, modal);
+  const scoreSource = modal.getByRole('combobox', { name: /^Tên (đề|Đề Thi \/ Nguồn)$/ });
   await scoreSource.fill('  ets 2025   test 03  ');
   await expect(page.getByRole('option', { name: 'ETS 2025 Test 03', exact: true })).toBeVisible();
   await expect(page.getByRole('option', { name: /Thêm tên đề/ })).toHaveCount(0);
@@ -117,10 +125,13 @@ test('adding a source from notes creates no score, and total/part forms reuse on
   await modal.getByRole('button', { name: 'Chỉ tổng điểm', exact: true }).click();
   await modal.getByLabel('Tổng điểm TOEIC /990').fill('750');
   await modal.getByRole('button', { name: 'Lưu kết quả' }).click();
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N' }).click();
+  await closeTestResult(page);
+  await openScoreLogger(page);
   modal = page.getByRole('dialog');
-  await modal.getByRole('button', { name: 'Luyện Part', exact: true }).click();
-  const partSource = modal.getByRole('combobox', { name: 'Tên Đề Thi / Nguồn' });
+  await modal.getByRole('button', { name: 'Bài luyện Part', exact: true }).click();
+  const details = modal.getByRole('button', { name: /^Thêm tên bài/ });
+  if (!(await modal.getByRole('combobox', { name: 'Tên đề hoặc nguồn' }).isVisible()) && await details.count()) await details.first().click();
+  const partSource = modal.getByRole('combobox', { name: 'Tên đề hoặc nguồn' });
   // Changing the form layout can scroll its body, which intentionally closes suggestions.
   // Focus a stable field, then explicitly request the picker with its keyboard control.
   await partSource.click();
@@ -140,6 +151,7 @@ test('adding a source from notes creates no score, and total/part forms reuse on
 
 test('the picker can be canceled by Escape and the floating cue exposes the lower content', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 620 });
+  await page.setViewportSize(PHONE_VIEWPORT);
   await page.goto('/so-tay');
   await openNoteForm(page);
   const modal = page.getByRole('dialog');

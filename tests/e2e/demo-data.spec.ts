@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const settings = 'Cài đặt';
-const openSettings = async (page: import('@playwright/test').Page) => {
-  await page.getByRole('button', { name: /^Chưa đặt ngày thi|^Đếm ngược ngày thi/ }).click();
-  return page.getByRole('dialog', { name: settings, exact: true });
-};
+import { openSettings } from './helpers/accountGroup';
 
 test('sample data is offered only on an empty guest device', async ({ page }) => {
   await page.goto('/tu-vung');

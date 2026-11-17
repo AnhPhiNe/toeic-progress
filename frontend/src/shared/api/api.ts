@@ -1,4 +1,5 @@
 import { cloud } from '@/shared/api/supabaseClient';
+import { requestAISignIn } from '@/shared/lib/aiSignIn';
 export const apiAvailable = Boolean(import.meta.env.VITE_API_URL && cloud);
 
 export class ApiRequestError extends Error {
@@ -14,7 +15,13 @@ export async function backendRequest<T>(path: string, method = 'GET', body?: unk
   if (!isCurrent()) throw new Error('Tác vụ đã đóng hoặc thay đổi. Chưa gửi yêu cầu.');
   const { data, error } = await cloud.auth.getSession();
   if (!isCurrent()) throw new Error('Tác vụ đã đóng hoặc thay đổi. Chưa gửi yêu cầu.');
-  if (error || !data.session) throw new Error('Cần đăng nhập hoặc tạo phiên khách để tiếp tục.');
+  if (error || !data.session) {
+    if (path.startsWith('/api/v1/ai/')) {
+      requestAISignIn();
+      throw new Error('Đăng nhập Google để dùng AI. Bạn vẫn có thể nhập và lưu thủ công.');
+    }
+    throw new Error('Cần đăng nhập hoặc tạo phiên khách để tiếp tục.');
+  }
   if (expectedUserId && data.session.user.id !== expectedUserId) throw new Error('Tài khoản đã thay đổi. Vui lòng thử đồng bộ lại.');
   let response: Response;
   try {
@@ -38,6 +45,7 @@ export async function backendRequest<T>(path: string, method = 'GET', body?: unk
     if (response.status >= 500 && requestId) message += ` Mã hỗ trợ: ${requestId}.`;
     const errorCode = response.headers.get('X-Error-Code') || value?.code;
     const code = typeof errorCode === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(errorCode) ? errorCode : undefined;
+    if (code === 'AI_LOGIN_REQUIRED') requestAISignIn();
     throw new ApiRequestError(message, response.status, requestId, retryAfter, code);
   }
   return value as T;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StudySession } from '@/shared/types';
 import { calculateFromPartScores, convertRawToListeningScore, convertRawToReadingScore, SCORE_CONVERSION_VERSION } from '@/shared/domain/etsScoring';
 import { resolveFullTestScore, scoreSourceForEditing } from '@/features/study-sessions/lib/fullTestScore';
+import { tryAutoApplyResultScores } from '@/features/study-sessions/components/ResultScoreReview';
 
 const parts = { part1: 5, part2: 20, part3: 35, part4: 27, part5: 25, part6: 12, part7: 33 };
 const session: StudySession = { id: 's1', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'ETS', date: '2026-10-06', durationMinutes: 120, createdAt: '2026-10-06T00:00:00Z' };
@@ -75,5 +76,20 @@ describe('reference curve input limits', () => {
   it('rejects a Part count exceeding the actual question count', () => {
     expect(() => calculateFromPartScores({ ...parts, part1: 7 })).toThrow();
     expect(() => calculateFromPartScores({ ...parts, part7: 33.5 })).toThrow();
+  });
+
+  it('auto-applies valid AI result screenshot scores and ignores invalid ones', () => {
+    expect(tryAutoApplyResultScores({ listening: 445, reading: 350, total: 795 })).toEqual({
+      source: 'MANUAL_SECTIONS',
+      listening: 445,
+      reading: 350,
+    });
+    expect(tryAutoApplyResultScores({ listening: null, reading: null, total: 800 })).toEqual({
+      source: 'MANUAL_TOTAL',
+      total: 800,
+    });
+    expect(tryAutoApplyResultScores({ listening: 445, reading: 350, total: 800 })).toBeNull();
+    expect(tryAutoApplyResultScores({ listening: 444, reading: 350, total: null })).toBeNull();
+    expect(tryAutoApplyResultScores(null)).toBeNull();
   });
 });

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:#bfc4cc;padding:30px;display:flex;flex-direction:column;gap:18px;align-items:center}
+.cap{width:1640px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43}
+.grid{width:1640px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.col{background:linear-gradient(180deg,#fff3d1,#ffe0ec);border-radius:26px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.col h3{font-weight:900;font-size:17px}.col h3 small{display:block;font-weight:700;font-size:13px;color:#5e6962}
+.lab{font-weight:900;font-size:12px;color:#7a857e;letter-spacing:.4px}
+.card{background:#fff;border-radius:24px;padding:16px 18px;box-shadow:0 8px 0 rgba(47,58,51,.06);position:relative;overflow:hidden}
+.soc-s svg{display:block;width:100%}
+.row{display:flex;align-items:center;gap:12px}
+.t b{display:block;font-weight:900;font-size:17px}.t small{font-weight:700;font-size:12.5px;color:#7a857e}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px;text-align:center}
+.days span{display:block;font-weight:900;font-size:11px;color:#a3aba5;margin-bottom:4px}
+.days span.now{color:#e8730c}
+.bar{height:8px;border-radius:99px;background:#f1ece3;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffb347,#ff6a1a)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:3px 10px;font-weight:900;font-size:12px}
+.btn{display:inline-block;background:#ff8a3d;color:#fff;border-radius:14px;padding:8px 14px;font-weight:900;font-size:13.5px;box-shadow:0 4px 0 #d9661f}
+.legend{font-weight:700;font-size:13px;color:#4d5850;line-height:1.5}
+.legend b{color:#2f3a33}
+</style></head><body>
+<div class="cap">Thẻ chuỗi ngày · 4 hướng<small>mỗi cột: trên là tuần đầu (chưa có ngày nào), dưới là đang có chuỗi 5 ngày. Kích thước đúng cột phải của Hôm nay (≈ 368px)</small></div>
+<div class="grid" id="G"></div>
+<script src="_soc.js"></script>
+<script>
+const flame=(w,lit,num='',dim=false)=>`<svg viewBox="0 0 44 52" width="${w}" height="${w*52/44}"><defs><linearGradient id="fl${w}${lit?1:0}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lit?'#ffb347':'#f6e7d2'}"/><stop offset="1" stop-color="${lit?'#ff6a1a':'#ead6b9'}"/></linearGradient></defs>${lit?`<ellipse cx="22" cy="34" rx="20" ry="18" fill="#ffb35c" opacity=".3"/>`:''}<path d="M22 2 C26 14 40 19 40 32 a18 17 0 0 1 -36 0 C4 23 11 19 13 10 C16 14 18 16 22 2Z" fill="url(#fl${w}${lit?1:0})" ${dim?'stroke="#e8cfa8" stroke-width="2" stroke-dasharray="3 3"':''}/>${lit?'<path d="M22 24 c4 5 8 8 8 13 a8 8 0 0 1 -16 0 c0-5 4-7 8-13Z" fill="#ffe58f"/>':''}${num?`<text x="22" y="42" text-anchor="middle" font-weight="900" font-size="15" fill="${lit?'#7a2e00':'#c7ae86'}">${num}</text>`:''}</svg>`;
+const WD=['T2','T3','T4','T5','T6','T7','CN'];
+const SO=(m,w,st='')=>`<span class="soc-s" style="width:${w}px;${st}" data-s="${m}"></span>`;
+const chest=(open)=>`<svg viewBox="0 0 40 36" width="34"><rect x="4" y="14" width="32" height="18" rx="4" fill="${open?'#d18f4e':'#b8763e'}"/><path d="M4 14 Q20 ${open?-4:2} 36 14Z" fill="#d18f4e"/><rect x="4" y="12" width="32" height="4" fill="#ffc83d"/><rect x="17" y="16" width="6" height="7" rx="2" fill="#ffc83d"/></svg>`;
+
+// A · Ngọn lửa từng ngày
+const VA=(n)=>{const today=4;return `<div class="card"><div class="row">${flame(52,n>0,n||'')}<div class="t"><b style="color:${n?'#e8730c':'#c58a3c'}">${n?`${n} ngày liền!`:'Thắp ngọn lửa đầu tiên'}</b><small>${n?'Kỷ lục 5 ngày · giữ lửa hôm nay nhé':'Ghi một đề hôm nay là lửa cháy'}</small></div></div>
+<div class="days">${WD.map((d,i)=>`<div><span class="${i===today?'now':''}">${i===today?'Nay':d}</span>${flame(30,n&&i<=today&&i>today-n,'',!n&&i===today)}</div>`).join('')}</div>
+<div class="row" style="margin-top:12px;background:#fff8ee;border-radius:14px;padding:8px 10px">${chest(false)}<div style="flex:1"><div class="bar"><i style="width:${n?71:0}%"></i></div></div><b style="font-weight:900;font-size:12.5px;color:#e8730c">${n?'còn 2 ngày tới rương 7':'rương mốc 3 ngày'}</b></div></div>`};
+
+// B · Nến trên bánh (hợp Tiệm bánh)
+const VB=(n)=>{const c=[...Array(7)].map((_,i)=>{const on=n&&i<n;return `<g transform="translate(${26+i*44} 0)"><rect x="-6" y="30" width="12" height="40" rx="4" fill="${on?['#ff7a9c','#ffc83d','#7ec8ff','#7fd18c','#a78bfa','#ff9a4d','#ff7a9c'][i]:'#efe7ee'}"/>${on?'<path d="M0 6 C5 14 7 18 0 28 C-7 18 -5 14 0 6Z" fill="#ffb347"/><path d="M0 14 C3 18 3 22 0 26 C-3 22 -3 18 0 14Z" fill="#ffe58f"/>':''}<text x="0" y="88" text-anchor="middle" font-weight="900" font-size="11" fill="${i===n?'#e8730c':'#a3aba5'}">${i===n?'Nay':'Ngày '+(i+1)}</text></g>`}).join('');
+ return `<div class="card"><div class="t"><b style="color:#d6416a">${n?`Bánh chuỗi · ${n} nến đã thắp`:'Bánh chuỗi tuần này'}</b><small>${n?'Thắp đủ 7 nến là nhận bánh 7 ngày 🎂':'Mỗi ngày học thắp một nến'}</small></div>
+<svg viewBox="0 0 310 150" style="width:100%;display:block;margin-top:6px">${c}<rect x="4" y="66" width="302" height="40" rx="12" fill="#ffd1dc"/><path d="M4 76 ${[...Array(10)].map((_,k)=>`Q${4+30*k+15} 96 ${4+30*(k+1)} 76`).join(' ')}" fill="#fff"/><rect x="-6" y="104" width="322" height="12" rx="6" fill="#e6e0f5"/></svg>
+<div class="row" style="justify-content:space-between"><span class="pill" style="background:#fff1f5;color:#d6416a">Kỷ lục 5 ngày</span><span class="pill" style="background:#eaf5ff;color:#136fb3">❄ 2 ngày nghỉ</span></div></div>`};
+
+// C · Lịch tháng (heatmap)
+const VC=(n)=>{const cells=[...Array(35)].map((_,i)=>{const day=i-3;const today=16;const lit=n&&day<=today&&day>today-n;const past=day<today&&day>=0;const cl=day<0||day>29?'transparent':lit?'#ff8a3d':day===today?'#fff':past?'#f3eee6':'#faf7f2';return `<i style="display:block;aspect-ratio:1;border-radius:8px;background:${cl};${day===today?'box-shadow:inset 0 0 0 2px #ff8a3d':''};position:relative">${lit?'<b style="position:absolute;inset:0;display:grid;place-items:center;font-size:11px">🔥</b>':''}</i>`}).join('');
+ return `<div class="card"><div class="row" style="justify-content:space-between"><div class="t"><b style="color:#e8730c">${n?`🔥 ${n} ngày liền`:'Tháng 11'}</b><small>${n?'Tháng này học 9/16 ngày':'Ô cam là ngày bạn có học'}</small></div>${n?'<span class="pill" style="background:#fff1df;color:#c2630a">Kỷ lục 5</span>':''}</div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px">${WD.map(d=>`<span style="text-align:center;font-weight:900;font-size:10.5px;color:#a3aba5">${d}</span>`).join('')}${cells}</div></div>`};
+
+// D · Đường mốc có rương
+const Dv=(n)=>{const ms=[3,7,14,30],x=k=>18+k*96;const prog=n?Math.min(1,n/30):0;
+ return `<div class="card"><div class="row">${flame(44,n>0,n||'')}<div class="t"><b style="color:${n?'#e8730c':'#c58a3c'}">${n?`${n} ngày · còn 2 tới rương 7`:'Chuỗi bắt đầu từ hôm nay'}</b><small>${n?'Mỗi mốc mở một huy hiệu chuỗi':'Mốc đầu: 3 ngày liền'}</small></div></div>
+<svg viewBox="0 0 330 92" style="width:100%;display:block;margin-top:10px"><path d="M18 50 H306" stroke="#f1ece3" stroke-width="10" stroke-linecap="round"/><path d="M18 50 H${18+(n?96+ (n-3)/4*96:0)}" stroke="url(#dg)" stroke-width="10" stroke-linecap="round"/><defs><linearGradient id="dg"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#ff6a1a"/></linearGradient></defs>
+${ms.map((m,k)=>{const done=n>=m;return `<g transform="translate(${x(k)} 50)"><circle r="17" fill="${done?'#ffc83d':'#fff'}" stroke="${done?'#e0a400':'#e6dccd'}" stroke-width="4"/><g transform="translate(-14 -15) scale(.7)">${chest(done)}</g><text y="38" text-anchor="middle" font-weight="900" font-size="12" fill="${done?'#a86a00':'#a3aba5'}">${m} ngày</text></g>`}).join('')}
+${n?`<g transform="translate(${18+96+(n-3)/4*96} 50)"><circle r="9" fill="#ff6a1a" stroke="#fff" stroke-width="3"/></g>`:''}</svg>
+<div class="days" style="margin-top:4px">${WD.map((d,i)=>`<div><span class="${i===4?'now':''}">${i===4?'Nay':d}</span><i style="display:block;margin:0 auto;width:22px;height:22px;border-radius:50%;background:${n&&i<=4&&i>4-n?'#ff8a3d':'#f3eee6'};${!n&&i===4?'box-shadow:inset 0 0 0 2px #ffb35c':''}"></i></div>`).join('')}</div></div>`};
+
+const V=[['A · Ngọn lửa từng ngày','mỗi ngày là một ngọn lửa nhỏ thay cho vòng tròn; rương mốc kế tiếp kèm thanh tiến độ',VA,'<b>Hiệu ứng:</b> ngày mới thắp thì ngọn lửa bùng lên, số lớn đếm lên; lửa lung linh nhẹ.'],
+['B · Nến trên bánh','7 cây nến màu trên chiếc bánh, mỗi ngày học thắp một nến; hợp với Tiệm bánh',VB,'<b>Hiệu ứng:</b> nến mới bật lửa có khói nhỏ; đủ 7 nến thì thổi nến, confetti, huy hiệu 7 ngày.'],
+['C · Lịch tháng','cả tháng thành lưới ô, ngày học là ô cam có lửa; nhìn ra thói quen dài hạn',VC,'<b>Hiệu ứng:</b> ô hôm nay viền cam nhấp nháy; học xong ô tô cam từ tâm ra.'],
+['D · Đường mốc có rương','một đường đi qua các mốc 3·7·14·30 ngày, mỗi mốc là một rương mở ra huy hiệu',Dv,'<b>Hiệu ứng:</b> chấm lửa chạy dọc đường; tới mốc thì rương bật nắp, huy hiệu bay ra.']];
+document.getElementById('G').innerHTML=V.map(([t,s,f,l])=>`<div class="col"><h3>${t}<small>${s}</small></h3><div class="lab">TUẦN ĐẦU TIÊN</div>${f(0)}<div class="lab">ĐANG CÓ CHUỖI 5 NGÀY</div>${f(5)}<p class="legend">${l}</p></div>`).join('');
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script></body></html>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Màn kết quả Mầm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page:#E7F0E2; --paper:#FBFDF8; --ink:#1E2430; --muted:#66705F; --line:#E4ECDD; --soft:#F0F6EB;
+    --green:#3E8A4F; --green-dark:#2B6638; --green-soft:#DCEFD3;
+    --sun:#F2B93B; --sun-soft:#FFF3D3;
+    --coral-soft:#FDE6DF; --coral-ink:#B4412A; --plum-soft:#ECE6FB; --plum-ink:#5B3DB3; --amber-ink:#9A6400;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1640px;margin:0 auto;padding:40px 16px 64px}
+  .page h1{font-size:22px;margin:0 0 4px}
+  .page > p{margin:0 0 28px;color:var(--muted);font-size:14px;max-width:760px;line-height:1.5}
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .label{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 4px 4px}
+  .sublabel{font-size:12.5px;color:var(--muted);margin:0 0 10px 4px}
+
+  .phone{width:360px;max-width:100%;height:760px;background:var(--paper);border-radius:36px;box-shadow:0 24px 60px -26px rgba(30,60,20,.4);position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:10px;padding:18px 20px 4px;font-size:13px;color:var(--muted);font-weight:600}
+  .x{width:32px;height:32px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:15px;color:var(--ink)}
+  .scroll{flex:1;overflow:auto;padding:0 20px 130px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+
+  .hero{text-align:center;padding:2px 0 4px;border-radius:28px}
+  .hero.up{background:radial-gradient(110% 75% at 50% 18%,var(--sun-soft),transparent 72%)}
+  .hero.down{background:radial-gradient(110% 75% at 50% 18%,var(--green-soft),transparent 72%)}
+  .mascot{width:132px;height:146px;display:block;margin:0 auto -6px}
+  .headline{font-size:24px;font-weight:800;margin:4px 0 2px;letter-spacing:-.01em}
+  .sub{font-size:14px;color:var(--muted);margin:0 auto;max-width:280px;line-height:1.45}
+  .score{display:flex;align-items:baseline;justify-content:center;gap:6px;margin:12px 0 2px}
+  .score b{font-size:54px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .score span{color:var(--muted);font-weight:600}
+  .lr{display:flex;justify-content:center;gap:18px;font-size:13px;color:var(--muted);font-weight:600}
+  .lr strong{color:var(--ink)}
+
+  .goal{margin:18px 0 4px;background:var(--soft);border-radius:18px;padding:13px 16px}
+  .goal-top{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:9px;gap:8px}
+  .goal-top em{font-style:normal;color:var(--green);font-weight:800;white-space:nowrap}
+  .track{height:10px;border-radius:99px;background:#DCE7D4;position:relative;overflow:hidden}
+  .fill{position:absolute;top:0;bottom:0;left:0;border-radius:99px 0 0 99px;background:linear-gradient(90deg,#8FD07E,var(--green))}
+  .gain{position:absolute;top:0;bottom:0;border-radius:0 99px 99px 0;background:var(--sun)}
+
+  h3{font-size:15px;margin:20px 0 8px;font-weight:800}
+  .loss{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .loss:last-child{border-bottom:0}
+  .tag{font-size:11px;font-weight:800;border-radius:8px;padding:5px 7px;min-width:34px;text-align:center}
+  .p7{background:var(--coral-soft);color:var(--coral-ink)} .p5{background:var(--plum-soft);color:var(--plum-ink)} .p3{background:var(--sun-soft);color:var(--amber-ink)}
+  .loss-name{flex:1;font-size:14px;font-weight:600;line-height:1.3}
+  .loss-name small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+  .count{font-size:14px;font-weight:800;white-space:nowrap}
+  .count small{color:var(--muted);font-weight:600}
+  .mini{height:5px;border-radius:99px;background:#EDE7DF;margin-top:6px;overflow:hidden}
+  .mini i{display:block;height:100%;border-radius:99px;background:#E9967F}
+
+  .nudge{margin-top:18px;background:var(--soft);border-radius:18px;padding:14px 16px;font-size:13.5px;line-height:1.5;color:#3B4537}
+  .nudge b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:2px}
+  .fact{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:13px;color:#3B4537;line-height:1.45}
+  .fact i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--sun);margin-top:6px}
+
+  .cta-wrap{position:absolute;left:0;right:0;bottom:0;padding:16px 20px 22px;background:linear-gradient(to top,var(--paper) 72%,rgba(251,253,248,0))}
+  .cta{display:block;width:100%;border:0;border-radius:18px;padding:16px;font:inherit;font-size:16px;font-weight:800;color:#fff;background:var(--green);box-shadow:0 6px 0 var(--green-dark);cursor:pointer}
+  .cta-sub{display:block;text-align:center;margin-top:12px;font-size:13px;font-weight:700;color:var(--green)}
+
+  .desk{max-width:860px;background:var(--paper);border-radius:26px;box-shadow:0 24px 60px -26px rgba(30,60,20,.4);overflow:hidden}
+  .desk-bar{display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);font-weight:600}
+  .dot{width:10px;height:10px;border-radius:50%;background:#DCE5D5}
+  .desk-body{display:grid;grid-template-columns:1fr 1fr}
+  .desk-left{padding:22px 28px 30px;text-align:center}
+  .desk-right{padding:28px 28px 30px;border-left:1px solid var(--line);display:flex;flex-direction:column}
+  .desk-right h3{margin-top:0}
+  .desk-right .cta-sub{text-align:left}
+  .push{margin-top:auto;padding-top:20px}
+  @media (max-width:780px){.desk-body{grid-template-columns:1fr}.desk-right{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="leafG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E08F"/><stop offset="1" stop-color="#4C9F55"/></linearGradient>
+    <linearGradient id="leafG2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient>
+    <radialGradient id="potG" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient>
+    <g id="faceHappy">
+      <path d="M39 80 Q46.5 71 54 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+      <path d="M66 80 Q73.5 71 81 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+      <ellipse cx="37" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/><ellipse cx="83" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/>
+      <path d="M51 87 Q60 100 69 87 Z" fill="#9C4434"/><ellipse cx="60" cy="94.5" rx="4.5" ry="2.6" fill="#F27C6C"/>
+    </g>
+    <g id="faceCalm">
+      <ellipse cx="47" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/><ellipse cx="73" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/>
+      <circle cx="49.2" cy="75.8" r="2.5" fill="#fff"/><circle cx="75.2" cy="75.8" r="2.5" fill="#fff"/>
+      <circle cx="45" cy="82" r="1.2" fill="#fff"/><circle cx="71" cy="82" r="1.2" fill="#fff"/>
+      <ellipse cx="36" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/><ellipse cx="84" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/>
+      <path d="M54.5 90 Q60 94.5 65.5 90" stroke="#9C4434" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <g id="armsUp"><ellipse cx="18" cy="78" rx="6.5" ry="11.5" transform="rotate(62 18 78)" fill="#DDA263"/><ellipse cx="102" cy="78" rx="6.5" ry="11.5" transform="rotate(-62 102 78)" fill="#DDA263"/></g>
+    <g id="armsDown"><ellipse cx="25" cy="88" rx="6.5" ry="10.5" transform="rotate(-22 25 88)" fill="#DDA263"/><ellipse cx="95" cy="88" rx="6.5" ry="10.5" transform="rotate(22 95 88)" fill="#DDA263"/></g>
+    <g id="pot">
+      <ellipse cx="60" cy="113" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/>
+      <path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#potG)"/>
+      <rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/>
+      <rect x="33" y="58.5" width="22" height="4" rx="2" fill="#fff" opacity=".38"/>
+      <ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+    </g>
+    <g id="plantLush">
+      <g transform="translate(0,13)">
+        <path d="M60 44 Q58 26 60 4" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#leafG)"/>
+        <path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#leafG2)"/>
+        <path d="M60 12 C52 0 40 -2 34 4 C42 14 52 15 60 12Z" fill="url(#leafG)"/>
+        <path d="M60 8 C66 -4 78 -6 84 -1 C78 9 68 11 60 8Z" fill="url(#leafG2)"/>
+      </g>
+    </g>
+    <g id="mamHappy">
+      <g transform="translate(60,86) scale(0.82,1) translate(-60,-78)"><use href="#armsUp"/></g>
+      <use href="#pot"/><g transform="translate(0,6)"><use href="#faceHappy"/></g><use href="#plantLush"/>
+      <circle cx="12" cy="38" r="3" fill="#F2B93B"/><path d="M106 40 l0 8 M102 44 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="104" cy="62" r="2.2" fill="#F2B93B"/>
+    </g>
+    <g id="mamCalm">
+      <g transform="translate(60,88) scale(0.84,1) translate(-60,-88)"><use href="#armsDown"/></g>
+      <use href="#pot"/><g transform="translate(0,6)"><use href="#faceCalm"/></g><use href="#plantLush"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="page">
+  <h1>Màn kết quả với Mầm</h1>
+  <p>Ba trạng thái theo lượng dữ liệu người dùng đã nhập. Nút chính luôn là bước kế tiếp để tới được việc ôn câu sai. Cây trong chậu không héo khi điểm giảm.</p>
+
+  <div class="row">
+
+    <!-- State 1 -->
+    <div>
+      <div class="label">1 · Chỉ có điểm L/R</div>
+      <div class="sublabel">Chưa biết sai câu nào, nên mời đánh dấu câu sai.</div>
+      <div class="phone">
+        <div class="topbar"><span class="x">✕</span>ETS 2024 Test 05 · hôm nay</div>
+        <div class="scroll">
+          <div class="hero up">
+            <svg class="mascot" viewBox="0 -14 120 134"><use href="#mamHappy"/></svg>
+            <div class="headline">Tăng 35 điểm!</div>
+            <p class="sub">Điểm cao nhất của bạn từ trước tới giờ.</p>
+            <div class="score"><b>745</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>400</strong></span><span>Reading <strong>345</strong></span></div>
+          </div>
+          <div class="goal">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 105 điểm</em></div>
+            <div class="track"><div class="fill" style="width:83.5%"></div><div class="gain" style="left:83.5%;width:4.1%"></div></div>
+          </div>
+          <div class="nudge"><b>Muốn biết mất điểm ở đâu?</b>Bấm vào số các câu bạn làm sai. Mất khoảng 1 phút, và Mầm sẽ chỉ ra Part nào đang kéo điểm xuống.</div>
+        </div>
+        <div class="cta-wrap">
+          <button class="cta">Đánh dấu câu sai</button>
+          <span class="cta-sub">Để sau</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 2 -->
+    <div>
+      <div class="label">2 · Có số câu sai</div>
+      <div class="sublabel">Biết sai ở Part nào, mời lưu nội dung câu để ôn.</div>
+      <div class="phone">
+        <div class="topbar"><span class="x">✕</span>ETS 2024 Test 05 · hôm nay</div>
+        <div class="scroll">
+          <div class="hero up">
+            <svg class="mascot" viewBox="0 -14 120 134"><use href="#mamHappy"/></svg>
+            <div class="headline">Tăng 35 điểm!</div>
+            <p class="sub">Điểm cao nhất của bạn từ trước tới giờ.</p>
+            <div class="score"><b>745</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>400</strong></span><span>Reading <strong>345</strong></span></div>
+          </div>
+          <div class="goal">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 105 điểm</em></div>
+            <div class="track"><div class="fill" style="width:83.5%"></div><div class="gain" style="left:83.5%;width:4.1%"></div></div>
+          </div>
+          <h3>Sai nhiều nhất ở</h3>
+          <div class="loss"><span class="tag p7">P7</span><div class="loss-name">Đọc hiểu<div class="mini"><i style="width:22%"></i></div></div><span class="count">12 <small>/ 54</small></span></div>
+          <div class="loss"><span class="tag p5">P5</span><div class="loss-name">Điền câu<div class="mini"><i style="width:20%"></i></div></div><span class="count">6 <small>/ 30</small></span></div>
+          <div class="loss"><span class="tag p3">P3</span><div class="loss-name">Hội thoại<div class="mini"><i style="width:13%"></i></div></div><span class="count">5 <small>/ 39</small></span></div>
+        </div>
+        <div class="cta-wrap">
+          <button class="cta">Lưu 12 câu sai Part 7</button>
+          <span class="cta-sub">Xem đủ 7 Part</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 3 up -->
+    <div>
+      <div class="label">3 · Có câu sai chi tiết</div>
+      <div class="sublabel">Biết dạng câu, ôn được ngay.</div>
+      <div class="phone">
+        <div class="topbar"><span class="x">✕</span>ETS 2024 Test 05 · hôm nay</div>
+        <div class="scroll">
+          <div class="hero up">
+            <svg class="mascot" viewBox="0 -14 120 134"><use href="#mamHappy"/></svg>
+            <div class="headline">Tăng 35 điểm!</div>
+            <p class="sub">Điểm cao nhất của bạn từ trước tới giờ.</p>
+            <div class="score"><b>745</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>400</strong></span><span>Reading <strong>345</strong></span></div>
+          </div>
+          <div class="goal">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 105 điểm</em></div>
+            <div class="track"><div class="fill" style="width:83.5%"></div><div class="gain" style="left:83.5%;width:4.1%"></div></div>
+          </div>
+          <h3>Mất điểm nhiều nhất ở</h3>
+          <div class="loss"><span class="tag p7">P7</span><div class="loss-name">Câu hỏi suy luận<small>Đoạn đơn, đoạn kép</small></div><span class="count">7 câu</span></div>
+          <div class="loss"><span class="tag p5">P5</span><div class="loss-name">Từ loại<small>Tính từ, trạng từ</small></div><span class="count">5 câu</span></div>
+          <div class="loss"><span class="tag p3">P3</span><div class="loss-name">Hỏi chi tiết<small>Hội thoại 3 người</small></div><span class="count">4 câu</span></div>
+        </div>
+        <div class="cta-wrap">
+          <button class="cta">Ôn 18 câu sai vừa lưu</button>
+          <span class="cta-sub">Xem đủ 7 Part</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 3 down -->
+    <div>
+      <div class="label">3 · Khi điểm giảm</div>
+      <div class="sublabel">Mầm bình tĩnh, nói điều có thật, vẫn mời ôn.</div>
+      <div class="phone">
+        <div class="topbar"><span class="x">✕</span>Hacker 3 Test 02 · hôm nay</div>
+        <div class="scroll">
+          <div class="hero down">
+            <svg class="mascot" viewBox="0 -14 120 134"><use href="#mamCalm"/></svg>
+            <div class="headline">Giảm 20 điểm lần này</div>
+            <p class="sub">Không sao. Trung bình 3 bài gần nhất của bạn vẫn tăng 15 điểm.</p>
+            <div class="score"><b>690</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>380</strong></span><span>Reading <strong>310</strong></span></div>
+          </div>
+          <div class="goal">
+            <div class="goal-top"><span>Mục tiêu 850</span><em>còn 160 điểm</em></div>
+            <div class="track"><div class="fill" style="width:81.2%;border-radius:99px"></div></div>
+          </div>
+          <div class="fact"><i></i><span>Bạn bỏ trống 8 câu cuối Part 7, có thể do hết giờ.</span></div>
+          <h3>Lần này hụt nhiều ở</h3>
+          <div class="loss"><span class="tag p7">P7</span><div class="loss-name">Đoạn ba<small>Triple passage</small></div><span class="count">9 câu</span></div>
+          <div class="loss"><span class="tag p5">P5</span><div class="loss-name">Liên từ<small>Although, despite, since</small></div><span class="count">5 câu</span></div>
+          <div class="loss"><span class="tag p3">P3</span><div class="loss-name">Ý định người nói<small>Câu trích dẫn</small></div><span class="count">4 câu</span></div>
+        </div>
+        <div class="cta-wrap">
+          <button class="cta">Ôn 21 câu sai vừa lưu</button>
+          <span class="cta-sub">Bấm giờ luyện Part 7</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop -->
+    <div style="flex-basis:100%">
+      <div class="label">Desktop · trạng thái 3</div>
+      <div class="sublabel">Hai cột: cảm xúc và điểm bên trái, việc tiếp theo bên phải.</div>
+      <div class="desk">
+        <div class="desk-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:10px">Kết quả · ETS 2024 Test 05</span></div>
+        <div class="desk-body">
+          <div class="desk-left hero up" style="border-radius:0">
+            <svg class="mascot" viewBox="0 -14 120 134" style="width:150px;height:166px"><use href="#mamHappy"/></svg>
+            <div class="headline" style="font-size:28px">Tăng 35 điểm!</div>
+            <p class="sub">Điểm cao nhất của bạn từ trước tới giờ.</p>
+            <div class="score"><b style="font-size:62px">745</b><span>/ 990</span></div>
+            <div class="lr"><span>Listening <strong>400</strong></span><span>Reading <strong>345</strong></span></div>
+            <div class="goal" style="text-align:left">
+              <div class="goal-top"><span>Mục tiêu 850</span><em>còn 105 điểm</em></div>
+              <div class="track"><div class="fill" style="width:83.5%"></div><div class="gain" style="left:83.5%;width:4.1%"></div></div>
+            </div>
+          </div>
+          <div class="desk-right">
+            <h3>Mất điểm nhiều nhất ở</h3>
+            <div class="loss"><span class="tag p7">P7</span><div class="loss-name">Câu hỏi suy luận<small>Đoạn đơn, đoạn kép</small></div><span class="count">7 câu</span></div>
+            <div class="loss"><span class="tag p5">P5</span><div class="loss-name">Từ loại<small>Tính từ, trạng từ</small></div><span class="count">5 câu</span></div>
+            <div class="loss"><span class="tag p3">P3</span><div class="loss-name">Hỏi chi tiết<small>Hội thoại 3 người</small></div><span class="count">4 câu</span></div>
+            <div class="push">
+              <button class="cta">Ôn 18 câu sai vừa lưu</button>
+              <span class="cta-sub">Xem đủ 7 Part</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

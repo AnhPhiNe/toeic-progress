@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linh vật Mầm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1E2430;--muted:#66705F;--bg:#EEF6EA;--card:#FAFDF8;--green:#3E8A4F;--sun:#F2B93B}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1120px;margin:0 auto;padding:40px 16px 64px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:17px;margin:36px 0 4px}
+  .lead{margin:0 0 20px;color:var(--muted);font-size:14px;line-height:1.5}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+  .card{background:var(--card);border-radius:28px;padding:22px 20px 20px;box-shadow:0 16px 36px -24px rgba(30,60,20,.35)}
+  .card h3{margin:0;font-size:16px;display:flex;gap:8px;align-items:center}
+  .tag{font-size:11px;font-weight:800;background:#DCEFD3;color:var(--green);padding:4px 8px;border-radius:8px}
+  .card p{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 0 10px}
+  .pair{display:flex;align-items:flex-end;justify-content:center;gap:4px;background:radial-gradient(90% 70% at 50% 60%,#E3F3DA,transparent 75%);border-radius:22px;padding:6px 0 4px}
+  .pair svg.big{width:168px;height:168px}
+  .pair svg.small{width:116px;height:116px}
+  .cap{display:flex;justify-content:center;gap:80px;font-size:11.5px;font-weight:700;color:var(--muted);margin-top:4px}
+
+  .stages{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;background:var(--card);border-radius:28px;padding:22px 18px;box-shadow:0 16px 36px -24px rgba(30,60,20,.35)}
+  @media (max-width:640px){.stages{grid-template-columns:repeat(2,1fr)}}
+  .stage{text-align:center}
+  .stage svg{width:130px;height:140px}
+  .stage b{display:block;font-size:14px}
+  .stage span{font-size:12px;color:var(--muted)}
+  .track{grid-column:1/-1;height:8px;border-radius:99px;background:#DCEAD5;position:relative;margin:4px 30px 0}
+  .track i{position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:99px;background:linear-gradient(90deg,#9BDA87,#3E8A4F)}
+</style>
+</head>
+<body>
+
+<!-- shared defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="leafG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E08F"/><stop offset="1" stop-color="#4C9F55"/></linearGradient>
+    <linearGradient id="leafG2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BDA87"/><stop offset="1" stop-color="#3F9450"/></linearGradient>
+    <radialGradient id="beanG" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#FCE8C6"/><stop offset=".55" stop-color="#EDBF86"/><stop offset="1" stop-color="#D99A5A"/></radialGradient>
+    <radialGradient id="potG" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FBB596"/><stop offset=".6" stop-color="#EE8B62"/><stop offset="1" stop-color="#D2663F"/></radialGradient>
+    <radialGradient id="peaG" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#E2F6D2"/><stop offset=".55" stop-color="#ABDD8F"/><stop offset="1" stop-color="#78BE62"/></radialGradient>
+
+    <!-- faces (centred for bean body, eyes at y≈79) -->
+    <g id="faceHappy">
+      <path d="M39 80 Q46.5 71 54 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+      <path d="M66 80 Q73.5 71 81 80" stroke="#3A2A1E" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+      <ellipse cx="37" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/><ellipse cx="83" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".55"/>
+      <path d="M51 87 Q60 100 69 87 Z" fill="#9C4434"/>
+      <ellipse cx="60" cy="94.5" rx="4.5" ry="2.6" fill="#F27C6C"/>
+    </g>
+    <g id="faceCalm">
+      <ellipse cx="47" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/><ellipse cx="73" cy="79" rx="6.2" ry="7.6" fill="#3A2A1E"/>
+      <circle cx="49.2" cy="75.8" r="2.5" fill="#fff"/><circle cx="75.2" cy="75.8" r="2.5" fill="#fff"/>
+      <circle cx="45" cy="82" r="1.2" fill="#fff"/><circle cx="71" cy="82" r="1.2" fill="#fff"/>
+      <ellipse cx="36" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/><ellipse cx="84" cy="90" rx="6.5" ry="4.2" fill="#FF8F80" opacity=".45"/>
+      <path d="M54.5 90 Q60 94.5 65.5 90" stroke="#9C4434" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- bean body -->
+    <g id="bean">
+      <ellipse cx="60" cy="114" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/>
+      <ellipse cx="47" cy="110" rx="9.5" ry="5.2" fill="#C98A4E"/><ellipse cx="73" cy="110" rx="9.5" ry="5.2" fill="#C98A4E"/>
+      <path d="M60 40 C85 40 97 58 97 80 C97 100 81 111 60 111 C39 111 23 100 23 80 C23 58 35 40 60 40Z" fill="url(#beanG)"/>
+      <ellipse cx="43" cy="54" rx="9" ry="5" transform="rotate(-32 43 54)" fill="#fff" opacity=".5"/>
+    </g>
+
+    <!-- two-leaf sprout, base at (60,42) -->
+    <g id="sprout2">
+      <path d="M60 44 Q58 32 60 22" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <path d="M59 29 C46 13 27 14 21 25 C32 36 49 37 59 29Z" fill="url(#leafG)"/>
+      <path d="M57 29 C46 25 34 23 25 25" stroke="#3E8A4F" stroke-width="1.6" fill="none" opacity=".45" stroke-linecap="round"/>
+      <path d="M61 25 C70 6 92 3 101 13 C91 28 73 31 61 25Z" fill="url(#leafG2)"/>
+      <path d="M63 24 C74 18 86 13 97 13" stroke="#3E8A4F" stroke-width="1.6" fill="none" opacity=".45" stroke-linecap="round"/>
+      <ellipse cx="80" cy="12" rx="6" ry="2.2" transform="rotate(-18 80 12)" fill="#fff" opacity=".45"/>
+    </g>
+
+    <g id="armsUp"><ellipse cx="18" cy="78" rx="6.5" ry="11.5" transform="rotate(62 18 78)" fill="#DDA263"/><ellipse cx="102" cy="78" rx="6.5" ry="11.5" transform="rotate(-62 102 78)" fill="#DDA263"/></g>
+    <g id="armsDown"><ellipse cx="25" cy="88" rx="6.5" ry="10.5" transform="rotate(-22 25 88)" fill="#DDA263"/><ellipse cx="95" cy="88" rx="6.5" ry="10.5" transform="rotate(22 95 88)" fill="#DDA263"/></g>
+
+    <!-- pot body -->
+    <g id="pot">
+      <ellipse cx="60" cy="113" rx="27" ry="4" fill="#2F4A1F" opacity=".1"/>
+      <path d="M33 66 L87 66 L80.5 106 Q60 112 39.5 106Z" fill="url(#potG)"/>
+      <rect x="27" y="55" width="66" height="15" rx="7.5" fill="#E8794F"/>
+      <rect x="33" y="58.5" width="22" height="4" rx="2" fill="#fff" opacity=".38"/>
+      <ellipse cx="60" cy="56.5" rx="28" ry="4.5" fill="#6E4B30"/>
+    </g>
+
+    <!-- pea body -->
+    <g id="pea">
+      <ellipse cx="60" cy="114" rx="26" ry="4" fill="#2F4A1F" opacity=".1"/>
+      <ellipse cx="48" cy="110" rx="9" ry="5" fill="#5FA64B"/><ellipse cx="72" cy="110" rx="9" ry="5" fill="#5FA64B"/>
+      <circle cx="60" cy="76" r="36" fill="url(#peaG)"/>
+      <ellipse cx="44" cy="56" rx="9" ry="5" transform="rotate(-32 44 56)" fill="#fff" opacity=".55"/>
+    </g>
+    <g id="peaLeaf">
+      <path d="M60 42 Q53 32 57 24" stroke="#4E9A4A" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M58 28 C58 12 72 2 88 6 C84 22 72 30 58 28Z" fill="url(#leafG2)"/>
+      <path d="M60 27 C68 20 76 12 85 8" stroke="#3E8A4F" stroke-width="1.6" fill="none" opacity=".45" stroke-linecap="round"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="page">
+  <h1>Vẽ lại Mầm</h1>
+  <p class="lead">Ba cách vẽ, đều giữ ý "mầm lớn dần theo điểm". Bên trái là nét mặt khi tăng điểm, bên phải khi giảm điểm.</p>
+
+  <div class="grid3">
+    <section class="card">
+      <h3>A · Hạt đậu mũm mĩm <span class="tag">Đề xuất</span></h3>
+      <p>Thân hạt tròn, ấm, có tay chân nhỏ. Hai lá trên đầu như mái tóc; khi vui thì giơ tay reo.</p>
+      <div class="pair">
+        <svg class="big" viewBox="0 -6 120 126"><use href="#armsUp"/><use href="#bean"/><use href="#faceHappy"/><use href="#sprout2"/>
+          <circle cx="16" cy="36" r="3" fill="#F2B93B"/><path d="M104 40 l0 8 M100 44 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="108" cy="58" r="2.2" fill="#F2B93B"/></svg>
+        <svg class="small" viewBox="0 -6 120 126"><use href="#armsDown"/><use href="#bean"/><use href="#faceCalm"/><use href="#sprout2"/></svg>
+      </div>
+      <div class="cap"><span>Tăng điểm</span><span>Giảm điểm</span></div>
+    </section>
+
+    <section class="card">
+      <h3>B · Mầm trong chậu</h3>
+      <p>Chậu đất nung có mặt cười, mầm mọc từ đất. Dễ nhận ra là "cây đang được chăm", màu cam đất ấm hơn.</p>
+      <div class="pair">
+        <svg class="big" viewBox="0 -6 120 126"><g transform="translate(60,86) scale(0.82,1) translate(-60,-78)"><use href="#armsUp"/></g><use href="#pot"/><g transform="translate(0,6)"><use href="#faceHappy"/></g><g transform="translate(0,13)"><use href="#sprout2"/></g>
+          <circle cx="14" cy="34" r="3" fill="#F2B93B"/><path d="M104 36 l0 8 M100 40 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/></svg>
+        <svg class="small" viewBox="0 -6 120 126"><g transform="translate(60,88) scale(0.84,1) translate(-60,-88)"><use href="#armsDown"/></g><use href="#pot"/><g transform="translate(0,6)"><use href="#faceCalm"/></g><g transform="translate(0,13)"><use href="#sprout2"/></g></svg>
+      </div>
+      <div class="cap"><span>Tăng điểm</span><span>Giảm điểm</span></div>
+    </section>
+
+    <section class="card">
+      <h3>C · Hạt đậu Hà Lan</h3>
+      <p>Viên đậu xanh tròn xoe, một chiếc lá xoăn như lọn tóc. Đơn giản, dễ làm sticker và icon nhỏ.</p>
+      <div class="pair">
+        <svg class="big" viewBox="0 -6 120 126"><g fill="#86C96F"><ellipse cx="19" cy="78" rx="6.5" ry="11.5" transform="rotate(62 19 78)"/><ellipse cx="101" cy="78" rx="6.5" ry="11.5" transform="rotate(-62 101 78)"/></g><use href="#pea"/><use href="#peaLeaf"/><use href="#faceHappy"/>
+          <circle cx="16" cy="36" r="3" fill="#F2B93B"/><path d="M104 40 l0 8 M100 44 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/></svg>
+        <svg class="small" viewBox="0 -6 120 126"><g fill="#86C96F"><ellipse cx="25" cy="90" rx="6.5" ry="10.5" transform="rotate(-22 25 90)"/><ellipse cx="95" cy="90" rx="6.5" ry="10.5" transform="rotate(22 95 90)"/></g><use href="#pea"/><use href="#peaLeaf"/><use href="#faceCalm"/></svg>
+      </div>
+      <div class="cap"><span>Tăng điểm</span><span>Giảm điểm</span></div>
+    </section>
+  </div>
+
+  <h2>Mầm lớn dần theo hành trình (cách A)</h2>
+  <p class="lead">Hình Mầm ở Tổng quan và màn kết quả thay đổi theo khoảng cách tới điểm mục tiêu. Người dùng nhìn là biết mình đi được bao xa.</p>
+
+  <div class="stages">
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><use href="#armsDown"/><use href="#bean"/><use href="#faceCalm"/>
+        <path d="M60 42 Q59 35 61 30" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M61 32 C66 21 80 20 83 27 C75 35 67 35 61 32Z" fill="url(#leafG2)"/></svg>
+      <b>Nảy mầm</b><span>Bài đầu tiên</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><use href="#armsDown"/><use href="#bean"/><use href="#faceCalm"/><use href="#sprout2"/></svg>
+      <b>Ra lá</b><span>Đi được 1/3 chặng</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><use href="#armsDown"/><use href="#bean"/><use href="#faceHappy"/>
+        <path d="M60 44 Q58 26 60 4" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#leafG)"/>
+        <path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#leafG2)"/>
+        <path d="M60 12 C52 0 40 -2 34 4 C42 14 52 15 60 12Z" fill="url(#leafG)"/>
+        <path d="M60 8 C66 -4 78 -6 84 -1 C78 9 68 11 60 8Z" fill="url(#leafG2)"/></svg>
+      <b>Xum xuê</b><span>Còn dưới 100 điểm</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><use href="#armsUp"/><use href="#bean"/><use href="#faceHappy"/>
+        <path d="M60 44 Q58 26 60 4" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#leafG)"/>
+        <path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#leafG2)"/>
+        <g transform="translate(60,-2)"><circle cx="0" cy="-8" r="6.5" fill="#FFD36B"/><circle cx="7.6" cy="-2.5" r="6.5" fill="#FFD36B"/><circle cx="4.7" cy="6.5" r="6.5" fill="#FFD36B"/><circle cx="-4.7" cy="6.5" r="6.5" fill="#FFD36B"/><circle cx="-7.6" cy="-2.5" r="6.5" fill="#FFD36B"/><circle r="5.5" fill="#F29E4C"/></g>
+        <circle cx="16" cy="34" r="3" fill="#F2B93B"/><path d="M104 38 l0 8 M100 42 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <b>Nở hoa</b><span>Đạt điểm mục tiêu</span>
+    </div>
+    <div class="track"><i></i></div>
+  </div>
+
+  <h2>Mầm trong chậu lớn dần (cách B)</h2>
+  <p class="lead">Chậu giữ nguyên, cây trong chậu lớn lên theo điểm. Khi đạt mục tiêu, cây nở hoa và chậu được quấn ruy băng.</p>
+
+  <div class="stages">
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><g transform="translate(60,88) scale(0.84,1) translate(-60,-88)"><use href="#armsDown"/></g><use href="#pot"/><g transform="translate(0,6)"><use href="#faceCalm"/></g>
+        <path d="M60 56 Q59 49 61 44" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M61 46 C66 35 80 34 83 41 C75 49 67 49 61 46Z" fill="url(#leafG2)"/></svg>
+      <b>Nảy mầm</b><span>Bài đầu tiên</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><g transform="translate(60,88) scale(0.84,1) translate(-60,-88)"><use href="#armsDown"/></g><use href="#pot"/><g transform="translate(0,6)"><use href="#faceCalm"/></g><g transform="translate(0,13)"><use href="#sprout2"/></g></svg>
+      <b>Ra lá</b><span>Đi được 1/3 chặng</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><g transform="translate(60,88) scale(0.84,1) translate(-60,-88)"><use href="#armsDown"/></g><use href="#pot"/><g transform="translate(0,6)"><use href="#faceHappy"/></g>
+        <g transform="translate(0,13)"><path d="M60 44 Q58 26 60 4" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#leafG)"/>
+        <path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#leafG2)"/>
+        <path d="M60 12 C52 0 40 -2 34 4 C42 14 52 15 60 12Z" fill="url(#leafG)"/>
+        <path d="M60 8 C66 -4 78 -6 84 -1 C78 9 68 11 60 8Z" fill="url(#leafG2)"/></g></svg>
+      <b>Xum xuê</b><span>Còn dưới 100 điểm</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 -14 120 134"><g transform="translate(60,86) scale(0.82,1) translate(-60,-78)"><use href="#armsUp"/></g><use href="#pot"/>
+        <path d="M30 62 L90 62" stroke="#F2B93B" stroke-width="7" stroke-linecap="round"/>
+        <path d="M78 62 l-6 12 l7 -3 l3 7 l2 -16Z" fill="#E9A21F"/><circle cx="80" cy="62" r="4.5" fill="#F2B93B"/>
+        <g transform="translate(0,6)"><use href="#faceHappy"/></g>
+        <g transform="translate(0,13)"><path d="M60 44 Q58 26 60 4" stroke="#4E9A4A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path d="M59 31 C46 15 27 16 21 27 C32 38 49 39 59 31Z" fill="url(#leafG)"/>
+        <path d="M61 27 C70 8 92 5 101 15 C91 30 73 33 61 27Z" fill="url(#leafG2)"/>
+        <g transform="translate(60,-2)"><circle cx="0" cy="-8" r="6.5" fill="#FFD36B"/><circle cx="7.6" cy="-2.5" r="6.5" fill="#FFD36B"/><circle cx="4.7" cy="6.5" r="6.5" fill="#FFD36B"/><circle cx="-4.7" cy="6.5" r="6.5" fill="#FFD36B"/><circle cx="-7.6" cy="-2.5" r="6.5" fill="#FFD36B"/><circle r="5.5" fill="#F29E4C"/></g></g>
+        <circle cx="14" cy="40" r="3" fill="#F2B93B"/><path d="M104 44 l0 8 M100 48 l8 0" stroke="#F2B93B" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <b>Nở hoa</b><span>Đạt điểm mục tiêu</span>
+    </div>
+    <div class="track"><i></i></div>
+  </div>
+</div>
+</body>
+</html>

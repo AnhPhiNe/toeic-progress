@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chi tiết kỹ năng</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--l:#4F46E5;--l-soft:#EEF2FF;--r:#0D9488;--r-soft:#F0FDFA}
+  *{box-sizing:border-box}
+  body{margin:0;background:#94A3B8;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;padding:24px}
+  .wrap{display:grid;grid-template-columns:repeat(2,500px);gap:32px;align-items:start}
+  .cap{color:#fff;font-weight:800;font-size:17px;margin:0 0 4px}
+  .cap small{display:block;font-weight:500;font-size:13px;opacity:.9;margin-top:2px}
+  .modal{background:#fff;border:2px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);overflow:hidden}
+  header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:2px solid var(--ink);background:#F8FAFC}
+  header h3{margin:0;font-size:16px;font-weight:900}
+  header p{margin:2px 0 0;font-size:12.5px;color:var(--muted);font-weight:600}
+  .x{margin-left:auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--muted);font-size:20px}
+  .body{padding:16px 18px 18px}
+  svg{flex:none}
+  /* A: tab Neo */
+  .seg{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);border-radius:12px;overflow:hidden;margin:14px 18px 0}
+  .seg button{font:inherit;font-size:13.5px;font-weight:800;padding:9px 10px;border:0;background:#fff;color:#334155;display:flex;align-items:center;justify-content:center;gap:7px}
+  .seg button+button{border-left:2px solid var(--ink)}
+  .seg .on.l{background:var(--l);color:#fff}
+  .seg .on.r{background:var(--r);color:#fff}
+  .seg small{font-weight:600;opacity:.8}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);border-radius:12px;padding:10px 0;text-align:center}
+  .kpi div+div{border-left:1.5px solid #E2E8F0}
+  .kpi span{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+  .kpi b{display:block;font-size:22px;font-weight:900;margin-top:2px}
+  .kpi b small{font-size:12px;color:var(--muted);font-weight:700}
+  /* B: thẻ điểm làm tab */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
+  .tile{border:2px solid #CBD5E1;border-radius:14px;padding:10px 12px;text-align:left;font:inherit;background:#fff;position:relative}
+  .tile .h{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800}
+  .tile b{display:block;font-size:28px;font-weight:900;line-height:1.1;margin-top:4px}
+  .tile b small{font-size:12px;color:var(--muted);font-weight:700}
+  .tile .sub{font-size:12px;font-weight:700;color:#475569}
+  .tile.on{border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .tile.on.l{background:var(--l-soft)}.tile.on.r{background:var(--r-soft)}
+  .parts h4{display:flex;justify-content:space-between;margin:16px 0 10px;font-size:13px;font-weight:900}
+  .parts h4 span{font-size:12px;color:var(--muted);font-weight:600}
+  .row{padding:9px 0;border-bottom:1px solid #F1F5F9}
+  .row:last-child{border:0}
+  .row .t{display:flex;justify-content:space-between;font-size:13px;font-weight:700}
+  .row .t span{font-weight:800;color:#334155}
+  .bar{height:9px;border-radius:99px;background:#F1F5F9;margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .weak .t span{color:#B45309}
+</style>
+</head>
+<body>
+<div class="wrap" id="out"></div>
+<script>
+const head=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg>`;
+const book=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>`;
+const parts=[['Part 1 · Mô tả tranh',6,6],['Part 2 · Hỏi & Đáp',23,25],['Part 3 · Đoạn hội thoại',38,39],['Part 4 · Bài nói ngắn',18,30]];
+const rows=parts.map(([t,c,n])=>{const p=Math.round(c/n*100);const weak=p<65;return `<div class="row ${weak?'weak':''}"><div class="t">${t}<span>${c}/${n} câu · ${p}%</span></div><div class="bar"><i style="width:${p}%;background:${weak?'#F59E0B':'var(--l)'}"></i></div></div>`}).join('');
+const hdr=`<header><div><h3>Test đồng bộ 21</h3><p>06/11/2026 · Full Test</p></div><span class="x">✕</span></header>`;
+const A=`<div><p class="cap">A · Thanh tab kiểu Neo<small>Viền đen, tab đang chọn tô màu kỹ năng, icon thay emoji. Bỏ nút "Chuyển xem…" ở chân vì tab đã làm việc đó.</small></p>
+<div class="modal">${hdr}
+<div class="seg"><button class="on l">${head}Listening <small>P1–4</small></button><button>${book}Reading <small>P5–7</small></button></div>
+<div class="body"><div class="kpi"><div><span>Điểm</span><b style="color:var(--l)">405<small>/495</small></b></div><div><span>Câu đúng</span><b>85<small>/100</small></b></div><div><span>Chính xác</span><b>85%</b></div></div>
+<div class="parts"><h4>4 Part nghe<span>Part dưới 65% tô cam</span></h4>${rows}</div></div></div></div>`;
+const B=`<div><p class="cap">B · Hai thẻ điểm chính là tab<small>Thẻ Listening/Reading vừa cho thấy điểm vừa để chuyển, giống thẻ ngoài Tổng quan. Bỏ ô "Điểm quy đổi" trùng lặp và nút chân.</small></p>
+<div class="modal">${hdr}
+<div class="tiles"><button class="tile on l"><span class="h" style="color:var(--l)">${head}Listening</span><b>405<small> /495</small></b><span class="sub">85/100 câu · 85%</span></button>
+<button class="tile r"><span class="h" style="color:var(--r)">${book}Reading</span><b>460<small> /495</small></b><span class="sub">96/100 câu · 96%</span></button></div>
+<div class="body" style="padding-top:2px"><div class="parts"><h4>4 Part nghe<span>Part dưới 65% tô cam</span></h4>${rows}</div></div></div></div>`;
+document.getElementById('out').innerHTML=A+B;
+</script>
+</body>
+</html>

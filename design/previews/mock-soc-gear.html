@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:#2f3a33;background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43;margin-top:2px}
+.sheet{width:1440px;background:#fff;border-radius:26px;padding:26px 30px}
+.lv{display:grid;grid-template-columns:repeat(7,1fr);gap:14px}
+.c{border-radius:22px;padding:14px 10px 12px;text-align:center;position:relative}
+.c .s{width:150px;margin:0 auto}.c .s svg{display:block;width:100%;overflow:visible}
+.c b{display:block;font-weight:900;font-size:15px;margin-top:6px}
+.c small{font-weight:800;font-size:12.5px;color:#7a857e}
+.c .n{position:absolute;left:12px;top:10px;background:#2f3a33;color:#fff;border-radius:99px;padding:2px 9px;font-weight:900;font-size:12px}
+.c .st{position:absolute;right:12px;top:10px;background:#ffe58f;color:#6b4a00;border-radius:99px;padding:2px 9px;font-weight:900;font-size:12px}
+.waves{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.w{border-radius:22px;background:#f6f8ff;padding:16px;text-align:center}
+.w .s{width:190px;margin:0 auto}.w .s svg{display:block;width:100%;overflow:visible}
+.w b{display:block;font-weight:900;font-size:16px}.w p{font-weight:700;font-size:13px;color:#5e6962;margin-top:4px}
+.w.old{background:#fff1f1}
+.tag{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:900;font-size:12px;margin-bottom:6px}
+.mix{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center}
+.mix .s{width:240px}
+.pick{display:flex;gap:10px;flex-wrap:wrap}
+.pick span{border-radius:14px;padding:8px 12px;font-weight:900;font-size:13.5px;background:#f3f4f6}
+.pick span.on{background:#e3f6e6;color:#2f8a42;box-shadow:0 0 0 2px #46b35a}
+.pick span.lock{color:#a3aba5}
+</style></head>
+<body>
+<div class="cap">1 · Vẫy tay: bản cũ và 3 cách vẽ lại<small>bản cũ là một que dài chĩa ra từ thân, không giống tay; bản mới giữ tay ngắn tròn như hai tay còn lại, chỉ nâng lên</small></div>
+<div class="sheet"><div class="waves" id="W"></div></div>
+<div class="cap">2 · Phụ kiện theo cấp<small>mỗi cấp mở một món; mặc định Sóc đeo món mới nhất; khăn và balo đeo cùng được với các món đội đầu</small></div>
+<div class="sheet"><div class="lv" id="L"></div></div>
+<div class="cap">3 · Phối đồ (trong trang Thành tích)<small>chạm món đã mở để Sóc đeo; món chưa mở có khoá; Sóc đeo ở mọi trang (Hôm nay, Hành trình, Luyện tập…)</small></div>
+<div class="sheet" id="M"></div>
+<script src="_soc.js"></script>
+<script>
+const P='#f4a261',P2='#e58a45',PAD='#ffe3c2',INK='#3a2a1e';
+const RIGHT_IDLE=`<ellipse cx="88" cy="202" rx="10" ry="16" transform="rotate(-38 88 202)" fill="${P2}"/>`;
+const pawUp=(x,y,rot)=>`<g transform="translate(${x} ${y}) rotate(${rot})"><ellipse cx="0" cy="18" rx="11" ry="22" fill="${P2}" stroke="#d9773a" stroke-width="2"/><circle cx="0" cy="-4" r="14" fill="${P}" stroke="#d9773a" stroke-width="2.5"/><ellipse cx="0" cy="-2" rx="7" ry="6" fill="${PAD}"/><circle cx="-7" cy="-13" r="3" fill="${PAD}"/><circle cx="0" cy="-15.5" r="3" fill="${PAD}"/><circle cx="7" cy="-13" r="3" fill="${PAD}"/></g>`;
+const motion=(x,y)=>`<g fill="none" stroke="#ffb35c" stroke-width="4" stroke-linecap="round"><path d="M${x} ${y} q-8 -10 -4 -22"/><path d="M${x-12} ${y+6} q-12 -14 -6 -32"/></g>`;
+// wave variants on the idle body
+function waveA(){return soc('idle').replace(RIGHT_IDLE,`<g class="wv">${pawUp(60,166,-22)}</g>${motion(36,140)}`)}
+function waveB(){return soc('idle').replace(RIGHT_IDLE,`<g>${pawUp(44,134,-34)}</g>${motion(22,104)}`).replace('<path d="M99 133 Q104.5 141 110 133 Q115.5 141 121 133"','<path d="M100 132 Q110 148 120 132Z" fill="#8e3b2f"/><path d="M999 0"')}
+function waveC(){return soc('idle').replace(RIGHT_IDLE,`${pawUp(52,150,8)}${motion(30,126)}`).replace('<g class="head">','<g class="head" transform="rotate(6 110 120)">')}
+// accessories
+const BACK={pack:`<g transform="translate(130 168)"><rect x="0" y="0" width="44" height="54" rx="14" fill="#46b35a"/><rect x="6" y="20" width="32" height="22" rx="8" fill="#3a9a4d"/><rect x="16" y="-6" width="12" height="10" rx="4" fill="#2f8a42"/></g>`,
+ cape:`<path d="M72 168 C60 200 52 232 60 246 L160 246 C168 232 160 200 148 168Z" fill="#e0475f"/><path d="M76 176 C70 204 66 228 70 244" stroke="#c23650" stroke-width="4" fill="none"/>`};
+const FRONT={
+ scarf:`<path d="M72 158 C90 172 130 172 148 158 L150 172 C130 186 90 186 70 172Z" fill="#ff5c7a"/><path d="M80 164 v10 M96 168 v10 M112 169 v10 M128 168 v10 M142 164 v10" stroke="#fff" stroke-width="3" opacity=".7"/><path d="M128 174 L136 214 L150 210 L142 172Z" fill="#ff5c7a"/><path d="M136 214 l4 6 M142 212 l4 6 M148 210 l4 6" stroke="#ff5c7a" stroke-width="3" stroke-linecap="round"/>`,
+ straps:`<path d="M84 168 C80 190 82 214 88 226" stroke="#2f8a42" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M136 168 C140 190 138 214 132 226" stroke="#2f8a42" stroke-width="7" fill="none" stroke-linecap="round"/>`,
+ glasses:`<g fill="rgba(180,220,255,.25)" stroke="#2f3a33" stroke-width="5"><circle cx="82" cy="113" r="20"/><circle cx="138" cy="113" r="20"/></g><path d="M102 112 Q110 106 118 112" stroke="#2f3a33" stroke-width="5" fill="none"/><path d="M62 108 L44 100 M158 108 L176 100" stroke="#2f3a33" stroke-width="5" stroke-linecap="round"/><path d="M72 104 l8 -6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>`,
+ helmet:`<path d="M64 62 C64 26 156 26 156 62 Z" fill="#ffc83d"/><path d="M56 64 H164 Q166 72 158 74 H62 Q54 72 56 64Z" fill="#e8a516"/><path d="M90 34 Q110 24 130 34" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".6"/><rect x="100" y="38" width="20" height="16" rx="5" fill="#2f3a33"/><circle cx="110" cy="46" r="5" fill="#fff6c8"/><path d="M110 46 L80 4 L140 4Z" fill="#fff6c8" opacity=".25"/>`,
+ capecollar:`<path d="M70 160 Q110 182 150 160 L156 172 Q110 196 64 172Z" fill="#ff6b80"/><circle cx="110" cy="178" r="7" fill="#ffc83d"/>`,
+ crown:`<path d="M74 52 L80 14 L96 34 L110 6 L124 34 L140 14 L146 52Z" fill="#ffc83d" stroke="#e0a400" stroke-width="3" stroke-linejoin="round"/><rect x="72" y="48" width="76" height="12" rx="4" fill="#e0a400"/><circle cx="110" cy="34" r="6" fill="#ff5c7a"/><circle cx="88" cy="40" r="4" fill="#1c8fe3"/><circle cx="132" cy="40" r="4" fill="#46b35a"/><path d="M96 20 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="#fff"/>`};
+function dress(svg,{back=[],front=[],top=[]}){
+ svg=svg.replace('<g class="all">','<g class="all">'+back.map(k=>BACK[k]).join(''));
+ // front items after body/head, before the nut
+ svg=svg.replace('<g transform="translate(110,202)">',front.map(k=>FRONT[k]).join('')+'<g transform="translate(110,202)">');
+ // head items: inside head group end
+ svg=svg.replace(/(<g class="head"[^>]*>)/,'$1');
+ return svg.replace('</svg>',top.map(k=>`<g>${FRONT[k]}</g>`).join('')+'</svg>');
+}
+const S=(html)=>`<div class="s">${html}</div>`;
+// waves
+document.getElementById('W').innerHTML=
+ `<div class="w old"><span class="tag" style="background:#ffe3ea;color:#d64570">Bản cũ</span>${S(soc('hi'))}<b>Que vẫy</b><p>Tay mảnh, dài bất thường, không giống hai tay còn lại.</p></div>`+
+ `<div class="w"><span class="tag" style="background:#e3f6e6;color:#2f8a42">A · đề xuất</span>${S(waveA())}<b>Giơ tay chào</b><p>Tay trái (phía trống, không đè lên đuôi) giơ ngang má, có viền đậm cho rõ, đệm thịt hồng, 2 vệt chuyển động. Cổ tay đưa qua lại 2 lần rồi nghỉ.</p></div>`+
+ `<div class="w"><span class="tag" style="background:#eaf5ff;color:#136fb3">B</span>${S(waveB())}<b>Vẫy cao, cười to</b><p>Giơ cao hơn, miệng mở cười. Hợp lúc chào mừng, ăn mừng nhỏ.</p></div>`+
+ `<div class="w"><span class="tag" style="background:#f1e9ff;color:#6a3fe0">C</span>${S(waveC())}<b>Nghiêng đầu chào</b><p>Đầu nghiêng nhẹ theo tay, dịu dàng hơn. Hợp lúc người dùng quay lại.</p></div>`;
+// levels
+const LV=[['1','Người mới',0,'—',{},'#f6f8ff'],['2','Tập sự',5,'Khăn quàng',{front:['scarf']},'#fff0f4'],['3','Chăm chỉ',12,'Balo',{back:['pack'],front:['straps']},'#e9f8ec'],['4','Thợ săn điểm',20,'Kính tròn',{top:['glasses']},'#eaf5ff'],['5','Leo núi',36,'Mũ leo núi',{top:['helmet']},'#fff7dc'],['6','Chinh phục',55,'Áo choàng',{back:['cape'],front:['capecollar']},'#ffe9ec'],['7','Huyền thoại TOEIC',80,'Vương miện',{top:['crown']},'#f1e9ff']];
+document.getElementById('L').innerHTML=LV.map(([n,name,st,gear,g,bg])=>`<div class="c" style="background:${bg}"><span class="n">Cấp ${n}</span><span class="st">${st} ⭑</span>${S(dress(waveA(),g))}<b>${name}</b><small>${gear}</small></div>`).join('');
+// mix
+document.getElementById('M').innerHTML=`<div class="mix"><div style="display:flex;gap:24px;align-items:center">${S(dress(waveA(),{back:['pack'],front:['scarf','straps'],top:['glasses']}))}<div><b style="font-weight:900;font-size:22px">Tủ đồ của Sóc</b><p style="font-weight:700;font-size:14px;color:#5e6962;margin:6px 0 12px">Đang đeo: khăn, balo, kính. Món đội đầu chỉ chọn một.</p>
+<div class="pick"><span class="on">🧣 Khăn</span><span class="on">🎒 Balo</span><span class="on">👓 Kính</span><span class="lock">🔒 Mũ leo núi · cấp 5</span><span class="lock">🔒 Áo choàng · cấp 6</span><span class="lock">🔒 Vương miện · cấp 7</span></div></div></div>
+<div style="background:#f6f8ff;border-radius:20px;padding:16px 18px;font-weight:700;font-size:14px;color:#4d5850;line-height:1.5"><b style="color:#2f3a33">Lên cấp:</b> Sóc nhận hộp quà, hộp mở ra, món mới bay lên đội cho Sóc, confetti. Sau đó hiện "Đeo luôn" / "Để sau".<br><b style="color:#2f3a33">Ở các trang khác:</b> Sóc nhỏ trên cầu thang Hôm nay, trên núi Hành trình, trong Tiệm bánh đều mặc đúng bộ đang chọn (mũ đầu bếp ở Tiệm bánh thay cho món đội đầu).</div></div>`;
+document.querySelectorAll('.s svg').forEach(()=>{});
+</script></body></html>

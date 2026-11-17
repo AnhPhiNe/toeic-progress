@@ -3,7 +3,7 @@ import type { NavTabId } from '@/shared/types';
 export const TAB_PATHS: Record<NavTabId, string> = {
   dashboard: '/', plan: '/ke-hoach', 'exam-mode': '/luyen-toc-do',
   history: '/lich-su', analytics: '/phan-tich', mistakes: '/so-tay',
-  vocabulary: '/tu-vung', resources: '/quy-doi'
+  vocabulary: '/tu-vung', resources: '/quy-doi', awards: '/thanh-tich'
 };
 
 export function tabFromPath(path: string): NavTabId {

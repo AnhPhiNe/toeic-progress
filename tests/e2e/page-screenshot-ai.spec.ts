@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { resolve } from 'node:path';
+import { openScoreLogger } from './helpers/nav';
+import { phoneLogger, phoneManualScore } from './helpers/sessionForm';
 
 const screenshot = resolve('tests/fixtures/part7-notice.png');
 const passage = 'Library Reopens\n(14 March) The Ashcombe Public Library welcomed residents back on Monday, 11 March, following a renovation...';
@@ -49,15 +51,16 @@ async function openFlow(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockPageAI(page);
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Điểm đề thi/ }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await form.locator('#session-test-name').fill('ETS Screen');
+  await openScoreLogger(page);
+  const form = phoneLogger(page);
+  await phoneManualScore(page, 'ETS Screen');
+  await form.getByRole('button', { name: /^Câu sai/ }).click();
   await form.getByRole('button', { name: 'Gõ số câu thay vì chạm', exact: true }).click();
   await form.getByLabel('Số câu sai', { exact: true }).fill('107 131 132');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
-  await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết câu sai ›', exact: true }).click();
+  await form.getByRole('button', { name: 'Xong', exact: true }).click();
+  await form.getByRole('button', { name: /^Lưu điểm/ }).click();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   return page.getByRole('dialog', { name: /^Ghi câu sai/ });
 }
 
@@ -131,9 +134,11 @@ test('an explanation that never arrived is asked for again on the card without a
   await expect(flow).toHaveCount(0);
 
   await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = false; });
-  await page.getByRole('button', { name: /The entire project was/ }).first().click();
-  const retry = page.getByRole('button', { name: 'Viết lời giải', exact: true });
+  await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: /^Sổ tay/ }).click();
+  await page.getByRole('button', { name: /^Câu 132/ }).first().click();
+  const retry = page.getByRole('button', { name: /^Viết lời giải/ });
   await retry.click();
+  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
   await expect(page.getByText(TIP).first()).toBeVisible();
   await expect(retry).toHaveCount(0);
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132], [132]]);

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thẻ điểm nằm ngang</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--ink:#2f3a33;--mut:#7a857e;--pink:#ff7a9c;--blue:#1c8fe3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+#sheet{width:1440px;background:#fff;padding:40px 44px 50px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.tbl{display:grid;grid-template-columns:150px repeat(2,1fr);gap:20px 24px;margin-top:26px}
+.ch{font-weight:900;font-size:19px;text-align:center}
+.rh{display:flex;flex-direction:column;justify-content:center}.rh b{font-weight:900;font-size:18px}.rh span{font-weight:700;font-size:13px;color:var(--mut);margin-top:4px;line-height:1.35}
+.stage{height:300px;border-radius:24px;background:#f2f4f2;display:flex;align-items:center;justify-content:center}
+/* drawer-width frame */
+.fr{width:540px;background:#fff;border-radius:22px;padding:14px;box-shadow:0 8px 20px rgba(47,58,51,.08)}
+.soc svg{display:block;width:100%}
+
+/* ticket */
+.bp{height:228px;display:grid;grid-template-columns:1fr 112px;filter:drop-shadow(0 6px 12px rgba(47,58,51,.12))}
+.bp .m,.bp .s{background:#fff;position:relative}
+.bp .m{border-radius:18px 0 0 18px;padding:0 18px 12px;border:2px solid #eef0ee;border-right:0}
+.bp .s{border-radius:0 18px 18px 0;border:2px solid #eef0ee;border-left:2px dashed #d5dcd6;padding:12px;display:flex;flex-direction:column;justify-content:space-between}
+.bp .hd{margin:0 -18px;padding:9px 18px;color:#fff;font-weight:900;font-size:12px;letter-spacing:1px;display:flex;justify-content:space-between;border-radius:16px 0 0 0}
+.bp .route{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.bp .route b{display:block;font-weight:900;font-size:22px;line-height:1}
+.bp .route span{font-weight:800;font-size:10px;color:var(--mut);letter-spacing:.5px}
+.bp .ln{flex:1;margin:0 10px;position:relative;height:16px}.bp .ln::before{content:"";position:absolute;left:0;right:0;top:7px;border-top:2px dashed #cfd5cf}
+.bp .ln u{position:absolute;left:0;top:6px;height:4px;border-radius:2px}.bp .ln i{position:absolute;top:-4px;font-style:normal;font-size:17px;transform:translateX(-50%)}
+.bp .now{margin-top:4px;display:flex;align-items:flex-end;gap:10px}.bp .now b{font-weight:900;font-size:52px;letter-spacing:-2px;line-height:.9}
+.bp .now span{font-weight:800;font-size:10.5px;color:var(--mut);letter-spacing:.5px;padding-bottom:4px}
+.bp .f{display:grid;grid-template-columns:repeat(4,1fr);margin-top:10px}.bp .f div{font-weight:800;font-size:9.5px;color:var(--mut);letter-spacing:.5px}.bp .f b{display:block;font-weight:900;font-size:15px;color:var(--ink)}
+.bp .k{font-weight:800;font-size:9.5px;color:var(--mut);letter-spacing:.5px}.bp .k b{display:block;font-weight:900;font-size:22px}
+.bp .bc{height:36px;background:repeating-linear-gradient(90deg,#2f3a33 0 2px,transparent 2px 4px,#2f3a33 4px 7px,transparent 7px 9px,#2f3a33 9px 10px,transparent 10px 13px)}
+.bp .re{display:inline-block;background:#fff;color:#6a4fd0;border-radius:99px;padding:0 7px;margin-left:6px;letter-spacing:0}
+
+/* landscape collectible */
+.hc{height:228px;border-radius:20px;padding:8px}
+.hc .in{height:100%;border-radius:14px;display:grid;grid-template-columns:180px 1fr;gap:14px;padding:10px}
+.hc .art{border-radius:12px;border:3px solid;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative}
+.hc .art .soc{width:132px;margin-bottom:-8px}
+.hc .art em{position:absolute;left:8px;top:8px;font-style:normal;font-weight:900;font-size:11px;background:rgba(255,255,255,.85);border-radius:99px;padding:1px 8px}
+.hc .r{display:flex;flex-direction:column}
+.hc .tp{display:flex;justify-content:space-between;align-items:baseline}
+.hc .tp b{font-weight:900;font-size:15px}.hc .tp span{font-weight:900;font-size:13px}.hc .tp span em{font-style:normal;font-size:40px;letter-spacing:-1.5px;line-height:1}
+.hc .ty{margin-top:2px;font-weight:900;font-size:11.5px;border-radius:6px;padding:2px 8px;align-self:flex-start}
+.hc .st{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.hc .st div{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:7px;font-weight:800;font-size:13px}
+.hc .st i{width:12px;height:12px;border-radius:50%}.hc .st b{font-weight:900;font-size:17px}
+.hc .ft{margin-top:auto;display:flex;justify-content:space-between;font-weight:800;font-size:10.5px;padding-top:5px;border-top:1.5px solid rgba(0,0,0,.08)}
+.hc .re{font-style:normal;background:#efeaff;color:#6a4fd0;border-radius:99px;padding:0 6px}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <h1>Thẻ điểm nằm ngang</h1>
+  <div class="lead">Mỗi thẻ đặt trong một khung rộng đúng bằng ngăn chi tiết đề, để thấy nó vừa vặn ra sao.</div>
+  <div class="tbl" id="tbl"></div>
+</div>
+<script src="_soc.js"></script>
+<script>
+const GOAL=800;
+const lvl=s=>{const B=[[945,'C1'],[785,'B2'],[550,'B1'],[225,'A2'],[120,'A1']];const i=B.findIndex(b=>s>=b[0]);return{cur:B[i][1],next:B[i-1]?{n:B[i-1][1],need:B[i-1][0]-s}:null}};
+const S=[
+ {k:'rec',title:'Kỷ lục, làm lại',sub:'765, +25',date:'11/11',test:'Test 03',re:1,sc:765,L:390,R:375,d:25,prev:740,no:7},
+ {k:'down',title:'Giảm điểm',sub:'710, −15',date:'09/11',test:'Test 05',sc:710,L:360,R:350,d:-15,prev:725,no:5},
+ {k:'first',title:'Đề đầu tiên',sub:'620',date:'12/10',test:'Test 01',sc:620,L:310,R:310,first:1,no:1},
+ {k:'goal',title:'Chạm mục tiêu',sub:'805, +40',date:'14/12',test:'Test 08',sc:805,L:410,R:395,d:40,prev:765,goal:1,no:9}];
+function ticket(s){
+ const hc={rec:'#e8a516',down:'#7d8fa3',first:'#46b35a',goal:'#ff7a9c'}[s.k];
+ const head={rec:'KỶ LỤC MỚI',down:'CHẶNG CHỮNG LẠI',first:'CHUYẾN ĐẦU TIÊN',goal:'ĐÃ HẠ CÁNH 800'}[s.k];
+ const plane=s.goal?100:s.first?6:Math.max(8,Math.min(92,Math.round((s.sc-400)/(GOAL-400)*100)));
+ const L=lvl(s.sc);
+ const k1=s.first?`<div class="k">CHẶNG<b style="font-size:15px;color:${hc}">Đầu tiên</b></div>`:`<div class="k">${s.d>0?'TĂNG':'GIẢM'}<b style="color:${s.d>0?'#2f8a42':'#7d8fa3'}">${s.d>0?'+':'−'}${Math.abs(s.d)}</b></div>`;
+ return `<div class="fr"><div class="bp"><div class="m"><div class="hd" style="background:${hc}"><span>${head}${s.re?'<span class="re">LÀM LẠI</span>':''}</span><span>${s.date}</span></div>
+  <div class="route"><div><span>${s.first?'XUẤT PHÁT':'ĐỀ TRƯỚC'}</span><b>${s.first?s.sc:s.prev}</b></div><div class="ln"><u style="width:${plane}%;background:${hc}"></u><i style="left:${plane}%">${s.k==='down'?'<span style="display:inline-block;transform:scaleX(-1)">✈</span>':'✈'}</i></div><div style="text-align:right"><span>MỤC TIÊU</span><b>${GOAL}</b></div></div>
+  <div class="now"><b>${s.sc}</b><span>${s.goal?'VƯỢT MỤC TIÊU '+(s.sc-GOAL):'ĐIỂM ĐỀ NÀY'}</span></div>
+  <div class="f"><div>NGHE<b>${s.L}</b></div><div>ĐỌC<b>${s.R}</b></div><div>CẤP<b>${L.cur}</b></div><div>${s.goal?'TỚI '+L.next.n:'CÒN'}<b>${s.goal?L.next.need:GOAL-s.sc}</b></div></div></div>
+  <div class="s">${k1}<div class="k">ĐỀ<b style="font-size:14px;color:var(--ink)">${s.test}</b></div><div class="bc"></div></div></div></div>`}
+function hcard(s){
+ const sk={rec:{bd:'conic-gradient(from 210deg,#ff9ec4,#ffd766,#8fe6d0,#9ec5ff,#c9a8ff,#ff9ec4)',in:'#fff8e6',art:'radial-gradient(circle at 50% 70%,#fff3c4,#ffd36b 60%,#f5a74b)',ab:'#e9c66b',ty:'★ Thẻ hiếm · Kỷ lục mới',tyb:'#e9c66b',tyc:'#5a4410',soc:'yay',hp:'#d9547a'},
+  down:{bd:'linear-gradient(160deg,#dfe5ec,#b9c4d0)',in:'#f6f8fa',art:'radial-gradient(circle at 50% 70%,#eef3f8,#cdd8e4 65%,#aebdcc)',ab:'#c3ced9',ty:'Thẻ thường · Lần sau lấy lại nha',tyb:'#dfe5ec',tyc:'#4d5a68',soc:'sad',hp:'#5c6b7a'},
+  first:{bd:'linear-gradient(160deg,#9be3a9,#46b35a)',in:'#f2fbf4',art:'radial-gradient(circle at 50% 70%,#f3fff5,#bfeec8 65%,#8fd69d)',ab:'#a9dfb3',ty:'Thẻ khởi đầu · #1',tyb:'#cfeed6',tyc:'#2f8a42',soc:'idle',hp:'#2f8a42'},
+  goal:{bd:'conic-gradient(from 0deg,#ffd766,#ff9ec4,#ffd766,#fff3c4,#ffd766)',in:'#fff4f7',art:'radial-gradient(circle at 50% 70%,#fff,#ffd3e0 60%,#ff9ec4)',ab:'#ff9ec4',ty:'♛ Thẻ huyền thoại · Chạm 800',tyb:'#ff7a9c',tyc:'#fff',soc:'yay',hp:'#d6416a'}}[s.k];
+ const L=lvl(s.sc);
+ const third=s.first?`<div><i style="background:#cfd5cf"></i><span>Mốc để so với các đề sau</span><b></b></div>`:`<div><i style="background:${s.d>0?'#46b35a':'#9aa6b8'}"></i><span>So với đề trước</span><b style="color:${s.d>0?'#2f8a42':'#5c6b7a'}">${s.d>0?'+':'−'}${Math.abs(s.d)}</b></div>`;
+ return `<div class="fr"><div class="hc" style="background:${sk.bd}"><div class="in" style="background:${sk.in}">
+  <div class="art" style="background:${sk.art};border-color:${sk.ab}"><em style="color:${sk.hp}">#${String(s.no).padStart(2,'0')}</em><span class="soc" data-s="${sk.soc}"></span></div>
+  <div class="r"><div class="tp"><b>Sóc · ${L.cur}</b><span style="color:${sk.hp}"><em>${s.sc}</em> điểm</span></div>
+   <span class="ty" style="background:${sk.tyb};color:${sk.tyc}">${sk.ty}</span>
+   <div class="st"><div><i style="background:var(--blue)"></i><span>Nghe</span><b>${s.L}</b></div><div><i style="background:var(--g)"></i><span>Đọc</span><b>${s.R}</b></div>${third}</div>
+   <div class="ft" style="color:${sk.tyc==='#fff'?'#a8566b':sk.tyc}"><span>${s.test}${s.re?' · <em class="re">làm lại</em>':''}</span><span>${s.date}</span></div></div>
+ </div></div></div>`}
+let h='<div></div><div class="ch">1. Vé lên đỉnh</div><div class="ch">3. Thẻ sưu tầm, bản ngang</div>';
+const bg={rec:'#fff6dc',down:'#eef1f5',first:'#eaf7ed',goal:'#fff0f4'};
+S.forEach(s=>{h+=`<div class="rh"><b>${s.title}</b><span>${s.sub}</span></div><div class="stage" style="background:${bg[s.k]}">${ticket(s)}</div><div class="stage" style="background:${bg[s.k]}">${hcard(s)}</div>`});
+document.getElementById('tbl').innerHTML=h;
+document.querySelectorAll('[data-s]').forEach(e=>{e.style.display='block';e.innerHTML=soc(e.dataset.s)});
+</script>
+</body>
+</html>

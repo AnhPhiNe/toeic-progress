@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { openDesktopFlow, screenshot, TIP } from './helpers/detailAI';
+import { gotoPage } from './helpers/nav';
+import { openDesktopFlow, openPendingList, screenshot, TIP } from './helpers/detailAI';
 
 test('manual choices before and during a delayed screenshot are preserved, including clearing', async ({ page }) => {
   const flow = await openDesktopFlow(page);
@@ -33,7 +34,7 @@ test('a late explanation reaches a saved partial card reopened in the pending li
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
   await expect(flow.getByRole('status')).toContainText('Đã đọc ảnh, cần kiểm tra');
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết 2 câu, ETS Table', exact: true }).click();
+  await openPendingList(page);
   await expect(flow.getByRole('button', { name: 'Câu 112 Bạn chọn B, chưa có đáp án', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: /^Câu 112/ }).click();
   await expect(flow.getByText(TIP)).toBeVisible();
@@ -57,9 +58,10 @@ test('retakes with overlapping question numbers open distinct screenshot lists',
     localStorage.setItem(key, JSON.stringify(bundle));
   });
   await page.reload();
-  const groups = page.getByRole('button', { name: /^Ghi chi tiết 3 câu, ETS Table,/ });
-  await expect(groups).toHaveCount(2);
-  await groups.filter({ hasText: 'Lần 2' }).click();
+  await gotoPage(page, '/so-tay');
+  // One row per attempt (the rows do not name the attempt on computers, so the second is picked by position).
+  await expect(page.locator('.nb-pend').filter({ hasText: 'ETS Table' })).toHaveCount(2);
+  await openPendingList(page, 'ETS Table', 1);
   await expect(flow.locator('[data-row-toggle]')).toHaveCount(3);
   await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
   await expect(flow.getByRole('status')).toContainText('Đã đọc 2 câu, cần kiểm tra');

@@ -2,13 +2,16 @@ import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { mockResultsAI } from './helpers/resultsAI';
+import { openManualEntry } from './helpers/manualEntry';
+import { openScoreLogger } from './helpers/nav';
 
 test('a computer logs a Full Test by clicking, typing and pasting its wrong questions', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await mockResultsAI(page);
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await openManualEntry(page, form);
   await form.locator('#session-test-name').fill('ETS Desktop');
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
 
@@ -44,21 +47,24 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
   expect(session.wrongQuestions).toEqual([3, 101, 102, 103, 107, 113, 115, 117, 128]);
   expect(session.partScores).toMatchObject({ part1: 5, part5: 22 });
 
-  // The form closes; a note offers to fill in the questions now, and the notebook keeps them as one row for the test.
+  // The form closes on the result screen, which offers to fill in the Reading questions; the notebook keeps them as one row.
   await expect(form).toHaveCount(0);
-  const notice = page.getByRole('status').filter({ hasText: 'Đã lưu ETS Desktop · 8 câu Reading sai vào Sổ tay' });
-  await notice.getByRole('button', { name: 'Ghi chi tiết ›', exact: true }).click();
+  const result = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Đóng kết quả', exact: true }) });
+  await expect(result.getByText('8 câu Đọc sai đã vào Sổ tay. Chụp trang chữa bài để Sóc ghi nội dung giúp.', { exact: true })).toBeVisible();
+  await result.getByRole('button', { name: 'Ghi chi tiết 8 câu sai', exact: true }).click();
   const flow = page.getByRole('dialog', { name: /^Ghi câu sai/ });
   await expect(flow).toBeVisible();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Ghi chi tiết 8 câu, ETS Desktop', exact: true })).toBeVisible();
+  await expect(page.getByText('ETS Desktop · 8 câu chưa ghi chi tiết', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ghi chi tiết', exact: true })).toHaveCount(1);
 });
 
 test('a computer can still log per-Part counts or an official score', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
+  await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await openManualEntry(page, form);
   await form.getByRole('button', { name: 'Câu 5', exact: true }).click();
   await form.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true }).click();
   // The marks carry over as counts.

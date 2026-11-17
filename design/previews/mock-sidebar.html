@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thanh bên: 4 ý tưởng</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--goldd:#d99a00;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3;--pink:#ff7a9c;--vio:#a78bfa;--org:#ff9a3d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;justify-content:center;padding:40px}
+svg text{font-family:'Nunito'}
+#sheet{width:1460px;background:#fff;padding:36px 40px 44px}
+h1{font-weight:900;font-size:32px;letter-spacing:-1px}
+.lead{font-weight:700;font-size:15.5px;color:var(--mut);margin-top:4px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:24px}
+.cell .cap{margin-top:12px}.cap b{font-weight:900;font-size:17px}.cap span{display:block;font-weight:700;font-size:13.5px;color:var(--mut);margin-top:2px;line-height:1.4}
+.frame{height:880px;border-radius:24px;overflow:hidden;position:relative;background:#fff8e8;box-shadow:0 0 0 2px #eef0ee}
+.frame .ghost{position:absolute;inset:0;background:linear-gradient(180deg,#fff3d1,#ffe0ec)}
+.frame .ghost::after{content:"";position:absolute;left:150px;right:-60px;bottom:-40px;height:520px;background:linear-gradient(90deg,#ffc83d 0 22%,#ffc83d 22% 44%,#46b35a 44% 66%,#e6e5f2 66%);clip-path:polygon(0 100%,0 80%,22% 80%,22% 62%,44% 62%,44% 44%,66% 44%,66% 26%,100% 26%,100% 100%);opacity:.55}
+.ic svg{display:block;width:100%;height:100%}
+.soc svg{display:block;width:100%}
+
+/* ===== A. Ô màu nổi ===== */
+.A{position:absolute;left:0;top:0;bottom:0;width:250px;background:#fff;border-right:2px solid #eef0ee;padding:22px 14px;display:flex;flex-direction:column}
+.A .logo{display:flex;align-items:center;gap:8px;padding:0 8px 20px}
+.A .logo .m{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd);display:grid;place-items:center}
+.A .logo b{font-weight:900;font-size:19px;letter-spacing:-.5px;line-height:1}.A .logo b span{display:block;color:var(--g)}
+.A .it{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:4px;border:2px solid transparent;position:relative}
+.A .it .ic{width:40px;height:40px;border-radius:13px;padding:8px;flex:none}
+.A .it.on{background:#f0faf2;border-color:#bfe6c6;color:var(--gd);box-shadow:0 3px 0 #bfe6c6}
+.A .it em{margin-left:auto;font-style:normal;font-weight:900;font-size:12px;background:var(--pink);color:#fff;border-radius:99px;padding:1px 8px}
+.A .cta{margin:14px 4px 0;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--g);color:#fff;border-radius:16px;padding:13px;font-weight:900;font-size:16px;box-shadow:0 5px 0 var(--gd)}
+.A .grp{font-weight:900;font-size:12px;color:var(--mut);letter-spacing:.6px;padding:22px 12px 6px}
+.A .tl{display:flex;align-items:center;gap:10px;padding:7px 12px;font-weight:800;font-size:14.5px;color:#5c675f}.A .tl .ic{width:22px;height:22px}
+.A .bot{margin-top:auto}
+.A .mini{background:#fff6dc;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.A .mini .soc{width:46px;flex:none}
+.A .mini b{display:block;font-weight:900;font-size:14px}.A .mini small{font-weight:700;font-size:12px;color:#8a6a10}
+.A .steps{display:flex;align-items:flex-end;gap:3px;margin-top:5px;height:22px}.A .steps i{width:12px;border-radius:3px 3px 0 0;background:#ffc83d}.A .steps i.c{background:var(--g)}.A .steps i.f{background:#e7e2cc}
+.A .me{display:flex;align-items:center;gap:10px;padding:12px 6px 0;margin-top:12px;border-top:2px solid #f1f3f1}
+.A .me .av{width:38px;height:38px;border-radius:50%;background:var(--gl);color:var(--gd);display:grid;place-items:center;font-weight:900;font-size:14px}
+.A .me b{font-weight:900;font-size:14px}.A .me small{display:block;font-weight:700;font-size:12px;color:var(--mut)}
+
+/* ===== B. Bảng tối nổi ===== */
+.B{position:absolute;left:14px;top:14px;bottom:14px;width:236px;background:linear-gradient(180deg,#22302a,#1a241f);border-radius:28px;padding:22px 14px;display:flex;flex-direction:column;color:#e9f1eb;box-shadow:0 20px 40px rgba(30,40,35,.25)}
+.B .logo{font-weight:900;font-size:20px;letter-spacing:-.5px;padding:0 10px 22px}.B .logo span{color:#7fd890}
+.B .it{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:16px;font-weight:800;font-size:15px;color:#b9c7bd;margin-bottom:4px;position:relative}
+.B .it .ic{width:24px;height:24px}
+.B .it.on{background:linear-gradient(90deg,#46b35a,#3a9a4d);color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 20px rgba(70,179,90,.35)}
+.B .it em{margin-left:auto;font-style:normal;font-weight:900;font-size:12px;background:#ff7a9c;color:#fff;border-radius:99px;padding:1px 8px}
+.B .cta{margin:16px 2px 0;text-align:center;background:#ffc83d;color:#3d3000;border-radius:16px;padding:13px;font-weight:900;font-size:16px;box-shadow:0 5px 0 #c98f00}
+.B .grp{font-weight:900;font-size:12px;color:#7c8b81;letter-spacing:.6px;padding:22px 12px 6px}
+.B .tl{display:flex;align-items:center;gap:10px;padding:7px 12px;font-weight:800;font-size:14px;color:#a7b5ab}.B .tl .ic{width:20px;height:20px}
+.B .bot{margin-top:auto;background:rgba(255,255,255,.06);border-radius:20px;padding:14px}
+.B .ring{display:flex;align-items:center;gap:12px}
+.B .ring b{display:block;font-weight:900;font-size:15px}.B .ring small{font-weight:700;font-size:12px;color:#9fb0a5}
+.B .streak{display:flex;gap:5px;margin-top:12px}.B .streak i{flex:1;height:26px;border-radius:8px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-style:normal;font-weight:900;font-size:11px;color:#7c8b81}
+.B .streak i.on{background:#ff9a3d;color:#fff}.B .streak i.td{background:transparent;border:2px dashed #ff9a3d;color:#ff9a3d}
+
+/* ===== C. Thanh icon gọn + Sóc ===== */
+.C{position:absolute;left:0;top:0;bottom:0;width:92px;background:#fff;border-right:2px solid #eef0ee;display:flex;flex-direction:column;align-items:center;padding:18px 0}
+.C .logo{width:52px;height:52px;border-radius:17px;background:var(--g);box-shadow:0 4px 0 var(--gd);display:grid;place-items:center;margin-bottom:22px}
+.C .it{width:70px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 0;border-radius:18px;font-weight:900;font-size:11.5px;color:#6b766e;margin-bottom:4px;position:relative;text-align:center;line-height:1.1}
+.C .it .ic{width:42px;height:42px;border-radius:14px;padding:9px}
+.C .it.on{color:var(--gd)}
+.C .it.on .ic{box-shadow:0 0 0 3px #fff,0 0 0 6px #bfe6c6}
+.C .it.on::before{content:"";position:absolute;left:-11px;top:18px;width:6px;height:32px;border-radius:0 6px 6px 0;background:var(--g)}
+.C .it em{position:absolute;right:6px;top:4px;font-style:normal;font-weight:900;font-size:11px;background:var(--pink);color:#fff;border-radius:99px;padding:0 6px;border:2px solid #fff}
+.C .plus{width:56px;height:56px;border-radius:50%;background:var(--g);box-shadow:0 5px 0 var(--gd);display:grid;place-items:center;margin:10px 0 4px}
+.C .pl{font-weight:900;font-size:11.5px;color:var(--gd)}
+.C .bot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:10px}
+.C .fire{display:flex;flex-direction:column;align-items:center;font-weight:900;font-size:14px;color:#f08a1c}
+.C .av{width:42px;height:42px;border-radius:50%;background:var(--gl);color:var(--gd);display:grid;place-items:center;font-weight:900;font-size:14px;border:3px solid #fff;box-shadow:0 0 0 2px #e6e9e6}
+.frame .flyout{position:absolute;left:100px;top:212px;background:#2f3a33;color:#fff;border-radius:12px;padding:8px 12px;font-weight:800;font-size:13px;white-space:nowrap;z-index:3}
+.frame .flyout::before{content:"";position:absolute;left:-5px;top:12px;width:10px;height:10px;background:#2f3a33;transform:rotate(45deg)}
+.frame .peek{position:absolute;left:52px;bottom:150px;width:70px;transform:rotate(12deg);z-index:2}
+
+/* ===== D. Sổ tay có thẻ phân trang ===== */
+.D{position:absolute;left:0;top:0;bottom:0;width:256px;background:#fffdf6;border-right:3px solid #2f3a33;display:flex;flex-direction:column;padding:0 0 18px}
+.D .top{position:relative;height:150px;background:linear-gradient(180deg,#bfe6ff,#e8f6ff);border-bottom:3px solid #2f3a33;overflow:hidden}
+.D .top .soc{position:absolute;left:84px;top:44px;width:96px}
+.D .top .name{position:absolute;left:16px;top:14px;font-weight:900;font-size:18px;letter-spacing:-.4px}
+.D .top .say{position:absolute;right:12px;top:14px;background:#fff;border:2.5px solid #2f3a33;border-radius:12px 12px 12px 3px;padding:4px 9px;font-weight:900;font-size:12.5px}
+.D .top .hill{position:absolute;left:-20px;right:-20px;bottom:-30px;height:60px;border-radius:50%;background:#9bd6a6;border-top:3px solid #2f3a33}
+.D .nav{padding:16px 0 0 14px}
+.D .tab{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:0 -3px 8px 0;border:2.5px solid #2f3a33;border-right:0;border-radius:16px 0 0 16px;font-weight:900;font-size:15px;background:#fff;position:relative}
+.D .tab .ic{width:26px;height:26px}
+.D .tab.on{margin-right:-3px;background:#fffdf6;z-index:2;box-shadow:-4px 4px 0 #2f3a33}
+.D .tab em{margin-left:auto;margin-right:10px;font-style:normal;font-weight:900;font-size:12px;background:var(--pink);color:#fff;border-radius:99px;padding:1px 8px;border:2px solid #2f3a33}
+.D .cta{margin:10px 16px 0 14px;text-align:center;background:var(--gold);border:2.5px solid #2f3a33;border-radius:16px;padding:12px;font-weight:900;font-size:16px;box-shadow:4px 4px 0 #2f3a33}
+.D .grp{font-weight:900;font-size:12px;color:var(--mut);letter-spacing:.6px;padding:20px 16px 6px}
+.D .tl{display:flex;align-items:center;gap:10px;padding:6px 16px;font-weight:800;font-size:14px;color:#4d5850}.D .tl .ic{width:20px;height:20px}
+.D .bot{margin:auto 14px 0;border:2.5px solid #2f3a33;border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;background:#fff}
+.D .bot b{font-weight:900;font-size:14px}.D .bot small{display:block;font-weight:700;font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div id="sheet">
+ <h1>Thanh bên: 4 ý tưởng</h1>
+ <div class="lead">Có biểu tượng vẽ riêng cho từng khu. Mỗi bản đặt cạnh trang Hôm nay (cầu thang lên cúp) để xem có hợp nhau không.</div>
+ <div class="row" id="row"></div>
+</div>
+<script src="_soc.js"></script>
+<script>
+// ---------- icons ----------
+const I={
+ home:(c='#fff')=>`<svg viewBox="0 0 24 24"><path d="M3 11 L12 3.5 L21 11 V20 a1.5 1.5 0 0 1 -1.5 1.5 H15 V15 H9 V21.5 H4.5 A1.5 1.5 0 0 1 3 20Z" fill="${c}"/></svg>`,
+ journey:(c='#fff')=>`<svg viewBox="0 0 24 24"><rect x="2.5" y="15" width="5" height="7" rx="1.2" fill="${c}"/><rect x="9.5" y="10" width="5" height="12" rx="1.2" fill="${c}"/><rect x="16.5" y="5" width="5" height="17" rx="1.2" fill="${c}"/><path d="M19 1.5 l1.2 2.4 2.6 .4 -1.9 1.8 .5 2.6 -2.4 -1.3 -2.4 1.3 .5 -2.6 -1.9 -1.8 2.6 -.4Z" fill="${c}" opacity=".9" transform="translate(-6 0)"/></svg>`,
+ timer:(c='#fff')=>`<svg viewBox="0 0 24 24"><rect x="9" y="1" width="6" height="3" rx="1.5" fill="${c}"/><circle cx="12" cy="14" r="8.5" fill="none" stroke="${c}" stroke-width="3"/><path d="M12 9.5 V14 L15 16" fill="none" stroke="${c}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ book:(c='#fff')=>`<svg viewBox="0 0 24 24"><path d="M3 4.5 C6 3 9.5 3 12 5 C14.5 3 18 3 21 4.5 V20 C18 18.5 14.5 18.5 12 20.5 C9.5 18.5 6 18.5 3 20Z" fill="${c}"/><path d="M12 5 V20.5" stroke="${c==='#fff'?'rgba(0,0,0,.18)':'#fff'}" stroke-width="1.6"/></svg>`,
+ trophy:(c='#fff')=>`<svg viewBox="0 0 24 24"><path d="M6 3 H18 V9 A6 6 0 0 1 6 9Z" fill="${c}"/><path d="M6 5 H3 C3 9 5 10.5 6.5 10.5 M18 5 H21 C21 9 19 10.5 17.5 10.5" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/><rect x="10.5" y="14" width="3" height="4" fill="${c}"/><rect x="7" y="18" width="10" height="3.5" rx="1.5" fill="${c}"/></svg>`,
+ calc:(c='#7a857e')=>`<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="3" fill="none" stroke="${c}" stroke-width="2.4"/><rect x="7" y="5" width="10" height="4" rx="1" fill="${c}"/><g fill="${c}"><circle cx="8.5" cy="13" r="1.4"/><circle cx="12" cy="13" r="1.4"/><circle cx="15.5" cy="13" r="1.4"/><circle cx="8.5" cy="17.5" r="1.4"/><circle cx="12" cy="17.5" r="1.4"/><circle cx="15.5" cy="17.5" r="1.4"/></g></svg>`,
+ folder:(c='#7a857e')=>`<svg viewBox="0 0 24 24"><path d="M2.5 6.5 A2 2 0 0 1 4.5 4.5 H9.5 L11.5 7 H19.5 A2 2 0 0 1 21.5 9 V18 A2 2 0 0 1 19.5 20 H4.5 A2 2 0 0 1 2.5 18Z" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round"/></svg>`,
+ plus:(c='#fff')=>`<svg viewBox="0 0 24 24"><path d="M12 4 V20 M4 12 H20" stroke="${c}" stroke-width="3.6" stroke-linecap="round"/></svg>`,
+ logo:(c='#fff')=>`<svg viewBox="0 0 24 24"><rect x="3" y="15" width="5" height="6" rx="1" fill="${c}"/><rect x="9.5" y="10" width="5" height="11" rx="1" fill="${c}"/><rect x="16" y="5" width="5" height="16" rx="1" fill="${c}" opacity=".85"/><path d="M18.5 1.5 l1 2 2.2 .3 -1.6 1.5 .4 2.2 -2 -1.1 -2 1.1 .4 -2.2 -1.6 -1.5 2.2 -.3Z" fill="#ffe58f"/></svg>`,
+ fire:()=>`<svg viewBox="0 0 22 28" width="22" height="28"><path d="M11 1 C13 8 21 11 21 18 a10 9.5 0 0 1 -20 0 C1 13 5 11 6 6 C8 8 9 9 11 1Z" fill="#ff9a3d"/><path d="M11 14 c2 3 4 4 4 6.5 a4 4 0 0 1 -8 0 c0-2.5 2-3.5 4-6.5Z" fill="#ffd84d"/></svg>`
+};
+const NAV=[['home','Hôm nay','#46b35a','#2f8a42'],['journey','Hành trình điểm','#ffc83d','#d99a00'],['timer','Luyện tập','#a78bfa','#7c5ce0'],['book','Sổ tay','#ff7a9c','#d6416a'],['trophy','Thành tích','#1c8fe3','#136fb3']];
+
+function sbA(){return `<div class="frame"><div class="ghost"></div><aside class="A">
+ <div class="logo"><span class="m"><span class="ic" style="width:24px;height:24px">${I.logo()}</span></span><b>toeic<span>progress</span></b></div>
+ ${NAV.map(([k,t,c,d],i)=>`<div class="it ${i?'':'on'}"><span class="ic" style="background:${c};box-shadow:0 3px 0 ${d}">${I[k]()}</span>${t}${k==='book'?'<em>3</em>':''}</div>`).join('')}
+ <div class="cta"><span class="ic" style="width:18px;height:18px">${I.plus()}</span>Ghi điểm</div>
+ <div class="grp">CÔNG CỤ</div><div class="tl"><span class="ic">${I.calc()}</span>Quy đổi điểm</div><div class="tl"><span class="ic">${I.folder()}</span>Tài liệu</div>
+ <div class="bot"><div class="mini"><span class="soc" data-s="idle"></span><div><b>Bậc 5/8 tới cúp</b><small>Còn 75 điểm</small><div class="steps">${[620,650,675,700,725,750,775,800].map((m,i)=>`<i class="${i<4?'':i===4?'c':'f'}" style="height:${8+i*2}px"></i>`).join('')}</div></div></div>
+ <div class="me"><span class="av">HV</span><div><b>Học viên</b><small>🔥 6 ngày · thi sau 38 ngày</small></div></div></div>
+</aside></div>`}
+
+function sbB(){return `<div class="frame" style="background:#fff3d1"><div class="ghost"></div><aside class="B">
+ <div class="logo">toeic <span>progress</span></div>
+ ${NAV.map(([k,t,c],i)=>`<div class="it ${i?'':'on'}"><span class="ic">${I[k](i?c:'#fff')}</span>${t}${k==='book'?'<em>3</em>':''}</div>`).join('')}
+ <div class="cta">+ Ghi điểm</div>
+ <div class="grp">CÔNG CỤ</div><div class="tl"><span class="ic">${I.calc('#a7b5ab')}</span>Quy đổi điểm</div><div class="tl"><span class="ic">${I.folder('#a7b5ab')}</span>Tài liệu</div>
+ <div class="bot"><div class="ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="7"/><circle cx="26" cy="26" r="21" fill="none" stroke="#ffc83d" stroke-width="7" stroke-linecap="round" stroke-dasharray="132" stroke-dashoffset="${132*(1-105/180)}" transform="rotate(-90 26 26)"/><text x="26" y="31" font-weight="900" font-size="13" fill="#fff" text-anchor="middle">725</text></svg><div><b>Còn 75 tới cúp</b><small>Bậc 5/8 · thi sau 38 ngày</small></div></div>
+  <div class="streak">${['T2','T3','T4','T5','T6','T7','CN'].map((d,i)=>`<i class="${i<4?'on':i===4?'td':''}">${i<4?'🔥':d}</i>`).join('')}</div></div>
+</aside></div>`}
+
+function sbC(){return `<div class="frame"><div class="ghost" style="left:92px"></div><aside class="C">
+ <div class="logo"><span class="ic" style="width:28px;height:28px">${I.logo()}</span></div>
+ ${NAV.map(([k,t,c,d],i)=>`<div class="it ${i?'':'on'}"><span class="ic" style="background:${c};box-shadow:0 3px 0 ${d}">${I[k]()}</span>${t.replace('Hành trình điểm','Hành trình')}${k==='book'?'<em>3</em>':''}</div>`).join('')}
+ <div class="plus"><span class="ic" style="width:24px;height:24px">${I.plus()}</span></div><div class="pl">Ghi điểm</div>
+ <div class="bot"><div class="fire">${I.fire()}6</div><span class="av">HV</span></div>
+</aside><div class="flyout">Hành trình điểm</div><span class="soc peek" data-s="idle"></span></div>`}
+
+function sbD(){return `<div class="frame"><div class="ghost"></div><aside class="D">
+ <div class="top"><div class="name">toeic progress</div><div class="say">Bậc 5/8 rồi!</div><div class="hill"></div><span class="soc" data-s="yay"></span></div>
+ <div class="nav">${NAV.map(([k,t,c],i)=>`<div class="tab ${i?'':'on'}" style="${i?`background:${c}22`:''}"><span class="ic">${I[k](c)}</span>${t}${k==='book'?'<em>3</em>':''}</div>`).join('')}</div>
+ <div class="cta">+ Ghi điểm</div>
+ <div class="grp">CÔNG CỤ</div><div class="tl"><span class="ic">${I.calc('#4d5850')}</span>Quy đổi điểm</div><div class="tl"><span class="ic">${I.folder('#4d5850')}</span>Tài liệu</div>
+ <div class="bot">${I.fire()}<div><b>6 ngày liền</b><small>Học viên · thi sau 38 ngày</small></div></div>
+</aside></div>`}
+
+const SB=[['A. Ô màu nổi','Mỗi khu một ô màu có gờ như nút Duolingo. Dưới cùng có mini cầu thang "bậc 5/8 tới cúp" và Sóc.',sbA],
+ ['B. Bảng tối nổi','Thanh tối bo tròn tách khỏi mép, mục đang chọn phát sáng xanh. Dưới cùng có vòng điểm và lịch chuỗi 7 ngày.',sbB],
+ ['C. Thanh icon gọn','Chỉ rộng 92px, nhường chỗ cho cầu thang. Rê chuột hiện tên đầy đủ; Sóc ngó ra từ mép.',sbC],
+ ['D. Sổ có thẻ phân trang','Như cuốn sổ có tab màu, Sóc ngồi trên đồi ở đầu thanh. Nét viền đậm, cá tính hơn.',sbD]];
+document.getElementById('row').innerHTML=SB.map(([t,d,f])=>`<div class="cell">${f()}<div class="cap"><b>${t}</b><span>${d}</span></div></div>`).join('');
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s));
+</script>
+</body>
+</html>

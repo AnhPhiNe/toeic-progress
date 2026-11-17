@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kế hoạch tuần</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;--bg:#FDFBF7;--indigo:#4F46E5;--teal:#0D9488;--orange:#F97316}
+  *{box-sizing:border-box}
+  body{margin:0;background:#CBD5E1;color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;padding:24px}
+  .variant{max-width:1180px;margin:0 auto 34px}
+  .cap{font-size:20px;font-weight:900;margin:0 0 2px}
+  .cap small{display:block;font-size:13.5px;font-weight:500;color:#334155;margin-top:2px}
+  .page{background:var(--bg);border-radius:14px;padding:26px 30px;margin-top:10px}
+  .top{display:flex;align-items:flex-end;gap:12px;margin-bottom:18px}
+  .top h1{margin:0;font-size:28px;font-weight:900}
+  .top p{margin:4px 0 0;color:var(--muted);font-weight:600;font-size:14px}
+  .wk{margin-left:auto;display:flex;align-items:center;border:2px solid var(--ink);border-radius:12px;background:#fff;overflow:hidden}
+  .wk span{padding:8px 14px;font-weight:800;font-size:14px}
+  .wk i{width:38px;height:38px;display:grid;place-items:center;font-style:normal;font-weight:900}
+  .wk i:first-child{border-right:2px solid var(--ink)}.wk i:last-child{border-left:2px solid var(--ink);color:#CBD5E1}
+  .card{background:#fff;border:2px solid var(--ink);border-radius:18px}
+  .raised{box-shadow:3px 3px 0 var(--ink)}
+  .btn{font:inherit;font-weight:800;font-size:13.5px;padding:8px 14px;border-radius:11px;border:2px solid var(--ink);background:#fff;white-space:nowrap}
+  .btn.pri{background:var(--indigo);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+  .chip{width:44px;height:44px;border-radius:12px;border:2px solid var(--ink);display:grid;place-items:center;flex:none;box-shadow:2px 2px 0 var(--ink)}
+  .bar{height:10px;border-radius:99px;background:#F1F5F9;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px}
+
+  /* ===== A ===== */
+  .hero{display:grid;grid-template-columns:auto 1fr 1fr;gap:28px;align-items:center;padding:20px 24px;background:#EEF2FF}
+  .ring{position:relative;width:92px;height:92px}
+  .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900}
+  .ring b small{font-size:13px;color:var(--muted);font-weight:700}
+  .stat .l{font-size:13.5px;font-weight:700;color:#475569}
+  .stat .n{font-size:30px;font-weight:900;margin-top:2px}
+  .stat .n small{font-size:14px;color:var(--muted);font-weight:700}
+  .stat .s{font-size:13px;color:#475569;font-weight:600;margin-top:4px}
+  h2{font-size:18px;font-weight:900;margin:24px 0 12px;display:flex;align-items:center;gap:10px}
+  h2 span{font-size:13px;color:var(--muted);font-weight:700}
+  .quests{display:grid;gap:12px}
+  .q{display:flex;align-items:center;gap:16px;padding:14px 18px}
+  .q .body{flex:1;min-width:0}
+  .q .t{font-size:16px;font-weight:800}
+  .q .why{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+  .q .prog{display:flex;align-items:center;gap:12px;margin-top:9px}
+  .q .prog .bar{flex:1;max-width:340px}
+  .q .prog b{font-size:13.5px;font-weight:800;white-space:nowrap}
+  .q.done{background:#F8FAFC;border-color:#CBD5E1}
+  .q.done .t{color:#64748B;text-decoration:line-through}
+  .tick{width:30px;height:30px;border-radius:50%;background:#10B981;border:2px solid var(--ink);display:grid;place-items:center;color:#fff;font-weight:900;flex:none}
+  .add{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px dashed #94A3B8;border-radius:18px;color:#475569;font-weight:800;font-size:14px;background:transparent}
+  .sugg{display:flex;align-items:center;gap:14px;padding:14px 18px;background:#FFF7ED;border:2px solid var(--ink);border-radius:18px;margin-top:12px}
+  .sugg .t{font-weight:800}
+  .sugg .why{font-size:13px;color:#9A3412;font-weight:600;margin-top:2px}
+  .sugg .btn{margin-left:auto;background:var(--orange);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+
+  /* ===== B ===== */
+  .split{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+  .days{padding:18px 20px}
+  .days .h{display:flex;justify-content:space-between;align-items:baseline}
+  .days .h b{font-size:17px;font-weight:900}
+  .days .h span{font-size:13.5px;font-weight:700;color:#475569}
+  .cols{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:16px;height:190px;align-items:end}
+  .col{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .col .v{font-size:12px;font-weight:800;color:#334155}
+  .col .stick{width:100%;border-radius:10px 10px 4px 4px;background:var(--teal);border:2px solid var(--ink)}
+  .col .stick.empty{background:#F1F5F9;border:2px dashed #CBD5E1}
+  .col .d{font-size:12.5px;font-weight:800;color:var(--muted)}
+  .col.now .d{color:var(--orange)}
+  .col.now .stick.empty{border-color:var(--orange);background:#FFF7ED}
+  .goal{margin-top:14px;display:flex;gap:10px;align-items:center;font-size:13.5px;font-weight:700;color:#475569}
+  .goal .bar{flex:1}
+  .side{display:grid;gap:12px}
+  .exam{padding:16px 18px;background:#EEF2FF}
+  .exam .n{font-size:34px;font-weight:900;line-height:1}
+  .exam .n small{font-size:15px;color:#475569;font-weight:700}
+  .exam p{margin:6px 0 0;font-size:13.5px;font-weight:600;color:#334155}
+  .mini{padding:12px 14px;display:flex;align-items:center;gap:12px}
+  .mini .t{font-weight:800;font-size:14.5px}
+  .mini .bar{margin-top:6px}
+  .mini b{font-size:13px;font-weight:800;margin-left:auto;white-space:nowrap}
+  .mini.done .t{color:#64748B;text-decoration:line-through}
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const ic={
+ clock:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+ file:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/></svg>`,
+ book:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>`,
+ bulb:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>`
+};
+const header=`<div class="top"><div><h1>Kế hoạch tuần</h1><p>02/11 – 08/11/2026</p></div><div class="wk"><i>‹</i><span>Tuần này</span><i>›</i></div></div>`;
+const ring=(p)=>{const r=38,c=2*Math.PI*r;return `<div class="ring"><svg width="92" height="92"><circle cx="46" cy="46" r="${r}" fill="#fff" stroke="#E0E7FF" stroke-width="10"/><circle cx="46" cy="46" r="${r}" fill="none" stroke="#4F46E5" stroke-width="10" stroke-linecap="round" stroke-dasharray="${c*p} ${c}" transform="rotate(-90 46 46)"/></svg><b>1<small>/3</small></b></div>`};
+const quest=(chip,bg,t,why,done,total,unit,color,btn,isDone)=>`<div class="card q ${isDone?'done':'raised'}">${isDone?'<span class="tick">✓</span>':`<span class="chip" style="background:${bg}">${chip}</span>`}
+<div class="body"><div class="t">${t}</div><div class="why">${why}</div>${isDone?'':`<div class="prog"><div class="bar"><i style="width:${done/total*100}%;background:${color}"></i></div><b>${done}/${total} ${unit}</b></div>`}</div>${btn?`<button class="btn">${btn}</button>`:''}</div>`;
+
+const miniBars=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:64px;margin-top:8px">${[["T2",45],["T3",0],["T4",35],["T5",40],["T6",0,1],["T7",null],["CN",null]].map(([d,m,now])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end;height:100%"><div title="${m||0} phút" style="width:100%;height:${m?m/45*44:6}px;border-radius:6px 6px 2px 2px;${m?"background:#0D9488;border:1.5px solid #0F172A":now?"background:#fff;border:1.5px dashed #F97316":"background:#fff;border:1.5px solid #CBD5E1"};${m===null?"opacity:.5":""}"></div><span style="font-size:11px;font-weight:800;color:${now?"#F97316":"#64748B"}">${now?"Nay":d}</span></div>`).join("")}</div>`;
+const A=`<section class="variant"><p class="cap">A · Nhiệm vụ tuần (theo Daily Quests của Duolingo) + cột phút mỗi ngày từ B<small>Cột phút mỗi ngày của B thu nhỏ vào khối tóm tắt, thay cho thanh tiến độ. Một khối tóm tắt: nhiệm vụ xong, thời gian học, ngày thi. Bên dưới là danh sách nhiệm vụ, mỗi cái một nút làm ngay; việc đã xong xuống cuối, không cần tab lọc. Gợi ý từ Sổ tay nằm cuối kèm lý do.</small></p>
+<div class="page">${header}
+<div class="card hero raised">${ring(1/3)}
+<div class="stat"><div class="l">Thời gian học tuần này</div><div class="n">120<small> / 210 phút</small></div>${miniBars}</div>
+<div class="stat"><div class="l">Kỳ thi</div><div class="n">17<small> ngày nữa</small></div><div class="s">Cần thêm <b>125 điểm</b> để đạt 990</div></div></div>
+<h2>Nhiệm vụ <span>1/3 xong</span></h2>
+<div class="quests">
+${quest(ic.clock,'#99F6E4','Học 210 phút','Khoảng 30 phút mỗi ngày',120,210,'phút','var(--teal)','Bật đồng hồ',false)}
+${quest(ic.book,'#C7D2FE','Luyện 2 bài Part 5','Tự đếm khi lưu bài luyện Part 5',0,2,'bài','var(--indigo)','Luyện ngay',false)}
+${quest(ic.file,'#FDE68A','Làm 1 đề Full Test','',1,1,'đề','#F59E0B','',true)}
+<button class="add">+ Thêm nhiệm vụ</button></div>
+<div class="sugg"><span class="chip" style="background:#FED7AA">${ic.bulb}</span><div><div class="t">Gợi ý: Luyện 2 bài Part 7</div><div class="why">40% lỗi trong Sổ tay là bẫy từ vựng, hay gặp ở Part 7</div></div><button class="btn">+ Thêm</button></div>
+</div></section>`;
+
+const days=[['T2',45],['T3',0],['T4',35],['T5',40],['T6',0,1],['T7',null],['CN',null]];
+const B=`<section class="variant"><p class="cap">B · Lịch 7 ngày + nhiệm vụ bên cạnh<small>Bên trái là số phút học mỗi ngày (cột, giống biểu đồ hoạt động của Apple Fitness/Strava) nên thấy ngay tuần này học đều hay dồn. Bên phải: ngày thi và nhiệm vụ gọn.</small></p>
+<div class="page">${header}
+<div class="split">
+<div class="card days raised"><div class="h"><b>Thời gian học mỗi ngày</b><span>120 / 210 phút tuần này</span></div>
+<div class="cols">${days.map(([d,m,now])=>`<div class="col ${now?'now':''}">${m?`<span class="v">${m}p</span>`:''}<div class="stick ${m?'':'empty'}" style="height:${m?m/60*150:22}px;${m===null?'opacity:.45':''}"></div><span class="d">${now?'Nay':d}</span></div>`).join('')}</div>
+<div class="goal">Mục tiêu 30 phút/ngày<div class="bar"><i style="width:57%;background:var(--teal)"></i></div>57%</div></div>
+<div class="side">
+<div class="card exam raised"><div class="n">17<small> ngày đến kỳ thi</small></div><p>Cần thêm 125 điểm để đạt 990</p></div>
+<div class="card mini"><span class="chip" style="background:#C7D2FE;width:38px;height:38px">${ic.book}</span><div style="flex:1"><div class="t">Luyện 2 bài Part 5</div><div class="bar"><i style="width:0%;background:var(--indigo)"></i></div></div><b>0/2</b></div>
+<div class="card mini"><span class="chip" style="background:#99F6E4;width:38px;height:38px">${ic.clock}</span><div style="flex:1"><div class="t">Học 210 phút</div><div class="bar"><i style="width:57%;background:var(--teal)"></i></div></div><b>120/210</b></div>
+<div class="card mini done"><span class="tick">✓</span><div style="flex:1"><div class="t">Làm 1 đề Full Test</div></div><b>1/1</b></div>
+<button class="add">+ Thêm nhiệm vụ</button>
+</div></div></div></section>`;
+document.getElementById('out').innerHTML=A+B;
+</script>
+</body>
+</html>

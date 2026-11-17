@@ -1,14 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openRecordSheet } from './helpers/nav';
 
 async function saveVocab(page: Page) {
-  await page.getByRole('button', { name: 'Ghi lại kết quả học', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Ghi lại', exact: true }).getByRole('button', { name: /^Từ vựng hôm nay/ }).click();
-  await page.getByRole('button', { name: /Lưu từ vựng/ }).click();
+  await openRecordSheet(page, 'vocab');
+  await page.getByRole('dialog').getByRole('button', { name: /^Lưu \d+ từ/ }).click();
 }
 
 test('phone streak chip lights up and the flame celebrates only the first study of the day', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/lich-su');
+  // Từ vựng is the phone page that still has the top bar (and so the streak chip).
+  await page.goto('/tu-vung');
   await expect(page.getByRole('button', { name: 'Chuỗi học 0 ngày, xem tuần này', exact: true })).toBeVisible();
 
   await saveVocab(page);

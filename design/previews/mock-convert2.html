@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Quy đổi điểm 2 hướng</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<style>
+:root{--ink:#2f3a33;--mut:#7a857e;--teal:#14b8a6;--tealD:#0d8a7c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:22px;padding:30px}
+.cap{width:1600px;font-weight:900;font-size:21px}.cap small{display:block;font-weight:700;font-size:14px;color:#3f4a43}
+.page{width:1600px;height:925px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:#46b35a}.logo span{display:block;color:#46b35a}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}.nv i{width:40px;height:40px;border-radius:13px}
+.nv.on{background:#e8fbf7;border-color:#a7ece0;color:var(--tealD)}
+main{position:relative;overflow:hidden;padding:24px 40px}
+.soc svg{display:block;width:100%}
+.hd{display:flex;align-items:baseline;gap:14px}.hd h2{font-weight:900;font-size:28px;letter-spacing:-.6px}.hd p{font-weight:700;font-size:14px;color:var(--mut)}
+.pull{margin-left:auto;align-self:center;border-radius:14px;padding:8px 14px;font-weight:900;font-size:14px;background:#e8fbf7;color:var(--tealD);box-shadow:inset 0 0 0 2px #a7ece0}
+/* ===== A: arcade scoreboard ===== */
+.arc{margin-top:16px;height:800px;border-radius:32px;background:radial-gradient(circle at 50% 0,#2b2a66,#151536 70%);position:relative;overflow:hidden;color:#fff}
+.arc .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(124,92,224,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,224,.18) 1px,transparent 1px);background-size:40px 40px;mask-image:linear-gradient(180deg,transparent,#000 70%)}
+.board{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:640px;background:#1f1d4d;border-radius:28px;padding:20px 26px 22px;box-shadow:0 0 0 4px #3a3680,0 0 60px rgba(124,92,224,.5);text-align:center}
+.board small{font-weight:900;font-size:13px;letter-spacing:2px;color:#ffc83d}
+.flips{display:flex;justify-content:center;gap:10px;margin-top:12px}
+.fd{width:104px;height:140px;border-radius:14px;background:linear-gradient(180deg,#2e2b6e 50%,#26245e 50%);display:grid;place-items:center;font-weight:900;font-size:112px;line-height:1;color:#fff;position:relative;box-shadow:inset 0 -4px 0 rgba(0,0,0,.3)}
+.fd:after{content:'';position:absolute;left:0;right:0;top:50%;height:3px;background:#151536}
+.of{font-weight:900;font-size:28px;color:#9a96d8;align-self:flex-end;margin:0 0 10px 6px}
+.lr2{display:flex;justify-content:center;gap:14px;margin-top:14px}.lr2 span{border-radius:99px;padding:6px 14px;font-weight:900;font-size:15px}
+.knobs{position:absolute;left:60px;right:60px;bottom:200px;display:flex;justify-content:space-between}
+.knob{width:300px;text-align:center}
+.knob .k{width:170px;height:170px;margin:0 auto;border-radius:50%;position:relative;background:conic-gradient(var(--c) 0 var(--p),#2e2b6e var(--p) 100%);display:grid;place-items:center;box-shadow:0 0 30px var(--g)}
+.knob .k b{width:126px;height:126px;border-radius:50%;background:#1f1d4d;display:grid;place-items:center;font-weight:900;font-size:44px;box-shadow:inset 0 4px 10px rgba(0,0,0,.4)}
+.knob .k b small{display:block;font-size:12px;color:#9a96d8;letter-spacing:1px;margin-top:-30px}
+.knob h4{font-weight:900;font-size:18px;margin-top:10px}.knob p{font-weight:800;font-size:13px;color:#9a96d8}
+.knob .pm{display:flex;justify-content:center;gap:10px;margin-top:8px}.knob .pm i{width:40px;height:36px;border-radius:12px;background:#2e2b6e;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:20px;box-shadow:0 4px 0 #151536}
+.ticket{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:flex;gap:12px}
+.tk{width:170px;border-radius:16px;background:#fff;color:var(--ink);padding:10px 12px;text-align:center;position:relative}
+.tk:before,.tk:after{content:'';position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:#151536;transform:translateY(-50%)}.tk:before{left:-8px}.tk:after{right:-8px}
+.tk small{display:block;font-weight:900;font-size:11.5px;color:var(--mut);letter-spacing:.6px}.tk b{display:block;font-weight:900;font-size:22px;color:var(--c)}
+.cefr{position:absolute;left:50%;top:330px;transform:translateX(-50%);display:flex;gap:6px;align-items:flex-end}
+.cefr i{width:64px;border-radius:10px 10px 4px 4px;font-style:normal;font-weight:900;font-size:15px;text-align:center;padding-top:6px;color:#fff}
+.cefr i.you{box-shadow:0 0 0 3px #ffc83d,0 0 24px #ffc83d}
+/* ===== B: passport ===== */
+.pp{margin-top:16px;position:relative;height:800px;border-radius:32px;background:linear-gradient(160deg,#e8fbf7,#fff6e8);overflow:hidden}
+.book{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:980px;height:520px;display:grid;grid-template-columns:1fr 1fr;border-radius:26px;background:#0d6b61;padding:14px;box-shadow:0 18px 40px rgba(13,107,97,.3)}
+.pg{background:repeating-linear-gradient(135deg,#fffdf6 0 14px,#fbf6e8 14px 28px);position:relative;padding:26px 30px}
+.pg:first-child{border-radius:16px 4px 4px 16px;box-shadow:inset -14px 0 20px -14px rgba(0,0,0,.25)}.pg:last-child{border-radius:4px 16px 16px 4px;box-shadow:inset 14px 0 20px -14px rgba(0,0,0,.25)}
+.pg h3{font-weight:900;font-size:13px;letter-spacing:2px;color:#0d8a7c}
+.idrow{display:flex;gap:18px;margin-top:14px}
+.photo{width:130px;height:150px;border-radius:12px;background:#ffe9d0;display:grid;place-items:end center;overflow:hidden;box-shadow:inset 0 0 0 3px #f2d6b3}
+.fields{flex:1}.fields div{border-bottom:2px dashed #e6dcc4;padding:6px 0}.fields small{display:block;font-weight:900;font-size:10.5px;letter-spacing:1px;color:#a39a80}.fields b{font-weight:900;font-size:17px}
+.big2{margin-top:16px;display:flex;align-items:baseline;gap:8px}.big2 b{font-weight:900;font-size:76px;letter-spacing:-3px;line-height:1;color:#0d6b61}.big2 span{font-weight:900;font-size:20px;color:#a39a80}
+.mrz{position:absolute;left:30px;right:30px;bottom:22px;font-family:monospace;font-size:13px;letter-spacing:2px;color:#b9ae90}
+.stamp{position:absolute;width:150px;height:150px;border-radius:50%;border:5px solid var(--c);color:var(--c);display:grid;place-items:center;text-align:center;transform:rotate(var(--r));opacity:.9;mix-blend-mode:multiply}
+.stamp:before{content:'';position:absolute;inset:8px;border-radius:50%;border:2px dashed var(--c)}
+.stamp small{display:block;font-weight:900;font-size:12px;letter-spacing:2px}.stamp b{display:block;font-weight:900;font-size:28px;line-height:1.1}.stamp em{display:block;font-style:normal;font-weight:800;font-size:10.5px;letter-spacing:1px}
+.stamp.sq{border-radius:18px}.stamp.sq:before{border-radius:12px}
+.ctl{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:980px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sl{background:#fff;border-radius:22px;padding:14px 18px;box-shadow:0 6px 0 rgba(13,107,97,.08)}
+.sl .t{display:flex;justify-content:space-between;align-items:baseline;font-weight:900}.sl .t b{font-size:16px}.sl .t span{font-size:26px;color:var(--c)}
+.sl .t span small{font-size:13px;color:var(--mut);margin-left:4px}
+.bar{position:relative;height:14px;border-radius:99px;background:#eef0ee;margin-top:12px}.bar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--c)}.bar u{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 4px var(--c),0 3px 6px rgba(0,0,0,.2)}
+.sl p{display:flex;justify-content:space-between;font-weight:800;font-size:12.5px;color:var(--mut);margin-top:8px}
+.an{position:absolute;z-index:20;display:flex;align-items:center;gap:6px;background:#2f3a33;color:#fff;border-radius:12px;padding:5px 10px;font-weight:800;font-size:12.5px;white-space:nowrap}.an b{width:20px;height:20px;border-radius:50%;background:#ff7a9c;display:grid;place-items:center;font-size:12px}
+.legend{width:1600px;background:#fff;border-radius:20px;padding:14px 22px;font-weight:700;font-size:13.5px;color:#4d5850;line-height:1.5}.legend b{color:#2f3a33}
+</style></head><body>
+<div class="cap">A · Bảng điểm arcade<small>nền đêm tím có lưới neon; bảng lật số lớn ở giữa; hai núm xoay phát sáng cho Nghe/Đọc; bậc CEFR dạng cột sáng; vé tương đương IELTS/VSTEP/TOEFL ở đáy</small></div>
+<div class="page" id="A"></div>
+<div class="legend"><b>Hiệu ứng:</b> xoay núm (kéo hoặc cuộn chuột) thì vòng sáng chạy, số trong núm đếm; bảng lật từng chữ số như sân bay; cột CEFR đổi thì cột mới sáng lên và rung nhẹ; vé in ra từ khe khi đổi bậc.</div>
+<div class="cap">B · Hộ chiếu ngôn ngữ<small>một cuốn hộ chiếu mở đôi: trang trái là "trang thông tin" có ảnh Sóc và điểm TOEIC; trang phải là các con dấu CEFR / IELTS / VSTEP / TOEFL; hai thanh kéo ở dưới như thẻ hành lý</small></div>
+<div class="page" id="B"></div>
+<div class="legend"><b>Hiệu ứng:</b> kéo thanh thì số trên trang thông tin chạy; khi sang bậc mới, con dấu cũ mờ đi và con dấu mới "đóng" xuống (phóng to rồi ấn, có vệt mực); dòng MRZ dưới trang đổi theo điểm.</div>
+<script src="lottie/soc-strings.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>${[['Hôm nay','#46b35a'],['Hành trình điểm','#ffc83d'],['Luyện tập','#a78bfa'],['Sổ tay','#ff7a9c'],['Thành tích','#1c8fe3']].map(([n,c])=>`<div class="nv"><i style="background:${c}"></i>${n}</div>`).join('')}<div style="margin:16px 8px 6px;font-weight:900;font-size:12px;color:#a3aba5">CÔNG CỤ</div><div class="nv on"><i style="background:#14b8a6"></i>Quy đổi điểm</div></aside>`;
+const HD=`<div class="hd"><h2>Quy đổi điểm</h2><p>Ước tính theo IIBC 2023 · chỉ để tham khảo</p><span class="pull">↻ Lấy từ đề gần nhất · 88 / 100</span></div>`;
+const LV=[['A1',40,'#5b6bd6'],['A2',56,'#5b7fe6'],['B1',74,'#3d8fe8'],['B2',96,'#14b8a6'],['C1',118,'#7c5ce0'],['C2',140,'#a78bfa']];
+document.getElementById('A').innerHTML=SIDE+`<main>${HD}<div class="arc"><span class="grid"></span>
+ <div class="board"><small>TỔNG ĐIỂM DỰ KIẾN</small><div class="flips"><span class="fd">9</span><span class="fd">0</span><span class="fd">0</span><span class="of">/990</span></div>
+ <div class="lr2"><span style="background:rgba(28,143,227,.25);color:#9fd0ff">Nghe 405</span><span style="background:rgba(20,184,166,.25);color:#7ff0dd">Đọc 495</span><span style="background:rgba(255,200,61,.2);color:#ffe58f">🎯 chạm mục tiêu 900</span></div></div>
+ <div class="cefr">${LV.map(([l,h,c])=>`<i class="${l==='B2'?'you':''}" style="height:${h}px;background:${c}">${l}</i>`).join('')}</div>
+ <div class="knobs"><div class="knob" style="--c:#1c8fe3;--p:88%;--g:rgba(28,143,227,.45)"><div class="k"><b>88</b></div><h4>🎧 Nghe · câu đúng</h4><p>= 405 điểm</p><div class="pm"><i>−</i><i>+</i></div></div>
+ <div class="knob" style="--c:#14b8a6;--p:100%;--g:rgba(20,184,166,.45)"><div class="k"><b>100</b></div><h4>📖 Đọc · câu đúng</h4><p>= 495 điểm</p><div class="pm"><i>−</i><i style="opacity:.4">+</i></div></div></div>
+ <span class="soc" style="position:absolute;left:50%;bottom:150px;width:120px;transform:translateX(-50%)">${SOC.idle}</span>
+ <div class="ticket">${[['CEFR','B2','#14b8a6'],['IELTS','5.5–6.5','#e0557f'],['VSTEP','Bậc 4','#2f8a42'],['TOEFL iBT','4–4.5','#7c5ce0']].map(([a,b,c])=>`<div class="tk" style="--c:${c}"><small>${a}</small><b>${b}</b></div>`).join('')}</div>
+ </div></main>`;
+document.getElementById('B').innerHTML=SIDE+`<main>${HD}<div class="pp">
+ <div class="book"><div class="pg"><h3>HỘ CHIẾU NGÔN NGỮ · TOEIC L&R</h3>
+  <div class="idrow"><div class="photo"><span class="soc" style="width:120px;margin-bottom:-6px">${SOC.idle}</span></div>
+  <div class="fields"><div><small>NGHE</small><b>88 câu đúng · 405</b></div><div><small>ĐỌC</small><b>100 câu đúng · 495</b></div><div><small>MỤC TIÊU</small><b>900 · đã chạm 🎉</b></div></div></div>
+  <div class="big2"><b>900</b><span>/ 990 điểm</span></div>
+  <div class="mrz">P&lt;TOEIC&lt;&lt;SOC&lt;&lt;0405&lt;0495&lt;&lt;0900&lt;&lt;B2&lt;&lt;&lt;&lt;</div></div>
+  <div class="pg"><h3>THỊ THỰC TƯƠNG ĐƯƠNG</h3>
+  <div class="stamp" style="--c:#14b8a6;--r:-10deg;left:40px;top:60px"><div><small>CEFR</small><b>B2</b><em>TRUNG CẤP TRÊN</em></div></div>
+  <div class="stamp sq" style="--c:#e0557f;--r:8deg;left:230px;top:44px;width:160px;height:120px"><div><small>IELTS</small><b>5.5–6.5</b><em>THAM KHẢO</em></div></div>
+  <div class="stamp sq" style="--c:#2f8a42;--r:-4deg;left:60px;top:250px;width:150px;height:110px"><div><small>VSTEP</small><b>Bậc 4</b><em>B2 · VIỆT NAM</em></div></div>
+  <div class="stamp" style="--c:#7c5ce0;--r:12deg;left:250px;top:230px"><div><small>TOEFL iBT</small><b>4–4.5</b><em>THANG 1–6</em></div></div>
+  <div style="position:absolute;right:26px;bottom:20px;font-weight:800;font-size:11.5px;color:#a39a80">Sang C1 cần 945+</div></div></div>
+ <div class="ctl"><div class="sl" style="--c:#1c8fe3"><div class="t"><b>🎧 Nghe</b><span>88<small>/100 câu · 405đ</small></span></div><div class="bar"><i style="width:88%"></i><u style="left:88%"></u></div><p><span>0</span><span>50</span><span>100</span></p></div>
+ <div class="sl" style="--c:#14b8a6"><div class="t"><b>📖 Đọc</b><span>100<small>/100 câu · 495đ</small></span></div><div class="bar"><i style="width:100%"></i><u style="left:100%"></u></div><p><span>0</span><span>50</span><span>100</span></p></div></div>
+ </div></main>`;
+</script></body></html>

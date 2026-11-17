@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_soc.css">
+<style>
+:root{--g:#46b35a;--gd:#2f8a42;--gl:#e7f6ea;--gold:#ffc83d;--ink:#2f3a33;--mut:#7a857e;--line:#e6e9e6;--blue:#1c8fe3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;color:var(--ink);background:#bfc4cc;display:flex;flex-direction:column;align-items:center;gap:30px;padding:30px}
+.cap{width:1440px;font-weight:900;font-size:20px;color:#2f3a33}.cap small{font-weight:700;font-size:14px;color:#4d5850;margin-left:8px}
+.page{width:1440px;height:900px;background:#fff;display:grid;grid-template-columns:268px 1fr;overflow:hidden}
+.side{border-right:2px solid #eef0ee;padding:22px 14px}
+.logo{display:flex;align-items:center;gap:9px;padding:0 8px 22px;font-weight:900;font-size:19px;line-height:1}.logo i{width:40px;height:40px;border-radius:13px;background:var(--g);box-shadow:0 4px 0 var(--gd)}.logo span{display:block;color:var(--g)}
+.nv{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:15.5px;color:#4d5850;margin-bottom:5px;border:2px solid transparent}
+.nv i{width:40px;height:40px;border-radius:13px}.nv.on{background:#f0faf2;border-color:#bfe6c6;color:var(--gd)}
+.cta{margin:16px 4px 0;background:var(--g);color:#fff;border-radius:16px;padding:13px;text-align:center;font-weight:900;box-shadow:0 5px 0 var(--gd)}
+main{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff3d1 0%,#ffe9e0 55%,#ffe0ec 100%)}
+.rays{position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 52% 26%,rgba(255,255,255,.5) 0 7deg,transparent 7deg 22deg)}
+svg.st{position:absolute;left:0;bottom:0;height:100%}
+.goal{position:absolute;left:52px;top:40px;z-index:5;width:520px;background:rgba(255,255,255,.88);backdrop-filter:blur(4px);border-radius:28px;padding:24px 28px 26px;box-shadow:0 10px 0 rgba(47,58,51,.06)}
+.goal small{font-weight:900;font-size:13px;color:#a87a00;letter-spacing:.4px}
+.goal h1{font-weight:900;font-size:30px;letter-spacing:-1.1px;line-height:1.1;margin-top:4px}.goal h1 em{font-style:normal;color:#e0970f}
+.goal .q{font-weight:900;font-size:15px;margin-top:16px}
+.chips{display:flex;gap:8px;margin-top:8px}
+.chips span{flex:1;text-align:center;border-radius:16px;padding:11px 0 9px;background:#fff;border:2px solid var(--line);box-shadow:0 3px 0 var(--line);font-weight:900;font-size:20px}
+.chips span small{display:block;font-size:11.5px;color:var(--mut);letter-spacing:0;font-weight:800}
+.chips span.on{background:#fff6d6;border-color:var(--gold);box-shadow:0 3px 0 #e8b62c}
+.chips span.on small{color:#a87a00}
+.row{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.date{display:flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:14px;padding:9px 14px;background:#fff;font-weight:800;font-size:15px;color:var(--mut)}
+.date b{color:var(--ink);font-weight:900}
+.skip{font-weight:800;font-size:13.5px;color:var(--mut)}
+.go{display:inline-block;margin-top:18px;background:var(--g);color:#fff;border-radius:16px;padding:14px 22px;font-weight:900;font-size:17px;box-shadow:0 5px 0 var(--gd)}
+.note{font-weight:700;font-size:13px;color:var(--mut);margin-top:10px}
+.chip-exam{position:absolute;right:32px;top:24px;z-index:5;background:#fff;border-radius:99px;padding:7px 14px;font-weight:900;font-size:14px;color:var(--blue);box-shadow:0 3px 0 rgba(47,58,51,.1)}
+.card{position:absolute;right:32px;top:72px;width:368px;z-index:5;background:#fff;border-radius:26px;overflow:hidden;box-shadow:0 10px 0 rgba(47,58,51,.08)}
+.card .h{background:linear-gradient(135deg,#4fc066,#2f8a42);color:#fff;padding:18px 20px;position:relative;min-height:168px}
+.card .h small{font-weight:900;font-size:12px;opacity:.85}.card .h b{display:block;font-weight:900;font-size:26px;line-height:1.1;margin-top:4px;max-width:210px}.card .h p{font-weight:700;font-size:13.5px;opacity:.9;margin-top:6px;max-width:200px}
+.card .h .s{position:absolute;right:4px;bottom:-12px;width:112px}
+.card .b{padding:14px 18px 18px;font-weight:800;font-size:13.5px;color:var(--mut)}
+.soc-s svg{display:block;width:100%}
+.mini{position:absolute;z-index:6;width:80px}
+.pin{position:absolute;right:400px;top:150px;z-index:6;transform:rotate(2deg);background:#2f3a33;color:#fff;border-radius:14px;padding:8px 12px;font-weight:800;font-size:13px}
+.pin b{color:#ffe58f}
+</style></head>
+<body>
+<div class="cap">1 · Người mới vào lần đầu<small>chưa chọn mục tiêu: chip nào cũng trắng, nút ghi điểm chờ</small></div>
+<div class="page" id="s1"></div>
+<div class="cap">2 · Vừa chọn 800 và ngày thi<small>tiêu đề, cúp và chip "Thi sau N ngày" đổi ngay; cầu thang mờ đã có đích</small></div>
+<div class="page" id="s2"></div>
+<script src="_soc.js"></script>
+<script>
+const SIDE=`<aside class="side"><div class="logo"><i></i><div>toeic<span>progress</span></div></div>
+<div class="nv on"><i style="background:#46b35a"></i>Hôm nay</div><div class="nv"><i style="background:#ffc83d"></i>Hành trình điểm</div><div class="nv"><i style="background:#a78bfa"></i>Luyện tập</div><div class="nv"><i style="background:#ff7a9c"></i>Sổ tay</div><div class="nv"><i style="background:#1c8fe3"></i>Thành tích</div><div class="cta">+ Ghi điểm</div></aside>`;
+function stairs(goal){let g='';const n=5;for(let i=0;i<n;i++){const x=120+i*100,y=760-i*84,h=150+i*84;
+ g+=`<path d="M${x-58} ${y} L${x} ${y+30} L${x} ${y+30+h} L${x-58} ${y+h}Z" fill="#e4e2f2"/><path d="M${x} ${y+30} L${x+58} ${y} L${x+58} ${y+h} L${x} ${y+30+h}Z" fill="#d2cfe6"/><path d="M${x-58} ${y} L${x} ${y-30} L${x+58} ${y} L${x} ${y+30}Z" fill="#fbfaff" stroke="#c9c3e6" stroke-width="2" stroke-dasharray="5 5"/>`}
+ const cx=120+n*100+70,cy=760-n*84-30;
+ g+=`<g transform="translate(${cx} ${cy})"><ellipse cx="0" cy="104" rx="84" ry="16" fill="#b0784a" opacity=".16"/><path d="M-58 68 L58 68 L66 100 L-66 100Z" fill="#3a463e"/><rect x="-62" y="62" width="124" height="10" rx="5" fill="#2f3a33"/><text x="0" y="93" font-weight="900" font-size="20" fill="#ffe58f" text-anchor="middle" font-family="Nunito">${goal||'?'}</text>
+ <path d="M-64 -64 C-104 -64 -100 -10 -58 -16" fill="none" stroke="#e8a516" stroke-width="11" stroke-linecap="round" opacity="${goal?1:.45}"/><path d="M64 -64 C104 -64 100 -10 58 -16" fill="none" stroke="#d99a00" stroke-width="11" stroke-linecap="round" opacity="${goal?1:.45}"/>
+ <path d="M-64 -76 H64 C64 -12 32 30 0 32 C-32 30 -64 -12 -64 -76Z" fill="${goal?'#ffc83d':'#f3e6c4'}"/><rect x="-26" y="48" width="52" height="16" rx="5" fill="${goal?'#e09a12':'#e6d6ae'}"/><rect x="-12" y="28" width="24" height="24" fill="${goal?'#ffc83d':'#f3e6c4'}"/>
+ ${goal?'<path d="M0 -58 l5 10 11 1.6 -8 7.8 1.9 11 -9.9 -5.2 -9.9 5.2 1.9 -11 -8 -7.8 11 -1.6Z" fill="#fff"/>':'<text x="0" y="-22" font-weight="900" font-size="40" fill="#d9c79a" text-anchor="middle" font-family="Nunito">?</text>'}</g>`;
+ return `<svg class="st" viewBox="0 0 1172 900" preserveAspectRatio="xMinYMax meet">${g}</svg>`}
+function page(goal){
+ const vals=[[600,'khá'],[700,'tốt'],[800,'rất tốt'],[900,'xuất sắc'],[990,'tuyệt đối']];
+ return SIDE+`<main><div class="rays"></div>${stairs(goal)}
+ <span class="soc-s mini" style="left:${120-39}px;top:${760-80}px" data-s="${goal?'cheerC':'idle'}"></span>
+ ${goal?'<div class="chip-exam">Thi sau 36 ngày</div>':''}
+ <div class="goal"><small>BẮT ĐẦU</small><h1>${goal?`Dựng cầu thang <em>lên cúp ${goal}</em>`:'Bạn muốn <em>chạm cúp</em> bao nhiêu điểm?'}</h1>
+  <div class="q">Mục tiêu</div>
+  <div class="chips">${vals.map(([v,l])=>`<span class="${v===goal?'on':''}">${v}<small>${l}</small></span>`).join('')}</div>
+  <div class="row"><span class="date">📅 Ngày thi ${goal?'<b>20/12/2026</b>':'<b style="color:#a3aba5;font-weight:800">chọn ngày</b>'}</span><span class="skip">${goal?'Đổi được trong Cài đặt':'Chưa có lịch thi? Bỏ trống cũng được'}</span></div>
+  <span class="go">+ Ghi điểm đề đầu tiên</span>
+  <div class="note">${goal?'Sóc sẽ xếp bậc từ điểm đề đầu tiên lên tới 800.':'Chọn mục tiêu trước, Sóc dựng cầu thang theo đó.'}</div></div>
+ <div class="card"><div class="h"><small>TIẾP THEO · 120 PHÚT</small><b>Ghi điểm đề đầu tiên</b><p>Để biết mình đang ở đâu</p><span class="soc-s s" data-s="idle"></span></div><div class="b">Chuỗi ngày và việc của mình hiện ở đây sau buổi đầu.</div></div>
+ </main>`}
+document.getElementById('s1').innerHTML=page(0);document.getElementById('s2').innerHTML=page(800);
+document.querySelectorAll('[data-s]').forEach(e=>e.innerHTML=soc(e.dataset.s==='cheerC'?'idle':e.dataset.s));
+</script>
+</body></html>

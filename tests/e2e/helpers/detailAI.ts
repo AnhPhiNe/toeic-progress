@@ -1,5 +1,7 @@
 import type { Page } from '@playwright/test';
 import { resolve } from 'node:path';
+import { openManualEntry } from './manualEntry';
+import { gotoPage, openScoreLogger } from './nav';
 
 export const screenshot = resolve('tests/fixtures/part7-notice.png');
 export const TIP = 'Câu thiếu động từ chính → chọn động từ chia thì.';
@@ -46,15 +48,23 @@ export async function mockTurnsAI(page: Page) {
 export async function openDesktopFlow(page: Page) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await mockTurnsAI(page);
-  await page.goto('/lich-su');
-  await page.getByRole('button', { name: 'Ghi điểm, phím tắt N', exact: true }).click();
-  const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+  await gotoPage(page, '/lich-su');
+  await openScoreLogger(page);
+  const form = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Ghi điểm', exact: true }) });
+  // The paste view has no test-name field; the "Nhập tay" views do.
+  await openManualEntry(page, form);
   await form.locator('#session-test-name').fill('ETS Table');
-  await form.getByRole('heading', { name: 'Ghi điểm' }).click();
   await form.getByRole('button', { name: 'Gõ số câu', exact: true }).click();
   await form.getByLabel('Số câu sai').fill('3 104 112 131');
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
-  await page.getByRole('status').getByRole('button', { name: 'Ghi chi tiết ›', exact: true }).click();
+  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   return page.getByRole('dialog', { name: 'Ghi câu sai · ETS Table', exact: true });
+}
+
+/** Sổ tay lists a test whose wrong questions still lack details as a row with "Ghi chi tiết" (computers); this opens its list. */
+export async function openPendingList(page: Page, testName = 'ETS Table', index = 0) {
+  if (!page.url().includes('/so-tay')) await gotoPage(page, '/so-tay');
+  await page.locator('.nb-pend').filter({ hasText: testName }).nth(index).getByRole('button', { name: 'Ghi chi tiết', exact: true }).click();
+  return page.getByRole('dialog', { name: `Ghi câu sai · ${testName}`, exact: true });
 }

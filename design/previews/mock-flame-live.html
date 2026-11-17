@@ -1,0 +1,66 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ngọn lửa streak, 3 trạng thái</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+:root{--ink:#0F172A;--bg:#FBFAF6;--muted:#64748B;--o:#F97316;--o50:#FFF7ED}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--ink);padding:28px 36px;max-width:1200px}
+h1{font-size:22px;font-weight:800}.lead{font-size:14px;color:var(--muted);margin:4px 0 22px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.tag{font-size:13px;font-weight:800;margin-bottom:8px}.tag span{font-weight:600;color:var(--muted)}
+.card{background:var(--o50);border:2px solid var(--ink);border-radius:18px;padding:18px 20px}
+.top{display:flex;align-items:center;gap:12px}
+.n{font-size:38px;font-weight:800;line-height:1}.u{font-size:14px;font-weight:600;color:var(--muted);margin-left:6px}
+.rec{font-size:13px;color:var(--muted);font-weight:600;margin-top:4px}.rec b{color:var(--ink)}
+.note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+.btn{margin-left:auto;border:2px solid var(--ink);border-radius:10px;background:var(--o);color:#fff;font-size:12px;font-weight:800;padding:6px 12px;box-shadow:2px 2px 0 var(--ink)}
+
+/* Ngọn lửa: ngoài + lõi, mỗi lớp một nhịp để không đều như máy */
+.fire{width:56px;height:62px;overflow:visible;transform-origin:50% 92%}
+.fire .outer{transform-origin:50% 95%;fill:var(--o);stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round}
+.fire .core{transform-origin:50% 80%;fill:#FDE68A}
+.fire .spark{fill:#FDBA74;stroke:var(--ink);stroke-width:1.2;opacity:0}
+
+/* Trạng thái 1: đã học hôm nay, cháy rực */
+.hot .fire{animation:sway 2.6s ease-in-out infinite}
+.hot .outer{animation:flick 1.1s ease-in-out infinite}
+.hot .core{animation:flick 0.8s ease-in-out infinite reverse}
+.hot .spark{animation:spark 2.2s ease-out infinite}
+.hot .spark.b{animation-delay:1.1s}
+/* Trạng thái 2: có chuỗi, chưa học hôm nay, yếu và rung chậm */
+.weak .fire{transform:scale(.82);animation:sway 4.2s ease-in-out infinite}
+.weak .outer{fill:#FDBA74;animation:flick 2.4s ease-in-out infinite}
+.weak .core{fill:#FEF3C7;animation:flick 2s ease-in-out infinite reverse}
+/* Trạng thái 3: chưa có chuỗi, lửa xám đứng yên */
+.cold .outer{fill:#E2E8F0;stroke:#CBD5E1}.cold .core{fill:#F1F5F9}
+
+@keyframes flick{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(.95,1.07) skewX(-3deg)}50%{transform:scale(1.04,.96) skewX(2deg)}75%{transform:scale(.97,1.05) skewX(-1.5deg)}}
+@keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2.5deg)}}
+@keyframes spark{0%{opacity:0;transform:translate(0,6px) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx,6px),-22px) scale(.2)}}
+@media (prefers-reduced-motion:reduce){.fire,.outer,.core,.spark{animation:none!important}.spark{opacity:0!important}}
+</style>
+<h1>Ngọn lửa streak · chạy thật</h1>
+<p class="lead">Mở trang này trong trình duyệt để thấy chuyển động. Nếu hệ điều hành của bạn tắt hiệu ứng chuyển động thì lửa sẽ đứng yên (đó là chủ ý).</p>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="flame" viewBox="0 0 56 62">
+<path class="outer" d="M28 4c2.5 9 14 14 14 29a14 14 0 0 1-28 0c0-6 3-9 5-12 .8 3.4 2.8 5.4 5 6C23 21 23.4 11 28 4Z"/>
+<path class="core" d="M28 21c1.6 4.4 7.4 7.4 7.4 14.2a7.4 7.4 0 0 1-14.8 0c0-3 1.4-4.8 2.8-6.2.4 1.8 1.2 2.8 2.6 3.2C25.6 29 26 25 28 21Z"/>
+</symbol></defs></svg>
+<div class="row">
+ <div><div class="tag">1 · Đã học hôm nay <span>(cháy rực)</span></div>
+  <div class="card hot"><div class="top"><svg class="fire"><circle class="spark a" cx="14" cy="22" r="2.2" style="--dx:-8px"/><circle class="spark b" cx="42" cy="20" r="2.2" style="--dx:8px"/></svg>
+  <div><div><span class="n">7</span><span class="u">ngày liên tiếp</span></div><div class="rec">Kỷ lục <b>12 ngày</b></div></div></div></div>
+  <p class="note">Hai lớp lửa lắc lệch nhịp, cả ngọn đung đưa nhẹ, thỉnh thoảng bật tia lửa nhỏ.</p></div>
+ <div><div class="tag">2 · Có chuỗi, chưa học hôm nay <span>(yếu, nhắc giữ chuỗi)</span></div>
+  <div class="card weak"><div class="top"><svg class="fire"></svg>
+  <div><div><span class="n">4</span><span class="u">ngày liên tiếp</span></div><div class="rec">Học hôm nay để giữ chuỗi</div></div><span class="btn">Học ngay</span></div></div>
+  <p class="note">Lửa nhỏ hơn, màu nhạt, lắc chậm: có cảm giác sắp tắt.</p></div>
+ <div><div class="tag">3 · Chưa có chuỗi <span>(xám, đứng yên)</span></div>
+  <div class="card cold"><div class="top"><svg class="fire"></svg>
+  <div><div><span class="n" style="color:#94A3B8">0</span><span class="u">ngày liên tiếp</span></div><div class="rec">Học một bài để bắt đầu chuỗi</div></div><span class="btn">Bắt đầu</span></div></div>
+  <p class="note">Không chuyển động, giống ngọn lửa hiện tại.</p></div>
+</div>
+<script>
+const FLAME='<path class="outer" d="M28 4c2.5 9 14 14 14 29a14 14 0 0 1-28 0c0-6 3-9 5-12 .8 3.4 2.8 5.4 5 6C23 21 23.4 11 28 4Z"/><path class="core" d="M28 21c1.6 4.4 7.4 7.4 7.4 14.2a7.4 7.4 0 0 1-14.8 0c0-3 1.4-4.8 2.8-6.2.4 1.8 1.2 2.8 2.6 3.2C25.6 29 26 25 28 21Z"/>';
+document.querySelectorAll('svg.fire').forEach(s=>{s.setAttribute('viewBox','0 0 56 62');s.insertAdjacentHTML('afterbegin',FLAME)});
+</script>
+</html>

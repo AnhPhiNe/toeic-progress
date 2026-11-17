@@ -15,6 +15,12 @@ export function runSpeed(run: PacingRun): number | null {
   const seconds = runSeconds(run);
   return seconds !== null && Number.isInteger(run.totalQuestions) && run.totalQuestions! > 0 ? seconds / run.totalQuestions! : null;
 }
+/** Under 3 seconds per question no TOEIC item can be read: almost surely a mis-tap, kept but left out of trends. */
+export const TOO_SHORT_SECONDS_PER_QUESTION = 3;
+export function isTooShortRun(run: PacingRun): boolean {
+  const speed = runSpeed(run);
+  return speed !== null && speed < TOO_SHORT_SECONDS_PER_QUESTION;
+}
 export function studySecondsForDay(runs: PacingRun[], date: string): number {
   return runs.reduce((sum, run) => run.date === date ? sum + (studyPacingSeconds(run) ?? 0) : sum, 0);
 }

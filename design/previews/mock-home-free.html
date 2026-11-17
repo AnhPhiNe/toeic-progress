@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang chủ không theo Neo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Nunito:wght@600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Be Vietnam Pro',sans-serif;background:#bfc4cc;padding:40px;display:flex;flex-direction:column;gap:60px;align-items:center}
+.frame{width:1440px;height:900px;position:relative;overflow:hidden}
+.tag{position:absolute;right:0;bottom:0;background:#fff;color:#000;font:800 13px 'Be Vietnam Pro';padding:6px 12px;border-radius:10px 0 0 0;z-index:9}
+
+/* ============ G aura ============ */
+#G{background:#0c0a1d;color:#fff}
+.blob{position:absolute;border-radius:50%;filter:blur(90px)}
+#G .nav{position:absolute;left:48px;right:48px;top:26px;display:flex;align-items:center;z-index:3}
+#G .logo{font:800 20px 'Bricolage Grotesque';letter-spacing:-.5px}
+.gp{margin:0 auto;display:flex;gap:2px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:5px;backdrop-filter:blur(20px)}
+.gp a{padding:9px 20px;border-radius:99px;font-weight:600;font-size:14.5px;color:#d6d3ee}
+.gp a.on{background:#fff;color:#0c0a1d;font-weight:800}
+.gbtn{background:#fff;color:#0c0a1d;border-radius:99px;padding:11px 20px;font-weight:800;font-size:14.5px}
+.gl{position:absolute;left:64px;top:210px;width:400px;z-index:2}
+.gl .k{font-weight:600;font-size:15px;color:#c9c4ea}
+.gl h1{font:800 68px/1.02 'Bricolage Grotesque';letter-spacing:-2.5px;margin:10px 0 18px}
+.gl p{font-size:18px;line-height:1.55;color:#dcd9f2}
+.gl .go{display:inline-block;margin-top:28px;background:linear-gradient(90deg,#b6f24a,#5ff2c8);color:#0c0a1d;border-radius:99px;padding:17px 30px;font:800 18px 'Bricolage Grotesque'}
+.gl .two{display:flex;gap:26px;margin-top:42px}
+.gl .two b{font:800 40px 'Bricolage Grotesque';display:block;line-height:1}
+.gl .two span{font-size:13.5px;color:#c9c4ea;font-weight:600}
+.orb{position:absolute;left:470px;top:170px;width:520px;height:520px;z-index:1}
+.orb .a{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#ff5fa2,#ffb347,#b6f24a,#5ff2c8,#7c5cff,#ff5fa2);filter:blur(46px);opacity:.95}
+.orb .b{position:absolute;inset:70px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0,#ffe9f6 22%,#c9b8ff 60%,#7c5cff 100%);filter:blur(10px)}
+.orb .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#16122e;text-align:center}
+.orb .c b{font:800 150px/0.9 'Bricolage Grotesque';letter-spacing:-7px}
+.orb .c span{font-weight:700;font-size:16px;margin-top:8px}
+.orb .c i{font-style:normal;margin-top:10px;background:#16122e;color:#b6f24a;border-radius:99px;padding:6px 16px;font:800 16px 'Bricolage Grotesque'}
+.orbcap{position:absolute;left:470px;width:520px;top:716px;text-align:center;font-size:14.5px;color:#c9c4ea;font-weight:500;z-index:2}
+.week7{position:absolute;left:470px;width:520px;top:760px;display:flex;justify-content:center;gap:18px;z-index:2;font-size:12.5px;font-weight:700;color:#c9c4ea;text-align:center}
+.week7 i{display:block;width:38px;height:38px;border-radius:50%;margin-bottom:6px;background:radial-gradient(circle at 35% 30%,#fff,#ff8fd0 45%,#7c5cff)}
+.week7 .off i{background:none;border:1.5px dashed rgba(255,255,255,.35)}
+.week7 .now i{background:none;border:2px solid #b6f24a;box-shadow:0 0 18px #b6f24a}
+.gr{position:absolute;right:48px;top:116px;width:372px;display:flex;flex-direction:column;gap:16px;z-index:2}
+.glass{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:28px;padding:22px 24px;backdrop-filter:blur(26px)}
+.glass h3{font:800 21px 'Bricolage Grotesque';letter-spacing:-.3px}
+.glass .k{font-size:13.5px;font-weight:600;color:#c9c4ea}
+.gi{display:flex;align-items:center;gap:12px;margin-top:13px;font-weight:600;font-size:15px}
+.gi i{width:34px;height:34px;border-radius:50%;flex:none}
+.gi span{margin-left:auto;font-size:13.5px;color:#c9c4ea}
+.glass svg text{font-family:'Be Vietnam Pro'}
+.pbar{height:12px;border-radius:99px;background:rgba(255,255,255,.14);margin-top:12px;overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ff5fa2,#ffb347)}
+
+/* ============ H editorial ============ */
+#H{background:#f6f1e7;color:#1b1a17;padding:0 64px;font-family:'Be Vietnam Pro'}
+.mast{display:flex;align-items:baseline;justify-content:space-between;padding:26px 0 14px;border-bottom:3px solid #1b1a17}
+.mast .l{font:700 30px 'Fraunces';letter-spacing:-.5px}
+.mast .l em{color:#e5482d;font-style:italic;font-weight:600}
+.mast nav{display:flex;gap:30px;font-weight:600;font-size:15px}
+.mast nav a.on{border-bottom:2.5px solid #e5482d;padding-bottom:3px;font-weight:800}
+.mast .r{font-size:14px;font-weight:600}
+.sub{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;padding:8px 0;border-bottom:1px solid #1b1a17;color:#4a4840}
+.hgrid{display:grid;grid-template-columns:1.08fr 1.3fr .82fr;gap:0;margin-top:26px;height:720px}
+.hgrid>div{padding:0 30px}
+.hgrid>div:first-child{padding-left:0}
+.hgrid>div:last-child{padding-right:0}
+.hgrid>div+div{border-left:1px solid #1b1a17}
+.hl{font:600 74px/0.98 'Fraunces';letter-spacing:-3px}
+.hl em{font-style:italic;color:#e5482d;font-weight:400}
+.lead{font:400 20px/1.55 'Fraunces';margin-top:22px}
+.lead:first-letter{font:700 62px/0.8 'Fraunces';float:left;margin:6px 8px 0 0;color:#e5482d}
+.by{font-size:13px;font-weight:600;color:#6b6860;margin-top:14px}
+.hbtn{display:inline-block;margin-top:24px;background:#1b1a17;color:#f6f1e7;padding:16px 26px;font-weight:700;font-size:16px;border-radius:4px}
+.fig h4{font:600 26px/1.2 'Fraunces';letter-spacing:-.5px}
+.fig .cap{font:italic 400 15px 'Fraunces';color:#4a4840;margin-top:6px}
+.fig svg{display:block;width:100%;margin-top:14px}
+.fig svg text{font-family:'Be Vietnam Pro'}
+.parts{margin-top:22px;border-top:1px solid #1b1a17;padding-top:16px}
+.prow{display:grid;grid-template-columns:52px 1fr 40px;gap:12px;align-items:center;font-size:13.5px;font-weight:600;padding:3.5px 0}
+.prow .t{height:7px;background:#e4dccb}
+.prow .t i{display:block;height:100%;background:#1b1a17}
+.prow.bad{color:#e5482d;font-weight:800}.prow.bad .t i{background:#e5482d}
+.toc h5{font:italic 600 17px 'Fraunces';color:#e5482d;margin-bottom:6px}
+.it{display:grid;grid-template-columns:46px 1fr;gap:6px;padding:14px 0;border-bottom:1px solid #cfc7b4}
+.it b{font:400 44px/0.9 'Fraunces';font-style:italic}
+.it div{font-weight:700;font-size:16px;line-height:1.35}
+.it small{display:block;font-weight:500;font-size:13.5px;color:#6b6860;margin-top:2px}
+.figs{display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:26px;border-top:3px solid #1b1a17;padding-top:14px}
+.figs div+div{border-left:1px solid #cfc7b4;padding-left:14px}
+.figs b{font:600 46px/1 'Fraunces';letter-spacing:-1.5px;display:block}
+.figs span{font-size:12.5px;font-weight:600;color:#4a4840;line-height:1.3;display:block;margin-top:4px}
+.stamp{margin-top:26px;display:flex;align-items:center;gap:14px;font:italic 400 15.5px/1.4 'Fraunces';color:#4a4840}
+.stamp span{width:74px;flex:none}
+
+/* ============ I rings ============ */
+#I{background:linear-gradient(135deg,#ffe9df 0%,#f3e8ff 50%,#dff1ff 100%);color:#2a2540;font-family:'Nunito';padding:28px 44px}
+#I .nav{display:flex;align-items:center}
+#I .logo{font:900 22px 'Nunito';display:flex;align-items:center;gap:8px}
+#I .logo span{width:42px}
+.ip{margin:0 auto;display:flex;gap:4px;background:#fff;border-radius:99px;padding:6px;box-shadow:0 10px 30px rgba(90,70,160,.12)}
+.ip a{padding:10px 22px;border-radius:99px;font-weight:800;font-size:15px;color:#6d6788}
+.ip a.on{background:#2a2540;color:#fff}
+.ibtn{background:#ff7a59;color:#fff;border-radius:99px;padding:12px 22px;font-weight:900;font-size:15px;box-shadow:0 10px 24px rgba(255,122,89,.4)}
+.igrid{display:grid;grid-template-columns:1.32fr 1fr;gap:26px;margin-top:24px;height:756px}
+.soft{background:#fff;border-radius:38px;box-shadow:0 24px 60px rgba(90,70,160,.14);padding:30px 34px;position:relative}
+.soft h1{font:900 40px/1.15 'Nunito';letter-spacing:-.8px}
+.soft h2{font:900 23px 'Nunito';letter-spacing:-.3px}
+.ringwrap{display:flex;align-items:center;gap:34px;margin-top:10px}
+.ringwrap>div>svg{width:400px;height:400px;display:block}
+.rl{flex:1;display:flex;flex-direction:column;gap:16px}
+.rl div{display:flex;align-items:center;gap:14px;font-weight:800;font-size:17px;line-height:1.25}
+.rl i{width:18px;height:18px;border-radius:50%;flex:none}
+.rl small{display:block;font-weight:700;font-size:14px;color:#7d7896}
+.rl b{margin-left:auto;font-weight:900;font-size:15px;border-radius:99px;padding:8px 16px;background:#f3effc;color:#2a2540;white-space:nowrap}
+.rl b.go{background:#2a2540;color:#fff}
+.rm{position:absolute;left:140px;top:130px;width:120px}
+.cal{display:flex;gap:14px;position:absolute;left:34px;bottom:34px;align-items:center;font-weight:800;font-size:12.5px;color:#7d7896;text-align:center}
+.cal svg{width:58px;height:58px;display:block;margin-bottom:4px}
+.cal .t{margin-right:14px;text-align:left;font-size:15px;color:#2a2540;line-height:1.3;width:150px}
+.icol{display:flex;flex-direction:column;gap:22px}
+.sc{background:linear-gradient(135deg,#7c5cff,#b78cff);color:#fff;flex:1.25}
+.sc .n{font:900 96px/0.95 'Nunito';letter-spacing:-4px;margin-top:8px}
+.sc .tr{height:16px;border-radius:99px;background:rgba(255,255,255,.28);margin-top:16px;position:relative}
+.sc .tr i{position:absolute;left:0;top:0;bottom:0;width:58%;border-radius:99px;background:#fff}
+.sc .lab{display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-top:8px}
+.sc .chip{position:absolute;right:30px;top:30px;background:#fff;color:#7c5cff;border-radius:99px;padding:8px 16px;font-weight:900;font-size:15px}
+.p7{flex:1;display:flex;flex-direction:column}
+.cols{display:flex;align-items:flex-end;gap:10px;flex:1;margin:14px 0 8px}
+.cols div{flex:1;text-align:center;font-weight:800;font-size:13px;color:#7d7896;display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:6px}
+.cols i{display:block;border-radius:12px;background:#e9e3fb}
+.cols .bad i{background:linear-gradient(180deg,#ff7a59,#ffb199)}
+.cols .bad{color:#ff7a59}
+</style>
+</head>
+<body>
+
+<!-- ================= G ================= -->
+<div class="frame" id="G">
+  <div class="tag">G. Aura</div>
+  <div class="blob" style="left:-120px;top:520px;width:520px;height:520px;background:#7c5cff;opacity:.45"></div>
+  <div class="blob" style="right:-140px;top:-160px;width:560px;height:560px;background:#ff5fa2;opacity:.32"></div>
+  <div class="blob" style="right:160px;bottom:-220px;width:460px;height:460px;background:#5ff2c8;opacity:.22"></div>
+  <div class="nav"><div class="logo">toeic progress</div><div class="gp"><a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a></div><div class="gbtn">+ Ghi điểm</div></div>
+
+  <div class="gl">
+    <div class="k">Thứ Tư 11/11</div>
+    <h1>Bạn đang sáng lên.</h1>
+    <p>Aura lớn theo điểm cao nhất, đổi màu theo chuỗi ngày học. Còn 75 điểm nữa là tới 800.</p>
+    <div class="go">Học 35 phút hôm nay</div>
+    <div class="two"><div><b>6</b><span>ngày liền</span></div><div><b>39</b><span>ngày nữa thi</span></div><div><b>+35</b><span>so với đề trước</span></div></div>
+  </div>
+
+  <div class="orb"><div class="a"></div><div class="b"></div><div class="c"><b>725</b><span>điểm cao nhất của bạn</span><i>kỷ lục mới</i></div></div>
+  <div class="orbcap">Bảy ngày gần nhất, ngày nào học thì có một đốm sáng</div>
+  <div class="week7"><div><i></i>T5</div><div><i></i>T6</div><div class="off"><i></i>T7</div><div><i></i>CN</div><div><i></i>T2</div><div><i></i>T3</div><div class="now"><i></i>Nay</div></div>
+
+  <div class="gr">
+    <div class="glass">
+      <div class="k">Việc hôm nay</div><h3>3 việc để aura sáng thêm</h3>
+      <div class="gi"><i style="background:radial-gradient(circle at 35% 30%,#fff,#ff8fd0 50%,#ff5fa2)"></i>Ôn 3 câu sai đến hạn<span>5 phút</span></div>
+      <div class="gi"><i style="background:radial-gradient(circle at 35% 30%,#fff,#c9b8ff 50%,#7c5cff)"></i>Bấm giờ Part 7<span>20 phút</span></div>
+      <div class="gi"><i style="background:radial-gradient(circle at 35% 30%,#fff,#b6f24a 50%,#5ff2c8)"></i>Ôn 8 thẻ từ<span>10 phút</span></div>
+    </div>
+    <div class="glass">
+      <div class="k">Mình có kịp không?</div><h3>Kịp. Chạm 800 khoảng 01/12</h3>
+      <svg viewBox="0 0 330 120" style="display:block;width:100%;margin-top:8px">
+        <defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#ff5fa2"/><stop offset="1" stop-color="#b6f24a"/></linearGradient></defs>
+        <line x1="4" y1="30" x2="326" y2="30" stroke="#fff" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="5 6"/><text x="6" y="22" fill="#fff" font-size="12" font-weight="700">800</text>
+        <path d="M130 70 Q210 40 318 24" fill="none" stroke="#b6f24a" stroke-width="2.5" stroke-dasharray="3 7" stroke-linecap="round"/>
+        <polyline points="10,108 52,90 90,82 130,70" fill="none" stroke="url(#gl)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="130" cy="70" r="7" fill="#fff"/><text x="130" y="56" fill="#fff" font-size="13.5" font-weight="800" text-anchor="middle">725</text>
+        <line x1="318" y1="8" x2="318" y2="112" stroke="#fff" stroke-width="1.5"/><text x="312" y="112" fill="#c9c4ea" font-size="11.5" font-weight="600" text-anchor="end">thi 20/12</text>
+      </svg>
+    </div>
+    <div class="glass">
+      <div class="k">Chỗ đang tối nhất</div><h3>Part 7, sai 16 câu</h3>
+      <div class="pbar"><i style="width:70%"></i></div>
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;color:#c9c4ea;margin-top:8px"><span>đúng 38 trên 54</span><span style="color:#fff;font-weight:800">Luyện 20 phút</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= H ================= -->
+<div class="frame" id="H">
+  <div class="tag">H. Tờ báo của riêng bạn</div>
+  <div class="mast"><div class="l">Toeic <em>Progress</em></div><nav><a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a></nav><div class="r">+ Ghi điểm</div></div>
+  <div class="sub"><span>Thứ Tư, ngày 11 tháng 11</span><span>Số thứ 31 kể từ đề đầu tiên</span><span>Còn 39 ngày tới ngày thi</span></div>
+  <div class="hgrid">
+    <div>
+      <div class="hl">Còn 75 điểm nữa là tới <em>800.</em></div>
+      <div class="lead">Bốn đề vừa rồi bạn lên 105 điểm, nhanh nhất ở phần Nghe. Phần Đọc chậm hơn vì Part 7: mười câu cuối bạn thường không kịp làm. Hôm nay chỉ cần 35 phút cho đúng chỗ đó.</div>
+      <div class="by">Mầm viết từ dữ liệu 4 đề của bạn, cập nhật sáng nay</div>
+      <div class="hbtn">Bắt đầu 35 phút hôm nay</div>
+    </div>
+    <div class="fig">
+      <h4>Giữ đà này, bạn chạm mục tiêu trước ngày thi gần ba tuần</h4>
+      <div class="cap">Điểm bốn đề đã làm và vùng ước tính tới 20/12</div>
+      <svg viewBox="0 0 560 300">
+        <g stroke="#cfc7b4" stroke-width="1"><line x1="40" y1="260" x2="550" y2="260"/><line x1="40" y1="170" x2="550" y2="170"/></g>
+        <g font-size="12" font-weight="600" fill="#6b6860"><text x="4" y="264">600</text><text x="4" y="174">700</text><text x="4" y="84" fill="#e5482d" font-weight="800">800</text></g>
+        <line x1="40" y1="80" x2="550" y2="80" stroke="#e5482d" stroke-width="1.5"/>
+        <polygon points="225,148 540,34 540,104" fill="#e5482d" opacity=".1"/>
+        <path d="M225 148 Q320 100 400 80 T540 58" fill="none" stroke="#1b1a17" stroke-width="1.5" stroke-dasharray="2 5"/>
+        <polyline points="40,242 114,202 172,180 225,148" fill="none" stroke="#1b1a17" stroke-width="2.5"/>
+        <g fill="#f6f1e7" stroke="#1b1a17" stroke-width="2"><circle cx="40" cy="242" r="5"/><circle cx="114" cy="202" r="5"/><circle cx="172" cy="180" r="5"/></g>
+        <circle cx="225" cy="148" r="7" fill="#e5482d"/><circle cx="400" cy="80" r="5" fill="#1b1a17"/>
+        <g font-size="13" font-weight="700"><text x="10" y="232">620</text><text x="106" y="190">665</text><text x="162" y="168">690</text></g>
+        <text x="170" y="136" font-family="Fraunces" font-size="30" font-weight="600" fill="#e5482d" style="font-family:Fraunces">725</text>
+        <text x="408" y="104" font-size="13" font-style="italic" style="font-family:Fraunces">chạm 800 khoảng 01/12</text>
+        <line x1="540" y1="26" x2="540" y2="260" stroke="#1b1a17" stroke-width="1.5"/>
+        <g font-size="12" font-weight="600" fill="#6b6860"><text x="40" y="282">12/10</text><text x="225" y="282" text-anchor="middle">06/11</text><text x="540" y="282" text-anchor="end">ngày thi 20/12</text></g>
+      </svg>
+      <div class="parts">
+        <div style="font:600 19px 'Fraunces';margin-bottom:8px">Đề gần nhất, từng Part</div>
+        <div class="prow">Part 1<div class="t"><i style="width:83%"></i></div>83%</div>
+        <div class="prow">Part 2<div class="t"><i style="width:88%"></i></div>88%</div>
+        <div class="prow">Part 3<div class="t"><i style="width:77%"></i></div>77%</div>
+        <div class="prow">Part 4<div class="t"><i style="width:80%"></i></div>80%</div>
+        <div class="prow">Part 5<div class="t"><i style="width:80%"></i></div>80%</div>
+        <div class="prow">Part 6<div class="t"><i style="width:69%"></i></div>69%</div>
+        <div class="prow bad">Part 7<div class="t"><i style="width:70%"></i></div>70%</div>
+      </div>
+    </div>
+    <div class="toc">
+      <h5>Hôm nay làm gì</h5>
+      <div class="it"><b>1</b><div>Ôn 3 câu sai đến hạn<small>5 phút</small></div></div>
+      <div class="it"><b>2</b><div>Bấm giờ một bài Part 7<small>20 phút</small></div></div>
+      <div class="it"><b>3</b><div>Ôn 8 thẻ từ rút từ câu sai<small>10 phút</small></div></div>
+      <div class="figs"><div><b>6</b><span>ngày học liền</span></div><div><b>+35</b><span>so với đề trước</span></div><div><b>46</b><span>câu sai đề vừa rồi</span></div></div>
+      <div class="stamp"><span data-s="calm,leaves"></span>Chủ nhật này có bản tin tuần, nhớ ghé đọc.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= I ================= -->
+<div class="frame" id="I">
+  <div class="tag">I. Ba vòng mỗi ngày</div>
+  <div class="nav"><div class="logo"><span data-s="calm,leaves"></span>toeic progress</div><div class="ip"><a class="on">Hôm nay</a><a>Hành trình điểm</a><a>Luyện tập</a><a>Sổ tay câu sai</a></div><div class="ibtn">+ Ghi điểm</div></div>
+  <div class="igrid">
+    <div class="soft">
+      <h1>Đóng ba vòng là xong hôm nay</h1>
+      <div class="ringwrap">
+        <div style="position:relative;flex:none"><svg viewBox="0 0 400 400">
+          <defs>
+            <linearGradient id="r1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a59"/><stop offset="1" stop-color="#ff4f8b"/></linearGradient>
+            <linearGradient id="r2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#b78cff"/></linearGradient>
+            <linearGradient id="r3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34c98a"/><stop offset="1" stop-color="#9be15d"/></linearGradient>
+          </defs>
+          <g fill="none" stroke-width="34" stroke-linecap="round" transform="rotate(-90 200 200)">
+            <circle cx="200" cy="200" r="174" stroke="#ffe4dc"/><circle cx="200" cy="200" r="174" stroke="url(#r1)" stroke-dasharray="1093 1093" stroke-dashoffset="0"/>
+            <circle cx="200" cy="200" r="132" stroke="#ebe4ff"/><circle cx="200" cy="200" r="132" stroke="url(#r2)" stroke-dasharray="829 829" stroke-dashoffset="373"/>
+            <circle cx="200" cy="200" r="90" stroke="#dcf6e4"/><circle cx="200" cy="200" r="90" stroke="url(#r3)" stroke-dasharray="565 565" stroke-dashoffset="452"/>
+          </g>
+        </svg>
+        <span class="rm" data-s="happy,leaves"></span></div>
+        <div class="rl">
+          <div><i style="background:#ff5f7a"></i><span>Ôn câu sai<small>3 trên 3 câu, xong rồi</small></span><b>Đã đóng</b></div>
+          <div><i style="background:#7c5cff"></i><span>Luyện bấm giờ<small>11 trên 20 phút Part 7</small></span><b class="go">Làm tiếp</b></div>
+          <div><i style="background:#34c98a"></i><span>Thẻ từ<small>2 trên 8 thẻ từ câu sai</small></span><b>Ôn nốt</b></div>
+        </div>
+      </div>
+      <div class="cal" id="cal"><div class="t">Chuỗi 6 ngày đóng đủ vòng</div></div>
+    </div>
+    <div class="icol">
+      <div class="soft sc">
+        <h2>Đường tới 800</h2>
+        <div class="chip">+35 đề vừa rồi</div>
+        <div class="n">725</div>
+        <div class="tr"><i></i></div>
+        <div class="lab"><span>620 đề đầu</span><span>còn 75 điểm</span><span>800</span></div>
+        <div style="font-weight:800;font-size:15.5px;margin-top:14px">Thi sau 39 ngày. Đà này bạn kịp, dư gần 3 tuần.</div>
+      </div>
+      <div class="soft p7">
+        <h2>Part 7 đang kéo điểm xuống</h2>
+        <div class="cols"><div><i style="height:66%"></i>P1</div><div><i style="height:76%"></i>P2</div><div><i style="height:54%"></i>P3</div><div><i style="height:60%"></i>P4</div><div><i style="height:60%"></i>P5</div><div><i style="height:38%"></i>P6</div><div class="bad"><i style="height:100%"></i>P7</div></div>
+        <div style="font-weight:700;font-size:14.5px;color:#7d7896">Cột cao là sai nhiều. Part 7 sai 16 câu.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="_mascot-soft.js"></script>
+<script>
+mountSoft();
+// I: mini rings for 7 days
+const days=[['T5',1,1,1],['T6',1,1,1],['T7',1,1,1],['CN',1,1,1],['T2',1,1,1],['T3',1,1,1],['Nay',1,.55,.2]];
+const ring=(r,c,bg,f)=>{const L=2*Math.PI*r;return `<circle cx="23" cy="23" r="${r}" stroke="${bg}"/><circle cx="23" cy="23" r="${r}" stroke="${c}" stroke-dasharray="${L} ${L}" stroke-dashoffset="${L*(1-f)}"/>`};
+document.getElementById('cal').innerHTML+=days.map(d=>`<div><svg viewBox="0 0 46 46"><g fill="none" stroke-width="4.5" stroke-linecap="round" transform="rotate(-90 23 23)">${ring(20,'#ff5f7a','#ffe4dc',d[1])}${ring(14,'#7c5cff','#ebe4ff',d[2])}${ring(8,'#34c98a','#dcf6e4',d[3])}</g></svg>${d[0]}</div>`).join('');
+</script>
+</body>
+</html>
