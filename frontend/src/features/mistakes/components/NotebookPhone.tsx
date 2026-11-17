@@ -7,6 +7,7 @@ import { Soc } from '@/shared/ui/soc/Soc';
 import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
 import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
 import { mistakeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
+import { questionSnippet } from '@/features/mistakes/lib/questionSnippet';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { dueSummary } from '@/features/mistakes/lib/notebookSummary';
@@ -291,9 +292,9 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
                 const label = reviewLabel(m), chip = categoryChip(m.category);
                 return (
                   <li key={m.id}>
-                    <button type="button" className="pn-row" onClick={() => setDetailId(m.id)} aria-label={`${m.questionNumber ? `Câu ${m.questionNumber}` : 'Tự ghi'}, Part ${m.part}, ${chip ? categoryShort(m.category) + ', ' : ''}${label.text}`}>
+                    <button type="button" className="pn-row" onClick={() => setDetailId(m.id)} aria-label={`${questionSnippet(m)}, Part ${m.part}, ${chip ? categoryShort(m.category) + ', ' : ''}${label.text}`}>
                       <span className="pn-pt" style={{ background: PART_COLORS[m.part] ?? '#7c5ce0' }}>P{m.part}</span>
-                      <span className="pn-q"><b>{m.questionNumber ? `Câu ${m.questionNumber}` : 'Tự ghi'}</b>
+                      <span className="pn-q"><b>{questionSnippet(m)}</b>
                         {chip && <span className="pn-chip" style={{ background: chip.bg, color: chip.fg }}>{chip.label}</span>}</span>
                       <span className={'pn-when' + (label.due ? ' is-due' : '')}>{label.text}</span>
                     </button>
