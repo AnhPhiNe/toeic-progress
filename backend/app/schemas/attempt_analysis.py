@@ -11,7 +11,9 @@ class AnalyzeAttemptRequest(BaseModel):
     sessionVersion: str = Field(min_length=1, max_length=100)
     noteVersions: dict[str, str] = Field(max_length=300)
     request_id: UUID = Field(strict=False)
+    # The learner agreed to send this attempt to the named recipient; any other recipient is refused before quota.
     consent: Literal[True]
+    provider: Literal["openai"]
 
 
 class AnalysisPriority(BaseModel):

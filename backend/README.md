@@ -59,6 +59,18 @@ Backend gọi cố định `https://api.openai.com/v1/responses`, model `gpt-6-l
 
 `/health` công khai `ai_provider=openai`. Frontend kiểm tra đúng bên nhận trước khi bật phân tích; extraction yêu cầu `provider=openai` và `consent=true`. Provider khác, thiếu bên nhận hoặc thiếu consent bị từ chối trước quota AI. Không tự gửi nội dung của client cũ đã đồng ý với bên khác sang OpenAI.
 
+### Nhận xét đề (`POST /api/v1/ai/analyze-attempt`)
+
+Nhận xét một Full Test LR đã đồng bộ cũng dùng GPT-6 Luna qua cùng key, cùng quota/UUID chống gửi trùng và cùng quy tắc consent: body gồm `attemptId`, `sessionVersion`, `noteVersions`, `request_id`, `consent=true` và `provider="openai"`. Backend tự đọc lần làm và câu sai của đúng tài khoản từ Supabase, từ chối khi phiên bản trên máy khác đám mây (409 `ANALYSIS_WAIT_SYNC`, chưa dùng lượt), rồi gửi một request: số câu đúng theo Part, thời gian đã xác nhận từ ảnh (nếu có) và tối đa 40 câu sai đã ghi. Không gửi ảnh, email hay user ID; safety identifier là HMAC. Structured Outputs dùng schema `AnalysisAdvice` (1–2 mục), giới hạn `part`/`evidenceIds` vào đúng Part và câu của lần làm; backend vẫn kiểm tra lại bằng chứng, đầu ra sai schema hoặc không khớp dữ liệu trả 502 `ANALYSIS_INVALID_OUTPUT` và không gọi lại. Lỗi OpenAI trả mã `ANALYSIS_PROVIDER_*` (timeout là 504).
+
+```dotenv
+OPENAI_ADVICE_REASONING_EFFORT=low
+OPENAI_ADVICE_MAX_OUTPUT_TOKENS=4096
+OPENAI_ADVICE_TIMEOUT_SECONDS=60
+```
+
+Mặc định `low`: số liệu đã do server tính, model chỉ chọn 1–2 Part cần sửa và viết lời khuyên ngắn; schema và kiểm tra bằng chứng chặn câu/Part bịa. Nâng `medium` nếu chất lượng chưa đủ. Giới hạn output gồm cả token suy luận. `/health` báo `attempt_analysis=true` khi AI OpenAI đã sẵn sàng (`ai_configured`).
+
 Prompt OpenAI ở `app/services/toeic_prompt.py` tập trung TOEIC Reading: Part 5 phân biệt cấu trúc/từ loại/nghĩa/collocation; Part 6 thêm liên kết/mạch văn; Part 7 dựa vào bằng chứng và paraphrase trong bài. AI trả nghĩa từng phương án qua `optionNotes` và các mục giải thích qua `explanation`; backend ghép `trapTip` có nhãn để tương thích client cũ. Giữ nguyên tiếng Anh trong `options`. Nghĩa phương án chỉ gồm bản dịch/dạng từ, ưu tiên nghĩa trong câu và có thể thêm 1–2 nghĩa cùng từ loại thường gặp trong TOEIC Listening & Reading, tối đa 120 ký tự; không trộn lý do chọn/loại hay liệt kê từ điển. `analysis` dùng xuống dòng thật giữa dấu hiệu và từng phương án. Bản dịch phải giữ các cụm mang nghĩa của câu nguồn, kể cả tính từ như revised/latest/additional, và nhất quán với nghĩa phương án. Frontend tách câu trong phân tích cũ để dễ đọc, không sửa dữ liệu đã lưu.
 
 Đầu ra OpenAI mới phải có đúng một ghi chú không rỗng cho mỗi phương án có nhãn A–D; nhãn trùng, phương án không nhãn/rỗng hoặc thiếu ghi chú trả lỗi bản nháp 502, không tự retry. Kiểm tra này chỉ áp dụng đầu ra OpenAI mới; bản ghi cũ thiếu các trường có cấu trúc vẫn đọc như trước. Backend kiểm tra cấu trúc, không dùng từ điển hardcode để tự sửa nghĩa hay cam kết phát hiện mọi lỗi dịch. `trapTip` sau ghép được giới hạn 4.000 ký tự theo đoạn và ghi rõ rút gọn khi cần; các mục `explanation` đầy đủ vẫn được giữ. Bộ test dùng transport giả kiểm tra từ API tới grounding; đánh giá ngữ nghĩa thật dùng [bộ câu Reading](../docs/AI_READING_EVAL.md). Bản demo không phải kết quả live của provider.
@@ -78,6 +90,8 @@ Mẫu `.env` và Render Blueprint bắt đầu với `AI_ENABLED=false`. Sau khi
 ### Dọn cấu hình đã bỏ
 
 Backend chỉ dùng OpenAI; không còn biến chọn provider hay cơ chế xoay key/model. Sau khi deploy backend mới, gỡ `AI_PROVIDER` và mọi biến `GEMINI_*` khỏi Environment của Render. Chạy `20261010000000_retire_gemini_provider.sql` để dọn hai bảng/RPC của provider cũ. Migration chỉ dọn metadata vận hành, giữ dữ liệu học và quota AI chung. Giữ migration ngày 07/10 đã áp dụng; không sửa hoặc chạy lại file đó. Không rollback về backend cũ dùng pool sau khi đã dọn database.
+
+Nhận xét đề không còn dùng DeepInfra. Sau khi deploy backend mới, gỡ `DEEPINFRA_API_KEY`, `DEEPINFRA_MAX_OUTPUT_TOKENS`, `DEEPINFRA_TIMEOUT_SECONDS` (mọi biến `DEEPINFRA_*`) khỏi Environment của Render và thu hồi key trên DeepInfra. Biến còn sót bị bỏ qua, không làm backend lỗi.
 
 AI nhận văn bản tối đa 8.000 ký tự, một ảnh tranh Part 1 hoặc tối đa 3 ảnh ngữ cảnh Part 7 (PNG/JPEG/WebP). Mọi lượt đều cần phương án bằng văn bản; Part 1 dán riêng bốn mô tả A–D, nhãn `Part 1 · Mô tả tranh` là nhãn app, không phải câu hỏi tiếng Anh được AI tạo. Part 1 cần một tranh khi phân tích, không tự lấy đáp án từ A–D nếu thiếu tranh. Part 7 dán câu hỏi cùng A–D; ảnh chỉ cung cấp ngữ cảnh bài đọc/email/bảng/biểu đồ. Ảnh vô tình dính câu khác/đáp án không được dùng thay câu và A–D đã dán. Client nhận ảnh tối đa 5 MB, chuẩn hóa tại máy về JPEG cạnh dài tối đa 2.048 px và 600 KiB/ảnh; API kiểm tra byte ảnh, MIME, raster thật, ảnh tĩnh, tối đa 1 MiB/ảnh và 2 MiB tổng, trước quota/provider. Body request vẫn giới hạn 4 MiB. `/health` có `part7_context_images=true` và `part1_picture_input=true`; frontend không tự bỏ ảnh khi gặp backend cũ.
 

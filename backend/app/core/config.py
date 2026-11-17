@@ -18,10 +18,11 @@ class Settings(BaseSettings):
     openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"
     openai_max_output_tokens: int = Field(default=8192, ge=2048, le=16384)
     openai_timeout_seconds: float = Field(default=45, ge=5, le=60)
-    # Optional attempt-level advice, separate from the existing image provider.
-    deepinfra_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
-    deepinfra_max_output_tokens: int = Field(default=4096, ge=2048, le=8192)
-    deepinfra_timeout_seconds: float = Field(default=75, ge=5, le=80)
+    # Advice on one logged test: the facts are computed by the server, so the model only words and ranks them.
+    # The output limit includes reasoning tokens; the app waits 90 s for any request.
+    openai_advice_reasoning_effort: Literal["low", "medium", "high"] = "low"
+    openai_advice_max_output_tokens: int = Field(default=4096, ge=2048, le=8192)
+    openai_advice_timeout_seconds: float = Field(default=60, ge=5, le=85)
     # Reading a screenshot with several questions writes several explanations in one response.
     # The app waits 90 s for any request, so a page stays below that.
     openai_page_max_output_tokens: int = Field(default=16384, ge=4096, le=32768)
@@ -116,8 +117,8 @@ class Settings(BaseSettings):
 
     @property
     def attempt_analysis_ready(self) -> bool:
-        return (self.ai_enabled and self.database_ready and bool(self.rate_limit_secret)
-                and bool(self.deepinfra_api_key.get_secret_value().strip()))
+        # Same provider, key and consent as every other AI feature.
+        return self.ai_ready
 
     @property
     def effective_allowed_hosts(self) -> list[str]:
