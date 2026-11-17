@@ -64,8 +64,6 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   for (const card of mistakes) expect(card).toMatchObject({ sourceTestName: source, part: 5 });
 });
 
-// Real app issue: a note typed by hand right after logging a test is not linked to that test's session (ManualQuestionModal never
-// passes a sessionId to buildManualEntry); the old note form linked it, so the card loses its "from this test" link.
 test('a note typed right after logging a test is linked to that test session', async ({ page }) => {
   const sessionModal = await openSession(page);
   await sessionModal.getByRole('button', { name: 'Lưu & thêm câu sai', exact: true }).click();

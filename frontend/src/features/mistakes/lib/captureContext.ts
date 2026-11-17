@@ -21,6 +21,12 @@ export function loggedSession(sessions: readonly StudySession[], testName: strin
     .find(session => draftQuestions(session).length > 0);
 }
 
+/** The newest saved session with this test name (any kind), to link a hand-typed note to the test it came from. */
+export function sessionIdForTest(sessions: readonly StudySession[], testName: string): string | undefined {
+  const key = testNameKey(testName);
+  return key ? sessions.filter(session => !session.deletedAt && testNameKey(session.testName) === key).sort(newestFirst)[0]?.id : undefined;
+}
+
 /** Part 5–7 questions the learner logged as wrong for this test, or the whole Reading range when none was logged. */
 export function questionsToFind(sessions: readonly StudySession[], testName: string): { questions: number[]; logged: boolean; sessionId?: string } {
   const session = loggedSession(sessions, testName);
