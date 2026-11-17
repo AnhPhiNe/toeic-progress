@@ -18,6 +18,8 @@ export interface GoalEditorProps {
   today: string;
   onSave: (target: number, examDate: string) => void;
   onClose: () => void;
+  /** Popover only: id of the dialog, so a trigger inside another modal can point at it with aria-controls. */
+  id?: string;
 }
 
 /** A small pencil (Lucide "pencil" path) for the ✎ dot on the trophy. */
@@ -113,7 +115,7 @@ const POP_W = 360;
 const GAP = 16;
 
 /** Desktop: the editor in a popover beside whatever opened it (trophy or exam chip); click outside or Esc closes. */
-export function GoalPopover({ anchor, ...props }: GoalEditorProps & { anchor: HTMLElement | SVGElement | null }) {
+export function GoalPopover({ anchor, id, ...props }: GoalEditorProps & { anchor: HTMLElement | SVGElement | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; arrow: number; side: 'left' | 'right' } | null>(null);
   const { onClose } = props;
@@ -149,7 +151,7 @@ export function GoalPopover({ anchor, ...props }: GoalEditorProps & { anchor: HT
   }, [anchor, onClose]);
 
   return createPortal(
-    <div ref={ref} role="dialog" aria-label="Mục tiêu của bạn" tabIndex={-1}
+    <div ref={ref} id={id} role="dialog" aria-label="Mục tiêu của bạn" tabIndex={-1}
       className={'rd ge-pop is-' + (pos?.side ?? 'left')}
       style={{ left: pos?.left ?? -9999, top: pos?.top ?? 0, width: POP_W, '--arrow': `${pos?.arrow ?? 60}px` } as CSSProperties}>
       <GoalEditorBody {...props} />

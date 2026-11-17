@@ -10,6 +10,7 @@ import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
 import { goalLabel, shownGoal } from '@/features/today/lib/goalSetup';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneSettings, type PhoneSettingsField } from './PhoneSettings';
+import { SettingsGoalEditor, SETTINGS_GOAL_POPOVER_ID } from './SettingsGoalEditor';
 import { describeSync } from './AccountSyncIndicator';
 import type { AccountStatus } from './AccountPanel';
 import './account.css';
@@ -57,6 +58,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Phones show a grouped list; one row at a time opens a sheet that saves just that field.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [phoneEditing, setPhoneEditing] = useState<PhoneSettingsField | null>(null);
+  // Computers: the goal row opens the same editor as Hôm nay in a popover.
+  const [goalOpen, setGoalOpen] = useState(false);
+  const goalButton = useRef<HTMLButtonElement>(null);
   const sessionRef = useRef<SettingsSession | null>(null);
   const cycleRef = useRef(0);
   const readRequest = useRef(0);
@@ -157,9 +161,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Escape (or the X) closes an open phone edit sheet first, then the whole dialog.
   const closeWhenIdle = useCallback(() => {
     if (signOutBusy) return;
+    if (goalOpen) { setGoalOpen(false); return; }
     if (phoneEditing) { setPhoneEditing(null); return; }
     if (!resetBusy) onClose();
-  }, [resetBusy, signOutBusy, onClose, phoneEditing]);
+  }, [resetBusy, signOutBusy, onClose, phoneEditing, goalOpen]);
   const modalRef = useModalA11y(isOpen, closeWhenIdle);
 
   if (!isOpen) return null;
@@ -319,8 +324,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <h4 className="st-h">Mục tiêu</h4>
                 <div className="st-group">
                   {field('settings-target', 'Điểm mục tiêu', 'st-b', <Target size={19} />,
-                    <input id="settings-target" type="number" required={goalSet} min="10" max="990" step="5" placeholder={goalLabel(formData)}
-                      value={goalSet ? formData.targetScore : ''} onChange={e => setFormData({ ...formData, targetScore: Number(e.target.value), goalChosen: true })} />)}
+                    <button id="settings-target" type="button" ref={goalButton} className="st-goal" aria-haspopup="dialog" aria-expanded={goalOpen}
+                      aria-controls={goalOpen ? SETTINGS_GOAL_POPOVER_ID : undefined} onClick={event => { event.preventDefault(); setGoalOpen(open => !open); }}>
+                      <b>{goalLabel(formData)}</b><span>{goalSet ? 'Đổi' : 'Chọn'}</span>
+                    </button>)}
                   {field('settings-exam-date', 'Ngày thi', 'st-v', <Calendar size={19} />,
                     <input id="settings-exam-date" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} />)}
                   {field('settings-daily-minutes', 'Học mỗi ngày (phút)', 'st-g', <Timer size={19} />,
@@ -363,6 +370,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </form>
         )}
 
+        {!isPhone && goalOpen && <SettingsGoalEditor phone={false} anchor={goalButton.current} profile={formData} onSaveField={savePhoneField} onClose={() => setGoalOpen(false)} />}
       </div>
     </div>
   );
