@@ -12,7 +12,7 @@ import { PartTimingModal } from '../PartTimingModal';
 import type { AppliedResultScore, ResultScoreStore } from '../ResultScoreReview';
 import type { WrongNumberDraft } from '../../lib/wrongNumberDraft';
 import { WheelPicker } from './WheelPicker';
-import { chipNames, clamp, countFromScaled, dayLabel, percent, previousDay, previousScored, recentTestNames, scaledFromCount, vocabWeek } from './phoneLogLib';
+import { chipNames, clamp, countFromScaled, dayLabel, percent, previousDay, previousScored, recentTestNames, scaledFromCount, vocabWeek, dayMonth, type VocabEditApi } from './phoneLogLib';
 import './phoneLog.css';
 
 export type PhoneStep = 'pick' | 'manual' | 'wrong';
@@ -47,6 +47,7 @@ export interface PhoneLoggerProps {
   duplicateNotice?: ReactNode;
   practiceRows: PracticePartResult[]; setPracticeRows: (rows: PracticePartResult[]) => void;
   vocabCount: number; setVocabCount: (value: number) => void;
+  vocab: VocabEditApi;
 }
 
 function Header({ title, right, onClose }: { title: string; right?: ReactNode; onClose: () => void }) {
@@ -94,6 +95,8 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   const [wrongFrom, setWrongFrom] = useState<'pick' | 'manual'>('pick');
   const [aiOn, setAiOn] = useState(true);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const [confirmDel, setConfirmDel] = useState(false);
+  useEffect(() => { setConfirmDel(false); }, [props.date]);
   useEffect(() => { let off = false; void getAIConfiguration().then(c => { if (!off) setAiOn(c.resultImages !== false); }).catch(() => {}); return () => { off = true; }; }, []);
 
   const listening = Number(props.manualListening) || 0;
@@ -142,12 +145,15 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   if (sessionType === 'VOCAB') {
     const week = vocabWeek(loadVocabLog(), today);
     const maxBar = Math.max(30, ...week.map(day => day.count));
+    const { edit, existing } = props.vocab;
+    const dm = dayMonth(props.date);
     return (
       <div className="pl" key="vocab">
-        <Header title="Từ vựng hôm nay" onClose={props.onClose} right={<DateChip date={props.date} setDate={props.setDate} today={today} />} />
+        <Header title={edit ? `Sửa ngày ${dm}` : 'Từ vựng hôm nay'} onClose={props.onClose} right={<DateChip date={props.date} setDate={props.vocab.onPick} today={today} />} />
         <div className="pl-body pl-center">
           <Soc state="idle" size={96} className="pl-soc" />
-          <p className="pl-mut">{props.date === today ? 'Hôm nay' : dayLabel(props.date, today)} bạn học được</p>
+          {edit && <button type="button" className="pl-back" onClick={props.vocab.onBack}>‹ Hôm nay</button>}
+          <p className="pl-mut">{props.date === today ? 'Hôm nay' : edit ? `Ngày ${dm}` : dayLabel(props.date, today)} bạn học được</p>
           <div className="pl-big-count">
             <button type="button" aria-label="Giảm số từ" onClick={() => props.setVocabCount(clamp(props.vocabCount - 1, 1, 10000))}>−</button>
             <input data-large-text type="text" inputMode="numeric" pattern="[0-9]*" aria-label="Số từ đã học" value={String(props.vocabCount)}
@@ -160,15 +166,31 @@ export function PhoneLogger(props: PhoneLoggerProps) {
             {[10, 20, 30, 50].map(n => <button key={n} type="button" aria-pressed={props.vocabCount === n} className={'pl-chip' + (props.vocabCount === n ? ' is-on' : '')} onClick={() => props.setVocabCount(n)}>{n}</button>)}
           </div>
           <div className="pl-week">
-            <p className="pl-lab">7 NGÀY QUA</p>
+            <p className="pl-lab">7 NGÀY QUA · CHẠM ĐỂ SỬA</p>
             <div className="pl-bars">
               {week.map((day, index) => (
-                <div key={day.date}><i className={index === 6 ? 'is-today' : ''} style={{ height: 4 + (day.count / maxBar) * 62 }} /><small>{index === 6 ? 'Nay' : ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(day.date + 'T00:00:00').getDay()]}</small></div>
+                <button key={day.date} type="button" className={'pl-bar' + (day.date === props.date ? ' is-on' : '')} aria-pressed={day.date === props.date}
+                  aria-label={`Ngày ${dayMonth(day.date)}: ${day.count > 0 ? `${day.count} từ` : 'chưa có từ'}`}
+                  onClick={() => props.vocab.onPick(day.date)}>
+                  <i style={{ height: 4 + (day.count / maxBar) * 62 }} />
+                  <small>{index === 6 ? 'Nay' : ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(day.date + 'T00:00:00').getDay()]}</small>
+                </button>
               ))}
             </div>
           </div>
+          {edit && existing > 0 && (confirmDel
+            ? (
+              <div className="pl-del-ask" role="group" aria-label="Xác nhận xóa ngày">
+                Xóa {existing} từ của ngày {dm}?
+                <div>
+                  <button type="button" className="is-danger" onClick={() => { setConfirmDel(false); props.vocab.onDelete(); }}>Xóa</button>
+                  <button type="button" onClick={() => setConfirmDel(false)}>Giữ lại</button>
+                </div>
+              </div>
+            )
+            : <button type="button" className="pl-del" onClick={() => setConfirmDel(true)}>Xóa ngày này</button>)}
         </div>
-        {saveBtn(`Lưu ${props.vocabCount} từ`, 'blue')}
+        {saveBtn(edit ? `Lưu ngày ${dm}` : `Lưu ${props.vocabCount} từ`, 'blue')}
       </div>
     );
   }
