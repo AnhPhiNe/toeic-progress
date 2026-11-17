@@ -113,9 +113,11 @@ function TestAdviceBlock({ session, sessions, mistakes, profile, today, onAddTas
 
   let body: ReactElement;
   if (account.kind === 'guest') {
-    body = <Plain mood="idle" title="Đăng nhập để nhờ Sóc nhận xét" sub="Điểm và câu sai của đề vẫn xem được bình thường.">
-      <button type="button" className="ta-go is-green" onClick={requestAISignIn}>Đăng nhập</button>
-    </Plain>;
+    body = <div className="ta-guest">
+      <Soc state="idle" size={32} />
+      <span>Đăng nhập để nhờ Sóc nhận xét đề này</span>
+      <button type="button" aria-label="Đăng nhập" onClick={requestAISignIn}>Đăng nhập ›</button>
+    </div>;
   } else if (thinking) {
     body = <section className="ta" aria-live="polite" aria-busy="true">
       <div className="ta-think">
