@@ -19,6 +19,8 @@ const profile = z.object({
   currentStreak: z.number().int().nonnegative(), longestStreak: z.number().int().nonnegative(),
   streakFreezes: z.number().int().min(0).max(5), lastStudyDate: z.union([date, z.literal('')]),
   shieldAllowance: z.number().int().nonnegative().optional(), goalChosen: z.boolean().optional(),
+  // Sóc của bạn: an unknown coat is kept (read as Nâu cam) so a newer backup still restores.
+  socCoat: z.string().max(20).optional(), socName: z.string().max(60).optional(),
   dailyMinGoalMinutes: z.number().int().positive(), motto: z.string(), selectedSkill: z.enum(['LR', 'SW']),
   ...metadata
 }).passthrough();

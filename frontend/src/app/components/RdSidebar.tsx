@@ -72,7 +72,7 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
   return (
     <aside className="rd rd-side" aria-label="Điều hướng chính">
       <button type="button" className="rd-side__logo" onClick={() => setActiveTab('dashboard')} aria-label="TOEIC Progress · Hôm nay">
-        <span className="rd-side__mark" aria-hidden="true"><Soc state="idle" size={46} className="rd-side__logosoc" /></span>
+        <span className="rd-side__mark" aria-hidden="true"><Soc state="idle" size={46} coat="nau" className="rd-side__logosoc" /></span>
         <b className="rd-side__word">toeic<span>progress</span></b>
       </button>
 

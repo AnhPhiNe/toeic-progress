@@ -52,6 +52,18 @@ describe('backup restore', () => {
     }
     expect(parseBackup(JSON.stringify({ ...data, sessions: [{ ...data.sessions[0], sessionType: 'PART_PRACTICE' }], exportDate: stamp })).ok).toBe(false);
   });
+  it('keeps Sóc\'s coat and name through backup restore and cloud conversion', async () => {
+    const { recordsFromBundle, bundleFromRecords } = await import('@/features/account/services/cloud');
+    const data = bundle(); const stamp = data.profile.updatedAt;
+    data.profile = { ...data.profile, socCoat: 'soco', socName: 'Bắp Rang' };
+    const parsed = parseBackup(JSON.stringify({ ...data, exportDate: stamp }));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) { restoreBackup(parsed.preview); expect(readDataBundle().profile).toMatchObject({ socCoat: 'soco', socName: 'Bắp Rang' }); }
+    expect(bundleFromRecords(recordsFromBundle(data)).profile).toMatchObject({ socCoat: 'soco', socName: 'Bắp Rang' });
+    // A coat this version does not know still restores (it is drawn as Nâu cam).
+    expect(parseBackup(JSON.stringify({ ...data, profile: { ...data.profile, socCoat: 'cau-vong' }, exportDate: stamp })).ok).toBe(true);
+    expect(parseBackup(JSON.stringify({ ...data, profile: { ...data.profile, socCoat: 7 }, exportDate: stamp })).ok).toBe(false);
+  });
   it('keeps private image references through export/restore and cloud conversion without image bytes or URLs', async () => {
     const { recordsFromBundle, bundleFromRecords } = await import('@/features/account/services/cloud');
     const data = bundle(); const stamp = data.profile.updatedAt;

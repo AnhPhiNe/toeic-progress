@@ -72,6 +72,8 @@ import { AI_SIGN_IN_EVENT } from '@/shared/lib/aiSignIn';
 import { GuidePage } from '@/features/guide/GuidePage';
 import { GuideContext } from '@/features/guide/GuideContext';
 import { adviceEnabled } from '@/features/journey/services/adviceTransport';
+import { SocCoatContext } from '@/shared/ui/soc/Soc';
+import { socIdentity } from '@/shared/ui/soc/socIdentity';
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -431,6 +433,7 @@ export const App: React.FC = () => {
   // Phones: each tab with a redesigned phone page owns the whole screen.
   const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources', 'guide'].includes(activeTab);
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
+  const socCoat = socIdentity(bundle.profile).coat;
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') openReview();
@@ -458,6 +461,7 @@ export const App: React.FC = () => {
   };
 
   return (
+    <SocCoatContext.Provider value={socCoat}>
     <PhoneShellContext.Provider value={{ soc, newBadges, goTab: setActiveTab, openSettings: () => setIsSettingsModalOpen(true) }}>
     <GuideContext.Provider value={{ tipsHeld }}>
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#070C16] text-slate-900 dark:text-slate-100 flex transition-colors">
@@ -697,6 +701,7 @@ export const App: React.FC = () => {
     </div>
     </GuideContext.Provider>
     </PhoneShellContext.Provider>
+    </SocCoatContext.Provider>
   );
 };
 

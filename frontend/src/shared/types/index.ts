@@ -331,6 +331,10 @@ export interface UserProfile {
   socGear?: string[];
   /** Hôm nay: việc một lần Sóc gợi ý từ nhận xét một đề (thêm bằng tay, mất sau khi xong hoặc sau 7 ngày). */
   suggestedTasks?: SuggestedTask[];
+  /** Sóc của bạn: màu lông ('nau' | 'xam' | 'kem' | 'soco' | 'dau', socCoat.ts); thiếu hoặc lạ là Nâu cam. */
+  socCoat?: string;
+  /** Sóc của bạn: tên Sóc; thiếu nghĩa là tên mặc định (socIdentity.ts). */
+  socName?: string;
 }
 
 /** A one-off task added from Sóc's advice on one test; done once, gone after that day or after 7 days. */
