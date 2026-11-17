@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = Field(default=45, ge=5, le=60)
     # Advice on one logged test: the facts are computed by the server, so the model only words and ranks them.
     # The output limit includes reasoning tokens; the app waits 90 s for any request.
-    openai_advice_reasoning_effort: Literal["low", "medium", "high"] = "low"
-    openai_advice_max_output_tokens: int = Field(default=4096, ge=2048, le=8192)
+    openai_advice_reasoning_effort: Literal["low", "medium", "high"] = "medium"
+    openai_advice_max_output_tokens: int = Field(default=6144, ge=2048, le=8192)
     openai_advice_timeout_seconds: float = Field(default=60, ge=5, le=85)
     # Reading a screenshot with several questions writes several explanations in one response.
     # The app waits 90 s for any request, so a page stays below that.

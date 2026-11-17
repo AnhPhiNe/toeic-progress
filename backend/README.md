@@ -64,12 +64,12 @@ Backend gọi cố định `https://api.openai.com/v1/responses`, model `gpt-6-l
 Nhận xét một Full Test LR đã đồng bộ cũng dùng GPT-6 Luna qua cùng key, cùng quota/UUID chống gửi trùng và cùng quy tắc consent: body gồm `attemptId`, `sessionVersion`, `noteVersions`, `request_id`, `consent=true` và `provider="openai"`. Backend tự đọc lần làm và câu sai của đúng tài khoản từ Supabase, từ chối khi phiên bản trên máy khác đám mây (409 `ANALYSIS_WAIT_SYNC`, chưa dùng lượt), rồi gửi một request: số câu đúng theo Part, thời gian đã xác nhận từ ảnh (nếu có) và tối đa 40 câu sai đã ghi. Không gửi ảnh, email hay user ID; safety identifier là HMAC. Structured Outputs dùng schema `AnalysisAdvice` (1–2 mục), giới hạn `part`/`evidenceIds` vào đúng Part và câu của lần làm; backend vẫn kiểm tra lại bằng chứng, đầu ra sai schema hoặc không khớp dữ liệu trả 502 `ANALYSIS_INVALID_OUTPUT` và không gọi lại. Lỗi OpenAI trả mã `ANALYSIS_PROVIDER_*` (timeout là 504).
 
 ```dotenv
-OPENAI_ADVICE_REASONING_EFFORT=low
-OPENAI_ADVICE_MAX_OUTPUT_TOKENS=4096
+OPENAI_ADVICE_REASONING_EFFORT=medium
+OPENAI_ADVICE_MAX_OUTPUT_TOKENS=6144
 OPENAI_ADVICE_TIMEOUT_SECONDS=60
 ```
 
-Mặc định `low`: số liệu đã do server tính, model chỉ chọn 1–2 Part cần sửa và viết lời khuyên ngắn; schema và kiểm tra bằng chứng chặn câu/Part bịa. Nâng `medium` nếu chất lượng chưa đủ. Giới hạn output gồm cả token suy luận. `/health` báo `attempt_analysis=true` khi AI OpenAI đã sẵn sàng (`ai_configured`).
+Mặc định `medium`, tách khỏi `OPENAI_REASONING_EFFORT` của trích xuất: mỗi đề chỉ gọi một lần và model phải chọn đúng Part cần sửa từ số liệu và ghi chú; schema và kiểm tra bằng chứng vẫn chặn câu/Part bịa. Giới hạn output 6.144 token gồm cả token suy luận. `/health` báo `attempt_analysis=true` khi AI OpenAI đã sẵn sàng (`ai_configured`).
 
 Prompt OpenAI ở `app/services/toeic_prompt.py` tập trung TOEIC Reading: Part 5 phân biệt cấu trúc/từ loại/nghĩa/collocation; Part 6 thêm liên kết/mạch văn; Part 7 dựa vào bằng chứng và paraphrase trong bài. AI trả nghĩa từng phương án qua `optionNotes` và các mục giải thích qua `explanation`; backend ghép `trapTip` có nhãn để tương thích client cũ. Giữ nguyên tiếng Anh trong `options`. Nghĩa phương án chỉ gồm bản dịch/dạng từ, ưu tiên nghĩa trong câu và có thể thêm 1–2 nghĩa cùng từ loại thường gặp trong TOEIC Listening & Reading, tối đa 120 ký tự; không trộn lý do chọn/loại hay liệt kê từ điển. `analysis` dùng xuống dòng thật giữa dấu hiệu và từng phương án. Bản dịch phải giữ các cụm mang nghĩa của câu nguồn, kể cả tính từ như revised/latest/additional, và nhất quán với nghĩa phương án. Frontend tách câu trong phân tích cũ để dễ đọc, không sửa dữ liệu đã lưu.
 

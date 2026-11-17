@@ -99,8 +99,8 @@ def test_analysis_is_owner_scoped_quota_counted_and_sent_once_to_luna_with_a_str
         url, body, headers = provider[0]
         assert str(url) == "https://api.openai.com/v1/responses"
         assert headers["authorization"] == "Bearer private-openai-key"
-        assert body["model"] == "gpt-6-luna" and body["reasoning"] == {"effort": "low"}
-        assert body["store"] is False and body["service_tier"] == "default" and body["max_output_tokens"] == 4096
+        assert body["model"] == "gpt-6-luna" and body["reasoning"] == {"effort": "medium"}
+        assert body["store"] is False and body["service_tier"] == "default" and body["max_output_tokens"] == 6144
         assert "temperature" not in body and "top_p" not in body
         assert len(body["safety_identifier"]) == 64 and OWNER not in json.dumps(body)
         assert "backend-secret" not in json.dumps(body)
@@ -119,10 +119,10 @@ def test_analysis_is_owner_scoped_quota_counted_and_sent_once_to_luna_with_a_str
 
 
 def test_reasoning_effort_and_output_limit_are_settings():
-    with analysis_api(openai_advice_reasoning_effort="medium", openai_advice_max_output_tokens=6000) as (client, calls):
+    with analysis_api(openai_advice_reasoning_effort="low", openai_advice_max_output_tokens=4096) as (client, calls):
         assert client.post("/api/v1/ai/analyze-attempt", json=payload()).status_code == 200
         body = openai_calls(calls)[0][1]
-        assert body["reasoning"] == {"effort": "medium"} and body["max_output_tokens"] == 6000
+        assert body["reasoning"] == {"effort": "low"} and body["max_output_tokens"] == 4096
 
 
 def test_analysis_receives_only_valid_confirmed_elapsed_times_without_deriving_scopes():

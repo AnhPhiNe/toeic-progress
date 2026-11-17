@@ -21,7 +21,7 @@ services:
       - key: OPENAI_REASONING_EFFORT
         value: medium
       - key: OPENAI_ADVICE_REASONING_EFFORT
-        value: low
+        value: medium
       - key: API_LIMITS_ENABLED
         value: "true"
       - key: SUPABASE_URL
