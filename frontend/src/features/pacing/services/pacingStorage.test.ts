@@ -80,6 +80,20 @@ describe('atomic pacing result storage', () => {
     expect(readDataBundle().pacingRuns).toHaveLength(2);
     expect(readDataBundle().sessions).toHaveLength(1);
   });
+  it('Mẻ tự do keeps the Pomodoro records: a focus run with its study session, breaks as runs only', () => {
+    const now = Date.now();
+    const focus = finishTimer(startTimer(freshTimer(null, 'POMODORO', { workMinutes: 1, shortBreakMinutes: 5, longBreakMinutes: 15, longBreakInterval: 4 }), now - 60000), now);
+    savePacingResult(focus);
+    expect(readDataBundle().pacingRuns[0]).toMatchObject({ id: focus.id, partType: 'POMODORO', presetId: 'POMODORO_WORK', presetName: 'Pomodoro', plannedMinutes: 1, actualSeconds: 60, finishedNaturally: true });
+    expect(readDataBundle().pacingRuns[0]).not.toHaveProperty('totalQuestions');
+    expect(readDataBundle().sessions[0]).toMatchObject({ id: focus.id, sessionType: 'PART_PRACTICE', testName: 'Pomodoro: tập trung', durationMinutes: 1 });
+    for (const phase of ['SHORT_BREAK', 'LONG_BREAK'] as const) {
+      const rest = finishTimer(startTimer(freshTimer(null, 'POMODORO', undefined, phase), now - 3000), now);
+      savePacingResult(rest);
+      expect(readDataBundle().pacingRuns[0]).toMatchObject({ partType: 'POMODORO', presetId: `POMODORO_${phase}`, presetName: phase === 'SHORT_BREAK' ? 'Nghỉ ngắn' : 'Nghỉ dài' });
+    }
+    expect(readDataBundle().sessions).toHaveLength(1);
+  });
   it('Reading practice with a total score is still Part practice, with no invented per-Part breakdown', () => {
     savePacingResult({ ...result('FULL_READING'), correct: '80' });
     expect(readDataBundle().sessions[0].sessionType).toBe('PART_PRACTICE');
