@@ -292,7 +292,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
                 const label = reviewLabel(m), chip = categoryChip(m.category);
                 return (
                   <li key={m.id}>
-                    <button type="button" className="pn-row" onClick={() => setDetailId(m.id)} aria-label={`${questionSnippet(m)}, Part ${m.part}, ${chip ? categoryShort(m.category) + ', ' : ''}${label.text}`}>
+                    <button type="button" className="pn-row" onClick={() => setDetailId(m.id)} aria-label={`${m.questionNumber ? `Câu ${m.questionNumber}, ` : ""}${questionSnippet(m)}, Part ${m.part}, ${chip ? categoryShort(m.category) + ', ' : ''}${label.text}`}>
                       <span className="pn-pt" style={{ background: PART_COLORS[m.part] ?? '#7c5ce0' }}>P{m.part}</span>
                       <span className="pn-q"><b>{questionSnippet(m)}</b>
                         {chip && <span className="pn-chip" style={{ background: chip.bg, color: chip.fg }}>{chip.label}</span>}</span>
