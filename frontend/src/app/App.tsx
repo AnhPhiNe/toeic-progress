@@ -487,6 +487,7 @@ export const App: React.FC = () => {
         onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         syncLabel={describeSync(account.available, account.status).label}
+        syncTone={(({ localOnly, failed }) => failed ? 'warn' : localOnly ? 'local' : 'ok')(describeSync(account.available, account.status))}
         leagueLabel={leagueShell.label}
       />}
 
