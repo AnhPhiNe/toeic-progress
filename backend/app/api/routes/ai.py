@@ -105,8 +105,8 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(identity)
     }
 
 
-# A capture of about ten screenshots is sent as at most four page requests (three images each) sharing one batch id.
-AI_BATCH_MAX_REQUESTS = 4
+# A capture is read as one request per question group (up to two at a time), all sharing one batch id.
+AI_BATCH_MAX_REQUESTS = 8
 AI_BATCH_TTL_SECONDS = 3600
 
 
@@ -146,7 +146,7 @@ async def reserve_ai(request: Request, user: dict, access, request_id, captcha_t
         if duplicate:
             raise HTTPException(409, "Yêu cầu này đã được tiếp nhận trước đó. Kiểm tra bản nháp đã có trước khi gửi lại.")
         if reservation.get("code") == "batch_full":
-            raise HTTPException(429, f"Một lần chụp đọc tối đa {AI_BATCH_MAX_REQUESTS} lượt ảnh (khoảng 10 ảnh). Hãy bắt đầu lần chụp mới để đọc phần còn lại.")
+            raise HTTPException(429, f"Một lần chụp đọc tối đa {AI_BATCH_MAX_REQUESTS} nhóm câu. Hãy bắt đầu lần chụp mới để đọc phần còn lại.")
         explanation = await gateway.explain_ai_limit(
             user["id"], user["is_anonymous"], gateway.ip_hash(client_address(request.scope, settings)),
             access.limit,
@@ -173,6 +173,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         raise access.denied()
     questions = [question.model_dump() for question in body.questions]
     input_hash = hashlib.sha256(json.dumps(questions, separators=(",", ":")).encode())
+    input_hash.update(json.dumps(body.slices).encode())
     for image in body.context_images:
         input_hash.update(b"\1" + hashlib.sha256(image.dataUrl.encode()).digest())
     for image in body.images:
@@ -180,7 +181,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
                                               body.batch_id)
     found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"],
-                                                                   [image.dataUrl for image in body.context_images])
+                                                                   [image.dataUrl for image in body.context_images], body.slices)
     # The explanations for these questions are written next, without counting another use.
     ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
         number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")

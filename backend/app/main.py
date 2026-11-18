@@ -41,7 +41,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         openapi_url="/openapi.json" if settings.environment == "development" else None,
     )
     app.state.settings = settings
-    app.add_middleware(BodyLimitMiddleware, timeout=settings.body_timeout_seconds)
+    app.add_middleware(BodyLimitMiddleware, timeout=settings.body_timeout_seconds, large_timeout=settings.page_body_timeout_seconds)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.effective_allowed_hosts, www_redirect=False)
     app.add_middleware(RuntimeMiddleware, settings=settings)
     # CORS wraps early throttles and unexpected errors so browsers can read Retry-After/request IDs.

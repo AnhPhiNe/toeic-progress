@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 from io import BytesIO
 
 import pytest
@@ -142,18 +143,18 @@ def test_only_the_first_request_of_a_capture_is_charged(api):  # noqa: F811
         assert not any(call[1].endswith("/reserve_ai_request") for call in calls)
         assert sum(call[0] == "api.openai.com" for call in calls) == 2
         sent = [call[2] for call in calls if call[1].endswith("reserve_ai_batch_request")]
-        assert all(body["p_batch_id"] == BATCH and body["p_max_chunks"] == 4 and body["p_ttl_seconds"] == 3600 for body in sent)
+        assert all(body["p_batch_id"] == BATCH and body["p_max_chunks"] == 8 and body["p_ttl_seconds"] == 3600 for body in sent)
 
 
-def test_a_fifth_request_of_one_capture_is_refused_before_reading_the_page(api):  # noqa: F811
+def test_a_ninth_request_of_one_capture_is_refused_before_reading_the_page(api):  # noqa: F811
     mock = BatchReservationMock()
     with api(draft={"items": [item(131)]}, batch_mock=mock) as (client, calls):
-        assert [client.post("/api/v1/ai/extract-page", json=chunk(n)).status_code for n in range(1, 5)] == [200] * 4
+        assert [client.post("/api/v1/ai/extract-page", json=chunk(n)).status_code for n in range(1, 9)] == [200] * 8
         openai_calls = sum(call[0] == "api.openai.com" for call in calls)
-        refused = client.post("/api/v1/ai/extract-page", json=chunk(5))
+        refused = client.post("/api/v1/ai/extract-page", json=chunk(9))
         assert refused.status_code == 429 and "lần chụp mới" in refused.json()["detail"]
         assert sum(call[0] == "api.openai.com" for call in calls) == openai_calls
-        assert mock.global_used == 4 and sum(mock.account_used.values()) == 1
+        assert mock.global_used == 8 and sum(mock.account_used.values()) == 1
 
 
 def test_owners_never_share_a_capture(api):  # noqa: F811
@@ -360,3 +361,58 @@ def test_invalid_passage_images_never_reserve(api, change):  # noqa: F811
 def test_health_announces_passage_images(api):  # noqa: F811
     with api() as (client, _calls):
         assert client.get("/health").json()["page_context_images"] is True
+
+
+def noisy_png(side):
+    """A screenshot-sized PNG that does not compress, to test the size limits."""
+    stream = BytesIO()
+    Image.frombytes("RGB", (side, side), os.urandom(side * side * 3)).save(stream, format="PNG", compress_level=0)
+    return "data:image/png;base64," + base64.b64encode(stream.getvalue()).decode()
+
+
+def test_one_group_takes_six_original_screenshots_of_several_megabytes(api):  # noqa: F811
+    big = noisy_png(1000)  # about 3 MB, sent as it is
+    images = [{"dataUrl": big}] + [{"dataUrl": picture()}] * 5
+    with api(draft={"items": [item(131)]}) as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=page(images=images)).status_code == 200
+        sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert sum(part["type"] == "input_image" for part in sent[0]["input"][0]["content"]) == 6
+
+
+@pytest.mark.parametrize("kind", ["seven", "over-eight-megabytes"])
+def test_page_limits_are_six_images_and_eight_megabytes(api, kind):  # noqa: F811
+    images = [{"dataUrl": picture()}] * 7 if kind == "seven" else [{"dataUrl": noisy_png(1000)}] * 3
+    with api() as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=page(images=images)).status_code == 422
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_a_page_image_over_four_megabytes_is_refused(api):  # noqa: F811
+    with api() as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=page(images=[{"dataUrl": noisy_png(1250)}])).status_code == 422
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_slices_of_one_tall_screenshot_are_read_as_one_page(api):  # noqa: F811
+    with api(draft={"items": [item(132)]}) as (client, calls):
+        body = group(images=[{"dataUrl": picture()}] * 2, slices=[[1, 2], [3, 4]])
+        assert client.post("/api/v1/ai/extract-page", json=body).status_code == 200
+        sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    texts = [part["text"] for part in sent[0]["input"][0]["content"][1:] if part["type"] == "input_text"]
+    assert texts[0] == "PASSAGE_IMAGES" and texts[1].startswith("SLICED_IMAGE: ảnh 1–2 là 2 phần liên tiếp") and texts[2] == "Ảnh 1"
+    assert any(text.startswith("SLICED_IMAGE: ảnh 3–4") for text in texts)
+    assert "SLICED_IMAGE" in sent[0]["instructions"]
+
+
+@pytest.mark.parametrize("slices", [[[2, 3]], [[0, 1]], [[3, 9]], [[1, 2], [2, 3]], [[2, 2]]])
+def test_slices_must_stay_inside_one_zone(api, slices):  # noqa: F811
+    with api() as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=group(slices=slices)).status_code == 422
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_only_the_page_route_takes_a_bigger_body(api):  # noqa: F811
+    with api() as (client, _calls):
+        assert client.post("/api/v1/ai/extract", content=b"a" * (4 * 1024 * 1024 + 1)).status_code == 413
+        assert client.post("/api/v1/ai/extract-page", content=b"a" * (4 * 1024 * 1024 + 1)).status_code != 413
+        assert client.post("/api/v1/ai/extract-page", content=b"a" * (12 * 1024 * 1024 + 1)).status_code == 413

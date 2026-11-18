@@ -293,6 +293,8 @@ Input JSON là {"questions": [{"number": số câu, "part": Part}]}: các câu n
   (có thể 2–3 bài đọc), các ảnh sau QUESTION_IMAGES là câu hỏi của nhóm đó. context của mọi câu trong nhóm chép từ các ảnh
   đoạn văn (đủ mọi bài đọc, theo thứ tự ảnh); question, options, userChoice, correctAnswer lấy từ ảnh câu hỏi (hoặc từ ảnh
   đoạn văn nếu câu hỏi in ở đó).
+- Ghi chú SLICED_IMAGE nói các ảnh liền nhau là những phần cắt liên tiếp của MỘT ảnh dài: ghép đọc từ trên xuống như một
+  trang; chỗ nối chồng lên nhau vài dòng nên không chép lặp các dòng đó.
 """
 
 RESULTS_READING_PROMPT = """Bạn đọc ảnh chụp màn hình trang KẾT QUẢ của một đề TOEIC Listening & Reading (200 câu, số câu 1–200).

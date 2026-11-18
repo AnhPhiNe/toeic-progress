@@ -6,7 +6,14 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.core.image_input import MAX_DATA_URL_LENGTH, MAX_TOTAL_IMAGE_BYTES, image_bytes
+from app.core.image_input import (
+    MAX_DATA_URL_LENGTH,
+    MAX_PAGE_DATA_URL_LENGTH,
+    MAX_PAGE_IMAGE_BYTES,
+    MAX_PAGE_TOTAL_BYTES,
+    MAX_TOTAL_IMAGE_BYTES,
+    image_bytes,
+)
 from app.core.text_input import has_multiple_questions
 
 Number = Annotated[float, Field(ge=0, allow_inf_nan=False)]
@@ -689,8 +696,27 @@ class OpenAIPageExplanationOutput(OpenAIDraftOutput):
 
 
 MAX_PAGE_ITEMS = 6
-# A triple passage is three pages; with up to 3 question images one request carries at most 6 images.
+# One request reads one question group: up to 6 question images plus up to 3 passage pages (a triple passage).
+MAX_PAGE_IMAGES = 6
 MAX_PAGE_CONTEXT_IMAGES = 3
+
+
+class PageImageAttachment(BaseModel):
+    """A test-page screenshot, usually sent as it is: larger than the single-question attachments."""
+
+    model_config = ConfigDict(extra="forbid")
+    dataUrl: str = Field(max_length=MAX_PAGE_DATA_URL_LENGTH, repr=False)
+
+    @field_validator("dataUrl")
+    @classmethod
+    def validate_image(cls, value):
+        image_bytes(value, MAX_PAGE_IMAGE_BYTES)
+        return value
+
+    @property
+    def byte_count(self) -> int:
+        encoded = self.dataUrl.split(",", 1)[1]
+        return len(encoded) * 3 // 4 - (len(encoded) - len(encoded.rstrip("=")))
 
 
 class PageQuestion(BaseModel):
@@ -713,22 +739,34 @@ class PageExtractRequest(BaseModel):
     consent: Literal[True]
     provider: Literal["openai"]
     captcha_token: str | None = Field(default=None, max_length=2048)
-    # One capture sends several requests (at most 3 images each). They share a batch id and count as one AI use.
+    # One capture sends a request per question group. They share a batch id and count as one AI use.
     batch_id: UUID | None = None
     questions: list[PageQuestion] = Field(min_length=1, max_length=200)
-    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+    images: list[PageImageAttachment] = Field(min_length=1, max_length=MAX_PAGE_IMAGES, repr=False)
     # Part 6/7: the passage pages of one group, sent with its question images so both are read together.
-    context_images: list[ImageAttachment] = Field(default_factory=list, max_length=MAX_PAGE_CONTEXT_IMAGES, repr=False)
+    context_images: list[PageImageAttachment] = Field(default_factory=list, max_length=MAX_PAGE_CONTEXT_IMAGES, repr=False)
+    # A tall screenshot cut into consecutive parts: [first, last] positions (1-based, passage images first, then
+    # question images) of each run, so the reading joins them back into one page.
+    slices: list[tuple[int, int]] = Field(default_factory=list, max_length=MAX_PAGE_IMAGES + MAX_PAGE_CONTEXT_IMAGES)
 
     @model_validator(mode="after")
     def check_page(self):
         numbers = [question.number for question in self.questions]
         if len(set(numbers)) != len(numbers):
             raise ValueError("Số câu bị trùng")
+        total = len(self.context_images) + len(self.images)
+        taken: set[int] = set()
+        for first, last in self.slices:
+            run = set(range(first, last + 1))
+            if first < 1 or last > total or last <= first or run & taken:
+                raise ValueError("Các phần cắt của ảnh không hợp lệ")
+            if (first <= len(self.context_images)) != (last <= len(self.context_images)):
+                raise ValueError("Các phần cắt của ảnh không hợp lệ")
+            taken |= run
         if self.context_images and any(question.part < 6 for question in self.questions):
             raise ValueError("Ảnh đoạn văn chỉ dùng cho Part 6–7")
-        if sum(image.byte_count for image in [*self.context_images, *self.images]) > MAX_TOTAL_IMAGE_BYTES:
-            raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+        if sum(image.byte_count for image in [*self.context_images, *self.images]) > MAX_PAGE_TOTAL_BYTES:
+            raise ValueError("Tổng ảnh gửi đi tối đa 8 MiB")
         return self
 
 

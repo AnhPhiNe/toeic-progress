@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     client_ip_debug: bool = False
     max_concurrent_requests: int = Field(default=8, ge=1, le=128)
     body_timeout_seconds: float = Field(default=10, ge=1, le=30)
+    # Test-page screenshots are sent as they are: that route takes a bigger body and more time to upload it.
+    page_body_timeout_seconds: float = Field(default=45, ge=5, le=120)
     api_account_minute_limit: int = Field(default=60, ge=1, le=10000)
     api_sync_minute_limit: int = Field(default=30, ge=1, le=1000)
     api_usage_minute_limit: int = Field(default=30, ge=1, le=1000)
