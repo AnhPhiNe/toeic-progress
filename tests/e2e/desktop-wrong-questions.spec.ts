@@ -52,11 +52,12 @@ test('a computer logs a Full Test by clicking, typing and pasting its wrong ques
   const result = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Đóng kết quả', exact: true }) });
   await expect(result.getByText('8 câu Đọc sai đã vào Sổ tay. Chụp trang chữa bài để Sóc ghi nội dung giúp.', { exact: true })).toBeVisible();
   await result.getByRole('button', { name: 'Ghi chi tiết 8 câu sai', exact: true }).click();
-  const flow = page.getByRole('dialog', { name: /^Ghi câu sai/ });
+  const flow = page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Desktop', exact: true });
   await expect(flow).toBeVisible();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await expect(page.getByText('ETS Desktop · 8 câu chưa ghi chi tiết', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Ghi chi tiết', exact: true })).toHaveCount(1);
+  // The eight number-only drafts wait in one pink row instead of the list.
+  await expect(page.getByRole('button', { name: '8 câu chờ ghi chi tiết, ETS Desktop. Gỡ câu sai', exact: true })).toBeVisible();
+  await expect(page.locator('.nb-rows li')).toHaveCount(0);
 });
 
 test('a computer can still log per-Part counts or an official score', async ({ page }) => {

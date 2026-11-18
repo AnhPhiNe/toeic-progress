@@ -11,31 +11,37 @@ const draft = (part: number, question: string, correct: string, choice: string, 
   correctAnswer: correct, answerSource, userChoice: choice, userChoiceState: 'CHOSEN', userMistake: '', trapTip: '',
   tags: [], missingInformation: [], optionNotes: [], explanation: null
 });
-// The first turn of screenshots shows the Part 5 questions, the second the Part 6 ones.
-const TURNS = [
-  [{ number: 104, draft: draft(5, 'The room ____ fifty guests.', '(A) accommodates', 'C') },
-   { number: 112, draft: draft(5, 'Staff ____ the guests.', '', 'B', 'MISSING') }],
-  [{ number: 131, draft: draft(6, 'The new reading room ____ twice as many visitors.', '(A) accommodates', 'B') }]
-];
+/** What a screenshot shows for each wrong question; a reading returns only the numbers it was asked for. */
+const READS: Record<number, ReturnType<typeof draft>> = {
+  104: draft(5, 'The room ____ fifty guests.', '(A) accommodates', 'C'),
+  112: draft(5, 'Staff ____ the guests.', '', 'B', 'MISSING'),
+  131: draft(6, 'The new reading room ____ twice as many visitors.', '(A) accommodates', 'B'),
+  // A question in the same passage set that the learner got right.
+  132: draft(6, 'The hall ____ the exhibition.', '(B) accommodating', 'B')
+};
 
-/** Replaces the AI module: each reading answers with the next turn above and records what it was asked. */
+/** Replaces the AI module: each reading answers from READS and records what it was asked. */
 export async function mockTurnsAI(page: Page) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
     contentType: 'application/javascript', body: `
-      export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, pageImages: true }; }
+      export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, pageImages: true, pageContextImages: true }; }
       export async function getAIUsage() { return null; }
       export async function extractMistakeWithAI() { throw new Error('not used'); }
-      export async function extractPageWithAI(questions, images) {
+      export async function extractPageWithAI(questions, images, getToken, owner, isCurrent, batchId, contextImages = []) {
         const calls = (window.__pageCalls = window.__pageCalls || []);
-        calls.push({ questions: questions.map(item => item.number), images: images.length });
+        calls.push({ questions: questions.map(item => item.number), images: images.length, context: contextImages.length, batch: batchId,
+          jpeg: [...images, ...contextImages].every(image => image.dataUrl.startsWith('data:image/jpeg')) });
         await new Promise(resolve => setTimeout(resolve, window.__pageDelay ?? 0));
         window.__pageFinished = (window.__pageFinished || 0) + 1;
+        const reads = ${JSON.stringify(READS)};
         const body = btoa(JSON.stringify({ e: Math.floor(Date.now() / 1000) + 86400 })).replace(/=+$/, '');
-        return { items: ${JSON.stringify(TURNS)}[calls.length - 1] ?? [], missing: [], explainTicket: body + '.signature', usage: {} };
+        const items = questions.filter(item => reads[item.number]).map(item => ({ number: item.number, draft: reads[item.number] }));
+        return { items, missing: questions.map(item => item.number).filter(number => !reads[number]), explainTicket: body + '.signature', usage: {} };
       }
       export async function explainBatchWithAI(ticket, items) {
         (window.__explainCalls = window.__explainCalls || []).push(items.map(item => item.number));
         await new Promise(resolve => setTimeout(resolve, window.__explainDelay ?? 200));
+        if (window.__explainFails) throw new Error('offline');
         return { failed: [], items: items.map(({ number, input }) => ({ number, draft: { part: input.part, category: 'ADVANCED_GRAMMAR',
           question: input.question, context: input.context, questionContext: input.question, options: input.options,
           correctAnswer: input.options[0], answerSource: 'AI_PROPOSED', userChoice: input.userChoice, userMistake: '', tags: [],
@@ -45,6 +51,7 @@ export async function mockTurnsAI(page: Page) {
   }));
 }
 
+/** Logs "ETS Table" (wrong 3, 104, 112, 131) on a computer and opens Gỡ câu sai from the result screen. */
 export async function openDesktopFlow(page: Page) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await mockTurnsAI(page);
@@ -59,12 +66,16 @@ export async function openDesktopFlow(page: Page) {
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
-  return page.getByRole('dialog', { name: 'Ghi câu sai · ETS Table', exact: true });
+  return page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Table', exact: true });
 }
 
-/** Sổ tay lists a test whose wrong questions still lack details as a row with "Ghi chi tiết" (computers); this opens its list. */
+/** Sổ tay gathers a test's number-only drafts in one pink row; this opens Gỡ câu sai for that test (the nth attempt). */
 export async function openPendingList(page: Page, testName = 'ETS Table', index = 0) {
   if (!page.url().includes('/so-tay')) await gotoPage(page, '/so-tay');
-  await page.locator('.nb-pend').filter({ hasText: testName }).nth(index).getByRole('button', { name: 'Ghi chi tiết', exact: true }).click();
-  return page.getByRole('dialog', { name: `Ghi câu sai · ${testName}`, exact: true });
+  const rows = page.getByRole('button', { name: new RegExp(`câu chờ ghi chi tiết, ${testName}`) });
+  await rows.nth(index).click();
+  return page.getByRole('dialog', { name: `Gỡ câu sai · ${testName}`, exact: true });
 }
+
+export const storedCard = (page: Page, number: number, testName = 'ETS Table') => page.evaluate(([value, name]) => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
+  .find((card: { sourceTestName?: string; questionNumber?: number; deletedAt?: string | null }) => card.sourceTestName === name && card.questionNumber === value && !card.deletedAt), [number, testName] as const);

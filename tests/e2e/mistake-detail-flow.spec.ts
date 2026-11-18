@@ -1,10 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { gotoPage, openScoreLogger } from './helpers/nav';
+import { gotoPage } from './helpers/nav';
 
 /**
- * A phone-logged Full Test with one Listening and three Reading wrong questions; only the Reading ones get cards.
- * The redesigned phone logger no longer takes a list of wrong questions (it says "câu sai thêm sau"), so the test and its
- * draft cards are stored directly, exactly as saving a test with those wrong questions leaves them.
+ * A phone-logged Full Test with one Listening and three Reading wrong questions; only the Reading ones get draft cards.
+ * The test and its drafts are stored directly, exactly as saving a test with those wrong questions leaves them.
  */
 async function logTest(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -21,52 +20,51 @@ async function logTest(page: Page) {
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
-  return page.getByRole('dialog', { name: /^Ghi câu sai/ });
+  await page.getByRole('button', { name: '3 câu chờ ghi chi tiết, ETS Detail. Gỡ câu sai', exact: true }).click();
+  return page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Detail', exact: true });
 }
 
 const stored = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
   .filter((card: { sourceTestName?: string; deletedAt?: string | null }) => card.sourceTestName === 'ETS Detail' && !card.deletedAt));
 
-test('on a phone the wrong questions are one list; answers and reasons are filled in and saved together', async ({ page }) => {
+test('on a phone a question is written by hand in a bottom sheet and saved', async ({ page }) => {
   const flow = await logTest(page);
-  await expect(flow.getByRole('heading', { name: 'Ghi câu sai', exact: true })).toBeVisible();
-  await expect(flow.getByText('ETS Detail · 3 câu Reading', { exact: true })).toBeVisible();
-  // Listening question 3 gets no card; the Reading ones are listed by Part.
-  await expect(flow.locator('[data-row-toggle]')).toHaveText(['Câu 103', 'Câu 107', 'Câu 151']);
-  await expect(flow.getByRole('button', { name: 'Lưu', exact: true })).toBeDisabled();
+  await expect(flow.getByRole('heading', { name: /^Gỡ câu sai/ })).toBeVisible();
+  await expect(flow.getByText('ETS Detail · 4 câu sai', { exact: true })).toBeVisible();
+  // No AI on this build: the Part opens for writing by hand.
+  await flow.getByRole('button', { name: 'Ghi tay Part 5', exact: true }).click();
+  await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
+  const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
+  await card.getByRole('button', { name: '107', exact: true }).click();
+  await card.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'B', exact: true }).click();
+  await card.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'B', exact: true }).click();
+  await card.getByRole('group', { name: 'Vì sao sai câu 107' }).getByRole('button', { name: 'Ngữ pháp', exact: true }).click();
+  await card.getByRole('button', { name: 'Lưu câu 107', exact: true }).click();
+  await expect(card.getByRole('alert')).toHaveText('Câu 107: Đáp án bạn chọn trùng đáp án đúng.');
+  await card.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
+  await card.getByRole('button', { name: 'Lưu câu 107', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  await expect(flow.getByRole('button', { name: 'Câu 107, đã ghi', exact: true })).toBeVisible();
 
-  // Without a screenshot, opening a question offers the answer pickers.
-  await flow.getByRole('button', { name: 'Câu 107', exact: true }).click();
-  await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'B', exact: true }).click();
-  await flow.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'B', exact: true }).click();
-  await flow.getByLabel('Vì sao sai câu 107').selectOption('ADVANCED_GRAMMAR');
-  await flow.getByRole('button', { name: 'Lưu 1 câu', exact: true }).click();
-  await expect(flow.getByRole('alert')).toHaveText('Câu 107: Đáp án bạn chọn trùng đáp án đúng.');
-  await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
-  await expect(flow.getByRole('button', { name: 'Câu 107 Bạn chọn A, đáp án B', exact: true })).toBeVisible();
-  await flow.getByRole('button', { name: 'Lưu 1 câu', exact: true }).click();
-
+  const saved = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
+  expect(saved).toMatchObject({ part: 5, userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(B)', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
+  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Đã ghi chi tiết' })).toContainText('Đã ghi chi tiết 1 câu');
-  const card = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
-  expect(card).toMatchObject({ part: 5, userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(B)', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
-  // Without its question the card waits in the pending group; one row per test, not one per question.
-  const pending = page.locator('.pn-pend');
-  await expect(pending.getByRole('button', { name: /^Ghi chi tiết/ })).toHaveCount(1);
-  await expect(pending).toContainText('3 câu chưa ghi chi tiết');
+  // The card with content is in the list; the two drafts still wait in the pink row.
+  await expect(page.getByRole('button', { name: '2 câu chờ ghi chi tiết, ETS Detail. Gỡ câu sai', exact: true })).toBeVisible();
 });
 
-test('the pending group restores unsaved filled rows after closing on a phone', async ({ page }) => {
+test('the pink row restores unsaved reasons after closing on a phone', async ({ page }) => {
   const flow = await logTest(page);
-  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
-  await expect(flow.locator('[data-row-toggle]')).toHaveCount(3);
-  await flow.getByLabel('Vì sao sai câu 151').selectOption('TIME_PRESSURE');
+  await flow.getByRole('button', { name: /^Part 1 · Tranh/ }).click();
+  await flow.getByRole('group', { name: 'Vì sao sai câu 3' }).getByRole('button', { name: 'Hết giờ', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await page.reload();
-  await page.getByRole('button', { name: 'Ghi chi tiết 3 câu, ETS Detail', exact: true }).click();
-  await expect(flow).toBeVisible();
-  await expect(flow.getByLabel('Vì sao sai câu 151')).toHaveValue('TIME_PRESSURE');
+  await page.getByRole('button', { name: '3 câu chờ ghi chi tiết, ETS Detail. Gỡ câu sai', exact: true }).click();
+  await expect(flow.getByText('Còn 1 câu nháp chưa lưu')).toBeVisible();
+  await flow.getByRole('button', { name: /^Part 1 · Tranh/ }).click();
+  await expect(flow.getByRole('group', { name: 'Vì sao sai câu 3' }).getByRole('button', { name: 'Hết giờ', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

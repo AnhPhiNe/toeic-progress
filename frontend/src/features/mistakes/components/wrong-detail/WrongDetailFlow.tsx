@@ -116,7 +116,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
   useEffect(() => {
     setExplanationInterceptor((cardId, arrivedDraft, originalInput) => {
-      if (!activeFlow() || !byId.has(cardId)) return false;
+      // A saved row takes its explanation through the queue's own path, straight onto the stored card.
+      if (!activeFlow() || !byId.has(cardId) || !dirtyIds.current.has(cardId)) return false;
       const current = formsRef.current[cardId], card = byId.get(cardId)!;
       // Only take a matching, usable result; otherwise the queue keeps its own fallback.
       const effective = current && detailExplanationInput(current, card.part);
@@ -131,6 +132,17 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     });
     return () => setExplanationInterceptor(null);
   }, [byId, activeFlow]);
+
+  // Rows the learner is not editing follow the stored card (a save, a late explanation, another device).
+  useEffect(() => {
+    let changed = false;
+    const next = { ...formsRef.current };
+    for (const card of cards) {
+      if (dirtyIds.current.has(card.id) || unsaved.has(card.id) || draftBases.current.get(card.id) === card) continue;
+      draftBases.current.set(card.id, card); next[card.id] = savedDetailForm(card); changed = true;
+    }
+    if (changed) { formsRef.current = next; setForms(next); }
+  }, [cards, unsaved]);
 
   const update = (id: string, patch: Partial<CardForm>) => {
     dirtyIds.current.add(id);
@@ -295,7 +307,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       setError(current => current || (plan.requests.length ? 'Sóc chưa thấy câu nào bạn sai trong ảnh. Thêm ảnh rõ hơn hoặc ghi tay.' : ''));
       return;
     }
-    clearZones();
+    clearZones(); setOpenRow('');
     readIds.sort((a, b) => byId.get(a)!.questionNumber! - byId.get(b)!.questionNumber!);
     setScreen({ name: 'review', part, ids: readIds, skipped: [...skipped].filter(number => !byNumber.has(number)).sort((a, b) => a - b), missing, group: group?.from });
   };
