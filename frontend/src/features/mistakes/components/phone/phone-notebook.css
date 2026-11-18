@@ -238,6 +238,18 @@
 .pc-send.is-quiet { background: rgba(255,255,255,.14); box-shadow: none; }
 .pc-send.is-light { background: #fff; color: #d3456b; box-shadow: 0 4px 0 #e8e3dc; }
 .pc-send.is-sheet { width: 100%; margin-top: 10px; }
+/* The capture of one Part (shared with Gỡ câu sai): light screen, the Part first, then its zones. */
+.pc-part { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 8px; }
+.pc-part .cpi-q { margin-top: 6px; }
+.is-light .pc-test .cap-field { background: #f1eeea; color: var(--rd-ink); }
+.pc.is-light .pc-test .cap-field b, .pc.is-light .pc-test .cap-field small, .is-light .pc-test .cap-field input { color: var(--rd-ink); }
+.is-light .pc-test .cap-link { color: #d3456b; }
+.is-light .pc-i { background: #fff; color: var(--rd-ink); box-shadow: 0 2px 0 rgba(0,0,0,.06); }
+.is-light .pc-err { color: #c23c63; }
+.pc-foot.is-row { flex-direction: row; align-items: center; }
+.pc-foot.is-row .pc-send { flex: 1; }
+.pc-side.is-light { color: var(--rd-ink); background: #fff; border-radius: 16px; box-shadow: 0 0 0 2px #ece8ea, 0 3px 0 #ece8ea; }
+.pc.is-light .pc-send:disabled { background: #e6e3de; color: #9aa39d; }
 .pc-all { align-self: center; min-height: 40px; border: 0; background: none; color: #1c6fc0; font-weight: 900; font-size: 13.5px; cursor: pointer; }
 .pc-read { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; padding: 0 24px; }
 .pc-read h3 { font-weight: 900; font-size: 20px; }
