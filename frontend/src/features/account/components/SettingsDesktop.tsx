@@ -24,7 +24,7 @@ interface Props {
   onSaveField: SaveField;
   /** The goal editor's save (same merge as Hôm nay's goal editor). */
   onSaveGoal: SaveField;
-  sync: { localOnly: boolean; waiting: boolean; failed: boolean; label: string };
+  sync: { localOnly: boolean; waiting: boolean; failed: boolean; label: string; tone: 'local' | 'wait' | 'warn' | 'ok' };
   email: string | null;
   accountAvailable: boolean;
   accountError?: string;
@@ -250,7 +250,7 @@ export function SettingsDesktop(props: Props) {
   const popover = (field: DesktopSettingsField, label: string, content: React.ReactNode) => editing === field && (
     <TilePopover anchor={buttons.current[field] ?? null} beside={tiles.current[field] ?? null} label={label} onClose={stableClose}>{content}</TilePopover>
   );
-  const pill = sync.failed ? 'is-warn' : sync.localOnly ? 'is-local' : sync.waiting ? 'is-wait' : 'is-ok';
+  const pill = 'is-' + sync.tone;
   const tileEditing = editing !== null && editing !== 'name' && editing !== 'account';
 
   return (

@@ -1,0 +1,29 @@
+name: keep-awake
+
+# Pings the backend /health so the Render free instance is less likely to sleep.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: GET /health
+        env:
+          URL: ${{ vars.BACKEND_URL || 'https://toeic-progress-api.onrender.com' }}
+        run: |
+          if curl -fsS --max-time 60 --retry 2 "${URL%/}/health"; then
+            echo "backend is awake"
+          else
+            echo "backend did not answer (it may be down or waking); not failing the run"
+          fi
+          exit 0

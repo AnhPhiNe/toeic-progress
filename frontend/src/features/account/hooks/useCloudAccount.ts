@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import { activateAccount, clearRetiredCopies, deactivateAccount, getActiveAccountId, readAccountBundle, readGuestBundle, setAccountWriteEnabled, writeAccountBundle } from '@/shared/data/dataBundle';
-import { bundleFromRecords, cleanupResetImages, cloud, deleteCloudAccount, fetchCloudBundle, rememberSync, resetCloudLearningData } from '@/features/account/services/cloud';
+import { bundleFromRecords, cleanupResetImages, cloud, deleteCloudAccount, fetchCloudBundle, rememberSync, resetCloudLearningData, wakeBackend } from '@/features/account/services/cloud';
 import { finishAccountTransfer, synchronizeAccount } from '@/features/account/services/cloudSync';
 import { hasPersonalData, type TransferChoice } from '@/shared/data/syncMerge';
 import type { AccountStatus } from '@/features/account/components/AccountPanel';
 import { apiAvailable } from '@/shared/api/api';
+import { SLOW_AFTER_MS, backoffDelay, shouldKeepWaking } from '@/features/account/lib/syncStatus';
 
 interface PendingTransfer { userId: string; device: DataBundle; account: DataBundle }
 
@@ -21,17 +22,52 @@ export function useCloudAccount(onDataChanged: () => void) {
   const dirty = useRef(false);
   const generation = useRef(0);
   const resetting = useRef(false);
+  // Cold start: Render's free tier sleeps. Slow or unreachable requests are retried quietly with backoff.
+  const [waking, setWaking] = useState(false);
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const userEdit = useRef(false);
+  const wake = useRef<{ startedAt: number; attempt: number; slow?: ReturnType<typeof setTimeout>; retry?: ReturnType<typeof setTimeout> }>({ startedAt: 0, attempt: 0 });
+
+  const armSlow = useCallback(() => {
+    if (!wake.current.startedAt) wake.current.startedAt = Date.now();
+    if (wake.current.slow) clearTimeout(wake.current.slow);
+    wake.current.slow = setTimeout(() => setWaking(true), SLOW_AFTER_MS);
+  }, []);
+  const resetWake = useCallback(() => {
+    clearTimeout(wake.current.slow); clearTimeout(wake.current.retry);
+    wake.current = { startedAt: 0, attempt: 0 };
+    setWaking(false);
+  }, []);
+  /** True when the failure should be retried quietly; schedules the retry. */
+  const keepWaking = useCallback((reason: unknown, retry: () => void) => {
+    if (!wake.current.startedAt || !shouldKeepWaking(wake.current.startedAt, Date.now(), reason)) return false;
+    clearTimeout(wake.current.slow);
+    setWaking(true);
+    clearTimeout(wake.current.retry);
+    wake.current.retry = setTimeout(retry, backoffDelay(wake.current.attempt++));
+    return true;
+  }, []);
+  const markSynced = useCallback(() => {
+    resetWake();
+    const at = Date.now();
+    setSyncedAt(at); setNow(at);
+    if (userEdit.current) { userEdit.current = false; setSavedAt(at); }
+  }, [resetWake]);
 
   const sync = useCallback(async (queueIfBusy = true) => {
     if (resetting.current || !userId.current || !initialized.current) return;
     if (syncing.current) { if (queueIfBusy) dirty.current = true; return; }
     if (!navigator.onLine) { setStatus('disconnected'); setAccountWriteEnabled(false); return; }
     syncing.current = true;
+    clearTimeout(wake.current.retry);
     const id = userId.current;
     const run = generation.current;
     do {
       dirty.current = false;
       setStatus('syncing');
+      armSlow();
       try {
         const cleanupKey = `toeic_source_image_cleanup_${id}`;
         const cleanupBefore = localStorage.getItem(cleanupKey);
@@ -42,8 +78,11 @@ export function useCloudAccount(onDataChanged: () => void) {
         if (changed) onDataChanged();
         setError('');
         setStatus(navigator.onLine ? 'synced' : 'disconnected');
+        markSynced();
       } catch (reason) {
         if (run !== generation.current || userId.current !== id) break;
+        if (keepWaking(reason, () => void sync(false))) { dirty.current = false; break; }
+        resetWake();
         setAccountWriteEnabled(false);
         setError(reason instanceof Error ? reason.message : 'Không thể đồng bộ.');
         setStatus(navigator.onLine ? 'error' : 'disconnected');
@@ -54,7 +93,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     } while (dirty.current);
     syncing.current = false;
     if (dirty.current && initialized.current && !resetting.current) setTimeout(() => void sync(), 0);
-  }, [onDataChanged]);
+  }, [onDataChanged, armSlow, keepWaking, markSynced, resetWake]);
 
   const bootstrap = useCallback(async () => {
     if (resetting.current) return;
@@ -65,6 +104,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       return;
     }
     setStatus('loading');
+    clearTimeout(wake.current.retry);
     setAccountWriteEnabled(false);
     initialized.current = false;
     userId.current = null;
@@ -91,7 +131,9 @@ export function useCloudAccount(onDataChanged: () => void) {
         return;
       }
       setHasAccountSession(true);
+      armSlow();
       detachDifferentOwner(session.data.session.user.id);
+      wakeBackend();
       const { data, error: authError } = await cloud.auth.getUser();
       if (run !== generation.current) return;
       if (authError) throw authError;
@@ -132,14 +174,17 @@ export function useCloudAccount(onDataChanged: () => void) {
       initialized.current = true;
       setError('');
       setStatus('synced');
+      markSynced();
       onDataChanged();
     } catch (reason) {
       if (run !== generation.current) return;
+      if (keepWaking(reason, () => void bootstrap())) return;
+      resetWake();
       setAccountWriteEnabled(false);
       setError(reason instanceof Error ? reason.message : 'Không thể kết nối tài khoản.');
       setStatus(navigator.onLine ? 'error' : 'disconnected');
     }
-  }, [onDataChanged]);
+  }, [onDataChanged, armSlow, keepWaking, markSynced, resetWake]);
 
   useEffect(() => {
     const requestEpoch = generation;
@@ -163,7 +208,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       }
     });
     const changed = (event: Event) => {
-      if ((event as CustomEvent<string>).detail === userId.current) void sync();
+      if ((event as CustomEvent<string>).detail === userId.current) { userEdit.current = true; void sync(); }
     };
     const offline = () => { if (userId.current) { setAccountWriteEnabled(false); setStatus('disconnected'); } };
     const online = () => { if (userId.current) void sync(); };
@@ -175,6 +220,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     return () => {
       disposed = true;
       requestEpoch.current++;
+      clearTimeout(wake.current.slow); clearTimeout(wake.current.retry);
       subscription?.data.subscription.unsubscribe();
       window.removeEventListener('toeic:account-data-changed', changed);
       window.removeEventListener('offline', offline);
@@ -182,6 +228,13 @@ export function useCloudAccount(onDataChanged: () => void) {
       window.removeEventListener('focus', focused);
     };
   }, [bootstrap, sync]);
+
+  // Keeps "vừa xong" / "3 phút trước" fresh without re-rendering constantly.
+  useEffect(() => {
+    if (syncedAt === null) return;
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, [syncedAt]);
 
   const chooseTransfer = async (choice: TransferChoice) => {
     if (!pendingTransfer) return;
@@ -234,6 +287,8 @@ export function useCloudAccount(onDataChanged: () => void) {
     setHasAccountSession(false);
     setStatus('guest');
     setError('');
+    resetWake();
+    setSyncedAt(null);
     onDataChanged();
   };
   const deleteAccount = async () => {
@@ -295,5 +350,5 @@ export function useCloudAccount(onDataChanged: () => void) {
     }
   };
 
-  return { available: apiAvailable, hasAccountSession, status, email, error, pendingTransfer, chooseTransfer, signInGoogle, sendOtp, verifyOtp, signOut, deleteAccount, resetLearningData, retry: () => userId.current && initialized.current ? sync() : bootstrap() };
+  return { available: apiAvailable, hasAccountSession, status, email, error, pendingTransfer, chooseTransfer, signInGoogle, sendOtp, verifyOtp, signOut, deleteAccount, resetLearningData, waking, syncedAt, savedAt, now, retry: () => { resetWake(); return userId.current && initialized.current ? sync() : bootstrap(); } };
 }

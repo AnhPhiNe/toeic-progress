@@ -1,6 +1,6 @@
 import type { DataBundle, SyncMeta } from '@/shared/data/dataBundle';
 import { defaultProfile } from '@/shared/data/dataBundle';
-import { backendRequest } from '@/shared/api/api';
+import { apiAvailable, backendRequest } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 export { cloud } from '@/shared/api/supabaseClient';
 
@@ -66,6 +66,14 @@ function validateSyncReply(reply: SyncReply): SyncReply {
   if (!Number.isSafeInteger(reply?.cursor) || reply.cursor < 0 || !Array.isArray(reply.records)) throw new Error('Phản hồi đồng bộ không hợp lệ.');
   return reply;
 }
+/** Fire-and-forget GET /health: wakes a sleeping free-tier server while the learner is still looking at the screen. */
+export function wakeBackend(): void {
+  if (!apiAvailable) return;
+  try {
+    void fetch(`${import.meta.env.VITE_API_URL!.replace(/\/$/, '')}/health`, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => undefined);
+  } catch { /* best effort */ }
+}
+
 export async function fetchCloudBundle(userId: string): Promise<{ bundle: DataBundle; hasRecords: boolean }> {
   const reply = await syncRequest(userId, [], 0);
   return { bundle: bundleFromRecords(reply.records), hasRecords: reply.hasRecords };

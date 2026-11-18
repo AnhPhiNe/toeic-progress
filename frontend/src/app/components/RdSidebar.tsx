@@ -22,7 +22,9 @@ export interface RdSidebarProps {
   /** Sync state line under the settings row, e.g. "Chỉ lưu trên máy". */
   syncLabel?: string;
   /** Colour of the sync dot that stands in for the sync line on short windows. */
-  syncTone?: 'ok' | 'warn' | 'local';
+  syncTone?: 'ok' | 'warn' | 'local' | 'wait';
+  /** Brief green pulse after a save reached the server. */
+  syncPulse?: boolean;
 }
 
 const W = '#fff';
@@ -39,7 +41,7 @@ const ICONS: Record<string, ReactNode> = {
 
 interface Item { key: keyof typeof ICONS; label: string; tab?: NavTabId; also?: NavTabId[]; color: string; lip: string; tint: string; badge?: number; sub?: string }
 
-export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, newBadges = 0, soc, onOpenSessionLogger, onOpenSettings, leagueLabel, syncLabel, syncTone = 'local' }: RdSidebarProps) {
+export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, newBadges = 0, soc, onOpenSessionLogger, onOpenSettings, leagueLabel, syncLabel, syncTone = 'local', syncPulse = false }: RdSidebarProps) {
   // While pages are rebuilt one by one, each item opens the current page that will merge into it.
   const items: Item[] = [
     { key: 'today', label: 'Hôm nay', tab: 'dashboard', color: 'var(--rd-green)', lip: 'var(--rd-green-d)', tint: 'var(--rd-green)' },
@@ -101,8 +103,8 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
           <span className="rd-side__ic" style={{ background: '#9aa39d', boxShadow: '0 3px 0 #7b857f' }} aria-hidden="true">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill={W} /><path d="M3.5 21 C3.5 15.5 8 14 12 14 S20.5 15.5 20.5 21Z" fill={W} /></svg>
           </span>
-          <span className="rd-side__lbl rd-side__set is-sync"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small>{syncLabel}</small>}</span>
-          {syncLabel && <i className={`rd-side__dot is-${syncTone}`} title={syncLabel} aria-hidden="true" />}
+          <span className="rd-side__lbl rd-side__set is-sync"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small aria-live="polite" className={`is-${syncTone}`}>{syncLabel}</small>}</span>
+          {syncLabel && <i className={`rd-side__dot is-${syncTone}${syncPulse ? ' is-pulse' : ''}`} title={syncLabel} aria-hidden="true" />}
         </button>
       )}
       </div>
