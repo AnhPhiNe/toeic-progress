@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Gỡ câu sai</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<link rel="stylesheet" href="_goalguide.css">
+<style>
+:root{--pk:#ff7a9c;--pd:#d64570;--pl:#fff0f4;--pline:#f6e3e9;--ok:#2f9e4a;--okl:#e3f6e6;--line:#ece8ea}
+.row{flex-wrap:nowrap}
+.soc svg{display:block;width:100%}
+/* desktop: result page behind, the flow as a big sheet */
+.dk .bgpage{position:absolute;inset:0;padding:34px 40px;background:#fff}
+.bgpage h2{font-weight:900;font-size:28px}.bgpage .ghost{height:150px;border-radius:24px;background:#f4f6f4;margin-top:18px}.bgpage .ghost.s{height:70px}
+.dk .dim{z-index:5}
+.sht{position:absolute;left:160px;top:50%;transform:translateY(-50%);width:790px;max-height:642px;background:#fff;border-radius:28px;z-index:10;box-shadow:0 30px 70px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
+.sh{display:flex;align-items:center;gap:12px;padding:20px 24px 0}
+.sh h3{font-weight:900;font-size:23px;letter-spacing:-.5px;line-height:1.1}
+.sh h3 small{display:block;font-weight:800;font-size:13.5px;color:var(--mut);letter-spacing:0;margin-top:3px}
+.sh .xx{margin-left:auto;width:36px;height:36px;border-radius:12px;background:#f3f4f2;display:grid;place-items:center;font-weight:900;color:var(--mut);flex:none}
+.back{width:36px;height:36px;border-radius:12px;background:var(--pl);display:grid;place-items:center;font-weight:900;font-size:28px;line-height:1;padding-bottom:4px;color:var(--pd);flex:none}
+.tot{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;color:var(--pd);background:var(--pl);border-radius:99px;padding:6px 12px;white-space:nowrap}
+.tot i{display:block;width:70px;height:7px;border-radius:9px;background:#ffd6e0;overflow:hidden}.tot i b{display:block;height:100%;background:var(--pk);border-radius:9px}
+.sb2{padding:16px 24px 18px;overflow:hidden;position:relative}
+.sf{display:flex;align-items:center;gap:12px;padding:12px 24px 18px;border-top:2px solid #f6f3f4}
+.sf .q{font-weight:800;font-size:13px;color:var(--mut)}
+.sf .q b{color:var(--ink)}
+.quiet{margin-left:auto;font-weight:900;font-size:14.5px;color:var(--mut);padding:10px 14px;border-radius:14px}
+/* buttons */
+.bt{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:16px;padding:12px 20px;font-weight:900;font-size:15.5px;background:var(--pk);color:#fff;box-shadow:0 5px 0 var(--pd);white-space:nowrap}
+.bt.w{background:#fff;color:var(--ink);box-shadow:0 0 0 2px var(--line),0 4px 0 var(--line)}
+.bt.sm{padding:9px 14px;font-size:14px;border-radius:13px}
+.bt.bk{display:flex;width:100%}
+.lnk{font-weight:900;font-size:14px;color:var(--pd)}
+/* part cards */
+.hero{display:grid;grid-template-columns:96px 1fr auto;gap:16px;align-items:center;border-radius:24px;background:linear-gradient(135deg,#fff0f4,#fff6ec);padding:14px 20px 14px 10px;box-shadow:0 0 0 2px #ffd3df}
+.hero .soc{width:96px;margin-bottom:-8px}
+.say2{position:relative;display:inline-block;background:#fff;border-radius:14px;padding:6px 12px;font-weight:900;font-size:14px;color:var(--pd);box-shadow:0 3px 0 rgba(214,69,112,.12)}
+.say2:before{content:'';position:absolute;left:-8px;top:10px;border:8px solid transparent;border-left:0;border-right-color:#fff}
+.hero h4{font-weight:900;font-size:21px;margin-top:8px;letter-spacing:-.3px}
+.hero h4 em{font-style:normal;color:var(--pd)}
+.pbar{display:flex;align-items:center;gap:10px;margin-top:7px;font-weight:800;font-size:13px;color:var(--mut)}
+.pbar i{flex:1;max-width:230px;height:8px;border-radius:9px;background:#f3e6ea;overflow:hidden}.pbar i b{display:block;height:100%;background:var(--pk);border-radius:9px}
+.pbar.full i b{background:var(--ok)}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.pc{border-radius:20px;background:#fff;box-shadow:0 0 0 2px #f1eef0;padding:12px 14px}
+.pc .t{display:flex;align-items:center;gap:8px;font-weight:900;font-size:14.5px}
+.pc .t span{font-weight:900;font-size:11.5px;border-radius:99px;padding:2px 8px}
+.pc .t span.L{background:#f1ebff;color:#7c5ce0}.pc .t span.R{background:#e7f6ee;color:#2a8a55}
+.pc .t em{margin-left:auto;font-style:normal;font-weight:800;font-size:12.5px;color:var(--mut)}
+.pc .n{font-weight:900;font-size:13.5px;color:#4f5a53;margin-top:2px}
+.pc .pbar{margin-top:8px;font-size:12px}
+.pc .a{font-weight:900;font-size:13px;color:var(--pd);margin-top:6px}
+.pc.done{background:#f6fcf7;box-shadow:0 0 0 2px #d4eed9}.pc.done .a{color:var(--ok)}
+.toast{position:absolute;z-index:30;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#2f3a33;color:#fff;border-radius:16px;padding:10px 16px;font-weight:900;font-size:14px;white-space:nowrap;box-shadow:0 10px 24px rgba(0,0,0,.2)}
+.toast i{width:22px;height:22px;border-radius:50%;background:var(--pk);display:grid;place-items:center;font-style:normal;font-size:12px}
+.toast a{color:#ffb8ca;margin-left:6px}
+/* part view */
+.cap2{display:grid;grid-template-columns:110px 1fr;gap:18px;align-items:center;border-radius:24px;background:var(--pl);border:3px dashed #ffb8ca;padding:16px 20px}
+.cap2 b.h{display:block;font-weight:900;font-size:20px;letter-spacing:-.3px}
+.cap2 p{font-weight:700;font-size:13.5px;color:#5e6962;margin-top:3px;line-height:1.4}
+.cap2 .acts{display:flex;align-items:center;gap:12px;margin-top:12px}
+.kbd{display:inline-block;background:#fff;border-radius:7px;padding:0 7px;font-weight:900;font-size:12.5px;box-shadow:0 2px 0 #f0d7df}
+.lbl2{display:flex;align-items:center;gap:12px;font-weight:900;font-size:14.5px;margin:16px 0 9px}
+.lbl2 small{font-weight:800;font-size:12.5px;color:var(--mut)}
+.lg{margin-left:auto;display:flex;gap:12px;font-weight:800;font-size:12px;color:var(--mut)}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-1px;margin-right:5px;background:#fff;box-shadow:inset 0 0 0 2px #ead9df}
+.lg i.d{background:var(--pk);box-shadow:none}
+.groups{display:flex;flex-wrap:wrap;gap:8px}
+.gp{border-radius:14px;background:#faf7f8;padding:5px 7px 7px}
+.gp small{display:block;font-weight:900;font-size:10.5px;color:#a99aa0;padding:0 2px 3px}
+.gp div{display:flex;gap:5px}
+.qn{display:inline-grid;place-items:center;min-width:42px;height:32px;border-radius:10px;background:#fff;box-shadow:0 0 0 2px #ead9df;font-weight:900;font-size:14px;color:var(--ink);padding:0 6px}
+.qn.d{background:var(--pk);color:#fff;box-shadow:0 3px 0 var(--pd)}
+.qn.sel{box-shadow:0 0 0 2.5px var(--pd),0 3px 0 var(--pd);background:var(--pl);color:var(--pd)}
+/* review */
+.thumbs{display:flex;align-items:center;gap:8px}
+.th{width:46px;height:34px;border-radius:8px;background:#fff;box-shadow:0 0 0 2px #f1e4e9;padding:5px}
+.th i{display:block;height:3px;border-radius:2px;background:#e9ecea;margin-bottom:4px}.th i.r{background:#ffc2d1;width:60%}
+.thadd{height:34px;border-radius:10px;padding:0 10px;display:grid;place-items:center;font-weight:900;font-size:13px;color:var(--pd);background:var(--pl)}
+.rlist{display:flex;flex-direction:column;gap:8px}
+.rr{display:grid;grid-template-columns:70px 1fr auto;gap:4px 14px;align-items:center;border-radius:18px;background:#fff;box-shadow:0 0 0 2px #f3eef0;padding:9px 14px}
+.rr>b{font-weight:900;font-size:15px;grid-row:span 2;align-self:start;padding-top:2px}
+.rr .qt{font-weight:700;font-size:13px;color:#6b756f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr .sheet2{grid-row:span 2;align-self:center}
+.rs{display:flex;gap:6px;align-items:center}
+.rs span{border-radius:10px;padding:4px 10px;font-weight:900;font-size:12.5px;background:#f6f5f5;color:#69736d}
+.rs span.on{background:var(--pl);color:var(--pd);box-shadow:inset 0 0 0 2px var(--pk)}
+.unsure{background:#fffbea;box-shadow:0 0 0 2px #ffe08a}
+.un{display:flex;align-items:center;gap:8px;grid-column:2/4;font-weight:800;font-size:12.5px;color:#7a5a00;flex-wrap:wrap}
+.un .pl{background:#ffe08a;color:#6b4c00;border-radius:99px;padding:2px 9px;font-weight:900;font-size:11.5px}
+.un .mb{background:#fff;border-radius:10px;padding:3px 10px;font-weight:900;font-size:12.5px;color:var(--ink);box-shadow:0 0 0 2px #f3e3a8}
+.skip{display:flex;align-items:center;gap:10px;border-radius:14px;background:#f6f7f6;padding:8px 14px;font-weight:800;font-size:13px;color:#87908a}
+.skip b{color:#5e6962}.skip s{text-decoration:none;margin-left:auto;font-weight:900;color:#a5ada7}
+.miss{font-weight:800;font-size:13px;color:#6b756f;padding:2px 4px}.miss a{color:var(--pd);font-weight:900}
+.abc{display:flex;gap:4px}
+.abc span{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;font-weight:900;font-size:12px;color:#b4bab6;box-shadow:inset 0 0 0 1.5px #ebeeec}
+.abc span.me{background:var(--pk);color:#fff;box-shadow:none}
+.abc span.ok{background:var(--ok);color:#fff;box-shadow:none}
+.abc span.ask{box-shadow:inset 0 0 0 1.5px #e9c64f;color:#a88400;background:#fff}
+.abcl{display:flex;gap:10px;font-weight:800;font-size:10.5px;color:var(--mut);margin-top:3px;justify-content:center}
+.wr{display:flex;align-items:center;gap:7px;font-weight:800;font-size:13px;color:#7c5ce0}
+.spin{width:13px;height:13px;border-radius:50%;border:2.5px solid #e2d9ff;border-top-color:#7c5ce0;flex:none}
+/* manual */
+.mdim{position:absolute;inset:0;border-radius:28px;background:rgba(255,255,255,.72);z-index:12}
+.mc{position:absolute;z-index:14;background:#fff;border-radius:24px;box-shadow:0 18px 44px rgba(120,40,70,.22),0 0 0 2px #ffd3df;padding:16px 20px 18px}
+.hh{display:flex;align-items:center;gap:10px}.hh b{font-weight:900;font-size:19px}
+.fl{font-weight:900;font-size:12.5px;color:#9aa39d;letter-spacing:.3px;margin:12px 0 6px}
+.lt{display:flex;gap:8px}
+.lt span{width:46px;height:40px;border-radius:13px;display:grid;place-items:center;font-weight:900;font-size:16px;background:#fff;box-shadow:0 0 0 2px var(--line),0 3px 0 var(--line)}
+.lt span.me{background:var(--pk);color:#fff;box-shadow:0 3px 0 var(--pd)}
+.lt span.ok{background:var(--ok);color:#fff;box-shadow:0 3px 0 #237a3a}
+.rs.big span{padding:7px 12px;font-size:13.5px;border-radius:12px}
+.opt{font-weight:900;font-size:13.5px;color:var(--mut);margin-top:12px}
+/* done */
+.done-h{display:grid;grid-template-columns:170px 1fr;gap:20px;align-items:center;border-radius:26px;background:linear-gradient(135deg,#fff0f4,#fff6ec);padding:18px 26px 10px 14px;position:relative;overflow:hidden}
+.done-h .soc{width:160px}
+.done-h h4{font-weight:900;font-size:30px;letter-spacing:-.8px;line-height:1.1}
+.done-h p{max-width:390px;font-weight:700;font-size:14.5px;color:#5e6962;margin-top:6px;line-height:1.45}.done-h p b{color:var(--pd)}
+.done-h .acts{display:flex;gap:14px;align-items:center;margin-top:14px}
+.mini7{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:14px}
+.mini7 div{border-radius:14px;background:#f6fcf7;box-shadow:0 0 0 2px #d4eed9;padding:8px 10px;font-weight:900;font-size:13px}
+.mini7 div small{display:block;font-weight:800;font-size:11.5px;color:var(--ok)}
+.mini7 div i{display:block;height:5px;border-radius:9px;background:var(--ok);margin-top:5px}
+/* phone */
+.pf{position:absolute;inset:0;background:#fff;display:flex;flex-direction:column}
+.pf .ph-h{padding:54px 16px 0;display:flex;align-items:flex-start;gap:10px}
+.pf .ph-h h3{font-weight:900;font-size:21px;letter-spacing:-.4px;line-height:1.1}
+.pf .ph-h h3 small{display:block;font-weight:800;font-size:12.5px;color:var(--mut);letter-spacing:0;margin-top:3px}
+.pf .ph-h .xx,.pf .ph-h .back{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-weight:900;flex:none}
+.pf .ph-h .xx{margin-left:auto;background:#f3f4f2;color:var(--mut)}
+.pf .ph-h .back{background:var(--pl);color:var(--pd);font-size:27px;line-height:1;padding-bottom:4px}
+.pb{flex:1;padding:12px 16px 0;overflow:hidden;position:relative}
+.pft{padding:10px 16px 30px;border-top:2px solid #f6f3f4;display:flex;gap:10px;align-items:center}
+.phero{border-radius:22px;background:linear-gradient(135deg,#fff0f4,#fff6ec);padding:12px 14px 14px;box-shadow:0 0 0 2px #ffd3df;position:relative}
+.phero .top2{display:flex;gap:8px;align-items:flex-end}
+.phero .soc{width:70px;flex:none;margin:-4px 0 -6px -4px}
+.phero h4{font-weight:900;font-size:18px;margin-top:6px}.phero h4 em{font-style:normal;color:var(--pd)}
+.pgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.pgrid2 .pc{padding:9px 11px;border-radius:16px}
+.pgrid2 .pc .t{font-size:13.5px}
+.pgrid2 .pc .pbar{margin-top:5px}
+.pgrid2 .pc .t span{margin-left:auto}
+.fade{position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(transparent,#fff)}
+.psheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:26px 26px 0 0;padding:10px 18px 30px;z-index:40;box-shadow:0 -10px 30px rgba(120,40,70,.18)}
+/* grouped capture (P6/P7) and single zone (P5) */
+.p7{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.more{font-weight:800;font-size:12px;color:#a3aba5;margin:-2px 0 6px}
+.glist{display:flex;flex-direction:column;gap:7px}
+.gr{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;border-radius:15px;background:#fff;box-shadow:0 0 0 2px #f1eef0;padding:8px 11px}
+.gr b{font-weight:900;font-size:14px;display:block}.gr small{display:block;font-weight:800;font-size:11.5px;color:var(--mut)}
+.gr.on{background:var(--pl);box-shadow:0 0 0 2.5px var(--pk),0 3px 0 var(--pd)}.gr.on small{color:var(--pd)}
+.gq{display:flex;gap:4px;margin-left:auto;flex:none}
+.gr>div{min-width:0;flex:1}.gr small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gr.wrap{flex-wrap:wrap}.gr.wrap .zones{flex-basis:100%}
+.qn.sm{min-width:32px;padding:0 4px;height:27px;font-size:12.5px;border-radius:8px}
+.gsel{border-radius:22px;background:#fffafb;box-shadow:0 0 0 2px #f8e4ea;padding:12px 14px 14px}
+.gsh{display:flex;gap:10px;align-items:center}.gsh .soc{width:54px;flex:none;margin:-6px 0 -8px}
+.gsh b{font-weight:900;font-size:16.5px}.gsh small{display:block;font-weight:700;font-size:12.5px;color:#5e6962;line-height:1.4;margin-top:2px}
+.zones{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-top:12px}
+.zones.zph{grid-template-columns:1fr;width:100%;gap:8px;margin-top:6px}
+.zn{border:3px dashed #ffb8ca;border-radius:18px;background:var(--pl);padding:9px 11px 10px}
+.zn.big{padding:16px 18px;border-radius:24px}
+.zn h5{display:flex;align-items:center;gap:7px;font-weight:900;font-size:14.5px}
+.zn h5 em{font-style:normal;width:20px;height:20px;border-radius:50%;background:var(--pk);color:#fff;display:grid;place-items:center;font-size:11.5px}
+.zn h5 small{margin-left:auto;font-weight:800;font-size:11.5px;color:#a98b94}
+.ths{display:flex;gap:7px;margin-top:8px}
+.pg{width:46px;height:60px;border-radius:8px;background:#fff;box-shadow:0 0 0 2px #f3d8e0;padding:7px 6px;flex:none}
+.pg i{display:block;height:3px;border-radius:2px;background:#e6e9e7;margin-bottom:5px}.pg i.r{background:#ffc2d1;width:65%}
+.pg.q{background:#fffdf4;box-shadow:0 0 0 2px #f6e3a6}.pg.q i.r{background:#ffe08a}
+.pg.add{display:grid;place-items:center;font-weight:900;font-size:22px;color:var(--pd);background:transparent;box-shadow:inset 0 0 0 2px #ffc9d6}
+.zn.big .pg{width:70px;height:90px}
+.zp{font-weight:700;font-size:12px;color:#8a7a80;margin-top:7px}
+.acts2{display:flex;align-items:center;gap:14px;margin-top:14px}
+/* notebook (Sổ tay) list with drafts kept out */
+.nbm{position:absolute;left:220px;right:0;top:0;bottom:0;padding:26px 34px;background:#fff}
+.nbh{display:flex;align-items:center;justify-content:space-between}.nbh h2{font-weight:900;font-size:28px;letter-spacing:-.6px}
+.nbh small{display:block;font-weight:700;font-size:13px;color:var(--mut);letter-spacing:0;margin-top:2px}
+.wait{display:grid;grid-template-columns:52px 1fr auto;gap:4px 14px;align-items:center;border-radius:20px;background:var(--pl);box-shadow:0 0 0 2px #ffd3df;padding:10px 16px 10px 10px;margin-top:16px}
+.wait .stk{width:52px;height:46px;position:relative}
+.wait .stk i{position:absolute;width:38px;height:30px;border-radius:9px;background:#fff;box-shadow:0 0 0 2px #ffc2d1}
+.wait .stk i:nth-child(1){left:12px;top:2px;transform:rotate(8deg)}.wait .stk i:nth-child(2){left:6px;top:8px;transform:rotate(-4deg)}.wait .stk i:nth-child(3){left:2px;top:14px;box-shadow:0 0 0 2px var(--pk)}
+.wait b{font-weight:900;font-size:16px}.wait b em{font-style:normal;color:var(--pd)}
+.wait small{display:block;font-weight:800;font-size:12.5px;color:#8a7a80;margin-top:1px}
+.wait .pbar{margin-top:5px}
+.wsub{display:flex;align-items:center;gap:10px;border-top:2px solid #ffdbe4;padding:8px 2px 0;font-weight:900;font-size:14px;grid-column:1/4}
+.wsub small{display:inline;margin:0 0 0 4px}.wsub a{margin-left:auto;color:var(--pd)}
+.tabs{display:flex;gap:4px;background:#f6f5f5;border-radius:14px;padding:4px;margin-top:16px;width:max-content}
+.tabs span{border-radius:11px;padding:6px 12px;font-weight:900;font-size:13.5px;color:#69736d}.tabs span.on{background:#fff;color:var(--ink);box-shadow:0 2px 0 #ebe7e9}.tabs em{font-style:normal;color:var(--pd);margin-left:4px}
+.nbr{display:grid;grid-template-columns:70px 1fr auto auto;gap:14px;align-items:center;padding:11px 6px;border-bottom:2px solid #f6f3f4}
+.nbr .pp{font-weight:900;font-size:12px;border-radius:99px;padding:3px 9px;background:#f1ebff;color:#7c5ce0;text-align:center}
+.nbr b{font-weight:900;font-size:14.5px}.nbr p{font-weight:700;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nbr>div{min-width:0}
+.nbr .rc{font-weight:900;font-size:12px;border-radius:99px;padding:3px 10px;background:#f3f4f2;color:#5e6962}
+.nbr .du{font-weight:900;font-size:13px;color:var(--pd)}
+.nbr.new{background:#fff9fb;border-radius:14px}
+.newtag{font-weight:900;font-size:11px;color:#fff;background:var(--pk);border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+.hint{font-weight:800;font-size:12.5px;color:#a3aba5;margin-top:12px;text-align:center}
+</style></head><body>
+
+<div class="cap">Gỡ câu sai · thay danh sách 43 dòng bằng từng Part một<small>Từ màn kết quả, "Nhập chi tiết câu sai" mở bảng này. Mỗi Part là một việc nhỏ có tiến độ; đường nhanh nhất (chụp trang chữa bài) là nút chính; nhập tay vẫn có.</small></div>
+<div class="row" id="R1"></div>
+<div class="row" id="R2"></div>
+<div class="row" id="R2b"></div>
+<div class="row" id="R3"></div>
+<div class="row" id="R4"></div>
+<div class="row" id="R5"></div>
+<div class="row" id="R6"></div>
+<div class="cap">Câu nháp trong Sổ tay<small>Lưu một đề tự tạo thẻ nháp (chỉ có số câu) cho mỗi câu Reading sai. Nháp không nằm trong danh sách Sổ tay; "đã ghi x/y" của Gỡ câu sai chính là số nháp đã có nội dung, và câu nào có nội dung thì thành thẻ thật.</small></div>
+<div class="row" id="R0a"></div>
+<div class="row" id="R0b"></div>
+
+<script src="lottie/soc-strings.js"></script>
+<script src="_goalguide.js"></script>
+<script>
+/* Unique wd* names: _soc.js owns D, C, F, soc, eye. */
+const wdParts=[
+ {p:1,n:'Tranh',s:'L',q:[4]},
+ {p:2,n:'Hỏi – đáp',s:'L',q:[9,14,18,22,27]},
+ {p:3,n:'Hội thoại',s:'L',q:[35,41,48,62]},
+ {p:4,n:'Bài nói',s:'L',q:[74,83,95]},
+ {p:5,n:'Điền câu',s:'R',q:[103,112,118,124,129]},
+ {p:6,n:'Điền đoạn văn',s:'R',q:[133,134,141,146]},
+ {p:7,n:'Đọc hiểu',s:'R',q:[149,153,158,162,163,166,171,173,176,178,181,183,184,186,189,191,194,196,198,199,200]}];
+const wdTest='ETS 2024 Test 03';
+const wdAct=p=>p<=2?'Chọn lý do':p<=4?'Chụp transcript':'Chụp trang chữa bài';
+const wdP7Ranges=[[147,148],[149,150],[151,152],[153,154],[155,157],[158,160],[161,163],[164,167],[168,171],[172,175],[176,180],[181,185],[186,190],[191,195],[196,200]];
+const wdP6Ranges=[[131,134],[135,138],[139,142],[143,146]];
+const wdBar=(d,t,cls='')=>`<div class="pbar ${d===t?'full':''} ${cls}"><i><b style="width:${t?d/t*100:0}%"></b></i>đã ghi ${d}/${t}</div>`;
+const wdTot=(d,t)=>`<span class="tot"><i><b style="width:${d/t*100}%"></b></i>${d}/${t} câu</span>`;
+const wdCard=(pt,d=0,ph=false)=>`<div class="pc ${d===pt.q.length?'done':''}"><div class="t">Part ${pt.p}<span class="${pt.s}">${pt.s==='L'?'Nghe':'Đọc'}</span>${ph?'':`<em>${pt.q.length} câu sai</em>`}</div><div class="n">${pt.n}${ph?` · ${pt.q.length} câu`:''}</div>${wdBar(d,pt.q.length)}<div class="a">${d===pt.q.length?'Xong':wdAct(pt.p)+' ›'}</div></div>`;
+const wdBg=`<div class="bgpage"><h2>Kết quả · 785</h2><div class="ghost"></div><div class="ghost s"></div><div class="ghost s"></div></div>`;
+const wdDk=(inner,step)=>`<div class="dk">${step?`<span class="step">${step}</span>`:''}${ggSide('j')}<div class="main">${wdBg}</div><div class="dim"></div>${inner}</div>`;
+const wdPh=(inner,step)=>`<div class="ph">${step?`<span class="step">${step}</span>`:''}${ggSb()}<div class="pf">${inner}</div></div>`;
+const wdHead=(sub,d,t)=>`<div class="sh"><h3>Gỡ câu sai<small>${sub}</small></h3><span style="margin-left:auto"></span>${wdTot(d,t)}<span class="xx" style="margin-left:0">✕</span></div>`;
+const wdPartHead=(d)=>`<div class="sh"><span class="back">‹</span><h3>Part 7 · Đọc hiểu<small>${wdTest} · 21 câu sai</small></h3><span style="margin-left:auto"></span>${wdTot(d,21)}<span class="xx" style="margin-left:0">✕</span></div>`;
+
+/* ---------- 1 · overview ---------- */
+function wdOverview(done7,{dk=true,msg,title,btn}={}){
+  const others=wdParts.slice(0,6).map(pt=>wdCard(pt,0)).join('');
+  const total=43, d=done7;
+  const p7=wdParts[6];
+  const hero=`<div class="hero">${ggSoc('idle')}<div><span class="say2">${msg}</span><h4>${title}</h4>${wdBar(d,21)}</div><span class="bt">📸 ${btn}</span></div>`;
+  return `<div class="sht">${wdHead(`${wdTest} · ${total} câu sai`,d,total)}<div class="sb2">${hero}<div class="pgrid">${others}</div></div>
+  <div class="sf"><span class="q">Câu chưa ghi chờ ở đây, chưa vào Sổ tay. Làm tiếp lúc nào cũng được.</span><span class="quiet">Để sau</span></div></div>`;
+}
+const wdPhOverview=(d,{msg,title,btn,toast=''}={})=>`<div class="ph-h"><h3>Gỡ câu sai<small>${wdTest} · 43 câu sai</small></h3><span class="xx">✕</span></div>
+<div style="padding:10px 16px 0;display:flex">${wdTot(d,43)}</div>
+<div class="pb"><div class="phero"><div class="top2">${ggSoc('idle')}<span class="say2" style="margin-bottom:8px">${msg}</span></div><h4>${title}</h4>${wdBar(d,21)}<div style="margin-top:10px"><span class="bt bk">📸 ${btn}</span></div></div>
+<div class="pgrid2">${wdParts.slice(0,6).map(pt=>wdCard(pt,0,true)).join('')}</div>${toast}</div>
+<div class="pft"><span class="q" style="font-weight:800;font-size:12.5px;color:var(--mut)">Tiến độ tự lưu.</span><span class="quiet">Để sau</span></div>`;
+
+/* ---------- 2 · Part 7 open ---------- */
+function wdGroups(doneSet=[],sel=0,ranges=wdP7Ranges,qs=wdParts[6].q){
+  return ranges.map(([a,b])=>{const inG=qs.filter(n=>n>=a&&n<=b);if(!inG.length)return '';
+    return `<div class="gp"><small>${a}–${b}</small><div>${inG.map(n=>`<span class="qn ${doneSet.includes(n)?'d':''} ${n===sel?'sel':''}">${n}</span>`).join('')}</div></div>`;}).join('');
+}
+const wdCamIc=`<svg viewBox="0 0 110 92"><rect x="22" y="8" width="48" height="76" rx="11" fill="#2f3a33"/><rect x="27" y="16" width="38" height="56" rx="6" fill="#fff"/><rect x="32" y="24" width="28" height="4" rx="2" fill="#e8d7dd"/><rect x="32" y="33" width="20" height="4" rx="2" fill="#ffb8ca"/><rect x="32" y="42" width="25" height="4" rx="2" fill="#e8d7dd"/><rect x="32" y="51" width="16" height="4" rx="2" fill="#bfe5c7"/><circle cx="80" cy="56" r="16" fill="#ff7a9c"/><path d="M73 56h14M80 49v14" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>`;
+/* Part 6/7: the app suggests passage groups from the wrong list; a group takes ① passage images + ② question images, sent together. */
+const wdKind=a=>a>=186?'Đoạn ba':a>=176?'Đoạn kép':'Đoạn đơn';
+const wdGroupRows=(doneSet,sel,from=0,ph=false)=>wdP7Ranges.map(([a,b])=>({a,b,w:wdParts[6].q.filter(n=>n>=a&&n<=b)})).filter(g=>g.w.length).slice(from)
+  .map(g=>`<div class="gr ${g.a===sel?'on':''} ${g.a===sel&&ph?'wrap':''}"><div><b>Nhóm ${g.a}–${g.b}</b><small>${wdKind(g.a)} · sai ${g.w.join(', ')}</small></div><span class="gq">${g.w.map(n=>`<span class="qn sm ${doneSet.includes(n)?'d':''}">${n}</span>`).join('')}</span>${g.a===sel&&ph?wdZones(true):''}</div>`).join('');
+const wdThP=(n,cls='')=>Array.from({length:n},()=>`<span class="pg ${cls}"><i></i><i></i><i class="r"></i><i></i><i></i></span>`).join('');
+function wdZones(ph=false){
+  return `<div class="zones ${ph?'zph':''}"><div class="zn"><h5><em>1</em>Đoạn văn<small>3 bài đọc</small></h5><div class="ths">${wdThP(3)}<span class="pg add">+</span></div></div>
+  <div class="zn"><h5><em>2</em>Câu hỏi</h5><div class="ths">${wdThP(1,'q')}<span class="pg add">+</span></div>${ph?'':'<p class="zp">Thả, dán <span class="kbd">Ctrl+V</span> hoặc chọn ảnh</p>'}</div></div>`;
+}
+function wdPartView(doneSet=[],extra=''){
+  return `<div class="sht">${wdPartHead(doneSet.length)}<div class="sb2"><div class="p7">
+  <div><div class="lbl2" style="margin-top:0">Nhóm bài đọc<small>12 nhóm có câu sai</small></div><div class="more">↑ 7 nhóm trước</div><div class="glist">${wdGroupRows(doneSet,186,7)}</div></div>
+  <div class="gsel"><div class="gsh">${ggSoc('think')}<div><b>Nhóm 186–190 · bạn sai 186, 189</b><small>Đoạn ba: thả cả 3 bài đọc, rồi ảnh câu hỏi. Sóc dùng chung đoạn văn cho cả nhóm.</small></div></div>
+  ${wdZones()}<div class="acts2"><span class="bt">Gửi Sóc đọc nhóm này</span><span class="zp" style="margin:0">Ảnh nén trên máy trước khi gửi.</span></div></div></div></div>
+  <div class="sf"><span class="q">Đã tự lưu nháp trên máy này.</span><span class="quiet" style="color:var(--pd)">✎ Ghi tay một câu</span></div>${extra}</div>`;
+}
+const wdPhPart=(doneSet=[],sel=0)=>`<div class="ph-h"><span class="back">‹</span><h3>Part 7 · Đọc hiểu<small>21 câu sai · đã ghi ${doneSet.length}/21</small></h3><span class="xx">✕</span></div>
+<div class="pb"><div class="lbl2" style="margin-top:0">Chọn nhóm bài đọc<small>12 nhóm</small></div><div class="more">↑ 8 nhóm trước</div><div class="glist">${wdGroupRows(doneSet,186,8,true)}</div><div class="fade"></div></div>
+<div class="pft"><span class="bt w" style="flex:none;padding:13px 14px">✎ Ghi tay</span><span class="bt" style="flex:1">Gửi Sóc đọc 186–190</span></div>`;
+/* Part 5: one zone; each image may hold one or several questions and is read on its own. */
+const wdP5Head=`<div class="sh"><span class="back">‹</span><h3>Part 5 · Điền câu<small>${wdTest} · 5 câu sai</small></h3><span style="margin-left:auto"></span>${wdTot(0,5)}<span class="xx" style="margin-left:0">✕</span></div>`;
+const wdP5Zone=(ph=false)=>`<div class="zn big"><h5>Ảnh câu Part 5<small>mỗi ảnh một hay nhiều câu</small></h5><div class="ths">${wdThP(2,'q')}<span class="pg add">+</span></div>
+<p class="zp">${ph?'Chọn ảnh từ máy. ':'Thả, dán <span class="kbd">Ctrl+V</span> hoặc chọn ảnh. '}Sóc đọc từng ảnh riêng, chỉ lấy câu bạn sai.</p></div>`;
+const wdP5Chips=`<div class="lbl2">Câu cần gỡ<span class="lg"><span><i class="d"></i>đã ghi</span><span><i></i>chưa ghi</span></span></div><div class="gq" style="gap:7px">${wdParts[4].q.map(n=>`<span class="qn">${n}</span>`).join('')}</div>`;
+const wdP5View=`<div class="sht">${wdP5Head}<div class="sb2">${wdP5Zone()}${wdP5Chips}</div>
+<div class="sf"><span class="q">Ảnh nén trên máy (JPEG, cạnh dài khoảng 2000px).</span><span class="quiet" style="color:var(--pd);margin-left:auto">✎ Ghi tay một câu</span><span class="bt">Gửi Sóc đọc 2 ảnh</span></div></div>`;
+const wdPhP5=`<div class="ph-h"><span class="back">‹</span><h3>Part 5 · Điền câu<small>5 câu sai · đã ghi 0/5</small></h3><span class="xx">✕</span></div>
+<div class="pb">${wdP5Zone(true)}${wdP5Chips}</div>
+<div class="pft"><span class="bt w" style="flex:none;padding:13px 14px">✎ Ghi tay</span><span class="bt" style="flex:1">Gửi Sóc đọc 2 ảnh</span></div>`;
+
+/* ---------- 3 · after capture ---------- */
+const wdAbc=(me,ok,ask=false)=>`<div><div class="abc">${'ABCD'.split('').map(l=>`<span class="${l===me?'me':l===ok?'ok':ask&&l!==me?'ask':''}">${l}</span>`).join('')}</div></div>`;
+const wdWhy=(on,big=false)=>`<div class="rs ${big?'big':''}">${['Từ vựng','Ngữ pháp','Hết giờ','Ẩu','Khác'].map(r=>`<span class="${r===on?'on':''}">${r}</span>`).join('')}</div>`;
+const wdRev=[
+ {n:186,q:'What is the purpose of the e-mail?',me:'C',ok:'A',why:'Từ vựng'},
+ {n:189,q:'In the second e-mail, the word "settle" in paragraph 1…',me:'D',ok:'C',why:'Từ vựng',doubt:'B'},
+ {n:191,q:'What is indicated about Ms. Okafor?',me:'B',ok:'D',why:'Ẩu'},
+ {n:194,q:'When will the renovation most likely be finished?',me:'A',ok:'',why:'Hết giờ',ask:true},
+ {n:196,q:'Why did Mr. Lindqvist contact the hotel?',me:'D',ok:'B',why:'Ngữ pháp'}];
+function wdRow(r,ph=false){
+  const un=r.doubt?`<div class="un"><span class="pl">chưa chắc</span>Sóc giải ra ${r.doubt}, trang đề ghi ${r.ok}<span class="mb">Đổi sang ${r.doubt}</span><span class="mb">Giữ ${r.ok}</span></div>`
+   :r.ask?`<div class="un"><span class="pl">chưa chắc</span>Ảnh không có đáp án. Chạm chữ cái đúng.</div>`:'';
+  if(ph) return `<div class="rr ${un?'unsure':''}" style="grid-template-columns:1fr auto;padding:9px 12px"><b style="grid-row:auto">Câu ${r.n}</b>${wdAbc(r.me,r.ok,r.ask)}<div class="qt" style="grid-column:1/3">${r.q}</div><div style="grid-column:1/3">${wdWhy(r.why)}</div>${un.replace('class="un"','class="un" style="grid-column:1/3"')}</div>`;
+  return `<div class="rr ${un?'unsure':''}"><b>Câu ${r.n}</b><div class="qt">${r.q}</div><div class="sheet2">${wdAbc(r.me,r.ok,r.ask)}</div>${wdWhy(r.why)}${un}</div>`;
+}
+const wdThumbs=`<div class="thumbs">${[0,1,2].map(()=>`<span class="th"><i></i><i class="r"></i><i></i></span>`).join('')}<span class="thadd">+ Thêm ảnh</span></div>`;
+function wdReview(){
+  return `<div class="sht"><div class="sh"><span class="back">‹</span><h3>Sóc đọc được 6 câu<small>Part 7 · 3 nhóm · lý do Sóc chọn sẵn, chạm để đổi · <span style="color:var(--pk)">■</span> bạn chọn <span style="color:var(--ok)">■</span> đáp án</small></h3><span style="margin-left:auto"></span>${wdThumbs}<span class="xx" style="margin-left:0">✕</span></div>
+  <div class="sb2" style="padding-top:14px"><div class="rlist">${wdRev.map(r=>wdRow(r)).join('')}
+  <div class="skip"><b>Câu 190</b>bạn làm đúng, bỏ qua<s>không thuộc 21 câu sai</s></div>
+  <div class="miss">Chưa thấy câu 198, 199, 200 trong ảnh. <a>Thêm ảnh câu hỏi nhóm 196–200</a></div></div></div>
+  <div class="sf"><span class="wr"><i class="spin"></i>Đang viết lời giải 2 câu. Lưu ngay cũng được.</span><span style="margin-left:auto" class="bt w sm">+ Thêm ảnh</span><span class="bt">Lưu 5 câu</span></div></div>`;
+}
+const wdPhReview=`<div class="ph-h"><span class="back">‹</span><h3>Sóc đọc được 6 câu<small>Part 7 · 3 ảnh · chạm lý do để đổi</small></h3><span class="xx">✕</span></div>
+<div class="pb"><div class="rlist">${wdRev.slice(0,4).map(r=>wdRow(r,true)).join('')}<div class="skip" style="font-size:12.5px"><b>Câu 190</b>bạn làm đúng, bỏ qua</div></div><div class="fade"></div></div>
+<div class="pft" style="flex-direction:column;align-items:stretch;gap:8px;padding-top:8px"><span class="wr" style="justify-content:center;font-size:12.5px"><i class="spin"></i>Đang viết lời giải 2 câu</span><div style="display:flex;gap:10px"><span class="bt w" style="padding:13px 16px">+ Ảnh</span><span class="bt" style="flex:1">Lưu 5 câu</span></div></div>`;
+
+/* ---------- 4 · progress + done ---------- */
+function wdDone(){
+  return `<div class="sht">${wdHead(`${wdTest} · 43 câu sai`,43,43)}<div class="sb2">${ggConf(7,650,4,15)}
+  <div class="done-h">${ggSoc('idle')}<div><h4>Gỡ xong 43 câu!</h4><p>Cả 43 câu đã vào Sổ tay. Lỗi bạn gặp nhiều nhất là <b>Từ vựng</b> (17 câu).</p><div class="acts"><span class="bt">Ôn 43 câu trong Sổ tay</span><span class="quiet" style="margin-left:0">Đóng</span></div></div></div>
+  <div class="mini7">${wdParts.map(pt=>`<div>Part ${pt.p}<small>${pt.q.length}/${pt.q.length}</small><i></i></div>`).join('')}</div></div>
+  <div class="sf"><span class="q">Mỗi câu đã có lý do; câu Part 3–7 có cả lời giải.</span></div></div>`;
+}
+const wdPhDone=`<div class="ph-h"><h3>Gỡ câu sai<small>${wdTest}</small></h3><span class="xx">✕</span></div>
+<div class="pb" style="text-align:center">${ggConf(12,40,30,26)}<span style="display:block;width:170px;margin:40px auto 0">${ggSoc('idle')}</span>
+<h4 style="font-weight:900;font-size:27px;letter-spacing:-.6px;margin-top:6px">Gỡ xong 43 câu!</h4>
+<p style="font-weight:700;font-size:14.5px;color:#5e6962;margin:6px 10px 0;line-height:1.45">Cả 43 câu đã vào Sổ tay. Lỗi nhiều nhất: <b style="color:var(--pd)">Từ vựng</b> (17 câu).</p>
+<div class="mini7" style="grid-template-columns:repeat(4,1fr);margin-top:22px;text-align:left">${wdParts.map(pt=>`<div>P${pt.p}<small>${pt.q.length}/${pt.q.length}</small><i></i></div>`).join('')}</div></div>
+<div class="pft" style="flex-direction:column;align-items:stretch;gap:4px"><span class="bt">Ôn 43 câu trong Sổ tay</span><span class="quiet" style="margin:0 auto">Đóng</span></div>`;
+
+/* ---------- 5 · manual entry ---------- */
+const wdNums=[149,153,158,162,163,166,171,173,176];
+const wdManual=(ph=false)=>`<div class="hh"><b>Ghi tay một câu</b><span class="xx" style="margin-left:auto;width:32px;height:32px;border-radius:11px;background:#f3f4f2;display:grid;place-items:center;font-weight:900;color:var(--mut)">✕</span></div>
+<div class="fl">CÂU NÀO?</div><div style="display:flex;gap:6px;flex-wrap:${ph?'nowrap':'wrap'};overflow:hidden">${(ph?[198,199,200,149,153,158]:[198,199,200,...wdNums.slice(0,5)]).map(n=>`<span class="qn ${n===198?'sel':''}">${n}</span>`).join('')}</div>
+<div class="fl">BẠN CHỌN</div><div class="lt">${'ABCD'.split('').map(l=>`<span class="${l==='C'?'me':''}">${l}</span>`).join('')}</div>
+<div class="fl">ĐÁP ÁN ĐÚNG</div><div class="lt">${'ABCD'.split('').map(l=>`<span class="${l==='A'?'ok':''}">${l}</span>`).join('')}</div>
+<div class="fl">VÌ SAO SAI?</div>${wdWhy('Từ vựng',!ph)}
+<div class="opt">+ Câu hỏi, đoạn văn, ghi chú <span style="font-weight:800">(không bắt buộc)</span></div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:14px"><span class="bt" style="${ph?'flex:1':''}">Lưu câu 198</span>${ph?'':'<span class="quiet" style="margin-left:0">Huỷ</span>'}</div>`;
+
+/* ---------- assemble ---------- */
+const m1={msg:'Gỡ Part 7 trước nhé!',title:'Part 7 sai nhiều nhất: <em>21 câu</em>',btn:'Chụp trang chữa bài Part 7'};
+const m4={msg:'Xong 5 câu rồi!',title:'Part 7 còn <em>16 câu</em>',btn:'Chụp tiếp Part 7'};
+const done5=[186,189,191,194,196];
+
+document.getElementById('R1').innerHTML=
+ ggFw('1 · Tổng quan · desktop','7 Part thành 7 việc nhỏ; Part sai nhiều nhất nổi lên với nút chính chụp trang chữa bài.',wdDk(wdOverview(0,m1),'Desktop'),true)
++ggFw('1 · Tổng quan · phone','Cùng nội dung, Part 7 ở trên, 6 Part còn lại xếp lưới 2 cột.',wdPh(wdPhOverview(0,m1),'Phone'));
+
+document.getElementById('R2').innerHTML=
+ ggFw('2 · Mở Part 7 · chọn nhóm rồi thả ảnh','App gợi ý nhóm từ danh sách câu sai; mỗi nhóm nhận ① ảnh đoạn văn và ② ảnh câu hỏi, gửi cùng một lần (Part 6 tương tự, ví dụ nhóm 131–134 · sai 133, 134).',wdDk(wdPartView([])),true)
++ggFw('2 · Mở Part 7 · phone','Nhóm đang chọn mở ra hai ô xếp chồng; ảnh nén trên máy (JPEG, cạnh dài khoảng 2000px) để đoạn văn và câu hỏi vừa một lần gửi.',wdPh(wdPhPart([])));
+
+document.getElementById('R3').innerHTML=
+ ggFw('3 · Sau khi chụp','Sóc điền sẵn từng câu; câu chưa chắc tô vàng, câu bạn làm đúng bị bỏ qua.',wdDk(wdReview()),true)
++ggFw('3 · Sau khi chụp · phone','Mỗi câu ba dòng: số câu và đáp án, câu hỏi, lý do.',wdPh(wdPhReview));
+
+const wdToast=`<div class="toast" style="top:8px"><i>✓</i>Đã lưu 5 câu vào Sổ tay</div>`;
+const wdDraftToast=`<div class="toast" style="bottom:14px;font-size:13px;padding:9px 14px">Còn 2 câu nháp chưa lưu<a>Xem</a><a style="color:#c9cfcb">Bỏ nháp</a></div>`;
+document.getElementById('R4').innerHTML=
+ ggFw('4 · Quay lại tổng quan','5 nháp có nội dung thành 5 thẻ thật trong Sổ tay; Part 7 lên 5/21, nút chính thành "Chụp tiếp".',wdDk(wdOverview(5,m4).replace('<div class="sb2">','<div class="sb2">'+wdToast.replace('top:8px','top:-6px'))),true)
++ggFw('4 · Mở lại hôm sau · phone','Tiến độ còn nguyên; nháp chưa lưu hiện thành một dòng nhắc nhỏ.',wdPh(wdPhOverview(5,{...m4,toast:wdDraftToast})));
+
+document.getElementById('R5').innerHTML=
+ ggFw('4b · Gỡ xong cả đề','Một lời khen và một việc tiếp theo: ôn các câu vừa ghi trong Sổ tay.',wdDk(wdDone()),true)
++ggFw('4b · Gỡ xong · phone','Sóc đứng yên mỉm cười, không giơ tay.',wdPh(wdPhDone));
+
+document.getElementById('R6').innerHTML=
+ ggFw('5 · Ghi tay một câu','Bảng nhỏ nổi trên Part đang mở: chọn câu, hai hàng A–D, lý do, rồi lưu.',wdDk(wdPartView(done5,`<div class="mdim"></div><div class="mc" style="left:185px;top:34px;width:420px">${wdManual()}</div>`)),true)
++ggFw('5 · Ghi tay · phone','Cùng form trong bảng trượt từ đáy; Part 1–2 chỉ hỏi lý do.',wdPh(wdPhPart(done5,198)+`<div class="dim" style="z-index:35"></div><div class="psheet"><div class="grab"></div>${wdManual(true)}</div>`));
+
+/* ---------- 0 · Sổ tay: drafts stay out of the list ---------- */
+const wdStk=`<span class="stk"><i></i><i></i><i></i></span>`;
+const wdNbRow=(pt,n,q,why,isNew=false)=>`<div class="nbr ${isNew?'new':''}"><span class="pp">Part ${pt}</span><div><b>Câu ${n}${isNew?'<span class="newtag">mới</span>':''}</b><p>${q}</p></div><span class="rc">${why}</span><span class="du">ôn hôm nay</span></div>`;
+const wdWait1=(ph=false)=>`<div class="wait">${wdStk}<div><b><em>29 câu</em> chờ ghi chi tiết</b><small>Test đồng bộ 1 · Part 5–7</small>${wdBar(1,30)}</div>${ph?'<span style="font-weight:900;font-size:24px;color:var(--pd)">›</span>':'<span class="bt sm">Gỡ câu sai ›</span>'}</div>`;
+const wdWaitMany=(open,ph=false)=>`<div class="wait">${wdStk}<div><b><em>61 câu</em> chờ ghi chi tiết</b><small>${ph?'3 đề':'3 đề · ETS 2024 Test 03, Test đồng bộ 1…'}</small></div><span style="font-weight:900;font-size:13.5px;color:var(--pd)">${open?'Thu gọn ⌃':'Xem 3 đề ⌄'}</span>
+${open?[['ETS 2024 Test 03',25,'đã ghi 5/30'],['Test đồng bộ 1',29,'đã ghi 1/30'],['ETS 2024 Test 02',7,'đã ghi 20/27']].map(([t,n,p])=>`<div class="wsub">${t}<small>${n} câu chờ · ${p}</small><a>Gỡ câu sai ›</a></div>`).join(''):''}</div>`;
+const wdNbHead=`<div class="nbh"><h2>Sổ tay<small>Chỉ hiện câu đã có nội dung.</small></h2><span class="bt sm">📸 Chụp trang chữa bài</span></div>`;
+const wdNbDk=(body)=>`<div class="dk">${ggSide('n')}<div class="nbm">${wdNbHead}${body}</div></div>`;
+const wdNb1=wdNbDk(`${wdWait1()}<div class="tabs"><span class="on">Tất cả<em>1</em></span><span>Cần ôn<em>1</em></span><span>Đã thuộc<em>0</em></span></div>
+${wdNbRow(7,147,'What is the main purpose of the memo?','Từ vựng')}<p class="hint">29 câu nháp không nằm trong danh sách; ghi xong câu nào, câu đó hiện ở đây.</p>`);
+const wdNb2=wdNbDk(`${wdWaitMany(true)}<div class="tabs"><span class="on">Tất cả<em>26</em></span><span>Cần ôn<em>9</em></span><span>Đã thuộc<em>17</em></span></div>
+${wdNbRow(7,186,'What is the purpose of the e-mail?','Từ vựng',true)}${wdNbRow(7,189,'In the second e-mail, the word "settle"…','Từ vựng',true)}${wdNbRow(7,191,'What is indicated about Ms. Okafor?','Ẩu',true)}${wdNbRow(5,112,'The board will ------ the proposal next week.','Ngữ pháp')}`);
+const wdPhNb=(wait,list,count)=>`<div class="ph-h"><h3 style="font-size:24px">Sổ tay<small>Chỉ hiện câu đã có nội dung.</small></h3></div>
+<div class="pb">${wait}<div class="tabs" style="margin-top:14px"><span class="on">Tất cả<em>${count}</em></span><span>Cần ôn</span><span>Đã thuộc</span></div>${list}</div>${ggNav('n')}`;
+const wdPhRow=(pt,n,q,isNew)=>`<div class="nbr ${isNew?'new':''}" style="grid-template-columns:44px 1fr auto;gap:10px"><span class="pp">P${pt}</span><div><b>Câu ${n}${isNew?'<span class="newtag">mới</span>':''}</b><p>${q}</p></div><span class="du" style="font-size:12px">ôn</span></div>`;
+document.getElementById('R0a').innerHTML=
+ ggFw('6 · Sổ tay · câu nháp gom về một dòng','Lưu đề tự tạo thẻ nháp chỉ có số câu; chúng không lẫn vào danh sách mà gom thành một dòng mở Gỡ câu sai của đề đó.',wdNb1,true)
++ggFw('6 · Sổ tay · phone','Cùng một dòng hồng trên đầu danh sách; chạm để mở Gỡ câu sai.',wdPh(wdPhNb(wdWait1(true),wdPhRow(7,147,'What is the main purpose of the memo?')+'<p class="hint">29 câu nháp chờ ở dòng trên.</p>',1)));
+document.getElementById('R0b').innerHTML=
+ ggFw('6b · Nhiều đề còn nháp','Nhiều đề gộp thành một dòng, mở ra mỗi đề một hàng; câu vừa ghi xong vào danh sách với nhãn "mới".',wdNb2,true)
++ggFw('6b · Nhiều đề · phone','Mặc định thu gọn; chạm "Xem 3 đề" để chọn đề cần gỡ.',wdPh(wdPhNb(wdWaitMany(false,true),wdPhRow(7,186,'What is the purpose of the e-mail?',true)+wdPhRow(7,189,'In the second e-mail, the word "settle"…',true)+wdPhRow(7,191,'What is indicated about Ms. Okafor?',true)+wdPhRow(5,112,'The board will ------ the proposal next week.'),26)));
+document.getElementById('R2b').innerHTML=
+ ggFw('2b · Mở Part 5','Một ô ảnh duy nhất; mỗi ảnh có thể chứa một hay nhiều câu và được đọc riêng.',wdDk(wdP5View),true)
++ggFw('2b · Part 5 · phone','Cùng một ô, nút gửi ở đáy màn.',wdPh(wdPhP5));
+</script></body></html>

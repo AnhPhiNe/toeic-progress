@@ -173,11 +173,14 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         raise access.denied()
     questions = [question.model_dump() for question in body.questions]
     input_hash = hashlib.sha256(json.dumps(questions, separators=(",", ":")).encode())
+    for image in body.context_images:
+        input_hash.update(b"\1" + hashlib.sha256(image.dataUrl.encode()).digest())
     for image in body.images:
         input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
                                               body.batch_id)
-    found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"])
+    found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"],
+                                                                   [image.dataUrl for image in body.context_images])
     # The explanations for these questions are written next, without counting another use.
     ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
         number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")

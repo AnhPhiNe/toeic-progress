@@ -689,6 +689,8 @@ class OpenAIPageExplanationOutput(OpenAIDraftOutput):
 
 
 MAX_PAGE_ITEMS = 6
+# A triple passage is three pages; with up to 3 question images one request carries at most 6 images.
+MAX_PAGE_CONTEXT_IMAGES = 3
 
 
 class PageQuestion(BaseModel):
@@ -715,13 +717,17 @@ class PageExtractRequest(BaseModel):
     batch_id: UUID | None = None
     questions: list[PageQuestion] = Field(min_length=1, max_length=200)
     images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+    # Part 6/7: the passage pages of one group, sent with its question images so both are read together.
+    context_images: list[ImageAttachment] = Field(default_factory=list, max_length=MAX_PAGE_CONTEXT_IMAGES, repr=False)
 
     @model_validator(mode="after")
     def check_page(self):
         numbers = [question.number for question in self.questions]
         if len(set(numbers)) != len(numbers):
             raise ValueError("Số câu bị trùng")
-        if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
+        if self.context_images and any(question.part < 6 for question in self.questions):
+            raise ValueError("Ảnh đoạn văn chỉ dùng cho Part 6–7")
+        if sum(image.byte_count for image in [*self.context_images, *self.images]) > MAX_TOTAL_IMAGE_BYTES:
             raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
         return self
 

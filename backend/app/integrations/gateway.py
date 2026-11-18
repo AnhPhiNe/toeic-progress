@@ -139,8 +139,10 @@ class Gateway:
                                           source_options=source_options, source_answer=source_answer, images=images,
                                           persistent_images=persistent_images, pin_question=pin_question)
 
-    async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None):
-        return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None)
+    async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None,
+                            context_images: list[str] | None = None):
+        return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None,
+                                               context_images or [])
 
     async def read_results(self, images: list[str], user_id: str | None = None):
         return await read_results(self.openai, images, self.ip_hash(user_id) if user_id else None)

@@ -245,13 +245,19 @@ class OpenAIProvider:
                                 "Nội dung đang nhập vẫn được giữ; hãy thử lại hoặc lưu thủ công.") from error
 
     async def generate_page(self, questions: list[dict], images: list[str],
-                            safety_identifier: str | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int]]:
+                            safety_identifier: str | None = None,
+                            context_images: list[str] | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int]]:
         """Read the learner's wrong questions from screenshots. Returns (number, draft) pairs and numbers not found."""
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
         numbers = [question["number"] for question in questions]
         content = [{"type": "input_text", "text": json.dumps({"questions": questions}, ensure_ascii=False, separators=(",", ":"))}]
+        if context_images:
+            # One passage group: its pages first, labelled, then the question pages that refer to them.
+            content.append({"type": "input_text", "text": "PASSAGE_IMAGES"})
+            content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in context_images)
+            content.append({"type": "input_text", "text": "QUESTION_IMAGES"})
         content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in images)
         payload = {
             "model": self.settings.openai_model,

@@ -321,3 +321,42 @@ def test_a_part6_passage_without_the_question_number_is_not_kept(api):  # noqa: 
     assert [entry["number"] for entry in body["items"]] == [132]
     assert body["missing"] == [131, 107]
     assert body["items"][0]["draft"]["context"] == ""
+
+
+def group(**extra):
+    return page(**{"questions": [{"number": 131, "part": 6}, {"number": 132, "part": 6}],
+                   "context_images": [{"dataUrl": picture()}, {"dataUrl": picture()}], **extra})
+
+
+def test_passage_images_are_sent_before_the_question_images_in_one_reading(api):  # noqa: F811
+    with api(draft={"items": [item(132)]}) as (client, calls):
+        response = client.post("/api/v1/ai/extract-page", json=group())
+        assert response.status_code == 200
+        sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert len(sent) == 1
+    content = sent[0]["input"][0]["content"]
+    kinds = [part["type"] if part["type"] == "input_image" else part["text"] for part in content[1:]]
+    assert kinds == ["PASSAGE_IMAGES", "input_image", "input_image", "QUESTION_IMAGES", "input_image"]
+    assert "PASSAGE_IMAGES" in sent[0]["instructions"]
+
+
+def test_a_request_without_passage_images_has_no_labels(api):  # noqa: F811
+    with api(draft={"items": [item(132)]}) as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=page()).status_code == 200
+        sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert [part["type"] for part in sent[0]["input"][0]["content"]] == ["input_text", "input_image"]
+
+
+@pytest.mark.parametrize("change", [
+    {"context_images": [{"dataUrl": picture()}] * 4},
+    {"questions": [{"number": 107, "part": 5}]},
+])
+def test_invalid_passage_images_never_reserve(api, change):  # noqa: F811
+    with api() as (client, calls):
+        assert client.post("/api/v1/ai/extract-page", json=group(**change)).status_code == 422
+        assert not any(call[1].endswith("reserve_ai_request") or call[0] == "api.openai.com" for call in calls)
+
+
+def test_health_announces_passage_images(api):  # noqa: F811
+    with api() as (client, _calls):
+        assert client.get("/health").json()["page_context_images"] is True
