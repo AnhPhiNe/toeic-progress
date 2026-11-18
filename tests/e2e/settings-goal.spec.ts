@@ -23,11 +23,12 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 800 }], ['ph
     }, BUNDLE);
     await page.reload();
     const settings = await openSettings(page);
-    const row = settings.getByRole('button', { name: /^Điểm mục tiêu/ });
+    // Computers: the gold Điểm mục tiêu tile and its Đổi; phones: the list row.
+    const row = label === 'desktop' ? settings.getByRole('region', { name: 'Điểm mục tiêu', exact: true }) : settings.getByRole('button', { name: /^Điểm mục tiêu/ });
     await expect(row).toContainText('990');
     await expect(row).not.toContainText('Chưa chọn');
 
-    await row.click();
+    await (label === 'desktop' ? row.getByRole('button', { name: 'Đổi điểm mục tiêu', exact: true }) : row).click();
     const editor = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
     await expect(editor.getByRole('group', { name: 'Mốc nhanh' })).toBeVisible();
     await expect(editor.getByText('Ngày thi', { exact: true })).toBeVisible();
@@ -36,7 +37,7 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 800 }], ['ph
     await editor.getByRole('button', { name: /^Vẫn lưu 850/ }).click();
     await expect(editor).toHaveCount(0);
     expect(await profile(page)).toMatchObject({ targetScore: 850, goalChosen: true });
-    await expect(settings.getByRole('button', { name: /^Điểm mục tiêu/ })).toContainText('850');
+    await expect(row).toContainText('850');
     await expect(settings).toBeVisible();
   });
 }
@@ -46,16 +47,18 @@ test('desktop: saving the goal does not save other pending settings edits', asyn
   await demo(page);
   const before = await profile(page);
   const settings = await openSettings(page);
+  await settings.getByRole('button', { name: 'Đổi tên', exact: true }).click();
   await settings.getByLabel('Tên của bạn', { exact: true }).fill('Tên chưa lưu');
-  await settings.getByRole('button', { name: /^Điểm mục tiêu/ }).click();
+  // Opening another tile's editor leaves the unsaved name behind; only the goal reaches storage.
+  await settings.getByRole('button', { name: 'Đổi điểm mục tiêu', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Mục tiêu của bạn', exact: true });
+  await expect(settings.getByLabel('Tên của bạn', { exact: true })).toHaveCount(0);
   await editor.getByRole('button', { name: '700', exact: true }).click();
   await editor.getByRole('button', { name: /^(Lưu · cúp|Vẫn lưu) 700/ }).click();
   await expect(editor).toHaveCount(0);
-  // The form shows the new goal and keeps the pending name.
-  await expect(settings.getByRole('button', { name: /^Điểm mục tiêu/ })).toContainText('700');
-  await expect(settings.getByLabel('Tên của bạn', { exact: true })).toHaveValue('Tên chưa lưu');
-  await settings.getByRole('button', { name: 'Hủy', exact: true }).click();
+  await expect(settings.getByRole('region', { name: 'Điểm mục tiêu', exact: true })).toContainText('700');
+  await expect(settings.locator('header')).toContainText(before.name);
+  await settings.getByRole('button', { name: 'Đóng cài đặt', exact: true }).click();
   await expect(settings).toHaveCount(0);
   const after = await profile(page);
   expect(after.name).toBe(before.name);
