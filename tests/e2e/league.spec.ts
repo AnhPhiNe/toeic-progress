@@ -80,7 +80,7 @@ test.describe('Giải đấu tuần', () => {
     await page.goto('/giai-dau');
     await expect(page.getByRole('heading', { name: 'Tham gia giải đấu tuần?' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Đăng nhập để tham gia' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Giải đấu/ })).toContainText('Tham gia');
+    await expect(page.getByRole('button', { name: /^Giải đấu/ })).not.toContainText('Tham gia');
   });
 
   test('joining with a nickname shows the group table with zones', async ({ page }) => {

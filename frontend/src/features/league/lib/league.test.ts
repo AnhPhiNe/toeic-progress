@@ -13,7 +13,7 @@ const table: LeagueState = {
 
 describe('league helpers', () => {
   it('labels the sidebar and the phone chip', () => {
-    expect(sidebarLabel(null)).toBe('Tham gia');
+    expect(sidebarLabel(null)).toBe('');
     expect(sidebarLabel(table)).toBe('Hạng 5 · còn 3 ngày');
     expect(sidebarLabel({ ...table, mode: 'fallback' })).toBe('160★ · còn 3 ngày');
     expect(chipLabel(table).text).toBe('Hạng 5');

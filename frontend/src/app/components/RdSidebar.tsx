@@ -46,7 +46,7 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
     { key: 'notebook', label: 'Sổ tay', tab: 'mistakes', color: 'var(--rd-pink)', lip: 'var(--rd-pink-d)', tint: 'var(--rd-pink-d)', badge: dueMistakesCount || undefined },
     { key: 'awards', label: 'Thành tích', tab: 'awards', color: 'var(--rd-blue)', lip: 'var(--rd-blue-d)', tint: 'var(--rd-blue-d)', badge: newBadges || undefined },
     // Thành tích blue family, one step deeper so the two items stay apart.
-    { key: 'league', label: 'Giải đấu', tab: 'league', color: '#3b7ddd', lip: '#2a5fae', tint: '#2a6bc7', sub: leagueLabel || 'Tham gia' }
+    { key: 'league', label: 'Giải đấu', tab: 'league', color: '#3b7ddd', lip: '#2a5fae', tint: '#2a6bc7', sub: leagueLabel || undefined }
   ];
   const tools: Item[] = [
     { key: 'convert', label: 'Quy đổi điểm', tab: 'resources', color: 'var(--rd-teal)', lip: 'var(--rd-teal-d)', tint: 'var(--rd-teal-d)' },

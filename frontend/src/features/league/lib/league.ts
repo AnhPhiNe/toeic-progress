@@ -39,7 +39,8 @@ export function gapAbove(state: LeagueState): { stars: number; nickname: string 
 
 /** Small live text under "Giải đấu" in the sidebar. */
 export function sidebarLabel(state: LeagueState | null): string {
-  if (!state?.member) return 'Tham gia';
+  // Before joining the row is just "Giải đấu" like the other items; the live line appears once joined.
+  if (!state?.member) return '';
   const left = `còn ${state.week.daysLeft} ngày`;
   if (state.mode === 'table' && state.me?.rank) return `Hạng ${state.me.rank} · ${left}`;
   return `${state.me?.stars ?? 0}★ · ${left}`;
