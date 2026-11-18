@@ -1,0 +1,9 @@
+-- psql wrapper for restore_v2.sql. Run from the folder that holds v1_export.json:
+--   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/rebuild/load_export.psql
+-- CSV with control characters as quote/delimiter reads the one-line JSON
+-- byte for byte (text COPY would rewrite its backslash escapes).
+\set ON_ERROR_STOP on
+create temp table if not exists rebuild_import(doc text);
+truncate rebuild_import;
+\copy rebuild_import(doc) from 'v1_export.json' with (format csv, quote E'\x01', delimiter E'\x02')
+\ir restore_v2.sql

@@ -1,34 +1,20 @@
+// Weekly league on the v2 baseline: seating, ranking, lazy rollover,
+// promotion/demotion, leave, access and account deletion.
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { PGlite } from '@electric-sql/pglite';
+import { createDatabase } from './harness.mjs';
 
-const db = new PGlite();
+const h = await createDatabase();
+const { db, one } = h;
 const id = n => `55555555-5555-4555-8555-${String(n).padStart(12, '0')}`;
 const guest = '66666666-6666-4666-8666-666666666666';
 const W1 = '2026-11-16', W2 = '2026-11-23', W3 = '2026-11-30';
-const refresh = async (owner, week, stars = null) => (await db.query(
-  'select public.league_refresh($1::uuid,$2::date,$3::integer) as v', [owner, week, stars])).rows[0].v;
-const join = (owner, week, name, coat = 'nau-cam') => db.query('select public.league_join($1::uuid,$2::date,$3,$4)', [owner, week, name, coat]);
-const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
-const asUser = (owner, run) => db.transaction(async tx => {
-  await tx.exec('set local role authenticated');
-  await tx.query("select set_config('request.jwt.claim.sub',$1,true), set_config('request.jwt.claims',$2,true)",
-    [owner, JSON.stringify({ sub: owner, is_anonymous: false })]);
-  return run(tx);
-});
+const refresh = async (user, week, stars = null) => (await db.query(
+  'select public.league_refresh($1::uuid,$2::date,$3::integer) as v', [user, week, stars])).rows[0].v;
+const join = (user, week, name, coat = 'nau-cam') => db.query('select public.league_join($1::uuid,$2::date,$3,$4)', [user, week, name, coat]);
 
 try {
-  await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-    create schema auth; create table auth.users(id uuid primary key,is_anonymous boolean not null default false,email text);
-    create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-    create function auth.jwt() returns jsonb language sql as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
-    grant usage on schema auth to anon,authenticated,service_role;`);
-  // The league only needs the domain tables (private schema) before it.
-  const migrations = ['20260923000000_sync_records.sql', '20261005000000_fastapi_backend.sql', '20261006000000_domain_tables.sql',
-    '20261006010000_purge_deleted_content.sql', '20261006020000_api_rate_limits.sql', '20261118000000_weekly_league.sql'];
-  for (const name of migrations) await db.exec(await readFile(new URL('../../supabase/migrations/' + name, import.meta.url), 'utf8'));
-  for (let n = 1; n <= 26; n++) await db.query('insert into auth.users values($1,false)', [id(n)]);
-  await db.query('insert into auth.users values($1,true)', [guest]);
+  for (let n = 1; n <= 26; n++) await h.addUser(id(n));
+  await h.addUser(guest, { anonymous: true });
 
   // Guests and invalid input are refused; non-members get an empty state.
   await assert.rejects(join(guest, W1, 'KhÃ¡ch'), /Permanent account required/);
@@ -54,18 +40,12 @@ try {
   assert.deepEqual(state.group.rows.find(row => row.me), { rank: 3, nickname: 'Báº¡n 18', coat: 'nau-cam', stars: 180, me: true });
   assert.ok(!JSON.stringify(state).includes(id(20)), 'Other learners\' ids must never be returned');
 
-  // RLS: own membership only; own group's public columns only; nothing for anon.
-  const seen = await asUser(id(5), async tx => ({
-    members: (await tx.query('select user_id from public.league_members')).rows,
-    board: (await tx.query('select nickname,stars from public.league_standings')).rows,
-  }));
-  assert.deepEqual(seen.members.map(r => r.user_id), [id(5)]);
-  assert.equal(seen.board.length, 20);
-  const lonely = await asUser(id(21), async tx => (await tx.query('select nickname from public.league_standings')).rows);
-  assert.deepEqual(lonely.map(r => r.nickname), ['Báº¡n 21'], 'A learner must not read other groups');
-  await assert.rejects(asUser(id(5), tx => tx.query('select user_id from public.league_standings')), /permission denied/);
-  await assert.rejects(asUser(id(5), tx => tx.query("update public.league_members set tier=4")), /permission denied/);
-  await assert.rejects(db.transaction(async tx => { await tx.exec('set local role anon'); await tx.query('select * from public.league_members'); }), /permission denied/);
+  // No direct access for browser roles; the backend reads membership only.
+  await assert.rejects(h.asRole('authenticated', tx => tx.query('select user_id from public.league_members'), { sub: id(5), is_anonymous: false }), /permission denied/);
+  await assert.rejects(h.asRole('authenticated', tx => tx.query('select nickname from public.league_standings'), { sub: id(5), is_anonymous: false }), /permission denied/);
+  await assert.rejects(h.asRole('anon', tx => tx.query('select * from public.league_members')), /permission denied/);
+  await assert.rejects(h.asRole('service_role', tx => tx.query('update public.league_members set tier=4')), /permission denied/);
+  assert.equal((await h.asRole('service_role', tx => tx.query('select opted_out_at from public.league_members where user_id=$1', [id(5)]))).rows.length, 1);
   const grants = await one(`select has_function_privilege('authenticated','public.league_refresh(uuid,date,integer)','execute') as auth,
     has_function_privilege('anon','public.league_join(uuid,date,text,text)','execute') as anon,
     has_function_privilege('service_role','public.league_refresh(uuid,date,integer)','execute') as service`);
@@ -115,8 +95,7 @@ try {
   await db.query('delete from auth.users where id=$1', [id(4)]);
   assert.equal((await one('select count(*)::int as n from public.league_standings where user_id=$1', [id(4)])).n, 0);
   assert.equal((await one('select count(*)::int as n from public.league_members where user_id=$1', [id(4)])).n, 0);
-  console.log('League seating, ranking, RLS, lazy rollover, promotion/demotion, leave and deletion passed.');
-} catch (error) {
-  console.error('League database check failed:', error.message);
-  process.exitCode = 1;
-} finally { await db.close(); }
+  console.log('League seating, ranking, access, lazy rollover, promotion/demotion, leave and deletion passed.');
+} finally {
+  await db.close();
+}
