@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Cài đặt desktop</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lottie/soc-app.css">
+<link rel="stylesheet" href="_goalguide.css">
+<style>
+:root{--acc:#1c8fe3;--accS:#e9f4fd;--goal:#f0a500;--goalD:#a06a00;--goalS:#fff8e3;--fire:#ff7a1a;--fireD:#c4560a;--fireS:#fff2e8;--dataT:#0d8a7c;--dataS:#eaf8f5;--red:#d64545}
+.backdrop{position:absolute;inset:0;background:linear-gradient(180deg,#fff2cf,#ffe3e3 70%,#ffd9e2)}
+.dimdk{position:absolute;inset:0;background:rgba(47,58,51,.48);z-index:20}
+.modal{position:absolute;z-index:30;background:#fff;border-radius:28px;box-shadow:0 24px 60px rgba(20,30,25,.35);overflow:hidden}
+.xbtn{position:absolute;right:18px;top:18px;width:38px;height:38px;border-radius:13px;background:#f3f4f2;display:grid;place-items:center;font-weight:900;font-size:17px;color:#7a857e;z-index:5}
+.tag{position:absolute;z-index:60;font-weight:900;font-size:12px;color:#7a5cff;background:#f1ebff;border-radius:99px;padding:4px 10px;white-space:nowrap;box-shadow:0 0 0 2px #fff}
+/* shared bits */
+.pillst{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:5px 12px 5px 10px;font-weight:900;font-size:13.5px;white-space:nowrap}
+.pillst i{width:9px;height:9px;border-radius:50%;flex:none}
+.pillst.local{background:#f1f2ef;color:#5d6862}.pillst.local i{background:#aab2ad}
+.pillst.ok{background:#e6f6e9;color:#2f8a42}.pillst.ok i{background:#46b35a;box-shadow:0 0 0 3px #c9ecd0}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:11px;background:#fff;border-radius:14px;padding:11px 18px;font-weight:900;font-size:15.5px;color:#2f3a33;box-shadow:0 0 0 2px #dfe3e8,0 4px 0 #dfe3e8;white-space:nowrap}
+.gbtn svg{width:22px;height:22px;flex:none}
+.ava{position:relative;flex:none;border-radius:24px;background:#fff;box-shadow:0 0 0 3px #fff,0 4px 12px rgba(160,90,40,.18);overflow:hidden}
+.ava .soc{position:absolute}
+.ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff;font-weight:900;font-size:16px}
+.ic svg{width:19px;height:19px}
+.save{border-radius:14px;padding:12px 22px;font-weight:900;font-size:15.5px;color:#fff;background:linear-gradient(90deg,#4cc062,#2f9e4a);box-shadow:0 4px 0 #2a8a40;white-space:nowrap}
+.save.off{background:#eef0ee;color:#a3aba5;box-shadow:none}
+.quiet{border-radius:12px;padding:9px 14px;font-weight:900;font-size:14.5px;white-space:nowrap}
+
+/* ===== A: two columns ===== */
+.sa{left:90px;top:28px;width:920px;height:634px;display:flex}
+.sa-l{width:252px;flex:none;background:linear-gradient(180deg,#fff6df,#ffeef2);padding:24px 18px;display:flex;flex-direction:column}
+.sa-l h2{font-weight:900;font-size:22px;letter-spacing:-.4px;padding-left:6px}
+.me{display:flex;flex-direction:column;align-items:center;text-align:center;margin:18px 0 18px;padding:16px 10px 14px;background:rgba(255,255,255,.7);border-radius:22px}
+.me b{display:block;font-weight:900;font-size:19px;margin-top:10px}
+.me small{display:block;font-weight:800;font-size:13px;color:#7a857e;margin-top:2px}
+.me .pillst{margin-top:9px}
+.me .out{margin-top:9px;font-weight:900;font-size:13.5px;color:#5d6862;text-decoration:underline;text-underline-offset:3px}
+.snav{display:flex;flex-direction:column;gap:4px}
+.snav a{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:16px;font-weight:900;font-size:16px;color:#4f5a53}
+.snav a .ic{width:32px;height:32px;border-radius:11px}
+.snav a .ic svg{width:17px;height:17px}
+.snav a.on{background:#fff;box-shadow:0 0 0 2px var(--c2),0 3px 0 var(--c2);color:var(--c1)}
+.sa-r{flex:1;position:relative;display:flex;flex-direction:column;min-width:0}
+.sa-body{flex:1;padding:26px 30px 0;overflow:hidden;position:relative}
+.sa-body:after{content:"";position:absolute;left:0;right:0;bottom:0;height:46px;background:linear-gradient(rgba(255,255,255,0),#fff)}
+.sec{margin-bottom:22px}
+.sec-h{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.sec-h h3{font-weight:900;font-size:19px;letter-spacing:-.2px}
+.sec-h p{font-weight:800;font-size:14px;color:#7a857e}
+.card{border-radius:22px;padding:18px 20px;background:#fff;box-shadow:0 0 0 2px var(--line,#eef0ee)}
+.cta-cloud{display:flex;align-items:center;gap:18px;border-radius:20px;padding:16px 18px;background:var(--accS);box-shadow:0 0 0 2px #cfe6fb}
+.cta-cloud .t{flex:1}.cta-cloud b{display:block;font-weight:900;font-size:17px}
+.cta-cloud span{display:block;font-weight:800;font-size:14px;color:#4c6378;line-height:1.4;margin-top:3px}
+.cloud{width:56px;height:56px;flex:none}
+.cta-cloud .gbtn{display:inline-flex;margin:0;color:#2f3a33;font-size:15.5px;line-height:1.2}
+.frow{display:flex;align-items:center;gap:16px;margin-top:16px}
+.frow label{width:130px;font-weight:900;font-size:15.5px;color:#4f5a53;flex:none}
+.inp{flex:1;border-radius:14px;padding:11px 14px;font-weight:900;font-size:16px;background:#fff;box-shadow:0 0 0 2px #e6e9e6;color:#2f3a33}
+.g3{display:grid;grid-template-columns:1.1fr 1.1fr 1fr;gap:14px}
+.fld{border-radius:18px;padding:13px 15px 14px;background:var(--goalS);box-shadow:0 0 0 2px #fbe7b4}
+.fld>label{display:block;font-weight:900;font-size:15px;color:#6b5a2e;margin-bottom:9px}
+.step2{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.step2 u{width:36px;height:36px;border-radius:12px;background:#fff;box-shadow:0 3px 0 #f0dca6;display:grid;place-items:center;text-decoration:none;font-weight:900;font-size:20px;color:#a06a00}
+.step2 strong{font-weight:900;font-size:30px;letter-spacing:-1px;color:var(--goalD)}
+.datebx{display:flex;align-items:center;gap:8px;border-radius:12px;background:#fff;box-shadow:0 0 0 2px #f0dca6;padding:8px 10px;font-weight:900;font-size:16px}
+.dchip{display:inline-block;margin-top:8px;border-radius:99px;padding:3px 10px;font-weight:900;font-size:13px;background:#efe9ff;color:#6b4fd8}
+.unset{font-weight:900;font-size:18px;color:#a69b80}
+.setdate{display:inline-flex;margin-top:8px;border-radius:11px;padding:7px 12px;font-weight:900;font-size:14px;background:#fff;color:var(--goalD);box-shadow:0 0 0 2px #ffd36b,0 3px 0 #ffd36b}
+.mins{display:flex;gap:5px;margin-top:9px}
+.mins span{flex:1;text-align:center;border-radius:10px;padding:5px 0;font-weight:900;font-size:13.5px;background:#fff;color:#8a7a50;box-shadow:0 0 0 1.5px #f0dca6}
+.mins span.on{background:#ffc83d;color:#5a3d00;box-shadow:0 2px 0 #d99a00}
+.bigmin{font-weight:900;font-size:30px;letter-spacing:-1px;color:var(--goalD);line-height:1}
+.bigmin small{font-size:15px;letter-spacing:0;color:#8a7a50;margin-left:3px}
+.shields{display:flex;align-items:center;gap:14px}
+.shields .t{flex:1}.shields b{display:block;font-weight:900;font-size:16px}.shields span{display:block;font-weight:800;font-size:14px;color:#8b6a52;margin-top:2px}
+.sh{width:34px;height:38px}
+.quote{margin-top:14px;border-radius:16px;padding:12px 16px 12px 46px;position:relative;background:#fff;box-shadow:0 0 0 2px #ffd9bd;font-weight:900;font-size:16px;line-height:1.4;color:#5a4030}
+.quote:before{content:"\201C";position:absolute;left:12px;top:-4px;font-size:46px;color:#ff9f5a;font-weight:900}
+.data3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.dt{border-radius:16px;padding:12px 14px;background:var(--dataS);display:flex;gap:11px;align-items:center}
+.dt b{display:block;font-weight:900;font-size:15px;color:#24564f}.dt small{display:block;font-weight:800;font-size:12.5px;color:#5f8a83;margin-top:1px}
+.dt .ic{width:32px;height:32px;background:#14b8a6;border-radius:10px}
+.danger{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:2px dashed #eef0ee}
+.danger div{flex:1;font-weight:800;font-size:13.5px;color:#8a938d}.danger div b{display:block;font-weight:900;font-size:15px;color:#4f5a53}
+.dangerbtn{border-radius:12px;padding:9px 14px;font-weight:900;font-size:14.5px;color:var(--red);background:#fff;box-shadow:0 0 0 2px #f4cccc;white-space:nowrap}
+.sa-foot{display:flex;align-items:center;gap:14px;padding:14px 30px 18px;border-top:2px solid #f2f3f1}
+.sa-foot .note{flex:1;font-weight:800;font-size:14px;color:#9aa39d}
+.sa-foot .note b{color:#2f8a42}
+
+/* ===== B: tiles ===== */
+.sbx{left:80px;top:24px;width:940px;height:642px;display:flex;flex-direction:column}
+.hero{display:flex;align-items:center;gap:18px;padding:22px 28px 20px;background:linear-gradient(120deg,#fff3d1,#ffe5ee)}
+.hero .who{flex:1;min-width:0}
+.hero h2{font-weight:900;font-size:13px;letter-spacing:.6px;color:#a3906a}
+.hero .nm{display:flex;align-items:center;gap:9px;margin-top:2px}
+.hero .nm b{font-weight:900;font-size:25px;letter-spacing:-.5px}
+.pen{width:28px;height:28px;border-radius:9px;background:#fff;display:grid;place-items:center;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+.pen svg{width:14px;height:14px}
+.hero .sub{display:flex;align-items:center;gap:10px;margin-top:8px;font-weight:800;font-size:14px;color:#7a857e}
+.signin{display:flex;flex-direction:column;align-items:flex-end;gap:7px;margin-right:52px}
+.signin small{font-weight:800;font-size:13.5px;color:#6b5a50}
+.acct{display:flex;align-items:center;gap:12px;margin-right:52px}
+.acct .quiet{background:#fff;color:#5d6862;box-shadow:0 0 0 2px #eee6e0}
+.tb{flex:1;padding:16px 28px 0}
+.glbl{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;letter-spacing:.6px;color:#8d958f;margin:4px 0 10px}
+.glbl i{width:10px;height:10px;border-radius:4px}
+.tiles{display:grid;gap:14px;margin-bottom:16px}
+.tile{position:relative;border-radius:24px;padding:16px 18px;overflow:hidden}
+.tile .k{font-weight:900;font-size:15.5px}
+.tile .v{font-weight:900;letter-spacing:-1.5px;line-height:1;margin-top:8px}
+.tile .s{font-weight:800;font-size:14px;margin-top:6px}
+.tile .ed{position:absolute;right:14px;top:14px;border-radius:10px;padding:5px 11px;font-weight:900;font-size:13px;background:rgba(255,255,255,.85)}
+.t-goal{background:linear-gradient(135deg,#ffd862,#ffbd1f);box-shadow:0 5px 0 #e0a100;color:#5a3d00}
+.t-goal .v{font-size:60px}
+.t-goal .ed{color:#8a5d00}
+.t-goal svg.tro{position:absolute;right:16px;bottom:10px;width:92px}
+.t-cream{background:var(--goalS);box-shadow:0 0 0 2px #fbe3a5,0 5px 0 #fbe3a5;color:#5a4a20}
+.t-cream .v{font-size:44px;color:var(--goalD)}
+.t-cream .s{color:#8a7a50}
+.t-cream .ed{color:var(--goalD);background:#fff;box-shadow:0 0 0 2px #fbe3a5}
+.t-fire{background:var(--fireS);box-shadow:0 0 0 2px #ffd6b8,0 5px 0 #ffd6b8;color:#5a3a20}
+.t-fire .ed{color:var(--fireD);background:#fff;box-shadow:0 0 0 2px #ffd6b8}
+.t-fire .s{color:#8b6a52}
+.bigq{font-weight:900;font-size:19px;line-height:1.35;color:#5a3a20;margin-top:10px;padding-right:20px}
+.qm{position:absolute;right:18px;bottom:-26px;font-size:120px;font-weight:900;color:#ffd2ae;line-height:1}
+.dfoot{display:flex;align-items:center;gap:10px;padding:14px 28px 18px;border-top:2px solid #f2f3f1;background:#fbfcfb}
+.dfoot .lb{display:flex;align-items:center;gap:9px;font-weight:900;font-size:15.5px;color:#3f4a43;margin-right:6px}
+.dfoot .lb .ic{width:30px;height:30px;border-radius:10px;background:#9aa39d}
+.dq{border-radius:12px;padding:9px 13px;font-weight:900;font-size:14.5px;color:var(--dataT);background:var(--dataS);white-space:nowrap}
+.dfoot .sp{flex:1}
+.dfoot .vr{width:2px;height:28px;background:#eceeec;margin:0 6px}
+.del{display:flex;align-items:center;gap:7px;font-weight:900;font-size:14.5px;color:var(--red);white-space:nowrap}
+.del svg{width:17px;height:17px}
+.popd{position:absolute;z-index:40;width:330px;border-radius:24px;background:#fff;padding:18px 20px 20px;box-shadow:0 18px 44px rgba(60,40,10,.28),0 0 0 2px #fbeccb}
+.popd:before{content:"";position:absolute;left:-11px;top:46px;border:11px solid transparent;border-left:0;border-right-color:#fff}
+.popd h4{font-weight:900;font-size:18px}
+.popd .stepper{margin-top:14px}
+.popd .presets span{width:52px}
+.popd .row2{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:16px}
+.popd .row2 a{font-weight:900;font-size:15px;color:#7a857e}
+.stepper{display:flex;align-items:center;justify-content:center;gap:18px}
+.stepper u{width:44px;height:44px;border-radius:15px;background:#f3f4f2;box-shadow:0 4px 0 #dfe3e0;display:grid;place-items:center;text-decoration:none;font-weight:900;font-size:24px;color:#4f5a53}
+.stepper strong{font-weight:900;font-size:42px;letter-spacing:-1.5px;min-width:100px;text-align:center;color:#a06a00}
+.presets{display:flex;gap:7px;justify-content:center;margin-top:12px}
+.presets span{border-radius:12px;padding:7px 0;text-align:center;font-weight:900;font-size:15px;background:#fff;box-shadow:0 0 0 2px #ebe7df}
+.presets span.on{background:#fff7d6;box-shadow:0 0 0 2.5px #ffc83d,0 3px 0 #f0b400;color:#a06a00}
+.hint{margin-top:12px;font-weight:800;font-size:13.5px;color:#8a7a50;text-align:center}
+.lift .t-goal{z-index:36}
+.dimtiles{position:absolute;inset:0;background:rgba(255,255,255,.55);z-index:35}
+</style></head><body>
+
+<div class="cap">Cài đặt desktop · A · Trang hai cột có mục lục bên trái<small>Cột trái giữ “bạn là ai”: Sóc đội lông của bạn, tên, trạng thái đồng bộ thành một viên thuốc màu rõ ràng, rồi 4 mục (Tài khoản, Mục tiêu, Chuỗi học, Dữ liệu), bấm là cuộn tới. Cột phải là các thẻ rộng, nhãn 15–16px nằm trên ô nhập thay vì chữ nhỏ bên trái ô trôi lơ lửng bên phải. Mỗi nhóm một màu như trong app: tài khoản xanh dương, mục tiêu vàng, chuỗi cam, dữ liệu xanh ngọc; nút xóa đỏ nhưng chỉ viền, tách bằng đường nét đứt. Một hành động chính mỗi lúc: khách thì là nút Google; khi đã sửa gì đó thì “Lưu cài đặt” mới bật xanh.</small></div>
+<div class="row" id="RA"></div>
+
+<div class="cap">Cài đặt desktop · B · Bảng ô màu, mỗi ô hiện giá trị thật to<small>Mở ra là thấy ngay mình đang đặt gì: Mục tiêu 990 có cúp, Ngày thi D-45 (hoặc “Chưa đặt” + Đặt ngày), Học mỗi ngày 30′, Khiên cứu chuỗi ×2, Châm ngôn. Bấm một ô mở bảng nhỏ ngay cạnh ô, có nút Lưu riêng, nên không cần nút Lưu chung cho cả trang. Dữ liệu là một hàng yên lặng ở đáy; Xóa toàn bộ đứng riêng phía phải sau vạch ngăn, chữ đỏ không nền.</small></div>
+<div class="row" id="RB"></div>
+
+<script src="lottie/soc-strings.js"></script>
+<script src="_goalguide.js"></script>
+<script>
+/* st* names only: _soc.js owns D, C, F, soc, eye. */
+const stCoats={nau:null,
+  xam:{'#f4a261':'#a9b2bf','#e58a45':'#8a94a3','#d9773a':'#7b8594','#fff1dc':'#f3f5f8','#ffe3c2':'#e4e8ee','#ffb5a7':'#f6c7cf'},
+  dau:{'#f4a261':'#f3a7b6','#e58a45':'#e3869a','#d9773a':'#d77689','#fff1dc':'#fff2f4','#ffe3c2':'#ffe1e7','#ffb5a7':'#ff9eb2'}};
+function stSoc(k,coat,style){let s=SOC[k]||SOC.idle;const m=stCoats[coat];if(m)for(const a in m)s=s.split(a).join(m[a]);return `<span class="soc" style="${style}">${s}</span>`;}
+const stAva=(coat,box,k='idle')=>`<span class="ava" style="width:${box}px;height:${box}px;background:${coat==='xam'?'#eef1f5':coat==='dau'?'#fff0f3':'#fff3e0'}">${stSoc(k,coat,`width:${box*1.25}px;left:${-box*.08}px;top:${box*.06}px`)}</span>`;
+const stG=`<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
+const stGBtn=`<span class="gbtn">${stG}Đăng nhập với Google</span>`;
+const stSv=(d,c='#fff',w=2.6)=>`<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const stI={
+  acct:stSv('<circle cx="12" cy="8" r="4" fill="#fff" stroke="none"/><path d="M4 21c0-5 4-6.5 8-6.5s8 1.5 8 6.5z" fill="#fff" stroke="none"/>'),
+  goal:stSv('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="#fff"/>'),
+  fire:stSv('<path d="M12 2.5c1 4 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0c0-3 1.8-4.6 2.8-6 .4 2 1.4 3 2.4 3.2C11.2 8 11 5 12 2.5z" fill="#fff" stroke="none"/>'),
+  data:stSv('<ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v13c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-13M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/>'),
+  down:stSv('<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>'),
+  up:stSv('<path d="M12 16V5M7 9.5l5-5 5 5M5 20h14"/>'),
+  demo:stSv('<path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3"/>'),
+  trash:stSv('<path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/>','#d64545',2.4),
+  pen:stSv('<path d="M4 20h4L19 9l-4-4L4 16z"/>','#a06a00',3)};
+const stIc=(k,bg)=>`<span class="ic" style="background:${bg};box-shadow:0 3px 0 rgba(0,0,0,.14)">${stI[k]}</span>`;
+const stShield=(fill='#ff7a1a')=>`<svg class="sh" viewBox="0 0 24 26"><path d="M12 1.5 22 5v7c0 6.5-4.5 10.5-10 12.5C6.5 22.5 2 18.5 2 12V5Z" fill="${fill}"/><path d="M8 13l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const stTro=`<svg class="tro" viewBox="0 0 90 100"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#c98400" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#c98400" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#fff4c4"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#ffc83d"/><rect x="38" y="58" width="14" height="12" fill="#c98400"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#fff4c4"/><rect x="18" y="79" width="54" height="17" rx="3" fill="#2f3a33"/></svg>`;
+const stCloud=`<svg class="cloud" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28" fill="#fff"/><path d="M17 37h22a7 7 0 0 0 .8-14 10 10 0 0 0-19-2.5A8 8 0 0 0 17 37z" fill="#1c8fe3"/><path d="M28 33v-9M24 27.5l4-4 4 4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/* App behind the modal: sidebar with Công cụ, Today sky */
+const stTools=`<div class="stl"><i style="background:#ffc83d">?</i>Cách dùng app</div><div class="stl" style="background:#eef1ef"><i style="background:#9aa39d">●</i>Tài khoản &amp; cài đặt</div>`;
+const stFrame=(inner,step)=>`<div class="dk"><span class="step" style="top:-26px">${step}</span>${ggSide('home',stTools)}<div class="main"><div class="backdrop"></div></div><div class="dimdk"></div>${inner}</div>`;
+
+/* ===== A ===== */
+const navA=(on)=>`<nav class="snav">${[['acct','Tài khoản','#1c8fe3','#cfe6fb'],['goal','Mục tiêu','#f0a500','#fbe3a5'],['fire','Chuỗi học','#ff7a1a','#ffd6b8'],['data','Dữ liệu','#14b8a6','#bfeee6']].map(([k,l,c,c2])=>`<a class="${k===on?'on':''}" style="--c1:${k==='goal'?'#a06a00':k==='data'?'#0d8a7c':c};--c2:${c2}">${stIc(k,c)}${l}</a>`).join('')}</nav>`;
+function stLeftA(signed){
+  return `<div class="sa-l"><h2>Cài đặt</h2>
+  <div class="me">${stAva(signed?'xam':'nau',84)}<b>Minh Tuấn</b>${signed?'<small>minhtuan@gmail.com</small>':''}
+  <span class="pillst ${signed?'ok':'local'}"><i></i>${signed?'Đã đồng bộ · 2 phút trước':'Chỉ lưu trên máy này'}</span>${signed?'<span class="out">Đăng xuất</span>':''}</div>
+  ${navA(signed?'data':'acct')}</div>`;}
+const secH=(k,bg,t,p)=>`<div class="sec-h">${stIc(k,bg)}<div><h3>${t}</h3>${p?`<p>${p}</p>`:''}</div></div>`;
+const goalCardA=(dateSet)=>`<div class="sec">${secH('goal','#f0a500','Mục tiêu','Cúp trên Hôm nay và kế hoạch mỗi ngày dựa vào đây')}
+  <div class="g3">
+   <div class="fld"><label>Điểm mục tiêu</label><div class="step2"><u>−</u><strong>990</strong><u>+</u></div></div>
+   <div class="fld"><label>Ngày thi</label>${dateSet?`<div class="datebx">📅 02/01/2027</div><span class="dchip">còn 45 ngày</span>`:`<div class="unset">Chưa đặt</div><span class="setdate">+ Đặt ngày thi</span>`}</div>
+   <div class="fld"><label>Học mỗi ngày</label><div class="bigmin">30<small>phút</small></div><div class="mins"><span>15</span><span class="on">30</span><span>45</span><span>60</span></div></div>
+  </div></div>`;
+const A1=stFrame(`<div class="modal sa">${stLeftA(false)}<div class="sa-r"><span class="xbtn">✕</span><div class="sa-body">
+  <div class="sec">${secH('acct','#1c8fe3','Tài khoản','')}
+   <div class="cta-cloud">${stCloud}<div class="t"><b>Lưu tiến độ lên mây</b><span>Đăng nhập để học tiếp trên điện thoại và máy tính, đổi máy không mất gì.</span></div>${stGBtn}</div>
+   <div class="frow"><label>Tên của bạn</label><span class="inp">Minh Tuấn</span></div></div>
+  ${goalCardA(false)}
+  <div class="sec">${secH('fire','#ff7a1a','Chuỗi học','Giữ lửa mỗi ngày')}</div>
+ </div><div class="sa-foot"><span class="note">Chưa có thay đổi</span><span class="quiet" style="color:#7a857e">Đóng</span><span class="save off">Lưu cài đặt</span></div></div></div>`,'A1 · khách · mở ra ở mục Tài khoản');
+
+const A2=stFrame(`<div class="modal sa">${stLeftA(true)}<div class="sa-r"><span class="xbtn">✕</span><div class="sa-body" style="padding-top:22px">
+  <div class="sec">${secH('fire','#ff7a1a','Chuỗi học','Giữ lửa mỗi ngày')}
+   <div class="card" style="--line:#ffe0c8;background:var(--fireS)">
+    <div class="shields">${stShield()}${stShield()}<div class="t"><b>Khiên cứu chuỗi · còn 2</b><span>Lỡ một ngày, khiên tự dùng để chuỗi không về 0.</span></div><div class="step2" style="gap:10px"><u style="box-shadow:0 3px 0 #ffd6b8;color:#c4560a">−</u><strong style="font-size:24px;color:#c4560a">2</strong><u style="box-shadow:0 3px 0 #ffd6b8;color:#c4560a">+</u></div></div>
+    <div class="quote">Kỷ luật là cầu nối giữa mục tiêu và thành tựu.</div></div></div>
+  <div class="sec">${secH('data','#14b8a6','Dữ liệu','Sao lưu ra file, hoặc thử app với dữ liệu mẫu')}
+   <div class="card">
+    <div class="data3"><div class="dt">${stIc('down','#14b8a6')}<div><b>Sao lưu</b><small>tải file .json</small></div></div><div class="dt">${stIc('up','#14b8a6')}<div><b>Nhập file</b><small>khôi phục bản lưu</small></div></div><div class="dt">${stIc('demo','#14b8a6')}<div><b>Dữ liệu mẫu</b><small>xem thử app</small></div></div></div>
+    <div class="danger"><div><b>Xóa toàn bộ dữ liệu</b>Xóa trên máy này và trên mây. Không hoàn tác được.</div><span class="dangerbtn">Xóa dữ liệu…</span></div></div></div>
+ </div><div class="sa-foot"><span class="note"><b>●</b> Đã đổi châm ngôn</span><span class="quiet" style="color:#7a857e">Hủy</span><span class="save">Lưu cài đặt</span></div></div></div>
+ <span class="tag" style="left:104px;top:600px">bấm mục → cuộn tới thẻ đó</span>`,'A2 · đã đăng nhập · cuộn xuống Chuỗi học & Dữ liệu');
+
+document.getElementById('RA').innerHTML=
+  ggFw('A1 · Khách','Nút Google là việc chính duy nhất: trắng, viền, logo bốn màu, nằm trong khối “Lưu tiến độ lên mây” xanh nhạt. Ngày thi chưa đặt hiện “Chưa đặt” + nút vàng, không còn dấu “—” lẻ loi. “Lưu cài đặt” xám cho tới khi sửa gì đó.',A1,true)
+ +ggFw('A2 · Đã đăng nhập','Viên trạng thái chuyển xanh lá “Đã đồng bộ”, email và Đăng xuất (chữ gạch dưới, không nổi) luôn thấy ở cột trái. Dữ liệu: ba ô xanh ngọc ngang hàng; xóa nằm riêng dưới vạch nét đứt, nút chỉ viền đỏ.',A2,true);
+
+/* ===== B ===== */
+function heroB(signed){
+  return `<div class="hero">${stAva(signed?'xam':'nau',78)}<div class="who"><h2>CÀI ĐẶT</h2><div class="nm"><b>Minh Tuấn</b><span class="pen">${stI.pen}</span></div>
+   <div class="sub"><span class="pillst ${signed?'ok':'local'}"><i></i>${signed?'Đã đồng bộ':'Chỉ lưu trên máy này'}</span>${signed?'minhtuan@gmail.com':''}</div></div>
+   ${signed?`<div class="acct"><span class="quiet">Đăng xuất</span></div>`:`<div class="signin">${stGBtn}<small>Lưu lên mây để học trên mọi máy</small></div>`}
+   <span class="xbtn" style="top:20px;right:22px;background:rgba(255,255,255,.8)">✕</span></div>`;}
+function tilesB(dateSet){
+  return `<div class="tb">
+  <div class="glbl"><i style="background:#ffc83d"></i>MỤC TIÊU</div>
+  <div class="tiles" style="grid-template-columns:1.25fr 1fr 1fr;height:158px">
+   <div class="tile t-goal"><div class="k">Điểm mục tiêu</div><div class="v">990</div><div class="s" style="color:#7a5600">Cúp cuối cầu thang</div>${stTro}<span class="ed">✎ Sửa</span></div>
+   <div class="tile t-cream"><div class="k">Ngày thi</div>${dateSet?`<div class="v">D-45</div><div class="s">Thứ Bảy · 02/01/2027</div><span class="ed">✎ Đổi</span>`:`<div class="v" style="font-size:30px;color:#b3a57f;letter-spacing:-.5px;margin-top:14px">Chưa đặt</div><span class="setdate" style="margin-top:12px">+ Đặt ngày thi</span>`}</div>
+   <div class="tile t-cream"><div class="k">Học mỗi ngày</div><div class="v">30′</div><div class="s">phút · khoảng 2 việc</div><span class="ed">✎ Đổi</span></div>
+  </div>
+  <div class="glbl"><i style="background:#ff7a1a"></i>CHUỖI HỌC</div>
+  <div class="tiles" style="grid-template-columns:1fr 2.25fr;height:124px">
+   <div class="tile t-fire"><div class="k">Khiên cứu chuỗi</div><div style="display:flex;align-items:center;gap:6px;margin-top:10px">${stShield()}${stShield('#ffb27a')}<b style="font-weight:900;font-size:34px;color:#c4560a;margin-left:4px">×2</b></div><span class="ed">✎</span></div>
+   <div class="tile t-fire"><div class="k">Châm ngôn</div><div class="bigq">Kỷ luật là cầu nối giữa mục tiêu và thành tựu.</div><span class="qm">”</span><span class="ed">✎ Đổi</span></div>
+  </div></div>
+  <div class="dfoot"><span class="lb">${stIc('data','#9aa39d')}Dữ liệu</span><span class="dq">⬇ Tải bản sao lưu</span><span class="dq">⬆ Nhập từ file</span><span class="dq">Dữ liệu mẫu</span><span class="sp"></span><span class="vr"></span><span class="del">${stI.trash}Xóa toàn bộ dữ liệu</span></div>`;}
+const B1=stFrame(`<div class="modal sbx">${heroB(false)}${tilesB(false)}</div>`,'B1 · khách');
+const popGoal=`<div class="popd" style="left:442px;top:200px"><h4>Điểm mục tiêu</h4>
+ <div class="stepper"><u>−</u><strong>900</strong><u>+</u></div>
+ <div class="presets">${[700,800,850,900,990].map(v=>`<span class="${v===900?'on':''}">${v}</span>`).join('')}</div>
+ <div class="hint">Cầu thang bớt 4 bậc · Nghe 465 · Đọc 435</div>
+ <div class="row2"><a>Hủy</a><span class="save">Lưu · cúp 900</span></div></div>`;
+const B2=stFrame(`<div class="modal sbx lift">${heroB(true)}${tilesB(true)}<div class="dimtiles" style="top:122px"></div></div>${popGoal}
+ <span class="tag" style="left:640px;top:2px">ô đang sửa nổi lên, các ô khác mờ đi</span>`,'B2 · đã đăng nhập · bấm ô Mục tiêu');
+
+document.getElementById('RB').innerHTML=
+  ggFw('B1 · Khách','Khối đầu trang ấm (vàng → hồng như thẻ cấp ở sidebar) chứa Sóc, tên, viên trạng thái; nút Google là nút chính duy nhất. Ô Ngày thi trống mời “+ Đặt ngày thi”.',B1,true)
+ +ggFw('B2 · Đã đăng nhập, đang sửa mục tiêu','Bấm ô mở bảng nhỏ cạnh ô (cùng bảng −/+ và mốc nhanh như “Đổi mục tiêu” trên Hôm nay), có nút Lưu riêng; Esc hoặc bấm ra ngoài để đóng. Đăng xuất là nút trắng yên lặng.',B2,true);
+</script></body></html>
