@@ -5,7 +5,7 @@ export function isFirstFullTest(sessions: readonly StudySession[]): boolean {
   return sessions.filter(s => !s.deletedAt && s.sessionType === 'FULL_TEST').length === 1;
 }
 
-/** "Bậc x/9 · còn N điểm tới cúp T. ..." line of the first-stake card. */
+/** "Bậc x/8 · còn N điểm tới cúp T. ..." line of the first-stake card. */
 export function firstStakeLine(stair: { index: number; total: number } | null, remaining: number | null, target?: number): string {
   const parts: string[] = [];
   if (stair) parts.push(`Bậc ${stair.index}/${stair.total}`);
