@@ -26,7 +26,7 @@ def test_guests_are_asked_to_sign_in_before_managed_ai(api):
         assert response.status_code == 403 and "Đăng nhập Google" in response.json()["detail"]
         assert response.headers["X-Error-Code"] == "AI_LOGIN_REQUIRED"
         assert client.get("/api/v1/ai/usage").json()["accessStatus"] == "login_required"
-        assert not any(call[1].endswith("ai_access_grants") or "reserve_ai" in call[1] for call in calls)
+        assert not any(call[1].endswith("get_ai_access") or "reserve_ai" in call[1] for call in calls)
 
 
 def test_signed_in_account_without_a_grant_row_uses_the_default_cap(api):
@@ -48,7 +48,7 @@ def test_approved_account_uses_its_cap_in_usage_and_reservation(api, limit):
         assert reply.status_code == 200 and reply.json()["usage"]["accessStatus"] == "active"
         reservation = next(call for call in calls if call[1].endswith("reserve_ai_request"))
         assert reservation[2]["p_user_limit"] == limit and reservation[2]["p_day_limit"] == 20
-        assert calls.index(reservation) > next(i for i, call in enumerate(calls) if call[1].endswith("ai_access_grants"))
+        assert calls.index(reservation) > next(i for i, call in enumerate(calls) if call[1].endswith("get_ai_access"))
         assert sum(call[0] == "api.openai.com" for call in calls) == 1
 
 
@@ -89,14 +89,24 @@ def test_grant_lookup_uses_verified_owner_and_does_not_trust_submitted_owner_or_
              ai_grant={"status": "pending", "monthly_limit": 10}, settings_overrides=MANAGED) as (client, calls):
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 403
         auth, lookup = calls[:2]
-        assert auth[1] == "/auth/v1/user" and lookup[1] == "/rest/v1/ai_access_grants"
+        assert auth[1] == "/auth/v1/user" and lookup[1] == "/rest/v1/rpc/get_ai_access" and lookup[2] == {"p_user_id": USER_ID}
         assert lookup[3]["authorization"] == "Bearer server-secret"
         assert client.post("/api/v1/ai/extract", json=extraction(owner_id=USER_ID)).status_code == 422
         assert not any(call[0] == "api.openai.com" for call in calls)
         assert USER_ID not in json.dumps(client.get("/api/v1/ai/usage").json())
 
 
-def test_readiness_checks_required_grant_table_when_managed_mode_is_enabled(api):
-    with api(ai_grant_status=404, settings_overrides=MANAGED) as (client, _calls):
+def test_readiness_requires_the_v2_schema_when_managed_mode_is_enabled(api):
+    with api(readiness_status=404, settings_overrides=MANAGED) as (client, _calls):
         assert client.get("/ready").status_code == 503
         assert client.get("/health").json()["managed_ai_access"] is True
+
+
+@pytest.mark.parametrize("grant,expected", [({"status": "active", "plan": "plus", "monthly_limit": None}, 100),
+                                            ({"status": "active", "plan": "plus", "monthly_limit": 250}, 250),
+                                            (None, 10)])
+def test_plan_caps_come_from_user_plans_with_backend_defaults(api, grant, expected):
+    with api(ai_grant=grant, settings_overrides=MANAGED) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 200
+        reservation = next(call for call in calls if call[1].endswith("reserve_ai_request"))
+        assert reservation[2]["p_user_limit"] == expected

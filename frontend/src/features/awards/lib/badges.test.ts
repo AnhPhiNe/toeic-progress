@@ -8,7 +8,7 @@ const test = (id: string, date: string, totalScore: number, extra: Partial<Study
 
 function bundle(sessions: StudySession[], target = 800): DataBundle {
   return { schemaVersion: 3, profile: { name: 'A', targetScore: target, examDate: '', currentStreak: 0, longestStreak: 0, streakFreezes: 0, lastStudyDate: '', dailyMinGoalMinutes: 30, motto: '', selectedSkill: 'LR' },
-    sessions, mistakes: [], pacingRuns: [], checklist: [], vocabLog: [], shieldDays: [], weeklyPlans: [] } as unknown as DataBundle;
+    sessions, mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: [] } as unknown as DataBundle;
 }
 const byId = (b: ReturnType<typeof computeBadges>) => Object.fromEntries(b.map(x => [x.id, x]));
 

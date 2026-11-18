@@ -41,7 +41,7 @@ async def _facts(gateway, user_id: str, since: datetime) -> dict:
     owner = "eq." + user_id
     day = since.date().isoformat()
     stamp = since.isoformat()
-    common = {"user_id": owner, "deleted_at": "is.null", "limit": "2000"}
+    common = {"user_id": owner, "limit": "2000"}
     return {
         "sessions": await _select(gateway, "study_sessions", {
             **common, "select": "session_type,study_date,created_at,duration_minutes,total_score,part1_correct,has_practice_parts",
@@ -72,7 +72,7 @@ async def league_state(request: Request, user_id: str) -> dict:
         stars = league.weekly_stars(facts, monday, now)
         last_week = league.weekly_stars(facts, previous, now)["total"]
     result = await gateway.rpc("league_refresh", {
-        "p_owner_id": user_id, "p_week": monday.isoformat(), "p_stars": stars["total"] if stars else None})
+        "p_user_id": user_id, "p_week": monday.isoformat(), "p_stars": stars["total"] if stars else None})
     if not isinstance(result, dict):
         raise HTTPException(503, "Chưa tải được giải đấu. Vui lòng thử lại.")
     return league.build_state(result, now=now, stars=stars, last_week_stars=last_week)
@@ -90,14 +90,14 @@ async def join_league(body: JoinRequest, request: Request, user=Depends(account)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     await request.app.state.gateway.rpc("league_join", {
-        "p_owner_id": user["id"], "p_week": league.week_start(now_utc()).isoformat(), "p_nickname": nickname, "p_coat": coat})
+        "p_user_id": user["id"], "p_week": league.week_start(now_utc()).isoformat(), "p_nickname": nickname, "p_coat": coat})
     return await league_state(request, user["id"])
 
 
 @router.post("/api/v1/league/leave")
 async def leave_league(request: Request, user=Depends(account)):
     await request.app.state.gateway.rpc("league_leave", {
-        "p_owner_id": user["id"], "p_week": league.week_start(now_utc()).isoformat()})
+        "p_user_id": user["id"], "p_week": league.week_start(now_utc()).isoformat()})
     return await league_state(request, user["id"])
 
 
@@ -114,5 +114,5 @@ async def update_league(body: UpdateRequest, request: Request, user=Depends(acco
     if not await _active_member(gateway, user["id"]):
         raise HTTPException(409, "Bạn chưa tham gia giải đấu.")
     await gateway.rpc("league_update", {
-        "p_owner_id": user["id"], "p_week": league.week_start(now_utc()).isoformat(), "p_nickname": nickname, "p_coat": coat})
+        "p_user_id": user["id"], "p_week": league.week_start(now_utc()).isoformat(), "p_nickname": nickname, "p_coat": coat})
     return await league_state(request, user["id"])

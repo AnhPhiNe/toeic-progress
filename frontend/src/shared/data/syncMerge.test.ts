@@ -19,15 +19,15 @@ describe('multi-device reconciliation', () => {
     expect(mergeRecords(deleted, live)[0].deletedAt).toBe(newer);
   });
 
-  it('merges checklist and shields separately and preserves both histories', () => {
+  it('merges vocabulary and shields separately and preserves both histories', () => {
     const device = emptyBundle();
     const account = emptyBundle();
-    device.checklist = [{ id: 'pencil', checked: true, updatedAt: newer, deletedAt: null }];
-    account.checklist = [{ id: 'slip', checked: true, updatedAt: older, deletedAt: null }];
+    device.vocabLog = [{ id: 'v1', date: '2026-09-20', count: 5, updatedAt: newer, deletedAt: null }];
+    account.vocabLog = [{ id: 'v2', date: '2026-09-21', count: 7, updatedAt: older, deletedAt: null }];
     device.shieldDays = [{ id: 'shield:2026-09-20', date: '2026-09-20', updatedAt: older, deletedAt: null }];
     account.shieldDays = [{ id: 'shield:2026-09-21', date: '2026-09-21', updatedAt: newer, deletedAt: null }];
     const result = reconcileBundles(device, account, 'merge');
-    expect(result.checklist).toHaveLength(2);
+    expect(result.vocabLog).toHaveLength(2);
     expect(result.shieldDays).toHaveLength(2);
   });
 

@@ -417,7 +417,7 @@ export const App: React.FC = () => {
 
   // Khôi phục sau khi import JSON
   const handleImportSuccess = () => {
-    // Reload every mounted view, including checklist and pacing data.
+    // Reload every mounted view, including pacing data.
     window.location.reload();
   };
 

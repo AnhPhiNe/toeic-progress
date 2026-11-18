@@ -1,10 +1,10 @@
-import { DEFAULT_CHECKLIST, defaultProfile, type DataBundle, type SyncMeta } from '@/shared/data/dataBundle';
+import { defaultProfile, type DataBundle, type SyncMeta } from '@/shared/data/dataBundle';
 
 export type TransferChoice = 'merge' | 'account' | 'device';
 type RecordWithId = { id: string } & SyncMeta;
-type CollectionName = 'sessions' | 'mistakes' | 'pacingRuns' | 'checklist' | 'vocabLog' | 'shieldDays' | 'weeklyPlans';
+type CollectionName = 'sessions' | 'mistakes' | 'pacingRuns' | 'vocabLog' | 'shieldDays';
 
-const COLLECTIONS: CollectionName[] = ['sessions', 'mistakes', 'pacingRuns', 'checklist', 'vocabLog', 'shieldDays', 'weeklyPlans'];
+const COLLECTIONS: CollectionName[] = ['sessions', 'mistakes', 'pacingRuns', 'vocabLog', 'shieldDays'];
 
 function newer<T extends SyncMeta>(local: T, remote: T): T {
   const comparison = Date.parse(local.updatedAt) - Date.parse(remote.updatedAt);
@@ -37,10 +37,8 @@ export function reconcileBundles(device: DataBundle, account: DataBundle, choice
     sessions: replaceWithDevice(device.sessions, account.sessions, now),
     mistakes: replaceWithDevice(device.mistakes, account.mistakes, now),
     pacingRuns: replaceWithDevice(device.pacingRuns, account.pacingRuns, now),
-    checklist: replaceWithDevice(device.checklist, account.checklist, now),
     vocabLog: replaceWithDevice(device.vocabLog, account.vocabLog, now),
-    shieldDays: replaceWithDevice(device.shieldDays, account.shieldDays, now),
-    weeklyPlans: replaceWithDevice(device.weeklyPlans, account.weeklyPlans, now)
+    shieldDays: replaceWithDevice(device.shieldDays, account.shieldDays, now)
   };
   const result = { ...account, profile: newer(device.profile, account.profile) };
   for (const key of COLLECTIONS) {
@@ -59,8 +57,6 @@ export function hasPersonalData(bundle: DataBundle): boolean {
     || bundle.pacingRuns.some(item => !item.deletedAt)
     || bundle.vocabLog.some(item => !item.deletedAt)
     || bundle.shieldDays.some(item => !item.deletedAt)
-    || bundle.weeklyPlans.some(item => !item.deletedAt)
-    || bundle.checklist.some(item => !item.deletedAt && item.checked !== DEFAULT_CHECKLIST[item.id])
     || bundle.profile.name !== defaults.name
     || bundle.profile.targetScore !== defaults.targetScore
     || bundle.profile.examDate !== defaults.examDate

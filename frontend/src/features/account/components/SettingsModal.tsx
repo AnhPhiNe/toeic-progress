@@ -228,14 +228,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         sessions: live(current.sessions).length,
         mistakes: live(current.mistakes).length,
         pacingRuns: live(current.pacingRuns).length,
-        checklist: live(current.checklist).length,
         vocabLog: live(current.vocabLog).length,
-        shieldDays: live(current.shieldDays).length,
-        weeklyPlans: live(current.weeklyPlans).length
+        shieldDays: live(current.shieldDays).length
       };
       const labels: Record<string, string> = {
         sessions: 'Buổi học', mistakes: 'Lỗi sai', pacingRuns: 'Lượt Phòng Thi',
-        checklist: 'Checklist', vocabLog: 'Ngày từ vựng', shieldDays: 'Ngày dùng khiên', weeklyPlans: 'Kế hoạch tuần'
+        vocabLog: 'Ngày từ vựng', shieldDays: 'Ngày dùng khiên'
       };
       return (
         <div className="st-notice space-y-2" aria-label="Xem trước bản sao lưu">

@@ -5,9 +5,7 @@ class ExplanationLedgerMock:
         self.questions = {}
 
     def respond(self, name, body):
-        if name == "explanation_ledger_ready":
-            return {"version": 1, "tables": True}
-        key = (body["p_owner_id"], body["p_ticket_id"], body["p_question_number"])
+        key = (body["p_user_id"], body["p_ticket_id"], body["p_question_number"])
         if name == "claim_explanation_question":
             entry = self.questions.setdefault(key, {"binding": body["p_binding"], "attempts": 0, "result": None,
                                                    "requests": {}, "lease": None})

@@ -25,8 +25,7 @@ function bundle(): DataBundle {
       plannedMinutes: 120, actualMinutes: 120, finishedNaturally: true, phases: [],
       createdAt: now, updatedAt: now, deletedAt: null
     }],
-    checklist: [{ id: 'id_original', checked: true, updatedAt: now, deletedAt: null }],
-    vocabLog: [], shieldDays: [], weeklyPlans: []
+    vocabLog: [], shieldDays: [{ id: 'shield:2026-09-22', date: '2026-09-22', updatedAt: now, deletedAt: null }]
   };
 }
 
@@ -168,7 +167,7 @@ describe('backup restore', () => {
     expect(result.preview.preserved).toContain('Lượt Phòng Thi');
     restoreBackup(result.preview);
     expect(readDataBundle().pacingRuns).toHaveLength(1);
-    expect(readDataBundle().checklist).toHaveLength(1);
+    expect(readDataBundle().shieldDays).toHaveLength(1);
   });
 
   it('rejects the whole file and identifies invalid record positions', () => {
@@ -201,7 +200,7 @@ describe('backup restore', () => {
   });
 
   it('rejects a backup from a newer app version', () => {
-    const result = parseBackup(JSON.stringify({ schemaVersion: 4 }));
+    const result = parseBackup(JSON.stringify({ schemaVersion: 5 }));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors[0]).toContain('cập nhật ứng dụng');
   });

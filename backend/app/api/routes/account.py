@@ -18,7 +18,7 @@ async def delete_account(request: Request, user=Depends(account)):
 @router.post("/api/v1/data/reset")
 async def reset_learning_data(body: ResetRequest, request: Request, user=Depends(account)):
     before = datetime.now(timezone.utc)
-    result = await request.app.state.gateway.rpc("reset_learning_data", {"p_owner_id": user["id"]})
+    result = await request.app.state.gateway.rpc("reset_learning_data", {"p_user_id": user["id"]})
     if request.app.state.settings.source_images_enabled:
         try:
             await request.app.state.gateway.source_images.cleanup_before(user["id"], before)

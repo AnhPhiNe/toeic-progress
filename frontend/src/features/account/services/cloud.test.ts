@@ -8,13 +8,15 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) });
 });
 describe('incremental sync', () => {
-  it('only uploads changed records, including tombstones and plans', () => {
+  it('only uploads changed records, including tombstones', () => {
     const bundle = emptyBundle();
     rememberSync('alice', { cursor: 7, records: recordsFromBundle(bundle), hasRecords: true });
     expect(pendingRecords(bundle, readSyncState('alice'))).toHaveLength(0);
-    bundle.checklist[0] = { ...bundle.checklist[0], deletedAt: '2026-10-06T00:00:00.000Z', updatedAt: '2026-10-06T00:00:00.000Z' };
+    bundle.profile = { ...bundle.profile, updatedAt: '2026-10-06T00:00:00.000Z' };
     expect(pendingRecords(bundle, readSyncState('alice'))).toHaveLength(1);
-    expect(pendingRecords(bundle, readSyncState('bob')).length).toBeGreaterThan(1);
+    bundle.vocabLog = [{ id: 'v1', date: '2026-10-05', count: 3, updatedAt: '2026-10-06T00:00:00.000Z', deletedAt: '2026-10-06T00:00:00.000Z' }];
+    expect(pendingRecords(bundle, readSyncState('alice'))).toHaveLength(2);
+    expect(pendingRecords(bundle, readSyncState('bob')).length).toBe(2);
   });
   it('normalizes server timestamp formatting before acknowledging a record', () => {
     const bundle = emptyBundle();

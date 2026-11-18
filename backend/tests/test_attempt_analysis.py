@@ -42,15 +42,15 @@ def analysis_api(*, session=SESSION, notes=None, advice=ADVICE, raw=None, guest=
         path = request.url.path
         if path == "/auth/v1/user":
             return httpx.Response(200, json={"id": OWNER, "is_anonymous": guest})
-        if path == "/rest/v1/ai_access_grants":
-            return httpx.Response(200, json=[{"status": grant, "monthly_limit": 10}])
+        if path == "/rest/v1/rpc/get_ai_access":
+            return httpx.Response(200, json={"status": grant, "plan": "free", "monthlyLimit": 10, "unlimited": False})
         if path == "/rest/v1/study_sessions":
             return httpx.Response(200, json=[session] if session else [])
         if path == "/rest/v1/mistakes":
             return httpx.Response(200, json=[NOTE] if notes is None else notes)
         if path.endswith("/reserve_ai_request"):
             return httpx.Response(200, json={"allowed": quota, "remaining": 9, "limit": 10})
-        if path == "/rest/v1/ai_usage_counters":
+        if path == "/rest/v1/rpc/ai_quota_status":
             return httpx.Response(200, json=[])
         if request.url.host == OPENAI:
             if transport_error:
@@ -90,10 +90,10 @@ def test_analysis_is_owner_scoped_quota_counted_and_sent_once_to_luna_with_a_str
         assert len(report["signature"]) == 64
         assert response.json()["usage"]["remaining"] == 9
         reads = [url for url, _, _ in calls if url.path in ("/rest/v1/study_sessions", "/rest/v1/mistakes")]
-        assert all(url.params["user_id"] == "eq." + OWNER and url.params["deleted_at"] == "is.null" for url in reads)
+        assert all(url.params["user_id"] == "eq." + OWNER and "deleted_at" not in url.params for url in reads)
         assert reads[0].params["id"] == reads[1].params["session_id"] == "eq.attempt-a"
         reserve = next(body for url, body, _ in calls if url.path.endswith("/reserve_ai_request"))
-        assert reserve["p_owner_id"] == OWNER
+        assert reserve["p_user_id"] == OWNER
         provider = openai_calls(calls)
         assert len(provider) == 1
         url, body, headers = provider[0]

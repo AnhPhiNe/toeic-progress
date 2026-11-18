@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "staging", "production"] = "development"
     ai_enabled: bool = True
-    ai_access_managed: bool = False  # Enable after applying ai_access_grants migration.
+    ai_access_managed: bool = False  # Read AI status, plan and cap from the database (get_ai_access).
     source_images_enabled: bool = False
     source_image_account_limit: int = Field(default=200, ge=3, le=1000)
     openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     rate_limit_secret: str = ""
     ai_guest_limit: int = Field(default=3, ge=0, le=100)
     ai_account_monthly_limit: int = Field(default=10, ge=0, le=1000)
+    # Monthly cap for an active 'plus' plan (user_plans) without its own ai_monthly_limit.
+    ai_plus_monthly_limit: int = Field(default=100, ge=0, le=10000)
     ai_global_daily_limit: int = Field(default=20, ge=0, le=10000)
     ai_global_minute_limit: int = Field(default=2, ge=0, le=100)
     ai_ip_daily_limit: int = Field(default=5, ge=0, le=1000)

@@ -94,7 +94,7 @@ async def reserve_account_request(gateway, settings: Settings, user_id: str, pat
     result = await gateway.rpc(
         "reserve_api_request",
         {
-            "p_owner_id": user_id,
+            "p_user_id": user_id,
             "p_scope": group,
             "p_account_limit": settings.api_account_minute_limit,
             "p_scope_limit": limit,
