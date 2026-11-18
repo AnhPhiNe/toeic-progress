@@ -56,10 +56,18 @@ describe('server database generation (epoch)', () => {
   });
 
   it('stops at a reset barrier instead of re-sending erased data', async () => {
-    rememberSync('alice', { cursor: 5, records: [], hasRecords: true, epoch: 'old' });
+    const bundle = bundleWith(3);
+    rememberSync('alice', { cursor: 5, records: recordsFromBundle(bundle), hasRecords: true, epoch: 'old' });
     replies = [{ cursor: 9, records: [], hasRecords: true, epoch: 'new', resetBarrier: true }];
-    const reply = await exchangeCloudChanges('alice', bundleWith(3));
+    const reply = await exchangeCloudChanges('alice', bundle);
     expect(reply.resetBarrier).toBe(true);
     expect(requests).toHaveLength(1);
+  });
+
+  it('does not send everything twice when nothing was acknowledged yet', async () => {
+    replies = [{ cursor: 9, records: [], hasRecords: true, epoch: 'new' }];
+    await exchangeCloudChanges('alice', bundleWith(3));
+    expect(requests).toHaveLength(1);
+    expect(requests[0].records).toHaveLength(4);
   });
 });

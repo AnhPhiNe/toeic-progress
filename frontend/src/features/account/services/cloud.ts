@@ -76,7 +76,9 @@ export async function exchangeCloudChanges(userId: string, bundle: DataBundle, r
   const snapshot = reset ? await syncRequest(userId, [], 0) : null;
   const state = snapshot ? { cursor: snapshot.cursor, acknowledged: {}, epoch: snapshot.epoch } : readSyncState(userId);
   const reply = await syncRequest(userId, pendingRecords(bundle, state), state.cursor, replace);
-  if (replace || reset || !reply.epoch || reply.epoch === state.epoch || reply.resetBarrier) return reply;
+  // Nothing acknowledged yet means this request already carried every record.
+  const sentEverything = Object.keys(state.acknowledged).length === 0;
+  if (replace || reset || sentEverything || !reply.epoch || reply.epoch === state.epoch || reply.resetBarrier) return reply;
   return resendEverything(userId, bundle, state.cursor);
 }
 
