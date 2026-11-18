@@ -18,6 +18,7 @@ const synchronize = async (client, records) => {
     body: JSON.stringify({ records, cursor: 0, replace: false })
   });
   assert(response.ok, `Staging API sync failed (${response.status})`);
+  return response.json();
 };
 
 try {
@@ -38,21 +39,24 @@ try {
   const id = `rls-test-${randomUUID()}`;
   const stamp = new Date().toISOString();
   const record = { entity_type: 'vocabLog', record_id: id, payload: { id, date: '2026-09-23', count: 1, updatedAt: stamp, deletedAt: null }, updated_at: stamp, deleted_at: null };
-  await synchronize(alice, [record]);
-  const directRpc = await alice.rpc('sync_account_records', { p_owner_id: created[0], p_records: [record], p_cursor: 0, p_replace: false });
+  const first = await synchronize(alice, [record]);
+  assert(first.records.some(row => row.record_id === id), 'Owner did not get the record back through the API');
+  // Baseline v2: browsers have no direct access at all, only the API.
+  const directRpc = await alice.rpc('sync_account_records', { p_user_id: created[0], p_records: [record], p_cursor: 0, p_replace: false });
   assert(!!directRpc.error, 'Browser could call service-only sync RPC');
-  const own = await alice.from('sync_records').select('record_id').eq('record_id', id);
-  assert(!own.error && own.data?.length === 1, 'Owner cannot read own record');
-  const crossRead = await bob.from('sync_records').select('record_id').eq('user_id', created[0]);
-  assert(!crossRead.error && crossRead.data?.length === 0, 'Cross-account read leaked data');
-  const crossWrite = await bob.from('sync_records').insert({ user_id: created[0], ...record });
+  for (const table of ['vocabulary_logs', 'study_sessions', 'mistakes', 'user_profiles', 'league_standings', 'user_plans', 'redeem_codes']) {
+    const read = await alice.from(table).select('*').limit(1);
+    assert(!!read.error || (read.data?.length ?? 0) === 0, `Browser read ${table} directly`);
+  }
+  const crossWrite = await bob.from('vocabulary_logs').insert({ user_id: created[0], id, study_date: '2026-09-23', word_count: 1, updated_at: stamp });
   assert(!!crossWrite.error, 'Cross-account direct write was allowed');
+  const bobView = await synchronize(bob, []);
+  assert(!bobView.records.some(row => row.record_id === id), 'Cross-account read leaked data');
 
-  const tombstone = { ...record, updated_at: stamp, deleted_at: stamp, payload: { ...record.payload, deletedAt: stamp } };
-  await synchronize(alice, [tombstone]);
-  const final = await alice.from('sync_records').select('deleted_at').eq('record_id', id).single();
-  assert(!final.error && !!final.data?.deleted_at, 'Equal-timestamp deletion did not win');
-  console.log('Staging RLS, owner access, cross-account isolation and tombstone tie passed.');
+  const tombstone = { ...record, updated_at: stamp, deleted_at: stamp, payload: { id } };
+  const final = await synchronize(alice, [tombstone]);
+  assert(!!final.records.find(row => row.record_id === id)?.deleted_at, 'Equal-timestamp deletion did not win');
+  console.log('Staging: no direct browser access, API owner access, cross-account isolation and tombstone tie passed.');
 } finally {
   for (const id of created) {
     const { error } = await admin.auth.admin.deleteUser(id);

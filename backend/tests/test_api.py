@@ -85,31 +85,34 @@ def api():
                 return httpx.Response(200, json={"cursor": 7, "records": [], "hasRecords": False})
             if request.url.path.endswith("/reserve_api_request"):
                 return httpx.Response(200, json=api_reservation or {"allowed": True})
-            if request.url.path.rsplit("/", 1)[-1] in {
-                "claim_explanation_question", "finish_explanation_question", "explanation_ledger_ready"
-            }:
+            if request.url.path.endswith("/rpc/schema_ready"):
+                if readiness_status != 200 or ledger_status != 200:
+                    return httpx.Response(readiness_status if readiness_status != 200 else ledger_status, json={"message": "missing"})
+                if ledger_malformed:
+                    return httpx.Response(200, text="not-json")
+                return httpx.Response(200, json={"baseline": 2, "ready": True})
+            if request.url.path.rsplit("/", 1)[-1] in {"claim_explanation_question", "finish_explanation_question"}:
                 if ledger_status != 200:
                     return httpx.Response(ledger_status, json={"message": "Ledger unavailable"})
                 if ledger_malformed:
                     return httpx.Response(200, text="not-json")
                 return httpx.Response(200, json=ledger.respond(request.url.path.rsplit("/", 1)[-1], body))
-            if request.url.path in ("/rest/v1/api_rate_limits", "/rest/v1/user_profiles"):
-                return httpx.Response(readiness_status, json=[])
-            if request.url.path == "/rest/v1/ai_access_grants":
+            if request.url.path.endswith("/rpc/get_ai_access"):
+                # Fixtures describe a v1-style grant row: monthly_limit None = unlimited (admin plan).
                 rows = ai_grants.pop(0) if ai_grants else [] if ai_grant is None else [ai_grant]
-                return httpx.Response(ai_grant_status, json=rows)
+                row = rows[0] if rows else None
+                plan = None if row is None else row.get("plan") or ("admin" if row["monthly_limit"] is None else "free")
+                body = {"status": "active", "plan": "free", "monthlyLimit": None, "unlimited": False} if row is None else {
+                    "status": row["status"], "plan": plan, "monthlyLimit": row["monthly_limit"], "unlimited": plan == "admin"}
+                return httpx.Response(ai_grant_status, json=body)
             if request.url.path.endswith("/reserve_ai_batch_request"):
                 return httpx.Response(200, json=reservation or batches.respond(body))
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
             if request.url.path.endswith("/get_ai_usage"):
                 return httpx.Response(200, json={"remaining": 3, "limit": 3, "guest": guest})
-            if request.url.path == "/rest/v1/ai_usage_counters":
-                buckets = request.url.params["bucket"][4:-1].split(",")
-                return httpx.Response(counters_status, json=[
-                    {"bucket": bucket, "used": count} for bucket in buckets
-                    for prefix, count in (quota_counters or {}).items() if bucket.startswith(prefix)
-                ])
+            if request.url.path.endswith("/rpc/ai_quota_status"):
+                return httpx.Response(counters_status, json=quota_rows(body["p_guest"], quota_counters))
             if request.url.path.endswith("/reset_learning_data"):
                 return httpx.Response(200, json={"cursor": 10, "records": [], "hasRecords": True, "resetBarrier": True})
             if request.url.host == "challenges.cloudflare.com":
@@ -140,6 +143,18 @@ def api():
     return make
 
 
+def quota_rows(guest, counters):
+    """What public.ai_quota_status returns, with counts taken from {bucket prefix: used}."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    day_end = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    month_end = (day_end.replace(day=1) + timedelta(days=32)).replace(day=1)
+    rows = [("guest" if guest else "month", "user:", None if guest else month_end), ("day", "day:", day_end),
+            ("minute", "minute:", now.replace(second=0, microsecond=0) + timedelta(minutes=1)), ("ip", "ip:", day_end)]
+    return [{"kind": kind, "bucket": prefix, "used": (counters or {}).get(prefix, 0),
+             "resetsAt": reset.isoformat() if reset else None} for kind, prefix, reset in rows]
+
+
 def extraction(**extra):
     return {"text": TEXT, "consent": True, "provider": "openai", "request_id": "22222222-2222-4222-8222-222222222222", **extra}
 
@@ -154,7 +169,7 @@ def test_sync_owner_is_derived_from_verified_token(api):
     with api() as (client, calls):
         assert client.post("/api/v1/sync", json={"records": [], "cursor": 0}).status_code == 200
         rpc = next(call for call in calls if call[1].endswith("/sync_account_records"))
-        assert rpc[2]["p_owner_id"] == USER_ID
+        assert rpc[2]["p_user_id"] == USER_ID
         assert rpc[3]["authorization"] == "Bearer server-secret"
         assert calls[0][3]["authorization"] == "Bearer user-token"
         assert client.post("/api/v1/sync", json={"records": [], "user_id": "another-owner"}).status_code == 422
@@ -389,8 +404,8 @@ def test_reset_requires_explicit_confirmation_and_derives_owner_from_token(api):
         response = client.post("/api/v1/data/reset", json={"confirm": True})
         assert response.status_code == 200
         rpc = next(call for call in calls if "reset_learning_data" in call[1])
-        assert rpc[2] == {"p_owner_id": USER_ID}
-        assert client.post("/api/v1/data/reset", json={"confirm": True, "p_owner_id": "other"}).status_code == 422
+        assert rpc[2] == {"p_user_id": USER_ID}
+        assert client.post("/api/v1/data/reset", json={"confirm": True, "p_user_id": "other"}).status_code == 422
 
 
 def test_deleted_record_payload_is_compacted_before_database_call(api):
@@ -550,7 +565,7 @@ def test_shared_api_limit_uses_verified_owner_and_endpoint_scope(api):
     with api(settings_overrides={"api_limits_enabled": True}) as (client, calls):
         assert client.post("/api/v1/sync", json={}).status_code == 200
         rate = next(call for call in calls if call[1].endswith("/reserve_api_request"))
-        assert rate[2] == {"p_owner_id": USER_ID, "p_scope": "sync", "p_account_limit": 60, "p_scope_limit": 30}
+        assert rate[2] == {"p_user_id": USER_ID, "p_scope": "sync", "p_account_limit": 60, "p_scope_limit": 30}
         assert calls.index(rate) < next(i for i, call in enumerate(calls) if call[1].endswith("/sync_account_records"))
 
 
@@ -582,8 +597,8 @@ def test_readiness_probes_database_with_zero_rows_and_caches_result(api):
     with api(settings_overrides={"api_limits_enabled": True}) as (client, calls):
         assert client.get("/ready").status_code == 200
         assert client.get("/ready").json()["database_reachable"] is True
-        assert len(calls) == 2
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/rpc/explanation_ledger_ready"]
+        assert len(calls) == 1
+        assert [call[1] for call in calls] == ["/rest/v1/rpc/schema_ready"]
 
 
 def test_readiness_fails_when_required_migration_is_missing(api):
@@ -722,7 +737,7 @@ def test_openai_readiness_only_checks_required_database(api):
         "openai_api_key": "openai-key", "api_limits_enabled": True,
     }) as (client, calls):
         assert client.get("/ready").json()["ai_provider"] == "openai"
-        assert [call[1] for call in calls] == ["/rest/v1/api_rate_limits", "/rest/v1/rpc/explanation_ledger_ready"]
+        assert [call[1] for call in calls] == ["/rest/v1/rpc/schema_ready"]
 
 
 def test_readiness_fails_closed_for_a_malformed_ledger_probe(api):

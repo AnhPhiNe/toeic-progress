@@ -46,7 +46,7 @@ async def usage(request: Request, user=Depends(identity)):
     result = await request.app.state.gateway.rpc(
         "get_ai_usage",
         {
-            "p_owner_id": user["id"],
+            "p_user_id": user["id"],
             "p_guest": user["is_anonymous"],
             "p_limit": access.limit,
         },
@@ -122,7 +122,7 @@ async def reserve_ai(request: Request, user: dict, access, request_id, captcha_t
     if user["is_anonymous"]:
         await gateway.verify_captcha(captcha_token)
     parameters = {
-        "p_owner_id": user["id"],
+        "p_user_id": user["id"],
         "p_guest": user["is_anonymous"],
         "p_request_id": str(request_id),
         "p_input_hash": input_hash,

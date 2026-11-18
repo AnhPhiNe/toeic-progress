@@ -10,7 +10,7 @@ class BatchReservationMock:
         self.requests = set()
 
     def respond(self, body):
-        owner, request, batch = body["p_owner_id"], body["p_request_id"], body["p_batch_id"]
+        owner, request, batch = body["p_user_id"], body["p_request_id"], body["p_batch_id"]
         if (owner, request) in self.requests:
             return {"allowed": False, "code": "duplicate"}
         chunks = self.batches.get((owner, batch), 0)

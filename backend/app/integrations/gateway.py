@@ -10,7 +10,7 @@ from app.integrations.openai_provider import OpenAIProvider, read_results
 from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
 from app.services.ai_access import AIAccess
-from app.services.ai_limits import explain_limit, limit_buckets
+from app.services.ai_limits import explain_limit, quota_limits
 
 
 class Gateway:
@@ -23,32 +23,13 @@ class Gateway:
     async def readiness(self) -> bool:
         if not self.settings.database_ready:
             return False
-        table = "api_rate_limits" if self.settings.api_limits_enabled else "user_profiles"
+        # One probe: the v2 baseline answers only when every table the API uses exists.
         try:
-            response = await self.client.get(
-                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/{table}",
-                params={"select": "owner_id" if table == "api_rate_limits" else "user_id", "limit": "0"},
-                headers=self.admin_headers(),
-                timeout=3,
+            response = await self.client.post(
+                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/schema_ready",
+                json={}, headers=self.admin_headers(), timeout=3,
             )
-            if not response.is_success:
-                return False
-            if self.settings.ai_access_managed:
-                access = await self.client.get(
-                    f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_access_grants",
-                    params={"select": "user_id,status,monthly_limit", "limit": "0"},
-                    headers=self.admin_headers(), timeout=3,
-                )
-                if not access.is_success:
-                    return False
-            if self.settings.ai_ready and self.settings.rate_limit_secret:
-                ledger = await self.client.post(
-                    f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/explanation_ledger_ready",
-                    json={}, headers=self.admin_headers(), timeout=3,
-                )
-                if not ledger.is_success or ledger.json() != {"version": 1, "tables": True}:
-                    return False
-            return True
+            return response.is_success and response.json() == {"baseline": 2, "ready": True}
         except (httpx.HTTPError, ValueError, TypeError):
             return False
 
@@ -99,38 +80,36 @@ class Gateway:
         if guest:
             return AIAccess("login_required", 0, True)
         try:
-            response = await self.client.get(
-                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_access_grants", headers=self.admin_headers(), timeout=5,
-                params={"select": "status,monthly_limit", "user_id": "eq." + user["id"], "limit": "1"},
+            # Status from ai_access_grants (no row = active), plan and cap from user_plans.
+            response = await self.client.post(
+                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/get_ai_access", headers=self.admin_headers(), timeout=5,
+                json={"p_user_id": user["id"]},
             )
             if not response.is_success:
-                raise ValueError("AI access table unavailable")
-            rows = response.json()
-            if not isinstance(rows, list) or len(rows) > 1:
-                raise ValueError("Invalid AI access response")
-            # Signing in grants AI within the default monthly cap; an admin row can still block or change it.
-            if not rows:
-                return AIAccess("active", self.settings.ai_account_monthly_limit)
-            row = rows[0]
-            status, limit = row["status"], row["monthly_limit"]
-            if status not in ("pending", "active", "blocked") or (limit is not None and
-                    (not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 10000)):
+                raise ValueError("AI access unavailable")
+            row = response.json()
+            status, plan, limit, unlimited = row["status"], row["plan"], row["monthlyLimit"], row["unlimited"]
+            if (status not in ("pending", "active", "blocked") or plan not in ("free", "plus", "admin")
+                    or not isinstance(unlimited, bool) or (limit is not None and
+                    (not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 10000))):
                 raise ValueError("Invalid AI access grant")
-            return AIAccess(status, limit)
+            if unlimited:
+                return AIAccess(status, None)
+            default = self.settings.ai_plus_monthly_limit if plan == "plus" else self.settings.ai_account_monthly_limit
+            return AIAccess(status, limit if limit is not None else default)
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới dịch vụ AI; hãy thử lại hoặc lưu thủ công.") from error
 
-    async def explain_ai_limit(self, owner_id: str, guest: bool, ip_hash: str, user_limit: int | None = None):
-        now = datetime.now(timezone.utc)
-        buckets = limit_buckets(self.settings, owner_id, guest, ip_hash, now, user_limit)
+    async def explain_ai_limit(self, user_id: str, guest: bool, ip_hash: str, user_limit: int | None = None):
+        """Learner-facing reason for a quota refusal, from the database's own bucket definitions."""
         try:
-            response = await self.client.get(
-                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/ai_usage_counters",
+            response = await self.client.post(
+                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/ai_quota_status",
                 headers=self.admin_headers(), timeout=5,
-                params={"select": "bucket,used", "bucket": "in.(" + ",".join(row[0] for row in buckets) + ")"},
+                json={"p_user_id": user_id, "p_guest": guest, "p_ip_hash": ip_hash},
             )
             if response.is_success:
-                return explain_limit(buckets, response.json(), now)
+                return explain_limit(quota_limits(self.settings, guest, user_limit), response.json(), datetime.now(timezone.utc))
         except (httpx.HTTPError, ValueError, TypeError):
             pass
         return None

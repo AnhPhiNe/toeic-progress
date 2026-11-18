@@ -200,7 +200,7 @@ def test_non_member_gets_opt_in_state_without_reading_study_rows(api):
         response = client.get("/api/v1/league")
     assert response.status_code == 200
     assert response.json()["mode"] == "none" and response.json()["member"] is None
-    assert rpc_calls(calls, "league_refresh") == [{"p_owner_id": USER_ID, "p_week": "2026-11-16", "p_stars": None}]
+    assert rpc_calls(calls, "league_refresh") == [{"p_user_id": USER_ID, "p_week": "2026-11-16", "p_stars": None}]
     assert not any(path == "/rest/v1/study_sessions" for _, path, _, _ in calls)
     # League requests are limited like sync requests.
     assert rpc_calls(calls, "reserve_api_request")[0]["p_scope"] == "sync"
@@ -218,7 +218,7 @@ def test_member_stars_come_from_server_rows_not_the_request(api):
     assert state["me"] == {"stars": 21, "today": 1, "rank": 1, "lastWeekStars": 20}
     # Only last week onward is read.
     sessions = next(params for _, path, _, params in calls if path == "/rest/v1/study_sessions")
-    assert sessions["study_date"] == "gte.2026-11-09" and sessions["deleted_at"] == "is.null"
+    assert sessions["study_date"] == "gte.2026-11-09" and "deleted_at" not in sessions
     assert USER_ID not in json.dumps(state)
 
 
@@ -230,7 +230,7 @@ def test_join_validates_and_normalises_nickname(api):
         assert client.post("/api/v1/league/join", json={"nickname": "Sóc Nâu", "stars": 5}).status_code == 422
         assert client.post("/api/v1/league/join", json={"nickname": "  Sóc   Nâu "}).status_code == 200
     assert rpc_calls(calls, "league_join") == [
-        {"p_owner_id": USER_ID, "p_week": "2026-11-16", "p_nickname": "Sóc Nâu", "p_coat": "nau-cam"}]
+        {"p_user_id": USER_ID, "p_week": "2026-11-16", "p_nickname": "Sóc Nâu", "p_coat": "nau-cam"}]
 
 
 def test_leave_and_update(api):
@@ -239,9 +239,9 @@ def test_leave_and_update(api):
         assert client.post("/api/v1/league/leave").status_code == 200
         assert client.patch("/api/v1/league/me", json={}).status_code == 422
         assert client.patch("/api/v1/league/me", json={"coat": "xam-khoi"}).status_code == 200
-    assert rpc_calls(calls, "league_leave") == [{"p_owner_id": USER_ID, "p_week": "2026-11-16"}]
+    assert rpc_calls(calls, "league_leave") == [{"p_user_id": USER_ID, "p_week": "2026-11-16"}]
     assert rpc_calls(calls, "league_update") == [
-        {"p_owner_id": USER_ID, "p_week": "2026-11-16", "p_nickname": None, "p_coat": "xam-khoi"}]
+        {"p_user_id": USER_ID, "p_week": "2026-11-16", "p_nickname": None, "p_coat": "xam-khoi"}]
 
 
 def test_update_requires_membership(api):

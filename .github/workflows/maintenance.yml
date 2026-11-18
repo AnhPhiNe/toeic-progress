@@ -1,0 +1,43 @@
+name: Database maintenance
+
+# Daily cleanup of expired AI counters/logs, rate-limit windows, explanation
+# tickets and league history older than 12 weeks (public.run_maintenance).
+# Render cron jobs are not on the free plan, so GitHub Actions runs it.
+# Needs repository secrets SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY.
+on:
+  schedule:
+    - cron: '30 20 * * *'  # 03:30 in Vietnam
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-maintenance
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Run maintenance
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "SUPABASE_URL / SUPABASE_SECRET_KEY secrets are not set; skipping." && exit 0
+          fi
+          python -m app.commands.maintenance

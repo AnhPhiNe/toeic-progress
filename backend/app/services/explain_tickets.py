@@ -87,7 +87,7 @@ class TicketUses:
 
     async def _run(self, owner, ticket_id, number, expires, request_id, binding, generate):
         lease = str(uuid4())
-        parameters = {"p_owner_id": owner, "p_ticket_id": ticket_id, "p_question_number": number}
+        parameters = {"p_user_id": owner, "p_ticket_id": ticket_id, "p_question_number": number}
         claim = await self.rpc("claim_explanation_question", {
             **parameters, "p_binding": binding,
             "p_expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat(),

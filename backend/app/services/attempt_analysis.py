@@ -43,7 +43,7 @@ async def load_snapshot(gateway, owner: str, body: AnalyzeAttemptRequest) -> dic
             response = await gateway.client.get(
                 f"{gateway.settings.supabase_url.rstrip('/')}/rest/v1/{table}",
                 headers=gateway.admin_headers(), timeout=8,
-                params={"user_id": "eq." + owner, "deleted_at": "is.null", **params},
+                params={"user_id": "eq." + owner, **params},
             )
             if not response.is_success:
                 raise ValueError("Snapshot unavailable")
