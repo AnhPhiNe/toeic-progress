@@ -9,7 +9,7 @@ import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneSettings, type PhoneSettingsField } from './PhoneSettings';
 import { SettingsDesktop, type DesktopSettingsField } from './SettingsDesktop';
-import { describeSync } from './AccountSyncIndicator';
+import { describeSync, type SyncDetail } from '@/features/account/lib/syncStatus';
 import type { AccountStatus } from './AccountPanel';
 import './account.css';
 
@@ -26,6 +26,7 @@ interface SettingsModalProps {
   accountPanel?: React.ReactNode;
   /** Phone account card subtitle, e.g. "Chỉ lưu trên máy". */
   syncLabel?: string;
+  syncDetail?: SyncDetail;
   accountAvailable?: boolean;
   accountStatus?: AccountStatus;
   /** Signed-in email; computers show it under the name with a quiet Đăng xuất. */
@@ -46,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onImportSuccess,
   accountPanel,
   syncLabel,
+  syncDetail,
   accountAvailable,
   accountStatus,
   accountEmail,
@@ -276,7 +278,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     {isPhone && resetError && <p role="alert" className="st-err">{resetError}</p>}
   </>;
 
-  const sync = describeSync(!!accountAvailable, accountStatus ?? 'guest');
+  const sync = describeSync(!!accountAvailable, accountStatus ?? 'guest', syncDetail);
   const signOutAction = onSignOut ? <div className="mt-3 space-y-2">
     <button type="button" disabled={resetBusy || signOutBusy} onClick={async () => {
       setSignOutBusy(true); setSignOutError('');
@@ -305,7 +307,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {isPhone ? (
           <div className="min-h-0 flex-1 overflow-y-auto" aria-busy={resetBusy}>
-            <PhoneSettings profile={formData} syncLabel={syncLabel} editing={phoneEditing} setEditing={setPhoneEditing}
+            <PhoneSettings profile={formData} syncLabel={syncLabel} syncTone={sync.tone} editing={phoneEditing} setEditing={setPhoneEditing}
               onSaveField={savePhoneField} accountPanel={accountPanel} signOutAction={signOutAction}
               onExport={exportDataAsJSON} onPickBackup={() => fileInputRef.current?.click()}
               onLoadDemo={onLoadDemo ? loadDemo : undefined} onReset={onResetData ? () => void handleReset() : undefined} resetBusy={resetBusy}

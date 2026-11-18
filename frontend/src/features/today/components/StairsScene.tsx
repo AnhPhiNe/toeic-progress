@@ -6,6 +6,7 @@ import { stairsMood, type RestMood } from '../lib/socMood';
 import '@/shared/ui/soc/soc.css';
 import { estimateMilestones } from '@/shared/domain/milestones';
 import { SCENE_H, SCENE_W, stairsGeometry } from '../lib/stairsGeometry';
+import { RESPACE_MS, reduceMotion, useStairTween } from '../lib/useStairTween';
 import { SceneryBack, SceneryFront } from './TodayScenery';
 
 type Plan = Exclude<MilestonePlan, { status: 'empty' }>;
@@ -29,8 +30,6 @@ interface Props {
   lit?: boolean;
   /** Clicking the trophy (with its ✎ dot) opens the goal editor beside it; hovering shows "✎ Đổi mục tiêu". */
   onEditGoal?: (cup: SVGGElement) => void;
-  /** After a goal edit: blocks from index `from` on are new and rise in; the others stay put (`key` changes per save). */
-  added?: { key: number; from: number } | null;
 }
 
 const ddmm = (date?: string) => (date ? `${date.slice(8, 10)}/${date.slice(5, 7)}` : '');
@@ -47,7 +46,6 @@ function takeNewStep(target: number, index: number): boolean {
 const BURST: [number, number, number][] = [[-96, -70, 0], [90, -88, .05], [-70, 20, .1], [104, -10, .15], [-30, -118, .2], [40, -130, .08], [0, -100, .25]];
 /** Room kept for the right-hand panel (matches .td-layer max-width). */
 const PANEL_ROOM = 400;
-const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Estimated stairs for a learner with no test yet: dashed blocks from a typical first score up to the trophy. */
 function estimatePlan(target: number): Plan {
@@ -55,7 +53,7 @@ function estimatePlan(target: number): Plan {
   return { status: 'climbing', target, step, best: 0, currentIndex: 0, steps: values.map(value => ({ value, reached: false })) };
 }
 
-export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, rest, onWake, lit, onEditGoal, added }: Props) {
+export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, rest, onWake, lit, onEditGoal }: Props) {
   const empty = !plan;
   const p = useMemo(() => plan ?? estimatePlan(target), [plan, target]);
   const blocks = p.steps.length - 1;
@@ -78,7 +76,10 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
   const g = useMemo(() => stairsGeometry(blocks, viewW), [blocks, viewW]);
   const { tw, th } = g;
   const done = p.status === 'done';
+  // Goal reached: every stair is gold and Sóc stands on the last one, beside the trophy.
   const cur = empty ? -1 : done ? blocks - 1 : p.currentIndex;
+  // When the goal changes the eight stairs stay put and their numbers glide to the new spacing.
+  const shownValues = useStairTween(p.steps.slice(0, blocks).map(s => s.value));
   const nextIdx = !empty && !done && p.next && p.next.index < blocks ? p.next.index : -1;
 
   const [tip, setTip] = useState<{ html: ReactNode; x: number; y: number; left?: boolean } | null>(null);
@@ -115,6 +116,8 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
   const [socState, setSocState] = useState<SocMood>('idle');
   const socRef = useRef<SVGGElement>(null);
   const socAt = Math.max(0, cur);
+  // Where Sóc stood for the previous goal: a goal change makes her ride her stair to its new place instead of re-climbing.
+  const lastSoc = useRef<{ target: number; at: number } | null>(null);
   useEffect(() => {
     const el = socRef.current;
     if (!el) return;
@@ -129,6 +132,15 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
       if (newStep) { setSocState('cheerCplus'); calm = window.setTimeout(() => setSocState(rest), 4400); }
       else setSocState(rest);
     };
+    const before = lastSoc.current;
+    lastSoc.current = empty ? null : { target, at: socAt };
+    if (!empty && before && before.target !== target && el.animate && !reduceMotion()) {
+      const a = g.soc(before.at);
+      const ride = el.animate([{ transform: `translate(${a.x}px, ${a.y}px)` }, { transform: `translate(${end.x}px, ${end.y}px)` }],
+        { duration: before.at === socAt ? 1 : RESPACE_MS, easing: 'cubic-bezier(.33, 1, .68, 1)', fill: 'forwards' });
+      ride.onfinish = () => { place(end.x, end.y); ride.cancel(); setSocState(rest); };
+      return () => { ride.cancel(); window.clearTimeout(calm); };
+    }
     if (empty || socAt === 0 || reduceMotion() || !el.animate) { place(end.x, end.y); arrive(); return () => window.clearTimeout(calm); }
     const frames: Keyframe[] = [];
     for (let i = 0; i <= socAt; i++) {
@@ -174,7 +186,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
       <SceneryBack cup={g.cup} banner={banner} viewW={viewW} />
 
       <svg className="td-layer td-stairs" viewBox={`0 0 ${viewW} ${SCENE_H}`} preserveAspectRatio="xMinYMax meet" role="img"
-        aria-label={empty ? `Cầu thang tới mục tiêu ${p.target}` : `Bậc ${socAt + 1} trên ${blocks + 1}, điểm cao nhất ${p.best}, mục tiêu ${p.target}`}>
+        aria-label={empty ? `Cầu thang tới mục tiêu ${p.target}` : `Bậc ${socAt + 1} trên ${blocks}, điểm cao nhất ${p.best}, mục tiêu ${p.target}`}>
         <defs>
           <linearGradient id="tdgT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffe58f" /><stop offset="1" stopColor="#ffc83d" /></linearGradient>
           <linearGradient id="tdgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f5b52a" /><stop offset="1" stopColor="#e09a12" /></linearGradient>
@@ -191,7 +203,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
 
         {p.steps.slice(0, blocks).map((step, i) => {
           const x = g.bx(i), y = g.by(i), h = g.bh(i);
-          const ok = !empty && i < cur, isCur = i === cur;
+          const ok = !empty && (i < cur || done), isCur = i === cur && !done;
           const k = isCur || (empty && lit && i === 0) ? 'c' : ok ? 'g' : 'f';
           const edge = k === 'c' ? '#1f6a33' : k === 'g' ? '#b07a00' : '#b6b3cf';
           const hi = k === 'f' ? '#fff' : k === 'c' ? '#b8f0c2' : '#fff4c4';
@@ -201,14 +213,13 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
             bands.push(<path key={'l' + b} d={`M${x - tw + 4} ${yy} L${x} ${yy + th}`} stroke={edge} strokeWidth="2" opacity=".18" />,
               <path key={'r' + b} d={`M${x} ${yy + th} L${x + tw - 4} ${yy}`} stroke={edge} strokeWidth="2" opacity=".14" />);
           }
-          const tipHtml = empty ? null : step.reached
+          const tipHtml = empty ? null : isCur
+            ? <>Điểm cao nhất <b>{p.best}</b> · bậc {i + 1}/{blocks}</>
+            : step.reached
             ? (i === 0 ? <>Xuất phát <b>{step.value}</b><br />{ddmm(step.reachedDate)}</> : <>Bậc <b>{step.value}</b> · đạt {ddmm(step.reachedDate)}</>)
             : <>Bậc <b>{step.value}</b> · còn {step.value - p.best} điểm</>;
-          const fresh = !!added && i >= added.from;
-          const blkKey = added ? `${fresh ? 'n' : 'e'}${added.key}:${i}` : `${p.target}:${i}`;
           return (
-            <g key={blkKey} className={'td-blk' + (added && !fresh ? ' is-still' : '')}
-              style={{ animationDelay: fresh ? `${0.25 + 0.12 * (i - added.from)}s` : `${0.09 * i}s` }}
+            <g key={i} className="td-blk" style={{ animationDelay: `${0.09 * i}s` }}
               onMouseMove={tipHtml ? e => move(e, tipHtml) : undefined} onMouseLeave={() => setTip(null)}>
               <path d={`M${x - tw} ${y} L${x} ${y + th} L${x} ${y + th + h} L${x - tw} ${y + h}Z`} fill={`url(#td${k}L)`} />
               <path d={`M${x} ${y + th} L${x + tw} ${y} L${x + tw} ${y + h} L${x} ${y + th + h}Z`} fill={`url(#td${k}R)`} />
@@ -220,7 +231,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
               {k === 'f' && i !== nextIdx && <path d={`M${x - tw} ${y} L${x} ${y - th} L${x + tw} ${y} L${x} ${y + th}Z`} fill="none" stroke="#c9c3e6" strokeWidth="2" strokeDasharray="5 5" />}
               <g transform={`translate(${x - tw / 2} ${y + th / 2 + 72})`}>
                 <rect x="-26" y="-17" width="52" height="24" rx="12" fill={k === 'f' ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.14)'} />
-                <text x="0" y="1" fontWeight="900" fontSize="16.5" fill={k === 'f' ? '#8f8bb0' : '#fff'} textAnchor="middle">{step.value}</text>
+                <text x="0" y="1" fontWeight="900" fontSize="16.5" fill={k === 'f' ? '#8f8bb0' : '#fff'} textAnchor="middle">{isCur ? p.best : shownValues[i] ?? step.value}</text>
               </g>
               {k === 'f' && !empty && <g transform={`translate(${x - tw / 2} ${y + th / 2 + 102})`} opacity=".7">
                 <rect x="-7" y="-2" width="14" height="11" rx="3" fill="#a9a5c8" />
@@ -234,7 +245,7 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
           );
         })}
 
-        {p.steps.slice(0, blocks).map((_, i) => !empty && i < cur ? (
+        {p.steps.slice(0, blocks).map((_, i) => !empty && (i < cur || done) ? (
           <g key={'c' + i} transform={`translate(${g.bx(i)} ${g.by(i) - 2})`}>
             <g className="td-coin" style={{ animationDelay: `${0.6 + 0.08 * i}s` }}><g className="td-spin">
               <ellipse cx="0" cy="0" rx="9" ry="9" fill="#ffd766" stroke="#d99a00" strokeWidth="2.5" />
@@ -247,11 +258,6 @@ export function StairsScene({ plan, target, testsAhead, cupLabel, banner, gear, 
           return <g pointerEvents="none">
             <path d={`M${nx - tw} ${ny} L${nx} ${ny - th} L${nx + tw} ${ny} L${nx} ${ny + th}Z`} fill="#e9f8ec" />
             <path className="td-next" d={`M${nx - tw} ${ny} L${nx} ${ny - th} L${nx + tw} ${ny} L${nx} ${ny + th}Z`} fill="none" stroke="#46b35a" strokeWidth="3.5" strokeDasharray="7 6" strokeLinejoin="round" />
-            <g className="td-hint">
-              <rect x={nx - 30} y={ny - th - 46} width="60" height="26" rx="13" fill="#46b35a" />
-              <path d={`M${nx - 6} ${ny - th - 21} l6 7 l6 -7Z`} fill="#46b35a" />
-              <text x={nx} y={ny - th - 28} fontWeight="900" fontSize="14" fill="#fff" textAnchor="middle">+{p.next.gap}</text>
-            </g>
           </g>;
         })()}
 

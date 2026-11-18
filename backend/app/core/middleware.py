@@ -2,10 +2,14 @@ import asyncio
 
 from fastapi.responses import JSONResponse
 
+# Routes that take test-page screenshots as they are: a bigger body (bytes) and the longer upload timeout.
+LARGE_BODY_PATHS = {"/api/v1/ai/extract-page": 12 * 1024 * 1024}
+
 
 class BodyLimitMiddleware:
-    def __init__(self, app, maximum=4 * 1024 * 1024, timeout=10):
-        self.app, self.maximum, self.timeout = app, maximum, timeout
+    def __init__(self, app, maximum=4 * 1024 * 1024, timeout=10, large_timeout=45, large_paths=None):
+        self.app, self.maximum, self.timeout, self.large_timeout = app, maximum, timeout, large_timeout
+        self.large_paths = LARGE_BODY_PATHS if large_paths is None else large_paths
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -13,14 +17,16 @@ class BodyLimitMiddleware:
         if scope.get("method") in ("GET", "HEAD"):
             return await self.app(scope, receive, send)
         body = bytearray()
+        large = self.large_paths.get(scope.get("path", ""))
+        maximum, timeout = (large, self.large_timeout) if large else (self.maximum, self.timeout)
         try:
-            async with asyncio.timeout(self.timeout):
+            async with asyncio.timeout(timeout):
                 while True:
                     message = await receive()
                     if message["type"] == "http.disconnect":
                         return
                     body.extend(message.get("body", b""))
-                    if len(body) > self.maximum:
+                    if len(body) > maximum:
                         return await JSONResponse({"detail": "Yêu cầu quá lớn."}, status_code=413)(scope, receive, send)
                     if not message.get("more_body"):
                         break

@@ -12,6 +12,7 @@ export type PhoneSettingsField = 'account' | 'targetScore' | 'examDate' | 'daily
 interface Props {
   profile: UserProfile;
   syncLabel?: string;
+  syncTone?: 'ok' | 'warn' | 'local' | 'wait';
   editing: PhoneSettingsField | null;
   setEditing: (field: PhoneSettingsField | null) => void;
   /** Saves one field through the same merge as the desktop form; returns an error message or null. */
@@ -40,7 +41,7 @@ function Icon({ children, tone }: { children: React.ReactNode; tone: string }) {
 }
 
 /** Phone settings: grouped rows that show each current value; a row opens a small sheet that saves only that field. */
-export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveField, accountPanel, signOutAction, onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice }: Props) {
+export function PhoneSettings({ profile, syncLabel, syncTone = 'local', editing, setEditing, onSaveField, accountPanel, signOutAction, onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice }: Props) {
   const days = daysUntil(profile.examDate);
   const row = (field: PhoneSettingsField, icon: React.ReactNode, label: string, value: React.ReactNode) => (
     <button type="button" className="st-row" onClick={() => setEditing(field)} data-settings-row={field}>
@@ -60,7 +61,7 @@ export function PhoneSettings({ profile, syncLabel, editing, setEditing, onSaveF
         <span className="st-me__av" aria-hidden="true">{profileInitials(profile.name)}</span>
         <span className="st-me__who">
           <b>{profileDisplayName(profile.name)}</b>
-          <small>{syncLabel ?? 'Tên và tài khoản'}</small>
+          <small className={`st-me__sync is-${syncTone}`} aria-live="polite">{syncLabel ?? 'Tên và tài khoản'}</small>
         </span>
         <span className="st-sync"><Cloud size={15} aria-hidden="true" />Đồng bộ</span>
       </button>

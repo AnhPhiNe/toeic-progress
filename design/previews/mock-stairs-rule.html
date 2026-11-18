@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>Luật cầu thang lên cúp</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_goalguide.css">
+<style>
+body{background:#e9e4dc;padding:28px 30px 40px;width:1800px}
+.intro h1{font-size:30px}.intro p{font-weight:700;font-size:15px;color:#4d5750;max-width:1600px;line-height:1.45;margin-top:6px}
+.sec{font-weight:900;font-size:22px;margin:30px 0 4px}.sec small{display:block;font-weight:700;font-size:14px;color:#4d5750;margin-top:3px}
+.hero{display:grid;grid-template-columns:150px 1fr 1fr;gap:10px;margin-top:14px}
+.grid{display:grid;grid-template-columns:150px repeat(4,1fr);gap:10px;margin-top:14px}
+.rh{background:#fff;border-radius:16px;padding:12px 14px;font-weight:900;font-size:17px;line-height:1.2}
+.rh small{display:block;font-weight:700;font-size:12.5px;color:#6b756e;margin-top:4px;line-height:1.35}
+.rh.pick{background:#2f8a42;color:#fff}.rh.pick small{color:#d8f2dc}
+.rh .tag{display:inline-block;font-size:11px;background:#ffc83d;color:#5b4300;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:2px}
+.rh.ref{background:#f6f3ee;color:#6b756e}
+.case{background:#2f3a33;color:#fff;border-radius:16px;padding:14px;font-weight:900;font-size:15px;line-height:1.3}
+.case b{display:block;font-size:26px;color:#ffd25e;margin-bottom:4px}
+.case small{display:block;font-weight:700;font-size:12.5px;color:#cfd8d2;margin-top:6px}
+.cell{border-radius:16px;overflow:hidden;background:#fff;position:relative}
+.cell.pick{box-shadow:0 0 0 3px #46b35a}
+.cell.flex{display:flex;align-items:stretch}
+.scene{position:relative;background:linear-gradient(180deg,#fff4d6,#ffe6e2 75%,#ffdbe4);overflow:hidden;flex:none}
+.scene:before{content:"";position:absolute;inset:auto 0 0 0;height:20px;background:#a8dba0}
+.scene .tg{position:absolute;left:10px;top:8px;font-weight:900;font-size:11.5px;color:#7a5cff;background:#f1ebff;border-radius:99px;padding:2px 9px;z-index:3}
+.scene svg.st{position:absolute;left:0;top:0}
+.sq{position:absolute;z-index:2}.sq svg{display:block;width:100%}
+.cap2{padding:8px 12px 10px;font-weight:800;font-size:12.5px;color:#4d5750;line-height:1.4}
+.sn{padding:14px 16px;font-weight:800;font-size:13.5px;color:#3f4a43;line-height:1.5;flex:1}
+.sn .vals{font-family:Consolas,monospace;font-size:12.5px;background:#f6f3ee;border-radius:8px;padding:6px 8px;margin:6px 0;line-height:1.5}
+.sn .vals i{font-style:normal;color:#2a8a40;font-weight:900}
+.w{color:#c0571b}.ok{color:#2f8a42}
+.pair{display:flex;align-items:center;gap:0}
+.pair .ar{flex:none;width:22px;text-align:center;font-weight:900;color:#7a5cff;font-size:18px}
+.verdict{border-radius:16px;padding:14px;font-weight:800;font-size:13.5px;line-height:1.4;background:#fff}
+.verdict b{display:block;font-size:12px;letter-spacing:.5px;color:#9aa39d;margin-bottom:4px}
+.verdict.pick{background:#eaf6ec;box-shadow:0 0 0 3px #46b35a}
+.algo{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 430px;gap:18px;align-items:start}
+.box{background:#fff;border-radius:18px;padding:18px 20px}
+.box h3{font-size:17px;font-weight:900;margin-bottom:8px}
+.box pre{font-family:Consolas,monospace;font-size:12.5px;line-height:1.5;background:#f6f3ee;border-radius:12px;padding:12px 14px;white-space:pre-wrap}
+.box ul{font-weight:700;font-size:13.5px;line-height:1.5;padding-left:18px;color:#3f4a43}
+.box li{margin-bottom:6px}
+.phwrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:10px}
+.phwrap>b{font-weight:900;font-size:15px}
+.ph .scene{position:absolute;left:0;right:0;top:196px;background:none}
+.ph .scene:before{display:none}
+</style></head><body>
+<div class="intro"><h1>Cầu thang lên cúp: <em>luôn 8 bậc đều</em></h1>
+<p>Luật đã chốt: 8 bậc chia đều từ điểm đầu (làm tròn xuống 50; chưa thi thì dùng điểm ước lượng) tới mục tiêu, nhãn làm tròn 10. Bậc nào ≤ điểm cao nhất thì vàng, bậc cao nhất trong số đó xanh và Sóc đứng trên (bảng hiện điểm cao nhất), phía trên tím có khoá. Hai cách đặt cúp: <b>8 bậc rồi tới cúp</b> (khuyên dùng) hoặc <b>bậc 8 chính là mục tiêu</b>.</p></div>
+
+<div class="sec">1 · Luật 8 bậc với 6 tình huống<small>Cột trái: cúp đứng sau bậc 8 (khuyên dùng). Cột phải: bậc 8 = mục tiêu, cúp đứng trên bậc 8.</small></div>
+<div class="hero" id="hero"></div>
+
+<div class="algo">
+ <div class="box"><h3>Thuật toán (khuyên dùng: cúp sau bậc 8)</h3><pre id="pseudo"></pre></div>
+ <div class="box"><h3>Vì sao cúp sau bậc 8</h3><ul>
+  <li>Cúp đã có bảng ghi mục tiêu; bậc 8 mang thêm nhãn “800” ngay dưới cúp là lặp lại cùng một con số.</li>
+  <li>Đúng như cầu thang ước lượng trước khi thi (STAIR_COUNT = 8 rồi cúp), nên lúc nhập điểm đầu tiên hình không đổi kiểu.</li>
+  <li>Mỗi bậc ngắn hơn một chút (gap/8 thay vì gap/7), nên tới gần đích vẫn có bậc để leo.</li>
+ </ul>
+ <h3 style="margin-top:12px">Khi Sóc trông như tụt một bậc</h3><ul>
+  <li>Chỉ xảy ra khi <b>nâng</b> mục tiêu (bậc dài ra nên điểm cao nhất rơi vào bậc thấp hơn), như ca 6: bậc 5 → bậc 4. Hạ mục tiêu thì Sóc chỉ lên hoặc đứng yên.</li>
+  <li>Làm mềm: (1) cho các bậc giãn ra trong ~600 ms, Sóc đi theo bậc của mình chứ không nhảy; (2) bảng của Sóc vẫn ghi “680”, không đổi; (3) một câu Sóc nói một lần: “Mục tiêu 900 rồi, mỗi bậc giờ 50 điểm!”.</li>
+  <li>Bảng điểm cao nhất có thể sát nhãn bậc kế (ca 1: bảng 535, bậc kế 540). Nên bỏ chip “+N” trên bậc kế, chỉ giữ “còn X điểm” ở dòng trên tiêu đề.</li>
+ </ul></div>
+ <div class="phwrap"><b>Điện thoại · start 500, mục tiêu 990, cao nhất 650</b><div class="ph" id="phone"></div></div>
+</div>
+
+<div class="sec">2 · Các phương án trước (tham khảo)<small>Hiện tại, A, B, C vẽ nhỏ với cùng 6 tình huống.</small></div>
+<div class="grid" id="grid"></div>
+
+<script src="lottie/soc-strings.js"></script>
+<script src="_goalguide.js"></script>
+<script>
+/* Names avoid D, C, F, soc, eye (owned by _soc.js). */
+const CASES=[
+ {t:'Mới thi lần đầu',first:535,best:535,recs:[535],goal:800,d:'Lần đầu 535 · mục tiêu 800'},
+ {t:'Đã tiến bộ',first:535,best:600,recs:[535,600],goal:800,d:'535 → cao nhất 600 · mục tiêu 800'},
+ {t:'Mục tiêu gần',first:535,best:535,recs:[535],goal:650,d:'Cao nhất 535 · mục tiêu 650'},
+ {t:'Sát đích',first:750,best:750,recs:[750],goal:800,d:'Cao nhất 750 · mục tiêu 800'},
+ {t:'Gần tối đa',first:900,best:960,recs:[900,960],goal:990,d:'900 → cao nhất 960 · mục tiêu 990'},
+ {t:'Nâng mục tiêu',first:535,best:680,recs:[535,600,680],goal:800,goal2:900,d:'Cao nhất 680 · mục tiêu 800 → 900'},
+];
+const r5=(v,u)=>Math.round(v/u)*u;
+
+/* ===== Chosen rule: always 8 even steps =====
+   toGoal=false: 8 steps, trophy after step 8 (8 gaps). toGoal=true: step 8 = goal, trophy on it (7 gaps). */
+function rule8(c,goal,toGoal){
+  const gaps=toGoal?7:8;
+  let S=c.first==null?450:Math.floor(c.first/50)*50;
+  if((goal-S)/gaps<10)S=Math.floor((goal-gaps*10)/10)*10;           // min 10 points per step
+  const vals=Array.from({length:8},(_,k)=>r5(S+k*(goal-S)/gaps,10));
+  let idx=0;vals.forEach((v,i)=>{if(v<=c.best)idx=i;});
+  return {vals,idx,toGoal,bars:vals.map((v,i)=>({v:i===idx?c.best:v,k:i<idx?'done':i===idx?'cur':'next'}))};
+}
+
+/* Current rule, ported from frontend/src/shared/domain/milestones.ts */
+function ruleNow(c,goal){
+  const size=[25,50,100].find(s=>(990-c.first)/s<=10)??100;
+  const rs=(lo,hi,inc)=>{const o=[];for(let v=Math.floor((lo+size/4)/size)*size+size;inc?v<=hi:v<hi;v+=size)o.push(v);return o;};
+  const climbed=[c.first,...rs(c.first,c.best,true)];climbed[climbed.length-1]=c.best;
+  const above=rs(c.best,goal-size/4,false);
+  return {bars:[...climbed.map((v,i)=>({v,k:i<climbed.length-1?'done':'cur'})),...above.map(v=>({v,k:'next'}))]};
+}
+function ruleA(c,goal){
+  const S=Math.floor(c.first/50)*50,st=(goal-S)/6,u=st>=50?10:5;
+  const vals=[0,1,2,3,4,5].map(k=>r5(S+k*st,u));
+  let idx=0;vals.forEach((v,i)=>{if(v<=c.best)idx=i;});
+  return {bars:vals.map((v,i)=>({v:i===idx?c.best:v,k:i<idx?'done':i===idx?'cur':'next'}))};
+}
+function ruleB(c,goal){
+  const S=Math.floor(c.first/50)*50,vals=[];for(let v=S;v<goal;v+=50)vals.push(v);
+  let idx=0;vals.forEach((v,i)=>{if(v<=c.best)idx=i;});
+  let bars=vals.map((v,i)=>({v:i===idx?c.best:v,k:i<idx?'done':i===idx?'cur':'next'}));
+  const ahead=vals.length-1-idx;
+  if(bars.length>8){const k=bars.length-7;bars=[{v:`${vals[0]} → ${vals[k-1]}`,k:'base'},...bars.slice(k)];}
+  return {bars,extra:Math.max(0,4-ahead)};
+}
+function ruleC(c,goal){
+  const rec=c.recs;let back;
+  if(rec.length>3)back=[{v:`${rec[0]} → ${rec[rec.length-3]}`,k:'base'},...rec.slice(-2).map(v=>({v,k:'done'}))];
+  else back=rec.map(v=>({v,k:'done'}));
+  back[back.length-1].k='cur';
+  const gap=goal-c.best;let ahead=[];
+  if(gap>=25){const st=gap/5,u=st>=20?10:5;for(let k=1;k<=4;k++)ahead.push(r5(c.best+k*st,u));}
+  else for(let v=Math.floor(c.best/5)*5+5;v<goal;v+=5)ahead.push(v);
+  ahead=[...new Set(ahead)].filter(v=>v>c.best&&v<goal);
+  return {bars:[...back,...ahead.map(v=>({v,k:'next'}))],extra:Math.max(0,4-ahead.length)};
+}
+
+/* ---- drawing: isometric bars like StairsScene ---- */
+const COL={done:['#ffd25e','#f5b82e','#e39a12'],base:['#ffd25e','#f5b82e','#e39a12'],cur:['#6fd07f','#3fae55','#2a8a40'],next:['#f8f7fd','#ece9f8','#ddd8f0']};
+const trophy=(x,y,num,s)=>`<g transform="translate(${x},${y}) scale(${s})"><path d="M18 10 C2 10 2 40 24 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M72 10 C88 10 88 40 66 44" fill="none" stroke="#f0a500" stroke-width="7"/><path d="M16 4 H74 C74 40 62 56 45 58 C28 56 16 40 16 4Z" fill="#ffc83d"/><path d="M45 18 l4 9 10 1-7.5 6.5 2.3 10-8.8-5.3-8.8 5.3 2.3-10L31 28l10-1Z" fill="#fff6d0"/><rect x="38" y="58" width="14" height="12" fill="#f0a500"/><rect x="24" y="70" width="42" height="9" rx="3" fill="#ffc83d"/><rect x="18" y="79" width="54" height="19" rx="3" fill="#2f3a33"/><text x="45" y="93" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="14" fill="#ffd25e">${num}</text></g>`;
+/* o: a half-width, b iso depth, h0 first height, rise per step, H scene height, W width, chip, fs label size */
+function scene(m,goal,best,tag,o={}){
+  const a0=o.a??13,bb=o.b??7,H=o.H??238,BASE=H-16,h0=o.h0??30,rise=o.rise??15,W=o.W??400,fs=o.fs??10.5,sw=o.sw??40,ts=o.ts??.62;
+  const pill=(x,y,txt,bg,fg)=>{const w=txt.length*fs*.6+10,h=fs+5.5;return `<rect x="${x-w/2}" y="${y}" width="${w}" height="${h}" rx="${h/2}" fill="${bg}"/><text x="${x}" y="${y+h-4.2}" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="${fs}" fill="${fg}">${txt}</text>`;};
+  const block=(cx,top,a,col)=>{const[t,l,r]=col;return `<path d="M${cx-a} ${top}L${cx} ${top+bb}L${cx} ${BASE+bb}L${cx-a} ${BASE}Z" fill="${l}"/><path d="M${cx} ${top+bb}L${cx+a} ${top}L${cx+a} ${BASE}L${cx} ${BASE+bb}Z" fill="${r}"/><path d="M${cx-a} ${top}L${cx} ${top-bb}L${cx+a} ${top}L${cx} ${top+bb}Z" fill="${t}"/>`;};
+  let svg='',x=o.x0??20,i=0,curTop=0,curCx=0,chip='',lastTop=0,lastCx=0;
+  m.bars.forEach((b,j)=>{
+    const a=b.k==='base'?a0*2.4:a0, cx=x+a, top=BASE-(h0+rise*i);
+    const goalStep=m.toGoal&&j===m.bars.length-1;
+    svg+=block(cx,top,a,COL[b.k]);
+    if(b.k==='done'||b.k==='base')svg+=`<ellipse cx="${cx}" cy="${top}" rx="${a*.38}" ry="${bb*.4}" fill="#f0a500" stroke="#fff3c4" stroke-width="1.2"/>`;
+    svg+=pill(cx-a/2+(b.k==='base'?a/2:0),top+bb+4,String(b.v),b.k==='next'?'#fff':'rgba(0,0,0,.2)',b.k==='next'?'#9a94bb':'#fff');
+    if(b.k==='next')svg+=`<g transform="translate(${cx-a/2-4},${top+bb+fs+14})" fill="none" stroke="#b9b3d6" stroke-width="1.6"><rect x="0" y="4" width="8" height="6" rx="1.5" fill="#b9b3d6"/><path d="M1.6 4.5V3a2.4 2.4 0 0 1 4.8 0v1.5"/></g>`;
+    if(b.k==='cur'){curTop=top;curCx=cx;}
+    if(o.chip!==false&&b.k==='next'&&!chip&&!goalStep){const g=b.v-best;chip=pill(cx,top-bb-24,'+'+g,g<25?'#e8742a':'#46b35a','#fff');}
+    lastTop=top;lastCx=cx;x+=a*2;i++;
+  });
+  if(m.toGoal){ // trophy stands on step 8
+    svg+=trophy(lastCx-45*ts,lastTop-bb-98*ts+4,goal,ts);
+  }else{
+    const ex=m.extra||0, tcx=x+a0+6;
+    if(ex){const ptop=BASE-(h0+rise*(i+ex))+18;svg+=block(tcx,ptop,a0+8,['#fff1c9','#f6dfa0','#e9cc80']);svg+=trophy(tcx-45*ts,ptop-98*ts+2,goal,ts);}
+    else{const ty=BASE-(h0+rise*i)-bb-98*ts+10;svg+=`<ellipse cx="${tcx}" cy="${ty+98*ts+6}" rx="${30*ts/.62}" ry="${6*ts/.62}" fill="#2f3a33" opacity=".12"/>`+trophy(tcx-45*ts,ty,goal,ts);}
+  }
+  svg+=chip;
+  const sh=sw*260/240;
+  const sq=`<div class="sq" style="width:${sw}px;left:${curCx-sw/2}px;top:${curTop-sh+bb+2}px">${SOC.idle}</div>`;
+  return `<div class="scene" style="height:${H}px;width:${W}px">${tag?`<span class="tg">${tag}</span>`:''}<svg class="st" width="${W}" height="${H}">${svg}</svg>${sq}</div>`;
+}
+
+/* ===== Section 1: hero ===== */
+const HERO={a:17,b:9,h0:34,rise:19,H:300,W:375,fs:11.5,sw:46,ts:.66,x0:18};
+const valsTxt=m=>m.vals.map((v,i)=>i===m.idx?`<i>[${v}]</i>`:v).join(' · ');
+const stepOf=m=>`bậc ${m.idx+1}/8`;
+function heroSide(c,m){
+  const nx=m.vals[m.idx+1],gap=nx-c.best;
+  let s=`<div class="vals">${valsTxt(m)}${m.toGoal?'':` → cúp ${c.goal}`}</div>Sóc đứng ${stepOf(m)}, bảng ghi <strong>${c.best}</strong>. Mỗi bậc ≈ ${Math.round((c.goal-m.vals[0])/(m.toGoal?7:8))} điểm.`;
+  if(m.vals[0]>Math.floor(c.first/50)*50||m.vals[0]<Math.floor(c.first/50)*50)s+=`<br><span class="w">Khoảng tới đích &lt; 80 (hoặc 70) nên điểm bắt đầu hạ xuống ${m.vals[0]} để mỗi bậc ≥ 10.</span>`;
+  if(nx!==undefined&&gap<10)s+=`<br><span class="w">Bảng ${c.best} sát nhãn bậc kế ${nx} (+${gap}).</span>`;
+  const diffs=m.vals.slice(1).map((v,i)=>v-m.vals[i]);if(new Set(diffs).size>1)s+=`<br><span class="w">Làm tròn 10 nên khoảng nhãn lệch nhau (${[...new Set(diffs)].join('/')}); bậc vẽ vẫn đều.</span>`;
+  return s;
+}
+let hh='<div></div><div class="rh pick">8 bậc rồi tới cúp<span class="tag">Khuyên dùng</span><small>8 khoảng: bậc k = start + k·(goal − start)/8, k = 0…7; cúp = goal</small></div><div class="rh">Bậc 8 chính là mục tiêu<small>7 khoảng: bậc 8 = goal, cúp đứng trên bậc 8 (như ví dụ 500 · 570 · … · 990)</small></div>';
+CASES.forEach((c,ci)=>{
+  hh+=`<div class="case"><b>${ci+1}</b>${c.t}<small>${c.d}</small></div>`;
+  [false,true].forEach(tg=>{
+    const m=rule8(c,c.goal,tg);
+    if(!c.goal2){hh+=`<div class="cell flex ${tg?'':'pick'}">${scene(m,c.goal,c.best,'',HERO)}<div class="sn">${heroSide(c,m)}</div></div>`;return;}
+    const m2=rule8(c,c.goal2,tg),HS={...HERO,W:372,a:16,rise:18};
+    hh+=`<div class="cell ${tg?'':'pick'}"><div class="pair">${scene(m,c.goal,c.best,'Trước · mục tiêu 800',HS)}<span class="ar">→</span>${scene(m2,c.goal2,c.best,'Sau · mục tiêu 900',HS)}</div><div class="cap2"><div class="sn" style="padding:0">Trước: <span class="vals" style="display:inline-block;margin:2px 0">${valsTxt(m)}</span> ${stepOf(m)}<br>Sau: <span class="vals" style="display:inline-block;margin:2px 0">${valsTxt(m2)}</span> ${stepOf(m2)}<br>${m2.idx<m.idx?`<span class="w">Sóc từ bậc ${m.idx+1} về bậc ${m2.idx+1}: trông như tụt một bậc dù điểm vẫn ${c.best}. Làm mềm: bậc giãn ra có hoạt ảnh, bảng vẫn ghi ${c.best}.</span>`:'<span class="ok">Sóc giữ nguyên bậc.</span>'}</div></div></div>`;
+  });
+});
+document.getElementById('hero').innerHTML=hh;
+
+/* phone frame: start 500, goal 990, best 650 */
+(()=>{const c={first:500,best:650,goal:990},m=rule8(c,990,false);
+ const left=8-1-m.idx;
+ document.getElementById('phone').innerHTML=`<div class="sky"></div><div class="rays"></div>${ggSb()}${ggTop('Thi sau 37 ngày',3)}
+ <div class="hd">${ggDots(8,m.idx,`BẬC ${m.idx+1}/8 · CÒN ${990-650} ĐIỂM`)}<h1>Còn ${left} bậc nữa là <em>chạm tay vào cúp</em></h1></div>
+ ${scene(m,990,650,'',{a:19,b:10,h0:34,rise:24,H:390,W:390,fs:11.5,sw:48,ts:.72,x0:6,chip:false})}${ggPanel}${ggNav()}`;})();
+
+document.getElementById('pseudo').textContent=
+`STEPS = 8 ; MIN_STEP = 10
+start = firstScore == null ? ESTIMATE_START (450)
+                           : floor(firstScore / 50) * 50
+if (goal - start) / STEPS < MIN_STEP:             // goal very close
+  start = floor((goal - STEPS*MIN_STEP) / 10) * 10
+steps[k] = round((start + k * (goal - start) / STEPS) / 10) * 10
+           for k = 0..7                          // trophy = goal, after step 8
+if best >= goal: all 8 gold, Sóc beside the trophy ('done')
+else:
+  cur = max k with steps[k] <= best              // always >= 0
+  k <  cur  -> gold (reached; hover = first date score >= steps[k])
+  k == cur  -> green, Sóc on it, plate shows best
+  k >  cur  -> lavender + lock
+header: "BẬC {cur+1}/8 · CÒN {goal - best} ĐIỂM"
+goal change: recompute steps; animate heights;
+  cur may drop by 1 only when the goal is raised (plate unchanged)`;
+
+/* ===== Section 2: earlier options (small) ===== */
+const count=m=>({n:m.bars.filter(b=>b.k==='next').length,back:m.bars.filter(b=>b.k!=='next').length});
+function cap(m,c,extraNote=''){const {n,back}=count(m);const first=m.bars.find(b=>b.k==='next');const g=first?first.v-c.best:0;
+  let s=`${back} bậc đã leo · <b>${n}</b> bậc phía trước`;
+  if(n<=2)s+=` · <span class="w">cảnh trống</span>`;
+  if(first&&g<25)s+=` · <span class="w">bậc kế chỉ +${g}</span>`;
+  if(m.extra)s+=` · bệ cúp +${m.extra}`;
+  return s+extraNote;}
+const RULES=[
+ {f:ruleNow,h:'Hiện tại',s:'Bậc 25/50/100 theo điểm đầu, bậc đã leo giữ, rồi số tròn tới mục tiêu',cls:'ref'},
+ {f:ruleA,h:'A · Số bậc cố định',s:'Luôn 6 bậc đều từ điểm đầu (làm tròn xuống 50) tới mục tiêu'},
+ {f:ruleB,h:'B · Bậc đều 50, luôn đủ dài',s:'Số tròn 50; thiếu bậc thì bệ cúp cao lên; tối đa 8 bậc'},
+ {f:ruleC,h:'C · Kỷ lục phía sau, 4 bậc phía trước',s:'Phía sau là các lần phá kỷ lục thật; phía trước luôn 4 bậc đều tới cúp'},
+];
+const NOTE6=[
+ '<br><span class="w">Thêm 750 · 800 · 850 phía trên; tổng 8–9 bậc.</span>',
+ '<br><span class="w">Nhãn đã leo 550·600·650 bị viết lại; Sóc tụt từ bậc 4 xuống bậc 3.</span>',
+ '<br><span class="ok">Sóc đứng yên trên 650 (bảng 680), thêm 800·850 phía trước.</span>',
+ '<br><span class="ok">535·600·680 không đổi, Sóc đứng yên; chỉ 4 bậc phía trước dàn lại.</span>',
+];
+const VERD=[
+ 'Bậc đầu lẻ “+15”, số bậc nhảy từ 1 đến 6 tuỳ mục tiêu: chính là chỗ “co giật”.',
+ '6 bậc đều, nhưng gần đích bậc chỉ 8–15 điểm và đổi mục tiêu làm Sóc tụt bậc. Luật 8 bậc đã chốt là bản mở rộng của A.',
+ 'Số tròn, Sóc không tụt; nhưng gần đích còn 0–2 bậc, bệ cúp cao chênh vênh để lấp chỗ trống.',
+ 'Hình ổn định, nhãn sau lưng là điểm thật; nhưng phía trước đổi mỗi lần có kỷ lục, khó giải thích hơn luật 8 bậc.',
+];
+let g='<div></div>'+RULES.map(r=>`<div class="rh ${r.cls||''}">${r.h}<small>${r.s}</small></div>`).join('');
+CASES.forEach((c,ci)=>{
+  g+=`<div class="case"><b>${ci+1}</b>${c.t}<small>${c.d}</small></div>`;
+  RULES.forEach((r,ri)=>{
+    const m=r.f(c,c.goal);
+    if(!c.goal2){g+=`<div class="cell">${scene(m,c.goal,c.best)}<div class="cap2">${cap(m,c)}</div></div>`;return;}
+    const m2=r.f(c,c.goal2);
+    g+=`<div class="cell">${scene(m,c.goal,c.best,'Trước · mục tiêu 800')}${scene(m2,c.goal2,c.best,'Sau · mục tiêu 900')}<div class="cap2">${cap(m2,c,NOTE6[ri])}</div></div>`;
+  });
+});
+g+='<div></div>'+RULES.map((r,i)=>`<div class="verdict">${'<b>KẾT LUẬN</b>'+VERD[i]}</div>`).join('');
+document.getElementById('grid').innerHTML=g;
+</script></body></html>

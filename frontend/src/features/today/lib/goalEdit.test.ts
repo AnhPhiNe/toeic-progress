@@ -18,7 +18,7 @@ const test = (id: string, date: string, total: number, l?: number, r?: number) =
   totalScore: total, scaledListening: l, scaledReading: r
 }) as unknown as StudySession;
 
-// First test 560, best 680: with goal 800 the stairs go 560 590 ... 800 (step 30) and Sóc stands on 680.
+// First test 560, best 680: with goal 800 the stairs go 550 580 610 640 680 710 740 770 and Sóc stands on bậc 5 (680).
 const climb = [test('1', '2026-10-01', 560, 290, 270), test('2', '2026-10-15', 620, 320, 300), test('3', '2026-11-01', 680, 350, 330)];
 
 describe('stepGoal', () => {
@@ -37,25 +37,24 @@ describe('stepGoal', () => {
 });
 
 describe('goalPreview', () => {
-  it('counts the stairs a raise adds and marks them new in the mini strip', () => {
+  it('keeps eight stairs and says how wide they are and where Sóc stands', () => {
+    const p = goalPreview(climb, 800, 800);
+    expect(p).toMatchObject({ estimate: false, cur: 4, curBefore: 4, step: 31 });
+    expect(p.bars).toEqual(['passed', 'passed', 'passed', 'passed', 'now', 'next', 'next', 'next']);
+    expect(previewHeadline(p, 800)).toEqual({ lead: 'Mỗi bậc ≈ 31 điểm', rest: 'bạn ở bậc 5/8' });
+  });
+  it('a raise spreads the stairs: Sóc can land a stair lower', () => {
     const p = goalPreview(climb, 800, 850);
-    expect(p.estimate).toBe(false);
-    expect(p.delta).toBeGreaterThan(0);
-    expect(p.bars.filter(b => b === 'new')).toHaveLength(p.delta);
-    expect(p.bars.slice(-p.delta).every(b => b === 'new')).toBe(true);
-    expect(p.bars).toContain('now');
-    expect(previewHeadline(p, 850)).toEqual({ lead: `Thêm ${p.delta} bậc`, rest: `còn ${p.left} bậc tới cúp 850` });
+    expect(p).toMatchObject({ cur: 3, curBefore: 4, step: 38 });
+    expect(p.bars).toHaveLength(8);
+    expect(p.bars).toEqual(['passed', 'passed', 'passed', 'now', 'next', 'next', 'next', 'next']);
+    expect(previewHeadline(p, 850)).toEqual({ lead: 'Mỗi bậc ≈ 38 điểm', rest: 'bạn ở bậc 4/8' });
   });
-  it('matches what the stairs then show: Sóc stays on 680, only the stairs above change', () => {
-    expect(previewHeadline(goalPreview(climb, 800, 850), 850)).toEqual({ lead: 'Thêm 1 bậc', rest: 'còn 4 bậc tới cúp 850' });
-    expect(previewHeadline(goalPreview(climb, 800, 750), 750)).toEqual({ lead: 'Bớt 1 bậc', rest: 'còn 2 bậc tới cúp 750' });
-    expect(goalPreview(climb, 800, 850).bars).toEqual(['passed', 'passed', 'now', 'next', 'next', 'new']);
-  });
-  it('says how many stairs a lower goal removes', () => {
+  it('a lower goal packs the stairs closer', () => {
     const p = goalPreview(climb, 900, 750);
-    expect(p.delta).toBeLessThan(0);
-    expect(p.bars).not.toContain('new');
-    expect(previewHeadline(p, 750).lead).toBe(`Bớt ${-p.delta} bậc`);
+    expect(p.bars).toHaveLength(8);
+    expect(p.step).toBeLessThan(goalPreview(climb, 900, 900).step);
+    expect(p.cur).toBeGreaterThanOrEqual(p.curBefore);
   });
   it('splits the goal into Nghe / Đọc from the learner balance', () => {
     const { split } = goalPreview(climb, 800, 850);
@@ -65,8 +64,8 @@ describe('goalPreview', () => {
   it('shows estimated stairs before the first test', () => {
     const p = goalPreview([], 800, 850);
     expect(p.estimate).toBe(true);
-    expect(p.delta).toBe(0);
-    expect(previewHeadline(p, 850).lead).toBe('8 bậc ước lượng');
+    expect(p.bars).toEqual(Array(8).fill('next'));
+    expect(previewHeadline(p, 850)).toEqual({ lead: 'Mỗi bậc ≈ 50 điểm', rest: '8 bậc ước lượng tới cúp 850' });
   });
 });
 
@@ -90,8 +89,9 @@ describe('goals at or below the best score', () => {
     expect(localStorage.getItem(CELEBRATED_KEY)).toBe('650');
   });
   it('has Sóc say one short line after saving', () => {
-    expect(savedLine({ delta: 2, reached: false, target: 850 })).toBe('Thêm 2 bậc nữa, mình leo tiếp nhé!');
-    expect(savedLine({ delta: 0, reached: true, target: 650 })).toBe('Cúp 650 đã nằm trong tay bạn rồi!');
+    expect(savedLine({ reached: false, target: 900, step: 50, dropped: true })).toBe('Mục tiêu 900 rồi, mỗi bậc giờ ~50 điểm!');
+    expect(savedLine({ reached: false, target: 825, step: 34, dropped: false })).toBe('Cúp mới 825, mình leo tiếp nhé!');
+    expect(savedLine({ reached: true, target: 650, step: 10, dropped: false })).toBe('Cúp 650 đã nằm trong tay bạn rồi!');
   });
 });
 

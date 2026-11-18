@@ -1,28 +1,21 @@
 import { useState } from 'react';
 import { CloudCheck, CloudOff, HardDrive, RefreshCw } from 'lucide-react';
 import type { AccountStatus } from './AccountPanel';
+import { describeSync } from '@/features/account/lib/syncStatus';
 
 interface Props {
   available: boolean;
   status: AccountStatus;
+  waking?: boolean;
   onOpenSettings: () => void;
   onRetry: () => Promise<void>;
 }
 
-/** One reading of the account state, shared by the top-bar indicator and the phone avatar dot. */
-export function describeSync(available: boolean, status: AccountStatus) {
-  const localOnly = !available || status === 'guest';
-  const waiting = !localOnly && (status === 'loading' || status === 'syncing');
-  const failed = !localOnly && (status === 'error' || status === 'disconnected');
-  const label = localOnly ? 'Chỉ lưu trên máy' : status === 'synced' ? 'Đã đồng bộ'
-    : status === 'syncing' ? 'Đang đồng bộ' : status === 'loading' ? 'Đang kết nối'
-      : status === 'choice' ? 'Chọn dữ liệu đồng bộ' : status === 'error' ? 'Đồng bộ lỗi' : 'Chưa kết nối';
-  return { localOnly, waiting, failed, label };
-}
+export { describeSync };
 
-export function AccountSyncIndicator({ available, status, onOpenSettings, onRetry }: Props) {
+export function AccountSyncIndicator({ available, status, waking, onOpenSettings, onRetry }: Props) {
   const [retrying, setRetrying] = useState(false);
-  const { localOnly, waiting, failed, label } = describeSync(available, status);
+  const { localOnly, waiting, failed, label } = describeSync(available, status, { waking });
   const Icon = localOnly ? HardDrive : waiting ? RefreshCw : failed ? CloudOff : CloudCheck;
   const color = failed ? 'text-amber-800 dark:text-amber-300'
     : status === 'synced' && !localOnly ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-600 dark:text-slate-300';

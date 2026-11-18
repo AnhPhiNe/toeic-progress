@@ -202,7 +202,7 @@ export class StorageWriteError extends Error {
 export function writeDataBundle(bundle: DataBundle): void {
   const accountId = getActiveAccountId();
   if (accountId && !canWriteAccount()) {
-    throw new StorageWriteError('Chưa kết nối tài khoản nên thay đổi chưa được lưu. Hãy thử lại khi thanh trạng thái báo đã kết nối.', 'disconnected');
+    throw new StorageWriteError('Tài khoản chưa kết nối xong nên lần lưu này chưa được ghi. Dữ liệu cũ vẫn an toàn trên máy; hãy lưu lại khi trạng thái báo đã đồng bộ.', 'disconnected');
   }
   const key = accountId ? accountKey(accountId) : BUNDLE_KEY;
   const previous = localStorage.getItem(key);

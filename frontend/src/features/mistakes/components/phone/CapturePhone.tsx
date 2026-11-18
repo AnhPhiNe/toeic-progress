@@ -6,10 +6,13 @@ import { Soc } from '@/shared/ui/soc/Soc';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
-import { latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
+import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
+import { suggestGroups } from '@/features/mistakes/lib/wrongDetail';
+import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
+import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { addFiles, backToInput, captureState, closeCapture, openCapture, patchItem, removeImage, removeItem, resetCapture, retryFailure,
-  setAllChecked, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+  setAllChecked, setGroup, setPart, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
@@ -46,8 +49,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const [saving, setSaving] = useState(false);
   const [tips, setTips] = useState(() => !tipsSeen());
   const [clarity, setClarity] = useState<Record<string, ClarityResult | null>>({});
-  const camera = useRef<HTMLInputElement>(null);
-  const gallery = useRef<HTMLInputElement>(null);
+  const [contextSupported, setContextSupported] = useState(true);
   const [owner] = useState(getActiveAccountId);
   const close = useCallback(() => { closeCapture(); onClose(); }, [onClose]);
   const ref = useModalA11y(true, close);
@@ -59,10 +61,14 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
       const name = normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '';
       if (name) setTestName(name);
     }
-    // Opening the camera right away only works where the browser still counts the tap that opened this screen.
-    if (tipsSeen() && current.phase === 'input' && !current.images.length) camera.current?.click();
     // Opening runs once; later changes of the lists must not overwrite the learner's pick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void aiService.getAIConfiguration().then(value => { if (!cancelled) setContextSupported(Boolean(value.pageContextImages)); }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   // Every new photo is measured on this phone; nothing is sent and no AI use is spent.
@@ -73,7 +79,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
     for (const image of state.images) {
       if (measured.current.has(image.id)) continue;
       measured.current.add(image.id);
-      void checkPhotoClarity(image.dataUrl).then(result => { if (alive.current) setClarity(previous => ({ ...previous, [image.id]: result })); });
+      void checkPhotoClarity(image.url).then(result => { if (alive.current) setClarity(previous => ({ ...previous, [image.id]: result })); });
     }
   }, [state.images]);
 
@@ -84,19 +90,14 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const problemIndex = state.images.findIndex(image => clarity[image.id]?.problem);
   const problem = problemIndex >= 0 ? clarity[state.images[problemIndex].id]!.problem! : null;
   const message = problem ? clarityMessage(problemIndex + 1, problem) : null;
-  const preview = state.images[state.images.length - 1];
+  const groupRange = state.part && state.part >= 6 && state.group ? suggestGroups(state.part as 6 | 7, [state.group]).find(item => item.from === state.group) ?? null : null;
 
-  const pickFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = [...(event.target.files ?? [])];
-    event.target.value = '';
-    if (files.length) void addFiles(files);
-  };
-  const retake = () => { if (problemIndex >= 0) removeImage(state.images[problemIndex].id); camera.current?.click(); };
-  const startCamera = () => { markTipsSeen(); setTips(false); camera.current?.click(); };
+  const retake = () => { if (problemIndex >= 0) removeImage(state.images[problemIndex].id); };
+  const closeTips = () => { markTipsSeen(); setTips(false); };
   const send = () => {
-    if (!state.images.length || !testName || state.adding) return;
+    if (!state.images.length || !testName || !state.part) return;
     setError('');
-    void startReading({ questions: plan.questions, getToken });
+    void startReading({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported });
   };
 
   const save = () => {
@@ -125,15 +126,8 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   }, [state.failures]);
   const retryAll = async (ids: string[]) => { for (const id of ids) await retryFailure(id); };
 
-  const fileInputs = (
-    <>
-      <input ref={camera} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" hidden aria-label="Chụp ảnh trang chữa bài" onChange={pickFiles} />
-      <input ref={gallery} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Chọn ảnh từ thư viện" onChange={pickFiles} />
-    </>
-  );
-
   return createPortal(
-    <div ref={ref} role="dialog" aria-modal="true" aria-label="Chụp trang chữa bài" tabIndex={-1} className={'rd pc' + (state.phase === 'review' ? ' is-light' : '')}>
+    <div ref={ref} role="dialog" aria-modal="true" aria-label="Chụp trang chữa bài" tabIndex={-1} className={'rd pc' + (state.phase !== 'reading' ? ' is-light' : '')}>
       {state.phase === 'input' && (
         <>
           <div className="pc-top">
@@ -142,40 +136,19 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             <button type="button" className="pc-i" aria-label="Mẹo chụp rõ" onClick={() => setTips(true)}>i</button>
           </div>
           <div className="pc-test"><TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} /></div>
-          <div className="pc-vf">
-            {preview ? <img src={preview.dataUrl} alt="Ảnh vừa chụp" /> : (
-              <div className="pc-empty"><Soc state="idle" size={84} /><p>Bấm nút tròn để chụp trang chữa bài</p><small>Chỉ Part 5–7 (câu 101–200)</small></div>
-            )}
-            <span className="pc-corner is-tl" /><span className="pc-corner is-tr" /><span className="pc-corner is-bl" /><span className="pc-corner is-br" />
+          <div className="pc-part">
+            <CapturePartInput phone part={state.part} group={state.group} images={state.images} logged={plan.logged ? plan.questions : null}
+              onPart={setPart} onGroup={setGroup} onAdd={addFiles} onRemove={removeImage} />
           </div>
-          {state.images.length > 0 && (
-            <ul className="pc-thumbs" aria-label="Ảnh đã chụp">
-              {state.images.map((image, index) => {
-                const bad = Boolean(clarity[image.id]?.problem);
-                return (
-                  <li key={image.id} className={bad ? 'is-warn' : ''}>
-                    <img src={image.dataUrl} alt={`Ảnh ${index + 1}`} />
-                    {bad ? <b aria-label="Ảnh chưa rõ">!</b> : null}
-                    <button type="button" aria-label={`Bỏ ảnh ${index + 1}`} onClick={() => removeImage(image.id)}>×</button>
-                  </li>
-                );
-              })}
-              <li className="pc-count">{state.images.length} trang<br />{full ? 'đủ ảnh một lượt' : 'chụp thêm hoặc gửi'}</li>
-            </ul>
-          )}
           {message && (
             <div className="pc-warn" role="status"><div><b>{message.head}</b>{message.rest}</div><button type="button" onClick={retake}>Chụp lại</button></div>
           )}
           {(error || state.error) && <p role="alert" className="pc-err">{error || state.error}</p>}
-          {state.overflow && <p className="pc-err" role="status">Gửi {MAX_CAPTURE_IMAGES} ảnh trước, phần còn lại gửi lần sau.</p>}
-          <div className="pc-ctl">
-            <button type="button" className="pc-side" onClick={() => gallery.current?.click()} disabled={state.adding || full}>Thư viện</button>
-            <button type="button" className="pc-shoot" aria-label="Chụp ảnh" onClick={() => camera.current?.click()} disabled={state.adding || full} />
-            <button type="button" className="pc-side" onClick={() => { closeCapture(); onManual(); }}>Tự gõ</button>
-          </div>
-          <div className="pc-foot">
-            <button type="button" className="pc-send" disabled={!state.images.length || !testName || state.adding} onClick={send}>
-              {state.adding ? 'Đang xử lý ảnh…' : state.images.length && !testName ? 'Chọn đề trước khi gửi' : state.images.length ? `Gửi Sóc đọc ${state.images.length} trang · 1 lượt AI` : 'Chụp ít nhất một trang'}
+          {(state.overflow || full) && <p className="pc-err" role="status">Mỗi lần gửi tối đa {MAX_CAPTURE_IMAGES} ảnh (3 ảnh đoạn văn).</p>}
+          <div className="pc-foot is-row">
+            <button type="button" className="pc-side is-light" onClick={() => { closeCapture(); onManual(); }}>Tự gõ</button>
+            <button type="button" className="pc-send" disabled={!state.images.length || !testName || !state.part} onClick={send}>
+              {!state.part ? 'Chọn Part trước' : state.images.length && !testName ? 'Chọn đề trước khi gửi' : state.images.length ? `Gửi Sóc đọc ${state.images.length} ảnh · 1 lượt AI` : 'Chụp ít nhất một ảnh'}
             </button>
           </div>
         </>
@@ -187,10 +160,11 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="pc-read">
             <Soc state="think" size={150} />
             <h3>Sóc đang đọc {state.images.length} ảnh…</h3>
+            {state.note && <p className="pc-note">{state.note}</p>}
             <p role="status">{state.items.length ? `Đã thấy ${state.items.length} câu sai.` : 'Chưa thấy câu sai nào, Sóc đang tìm tiếp.'} Thường mất khoảng {Math.max(20, state.requestsTotal * 20)} giây.</p>
             <ul className="pc-thumbs is-read" aria-label="Ảnh đang đọc">
               {state.images.map((image, index) => (
-                <li key={image.id} className={'is-' + image.status}><img src={image.dataUrl} alt={`Ảnh ${index + 1}`} />
+                <li key={image.id} className={'is-' + image.status}><img src={image.url} alt={`Ảnh ${index + 1}`} />
                   {image.status === 'done' && <b className="is-ok" aria-label="Đã đọc xong">✓</b>}{image.status === 'failed' && <b aria-label="Chưa đọc được">!</b>}</li>
               ))}
             </ul>
@@ -207,6 +181,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           </div>
           <div className="pc-rev">
             {state.restored && <p className="pc-note" role="status">Đã khôi phục các câu bạn chưa lưu lần trước.</p>}
+            {state.note && <p className="pc-note">{state.note}</p>}
             {failureGroups.map(group => (
               <div key={group.message} className="pc-fail" role="alert">
                 <span><b>Chưa đọc được {group.images} ảnh.</b> {group.message}</span>
@@ -235,7 +210,6 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
         </>
       )}
 
-      {fileInputs}
       {tips && (
         <PhoneSheet title="Chụp sao cho Sóc đọc rõ" hideTitle onClose={() => { markTipsSeen(); setTips(false); }}>
           <div className="pc-tiphd"><Soc state="idle" size={54} /><div><b>Chụp sao cho Sóc đọc rõ</b><small>Chỉ hiện lần đầu · xem lại ở nút i</small></div></div>
@@ -248,7 +222,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             <li><em style={{ background: '#e6f1ff' }}>2</em>Cầm thẳng, trang nằm gọn trong khung</li>
             <li><em style={{ background: '#ffe9ee' }}>3</em>Thấy rõ số câu và đáp án đúng/sai</li>
           </ul>
-          <button type="button" className="pc-send is-sheet" onClick={startCamera}>Hiểu rồi, mở camera</button>
+          <button type="button" className="pc-send is-sheet" onClick={closeTips}>Hiểu rồi</button>
         </PhoneSheet>
       )}
     </div>, document.body);

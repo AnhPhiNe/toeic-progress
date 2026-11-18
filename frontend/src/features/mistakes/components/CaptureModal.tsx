@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
-import { latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
+import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
+import { suggestGroups } from '@/features/mistakes/lib/wrongDetail';
+import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
+import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { addFiles, backToInput, captureState, closeCapture, openCapture, patchItem, removeImage, removeItem, resetCapture, retryFailure,
-  setAllChecked, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+  setAllChecked, setGroup, setPart, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
@@ -34,7 +37,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   const state = useSyncExternalStore(subscribeCapture, captureState);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [contextSupported, setContextSupported] = useState(true);
   const [owner] = useState(getActiveAccountId);
   const close = useCallback(() => { closeCapture(); onClose(); }, [onClose]);
   const ref = useModalA11y(true, close);
@@ -51,25 +54,33 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   }, []);
 
   useEffect(() => {
-    if (state.phase !== 'input') return;
+    let cancelled = false;
+    void aiService.getAIConfiguration().then(value => { if (!cancelled) setContextSupported(Boolean(value.pageContextImages)); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (state.phase !== 'input' || !state.part) return;
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
-      if (files.length) { event.preventDefault(); void addFiles(files); }
+      // Part 6–7: the first paste is the passage, later ones the questions.
+      if (files.length) { event.preventDefault(); addFiles(files, captureState().images.some(image => image.zone === 'passage') ? 'questions' : 'passage'); }
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
-  }, [state.phase]);
+  }, [state.phase, state.part]);
 
   const testName = normalizeTestName(state.testName);
   const plan = useMemo(() => questionsToFind(sessions, testName), [sessions, testName]);
+  const groupRange = state.part && state.part >= 6 && state.group ? suggestGroups(state.part as 6 | 7, [state.group]).find(item => item.from === state.group) ?? null : null;
   const full = state.images.length >= MAX_CAPTURE_IMAGES;
   const step = state.phase === 'input' ? 1 : state.phase === 'reading' ? 2 : 3;
   const checked = state.items.filter(item => item.checked);
 
   const next = () => {
-    if (!state.images.length || !testName) return;
+    if (!state.images.length || !testName || !state.part) return;
     setError('');
-    void startReading({ questions: plan.questions, getToken });
+    void startReading({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported });
   };
 
   const save = () => {
@@ -102,7 +113,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
 
   return (
     <div className="cap-dim" onMouseDown={event => { if (event.target === event.currentTarget) close(); }}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="cap-title" className={'cap-mod' + (step === 3 ? ' is-wide' : '')}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label="Chụp trang chữa bài" className={'cap-mod' + (step === 3 ? ' is-wide' : '')}>
         <div className="cap-head">
           <h2 id="cap-title">{step === 3 ? state.items.length ? `Soát ${state.items.length} câu sai` : 'Kết quả đọc ảnh' : 'Chụp trang chữa bài'}</h2>
           <button type="button" className="cap-x" aria-label="Đóng" onClick={close}>×</button>
@@ -114,36 +125,15 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
         {step === 1 && <>
           <div className="cap-body">
             <TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} />
-            <div className={'cap-drop' + (state.images.length ? ' is-compact' : '')}
-              onDragOver={event => event.preventDefault()}
-              onDrop={event => { event.preventDefault(); void addFiles([...event.dataTransfer.files]); }}>
-              {!state.images.length && <Soc state="hi" size={92} />}
-              <b>{state.images.length ? 'Thả hoặc dán thêm ảnh' : 'Thả, dán hoặc chọn ảnh trang chữa bài'}</b>
-              {!state.images.length && <p>Nhấn <kbd>Ctrl+V</kbd> để dán ảnh chụp màn hình · nhiều ảnh một lúc</p>}
-              <button type="button" className="rd-btn rd-btn--white cap-sm" disabled={state.adding || full} onClick={() => fileInput.current?.click()}>
-                {state.adding ? 'Đang xử lý ảnh…' : 'Chọn ảnh…'}
-              </button>
-              <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh trang chữa bài"
-                onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (files.length) void addFiles(files); }} />
-            </div>
-            {state.images.length > 0 && (
-              <ul className="cap-thumbs" aria-label="Ảnh đã thêm">
-                {state.images.map((image, index) => (
-                  <li key={image.id} className="cap-th">
-                    <img src={image.dataUrl} alt={`Ảnh ${index + 1}`} />
-                    <button type="button" aria-label={`Bỏ ảnh ${index + 1}`} onClick={() => removeImage(image.id)}>×</button>
-                  </li>
-                ))}
-                <li className="cap-count" aria-label="Số ảnh">{state.images.length}/{MAX_CAPTURE_IMAGES} ảnh</li>
-              </ul>
-            )}
+            <CapturePartInput part={state.part} group={state.group} images={state.images} logged={plan.logged ? plan.questions : null}
+              onPart={setPart} onGroup={setGroup} onAdd={addFiles} onRemove={removeImage} />
             {(state.overflow || full) && <p className="cap-note is-warn" role="status">Gửi {MAX_CAPTURE_IMAGES} ảnh trước, phần còn lại gửi lần sau.</p>}
-            <p className="cap-hint">📖 Chỉ Part 5–7 (câu 101–200). {plan.logged ? `Sóc tìm ${plan.questions.length} câu bạn đã ghi sai ở đề này.` : 'Sóc tự tìm câu bạn sai.'}</p>
+            {state.part && <p className="cap-hint">{plan.logged ? `Sóc tìm ${captureQuestions(plan, state.part, groupRange).length} câu bạn đã ghi sai ở đề này.` : 'Sóc tự tìm câu bạn sai.'}</p>}
             {(error || state.error) && <p role="alert" className="cap-error">{error || state.error}</p>}
           </div>
           <div className="cap-foot">
             <button type="button" className="cap-link" onClick={onManual}>✏️ Tự gõ một câu</button>
-            <button type="button" className="rd-btn rd-btn--pink" disabled={!state.images.length || !testName || state.adding} onClick={next}>Tiếp</button>
+            <button type="button" className="rd-btn rd-btn--pink" disabled={!state.images.length || !testName || !state.part} onClick={next}>Gửi Sóc đọc</button>
           </div>
         </>}
 
@@ -152,13 +142,14 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             <Soc state="think" size={150} />
             <div>
               <h3>Sóc đang đọc {state.images.length} ảnh…</h3>
+              {state.note && <p className="cap-note">{state.note}</p>}
               <p role="status">{state.items.length
                 ? `Đã thấy ${state.items.length} câu sai ở ${partsText(foundParts)}. `
                 : 'Chưa thấy câu sai nào, Sóc đang tìm tiếp. '}Thường mất khoảng {Math.max(20, state.requestsTotal * 20)} giây.</p>
               <ul className="cap-thumbs is-read" aria-label="Ảnh đang đọc">
                 {state.images.map((image, index) => (
                   <li key={image.id} className={'cap-th is-' + image.status}>
-                    <img src={image.dataUrl} alt={`Ảnh ${index + 1}`} />
+                    <img src={image.url} alt={`Ảnh ${index + 1}`} />
                     {image.status === 'reading' && <span className="cap-scan" aria-hidden="true" />}
                     {image.status === 'done' && <span className="cap-done" aria-label="Đã đọc xong">✓</span>}
                     {image.status === 'failed' && <span className="cap-done is-bad" aria-label="Chưa đọc được">!</span>}
@@ -176,6 +167,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
         {step === 3 && <>
           <div className="cap-body">
             {state.restored && <p className="cap-note" role="status">Đã khôi phục các câu bạn chưa lưu lần trước.</p>}
+            {state.note && <p className="cap-note">{state.note}</p>}
             {failureGroups.map(group => (
               <div key={group.message} className="cap-fail" role="alert">
                 <span><b>Chưa đọc được {group.images} ảnh.</b> {group.message}</span>

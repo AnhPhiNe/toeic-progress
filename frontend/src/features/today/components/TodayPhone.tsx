@@ -5,7 +5,7 @@ import type { DataBundle } from '@/shared/data/dataBundle';
 import type { NavTabId, SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import type { SocLook } from '@/features/awards/lib/outfit';
-import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
+import { STAIR_COUNT, buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
 import { daysUntil } from '@/features/journey/lib/scoreJourney';
@@ -113,12 +113,11 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
   });
   useEffect(() => { if (items.restOpen === 0) setExpanded(false); }, [items.restOpen]);
 
-  const blocks = climbing ? climbing.steps.length - 1 : estimate.values.length - 1;
-  const remaining = climbing ? blocks - climbing.currentIndex : 0;
+  // Eight stairs then the trophy, before and after the first test.
+  const remaining = climbing ? STAIR_COUNT - climbing.currentIndex : 0;
   const steps = climbing ? climbing.steps : estimate.values.map(value => ({ value, reached: false }));
   const finished = plan.status === 'done';
-  const cur = !climbing ? -1 : finished ? blocks - 1 : climbing.currentIndex;
-  const dotsFor = climbing ? climbing.steps.length : estimate.values.length;
+  const cur = !climbing ? -1 : finished ? STAIR_COUNT - 1 : climbing.currentIndex;
   const base = Math.min(size.h, size.h - size.panel + 26);
 
   const fallback = mode === 'ready'
@@ -132,7 +131,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
         target={shownTarget} cupLabel={chosen || climbing ? undefined : '?'} tests={tests} gear={soc.worn} rest={rest} onWake={wake}
         w={size.w} top={size.head + 6} base={base}
         onCup={canEdit ? goalEdit.open : undefined}
-        hidden={welcome.greeting || coatStep} grow={welcome.grew} lit={welcome.lit} added={goalEdit.grow}
+        hidden={welcome.greeting || coatStep} grow={welcome.grew} lit={welcome.lit}
       />
 
       <header className="tp-top">
@@ -160,11 +159,11 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
             ? <div className="tp-prog"><small className="tp-kick">MỤC TIÊU {target}</small></div>
             : <div className="tp-prog">
           <span className="tp-pdots" aria-hidden="true">
-            {Array.from({ length: dotsFor }, (_, i) => <i key={i} className={climbing ? (i < climbing.currentIndex || (finished && i <= climbing.currentIndex) ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : '') : ''} />)}
+            {Array.from({ length: STAIR_COUNT }, (_, i) => <i key={i} className={climbing ? (finished || i < climbing.currentIndex ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : '') : ''} />)}
           </span>
           <small>{climbing
-            ? (finished ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${blocks + 1} · CÒN ${target - climbing.best} ĐIỂM`)
-            : `${estimate.values.length} BẬC ƯỚC LƯỢNG · ${estimate.values[0]} → ${shownTarget}`}</small>
+            ? (finished ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${STAIR_COUNT} · CÒN ${target - climbing.best} ĐIỂM`)
+            : `${STAIR_COUNT} BẬC ƯỚC LƯỢNG · ${estimate.values[0]} → ${shownTarget}`}</small>
         </div>}
         {welcome.greeting ? <h1>Chào bạn!<br /><em>Mình là Sóc</em></h1> : coatStep ? <h1>Sóc của bạn<br /><em>trông thế nào?</em></h1> : climbing
           ? (finished

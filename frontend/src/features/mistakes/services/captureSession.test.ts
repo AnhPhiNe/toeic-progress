@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ extract: vi.fn(), prepare: vi.fn() }));
+const mocks = vi.hoisted(() => ({ extract: vi.fn(), group: vi.fn(), singles: vi.fn() }));
 vi.mock('./aiMistakeExtractor', () => ({ extractPageWithAI: mocks.extract }));
-vi.mock('@/features/mistakes/lib/imageInput', () => ({ prepareImage: mocks.prepare }));
+vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.group, prepareSingles: mocks.singles }));
 vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => 'owner-1' }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
 
-import { __resetCaptureForTests, addFiles, captureState, retryFailure, setTestName, startReading } from './captureSession';
+import { __resetCaptureForTests, addFiles, captureState, COMPRESSED_NOTE, retryFailure, setPart, setTestName, startReading } from './captureSession';
 
 const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 'Q ___', question: 'Q ___', context: '', userMistake: '', correctAnswer: '(B) b',
   trapTip: '', options: ['(A) a', '(B) b', '(C) c', '(D) d'], tags: [], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
@@ -14,49 +14,70 @@ const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 
 const reply = (numbers: number[], ticket = 't') => ({ items: numbers.map(number => ({ number, draft: draft() })), missing: [], explainTicket: ticket,
   usage: { remaining: 26, limit: 27, guest: false } });
 const files = (count: number) => Array.from({ length: count }, (_, index) => new File(['x'], `p${index}.png`, { type: 'image/png' }));
+const image = (id: string) => ({ id, name: id, dataUrl: 'data:image/png;base64,AAAA' });
+const request = (questions: number[], images = [image('q')], contextImages: ReturnType<typeof image>[] = []) => ({ contextImages, images, questions, slices: [] });
 
 beforeEach(() => {
   vi.clearAllMocks();
-  let counter = 0;
-  mocks.prepare.mockImplementation(async (file: File) => ({ id: `${file.name}-${++counter}`, name: file.name, dataUrl: 'data:image/jpeg;base64,AAAA' }));
   __resetCaptureForTests();
 });
 
 describe('capture session', () => {
-  it('accepts at most ten screenshots and says the rest is for the next capture', async () => {
-    await addFiles(files(12));
-    expect(captureState().images).toHaveLength(10);
+  it('takes the Part first, at most ten screenshots and three passage pages', () => {
+    setPart(7);
+    addFiles(files(5), 'passage');
+    expect(captureState().images.filter(item => item.zone === 'passage')).toHaveLength(3);
     expect(captureState().overflow).toBe(true);
-    expect(mocks.prepare).toHaveBeenCalledTimes(10);
+    addFiles(files(9), 'questions');
+    expect(captureState().images).toHaveLength(10);
+    // A Part 5 capture has one zone; changing the Part starts afresh.
+    setPart(5);
+    expect(captureState().images).toHaveLength(0);
+    addFiles(files(2), 'passage');
+    expect(captureState().images.map(item => item.zone)).toEqual(['questions', 'questions']);
   });
 
-  it('reads in chunks of three images, one batch id for all, and merges the results without repeats', async () => {
-    await addFiles(files(7));
-    setTestName('ETS 2024 Test 11');
-    mocks.extract.mockResolvedValueOnce(reply([107, 117])).mockResolvedValueOnce(reply([117, 124])).mockResolvedValueOnce(reply([131]));
-    // Wide mode: every chunk looks for all of the 8 questions.
-    await startReading({ questions: [107, 117, 124, 131, 135, 141, 150, 160], getToken: async () => 'tok' });
-    expect(mocks.extract).toHaveBeenCalledTimes(3);
-    expect(mocks.extract.mock.calls.map(call => call[1].length)).toEqual([3, 3, 1]);
+  it('reads a Part 6–7 group with its passage in the same request, two readings at a time, as one batch', async () => {
+    setPart(7); setTestName('ETS 2024 Test 11');
+    addFiles(files(2), 'passage'); addFiles(files(1), 'questions');
+    mocks.group.mockResolvedValueOnce({ requests: [request([186, 187, 188, 189, 190], [image('q')], [image('p1'), image('p2')])], split: false, compressed: true });
+    mocks.extract.mockResolvedValueOnce(reply([186, 189]));
+    await startReading({ questions: [186, 187, 188, 189, 190], getToken: async () => 'tok', contextSupported: true });
+    expect(mocks.group.mock.calls[0][0]).toHaveLength(2);
+    expect(mocks.group.mock.calls[0][1]).toHaveLength(1);
+    expect(mocks.extract.mock.calls[0][6]).toHaveLength(2);
+    expect(captureState()).toMatchObject({ phase: 'review', note: COMPRESSED_NOTE });
+    expect(captureState().items.map(item => item.number)).toEqual([186, 189]);
+  });
+
+  it('runs at most two readings at once, all with one batch id', async () => {
+    setPart(5); setTestName('ETS 2024 Test 11');
+    addFiles(files(2));
+    mocks.singles.mockResolvedValueOnce({ requests: [request([101, 102, 103, 104, 105, 106]), request([107]), request([108])], split: false, compressed: false });
+    let running = 0, peak = 0;
+    mocks.extract.mockImplementation(async (questions: { number: number }[]) => {
+      running += 1; peak = Math.max(peak, running);
+      await new Promise(resolve => setTimeout(resolve, 5));
+      running -= 1;
+      return reply([questions[0].number]);
+    });
+    await startReading({ questions: [101, 102, 103, 104, 105, 106, 107, 108], getToken: async () => 'tok' });
+    expect(peak).toBe(2);
     expect(new Set(mocks.extract.mock.calls.map(call => call[5])).size).toBe(1);
-    // Later readings only ask for what is still missing.
-    expect(mocks.extract.mock.calls[1][0].map((question: { number: number }) => question.number)).not.toContain(107);
-    const state = captureState();
-    expect(state.phase).toBe('review');
-    expect(state.items.map(item => item.number)).toEqual([107, 117, 124, 131]);
+    expect(captureState().items.map(item => item.number)).toEqual([101, 107, 108]);
   });
 
-  it('keeps going when one reading fails, lists the screenshots, and retries them inside the same capture', async () => {
-    await addFiles(files(4));
-    setTestName('ETS 2024 Test 11');
-    mocks.extract.mockRejectedValueOnce(new Error('Máy chủ đang bận.')).mockResolvedValueOnce(reply([107]));
+  it('keeps going when one reading fails and retries it inside the same capture', async () => {
+    setPart(5); setTestName('ETS 2024 Test 11');
+    addFiles(files(1));
+    mocks.singles.mockResolvedValueOnce({ requests: [request([107]), request([117])], split: false, compressed: false });
+    mocks.extract.mockRejectedValueOnce(new Error('Máy chủ đang bận.')).mockResolvedValueOnce(reply([117]));
     await startReading({ questions: [107, 117], getToken: async () => 'tok' });
     let state = captureState();
-    expect(state.items.map(item => item.number)).toEqual([107]);
+    expect(state.items.map(item => item.number)).toEqual([117]);
     expect(state.failures).toHaveLength(1);
-    expect(state.failures[0]).toMatchObject({ message: 'Máy chủ đang bận.' });
-    expect(state.failures[0].imageIds).toHaveLength(3);
-    mocks.extract.mockResolvedValueOnce(reply([117]));
+    expect(state.failures[0]).toMatchObject({ message: 'Máy chủ đang bận.', questions: [107] });
+    mocks.extract.mockResolvedValueOnce(reply([107]));
     const batch = mocks.extract.mock.calls[0][5];
     await retryFailure(state.failures[0].id);
     state = captureState();
@@ -66,8 +87,9 @@ describe('capture session', () => {
   });
 
   it('tells a reading that finished with the dialog closed', async () => {
-    await addFiles(files(1));
-    setTestName('ETS 2024 Test 11');
+    setPart(5); setTestName('ETS 2024 Test 11');
+    addFiles(files(1));
+    mocks.singles.mockResolvedValueOnce({ requests: [request([107])], split: false, compressed: false });
     mocks.extract.mockResolvedValueOnce(reply([107]));
     await startReading({ questions: [107], getToken: async () => 'tok' });
     expect(captureState().finishedInBackground).toBe(true);

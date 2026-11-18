@@ -12,25 +12,24 @@ const draft = (question: string, options: string[], correct: string, choice: str
   tags: [], missingInformation: [], optionNotes: [], explanation: null
 });
 export const TIP = 'Trước phân từ financed cần trạng từ.';
-export const PAGE = {
-  items: [
-    { number: 131, draft: draft('--(131)--. Its main reading room has been enlarged.', ['(A) A used-book sale will be held.', '(B) The library will close early.', '(C) A nearby center underwent similar work.', '(D) The renovation has transformed nearly every part of the building.'], '(D) The renovation has transformed nearly every part of the building.', 'C') },
-    { number: 132, draft: draft('The entire project was ____ financed through municipal funds.', ['(A) larger', '(B) largeness', '(C) large', '(D) largely'], '(D) largely', 'B') }
-  ],
-  missing: [107]
+const READS: Record<number, ReturnType<typeof draft>> = {
+  131: draft('--(131)--. Its main reading room has been enlarged.', ['(A) A used-book sale will be held.', '(B) The library will close early.', '(C) A nearby center underwent similar work.', '(D) The renovation has transformed nearly every part of the building.'], '(D) The renovation has transformed nearly every part of the building.', 'C'),
+  132: draft('The entire project was ____ financed through municipal funds.', ['(A) larger', '(B) largeness', '(C) large', '(D) largely'], '(D) largely', 'B')
 };
 
-/** Replaces the AI module in the browser: screenshots of a page return the two Part 6 questions above. */
+/** Replaces the AI module in the browser (a backend without passage images): a Part 6 page returns the two questions above. */
 export async function mockPageAI(page: Page) {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
     contentType: 'application/javascript', body: `
       export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, pageImages: true }; }
       export async function getAIUsage() { return null; }
       export async function extractMistakeWithAI() { throw new Error('not used'); }
-      export async function extractPageWithAI(questions, images) {
-        window.__pageCall = { questions, images: images.length };
+      export async function extractPageWithAI(questions, images, getToken, owner, isCurrent, batchId, contextImages = []) {
+        window.__pageCall = { questions, images: images.length, context: contextImages.length };
+        const reads = ${JSON.stringify(READS)};
         const body = btoa(JSON.stringify({ e: Math.floor(Date.now() / 1000) + 86400 })).replace(/=+$/, '');
-        return { ...${JSON.stringify(PAGE)}, explainTicket: body + '.signature', usage: {} };
+        const items = questions.filter(item => reads[item.number]).map(item => ({ number: item.number, draft: reads[item.number] }));
+        return { items, missing: [], explainTicket: body + '.signature', usage: {} };
       }
       // Explanations arrive after a short delay, or fail when window.__explainFails is set.
       export async function explainBatchWithAI(ticket, items) {
@@ -47,7 +46,8 @@ export async function mockPageAI(page: Page) {
   }));
 }
 
-async function openFlow(page: Page) {
+/** Logs "ETS Screen" (wrong 107, 131, 132) on a phone, opens Gỡ câu sai, then the Part 6 set with one page. */
+async function readSet(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockPageAI(page);
   await page.goto('/lich-su');
@@ -61,25 +61,26 @@ async function openFlow(page: Page) {
   await form.getByRole('button', { name: 'Xong', exact: true }).click();
   await form.getByRole('button', { name: /^Lưu điểm/ }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
-  return page.getByRole('dialog', { name: /^Ghi câu sai/ });
+  const flow = page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Screen', exact: true });
+  await flow.getByRole('button', { name: /Chụp trang chữa bài Part 6/ }).click();
+  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
+  await flow.getByRole('button', { name: 'Gửi Sóc đọc 131–134', exact: true }).click();
+  await expect(flow.getByRole('heading', { name: /^Sóc đọc được 2 câu/ })).toBeVisible();
+  return flow;
 }
 
 const stored = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
   .filter((card: { sourceTestName?: string }) => card.sourceTestName === 'ETS Screen'));
 
-test('on a phone one screenshot fills every wrong question on it, and the list is saved together', async ({ page }) => {
-  const flow = await openFlow(page);
-  await expect(flow.locator('[data-row-toggle]')).toHaveText(['Câu 107', 'Câu 131', 'Câu 132']);
-  await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
+test('on a phone one page of a Part 6 set fills its wrong questions, and they are saved together', async ({ page }) => {
+  const flow = await readSet(page);
+  const call = await page.evaluate(() => (window as Window & { __pageCall: { questions: unknown; images: number; context: number } }).__pageCall);
+  expect(call).toEqual({ questions: [131, 132, 133, 134].map(number => ({ number, part: 6 })), images: 1, context: 0 });
+  await expect(flow.getByRole('group', { name: 'Câu 131: Bạn chọn C, đáp án D', exact: true })).toBeVisible();
+  await expect(flow.getByRole('group', { name: 'Câu 132: Bạn chọn B, đáp án D', exact: true })).toBeVisible();
 
-  await expect(flow.getByRole('status')).toHaveText('Đã đọc 2 câu, cần kiểm tra trước khi lưu. Chưa đọc được câu: 107. Chỉ thêm ảnh cho các câu này.');
-  const call = await page.evaluate(() => (window as Window & { __pageCall: { questions: unknown; images: number } }).__pageCall);
-  expect(call).toEqual({ questions: [{ number: 107, part: 5 }, { number: 131, part: 6 }, { number: 132, part: 6 }], images: 1 });
-  await expect(flow.getByRole('button', { name: 'Câu 131 Bạn chọn C, đáp án D', exact: true })).toBeVisible();
-  await expect(flow.getByRole('button', { name: 'Câu 132 Bạn chọn B, đáp án D', exact: true })).toBeVisible();
-
-  await flow.getByRole('button', { name: /^Câu 131/ }).click();
-  await flow.getByRole('button', { name: /^Đoạn văn: Library Reopens/ }).click();
+  await flow.getByRole('button', { name: 'Mở câu 131', exact: true }).click();
+  await flow.getByRole('button', { name: /^▸ Đoạn văn: Library Reopens/ }).click();
   await expect(flow.getByText(/following a renovation/)).toBeVisible();
   // The explanation is written in the background with the reading's ticket; the full one is a tap away.
   await expect(flow.getByText(TIP)).toBeVisible();
@@ -88,13 +89,13 @@ test('on a phone one screenshot fills every wrong question on it, and the list i
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132]]);
 
   // Correcting the learner's choice invalidates the rationale written for the screenshot's earlier choice.
-  await flow.getByRole('button', { name: /^Câu 132/ }).click();
+  await flow.getByRole('button', { name: 'Mở câu 132', exact: true }).click();
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
-  await flow.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
-  await expect(flow.getByLabel('Vì sao sai câu 132')).toHaveValue('');
+  await flow.getByRole('group', { name: 'Bạn chọn', exact: true }).getByRole('button', { name: 'A', exact: true }).click();
+  await expect(flow.getByRole('group', { name: 'Vì sao sai câu 132' }).getByRole('button', { name: 'Ngữ pháp' })).toHaveAttribute('aria-pressed', 'false');
   await expect(flow.getByText(TIP, { exact: true })).toHaveCount(0);
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
-  await expect(flow).toHaveCount(0);
+  await expect(flow.getByRole('img', { name: 'Đã ghi 2 trên 3 câu', exact: true })).toBeAttached();
 
   const cards = await stored(page);
   const q132 = cards.find((card: { questionNumber: number }) => card.questionNumber === 132);
@@ -103,19 +104,16 @@ test('on a phone one screenshot fills every wrong question on it, and the list i
     category: 'OTHER' });
   expect(q132.explanation).toBeUndefined();
   expect(q132.trapTip).toBe('');
-  expect(q132.tags).toEqual([]);
   expect(q132.question).toBe('The entire project was ____ financed through municipal funds.');
-  // The question the screenshot did not show stays a draft for later.
+  // The question the page did not show stays a draft for later.
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 107).question).toBe('');
 });
 
 test('a corrected answer is kept as the learner’s', async ({ page }) => {
-  const flow = await openFlow(page);
-  await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Câu 131/ }).click();
-  await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
-  await flow.getByRole('group', { name: 'Đáp án' }).getByRole('button', { name: 'B', exact: true }).click();
+  const flow = await readSet(page);
+  await flow.getByRole('group', { name: /^Câu 131:/ }).getByRole('button', { name: 'Đáp án đúng B' }).click();
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await expect(flow.getByRole('img', { name: 'Đã ghi 2 trên 3 câu', exact: true })).toBeAttached();
   const cards = await stored(page);
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 131))
     .toMatchObject({ correctAnswer: '(B) The library will close early.', answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' });
@@ -124,13 +122,13 @@ test('a corrected answer is kept as the learner’s', async ({ page }) => {
 });
 
 test('an explanation that never arrived is asked for again on the card without a new AI use', async ({ page }) => {
-  const flow = await openFlow(page);
-  await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = true; });
-  await flow.getByLabel('Ảnh màn hình đề').setInputFiles(screenshot);
+  await page.addInitScript(() => { (window as Window & { __explainFails?: boolean }).__explainFails = true; });
+  const flow = await readSet(page);
   await expect(flow.getByRole('img', { name: 'Đang viết lời giải' }).first()).toBeVisible();
   await page.waitForFunction(() => (window as Window & { __explainFinished?: number }).__explainFinished === 1);
   await expect(flow.getByRole('img', { name: 'Đang viết lời giải' })).toHaveCount(0);
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
 
   await page.evaluate(() => { (window as Window & { __explainFails?: boolean }).__explainFails = false; });

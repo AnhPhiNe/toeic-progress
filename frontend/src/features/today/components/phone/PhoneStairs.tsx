@@ -3,6 +3,7 @@ import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 import { phoneStairsLayout } from '../../lib/phoneStairsLayout';
 import { PencilIcon } from '../goal/GoalEditor';
 import { BROKE_LINE, stairsMood, type RestMood } from '../../lib/socMood';
+import { RESPACE_MS, reduceMotion, useStairTween } from '../../lib/useStairTween';
 
 export interface StairTest { score: number; name: string; date: string }
 export interface StairStep { value: number; reached: boolean }
@@ -35,8 +36,6 @@ interface Props {
   hidden?: boolean;
   grow?: boolean;
   lit?: boolean;
-  /** After a goal edit: bars from index `from` on are new and grow in (`key` changes once per save). */
-  added?: { key: number; from: number } | null;
 }
 
 const ddmm = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
@@ -47,9 +46,21 @@ const PAL = {
 };
 
 /** Flat stairs of the phone Hôm nay scene (bars, Sóc on the current one, trophy), laid out for the height left above the task panel. */
-export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, rest = null, onWake, hidden, grow, lit, added }: Props) {
+export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, rest = null, onWake, hidden, grow, lit }: Props) {
   const blocks = Math.max(1, steps.length - 1);
   const layout = useMemo(() => phoneStairsLayout({ w, top, base, blocks, cur: Math.max(0, cur), done }), [w, top, base, blocks, cur, done]);
+  // A goal change keeps the eight bars: their numbers glide to the new spacing and Sóc rides her bar to its new place.
+  const shownValues = useStairTween(steps.slice(0, blocks).map(s => s.value));
+  const [riding, setRiding] = useState(false);
+  const lastTarget = useRef(target);
+  useEffect(() => {
+    if (lastTarget.current === target) return;
+    lastTarget.current = target;
+    if (reduceMotion()) return;
+    setRiding(true);
+    const t = window.setTimeout(() => setRiding(false), RESPACE_MS + 50);
+    return () => window.clearTimeout(t);
+  }, [target]);
   const [tip, setTip] = useState<number | null>(null);
   useEffect(() => {
     if (tip === null) return;
@@ -60,6 +71,7 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
   const tipText = (i: number): string => {
     const step = steps[i];
     if (estimate) return `Bậc ${step.value} · ước lượng`;
+    if (!estimate && !done && i === cur) return `Điểm cao nhất ${best} · bậc ${i + 1}/${blocks}`;
     if (!step.reached) return `Bậc ${step.value} · còn ${Math.max(0, step.value - best)} điểm`;
     const hit = tests.find(t => t.score >= step.value);
     return hit ? `${hit.score} · ${hit.name} · ${ddmm(hit.date)}` : `Bậc ${step.value}`;
@@ -105,21 +117,20 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
       <div className="tp-hill" style={{ top: base - 56 }} aria-hidden="true" />
 
       <svg className="tp-bars" width={w} height={base + 4} role="img"
-        aria-label={estimate ? `Cầu thang ước lượng tới mục tiêu ${target}` : `Bậc ${Math.max(0, cur) + 1} trên ${steps.length}, điểm cao nhất ${best}, mục tiêu ${target}`}>
+        aria-label={estimate ? `Cầu thang ước lượng tới mục tiêu ${target}` : `Bậc ${Math.max(0, cur) + 1} trên ${blocks}, điểm cao nhất ${best}, mục tiêu ${target}`}>
         {bars.map((b, i) => {
-          const k = estimate ? (lit && i === 0 ? 'now' : 'next') : i < cur ? 'done' : i === cur ? 'now' : 'next';
+          // Goal reached: every bar is gold; otherwise Sóc's bar is green and shows the best score.
+          const k = estimate ? (lit && i === 0 ? 'now' : 'next') : done || i < cur ? 'done' : i === cur ? 'now' : 'next';
           const pal = PAL[k];
-          const label = String(steps[i].value);
-          const fresh = !!added && i >= added.from;
+          const label = String(!estimate && !done && i === cur ? best : shownValues[i] ?? steps[i].value);
           return (
-            <g key={fresh ? `n${added.key}:${i}` : i} role="button" tabIndex={0} aria-label={tipText(i)} className={'tp-bar' + (fresh ? ' is-new' : '')}
-              style={{ '--i': i, '--n': fresh ? i - added.from : 0 } as CSSProperties}
+            <g key={i} role="button" tabIndex={0} aria-label={tipText(i)} className="tp-bar"
+              style={{ '--i': i } as CSSProperties}
               onClick={e => { e.stopPropagation(); setTip(t => (t === i ? null : i)); }}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTip(t => (t === i ? null : i)); } }}>
               <rect x={b.x} y={b.y} width={b.w / 2} height={b.h} fill={pal.l} />
               <rect x={b.x + b.w / 2} y={b.y} width={b.w / 2} height={b.h} fill={pal.r} />
               <rect x={b.x} y={b.y - 4} width={b.w} height="10" rx="3" fill={pal.cap} />
-              {fresh && <rect className="tp-newdash" x={b.x + 1} y={b.y - 3} width={b.w - 2} height={b.h + 3} rx="3" fill="#fff" stroke="#b9a6ff" strokeWidth="2" strokeDasharray="5 4" />}
               {estimate && <rect x={b.x + 1} y={b.y - 3} width={b.w - 2} height={b.h + 3} rx="3" fill="none" stroke="#c9c3e6" strokeWidth="2" strokeDasharray="5 5" />}
               {b.h > 54 && <>
                 <rect x={b.x + b.w / 2 - 16} y={b.y + 9} width="32" height="17" rx="8.5" fill={k === 'next' ? '#fff' : 'rgba(0,0,0,.18)'} />
@@ -131,9 +142,9 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
       </svg>
 
       {sleeping
-        ? <button type="button" className="tp-soc tp-wake" style={{ left: soc.left, top: soc.top, width: soc.width }} aria-label="Sóc đang ngủ gật trên bậc, chạm để đánh thức"
+        ? <button type="button" className={'tp-soc tp-wake' + (riding ? ' is-ride' : '')} style={{ left: soc.left, top: soc.top, width: soc.width }} aria-label="Sóc đang ngủ gật trên bậc, chạm để đánh thức"
             onClick={e => { e.stopPropagation(); onWake?.(); }}><Soc state="zzz" size={soc.width} gear={gear} /></button>
-        : <span className="tp-soc" style={{ left: soc.left, top: soc.top, width: soc.width }}>
+        : <span className={'tp-soc' + (riding ? ' is-ride' : '')} style={{ left: soc.left, top: soc.top, width: soc.width }}>
             <Soc state={mood} size={soc.width} gear={gear} />
           </span>}
       {mood === 'sad' && (soc.left > w / 2

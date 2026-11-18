@@ -4,6 +4,18 @@ import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 import { learnerMistake, type ChoiceLetter, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { normalizeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { DEFAULT_QUESTIONS } from '@/features/mistakes/lib/captureBatch';
+import { partOfQuestion, questionsOfPart } from '@/shared/domain/questionNumbers';
+
+/**
+ * The questions one capture of a Part looks for: the learner's logged wrong ones in that Part (one passage group of
+ * Part 6–7 when a group is chosen), or the whole Part (or group) when the test has no wrong list there.
+ */
+export function captureQuestions(plan: { questions: number[]; logged: boolean }, part: 5 | 6 | 7, group?: { from: number; to: number } | null): number[] {
+  const inPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === part) : [];
+  const inGroup = group ? inPart.filter(number => number >= group.from && number <= group.to) : inPart;
+  if (inGroup.length) return inGroup;
+  return group ? Array.from({ length: group.to - group.from + 1 }, (_, index) => group.from + index) : questionsOfPart(part);
+}
 
 const newestFirst = (a: StudySession, b: StudySession) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || '');
 

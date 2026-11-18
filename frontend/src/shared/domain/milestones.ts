@@ -20,16 +20,20 @@ export type MilestonePlan =
   | {
       status: 'climbing' | 'done';
       target: number;
+      /** About how many points one stair is worth (rounded). */
       step: number;
       best: number;
+      /** STAIR_COUNT stairs, then the trophy (value = target) last. */
       steps: MilestoneStep[];
-      /** Index of the highest reached step. */
+      /** Stair Sóc stands on (its plate shows the best score); STAIR_COUNT (the trophy) once the goal is reached. */
       currentIndex: number;
       next?: MilestoneNext;
     };
 
-/** Estimated stairs (before the first test) have this many blocks before the trophy; only the points per stair change. */
+/** Always eight stairs, then the trophy ("cúp sau bậc 8"). Sketch: design/previews/mock-stairs-rule.html. */
 export const STAIR_COUNT = 8;
+/** Stairs are never closer than this many points. */
+export const MIN_STEP = 10;
 
 interface ScoredTest { date: string; createdAt: string; score: number }
 
@@ -42,79 +46,46 @@ function scoredFullTests(sessions: StudySession[]): ScoredTest[] {
 }
 
 /**
- * Eight even stairs from `start` up to the target: the gap is split in 8 and rounded up to a multiple of 10,
- * then the first stair is moved down so the eighth one leads straight into the trophy (base <= start, so the
- * first test always stands on a stair). If start already meets the target, only the target.
+ * The eight stair values from `start` up to the goal, then the goal (the trophy) last:
+ * stair k = start + k·(goal − start)/8, rounded to 10. When that makes stairs closer than 10 points
+ * (start close to or above the goal), start drops to the goal minus 80. Goals under 80 cannot hold eight
+ * stairs 10 apart: they start from 0 and round to whole points instead.
  */
 export function stairSteps(start: number, target: number): { step: number; values: number[] } {
-  if (start >= target) return { step: 10, values: [target] };
-  const step = Math.max(10, Math.ceil((target - start) / STAIR_COUNT / 10) * 10);
-  const values: number[] = [];
-  for (let k = STAIR_COUNT; k >= 1; k--) {
-    // Low targets would dip below zero: those stairs collapse onto a single 0 stair.
-    const value = Math.max(0, target - k * step);
-    if (values[values.length - 1] !== value) values.push(value);
-  }
-  values.push(target);
-  return { step, values };
+  let from = start;
+  if ((target - from) / STAIR_COUNT < MIN_STEP) from = Math.floor((target - STAIR_COUNT * MIN_STEP) / 10) * 10;
+  const unit = from < 0 ? 1 : 10;
+  from = Math.max(0, from);
+  const gap = (target - from) / STAIR_COUNT;
+  const values = Array.from({ length: STAIR_COUNT }, (_, k) => Math.round((from + k * gap) / unit) * unit);
+  return { step: Math.round(gap), values: [...values, target] };
 }
 
-/** Stair sizes for real stairs, smallest first. */
-export const STAIR_SIZES = [25, 50, 100] as const;
+/** Where real stairs start: the first score rounded down to 50. */
+export const firstStairStart = (firstScore: number) => Math.floor(firstScore / 50) * 50;
 
-/**
- * Points per stair once a first test exists. It depends only on the first score, never on the goal or later tests:
- * the smallest of 25 / 50 / 100 that fits the whole road from the first score to 990 in at most 10 stairs.
- * A typical goal then gets 5 to 8 stairs; raising the goal adds stairs and lowering it removes some.
- */
-export function stairSize(start: number): number {
-  return STAIR_SIZES.find(size => (990 - start) / size <= 10) ?? STAIR_SIZES[STAIR_SIZES.length - 1];
-}
-
-/** Round multiples of `size` more than a quarter stair above lo, up to `hi` (inclusive or not). */
-function roundStairs(lo: number, hi: number, size: number, inclusive: boolean): number[] {
-  const values: number[] = [];
-  for (let v = Math.floor((lo + size / 4) / size) * size + size; inclusive ? v <= hi : v < hi; v += size) values.push(v);
-  return values;
-}
-
-/**
- * Stair values of a climb: the first score, round multiples of the stair size, then the goal last.
- * Stairs up to the best score are climbed; the last one is Sóc's step and carries the best score as its label
- * when the best sits between two boundaries. The climbed part never depends on the goal, so changing the goal
- * only redraws the stairs above Sóc and never moves her down.
- */
-export function stairValues(start: number, best: number, target: number): { step: number; climbed: number[]; above: number[] } {
-  const size = stairSize(start);
-  // Climbed: boundaries up to the best; the last one (Sóc's step) shows the best score.
-  const climbed = [start, ...roundStairs(start, best, size, true)];
-  climbed[climbed.length - 1] = best;
-  // Above: boundaries more than a quarter stair above the best and below the goal, then the goal.
-  return { step: size, climbed, above: best >= target ? [] : [...roundStairs(best, target - size / 4, size, false), target] };
-}
-
-/** Real stairs once a full test exists (see stairValues). */
+/** Real stairs once a full test exists (see stairSteps). */
 export function buildMilestones(sessions: StudySession[], targetScore: number): MilestonePlan {
   const target = targetScore;
   const tests = scoredFullTests(sessions);
   if (!tests.length) return { status: 'empty', target };
 
-  const start = tests[0].score;
   const best = Math.max(...tests.map(t => t.score));
   const reachedOn = (value: number) => tests.find(t => t.score >= value)?.date;
-  const { step, climbed: done, above } = stairValues(start, best, target);
-  const climbed: MilestoneStep[] = done.map(value => ({ value, reached: true, reachedDate: reachedOn(value) }));
-  const currentIndex = climbed.length - 1;
+  const { step, values } = stairSteps(firstStairStart(tests[0].score), target);
 
   if (best >= target) {
-    // The goal is at or below the best: the trophy stands right after Sóc's step, already reached.
-    const steps = [...climbed, { value: target, reached: true, reachedDate: reachedOn(target) }];
-    return { status: 'done', target, step, best, steps, currentIndex: steps.length - 1 };
+    // Goal reached: every stair is gold and Sóc stands by the trophy.
+    const steps = values.map(value => ({ value, reached: true, reachedDate: reachedOn(value) }));
+    return { status: 'done', target, step, best, steps, currentIndex: STAIR_COUNT };
   }
-  const steps: MilestoneStep[] = [...climbed, ...above.map(value => ({ value, reached: false }))];
-  const index = currentIndex + 1;
+  // Sóc's stair: the highest one at or below the best (stair 0 is at or below the first score, so there is always one).
+  let cur = 0;
+  for (let k = 0; k < STAIR_COUNT; k++) if (values[k] <= best) cur = k;
+  const steps: MilestoneStep[] = values.map((value, k) => (k <= cur ? { value, reached: true, reachedDate: reachedOn(value) } : { value, reached: false }));
+  const index = cur + 1;
   const value = steps[index].value;
-  return { status: 'climbing', target, step, best, steps, currentIndex, next: { index, value, gap: value - best } };
+  return { status: 'climbing', target, step, best, steps, currentIndex: cur, next: { index, value, gap: value - best } };
 }
 
 /** Typical first score a new learner starts from; the estimated stairs begin here. */
@@ -122,13 +93,13 @@ export const ESTIMATE_START = 450;
 
 export interface StairsEstimate {
   step: number;
-  /** Stair values, then the target last (same shape as buildMilestones steps). */
+  /** Eight stair values, then the target last (same shape as buildMilestones steps). */
   values: number[];
 }
 
 /**
- * Stairs drawn before any test is logged: from a typical first score up to the target, using the same
- * eight-stair rule as buildMilestones so the real stairs look alike once a first score arrives.
+ * Stairs drawn before any test is logged: the same eight-stair rule from a typical first score, so the stairs
+ * keep their shape (eight stairs, then the trophy) once a first score arrives.
  * Targets at or below the typical start climb from 200 points under the target instead.
  */
 export function estimateMilestones(target: number): StairsEstimate {

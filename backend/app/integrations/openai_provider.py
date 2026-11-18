@@ -245,14 +245,34 @@ class OpenAIProvider:
                                 "Nội dung đang nhập vẫn được giữ; hãy thử lại hoặc lưu thủ công.") from error
 
     async def generate_page(self, questions: list[dict], images: list[str],
-                            safety_identifier: str | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int]]:
+                            safety_identifier: str | None = None,
+                            context_images: list[str] | None = None,
+                            slices: list[tuple[int, int]] | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int]]:
         """Read the learner's wrong questions from screenshots. Returns (number, draft) pairs and numbers not found."""
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
         numbers = [question["number"] for question in questions]
         content = [{"type": "input_text", "text": json.dumps({"questions": questions}, ensure_ascii=False, separators=(",", ":"))}]
-        content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in images)
+        context_images = context_images or []
+        runs = {first: last for first, last in slices or []}
+
+        def add_images(urls: list[str], offset: int):
+            for index, image in enumerate(urls, start=offset + 1):
+                if index in runs:
+                    # A tall screenshot cut into parts: they are one page, read top to bottom.
+                    content.append({"type": "input_text", "text": f"SLICED_IMAGE: ảnh {index}–{runs[index]} là {runs[index] - index + 1} phần liên tiếp "
+                                    "của cùng một ảnh, đọc nối tiếp từ trên xuống như một trang; chỗ nối chồng nhau vài dòng, không chép lặp."})
+                if runs:
+                    content.append({"type": "input_text", "text": f"Ảnh {index}"})
+                content.append({"type": "input_image", "image_url": image, "detail": "high"})
+
+        if context_images:
+            # One passage group: its pages first, labelled, then the question pages that refer to them.
+            content.append({"type": "input_text", "text": "PASSAGE_IMAGES"})
+            add_images(context_images, 0)
+            content.append({"type": "input_text", "text": "QUESTION_IMAGES"})
+        add_images(images, len(context_images))
         payload = {
             "model": self.settings.openai_model,
             "instructions": PAGE_READING_PROMPT,

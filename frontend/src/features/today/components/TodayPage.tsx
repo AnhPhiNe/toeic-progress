@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
-import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
+import { STAIR_COUNT, buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
 import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
@@ -86,8 +86,9 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
   const [coatStep, setCoatStep] = useState(false);
   const finishGoal = () => { setCoatStep(false); setEditingGoal(false); welcome.confirm(); };
   const firstTask = tasks.find(item => !item.done) ?? null;
-  const blocks = climbing ? climbing.steps.length - 1 : 0;
-  const remaining = climbing ? blocks - climbing.currentIndex : 0;
+  // Eight stairs then the trophy: from Sóc's stair, this many steps up to the cup.
+  const remaining = climbing ? STAIR_COUNT - climbing.currentIndex : 0;
+  const stairDots = Array.from({ length: STAIR_COUNT }, (_, i) => i);
 
   // One full-page celebration per goal, the first time it is reached.
   const [celebrate, setCelebrate] = useState(false);
@@ -118,7 +119,6 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
         rest={rest}
         onWake={wake}
         onEditGoal={canEdit ? goalEdit.open : undefined}
-        added={goalEdit.grow}
       />
 
       {mode === 'choose' && coatStep && <CoatCard profile={profile} onUpdateProfile={onUpdateProfile} onDone={finishGoal} />}
@@ -139,17 +139,17 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
         {climbing ? <>
           <div className="td-row">
             <div className="td-dots" aria-hidden="true">
-              {climbing.steps.map((_, i) => <i key={i} className={i < climbing.currentIndex ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : ''} />)}
+              {stairDots.map(i => <i key={i} className={i < climbing.currentIndex ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : ''} />)}
             </div>
-            <small>{plan.status === 'done' ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${blocks + 1} · CÒN ${target - climbing.best} ĐIỂM`}</small>
+            <small>{plan.status === 'done' ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${STAIR_COUNT} · CÒN ${target - climbing.best} ĐIỂM`}</small>
           </div>
           {plan.status === 'done'
             ? <><h1>Bạn đã <em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} ·<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Đặt mục tiêu mới</button></p></>
-            : <><h1>{countWord(remaining)} bậc nữa là <em>chạm tay vào cúp</em></h1><p>Mỗi bậc {climbing.step} điểm · rê chuột để xem ngày đạt</p></>}
+            : <><h1>{countWord(remaining)} bậc nữa là <em>chạm tay vào cúp</em></h1><p>Mỗi bậc ≈ {climbing.step} điểm · rê chuột để xem ngày đạt</p></>}
         </> : <>
           <div className="td-row">
-            <div className="td-dots" aria-hidden="true">{estimate.values.map((_, i) => <i key={i} />)}</div>
-            <small>{estimate.values.length} BẬC ƯỚC LƯỢNG · {estimate.values[0]} → {target}</small>
+            <div className="td-dots" aria-hidden="true">{stairDots.map(i => <i key={i} />)}</div>
+            <small>{STAIR_COUNT} BẬC ƯỚC LƯỢNG · {estimate.values[0]} → {target}</small>
           </div>
           <h1>Cầu thang lên <em>cúp {target}</em><br />đã dựng xong</h1>
           <p>Ghi đề đầu tiên để Sóc đặt bạn lên đúng bậc.<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button></p>

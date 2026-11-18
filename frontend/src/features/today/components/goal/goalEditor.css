@@ -24,7 +24,6 @@
 .ge-mini i { width: 9px; border-radius: 2px 2px 0 0; background: #e4e0f3; }
 .ge-mini i.is-passed { background: #f5b82e; }
 .ge-mini i.is-now { background: #3fae55; }
-.ge-mini i.is-new { background: #fff; outline: 2px dashed #b9a6ff; outline-offset: -2px; }
 
 .ge-note { display: flex; gap: 10px; margin-top: 14px; border-radius: 18px; background: #fff7e0; box-shadow: 0 0 0 2px #ffe3a1; padding: 11px 13px; }
 .ge-note p { margin: 0; font-weight: 800; font-size: 13.5px; line-height: 1.4; color: #6b5a2e; }

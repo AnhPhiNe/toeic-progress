@@ -125,3 +125,9 @@ Giữ bản deploy trước để rollback. Runtime migration thêm bảng, khô
 Domain HTTPS, Google login, đồng bộ hai thiết bị, cách ly tài khoản, reset, giới hạn API, log, backup/restore và kênh hỗ trợ đã được kiểm chứng. AI có thể giữ tắt trong beta tracker. Kiểm thử local chưa chạy các thao tác hosting/restore thực tế.
 
 Tham khảo: [Render health checks](https://render.com/docs/health-checks), [FastAPI sau proxy](https://fastapi.tiangolo.com/advanced/behind-a-proxy/), [Supabase production](https://supabase.com/docs/guides/deployment/going-into-prod), [Supabase backup](https://supabase.com/docs/guides/platform/backups).
+
+## Giữ backend không ngủ (keep-awake)
+
+- Workflow `.github/workflows/keep-awake.yml` gọi `GET /health` mỗi 10 phút (URL lấy từ biến repository `BACKEND_URL`, mặc định `https://toeic-progress-api.onrender.com`); backend không trả lời thì chỉ ghi log, không làm workflow lỗi.
+- GitHub có thể trễ hoặc bỏ qua lượt chạy theo lịch, và tự tắt lịch sau 60 ngày repo không có hoạt động; cần bật lại thủ công (Actions, Run workflow).
+- Số giờ miễn phí của Render nên đủ cho một service chạy liên tục, nhưng chủ dự án cần kiểm tra chính sách Render hiện hành.
