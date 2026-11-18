@@ -8,7 +8,7 @@ const now = '2026-09-24T00:00:00.000Z';
 const empty = (): DataBundle => ({
   schemaVersion: 3,
   profile: { ...defaultProfile(), updatedAt: now, deletedAt: null },
-  sessions: [], mistakes: [], pacingRuns: [], checklist: [], vocabLog: [], shieldDays: [], weeklyPlans: []
+  sessions: [], mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: []
 });
 const pacing = (patch: Partial<PacingRun> = {}): PacingRun => ({ id: 'unpaired-legacy', presetId: 'PART_5', presetName: 'Part 5',
   partType: 'PART_5', date: '2026-09-24', plannedMinutes: 12, actualMinutes: 12, finishedNaturally: true,

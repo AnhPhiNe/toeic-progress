@@ -6,7 +6,7 @@ const now = '2026-11-13T00:00:00.000Z';
 const empty = (): DataBundle => ({
   schemaVersion: 3,
   profile: { ...defaultProfile(), updatedAt: now, deletedAt: null },
-  sessions: [], mistakes: [], pacingRuns: [], checklist: [], vocabLog: [], shieldDays: [], weeklyPlans: []
+  sessions: [], mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: []
 });
 const vocab = (data: DataBundle, date: string, deletedAt: string | null = null) =>
   data.vocabLog.push({ id: `v-${date}`, date, count: 5, updatedAt: now, deletedAt });
