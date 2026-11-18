@@ -1,5 +1,7 @@
 # Đưa TOEIC Progress vào beta
 
+> **Từ 20/11/2026 schema là một baseline duy nhất** `supabase/migrations/20261120000000_baseline_v2.sql`; các migration v1 nhắc dưới đây đã chuyển vào `supabase/migrations/archive/` (chỉ để tra cứu, không chạy). Cách dựng lại project đang dùng: [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md).
+
 Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI sau khi có key OpenAI, Turnstile và đã kiểm thử provider thật. Render Free có thể ngủ; beta cần chấp nhận thời gian chờ, chưa có cam kết uptime hay sức chịu tải.
 
 Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md). Giữ project/config cũ tới khi staging mới được kiểm chứng.

@@ -26,16 +26,10 @@ Redirect ứng dụng phải thuộc allowlist; Site URL và Google callback c�
 
 ## Migration cho project trống
 
-Chạy từng file đầy đủ theo thứ tự dưới đây, một lần. Không chạy lại migration cũ tùy ý trên database có dữ liệu.
+Chạy một file: `supabase/migrations/20261120000000_baseline_v2.sql` (hoặc `supabase db push`). Áp dụng lại trên v2 không thay đổi gì; trên database còn đối tượng v1 thì dừng và yêu cầu `supabase/rebuild/drop_v1.sql` (xem [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md)).
 
-1. `20260923000000_sync_records.sql`
-2. `20261005000000_fastapi_backend.sql`
-3. `20261006000000_domain_tables.sql`
-4. `20261006010000_purge_deleted_content.sql`
-5. `20261006020000_api_rate_limits.sql`
-6. `20261010000000_retire_gemini_provider.sql`
 
-Năm file đầu đủ tracker/OpenAI. Migration pool ngày 07/10 chỉ giữ làm lịch sử, không cần chạy trên project trống. File retire hỗ trợ cả project có/không có pool; chỉ chạy trên project đang dùng sau khi deploy backend OpenAI mới. Staging/production giữ `API_LIMITS_ENABLED=true` sau migration 5. Bắt đầu bằng `AI_ENABLED=false` để kiểm chứng tracker trước.
+Các migration v1 nằm ở `supabase/migrations/archive/` chỉ để tra cứu; CLI không đọc thư mục con này.
 
 Nếu giữ tài khoản/data server cũ, chọn phương án migrate riêng trước. Backup JSON của app chứa dữ liệu học, không chứa mật khẩu hay toàn bộ Supabase Auth. Xem [migration giữa các project](https://supabase.com/docs/guides/platform/migrating-within-supabase) và [migrate Auth users](https://supabase.com/docs/guides/troubleshooting/migrating-auth-users-between-projects).
 
