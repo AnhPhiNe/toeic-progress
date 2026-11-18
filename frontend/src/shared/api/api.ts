@@ -2,6 +2,11 @@ import { cloud } from '@/shared/api/supabaseClient';
 import { requestAISignIn } from '@/shared/lib/aiSignIn';
 export const apiAvailable = Boolean(import.meta.env.VITE_API_URL && cloud);
 
+/** The server could not be reached (asleep, offline, timed out). Retried quietly by the account sync. */
+export class NetworkError extends Error {
+  constructor(message: string) { super(message); this.name = 'NetworkError'; }
+}
+
 export class ApiRequestError extends Error {
   constructor(message: string, public readonly status: number, public readonly requestId?: string, public readonly retryAfter?: number,
     public readonly code?: string) {
@@ -44,7 +49,7 @@ export async function backendRequest<T>(path: string, method = 'GET', body?: unk
     });
   } catch {
     if (cancel?.aborted) throw new DOMException('Đã huỷ yêu cầu.', 'AbortError');
-    throw new Error('Chưa kết nối được backend. Vui lòng thử lại sau; dữ liệu trên máy vẫn được giữ.');
+    throw new NetworkError('Chưa kết nối được backend. Vui lòng thử lại sau; dữ liệu trên máy vẫn được giữ.');
   }
   const value = await response.json().catch(() => null);
   if (!response.ok) {

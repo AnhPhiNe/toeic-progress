@@ -29,7 +29,7 @@ import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { TransferChoiceDialog } from '@/features/account/components/TransferChoiceDialog';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
-import { describeSync } from '@/features/account/components/AccountSyncIndicator';
+import { describeSync } from '@/features/account/lib/syncStatus';
 import { clearTimer, readTimer } from '@/features/pacing/services/pacingStorage';
 import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
 import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
@@ -94,6 +94,16 @@ export const App: React.FC = () => {
     setDataVersion(value => value + 1);
   }, []);
   const account = useCloudAccount(refreshFromStorage);
+  const syncDetail = { waking: account.waking, syncedAt: account.syncedAt, now: account.now };
+  const syncView = describeSync(account.available, account.status, syncDetail);
+  // "Đã lưu và đồng bộ" shows for two seconds after a save that reached the server.
+  const [savedFlash, setSavedFlash] = useState(false);
+  useEffect(() => {
+    if (!account.savedAt) return;
+    setSavedFlash(true);
+    const timer = setTimeout(() => setSavedFlash(false), 2200);
+    return () => clearTimeout(timer);
+  }, [account.savedAt]);
   // Guests who reach for AI get one sign-in prompt; it only appears when signing in is possible.
   const isGuest = account.available && !account.hasAccountSession;
   // Giải đấu tuần needs a permanent account; guests see the opt-in card asking them to sign in.
@@ -486,8 +496,9 @@ export const App: React.FC = () => {
         soc={soc}
         onOpenSessionLogger={() => openSessionLogger()}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
-        syncLabel={describeSync(account.available, account.status).label}
-        syncTone={(({ localOnly, failed }) => failed ? 'warn' : localOnly ? 'local' : 'ok')(describeSync(account.available, account.status))}
+        syncLabel={syncView.label}
+        syncTone={syncView.tone}
+        syncPulse={savedFlash}
         leagueLabel={leagueShell.label}
       />}
 
@@ -499,6 +510,9 @@ export const App: React.FC = () => {
           status={account.status}
           error={account.error}
           writeNotice={writeNotice}
+          connecting={syncView.waiting}
+          waking={syncView.waking}
+          savedFlash={savedFlash}
           onDismissNotice={() => setWriteNotice('')}
           onRetry={() => void account.retry()}
           onUseGuest={() => void account.signOut()}
@@ -702,7 +716,8 @@ export const App: React.FC = () => {
         onResetData={handleResetData}
         onLoadDemo={canLoadDemo ? handleLoadDemo : undefined}
         onImportSuccess={handleImportSuccess}
-        syncLabel={describeSync(account.available, account.status).label}
+        syncLabel={syncView.label}
+        syncDetail={syncDetail}
         accountAvailable={account.available}
         accountStatus={account.status}
         accountEmail={account.email}
