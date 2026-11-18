@@ -1,7 +1,7 @@
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { normalizeQuestionList, partOfQuestion, type PartNumber } from '@/shared/domain/questionNumbers';
 import { createDraftMistake, DETAIL_FIRST_PART, isBlankDraft } from './mistakeDrafts';
-import { chunkQuestions, dataUrlBytes, MAX_CAPTURE_REQUESTS, MAX_REQUEST_BYTES, QUESTIONS_PER_REQUEST } from './captureBatch';
+import { chunkQuestions, CONTEXT_PER_REQUEST, dataUrlBytes, IMAGES_PER_REQUEST, MAX_CAPTURE_REQUESTS, MAX_REQUEST_BYTES, QUESTIONS_PER_REQUEST } from './captureBatch';
 
 /**
  * "Gỡ câu sai" (design/previews/mock-wrong-detail.html): a logged test's wrong questions worked through Part by Part.
@@ -10,10 +10,10 @@ import { chunkQuestions, dataUrlBytes, MAX_CAPTURE_REQUESTS, MAX_REQUEST_BYTES, 
 
 export const PART_NAMES: Record<PartNumber, string> = { 1: 'Tranh', 2: 'Hỏi – đáp', 3: 'Hội thoại', 4: 'Bài nói', 5: 'Điền câu', 6: 'Điền đoạn văn', 7: 'Đọc hiểu' };
 
-/** Part 1–2 have no printed question: only the reason is asked. Part 3–4 read a transcript; Part 5–7 the review page. */
-export type PartMode = 'reason' | 'transcript' | 'page';
-export const partMode = (part: number): PartMode => part <= 2 ? 'reason' : part <= 4 ? 'transcript' : 'page';
-export const PART_ACTION: Record<PartMode, string> = { reason: 'Chọn lý do', transcript: 'Chụp transcript', page: 'Chụp trang chữa bài' };
+/** Listening (Part 1–4) asks only the reason, one tap per question; Reading reads the review page. */
+export type PartMode = 'reason' | 'page';
+export const partMode = (part: number): PartMode => part <= 4 ? 'reason' : 'page';
+export const PART_ACTION: Record<PartMode, string> = { reason: 'Chọn lý do', page: 'Chụp trang chữa bài' };
 
 /** Part 6 sets are always four questions; Part 7 follows the official layout (single, double, then triple passages). */
 export const P6_GROUPS: ReadonlyArray<readonly [number, number]> = [[131, 134], [135, 138], [139, 142], [143, 146]];
@@ -98,53 +98,100 @@ export function topReason(cards: MistakeEntry[]): { category: MistakeEntry['cate
   return category ? { category, count: count! } : null;
 }
 
-export interface ReadRequest<T> { contextImages: T[]; images: T[]; questions: number[] }
+export interface ReadRequest<T> {
+  contextImages: T[]; images: T[]; questions: number[];
+  /** [first, last] positions (1-based, passage images first) of the parts of one tall screenshot. */
+  slices: [number, number][];
+}
 export interface RequestPlan<T> { requests: ReadRequest<T>[]; split: boolean; error?: string }
 const bytesOf = (images: readonly { dataUrl: string }[]) => images.reduce((sum, image) => sum + dataUrlBytes(image.dataUrl), 0);
 
+/** The slice runs of a request built from screenshot groups (each group = the parts of one screenshot). */
+function runsOf<T>(groups: readonly (readonly T[])[], offset = 0): [number, number][] {
+  const runs: [number, number][] = [];
+  let position = offset;
+  for (const group of groups) {
+    if (group.length > 1) runs.push([position + 1, position + group.length]);
+    position += group.length;
+  }
+  return runs;
+}
+
+/** Requests of at most `max` images that never separate the parts of one screenshot. */
+function packGroups<T>(groups: readonly (readonly T[])[], max: number): T[][][] {
+  const packs: T[][][] = [];
+  let current: T[][] = [], count = 0;
+  for (const group of groups) {
+    if (current.length && count + group.length > max) { packs.push(current); current = []; count = 0; }
+    current.push([...group]); count += group.length;
+  }
+  if (current.length) packs.push(current);
+  return packs;
+}
+
 /**
- * One capture of single-question images (Part 3–5): every image is read on its own. When an image may show more
- * questions than one reading returns, the wanted numbers go in groups — as long as the capture stays within its requests.
+ * Part 5: all the screenshots in one request — more requests only when more than six questions are wanted (a reading
+ * returns at most six) or more than six images were taken.
  */
-export function planSingleRequests<T extends { dataUrl: string }>(images: readonly T[], wanted: Iterable<number>, maxRequests = MAX_CAPTURE_REQUESTS): RequestPlan<T> {
+export function planSingleRequests<T extends { dataUrl: string }>(shots: readonly (readonly T[])[], wanted: Iterable<number>,
+  { maxImages = IMAGES_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS } = {}): RequestPlan<T> {
   const numbers = normalizeQuestionList(wanted);
-  if (!images.length || !numbers.length) return { requests: [], split: false };
-  if (images.length > maxRequests) return { requests: [], split: false, error: `Mỗi lần gửi tối đa ${maxRequests} ảnh.` };
-  const groups = chunkQuestions(numbers, QUESTIONS_PER_REQUEST);
-  const perImage = images.length * groups.length <= maxRequests ? groups : [numbers];
-  return { requests: images.flatMap(image => perImage.map(questions => ({ contextImages: [], images: [image], questions }))), split: false };
+  const groups = shots.filter(group => group.length);
+  if (!groups.length || !numbers.length) return { requests: [], split: false };
+  const packs = packGroups(groups, maxImages);
+  const questionGroups = chunkQuestions(numbers, QUESTIONS_PER_REQUEST);
+  if (packs.length > maxRequests) return { requests: [], split: false, error: `Mỗi lần gửi tối đa ${maxRequests * maxImages} ảnh.` };
+  const perPack = packs.length * questionGroups.length <= maxRequests ? questionGroups : [numbers];
+  const requests = packs.flatMap(pack => perPack.map(questions => ({ contextImages: [], images: pack.flat(), questions, slices: runsOf(pack) })));
+  return { requests, split: packs.length > 1 || requests.some(request => bytesOf(request.images) > maxBytes) };
 }
 
 /**
  * One passage group (Part 6–7): the passage pages and the question pages go in ONE request so the passage is read with
- * its questions. More than three question pages share the same passage across requests. Only when the images cannot fit
- * one request even after compression are they sent apart (`split`), and the screen says so.
+ * its questions. More than six question pages share the same passage across requests. Only when the images cannot fit
+ * one request even after compression are they sent apart (`split`), and the screen says so. Each argument lists the
+ * screenshots of a zone, each as its pieces (parts of a tall page stay together).
  */
-export function planGroupRequests<T extends { dataUrl: string }>(context: readonly T[], questions: readonly T[], wanted: Iterable<number>,
-  { maxImages = 3, maxContext = 3, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS, contextSupported = true } = {}): RequestPlan<T> {
+export function planGroupRequests<T extends { dataUrl: string }>(passage: readonly (readonly T[])[], questions: readonly (readonly T[])[], wanted: Iterable<number>,
+  { maxImages = IMAGES_PER_REQUEST, maxContext = CONTEXT_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS, contextSupported = true } = {}): RequestPlan<T> {
   const numbers = normalizeQuestionList(wanted);
-  if (!numbers.length || (!context.length && !questions.length)) return { requests: [], split: false };
+  const context = passage.flat(), passageGroups = passage.filter(group => group.length);
+  if (!numbers.length || (!context.length && !questions.flat().length)) return { requests: [], split: false };
   if (context.length > maxContext) return { requests: [], split: false, error: `Mỗi nhóm nhận tối đa ${maxContext} ảnh đoạn văn.` };
   // A question printed on the passage page: the passage images are the question images.
-  if (!questions.length) return planGroupRequests([], context, numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
-  const together: ReadRequest<T>[] = [];
-  for (let index = 0; index < questions.length; index += maxImages) {
-    together.push({ contextImages: [...context], images: questions.slice(index, index + maxImages), questions: numbers });
+  if (!questions.flat().length) return planGroupRequests([], passage, numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
+  const packs = packGroups(questions.filter(group => group.length), contextSupported ? maxImages : maxImages - context.length);
+  const together: ReadRequest<T>[] = packs.map(pack => contextSupported
+    ? { contextImages: [...context], images: pack.flat(), questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] }
+    : { contextImages: [], images: [...context, ...pack.flat()], questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] });
+  const fits = (request: ReadRequest<T>) => bytesOf([...request.contextImages, ...request.images]) <= maxBytes
+    && request.images.length <= maxImages && request.images.length > 0;
+  if (packs.length && together.length <= maxRequests && together.every(fits)) return { requests: together, split: false };
+  // Last resort: every screenshot in reading order, as many per request as fit.
+  const requests: ReadRequest<T>[] = [];
+  let current: T[][] = [];
+  const flush = () => { if (current.length) requests.push({ contextImages: [], images: current.flat(), questions: numbers, slices: runsOf(current) }); current = []; };
+  for (const group of [...passageGroups, ...questions.filter(item => item.length)]) {
+    const next = [...current.flat(), ...group];
+    if (current.length && (next.length > maxImages || bytesOf(next) > maxBytes)) flush();
+    current.push([...group]);
   }
-  const fits = (request: ReadRequest<T>) => contextSupported
-    ? bytesOf([...request.contextImages, ...request.images]) <= maxBytes
-    : request.contextImages.length + request.images.length <= maxImages && bytesOf([...request.contextImages, ...request.images]) <= maxBytes;
-  if (together.length <= maxRequests && together.every(fits)) {
-    return { requests: contextSupported ? together : together.map(request => ({ contextImages: [], images: [...request.contextImages, ...request.images], questions: numbers })), split: false };
-  }
-  // Last resort: every image in reading order, as many per request as fit.
-  const all = [...context, ...questions], requests: ReadRequest<T>[] = [];
-  let current: T[] = [];
-  for (const image of all) {
-    if (current.length && (current.length >= maxImages || bytesOf([...current, image]) > maxBytes)) { requests.push({ contextImages: [], images: current, questions: numbers }); current = []; }
-    current.push(image);
-  }
-  if (current.length) requests.push({ contextImages: [], images: current, questions: numbers });
+  flush();
   if (requests.length > maxRequests) return { requests: [], split: true, error: 'Ảnh quá nhiều cho một lần gửi. Bớt ảnh hoặc cắt phần cần đọc.' };
   return { requests, split: true };
+}
+
+/** "Bỏ qua phần Nghe": Listening Parts leave the counts until the learner takes them back. */
+export const visibleProgress = (progress: PartProgress[], skipListening: boolean) => skipListening ? progress.filter(entry => entry.part >= 5) : progress;
+
+const SKIP_KEY = 'toeic_wrong_detail_skip_listening_v1';
+const readSkips = (): Record<string, string[]> => { try { return JSON.parse(localStorage.getItem(SKIP_KEY) ?? '{}') ?? {}; } catch { return {}; } };
+export function listeningSkipped(owner: string | null, sessionId: string): boolean {
+  return (readSkips()[owner ?? 'guest'] ?? []).includes(sessionId);
+}
+export function setListeningSkipped(owner: string | null, sessionId: string, skipped: boolean) {
+  const all = readSkips(), key = owner ?? 'guest', list = new Set(all[key] ?? []);
+  if (skipped) list.add(sessionId); else list.delete(sessionId);
+  all[key] = [...list];
+  try { localStorage.setItem(SKIP_KEY, JSON.stringify(all)); } catch { /* the choice lasts until the page is reloaded */ }
 }

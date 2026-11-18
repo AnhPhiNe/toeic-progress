@@ -9,7 +9,7 @@ import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { isExplaining } from '@/features/mistakes/services/explanationQueue';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { PART_ACTION, PART_NAMES, partMode, suggestGroups, topReason, type PartProgress } from '@/features/mistakes/lib/wrongDetail';
-import type { ReadingState, Screen } from './WrongDetailFlow';
+import type { ReadJob, Screen } from './WrongDetailFlow';
 
 export type Zone = 'passage' | 'questions';
 export interface Staged { id: string; file: File; url: string }
@@ -78,11 +78,15 @@ function Letters({ label, part, value, tone, onPick }: { label: string; part: nu
   );
 }
 
-function DropZone({ zone, num, title, note, hint, items, big = false, disabled, onAdd, onRemove, onActivate }: {
-  zone: Zone; num?: number; title: string; note?: string; hint?: ReactNode; items: Staged[]; phone: boolean; big?: boolean; disabled: boolean;
+/** A drop zone with thumbnails; on phones it can also open the camera. Shared with Sổ tay's "Chụp trang chữa bài". */
+export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, onAdd, onRemove, onActivate }: {
+  zone: Zone; num?: number; title: string; note?: string; hint?: ReactNode; items: readonly { id: string; url: string }[]; phone: boolean; big?: boolean; disabled: boolean;
+  /** Phones: a camera tile next to the gallery one. */
+  camera?: boolean;
   onAdd: (files: File[], zone: Zone) => void; onRemove: (zone: Zone, id: string) => void; onActivate: (zone: Zone) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const shoot = useRef<HTMLInputElement>(null);
   const label = zone === 'passage' ? 'Ảnh đoạn văn' : 'Ảnh câu hỏi';
   return (
     <div className={'wd-zn' + (big ? ' is-big' : '')} onClick={() => onActivate(zone)}
@@ -96,8 +100,11 @@ function DropZone({ zone, num, title, note, hint, items, big = false, disabled, 
             <button type="button" aria-label={`Bỏ ${label.toLowerCase()} ${index + 1}`} disabled={disabled} onClick={event => { event.stopPropagation(); onRemove(zone, item.id); }}>×</button>
           </span>
         ))}
+        {camera && <button type="button" className="wd-pg is-add is-cam" aria-label={`Chụp ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); shoot.current?.click(); }}>📷</button>}
         <button type="button" className="wd-pg is-add" aria-label={`Thêm ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); input.current?.click(); }}>+</button>
       </div>
+      {camera && <input ref={shoot} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" hidden aria-label={`Chụp ${label.toLowerCase()}`}
+        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAdd(files, zone); }} />}
       {hint && <p className="wd-zp">{hint}</p>}
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label={label}
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAdd(files, zone); }} />
@@ -105,19 +112,21 @@ function DropZone({ zone, num, title, note, hint, items, big = false, disabled, 
   );
 }
 
-const pasteHint = (phone: boolean) => phone ? 'Chọn ảnh từ máy.' : <>Thả, dán <span className="wd-kbd">Ctrl+V</span> hoặc chọn ảnh.</>;
+export const pasteHint = (phone: boolean) => phone ? 'Chọn ảnh từ máy.' : <>Thả, dán <span className="wd-kbd">Ctrl+V</span> hoặc chọn ảnh.</>;
 
 /* ---------- 1 · overview ---------- */
 
-export function Overview({ phone, testName, total, doneCount, onClose, progress, hero, canRead, toast, pendingDrafts, onOpenPart, onShowDrafts, onDiscardDrafts, error }: Common & {
+export function Overview({ phone, testName, total, doneCount, onClose, progress, hero, canRead, toast, pendingDrafts, onOpenPart, onShowDrafts, onDiscardDrafts, error, listening }: Common & {
   progress: PartProgress[]; hero: PartProgress | null; canRead: boolean; toast: { id: number; text: string } | null; pendingDrafts: number;
   onOpenPart: (part: PartNumber) => void; onShowDrafts: () => void; onDiscardDrafts: () => void; error: string;
+  /** Listening Parts left to do, and whether the learner set them aside. */
+  listening: { left: number; skipped: boolean; onToggle: () => void };
 }) {
   const heroLeft = hero ? hero.numbers.length - hero.done : 0;
   const most = hero && Math.max(...progress.map(entry => entry.numbers.length)) === hero.numbers.length;
   const heroMode = hero ? partMode(hero.part) : 'page';
   const heroButton = !hero ? '' : heroMode === 'reason' ? `Chọn lý do Part ${hero.part}` : !canRead ? `Ghi tay Part ${hero.part}`
-    : heroMode === 'transcript' ? `Chụp transcript Part ${hero.part}` : hero.done ? `Chụp tiếp Part ${hero.part}` : `Chụp trang chữa bài Part ${hero.part}`;
+    : hero.done ? `Chụp tiếp Part ${hero.part}` : `Chụp trang chữa bài Part ${hero.part}`;
   const camera = hero && heroMode !== 'reason' && canRead;
   const others = progress.filter(entry => entry.part !== hero?.part);
   return (
@@ -151,6 +160,8 @@ export function Overview({ phone, testName, total, doneCount, onClose, progress,
             );
           })}
         </div>
+        {listening.skipped && <p className="wd-skipped">Phần Nghe đã bỏ qua ({listening.left} câu).
+          <button type="button" className="wd-lnk" onClick={listening.onToggle}>Ghi lại phần Nghe</button></p>}
         {error && <p className="wd-err" role="alert">{error}</p>}
         {pendingDrafts > 0 && (
           <div className="wd-toast is-drafts" role="status">Còn {pendingDrafts} câu nháp chưa lưu
@@ -159,7 +170,8 @@ export function Overview({ phone, testName, total, doneCount, onClose, progress,
       </div>
       <footer className="wd-foot">
         <span className="wd-q">{phone ? 'Tiến độ tự lưu.' : 'Câu chưa ghi chờ ở đây, chưa vào Sổ tay. Làm tiếp lúc nào cũng được.'}</span>
-        <button type="button" className="wd-quiet" onClick={onClose}>Để sau</button>
+        {!listening.skipped && listening.left > 0 && <button type="button" className="wd-quiet" onClick={listening.onToggle}>Bỏ qua phần Nghe</button>}
+        <button type="button" className={'wd-quiet' + (!listening.skipped && listening.left > 0 ? ' is-next' : '')} onClick={onClose}>Để sau</button>
       </footer>
     </>
   );
@@ -173,25 +185,37 @@ const groupHint = (part: number, passages: number) => part === 6 ? 'Thả ảnh 
       : 'Thả ảnh bài đọc, rồi ảnh câu hỏi. Câu hỏi cùng ảnh với bài đọc thì chỉ cần ô ①.';
 
 export function PartView({ phone, testName, total, doneCount, onClose, part, cards, recorded, forms, groupFrom, setGroupFrom, zones, setActiveZone, onAddFiles, onRemove,
-  reading, elapsed, error, note, draftState, canRead, onSend, onBack, onManual, onUpdate, onSaveReasons, saveCount, onShowDrafts }: Common & {
+  jobs, now, onRetry, onOpenJob, error, note, draftState, canRead, onSend, onBack, onManual, onUpdate, onSaveReasons, saveCount, onShowDrafts }: Common & {
   part: PartNumber; cards: MistakeEntry[]; recorded: (card: MistakeEntry) => boolean; forms: Record<string, CardForm>; dirty: Set<string>;
   groupFrom: number | null; setGroupFrom: (from: number) => void; zones: Record<Zone, Staged[]>; activeZone: Zone | null; setActiveZone: (zone: Zone) => void;
-  onAddFiles: (files: File[], zone?: Zone) => void; onRemove: (zone: Zone, id: string) => void; reading: ReadingState | null; elapsed: number;
+  onAddFiles: (files: File[], zone?: Zone) => void; onRemove: (zone: Zone, id: string) => void; jobs: Record<string, ReadJob>; now: number; onRetry: (key: string) => void; onOpenJob: (key: string) => void;
   error: string; note: string; draftState: string; canRead: boolean; onSend: () => void; onBack: () => void; onManual: (number: number) => void;
   onUpdate: (id: string, patch: Partial<CardForm>) => void; onSaveReasons: () => void; saveCount: number; onShowDrafts: () => void;
 }) {
   const mode = partMode(part), numbers = cards.map(card => card.questionNumber!);
-  const done = cards.filter(recorded).length, busy = reading !== null;
+  const done = cards.filter(recorded).length;
+  const jobOf = (key: string) => jobs[key];
+  const isBusy = (job?: ReadJob) => job?.status === 'reading' || job?.status === 'waiting';
+  const seconds = (job: ReadJob) => job.startedAt ? Math.max(0, Math.round((now - job.startedAt) / 1000)) : 0;
+  const selectedKey = part >= 6 ? `g${groupFrom}` : `p${part}`;
+  const current = jobOf(selectedKey), busy = isBusy(current);
+  /** What happens to one capture: waiting, read so far, read (open it), or failed (try again). */
+  const jobLine = (job: ReadJob | undefined) => !job ? null
+    : isBusy(job) ? <p className="wd-reading" role="status"><Soc state="think" size={40} />{job.status === 'waiting' ? `${job.label} chờ đọc…`
+      : `Đang đọc ${job.label.replace(/^Nhóm/, 'nhóm')}${job.total > 1 ? ` · lượt ${Math.min(job.done + 1, job.total)}/${job.total}` : ''} · ${seconds(job)} giây`}</p>
+      : job.status === 'failed' ? <p className="wd-err" role="alert">{job.label}: {job.error} <button type="button" className="wd-lnk" onClick={() => onRetry(job.key)}>Thử lại</button></p>
+        : <p className="wd-note" role="status">Đã đọc {job.label.replace(/^Nhóm/, 'nhóm')}: {job.readIds.length} câu. <button type="button" className="wd-lnk" onClick={() => onOpenJob(job.key)}>Xem và lưu</button></p>;
   const firstOpen = (list: number[]) => list.find(number => !recorded(cards.find(card => card.questionNumber === number)!)) ?? list[0];
   const title = `Part ${part} · ${PART_NAMES[part]}`;
   const sub = phone ? `${numbers.length} câu sai · đã ghi ${done}/${numbers.length}` : `${testName} · ${numbers.length} câu sai`;
-  const head = <Head phone={phone} title={title} sub={sub} back={busy ? undefined : onBack} pill={<Pill done={doneCount} total={total} />} onClose={onClose} />;
+  const head = <Head phone={phone} title={title} sub={sub} back={onBack} pill={<Pill done={doneCount} total={total} />} onClose={onClose} />;
   const status = (
     <>
-      {busy && <p className="wd-reading" role="status"><Soc state="think" size={40} />Sóc đang đọc{reading.total > 1 ? ` lượt ${Math.min(reading.done + 1, reading.total)}/${reading.total}` : ' ảnh'} · {elapsed} giây</p>}
+      {jobLine(current)}
+      {current?.note && <p className="wd-note">{current.note}</p>}
       {error && <p className="wd-err" role="alert">{error}</p>}
       {!error && note && <p className="wd-note" role="status">{note}</p>}
-      {!busy && saveCount > 0 && mode !== 'reason' && <p className="wd-note">{saveCount} câu đã đọc, chưa lưu. <button type="button" className="wd-lnk" onClick={onShowDrafts}>Xem và lưu</button></p>}
+      {!busy && saveCount > 0 && mode !== 'reason' && current?.status !== 'done' && <p className="wd-note">{saveCount} câu đã đọc, chưa lưu. <button type="button" className="wd-lnk" onClick={onShowDrafts}>Xem và lưu</button></p>}
     </>
   );
   const chips = (list: number[]) => (
@@ -204,13 +228,13 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     </div>
   );
 
-  // Part 1–2: only the reason.
+  // Listening: only the reason, one tap per question.
   if (mode === 'reason') {
     return (
       <>
         {head}
         <div className="wd-body">
-          <p className="wd-lead">Part {part} không có chữ để chụp. Chọn vì sao bạn sai từng câu.</p>
+          <p className="wd-lead">Phần Nghe chỉ cần lý do: chạm một lý do cho từng câu.</p>
           <div className="wd-rlist">
             {cards.map(card => (
               <div key={card.id} className="wd-rr is-reason">
@@ -233,7 +257,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
   const zoneProps = { phone, disabled: busy, onAdd: onAddFiles, onRemove, onActivate: setActiveZone };
   const noImages = !canRead && <p className="wd-note">Phiên bản này chưa đọc được ảnh. Ghi tay từng câu: chạm số câu bên dưới.</p>;
 
-  // Part 3–5: one zone; each image is read on its own.
+  // Part 5: one zone; each image is read on its own.
   if (part <= 5) {
     const count = zones.questions.length;
     const sendLabel = `Gửi Sóc đọc ${count || ''} ảnh`.replace('  ', ' ');
@@ -241,14 +265,14 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
       <>
         {head}
         <div className="wd-body">
-          {canRead ? <DropZone {...zoneProps} zone="questions" big title={mode === 'transcript' ? `Ảnh transcript Part ${part}` : `Ảnh câu Part ${part}`} note="mỗi ảnh một hay nhiều câu"
-            items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc từng ảnh riêng, chỉ lấy câu bạn sai.</>} /> : noImages}
+          {canRead ? <DropZone {...zoneProps} zone="questions" big title={`Ảnh câu Part ${part}`} note="mỗi ảnh một hay nhiều câu"
+            items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc các ảnh cùng lúc, chỉ lấy câu bạn sai.</>} /> : noImages}
           <div className="wd-lbl">Câu cần gỡ<span className="wd-lg"><span><i className="is-d" />đã ghi</span><span><i />chưa ghi</span></span></div>
           {chips(numbers)}
           {status}
         </div>
         <footer className="wd-foot">
-          {!phone && <span className="wd-q">{canRead ? 'Ảnh nén trên máy (JPEG, cạnh dài khoảng 2000px).' : draftState}</span>}
+          {!phone && <span className="wd-q">{canRead ? 'Ảnh gửi nguyên bản; chỉ thu nhỏ khi quá nặng.' : draftState}</span>}
           {phone
             ? <button type="button" className="rd-btn rd-btn--white wd-side" onClick={() => onManual(firstOpen(numbers))}>✎ Ghi tay</button>
             : <button type="button" className="wd-quiet is-pink" onClick={() => onManual(firstOpen(numbers))}>✎ Ghi tay một câu</button>}
@@ -267,12 +291,16 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
       <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zones.questions} hint={stacked ? undefined : pasteHint(false)} />
     </div>
   );
+  const groupState = (from: number) => {
+    const job = jobOf(`g${from}`);
+    return !job ? '' : job.status === 'waiting' ? 'Chờ đọc…' : job.status === 'reading' ? 'Đang đọc…' : job.status === 'failed' ? 'Chưa đọc được · Thử lại' : `Đã đọc ${job.readIds.length} câu · Xem`;
+  };
   const groupRow = (group: (typeof groups)[number]) => {
     const on = group.from === selected.from;
     return (
       <div key={group.from} className={'wd-gr' + (on ? ' is-on' : '') + (on && phone ? ' is-wrap' : '')}>
-        <button type="button" className="wd-gr-b" aria-pressed={on} onClick={() => setGroupFrom(group.from)} disabled={busy}>
-          <span className="wd-gr-t"><b>Nhóm {group.from}–{group.to}</b><small>{group.kind} · sai {group.wrong.join(', ')}</small></span>
+        <button type="button" className="wd-gr-b" aria-pressed={on} onClick={() => setGroupFrom(group.from)}>
+          <span className="wd-gr-t"><b>Nhóm {group.from}–{group.to}</b><small>{groupState(group.from) || `${group.kind} · sai ${group.wrong.join(', ')}`}</small></span>
           <span className="wd-gq is-sm">{group.wrong.map(number => <span key={number} className={'wd-qn is-sm' + (recorded(cards.find(card => card.questionNumber === number)!) ? ' is-d' : '')}>{number}</span>)}</span>
         </button>
         {on && phone && canRead && zonesFor(true)}
@@ -315,7 +343,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
               {zonesFor(false)}
               <div className="wd-acts">
                 <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!filesCount || busy} onClick={onSend}>Gửi Sóc đọc nhóm này</button>
-                <span className="wd-zp">Ảnh nén trên máy trước khi gửi.</span>
+                <span className="wd-zp">Đọc song song tối đa 2 nhóm; trong lúc chờ, chọn nhóm khác để chụp tiếp.</span>
               </div>
             </> : noImages}
             {status}

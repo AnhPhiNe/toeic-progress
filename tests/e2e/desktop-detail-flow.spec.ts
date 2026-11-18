@@ -12,6 +12,7 @@ test('a computer works through a test Part by Part: Part 5 images are read one b
   await expect(flow.getByRole('img', { name: 'Đã ghi 0 trên 4 câu', exact: true })).toBeVisible();
   await expect(flow.getByText('Gỡ Part 5 trước nhé!', { exact: true })).toBeVisible();
   await expect(flow.getByRole('button', { name: /^Part 1 · Tranh, 1 câu sai/ })).toContainText('Chọn lý do');
+  await expect(flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true })).toBeVisible();
   await expect(flow.getByRole('button', { name: /^Part 6 · Điền đoạn văn, 1 câu sai/ })).toContainText('Chụp trang chữa bài');
 
   await flow.getByRole('button', { name: /Chụp trang chữa bài Part 5/ }).click();
@@ -20,11 +21,10 @@ test('a computer works through a test Part by Part: Part 5 images are read one b
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot]);
   await flow.getByRole('button', { name: 'Gửi Sóc đọc 2 ảnh', exact: true }).click();
 
-  // Each image is its own reading, compressed to JPEG on the device; the capture is one batch (one AI use).
+  // The screenshots go together, as they are (originals read best), in one request of the capture's batch.
   await expect(flow.getByRole('heading', { name: /^Sóc đọc được 2 câu/ })).toBeVisible();
-  const sent = await calls(page) as { questions: number[]; images: number; context: number; batch: string; jpeg: boolean }[];
-  expect(sent.map(call => [call.questions, call.images, call.context, call.jpeg])).toEqual([[[104, 112], 1, 0, true], [[104, 112], 1, 0, true]]);
-  expect(new Set(sent.map(call => call.batch)).size).toBe(1);
+  const sent = await calls(page) as { questions: number[]; images: number; context: number; batch: string; types: string[] }[];
+  expect(sent.map(call => [call.questions, call.images, call.context, call.types])).toEqual([[[104, 112], 2, 0, ['image/png', 'image/png']]]);
 
   // Rows read like an answer sheet; a missing answer asks for a tap.
   await expect(flow.getByRole('group', { name: 'Câu 104: Bạn chọn C, đáp án A', exact: true })).toBeVisible();

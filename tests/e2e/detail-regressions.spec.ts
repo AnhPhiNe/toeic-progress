@@ -19,7 +19,7 @@ test('answers typed by hand before a screenshot win over what the screenshot sho
   await page.evaluate(() => { Object.assign(window, { __pageDelay: 800 }); });
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
   await flow.getByRole('button', { name: 'Gửi Sóc đọc 1 ảnh', exact: true }).click();
-  await expect(flow.getByRole('status').filter({ hasText: 'Sóc đang đọc' })).toBeVisible();
+  await expect(flow.getByRole('status').filter({ hasText: 'Đang đọc Part 5' })).toBeVisible();
   await expect(flow.getByRole('group', { name: 'Câu 104: Bạn chọn D, đáp án C', exact: true })).toBeVisible();
   // The explanation was written for the screenshot's choice, so it is not offered for the learner's.
   await flow.getByRole('button', { name: 'Mở câu 104', exact: true }).click();
@@ -74,8 +74,9 @@ test('changing accounts during screenshot reading cancels later readings and exp
   const flow = await openDesktopFlow(page);
   await page.evaluate(() => { Object.assign(window, { __pageDelay: 1200 }); });
   await flow.getByRole('button', { name: /Chụp trang chữa bài Part 5/ }).click();
-  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot, screenshot]);
-  await flow.getByRole('button', { name: 'Gửi Sóc đọc 3 ảnh', exact: true }).click();
+  // Seven screenshots are two readings (six images at most each), read one after the other.
+  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(Array.from({ length: 7 }, () => screenshot));
+  await flow.getByRole('button', { name: 'Gửi Sóc đọc 7 ảnh', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls?.length)).toBe(1);
   await page.evaluate(async () => {
     const path = '/src/shared/data/dataBundle.ts';

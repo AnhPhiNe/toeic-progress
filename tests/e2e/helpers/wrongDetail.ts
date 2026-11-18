@@ -1,5 +1,21 @@
 import type { Page } from '@playwright/test';
 import { resolve } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { crc32, deflateSync } from 'node:zlib';
+
+/** A screenshot-sized PNG of noise (it does not compress): `side` px square, about side² × 3 bytes. */
+export function noisyPng(side: number): { name: string; mimeType: string; buffer: Buffer } {
+  const chunk = (type: string, data: Buffer) => {
+    const head = Buffer.alloc(8); head.writeUInt32BE(data.length, 0); head.write(type, 4, 'ascii');
+    const tail = Buffer.alloc(4); tail.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type, 'ascii'), data])) >>> 0, 0);
+    return Buffer.concat([head, data, tail]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(side, 0); header.writeUInt32BE(side, 4); header[8] = 8; header[9] = 2;
+  const rows = Buffer.concat(Array.from({ length: side }, () => Buffer.concat([Buffer.from([0]), randomBytes(side * 3)])));
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', header), chunk('IDAT', deflateSync(rows, { level: 0 })), chunk('IEND', Buffer.alloc(0))]);
+  return { name: `noise-${side}.png`, mimeType: 'image/png', buffer: png };
+}
 
 /** Gỡ câu sai (design/previews/mock-wrong-detail.html): a seeded test, a mocked AI module and the ways in. */
 export const screenshot = resolve('tests/fixtures/part7-notice.png');
@@ -38,12 +54,14 @@ export async function mockWrongDetailAI(page: Page, { contextImages = true } = {
       export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, pageImages: true${contextImages ? ', pageContextImages: true' : ''} }; }
       export async function getAIUsage() { return null; }
       export async function extractMistakeWithAI() { throw new Error('not used'); }
-      export async function extractPageWithAI(questions, images, getToken, owner, isCurrent, batchId, contextImages = []) {
+      export async function extractPageWithAI(questions, images, getToken, owner, isCurrent, batchId, contextImages = [], slices = []) {
         const calls = (window.__pageCalls = window.__pageCalls || []);
         calls.push({ questions: questions.map(item => item.number), images: images.length, context: contextImages.length, batch: batchId,
-          jpeg: [...images, ...contextImages].every(image => image.dataUrl.startsWith('data:image/jpeg')) });
+          types: [...contextImages, ...images].map(image => image.dataUrl.slice(5, image.dataUrl.indexOf(';'))), slices });
         await new Promise(resolve => setTimeout(resolve, window.__pageDelay ?? 0));
         window.__pageFinished = (window.__pageFinished || 0) + 1;
+        // window.__failOnce = a question number: the next reading asking for it fails once.
+        if (window.__failOnce && questions.some(item => item.number === window.__failOnce)) { window.__failOnce = 0; throw new Error('Máy chủ đang bận.'); }
         const reads = ${JSON.stringify(READS)};
         const body = btoa(JSON.stringify({ e: Math.floor(Date.now() / 1000) + 86400 })).replace(/=+$/, '');
         const items = questions.map(item => reads[item.number]).filter(Boolean);

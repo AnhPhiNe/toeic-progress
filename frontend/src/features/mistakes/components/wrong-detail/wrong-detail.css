@@ -269,3 +269,5 @@
 .wd.is-phone .wd-lg { display: none; }
 @media (max-width: 1000px) { .wd:not(.is-phone) .wd-p7 { grid-template-columns: 1fr; } .wd:not(.is-phone) .wd-pgrid { grid-template-columns: 1fr 1fr; } }
 .wd-acts .wd-quiet { margin-left: 0; }
+.wd-quiet.is-next { margin-left: 0; }
+.wd-skipped { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-radius: 14px; background: #f6f7f6; padding: 9px 14px; font-weight: 800; font-size: 13px; color: #87908a; }

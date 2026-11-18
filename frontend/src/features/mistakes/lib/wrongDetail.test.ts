@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { createDraftMistake } from './mistakeDrafts';
-import { flowCards, heroPart, partProgress, planGroupRequests, planSingleRequests, suggestGroups, topReason, waitingTests } from './wrongDetail';
+import { flowCards, heroPart, listeningSkipped, partProgress, planGroupRequests, planSingleRequests, setListeningSkipped, suggestGroups, topReason, visibleProgress, waitingTests } from './wrongDetail';
 
 const session: StudySession = { id: 's1', testName: 'ETS 2024 Test 03', date: '2026-11-10', createdAt: '2026-11-10T08:00:00.000Z',
   skillType: 'LR', sessionType: 'FULL_TEST', durationMinutes: 120, wrongQuestions: [4, 35, 103, 133, 186, 189, 190] };
@@ -56,35 +56,61 @@ describe('draft filtering in Sổ tay', () => {
 });
 
 describe('request planning', () => {
-  it('sends a passage and its questions together in one request', () => {
-    const plan = planGroupRequests([image(300_000), image(300_000), image(300_000)], [image(200_000)], [186, 187, 188, 189, 190]);
+  const one = (bytes: number) => [image(bytes)];
+  it('sends a passage and its questions together in one request, as original screenshots', () => {
+    const plan = planGroupRequests([one(2_000_000), one(2_000_000), one(2_000_000)], [one(1_500_000)], [186, 187, 188, 189, 190]);
     expect(plan.split).toBe(false);
     expect(plan.requests).toHaveLength(1);
+    expect(plan.requests[0]).toMatchObject({ questions: [186, 187, 188, 189, 190], slices: [] });
     expect(plan.requests[0].contextImages).toHaveLength(3);
     expect(plan.requests[0].images).toHaveLength(1);
   });
-  it('reuses the passage when there are more than three question images', () => {
-    const plan = planGroupRequests([image(100_000)], [1, 2, 3, 4].map(() => image(100_000)), [176, 177]);
-    expect(plan.requests.map(request => [request.contextImages.length, request.images.length])).toEqual([[1, 3], [1, 1]]);
+  it('takes up to six question images and reuses the passage past that', () => {
+    expect(planGroupRequests([one(100)], [1, 2, 3, 4, 5, 6].map(() => one(100)), [176]).requests).toHaveLength(1);
+    const plan = planGroupRequests([one(100)], [1, 2, 3, 4, 5, 6, 7].map(() => one(100)), [176, 177]);
+    expect(plan.requests.map(request => [request.contextImages.length, request.images.length])).toEqual([[1, 6], [1, 1]]);
+  });
+  it('keeps the parts of one tall screenshot together and marks them', () => {
+    const plan = planGroupRequests([[image(10), image(10), image(10)]], [one(10), [image(10), image(10)]], [186]);
+    expect(plan.requests[0].slices).toEqual([[1, 3], [5, 6]]);
+    const packed = planGroupRequests([], [one(10), one(10), one(10), one(10), one(10), [image(10), image(10)]], [101]);
+    expect(packed.requests.map(request => request.images.length)).toEqual([5, 2]);
+    expect(packed.requests[1].slices).toEqual([[1, 2]]);
   });
   it('reads a question printed on the passage page from the passage images alone', () => {
-    const plan = planGroupRequests([image(100_000)], [], [147]);
-    expect(plan.requests).toEqual([{ contextImages: [], images: [expect.anything()], questions: [147] }]);
+    const plan = planGroupRequests([one(100_000)], [], [147]);
+    expect(plan.requests).toEqual([{ contextImages: [], images: [expect.anything()], questions: [147], slices: [] }]);
   });
   it('splits only when the group cannot fit one request, and says so', () => {
-    const plan = planGroupRequests([image(900_000), image(900_000)], [image(900_000)], [131, 132]);
+    const plan = planGroupRequests([one(3_500_000), one(3_500_000)], [one(3_000_000)], [131, 132]);
     expect(plan.split).toBe(true);
     expect(plan.requests.length).toBeGreaterThan(1);
-    expect(planGroupRequests([1, 2, 3, 4].map(() => image(10)), [image(10)], [131]).error).toMatch(/tối đa 3 ảnh đoạn văn/);
+    expect(planGroupRequests([1, 2, 3, 4].map(() => one(10)), [one(10)], [131]).error).toMatch(/tối đa 3 ảnh đoạn văn/);
   });
   it('puts passage and questions in one plain request when the server cannot tell them apart', () => {
-    const plan = planGroupRequests([image(100), image(100)], [image(100)], [131], { contextSupported: false });
+    const plan = planGroupRequests([one(100), one(100)], [one(100)], [131], { contextSupported: false });
     expect(plan).toMatchObject({ split: false, requests: [{ contextImages: [], images: [expect.anything(), expect.anything(), expect.anything()] }] });
   });
-  it('reads Part 5 images one by one, grouping many wanted numbers while the capture allows', () => {
+  it('reads Part 5 images together, in more requests only for more than six questions', () => {
     const numbers = [101, 102, 103, 104, 105, 106, 107];
-    expect(planSingleRequests([image(10), image(10)], numbers).requests.map(request => [request.images.length, request.questions.length])).toEqual([[1, 6], [1, 1], [1, 6], [1, 1]]);
-    expect(planSingleRequests([image(10), image(10), image(10)], numbers).requests.map(request => request.questions.length)).toEqual([7, 7, 7]);
-    expect(planSingleRequests([1, 2, 3, 4, 5].map(() => image(10)), numbers).error).toMatch(/tối đa 4 ảnh/);
+    expect(planSingleRequests([one(10), one(10)], [101, 102]).requests.map(request => [request.images.length, request.questions])).toEqual([[2, [101, 102]]]);
+    expect(planSingleRequests([one(10), one(10)], numbers).requests.map(request => [request.images.length, request.questions.length])).toEqual([[2, 6], [2, 1]]);
+    expect(planSingleRequests([1, 2, 3, 4, 5, 6, 7].map(() => one(10)), [101]).requests.map(request => request.images.length)).toEqual([6, 1]);
+    expect(planSingleRequests(Array.from({ length: 49 }, () => one(10)), numbers).error).toMatch(/tối đa 48 ảnh/);
+  });
+});
+
+describe('Bỏ qua phần Nghe', () => {
+  it('leaves the Listening Parts out of the counts, and back in when taken back', () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal('localStorage', { getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => { store.set(key, value); } });
+    const progress = partProgress(flowCards(session, [draft(103), filled(133), draft(186), draft(189), draft(190)]).cards);
+    expect(visibleProgress(progress, true).map(entry => entry.part)).toEqual([5, 6, 7]);
+    expect(visibleProgress(progress, false).map(entry => entry.part)).toEqual([1, 3, 5, 6, 7]);
+    setListeningSkipped('owner-1', 's1', true);
+    expect(listeningSkipped('owner-1', 's1')).toBe(true);
+    expect(listeningSkipped('owner-2', 's1')).toBe(false);
+    setListeningSkipped('owner-1', 's1', false);
+    expect(listeningSkipped('owner-1', 's1')).toBe(false);
   });
 });

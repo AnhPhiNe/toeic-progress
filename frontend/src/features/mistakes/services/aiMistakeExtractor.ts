@@ -187,15 +187,15 @@ const pageSchema = z.object({
 export type PageItem = z.infer<typeof pageSchema>['items'][number];
 
 /**
- * Read the learner's wrong questions from 1–3 screenshots. One capture sends several readings that share a `batchId`;
+ * Read the learner's wrong questions from 1–6 screenshots (and up to 3 passage pages). One capture sends several readings that share a `batchId`;
  * the backend counts the whole capture as one AI use (only its first reading is charged). `contextImages` are the
  * passage pages of one Part 6/7 group, read in the same request as its question images.
  */
 export async function extractPageWithAI(questions: { number: number; part: number }[], images: PreparedImage[], getCaptcha: () => Promise<string>,
-  expectedOwner?: string | null, isCurrent: () => boolean = () => true, batchId?: string, contextImages: PreparedImage[] = [])
+  expectedOwner?: string | null, isCurrent: () => boolean = () => true, batchId?: string, contextImages: PreparedImage[] = [], slices: [number, number][] = [])
   : Promise<{ items: PageItem[]; missing: number[]; explainTicket?: string | null; usage: AIUsage }> {
   if (!questions.length) throw new Error('Không còn câu sai nào để tìm trong ảnh.');
-  if (!images.length || images.length > 3) throw new Error('Chọn 1 đến 3 ảnh màn hình.');
+  if (!images.length || images.length > 6) throw new Error('Chọn 1 đến 6 ảnh màn hình.');
   if (contextImages.length > 3) throw new Error('Chọn tối đa 3 ảnh đoạn văn.');
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể ghi tay.');
   const checkCurrent = () => { if (!isCurrent()) throw new Error('Tác vụ đọc ảnh đã đóng hoặc thay đổi. Chưa gửi yêu cầu mới.'); };
@@ -229,7 +229,8 @@ export async function extractPageWithAI(questions: { number: number; part: numbe
     request_id: generateUUID(), consent: true, provider: 'openai', captcha_token: captchaToken,
     ...(batchId ? { batch_id: batchId } : {}),
     questions, images: images.map(image => ({ dataUrl: image.dataUrl })),
-    ...(contextImages.length ? { context_images: contextImages.map(image => ({ dataUrl: image.dataUrl })) } : {})
+    ...(contextImages.length ? { context_images: contextImages.map(image => ({ dataUrl: image.dataUrl })) } : {}),
+    ...(slices.length ? { slices } : {})
   }, session.user.id, isCurrent);
   checkCurrent();
   const parsed = pageSchema.safeParse(value);

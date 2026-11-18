@@ -14,9 +14,9 @@ import { buildDetailEntry, canExplainRead, detailExplanationInput, editDetailFor
 import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
 import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailDraft } from '@/features/mistakes/lib/detailDraft';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
-import { compressFiles } from '@/features/mistakes/lib/imageCompress';
-import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
-import { flowCards, groupNumbers, heroPart, isRecorded, partMode, partProgress, planGroupRequests, planSingleRequests, suggestGroups, type RequestPlan } from '@/features/mistakes/lib/wrongDetail';
+import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
+import { MAX_CAPTURE_REQUESTS } from '@/features/mistakes/lib/captureBatch';
+import { flowCards, groupNumbers, heroPart, isRecorded, listeningSkipped, partMode, partProgress, setListeningSkipped, visibleProgress, suggestGroups } from '@/features/mistakes/lib/wrongDetail';
 import { DoneView, ManualCard, Overview, PartView, ReviewView, type Staged, type Zone } from './views';
 import './wrong-detail.css';
 
@@ -33,8 +33,15 @@ interface Props {
 }
 
 export type Screen = { name: 'overview' } | { name: 'part'; part: PartNumber }
-  | { name: 'review'; part: PartNumber | null; ids: string[]; skipped: number[]; missing: number[]; group?: number };
-export interface ReadingState { done: number; total: number }
+  | { name: 'review'; part: PartNumber | null; ids: string[]; skipped: number[]; missing: number[]; group?: number; job?: string };
+/** One capture being read: a question group of Part 6–7, or Part 5. */
+export interface ReadJob {
+  key: string; part: PartNumber; group?: number; label: string; status: 'waiting' | 'reading' | 'done' | 'failed';
+  done: number; total: number; startedAt?: number; passage: File[]; questions: File[]; wanted: number[]; requested: number[];
+  readIds: string[]; skipped: number[]; missing: number[]; error: string; note: string;
+}
+const PARALLEL_READS = 2;
+const COMPRESSED_NOTE = 'Ảnh nặng nên Sóc đã thu nhỏ hoặc cắt ảnh trên máy trước khi gửi.';
 
 const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đọc đoạn văn và câu hỏi ở các lượt riêng. Kiểm tra kỹ đoạn văn của từng câu.';
 
@@ -55,10 +62,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const draftBases = useRef(new Map(cards.map(card => [card.id, card])));
   const [screen, setScreen] = useState<Screen>({ name: 'overview' });
   const [groupFrom, setGroupFrom] = useState<number | null>(null);
+  const groupRef = useRef(groupFrom);
+  groupRef.current = groupFrom;
   const [zones, setZones] = useState<Record<Zone, Staged[]>>({ passage: [], questions: [] });
   const [activeZone, setActiveZone] = useState<Zone | null>(null);
-  const [reading, setReading] = useState<ReadingState | null>(null);
-  const [elapsed, setElapsed] = useState(0);
+  const [jobs, setJobs] = useState<Record<string, ReadJob>>({});
+  const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -68,7 +77,6 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const [savedTotal, setSavedTotal] = useState(0);
   const [draftsSeen, setDraftsSeen] = useState(false);
   const closing = useRef(false);
-  const running = useRef(false);
   const owner = useRef(getActiveAccountId());
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
   const canReadPageImages = phone ? Boolean(config?.pageImages) : config?.pageImages !== false;
@@ -97,12 +105,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     void aiService.getAIConfiguration().then(value => { if (!cancelled) setConfig(value); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
+  const anyReading = Object.values(jobs).some(job => job.status === 'reading' || job.status === 'waiting');
   useEffect(() => {
-    if (!reading) return;
-    setElapsed(0);
-    const timer = window.setInterval(() => setElapsed(value => value + 1), 1000);
+    if (!anyReading) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [reading]);
+  }, [anyReading]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3500);
@@ -157,7 +165,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
 
   const close = () => {
     if (closing.current) return;
-    if (running.current && !window.confirm('Sóc đang đọc ảnh. Đóng thì các ảnh còn lại không được đọc. Vẫn đóng?')) return;
+    if (anyReading && !window.confirm('Sóc đang đọc ảnh. Đóng thì các ảnh còn lại không được đọc. Vẫn đóng?')) return;
     const persisted = draft.persist();
     const unsavedCount = filledIds(cards.map(card => card.id)).length;
     if (!persisted && unsavedCount && !window.confirm(`Chưa tự lưu được nháp. Đóng và bỏ ${unsavedCount} câu đã điền?`)) return;
@@ -165,7 +173,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   };
   const ref = useModalA11y(true, () => { if (manual) setManual(null); else close(); });
 
-  const progress = partProgress(cards, unsaved);
+  const allProgress = partProgress(cards, unsaved);
+  const [skipListening, setSkipListening] = useState(() => listeningSkipped(owner.current, session.id));
   const recorded = (card: MistakeEntry) => !unsaved.has(card.id) && isRecorded(card);
   const partCards = (part: number) => cards.filter(card => card.part === part);
 
@@ -207,10 +216,17 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     setScreen({ name: 'part', part });
   };
 
+  /** The open group (or Part 5) is being read: its zones wait. */
+  const selectedBusy = () => {
+    const shown = shownScreen.current;
+    if (shown.name !== 'part') return false;
+    const key = shown.part >= 6 ? `g${groupRef.current}` : `p${shown.part}`;
+    return ['waiting', 'reading'].includes(jobsRef.current[key]?.status ?? '');
+  };
   const addFiles = (files: File[], zone?: Zone) => {
     if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
-    if (!images.length || screen.name !== 'part' || partMode(screen.part) === 'reason' || !canReadPageImages || running.current) return;
+    if (!images.length || screen.name !== 'part' || partMode(screen.part) === 'reason' || !canReadPageImages || selectedBusy()) return;
     const target: Zone = screen.part >= 6 ? zone ?? activeZone ?? (zonesRef.current.passage.length ? 'questions' : 'passage') : 'questions';
     const staged = images.map(file => ({ id: generateUUID(), file, url: URL.createObjectURL(file) }));
     setZones(current => ({ ...current, [target]: [...current[target], ...staged] }));
@@ -232,45 +248,54 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     return () => document.removeEventListener('paste', onPaste);
   }, []);
 
-  /** Reads the staged screenshots: one batch (one AI use), passage and questions of a group in the same request. */
-  const send = async () => {
-    if (screen.name !== 'part' || running.current) return;
-    const part = screen.part;
-    if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
-    if (cards.some(card => card.sessionId !== session.id)) { setError('Danh sách có câu thuộc nhiều lượt làm. Đóng và mở riêng từng lượt trong Sổ tay.'); return; }
-    const group = part >= 6 ? suggestGroups(part as 6 | 7, partCards(part).map(card => card.questionNumber!)).find(item => item.from === groupFrom) : undefined;
-    if (part >= 6 && !group) return;
-    const wrong = group ? group.wrong : partCards(part).map(card => card.questionNumber!);
-    const open = wrong.filter(number => !recorded(byNumber.get(number)!));
-    const wanted = open.length ? open : wrong;
-    const passage = zonesRef.current.passage.map(item => item.file), questions = zonesRef.current.questions.map(item => item.file);
-    if (!passage.length && !questions.length) return;
-    running.current = true;
-    setError(''); setNote(''); setReading({ done: 0, total: 0 });
+  /** One capture of one question group (or of Part 5), read in the background; up to two run at the same time. */
+  const jobsRef = useRef(jobs);
+  jobsRef.current = jobs;
+  const patchJob = (key: string, patch: Partial<ReadJob>) => {
+    const next = { ...jobsRef.current, [key]: { ...jobsRef.current[key], ...patch } };
+    jobsRef.current = next; setJobs(next);
+  };
+  const queue = useRef<string[]>([]);
+  const active = useRef(0);
+  const batch = useRef({ id: generateUUID(), used: 0 });
+  const shownScreen = useRef(screen);
+  shownScreen.current = screen;
+
+  const finishJob = (job: ReadJob, readIds: string[], skipped: number[], error: string) => {
+    const missing = job.wanted.filter(number => !readIds.includes(byNumber.get(number)!.id));
+    const ids = [...readIds].sort((a, b) => byId.get(a)!.questionNumber! - byId.get(b)!.questionNumber!);
+    const failed = Boolean(error) || !ids.length;
+    patchJob(job.key, { status: failed ? 'failed' : 'done', readIds: ids, skipped, missing,
+      error: error || (failed ? 'Sóc chưa thấy câu nào bạn sai trong ảnh. Thêm ảnh rõ hơn hoặc ghi tay.' : '') });
+    if (failed) return;
+    // The learner waiting on this capture sees the result; one busy with another group gets a note instead.
+    const current = shownScreen.current;
+    const waiting = current.name === 'part' && current.part === job.part && (job.group === undefined || job.group === groupRef.current);
+    if (waiting) { setOpenRow(''); setScreen({ name: 'review', part: job.part, ids, skipped, missing, group: job.group, job: job.key }); }
+    else setToast({ id: Date.now(), text: `${job.label} đọc xong ${ids.length} câu` });
+  };
+
+  const runJob = async (key: string) => {
+    const job = jobsRef.current[key];
+    active.current += 1;
+    patchJob(key, { status: 'reading', done: 0, total: 0, error: '', note: '', startedAt: Date.now() });
     const readIds: string[] = [], skipped = new Set<number>(), seen = new Set<number>();
-    let plan: RequestPlan<PreparedImage> = { requests: [], split: false };
+    let error = '';
     try {
-      if (group) {
-        const packed = await compressFiles([...passage, ...questions]);
-        if (!activeFlow()) return;
-        plan = planGroupRequests(packed.images.slice(0, passage.length), packed.images.slice(passage.length), groupNumbers(group),
-          { contextSupported: Boolean(config?.pageContextImages) });
-      } else {
-        const images: PreparedImage[] = [];
-        for (const file of questions) {
-          images.push((await compressFiles([file])).images[0]);
-          if (!activeFlow()) return;
-        }
-        plan = planSingleRequests(images, wanted);
-      }
-      if (plan.error) { setError(plan.error); return; }
-      if (plan.split) setNote(SPLIT_NOTE);
-      setReading({ done: 0, total: plan.requests.length });
-      const batchId = generateUUID();
+      const plan = job.group !== undefined
+        ? await prepareGroup(job.passage, job.questions, job.requested, Boolean(config?.pageContextImages))
+        : await prepareSingles(job.questions, job.requested);
+      if (!activeFlow()) return;
+      if (plan.error) throw new Error(plan.error);
+      patchJob(key, { total: plan.requests.length, note: plan.split ? SPLIT_NOTE : plan.compressed ? COMPRESSED_NOTE : '' });
+      // The whole sitting is one AI use (one batch id) while the backend accepts more requests for it.
+      if (batch.current.used + plan.requests.length > MAX_CAPTURE_REQUESTS) batch.current = { id: generateUUID(), used: 0 };
+      batch.current.used += plan.requests.length;
+      const batchId = batch.current.id;
       for (const request of plan.requests) {
         if (!activeFlow()) return;
         const result = await aiService.extractPageWithAI(request.questions.map(number => ({ number, part: partOfQuestion(number)! })), request.images, getToken,
-          owner.current, activeFlow, batchId, request.contextImages);
+          owner.current, activeFlow, batchId, request.contextImages, request.slices);
         if (!activeFlow()) return;
         const next = { ...formsRef.current };
         const matches: { item: (typeof result.items)[number]; card: MistakeEntry }[] = [];
@@ -279,7 +304,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
           seen.add(item.number);
           const card = byNumber.get(item.number);
           // Only the wrong list is kept; a recorded question keeps what was saved.
-          if (!card) { skipped.add(item.number); continue; }
+          if (!card || !job.requested.includes(item.number)) { skipped.add(item.number); continue; }
           if (recorded(card) && !dirtyIds.current.has(card.id)) { skipped.add(item.number); continue; }
           next[card.id] = withReadResult(next[card.id] ?? EMPTY_FORM, item.draft);
           dirtyIds.current.add(card.id);
@@ -291,25 +316,59 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
           return canExplainRead(item.draft, card.part) && effective && sameExplanationInput(effective, explainInput(item.draft, card.part));
         }).map(({ item, card }) => ({ cardId: card.id, number: item.number, input: explainInput(item.draft, card.part) })));
         removeCaptcha();
-        setReading(value => value && { ...value, done: value.done + 1 });
+        patchJob(key, { done: jobsRef.current[key].done + 1 });
       }
     } catch (reason) {
-      // Later requests wait for the learner instead of spending more on a failing capture.
-      setError(reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại hoặc ghi tay.');
+      // The rest of this group waits for "Thử lại" instead of spending more on a failing reading.
+      error = reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại hoặc ghi tay.';
     } finally {
-      running.current = false;
+      active.current -= 1;
       removeCaptcha();
-      if (activeFlow()) setReading(null);
     }
     if (!activeFlow()) return;
-    const missing = wanted.filter(number => !readIds.includes(byNumber.get(number)!.id));
-    if (!readIds.length) {
-      setError(current => current || (plan.requests.length ? 'Sóc chưa thấy câu nào bạn sai trong ảnh. Thêm ảnh rõ hơn hoặc ghi tay.' : ''));
-      return;
-    }
-    clearZones(); setOpenRow('');
-    readIds.sort((a, b) => byId.get(a)!.questionNumber! - byId.get(b)!.questionNumber!);
-    setScreen({ name: 'review', part, ids: readIds, skipped: [...skipped].filter(number => !byNumber.has(number)).sort((a, b) => a - b), missing, group: group?.from });
+    finishJob(job, readIds, [...skipped].filter(number => !byNumber.has(number)).sort((a, b) => a - b), error);
+    pump();
+  };
+  const pump = () => {
+    while (active.current < PARALLEL_READS && queue.current.length && activeFlow()) void runJob(queue.current.shift()!);
+  };
+  const enqueue = (job: ReadJob) => {
+    const next = { ...jobsRef.current, [job.key]: job };
+    jobsRef.current = next; setJobs(next);
+    queue.current.push(job.key);
+    pump();
+  };
+  const retryJob = (key: string) => {
+    const job = jobsRef.current[key];
+    if (!job || job.status !== 'failed' || !activeFlow()) return;
+    enqueue({ ...job, status: 'waiting', error: '', done: 0, total: 0 });
+  };
+
+  /** Sends the staged screenshots of the open group (or of Part 5); the learner can stage the next group meanwhile. */
+  const send = () => {
+    if (screen.name !== 'part') return;
+    const part = screen.part;
+    if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
+    if (cards.some(card => card.sessionId !== session.id)) { setError('Danh sách có câu thuộc nhiều lượt làm. Đóng và mở riêng từng lượt trong Sổ tay.'); return; }
+    const group = part >= 6 ? suggestGroups(part as 6 | 7, partCards(part).map(card => card.questionNumber!)).find(item => item.from === groupFrom) : undefined;
+    if (part >= 6 && !group) return;
+    const key = group ? `g${group.from}` : `p${part}`;
+    if (['waiting', 'reading'].includes(jobsRef.current[key]?.status ?? '')) return;
+    const wrong = group ? group.wrong : partCards(part).map(card => card.questionNumber!);
+    const open = wrong.filter(number => !recorded(byNumber.get(number)!));
+    const wanted = open.length ? open : wrong;
+    const passage = zonesRef.current.passage.map(item => item.file), questions = zonesRef.current.questions.map(item => item.file);
+    if (!passage.length && !questions.length) return;
+    setError(''); setNote('');
+    clearZones();
+    enqueue({ key, part, group: group?.from, label: group ? `Nhóm ${group.from}–${group.to}` : `Part ${part}`, status: 'waiting', done: 0, total: 0,
+      passage, questions, wanted, requested: group ? groupNumbers(group) : wanted, readIds: [], skipped: [], missing: [], error: '', note: '' });
+  };
+  const openJob = (key: string) => {
+    const job = jobsRef.current[key];
+    if (!job || job.status !== 'done') return;
+    setOpenRow('');
+    setScreen({ name: 'review', part: job.part, ids: job.readIds, skipped: job.skipped, missing: job.missing, group: job.group, job: key });
   };
 
   const discardDrafts = () => {
@@ -321,8 +380,11 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     setToast({ id: Date.now(), text: 'Đã bỏ nháp chưa lưu' });
   };
 
-  const total = cards.length, doneCount = progress.reduce((sum, entry) => sum + entry.done, 0);
-  const hero = heroPart(progress);
+  const shown = visibleProgress(allProgress, skipListening);
+  const listeningLeft = allProgress.filter(entry => entry.part <= 4).reduce((sum, entry) => sum + entry.numbers.length - entry.done, 0);
+  const total = shown.reduce((sum, entry) => sum + entry.numbers.length, 0), doneCount = shown.reduce((sum, entry) => sum + entry.done, 0);
+  const hero = heroPart(shown);
+  const progress = shown;
   const testName = session.testName || 'Đề chưa đặt tên';
   const draftState = draft.state === 'unavailable' ? 'Chưa tự lưu được nháp trên trình duyệt. Hãy lưu câu trước khi đóng.'
     : draft.state === 'restored' ? 'Đã khôi phục nháp trên máy này.' : 'Đã tự lưu nháp trên máy này.';
@@ -333,18 +395,23 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   if (screen.name === 'review') {
     const ids = screen.ids.filter(id => byId.has(id));
     body = <ReviewView {...common} screen={{ ...screen, ids }} cards={byId} forms={forms} openRow={openRow} setOpenRow={setOpenRow}
-      writing={ids.filter(id => isExplaining(id)).length} saveCount={filledIds(ids).length} error={error} note={note}
+      writing={ids.filter(id => isExplaining(id)).length} saveCount={filledIds(ids).length} error={error} note={note || (screen.job ? jobs[screen.job]?.note ?? "" : "")}
       wrongTotal={screen.part ? partCards(screen.part).length : total}
       onUpdate={update} canAddImages={canReadPageImages && screen.part !== null}
       onBack={() => { setError(''); setScreen(screen.part ? { name: 'part', part: screen.part } : { name: 'overview' }); if (screen.group) setGroupFrom(screen.group); }}
-      onSave={() => { if (save(ids)) setScreen({ name: 'overview' }); }} />;
+      onSave={() => {
+        if (!save(ids)) return;
+        // A saved capture leaves its group's status; the rows are recorded now.
+        if (screen.job) { const next = { ...jobsRef.current }; delete next[screen.job]; jobsRef.current = next; setJobs(next); }
+        setScreen({ name: 'overview' });
+      }} />;
   } else if (screen.name === 'part') {
     const part = screen.part;
     body = <PartView {...common} part={part} cards={partCards(part)} recorded={recorded} forms={forms} dirty={dirtyIds.current}
       groupFrom={groupFrom} setGroupFrom={from => { if (from !== groupFrom) { clearZones(); setError(''); } setGroupFrom(from); }}
       zones={zones} activeZone={activeZone} setActiveZone={setActiveZone} onAddFiles={addFiles} onRemove={removeStaged}
-      reading={reading} elapsed={elapsed} error={error} note={note} draftState={draftState} canRead={canReadPageImages}
-      onSend={() => void send()} onBack={() => { if (!running.current) { clearZones(); setError(''); setNote(''); setScreen({ name: 'overview' }); } }}
+      jobs={jobs} now={now} onRetry={retryJob} onOpenJob={openJob} error={error} note={note} draftState={draftState} canRead={canReadPageImages}
+      onSend={send} onBack={() => { clearZones(); setError(''); setNote(''); setScreen({ name: 'overview' }); }}
       onManual={number => setManual({ part, number })} onUpdate={update}
       onSaveReasons={() => { if (save(partCards(part).map(card => card.id))) setScreen({ name: 'overview' }); }}
       saveCount={filledIds(partCards(part).map(card => card.id)).length}
@@ -357,7 +424,10 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     body = <Overview {...common} progress={progress} hero={hero} canRead={canReadPageImages} toast={toast} pendingDrafts={pendingDrafts.length}
       onOpenPart={openPart}
       onShowDrafts={() => { setDraftsSeen(true); setScreen({ name: 'review', part: null, ids: allFilled, skipped: [], missing: [] }); }}
-      onDiscardDrafts={discardDrafts} error={error} />;
+      onDiscardDrafts={discardDrafts} error={error}
+      listening={{ left: listeningLeft, skipped: skipListening, onToggle: () => {
+        setListeningSkipped(owner.current, session.id, !skipListening); setSkipListening(!skipListening);
+      } }} />;
   }
 
   const manualCard = manual && <ManualCard phone={phone} part={manual.part} number={manual.number}

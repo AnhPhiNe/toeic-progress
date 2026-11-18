@@ -27,10 +27,10 @@ export async function mockTurnsAI(page: Page) {
       export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, pageImages: true, pageContextImages: true }; }
       export async function getAIUsage() { return null; }
       export async function extractMistakeWithAI() { throw new Error('not used'); }
-      export async function extractPageWithAI(questions, images, getToken, owner, isCurrent, batchId, contextImages = []) {
+      export async function extractPageWithAI(questions, images, getToken, owner, isCurrent, batchId, contextImages = [], slices = []) {
         const calls = (window.__pageCalls = window.__pageCalls || []);
         calls.push({ questions: questions.map(item => item.number), images: images.length, context: contextImages.length, batch: batchId,
-          jpeg: [...images, ...contextImages].every(image => image.dataUrl.startsWith('data:image/jpeg')) });
+          types: [...contextImages, ...images].map(image => image.dataUrl.slice(5, image.dataUrl.indexOf(';'))), slices });
         await new Promise(resolve => setTimeout(resolve, window.__pageDelay ?? 0));
         window.__pageFinished = (window.__pageFinished || 0) + 1;
         const reads = ${JSON.stringify(READS)};
