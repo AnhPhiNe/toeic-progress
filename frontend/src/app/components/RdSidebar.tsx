@@ -21,6 +21,8 @@ export interface RdSidebarProps {
   leagueLabel?: string;
   /** Sync state line under the settings row, e.g. "Chỉ lưu trên máy". */
   syncLabel?: string;
+  /** Colour of the sync dot that stands in for the sync line on short windows. */
+  syncTone?: 'ok' | 'warn' | 'local';
 }
 
 const W = '#fff';
@@ -37,7 +39,7 @@ const ICONS: Record<string, ReactNode> = {
 
 interface Item { key: keyof typeof ICONS; label: string; tab?: NavTabId; also?: NavTabId[]; color: string; lip: string; tint: string; badge?: number; sub?: string }
 
-export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, newBadges = 0, soc, onOpenSessionLogger, onOpenSettings, leagueLabel, syncLabel }: RdSidebarProps) {
+export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, newBadges = 0, soc, onOpenSessionLogger, onOpenSettings, leagueLabel, syncLabel, syncTone = 'local' }: RdSidebarProps) {
   // While pages are rebuilt one by one, each item opens the current page that will merge into it.
   const items: Item[] = [
     { key: 'today', label: 'Hôm nay', tab: 'dashboard', color: 'var(--rd-green)', lip: 'var(--rd-green-d)', tint: 'var(--rd-green)' },
@@ -55,12 +57,12 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
   const { progress, worn } = soc;
   const starsLabel = progress.next ? `${progress.stars}/${progress.next.stars} sao` : 'Cấp cao nhất';
 
-  const renderItem = (item: Item) => {
+  const renderItem = (item: Item, tool = false) => {
     const on = !!item.tab && (activeTab === item.tab || !!item.also?.includes(activeTab));
     const soon = !item.tab;
     return (
       <button key={item.key} type="button" disabled={soon}
-        className={'rd-side__it' + (on ? ' is-on' : '') + (soon ? ' is-soon' : '') + (item.key === 'convert' ? ' is-tool' : '')}
+        className={'rd-side__it' + (on ? ' is-on' : '') + (soon ? ' is-soon' : '') + (tool ? ' is-tool' : '')}
         style={{ ['--it-tint' as string]: item.tint }}
         aria-current={on ? 'page' : undefined}
         title={soon ? 'Sắp có' : item.sub ? `${item.label} · ${item.sub}` : item.label}
@@ -83,7 +85,9 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
         <b className="rd-side__word">toeic<span>progress</span></b>
       </button>
 
-      <nav className="rd-side__nav">{items.map(renderItem)}</nav>
+      {/* Only this middle part scrolls on very short windows; logo and level card stay put. */}
+      <div className="rd-side__mid">
+      <nav className="rd-side__nav">{items.map((it) => renderItem(it))}</nav>
 
       <button type="button" className="rd-btn rd-side__cta" onClick={onOpenSessionLogger} aria-label="Ghi điểm" title="Ghi điểm">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4 V20 M4 12 H20" stroke={W} strokeWidth="3.6" strokeLinecap="round" /></svg>
@@ -91,15 +95,17 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
       </button>
 
       <p className="rd-side__grp">CÔNG CỤ</p>
-      {tools.map(renderItem)}
+      {tools.map((it) => renderItem(it, true))}
       {onOpenSettings && (
         <button type="button" className="rd-side__it is-tool" style={{ ['--it-tint' as string]: 'var(--rd-teal-d)' }} onClick={onOpenSettings} aria-haspopup="dialog" aria-label="Tài khoản & cài đặt" title="Tài khoản & cài đặt">
           <span className="rd-side__ic" style={{ background: '#9aa39d', boxShadow: '0 3px 0 #7b857f' }} aria-hidden="true">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill={W} /><path d="M3.5 21 C3.5 15.5 8 14 12 14 S20.5 15.5 20.5 21Z" fill={W} /></svg>
           </span>
-          <span className="rd-side__lbl rd-side__set"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small>{syncLabel}</small>}</span>
+          <span className="rd-side__lbl rd-side__set is-sync"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small>{syncLabel}</small>}</span>
+          {syncLabel && <i className={`rd-side__dot is-${syncTone}`} title={syncLabel} aria-hidden="true" />}
         </button>
       )}
+      </div>
 
       <button type="button" className="rd-side__me" onClick={() => setActiveTab('awards')}
         aria-label={`Cấp ${progress.level.n} · ${progress.level.name}, chuỗi ${streak} ngày · Mở Thành tích`}>
