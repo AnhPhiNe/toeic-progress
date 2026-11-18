@@ -94,7 +94,7 @@ test.describe('Giải đấu tuần', () => {
     await name.fill('  Sóc   Nâu ');
     await page.getByRole('button', { name: 'Vào giải đấu' }).click();
     await expect(page.getByRole('heading', { name: 'Bạn đang hạng 4/20' })).toBeVisible();
-    expect(league.joins).toEqual([{ nickname: 'Sóc Nâu' }]);
+    expect(league.joins).toEqual([{ nickname: 'Sóc Nâu', coat: 'nau' }]);
     const table = page.getByRole('list', { name: /Bảng xếp hạng giải Đồng/ });
     await expect(table.getByRole('listitem')).toHaveCount(20);
     await expect(page.getByText(/VÙNG LÊN GIẢI BẠC · TOP 5/)).toBeVisible();
