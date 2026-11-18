@@ -106,23 +106,25 @@
 .glbl i{width:10px;height:10px;border-radius:4px}
 .tiles{display:grid;gap:14px;margin-bottom:16px}
 .tile{position:relative;border-radius:24px;padding:16px 18px;overflow:hidden}
-.tile .k{font-weight:900;font-size:15.5px}
+.tile .k{display:flex;align-items:center;gap:7px;font-weight:900;font-size:15.5px}
+.tile .k svg{width:18px;height:18px;flex:none}
 .tile .v{font-weight:900;letter-spacing:-1.5px;line-height:1;margin-top:8px}
 .tile .s{font-weight:800;font-size:14px;margin-top:6px}
-.tile .ed{position:absolute;right:14px;top:14px;border-radius:10px;padding:5px 11px;font-weight:900;font-size:13px;background:rgba(255,255,255,.85)}
+/* one edit button everywhere */
+.tile .ed{position:absolute;right:14px;top:13px;display:inline-flex;align-items:center;gap:5px;border-radius:10px;padding:5px 11px 5px 9px;font-weight:900;font-size:13.5px;color:#4f5a53;background:#fff;box-shadow:0 0 0 2px rgba(47,58,51,.1),0 2px 0 rgba(47,58,51,.1)}
+.tile .ed svg{width:13px;height:13px}
 .t-goal{background:linear-gradient(135deg,#ffd862,#ffbd1f);box-shadow:0 5px 0 #e0a100;color:#5a3d00}
 .t-goal .v{font-size:60px}
-.t-goal .ed{color:#8a5d00}
 .t-goal svg.tro{position:absolute;right:16px;bottom:10px;width:92px}
-.t-cream{background:var(--goalS);box-shadow:0 0 0 2px #fbe3a5,0 5px 0 #fbe3a5;color:#5a4a20}
-.t-cream .v{font-size:44px;color:var(--goalD)}
-.t-cream .s{color:#8a7a50}
-.t-cream .ed{color:var(--goalD);background:#fff;box-shadow:0 0 0 2px #fbe3a5}
-.t-fire{background:var(--fireS);box-shadow:0 0 0 2px #ffd6b8,0 5px 0 #ffd6b8;color:#5a3a20}
-.t-fire .ed{color:var(--fireD);background:#fff;box-shadow:0 0 0 2px #ffd6b8}
-.t-fire .s{color:#8b6a52}
-.bigq{font-weight:900;font-size:19px;line-height:1.35;color:#5a3a20;margin-top:10px;padding-right:20px}
-.qm{position:absolute;right:18px;bottom:-26px;font-size:120px;font-weight:900;color:#ffd2ae;line-height:1}
+.t-date{background:#f6f3ff;box-shadow:0 0 0 2px #e4dcff,0 5px 0 #e4dcff;color:#5b45b8}
+.t-date .v{font-size:44px;color:#7c5ce0}.t-date .s{color:#8a7cc4}
+.t-date .setd{display:inline-flex;margin-top:12px;border-radius:11px;padding:7px 12px;font-weight:900;font-size:14px;background:#fff;color:#7c5ce0;box-shadow:0 0 0 2px #d6cbff,0 3px 0 #d6cbff}
+.t-min{background:#f1faf2;box-shadow:0 0 0 2px #d3eed8,0 5px 0 #d3eed8;color:#2f7a3d}
+.t-min .v{font-size:44px;color:#46b35a}.t-min .s{color:#6a9c73}
+.t-shield{background:#eef6fe;box-shadow:0 0 0 2px #d2e7fb,0 5px 0 #d2e7fb;color:#1f6fb3}
+.t-quote{background:#fff;box-shadow:0 0 0 2px #ffd3df,0 5px 0 #ffd3df;color:#c2416a}
+.bigq{font-weight:900;font-size:19px;line-height:1.35;color:#3f3a3c;margin-top:10px;padding-right:20px}
+.qm{position:absolute;right:18px;bottom:-26px;font-size:120px;font-weight:900;color:#ffc2d2;line-height:1}
 .dfoot{display:flex;align-items:center;gap:10px;padding:14px 28px 18px;border-top:2px solid #f2f3f1;background:#fbfcfb}
 .dfoot .lb{display:flex;align-items:center;gap:9px;font-weight:900;font-size:15.5px;color:#3f4a43;margin-right:6px}
 .dfoot .lb .ic{width:30px;height:30px;border-radius:10px;background:#9aa39d}
@@ -230,18 +232,24 @@ function heroB(signed){
    <div class="sub"><span class="pillst ${signed?'ok':'local'}"><i></i>${signed?'Đã đồng bộ':'Chỉ lưu trên máy này'}</span>${signed?'minhtuan@gmail.com':''}</div></div>
    ${signed?`<div class="acct"><span class="quiet">Đăng xuất</span></div>`:`<div class="signin">${stGBtn}<small>Lưu lên mây để học trên mọi máy</small></div>`}
    <span class="xbtn" style="top:20px;right:22px;background:rgba(255,255,255,.8)">✕</span></div>`;}
+const stEd=`<span class="ed"><svg viewBox="0 0 24 24" fill="none" stroke="#4f5a53" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Đổi</span>`;
+const stKs=(d,c)=>`<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const stK={cal:stKs('<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>','#7c5ce0'),
+  clock:stKs('<circle cx="12" cy="12.5" r="8.5"/><path d="M12 8v4.5l3 2"/>','#46b35a'),
+  shield:stKs('<path d="M12 2.5 20 5.5v6c0 5.5-3.6 8.8-8 10.5-4.4-1.7-8-5-8-10.5v-6z"/>','#1c8fe3'),
+  quote:stKs('<path d="M5 17c0-4 1-7 4.5-9M5 17h4.5v-4.5H5M13.5 17c0-4 1-7 4.5-9M13.5 17H18v-4.5h-4.5"/>','#e0567f')};
 function tilesB(dateSet){
   return `<div class="tb">
   <div class="glbl"><i style="background:#ffc83d"></i>MỤC TIÊU</div>
   <div class="tiles" style="grid-template-columns:1.25fr 1fr 1fr;height:158px">
-   <div class="tile t-goal"><div class="k">Điểm mục tiêu</div><div class="v">990</div><div class="s" style="color:#7a5600">Cúp cuối cầu thang</div>${stTro}<span class="ed">✎ Sửa</span></div>
-   <div class="tile t-cream"><div class="k">Ngày thi</div>${dateSet?`<div class="v">D-45</div><div class="s">Thứ Bảy · 02/01/2027</div><span class="ed">✎ Đổi</span>`:`<div class="v" style="font-size:30px;color:#b3a57f;letter-spacing:-.5px;margin-top:14px">Chưa đặt</div><span class="setdate" style="margin-top:12px">+ Đặt ngày thi</span>`}</div>
-   <div class="tile t-cream"><div class="k">Học mỗi ngày</div><div class="v">30′</div><div class="s">phút · khoảng 2 việc</div><span class="ed">✎ Đổi</span></div>
+   <div class="tile t-goal"><div class="k">Điểm mục tiêu</div><div class="v">990</div><div class="s" style="color:#7a5600">Cúp cuối cầu thang</div>${stTro}${stEd}</div>
+   <div class="tile t-date"><div class="k">${stK.cal}Ngày thi</div>${dateSet?`<div class="v">D-45</div><div class="s">Thứ Bảy · 02/01/2027</div>${stEd}`:`<div class="v" style="font-size:30px;color:#a99ce0;letter-spacing:-.5px;margin-top:14px">Chưa đặt</div><span class="setd">+ Đặt ngày thi</span>`}</div>
+   <div class="tile t-min"><div class="k">${stK.clock}Học mỗi ngày</div><div class="v">30′</div><div class="s">phút · khoảng 2 việc</div>${stEd}</div>
   </div>
   <div class="glbl"><i style="background:#ff7a1a"></i>CHUỖI HỌC</div>
   <div class="tiles" style="grid-template-columns:1fr 2.25fr;height:124px">
-   <div class="tile t-fire"><div class="k">Khiên cứu chuỗi</div><div style="display:flex;align-items:center;gap:6px;margin-top:10px">${stShield()}${stShield('#ffb27a')}<b style="font-weight:900;font-size:34px;color:#c4560a;margin-left:4px">×2</b></div><span class="ed">✎</span></div>
-   <div class="tile t-fire"><div class="k">Châm ngôn</div><div class="bigq">Kỷ luật là cầu nối giữa mục tiêu và thành tựu.</div><span class="qm">”</span><span class="ed">✎ Đổi</span></div>
+   <div class="tile t-shield"><div class="k">${stK.shield}Khiên cứu chuỗi</div><div style="display:flex;align-items:center;gap:6px;margin-top:10px">${stShield('#1c8fe3')}${stShield('#8cc4f2')}<b style="font-weight:900;font-size:34px;color:#1c8fe3;margin-left:4px">×2</b></div>${stEd}</div>
+   <div class="tile t-quote"><div class="k">${stK.quote}Châm ngôn</div><div class="bigq">Kỷ luật là cầu nối giữa mục tiêu và thành tựu.</div><span class="qm">”</span>${stEd}</div>
   </div></div>
   <div class="dfoot"><span class="lb">${stIc('data','#9aa39d')}Dữ liệu</span><span class="dq">⬇ Tải bản sao lưu</span><span class="dq">⬆ Nhập từ file</span><span class="dq">Dữ liệu mẫu</span><span class="sp"></span><span class="vr"></span><span class="del">${stI.trash}Xóa toàn bộ dữ liệu</span></div>`;}
 const B1=stFrame(`<div class="modal sbx">${heroB(false)}${tilesB(false)}</div>`,'B1 · khách');
