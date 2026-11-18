@@ -3,9 +3,11 @@ import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, Alert
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
-import { DetailListFlow } from '@/features/mistakes/components/DetailListFlow';
-import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
+import { WrongDetailFlow } from '@/features/mistakes/components/wrong-detail/WrongDetailFlow';
+import { DraftWaitRow } from '@/features/mistakes/components/wrong-detail/DraftWaitRow';
+import { isBlankDraft, isRetiredDraft, needsSupplement } from '@/features/mistakes/lib/mistakeDrafts';
 import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
+import { waitingTests } from '@/features/mistakes/lib/wrongDetail';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
@@ -97,11 +99,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const filterRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest && !createRequest.detailSessionId ? null : undefined);
-  // Cards being filled in one after another (the "Ghi chi tiết câu sai" flow), kept as ids so saves show the latest version.
-  const [detailIds, setDetailIds] = useState<string[] | null>(() => {
-    const ids = createRequest?.detailSessionId ? sessionDrafts(createRequest.detailSessionId, mistakes).map(mistake => mistake.id) : [];
-    return ids.length ? ids : null;
-  });
+  // The test whose wrong questions are being worked through (Gỡ câu sai); its cards are read live from `mistakes`.
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(createRequest?.detailSessionId ?? null);
   const [sessionSource, setSessionSource] = useState(createRequest);
   const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[]; cardId: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
@@ -163,9 +162,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         : selectedTest === 'NONE' ? !m.sourceTestName : `test:${testNameKey(m.sourceTestName)}` === selectedTest))
       && (selectedCategory === 'ALL' || m.category === selectedCategory));
   }, [sourcedMistakes, searchTerm, selectedPart, selectedTest, selectedCategory, scopeKeys]);
-  // Computers list a logged test's wrong questions still to be filled in as one row per test above the list,
-  // so the filter counts leave them out and match the cards below.
-  const listedMistakes = useMemo(() => matchingMistakes.filter(m => isPhone || !(needsSupplement(m) && fromLoggedTest(m))), [matchingMistakes, isPhone]);
+  // Number-only drafts of a logged test are not cards yet: they wait in one row above the list (Gỡ câu sai), so the list
+  // and its tab counts leave them out. A draft with any content is listed like any card.
+  const listedMistakes = useMemo(() => matchingMistakes.filter(m => isPhone || !isBlankDraft(m)), [matchingMistakes, isPhone]);
+  const waiting = useMemo(() => {
+    const attempts = new Map(groupDetailAttempts(matchingMistakes.filter(isBlankDraft), sessions).map(group => [group.sessionId, group]));
+    return waitingTests(matchingMistakes, id => ({ title: attempts.get(id)?.title ?? 'Chưa ghi đề', attempt: attempts.get(id)?.attempt ?? '' }));
+  }, [matchingMistakes, sessions]);
   const stats = useMemo(() => ({ total: listedMistakes.length, due: listedMistakes.filter(m => isDueForReview(m)).length,
     mastered: listedMistakes.filter(m => m.status === 'MASTERED' && canReview(m)).length }), [listedMistakes]);
   const filteredMistakes = useMemo(() => listedMistakes.filter(m => selectedStatus === 'ALL' ||
@@ -257,11 +260,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       || (a.createdAt ?? '').localeCompare(b.createdAt ?? '')), [matchingMistakes]);
   const desktopPending = useMemo(() => pendingCards.filter(fromLoggedTest), [pendingCards]);
   /** One attempt owns one question-number namespace. Manual notes use their full editor. */
-  const startDetail = (cards: MistakeEntry[]) => {
-    const ids = cards.map(card => card.id);
-    if (ids.length) setDetailIds(ids);
-  };
-  const detailCards = detailIds?.map(id => mistakes.find(mistake => mistake.id === id)).filter((card): card is MistakeEntry => Boolean(card)) ?? [];
+  const startDetail = (cards: MistakeEntry[]) => { if (cards[0]?.sessionId) setDetailSessionId(cards[0].sessionId); };
+  const detailSession = detailSessionId ? sessions.find(session => session.id === detailSessionId && !session.deletedAt) : undefined;
 
   // One row per attempt: retakes of the same test must never share their numbered questions.
   const renderPendingTests = (items: MistakeEntry[]) => {
@@ -399,8 +399,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       </div>
 
       <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
-      {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone={isPhone} onSave={onUpdateMistake}
-        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
+      {detailSession && <WrongDetailFlow session={detailSession} mistakes={mistakes} phone={isPhone} onSave={onUpdateMistake} onAdd={onAddMistake}
+        onReview={ids => onStartReview(ids)}
+        onClose={saved => { setDetailSessionId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {!isPhone && entry === null && <CaptureModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
         initialTestName={reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName} getToken={getToken}
         onClose={closeEntry} onManual={openManual} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={savedFeedback} />}
@@ -442,7 +443,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     const dueList = matchingMistakes.filter(m => isDueForReview(m) && !(needsSupplement(m) && fromLoggedTest(m)));
     const dueParts = [...new Set(dueList.map(m => m.part))].sort();
     const dueTests = uniqueTestNames(dueList.map(m => m.sourceTestName));
-    const pendingGroups = groupDetailAttempts(desktopPending, sessions);
     const empty = mistakes.length === 0;
     const pickedFilters = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL');
     const partsPresent = [...new Set(sourcedMistakes.map(m => m.part))].sort();
@@ -487,14 +487,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
               <Soc state={reviewCount > 0 ? 'idle' : 'cheerC'} size={170} className="nb-hsoc" />
             </section>
 
-            {pendingGroups.length > 0 && (
+            {waiting.length > 0 && (
               <div className="nb-pending">
-                {pendingGroups.map(group => (
-                  <div key={group.id} className="nb-pend">
-                    <span><b>{group.title}</b> · {group.cards.length} câu chưa ghi chi tiết</span>
-                    <button type="button" className="nb-ghost is-sm" onClick={() => group.sessionId ? startDetail(group.cards) : openEdit(group.cards[0])}>Ghi chi tiết</button>
-                  </div>
-                ))}
+                <DraftWaitRow tests={waiting} onOpen={setDetailSessionId} />
               </div>
             )}
 
@@ -565,6 +560,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                   );
                 })}
               </ul>
+            ) : !activeFilterCount && selectedStatus === 'ALL' && waiting.length ? (
+              <p className="nb-hint">Câu chờ ghi chi tiết không nằm trong danh sách; ghi xong câu nào, câu đó hiện ở đây.</p>
             ) : (
               <div className="nb-none">
                 <p>Không có câu nào khớp bộ lọc.</p>

@@ -1,0 +1,33 @@
+/* Sổ tay: number-only drafts gathered in one pink row (design/previews/mock-wrong-detail.html, frames 6/6b). */
+.wdw { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; width: 100%; text-align: left; border: 0; border-radius: 20px;
+  background: #fff0f4; box-shadow: 0 0 0 2px #ffd3df; padding: 10px 16px 10px 10px; margin-top: 16px; font-family: var(--rd-font); color: var(--rd-ink, #2f3a33); }
+button.wdw { cursor: pointer; }
+button.wdw:hover { box-shadow: 0 0 0 2px #ffb8ca; }
+.wdw:focus-visible, .wdw button:focus-visible { outline: 3px solid var(--rd-blue, #1c8fe3); outline-offset: 2px; }
+.wdw-stk { position: relative; width: 52px; height: 46px; }
+.wdw-stk i { position: absolute; width: 38px; height: 30px; border-radius: 9px; background: #fff; box-shadow: 0 0 0 2px #ffc2d1; }
+.wdw-stk i:nth-child(1) { left: 12px; top: 2px; transform: rotate(8deg); }
+.wdw-stk i:nth-child(2) { left: 6px; top: 8px; transform: rotate(-4deg); }
+.wdw-stk i:nth-child(3) { left: 2px; top: 14px; box-shadow: 0 0 0 2px var(--rd-pink, #ff7a9c); }
+.wdw-t { min-width: 0; }
+.wdw-t b { display: block; font-weight: 900; font-size: 16px; }
+.wdw-t b em { font-style: normal; color: #d64570; }
+.wdw-t small { display: block; font-weight: 800; font-size: 12.5px; color: #8a7a80; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wdw-bar { display: flex; align-items: center; gap: 10px; margin-top: 5px; font-weight: 800; font-size: 12px; color: #7a857e; }
+.wdw-bar i { flex: 1; max-width: 230px; height: 7px; border-radius: 9px; background: #f3e6ea; overflow: hidden; }
+.wdw-bar b { display: block; height: 100%; background: var(--rd-pink, #ff7a9c); border-radius: 9px; }
+.wdw .rd-btn.wdw-go { padding: 9px 14px; font-size: 14px; border-radius: 13px; box-shadow: 0 4px 0 var(--rd-pink-d, #d6416a); white-space: nowrap; }
+.wdw-chev { font-weight: 900; font-size: 24px; color: #d64570; }
+.wdw-tog { border: 0; background: none; font-family: var(--rd-font); font-weight: 900; font-size: 13.5px; color: #d64570; cursor: pointer; white-space: nowrap; padding: 6px 4px; }
+.wdw-sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; border: 0; border-top: 2px solid #ffdbe4; background: none; padding: 9px 2px 1px; text-align: left;
+  font-family: var(--rd-font); font-weight: 900; font-size: 14px; color: inherit; cursor: pointer; }
+.wdw-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wdw-name small { display: inline; margin-left: 6px; font-weight: 800; font-size: 12.5px; color: #8a7a80; }
+.wdw-sub em { margin-left: auto; font-style: normal; color: #d64570; white-space: nowrap; }
+.wdw-sub:hover em { text-decoration: underline; }
+.wdw.is-phone { margin: 12px 0 0; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 12px 10px 8px; }
+.wdw.is-phone .wdw-stk { transform: scale(.9); transform-origin: left center; }
+.wdw.is-phone .wdw-t b { font-size: 15px; }
+.wdw.is-phone .wdw-name small { display: block; margin: 0; }
+.nb-pending .wdw { margin-top: 0; }
+.nb-hint { margin-top: 18px; text-align: center; font-weight: 800; font-size: 13px; color: #a3aba5; }
