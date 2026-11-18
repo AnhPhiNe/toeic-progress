@@ -705,6 +705,9 @@ export const App: React.FC = () => {
         syncLabel={describeSync(account.available, account.status).label}
         accountAvailable={account.available}
         accountStatus={account.status}
+        accountEmail={account.email}
+        accountError={account.error}
+        onSignIn={account.signInGoogle}
         onSignOut={account.email ? account.signOut : undefined}
         accountPanel={<AccountPanel available={account.available} status={account.status} email={account.email} error={account.error}
           onGoogle={account.signInGoogle} onSendOtp={account.sendOtp} onVerifyOtp={account.verifyOtp}

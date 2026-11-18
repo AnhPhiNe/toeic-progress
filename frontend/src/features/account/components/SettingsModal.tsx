@@ -1,16 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
-import { X, Download, Upload, RotateCcw, Trash2, LogOut, Calendar, Quote, ShieldCheck, Target, Timer, User } from 'lucide-react';
-import { profileInitials } from '@/app/components/profileInitials';
+import { X, LogOut } from 'lucide-react';
 import { UserProfile } from '@/shared/types';
 import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/storage';
 import { parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { getActiveAccountId, live, readDataBundle } from '@/shared/data/dataBundle';
 import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
-import { goalLabel, shownGoal } from '@/features/today/lib/goalSetup';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneSettings, type PhoneSettingsField } from './PhoneSettings';
-import { SettingsGoalEditor, SETTINGS_GOAL_POPOVER_ID } from './SettingsGoalEditor';
+import { SettingsDesktop, type DesktopSettingsField } from './SettingsDesktop';
 import { describeSync } from './AccountSyncIndicator';
 import type { AccountStatus } from './AccountPanel';
 import './account.css';
@@ -30,6 +28,11 @@ interface SettingsModalProps {
   syncLabel?: string;
   accountAvailable?: boolean;
   accountStatus?: AccountStatus;
+  /** Signed-in email; computers show it under the name with a quiet Đăng xuất. */
+  accountEmail?: string | null;
+  accountError?: string;
+  /** Computers: the header's "Đăng nhập với Google" for guests. */
+  onSignIn?: () => Promise<void>;
   onSignOut?: () => Promise<void>;
 }
 
@@ -45,8 +48,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   syncLabel,
   accountAvailable,
   accountStatus,
+  accountEmail,
+  accountError,
+  onSignIn,
   onSignOut
 }) => {
+  // The saved profile as shown; edits live in each tile's editor (or phone sheet) until that field is saved.
   const [formData, setFormData] = useState<UserProfile>({ ...profile });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ownedPreview, setOwnedPreview] = useState<{ preview: BackupPreview; owner: string | null; cycle: number } | null>(null);
@@ -58,9 +65,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Phones show a grouped list; one row at a time opens a sheet that saves just that field.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const [phoneEditing, setPhoneEditing] = useState<PhoneSettingsField | null>(null);
-  // Computers: the goal row opens the same editor as Hôm nay in a popover.
-  const [goalOpen, setGoalOpen] = useState(false);
-  const goalButton = useRef<HTMLButtonElement>(null);
+  // Computers: one tile (or the name, or the account popover) at a time opens a small editor that saves just that field.
+  const [editing, setEditingState] = useState<DesktopSettingsField | null>(null);
+  // The profile the open editor started from, so a same-field change made elsewhere meanwhile is a conflict, not an overwrite.
+  const editSnapshot = useRef<UserProfile | null>(null);
+  const formRef = useRef(formData);
+  formRef.current = formData;
   const sessionRef = useRef<SettingsSession | null>(null);
   const cycleRef = useRef(0);
   const readRequest = useRef(0);
@@ -74,6 +84,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!session || expected && session !== expected || !sessionIsCurrent(session)) throw new Error('Tài khoản đã thay đổi. Đóng và mở lại Cài đặt trước khi tiếp tục.');
     return session;
   };
+  const setEditing = useCallback((field: DesktopSettingsField | null) => {
+    editSnapshot.current = field ? formRef.current : null;
+    setEditingState(field);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) { setOwnedPreview(null); setBackupErrors([]); return; }
@@ -85,9 +99,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setResetError('');
     setResetBusy(false);
     setPhoneEditing(null);
+    setEditingState(null);
     setSignOutError('');
     return () => { sessionRef.current = null; readRequest.current += 1; };
   }, [isOpen]);
+  // A profile change made elsewhere while open (a goal picked on Hôm nay, a sync) shows in the tiles; open editors keep their drafts.
+  useEffect(() => {
+    if (isOpen && sessionRef.current && sessionRef.current.owner === getActiveAccountId()) setFormData({ ...loadUserProfile() });
+  }, [isOpen, profile]);
   useEffect(() => {
     if (!isOpen || sessionRef.current?.owner === activeOwner) return;
     sessionRef.current = null;
@@ -158,49 +177,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // Escape (or the X) closes an open phone edit sheet first, then the whole dialog.
+  // Escape (or the X) closes an open editor or phone sheet first, then the whole dialog.
   const closeWhenIdle = useCallback(() => {
     if (signOutBusy) return;
-    if (goalOpen) { setGoalOpen(false); return; }
+    if (editing) { setEditing(null); return; }
     if (phoneEditing) { setPhoneEditing(null); return; }
     if (!resetBusy) onClose();
-  }, [resetBusy, signOutBusy, onClose, phoneEditing, goalOpen]);
+  }, [resetBusy, signOutBusy, onClose, phoneEditing, editing, setEditing]);
   const modalRef = useModalA11y(isOpen, closeWhenIdle);
 
   if (!isOpen) return null;
-  // A fresh profile keeps the placeholder 990 until a goal is chosen: the field reads "Chưa chọn" instead.
-  const goalSet = shownGoal(formData) !== null;
 
-  // Goal editor (desktop): only the goal fields reach storage; other pending edits in the form stay pending until "Lưu cài đặt".
+  // Goal editor: only the goal fields reach storage, merged into the latest profile like Hôm nay's editor.
   const saveGoalOnly = (patch: Partial<UserProfile>): string | null => {
-    setResetError('');
     try {
       const session = requireSession();
       const latest = loadUserProfile();
       const merged = mergeProfileEdit(latest, latest, { ...latest, ...patch });
       requireSession(session);
       onSaveProfile(merged);
-      setFormData(current => ({ ...current, targetScore: merged.targetScore, examDate: merged.examDate, goalChosen: merged.goalChosen }));
+      setFormData({ ...merged });
+      setResetError('');
       return null;
     } catch (reason) {
       return reason instanceof Error ? reason.message : 'Chưa lưu được. Hãy thử lại.';
     }
   };
 
-  const savePhoneField = (patch: Partial<UserProfile>): string | null => {
-    setResetError('');
+  // One tile's field (computers) or one sheet's field (phones): only that field is merged into the stored profile.
+  const saveOneField = (patch: Partial<UserProfile>, snapshot: UserProfile): string | null => {
     try {
       const session = requireSession();
-      const edited = { ...formData, ...patch };
-      const merged = mergeProfileEdit(loadUserProfile(), session.profile, edited);
+      const merged = mergeProfileEdit(loadUserProfile(), snapshot, { ...snapshot, ...patch });
       requireSession(session);
       onSaveProfile(merged);
-      setFormData(edited);
+      setFormData({ ...merged });
+      setResetError('');
       return null;
     } catch (reason) {
       return reason instanceof Error ? reason.message : 'Chưa lưu được. Hãy thử lại.';
     }
   };
+  const saveTileField = (patch: Partial<UserProfile>) => saveOneField(patch, editSnapshot.current ?? formData);
+  const savePhoneField = (patch: Partial<UserProfile>) => saveOneField(patch, formData);
 
   const loadDemo = () => {
     try {
@@ -257,21 +276,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     {isPhone && resetError && <p role="alert" className="st-err">{resetError}</p>}
   </>;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetError('');
-    try {
-      const session = requireSession();
-      const merged = mergeProfileEdit(loadUserProfile(), session.profile, formData);
-      requireSession(session);
-      onSaveProfile(merged);
-      onClose();
-    } catch (reason) {
-      setResetError(reason instanceof Error ? reason.message : 'Chưa lưu được cấu hình. Nội dung đang nhập được giữ nguyên.');
-    }
-  };
-
-  const daysLeft = formData.examDate ? Math.ceil((Date.parse(`${formData.examDate}T00:00:00`) - new Date(new Date().toDateString()).getTime()) / 86_400_000) : null;
   const sync = describeSync(!!accountAvailable, accountStatus ?? 'guest');
   const signOutAction = onSignOut ? <div className="mt-3 space-y-2">
     <button type="button" disabled={resetBusy || signOutBusy} onClick={async () => {
@@ -284,19 +288,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     </button>
     {signOutError && <p role="alert" className="st-err">{signOutError}</p>}
   </div> : null;
-  const field = (id: string, label: string, tone: string, icon: React.ReactNode, input: React.ReactNode) => (
-    <label htmlFor={id} className="st-field">
-      <span className={'st-ic ' + tone} aria-hidden="true">{icon}</span><span className="st-lbl">{label}</span>{input}
-    </label>
-  );
 
   return (
     <div className="rd st st-scrim" onClick={event => { if (event.target === event.currentTarget) closeWhenIdle(); }}>
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabIndex={-1} className="st-modal">
-        <div className="st-modal__head">
-          <h3 id="settings-modal-title">Cài đặt</h3>
-          <button type="button" onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="st-x"><X size={20} /></button>
-        </div>
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabIndex={-1} className={'st-modal' + (isPhone ? '' : ' st-modal--b')}>
+        {isPhone ? (
+          <div className="st-modal__head">
+            <h3 id="settings-modal-title">Cài đặt</h3>
+            <button type="button" onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="st-x"><X size={20} /></button>
+          </div>
+        ) : (
+          <button type="button" onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="st-x stb-x"><X size={20} /></button>
+        )}
 
         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
 
@@ -309,82 +312,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               dataNotice={(backupErrors.length > 0 || backupPreview || resetError) ? renderDataNotice() : undefined} />
           </div>
         ) : (
-        // Computers: the same groups as the phone list, one column, save always in view.
-        <form onSubmit={handleSubmit} aria-busy={resetBusy} className="flex min-h-0 flex-1 flex-col">
-          <div className="st-modal__body">
-            <fieldset disabled={resetBusy}>
-              <div className="st-me">
-                <span className="st-me__av" aria-hidden="true">{profileInitials(formData.name)}</span>
-                <div className="st-me__who">
-                  <b>{(formData.name || '').trim() || 'Học viên'}</b>
-                  <small><span className={'st-dot' + (sync.failed ? ' st-dot--warn' : sync.localOnly ? '' : ' st-dot--ok')} aria-hidden="true" />{syncLabel ?? sync.label}</small>
-                </div>
-                <div className="st-me__d">
-                  <b>{daysLeft === null ? '—' : daysLeft >= 0 ? `D-${daysLeft}` : 'Đã thi'}</b>
-                  <small>{formData.examDate ? `Thi ${formData.examDate.split('-').reverse().join('/')}` : 'Chưa đặt ngày thi'}</small>
-                </div>
-              </div>
-
-              <section>
-                <h4 className="st-h">Tài khoản</h4>
-                <div className="st-group">
-                  {field('settings-name', 'Tên của bạn', 'st-g', <User size={19} />,
-                    <input id="settings-name" type="text" required placeholder="Ví dụ: Minh Tuấn" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />)}
-                </div>
-                {accountPanel && <div className="mt-2">{accountPanel}</div>}
-              </section>
-
-              <section>
-                <h4 className="st-h">Mục tiêu</h4>
-                <div className="st-group">
-                  {field('settings-target', 'Điểm mục tiêu', 'st-b', <Target size={19} />,
-                    <button id="settings-target" type="button" ref={goalButton} className="st-goal" aria-haspopup="dialog" aria-expanded={goalOpen}
-                      aria-controls={goalOpen ? SETTINGS_GOAL_POPOVER_ID : undefined} onClick={event => { event.preventDefault(); setGoalOpen(open => !open); }}>
-                      <b>{goalLabel(formData)}</b><span>{goalSet ? 'Đổi' : 'Chọn'}</span>
-                    </button>)}
-                  {field('settings-exam-date', 'Ngày thi', 'st-v', <Calendar size={19} />,
-                    <input id="settings-exam-date" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} />)}
-                  {field('settings-daily-minutes', 'Học mỗi ngày (phút)', 'st-g', <Timer size={19} />,
-                    <input id="settings-daily-minutes" type="number" required min="5" max="300" value={formData.dailyMinGoalMinutes} onChange={e => setFormData({ ...formData, dailyMinGoalMinutes: Number(e.target.value) })} />)}
-                </div>
-              </section>
-
-              <section>
-                <h4 className="st-h">Chuỗi học</h4>
-                <div className="st-group">
-                  {field('settings-shields', 'Khiên cứu chuỗi', 'st-y', <ShieldCheck size={19} />,
-                    <input id="settings-shields" type="number" required min="0" max="5" value={formData.streakFreezes} onChange={e => setFormData({ ...formData, streakFreezes: Number(e.target.value) })} />)}
-                  {field('settings-motto', 'Châm ngôn', 'st-p', <Quote size={19} />,
-                    <input id="settings-motto" type="text" value={formData.motto} onChange={e => setFormData({ ...formData, motto: e.target.value })} />)}
-                </div>
-              </section>
-
-              <section>
-                <h4 className="st-h">Dữ liệu</h4>
-                <div className="st-group st-data">
-                  <button type="button" onClick={exportDataAsJSON} className="st-btn" title="Tải bản sao lưu JSON về máy"><Download size={16} aria-hidden="true" />Sao lưu ra tệp</button>
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="st-btn" title="Khôi phục dữ liệu từ tệp JSON"><Upload size={16} aria-hidden="true" />Khôi phục từ tệp</button>
-                  {onLoadDemo && <button type="button" onClick={loadDemo} className="st-btn st-btn--quiet"><RotateCcw size={16} aria-hidden="true" />Nạp dữ liệu mẫu</button>}
-                  {onResetData && (
-                    <button type="button" onClick={() => void handleReset()} disabled={resetBusy} className="st-btn st-btn--danger ml-auto">
-                      <Trash2 size={16} aria-hidden="true" />{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}
-                    </button>
-                  )}
-                </div>
-                <div className="mt-2 space-y-2">{renderDataNotice()}</div>
-              </section>
-              {signOutAction}
-            </fieldset>
-          </div>
-          <div className="st-modal__foot">
-            {resetError && <p role="alert" className="st-err">{resetError}</p>}
-            <button type="button" onClick={onClose} className="st-btn st-btn--quiet">Hủy</button>
-            <button type="submit" disabled={resetBusy} className="st-btn st-btn--green">Lưu cài đặt</button>
-          </div>
-        </form>
+          <SettingsDesktop profile={formData} editing={editing} onEdit={setEditing} onSaveField={saveTileField} onSaveGoal={saveGoalOnly}
+            sync={sync} email={accountEmail ?? null} accountAvailable={!!accountAvailable} accountError={accountError} accountPanel={accountPanel}
+            onSignIn={onSignIn} onSignOut={onSignOut} busy={resetBusy}
+            onExport={exportDataAsJSON} onPickBackup={() => fileInputRef.current?.click()}
+            onLoadDemo={onLoadDemo ? loadDemo : undefined} onReset={onResetData ? () => void handleReset() : undefined} resetBusy={resetBusy}
+            dataNotice={(backupErrors.length > 0 || backupPreview) ? renderDataNotice() : undefined} error={resetError || undefined}
+            dialog={modalRef.current} />
         )}
-
-        {!isPhone && goalOpen && <SettingsGoalEditor phone={false} anchor={goalButton.current} beside={modalRef.current} profile={formData} onSaveField={saveGoalOnly} onClose={() => setGoalOpen(false)} />}
       </div>
     </div>
   );
