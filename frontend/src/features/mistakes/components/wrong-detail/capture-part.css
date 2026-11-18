@@ -1,0 +1,24 @@
+/* Sổ tay "Chụp trang chữa bài": the Part first, then that Part's zones (same zones as Gỡ câu sai). */
+.wd-vars { --pk: var(--rd-pink, #ff7a9c); --pd: #d64570; --pl: #fff0f4; --pline: #ffd3df; --ok: #2f9e4a; --okl: #e3f6e6; --mut: var(--rd-mut, #7a857e); --ink: var(--rd-ink, #2f3a33); --line: #ece8ea; color: var(--ink); }
+.wd-vars button { font-family: var(--rd-font); cursor: pointer; }
+.wd-vars :focus-visible { outline: 3px solid var(--rd-blue, #1c8fe3); outline-offset: 2px; }
+.wd-pg.is-cam { font-size: 18px; }
+.cpi-q { font-weight: 900; font-size: 18px; margin: 16px 0 10px; }
+.cpi-parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.cpi-part { border: 0; border-radius: 22px; background: var(--pl); box-shadow: 0 0 0 2px var(--pline), 0 4px 0 var(--pline); padding: 18px 16px; text-align: left; color: var(--ink); }
+.cpi-part:hover { box-shadow: 0 0 0 2px var(--pk), 0 4px 0 var(--pd); }
+.cpi-part b { display: block; font-weight: 900; font-size: 22px; }
+.cpi-part span { display: block; font-weight: 800; font-size: 13.5px; color: #5e6962; margin-top: 2px; }
+.cpi-part em { display: inline-block; margin-top: 8px; font-style: normal; font-weight: 900; font-size: 12px; color: var(--pd); background: #fff; border-radius: 99px; padding: 2px 9px; }
+.cpi-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 10px; font-weight: 900; font-size: 16px; }
+.cpi-head small { font-weight: 800; font-size: 12.5px; color: var(--mut); }
+.cpi-head button { margin-left: auto; border: 0; background: none; font-weight: 900; font-size: 13.5px; color: var(--pd); }
+.cpi-groups { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.cpi-groups button { border: 0; border-radius: 12px; background: #fff; box-shadow: 0 0 0 2px #f1eef0; padding: 6px 11px; font-weight: 900; font-size: 13px; color: var(--ink); text-align: left; }
+.cpi-groups button small { display: block; font-weight: 800; font-size: 11px; color: var(--mut); }
+.cpi-groups button[aria-pressed='true'] { background: var(--pl); box-shadow: 0 0 0 2.5px var(--pk); color: var(--pd); }
+.cpi-phone .cpi-parts { grid-template-columns: 1fr; gap: 9px; }
+.cpi-phone .cpi-part { padding: 13px 14px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cpi-phone .cpi-part b { font-size: 19px; }
+.cpi-phone .cpi-part em { margin: 0 0 0 auto; }
+.cpi-note { margin-top: 10px; font-weight: 700; font-size: 13px; color: #5e6962; }

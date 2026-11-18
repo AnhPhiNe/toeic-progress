@@ -5,13 +5,14 @@ import { optionLetter } from '@/features/mistakes/lib/userChoice';
 
 /** One capture sends at most this many screenshots; the rest is sent in a later capture. */
 export const MAX_CAPTURE_IMAGES = 10;
-/** The page-reading API takes 1 to 3 screenshots of at most 2 MiB in total per request. */
-export const IMAGES_PER_REQUEST = 3;
-export const MAX_REQUEST_BYTES = 2 * 1024 * 1024;
+/** The page-reading API takes up to 6 question screenshots and 3 passage pages, 8 MiB in total, per request. */
+export const IMAGES_PER_REQUEST = 6;
+export const CONTEXT_PER_REQUEST = 3;
+export const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 /** One reading returns at most this many wrong questions (backend MAX_PAGE_ITEMS). */
 export const QUESTIONS_PER_REQUEST = 6;
 /** The backend accepts this many requests per capture (one batch) and charges the first one only. */
-export const MAX_CAPTURE_REQUESTS = 4;
+export const MAX_CAPTURE_REQUESTS = 8;
 /** Reading looks for these when the chosen test has no logged wrong-question list. */
 export const DEFAULT_QUESTIONS: readonly number[] = Array.from({ length: 100 }, (_, index) => 101 + index);
 
@@ -24,44 +25,11 @@ export function dataUrlBytes(dataUrl: string): number {
   return Math.max(0, Math.floor(body.length * 3 / 4) - padding);
 }
 
-/** Groups of at most `maxCount` images whose decoded sizes together stay within `maxBytes`, in the given order. */
-export function chunkImages<T extends { dataUrl: string }>(images: readonly T[], maxCount = IMAGES_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES): T[][] {
-  const chunks: T[][] = [];
-  let current: T[] = [], bytes = 0;
-  for (const image of images) {
-    const size = dataUrlBytes(image.dataUrl);
-    if (current.length && (current.length >= maxCount || bytes + size > maxBytes)) { chunks.push(current); current = []; bytes = 0; }
-    current.push(image); bytes += size;
-  }
-  if (current.length) chunks.push(current);
-  return chunks;
-}
-
 /** Sorted, de-duplicated question numbers in groups of at most `size`. */
 export function chunkQuestions(numbers: Iterable<number>, size = QUESTIONS_PER_REQUEST): number[][] {
   const sorted = normalizeQuestionList(numbers), groups: number[][] = [];
   for (let index = 0; index < sorted.length; index += size) groups.push(sorted.slice(index, index + size));
   return groups;
-}
-
-export interface PageRequestPlan<T> { images: T[]; questions: number[] }
-
-/**
- * The requests that read a set of screenshots. Images go in chunks of 3 (and 2 MiB); the questions to look for go in
- * groups of 6 so one reading never has to return more than the backend allows. A capture is limited to
- * `MAX_CAPTURE_REQUESTS` requests: when every image chunk x question group would be too many, each image chunk looks
- * for all the questions instead, and images that would need a further request are returned as `unsent`.
- */
-export function planRequests<T extends { dataUrl: string }>(images: readonly T[], questions: Iterable<number>,
-  maxRequests = MAX_CAPTURE_REQUESTS): { requests: PageRequestPlan<T>[]; unsent: T[] } {
-  const wanted = normalizeQuestionList(questions);
-  const imageChunks = chunkImages(images), groups = chunkQuestions(wanted);
-  if (!imageChunks.length || !wanted.length) return { requests: [], unsent: [...images] };
-  const sent = imageChunks.slice(0, maxRequests), unsent = imageChunks.slice(maxRequests).flat();
-  if (sent.length * groups.length <= maxRequests) {
-    return { requests: sent.flatMap(chunk => groups.map(group => ({ images: chunk, questions: group }))), unsent };
-  }
-  return { requests: sent.map(chunk => ({ images: chunk, questions: wanted })), unsent };
 }
 
 /** A question read from a screenshot, waiting for the learner's review. */

@@ -4,8 +4,11 @@ import { PageTip } from '@/features/guide/PageTip';
 import type { MistakeUndoAction } from '../lib/mistakeUndo';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
-import { isRetiredDraft, needsSupplement, sessionDrafts } from '@/features/mistakes/lib/mistakeDrafts';
+import { isBlankDraft, isRetiredDraft } from '@/features/mistakes/lib/mistakeDrafts';
 import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
+import { waitingTests } from '@/features/mistakes/lib/wrongDetail';
+import { WrongDetailFlow } from './wrong-detail/WrongDetailFlow';
+import { DraftWaitRow } from './wrong-detail/DraftWaitRow';
 import { mistakeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { questionSnippet } from '@/features/mistakes/lib/questionSnippet';
 import { collectTestNames } from '@/shared/domain/testNames';
@@ -21,7 +24,6 @@ import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
-import { DetailListFlow } from './DetailListFlow';
 import { MistakeEntryModal } from './MistakeEntryModal';
 import { MistakeDetail, categoryShort, reviewLabel } from './MistakeDetail';
 import { CapturePhone } from './phone/CapturePhone';
@@ -68,10 +70,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   const [captureOpen, setCaptureOpen] = useState(Boolean(createRequest && !createRequest.detailSessionId));
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>(undefined);
   const [editorVersion, setEditorVersion] = useState(0);
-  const [detailIds, setDetailIds] = useState<string[] | null>(() => {
-    const ids = createRequest?.detailSessionId ? sessionDrafts(createRequest.detailSessionId, mistakes).map(mistake => mistake.id) : [];
-    return ids.length ? ids : null;
-  });
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(createRequest?.detailSessionId ?? null);
   const capture = useSyncExternalStore(subscribeCapture, captureState);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const sequence = useRef(0);
@@ -86,9 +85,9 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   const sourced = useMemo(() => mistakes.filter(m => !isRetiredDraft(m)).map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const scopeKeys = useMemo(() => new Set((initialSourceNames ?? []).map(testNameKey)), [initialSourceNames]);
   const sourceSuggestions = useMemo(() => collectTestNames(sessions, mistakes), [sessions, mistakes]);
-  const pending = useMemo(() => sourced.filter(needsSupplement), [sourced]);
-  // Cards waiting for details of a logged test sit in the pending strip; a hand-typed note missing its key stays in the list so it can be opened and completed.
-  const reviewable = useMemo(() => sourced.filter(m => !needsSupplement(m) || !(m.sessionId && m.questionNumber !== undefined)), [sourced]);
+  // Number-only drafts of a logged test wait in one row (Gỡ câu sai), out of the list and its counts; a draft with any
+  // content is a card like the others.
+  const reviewable = useMemo(() => sourced.filter(m => !isBlankDraft(m)), [sourced]);
   const matching = useMemo(() => {
     const q = term.trim().toLowerCase();
     return reviewable.filter(m => (!q || [m.questionContext, m.userMistake, m.userReason, m.correctAnswer, m.trapTip, m.sourceTestName, ...(m.tags ?? [])]
@@ -161,9 +160,12 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
 
   const detail = detailId ? sourced.find(m => m.id === detailId) : undefined;
   const defaultTestName = createRequest?.sourceName ?? initialSourceNames?.[0] ?? '';
-  const startDetail = (cards: MistakeEntry[]) => { const ids = cards.map(card => card.id); if (ids.length) setDetailIds(ids); };
-  const detailCards = detailIds?.map(id => mistakes.find(m => m.id === id)).filter((card): card is MistakeEntry => Boolean(card)) ?? [];
-  const pendingGroups = useMemo(() => groupDetailAttempts(pending.filter(m => Boolean(m.sessionId) && m.questionNumber !== undefined), sessions), [pending, sessions]);
+  const detailSession = detailSessionId ? sessions.find(session => session.id === detailSessionId && !session.deletedAt) : undefined;
+  const waiting = useMemo(() => {
+    const scoped = sourced.filter(m => testKey === null || (testKey === 'SCOPE' ? scopeKeys.has(testNameKey(m.sourceTestName)) : testNameKey(m.sourceTestName) === testKey));
+    const attempts = new Map(groupDetailAttempts(scoped.filter(isBlankDraft), sessions).map(group => [group.sessionId, group]));
+    return waitingTests(scoped, id => ({ title: attempts.get(id)?.title ?? 'Chưa ghi đề', attempt: attempts.get(id)?.attempt ?? '' }));
+  }, [sourced, sessions, testKey, scopeKeys]);
   const openCamera = () => { openCapture(); setCaptureOpen(true); };
 
   const overlays = (
@@ -187,8 +189,9 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
           </div>
         )}
       </div>
-      {detailCards.length > 0 && <DetailListFlow cards={detailCards} phone onSave={onUpdateMistake}
-        onClose={saved => { setDetailIds(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
+      {detailSession && <WrongDetailFlow session={detailSession} mistakes={mistakes} phone onSave={onUpdateMistake} onAdd={onAddMistake}
+        onReview={ids => onStartReview(ids)}
+        onClose={saved => { setDetailSessionId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {captureOpen && <CapturePhone sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions} initialTestName={defaultTestName} getToken={getToken}
         onClose={() => { closeCapture(); setCaptureOpen(false); }} onManual={() => { setCaptureOpen(false); setEntry(null); }}
         onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={message => notify(message)} />}
@@ -259,16 +262,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
             <Soc state={reviewCount > 0 ? 'idle' : 'cheerC'} size={96} className="pn-due__soc" />
           </section>
 
-          {pendingGroups.length > 0 && (
-            <div className="pn-pend">
-              {pendingGroups.map(group => (
-                <button key={group.id} type="button" onClick={() => startDetail(group.cards)}
-                  aria-label={`Ghi chi tiết ${group.cards.length} câu, ${group.title}`}>
-                  <span><b>{group.title}</b> · {group.cards.length} câu chưa ghi chi tiết</span><em>Ghi chi tiết ›</em>
-                </button>
-              ))}
-            </div>
-          )}
+          {waiting.length > 0 && <DraftWaitRow tests={waiting} phone onOpen={setDetailSessionId} />}
 
           <div className="pn-tabs" role="group" aria-label="Lọc theo trạng thái">
             {tabs.map(([id, label, count]) => (

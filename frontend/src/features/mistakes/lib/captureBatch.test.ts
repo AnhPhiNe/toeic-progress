@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AIMistakeParseResult, PageItem } from '@/features/mistakes/services/aiMistakeExtractor';
-import { chunkImages, chunkQuestions, dataUrlBytes, mergeItems, planRequests, questionPreview, remainingQuestions, rowStatus,
+import { chunkQuestions, dataUrlBytes, mergeItems, questionPreview, remainingQuestions, rowStatus,
   type CaptureItem } from './captureBatch';
 
 /** A data URL that decodes to exactly `bytes` bytes (bytes must be a multiple of 3). */
@@ -22,24 +22,6 @@ describe('dataUrlBytes', () => {
   });
 });
 
-describe('chunkImages', () => {
-  it('puts at most three images in one request', () => {
-    const images = Array.from({ length: 10 }, (_, index) => picture(300_000, String(index)));
-    expect(chunkImages(images).map(chunk => chunk.length)).toEqual([3, 3, 3, 1]);
-  });
-  it('keeps each request within 2 MiB of image bytes', () => {
-    const images = [picture(900_000, 'a'), picture(900_000, 'b'), picture(900_000, 'c'), picture(300_000, 'd')];
-    const chunks = chunkImages(images);
-    expect(chunks.map(chunk => chunk.map(image => image.id))).toEqual([['a', 'b'], ['c', 'd']]);
-    for (const chunk of chunks) expect(chunk.reduce((sum, image) => sum + dataUrlBytes(image.dataUrl), 0)).toBeLessThanOrEqual(2 * 1024 * 1024);
-  });
-  it('keeps the order and sends a single oversized image alone', () => {
-    const big = picture(3_000_000, 'big');
-    expect(chunkImages([picture(300_000, 'a'), big, picture(300_000, 'b')]).map(chunk => chunk.map(image => image.id))).toEqual([['a'], ['big'], ['b']]);
-    expect(chunkImages([])).toEqual([]);
-  });
-});
-
 describe('chunkQuestions', () => {
   it('splits into groups of six, sorted and without repeats', () => {
     const numbers = [120, 101, 101, 105, 130, 111, 140, 150, 160, 170, 180, 190, 200];
@@ -49,32 +31,6 @@ describe('chunkQuestions', () => {
   });
   it('drops numbers that are not questions', () => {
     expect(chunkQuestions([0, 107, 201, 2.5])).toEqual([[107]]);
-  });
-});
-
-describe('planRequests', () => {
-  const images = (count: number) => Array.from({ length: count }, (_, index) => picture(300_000, String(index)));
-  it('asks every image chunk for each group of six questions when that fits in four requests', () => {
-    const { requests, unsent } = planRequests(images(3), [101, 102, 103, 104, 105, 106, 107, 108]);
-    expect(requests.map(request => request.questions)).toEqual([[101, 102, 103, 104, 105, 106], [107, 108]]);
-    expect(unsent).toEqual([]);
-  });
-  it('lets each image chunk look for all the questions when groups would need too many requests', () => {
-    const { requests } = planRequests(images(10), [101, 102, 103, 104, 105, 106, 107]);
-    expect(requests).toHaveLength(4);
-    for (const request of requests) expect(request.questions).toHaveLength(7);
-    expect(requests.map(request => request.images.length)).toEqual([3, 3, 3, 1]);
-  });
-  it('never plans more than four requests and reports the images it could not send', () => {
-    const many = Array.from({ length: 14 }, (_, index) => picture(900_000, String(index)));
-    const { requests, unsent } = planRequests(many, [107]);
-    expect(requests).toHaveLength(4);
-    expect(requests.flatMap(request => request.images).length + unsent.length).toBe(14);
-    expect(unsent.length).toBeGreaterThan(0);
-  });
-  it('plans nothing without images or questions', () => {
-    expect(planRequests([], [107]).requests).toEqual([]);
-    expect(planRequests(images(2), []).requests).toEqual([]);
   });
 });
 

@@ -25,10 +25,9 @@ test('the overview has no resume banner; Sổ tay lists the unfinished details o
   await expect(page.getByRole('button', { name: /Tiếp tục ghi chi tiết/ })).toHaveCount(0);
   await page.getByRole('button', { name: /^Sổ tay/ }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
-  const pending = page.locator('.nb-pend');
-  await expect(pending.first()).toContainText('Same source');
-  await expect(pending.first()).toContainText('chưa ghi chi tiết');
-  await expect(pending.first().getByRole('button', { name: 'Ghi chi tiết', exact: true })).toBeVisible();
+  // Two attempts of one test: one pink row with a line per attempt; the card with content is in the list.
+  await expect(page.getByRole('button', { name: /^1 câu chờ ghi chi tiết, Same source · / })).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /Who is speaking\?/ })).toBeVisible();
 });
 
 test('on a phone Sổ tay names the unfinished details', async ({ page }) => {
@@ -36,6 +35,7 @@ test('on a phone Sổ tay names the unfinished details', async ({ page }) => {
   await seedUnfinished(page);
   await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: /^Sổ tay/ }).click();
   await expect(page).toHaveURL(/\/so-tay$/);
-  await expect(page.getByRole('button', { name: /^Ghi chi tiết \d+ câu, Same source/ }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Xem 2 đề ⌄', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^1 câu chờ ghi chi tiết, Same source/ })).toHaveCount(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

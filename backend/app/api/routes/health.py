@@ -23,6 +23,7 @@ async def health(request: Request):
         "part1_picture_input": True,
         "learner_error_category": True,
         "page_image_extraction": True,
+        "page_context_images": True,
         "result_image_reading": True,
         "result_image_scores": True,
         "result_image_timing": True,

@@ -289,6 +289,12 @@ Input JSON là {"questions": [{"number": số câu, "part": Part}]}: các câu n
 - correctAnswer: chỉ khi trang ghi rõ đáp án đúng của chính câu đó (ví dụ 'Đáp án đúng: D', 'Correct answer: D') hoặc
   đánh dấu rõ phương án đúng: chép nguyên văn phương án đó, answerSource='PROVIDED'. Không có thì correctAnswer='',
   answerSource='MISSING'. Không tự giải đề. Phương án người học chọn không bao giờ là đáp án đúng.
+- Nếu input có nhãn PASSAGE_IMAGES rồi QUESTION_IMAGES: các ảnh sau PASSAGE_IMAGES là đoạn văn của MỘT nhóm câu Part 6/7
+  (có thể 2–3 bài đọc), các ảnh sau QUESTION_IMAGES là câu hỏi của nhóm đó. context của mọi câu trong nhóm chép từ các ảnh
+  đoạn văn (đủ mọi bài đọc, theo thứ tự ảnh); question, options, userChoice, correctAnswer lấy từ ảnh câu hỏi (hoặc từ ảnh
+  đoạn văn nếu câu hỏi in ở đó).
+- Ghi chú SLICED_IMAGE nói các ảnh liền nhau là những phần cắt liên tiếp của MỘT ảnh dài: ghép đọc từ trên xuống như một
+  trang; chỗ nối chồng lên nhau vài dòng nên không chép lặp các dòng đó.
 """
 
 RESULTS_READING_PROMPT = """Bạn đọc ảnh chụp màn hình trang KẾT QUẢ của một đề TOEIC Listening & Reading (200 câu, số câu 1–200).
