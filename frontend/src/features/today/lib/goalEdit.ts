@@ -1,5 +1,5 @@
 import type { StudySession } from '@/shared/types';
-import { buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
+import { STAIR_COUNT, buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { splitTarget } from '@/features/journey/lib/scoreJourney';
 import { MAX_TARGET, MIN_TARGET } from './goalSetup';
 
@@ -32,59 +32,54 @@ export function isReachedGoal(target: number, best: number | null): boolean {
   return best !== null && target <= best;
 }
 
-/** Mini stairs strip: passed (gold), current (green), still to climb (pale), newly added (dashed). */
-export type MiniBar = 'passed' | 'now' | 'next' | 'new';
+/** Mini stairs strip: passed (gold), current (green), still to climb (pale). */
+export type MiniBar = 'passed' | 'now' | 'next';
 
 export interface GoalPreview {
-  /** Stairs still to climb to the trophy with this goal. */
-  left: number;
-  /** left minus the stairs left with the saved goal: > 0 adds stairs, < 0 removes some. */
-  delta: number;
+  /** Stair Sóc stands on with this goal (0-based; -1 before the first test). */
+  cur: number;
+  /** Sóc's stair with the saved goal: a raise can move her stair index down as the stairs spread out. */
+  curBefore: number;
+  /** About how many points one stair is worth with this goal. */
+  step: number;
   /** True before the first test: the stairs are an estimate. */
   estimate: boolean;
   reached: boolean;
+  /** Always STAIR_COUNT bars. */
   bars: MiniBar[];
   split: { listening: number; reading: number };
 }
 
-function stairsLeft(sessions: StudySession[], target: number): { left: number; cur: number; blocks: number; estimate: boolean } {
+function stairsFor(sessions: StudySession[], target: number): { cur: number; step: number; estimate: boolean } {
   const plan = buildMilestones(sessions, target);
-  if (plan.status === 'empty') {
-    const blocks = estimateMilestones(target).values.length - 1;
-    return { left: blocks, cur: -1, blocks, estimate: true };
-  }
-  const blocks = plan.steps.length - 1;
-  return { left: plan.status === 'done' ? 0 : blocks - plan.currentIndex, cur: plan.currentIndex, blocks, estimate: false };
+  if (plan.status === 'empty') return { cur: -1, step: estimateMilestones(target).step, estimate: true };
+  return { cur: Math.min(plan.currentIndex, STAIR_COUNT - 1), step: plan.step, estimate: false };
 }
 
-/** What the stairs look like with `draft` instead of the saved goal `current`. */
+/** What the stairs look like with `draft` instead of the saved goal `current`: always eight stairs, only their spacing changes. */
 export function goalPreview(sessions: StudySession[], current: number, draft: number): GoalPreview {
-  const now = stairsLeft(sessions, current);
-  const next = stairsLeft(sessions, draft);
-  const delta = next.left - now.left;
+  const before = stairsFor(sessions, current);
+  const next = stairsFor(sessions, draft);
   const reached = isReachedGoal(draft, bestScore(sessions));
-  const bars: MiniBar[] = Array.from({ length: next.blocks }, (_, i) => {
+  const bars: MiniBar[] = Array.from({ length: STAIR_COUNT }, (_, i) => {
     if (next.estimate) return 'next';
-    if (i < next.cur) return 'passed';
-    if (i === next.cur) return 'now';
-    return delta > 0 && i >= next.blocks - delta ? 'new' : 'next';
+    if (reached || i < next.cur) return 'passed';
+    return i === next.cur ? 'now' : 'next';
   });
-  return { left: next.left, delta, estimate: next.estimate, reached, bars, split: splitTarget(draft, sessions) };
+  return { cur: next.cur, curBefore: before.cur, step: next.step, estimate: next.estimate, reached, bars, split: splitTarget(draft, sessions) };
 }
 
-/** Headline of the pale-gold preview box, e.g. "Thêm 2 bậc · còn 6 bậc tới cúp 850". */
+/** Headline of the pale-gold preview box, e.g. "Mỗi bậc ≈ 50 điểm · bạn ở bậc 4/8". */
 export function previewHeadline(p: GoalPreview, draft: number): { lead: string; rest: string } {
-  if (p.estimate) return { lead: `${p.left} bậc ước lượng`, rest: `tới cúp ${draft}` };
-  if (p.delta > 0) return { lead: `Thêm ${p.delta} bậc`, rest: `còn ${p.left} bậc tới cúp ${draft}` };
-  if (p.delta < 0) return { lead: `Bớt ${-p.delta} bậc`, rest: `còn ${p.left} bậc tới cúp ${draft}` };
-  return { lead: `Còn ${p.left} bậc`, rest: `tới cúp ${draft}` };
+  const lead = `Mỗi bậc ≈ ${p.step} điểm`;
+  if (p.estimate) return { lead, rest: `${STAIR_COUNT} bậc ước lượng tới cúp ${draft}` };
+  return { lead, rest: `bạn ở bậc ${p.cur + 1}/${STAIR_COUNT}` };
 }
 
-/** One short line Sóc says after saving. */
-export function savedLine(input: { delta: number; reached: boolean; target: number }): string {
+/** One short line Sóc says after saving; `dropped` = the raise moved Sóc's stair index down. */
+export function savedLine(input: { reached: boolean; target: number; step: number; dropped: boolean }): string {
   if (input.reached) return `Cúp ${input.target} đã nằm trong tay bạn rồi!`;
-  if (input.delta > 0) return `Thêm ${input.delta} bậc nữa, mình leo tiếp nhé!`;
-  if (input.delta < 0) return `Gọn hơn ${-input.delta} bậc, mình leo tiếp nhé!`;
+  if (input.dropped) return `Mục tiêu ${input.target} rồi, mỗi bậc giờ ~${input.step} điểm!`;
   return `Cúp mới ${input.target}, mình leo tiếp nhé!`;
 }
 

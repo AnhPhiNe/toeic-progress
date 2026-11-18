@@ -12,7 +12,7 @@ export type GoalAnchor = HTMLElement | SVGElement;
 
 /**
  * State shared by phone and desktop Hôm nay for changing the goal: which editor is open (and what opened it),
- * saving, the bars that grow in after a raise, Sóc's one line, and the one-time "Thi xong chưa?" bubble.
+ * saving, Sóc's one line, and the one-time "Thi xong chưa?" bubble.
  */
 export function useGoalEdit(input: { profile: UserProfile; sessions: StudySession[]; today: string; onUpdateProfile: (update: (profile: UserProfile) => UserProfile) => void }) {
   const { profile, sessions, today, onUpdateProfile } = input;
@@ -25,8 +25,6 @@ export function useGoalEdit(input: { profile: UserProfile; sessions: StudySessio
   const best = useMemo(() => bestScore(sessions), [sessions]);
   const exam = examState(profile.examDate, today);
 
-  // Bars added by the last save grow in; key changes once per save so only those bars remount.
-  const [grow, setGrow] = useState<{ key: number; from: number } | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -39,8 +37,9 @@ export function useGoalEdit(input: { profile: UserProfile; sessions: StudySessio
     onUpdateProfile(p => ({ ...profileWithGoal(p, target), examDate }));
     setAnchor(false);
     if (target === profile.targetScore) return; // only the exam date changed: nothing on the stairs moves
-    setGrow(g => ({ key: (g?.key ?? 0) + 1, from: preview.delta > 0 && !preview.estimate ? preview.bars.length - preview.delta : Number.POSITIVE_INFINITY }));
-    setSaid(savedLine({ delta: preview.delta, reached, target }));
+    // The stairs re-space on their own (same eight stairs); Sóc speaks up when a raise moves her a stair down.
+    const dropped = !preview.estimate && target > profile.targetScore && preview.cur < preview.curBefore;
+    setSaid(savedLine({ reached, target, step: preview.step, dropped }));
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setSaid(null), BUBBLE_MS);
   }, [sessions, profile.targetScore, best, onUpdateProfile]);
@@ -55,5 +54,5 @@ export function useGoalEdit(input: { profile: UserProfile; sessions: StudySessio
   }, [pastTip, owner, profile.examDate]);
   useEffect(() => { if (anchor !== false) setPastTip(false); }, [anchor]);
 
-  return { isOpen: anchor !== false, anchor: anchor || null, open, close, save, best, exam, grow, said, pastTip: pastTip && exam.kind === 'past', hidePastTip: () => setPastTip(false) };
+  return { isOpen: anchor !== false, anchor: anchor || null, open, close, save, best, exam, said, pastTip: pastTip && exam.kind === 'past', hidePastTip: () => setPastTip(false) };
 }

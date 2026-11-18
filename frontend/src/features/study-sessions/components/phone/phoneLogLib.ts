@@ -1,7 +1,7 @@
 import type { StudySession } from '@/shared/types';
 import { convertRawToListeningScore, convertRawToReadingScore } from '@/shared/domain/etsScoring';
 import { testNameKey } from '@/shared/domain/testNames';
-import { buildMilestones } from '@/shared/domain/milestones';
+import { STAIR_COUNT, buildMilestones } from '@/shared/domain/milestones';
 
 /** YYYY-MM-DD minus one day, calendar-safe. */
 export function previousDay(date: string): string {
@@ -104,6 +104,6 @@ export function resultFacts(session: StudySession, sessions: StudySession[], tar
   const delta = previous ? score - (previous.totalScore ?? 0) : null;
   const record = bestBefore !== null && score > bestBefore;
   const plan = target && target > 0 ? buildMilestones([...others, session], target) : null;
-  const stair = plan && plan.status !== 'empty' ? { index: plan.currentIndex + 1, total: plan.steps.length } : null;
+  const stair = plan && plan.status !== 'empty' ? { index: Math.min(plan.currentIndex, STAIR_COUNT - 1) + 1, total: STAIR_COUNT } : null;
   return { score, delta, record, first: previous === undefined, stair, remaining: target && target > 0 ? Math.max(0, target - score) : null };
 }

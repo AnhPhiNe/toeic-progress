@@ -7,30 +7,28 @@ describe('estimateMilestones', () => {
   it('climbs 450 -> 850 in eight blocks of 50', () => {
     expect(estimateMilestones(850)).toEqual({ step: 50, values: [450, 500, 550, 600, 650, 700, 750, 800, 850] });
   });
-  it('splits other goals into eight stairs rounded up to 10', () => {
-    expect(estimateMilestones(600)).toEqual({ step: 20, values: [440, 460, 480, 500, 520, 540, 560, 580, 600] });
-    expect(estimateMilestones(900)).toEqual({ step: 60, values: [420, 480, 540, 600, 660, 720, 780, 840, 900] });
-    expect(estimateMilestones(990)).toEqual({ step: 70, values: [430, 500, 570, 640, 710, 780, 850, 920, 990] });
+  it('splits other goals into eight stairs rounded to 10', () => {
+    expect(estimateMilestones(600)).toEqual({ step: 19, values: [450, 470, 490, 510, 530, 540, 560, 580, 600] });
+    expect(estimateMilestones(900)).toEqual({ step: 56, values: [450, 510, 560, 620, 680, 730, 790, 840, 900] });
+    expect(estimateMilestones(990)).toEqual({ step: 68, values: [450, 520, 590, 650, 720, 790, 860, 920, 990] });
   });
-  it('always has eight blocks below the trophy for typical goals and ends on the target', () => {
-    for (const target of [600, 650, 700, 750, 800, 850, 900, 950, 990]) {
+  it('always has eight blocks below the trophy and ends on the target', () => {
+    for (let target = 10; target <= 990; target += 5) {
       const { values } = estimateMilestones(target);
       expect(values[values.length - 1]).toBe(target);
       expect(values.length - 1).toBe(8);
     }
   });
   it('gives low goals a climb of their own instead of an empty staircase', () => {
-    const { values } = estimateMilestones(300);
-    expect(values[0]).toBeLessThan(300);
-    expect(values[values.length - 1]).toBe(300);
-    expect(estimateMilestones(10).values).toEqual([0, 10]);
+    expect(estimateMilestones(300).values).toEqual([100, 130, 150, 180, 200, 230, 250, 280, 300]);
+    expect(estimateMilestones(10).values).toEqual([0, 1, 3, 4, 5, 6, 8, 9, 10]);
   });
 });
 
 describe('stairsSummary', () => {
   it('counts blocks below the trophy', () => {
     expect(stairsSummary(850)).toEqual({ blocks: 8, step: 50 });
-    expect(stairsSummary(990)).toEqual({ blocks: 8, step: 70 });
+    expect(stairsSummary(990)).toEqual({ blocks: 8, step: 68 });
   });
 });
 

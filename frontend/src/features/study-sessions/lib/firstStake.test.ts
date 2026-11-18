@@ -19,11 +19,11 @@ describe('isFirstFullTest', () => {
 
 describe('firstStakeLine', () => {
   it('names the stair, points left and the badge', () => {
-    expect(firstStakeLine({ index: 3, total: 9 }, 180, 800)).toBe('Bậc 3/9 · còn 180 điểm tới cúp 800. Huy hiệu “Đề đầu tiên” đã mở.');
+    expect(firstStakeLine({ index: 3, total: 8 }, 180, 800)).toBe('Bậc 3/8 · còn 180 điểm tới cúp 800. Huy hiệu “Đề đầu tiên” đã mở.');
   });
   it('copes with a reached goal and missing data', () => {
-    expect(firstStakeLine({ index: 9, total: 9 }, 0, 600)).toBe('Bậc 9/9 · đã chạm cúp 600! Huy hiệu “Đề đầu tiên” đã mở.');
+    expect(firstStakeLine({ index: 8, total: 8 }, 0, 600)).toBe('Bậc 8/8 · đã chạm cúp 600! Huy hiệu “Đề đầu tiên” đã mở.');
     expect(firstStakeLine(null, null)).toBe('Huy hiệu “Đề đầu tiên” đã mở.');
-    expect(firstStakeLine({ index: 2, total: 9 }, null)).toBe('Bậc 2/9. Huy hiệu “Đề đầu tiên” đã mở.');
+    expect(firstStakeLine({ index: 2, total: 8 }, null)).toBe('Bậc 2/8. Huy hiệu “Đề đầu tiên” đã mở.');
   });
 });
