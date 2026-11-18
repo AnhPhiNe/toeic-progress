@@ -8,7 +8,7 @@ const test = (id: string, date: string, totalScore: number, extra: Partial<Study
 
 function bundle(sessions: StudySession[], patch: Partial<DataBundle> = {}, profile: Record<string, unknown> = {}): DataBundle {
   return { schemaVersion: 3, profile: { name: 'A', targetScore: 800, examDate: '', currentStreak: 0, longestStreak: 0, streakFreezes: 0, lastStudyDate: '', dailyMinGoalMinutes: 30, motto: '', selectedSkill: 'LR', ...profile },
-    sessions, mistakes: [], pacingRuns: [], checklist: [], vocabLog: [], shieldDays: [], weeklyPlans: [], ...patch } as unknown as DataBundle;
+    sessions, mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: [], ...patch } as unknown as DataBundle;
 }
 const byId = (b: ReturnType<typeof computeBadges>) => Object.fromEntries(b.map(x => [x.id, x]));
 const run = (id: string, patch: Partial<PacingRun> = {}): PacingRun => ({ id, presetId: 'PART_7', presetName: 'Part 7', partType: 'PART_7', date: '2026-11-01', createdAt: `2026-11-01T10:00:${id.padStart(2, '0')}Z`,

@@ -114,11 +114,11 @@ Database dùng các bảng nghiệp vụ với cột có kiểu và ràng buộc
 | `pacing_runs` / `pacing_run_phases` | Lượt bấm giờ và các pha |
 | `exam_checklist` / `streak_shields` | Checklist và ngày dùng khiên |
 
-`exam_history` là view lọc Full Test còn hiệu lực từ `study_sessions`. `sync_records` là view dựng lại định dạng JSON của giao thức đồng bộ, không còn là bảng lưu chính. Những trường bổ sung chưa thuộc schema được giữ trong `extra` để bảo toàn backup/khả năng tương thích. Các cột nghiệp vụ đã biết có kiểu riêng, không nằm trong `payload`.
+Schema là baseline v2 (`supabase/migrations/20261120000000_baseline_v2.sql`, xem [DB_REBUILD_2026-11.md](../docs/DB_REBUILD_2026-11.md)). Bảng nghiệp vụ có cột kiểu riêng; trường giao diện chưa có cột (goalChosen, socCoat, socName, suggestedTasks…) nằm trong `extra`. Định dạng JSON của giao thức đồng bộ được dựng bởi view nội bộ `private.sync_rows`; trình duyệt không đọc bảng hay view nào trực tiếp. Kế hoạch tuần và checklist đã bỏ: backend nhận rồi bỏ qua bản ghi `weeklyPlans`/`checklist` từ app cũ.
 
-Migration 3 chuyển dữ liệu hiện có trong một giao dịch, giữ nguyên ID, thời điểm, dấu xóa và phiên bản server. Bảng gốc được giữ ở `sync_records_legacy` để phục hồi; client và service key không đọc/ghi bảng này. Tài khoản bị xóa vẫn được FK dọn cả bản cũ. Dữ liệu legacy không hợp lệ làm migration dừng và rollback, không bị bỏ qua.
+Bản ghi đã xóa chỉ còn trong `sync_tombstones` (loại, ID, thời điểm, phiên bản), bảng sống không có cột `deleted_at`. Mỗi lần đồng bộ trả `epoch` của database; khi database được dựng lại, app gửi lại toàn bộ bản ghi trên máy một lần.
 
-Migration 4 tách bản ghi đã xóa sang `sync_tombstones` chỉ có owner, loại, ID, thời điểm và phiên bản, không giữ nội dung. Nội dung ở bảng nghiệp vụ/bảng con và bản tương ứng trong `sync_records_legacy` bị xóa. Khi xóa trắng, `POST /api/v1/data/reset` thực hiện trong một giao dịch theo owner: dọn mọi nội dung học của tài khoản, reset hồ sơ/checklist, dọn toàn bộ bản legacy của owner và ghi mốc vào `learning_data_resets`. Quota AI và tài khoản đăng nhập vẫn giữ.
+Khi xóa trắng, `POST /api/v1/data/reset` (RPC `reset_learning_data`) trong một giao dịch theo tài khoản: chuyển mọi nội dung học thành tombstone, đặt lại hồ sơ, hủy cache lời giải AI và ghi mốc vào `learning_data_resets`. Quota AI và tài khoản đăng nhập vẫn giữ.
 
 `learning_data_resets` bảo vệ khỏi thiết bị chưa nhận reset: mọi request có cursor cũ phải bỏ các thay đổi cũ và nhận snapshot chuẩn (`resetBarrier=true`) trước khi sửa tiếp. Frontend hủy áp dụng các response đang chạy khi reset và chỉ ghi cursor sau khi lưu snapshot. Việc nhập backup hay chọn dữ liệu máy là thao tác phục hồi có chủ đích; không diễn ra tự động. Không dọn dấu xóa theo thời gian khi chưa có giao thức hết hạn thiết bị.
 
@@ -132,6 +132,27 @@ Gói cục bộ v3 gồm cả kế hoạch tuần. Chuyển v2 sang v3 giữ l�
 
 Giới hạn hiện tại: 10.000 bản ghi/tài khoản, 32 KiB/bản ghi, 4 MiB/request. Dữ liệu tài khoản chỉ sửa khi có mạng và đồng bộ đã thành công. Xóa tài khoản xóa Auth user cùng dữ liệu server qua FK; các bản cục bộ vẫn có thể xuất/xóa riêng.
 
+## Giải đấu tuần
+
+Tự chọn tham gia, cần tài khoản (khách nhận 403). Xếp theo **sao kiếm trong tuần**, không theo điểm TOEIC. Tuần bắt đầu 00:00 thứ Hai giờ Việt Nam (UTC+7). Nhóm tối đa 20 người cùng hạng: Đồng → Bạc → Vàng → Kim cương.
+
+Sao do backend tính từ các dòng đã đồng bộ của chính người học (`services/league.py`), không nhận con số từ trình duyệt:
+
+| Việc làm thật trong app | Sao |
+| --- | --- |
+| Ghi một đề Full Test có điểm | 20 |
+| Ghi một buổi luyện Part (có số câu từng Part hoặc ≥ 5 phút) | 8 |
+| Nướng xong một mẻ bánh / luyện tốc độ (chạy hết, ≥ 3 phút) | 6 |
+| Một ngày có ghi từ vựng (mỗi ngày tính một lần) | 5 |
+| Ôn một thẻ câu sai (lần ôn gần nhất của thẻ) | 2 |
+| Thêm một thẻ câu sai vào Sổ tay | 1 |
+
+Tối đa **60 sao/ngày**. Một việc chỉ được tính khi ngày học nằm trong tuần này và không sau hôm nay, và mốc thời gian của dòng nằm giữa đầu tuần và hiện tại (+5 phút sai lệch đồng hồ như sync). Dòng đặt ngày tương lai hoặc sửa lùi về tuần trước không được tính. Việc Hôm nay không có sao riêng: chúng dẫn tới chính các việc trên. Tích thói quen tự khai không được tính.
+
+Endpoint (giới hạn chung với nhóm `sync`): `GET /api/v1/league` (trạng thái, nhóm, số ngày còn lại, dữ liệu "so với tuần trước"), `POST /api/v1/league/join` `{nickname, coat?}`, `POST /api/v1/league/leave`, `PATCH /api/v1/league/me` `{nickname?, coat?}`. Biệt danh 2–20 ký tự, chữ tiếng Việt/số/dấu cách, lọc từ thô tục tối thiểu. Bảng chỉ trả biệt danh, màu áo Sóc, sao và hạng.
+
+Baseline v2 tạo `league_members`, `league_weeks`, `league_groups`, `league_standings` và các RPC chỉ service role gọi được. Chuyển tuần chạy lười ở request giải đấu đầu tiên của tuần mới, có khóa và khóa chính tuần nên chỉ chạy một lần: chốt hạng tuần trước, top 5 lên hạng (cần > 0 sao), 5 cuối xuống hạng. Nhóm dưới 6 người không có vùng lên/xuống và app hiện "Bạn so với tuần trước". Rời giải khi đang ở vùng xuống hạng vẫn bị xuống hạng.
+
 ## Kiểm thử
 
 ```powershell
@@ -143,7 +164,7 @@ npm run test:e2e
 npm run build
 ```
 
-`test:db` chạy PostgreSQL WASM trong bộ nhớ, áp dụng các migration và kiểm tra chuyển dữ liệu, RLS/cursor/quota, xóa nội dung/bảng con/bản legacy, mốc reset và request từ thiết bị cũ. Nó không thay thế kiểm chứng Supabase Auth/PostgREST thực tế. `test:rls` chỉ dùng staging với biến môi trường được ghi ở đầu script; không chạy trên dữ liệu thật. SQL migration 3/4 được sinh bằng `python scripts/database/generate-domain-migration.py` / `python scripts/database/generate-reset-migration.py`. Playwright chạy cổng 3100 riêng, cấu hình Supabase/AI bị tắt để không dùng dịch vụ thật.
+`test:db` chạy PostgreSQL WASM trong bộ nhớ trên baseline v2: hình dạng schema, RLS/grant/search_path, đồng bộ (cursor, LWW, tombstone, replace, rào reset, sửa tay của operator), quota/batch/ledger AI, plan và mã đổi, giải đấu, dọn dẹp, xóa tài khoản, và toàn bộ quy trình dựng lại (export v1 → drop → baseline → restore). Nó không thay thế kiểm chứng Supabase Auth/PostgREST thực tế. `test:rls` chỉ dùng staging với biến môi trường được ghi ở đầu script; không chạy trên dữ liệu thật. Playwright chạy cổng 3100 riêng, cấu hình Supabase/AI bị tắt để không dùng dịch vụ thật.
 
 ## Deploy thử miễn phí
 
@@ -155,9 +176,9 @@ Render Free có thể ngủ sau 15 phút không có traffic và mất khoảng m
 
 ## Vận hành
 
-Duyệt tester và quota riêng: xem [hướng dẫn quyền AI](../docs/AI_ACCESS.md). Sau migration `20261011000000_ai_access_grants.sql`, bật `AI_ACCESS_MANAGED=true` để dùng bảng `public.ai_access_grants`. Tài khoản mới chờ duyệt; `status=active` và `monthly_limit` cấp lượt tháng riêng, `NULL` miễn hạn mức ứng dụng. Trong chế độ này, bảng là nguồn quyền duy nhất và danh sách email miễn cũ không ghi đè quyết định tạm khóa. Chưa áp dụng migration thì giữ cờ false; readiness sẽ không đạt nếu bật khi thiếu bảng.
+Quyền và quota riêng: xem [hướng dẫn quyền AI](../docs/AI_ACCESS.md). Bật `AI_ACCESS_MANAGED=true` để backend đọc RPC `get_ai_access`: `ai_access_grants.status` (không có dòng = active; `blocked` tạm khóa) và `user_plans` (`admin` = không giới hạn, `ai_monthly_limit` riêng, `plus` mặc định `AI_PLUS_MONTHLY_LIMIT`). Trong chế độ này database là nguồn quyền duy nhất; danh sách email miễn cũ không ghi đè quyết định tạm khóa.
 
-Supabase Free không gồm sao lưu tự động: giữ chức năng export JSON cho người dùng và tạo bản dump database trước migration. Chạy `python -m app.commands.maintenance` từ `backend` để dọn counter hết hạn và request hash cũ. Guest counter được giữ theo danh tính; cần dọn Auth user ẩn danh không còn dùng bằng công cụ quản trị trước khi mở quy mô lớn. Không log token, khóa dịch vụ hoặc nguyên văn câu hỏi.
+Supabase Free không gồm sao lưu tự động: giữ chức năng export JSON cho người dùng và tạo bản dump database trước migration. `python -m app.commands.maintenance` (chạy hằng ngày bởi `.github/workflows/maintenance.yml`) gọi `run_maintenance` để dọn counter hết hạn, request hash cũ, batch, cửa sổ rate limit, ticket lời giải hết hạn và lịch sử giải đấu quá 12 tuần. Guest counter được giữ theo danh tính; cần dọn Auth user ẩn danh không còn dùng bằng công cụ quản trị trước khi mở quy mô lớn. Không log token, khóa dịch vụ hoặc nguyên văn câu hỏi.
 
 Beta miễn phí, AI có giới hạn; gói nâng cao có thể thu phí khi ra mắt chính thức. Các cờ/hạn mức đã được cấu hình riêng để thay đổi về sau; chưa tích hợp thanh toán.
 

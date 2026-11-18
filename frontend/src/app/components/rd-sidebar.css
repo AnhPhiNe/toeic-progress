@@ -1,14 +1,26 @@
 .rd-side {
   position: sticky; top: 0; z-index: 30; height: 100vh; width: 268px; flex: none;
-  display: none; flex-direction: column; overflow-y: auto;
-  background: #fff; border-right: 2px solid #eef0ee; padding: 22px 14px;
+  display: none; flex-direction: column; overflow: hidden;
+  background: #fff; border-right: 2px solid #eef0ee; padding: var(--sd-pv) 14px;
   --rd-teal: #14b8a6; --rd-teal-d: #0d8a7c; /* Công cụ */
+  /* Height fit: at 900px tall and above every size is the original one. Below that the gaps shrink first
+     (smoothly, ~900px down to 700px), then icons, Sóc and labels shrink a little; the middle only scrolls
+     below ~580px. --sd-k is how far the window is above 702px (negative below it). */
+  --sd-k: calc(100vh - 702px);
+  --sd-pv: clamp(10px, calc(10px + var(--sd-k) * .06), 22px);
+  --sd-pad: clamp(2px, calc(2px + var(--sd-k) * .03), 8px);
+  --sd-mb: clamp(2px, calc(2px + var(--sd-k) * .015), 5px);
+  --sd-ic: clamp(30px, calc(40px + var(--sd-k) * .085), 40px);
+  --sd-fs: clamp(14px, calc(15.5px + var(--sd-k) * .012), 15.5px);
 }
 @media (min-width: 768px) { .rd-side { display: flex; } }
 .rd-side button:not(.rd-btn) { font-family: var(--rd-font); background: none; border: 0; text-align: left; color: inherit; }
 .rd-side button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
 
-.rd-side__logo { display: flex; align-items: center; gap: 9px; padding: 0 8px 22px; cursor: pointer; }
+/* Middle block (nav, Ghi điểm, Công cụ) takes the free height and scrolls alone when the window is very short. */
+.rd-side__mid { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0 -6px; padding: 0 6px clamp(0px, calc(var(--sd-k) * .04), 8px); scrollbar-width: thin; }
+.rd-side__logo { flex: none; display: flex; align-items: center; gap: 9px; padding: 0 8px clamp(8px, calc(8px + var(--sd-k) * .07), 22px); cursor: pointer; }
 .rd-side__mark { width: 44px; height: 44px; border-radius: 14px; background: #fff3e0; box-shadow: 0 3px 0 #f1dcc0; overflow: hidden; flex: none; }
 .rd-side__logosoc { display: block; margin: 7px auto 0; }
 .rd-side__ic svg { display: block; width: 100%; }
@@ -17,9 +29,9 @@
 .rd-side__word span { display: block; color: var(--rd-green); }
 
 .rd-side__it {
-  display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: var(--sd-pad) 10px; margin-bottom: var(--sd-mb);
   border-radius: 16px; border: 2px solid transparent !important; cursor: pointer;
-  font-weight: 900; font-size: 15.5px; color: #4d5850 !important; transition: background .15s;
+  font-weight: 900; font-size: var(--sd-fs); color: #4d5850 !important; transition: background .15s;
 }
 .rd-side__it:hover { background: var(--rd-soft); }
 .rd-side__it:hover .rd-side__ic { transform: translateY(-2px); }
@@ -33,18 +45,19 @@
 .rd-side__it.is-soon { cursor: default; opacity: .55; }
 .rd-side__it.is-soon:hover { background: none; }
 .rd-side__it.is-soon:hover .rd-side__ic { transform: none; }
-.rd-side__ic { width: 40px; height: 40px; border-radius: 13px; padding: 8px; flex: none; transition: transform .15s; }
+.rd-side__ic { width: var(--sd-ic); height: var(--sd-ic); border-radius: calc(var(--sd-ic) * .325); padding: calc(var(--sd-ic) * .2); flex: none; transition: transform .15s; }
 .rd-side__it em { margin-left: auto; font-style: normal; font-weight: 900; font-size: 12px; background: var(--rd-pink); color: #fff; border-radius: 99px; padding: 1px 8px; }
 
-.rd-side__cta { margin: 16px 4px 0; width: calc(100% - 8px); padding: 13px; }
+.rd-side__cta { margin: clamp(8px, calc(8px + var(--sd-k) * .04), 16px) 4px 0; width: calc(100% - 8px); padding: clamp(8px, calc(8px + var(--sd-k) * .025), 13px); }
 
-.rd-side__grp { font-weight: 900; font-size: 12px; color: var(--rd-mut); letter-spacing: .6px; padding: 24px 12px 6px; margin: 0; }
+.rd-side__grp { font-weight: 900; font-size: 12px; color: var(--rd-mut); letter-spacing: .6px; padding: clamp(10px, calc(10px + var(--sd-k) * .07), 24px) 12px clamp(2px, calc(2px + var(--sd-k) * .02), 6px); margin: 0; }
 .rd-side__grp + .rd-side__it { margin-top: 2px; }
 
-.rd-side__me { position: relative; margin-top: auto; display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 12px 12px 8px; border-radius: 20px; cursor: pointer;
+.rd-side__me { position: relative; flex: none; margin-top: clamp(0px, calc(var(--sd-k) * .03), 6px); display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: clamp(6px, calc(6px + var(--sd-k) * .03), 12px) 12px clamp(6px, calc(6px + var(--sd-k) * .03), 12px) 8px; border-radius: 20px; cursor: pointer;
   background: linear-gradient(135deg, #fff3d1, #ffe0ec) !important; transition: transform .12s, box-shadow .12s; }
 .rd-side__me:hover { transform: translateY(-2px); box-shadow: 0 4px 0 rgba(214, 65, 106, .14); }
-.rd-side__soc { flex: none; }
+.rd-side__soc { flex: none; width: clamp(42px, calc(54px + var(--sd-k) * .1), 54px) !important; }
 .rd-side__who { flex: 1; min-width: 0; }
 .rd-side__who b { display: block; padding-right: 40px; font-weight: 900; font-size: 14.5px; line-height: 1.2; }
 .rd-side__who small { display: block; margin-top: 2px; font-weight: 800; font-size: 12px; color: var(--rd-mut); }
@@ -56,13 +69,25 @@
 /* Settings row: title plus sync line. Kept above the tablet block so the rail rule hides its label like the others. */
 .rd-side__set { display: grid; line-height: 1.15; }
 .rd-side__set small { font-weight: 800; font-size: 12px; color: var(--rd-mut); }
+/* Sync dot: stands in for the sync line on short windows (and on the icon rail). */
+.rd-side__dot { display: none; flex: none; margin-left: auto; width: 9px; height: 9px; border-radius: 50%; background: #b5bdb8; box-shadow: 0 0 0 3px #fff; }
+.rd-side__dot.is-ok { background: var(--rd-green); }
+.rd-side__dot.is-warn { background: #f59e0b; }
+
+/* At short heights the sync line becomes a coloured dot (also on the icon rail). */
+@media (min-width: 768px) and (max-height: 640px) {
+  .rd-side__set.is-sync small { display: none; }
+  .rd-side__dot { display: block; }
+}
 
 /* Tablet: icon column only. */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .rd-side { width: 76px; padding: 18px 10px; align-items: center; }
+  .rd-side { width: 76px; padding: clamp(10px, calc(10px + var(--sd-k) * .04), 18px) 10px; align-items: center; }
   .rd-side__lbl, .rd-side__word, .rd-side__grp, .rd-side__who, .rd-side__it em { display: none; }
   .rd-side__logo { padding: 0 0 18px; }
-  .rd-side__it { padding: 6px; justify-content: center; }
+  .rd-side__mid { align-items: center; width: calc(100% + 12px); }
+  .rd-side__it { position: relative; padding: min(6px, var(--sd-pad)); justify-content: center; }
+  .rd-side__dot { display: block; position: absolute; top: 4px; right: 4px; margin: 0; }
   .rd-side__cta { width: 52px; padding: 12px 0; margin: 12px 0 0; }
   .rd-side__me { flex-direction: column; padding: 8px 4px; gap: 4px; width: 56px; }
   .rd-side__soc { width: 44px !important; }

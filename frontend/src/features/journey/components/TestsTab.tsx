@@ -17,7 +17,7 @@ export function TestsTab({ sessions, onOpenTest, onOpenSessionLogger }: Props) {
   if (!list.length) {
     return (
       <div className="jr-empty">
-        <Soc state="idle" size={110} />
+        <Soc state="zzz" size={110} wakeable />
         <p>Chưa có đề nào. Ghi điểm đề đầu tiên để bắt đầu hành trình.</p>
         <button type="button" className="rd-btn" onClick={onOpenSessionLogger}>+ Ghi điểm</button>
       </div>

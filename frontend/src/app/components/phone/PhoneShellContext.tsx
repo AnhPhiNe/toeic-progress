@@ -9,6 +9,8 @@ export interface PhoneShellValue {
   newBadges: number;
   goTab: (tab: NavTabId) => void;
   openSettings: () => void;
+  /** Giải đấu tuần: live line for the avatar sheet row and the 🛡 chip on Hôm nay (goTab('league') opens it). */
+  league?: { label: string; chip: string; chipShort: string; chipAria: string };
 }
 
 export const PhoneShellContext = createContext<PhoneShellValue | null>(null);

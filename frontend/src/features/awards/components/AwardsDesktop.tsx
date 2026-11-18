@@ -10,6 +10,7 @@ import { useBadgeReveal } from '../lib/useBadgeReveal';
 import { BadgeIcon } from './BadgeIcon';
 import { FlipReveal } from './FlipReveal';
 import { GearPanel } from './GearPanel';
+import { socIdentity, withSocCoat, withSocName } from '@/shared/ui/soc/socIdentity';
 import { LevelUpGift } from './LevelUpGift';
 import './awards.css';
 import './awardsDesk.css';
@@ -192,10 +193,12 @@ export function AwardsDesktop({ bundle, today, owner, onUpdateProfile }: Props) 
         </div>
       </section>
 
-      {gearOpen && gearBtn.current && <GearPanel anchor={gearBtn.current} level={lvl} worn={worn} onToggle={toggle} onClose={() => setGearOpen(false)} />}
+      {gearOpen && gearBtn.current && <GearPanel anchor={gearBtn.current} level={lvl} worn={worn} onToggle={toggle}
+        identity={socIdentity(bundle.profile)} onCoat={coat => onUpdateProfile(p => withSocCoat(p, coat))} onName={name => onUpdateProfile(p => withSocName(p, name))}
+        onClose={() => setGearOpen(false)} />}
       {tip && <div className="awd-tip" style={{ left: tip.x, top: tip.y } as CSSProperties} role="tooltip">{tip.text}</div>}
       {reveal.current && <FlipReveal badge={reveal.current} remaining={reveal.remaining} flipped={reveal.flipped} onFlip={() => reveal.setFlipped(true)} onNext={reveal.next} />}
-      {giftLevel && giftItem && <LevelUpGift key={giftLevel} level={giftLevel} item={giftItem} worn={worn} onWear={() => closeGift(true)} onLater={() => closeGift(false)} />}
+      {giftLevel && giftItem && <LevelUpGift key={giftLevel} level={giftLevel} item={giftItem} worn={worn} socName={socIdentity(bundle.profile).name} onWear={() => closeGift(true)} onLater={() => closeGift(false)} />}
     </div>
   );
 }

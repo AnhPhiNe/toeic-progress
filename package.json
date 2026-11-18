@@ -16,7 +16,7 @@
     "test:e2e": "playwright test",
     "test:rls": "node tests/staging/rls.mjs",
     "test:staging": "node tests/staging/smoke.mjs",
-    "test:db": "node tests/database/test-database.mjs && node tests/database/test-domain-tables.mjs && node tests/database/test-content-purge.mjs && node tests/database/test-api-limits.mjs && node tests/database/test-provider-retirement.mjs && node tests/database/test-ai-access.mjs && node tests/database/test-explanation-ledger.mjs && node tests/database/test-ai-batches.mjs"
+    "test:db": "node tests/database/test-baseline.mjs && node tests/database/test-sync.mjs && node tests/database/test-ai.mjs && node tests/database/test-redeem.mjs && node tests/database/test-league.mjs && node tests/database/test-maintenance.mjs && node tests/database/test-rebuild.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

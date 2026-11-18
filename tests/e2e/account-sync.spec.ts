@@ -5,7 +5,11 @@ import { openSettings } from './helpers/accountGroup';
 /** The profile name the app currently shows in Cài đặt (the old top bar's "Cài đặt hồ sơ <tên>" button is gone). */
 async function profileName(page: Page) {
   const dialog = await openSettings(page);
+  // Computers: the name is edited inline in the header (✎); its field shows the stored name.
+  await dialog.getByRole('button', { name: 'Đổi tên', exact: true }).click();
   const name = await dialog.getByLabel('Tên của bạn', { exact: true }).inputValue();
+  await page.keyboard.press('Escape');
+  await expect(dialog.getByLabel('Tên của bạn', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   return name;
@@ -110,6 +114,7 @@ test('returning to an existing session syncs in the background and preserves edi
   const requestsBefore = state.syncRequests();
   const release = state.hold();
   const modal = await openSettings(page);
+  await modal.getByRole('button', { name: 'Đổi tên', exact: true }).click();
   const name = modal.getByLabel('Tên của bạn', { exact: true });
   await name.fill('Alice edited');
   await confirmSession(page);
@@ -118,7 +123,9 @@ test('returning to an existing session syncs in the background and preserves edi
   await expect(name).toHaveValue('Alice edited');
   await expect(name).toBeFocused();
   // A real edit during that request must still queue a subsequent upload.
-  await modal.getByRole('button', { name: 'Lưu cài đặt', exact: true }).click();
+  await modal.getByRole('button', { name: 'Lưu', exact: true }).click();
+  await expect(name).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await expect(modal).toHaveCount(0);
   await expect(syncState(page)).toContainText('Đang đồng bộ');
   release();

@@ -19,6 +19,8 @@ const profile = z.object({
   currentStreak: z.number().int().nonnegative(), longestStreak: z.number().int().nonnegative(),
   streakFreezes: z.number().int().min(0).max(5), lastStudyDate: z.union([date, z.literal('')]),
   shieldAllowance: z.number().int().nonnegative().optional(), goalChosen: z.boolean().optional(),
+  // Sóc của bạn: an unknown coat is kept (read as Nâu cam) so a newer backup still restores.
+  socCoat: z.string().max(20).optional(), socName: z.string().max(60).optional(),
   dailyMinGoalMinutes: z.number().int().positive(), motto: z.string(), selectedSkill: z.enum(['LR', 'SW']),
   ...metadata
 }).passthrough();
@@ -102,39 +104,32 @@ const pacingRun = z.object({
   createdAt: timestamp, ...metadata
 }).passthrough().refine(value => value.correctAnswers === undefined || (value.totalQuestions !== undefined && value.correctAnswers <= value.totalQuestions), 'số câu đúng phải có tổng câu và không vượt tổng câu');
 
-const checklistItem = z.object({ id: z.string().min(1), checked: z.boolean(), ...metadata });
 const vocabLog = z.object({ id: z.string().min(1), date, count: z.number().int().min(1).max(10000),
   sourceName: z.string().max(300).optional(),
   parts: z.array(partNumber).max(7).refine(parts => new Set(parts).size === parts.length, 'Part bị trùng').optional(), ...metadata }).passthrough();
 const shieldDay = z.object({ id: z.string().min(1), date, ...metadata });
-const weeklyPlan = z.object({
-  id: date, weekKey: date, ...metadata,
-  tasks: z.array(z.object({
-    id: z.string().min(1), title: z.string().min(1),
-    type: z.enum(['AUTO_FULL_TEST', 'AUTO_PART_PRACTICE', 'AUTO_STUDY_TIME', 'CUSTOM']),
-    target: z.number().finite().positive(), unit: z.string().min(1), createdAt: timestamp,
-    partNumber: partNumber.optional(), manualDone: nonnegative.optional(), isCompleted: z.boolean().optional(),
-    notes: z.string().optional(), color: z.enum(['indigo', 'blue', 'amber', 'sky', 'rose', 'purple']).optional()
-  })).max(100)
-}).refine(plan => plan.id === plan.weekKey, 'ID kế hoạch phải trùng tuần')
-  .refine(plan => new Set(plan.tasks.map(task => task.id)).size === plan.tasks.length, 'ID mục tiêu bị trùng');
-
 const backupV2 = z.object({
   schemaVersion: z.literal(2), exportDate: timestamp, profile,
   sessions: z.array(session), mistakes: z.array(mistake), pacingRuns: z.array(pacingRun),
-  checklist: z.array(checklistItem), vocabLog: z.array(vocabLog), shieldDays: z.array(shieldDay)
+  vocabLog: z.array(vocabLog), shieldDays: z.array(shieldDay)
 });
 
 const backupV1 = z.object({
   profile, sessions: z.array(session), mistakes: z.array(mistake)
 }).passthrough();
-const backupV3 = backupV2.extend({ schemaVersion: z.literal(3), weeklyPlans: z.array(weeklyPlan) });
+// v2/v3 files may still hold the retired checklist and weekly plans: z.object
+// drops those keys, so they are neither validated nor restored.
+const backupV3 = backupV2.extend({ schemaVersion: z.literal(3) });
+const backupV4 = backupV2.extend({ schemaVersion: z.literal(4) });
 
+/** Written by createBackupSnapshot: no checklist or weekly plans. */
+export const BACKUP_VERSION = 4;
+type BackupVersion = 1 | 2 | 3 | 4;
 type LegacyContent = Pick<DataBundle, 'profile' | 'sessions' | 'mistakes'>;
 
 export interface BackupPreview {
-  version: 1 | 2 | 3;
-  data: DataBundle | LegacyContent | (Omit<DataBundle, 'schemaVersion' | 'weeklyPlans'> & { schemaVersion: 2 });
+  version: BackupVersion;
+  data: LegacyContent | (Omit<DataBundle, 'schemaVersion'> & { schemaVersion: 2 | 3 | 4 });
   corrections: string[];
   preserved: string[];
   counts: Record<string, number>;
@@ -154,7 +149,7 @@ function fill(record: Record<string, unknown>, key: string, value: unknown, path
 }
 
 /** Normalize only unknown error categories and absent optional fields. */
-function normalize(raw: Record<string, unknown>, version: 1 | 2 | 3, corrections: string[]): void {
+function normalize(raw: Record<string, unknown>, version: BackupVersion, corrections: string[]): void {
   const now = new Date().toISOString();
   const profileValue = raw.profile;
   if (isRecord(profileValue)) {
@@ -169,7 +164,7 @@ function normalize(raw: Record<string, unknown>, version: 1 | 2 | 3, corrections
     fill(profileValue, 'motto', '', 'profile', corrections);
     fill(profileValue, 'selectedSkill', 'LR', 'profile', corrections);
   }
-  for (const key of ['profile', 'sessions', 'mistakes', 'pacingRuns', 'checklist', 'vocabLog', 'shieldDays']) {
+  for (const key of ['profile', 'sessions', 'mistakes', 'pacingRuns', 'vocabLog', 'shieldDays']) {
     const records = key === 'profile' ? [profileValue] : raw[key];
     if (!Array.isArray(records)) continue;
     records.forEach((value, index) => {
@@ -204,16 +199,16 @@ export function parseBackup(json: string): BackupParseResult {
     return { ok: false, errors: ['Tệp: JSON không hợp lệ'] };
   }
   if (!isRecord(raw)) return { ok: false, errors: ['Tệp: cấu trúc gốc phải là đối tượng'] };
-  if (typeof raw.schemaVersion === 'number' && raw.schemaVersion > 3) {
+  if (typeof raw.schemaVersion === 'number' && raw.schemaVersion > BACKUP_VERSION) {
     return { ok: false, errors: ['Tệp được tạo từ phiên bản mới hơn. Hãy cập nhật ứng dụng trước khi khôi phục.'] };
   }
-  if (raw.schemaVersion !== undefined && (typeof raw.schemaVersion !== 'number' || ![1, 2, 3].includes(raw.schemaVersion))) {
+  if (raw.schemaVersion !== undefined && (typeof raw.schemaVersion !== 'number' || ![1, 2, 3, 4].includes(raw.schemaVersion))) {
     return { ok: false, errors: ['schemaVersion: phiên bản sao lưu không được hỗ trợ'] };
   }
-  const version: 1 | 2 | 3 = raw.schemaVersion === 3 ? 3 : raw.schemaVersion === 2 ? 2 : 1;
+  const version: BackupVersion = raw.schemaVersion === 4 ? 4 : raw.schemaVersion === 3 ? 3 : raw.schemaVersion === 2 ? 2 : 1;
   const corrections: string[] = [];
   normalize(raw, version, corrections);
-  const parsed = (version === 3 ? backupV3 : version === 2 ? backupV2 : backupV1).safeParse(raw);
+  const parsed = (version === 4 ? backupV4 : version === 3 ? backupV3 : version === 2 ? backupV2 : backupV1).safeParse(raw);
   if (!parsed.success) {
     return {
       ok: false,
@@ -226,8 +221,7 @@ export function parseBackup(json: string): BackupParseResult {
   ];
   if (version >= 2) {
     const complete = value as DataBundle;
-    collections.push(['pacingRuns', complete.pacingRuns], ['checklist', complete.checklist], ['vocabLog', complete.vocabLog], ['shieldDays', complete.shieldDays]);
-    if (version === 3) collections.push(['weeklyPlans', complete.weeklyPlans]);
+    collections.push(['pacingRuns', complete.pacingRuns], ['vocabLog', complete.vocabLog], ['shieldDays', complete.shieldDays]);
   }
   const duplicateErrors: string[] = [];
   for (const [name, records] of collections) {
@@ -245,16 +239,14 @@ export function parseBackup(json: string): BackupParseResult {
   if (version >= 2) {
     const complete = value as DataBundle;
     counts.pacingRuns = complete.pacingRuns.filter(item => !item.deletedAt).length;
-    counts.checklist = complete.checklist.filter(item => !item.deletedAt).length;
     counts.vocabLog = complete.vocabLog.filter(item => !item.deletedAt).length;
     counts.shieldDays = complete.shieldDays.filter(item => !item.deletedAt).length;
-    if (version === 3) counts.weeklyPlans = complete.weeklyPlans.filter(item => !item.deletedAt).length;
   }
   return {
     ok: true,
     preview: {
       version, data: value, corrections, counts,
-      preserved: version === 1 ? ['Lượt Phòng Thi', 'Checklist', 'Từ vựng', 'Ngày dùng khiên', 'Kế hoạch tuần'] : version === 2 ? ['Kế hoạch tuần'] : []
+      preserved: version === 1 ? ['Lượt Phòng Thi', 'Từ vựng', 'Ngày dùng khiên'] : []
     }
   };
 }

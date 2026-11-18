@@ -4,11 +4,15 @@ import { backendRequest } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 export { cloud } from '@/shared/api/supabaseClient';
 
-type EntityType = 'profile' | 'sessions' | 'mistakes' | 'pacingRuns' | 'checklist' | 'vocabLog' | 'shieldDays' | 'weeklyPlans';
-const COLLECTIONS: Exclude<EntityType, 'profile'>[] = ['sessions', 'mistakes', 'pacingRuns', 'checklist', 'vocabLog', 'shieldDays', 'weeklyPlans'];
+type EntityType = 'profile' | 'sessions' | 'mistakes' | 'pacingRuns' | 'vocabLog' | 'shieldDays';
+const COLLECTIONS: Exclude<EntityType, 'profile'>[] = ['sessions', 'mistakes', 'pacingRuns', 'vocabLog', 'shieldDays'];
 export interface CloudRow { entity_type: EntityType; record_id: string; payload: Record<string, unknown>; updated_at: string; deleted_at: string | null }
-export interface SyncReply { cursor: number; records: CloudRow[]; hasRecords: boolean; resetBarrier?: boolean; sourceImageCleanupBefore?: string }
-export interface SyncState { cursor: number; acknowledged: Record<string, string> }
+/** epoch names the server database generation; fullResync marks a reply after this device re-sent everything. */
+export interface SyncReply { cursor: number; records: CloudRow[]; hasRecords: boolean; resetBarrier?: boolean; sourceImageCleanupBefore?: string; epoch?: string; fullResync?: boolean }
+export interface SyncState { cursor: number; acknowledged: Record<string, string>; epoch?: string }
+// Re-sending every record after a server rebuild goes in requests well below the 10,000-record / 4 MiB sync limit.
+const RESYNC_CHUNK_RECORDS = 500;
+const RESYNC_CHUNK_BYTES = 1_000_000;
 const syncKey = (id: string) => `toeic_sync_cursor_${id}_v3`;
 const identity = (row: CloudRow) => `${row.entity_type}:${row.record_id}`;
 const signature = (row: CloudRow) => `${new Date(row.updated_at).toISOString()}|${row.deleted_at ? new Date(row.deleted_at).toISOString() : ''}`;
@@ -16,14 +20,17 @@ const signature = (row: CloudRow) => `${new Date(row.updated_at).toISOString()}|
 export function readSyncState(userId: string): SyncState {
   try {
     const state = JSON.parse(localStorage.getItem(syncKey(userId)) || 'null');
-    if (state && Number.isSafeInteger(state.cursor) && state.cursor >= 0 && typeof state.acknowledged === 'object' && state.acknowledged !== null) return state;
+    if (state && Number.isSafeInteger(state.cursor) && state.cursor >= 0 && typeof state.acknowledged === 'object' && state.acknowledged !== null
+      && (state.epoch === undefined || typeof state.epoch === 'string')) return state;
   } catch { /* A missing cursor triggers a safe full reconciliation. */ }
   return { cursor: 0, acknowledged: {} };
 }
 export function rememberSync(userId: string, reply: SyncReply, reset = false): void {
-  const acknowledged = reset ? {} : readSyncState(userId).acknowledged;
+  const previous = readSyncState(userId);
+  const acknowledged = reset || reply.fullResync ? {} : previous.acknowledged;
   for (const row of reply.records) acknowledged[identity(row)] = signature(row);
-  localStorage.setItem(syncKey(userId), JSON.stringify({ cursor: reply.cursor, acknowledged }));
+  const epoch = reply.epoch ?? previous.epoch;
+  localStorage.setItem(syncKey(userId), JSON.stringify({ cursor: reply.cursor, acknowledged, ...(epoch ? { epoch } : {}) }));
 }
 export function recordsFromBundle(bundle: DataBundle): CloudRow[] {
   const rows: CloudRow[] = [];
@@ -41,7 +48,7 @@ export function bundleFromRecords(rows: CloudRow[]): DataBundle {
   const epoch = '1970-01-01T00:00:00.000Z';
   const bundle: DataBundle = {
     schemaVersion: 3, profile: { ...defaultProfile(), updatedAt: epoch, deletedAt: null },
-    sessions: [], mistakes: [], pacingRuns: [], checklist: [], vocabLog: [], shieldDays: [], weeklyPlans: []
+    sessions: [], mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: []
   };
   for (const row of rows) {
     const record = { ...row.payload, updatedAt: new Date(row.updated_at).toISOString(), deletedAt: row.deleted_at ? new Date(row.deleted_at).toISOString() : null };
@@ -67,8 +74,42 @@ export async function exchangeCloudChanges(userId: string, bundle: DataBundle, r
   // An explicitly chosen guest transfer starts from the latest server epoch.
   // Old cursors from another device must not implicitly undo a prior reset.
   const snapshot = reset ? await syncRequest(userId, [], 0) : null;
-  const state = snapshot ? { cursor: snapshot.cursor, acknowledged: {} } : readSyncState(userId);
-  return syncRequest(userId, pendingRecords(bundle, state), state.cursor, replace);
+  const state = snapshot ? { cursor: snapshot.cursor, acknowledged: {}, epoch: snapshot.epoch } : readSyncState(userId);
+  const reply = await syncRequest(userId, pendingRecords(bundle, state), state.cursor, replace);
+  // Nothing acknowledged yet means this request already carried every record.
+  const sentEverything = Object.keys(state.acknowledged).length === 0;
+  if (replace || reset || sentEverything || !reply.epoch || reply.epoch === state.epoch || reply.resetBarrier) return reply;
+  return resendEverything(userId, bundle, state.cursor);
+}
+
+/**
+ * The server database is a different generation from the one this device last
+ * synced with (it was rebuilt or restored). Records the server lost would never
+ * be re-sent, because this device already counts them as acknowledged, so send
+ * every local record once. The old cursor keeps reset barriers working; the
+ * server keeps whichever copy of each record is newer.
+ */
+async function resendEverything(userId: string, bundle: DataBundle, cursor: number): Promise<SyncReply> {
+  const rows = recordsFromBundle(bundle);
+  let chunk: CloudRow[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    const size = JSON.stringify(row).length;
+    if (chunk.length && (chunk.length >= RESYNC_CHUNK_RECORDS || bytes + size > RESYNC_CHUNK_BYTES)) {
+      const partial = await syncRequest(userId, chunk, cursor);
+      if (partial.resetBarrier) return partial;
+      chunk = [];
+      bytes = 0;
+    }
+    chunk.push(row);
+    bytes += size;
+  }
+  if (chunk.length) {
+    const partial = await syncRequest(userId, chunk, cursor);
+    if (partial.resetBarrier) return partial;
+  }
+  // Everything is on the server now: take the full canonical snapshot.
+  return { ...await syncRequest(userId, [], 0), fullResync: true };
 }
 export async function deleteCloudAccount(): Promise<void> {
   await backendRequest('/api/v1/account', 'DELETE');

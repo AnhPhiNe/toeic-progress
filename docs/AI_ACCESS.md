@@ -1,5 +1,8 @@
 # Quyền AI theo tài khoản
 
+> **Từ 20/11/2026 schema là một baseline duy nhất** `supabase/migrations/20261120000000_baseline_v2.sql`; các migration v1 nhắc dưới đây đã chuyển vào `supabase/migrations/archive/` (chỉ để tra cứu, không chạy). Cách dựng lại project đang dùng: [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md).
+> Hạn mức riêng từng tài khoản nay nằm ở `public.user_plans` (`plan = admin` = không giới hạn, `ai_monthly_limit` = hạn mức tháng riêng; hết hạn thì về `free`). `ai_access_grants` chỉ còn `status` để tạm khóa. Backend đọc cả hai qua RPC `get_ai_access`. Đặt plan cho chủ dự án: `supabase/rebuild/set_plan.sql`.
+
 Tài khoản học và quyền AI là hai phần riêng. Không dùng được AI vẫn nhập điểm, ghi sổ tay và lưu thủ công như bình thường. Chế độ này không cấp quyền quản trị ứng dụng hay quyền đọc dữ liệu của người khác.
 
 ## Mở AI khi đăng nhập (từ 05/11/2026)

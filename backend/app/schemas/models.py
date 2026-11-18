@@ -259,11 +259,6 @@ class Pacing(Payload):
         return self
 
 
-class Checklist(Payload):
-    id: str
-    checked: bool
-
-
 class Vocabulary(Payload):
     id: str
     date: date
@@ -284,44 +279,17 @@ class Shield(Payload):
     date: date
 
 
-class WeeklyTask(Payload):
-    id: str = Field(min_length=1, max_length=200)
-    title: str = Field(min_length=1, max_length=300)
-    type: Literal["AUTO_FULL_TEST", "AUTO_PART_PRACTICE", "AUTO_STUDY_TIME", "CUSTOM"]
-    target: float = Field(gt=0, le=100000)
-    unit: str = Field(min_length=1, max_length=50)
-    createdAt: AwareDatetime
-    partNumber: Part | None = None
-    manualDone: Number | None = None
-    isCompleted: bool | None = None
-    notes: str | None = Field(default=None, max_length=4000)
-    color: Literal["indigo", "blue", "amber", "sky", "rose", "purple"] | None = None
-
-
-class WeeklyPlan(Payload):
-    id: str
-    weekKey: date
-    tasks: list[WeeklyTask] = Field(max_length=100)
-
-    @model_validator(mode="after")
-    def check_identity(self):
-        if self.id != self.weekKey.isoformat() or self.weekKey.weekday() != 0:
-            raise ValueError("Kế hoạch phải dùng ngày thứ Hai làm ID tuần")
-        if len({task.id for task in self.tasks}) != len(self.tasks):
-            raise ValueError("ID mục tiêu bị trùng")
-        return self
-
-
 PAYLOAD_MODELS = {
     "profile": Profile,
     "sessions": Session,
     "mistakes": Mistake,
     "pacingRuns": Pacing,
-    "checklist": Checklist,
     "vocabLog": Vocabulary,
     "shieldDays": Shield,
-    "weeklyPlans": WeeklyPlan,
 }
+# Weekly plans and the exam checklist have no screen any more. Apps from before
+# the change may still send them: they are accepted here and dropped, never stored.
+RETIRED_ENTITY_TYPES = frozenset({"checklist", "weeklyPlans"})
 
 
 class SyncRecord(BaseModel):
@@ -345,7 +313,7 @@ class SyncRecord(BaseModel):
             raise ValueError("ID nội dung không khớp bản ghi")
         if self.deleted_at is not None:
             self.payload = {"id": self.record_id}
-        else:
+        elif self.entity_type not in RETIRED_ENTITY_TYPES:
             validated = PAYLOAD_MODELS[self.entity_type].model_validate_json(json.dumps(self.payload))
             self.payload = validated.model_dump(mode="json", exclude_none=True)
             if isinstance(validated, Session) and validated.resultTiming is not None:
@@ -372,6 +340,7 @@ class SyncRequest(BaseModel):
             raise ValueError("ID bị trùng trong yêu cầu")
         if self.replace and ("profile", "profile") not in identities:
             raise ValueError("Thay thế dữ liệu phải bao gồm hồ sơ")
+        self.records = [record for record in self.records if record.entity_type not in RETIRED_ENTITY_TYPES]
         return self
 
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { StreakWeek } from '@/shared/domain/streakWeek';
 import { streakCake } from '../lib/streakCake';
+import { BROKE_LINE } from '../lib/socMood';
 
 const COLS = ['#ff7a9c', '#ffc83d', '#7ec8ff', '#7fd18c', '#a78bfa', '#ff9a4d', '#ff7a9c'];
 const TIER = ['#ffd1dc', '#fff1c9'], TIER_LINE = ['#ff9eb8', '#ffd766'];
@@ -22,10 +23,10 @@ function BigFlame({ lit }: { lit: boolean }) {
  * Compact streak card: big count with the one next step under it, a low cake whose seven candles are this week's
  * days, then `children` (the weekly-goal line) so the right column stays short even with three habits.
  */
-export function StreakCake({ week, now, children }: { week: StreakWeek; now?: Date; children?: ReactNode }) {
+export function StreakCake({ week, now, broke, children }: { week: StreakWeek; now?: Date; broke?: boolean; children?: ReactNode }) {
   const m = streakCake(week, now);
   const n = Math.max(0, week.current);
-  const act = m.recordAbove && n === 0 ? <>🐿️ Mình nướng mẻ mới nhé!</>
+  const act = (broke || m.recordAbove) && n === 0 ? <>{BROKE_LINE}</>
     : n === 0 ? <>Xong 1 việc là <b>thắp nến đầu tiên</b></>
     : m.danger ? <>⏰ Còn <b>{m.hoursLeft} tiếng</b> để giữ chuỗi</>
     : !m.studiedToday ? <>Xong 1 việc là thắp nến hôm nay</>

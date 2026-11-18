@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 import { phoneStairsLayout } from '../../lib/phoneStairsLayout';
 import { PencilIcon } from '../goal/GoalEditor';
+import { BROKE_LINE, stairsMood, type RestMood } from '../../lib/socMood';
 
 export interface StairTest { score: number; name: string; date: string }
 export interface StairStep { value: number; reached: boolean }
@@ -26,6 +27,10 @@ interface Props {
   base: number;
   /** Tapping the trophy (with its ✎ dot) opens the goal editor. */
   onCup?: (cup: HTMLElement) => void;
+  /** Buồn nhẹ / Ngủ gật instead of the resting bounce ('hi' while a tapped Sóc is awake). */
+  rest?: RestMood | 'hi';
+  /** Tapping the dozing Sóc wakes it up. */
+  onWake?: () => void;
   /** Welcome moments: hide the whole scene (Sóc is greeting), grow the dashed bars in one by one, light the first bar green. */
   hidden?: boolean;
   grow?: boolean;
@@ -42,7 +47,7 @@ const PAL = {
 };
 
 /** Flat stairs of the phone Hôm nay scene (bars, Sóc on the current one, trophy), laid out for the height left above the task panel. */
-export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, hidden, grow, lit, added }: Props) {
+export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel, tests, gear, w, top, base, onCup, rest = null, onWake, hidden, grow, lit, added }: Props) {
   const blocks = Math.max(1, steps.length - 1);
   const layout = useMemo(() => phoneStairsLayout({ w, top, base, blocks, cur: Math.max(0, cur), done }), [w, top, base, blocks, cur, done]);
   const [tip, setTip] = useState<number | null>(null);
@@ -71,7 +76,8 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
     setFlip(f => ({ n: (f?.n ?? 0) + 1, from }));
   }, [cupText]);
 
-  const mood: SocMood = estimate ? 'idle' : done ? 'cheerD' : 'cheerC';
+  const mood: SocMood = stairsMood(estimate ? 'idle' : done ? 'cheerD' : 'cheerC', rest);
+  const sleeping = mood === 'zzz' && !!onWake;
   const { bars, soc, cup } = layout;
   const tipBar = tip !== null ? bars[tip] : null;
   const tipTop = tipBar ? Math.min(tipBar.y, tip === Math.max(0, cur) ? soc.top : tipBar.y) - 40 : 0;
@@ -124,9 +130,15 @@ export function PhoneStairs({ steps, cur, best, done, estimate, target, cupLabel
         })}
       </svg>
 
-      <span className="tp-soc" style={{ left: soc.left, top: soc.top, width: soc.width }}>
-        <Soc state={mood} size={soc.width} gear={gear} />
-      </span>
+      {sleeping
+        ? <button type="button" className="tp-soc tp-wake" style={{ left: soc.left, top: soc.top, width: soc.width }} aria-label="Sóc đang ngủ gật trên bậc, chạm để đánh thức"
+            onClick={e => { e.stopPropagation(); onWake?.(); }}><Soc state="zzz" size={soc.width} gear={gear} /></button>
+        : <span className="tp-soc" style={{ left: soc.left, top: soc.top, width: soc.width }}>
+            <Soc state={mood} size={soc.width} gear={gear} />
+          </span>}
+      {mood === 'sad' && (soc.left > w / 2
+        ? <p className="tp-say is-left" role="status" style={{ right: w - soc.left + 4, top: soc.top + soc.width * 0.18 }}>{BROKE_LINE}</p>
+        : <p className="tp-say is-right" role="status" style={{ left: soc.left + soc.width + 4, top: soc.top + soc.width * 0.18 }}>{BROKE_LINE}</p>)}
 
       {onCup
         ? <button type="button" className="tp-cup" aria-label={`Cúp mục tiêu ${target}, đổi mục tiêu`} style={{ left: cup.left - 6, top: cup.top - 6, width: cup.width + 12, height: cup.height + 12 }}

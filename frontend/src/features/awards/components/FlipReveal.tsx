@@ -1,5 +1,6 @@
 import { FAMILY_COLOR, ddmm, type Badge, type BadgeFamily } from '../lib/badges';
 import { BadgeIcon } from './BadgeIcon';
+import { Soc } from '@/shared/ui/soc/Soc';
 
 const RARITY: Record<string, string> = { b: 'Đồng', s: 'Bạc', g: 'Vàng' };
 const DEEP: Record<BadgeFamily, string> = { score: '#e0a400', streak: '#e2701a', effort: '#2f8a42', part: '#136fb3', speed: '#0b8a99', secret: '#7c5ce0' };
@@ -22,6 +23,7 @@ export function FlipReveal({ badge, remaining, flipped, onFlip, onNext }: Props)
         </div>
       </div>
       <div className="aw-flipbtns">
+        <Soc state={flipped ? 'surprised' : 'idle'} size={64} className="aw-flipsoc" />
         {remaining > 0 && <span>còn {remaining} huy hiệu nữa</span>}
         <button type="button" className="rd-btn" onClick={onNext}>{remaining > 0 ? 'Tiếp' : 'Tuyệt!'}</button>
       </div>

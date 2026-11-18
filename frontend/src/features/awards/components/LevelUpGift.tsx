@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AnimationItem } from 'lottie-web';
-import { Soc } from '@/shared/ui/soc/Soc';
+import { Soc, useSocCoat } from '@/shared/ui/soc/Soc';
 import { socMoodSvg } from '@/shared/ui/soc/socSvg';
 import { gearFragment, type GearItem, type SocGearId } from '@/shared/ui/soc/socGear';
 import { LEVELS } from '../lib/levels';
@@ -11,6 +11,8 @@ interface Props {
   item: GearItem;
   /** What Sóc wears right now (without the new item). */
   worn: SocGearId[];
+  /** Sóc's name (Tủ đồ); the line reads "Hạt Tiêu nhận khăn quàng". */
+  socName?: string;
   onWear: () => void;
   onLater: () => void;
 }
@@ -22,11 +24,13 @@ const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(pre
  * shakes, Sóc pops out and the new item drops onto Sóc. Then the static Sóc wearing it stays with Đeo luôn / Để sau.
  * lottie-web (light build) is loaded only here.
  */
-export function LevelUpGift({ level, item, worn, onWear, onLater }: Props) {
+export function LevelUpGift({ level, item, worn, socName = 'Sóc', onWear, onLater }: Props) {
   const [still] = useState(reduced);
   const [done, setDone] = useState(still);
   const host = useRef<HTMLDivElement>(null);
-  const data = useMemo(() => buildGiftAnimation(socMoodSvg('idle', worn.filter(id => id !== item.id)), gearFragment(item.id)), [worn, item.id]);
+  const coat = useSocCoat();
+  // The Lottie Sóc is converted from the real SVG at runtime, so it wears the learner's coat for free.
+  const data = useMemo(() => buildGiftAnimation(socMoodSvg('idle', worn.filter(id => id !== item.id), coat), gearFragment(item.id)), [worn, item.id, coat]);
 
   useEffect(() => {
     if (still || !host.current) return;
@@ -51,10 +55,10 @@ export function LevelUpGift({ level, item, worn, onWear, onLater }: Props) {
         <p className="awd-gift-lvl">{name}</p>
         <div className="awd-gift-stage">
           {still
-            ? <Soc state="cheerD" size={190} gear={gear} className="awd-gift-soc" />
+            ? <Soc state="proud" size={190} gear={gear} className="awd-gift-soc" />
             : <div ref={host} className="awd-gift-lottie" aria-hidden="true" />}
         </div>
-        <p className="awd-gift-say">Sóc nhận <b>{item.label.toLowerCase()}</b> {item.emoji}</p>
+        <p className="awd-gift-say">{socName} nhận <b>{item.label.toLowerCase()}</b> {item.emoji}</p>
         <div className="awd-gift-btns">
           <button type="button" className="rd-btn" disabled={!done} onClick={onWear}>Đeo luôn</button>
           <button type="button" className="rd-btn rd-btn--white" disabled={!done} onClick={onLater}>Để sau</button>

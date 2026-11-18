@@ -102,7 +102,7 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
         )}
         {revealed && (
           <div className="rv-ex">
-            <Soc state={right ? 'cheerC' : 'idle'} size={64} />
+            <Soc state={right ? 'cheerC' : 'focus'} size={64} />
             <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{why || (right ? '' : `Đáp án là (${answer || card.correctAnswer}).`)}</p>
           </div>
         )}

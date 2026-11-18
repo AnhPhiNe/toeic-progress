@@ -1,4 +1,4 @@
-import type { MistakeEntry, PacingRun, StudySession, UserProfile, WeeklyPlanRecord } from '@/shared/types';
+import type { MistakeEntry, PacingRun, StudySession, UserProfile } from '@/shared/types';
 import { normalizeMistakeRecord } from '@/shared/data/mistakeFields';
 import { normalizeTestName } from '@/shared/domain/testNames';
 
@@ -20,21 +20,23 @@ export interface ShieldDay extends SyncMeta {
   date: string;
 }
 
-export interface ChecklistItem extends SyncMeta {
-  id: string;
-  checked: boolean;
-}
-
 export interface DataBundle {
   schemaVersion: 3;
   profile: UserProfile & SyncMeta;
   sessions: Array<StudySession & SyncMeta>;
   mistakes: Array<MistakeEntry & SyncMeta>;
   pacingRuns: Array<PacingRun & SyncMeta>;
-  checklist: ChecklistItem[];
   vocabLog: VocabLog[];
   shieldDays: ShieldDay[];
-  weeklyPlans: Array<WeeklyPlanRecord & { id: string } & SyncMeta>;
+}
+
+/** Weekly plans and the exam checklist were retired: no screen, no sync. Older stored bundles still carry them. */
+type WithRetired = DataBundle & { checklist?: unknown; weeklyPlans?: unknown };
+function withoutRetired(bundle: WithRetired): DataBundle {
+  const { checklist: _checklist, weeklyPlans: _weeklyPlans, ...current } = bundle;
+  void _checklist;
+  void _weeklyPlans;
+  return current;
 }
 
 const BUNDLE_KEY = 'toeic_progress_bundle_v3';
@@ -61,19 +63,9 @@ const LEGACY_KEYS = {
   sessions: 'toeic_990_sessions_v1',
   mistakes: 'toeic_990_mistakes_v1',
   pacingRuns: 'toeic_990_pacing_v1',
+  // Retired; listed so an explicit reset still clears the old key.
   checklist: 'toeic_exam_checklist_v1'
 } as const;
-
-export const DEFAULT_CHECKLIST: Record<string, boolean> = {
-  id_original: true,
-  exam_slip: true,
-  pencils_2b: false,
-  eraser: false,
-  dress_code: false,
-  arrive_early: false,
-  sleep_well: false,
-  no_smartwatch: false
-};
 
 export function defaultProfile(): UserProfile {
   return {
@@ -99,8 +91,7 @@ export function emptyBundle(): DataBundle {
   return {
     schemaVersion: 3,
     profile: { ...defaultProfile(), updatedAt: now, deletedAt: null },
-    sessions: [], mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: [], weeklyPlans: [],
-    checklist: Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked, updatedAt: now, deletedAt: null }))
+    sessions: [], mistakes: [], pacingRuns: [], vocabLog: [], shieldDays: []
   };
 }
 
@@ -126,7 +117,6 @@ function stamp<T extends object>(record: T, fallbackTime: string): T & SyncMeta 
 
 function migrateLegacy(): DataBundle {
   const now = new Date().toISOString();
-  const legacyChecklist = readLegacy<Record<string, boolean>>(LEGACY_KEYS.checklist, DEFAULT_CHECKLIST);
   const sessions = readLegacy<StudySession[]>(LEGACY_KEYS.sessions, []);
   const mistakes = readLegacy<MistakeEntry[]>(LEGACY_KEYS.mistakes, []);
   const pacingRuns = readLegacy<PacingRun[]>(LEGACY_KEYS.pacingRuns, []);
@@ -139,20 +129,9 @@ function migrateLegacy(): DataBundle {
     sessions: Array.isArray(sessions) ? sessions.map(item => stamp(item, item.createdAt || now)) : [],
     mistakes: Array.isArray(mistakes) ? mistakes.map(item => normalizeMistakeRecord(stamp(item, item.createdAt || now))) : [],
     pacingRuns: Array.isArray(pacingRuns) ? pacingRuns.map(item => stamp(item, item.createdAt || now)) : [],
-    checklist: Object.entries({ ...DEFAULT_CHECKLIST, ...legacyChecklist }).map(([id, checked]) => ({ id, checked: Boolean(checked), updatedAt: now, deletedAt: null })),
     vocabLog: [],
-    shieldDays: [],
-    weeklyPlans: migrateWeeklyPlans(now, null)
+    shieldDays: []
   };
-}
-
-function migrateWeeklyPlans(now: string, ownerId: string | null): DataBundle['weeklyPlans'] {
-  const ownerKey = 'toeic_weekly_plans_v1_owner';
-  const owner = localStorage.getItem(ownerKey) ?? getActiveAccountId() ?? 'guest';
-  if (!localStorage.getItem(ownerKey)) localStorage.setItem(ownerKey, owner);
-  if (owner !== (ownerId ?? 'guest')) return [];
-  const plans = readLegacy<Record<string, WeeklyPlanRecord>>(OLD_PLANS_KEY, {});
-  return Object.entries(plans).map(([weekKey, plan]) => ({ ...plan, weekKey, id: weekKey, updatedAt: now, deletedAt: null }));
 }
 
 export function getActiveAccountId(): string | null {
@@ -191,7 +170,8 @@ export function readAccountBundle(userId: string): DataBundle | null {
 function migrateV2(raw: string, ownerId: string | null): DataBundle {
   const parsed = JSON.parse(raw);
   if (parsed.schemaVersion !== 2) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
-  return { ...parsed, schemaVersion: 3, mistakes: parsed.mistakes.map(normalizeMistakeRecord), weeklyPlans: migrateWeeklyPlans(new Date().toISOString(), ownerId) };
+  void ownerId;
+  return withoutRetired({ ...parsed, schemaVersion: 3, mistakes: parsed.mistakes.map(normalizeMistakeRecord) });
 }
 
 export function writeAccountBundle(userId: string, bundle: DataBundle): void {
@@ -199,9 +179,9 @@ export function writeAccountBundle(userId: string, bundle: DataBundle): void {
 }
 
 function parseStoredBundle(raw: string): DataBundle {
-  const parsed = JSON.parse(raw) as DataBundle;
-  if (parsed.schemaVersion !== 3 || !Array.isArray(parsed.weeklyPlans)) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
-  return { ...parsed, mistakes: parsed.mistakes.map(normalizeMistakeRecord) };
+  const parsed = JSON.parse(raw) as WithRetired;
+  if (parsed.schemaVersion !== 3) throw new Error('Phiên bản dữ liệu trên máy không được hỗ trợ.');
+  return withoutRetired({ ...parsed, mistakes: parsed.mistakes.map(normalizeMistakeRecord) });
 }
 
 /** One localStorage write is the commit point. Retired keys are cleared only by explicit reset. */
@@ -264,7 +244,7 @@ export function retainedSessionSources(current: DataBundle, removed: ReadonlySet
 /** Deleted records only need identity/version to prevent stale devices reviving them. */
 export function compactDeletedRecords(bundle: DataBundle): DataBundle {
   const next = { ...bundle };
-  for (const key of ['sessions','mistakes','pacingRuns','weeklyPlans','checklist','vocabLog','shieldDays'] as const) {
+  for (const key of ['sessions','mistakes','pacingRuns','vocabLog','shieldDays'] as const) {
     (next as unknown as Record<string, unknown[]>)[key] = bundle[key].map(record => record.deletedAt
       ? { id: record.id, updatedAt: record.updatedAt, deletedAt: record.deletedAt } : record);
   }

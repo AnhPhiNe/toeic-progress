@@ -5,7 +5,7 @@ import { openSettings } from './helpers/accountGroup';
 test('sample data is offered only on an empty guest device', async ({ page }) => {
   await page.goto('/');
   const modal = await openSettings(page);
-  await expect(modal.getByRole('button', { name: 'Nạp dữ liệu mẫu', exact: true })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Dữ liệu mẫu', exact: true })).toBeVisible();
 });
 
 test('sample data cannot replace a learner record that already exists', async ({ page }) => {
@@ -22,7 +22,7 @@ test('sample data cannot replace a learner record that already exists', async ({
   });
   await page.reload();
   const modal = await openSettings(page);
-  await expect(modal.getByRole('button', { name: 'Nạp dữ liệu mẫu', exact: true })).toHaveCount(0);
+  await expect(modal.getByRole('button', { name: 'Dữ liệu mẫu', exact: true })).toHaveCount(0);
   const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions
     .filter((session: { deletedAt: string | null }) => !session.deletedAt).map((session: { id: string }) => session.id));
   expect(kept).toEqual(['own-test']);

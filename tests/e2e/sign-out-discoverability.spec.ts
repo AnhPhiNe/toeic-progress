@@ -25,7 +25,11 @@ for (const width of [375, 1280]) {
     await button.scrollIntoViewIfNeeded();
     await expect(button).toBeInViewport();
     const reset = dialog.getByRole('button', { name: 'Xóa toàn bộ dữ liệu', exact: true });
-    expect(await reset.evaluate((element, label) => Boolean(element.compareDocumentPosition([...element.closest('[role="dialog"]')!.querySelectorAll('button')].find(button => button.textContent?.trim() === label)!) & Node.DOCUMENT_POSITION_FOLLOWING), 'Đăng xuất')).toBe(true);
+    await expect(reset).toHaveCount(1);
+    // Computers: Đăng xuất sits in the warm header beside the name and email, above the tiles and the data row.
+    if (width >= 768) await expect(dialog.locator('header').getByRole('button', { name: 'Đăng xuất', exact: true })).toHaveCount(1);
+    // Phones: it follows the data rows in the one scrolling list.
+    else expect(await reset.evaluate((element, label) => Boolean(element.compareDocumentPosition([...element.closest('[role="dialog"]')!.querySelectorAll('button')].find(button => button.textContent?.trim() === label)!) & Node.DOCUMENT_POSITION_FOLLOWING), 'Đăng xuất')).toBe(true);
     expect(await dialog.getByRole('dialog', { name: 'Tài khoản', exact: true }).count()).toBe(0);
     await page.screenshot({ path: testInfo.outputPath(`sign-out-${width}.png`), fullPage: true });
     await button.click();

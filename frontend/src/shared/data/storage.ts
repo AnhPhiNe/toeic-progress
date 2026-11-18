@@ -1,8 +1,8 @@
 import confetti from 'canvas-confetti';
-import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun, WeeklyPlanRecord } from '@/shared/types';
+import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '@/shared/types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '@/shared/data/demoData';
-import { DEFAULT_CHECKLIST, canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, retainedSessionSources, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
-import { parseBackup, type BackupPreview } from '@/shared/data/backup';
+import { canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, retainedSessionSources, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
+import { BACKUP_VERSION, parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { actualStudyDates, deriveStreak } from '@/shared/domain/streak';
 import { testNameKey } from '@/shared/domain/testNames';
 
@@ -193,25 +193,6 @@ export function deletePacingRun(id: string): PacingRun[] {
   return live(next.pacingRuns);
 }
 
-export function loadChecklist(): Record<string, boolean> {
-  const values = { ...DEFAULT_CHECKLIST };
-  for (const item of live(readDataBundle().checklist)) values[item.id] = item.checked;
-  return values;
-}
-
-export function saveChecklist(values: Record<string, boolean>): void {
-  updateDataBundle(current => {
-    const before = new Map(current.checklist.map(item => [item.id, item]));
-    const checklist = Object.entries(values).map(([id, checked]) => {
-      const old = before.get(id);
-      return old && old.checked === checked && !old.deletedAt
-        ? old
-        : { id, checked, updatedAt: nextUpdatedAt(old?.updatedAt), deletedAt: null };
-    });
-    return { ...current, checklist };
-  });
-}
-
 export function loadVocabLog(): VocabLog[] {
   return live(readDataBundle().vocabLog);
 }
@@ -309,17 +290,15 @@ export function restoreBackup(preview: BackupPreview): void {
   next.sessions = restoreCollection(current.sessions, restored.sessions);
   next.mistakes = restoreCollection(current.mistakes, restored.mistakes);
   next.pacingRuns = restoreCollection(current.pacingRuns, restored.pacingRuns);
-  next.checklist = restoreCollection(current.checklist, restored.checklist);
   next.vocabLog = restoreCollection(current.vocabLog, restored.vocabLog);
   next.shieldDays = restoreCollection(current.shieldDays, restored.shieldDays);
-  next.weeklyPlans = restoreCollection(current.weeklyPlans, restored.weeklyPlans);
   writeDataBundle(next);
 }
 
 export function createBackupSnapshot() {
   const bundle = readDataBundle();
   return { ...bundle, sessions: live(bundle.sessions), mistakes: live(bundle.mistakes), pacingRuns: live(bundle.pacingRuns),
-    weeklyPlans: live(bundle.weeklyPlans), checklist: live(bundle.checklist), vocabLog: live(bundle.vocabLog), shieldDays: live(bundle.shieldDays),
+    vocabLog: live(bundle.vocabLog), shieldDays: live(bundle.shieldDays), schemaVersion: BACKUP_VERSION,
     exportDate: new Date().toISOString() };
 }
 
@@ -353,10 +332,8 @@ export function resetToCleanSlate(): { profile: UserProfile; sessions: StudySess
     sessions: replaceCollection(current.sessions, []),
     mistakes: replaceCollection(current.mistakes, []),
     pacingRuns: replaceCollection(current.pacingRuns, []),
-    weeklyPlans: replaceCollection(current.weeklyPlans, []),
     vocabLog: current.vocabLog.map(item => { const updatedAt = nextUpdatedAt(item.updatedAt); return { ...item, updatedAt, deletedAt: updatedAt }; }),
-    shieldDays: current.shieldDays.map(item => { const updatedAt = nextUpdatedAt(item.updatedAt); return { ...item, updatedAt, deletedAt: updatedAt }; }),
-    checklist: replaceCollection(current.checklist, Object.entries(DEFAULT_CHECKLIST).map(([id, checked]) => ({ id, checked })))
+    shieldDays: current.shieldDays.map(item => { const updatedAt = nextUpdatedAt(item.updatedAt); return { ...item, updatedAt, deletedAt: updatedAt }; })
   }));
   clearRetiredCopies(null);
 
@@ -485,56 +462,6 @@ export function addDays(dateStr: string, days: number): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const dayStr = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${dayStr}`;
-}
-
-export function loadWeeklyPlans(): Record<string, WeeklyPlanRecord> {
-  if (typeof localStorage === 'undefined') return {};
-  return Object.fromEntries(live(readDataBundle().weeklyPlans).map(plan => [plan.weekKey, plan]));
-}
-
-export function saveWeeklyPlans(plans: Record<string, WeeklyPlanRecord>): void {
-  if (typeof localStorage === 'undefined') return;
-  updateDataBundle(current => ({ ...current, weeklyPlans: replaceCollection(current.weeklyPlans,
-    Object.entries(plans).map(([weekKey, plan]) => ({ ...plan, weekKey, id: weekKey }))) }));
-}
-
-export function getOrCreateWeeklyPlan(weekKey: string, profile?: UserProfile, persist = true): WeeklyPlanRecord {
-  const plans = loadWeeklyPlans();
-  if (plans[weekKey]) {
-    return plans[weekKey];
-  }
-
-  const defaultWeeklyMinutes = ((profile?.dailyMinGoalMinutes || 30) * 7);
-  const defaultPlan: WeeklyPlanRecord = {
-    weekKey,
-    tasks: [
-      {
-        id: `task-ft-${weekKey}`,
-        title: 'Làm 1 đề Full Test (200 câu)',
-        type: 'AUTO_FULL_TEST',
-        target: 1,
-        unit: 'đề',
-        notes: 'Giữ phản xạ và cảm giác làm bài thi thực tế',
-        color: 'blue',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: `task-min-${weekKey}`,
-        title: `Học ${defaultWeeklyMinutes} phút tuần này`,
-        type: 'AUTO_STUDY_TIME',
-        target: defaultWeeklyMinutes,
-        unit: 'phút',
-        notes: `Tương đương ~${profile?.dailyMinGoalMinutes || 30} phút mỗi ngày`,
-        color: 'indigo',
-        createdAt: new Date().toISOString()
-      }
-    ]
-  };
-
-  plans[weekKey] = defaultPlan;
-  // Computing a summary must remain possible when the account is disconnected.
-  if (persist && (!getActiveAccountId() || canWriteAccount())) saveWeeklyPlans(plans);
-  return defaultPlan;
 }
 
 

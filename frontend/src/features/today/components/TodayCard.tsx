@@ -7,6 +7,7 @@ import { StreakCake } from './StreakCake';
 import { AddHabitPanel } from './AddHabitPanel';
 import { todayKicker, type TodayTask } from '../lib/todayTasks';
 import { habitDoneToday } from '../lib/habits';
+import type { RestMood } from '../lib/socMood';
 
 interface Props {
   tasks: TodayTask[];
@@ -26,6 +27,10 @@ interface Props {
   onSetWeeklyGoal: (days: number) => void;
   /** Accessories Sóc wears (Thành tích → Tủ đồ). */
   gear?: readonly string[];
+  /** Buồn nhẹ (streak broke) or Ngủ gật (long break); 'hi' while a tapped Sóc is awake. */
+  rest?: RestMood | 'hi';
+  /** Tapping the dozing Sóc wakes it up. */
+  onWake?: () => void;
   /** One-off tasks added from Sóc's advice on a test. */
   suggestions?: SuggestionView[];
   onStartSuggestion?: (task: SuggestedTask) => void;
@@ -59,7 +64,7 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest, gear, suggestions = [], onStartSuggestion, onToggleSuggestion }: Props) {
+export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest, gear, rest = null, onWake, suggestions = [], onStartSuggestion, onToggleSuggestion }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
   const hero = open.length ? open[skip % open.length] : null;
@@ -110,7 +115,9 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
           <p>Muốn thì bấm giờ một Part.</p>
           <div className="td-acts"><button type="button" className="td-go" onClick={onPracticeMore}>Luyện tập</button></div>
         </>}
-        <Soc state={allDone || firstCheer ? 'cheerB' : 'idle'} size={96} className="td-hero-soc" gear={gear} />
+        {rest === 'zzz' && onWake
+          ? <button type="button" className="td-hero-soc td-wake" onClick={onWake} aria-label="Sóc đang ngủ gật, chạm để đánh thức"><Soc state="zzz" size={96} gear={gear} /></button>
+          : <Soc state={allDone || firstCheer ? 'cheerB' : rest ?? 'idle'} size={96} className="td-hero-soc" gear={gear} />}
       </div>
 
       <div className="td-body">
@@ -154,7 +161,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
       </div>
     </section>
 
-    <StreakCake week={week}>
+    <StreakCake week={week} broke={rest === 'sad'}>
         <div className="td-wk">
           <span>{goal.done >= goal.goal ? <>Đủ mục tiêu tuần 🎉</> : <>Mục tiêu tuần: <b>{goal.done}/{goal.goal}</b> buổi học</>}</span>
           <div className="td-bar is-green"><i style={{ width: `${Math.min(100, goal.done / goal.goal * 100)}%` }} /></div>
