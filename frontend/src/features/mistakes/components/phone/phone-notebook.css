@@ -254,7 +254,10 @@
 .pc-foot.is-row .pc-send { flex: 1; }
 .pc-side.is-light { color: var(--rd-ink); background: #fff; border-radius: 16px; box-shadow: 0 0 0 2px #ece8ea, 0 3px 0 #ece8ea; }
 .pc.is-light .pc-send:disabled { background: #e6e3de; color: #9aa39d; }
-.pc-all { align-self: center; min-height: 40px; border: 0; background: none; color: #1c6fc0; font-weight: 900; font-size: 13.5px; cursor: pointer; }
+.pc-all { align-self: center; min-height: 36px; border: 0; background: none; color: #1c6fc0; font-weight: 900; font-size: 13px; cursor: pointer; padding: 0 4px; }
+.pc-all.is-danger { color: #c23c63; }
+.pc-all.is-dark { color: #d5dbd7; }
+.pc-foot-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
 .pc-read { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; padding: 0 24px; }
 .pc-read h3 { font-weight: 900; font-size: 20px; }
 .pc-read p { font-weight: 800; font-size: 13.5px; color: #c9cfcb; }

@@ -116,6 +116,24 @@
 .cap-row.is-right .cap-row-acts > .cap-link:hover { color: #2f3a33; }
 .cap-del { width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: #9aa39d; font-size: 18px; font-weight: 800; line-height: 1; display: grid; place-items: center; cursor: pointer; padding: 0; }
 .cap-del:hover { background: #ffe8ee; color: #c23c63; }
+.cap-qbtn { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%; border: 0; background: none; padding: 0; margin-top: 3px; text-align: left; cursor: pointer; font-weight: 700; font-size: 13px; color: #5e6962; }
+.cap-qbtn:hover { color: var(--rd-ink); }
+.cap-qbtn span { min-width: 0; overflow-wrap: anywhere; }
+.cap-qbtn em { flex: none; font-style: normal; font-weight: 900; font-size: 11.5px; color: #8c9690; white-space: nowrap; }
+.cap-qbtn:hover em { color: var(--rd-pink-d); }
+.cap-prev { margin-top: 10px; padding-top: 10px; border-top: 1.5px solid #f0ecee; display: flex; flex-direction: column; gap: 8px; }
+.cap-prev-psg-btn { border: 0; background: none; padding: 0; text-align: left; font-weight: 800; font-size: 12.5px; color: #6a756e; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cap-prev-psg-btn:hover { color: var(--rd-ink); }
+.cap-prev-psg { margin-top: 5px; max-height: 200px; overflow-y: auto; white-space: pre-line; border-radius: 12px; background: #faf8f9; padding: 8px 12px; font-size: 12.5px; line-height: 1.5; color: #4f5a53; }
+.cap-prev-q { white-space: pre-line; font-weight: 800; font-size: 13.5px; color: var(--rd-ink); line-height: 1.45; }
+.cap-prev-opts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: #5e6962; }
+.cap-prev-opts li { display: flex; align-items: center; gap: 8px; }
+.cap-prev-opts li span { flex: 1; min-width: 0; }
+.cap-prev-opts li.is-ok { color: #247335; font-weight: 900; }
+.cap-prev-opts li.is-me { color: #d64570; font-weight: 900; }
+.cap-prev-opts em { font-style: normal; flex: none; border-radius: 99px; padding: 1px 7px; font-weight: 900; font-size: 11px; background: #fff3c4; color: #6b4a00; }
+.cap-prev-opts em.is-ok { background: #e4f5e7; color: #247335; }
+.cap-foot-acts { display: flex; align-items: center; gap: 10px; flex: none; }
 
 .cap-edit { margin-top: 12px; padding-top: 12px; border-top: 2px solid #f3eef0; display: flex; flex-direction: column; gap: 10px; }
 .cap-edit label { font-weight: 900; font-size: 13px; color: #5e6962; display: block; }

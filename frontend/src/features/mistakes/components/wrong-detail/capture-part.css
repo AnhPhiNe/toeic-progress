@@ -10,9 +10,16 @@
 .cpi-part b { display: block; font-weight: 900; font-size: 22px; }
 .cpi-part span { display: block; font-weight: 800; font-size: 13.5px; color: #5e6962; margin-top: 2px; }
 .cpi-part em { display: inline-block; margin-top: 8px; font-style: normal; font-weight: 900; font-size: 12px; color: var(--pd); background: #fff; border-radius: 99px; padding: 2px 9px; }
-.cpi-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 10px; font-weight: 900; font-size: 16px; }
+.cpi-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; font-weight: 900; font-size: 16px; }
 .cpi-head small { font-weight: 800; font-size: 12.5px; color: var(--mut); }
-.cpi-head button { margin-left: auto; border: 0; background: none; font-weight: 900; font-size: 13.5px; color: var(--pd); }
+.cpi-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cpi-sw-btn { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 11px; padding: 5px 10px; font-weight: 900; font-size: 13px; background: #f5f3f4; color: #5e6962; box-shadow: inset 0 0 0 1.5px #e8e3e5; transition: background .12s, color .12s, box-shadow .12s; }
+.cpi-sw-btn:hover:not(:disabled) { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 1.5px #d4cbd0; }
+.cpi-sw-btn.is-read[aria-pressed='true'] { background: var(--pl); color: var(--pd); box-shadow: inset 0 0 0 2px var(--pk); }
+.cpi-sw-btn.is-listen { background: #f8f6ff; color: #675899; box-shadow: inset 0 0 0 1.5px #e6dfff; }
+.cpi-sw-btn.is-listen[aria-pressed='true'] { background: #efe9ff; color: #5b3cc4; box-shadow: inset 0 0 0 2px #8e6ff7; }
+.cpi-sw-btn em { font-style: normal; font-size: 11px; border-radius: 99px; padding: 0 5px; background: rgba(255,255,255,.85); color: inherit; }
+.cpi-sw-sep { width: 1.5px; height: 18px; background: #e8e3e5; margin: 0 2px; border-radius: 2px; }
 .cpi-groups { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
 .cpi-groups button { border: 0; border-radius: 12px; background: #fff; box-shadow: 0 0 0 2px #f1eef0; padding: 6px 11px; font-weight: 900; font-size: 13px; color: var(--ink); text-align: left; }
 .cpi-groups button small { display: block; font-weight: 800; font-size: 11px; color: var(--mut); }

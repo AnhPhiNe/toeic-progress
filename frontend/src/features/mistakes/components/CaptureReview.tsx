@@ -5,6 +5,8 @@ import { CHOICE_LETTERS, parsePastedQuestion, type ChoiceLetter } from '@/featur
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { questionPreview, rowStatus, rowUnsureReason, openDraftDoubt, whyLine, isUnreadable, isRightAnswer, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
 import { withLetters } from '@/features/mistakes/lib/multiQuestion';
+import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
+import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import type { AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
 
 type ItemPatch = Partial<Pick<CaptureItem, 'draft' | 'category' | 'checked'>>;
@@ -21,6 +23,7 @@ interface ListProps {
 /** The review rows shared by a screenshot capture and a paste of several questions. */
 export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: ListProps) {
   const [editing, setEditing] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
   return (
     <ul className="cap-rows" aria-label="Các câu sai Sóc đã tìm thấy">
       {items.map(item => {
@@ -33,6 +36,8 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: 
         const answer = optionLetter(item.draft.correctAnswer) || '?';
         const why = whyLine(item.draft);
         const open = editing === item.id;
+        const previewOpen = expanded === item.id && !open;
+        const hasDetail = item.draft.options.length > 0 || Boolean(item.draft.context?.trim()) || Boolean(item.draft.explanation?.quickTip?.trim());
         return (
           <li key={item.id} className={'cap-row' + (isRight ? ' is-right' : status === 'unsure' ? ' is-unsure' : '') + (!isRight && !item.checked ? ' is-off' : '')}>
             <button type="button" role="checkbox" aria-checked={item.checked} className="cap-ck" aria-label={`Lưu câu ${item.number}`} onClick={() => onToggle(item.id)}>
@@ -40,7 +45,15 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: 
             </button>
             <div className="cap-row-body">
               <b>Part {item.part} · câu {item.number}</b>
-              <p>{questionPreview(item.draft)}</p>
+              {hasDetail ? (
+                <button type="button" className="cap-qbtn" aria-expanded={previewOpen}
+                  onClick={() => { if (open) setEditing(null); setExpanded(previewOpen ? null : item.id); }}>
+                  <span>{questionPreview(item.draft)}</span>
+                  <em>{previewOpen ? 'Thu gọn ▴' : 'Chi tiết ▾'}</em>
+                </button>
+              ) : (
+                <p>{questionPreview(item.draft)}</p>
+              )}
               <div className="cap-chips">
                 {isRight ? (
                   <>
@@ -71,17 +84,65 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: 
                   <button type="button" onClick={() => onPatch(item.id, { draft: { ...item.draft, answerDoubt: '' } })}>Giữ {answer}</button>
                 </div>
               )}
-              {why && <p className="cap-why"><b>{isRight ? 'Giải thích:' : 'Sai vì:'}</b> {why}</p>}
+              {why && !previewOpen && <p className="cap-why"><b>{isRight ? 'Giải thích:' : 'Sai vì:'}</b> {why}</p>}
+              {previewOpen && <RowPreview item={item} answer={answer === '?' ? '' : answer} doubt={doubt} />}
               {open && <RowEditor item={item} onClose={() => setEditing(null)} onPatch={patch => onPatch(item.id, patch)} onRemove={() => { setEditing(null); onRemove(item.id); }} />}
             </div>
             <div className="cap-row-acts">
-              <button type="button" className="cap-link" aria-expanded={open} aria-label={`Sửa câu ${item.number}`} onClick={() => setEditing(open ? null : item.id)}>{open ? 'Đóng' : 'Sửa'}</button>
-              <button type="button" className="cap-del" aria-label={`Xóa câu ${item.number}`} title="Bỏ câu này" onClick={() => { if (open) setEditing(null); onRemove(item.id); }}>×</button>
+              <button type="button" className="cap-link" aria-expanded={open} aria-label={`Sửa câu ${item.number}`} onClick={() => { setExpanded(null); setEditing(open ? null : item.id); }}>{open ? 'Đóng' : 'Sửa'}</button>
+              <button type="button" className="cap-del" aria-label={`Xóa câu ${item.number}`} title="Bỏ câu này" onClick={() => { if (open) setEditing(null); if (previewOpen) setExpanded(null); onRemove(item.id); }}>×</button>
             </div>
           </li>
         );
       })}
     </ul>
+  );
+}
+
+function RowPreview({ item, answer, doubt }: { item: CaptureItem; answer: string; doubt: ChoiceLetter | '' }) {
+  const [showPassage, setShowPassage] = useState(false);
+  const { draft } = item;
+  const chosen = draft.userChoiceState === 'BLANK' ? '' : (draft.userChoice || '');
+  const fullQ = (draft.question ?? '').trim();
+  return (
+    <div className="cap-prev">
+      {draft.context?.trim() && (
+        <div>
+          <button type="button" className="cap-prev-psg-btn" aria-expanded={showPassage} onClick={() => setShowPassage(v => !v)}>
+            {showPassage ? '▾' : '▸'} {item.part <= 4 ? 'Transcript' : 'Đoạn văn'}: {draft.context.trim().split('\n')[0]}
+          </button>
+          {showPassage && <p className="cap-prev-psg">{draft.context}</p>}
+        </div>
+      )}
+      {fullQ.length > 90 && <p className="cap-prev-q">{fullQ}</p>}
+      {draft.options.length > 0 && (
+        <ul className="cap-prev-opts">
+          {draft.options.map(option => {
+            const letter = optionLetter(option);
+            const cls = letter === answer ? 'is-ok' : letter === chosen ? 'is-me' : '';
+            return (
+              <li key={option} className={cls}>
+                <span>{option}</span>
+                {doubt && letter === doubt && <em>Sóc chọn</em>}
+                {doubt && letter === answer && <em className="is-ok">Trên ảnh</em>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {draft.explanation?.quickTip?.trim() && (
+        <ExplanationView
+          explanation={draft.explanation}
+          trapTip={draft.trapTip}
+          optionMeanings={resolveQuizOptions({
+            questionContext: draft.questionContext,
+            correctAnswer: draft.correctAnswer,
+            options: draft.options,
+            optionNotes: draft.optionNotes
+          }).options}
+        />
+      )}
+    </div>
   );
 }
 

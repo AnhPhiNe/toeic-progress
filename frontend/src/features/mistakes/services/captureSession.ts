@@ -136,16 +136,52 @@ export function closeCapture() { viewing = false; }
 export const isReading = () => state.phase === 'reading';
 
 export function setTestName(testName: string) { set({ testName }); }
-/** Choosing (or changing) the Part starts its screenshots afresh. */
+/** Choosing or switching the Part keeps staged photos intact so accidental mis-picks never lose uploads. */
 export function setPart(part: CapturePart | null) {
   if (part === state.part) return;
-  release(state.images);
-  set({ part, group: null, images: [], overflow: false, error: '', note: '' });
+  if (part === null) {
+    release(state.images);
+    set({ part: null, group: null, images: [], overflow: false, error: '', note: '' });
+    return;
+  }
+  const normalizedImages = isGroupedPart(part)
+    ? state.images
+    : state.images.map(image => image.zone === 'questions' ? image : { ...image, zone: 'questions' as const });
+  set({ part, group: null, images: normalizedImages, overflow: false, error: '', note: '' });
 }
 export function setGroup(group: number | null) {
   if (group === state.group) return;
-  release(state.images);
-  set({ group, images: [], overflow: false, error: '', note: '' });
+  set({ group, overflow: false, error: '', note: '' });
+}
+
+export function moveImage(id: string, delta: -1 | 1) {
+  checkOwner();
+  const index = state.images.findIndex(image => image.id === id);
+  const target = index + delta;
+  if (index < 0 || target < 0 || target >= state.images.length) return;
+  const next = [...state.images];
+  const [moved] = next.splice(index, 1);
+  next.splice(target, 0, moved);
+  set({ images: next });
+}
+
+/** Cancel an in-flight reading and return to Step 1 with staged images intact. */
+export function cancelReading() {
+  if (state.phase !== 'reading') return;
+  epoch += 1;
+  solvingCount = 0;
+  set({
+    phase: 'input',
+    items: [],
+    failures: [],
+    rejectionReasons: [],
+    error: '',
+    note: '',
+    solving: false,
+    requestsTotal: 0,
+    requestsDone: 0,
+    images: state.images.map(image => ({ ...image, status: 'waiting' as const }))
+  });
 }
 
 export function setPhotoMode(photoMode: boolean) { set({ photoMode }); }

@@ -85,8 +85,8 @@ function Letters({ label, part, value, tone, allowBlank = false, onPick }: { lab
   );
 }
 
-/** A drop zone with thumbnails; supports optional local PhotoReview editing and mobile camera capture. */
-export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, clarity, onAdd, onCameraAdd, onEdit, onRemove, onActivate }: {
+/** A drop zone with thumbnails; clicking the empty tray opens the picker, and multiple photos can be reordered. */
+export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, clarity, onAdd, onCameraAdd, onEdit, onMove, onRemove, onActivate }: {
   zone: Zone; num?: number; title: string; note?: string; hint?: ReactNode; items: readonly { id: string; url: string }[]; phone: boolean; big?: boolean; disabled: boolean;
   /** Phones: a camera tile next to the gallery one. */
   camera?: boolean;
@@ -94,6 +94,7 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
   onAdd: (files: File[], zone: Zone) => void;
   onCameraAdd?: (files: File[], zone: Zone) => void;
   onEdit?: (zone: Zone, id: string) => void;
+  onMove?: (zone: Zone, id: string, delta: -1 | 1) => void;
   onRemove: (zone: Zone, id: string) => void;
   onActivate: (zone: Zone) => void;
 }) {
@@ -101,7 +102,8 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
   const shoot = useRef<HTMLInputElement>(null);
   const label = zone === 'passage' ? 'Ảnh đoạn văn' : 'Ảnh câu hỏi';
   return (
-    <div className={'wd-zn' + (big ? ' is-big' : '')} onClick={() => onActivate(zone)}
+    <div className={'wd-zn' + (big ? ' is-big' : '') + (disabled ? '' : ' is-click')}
+      onClick={() => { onActivate(zone); if (!disabled) input.current?.click(); }}
       onDragOver={event => { if (!disabled) { event.preventDefault(); event.stopPropagation(); } }}
       onDrop={event => { event.preventDefault(); event.stopPropagation(); onAdd([...event.dataTransfer.files], zone); }}>
       <h5>{num && <em>{num}</em>}{title}{note && <small>{note}</small>}</h5>
@@ -109,15 +111,27 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
         {items.map((item, index) => {
           const problem = clarity?.[item.id]?.problem;
           return (
-            <span key={item.id} className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')}>
-              <img src={item.url} alt={`${label} ${index + 1}`}
+            <span key={item.id} className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')} onClick={event => event.stopPropagation()}>
+              <img src={item.url} alt={`${label} ${index + 1}`} title="Bấm để xem to, xoay hoặc cắt ảnh"
                 onClick={event => { if (!disabled && onEdit) { event.stopPropagation(); onEdit(zone, item.id); } }} />
               {problem && <span className="wd-pg-warn" title={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'} aria-label={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'}>!</span>}
+              {onMove && items.length > 1 && (
+                <span className="wd-pg-ord">
+                  {index > 0 && (
+                    <button type="button" className="wd-pg-mv" aria-label={`Đưa ${label.toLowerCase()} ${index + 1} lên trước`} title="Đưa lên trước" disabled={disabled}
+                      onClick={event => { event.stopPropagation(); onMove(zone, item.id, -1); }}>‹</button>
+                  )}
+                  {index < items.length - 1 && (
+                    <button type="button" className="wd-pg-mv" aria-label={`Đưa ${label.toLowerCase()} ${index + 1} ra sau`} title="Đưa ra sau" disabled={disabled}
+                      onClick={event => { event.stopPropagation(); onMove(zone, item.id, 1); }}>›</button>
+                  )}
+                </span>
+              )}
               {onEdit && (
-                <button type="button" className="wd-pg-edit" aria-label={`Chỉnh ${label.toLowerCase()} ${index + 1}`} disabled={disabled}
+                <button type="button" className="wd-pg-edit" aria-label={`Chỉnh ${label.toLowerCase()} ${index + 1}`} title="Xoay hoặc cắt ảnh" disabled={disabled}
                   onClick={event => { event.stopPropagation(); onEdit(zone, item.id); }}>✎</button>
               )}
-              <button type="button" aria-label={`Bỏ ${label.toLowerCase()} ${index + 1}`} disabled={disabled}
+              <button type="button" aria-label={`Bỏ ${label.toLowerCase()} ${index + 1}`} title="Xóa ảnh" disabled={disabled}
                 onClick={event => { event.stopPropagation(); onRemove(zone, item.id); }}>×</button>
             </span>
           );
@@ -126,9 +140,11 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
         <button type="button" className="wd-pg is-add" aria-label={`Thêm ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); input.current?.click(); }}>+</button>
       </div>
       {camera && <input ref={shoot} type="file" accept="image/*" capture="environment" hidden aria-label={`Chụp ${label.toLowerCase()}`}
+        onClick={event => event.stopPropagation()}
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; (onCameraAdd ?? onAdd)(files, zone); }} />}
       {hint && <p className="wd-zp">{hint}</p>}
       <input ref={input} type="file" accept="image/*" multiple hidden aria-label={label}
+        onClick={event => event.stopPropagation()}
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAdd(files, zone); }} />
     </div>
   );
@@ -233,7 +249,7 @@ function RangeEditor({ group, onSave, onCancel }: { group: PassageGroup; onSave:
 }
 
 export function PartView({ phone, testName, total, doneCount, onClose, part, cards, recorded, forms, groupFrom, setGroupFrom, customPart7Ranges, onEditPart7Range,
-  zones, setActiveZone, onAddFiles, onCameraAdd, onEditPhoto, onRemove, clarity, photoMode, setPhotoMode, listeningPhoto, setListeningPhoto,
+  zones, setActiveZone, onAddFiles, onCameraAdd, onEditPhoto, onMovePhoto, onRemove, clarity, photoMode, setPhotoMode, listeningPhoto, setListeningPhoto,
   jobs, now, onRetry, onOpenJob, error, note, draftState, canRead, onSend, onSendNext, onBack, onManual, onUpdate, onSaveReasons, saveCount, onShowDrafts }: Common & {
   part: PartNumber; cards: MistakeEntry[]; recorded: (card: MistakeEntry) => boolean; forms: Record<string, CardForm>; dirty: Set<string>;
   groupFrom: number | null; setGroupFrom: (from: number) => void;
@@ -242,6 +258,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
   onAddFiles: (files: File[], zone?: Zone) => void;
   onCameraAdd: (files: File[], zone?: Zone) => void;
   onEditPhoto: (zone: Zone, id: string) => void;
+  onMovePhoto?: (zone: Zone, id: string, delta: -1 | 1) => void;
   onRemove: (zone: Zone, id: string) => void;
   clarity: Record<string, ClarityResult | null>;
   photoMode: boolean; setPhotoMode: (value: boolean) => void;
@@ -293,7 +310,8 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
   );
   const paperToggle = (
     <button type="button" className="wd-paper-pill" aria-pressed={photoMode} onClick={() => setPhotoMode(!photoMode)}>
-      📄 Ảnh chụp giấy{photoMode ? ': Bật' : ''}
+      <span className="wd-sw" aria-hidden="true"><i /></span>
+      <span>Ảnh chụp giấy</span>
     </button>
   );
   const status = (
@@ -354,7 +372,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     );
   }
 
-  const zoneProps = { phone, disabled: busy, camera: phone, clarity, onAdd: onAddFiles, onCameraAdd, onEdit: onEditPhoto, onRemove, onActivate: setActiveZone };
+  const zoneProps = { phone, disabled: busy, camera: phone, clarity, onAdd: onAddFiles, onCameraAdd, onEdit: onEditPhoto, onMove: onMovePhoto, onRemove, onActivate: setActiveZone };
   const noImages = !canRead && <p className="wd-note">Phiên bản này chưa đọc được ảnh. Ghi tay từng câu: chạm số câu bên dưới.</p>;
   const backToReasonBar = mode === 'reason' && (
     <div className="wd-lead-row">

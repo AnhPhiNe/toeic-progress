@@ -455,11 +455,14 @@ export function ResultImageButton({
             disabled={busy}
             aria-pressed={photoMode}
             onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
-            className={'cursor-pointer rounded-lg px-2.5 py-1 text-[11.5px] font-bold transition-colors ' + (photoMode
-              ? 'bg-pink-100 text-pink-800 ring-1 ring-pink-400 dark:bg-pink-950/60 dark:text-pink-200'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300')}
+            className={'inline-flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-[12px] font-extrabold transition-colors ' + (photoMode
+              ? 'border-pink-400 bg-pink-50 text-pink-800 dark:border-pink-500/70 dark:bg-pink-950/60 dark:text-pink-200'
+              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200')}
           >
-            📄 Phiếu tô giấy{photoMode ? ': Bật' : ''}
+            <span aria-hidden="true" className={'relative inline-block h-4 w-7 rounded-full transition-colors ' + (photoMode ? 'bg-pink-500' : 'bg-slate-300 dark:bg-slate-600')}>
+              <span className={'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ' + (photoMode ? 'translate-x-3' : '')} />
+            </span>
+            <span>Phiếu tô giấy</span>
           </button>
           {clarityWarn && (
             <button

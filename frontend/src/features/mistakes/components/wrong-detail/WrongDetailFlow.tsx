@@ -289,6 +289,17 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     current[actualZone].filter(item => item.id === id).forEach(item => URL.revokeObjectURL(item.url));
     return { ...current, [actualZone]: current[actualZone].filter(item => item.id !== id) };
   });
+  const moveStaged = (zone: Zone, id: string, delta: -1 | 1) => setZones(current => {
+    const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
+    const list = current[actualZone];
+    const index = list.findIndex(item => item.id === id);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= list.length) return current;
+    const next = [...list];
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    return { ...current, [actualZone]: next };
+  });
   const replaceStaged = (zone: Zone, id: string, nextFile: File) => {
     setZones(current => {
       const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
@@ -529,7 +540,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       groupFrom={groupFrom} setGroupFrom={from => { if (from !== groupFrom) { clearZones(); setError(''); } setGroupFrom(from); }}
       customPart7Ranges={customPart7Ranges} onEditPart7Range={editPart7Range}
       zones={zones} activeZone={activeZone} setActiveZone={setActiveZone}
-      onAddFiles={addFiles} onCameraAdd={addCameraFiles} onEditPhoto={(zone, id) => setEditingPhoto({ zone, id })} onRemove={removeStaged}
+      onAddFiles={addFiles} onCameraAdd={addCameraFiles} onEditPhoto={(zone, id) => setEditingPhoto({ zone, id })} onMovePhoto={moveStaged} onRemove={removeStaged}
       clarity={clarity} photoMode={photoMode} setPhotoMode={setPhotoMode}
       listeningPhoto={listeningPhoto} setListeningPhoto={val => {
         setListeningPhoto(val);

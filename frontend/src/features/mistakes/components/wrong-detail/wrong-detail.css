@@ -81,7 +81,9 @@
 .wd-pc.is-done .wd-pc-a { color: var(--ok); }
 
 /* 2 · a Part */
-.wd-zn { border: 3px dashed #ffb8ca; border-radius: 18px; background: var(--pl); padding: 9px 11px 10px; min-width: 0; }
+.wd-zn { border: 3px dashed #ffb8ca; border-radius: 18px; background: var(--pl); padding: 9px 11px 10px; min-width: 0; transition: background .12s, border-color .12s; }
+.wd-zn.is-click { cursor: pointer; }
+.wd-zn.is-click:hover { background: #ffe8ef; border-color: #ff9ab5; }
 .wd-zn.is-big { padding: 16px 18px; border-radius: 24px; }
 .wd-zn h5 { display: flex; align-items: center; gap: 7px; font-weight: 900; font-size: 14.5px; }
 .wd-zn.is-big h5 { font-size: 17px; }
@@ -275,7 +277,10 @@
 .wd-quiet.is-next { margin-left: 0; }
 .wd-skipped { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-radius: 14px; background: #f6f7f6; padding: 9px 14px; font-weight: 800; font-size: 13px; color: #87908a; }
 .wd-pg .wd-pg-edit { top: auto; right: 3px; bottom: 3px; background: rgba(214, 69, 112, .9); font-size: 11px; }
-.wd-pg-warn { position: absolute; left: 3px; bottom: 3px; width: 18px; height: 18px; border-radius: 50%; background: #ffc83d; color: #4e3400; font-weight: 900; font-size: 11px; display: grid; place-items: center; pointer-events: none; }
+.wd-pg-ord { position: absolute; left: 3px; bottom: 3px; display: flex; gap: 2px; }
+.wd-pg .wd-pg-mv { position: static; width: 18px; height: 18px; border-radius: 6px; background: rgba(47, 58, 51, .78); color: #fff; font-size: 13px; font-weight: 900; line-height: 1; display: grid; place-items: center; }
+.wd-pg .wd-pg-mv:hover { background: var(--ink); }
+.wd-pg-warn { position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #ffc83d; color: #4e3400; font-weight: 900; font-size: 11px; display: grid; place-items: center; pointer-events: none; }
 .wd-pg img { cursor: pointer; }
 .wd-zones.is-single { grid-template-columns: 1fr; }
 .wd-lead-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -289,8 +294,13 @@
 .wd-clarity b { font-weight: 900; }
 .wd-reasons { margin-top: 8px; padding: 8px 12px; border-radius: 12px; background: #fff5f7; font-size: 12.5px; font-weight: 700; color: #9c3051; list-style: disc inside; }
 .wd-reasons li + li { margin-top: 3px; }
-.wd-paper-pill { border: 0; border-radius: 12px; background: #f5f3f4; color: #5e6962; font-weight: 800; font-size: 12.5px; padding: 7px 11px; white-space: nowrap; }
-.wd-paper-pill[aria-pressed='true'] { background: #fff0f4; color: var(--pd); box-shadow: inset 0 0 0 1.5px var(--pk); }
+.wd-paper-pill { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 99px; background: #fff; color: #3c4740; font-weight: 900; font-size: 12.5px; padding: 6px 12px 6px 8px; box-shadow: inset 0 0 0 1.5px #dad5d8; white-space: nowrap; transition: background .14s, color .14s, box-shadow .14s; }
+.wd-paper-pill:hover:not(:disabled) { background: #faf8f9; box-shadow: inset 0 0 0 1.5px #c2b9be; }
+.wd-paper-pill[aria-pressed='true'] { background: #fff0f4; color: var(--pd); box-shadow: inset 0 0 0 2px var(--pk); }
+.wd-sw { position: relative; width: 32px; height: 18px; border-radius: 99px; background: #cfd4d1; transition: background .16s; flex: none; }
+.wd-sw i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .16s; }
+.wd-paper-pill[aria-pressed='true'] .wd-sw { background: var(--pk); }
+.wd-paper-pill[aria-pressed='true'] .wd-sw i { transform: translateX(14px); }
 .wd-gr-edit { margin-left: 8px; border: 0; background: none; color: var(--pd); font-weight: 900; font-size: 12px; padding: 2px 6px; border-radius: 8px; }
 .wd-gr-edit:hover { background: #ffe4ec; }
 .wd-all-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 14px; border-radius: 16px; background: #f2fbf4; box-shadow: inset 0 0 0 1.5px #cbead0; font-size: 13.5px; font-weight: 800; color: #246b36; }

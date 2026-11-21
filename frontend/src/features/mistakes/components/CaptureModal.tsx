@@ -13,7 +13,7 @@ import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } f
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
-import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
+import { addFiles, backToInput, cancelReading, captureState, closeCapture, getImageFile, moveImage, openCapture, patchItem, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
   setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
@@ -45,6 +45,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   const [customPart7Ranges, setCustomPart7Ranges] = useState<CustomRangeMap>({});
   const [clarity, setClarity] = useState<Record<string, ClarityResult | null>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pasteAutoNote, setPasteAutoNote] = useState('');
   const measured = useRef(new Set<string>());
   const alive = useRef(true);
   const [owner] = useState(getActiveAccountId);
@@ -88,10 +89,18 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   }, []);
 
   useEffect(() => {
-    if (state.phase !== 'input' || !state.part) return;
+    if (state.phase !== 'input') return;
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
-      if (files.length) { event.preventDefault(); addFiles(files, 'questions'); }
+      if (!files.length) return;
+      event.preventDefault();
+      if (!state.part) {
+        setPart(5);
+        setPasteAutoNote('Đã dán ảnh vào Part 5 — chạm P6/P7 bên trên nếu ảnh thuộc Part khác (không mất ảnh).');
+      } else {
+        setPasteAutoNote('');
+      }
+      addFiles(files, 'questions');
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
@@ -166,9 +175,10 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             <TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} />
             <CapturePartInput part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
               logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
-              onPart={setPart} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
+              onPart={p => { setPasteAutoNote(''); setPart(p); }} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
               onAdd={addFiles} onCameraAdd={(files, zone) => { if (files.length) setPhotoMode(true); addFiles(files, zone); }}
-              onEditImage={setEditingId} onRemove={removeImage} />
+              onEditImage={setEditingId} onMoveImage={moveImage} onRemove={removeImage} />
+            {pasteAutoNote && <p className="cap-note" role="status">{pasteAutoNote}</p>}
             {problemMessage && problemIndex >= 0 && (
               <div className="wd-clarity" role="status">
                 <span><b>{problemMessage.head}</b>{problemMessage.rest}</span>
@@ -213,8 +223,11 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             </div>
           </div>
           <div className="cap-foot">
-            <span className="cap-foot-note">Bạn có thể đóng, Sóc đọc tiếp và báo khi xong.</span>
-            <button type="button" className="rd-btn rd-btn--white" onClick={close}>Đóng, báo mình sau</button>
+            <button type="button" className="cap-link is-quiet" onClick={cancelReading}>← Hủy, chọn ảnh lại</button>
+            <div className="cap-foot-acts">
+              <span className="cap-foot-note">Có thể đóng, Sóc báo khi xong.</span>
+              <button type="button" className="rd-btn rd-btn--white" onClick={close}>Đóng, báo mình sau</button>
+            </div>
           </div>
         </>}
 
@@ -251,9 +264,14 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
               {state.items.length > 1 && <> <button type="button" className="cap-link is-quiet" onClick={() => setAllChecked(checked.length < state.items.length)}>{checked.length < state.items.length ? 'Tick tất cả' : 'Bỏ tick tất cả'}</button></>}
               {state.items.length > checked.length && <> · <button type="button" className="cap-link is-danger" onClick={removeUncheckedItems}>Xóa {state.items.length - checked.length} câu chưa tick</button></>}
             </span>
-            {!checked.length && state.items.length > 0 && state.items.every(item => isRightAnswer(item.draft))
-              ? <button type="button" className="rd-btn rd-btn--pink" onClick={backToInput}>Xong · Chụp trang khác</button>
-              : <button type="button" className="rd-btn rd-btn--pink" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>}
+            <div className="cap-foot-acts">
+              {state.items.length > 0 && (
+                <button type="button" className="rd-btn rd-btn--white cap-sm" onClick={backToInput}>← Chụp lại</button>
+              )}
+              {!checked.length && state.items.length > 0 && state.items.every(item => isRightAnswer(item.draft))
+                ? <button type="button" className="rd-btn rd-btn--pink" onClick={backToInput}>Xong · Chụp trang khác</button>
+                : <button type="button" className="rd-btn rd-btn--pink" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>}
+            </div>
           </div>
         </>}
         {editingId && editingFile && (

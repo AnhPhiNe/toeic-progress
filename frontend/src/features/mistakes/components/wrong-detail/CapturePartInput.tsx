@@ -25,6 +25,7 @@ interface Props {
   onAdd: (files: File[], zone: CaptureZone) => void;
   onCameraAdd?: (files: File[], zone: CaptureZone) => void;
   onEditImage?: (id: string) => void;
+  onMoveImage?: (id: string, delta: -1 | 1) => void;
   onRemove: (id: string) => void;
 }
 
@@ -34,7 +35,7 @@ interface Props {
  */
 export function CapturePartInput({
   phone = false, part, group, customPart7Ranges, images, logged, disabled = false, photoMode = false, clarity,
-  onPart, onGroup, onEditPart7Range, onPhotoMode, onAdd, onCameraAdd, onEditImage, onRemove
+  onPart, onGroup, onEditPart7Range, onPhotoMode, onAdd, onCameraAdd, onEditImage, onMoveImage, onRemove
 }: Props) {
   const [editingRange, setEditingRange] = useState(false);
   const [fromVal, setFromVal] = useState('');
@@ -76,6 +77,7 @@ export function CapturePartInput({
     onAdd,
     onCameraAdd,
     onEdit: onEditImage ? (_zone: CaptureZone, id: string) => onEditImage(id) : undefined,
+    onMove: onMoveImage ? (_zone: CaptureZone, id: string, delta: -1 | 1) => onMoveImage(id, delta) : undefined,
     onRemove: (_zone: CaptureZone, id: string) => onRemove(id),
     onActivate: () => {}
   };
@@ -103,8 +105,33 @@ export function CapturePartInput({
       : 'mỗi ảnh một hay nhiều câu';
   return (
     <div className={'wd-vars' + (phone ? ' cpi-phone' : '')}>
-      <div className="cpi-head">Part {part} · {PART_NAMES[part]}{logged && <small>{wrongIn(part).length} câu sai</small>}
-        <button type="button" onClick={() => { setEditingRange(false); onPart(null); }} disabled={disabled}>Đổi Part</button></div>
+      <div className="cpi-head">
+        <span>Part {part} · {PART_NAMES[part]}</span>
+        {logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>}
+      </div>
+      <div className="cpi-switch" role="group" aria-label="Chuyển nhanh Part">
+        {([5, 6, 7] as const).map(value => {
+          const cnt = logged ? wrongIn(value).length : 0;
+          return (
+            <button key={value} type="button" className="cpi-sw-btn is-read" aria-pressed={part === value} disabled={disabled}
+              aria-label={`Chuyển sang Part ${value} · ${PART_NAMES[value]}`}
+              onClick={() => { setEditingRange(false); onPart(value); }}>
+              P{value}{cnt > 0 && <em>{cnt}</em>}
+            </button>
+          );
+        })}
+        <i className="cpi-sw-sep" aria-hidden="true" />
+        {([1, 2, 3, 4] as const).map(value => {
+          const cnt = logged ? wrongIn(value).length : 0;
+          return (
+            <button key={value} type="button" className="cpi-sw-btn is-listen" aria-pressed={part === value} disabled={disabled}
+              aria-label={`Chuyển sang Part ${value} · ${PART_NAMES[value]}`}
+              onClick={() => { setEditingRange(false); onPart(value); }}>
+              P{value}{cnt > 0 && <em>{cnt}</em>}
+            </button>
+          );
+        })}
+      </div>
       {groups.length > 0 && (
         <div className="cpi-groups" role="group" aria-label="Nhóm bài đọc">
           {groups.map(item => (
@@ -141,10 +168,13 @@ export function CapturePartInput({
       {onPhotoMode && (
         <div className="cpi-bar">
           <button type="button" className="wd-paper-pill" aria-pressed={photoMode} disabled={disabled} onClick={() => onPhotoMode(!photoMode)}>
-            📄 Ảnh chụp giấy{photoMode ? ': Bật' : ''}
+            <span className="wd-sw" aria-hidden="true"><i /></span>
+            <span>Ảnh chụp giấy</span>
           </button>
           <span className="cpi-note" style={{ marginTop: 0 }}>
-            {grouped ? 'Tất cả ảnh của nhóm được đọc chung một lượt.' : 'Ảnh gửi nguyên bản; chỉ thu nhỏ khi quá nặng.'}
+            {photoMode
+              ? 'Đang dùng chế độ đọc ảnh giấy chuyên sâu (bóng gáy, chữ 2 cột, bút khoanh tay).'
+              : grouped ? 'Tự bật khi ảnh tối/mờ; bấm bật tay nếu chụp sách rõ sáng.' : 'Ảnh gửi nguyên bản; tự bật chế độ giấy khi ảnh tối/mờ.'}
           </span>
         </div>
       )}

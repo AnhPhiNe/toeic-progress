@@ -6,7 +6,7 @@ vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.g
 vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => 'owner-1' }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
 
-import { __resetCaptureForTests, addFiles, captureState, COMPRESSED_NOTE, removeUncheckedItems, retryFailure, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
+import { __resetCaptureForTests, addFiles, cancelReading, captureState, COMPRESSED_NOTE, moveImage, removeUncheckedItems, retryFailure, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
 
 const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 'Q ___', question: 'Q ___', context: '', userMistake: '', correctAnswer: '(B) b',
   trapTip: '', options: ['(A) a', '(B) b', '(C) c', '(D) d'], tags: [], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
@@ -24,22 +24,39 @@ beforeEach(() => {
 });
 
 describe('capture session', () => {
-  it('takes the Part first (Parts 1–7), at most ten screenshots and five passage pages', () => {
+  it('keeps staged screenshots intact when switching between Parts, supports reordering, and lets cancelReading return to input', async () => {
     setPart(7);
     addFiles(files(6), 'passage');
     expect(captureState().images.filter(item => item.zone === 'passage')).toHaveLength(5);
     expect(captureState().overflow).toBe(true);
     addFiles(files(9), 'questions');
     expect(captureState().images).toHaveLength(10);
-    // A Part 5 capture has one zone; changing the Part starts afresh.
+    // Switching from Part 7 to Part 5 preserves all 10 staged images and normalizes their zone to 'questions'.
     setPart(5);
+    expect(captureState().images).toHaveLength(10);
+    expect(captureState().images.every(item => item.zone === 'questions')).toBe(true);
+    // Backing out to null clears staged images; picking Part 3 starts clean and supports image reordering.
+    setPart(null);
     expect(captureState().images).toHaveLength(0);
-    addFiles(files(2), 'passage');
-    expect(captureState().images.map(item => item.zone)).toEqual(['questions', 'questions']);
-    // Listening Part 3 is supported too.
     setPart(3);
-    addFiles(files(1), 'questions');
-    expect(captureState().images).toHaveLength(1);
+    addFiles(files(2), 'questions');
+    const [firstId, secondId] = captureState().images.map(item => item.id);
+    moveImage(secondId, -1);
+    expect(captureState().images.map(item => item.id)).toEqual([secondId, firstId]);
+
+    // Cancelling an in-flight reading returns to Step 1 without losing staged images.
+    setTestName('Cancel Test');
+    let releaseRead!: () => void;
+    mocks.group.mockResolvedValueOnce({ requests: [request([32])], split: false, compressed: false });
+    mocks.extract.mockImplementationOnce(() => new Promise(resolve => { releaseRead = () => resolve(reply([32])); }));
+    const pending = startReading({ questions: [32], getToken: async () => 'tok', contextSupported: true });
+    await Promise.resolve();
+    cancelReading();
+    expect(captureState().phase).toBe('input');
+    expect(captureState().images).toHaveLength(2);
+    releaseRead?.();
+    await pending;
+    expect(captureState().phase).toBe('input');
   });
 
   it('reads a Part 6–7 group with its passage in the same request and forwards photoMode', async () => {
