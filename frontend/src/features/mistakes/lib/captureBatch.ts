@@ -51,6 +51,12 @@ export function isUnreadable(draft: AIMistakeParseResult): boolean {
   return !draft.question?.trim() || draft.options.length < 2;
 }
 
+/** The learner's choice matches the right answer (from source or solved by AI), so it is not a mistake. */
+export function isRightAnswer(draft: AIMistakeParseResult): boolean {
+  const answer = draft.answerSource !== 'MISSING' ? optionLetter(draft.correctAnswer) : '';
+  return Boolean(draft.userChoice && answer && draft.userChoice === answer);
+}
+
 export function rowStatus(item: Pick<CaptureItem, 'draft'>): RowStatus {
   const { draft } = item;
   if (isUnreadable(draft)) return 'unreadable';
@@ -62,7 +68,7 @@ export function rowStatus(item: Pick<CaptureItem, 'draft'>): RowStatus {
 
 const completeness = (draft: AIMistakeParseResult) =>
   Number(!isUnreadable(draft)) * 4
-  + Number(Boolean(draft.userChoice) || draft.userChoiceState === 'BLANK') * 2
+  + (draft.userChoice ? 2 : draft.userChoiceState === 'BLANK' ? 1 : 0)
   + Number((draft.answerSource === 'PROVIDED' || draft.answerSource === 'AI_PROPOSED') && Boolean(optionLetter(draft.correctAnswer)));
 
 /** A repeated question number keeps the more complete reading; ties keep the first. Reading order is by question number. */
@@ -75,7 +81,7 @@ export function mergeItems(existing: readonly CaptureItem[], incoming: readonly 
     const before = byNumber.get(read.number);
     if (before && completeness(before.draft) >= completeness(read.draft)) continue;
     const next: CaptureItem = { id: before?.id ?? newId(), number: read.number, part: part as MistakeEntry['part'], draft: read.draft,
-      category: category(read.draft), ticket: ticket ?? null, checked: before?.checked ?? !isUnreadable(read.draft) };
+      category: category(read.draft), ticket: ticket ?? null, checked: before?.checked ?? (!isUnreadable(read.draft) && !isRightAnswer(read.draft)) };
     byNumber.set(read.number, next);
   }
   return [...byNumber.values()].sort((a, b) => a.number - b.number);

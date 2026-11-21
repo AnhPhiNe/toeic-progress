@@ -85,7 +85,7 @@ def test_items_that_do_not_fit_their_question_are_left_for_another_try(api):  # 
     numbers = [entry["number"] for entry in body["items"]]
     assert numbers == [107, 132] and body["missing"] == [131]
     p5, p6 = body["items"]
-    assert p5["draft"]["part"] == 5 and p5["draft"]["userChoiceState"] == "UNKNOWN" and p5["draft"]["userMistake"] == ""
+    assert p5["draft"]["part"] == 5 and p5["draft"]["userChoiceState"] == "BLANK" and p5["draft"]["userMistake"] == "Bỏ trống"
     assert p5["draft"]["answerSource"] == "MISSING" and p5["draft"]["correctAnswer"] == ""
     # An answer that is not one of the options is dropped instead of saved.
     assert p6["draft"]["answerSource"] == "MISSING" and p6["draft"]["correctAnswer"] == ""
@@ -565,5 +565,24 @@ def test_ungraded_single_choice_and_graded_blank_and_clean_page_are_preserved(ap
     assert by_num[131]["answerSource"] == "MISSING" and by_num[131]["correctAnswer"] == ""
     assert by_num[132]["userChoice"] == "" and by_num[132]["userChoiceState"] == "BLANK"
     assert by_num[132]["userMistake"] == "Bỏ trống" and by_num[132]["correctAnswer"] == "(D) largely"
-    assert by_num[107]["userChoice"] == "" and by_num[107]["userChoiceState"] == "UNKNOWN"
-    assert by_num[107]["answerSource"] == "MISSING"
+    assert by_num[107]["userChoice"] == "" and by_num[107]["userChoiceState"] == "BLANK"
+    assert by_num[107]["userMistake"] == "Bỏ trống" and by_num[107]["answerSource"] == "MISSING"
+
+    # Sending 2+ result images (e.g. Answer Sheet + Answer Key) automatically upgrades to gpt-6.1-terra medium effort.
+    results_draft = {
+        "wrong": [103, 118], "skipped": [115],
+        "scores": {"listening": None, "reading": None, "total": None},
+        "timing": {
+            "totalSeconds": None, "listeningSeconds": None, "readingSeconds": None,
+            "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
+        },
+    }
+    with api(draft=results_draft) as (client, calls):
+        res = client.post("/api/v1/ai/read-results", json={
+            "request_id": REQUEST_ID, "consent": True, "provider": "openai",
+            "images": [{"dataUrl": picture()}, {"dataUrl": picture()}],
+            "photoMode": False,
+        })
+        assert res.status_code == 200 and res.json()["wrong"] == [103, 118] and res.json()["skipped"] == [115]
+    sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "medium"}

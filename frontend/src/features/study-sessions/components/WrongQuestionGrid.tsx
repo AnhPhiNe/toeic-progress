@@ -415,7 +415,7 @@ export function ResultImageButton({
           <svg width="56" height="50" viewBox="0 0 56 50" aria-hidden="true"><rect x="4" y="6" width="48" height="38" rx="9" fill="#fff" /><circle cx="19" cy="20" r="5" fill="#ffc83d" /><path d="M8 38 L22 26 L31 33 L39 27 L48 35 V40 H8Z" fill="#46b35a" /></svg>
           <b>Dán ảnh kết quả vào đây</b>
           <span>bấm <span className="rdl-kbd">Ctrl</span> + <span className="rdl-kbd">V</span>, kéo ảnh vào, hoặc bấm để chọn tệp</span>
-          <small>Chụp trang có điểm và danh sách câu sai. Nhiều ảnh cũng được.</small>
+          <small>Chụp trang có điểm và danh sách câu sai, hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự dò.</small>
         </div>
       ) : desktop && extraButton ? (
         <div className="space-y-2">
@@ -464,7 +464,7 @@ export function ResultImageButton({
           )}
         </div>
       )}
-      <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
+      <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
       {reviewFile && (

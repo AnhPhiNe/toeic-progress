@@ -59,10 +59,13 @@ describe('mergeItems', () => {
     const first: CaptureItem[] = [{ ...mergeItems([], [read(107, { userChoice: '' })], 'a', id)[0], checked: false }];
     expect(mergeItems(first, [read(107)], 'b', id)[0].checked).toBe(false);
   });
-  it('unticks a row nothing could be read from', () => {
+  it('unticks a row nothing could be read from or that the learner answered right', () => {
     const [row] = mergeItems([], [read(141, { question: '', options: [] })], 'a', id);
     expect(row.checked).toBe(false);
     expect(rowStatus(row)).toBe('unreadable');
+    const [rightRow] = mergeItems([], [read(142, { userChoice: 'C', correctAnswer: '(C) follow', answerSource: 'AI_PROPOSED' })], 'b', id);
+    expect(rightRow.checked).toBe(false);
+    expect(rowStatus(rightRow)).toBe('ok');
   });
 });
 

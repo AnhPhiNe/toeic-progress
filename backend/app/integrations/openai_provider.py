@@ -503,12 +503,11 @@ def page_item_draft(item: OpenAIPageItem) -> tuple[MistakeDraft | None, tuple[st
     parsed_correct = _normalize_option_label(raw_correct) if raw_correct else None
     canonical_correct = parsed_correct[1] if parsed_correct else raw_correct
     correct = folded.get(" ".join(canonical_correct.split())) if item.answerSource == "PROVIDED" else None
-    is_blank = item.userChoice == "BLANK"
     choice = item.userChoice if item.userChoice in labels else ""
     user_mistake = (
-        "Bỏ trống"
-        if is_blank
-        else (next((option for option in normalized_options if option.startswith(f"({choice})")), "") if choice else "")
+        next((option for option in normalized_options if option.startswith(f"({choice})")), "")
+        if choice
+        else "Bỏ trống"
     )
     return PageMistakeDraft(
         part=part, category="OTHER", question=question, context=context, options=normalized_options,
@@ -524,8 +523,9 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     key = provider.settings.openai_api_key.get_secret_value().strip()
     if not key:
         raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
-    model = provider.settings.openai_paper_results_model if photo_mode else provider.settings.openai_ocr_model
-    effort = provider.settings.openai_paper_results_effort if photo_mode else provider.settings.openai_ocr_effort
+    use_paper_tier = photo_mode or len(images) >= 2
+    model = provider.settings.openai_paper_results_model if use_paper_tier else provider.settings.openai_ocr_model
+    effort = provider.settings.openai_paper_results_effort if use_paper_tier else provider.settings.openai_ocr_effort
     payload = {
         "model": model,
         "instructions": RESULTS_READING_PROMPT,

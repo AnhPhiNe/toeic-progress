@@ -3,7 +3,7 @@ import type { ErrorCategory } from '@/shared/types';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { CHOICE_LETTERS, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
-import { questionPreview, rowStatus, whyLine, isUnreadable, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
+import { questionPreview, rowStatus, whyLine, isUnreadable, isRightAnswer, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
 import { withLetters } from '@/features/mistakes/lib/multiQuestion';
 import type { AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
 
@@ -26,6 +26,7 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = '
       {items.map(item => {
         const status = rowStatus(item);
         const isBlank = item.draft.userChoiceState === 'BLANK';
+        const isRight = isRightAnswer(item.draft);
         const choice = isBlank ? 'bỏ trống' : (item.draft.userChoice || '?');
         const answer = optionLetter(item.draft.correctAnswer) || '?';
         const why = whyLine(item.draft);
@@ -39,9 +40,15 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = '
               <b>Part {item.part} · câu {item.number}</b>
               <p>{questionPreview(item.draft)}</p>
               <div className="cap-chips">
-                <span className="is-me">{isBlank ? 'bạn bỏ trống' : `bạn chọn ${choice}`}</span>
-                <span className="is-ok">{item.draft.answerSource === 'AI_PROPOSED' && answer !== '?' ? `Sóc giải ${answer}` : `đúng ${answer}`}</span>
-                {status === 'unsure' && <span className="is-unsure">{unsureLabel}</span>}
+                {isRight ? (
+                  <span className="is-ok">bạn chọn {choice} · làm đúng (bỏ qua)</span>
+                ) : (
+                  <>
+                    <span className="is-me">{isBlank ? 'bạn bỏ trống' : `bạn chọn ${choice}`}</span>
+                    <span className="is-ok">{item.draft.answerSource === 'AI_PROPOSED' && answer !== '?' ? `Sóc giải ${answer}` : `đúng ${answer}`}</span>
+                    {status === 'unsure' && <span className="is-unsure">{unsureLabel}</span>}
+                  </>
+                )}
               </div>
               {why && <p className="cap-why"><b>Sai vì:</b> {why}</p>}
               {open && <RowEditor item={item} onClose={() => setEditing(null)} onPatch={patch => onPatch(item.id, patch)} onRemove={() => { setEditing(null); onRemove(item.id); }} />}

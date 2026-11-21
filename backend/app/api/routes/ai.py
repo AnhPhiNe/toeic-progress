@@ -195,7 +195,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
     }) if settings.rate_limit_secret and found else None
     return {
         "items": [{"number": number, "draft": {**draft.model_dump(),
-                   "userChoiceState": "BLANK" if draft.userMistake == "Bỏ trống" else ("CHOSEN" if draft.userChoice else "UNKNOWN")}}
+                   "userChoiceState": "CHOSEN" if draft.userChoice else "BLANK"}}
                   for number, draft in found],
         "missing": missing,
         "rejectionReasons": rejection_reasons,

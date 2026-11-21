@@ -154,6 +154,41 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       const effective = current && detailExplanationInput(current, card.part);
       if (!current?.ai || current.ai.explanation || current.ai.trapTip?.trim() || !effective || !sameExplanationInput(effective, originalInput)) return false;
       const arrived = withArrivedExplanation(current, arrivedDraft);
+      // If the page was ungraded (only 1 learner choice, no source key) and AI solved the question to the same letter
+      // the learner chose, automatically recognize it as a right answer and move it to 'skipped' ("bạn làm đúng, bỏ qua").
+      if (
+        current.ai.answerSource === 'MISSING'
+        && !current.touched?.answer
+        && arrived.choice
+        && arrived.choice !== 'BLANK'
+        && arrived.choice === arrived.answer
+      ) {
+        const nextForms = { ...formsRef.current, [cardId]: arrived };
+        formsRef.current = nextForms; setForms(nextForms);
+        dirtyIds.current.delete(cardId);
+        const qNum = card.questionNumber!;
+        const nextJobs = { ...jobsRef.current };
+        let jobsChanged = false;
+        for (const [jobKey, job] of Object.entries(nextJobs)) {
+          if (job.readIds.includes(cardId)) {
+            nextJobs[jobKey] = {
+              ...job,
+              readIds: job.readIds.filter(id => id !== cardId),
+              skipped: [...new Set([...job.skipped, qNum])].sort((a, b) => a - b)
+            };
+            jobsChanged = true;
+          }
+        }
+        if (jobsChanged) { jobsRef.current = nextJobs; setJobs(nextJobs); }
+        if (shownScreen.current.name === 'review' && shownScreen.current.ids.includes(cardId)) {
+          setScreen(prev => prev.name === 'review' ? {
+            ...prev,
+            ids: prev.ids.filter(id => id !== cardId),
+            skipped: [...new Set([...prev.skipped, qNum])].sort((a, b) => a - b)
+          } : prev);
+        }
+        return true;
+      }
       const candidate = buildDetailEntry(card, arrived);
       if (typeof candidate === 'string') { setError(candidate); return false; }
       dirtyIds.current.add(cardId);
@@ -468,6 +503,25 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const pendingDrafts = draftsSeen ? [] : allFilled;
   const common = { phone, testName, total, doneCount, onClose: close };
 
+  const restoreSkipped = (number: number) => {
+    const card = byNumber.get(number);
+    if (!card) return;
+    const current = formsRef.current[card.id] ?? EMPTY_FORM;
+    const restored: CardForm = { ...current, answer: '', touched: { ...current.touched, answer: true } };
+    const nextForms = { ...formsRef.current, [card.id]: restored };
+    formsRef.current = nextForms; setForms(nextForms);
+    dirtyIds.current.add(card.id);
+    setOpenRow(card.id);
+    if (screen.name === 'review') {
+      const nextIds = [...new Set([...screen.ids, card.id])].sort((a, b) => byId.get(a)!.questionNumber! - byId.get(b)!.questionNumber!);
+      const nextSkipped = screen.skipped.filter(n => n !== number);
+      setScreen({ ...screen, ids: nextIds, skipped: nextSkipped });
+      if (screen.job && jobsRef.current[screen.job]) {
+        patchJob(screen.job, { readIds: nextIds, skipped: nextSkipped });
+      }
+    }
+  };
+
   let body;
   if (screen.name === 'review') {
     const ids = screen.ids.filter(id => byId.has(id));
@@ -476,6 +530,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       rejectionReasons={screen.rejectionReasons ?? (screen.job ? jobs[screen.job]?.rejectionReasons ?? [] : [])}
       wrongTotal={screen.part ? partCards(screen.part).length : total}
       onUpdate={update} canAddImages={canReadPageImages && screen.part !== null}
+      canRestoreSkipped={number => byNumber.has(number)}
+      onRestoreSkipped={restoreSkipped}
       onBack={() => { setError(''); setScreen(screen.part ? { name: 'part', part: screen.part } : { name: 'overview' }); if (screen.group) setGroupFrom(screen.group); }}
       onSave={() => {
         if (!save(ids)) return;

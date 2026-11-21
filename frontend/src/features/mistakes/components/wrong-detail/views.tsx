@@ -517,10 +517,10 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
 /* ---------- 3 · after a capture ---------- */
 
 export function ReviewView({ phone, testName, total, doneCount, onClose, screen, cards, forms, openRow, setOpenRow, writing, saveCount, error, note, rejectionReasons = [], wrongTotal, onUpdate,
-  canAddImages, onBack, onSave }: Common & {
+  canAddImages, canRestoreSkipped, onRestoreSkipped, onBack, onSave }: Common & {
   screen: Extract<Screen, { name: 'review' }>; cards: Map<string, MistakeEntry>; forms: Record<string, CardForm>; openRow: string; setOpenRow: (id: string) => void;
   writing: number; saveCount: number; error: string; note: string; rejectionReasons?: PageRejectionReason[]; wrongTotal: number; onUpdate: (id: string, patch: Partial<CardForm>) => void;
-  canAddImages: boolean; onBack: () => void; onSave: () => void;
+  canAddImages: boolean; canRestoreSkipped?: (number: number) => boolean; onRestoreSkipped?: (number: number) => void; onBack: () => void; onSave: () => void;
 }) {
   const read = screen.ids.length + screen.skipped.length;
   const title = screen.part ? `Sóc đọc được ${read} câu` : `${screen.ids.length} câu chưa lưu`;
@@ -535,7 +535,12 @@ export function ReviewView({ phone, testName, total, doneCount, onClose, screen,
           {screen.ids.map(id => <ReviewRow key={id} card={cards.get(id)!} form={forms[id] ?? EMPTY_FORM} open={openRow === id} phone={phone}
             onToggle={() => setOpenRow(openRow === id ? '' : id)} onUpdate={patch => onUpdate(id, patch)} />)}
           {screen.skipped.map(number => (
-            <div key={number} className="wd-skip"><b>Câu {number}</b>bạn làm đúng, bỏ qua{!phone && <s>không thuộc {wrongTotal} câu sai</s>}</div>
+            <div key={number} className="wd-skip">
+              <b>Câu {number}</b>bạn làm đúng, bỏ qua{!phone && <s>không thuộc {wrongTotal} câu sai</s>}
+              {onRestoreSkipped && canRestoreSkipped?.(number) && (
+                <button type="button" className="wd-lnk" style={{ marginLeft: 8 }} onClick={() => onRestoreSkipped(number)}>Ghi lại</button>
+              )}
+            </div>
           ))}
           {screen.missing.length > 0 && <p className="wd-miss">Chưa thấy câu {screen.missing.join(', ')} trong ảnh.{' '}
             {canAddImages && <button type="button" className="wd-lnk" onClick={onBack}>{groupTo ? `Thêm ảnh nhóm ${screen.group}–${groupTo}` : 'Thêm ảnh'}</button>}</p>}
@@ -575,6 +580,7 @@ function ReviewRow({ card, form, open, phone, onToggle, onUpdate }: { card: Mist
       <b className="wd-rn">Câu {number}</b>
       <button type="button" className="wd-qt" aria-expanded={open} onClick={onToggle} aria-label={`Mở câu ${number}`}>{question || 'Chưa có câu hỏi · chạm để điền'}</button>
       <span className="wd-sheet">
+        {form.choice === 'BLANK' && <span className="wd-pl" style={{ marginRight: 6 }}>Bỏ trống</span>}
         <Sheet number={number} part={card.part} form={form} ask={ask} onAnswer={letter => onUpdate({ answer: letter })} />
         {isExplaining(card.id) && <span className="wd-spin" role="img" aria-label="Đang viết lời giải" />}
       </span>
@@ -583,15 +589,6 @@ function ReviewRow({ card, form, open, phone, onToggle, onUpdate }: { card: Mist
           <button type="button" onClick={() => onUpdate({ answer: doubt })}>Đổi sang {doubt}</button>
           <button type="button" onClick={() => form.ai && onUpdate({ ai: { ...form.ai, answerDoubt: '' } })}>Giữ {form.answer}</button></div>
         : ask ? <div className="wd-un"><span className="wd-pl">chưa chắc</span>Ảnh không có đáp án. Chạm chữ cái đúng.{isExplaining(card.id) ? ' (Sóc đang tự giải…)' : ''}</div> : null}
-      {Boolean(form.ai) && !form.choice && (
-        <div className="wd-un" role="group" aria-label={`Chọn nhanh câu ${number} bạn chọn`}>
-          <span className="wd-pl">bạn chọn?</span>Ảnh chưa có dấu chọn:
-          {lettersFor(card.part).map(letter => (
-            <button key={letter} type="button" disabled={letter === form.answer} onClick={() => onUpdate({ choice: letter })}>{letter}</button>
-          ))}
-          <button type="button" onClick={() => onUpdate({ choice: 'BLANK' })}>Bỏ trống</button>
-        </div>
-      )}
       {open && <RowDetail card={card} form={form} phone={phone} onUpdate={onUpdate} />}
     </div>
   );
