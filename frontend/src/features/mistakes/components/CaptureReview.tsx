@@ -25,7 +25,8 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = '
     <ul className="cap-rows" aria-label="Các câu sai Sóc đã tìm thấy">
       {items.map(item => {
         const status = rowStatus(item);
-        const choice = item.draft.userChoice || '?';
+        const isBlank = item.draft.userChoiceState === 'BLANK';
+        const choice = isBlank ? 'bỏ trống' : (item.draft.userChoice || '?');
         const answer = optionLetter(item.draft.correctAnswer) || '?';
         const why = whyLine(item.draft);
         const open = editing === item.id;
@@ -38,8 +39,8 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = '
               <b>Part {item.part} · câu {item.number}</b>
               <p>{questionPreview(item.draft)}</p>
               <div className="cap-chips">
-                <span className="is-me">bạn chọn {choice}</span>
-                <span className="is-ok">đúng {answer}</span>
+                <span className="is-me">{isBlank ? 'bạn bỏ trống' : `bạn chọn ${choice}`}</span>
+                <span className="is-ok">{item.draft.answerSource === 'AI_PROPOSED' && answer !== '?' ? `Sóc giải ${answer}` : `đúng ${answer}`}</span>
                 {status === 'unsure' && <span className="is-unsure">{unsureLabel}</span>}
               </div>
               {why && <p className="cap-why"><b>Sai vì:</b> {why}</p>}
@@ -57,7 +58,9 @@ const optionLines = (draft: AIMistakeParseResult) => [draft.question ?? '', ...d
 
 function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; onClose: () => void; onPatch: (patch: ItemPatch) => void; onRemove: () => void }) {
   const [text, setText] = useState(optionLines(item.draft));
-  const [choice, setChoice] = useState<ChoiceLetter | ''>(item.draft.userChoice as ChoiceLetter | '');
+  const [choice, setChoice] = useState<ChoiceLetter | 'BLANK' | ''>(
+    item.draft.userChoiceState === 'BLANK' ? 'BLANK' : (item.draft.userChoice as ChoiceLetter | '')
+  );
   const [answer, setAnswer] = useState<ChoiceLetter | ''>(optionLetter(item.draft.correctAnswer));
   const [reason, setReason] = useState(item.draft.userReason ?? '');
   const [category, setCategory] = useState<ErrorCategory>(item.category);
@@ -73,21 +76,25 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
       if (parsed.error) { setError(parsed.error); return; }
       draft = { ...draft, question: parsed.question, options: parsed.options, questionContext: [parsed.question, draft.context ?? ''].filter(Boolean).join('\n\n') };
     }
-    if ((choice && !draft.options.some(option => option.startsWith(`(${choice})`))) || (answer && !draft.options.some(option => option.startsWith(`(${answer})`)))) {
+    if ((choice && choice !== 'BLANK' && !draft.options.some(option => option.startsWith(`(${choice})`))) || (answer && !draft.options.some(option => option.startsWith(`(${answer})`)))) {
       setError('Lựa chọn chưa khớp phương án. Kiểm tra lại nội dung.'); return;
     }
-    if (choice && choice === answer) { setError('Đáp án bạn chọn trùng đáp án đúng.'); return; }
+    if (choice && choice !== 'BLANK' && choice === answer) { setError('Đáp án bạn chọn trùng đáp án đúng.'); return; }
     draft = { ...withLetters(draft, choice, answer), userReason: reason };
     onPatch({ draft, category, ...(isUnreadable(item.draft) && !isUnreadable(draft) ? { checked: true } : {}) });
     onClose();
   };
-  const chips = (label: string, value: ChoiceLetter | '', set: (letter: ChoiceLetter | '') => void) => (
+  const chips = (label: string, value: ChoiceLetter | 'BLANK' | '', set: (letter: ChoiceLetter | 'BLANK' | '') => void, allowBlank = false) => (
     <div className="cap-abcd" role="group" aria-label={label}>
       <b>{label}</b>
       {CHOICE_LETTERS.map(letter => (
         <button key={letter} type="button" aria-pressed={value === letter} disabled={!letters.includes(letter)}
           className={label === 'Mình chọn' ? 'is-me' : 'is-ok'} aria-label={`${label}: ${letter}`} onClick={() => set(value === letter ? '' : letter)}>{letter}</button>
       ))}
+      {allowBlank && (
+        <button type="button" aria-pressed={value === 'BLANK'} className="is-me" aria-label={`${label}: Bỏ trống`}
+          onClick={() => set(value === 'BLANK' ? '' : 'BLANK')}>Bỏ trống</button>
+      )}
     </div>
   );
   return (
@@ -95,8 +102,8 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
       <label>Câu hỏi và các phương án
         <textarea value={text} rows={Math.min(7, Math.max(3, text.split('\n').length))} spellCheck={false} maxLength={8000} onChange={event => { setText(event.target.value); setError(''); }} />
       </label>
-      {chips('Mình chọn', choice, setChoice)}
-      {chips('Đáp án đúng', answer, setAnswer)}
+      {chips('Mình chọn', choice, setChoice, true)}
+      {chips('Đáp án đúng', answer, letter => setAnswer(letter === 'BLANK' ? '' : letter))}
       <div className="cap-edit-two">
         <label>Lý do bạn chọn <small>không bắt buộc</small>
           <input value={reason} maxLength={2000} placeholder="Mình chọn vì…" onChange={event => setReason(event.target.value)} />

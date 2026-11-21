@@ -503,11 +503,17 @@ def page_item_draft(item: OpenAIPageItem) -> tuple[MistakeDraft | None, tuple[st
     parsed_correct = _normalize_option_label(raw_correct) if raw_correct else None
     canonical_correct = parsed_correct[1] if parsed_correct else raw_correct
     correct = folded.get(" ".join(canonical_correct.split())) if item.answerSource == "PROVIDED" else None
+    is_blank = item.userChoice == "BLANK"
     choice = item.userChoice if item.userChoice in labels else ""
+    user_mistake = (
+        "Bỏ trống"
+        if is_blank
+        else (next((option for option in normalized_options if option.startswith(f"({choice})")), "") if choice else "")
+    )
     return PageMistakeDraft(
         part=part, category="OTHER", question=question, context=context, options=normalized_options,
         correctAnswer=correct or "", answerSource="PROVIDED" if correct else "MISSING", userChoice=choice,
-        userMistake=next((option for option in normalized_options if option.startswith(f"({choice})")), "") if choice else "",
+        userMistake=user_mistake,
         tags=[], missingInformation=warnings, trapTip="", optionNotes=[], explanation=None,
     ), None
 

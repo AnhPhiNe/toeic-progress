@@ -39,10 +39,14 @@ export function draftFromBlock(block: PastedBlock): ParsedBlock {
     userChoiceState: 'UNKNOWN', userReason: '', optionNotes: [], explanation: null } };
 }
 
-/** The draft after the learner chose "mình chọn" / "đáp án đúng" with the A–D chips. */
-export function withLetters(draft: AIMistakeParseResult, choice: ChoiceLetter | '', answer: ChoiceLetter | ''): AIMistakeParseResult {
+/** The draft after the learner chose "mình chọn" / "đáp án đúng" with the A–D / Bỏ trống chips. */
+export function withLetters(draft: AIMistakeParseResult, choice: ChoiceLetter | 'BLANK' | '', answer: ChoiceLetter | ''): AIMistakeParseResult {
   const correct = answer ? draft.options.find(option => option.startsWith(`(${answer})`)) ?? '' : '';
-  const picked = choice ? draft.options.find(option => option.startsWith(`(${choice})`)) ?? '' : '';
-  return { ...draft, userChoice: choice, userChoiceState: choice ? 'CHOSEN' : 'UNKNOWN', correctAnswer: correct,
-    answerSource: correct ? 'PROVIDED' : 'MISSING', userMistake: picked };
+  const blank = choice === 'BLANK';
+  const actualChoice = blank ? '' : choice;
+  const picked = actualChoice ? draft.options.find(option => option.startsWith(`(${actualChoice})`)) ?? '' : blank ? 'Bỏ trống' : '';
+  const prevLetter = draft.answerSource !== 'MISSING' ? draft.correctAnswer.match(/^\s*\(([A-D])\)/)?.[1] ?? '' : '';
+  const answerSource = !correct ? 'MISSING' : (draft.answerSource === 'AI_PROPOSED' && prevLetter === answer ? 'AI_PROPOSED' : 'PROVIDED');
+  return { ...draft, userChoice: actualChoice, userChoiceState: blank ? 'BLANK' : actualChoice ? 'CHOSEN' : 'UNKNOWN', correctAnswer: correct,
+    answerSource, userMistake: picked };
 }

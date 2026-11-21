@@ -546,3 +546,24 @@ def test_provider_budget_also_guards_explain_batch_calls(api):  # noqa: F811
         assert sum(call[1].endswith("/reserve_provider_budget") for call in calls) == 2
         endpoints = [call[2]["p_endpoint"] for call in calls if call[1].endswith("/record_ai_usage")]
         assert endpoints == ["extract_page", "explain_batch"]
+
+
+def test_ungraded_single_choice_and_graded_blank_and_clean_page_are_preserved(api):  # noqa: F811
+    output = {"items": [
+        # Case 1: Only 1 mark (learner circled C, not yet graded/corrected on paper or web)
+        item(131, userChoice="C", correctAnswer="", answerSource="MISSING"),
+        # Case 2: Graded page shows question was left blank/skipped (BLANK) and right answer is D
+        item(132, userChoice="BLANK", correctAnswer="(D) largely", answerSource="PROVIDED"),
+        # Case 3: Clean test page (0 marks)
+        item(107, question="Ms. Delacroix ____ transferring.", context="", userChoice="",
+             options=["(A) until", "(B) since", "(C) upon", "(D) onto"], correctAnswer="", answerSource="MISSING"),
+    ]}
+    with api(draft=output) as (client, _calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+    by_num = {entry["number"]: entry["draft"] for entry in body["items"]}
+    assert by_num[131]["userChoice"] == "C" and by_num[131]["userChoiceState"] == "CHOSEN"
+    assert by_num[131]["answerSource"] == "MISSING" and by_num[131]["correctAnswer"] == ""
+    assert by_num[132]["userChoice"] == "" and by_num[132]["userChoiceState"] == "BLANK"
+    assert by_num[132]["userMistake"] == "Bỏ trống" and by_num[132]["correctAnswer"] == "(D) largely"
+    assert by_num[107]["userChoice"] == "" and by_num[107]["userChoiceState"] == "UNKNOWN"
+    assert by_num[107]["answerSource"] == "MISSING"

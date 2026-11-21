@@ -46,8 +46,12 @@ describe('visible result-image scores', () => {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ai_configured: true, ai_provider: 'openai' }) }));
   mocks.getSession.mockResolvedValue({ data: { session: account } });
   mocks.backendRequest.mockResolvedValue({ draft: getDemoSampleInput().result, usage: { remaining: 9, limit: 10, guest: false } });
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('backend AI extraction', () => {

@@ -30,6 +30,7 @@ Category = Literal[
 ]
 AnswerSource = Literal["PROVIDED", "AI_PROPOSED", "MISSING"]
 UserChoice = Literal["A", "B", "C", "D", ""]
+PageUserChoice = Literal["A", "B", "C", "D", "BLANK", ""]
 PartOfSpeech = Literal["n", "v", "adj", "adv", "prep", "conj", "pron", "det", ""]
 
 
@@ -781,7 +782,7 @@ class OpenAIPageItem(BaseModel):
     # Never shorten a passage silently: an oversized item is reported as missing.
     context: str = Field(max_length=8000)
     options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
-    userChoice: UserChoice
+    userChoice: PageUserChoice
     correctAnswer: str = Field(max_length=1000)
     answerSource: Literal["PROVIDED", "MISSING"]
 

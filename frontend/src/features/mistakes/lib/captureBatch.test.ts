@@ -71,10 +71,12 @@ describe('review helpers', () => {
     const found = mergeItems([], [read(107), read(120)], null, id);
     expect(remainingQuestions([107, 108, 120, 130], found)).toEqual([108, 130]);
   });
-  it('marks rows with a missing choice or answer as unsure, and accepts 3 options A–C for Part 2', () => {
+  it('marks rows with a missing choice or answer as unsure, accepts BLANK choice & AI_PROPOSED answer, and accepts 3 options A–C for Part 2', () => {
     expect(rowStatus({ draft: draft() })).toBe('ok');
+    expect(rowStatus({ draft: draft({ userChoice: '', userChoiceState: 'BLANK' }) })).toBe('ok');
+    expect(rowStatus({ draft: draft({ answerSource: 'AI_PROPOSED' }) })).toBe('ok');
     expect(rowStatus({ draft: draft({ part: 2, options: ['(A) Yes.', '(B) No.', '(C) Tomorrow.'], correctAnswer: '(C) Tomorrow.' }) })).toBe('ok');
-    expect(rowStatus({ draft: draft({ userChoice: '' }) })).toBe('unsure');
+    expect(rowStatus({ draft: draft({ userChoice: '', userChoiceState: 'UNKNOWN' }) })).toBe('unsure');
     expect(rowStatus({ draft: draft({ answerSource: 'MISSING', correctAnswer: '' }) })).toBe('unsure');
     expect(rowStatus({ draft: draft({ options: ['(A) a', '(B) b'] }) })).toBe('unsure');
   });

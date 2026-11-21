@@ -3,7 +3,7 @@ import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import type { PartNumber } from '@/shared/domain/questionNumbers';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { CHOICE_LETTERS, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
-import { EMPTY_FORM, isEmptyForm, openDoubt, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { EMPTY_FORM, isEmptyForm, openDoubt, type CardForm, type Choice } from '@/features/mistakes/lib/detailForm';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { isExplaining } from '@/features/mistakes/services/explanationQueue';
@@ -25,7 +25,8 @@ const reasonsFor = (part: number) => REASONS.filter(([category]) => part <= 4 ||
 export const reasonLabel = (category: ErrorCategory) => REASONS.find(([value]) => value === category)?.[1] ?? 'Khác';
 const lettersFor = (part: number) => CHOICE_LETTERS.slice(0, part === 2 ? 3 : 4);
 const chosenOf = (form: CardForm) => form.choice && form.choice !== 'BLANK' ? form.choice : '';
-const sheetLabel = (chosen: string, answer: string) => [chosen && `Bạn chọn ${chosen}`, answer ? `đáp án ${answer}` : 'chưa có đáp án'].filter(Boolean).join(', ');
+const sheetLabel = (chosen: string, answer: string, blank = false) =>
+  [blank ? 'Bỏ trống' : chosen && `Bạn chọn ${chosen}`, answer ? `đáp án ${answer}` : 'chưa có đáp án'].filter(Boolean).join(', ');
 
 function Pill({ done, total }: { done: number; total: number }) {
   return <span className="wd-tot" role="img" aria-label={`Đã ghi ${done} trên ${total} câu`}><i><b style={{ width: `${total ? done / total * 100 : 0}%` }} /></i>{done}/{total} câu</span>;
@@ -60,7 +61,7 @@ function ReasonChips({ part, number, value, onPick, big = false }: { part: numbe
 function Sheet({ number, part, form, ask, onAnswer }: { number: number; part: number; form: CardForm; ask: boolean; onAnswer: (letter: ChoiceLetter) => void }) {
   const chosen = chosenOf(form);
   return (
-    <span className="wd-abc" role="group" aria-label={`Câu ${number}: ${sheetLabel(chosen, form.answer)}`}>
+    <span className="wd-abc" role="group" aria-label={`Câu ${number}: ${sheetLabel(chosen, form.answer, form.choice === 'BLANK')}`}>
       {lettersFor(part).map(letter => (
         <button key={letter} type="button" disabled={letter === chosen} aria-label={`Đáp án đúng ${letter}`} aria-pressed={letter === form.answer}
           className={letter === chosen ? 'is-me' : letter === form.answer ? 'is-ok' : ask ? 'is-ask' : ''} onClick={() => onAnswer(letter)}>{letter}</button>
@@ -69,13 +70,17 @@ function Sheet({ number, part, form, ask, onAnswer }: { number: number; part: nu
   );
 }
 
-function Letters({ label, part, value, tone, onPick }: { label: string; part: number; value: string; tone: 'me' | 'ok'; onPick: (letter: ChoiceLetter | '') => void }) {
+function Letters({ label, part, value, tone, allowBlank = false, onPick }: { label: string; part: number; value: Choice; tone: 'me' | 'ok'; allowBlank?: boolean; onPick: (letter: Choice) => void }) {
   return (
     <div className="wd-lt" role="group" aria-label={label}>
       {lettersFor(part).map(letter => (
         <button key={letter} type="button" aria-pressed={value === letter} className={value === letter ? `is-${tone}` : ''}
           onClick={() => onPick(value === letter ? '' : letter)}>{letter}</button>
       ))}
+      {allowBlank && (
+        <button type="button" aria-pressed={value === 'BLANK'} className={value === 'BLANK' ? `is-${tone}` : ''}
+          onClick={() => onPick(value === 'BLANK' ? '' : 'BLANK')}>Bỏ trống</button>
+      )}
     </div>
   );
 }
@@ -577,7 +582,16 @@ function ReviewRow({ card, form, open, phone, onToggle, onUpdate }: { card: Mist
       {doubt ? <div className="wd-un"><span className="wd-pl">chưa chắc</span>Sóc giải ra {doubt}, trang đề ghi {form.answer}
           <button type="button" onClick={() => onUpdate({ answer: doubt })}>Đổi sang {doubt}</button>
           <button type="button" onClick={() => form.ai && onUpdate({ ai: { ...form.ai, answerDoubt: '' } })}>Giữ {form.answer}</button></div>
-        : ask ? <div className="wd-un"><span className="wd-pl">chưa chắc</span>Ảnh không có đáp án. Chạm chữ cái đúng.</div> : null}
+        : ask ? <div className="wd-un"><span className="wd-pl">chưa chắc</span>Ảnh không có đáp án. Chạm chữ cái đúng.{isExplaining(card.id) ? ' (Sóc đang tự giải…)' : ''}</div> : null}
+      {Boolean(form.ai) && !form.choice && (
+        <div className="wd-un" role="group" aria-label={`Chọn nhanh câu ${number} bạn chọn`}>
+          <span className="wd-pl">bạn chọn?</span>Ảnh chưa có dấu chọn:
+          {lettersFor(card.part).map(letter => (
+            <button key={letter} type="button" disabled={letter === form.answer} onClick={() => onUpdate({ choice: letter })}>{letter}</button>
+          ))}
+          <button type="button" onClick={() => onUpdate({ choice: 'BLANK' })}>Bỏ trống</button>
+        </div>
+      )}
       {open && <RowDetail card={card} form={form} phone={phone} onUpdate={onUpdate} />}
     </div>
   );
@@ -610,8 +624,8 @@ function RowDetail({ card, form, phone, onUpdate }: { card: MistakeEntry; form: 
       </ul>}
       {!ai && <p className="wd-note">Câu này chưa có trong ảnh nào. Thêm ảnh, chọn đáp án bên dưới, hoặc chỉ chọn lý do.</p>}
       {editing && <div className="wd-pick">
-        <span>Bạn chọn</span><Letters label="Bạn chọn" part={card.part} value={chosen} tone="me" onPick={letter => onUpdate({ choice: letter })} />
-        <span>Đáp án</span><Letters label="Đáp án" part={card.part} value={form.answer} tone="ok" onPick={letter => onUpdate({ answer: letter })} />
+        <span>Bạn chọn</span><Letters label="Bạn chọn" part={card.part} value={form.choice} tone="me" allowBlank onPick={letter => onUpdate({ choice: letter })} />
+        <span>Đáp án</span><Letters label="Đáp án" part={card.part} value={form.answer} tone="ok" onPick={letter => onUpdate({ answer: letter === 'BLANK' ? '' : letter })} />
       </div>}
       {ai?.explanation?.quickTip?.trim()
         ? <ExplanationView explanation={ai.explanation} trapTip={ai.trapTip}
@@ -679,9 +693,9 @@ export function ManualCard({ phone, part, number, numbers, form, error, onPick, 
         </div>
         {!reasonOnly && <>
           <div className="wd-fl">BẠN CHỌN</div>
-          <Letters label="Bạn chọn" part={part} value={chosenOf(form)} tone="me" onPick={letter => onUpdate({ choice: letter })} />
+          <Letters label="Bạn chọn" part={part} value={form.choice} tone="me" allowBlank onPick={letter => onUpdate({ choice: letter })} />
           <div className="wd-fl">ĐÁP ÁN ĐÚNG</div>
-          <Letters label="Đáp án" part={part} value={form.answer} tone="ok" onPick={letter => onUpdate({ answer: letter })} />
+          <Letters label="Đáp án" part={part} value={form.answer} tone="ok" onPick={letter => onUpdate({ answer: letter === 'BLANK' ? '' : letter })} />
         </>}
         <div className="wd-fl">VÌ SAO SAI?</div>
         <ReasonChips part={part} number={number} value={form.category} big={!phone} onPick={category => onUpdate({ category })} />

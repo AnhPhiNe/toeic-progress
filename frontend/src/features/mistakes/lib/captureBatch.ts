@@ -55,11 +55,15 @@ export function rowStatus(item: Pick<CaptureItem, 'draft'>): RowStatus {
   const { draft } = item;
   if (isUnreadable(draft)) return 'unreadable';
   const expectedOptions = draft.part === 2 ? 3 : 4;
-  return !draft.userChoice || draft.answerSource !== 'PROVIDED' || !optionLetter(draft.correctAnswer) || draft.options.length !== expectedOptions ? 'unsure' : 'ok';
+  const hasChoice = Boolean(draft.userChoice) || draft.userChoiceState === 'BLANK';
+  const hasAnswer = (draft.answerSource === 'PROVIDED' || draft.answerSource === 'AI_PROPOSED') && Boolean(optionLetter(draft.correctAnswer));
+  return !hasChoice || !hasAnswer || draft.options.length !== expectedOptions ? 'unsure' : 'ok';
 }
 
 const completeness = (draft: AIMistakeParseResult) =>
-  Number(!isUnreadable(draft)) * 4 + Number(Boolean(draft.userChoice)) * 2 + Number(draft.answerSource === 'PROVIDED' && Boolean(optionLetter(draft.correctAnswer)));
+  Number(!isUnreadable(draft)) * 4
+  + Number(Boolean(draft.userChoice) || draft.userChoiceState === 'BLANK') * 2
+  + Number((draft.answerSource === 'PROVIDED' || draft.answerSource === 'AI_PROPOSED') && Boolean(optionLetter(draft.correctAnswer)));
 
 /** A repeated question number keeps the more complete reading; ties keep the first. Reading order is by question number. */
 export function mergeItems(existing: readonly CaptureItem[], incoming: readonly PageItem[], ticket: string | null | undefined,

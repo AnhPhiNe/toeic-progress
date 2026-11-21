@@ -287,11 +287,11 @@ Input JSON là {"questions": [{"number": số câu, "part": Part}]}: các câu n
   question tối đa 4.000 ký tự, context tối đa 8.000 ký tự. Không cắt/rút gọn bài đọc để vừa giới hạn.
   Nếu toàn bộ câu hoặc phần quyết định không đọc được hoặc bài đọc vượt giới hạn, bỏ item đó để người học bổ sung ảnh;
   nếu chỉ 1–2 chữ ở mép giấy/bóng gáy bị mờ, VẪN chép đầy đủ câu/đoạn và ghi '[không rõ]' tại đúng vị trí đó. Không bịa chữ/số.
-- userChoice: chỉ ghi chữ cái phương án khi ảnh cho thấy rõ người học đã chọn (nút được chọn, ô được tô/khoanh rõ ràng);
-  nếu dấu bút chì/gạch tay trên giấy mơ hồ không chắc là đáp án chọn, để '' và giữ nguyên câu.
-- correctAnswer: chỉ khi trang hoặc ghi chú bút đỏ ghi rõ đáp án đúng của chính câu đó (ví dụ 'Đáp án đúng: D', 'Correct answer: D', 'Key: D')
-  hoặc đánh dấu rõ phương án đúng: chép nguyên văn phương án đó theo dạng '(A) ...', answerSource='PROVIDED'.
-  Không có hoặc dấu bút mơ hồ thì correctAnswer='', answerSource='MISSING'. Không tự giải đề. Phương án người học chọn không bao giờ là đáp án đúng.
+- Phân biệt 4 trường hợp lựa chọn và đáp án trên cả ảnh chụp web/PDF lẫn ảnh chụp đề giấy (vì mọi câu trong input đều là câu người học đã làm SAI hoặc bỏ trống):
+  1) Đã chọn & đã chấm/sửa (2 dấu trên web hoặc giấy): trên web có phương án người học chọn (màu đỏ, dấu ✗, 'Bạn chọn') và phương án đúng (màu xanh lá, dấu ✓, 'Đáp án đúng'); trên giấy có 1 phương án khoanh gốc/bị gạch ✗ và 1 phương án sửa bút đỏ/dấu ✓/mũi tên/ghi chú Key → userChoice='A'..'D', correctAnswer='(A) ...', answerSource='PROVIDED'.
+  2) Chỉ chọn 1 đáp án, CHƯA SỬA / chưa chấm đáp án đúng (1 dấu trên web hoặc giấy): trên câu đó chỉ có DUY NHẤT 1 phương án được chọn/khoanh/tô (trên web: 1 nút radio/ô được chọn khi đang làm bài hoặc trang chưa hiện đáp án đúng; trên giấy: chỉ khoanh/tô/gạch 1 chữ cái bằng bút chì hoặc bút bi mà không có nhãn 'Key:'/'Đáp án:' hay dấu ✓ chấm đúng) → gán thẳng chữ cái đó vào userChoice='A'..'D', để correctAnswer='', answerSource='MISSING'.
+  3) Bỏ trống / Không chọn câu nào trên trang ĐÃ CHẤM (web hoặc giấy): trang web ghi rõ 'Chưa trả lời'/'Bỏ qua'/'Không chọn'/'Unanswered'/'Skipped', hoặc trang web/giấy đã chấm hiển thị rõ đáp án đúng (màu xanh lá/dấu ✓/bút đỏ ghi Key) nhưng không có phương án nào được người học chọn/khoanh → userChoice='BLANK', correctAnswer='(A) ...', answerSource='PROVIDED'.
+  4) Đề sạch chưa đánh dấu (0 dấu trên trang web/PDF đề gốc hoặc trang sách giấy trắng): cả 4 phương án đều không có dấu chọn và không có đáp án đúng ( hoặc dấu vết quá mờ không xác định được chữ cái nào) → userChoice='', correctAnswer='', answerSource='MISSING'; vẫn chép đầy đủ question, options, context. Không tự giải đề. Phương án người học chọn không bao giờ là đáp án đúng.
 - Người học có thể gửi tất cả ảnh của MỘT nhóm Part 3/4/6/7 chung trong cùng một dãy ảnh (ví dụ trang bài đọc rồi trang câu hỏi, hoặc 1 trang gộp cả hai):
   tự nhận diện đâu là đoạn văn/transcript và đâu là câu hỏi thuộc các số câu yêu cầu.
 - Nếu input có nhãn PASSAGE_IMAGES rồi QUESTION_IMAGES: các ảnh sau PASSAGE_IMAGES là đoạn văn/transcript của MỘT nhóm câu
