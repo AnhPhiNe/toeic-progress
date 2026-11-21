@@ -359,6 +359,7 @@ export function patchItem(id: string, patch: Partial<Pick<CaptureItem, 'draft' |
   set({ items: state.items.map(item => item.id === id ? { ...item, ...patch } : item) });
 }
 export function removeItem(id: string) { set({ items: state.items.filter(item => item.id !== id) }); }
+export function removeUncheckedItems() { set({ items: state.items.filter(item => item.checked) }); }
 /** Back to the screenshots, keeping them so more can be added. */
 export function backToInput() { solvingCount = 0; set({ phase: 'input', items: [], failures: [], error: '', note: '', restored: false, unsent: 0, solving: false, images: state.images.map(image => ({ ...image, status: 'waiting' as const })) }); }
 

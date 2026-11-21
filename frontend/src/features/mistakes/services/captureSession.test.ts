@@ -6,7 +6,7 @@ vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.g
 vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => 'owner-1' }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
 
-import { __resetCaptureForTests, addFiles, captureState, COMPRESSED_NOTE, retryFailure, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
+import { __resetCaptureForTests, addFiles, captureState, COMPRESSED_NOTE, removeUncheckedItems, retryFailure, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
 
 const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 'Q ___', question: 'Q ___', context: '', userMistake: '', correctAnswer: '(B) b',
   trapTip: '', options: ['(A) a', '(B) b', '(C) c', '(D) d'], tags: [], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
@@ -157,6 +157,9 @@ describe('capture session', () => {
     expect(q157.draft.correctAnswer).toBe('(B) b');
     expect(q157.checked).toBe(true);
     expect(captureState().solving).toBe(false);
+    // Bulk delete unchecked items (e.g. right-answered Q156) in one click.
+    removeUncheckedItems();
+    expect(captureState().items.map(item => item.number)).toEqual([155, 157]);
   });
 
   it('surfaces a clear non-blocking note when immediate solving fails instead of failing silently', async () => {

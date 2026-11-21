@@ -44,9 +44,8 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: 
               <div className="cap-chips">
                 {isRight ? (
                   <>
-                    <span className="is-ok">bạn chọn {choice}</span>
-                    <span className="is-ok">{item.draft.answerSource === 'AI_PROPOSED' ? `Sóc giải ${answer}` : `đúng ${answer}`}</span>
-                    <span className="is-right-tag">✓ Làm đúng</span>
+                    <span className="is-ok">✓ Làm đúng · bạn chọn {choice} ({item.draft.answerSource === 'AI_PROPOSED' ? `Sóc giải ${answer}` : `đúng ${answer}`})</span>
+                    {!item.checked && <em className="cap-right-hint">Không tự lưu</em>}
                   </>
                 ) : (
                   <>
@@ -75,7 +74,10 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: 
               {why && <p className="cap-why"><b>{isRight ? 'Giải thích:' : 'Sai vì:'}</b> {why}</p>}
               {open && <RowEditor item={item} onClose={() => setEditing(null)} onPatch={patch => onPatch(item.id, patch)} onRemove={() => { setEditing(null); onRemove(item.id); }} />}
             </div>
-            <button type="button" className="cap-link" aria-expanded={open} aria-label={`Sửa câu ${item.number}`} onClick={() => setEditing(open ? null : item.id)}>{open ? 'Đóng' : 'Sửa'}</button>
+            <div className="cap-row-acts">
+              <button type="button" className="cap-link" aria-expanded={open} aria-label={`Sửa câu ${item.number}`} onClick={() => setEditing(open ? null : item.id)}>{open ? 'Đóng' : 'Sửa'}</button>
+              <button type="button" className="cap-del" aria-label={`Xóa câu ${item.number}`} title="Bỏ câu này" onClick={() => { if (open) setEditing(null); onRemove(item.id); }}>×</button>
+            </div>
           </li>
         );
       })}

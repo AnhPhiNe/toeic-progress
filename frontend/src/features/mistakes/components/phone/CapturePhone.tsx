@@ -13,7 +13,7 @@ import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/Ca
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
-import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, replaceImageFile, resetCapture, retryFailure,
+import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
   setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
@@ -242,6 +242,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           {state.items.length > 0 && (
             <div className="pc-foot is-light">
               {state.items.length > 1 && <button type="button" className="pc-all" onClick={() => setAllChecked(checked.length < state.items.length)}>{checked.length < state.items.length ? 'Tick tất cả' : 'Bỏ tick tất cả'}</button>}
+              {state.items.length > checked.length && <button type="button" className="pc-all" onClick={removeUncheckedItems}>Xóa {state.items.length - checked.length} câu chưa tick</button>}
               {!checked.length && state.items.every(item => isRightAnswer(item.draft))
                 ? <button type="button" className="pc-send" onClick={backToInput}>Xong · Chụp trang khác</button>
                 : <button type="button" className="pc-send" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>}

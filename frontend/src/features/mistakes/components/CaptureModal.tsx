@@ -13,7 +13,7 @@ import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } f
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
-import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, replaceImageFile, resetCapture, retryFailure,
+import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
   setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
@@ -249,6 +249,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="cap-foot">
             <span className="cap-foot-note">Bỏ tick câu nào không muốn lưu.
               {state.items.length > 1 && <> <button type="button" className="cap-link is-quiet" onClick={() => setAllChecked(checked.length < state.items.length)}>{checked.length < state.items.length ? 'Tick tất cả' : 'Bỏ tick tất cả'}</button></>}
+              {state.items.length > checked.length && <> · <button type="button" className="cap-link is-danger" onClick={removeUncheckedItems}>Xóa {state.items.length - checked.length} câu chưa tick</button></>}
             </span>
             {!checked.length && state.items.length > 0 && state.items.every(item => isRightAnswer(item.draft))
               ? <button type="button" className="rd-btn rd-btn--pink" onClick={backToInput}>Xong · Chụp trang khác</button>
