@@ -1,0 +1,40 @@
+/* PC Fast-Capture bar (Clipboard 1-click + opt-in Zalo-style Screenshots watcher) */
+.ssb { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; font-family: var(--rd-font); }
+.ssb-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.ssb-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 99px; padding: 6px 12px; font-weight: 900; font-size: 12.5px; background: #fff; color: #3d4841; box-shadow: inset 0 0 0 1.5px #dfe3e0; cursor: pointer; transition: background .12s, box-shadow .12s; }
+.ssb-btn:hover:not(:disabled) { background: #f8faf8; box-shadow: inset 0 0 0 1.5px #c5cdc8; }
+.ssb-btn:disabled { opacity: .5; cursor: default; }
+.ssb-btn.is-clip { background: #eef7ff; color: #1562a8; box-shadow: inset 0 0 0 1.5px #c5e1fa; }
+.ssb-btn.is-clip:hover:not(:disabled) { background: #e1f1ff; }
+.ssb-btn.is-reauth { background: #fff8e1; color: #8a5e00; box-shadow: inset 0 0 0 1.5px #f5d87f; }
+
+.ssb-watch { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 99px; padding: 5px 12px; background: #eef9f0; box-shadow: inset 0 0 0 1.5px #cbead0; font-weight: 800; font-size: 12px; color: #246b36; }
+.ssb-watch b { font-weight: 900; }
+.ssb-dot { width: 7px; height: 7px; border-radius: 50%; background: #2f9e4a; flex: none; }
+.ssb-lnk { display: inline-flex; align-items: center; gap: 3px; border: 0; background: none; padding: 1px 3px; font-weight: 900; font-size: 12px; color: #1b7333; cursor: pointer; }
+.ssb-lnk:hover:not(:disabled) { text-decoration: underline; }
+.ssb-lnk.is-muted { color: #7a857e; }
+
+.ssb-info { border-radius: 16px; background: #f6faf7; box-shadow: inset 0 0 0 1.5px #d4ead8; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ssb-info-t { display: flex; align-items: flex-start; gap: 8px; font-weight: 700; font-size: 12.5px; line-height: 1.45; color: #3c4a40; }
+.ssb-info-t b { font-weight: 900; color: #233028; }
+.ssb-info-acts { display: flex; align-items: center; gap: 10px; }
+.ssb-go { border: 0; border-radius: 12px; padding: 6px 13px; background: var(--rd-pink, #ff7a9c); color: #fff; font-weight: 900; font-size: 12.5px; cursor: pointer; box-shadow: 0 3px 0 #d64570; }
+.ssb-go:hover:not(:disabled) { filter: brightness(1.04); }
+.ssb-go:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #d64570; }
+.ssb-go:disabled { opacity: .45; cursor: default; }
+
+.ssb-notice { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-radius: 12px; background: #f5f6f5; padding: 6px 10px; font-weight: 700; font-size: 12px; color: #5c675f; }
+.ssb-notice button { border: 0; background: none; color: inherit; cursor: pointer; display: grid; place-items: center; padding: 2px; }
+
+.ssb-tray { border-radius: 18px; background: #fff9fb; box-shadow: inset 0 0 0 2px #ffc8d7; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ssb-tray-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; font-size: 12.5px; color: #7a4b5c; }
+.ssb-tray-head b { font-weight: 900; color: #b8335c; }
+.ssb-thumbs { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.ssb-th { flex: none; width: 72px; height: 58px; border-radius: 11px; overflow: hidden; box-shadow: 0 0 0 2px #e6dfe2; opacity: .55; transition: opacity .12s, box-shadow .12s; }
+.ssb-th.is-on { opacity: 1; box-shadow: 0 0 0 2.5px var(--rd-pink, #ff7a9c); }
+.ssb-th button { position: relative; width: 100%; height: 100%; padding: 0; border: 0; background: #fff; cursor: pointer; display: block; }
+.ssb-th img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.ssb-ck { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 6px; background: rgba(255, 255, 255, .92); box-shadow: inset 0 0 0 1.5px #cfd4d1; color: #fff; font-weight: 900; font-size: 11px; display: grid; place-items: center; }
+.ssb-th.is-on .ssb-ck { background: var(--rd-pink, #ff7a9c); box-shadow: none; }
+.ssb-tray-foot { display: flex; justify-content: flex-end; }

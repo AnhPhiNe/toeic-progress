@@ -8,6 +8,7 @@ import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
 import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
 import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, QUESTIONS_PER_REQUEST, isRightAnswer, isUnreadable, mergeItems,
   remainingQuestions, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
+import { ALL_QUESTIONS } from '@/features/mistakes/lib/captureContext';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { isGroupedPart, type ReadRequest } from '@/features/mistakes/lib/wrongDetail';
@@ -15,8 +16,9 @@ import * as aiService from './aiMistakeExtractor';
 import type { AIMistakeParseResult, AIUsage, PageRejectionReason } from './aiMistakeExtractor';
 
 /**
- * One "Chụp trang chữa bài" capture of one Part: screenshots or paper photos, the readings and
- * the review list. It lives outside React so closing the dialog does not stop a reading: the learner is told when done.
+ * One "Chụp trang chữa bài" capture session: supports instant Auto-Part detection, explicit Part/group selection,
+ * and queueing multiple batches in parallel while staging the next set of photos. Lives outside React so closing
+ * the dialog never cancels in-flight readings.
  */
 export type CaptureImageStatus = 'waiting' | 'reading' | 'done' | 'failed';
 export type CaptureZone = 'passage' | 'questions';
@@ -24,13 +26,13 @@ export type CaptureZone = 'passage' | 'questions';
 export interface CaptureImage { id: string; name: string; url: string; zone: CaptureZone; status: CaptureImageStatus }
 export interface CaptureFailure { id: string; imageIds: string[]; questions: number[]; message: string }
 export type CapturePhase = 'input' | 'reading' | 'review';
-export type CapturePart = PartNumber;
+export type CapturePart = PartNumber | 'auto';
 
 export interface CaptureState {
   phase: CapturePhase;
   testName: string;
-  /** The Part the screenshots are from; chosen first. */
-  part: CapturePart | null;
+  /** The Part the screenshots are from (`'auto'` detects Part from question numbers 1–200 automatically). */
+  part: CapturePart;
   /** Part 3/4/6/7 with a logged wrong list: the passage/audio group being captured. */
   group: number | null;
   images: CaptureImage[];
@@ -51,6 +53,12 @@ export interface CaptureState {
   requestsDone: number;
   /** True while Sóc is independently solving and verifying extracted questions before review. */
   solving: boolean;
+  /** Number of queued background batches currently reading/solving. */
+  activeJobs: number;
+  /** Number of queued background batches that finished in this sitting. */
+  completedJobs: number;
+  /** Total images currently being read across queued background batches. */
+  queuedImagesCount: number;
   usage: AIUsage | null;
   /** The reading finished while the dialog was closed. */
   finishedInBackground: boolean;
@@ -71,8 +79,8 @@ export const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đ
 /** Up to three readings of one capture run in parallel against OpenAI. */
 const PARALLEL_READS = 3;
 const DRAFT_SCOPE = 'capture:review';
-const blank = (): CaptureState => ({ phase: 'input', testName: '', part: null, group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
-  error: '', note: '', requestsTotal: 0, requestsDone: 0, solving: false, usage: null, finishedInBackground: false, restored: false });
+const blank = (): CaptureState => ({ phase: 'input', testName: '', part: 'auto', group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
+  error: '', note: '', requestsTotal: 0, requestsDone: 0, solving: false, activeJobs: 0, completedJobs: 0, queuedImagesCount: 0, usage: null, finishedInBackground: false, restored: false });
 
 let state: CaptureState = blank();
 let owner: string | null = getActiveAccountId();
@@ -98,9 +106,9 @@ const parseDraft = (input: unknown) => { const parsed = draftSchema.safeParse(in
 
 function persist() {
   if (getActiveAccountId() !== owner) return;
-  if (state.phase === 'review' && state.items.length) {
+  if (state.items.length) {
     writeFormDraft(DRAFT_SCOPE, { testName: state.testName, items: state.items.map(({ ticket: _ticket, ...item }) => item) }, owner);
-  } else if (state.phase === 'input' && !state.items.length) removeFormDraft(DRAFT_SCOPE, owner);
+  } else if (state.phase === 'input' && !state.activeJobs) removeFormDraft(DRAFT_SCOPE, owner);
 }
 
 const release = (images: readonly CaptureImage[]) => images.forEach(image => {
@@ -122,7 +130,7 @@ export function openCapture() {
   checkOwner();
   viewing = true;
   if (state.finishedInBackground) set({ finishedInBackground: false });
-  if (restoreTried || state.items.length || state.images.length || state.phase !== 'input') return;
+  if (restoreTried || state.items.length || state.images.length || state.activeJobs || state.phase !== 'input') return;
   restoreTried = true;
   const record = readFormDraft(DRAFT_SCOPE, parseDraft, owner);
   if (!record || !record.value.items.length) return;
@@ -133,21 +141,17 @@ export function openCapture() {
 }
 
 export function closeCapture() { viewing = false; }
-export const isReading = () => state.phase === 'reading';
+export const isReading = () => state.phase === 'reading' || state.activeJobs > 0;
 
 export function setTestName(testName: string) { set({ testName }); }
 /** Choosing or switching the Part keeps staged photos intact so accidental mis-picks never lose uploads. */
 export function setPart(part: CapturePart | null) {
-  if (part === state.part) return;
-  if (part === null) {
-    release(state.images);
-    set({ part: null, group: null, images: [], overflow: false, error: '', note: '' });
-    return;
-  }
-  const normalizedImages = isGroupedPart(part)
+  const nextPart: CapturePart = part ?? 'auto';
+  if (nextPart === state.part) return;
+  const normalizedImages = nextPart !== 'auto' && isGroupedPart(nextPart)
     ? state.images
     : state.images.map(image => image.zone === 'questions' ? image : { ...image, zone: 'questions' as const });
-  set({ part, group: null, images: normalizedImages, overflow: false, error: '', note: '' });
+  set({ part: nextPart, group: null, images: normalizedImages, overflow: false, error: '', note: '' });
 }
 export function setGroup(group: number | null) {
   if (group === state.group) return;
@@ -167,17 +171,16 @@ export function moveImage(id: string, delta: -1 | 1) {
 
 /** Cancel an in-flight reading and return to Step 1 with staged images intact. */
 export function cancelReading() {
-  if (state.phase !== 'reading') return;
+  if (state.phase !== 'reading' && state.activeJobs === 0) return;
   epoch += 1;
   solvingCount = 0;
   set({
     phase: 'input',
-    items: [],
-    failures: [],
-    rejectionReasons: [],
     error: '',
     note: '',
     solving: false,
+    activeJobs: 0,
+    queuedImagesCount: 0,
     requestsTotal: 0,
     requestsDone: 0,
     images: state.images.map(image => ({ ...image, status: 'waiting' as const }))
@@ -202,7 +205,7 @@ export function addFiles(picked: File[], zone: CaptureZone = 'questions') {
   checkOwner();
   const images = picked.filter(file => file.type.startsWith('image/'));
   if (!images.length) return;
-  const target: CaptureZone = state.part && isGroupedPart(state.part) ? zone : 'questions';
+  const target: CaptureZone = state.part !== 'auto' && isGroupedPart(state.part) ? zone : 'questions';
   const roomTotal = MAX_CAPTURE_IMAGES - state.images.length;
   const roomZone = target === 'passage' ? CONTEXT_PER_REQUEST - state.images.filter(image => image.zone === 'passage').length : roomTotal;
   const accepted = images.slice(0, Math.max(0, Math.min(roomTotal, roomZone)));
@@ -220,20 +223,48 @@ export function removeImage(id: string) {
 }
 
 const questionList = (numbers: number[]) => numbers.map(number => ({ number, part: partOfQuestion(number) ?? 5 }));
+const appendNote = (prev: string, extra: string) => (!extra || prev.includes(extra)) ? prev : prev ? `${prev} ${extra}` : extra;
+
+interface BatchOptions {
+  part: CapturePart;
+  group: number | null;
+  photoMode: boolean;
+  passageFiles: File[];
+  questionFiles: File[];
+  imageIds: string[];
+  ctx: CaptureContext;
+  mine: number;
+  background: boolean;
+}
 
 /** One reading. A failure never stops the others: it is listed and can be tried again inside the same capture. */
-async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[], mine: number): Promise<void> {
+async function readOnce(
+  request: ReadRequest<PreparedImage>,
+  imageIds: string[],
+  mine: number,
+  photoMode: boolean,
+  getToken: () => Promise<string>,
+  onFound?: (count: number) => void,
+  onFailed?: () => void
+): Promise<void> {
   const current = () => mine === epoch && getActiveAccountId() === owner;
   const ids = new Set(imageIds);
-  const mark = (status: CaptureImageStatus) => { state = { ...state, images: state.images.map(image => ids.has(image.id) ? { ...image, status } : image) }; emit(); };
+  const mark = (status: CaptureImageStatus) => {
+    if (!imageIds.length || !state.images.some(image => ids.has(image.id))) return;
+    state = { ...state, images: state.images.map(image => ids.has(image.id) ? { ...image, status } : image) };
+    emit();
+  };
   const remaining = remainingQuestions(request.questions, state.items);
   if (!remaining.length) { mark('done'); return; }
   mark('reading');
+  if (requestsUsed >= MAX_CAPTURE_REQUESTS) { batchId = generateUUID(); requestsUsed = 0; }
+  const activeBatchId = batchId;
   requestsUsed += 1;
   try {
-    const result = await aiService.extractPageWithAI(questionList(remaining), request.images, context!.getToken, owner, current, batchId,
-      request.contextImages, request.slices, state.photoMode ? { photoMode: true } : undefined);
+    const result = await aiService.extractPageWithAI(questionList(remaining), request.images, getToken, owner, current, activeBatchId,
+      request.contextImages, request.slices, photoMode ? { photoMode: true } : undefined);
     if (!current()) return;
+    if (result.items.length) onFound?.(result.items.length);
     const items = mergeItems(state.items, result.items, result.explainTicket, generateUUID);
     const seenNumbers = new Set(items.map(item => item.number));
     const reasons = [...state.rejectionReasons, ...(result.rejectionReasons ?? [])].filter(r => r.number === null || !seenNumbers.has(r.number));
@@ -243,7 +274,6 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
     // - ungraded (0/1-mark) questions get "Sóc giải X" & right answers show as green "✓ Làm đúng" (unticked)
     // - graded (2-mark) questions get cross-checked against Sóc's own answer (surfacing `answerDoubt` if they disagree)
     // - saving skips a redundant second explain-batch call for already-explained cards.
-    const appendNote = (prev: string, extra: string) => (!extra || prev.includes(extra)) ? prev : prev ? `${prev} ${extra}` : extra;
     if (result.explainTicket && typeof aiService.explainBatchWithAI === 'function') {
       const toSolve = result.items.filter(entry => {
         const part = (partOfQuestion(entry.number) ?? 5) as CaptureItem['part'];
@@ -305,10 +335,13 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
     }
     // A reading returns at most six questions. A wide one (many questions at once) that filled up asks again for the rest.
     if (remaining.length > QUESTIONS_PER_REQUEST && result.items.length >= QUESTIONS_PER_REQUEST && requestsUsed < MAX_CAPTURE_REQUESTS
-      && remainingQuestions(request.questions, state.items).length) await readOnce(request, imageIds, mine);
+      && remainingQuestions(request.questions, state.items).length) {
+      await readOnce(request, imageIds, mine, photoMode, getToken, onFound, onFailed);
+    }
   } catch (reason) {
     if (!current()) return;
     mark('failed');
+    onFailed?.();
     const message = reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại.';
     const failure: CaptureFailure = { id: generateUUID(), imageIds, questions: request.questions, message };
     failed.set(failure.id, request);
@@ -317,12 +350,19 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
 }
 
 /** Runs the readings, up to PARALLEL_READS at a time, as one batch (one AI use). */
-async function runAll(jobs: { request: ReadRequest<PreparedImage>; imageIds: string[] }[], mine: number) {
+async function runAll(
+  jobs: { request: ReadRequest<PreparedImage>; imageIds: string[] }[],
+  mine: number,
+  photoMode: boolean,
+  getToken: () => Promise<string>,
+  onFound?: (count: number) => void,
+  onFailed?: () => void
+) {
   let next = 0;
   const worker = async () => {
     while (next < jobs.length && mine === epoch) {
       const job = jobs[next++];
-      await readOnce(job.request, job.imageIds, mine);
+      await readOnce(job.request, job.imageIds, mine, photoMode, getToken, onFound, onFailed);
       if (mine !== epoch) return;
       set({ requestsDone: state.requestsDone + 1 });
     }
@@ -330,43 +370,101 @@ async function runAll(jobs: { request: ReadRequest<PreparedImage>; imageIds: str
   await Promise.all(Array.from({ length: Math.min(PARALLEL_READS, jobs.length) }, worker));
 }
 
-export async function startReading(ctx: CaptureContext) {
-  checkOwner();
-  if (state.phase === 'reading' || !state.images.length || !state.testName || !state.part) return;
-  context = ctx; requestsUsed = 0; solvingCount = 0; batchId = generateUUID(); failed.clear();
-  const mine = ++epoch;
-  const passage = state.images.filter(image => image.zone === 'passage'), questions = state.images.filter(image => image.zone === 'questions');
-  set({ phase: 'reading', error: '', note: '', failures: [], rejectionReasons: [], items: [], restored: false, requestsTotal: 0, requestsDone: 0, solving: false, finishedInBackground: false, unsent: 0,
-    images: state.images.map(image => ({ ...image, status: 'waiting' as const })) });
-  try {
-    const fileOf = (image: CaptureImage) => files.get(image.id)!;
-    const buildPlan = (targetQuestions: number[]) => isGroupedPart(state.part!)
-      ? prepareGroup(passage.map(fileOf), questions.map(fileOf), targetQuestions, ctx.contextSupported !== false)
-      : prepareSingles(questions.map(fileOf), targetQuestions);
-    const plan = await buildPlan(ctx.questions);
-    if (mine !== epoch) return;
-    if (plan.error || !plan.requests.length) { set({ phase: 'input', error: plan.error || 'Không còn câu sai nào để tìm trong ảnh.' }); return; }
-    set({ requestsTotal: plan.requests.length, note: plan.split ? SPLIT_NOTE : plan.compressed ? COMPRESSED_NOTE : '' });
-    const allIds = state.images.map(image => image.id);
-    await runAll(plan.requests.map(request => ({ request, imageIds: allIds })), mine);
-    if (mine !== epoch) return;
-    // General fallback for Parts 1–7: when the learner did not lock onto a specific passage group and the narrow
-    // logged list found 0 questions on the uploaded photo, automatically expand to the entire Part in the same batch.
-    if (state.part && state.group === null && state.items.length === 0 && state.failures.length === 0 && requestsUsed < MAX_CAPTURE_REQUESTS) {
-      const fullPart = questionsOfPart(state.part);
-      const narrow = new Set(ctx.questions);
-      if (fullPart.some(number => !narrow.has(number))) {
-        const widePlan = await buildPlan(fullPart);
-        if (mine !== epoch) return;
-        if (!widePlan.error && widePlan.requests.length) {
-          set({
-            requestsTotal: state.requestsDone + widePlan.requests.length,
-            images: state.images.map(image => ({ ...image, status: 'waiting' as const }))
-          });
-          await runAll(widePlan.requests.map(request => ({ request, imageIds: allIds })), mine);
-        }
+async function executeBatch(opts: BatchOptions): Promise<boolean> {
+  const { part, group, photoMode, passageFiles, questionFiles, imageIds, ctx, mine, background } = opts;
+  const buildPlan = (targetQuestions: number[]) => {
+    if (part === 'auto') {
+      // Auto-Part mode keeps up to 6 pages together (so multi-page Part 7 passages are never split apart)
+      // without attaching context_images (which the backend restricts to grouped Parts only).
+      return prepareGroup([], [...passageFiles, ...questionFiles], targetQuestions, false);
+    }
+    return isGroupedPart(part)
+      ? prepareGroup(passageFiles, questionFiles, targetQuestions, ctx.contextSupported !== false)
+      : prepareSingles(questionFiles, targetQuestions);
+  };
+  const plan = await buildPlan(ctx.questions);
+  if (mine !== epoch) return false;
+  if (plan.error || !plan.requests.length) {
+    const errMsg = plan.error || 'Không còn câu sai nào để tìm trong ảnh.';
+    if (background) {
+      set({ error: errMsg });
+    } else {
+      set({ phase: 'input', error: errMsg });
+    }
+    return false;
+  }
+  const extraNote = plan.split ? SPLIT_NOTE : plan.compressed ? COMPRESSED_NOTE : '';
+  set({
+    requestsTotal: state.requestsTotal + plan.requests.length,
+    note: appendNote(state.note, extraNote)
+  });
+  let batchFound = 0;
+  let batchFailed = 0;
+  await runAll(
+    plan.requests.map(request => ({ request, imageIds })),
+    mine,
+    photoMode,
+    ctx.getToken,
+    count => { batchFound += count; },
+    () => { batchFailed += 1; }
+  );
+  if (mine !== epoch) return false;
+  // General fallback for Auto-Part & Parts 1–7: when not locked onto a specific passage group and the narrow
+  // logged list found 0 questions on the uploaded photo, automatically expand to the full Part (or all 200) in the same batch.
+  if (group === null && batchFound === 0 && batchFailed === 0 && requestsUsed < MAX_CAPTURE_REQUESTS) {
+    const wideRange = part === 'auto' ? [...ALL_QUESTIONS] : questionsOfPart(part);
+    const narrow = new Set(ctx.questions);
+    if (wideRange.some(number => !narrow.has(number))) {
+      const widePlan = await buildPlan(wideRange);
+      if (mine !== epoch) return false;
+      if (!widePlan.error && widePlan.requests.length) {
+        set({
+          requestsTotal: state.requestsTotal + widePlan.requests.length,
+          ...(background ? {} : { images: state.images.map(image => ({ ...image, status: 'waiting' as const })) })
+        });
+        await runAll(widePlan.requests.map(request => ({ request, imageIds })), mine, photoMode, ctx.getToken);
       }
     }
+  }
+  return mine === epoch;
+}
+
+export async function startReading(ctx: CaptureContext) {
+  checkOwner();
+  if (state.phase === 'reading' || !state.images.length || !state.testName) return;
+  context = ctx;
+  const freshSitting = state.activeJobs === 0 && state.items.length === 0 && state.failures.length === 0;
+  if (freshSitting) {
+    requestsUsed = 0; solvingCount = 0; batchId = generateUUID(); failed.clear();
+  }
+  const mine = freshSitting ? ++epoch : epoch;
+  const staged = state.images;
+  const passageFiles = staged.filter(image => image.zone === 'passage').map(image => files.get(image.id)!);
+  const questionFiles = staged.filter(image => image.zone === 'questions').map(image => files.get(image.id)!);
+  const allIds = staged.map(image => image.id);
+  const snapshotPart = state.part;
+  const snapshotGroup = state.group;
+  const snapshotPhotoMode = state.photoMode;
+  set({
+    phase: 'reading',
+    error: '',
+    ...(freshSitting ? { note: '', failures: [], rejectionReasons: [], items: [], restored: false, requestsTotal: 0, requestsDone: 0, solving: false, completedJobs: 0, unsent: 0 } : {}),
+    finishedInBackground: false,
+    images: staged.map(image => ({ ...image, status: 'waiting' as const }))
+  });
+  try {
+    const ok = await executeBatch({
+      part: snapshotPart,
+      group: snapshotGroup,
+      photoMode: snapshotPhotoMode,
+      passageFiles,
+      questionFiles,
+      imageIds: allIds,
+      ctx,
+      mine,
+      background: false
+    });
+    if (!ok || mine !== epoch) return;
   } catch (reason) {
     if (mine !== epoch) return;
     set({ phase: 'input', error: reason instanceof Error ? reason.message : 'Không đọc được ảnh. Chọn ảnh khác.' });
@@ -374,6 +472,92 @@ export async function startReading(ctx: CaptureContext) {
   }
   if (mine !== epoch) return;
   set({ phase: 'review', finishedInBackground: !viewing });
+}
+
+/**
+ * Queue the currently staged images to read & solve in the background, immediately clearing the tray
+ * so the learner can paste/capture the next passage or Part without waiting 20–30s.
+ */
+export async function queueAndContinue(ctx: CaptureContext, nextGroup: number | null = null) {
+  checkOwner();
+  if (!state.images.length || !state.testName) return;
+  context = ctx;
+  const freshSitting = state.activeJobs === 0 && state.items.length === 0 && state.failures.length === 0 && state.completedJobs === 0;
+  if (freshSitting) {
+    requestsUsed = 0; solvingCount = 0; batchId = generateUUID(); failed.clear();
+  }
+  const mine = epoch;
+  const staged = state.images;
+  const passageFiles = staged.filter(image => image.zone === 'passage').map(image => files.get(image.id)!);
+  const questionFiles = staged.filter(image => image.zone === 'questions').map(image => files.get(image.id)!);
+  const snapshotPart = state.part;
+  const snapshotGroup = state.group;
+  const snapshotPhotoMode = state.photoMode;
+  release(staged);
+  set({
+    phase: 'input',
+    images: [],
+    group: nextGroup,
+    overflow: false,
+    error: '',
+    activeJobs: state.activeJobs + 1,
+    queuedImagesCount: state.queuedImagesCount + staged.length,
+    finishedInBackground: false
+  });
+  try {
+    await executeBatch({
+      part: snapshotPart,
+      group: snapshotGroup,
+      photoMode: snapshotPhotoMode,
+      passageFiles,
+      questionFiles,
+      imageIds: [],
+      ctx,
+      mine,
+      background: true
+    });
+  } catch (reason) {
+    if (mine === epoch) {
+      set({ error: reason instanceof Error ? reason.message : 'Một mẻ ảnh chưa đọc được.' });
+    }
+  } finally {
+    if (mine === epoch) {
+      const nextActive = Math.max(0, state.activeJobs - 1);
+      const nextQueuedImages = Math.max(0, state.queuedImagesCount - staged.length);
+      set({
+        activeJobs: nextActive,
+        completedJobs: state.completedJobs + 1,
+        queuedImagesCount: nextQueuedImages,
+        finishedInBackground: !viewing && nextActive === 0
+      });
+    }
+  }
+}
+
+/** Jump directly from Step 1 to Review to inspect items accumulated by background batches. */
+export function openReview() {
+  checkOwner();
+  if (!state.items.length && !state.failures.length && !state.activeJobs) return;
+  set({ phase: 'review', finishedInBackground: false });
+}
+
+/** Remove saved items (used by "Lưu & chụp tiếp") and return to Step 1 keeping testName and active background jobs. */
+export function clearSavedItems(savedIds: Iterable<string>) {
+  const drop = new Set(savedIds);
+  const remaining = state.items.filter(item => !drop.has(item.id));
+  release(state.images);
+  set({
+    phase: 'input',
+    images: [],
+    items: remaining,
+    failures: [],
+    rejectionReasons: [],
+    restored: false,
+    error: '',
+    note: '',
+    unsent: 0,
+    finishedInBackground: false
+  });
 }
 
 /** Try one failed reading again, still as part of the same capture (no new AI use). */
@@ -384,7 +568,7 @@ export async function retryFailure(failureId: string) {
   const mine = epoch;
   failed.delete(failureId);
   set({ phase: 'reading', requestsTotal: 1, requestsDone: 0, error: '', failures: state.failures.filter(value => value.id !== failureId) });
-  await readOnce(request, failure.imageIds, mine);
+  await readOnce(request, failure.imageIds, mine, state.photoMode, context.getToken);
   if (mine !== epoch) return;
   set({ phase: 'review', requestsDone: 1, finishedInBackground: !viewing });
 }
@@ -396,8 +580,16 @@ export function patchItem(id: string, patch: Partial<Pick<CaptureItem, 'draft' |
 }
 export function removeItem(id: string) { set({ items: state.items.filter(item => item.id !== id) }); }
 export function removeUncheckedItems() { set({ items: state.items.filter(item => item.checked) }); }
-/** Back to the screenshots, keeping them so more can be added. */
-export function backToInput() { solvingCount = 0; set({ phase: 'input', items: [], failures: [], error: '', note: '', restored: false, unsent: 0, solving: false, images: state.images.map(image => ({ ...image, status: 'waiting' as const })) }); }
+/** Back to the screenshots; keepAccumulated=true preserves queued items & background jobs while clearing the tray for the next batch. */
+export function backToInput(keepAccumulated = false) {
+  if (keepAccumulated === true || state.activeJobs > 0) {
+    release(state.images);
+    set({ phase: 'input', images: [], error: '', restored: false, unsent: 0 });
+    return;
+  }
+  solvingCount = 0;
+  set({ phase: 'input', items: [], failures: [], rejectionReasons: [], error: '', note: '', restored: false, unsent: 0, solving: false, images: state.images.map(image => ({ ...image, status: 'waiting' as const })) });
+}
 
 /** Forget the capture: after saving, or when the learner starts over. */
 export function resetCapture() {
@@ -411,4 +603,4 @@ export function resetCapture() {
 export function dismissBackgroundNotice() { if (state.finishedInBackground) set({ finishedInBackground: false }); }
 
 /** Tests only. */
-export function __resetCaptureForTests() { epoch += 1; owner = getActiveAccountId(); viewing = false; restoreTried = false; context = null; failed.clear(); files.clear(); state = blank(); emit(); }
+export function __resetCaptureForTests() { epoch += 1; owner = getActiveAccountId(); viewing = false; restoreTried = false; context = null; requestsUsed = 0; solvingCount = 0; failed.clear(); files.clear(); state = blank(); emit(); }

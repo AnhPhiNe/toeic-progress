@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { ArrowRight, Layers, Loader2 } from 'lucide-react';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
+import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captureBatch';
 import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
@@ -13,7 +15,8 @@ import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/Ca
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
-import { addFiles, backToInput, cancelReading, captureState, closeCapture, getImageFile, moveImage, openCapture, patchItem, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
+import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, openCapture, openReview, patchItem,
+  queueAndContinue, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
   setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
@@ -44,7 +47,7 @@ const SamplePage = ({ bad }: { bad?: boolean }) => (
   <div className={'pc-sample' + (bad ? ' is-bad' : '')} aria-hidden="true">{PAGE_LINES.map((w, i) => <i key={i} style={{ width: `${w}%` }} />)}</div>
 );
 
-/** "Chụp trang chữa bài" on phones: straight to the camera, thumbnails, an on-device clarity check, one send button. */
+/** "Chụp trang chữa bài" on phones: straight to Auto-Part burst camera/gallery, on-device clarity check, continuous batch queue. */
 export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTestName = '', getToken, onClose, onManual, onAddBatch, onUpdate, onSaved }: Props) {
   const state = useSyncExternalStore(subscribeCapture, captureState);
   const [error, setError] = useState('');
@@ -71,7 +74,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
 
   useEffect(() => {
     let cancelled = false;
-    void aiService.getAIConfiguration().then(value => { if (!cancelled) setContextSupported(Boolean(value.pageContextImages)); }).catch(() => {});
+    void aiService.getAIConfiguration().then(value => { if (!cancelled) setContextSupported(value.pageContextImages !== false); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -101,12 +104,22 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const plan = useMemo(() => questionsToFind(sessions, testName, mistakes), [sessions, testName, mistakes]);
   const full = state.images.length >= MAX_CAPTURE_IMAGES;
   const checked = state.items.filter(item => item.checked);
+  const hasQueueStatus = state.activeJobs > 0 || state.items.length > 0 || state.failures.length > 0;
   const problemIndex = state.images.findIndex(image => clarity[image.id]?.problem);
   const problem = problemIndex >= 0 ? clarity[state.images[problemIndex].id]!.problem! : null;
   const message = problem ? clarityMessage(problemIndex + 1, problem) : null;
-  const groupRange = state.part && isGroupedPart(state.part) && state.group
-    ? suggestGroups(state.part, plan.logged ? plan.questions : [state.group], state.part === 7 ? customPart7Ranges : undefined).find(item => item.from === state.group) ?? null
-    : null;
+  const partGroups = useMemo(() => {
+    if (state.part === 'auto' || !isGroupedPart(state.part)) return [];
+    const loggedInPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === state.part) : [];
+    const seeds = loggedInPart.length ? loggedInPart : state.group ? [state.group] : [];
+    return seeds.length ? suggestGroups(state.part, seeds, state.part === 7 ? customPart7Ranges : undefined) : [];
+  }, [state.part, state.group, plan, customPart7Ranges]);
+  const groupRange = state.group ? partGroups.find(item => item.from === state.group) ?? null : null;
+  const nextGroup = useMemo(() => {
+    if (!partGroups.length || state.group === null) return null;
+    const idx = partGroups.findIndex(item => item.from === state.group);
+    return idx >= 0 && idx + 1 < partGroups.length ? partGroups[idx + 1].from : null;
+  }, [partGroups, state.group]);
   const editingFile = editingId ? getImageFile(editingId) : undefined;
   const editPart7Range = (oldFrom: number, from: number, to: number): string | null => {
     const res = updatePart7Range(customPart7Ranges, oldFrom, from, to);
@@ -119,12 +132,18 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const retake = () => { if (problemIndex >= 0) removeImage(state.images[problemIndex].id); };
   const closeTips = () => { markTipsSeen(); setTips(false); };
   const send = () => {
-    if (!state.images.length || !testName || !state.part) return;
+    if (!state.images.length || !testName) return;
     setError('');
     void startReading({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported });
   };
 
-  const save = () => {
+  const sendAndContinue = () => {
+    if (!state.images.length || !testName) return;
+    setError('');
+    void queueAndContinue({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported }, nextGroup);
+  };
+
+  const saveItems = (keepOpen: boolean) => {
     if (saving || !checked.length) return;
     if (getActiveAccountId() !== owner) { setError('Tài khoản đã thay đổi. Chưa lưu câu sai.'); return; }
     if (!testName) { setError('Chọn hoặc thêm tên đề trước khi lưu.'); return; }
@@ -132,9 +151,15 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
     try {
       const sessionId = plan.logged && testNameKey(testName) === testNameKey(state.testName) ? plan.sessionId : undefined;
       const result = saveCaptureItems(state.items, { testName, sessionId, existing: mistakes, onAddBatch, onUpdate });
-      resetCapture(); closeCapture();
-      onSaved(`Đã lưu ${result.saved} câu sai${result.explanationsQueued ? '' : '. Chưa xếp được lời giải AI; bạn có thể mở thẻ để bổ sung.'}`);
-      onClose();
+      const msg = `Đã lưu ${result.saved} câu sai${result.explanationsQueued ? '' : '. Chưa xếp được lời giải AI; bạn có thể mở thẻ để bổ sung.'}`;
+      if (keepOpen || state.activeJobs > 0) {
+        clearSavedItems(checked.map(item => item.id));
+        onSaved(msg);
+      } else {
+        resetCapture(); closeCapture();
+        onSaved(msg);
+        onClose();
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Chưa lưu được các câu sai. Bản nháp vẫn được giữ; hãy thử lại.');
     } finally { setSaving(false); }
@@ -159,6 +184,24 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             <b>Chụp trang chữa bài</b>
             <button type="button" className="pc-i" aria-label="Mẹo chụp rõ" onClick={() => setTips(true)}>i</button>
           </div>
+          {hasQueueStatus && (
+            <div className="pc-queue" role="status" aria-live="polite">
+              {state.activeJobs > 0
+                ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#7c5ce0]" aria-hidden="true" />
+                : <Layers className="h-4 w-4 shrink-0 text-[#d64570]" aria-hidden="true" />}
+              <span>
+                {state.activeJobs > 0
+                  ? <><b>Đang đọc {state.activeJobs} mẻ</b> ({state.queuedImagesCount} ảnh){state.items.length > 0 ? ` · ${state.items.length} câu` : ''}</>
+                  : state.items.length > 0
+                    ? <><b>Đã xong {state.items.length} câu</b> chờ soát</>
+                    : <><b>Có {state.failures.length} ảnh</b> cần thử lại</>}
+              </span>
+              <button type="button" onClick={openReview}>
+                <span>Soát</span>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <div className="pc-test"><TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} /></div>
           <div className="pc-part">
             <CapturePartInput phone part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
@@ -176,11 +219,16 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           )}
           {(error || state.error) && <p role="alert" className="pc-err">{error || state.error}</p>}
           {(state.overflow || full) && <p className="pc-err" role="status">Mỗi lần gửi tối đa {MAX_CAPTURE_IMAGES} ảnh.</p>}
-          <div className="pc-foot is-row">
-            <button type="button" className="pc-side is-light" onClick={() => { closeCapture(); onManual(); }}>Tự gõ</button>
-            <button type="button" className="pc-send" disabled={!state.images.length || !testName || !state.part} onClick={send}>
-              {!state.part ? 'Chọn Part trước' : state.images.length && !testName ? 'Chọn đề trước khi gửi' : state.images.length ? `Gửi Sóc đọc ${state.images.length} ảnh · 1 lượt AI` : 'Chụp ít nhất một ảnh'}
-            </button>
+          <div className="pc-foot">
+            {state.images.length > 0 && Boolean(testName) && (
+              <button type="button" className="pc-queue-go" onClick={sendAndContinue}>Gửi &amp; chụp tiếp ›</button>
+            )}
+            <div className="pc-foot-row">
+              <button type="button" className="pc-side is-light" onClick={() => { closeCapture(); onManual(); }}>Tự gõ</button>
+              <button type="button" className="pc-send" disabled={!state.images.length || !testName} onClick={send}>
+                {state.images.length && !testName ? 'Chọn đề trước khi gửi' : state.images.length ? `Gửi Sóc đọc ${state.images.length} ảnh · 1 lượt AI` : 'Chụp ít nhất một ảnh'}
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -216,6 +264,12 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             <b>{state.items.length ? (state.items.some(item => isRightAnswer(item.draft)) ? `Soát ${state.items.length} câu đã đọc` : `Soát ${state.items.length} câu sai`) : 'Kết quả đọc ảnh'}</b>
           </div>
           <div className="pc-rev">
+            {state.activeJobs > 0 && (
+              <div className="pc-queue is-rev" role="status" aria-live="polite">
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#7c5ce0]" aria-hidden="true" />
+                <span><b>Sóc đang đọc nền {state.activeJobs} mẻ</b> ({state.queuedImagesCount} ảnh) — câu mới sẽ tự hiện thêm.</span>
+              </div>
+            )}
             {state.restored && <p className="pc-note" role="status">Đã khôi phục các câu bạn chưa lưu lần trước.</p>}
             {state.note && <p className="pc-note">{state.note}</p>}
             {failureGroups.map(group => (
@@ -227,12 +281,12 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             {state.unsent > 0 && <p className="pc-note" role="status">{state.unsent} ảnh chưa được gửi, gửi ở lần chụp sau.</p>}
             {state.items.length > 0 ? (
               <ReviewList items={state.items} onToggle={toggleItem} onPatch={patchItem} onRemove={removeItem} />
-            ) : !state.failures.length && (
+            ) : !state.failures.length && state.activeJobs === 0 && (
               <div className="pc-none">
                 <Soc state="idle" size={110} />
                 <h3>Sóc chưa thấy câu sai nào trong ảnh</h3>
                 <p>{state.rejectionReasons[0]?.detail || 'Kiểm tra lại đề, hoặc chụp trang có đánh dấu câu sai rõ hơn.'}</p>
-                <button type="button" className="pc-send is-light" onClick={backToInput}>Thử ảnh khác</button>
+                <button type="button" className="pc-send is-light" onClick={() => backToInput(false)}>Thử ảnh khác</button>
               </div>
             )}
             {state.items.length > 0 && state.rejectionReasons.length > 0 && (
@@ -245,13 +299,20 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           {state.items.length > 0 && (
             <div className="pc-foot is-light">
               <div className="pc-foot-tools">
-                <button type="button" className="pc-all" onClick={backToInput}>← Chụp lại</button>
+                <button type="button" className="pc-all" onClick={() => backToInput(true)}>+ Chụp thêm</button>
                 {state.items.length > 1 && <button type="button" className="pc-all" onClick={() => setAllChecked(checked.length < state.items.length)}>{checked.length < state.items.length ? 'Tick tất cả' : 'Bỏ tick tất cả'}</button>}
                 {state.items.length > checked.length && <button type="button" className="pc-all is-danger" onClick={removeUncheckedItems}>Xóa {state.items.length - checked.length} câu chưa tick</button>}
               </div>
               {!checked.length && state.items.every(item => isRightAnswer(item.draft))
-                ? <button type="button" className="pc-send" onClick={backToInput}>Xong · Chụp trang khác</button>
-                : <button type="button" className="pc-send" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>}
+                ? <button type="button" className="pc-send" onClick={() => backToInput(false)}>Xong · Chụp trang khác</button>
+                : (
+                  <div className="pc-rev-acts">
+                    {checked.length > 0 && (
+                      <button type="button" className="pc-send is-light is-half" disabled={saving} onClick={() => saveItems(true)}>Lưu &amp; chụp tiếp</button>
+                    )}
+                    <button type="button" className="pc-send" disabled={!checked.length || saving} onClick={() => saveItems(false)}>Lưu {checked.length} câu vào Sổ tay</button>
+                  </div>
+                )}
             </div>
           )}
         </>

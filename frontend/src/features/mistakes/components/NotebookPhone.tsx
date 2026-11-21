@@ -18,7 +18,7 @@ import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInp
 import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
 import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
-import { captureState, closeCapture, dismissBackgroundNotice, openCapture, subscribeCapture } from '@/features/mistakes/services/captureSession';
+import { captureState, closeCapture, dismissBackgroundNotice, openCapture, openReview, subscribeCapture } from '@/features/mistakes/services/captureSession';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { loadMistakes } from '@/shared/data/storage';
@@ -180,14 +180,24 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
             <button type="button" aria-label="Đóng thông báo" className="pn-toast__x" onClick={() => setFeedback(null)}>×</button>
           </div>
         )}
-        {!captureOpen && (capture.phase === 'reading' || capture.finishedInBackground) && (
-          <div className="pn-toast is-soc">
-            <Soc state={capture.phase === 'reading' ? 'think' : 'cheerC'} size={40} />
-            <p>{capture.phase === 'reading' ? `Sóc đang đọc ${capture.images.length} ảnh…` : capture.items.length ? `Sóc đọc xong, ${capture.items.length} câu sai để soát` : 'Sóc đọc xong, chưa thấy câu sai'}</p>
-            <button type="button" onClick={openCamera}>{capture.phase === 'reading' ? 'Xem' : 'Soát'}</button>
-            {capture.phase !== 'reading' && <button type="button" aria-label="Đóng thông báo" className="pn-toast__x" onClick={dismissBackgroundNotice}>×</button>}
-          </div>
-        )}
+        {!captureOpen && (capture.phase === 'reading' || capture.activeJobs > 0 || capture.finishedInBackground) && (() => {
+          const busy = capture.phase === 'reading' || capture.activeJobs > 0;
+          const openFromToast = () => {
+            openCapture();
+            if (!busy && capture.phase === 'input' && (capture.items.length || capture.failures.length)) openReview();
+            setCaptureOpen(true);
+          };
+          return (
+            <div className="pn-toast is-soc">
+              <Soc state={busy ? 'think' : 'cheerC'} size={40} />
+              <p>{busy
+                ? (capture.activeJobs > 0 ? `Sóc đang đọc nền ${capture.activeJobs} mẻ…` : `Sóc đang đọc ${capture.images.length} ảnh…`)
+                : capture.items.length ? `Sóc đọc xong, ${capture.items.length} câu sai để soát` : 'Sóc đọc xong, chưa thấy câu sai'}</p>
+              <button type="button" onClick={openFromToast}>{busy ? 'Xem' : 'Soát'}</button>
+              {!busy && <button type="button" aria-label="Đóng thông báo" className="pn-toast__x" onClick={dismissBackgroundNotice}>×</button>}
+            </div>
+          );
+        })()}
       </div>
       {detailSession && <WrongDetailFlow session={detailSession} mistakes={mistakes} phone onSave={onUpdateMistake} onAdd={onAddMistake}
         onReview={ids => onStartReview(ids)}

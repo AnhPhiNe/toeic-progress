@@ -304,3 +304,10 @@
 .wd-gr-edit { margin-left: 8px; border: 0; background: none; color: var(--pd); font-weight: 900; font-size: 12px; padding: 2px 6px; border-radius: 8px; }
 .wd-gr-edit:hover { background: #ffe4ec; }
 .wd-all-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 14px; border-radius: 16px; background: #f2fbf4; box-shadow: inset 0 0 0 1.5px #cbead0; font-size: 13.5px; font-weight: 800; color: #246b36; }
+.wd-mob-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.wd-mob-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 13px; background: #fff; color: var(--ink); font-weight: 900; font-size: 13.5px; box-shadow: 0 0 0 1.5px #f0d7df, 0 3px 0 #f0d7df; transition: transform .1s, background .12s; }
+.wd-mob-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 1.5px #f0d7df, 0 1px 0 #f0d7df; }
+.wd-mob-btn.is-cam { background: linear-gradient(90deg, #ff7a9c, #ff5c86); color: #fff; box-shadow: 0 3px 0 #d43d66; }
+.wd-mob-btn.is-cam:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #d43d66; }
+.wd-mob-btn:disabled { opacity: .45; }
+@media (max-width: 340px) { .wd-mob-acts { grid-template-columns: 1fr; } }

@@ -24,6 +24,8 @@ interface Props {
   mistakes: MistakeEntry[];
   sourceSuggestions: string[];
   initialTestName?: string;
+  /** Optional pre-filled question text (e.g. redirected from pasting text into CaptureModal). */
+  initialRaw?: string;
   onClose: () => void;
   onAdd: (entry: MistakeEntry) => void;
   onAddBatch?: (entries: MistakeEntry[]) => void;
@@ -37,8 +39,8 @@ type Letter = ChoiceLetter | '';
 const PARTS = [5, 6, 7] as const;
 
 /** "Tự gõ một câu": paste a question from the test, tick what you chose and the key. Several numbered questions become a review list. */
-export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, initialTestName = '', onClose, onAdd, onAddBatch, onUpdate, onExplain, onSaved }: Props) {
-  const [raw, setRaw] = useState('');
+export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, initialTestName = '', initialRaw = '', onClose, onAdd, onAddBatch, onUpdate, onExplain, onSaved }: Props) {
+  const [raw, setRaw] = useState(() => initialRaw);
   const [part, setPart] = useState<MistakeEntry['part']>(5);
   const [partTouched, setPartTouched] = useState(false);
   const [testName, setTestName] = useState(() => normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '');
@@ -67,6 +69,7 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
   const draft = useFormDraft({
     scope: 'manual-question', value: draftValue, meaningful: Boolean(raw.trim()), validate: parseManualDraft,
     restore: value => {
+      if (initialRaw) return;
       setRaw(value.raw); setPart(value.part as MistakeEntry['part']); setPartTouched(value.partTouched); setTestName(value.testName || testName);
       setChoice(value.choice); setAnswer(value.answer); setReason(value.reason); setCategory(value.category); setMore(value.more);
     }

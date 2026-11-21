@@ -6,7 +6,7 @@ vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.g
 vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => 'owner-1' }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
 
-import { __resetCaptureForTests, addFiles, cancelReading, captureState, COMPRESSED_NOTE, moveImage, removeUncheckedItems, retryFailure, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
+import { __resetCaptureForTests, addFiles, backToInput, cancelReading, captureState, clearSavedItems, COMPRESSED_NOTE, moveImage, openReview, queueAndContinue, removeUncheckedItems, retryFailure, setGroup, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
 
 const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 'Q ___', question: 'Q ___', context: '', userMistake: '', correctAnswer: '(B) b',
   trapTip: '', options: ['(A) a', '(B) b', '(C) c', '(D) d'], tags: [], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
@@ -35,9 +35,11 @@ describe('capture session', () => {
     setPart(5);
     expect(captureState().images).toHaveLength(10);
     expect(captureState().images.every(item => item.zone === 'questions')).toBe(true);
-    // Backing out to null clears staged images; picking Part 3 starts clean and supports image reordering.
+    // Switching back to null maps to 'auto' and preserves staged images; switching to Part 3 supports reordering.
     setPart(null);
-    expect(captureState().images).toHaveLength(0);
+    expect(captureState().part).toBe('auto');
+    expect(captureState().images).toHaveLength(10);
+    __resetCaptureForTests();
     setPart(3);
     addFiles(files(2), 'questions');
     const [firstId, secondId] = captureState().images.map(item => item.id);
@@ -194,5 +196,76 @@ describe('capture session', () => {
     expect(captureState().phase).toBe('review');
     expect(captureState().solving).toBe(false);
     expect(captureState().note).toContain('chưa kịp tự giải đáp án');
+  });
+
+  it('defaults to Auto-Part, keeps pages together without context_images, and widens to all 200 questions when narrow logged list misses', async () => {
+    expect(captureState().part).toBe('auto');
+    setTestName('Auto Mixed Test');
+    addFiles(files(2));
+    mocks.group
+      .mockResolvedValueOnce({ requests: [request([105, 132])], split: false, compressed: false })
+      .mockResolvedValueOnce({ requests: [request(Array.from({ length: 200 }, (_, i) => i + 1))], split: false, compressed: false });
+    mocks.extract
+      .mockResolvedValueOnce(reply([]))
+      .mockResolvedValueOnce(reply([147, 148]));
+    await startReading({ questions: [105, 132], getToken: async () => 'tok', contextSupported: true });
+    // Auto-Part passes empty contextFiles and contextSupported=false so backend never rejects mixed Parts.
+    expect(mocks.group.mock.calls[0][0]).toEqual([]);
+    expect(mocks.group.mock.calls[0][1]).toHaveLength(2);
+    expect(mocks.group.mock.calls[0][3]).toBe(false);
+    expect(mocks.extract).toHaveBeenCalledTimes(2);
+    expect(captureState().items.map(item => item.number)).toEqual([147, 148]);
+  });
+
+  it('queues multiple batches in parallel via queueAndContinue, merges results, and supports openReview + clearSavedItems', async () => {
+    setPart(7);
+    setGroup(147);
+    setTestName('ETS Continuous');
+    addFiles(files(2));
+    let finishBatch1!: () => void;
+    mocks.group
+      .mockResolvedValueOnce({ requests: [request([147, 148])], split: false, compressed: false })
+      .mockResolvedValueOnce({ requests: [request([151, 152])], split: false, compressed: false });
+    mocks.extract
+      .mockImplementationOnce(() => new Promise(resolve => { finishBatch1 = () => resolve(reply([147])); }))
+      .mockResolvedValueOnce(reply([151, 152]));
+
+    // Queue batch 1 and immediately advance to group 151 while tray clears
+    const job1 = queueAndContinue({ questions: [147, 148], getToken: async () => 'tok', contextSupported: true }, 151);
+    expect(captureState().phase).toBe('input');
+    expect(captureState().images).toHaveLength(0);
+    expect(captureState().group).toBe(151);
+    expect(captureState().activeJobs).toBe(1);
+    expect(captureState().queuedImagesCount).toBe(2);
+
+    // Stage and queue batch 2 while batch 1 is still running
+    addFiles(files(1));
+    const job2 = queueAndContinue({ questions: [151, 152], getToken: async () => 'tok', contextSupported: true }, null);
+    expect(captureState().activeJobs).toBe(2);
+    expect(captureState().queuedImagesCount).toBe(3);
+
+    await job2;
+    expect(captureState().items.map(item => item.number)).toEqual([151, 152]);
+    expect(captureState().activeJobs).toBe(1);
+
+    // User opens review while batch 1 is still running, then goes back to snap more without losing items
+    openReview();
+    expect(captureState().phase).toBe('review');
+    backToInput(true);
+    expect(captureState().phase).toBe('input');
+    expect(captureState().items.map(item => item.number)).toEqual([151, 152]);
+
+    finishBatch1();
+    await job1;
+    expect(captureState().activeJobs).toBe(0);
+    expect(captureState().completedJobs).toBe(2);
+    expect(captureState().items.map(item => item.number)).toEqual([147, 151, 152]);
+
+    // "Lưu & chụp tiếp" clears only saved IDs, keeps remaining unchecked item and testName
+    const savedIds = captureState().items.filter(item => item.number !== 152).map(item => item.id);
+    clearSavedItems(savedIds);
+    expect(captureState().phase).toBe('input');
+    expect(captureState().testName).toBe('ETS Continuous');
+    expect(captureState().items.map(item => item.number)).toEqual([152]);
   });
 });

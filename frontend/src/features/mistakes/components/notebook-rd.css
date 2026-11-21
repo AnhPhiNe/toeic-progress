@@ -185,3 +185,9 @@
   .nb-search { width: auto; flex: 1 1 180px; }
   .nb-top { flex-wrap: wrap; }
 }
+
+/* Zero-click desktop drag-and-drop overlay */
+.nb-drop-mask { position: fixed; inset: 0; z-index: 55; background: rgba(255, 240, 244, .88); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 24px; pointer-events: none; }
+.nb-drop-card { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 440px; width: 100%; border: 3px dashed #ff7a9c; border-radius: 28px; background: #fff; padding: 34px 28px; text-align: center; box-shadow: 0 24px 60px rgba(214, 69, 112, .18); }
+.nb-drop-card b { font-weight: 900; font-size: 21px; color: var(--rd-ink); }
+.nb-drop-card span { font-weight: 700; font-size: 14px; color: #5e6962; }

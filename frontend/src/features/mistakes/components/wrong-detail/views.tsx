@@ -1,4 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Camera, Images } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import type { PartNumber } from '@/shared/domain/questionNumbers';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -10,7 +11,10 @@ import { isExplaining } from '@/features/mistakes/services/explanationQueue';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import type { PageRejectionReason } from '@/features/mistakes/services/aiMistakeExtractor';
+import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
 import { isGroupedPart, PART_ACTION, PART_NAMES, partMode, suggestGroups, topReason, type CustomRangeMap, type PartProgress, type PassageGroup } from '@/features/mistakes/lib/wrongDetail';
+import { ScreenshotSuggestBar } from './ScreenshotSuggestBar';
+import { BurstCameraModal } from './BurstCameraModal';
 import type { ReadJob, Screen } from './WrongDetailFlow';
 
 export type Zone = 'passage' | 'questions';
@@ -85,10 +89,10 @@ function Letters({ label, part, value, tone, allowBlank = false, onPick }: { lab
   );
 }
 
-/** A drop zone with thumbnails; clicking the empty tray opens the picker, and multiple photos can be reordered. */
+/** A drop zone with thumbnails; clicking the empty tray opens the picker, and mobile offers side-by-side Burst Camera & multi-select Library. */
 export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, clarity, onAdd, onCameraAdd, onEdit, onMove, onRemove, onActivate }: {
   zone: Zone; num?: number; title: string; note?: string; hint?: ReactNode; items: readonly { id: string; url: string }[]; phone: boolean; big?: boolean; disabled: boolean;
-  /** Phones: a camera tile next to the gallery one. */
+  /** Phones: side-by-side Burst Camera and multi-select Gallery buttons. */
   camera?: boolean;
   clarity?: Record<string, ClarityResult | null>;
   onAdd: (files: File[], zone: Zone) => void;
@@ -99,8 +103,9 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
   onActivate: (zone: Zone) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const shoot = useRef<HTMLInputElement>(null);
+  const [burstOpen, setBurstOpen] = useState(false);
   const label = zone === 'passage' ? 'Ảnh đoạn văn' : 'Ảnh câu hỏi';
+  const remaining = Math.max(1, MAX_CAPTURE_IMAGES - items.length);
   return (
     <div className={'wd-zn' + (big ? ' is-big' : '') + (disabled ? '' : ' is-click')}
       onClick={() => { onActivate(zone); if (!disabled) input.current?.click(); }}
@@ -136,21 +141,41 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
             </span>
           );
         })}
-        {camera && <button type="button" className="wd-pg is-add is-cam" aria-label={`Chụp ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); shoot.current?.click(); }}>📷</button>}
-        <button type="button" className="wd-pg is-add" aria-label={`Thêm ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); input.current?.click(); }}>+</button>
+        {!camera && (
+          <button type="button" className="wd-pg is-add" aria-label={`Thêm ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); input.current?.click(); }}>+</button>
+        )}
       </div>
-      {camera && <input ref={shoot} type="file" accept="image/*" capture="environment" hidden aria-label={`Chụp ${label.toLowerCase()}`}
-        onClick={event => event.stopPropagation()}
-        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; (onCameraAdd ?? onAdd)(files, zone); }} />}
+      {camera && (
+        <div className="wd-mob-acts" onClick={event => event.stopPropagation()}>
+          <button type="button" className="wd-mob-btn is-cam" aria-label={`Chụp liên tiếp ${label.toLowerCase()}`} disabled={disabled || items.length >= MAX_CAPTURE_IMAGES}
+            onClick={() => { onActivate(zone); setBurstOpen(true); }}>
+            <Camera className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Chụp liên tiếp</span>
+          </button>
+          <button type="button" className="wd-mob-btn" aria-label={`Chọn nhiều ảnh ${label.toLowerCase()}`} disabled={disabled || items.length >= MAX_CAPTURE_IMAGES}
+            onClick={() => { onActivate(zone); input.current?.click(); }}>
+            <Images className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Chọn nhiều ảnh</span>
+          </button>
+        </div>
+      )}
       {hint && <p className="wd-zp">{hint}</p>}
       <input ref={input} type="file" accept="image/*" multiple hidden aria-label={label}
         onClick={event => event.stopPropagation()}
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAdd(files, zone); }} />
+      {burstOpen && (
+        <BurstCameraModal
+          maxPhotos={remaining}
+          title={title}
+          onClose={() => setBurstOpen(false)}
+          onComplete={picked => { setBurstOpen(false); (onCameraAdd ?? onAdd)(picked, zone); }}
+        />
+      )}
     </div>
   );
 }
 
-export const pasteHint = (phone: boolean) => phone ? 'Chọn ảnh từ máy.' : <>Thả, dán <span className="wd-kbd">Ctrl+V</span> hoặc chọn ảnh.</>;
+export const pasteHint = (phone: boolean) => phone ? 'Mẹo: chụp sẵn bằng Camera máy rồi bấm Chọn nhiều ảnh nếu chữ sách nhỏ.' : <>Thả, dán <span className="wd-kbd">Ctrl+V</span> hoặc chọn ảnh.</>;
 
 /* ---------- 1 · overview ---------- */
 
@@ -393,6 +418,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
           {canRead ? <DropZone {...zoneProps} zone="questions" big title={`Ảnh câu Part ${part}`}
             note={part === 2 ? 'hỗ trợ 3 phương án A–C' : 'mỗi ảnh một hay nhiều câu'}
             items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc song song tối đa 3 lượt cùng lúc, chỉ lấy câu bạn sai.</>} /> : noImages}
+          {canRead && !phone && <ScreenshotSuggestBar enabled={!busy} disabled={busy} onAddFiles={files => onAddFiles(files, 'questions')} />}
           {canRead && <div className="wd-acts" style={{ marginTop: 10 }}>{paperToggle}</div>}
           <div className="wd-lbl">Câu cần gỡ<span className="wd-lg"><span><i className="is-d" />đã ghi</span><span><i />chưa ghi</span></span></div>
           {chips(numbers)}
@@ -506,6 +532,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
             </div>
             {canRead ? <>
               {unifiedTray}
+              <ScreenshotSuggestBar enabled={!busy} disabled={busy} onAddFiles={files => onAddFiles(files, 'questions')} />
               <div className="wd-acts">
                 <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!filesCount || busy} onClick={onSend}>Gửi Sóc đọc nhóm này</button>
                 {nextUnread && (

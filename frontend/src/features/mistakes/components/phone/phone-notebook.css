@@ -252,6 +252,18 @@
 .is-light .pc-err { color: #c23c63; }
 .pc-foot.is-row { flex-direction: row; align-items: center; }
 .pc-foot.is-row .pc-send { flex: 1; }
+.pc-foot-row { display: flex; align-items: center; gap: 8px; }
+.pc-foot-row .pc-send { flex: 1; }
+.pc-queue { display: flex; align-items: center; gap: 8px; margin: 0 16px 8px; padding: 8px 10px 8px 12px; border-radius: 14px; background: linear-gradient(135deg, #f5f1ff, #fff2f6); box-shadow: inset 0 0 0 1.5px #e4d9ff; font-size: 12.5px; font-weight: 700; color: #3d3659; }
+.pc-queue.is-rev { margin: 0 0 10px; }
+.pc-queue span { flex: 1; min-width: 0; }
+.pc-queue b { font-weight: 900; color: #5b3cc4; }
+.pc-queue button { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; border: 0; border-radius: 10px; padding: 0 10px; background: #fff; color: #d3456b; font-weight: 900; font-size: 12.5px; box-shadow: 0 0 0 1.5px #ffc8d6; cursor: pointer; white-space: nowrap; }
+.pc-queue-go { min-height: 44px; border: 0; border-radius: 16px; background: #fff; color: #d3456b; font-weight: 900; font-size: 14.5px; box-shadow: 0 0 0 2px #ffc8d6, 0 3px 0 #ffc8d6; cursor: pointer; padding: 0 14px; }
+.pc-queue-go:active { transform: translateY(2px); box-shadow: 0 0 0 2px #ffc8d6, 0 1px 0 #ffc8d6; }
+.pc-rev-acts { display: flex; gap: 8px; }
+.pc-rev-acts .pc-send { flex: 1; font-size: 14.5px; padding: 0 12px; }
+.pc-rev-acts .pc-send.is-half { flex: 0 0 auto; min-width: 132px; }
 .pc-side.is-light { color: var(--rd-ink); background: #fff; border-radius: 16px; box-shadow: 0 0 0 2px #ece8ea, 0 3px 0 #ece8ea; }
 .pc.is-light .pc-send:disabled { background: #e6e3de; color: #9aa39d; }
 .pc-all { align-self: center; min-height: 36px; border: 0; background: none; color: #1c6fc0; font-weight: 900; font-size: 13px; cursor: pointer; padding: 0 4px; }

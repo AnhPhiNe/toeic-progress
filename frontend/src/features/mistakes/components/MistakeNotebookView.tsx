@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { Brain, ChevronDown, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Inbox, Tag } from 'lucide-react';
+import { Brain, ChevronDown, ImagePlus, Plus, Search, SlidersHorizontal, BookOpen, X, AlertCircle, Inbox, Tag } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { MistakeCard } from '@/features/mistakes/components/MistakeCard';
@@ -19,7 +19,7 @@ import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryMo
 import { CaptureModal } from '@/features/mistakes/components/CaptureModal';
 import { ManualQuestionModal } from '@/features/mistakes/components/ManualQuestionModal';
 import { NotebookEmpty } from '@/features/mistakes/components/NotebookEmpty';
-import { captureState, closeCapture, openCapture, dismissBackgroundNotice, subscribeCapture } from '@/features/mistakes/services/captureSession';
+import { addFiles, captureState, closeCapture, openCapture, openReview, dismissBackgroundNotice, subscribeCapture } from '@/features/mistakes/services/captureSession';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
@@ -110,6 +110,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   // Word cards do not exist yet: their tab stays hidden until there are some.
   const wordCards = 0;
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualInitialRaw, setManualInitialRaw] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepth = useRef(0);
   const capture = useSyncExternalStore(subscribeCapture, captureState);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const feedbackSequence = useRef(0);
@@ -143,11 +146,32 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       if (saved?.status === 'MASTERED' && canReview(saved)) notify('Đã chuyển sang Đã thuộc');
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được trạng thái thẻ.', true); }
   };
-  const closeEntry = useCallback(() => { setEntry(undefined); setManualOpen(false); setReusedReading(null); setSessionSource(undefined); }, []);
+  const closeEntry = useCallback(() => { setEntry(undefined); setManualOpen(false); setManualInitialRaw(''); setReusedReading(null); setSessionSource(undefined); }, []);
   /** Computers: a new card starts from a screenshot (`entry === null` opens the capture dialog); phones keep the old form. */
-  const openCreate = () => { setReusedReading(null); setSessionSource(undefined); setManualOpen(false); setEntry(null); };
-  const openManual = () => { closeCapture(); setEntry(undefined); setManualOpen(true); };
+  const openCreate = useCallback(() => { setReusedReading(null); setSessionSource(undefined); setManualOpen(false); setManualInitialRaw(''); setEntry(null); }, []);
+  const openManual = useCallback((initialRaw?: string) => {
+    closeCapture();
+    setEntry(undefined);
+    setManualInitialRaw(typeof initialRaw === 'string' ? initialRaw : '');
+    setManualOpen(true);
+  }, []);
   const openEdit = (value: MistakeEntry) => { setReusedReading(null); setSessionSource(undefined); setEntry(value); };
+
+  // Zero-click desktop paste: Ctrl+V an image anywhere on Sổ tay immediately opens CaptureModal with the image staged.
+  useEffect(() => {
+    if (isPhone || detailId || entry !== undefined || manualOpen || detailSessionId) return;
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
+      if (!files.length) return;
+      event.preventDefault();
+      addFiles(files, 'questions');
+      openCreate();
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [isPhone, detailId, entry, manualOpen, detailSessionId, openCreate]);
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.filter(m => !isRetiredDraft(m)).map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const sourceNames = useMemo(() => uniqueTestNames(sourcedMistakes.map(m => m.sourceTestName)), [sourcedMistakes]);
@@ -406,7 +430,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         initialTestName={reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName} getToken={getToken}
         onClose={closeEntry} onManual={openManual} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={savedFeedback} />}
       {!isPhone && manualOpen && <ManualQuestionModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
-        initialTestName={sessionSource?.sourceName ?? defaultSourceName} onClose={closeEntry} onAdd={onAddMistake} onAddBatch={onAddMistakes}
+        initialTestName={sessionSource?.sourceName ?? defaultSourceName} initialRaw={manualInitialRaw} onClose={closeEntry} onAdd={onAddMistake} onAddBatch={onAddMistakes}
         onUpdate={onUpdateMistake} onExplain={card => void explain(card)} onSaved={savedFeedback} />}
       {entry !== undefined && (isPhone || entry !== null) && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry}
         sourceSuggestions={sourceSuggestions} initialSourceName={entry ? mistakeTestName(entry, sessionNames) : reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName}
@@ -416,16 +440,25 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
-      {!isPhone && entry !== null && !manualOpen && (capture.phase === 'reading' || capture.finishedInBackground) && (
-        <div className="cap-toast" role="status" aria-live="polite">
-          <Soc state={capture.phase === 'reading' ? 'think' : 'hi'} size={46} />
-          {capture.phase === 'reading'
-            ? <p>Sóc đang đọc {capture.images.length} ảnh…<small>Đã thấy {capture.items.length} câu sai</small></p>
-            : <p>Sóc đọc xong rồi!<small>{capture.items.length ? `Tìm thấy ${capture.items.length} câu sai để soát` : capture.failures.length ? 'Có ảnh chưa đọc được, mở lại để thử lần nữa' : 'Chưa thấy câu sai nào trong ảnh'}</small></p>}
-          <button type="button" className="rd-btn rd-btn--pink cap-sm" onClick={() => { openCapture(); setManualOpen(false); setEntry(null); }}>{capture.phase === 'reading' ? 'Xem' : 'Soát ngay'}</button>
-          {capture.phase !== 'reading' && <button type="button" className="cap-x" aria-label="Đóng thông báo" onClick={dismissBackgroundNotice}>×</button>}
-        </div>
-      )}
+      {!isPhone && entry !== null && !manualOpen && (capture.phase === 'reading' || capture.activeJobs > 0 || capture.finishedInBackground) && (() => {
+        const busy = capture.phase === 'reading' || capture.activeJobs > 0;
+        const openCaptureFromToast = () => {
+          openCapture();
+          if (!busy && capture.phase === 'input' && (capture.items.length || capture.failures.length)) openReview();
+          setManualOpen(false);
+          setEntry(null);
+        };
+        return (
+          <div className="cap-toast" role="status" aria-live="polite">
+            <Soc state={busy ? 'think' : 'hi'} size={46} />
+            {busy
+              ? <p>{capture.activeJobs > 0 ? `Sóc đang đọc nền ${capture.activeJobs} mẻ (${capture.queuedImagesCount} ảnh)…` : `Sóc đang đọc ${capture.images.length} ảnh…`}<small>Đã thấy {capture.items.length} câu sai</small></p>
+              : <p>Sóc đọc xong rồi!<small>{capture.items.length ? `Tìm thấy ${capture.items.length} câu sai để soát` : capture.failures.length ? 'Có ảnh chưa đọc được, mở lại để thử lần nữa' : 'Chưa thấy câu sai nào trong ảnh'}</small></p>}
+            <button type="button" className="rd-btn rd-btn--pink cap-sm" onClick={openCaptureFromToast}>{busy ? 'Xem' : 'Soát ngay'}</button>
+            {!busy && <button type="button" className="cap-x" aria-label="Đóng thông báo" onClick={dismissBackgroundNotice}>×</button>}
+          </div>
+        );
+      })()}
   </>);
 
   if (!isPhone) {
@@ -447,8 +480,45 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     const pickedFilters = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL');
     const partsPresent = [...new Set(sourcedMistakes.map(m => m.part))].sort();
     const statusTabs: Array<['ALL' | 'DUE' | 'MASTERED', string, number]> = [['ALL', 'Tất cả', stats.total], ['DUE', 'Cần ôn', stats.due], ['MASTERED', 'Đã thuộc', stats.mastered]];
+    const hasFileDrag = (event: React.DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files');
+    const canDropToCapture = entry === undefined && !manualOpen && !detailSessionId;
     return (
-      <div className="rd nb-page">
+      <div
+        className="rd nb-page"
+        onDragEnter={event => {
+          if (!canDropToCapture || !hasFileDrag(event)) return;
+          dragDepth.current += 1;
+          setDragOver(true);
+        }}
+        onDragOver={event => {
+          if (!canDropToCapture || !hasFileDrag(event)) return;
+          event.preventDefault();
+        }}
+        onDragLeave={event => {
+          if (!canDropToCapture || !hasFileDrag(event)) return;
+          dragDepth.current = Math.max(0, dragDepth.current - 1);
+          if (dragDepth.current === 0) setDragOver(false);
+        }}
+        onDrop={event => {
+          dragDepth.current = 0;
+          setDragOver(false);
+          if (!canDropToCapture) return;
+          const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/'));
+          if (!files.length) return;
+          event.preventDefault();
+          addFiles(files, 'questions');
+          openCreate();
+        }}
+      >
+        {dragOver && (
+          <div className="nb-drop-mask" aria-hidden="true">
+            <div className="nb-drop-card">
+              <ImagePlus className="h-11 w-11 text-[#d64570]" />
+              <b>Thả ảnh vào đây để Sóc đọc ngay</b>
+              <span>Tự động nhận Part (1–7) và gom câu sai vào Sổ tay.</span>
+            </div>
+          </div>
+        )}
         <div className="nb-top">
           <div><h1>Sổ tay</h1>{!empty && <p>Câu sai Sóc gom từ các trang chữa bài bạn chụp.</p>}</div>
           <div className="nb-topr">
@@ -469,7 +539,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <div><h2>Thẻ từ sắp có</h2><p>Mỗi thẻ sẽ là một từ làm bạn sai câu, kèm đúng câu gốc trong đề. Sóc đang học cách tách từ mới từ trang chữa bài.</p></div>
           </section>
         ) : empty ? (
-          <NotebookEmpty onCapture={openCreate} onManual={openManual} />
+          <NotebookEmpty onCapture={openCreate} onManual={() => openManual()} />
         ) : (
           <>
             <section className="nb-hero">
@@ -532,7 +602,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                   </div>
                 )}
               </div>
-              <button type="button" className="nb-add" onClick={openManual}><span aria-hidden="true">✏️</span> Tự gõ một câu</button>
+              <button type="button" className="nb-add" onClick={() => openManual()}><span aria-hidden="true">✏️</span> Tự gõ một câu</button>
             </div>
             {pickedFilters > 0 && (
               <div className="nb-chips">

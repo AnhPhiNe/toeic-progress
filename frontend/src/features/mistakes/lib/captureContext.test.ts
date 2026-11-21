@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MistakeEntry, StudySession } from '@/shared/types';
-import { captureQuestions, questionsToFind } from './captureContext';
+import { ALL_QUESTIONS, captureQuestions, looksLikePastedQuestion, questionsToFind } from './captureContext';
 
 describe('questions one Part capture looks for', () => {
   const logged = { questions: [103, 112, 133, 186, 189, 196], logged: true };
@@ -8,6 +8,13 @@ describe('questions one Part capture looks for', () => {
     expect(captureQuestions(logged, 5)).toEqual([103, 112]);
     expect(captureQuestions(logged, 7)).toEqual([186, 189, 196]);
     expect(captureQuestions(logged, 7, { from: 186, to: 190 })).toEqual([186, 189]);
+  });
+  it('supports Auto-Part mode using all logged wrong questions or all 200 questions when free', () => {
+    expect(captureQuestions(logged, 'auto')).toEqual([103, 112, 133, 186, 189, 196]);
+    expect(captureQuestions({ questions: [], logged: false }, 'auto')).toEqual(ALL_QUESTIONS);
+    expect(ALL_QUESTIONS).toHaveLength(200);
+    expect(ALL_QUESTIONS[0]).toBe(1);
+    expect(ALL_QUESTIONS[199]).toBe(200);
   });
   it('captures freely without a wrong list (the whole Part, or the whole group)', () => {
     const free = { questions: [], logged: false };
@@ -38,5 +45,12 @@ describe('questions one Part capture looks for', () => {
     expect(completedPlan.logged).toBe(false);
     expect(completedPlan.sessionId).toBe('s-e10');
     expect(captureQuestions(completedPlan, 6)).toEqual([131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146]);
+  });
+  it('detects pasted TOEIC question text while ignoring short plain strings or URLs', () => {
+    expect(looksLikePastedQuestion('101. The manager ___ the report yesterday.\n(A) submit\n(B) submitted\n(C) submitting\n(D) submission')).toBe(true);
+    expect(looksLikePastedQuestion('The meeting was rescheduled.\nA. quickly\nB. recently\nC. soon')).toBe(true);
+    expect(looksLikePastedQuestion('ETS 2024 Test 5')).toBe(false);
+    expect(looksLikePastedQuestion('https://study4.com/tests/123')).toBe(false);
+    expect(looksLikePastedQuestion('')).toBe(false);
   });
 });

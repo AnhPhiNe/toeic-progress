@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Soc } from '@/shared/ui/soc/Soc';
-import { ImagePlus } from 'lucide-react';
+import { Camera, ImagePlus, Layers, Plus, Sparkles } from 'lucide-react';
+import { generateUUID } from '@/shared/domain/uuid';
 import { fileExifOrientation, prepareResultImages, MAX_RESULT_IMAGES } from '@/features/mistakes/lib/imageInput';
-import { checkPhotoClarity, clarityMessage } from '@/features/mistakes/lib/photoClarity';
+import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
+import { ScreenshotSuggestBar } from '@/features/mistakes/components/wrong-detail/ScreenshotSuggestBar';
+import { BurstCameraModal } from '@/features/mistakes/components/wrong-detail/BurstCameraModal';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
@@ -149,6 +152,10 @@ export function ResultImageButton({
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [photoMode, setPhotoMode] = useState(false);
+  const [multiStage, setMultiStage] = useState(false);
+  const [staged, setStaged] = useState<Array<{ id: string; file: File; url: string; clarity: ClarityResult | null }>>([]);
+  const [editingStagedId, setEditingStagedId] = useState<string | null>(null);
+  const [burstOpen, setBurstOpen] = useState(false);
   const [clarityWarn, setClarityWarn] = useState<{ text: string; file: File } | null>(null);
   const [reviewFile, setReviewFile] = useState<File | null>(null);
   const [note, setNote] = useState('');
@@ -163,6 +170,8 @@ export function ResultImageButton({
   const { containerRef, getToken, remove } = useTurnstile();
   const lifecycle = useRef(0);
   const running = useRef(false);
+  const stagedRef = useRef(staged);
+  stagedRef.current = staged;
   const previousMarks = useRef(new Set(marks));
   const manualEdits = useRef(new Map<number, boolean>());
   const currentMarks = new Set(marks);
@@ -174,7 +183,74 @@ export function ResultImageButton({
   previousMarks.current = currentMarks;
   const latestOnRead = useRef(onRead);
   latestOnRead.current = onRead;
-  useEffect(() => () => { lifecycle.current += 1; running.current = false; }, []);
+  useEffect(() => () => {
+    lifecycle.current += 1;
+    running.current = false;
+    stagedRef.current.forEach(item => { try { URL.revokeObjectURL(item.url); } catch { /* noop */ } });
+  }, []);
+  const clearStaged = () => {
+    stagedRef.current.forEach(item => { try { URL.revokeObjectURL(item.url); } catch { /* noop */ } });
+    setStaged([]);
+    setEditingStagedId(null);
+  };
+  const addStaged = (files: File[]) => {
+    const imgs = files.filter(file => file.type.startsWith('image/'));
+    if (!imgs.length) return;
+    const room = MAX_RESULT_IMAGES - stagedRef.current.length;
+    if (room <= 0) { setError(`Mỗi lần chọn tối đa ${MAX_RESULT_IMAGES} ảnh.`); return; }
+    const accepted = imgs.slice(0, room);
+    const created = accepted.map(file => ({
+      id: generateUUID(),
+      file,
+      url: URL.createObjectURL(file),
+      clarity: null as ClarityResult | null
+    }));
+    setError(imgs.length > accepted.length ? `Đã thêm ${accepted.length} ảnh (tối đa ${MAX_RESULT_IMAGES} ảnh mỗi lần).` : '');
+    setStaged(prev => [...prev, ...created]);
+    const gen = lifecycle.current;
+    created.forEach(entry => {
+      void fileExifOrientation(entry.file).then(orientation => {
+        if (lifecycle.current === gen && orientation !== 1) setPhotoMode(true);
+      });
+      void checkPhotoClarity(entry.url).then(result => {
+        if (lifecycle.current !== gen) return;
+        setStaged(prev => prev.map(item => item.id === entry.id ? { ...item, clarity: result } : item));
+        if (result?.problem) setPhotoMode(true);
+      });
+    });
+  };
+  const removeStaged = (id: string) => {
+    setStaged(prev => {
+      const target = prev.find(item => item.id === id);
+      if (target) { try { URL.revokeObjectURL(target.url); } catch { /* noop */ } }
+      return prev.filter(item => item.id !== id);
+    });
+  };
+  const moveStaged = (id: string, delta: -1 | 1) => {
+    setStaged(prev => {
+      const idx = prev.findIndex(item => item.id === id);
+      const nextIdx = idx + delta;
+      if (idx < 0 || nextIdx < 0 || nextIdx >= prev.length) return prev;
+      const copy = [...prev];
+      const [moved] = copy.splice(idx, 1);
+      copy.splice(nextIdx, 0, moved);
+      return copy;
+    });
+  };
+  const replaceStagedFile = (id: string, nextFile: File) => {
+    const nextUrl = URL.createObjectURL(nextFile);
+    setStaged(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      try { URL.revokeObjectURL(item.url); } catch { /* noop */ }
+      return { ...item, file: nextFile, url: nextUrl, clarity: null };
+    }));
+    const gen = lifecycle.current;
+    void checkPhotoClarity(nextUrl).then(result => {
+      if (lifecycle.current !== gen) return;
+      setStaged(prev => prev.map(item => item.id === id ? { ...item, clarity: result } : item));
+    });
+  };
+  const stagingActive = photoMode || multiStage || staged.length > 0;
   useEffect(() => {
     let cancelled = false;
     void aiService.getAIConfiguration().then(config => {
@@ -184,7 +260,7 @@ export function ResultImageButton({
     }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
-  const read = async (files: File[], overridePhotoMode?: boolean) => {
+  const read = async (files: File[], overridePhotoMode?: boolean, clearTrayOnSuccess = false) => {
     if (running.current || !files.length) return;
     if (files.length > MAX_RESULT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_RESULT_IMAGES} ảnh.`); return; }
     const generation = ++lifecycle.current;
@@ -218,6 +294,7 @@ export function ResultImageButton({
       if (!isCurrent()) return;
       const result = await aiService.readResultsWithAI(images, getToken, owner, isCurrent, usePaperMode ? { photoMode: true } : undefined);
       if (!isCurrent()) return;
+      if (clearTrayOnSuccess) clearStaged();
       const imported = normalizeQuestionList([...result.wrong, ...result.skipped].filter(number => manualEdits.current.get(number) !== false));
       const count = imported.length;
       const skippedCount = result.skipped.filter(number => imported.includes(number)).length;
@@ -251,6 +328,16 @@ export function ResultImageButton({
       if (lifecycle.current === generation) { running.current = false; setBusy(false); remove(); }
     }
   };
+  const handleIncomingFiles = (files: File[]) => {
+    if (!files.length) return;
+    if (stagingActive) {
+      addStaged(files);
+      return;
+    }
+    void read(files);
+  };
+  const latestHandleIncoming = useRef(handleIncomingFiles);
+  latestHandleIncoming.current = handleIncomingFiles;
   const latestRead = useRef(read);
   latestRead.current = read;
   useEffect(() => {
@@ -264,12 +351,13 @@ export function ResultImageButton({
     if (!desktop || !available || !pasteEnabled) return;
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
-      if (files.length) { event.preventDefault(); void latestRead.current(files); }
+      if (files.length) { event.preventDefault(); latestHandleIncoming.current(files); }
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
   }, [desktop, available, pasteEnabled]);
   if (!available) return null;
+  const editingStaged = editingStagedId ? staged.find(item => item.id === editingStagedId) ?? null : null;
   const openEditAppliedScore = () => {
     triggerHaptic(6);
     const draftScores = lastImageScores.current ?? {
@@ -284,9 +372,9 @@ export function ResultImageButton({
   const hasAppliedScore = Boolean(appliedScore && (appliedScore.total || (appliedScore.listening && appliedScore.reading)));
   return (
     <div
-      onPaste={desktop ? undefined : event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}
+      onPaste={desktop ? undefined : event => { const files = [...event.clipboardData.files].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); handleIncomingFiles(files); } }}
       onDragOver={event => { if (event.dataTransfer?.types?.includes('Files')) event.preventDefault(); }}
-      onDrop={event => { const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); void read(files); } }}
+      onDrop={event => { const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/')); if (files.length) { event.preventDefault(); handleIncomingFiles(files); } }}
     >
       {/* Unified Score Card (if provided on desktop) */}
       {scoreCard && (
@@ -447,7 +535,7 @@ export function ResultImageButton({
       )}
 
       <input ref={input} type="file" accept="image/*" multiple hidden aria-label="Ảnh kết quả"
-        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />
+        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; handleIncomingFiles(files); }} />
       {!isTyping && !needsSignIn && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
@@ -464,22 +552,166 @@ export function ResultImageButton({
             </span>
             <span>Phiếu tô giấy</span>
           </button>
-          {clarityWarn && (
+          {desktop && !photoMode && staged.length === 0 && (
+            <button
+              type="button"
+              disabled={busy}
+              aria-pressed={multiStage}
+              onClick={() => { triggerHaptic(4); setMultiStage(value => !value); }}
+              className={'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-extrabold transition-colors ' + (multiStage
+                ? 'border-violet-400 bg-violet-50 text-violet-800 dark:border-violet-500/70 dark:bg-violet-950/60 dark:text-violet-200'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200')}
+            >
+              <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>Ghép nhiều ảnh</span>
+            </button>
+          )}
+          {!desktop && (
+            <button
+              type="button"
+              disabled={busy || staged.length >= MAX_RESULT_IMAGES}
+              onClick={() => { triggerHaptic(6); setBurstOpen(true); }}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-pink-300 bg-pink-50 px-3 py-1 text-[12px] font-extrabold text-pink-800 hover:bg-pink-100 disabled:opacity-50 dark:border-pink-500/60 dark:bg-pink-950/60 dark:text-pink-200"
+            >
+              <Camera className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>Chụp phiếu giấy liên tiếp</span>
+            </button>
+          )}
+          {clarityWarn && !staged.length && (
             <button
               type="button"
               disabled={busy}
               onClick={() => setReviewFile(clarityWarn.file)}
               className="cursor-pointer rounded-lg bg-amber-100 px-2.5 py-1 text-[11.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200"
             >
-              ✂️ {clarityWarn.text} Chỉnh / cắt đọc lại
+              {clarityWarn.text} Chỉnh / cắt đọc lại
             </button>
           )}
         </div>
       )}
+      {!isTyping && !needsSignIn && stagingActive && (
+        <div className="mt-2.5 rounded-2xl border-2 border-dashed border-pink-300 bg-pink-50/60 p-3 dark:border-pink-500/50 dark:bg-pink-950/20" aria-label="Khay ảnh chờ đọc">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-black text-slate-800 dark:text-slate-100">
+              {photoMode ? 'Khay ảnh Phiếu tô + Bảng đáp án' : 'Khay ghép nhiều ảnh kết quả'} ({staged.length}/{MAX_RESULT_IMAGES})
+            </span>
+            {staged.length > 0 && (
+              <button type="button" disabled={busy} onClick={clearStaged} className="cursor-pointer text-[12px] font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400">
+                Xóa hết
+              </button>
+            )}
+          </div>
+          {staged.length === 0 ? (
+            <p className="mt-1 text-[12px] font-semibold text-slate-600 dark:text-slate-300">
+              {photoMode
+                ? 'Thêm đủ ảnh Phiếu tô và Bảng đáp án trước, rồi bấm Đọc để Sóc tự dò đáp án trong 1 lượt.'
+                : 'Dán hoặc chọn thêm nhiều ảnh kết quả (VD: ảnh điểm + ảnh danh sách câu sai), rồi bấm Đọc cùng lúc.'}
+            </p>
+          ) : (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {staged.map((item, idx) => (
+                <span key={item.id} className="relative h-16 w-14 flex-none overflow-hidden rounded-lg bg-white shadow-sm ring-2 ring-pink-200 dark:bg-slate-900 dark:ring-pink-700/60">
+                  <img
+                    src={item.url}
+                    alt={`Ảnh chờ đọc ${idx + 1}`}
+                    onClick={() => { if (!busy) setEditingStagedId(item.id); }}
+                    className="h-full w-full cursor-pointer object-cover object-top"
+                    title="Bấm để xem to, xoay hoặc cắt ảnh"
+                  />
+                  {item.clarity?.problem && (
+                    <span className="pointer-events-none absolute top-0.5 left-0.5 grid h-4 w-4 place-items-center rounded-full bg-amber-400 text-[10px] font-black text-amber-950" aria-label="Ảnh hơi tối hoặc mờ">!</span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={`Bỏ ảnh ${idx + 1}`}
+                    onClick={() => removeStaged(item.id)}
+                    className="absolute top-0.5 right-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-slate-900/80 text-[11px] font-black text-white"
+                  >×</button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={`Chỉnh ảnh ${idx + 1}`}
+                    onClick={() => setEditingStagedId(item.id)}
+                    className="absolute right-0.5 bottom-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-pink-600/90 text-[10px] font-black text-white"
+                  >✎</button>
+                  {staged.length > 1 && (
+                    <span className="absolute bottom-0.5 left-0.5 flex gap-0.5">
+                      {idx > 0 && (
+                        <button type="button" disabled={busy} aria-label={`Đưa ảnh ${idx + 1} lên trước`} onClick={() => moveStaged(item.id, -1)}
+                          className="grid h-4 w-3.5 cursor-pointer place-items-center rounded bg-slate-900/75 text-[11px] font-black text-white">‹</button>
+                      )}
+                      {idx < staged.length - 1 && (
+                        <button type="button" disabled={busy} aria-label={`Đưa ảnh ${idx + 1} ra sau`} onClick={() => moveStaged(item.id, 1)}
+                          className="grid h-4 w-3.5 cursor-pointer place-items-center rounded bg-slate-900/75 text-[11px] font-black text-white">›</button>
+                      )}
+                    </span>
+                  )}
+                </span>
+              ))}
+              {staged.length < MAX_RESULT_IMAGES && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => input.current?.click()}
+                  aria-label="Thêm ảnh vào khay kết quả"
+                  className="grid h-16 w-14 flex-none cursor-pointer place-items-center rounded-lg border-2 border-dashed border-pink-300 bg-white/80 text-pink-700 hover:bg-pink-100/70 dark:border-pink-600 dark:bg-slate-900/60 dark:text-pink-300"
+                >
+                  <Plus className="h-5 w-5" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            {staged.length === 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => input.current?.click()}
+                className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-pink-300 bg-white px-3 text-[12.5px] font-extrabold text-pink-800 hover:bg-pink-50 dark:border-pink-600 dark:bg-slate-900 dark:text-pink-200"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Chọn ảnh</span>
+              </button>
+            )}
+            {staged.length > 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void read(staged.map(item => item.file), photoMode, true)}
+                className="inline-flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-pink-600 px-4 text-[13.5px] font-black text-white shadow-sm hover:bg-pink-700 disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{busy ? 'Sóc đang đọc ảnh…' : `Đọc ${staged.length} ảnh kết quả`}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {desktop && !isTyping && !needsSignIn && (
+        <ScreenshotSuggestBar
+          enabled={desktop && !busy && !isTyping && !needsSignIn}
+          disabled={busy}
+          addVerb="kết quả"
+          onAddFiles={picked => handleIncomingFiles(picked)}
+        />
+      )}
       <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
-      {reviewFile && (
+      {editingStaged && (
+        <PhotoReview
+          file={editingStaged.file}
+          photoMode={photoMode}
+          onClose={() => setEditingStagedId(null)}
+          onApply={({ file: nextFile, photoMode: nextPhotoMode, changed }) => {
+            setPhotoMode(nextPhotoMode);
+            if (changed) replaceStagedFile(editingStaged.id, nextFile);
+            setEditingStagedId(null);
+          }}
+        />
+      )}
+      {!editingStaged && reviewFile && (
         <PhotoReview
           file={reviewFile}
           photoMode={photoMode}
@@ -488,6 +720,20 @@ export function ResultImageButton({
             setPhotoMode(nextPhotoMode);
             setReviewFile(null);
             void read([nextFile], nextPhotoMode);
+          }}
+        />
+      )}
+      {burstOpen && (
+        <BurstCameraModal
+          maxPhotos={Math.max(1, MAX_RESULT_IMAGES - staged.length)}
+          title="Chụp phiếu tô & bảng đáp án"
+          onClose={() => setBurstOpen(false)}
+          onComplete={picked => {
+            setBurstOpen(false);
+            if (picked.length) {
+              setPhotoMode(true);
+              addStaged(picked);
+            }
           }}
         />
       )}

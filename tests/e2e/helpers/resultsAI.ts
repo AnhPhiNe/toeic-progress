@@ -8,8 +8,10 @@ export async function mockResultsAI(page: Page) {
       export async function getAIUsage() { return null; }
       export async function extractMistakeWithAI() { throw new Error('not used'); }
       export async function extractPageWithAI() { throw new Error('not used'); }
-      export async function readResultsWithAI(images) {
+      export async function readResultsWithAI(images, _getToken, _owner, _isCurrent, options) {
         window.__resultImages = images.length;
+        window.__resultCalls = (window.__resultCalls || 0) + 1;
+        window.__resultPhotoMode = Boolean(options?.photoMode);
         return { wrong: [107, 113, 115], skipped: [117, 128], usage: {} };
       }`
   }));
