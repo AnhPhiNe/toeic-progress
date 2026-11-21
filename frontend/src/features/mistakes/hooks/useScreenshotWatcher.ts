@@ -30,8 +30,13 @@ export interface FileSystemHandleLike {
   name: string;
   getFile?: () => Promise<File>;
 }
+interface FileSystemObserverLike {
+  observe: (handle: DirectoryHandleLike, options?: { recursive?: boolean }) => Promise<void>;
+  disconnect: () => void;
+}
 interface WindowWithPicker extends Window {
   showDirectoryPicker?: (options?: { id?: string; mode?: 'read' | 'readwrite'; startIn?: string }) => Promise<DirectoryHandleLike>;
+  FileSystemObserver?: new (callback: (records: unknown[]) => void) => FileSystemObserverLike;
 }
 
 const DB_NAME = 'toeic_screenshot_dir_v1';
@@ -40,25 +45,38 @@ const HANDLE_KEY = 'screenshots';
 const MAX_CANDIDATES = 10;
 /** Only surface screenshots taken within the last 3 minutes (never flood old personal screenshots). */
 export const RECENT_WINDOW_MS = 3 * 60_000;
+/** Files verified older than cutoff minus this margin are cached by name during silent auto-scans to avoid I/O. */
+const OLD_CACHE_MARGIN_MS = 5 * 60_000;
+/** Light foreground poll interval while the capture modal is open and visible (handles split-screen / Win+PrtSc). */
+const VISIBLE_POLL_MS = 1500;
 const IMAGE_EXT = /\.(png|jpe?g|webp|bmp|gif|avif|heic|heif)$/i;
 
 export const screenshotFileKey = (file: File) => `${file.name}:${file.size}:${file.lastModified}`;
 
-/** Pure directory scanner: filters recent image files within cutoff, skips seen keys, sorts newest first, caps to MAX_CANDIDATES. */
+/** Pure directory scanner: filters recent image files within cutoff, skips seen keys & known-old names, sorts newest first, caps to MAX_CANDIDATES. */
 export async function scanDirectoryFiles(
   handle: DirectoryHandleLike,
   cutoff: number,
   seen: ReadonlySet<string>,
-  shouldContinue: () => boolean = () => true
+  shouldContinue: () => boolean = () => true,
+  options?: { skipNames?: ReadonlySet<string>; onOldName?: (name: string) => void }
 ): Promise<Array<{ key: string; file: File }>> {
   if (!handle.values) return [];
+  const skipNames = options?.skipNames;
+  const onOldName = options?.onOldName;
+  const oldThreshold = cutoff - OLD_CACHE_MARGIN_MS;
   const found: Array<{ key: string; file: File }> = [];
   for await (const entry of handle.values()) {
     if (!shouldContinue()) return [];
     if (entry.kind !== 'file' || !entry.getFile || !IMAGE_EXT.test(entry.name)) continue;
+    if (skipNames?.has(entry.name)) continue;
     try {
       const file = await entry.getFile();
-      if (!file.size || file.lastModified < cutoff) continue;
+      if (!file.size) continue;
+      if (file.lastModified < cutoff) {
+        if (file.lastModified < oldThreshold) onOldName?.(entry.name);
+        continue;
+      }
       const key = screenshotFileKey(file);
       if (seen.has(key)) continue;
       found.push({ key, file });
@@ -176,6 +194,9 @@ export function useScreenshotWatcher(enabled: boolean) {
   const candidatesRef = useRef<ScreenshotCandidate[]>([]);
   candidatesRef.current = candidates;
   const aliveRef = useRef(true);
+  const scanningRef = useRef(false);
+  const pendingScanRef = useRef(false);
+  const oldNamesRef = useRef(new Set<string>());
   // Session floor: only inspect screenshots taken shortly before or during this capture session.
   const floorRef = useRef(Date.now() - RECENT_WINDOW_MS);
 
@@ -195,32 +216,55 @@ export function useScreenshotWatcher(enabled: boolean) {
 
   const scanHandle = useCallback(async (handle: DirectoryHandleLike, quiet = true) => {
     if (!handle.values) return;
-    setBusy(true);
+    if (scanningRef.current) {
+      pendingScanRef.current = true;
+      return;
+    }
+    scanningRef.current = true;
+    if (!quiet) {
+      oldNamesRef.current.clear();
+      setBusy(true);
+    }
     try {
       const cutoff = Math.max(floorRef.current, Date.now() - RECENT_WINDOW_MS);
-      const top = await scanDirectoryFiles(handle, cutoff, seenKeys, () => aliveRef.current);
+      const top = await scanDirectoryFiles(
+        handle,
+        cutoff,
+        seenKeys,
+        () => aliveRef.current,
+        quiet ? { skipNames: oldNamesRef.current, onOldName: name => oldNamesRef.current.add(name) } : { onOldName: name => oldNamesRef.current.add(name) }
+      );
       if (!aliveRef.current) return;
-      const existingByKey = new Map(candidatesRef.current.map(item => [item.key, item]));
-      const next: ScreenshotCandidate[] = top.map(({ key, file }) => {
-        const kept = existingByKey.get(key);
-        if (kept) {
-          existingByKey.delete(key);
-          return kept;
-        }
-        return { key, name: file.name, file, url: URL.createObjectURL(file), lastModified: file.lastModified };
-      });
-      // Release object URLs for entries no longer in candidates.
-      revokeAll([...existingByKey.values()]);
-      setCandidates(next);
+      const prevKeys = candidatesRef.current.map(item => item.key).join('|');
+      const nextKeys = top.map(item => item.key).join('|');
+      if (prevKeys !== nextKeys) {
+        const existingByKey = new Map(candidatesRef.current.map(item => [item.key, item]));
+        const next: ScreenshotCandidate[] = top.map(({ key, file }) => {
+          const kept = existingByKey.get(key);
+          if (kept) {
+            existingByKey.delete(key);
+            return kept;
+          }
+          return { key, name: file.name, file, url: URL.createObjectURL(file), lastModified: file.lastModified };
+        });
+        // Release object URLs for entries no longer in candidates.
+        revokeAll([...existingByKey.values()]);
+        setCandidates(next);
+      }
       if (!quiet) {
-        setNotice(next.length ? '' : 'Chưa thấy ảnh chụp mới trong 3 phút gần đây.');
-      } else if (next.length) {
+        setNotice(top.length ? '' : 'Chưa thấy ảnh chụp mới trong 3 phút gần đây.');
+      } else if (top.length) {
         setNotice('');
       }
     } catch {
       if (aliveRef.current && !quiet) setNotice('Không đọc được thư mục ảnh chụp. Hãy chọn lại thư mục.');
     } finally {
-      if (aliveRef.current) setBusy(false);
+      scanningRef.current = false;
+      if (aliveRef.current && !quiet) setBusy(false);
+      if (aliveRef.current && pendingScanRef.current && handleRef.current) {
+        pendingScanRef.current = false;
+        void scanHandle(handleRef.current, true);
+      }
     }
   }, [revokeAll]);
 
@@ -231,6 +275,7 @@ export function useScreenshotWatcher(enabled: boolean) {
     void loadSavedHandle().then(async saved => {
       if (cancelled || !saved) return;
       handleRef.current = saved;
+      oldNamesRef.current.clear();
       setDirName(saved.name || 'Screenshots');
       const perm = await saved.queryPermission?.({ mode: 'read' }).catch(() => 'prompt' as PermissionState);
       if (cancelled) return;
@@ -244,20 +289,59 @@ export function useScreenshotWatcher(enabled: boolean) {
     return () => { cancelled = true; };
   }, [enabled, supported, scanHandle]);
 
-  // Auto-scan lazily when learner Alt+Tabs back to this window.
+  // Fast detection while modal is open:
+  // 1) Native FileSystemObserver (Chrome/Edge 133+) for near-instant OS events.
+  // 2) Staggered focus/visibility rescans (0ms, 600ms, 1600ms) to catch Windows Snipping Tool / OneDrive disk flush lag.
+  // 3) Lightweight visible-only foreground poll (1.5s, skipping cached old filenames) for split-screen & Win+PrintScreen.
   useEffect(() => {
     if (!enabled || status !== 'watching') return;
-    const onFocus = () => {
-      if (handleRef.current) void scanHandle(handleRef.current, true);
+    const timers = new Set<number>();
+    const scheduleRescan = (delayMs: number) => {
+      const id = window.setTimeout(() => {
+        timers.delete(id);
+        if (aliveRef.current && handleRef.current && document.visibilityState === 'visible') {
+          void scanHandle(handleRef.current, true);
+        }
+      }, delayMs);
+      timers.add(id);
     };
+    const triggerBurstScan = () => {
+      if (!handleRef.current) return;
+      void scanHandle(handleRef.current, true);
+      scheduleRescan(600);
+      scheduleRescan(1600);
+    };
+    const onFocus = () => triggerBurstScan();
     const onVisibility = () => {
-      if (document.visibilityState === 'visible' && handleRef.current) void scanHandle(handleRef.current, true);
+      if (document.visibilityState === 'visible') triggerBurstScan();
     };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
+
+    let observer: FileSystemObserverLike | null = null;
+    const ObserverCtor = (window as WindowWithPicker).FileSystemObserver;
+    if (ObserverCtor && handleRef.current) {
+      try {
+        observer = new ObserverCtor(() => { scheduleRescan(250); });
+        void observer.observe(handleRef.current).catch(() => { observer?.disconnect(); observer = null; });
+      } catch {
+        observer = null;
+      }
+    }
+
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && handleRef.current) {
+        void scanHandle(handleRef.current, true);
+      }
+    }, VISIBLE_POLL_MS);
+
     return () => {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.clearInterval(pollId);
+      timers.forEach(id => window.clearTimeout(id));
+      timers.clear();
+      try { observer?.disconnect(); } catch { /* ignore */ }
     };
   }, [enabled, status, scanHandle]);
 
@@ -268,6 +352,7 @@ export function useScreenshotWatcher(enabled: boolean) {
     try {
       const handle = await picker({ id: 'toeic-screenshots', mode: 'read', startIn: 'pictures' });
       handleRef.current = handle;
+      oldNamesRef.current.clear();
       setDirName(handle.name || 'Screenshots');
       setStatus('watching');
       await saveHandle(handle);

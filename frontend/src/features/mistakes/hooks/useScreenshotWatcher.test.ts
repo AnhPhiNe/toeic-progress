@@ -66,6 +66,29 @@ describe('screenshot watcher helpers', () => {
     expect(capped).toHaveLength(10);
     expect(capped[0].file.name).toBe('shot-13.png');
     expect(capped[9].file.name).toBe('shot-4.png');
+
+    // Old filenames well past cutoff are reported via onOldName and skipped on subsequent silent scans without calling getFile().
+    const ancient = new File(['old'], 'Ancient-2025.png', { type: 'image/png', lastModified: cutoff - 10 * 60_000 });
+    const getAncient = vi.fn().mockResolvedValue(ancient);
+    const oldNames = new Set<string>();
+    await scanDirectoryFiles(
+      makeFakeDir([{ kind: 'file', name: ancient.name, getFile: getAncient }]),
+      cutoff,
+      new Set(),
+      () => true,
+      { skipNames: oldNames, onOldName: name => oldNames.add(name) }
+    );
+    expect(getAncient).toHaveBeenCalledTimes(1);
+    expect(oldNames.has(ancient.name)).toBe(true);
+
+    await scanDirectoryFiles(
+      makeFakeDir([{ kind: 'file', name: ancient.name, getFile: getAncient }]),
+      cutoff,
+      new Set(),
+      () => true,
+      { skipNames: oldNames }
+    );
+    expect(getAncient).toHaveBeenCalledTimes(1);
   });
 
   it('extracts image blobs from clipboard items and skips text-only items', async () => {
