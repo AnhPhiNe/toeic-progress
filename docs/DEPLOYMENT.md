@@ -10,11 +10,11 @@ Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md
 
 Từ 20/11/2026 toàn bộ schema, RLS, RPC đồng bộ, giới hạn API, bảng giải đấu và ledger ticket lời giải nằm trong **một file baseline duy nhất**: `supabase/migrations/20261120000000_baseline_v2.sql`. Các migration v1 cũ trong `supabase/migrations/archive/` chỉ để tra cứu, không chạy lại.
 
-- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp `supabase/migrations/20261120000000_baseline_v2.sql` (hoặc `supabase db push`).
-- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md).
+- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp `supabase/migrations/20261120000000_baseline_v2.sql` và migration bổ sung `supabase/migrations/20261121000000_ai_provider_budget_and_ledger.sql` (hoặc `supabase db push`).
+- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md), sau đó áp thêm `20261121000000_ai_provider_budget_and_ledger.sql`.
 - Tạo bucket Supabase Storage riêng tư tên `mistake-sources` (`public = false`) nếu bật tính năng lưu ảnh nguồn (`SOURCE_IMAGES_ENABLED=true`).
-- Xác nhận RPC `schema_ready()` trả `{"baseline": 2, "ready": true}`; kiểm tra Security Advisor và xác nhận quyền `anon`/`authenticated` đều bị thu hồi trên các RPC nội bộ (chỉ `service_role` gọi được).
-- Giữ `API_LIMITS_ENABLED=false` ở local tới khi baseline v2 đã áp dụng; staging/production bắt buộc `true`. Dùng project staging riêng cho test tài khoản và test tải.
+- Xác nhận RPC `schema_ready()` trả `{"baseline": 2, "ready": true}`; kiểm tra Security Advisor và xác nhận quyền `anon`/`authenticated` đều bị thu hồi trên các RPC nội bộ (kể cả `reserve_provider_budget` và `record_ai_usage`, chỉ `service_role` gọi được).
+- Giữ `API_LIMITS_ENABLED=false` và `AI_PROVIDER_BUDGET_ENABLED=false` ở local tới khi các migration đã áp dụng; staging/production bắt buộc `true`. Dùng project staging riêng cho test tài khoản và test tải.
 - Không deploy Edge Function `delete-account` cũ (đã xóa khỏi repo; luồng xóa tài khoản đi qua FastAPI `DELETE /api/v1/account` kèm dọn ảnh Storage). Nếu project cũ từng deploy Edge Function này, hãy undeploy trên Supabase Dashboard.
 
 Ticket lời giải bền vững được lưu trong Supabase (đã có sẵn trong baseline v2) nên restart/nhiều worker không đặt lại ngân sách. Chi tiết giới hạn/chi phí ở [AI_ACCESS.md](AI_ACCESS.md).
@@ -32,10 +32,10 @@ Ghi lại origin frontend, ví dụ `https://toeic-progress.vercel.app`, không 
 Python Web Service, root `backend`, build `pip install -r requirements.txt`. Start command:
 
 ```text
-uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 32 --no-access-log
+uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 64 --no-access-log
 ```
 
-Health check path: `/ready`. Blueprint `backend/render.yaml` có cùng cấu hình.
+Health check path: `/ready`. Blueprint `backend/render.yaml` có cùng cấu hình. Ngoài ra `backend/Dockerfile` đã sẵn sàng cho mọi host Docker (mặc định `PORT=7860`, hỗ trợ biến `WEB_CONCURRENCY=2` trên máy nhiều RAM như Hugging Face Spaces; cần đặt `ALLOWED_HOSTS`, `CORS_ORIGINS` và kiểm tra `CLIENT_IP_HEADER` trước khi chuyển traffic thật).
 
 | Biến | Giá trị beta |
 |---|---|
@@ -73,21 +73,21 @@ Script cần `SUPABASE_STAGING_API_URL` và `SUPABASE_STAGING_USER_TOKEN`; đồ
 
 ## 5. Bật AI sau khi tracker ổn
 
-OpenAI đã được chọn cho cấu hình mới: tạo key trên OpenAI Platform, tài khoản API có tín dụng. Trên Render đặt `OPENAI_API_KEY` là một chuỗi key, `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`. Giữ `AI_ENABLED=false` nếu chưa có key, và lưu cả cấu hình trước khi bật AI. Tạo Turnstile site và thêm hostname frontend; bật Anonymous Sign-Ins và CAPTCHA trong Supabase Auth.
+OpenAI đã được chọn cho cấu hình mới: tạo key trên OpenAI Platform, tài khoản API có tín dụng. Trên backend đặt `OPENAI_API_KEY`, cùng các biến phân tầng model mặc định (`OPENAI_MODEL=gpt-6-luna`, `OPENAI_OCR_MODEL=gpt-6-luna`, `OPENAI_PAPER_OCR_MODEL=gpt-6.1-terra`, `OPENAI_PAPER_RESULTS_MODEL=gpt-6.1-terra`, `OPENAI_PART7_MODEL=gpt-6.1-terra`, `OPENAI_ADVICE_MODEL=gpt-6.1-terra`) và bật `AI_PROVIDER_BUDGET_ENABLED=true` để chặn trần ngân sách trên mọi lệnh gọi thực tế sang OpenAI (kể cả `explain-batch` và tự động nâng tầng OCR) đồng thời ghi sổ token `ai_cost_ledger`. Giữ `AI_ENABLED=false` nếu chưa có key, và lưu cả cấu hình trước khi bật AI. Tạo Turnstile site và thêm hostname frontend; bật Anonymous Sign-Ins và CAPTCHA trong Supabase Auth.
 
 Backend: điền key provider, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đổi `AI_ENABLED=true`. Frontend: điền `VITE_TURNSTILE_SITE_KEY` và redeploy. Không cần biến OpenAI trong Vercel. `/ready` phải báo `ai_provider=openai`, `ai_configured=true` sau khi chuyển. Backend chỉ dùng OpenAI. Không còn cấu hình chọn hoặc chuyển provider.
 
 Website production `toeictracking.vercel.app` với API Render hiện tại dùng `/api/ai-status` cùng origin để đọc cấu hình provider. Rewrite trong `frontend/vercel.json` chuyển đúng endpoint đó tới `/health` trên Render, trước SPA fallback; không cache. Request này không có token/câu hỏi và không gọi provider AI. Các API đồng bộ/extraction vẫn gọi URL backend đã cấu hình. Local/preview hoặc staging API khác vẫn đọc `/health` trực tiếp. Nếu đổi domain hoặc backend production, cập nhật cả route rewrite và điều kiện trong `getAIConfiguration` cùng một lần.
 
-Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức của OpenAI.
+Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 20 lượt/phút (hỗ trợ đọc song song), IP 5 lượt/ngày; lớp trần provider riêng (`AI_PROVIDER_DAY_LIMIT=300`, `AI_PROVIDER_OWNER_DAY_LIMIT=60`, `AI_PROVIDER_MINUTE_LIMIT=20`) bảo vệ mọi HTTP request thực tế sang OpenAI. Đây là giới hạn app, không phải hạn mức của OpenAI.
 
 Tùy chọn miễn toàn bộ hạn mức AI app: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail được Google xác minh trong Supabase Auth được miễn cap tháng/ngày/phút và spam theo tài khoản/IP cho AI; không thêm quyền database. Để `[]` để tắt. Không cần migration mới. Vẫn ghi counter, chống gửi trùng và giữ giới hạn tài nguyên/provider. Phí OpenAI vẫn áp dụng; giám sát ngân sách đã chọn trên OpenAI Platform.
 
 ## 6. Giới hạn, log và proxy
 
-PostgreSQL giữ lượt theo tài khoản trước nghiệp vụ, dùng chung giữa instance: tổng 60 request/phút; sync 30; usage 30; AI 10; reset/xóa tài khoản chung 3. Fixed minute windows có thể cho phép burst ở ranh giới phút.
+PostgreSQL giữ lượt theo tài khoản trước nghiệp vụ, dùng chung giữa instance: tổng 60 request/phút; sync 30; usage 30; AI 25; reset/xóa tài khoản chung 3. Fixed minute windows có thể cho phép burst ở ranh giới phút.
 
-Trước xác thực: 120 request/IP/60 giây, tối đa 8 request đang xử lý/process và 4.096 bucket IP. Đây là lớp giảm tải cục bộ. Request quá tải trả 429/503 kèm `Retry-After`. Body tối đa 4 MiB, thời gian nhận tối đa 10 giây. Uvicorn limit-concurrency 32 giới hạn thêm connection/task.
+Trước xác thực: 120 request/IP/60 giây, tối đa 24 request đang xử lý/process và 4.096 bucket IP. Đây là lớp giảm tải cục bộ. Request quá tải trả 429/503 kèm `Retry-After`. Body tối đa 4 MiB (riêng `/api/v1/ai/extract-page` 12 MiB và `/api/v1/ai/read-results` 10 MiB), thời gian nhận tối đa 10 giây (45 giây cho route ảnh). Uvicorn limit-concurrency 64 giới hạn thêm connection/task.
 
 Log JSON có mã request, route cố định, status, thời gian, loại exception; không log raw body/token/query string/email/exception message. Server tự tạo `X-Request-ID`; lỗi server có mã hỗ trợ trên frontend.
 

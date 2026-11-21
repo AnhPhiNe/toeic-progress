@@ -130,4 +130,23 @@ describe('queued explanation delivery', () => {
     state.explain.mockRejectedValueOnce(new Error('Network lost'));
     expect(retryExplanation('c1')).toBe(true); await settled('c1'); expect(canRetryFree('c1')).toBe(true);
   });
+
+  it('dispatches up to three explanation batches concurrently for the same owner', async () => {
+    state.cards = [card('c1'), card('c2'), card('c3'), card('c4')];
+    let running = 0, peak = 0;
+    state.explain.mockImplementation(async (_t: string, items: { number: number }[]) => {
+      running += 1;
+      peak = Math.max(peak, running);
+      await new Promise(resolve => setTimeout(resolve, 15));
+      running -= 1;
+      return result(items[0].number);
+    });
+    queue('c1', 178, ticket('s1'));
+    queue('c2', 179, ticket('s2'));
+    queue('c3', 180, ticket('s3'));
+    queue('c4', 181, ticket('s4'));
+    await settled('c1', 'c2', 'c3', 'c4');
+    expect(peak).toBe(3);
+    expect(state.explain).toHaveBeenCalledTimes(4);
+  });
 });

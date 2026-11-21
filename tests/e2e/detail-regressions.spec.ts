@@ -74,10 +74,10 @@ test('changing accounts during screenshot reading cancels later readings and exp
   const flow = await openDesktopFlow(page);
   await page.evaluate(() => { Object.assign(window, { __pageDelay: 1200 }); });
   await flow.getByRole('button', { name: /Chụp trang chữa bài Part 5/ }).click();
-  // Seven screenshots are two readings (six images at most each), read one after the other.
-  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(Array.from({ length: 7 }, () => screenshot));
-  await flow.getByRole('button', { name: 'Gửi Sóc đọc 7 ảnh', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls?.length)).toBe(1);
+  // Ten Part 5 screenshots auto-chunk into 4 packs (3+3+3+1); 3 start in parallel and the 4th waits for a slot.
+  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(Array.from({ length: 10 }, () => screenshot));
+  await flow.getByRole('button', { name: 'Gửi Sóc đọc 10 ảnh', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls?.length)).toBe(3);
   await page.evaluate(async () => {
     const path = '/src/shared/data/dataBundle.ts';
     const database = await import(/* @vite-ignore */ path);
@@ -87,7 +87,7 @@ test('changing accounts during screenshot reading cancels later readings and exp
     window.dispatchEvent(new Event('toeic:mistakes-changed'));
   });
   await expect(flow).toHaveCount(0);
-  await page.waitForFunction(() => (window as Window & { __pageFinished?: number }).__pageFinished === 1);
+  await page.waitForFunction(() => (window as Window & { __pageFinished?: number }).__pageFinished === 3);
   await page.waitForTimeout(300);
   const calls = await page.evaluate(() => ({
     reads: (window as Window & { __pageCalls?: unknown[] }).__pageCalls,
@@ -95,7 +95,8 @@ test('changing accounts during screenshot reading cancels later readings and exp
     tickets: localStorage.getItem('toeic_explain_tickets_v1'),
     mistakes: JSON.parse(localStorage.getItem('toeic_progress_account_detail-other-owner_v3')!).mistakes
   }));
-  expect(calls.reads).toHaveLength(1);
+  // The 4th queued chunk must never start after the account switch, and no late results/explanations may land.
+  expect(calls.reads).toHaveLength(3);
   expect(calls.explanations).toEqual([]);
   expect(calls.tickets).toBeNull();
   expect(calls.mistakes).toEqual([]);

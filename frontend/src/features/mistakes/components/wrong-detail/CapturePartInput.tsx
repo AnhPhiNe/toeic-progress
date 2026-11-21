@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import type { CaptureImage, CapturePart, CaptureZone } from '@/features/mistakes/services/captureSession';
-import { PART_NAMES, suggestGroups } from '@/features/mistakes/lib/wrongDetail';
+import type { ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { isGroupedPart, PART_NAMES, suggestGroups, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import { DropZone, pasteHint } from './views';
 import './wrong-detail.css';
 import './capture-part.css';
@@ -9,21 +11,35 @@ interface Props {
   phone?: boolean;
   part: CapturePart | null;
   group: number | null;
+  customPart7Ranges?: CustomRangeMap;
   images: readonly CaptureImage[];
-  /** The chosen test's logged wrong questions (Reading), or null when it has no wrong list. */
+  /** The chosen test's logged wrong questions (Parts 1–7), or null when it has no wrong list. */
   logged: number[] | null;
   disabled?: boolean;
+  photoMode?: boolean;
+  clarity?: Record<string, ClarityResult | null>;
   onPart: (part: CapturePart | null) => void;
   onGroup: (group: number | null) => void;
+  onEditPart7Range?: (oldFrom: number, from: number, to: number) => string | null;
+  onPhotoMode?: (value: boolean) => void;
   onAdd: (files: File[], zone: CaptureZone) => void;
+  onCameraAdd?: (files: File[], zone: CaptureZone) => void;
+  onEditImage?: (id: string) => void;
   onRemove: (id: string) => void;
 }
 
 /**
- * The capture of one Part, as in Gỡ câu sai: "Chụp câu Part mấy?" first; Part 5 is one zone, Part 6–7 take
- * ① Đoạn văn + ② Câu hỏi read together. A test with a wrong list suggests its passage groups.
+ * The capture of one Part, as in Gỡ câu sai: "Chụp câu Part mấy?" first (Part 5–7 primary + Part 1–4 Listening).
+ * Uses a single unified image tray per Part/group so learners never have to split passage vs question boxes.
  */
-export function CapturePartInput({ phone = false, part, group, images, logged, disabled = false, onPart, onGroup, onAdd, onRemove }: Props) {
+export function CapturePartInput({
+  phone = false, part, group, customPart7Ranges, images, logged, disabled = false, photoMode = false, clarity,
+  onPart, onGroup, onEditPart7Range, onPhotoMode, onAdd, onCameraAdd, onEditImage, onRemove
+}: Props) {
+  const [editingRange, setEditingRange] = useState(false);
+  const [fromVal, setFromVal] = useState('');
+  const [toVal, setToVal] = useState('');
+  const [rangeErr, setRangeErr] = useState('');
   const wrongIn = (value: number) => (logged ?? []).filter(number => partOfQuestion(number) === value);
   if (!part) {
     return (
@@ -37,33 +53,101 @@ export function CapturePartInput({ phone = false, part, group, images, logged, d
             </button>
           ))}
         </div>
-      </div>
-    );
-  }
-  const groups = part >= 6 && logged ? suggestGroups(part as 6 | 7, wrongIn(part)) : [];
-  const zoneProps = { phone, disabled, camera: phone, onAdd, onRemove: (_zone: CaptureZone, id: string) => onRemove(id), onActivate: () => {} };
-  const zoneImages = (zone: CaptureZone) => images.filter(image => image.zone === zone);
-  return (
-    <div className={'wd-vars' + (phone ? ' cpi-phone' : '')}>
-      <div className="cpi-head">Part {part} · {PART_NAMES[part]}{logged && <small>{wrongIn(part).length} câu sai</small>}
-        <button type="button" onClick={() => onPart(null)} disabled={disabled}>Đổi Part</button></div>
-      {groups.length > 0 && (
-        <div className="cpi-groups" role="group" aria-label="Nhóm bài đọc">
-          {groups.map(item => (
-            <button key={item.from} type="button" aria-pressed={group === item.from} disabled={disabled} onClick={() => onGroup(group === item.from ? null : item.from)}>
-              Nhóm {item.from}–{item.to}<small>sai {item.wrong.join(', ')}</small>
+        <p className="cpi-sub">Phần Nghe (tuỳ chọn chụp tranh / trang transcript)</p>
+        <div className="cpi-listen">
+          {([1, 2, 3, 4] as const).map(value => (
+            <button key={value} type="button" className="cpi-part" onClick={() => onPart(value)} aria-label={`Part ${value} · ${PART_NAMES[value]}`}>
+              <b>Part {value}</b><span>{PART_NAMES[value]}</span>
+              {logged && wrongIn(value).length > 0 && <em>{wrongIn(value).length} câu sai</em>}
             </button>
           ))}
         </div>
+      </div>
+    );
+  }
+  const grouped = isGroupedPart(part);
+  const groups = grouped && logged ? suggestGroups(part, wrongIn(part), part === 7 ? customPart7Ranges : undefined) : [];
+  const selectedGroup = groups.find(item => item.from === group) ?? null;
+  const zoneProps = {
+    phone,
+    disabled,
+    camera: phone,
+    clarity,
+    onAdd,
+    onCameraAdd,
+    onEdit: onEditImage ? (_zone: CaptureZone, id: string) => onEditImage(id) : undefined,
+    onRemove: (_zone: CaptureZone, id: string) => onRemove(id),
+    onActivate: () => {}
+  };
+  const openRangeEditor = () => {
+    const target = selectedGroup ?? groups[0];
+    setFromVal(String(target?.from ?? 147));
+    setToVal(String(target?.to ?? 150));
+    setRangeErr('');
+    setEditingRange(true);
+  };
+  const applyRange = () => {
+    if (!onEditPart7Range) return;
+    const oldFrom = selectedGroup?.from ?? groups[0]?.from ?? 147;
+    const err = onEditPart7Range(oldFrom, Number(fromVal), Number(toVal));
+    if (err) { setRangeErr(err); return; }
+    setEditingRange(false);
+    setRangeErr('');
+  };
+  const trayTitle = part === 7 ? 'Ảnh bài đọc & câu hỏi'
+    : part === 6 ? 'Ảnh đoạn văn & câu hỏi'
+      : part === 3 || part === 4 ? 'Ảnh transcript & câu hỏi'
+        : `Ảnh câu Part ${part}`;
+  const trayNote = part === 2 ? 'hỗ trợ 3 phương án A–C'
+    : grouped ? 'tối đa 10 ảnh theo thứ tự'
+      : 'mỗi ảnh một hay nhiều câu';
+  return (
+    <div className={'wd-vars' + (phone ? ' cpi-phone' : '')}>
+      <div className="cpi-head">Part {part} · {PART_NAMES[part]}{logged && <small>{wrongIn(part).length} câu sai</small>}
+        <button type="button" onClick={() => { setEditingRange(false); onPart(null); }} disabled={disabled}>Đổi Part</button></div>
+      {groups.length > 0 && (
+        <div className="cpi-groups" role="group" aria-label="Nhóm bài đọc">
+          {groups.map(item => (
+            <button key={item.from} type="button" aria-pressed={group === item.from} disabled={disabled}
+              onClick={() => { setEditingRange(false); onGroup(group === item.from ? null : item.from); }}>
+              Nhóm {item.from}–{item.to}<small>sai {item.wrong.join(', ')}</small>
+            </button>
+          ))}
+          {part === 7 && onEditPart7Range && !editingRange && (
+            <button type="button" className="wd-gr-edit" disabled={disabled} onClick={openRangeEditor}>✎ Đổi dải câu</button>
+          )}
+        </div>
       )}
-      {part === 5
-        ? <DropZone {...zoneProps} zone="questions" big title="Ảnh câu Part 5" note="mỗi ảnh một hay nhiều câu" items={zoneImages('questions')}
-            hint={<>{pasteHint(phone)} Sóc đọc các ảnh cùng lúc, chỉ lấy câu bạn sai.</>} />
-        : <div className={'wd-zones' + (phone ? ' is-stacked' : '')}>
-            <DropZone {...zoneProps} zone="passage" num={1} title="Đoạn văn" note="tối đa 3 ảnh" items={zoneImages('passage')} />
-            <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zoneImages('questions')} hint={phone ? undefined : pasteHint(false)} />
-          </div>}
-      <p className="cpi-note">{part >= 6 ? 'Đoạn văn và câu hỏi được đọc cùng một lượt.' : 'Ảnh gửi nguyên bản; chỉ thu nhỏ khi quá nặng.'}</p>
+      {part === 7 && editingRange && (
+        <div className="wd-range-bar" role="group" aria-label="Đổi dải câu Part 7" style={{ marginBottom: 10 }}>
+          <span>Từ</span>
+          <input type="number" min={147} max={200} value={fromVal} aria-label="Từ câu" onChange={e => { setFromVal(e.target.value); setRangeErr(''); }} />
+          <span>đến</span>
+          <input type="number" min={147} max={200} value={toVal} aria-label="Đến câu" onChange={e => { setToVal(e.target.value); setRangeErr(''); }} />
+          <button type="button" className="wd-chip-btn" onClick={applyRange}>Áp dụng</button>
+          <button type="button" className="wd-lnk is-muted" onClick={() => setEditingRange(false)}>Huỷ</button>
+          {rangeErr && <span className="wd-err" style={{ marginTop: 0, width: '100%' }} role="alert">{rangeErr}</span>}
+        </div>
+      )}
+      <DropZone
+        {...zoneProps}
+        zone="questions"
+        big
+        title={trayTitle}
+        note={trayNote}
+        items={images}
+        hint={<>{pasteHint(phone)} {grouped ? 'Thả/chụp tất cả ảnh bài đọc và câu hỏi của nhóm theo thứ tự — không cần tách 2 ô.' : 'Sóc đọc song song nhiều ảnh cùng lúc, chỉ lấy câu bạn sai.'}</>}
+      />
+      {onPhotoMode && (
+        <div className="cpi-bar">
+          <button type="button" className="wd-paper-pill" aria-pressed={photoMode} disabled={disabled} onClick={() => onPhotoMode(!photoMode)}>
+            📄 Ảnh chụp giấy{photoMode ? ': Bật' : ''}
+          </button>
+          <span className="cpi-note" style={{ marginTop: 0 }}>
+            {grouped ? 'Tất cả ảnh của nhóm được đọc chung một lượt.' : 'Ảnh gửi nguyên bản; chỉ thu nhỏ khi quá nặng.'}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -103,7 +103,7 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
         </label>
         <label>Loại lỗi <small>không bắt buộc</small>
           <select value={category} onChange={event => setCategory(event.target.value as ErrorCategory)}>
-            {Object.entries(CATEGORY_CHOICES).filter(([value]) => value !== 'LISTENING_SPEED').map(([value, label]) => <option key={value} value={value}>{value === 'OTHER' ? 'Chưa chọn' : label}</option>)}
+            {Object.entries(CATEGORY_CHOICES).filter(([value]) => item.part <= 4 || value !== 'LISTENING_SPEED').map(([value, label]) => <option key={value} value={value}>{value === 'OTHER' ? 'Chưa chọn' : label}</option>)}
           </select>
         </label>
       </div>

@@ -215,7 +215,7 @@ async def generate_analysis(gateway, snapshot: dict, owner: str) -> dict:
     if not key:
         raise HTTPException(503, "AI gợi ý ôn tập chưa được cấu hình. Bạn vẫn có thể xem thống kê và ôn Sổ tay.")
     payload = {
-        "model": settings.openai_model,
+        "model": settings.openai_advice_model,
         "instructions": PROMPT,
         "input": [{"role": "user", "content": [{"type": "input_text", "text": json.dumps(snapshot, ensure_ascii=False)}]}],
         "reasoning": {"effort": settings.openai_advice_reasoning_effort},
@@ -229,7 +229,8 @@ async def generate_analysis(gateway, snapshot: dict, owner: str) -> dict:
     }
     phase = "response"
     try:
-        text = await provider._respond(key, payload, settings.openai_advice_timeout_seconds)
+        text = await provider._respond(key, payload, settings.openai_advice_timeout_seconds,
+                                       endpoint="analyze_attempt", owner_id=owner)
         phase = "schema"
         advice = AnalysisAdvice.model_validate_json(text)
         phase = "grounding"
@@ -251,7 +252,7 @@ async def generate_analysis(gateway, snapshot: dict, owner: str) -> dict:
                                       if isinstance(error, ValidationError) else {})}))
         raise HTTPException(502, "Báo cáo AI chưa đạt kiểm tra bằng chứng. Dữ liệu vẫn được giữ; chưa tự gửi lại yêu cầu.",
                             headers={"X-Error-Code": "ANALYSIS_INVALID_OUTPUT"}) from error
-    return {"version": VERSION, "model": settings.openai_model, "signature": snapshot_hash(snapshot), **advice.model_dump(),
+    return {"version": VERSION, "model": settings.openai_advice_model, "signature": snapshot_hash(snapshot), **advice.model_dump(),
             "parts": snapshot["parts"], "linkedNotes": snapshot["linkedNotes"], "sampledNotes": snapshot["sampledNotes"]}
 
 

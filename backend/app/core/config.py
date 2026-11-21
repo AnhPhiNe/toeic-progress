@@ -14,12 +14,21 @@ class Settings(BaseSettings):
     source_images_enabled: bool = False
     source_image_account_limit: int = Field(default=200, ge=3, le=1000)
     openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
-    openai_model: Literal["gpt-6-luna"] = "gpt-6-luna"
+    openai_model: str = "gpt-6-luna"
     openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"
+    openai_ocr_model: str = "gpt-6-luna"
+    openai_ocr_effort: Literal["low", "medium", "high"] = "low"
+    openai_paper_ocr_model: str = "gpt-6.1-terra"
+    openai_paper_ocr_effort: Literal["low", "medium", "high"] = "low"
+    openai_paper_results_model: str = "gpt-6.1-terra"
+    openai_paper_results_effort: Literal["low", "medium", "high"] = "medium"
+    openai_part7_model: str = "gpt-6.1-terra"
+    openai_part7_effort: Literal["low", "medium", "high"] = "medium"
     openai_max_output_tokens: int = Field(default=8192, ge=2048, le=16384)
     openai_timeout_seconds: float = Field(default=45, ge=5, le=60)
     # Advice on one logged test: the facts are computed by the server, so the model only words and ranks them.
     # The output limit includes reasoning tokens; the app waits 90 s for any request.
+    openai_advice_model: str = "gpt-6.1-terra"
     openai_advice_reasoning_effort: Literal["low", "medium", "high"] = "medium"
     openai_advice_max_output_tokens: int = Field(default=6144, ge=2048, le=8192)
     openai_advice_timeout_seconds: float = Field(default=60, ge=5, le=85)
@@ -37,14 +46,14 @@ class Settings(BaseSettings):
     client_ip_header: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9-]*$")
     # Temporarily exposes /debug/client-ip so the operator can verify the header above.
     client_ip_debug: bool = False
-    max_concurrent_requests: int = Field(default=8, ge=1, le=128)
+    max_concurrent_requests: int = Field(default=24, ge=1, le=256)
     body_timeout_seconds: float = Field(default=10, ge=1, le=30)
     # Test-page screenshots are sent as they are: that route takes a bigger body and more time to upload it.
     page_body_timeout_seconds: float = Field(default=45, ge=5, le=120)
     api_account_minute_limit: int = Field(default=60, ge=1, le=10000)
     api_sync_minute_limit: int = Field(default=30, ge=1, le=1000)
     api_usage_minute_limit: int = Field(default=30, ge=1, le=1000)
-    api_ai_minute_limit: int = Field(default=10, ge=1, le=100)
+    api_ai_minute_limit: int = Field(default=25, ge=1, le=500)
     api_destructive_minute_limit: int = Field(default=3, ge=1, le=20)
 
     supabase_url: str = ""
@@ -61,9 +70,42 @@ class Settings(BaseSettings):
     # Monthly cap for an active 'plus' plan (user_plans) without its own ai_monthly_limit.
     ai_plus_monthly_limit: int = Field(default=100, ge=0, le=10000)
     ai_global_daily_limit: int = Field(default=20, ge=0, le=10000)
-    ai_global_minute_limit: int = Field(default=2, ge=0, le=100)
+    ai_global_minute_limit: int = Field(default=20, ge=0, le=500)
     ai_ip_daily_limit: int = Field(default=5, ge=0, le=1000)
+    # Enable after applying 20261121000000_ai_provider_budget_and_ledger.sql.
+    # Guards EVERY outbound OpenAI HTTP request (including explain-batch & OCR escalations) and writes ai_cost_ledger.
+    ai_provider_budget_enabled: bool = False
+    ai_provider_day_limit: int = Field(default=300, ge=1, le=50000)
+    ai_provider_owner_day_limit: int = Field(default=60, ge=1, le=5000)
+    ai_provider_minute_limit: int = Field(default=20, ge=1, le=500)
     ai_unlimited_emails: list[str] = Field(default_factory=list, max_length=100, repr=False)
+
+    @field_validator(
+        "openai_model",
+        "openai_ocr_model",
+        "openai_paper_ocr_model",
+        "openai_paper_results_model",
+        "openai_part7_model",
+        "openai_advice_model",
+    )
+    @classmethod
+    def clean_openai_model(cls, value: str, info) -> str:
+        import re
+
+        cleaned = value.strip()
+        if not cleaned:
+            defaults = {
+                "openai_model": "gpt-6-luna",
+                "openai_ocr_model": "gpt-6-luna",
+                "openai_paper_ocr_model": "gpt-6.1-terra",
+                "openai_paper_results_model": "gpt-6.1-terra",
+                "openai_part7_model": "gpt-6.1-terra",
+                "openai_advice_model": "gpt-6.1-terra",
+            }
+            return defaults[info.field_name]
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", cleaned):
+            raise ValueError(f"{info.field_name} must be a valid OpenAI model identifier")
+        return cleaned
 
     @field_validator("ai_unlimited_emails")
     @classmethod

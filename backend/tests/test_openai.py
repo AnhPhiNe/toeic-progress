@@ -408,3 +408,32 @@ def test_legacy_explanation_text_is_bounded_without_truncating_structured_sectio
     assert len(output.trapTip) <= 4000 and "Đã rút gọn" in output.trapTip
     assert output.explanation.model_dump() == sections
     assert output.options == DRAFT["options"] and output.correctAnswer == DRAFT["correctAnswer"]
+
+
+def test_part7_and_part1_explanations_route_to_part7_model_while_part5_stays_on_luna():
+    p7_input = json.dumps({
+        "part": 7, "question": "What is indicated?",
+        "options": ["(A) One.", "(B) Two.", "(C) Three.", "(D) Four."],
+        "context": "Notice: One is free.", "userChoiceState": "CHOSEN", "userChoice": "B", "sourceAnswer": "A",
+    })
+    p7_draft = {
+        **DRAFT, "part": 7, "questionContext": "What is indicated?\n\nNotice: One is free.",
+        "question": "What is indicated?", "context": "Notice: One is free.",
+        "options": ["(A) One.", "(B) Two.", "(C) Three.", "(D) Four."],
+        "correctAnswer": "(A) One.", "ownAnswer": "(A) One.", "userChoice": "B",
+        "optionNotes": [
+            {"label": label, "pos": "", "meaning": word}
+            for label, word in zip("ABCD", ("Một", "Hai", "Ba", "Bốn"), strict=True)
+        ],
+    }
+    response = completed(output=[{
+        "type": "message", "role": "assistant", "status": "completed",
+        "content": [{"type": "output_text", "text": json.dumps(p7_draft)}],
+    }])
+    _result, calls = run_provider(
+        lambda _request: httpx.Response(200, json=response),
+        text=p7_input,
+        generate_kwargs={"source_options": p7_draft["options"], "source_answer": "A"},
+    )
+    body = json.loads(calls[0].content)
+    assert body["model"] == "gpt-6.1-terra" and body["reasoning"] == {"effort": "medium"}

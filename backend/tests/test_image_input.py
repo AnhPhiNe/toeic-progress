@@ -87,3 +87,29 @@ def test_part1_requires_one_picture_and_four_pasted_spoken_options():
     for images, options in [([], fields["options"]), ([image_url()] * 2, fields["options"]), ([image_url()], fields["options"][:3])]:
         with pytest.raises(ValidationError):
             request(images, text="text" * 10, input={**fields, "options": options})
+
+
+def test_normalize_upright_keeps_upright_bytes_untouched_and_transposes_exif_rotated_jpeg():
+    import asyncio
+
+    from app.core.image_input import normalize_upright_data_url, normalize_upright_images
+
+    # Upright image with no EXIF orientation tag stays byte-for-byte identical.
+    upright = image_url(size=(160, 90), format="JPEG")
+    assert normalize_upright_data_url(upright) == upright
+
+    # EXIF orientation 6 (90 deg CW): 160x90 raw pixels must transpose to 90x160 upright.
+    img = Image.new("RGB", (160, 90), "white")
+    exif = img.getexif()
+    exif[274] = 6
+    stream = BytesIO()
+    img.save(stream, format="JPEG", exif=exif)
+    rotated_url = "data:image/jpeg;base64," + base64.b64encode(stream.getvalue()).decode()
+
+    fixed_list = asyncio.run(normalize_upright_images([upright, rotated_url]))
+    assert fixed_list[0] == upright
+    assert fixed_list[1] != rotated_url
+    raw_fixed = base64.b64decode(fixed_list[1].split(",", 1)[1])
+    with Image.open(BytesIO(raw_fixed)) as result:
+        assert result.size == (90, 160)
+        assert result.getexif().get(274, 1) == 1

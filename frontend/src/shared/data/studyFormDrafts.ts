@@ -39,8 +39,8 @@ export const mistakeFormDraftSchema = z.object({
   corrected: z.object({ question: text, options: z.array(text).max(4) }).nullable(), draft: aiDraft.nullable(), manual: z.boolean(),
   answerProvidedBy: z.enum(['SOURCE', 'LEARNER']).optional(), category, selectedCategory: category.or(z.literal('')), tags: text,
   step: z.enum(['input', 'preview']), entryMode: z.enum(['single', 'batch']), batchNumbersText: text,
-  batchItems: z.array(z.object({ id: z.string().max(200), number: z.number().int().min(101).max(200), part, draft: aiDraft, category })).max(100),
-  batchSummary: z.object({ requested: z.array(z.number().int().min(101).max(200)).max(100).nullable() }).nullable(),
+  batchItems: z.array(z.object({ id: z.string().max(200), number: z.number().int().min(1).max(200), part, draft: aiDraft, category })).max(100),
+  batchSummary: z.object({ requested: z.array(z.number().int().min(1).max(200)).max(100).nullable() }).nullable(),
   entryId: z.string().max(200), draftInput: z.string().max(64 * 1024), draftImageKey: z.string().max(1000), changed: z.boolean(), originalUpdatedAt: z.string().optional()
 });
 export type MistakeFormDraft = z.infer<typeof mistakeFormDraftSchema>;

@@ -349,8 +349,10 @@ def test_a_request_without_passage_images_has_no_labels(api):  # noqa: F811
 
 
 @pytest.mark.parametrize("change", [
-    {"context_images": [{"dataUrl": picture()}] * 4},
+    {"context_images": [{"dataUrl": picture()}] * 6},
     {"questions": [{"number": 107, "part": 5}]},
+    {"questions": [{"number": 1, "part": 1}]},
+    {"questions": [{"number": 10, "part": 2}]},
 ])
 def test_invalid_passage_images_never_reserve(api, change):  # noqa: F811
     with api() as (client, calls):
@@ -416,3 +418,131 @@ def test_only_the_page_route_takes_a_bigger_body(api):  # noqa: F811
         assert client.post("/api/v1/ai/extract", content=b"a" * (4 * 1024 * 1024 + 1)).status_code == 413
         assert client.post("/api/v1/ai/extract-page", content=b"a" * (4 * 1024 * 1024 + 1)).status_code != 413
         assert client.post("/api/v1/ai/extract-page", content=b"a" * (12 * 1024 * 1024 + 1)).status_code == 413
+        assert client.post("/api/v1/ai/read-results", content=b"a" * (4 * 1024 * 1024 + 1)).status_code != 413
+        assert client.post("/api/v1/ai/read-results", content=b"a" * (10 * 1024 * 1024 + 1)).status_code == 413
+
+
+def test_paper_option_labels_part6_shadow_and_rejection_reasons(api):  # noqa: F811
+    shadow_passage = "Library Reopens\nThe entire project was ____ financed by donations."
+    output = {"items": [
+        item(131, context=shadow_passage,
+             options=["A. larger", "B) largeness", "C: large", "D- [không rõ]"],
+             correctAnswer="A. larger", userChoice="B"),
+        item(132, options=["(A) only one"]),
+    ]}
+    with api(draft=output) as (client, _calls):
+        body = client.post("/api/v1/ai/extract-page", json=page()).json()
+    assert [entry["number"] for entry in body["items"]] == [131]
+    kept = body["items"][0]["draft"]
+    assert kept["options"] == ["(A) larger", "(B) largeness", "(C) large", "(D) [không rõ]"]
+    assert kept["correctAnswer"] == "(A) larger" and kept["answerSource"] == "PROVIDED"
+    assert any("Part 6" in msg for msg in kept["missingInformation"])
+    assert any("[không rõ]" in msg for msg in kept["missingInformation"])
+    assert any(reason["number"] == 132 and reason["code"] == "missing_options" for reason in body["rejectionReasons"])
+
+
+def test_photo_mode_routes_to_terra_and_escalates_once_when_under_read(api):  # noqa: F811
+    # Paper photo pass 1 finds 1 of 3 (<50%) on terra low -> auto-escalates once to terra medium for missing ones.
+    pass1 = {"items": [item(131)]}
+    pass2 = {"items": [item(132), item(107, question="She ____ left.", context="",
+                                      options=["(A) has", "(B) have", "(C) is", "(D) are"],
+                                      correctAnswer="", answerSource="MISSING", userChoice="")]}
+    with api(drafts=[pass1, pass2]) as (client, calls):
+        response = client.post("/api/v1/ai/extract-page", json=page(photoMode=True))
+        assert response.status_code == 200
+        body = response.json()
+    assert [entry["number"] for entry in body["items"]] == [107, 131, 132]
+    assert body["missing"] == []
+    sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert len(sent) == 2
+    assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "low"}
+    assert sent[1]["model"] == "gpt-6.1-terra" and sent[1]["reasoning"] == {"effort": "medium"}
+    # Only one user quota reservation even with escalation.
+    assert sum(call[1].endswith("reserve_ai_request") for call in calls) == 1
+
+
+def test_screen_ocr_escalates_once_to_terra_medium_when_zero_items_found(api):  # noqa: F811
+    with api(drafts=[{"items": []}, {"items": [item(131)]}]) as (client, calls):
+        response = client.post("/api/v1/ai/extract-page", json=page(photoMode=False))
+        assert response.status_code == 200
+        assert [entry["number"] for entry in response.json()["items"]] == [131]
+    sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert len(sent) == 2
+    assert sent[0]["model"] == "gpt-6-luna" and sent[0]["reasoning"] == {"effort": "low"}
+    assert sent[1]["model"] == "gpt-6.1-terra" and sent[1]["reasoning"] == {"effort": "medium"}
+
+
+def test_paper_results_uses_terra_medium_and_allows_sharp_photos_up_to_six_megabytes(api):  # noqa: F811
+    big = noisy_png(1000)  # ~3 MB > old 2.5 MiB cap
+    with api(draft={"wrong": [101, 155], "skipped": [200]}) as (client, calls):
+        response = client.post("/api/v1/ai/read-results", json=results(images=[{"dataUrl": big}], photoMode=True))
+        assert response.status_code == 200
+        assert response.json()["wrong"] == [101, 155]
+    sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "medium"}
+
+
+def test_part3_and_five_part7_context_images_are_accepted(api):  # noqa: F811
+    p3_req = page(
+        questions=[{"number": 32, "part": 3}, {"number": 33, "part": 3}],
+        context_images=[{"dataUrl": picture()}],
+    )
+    p7_req = page(
+        questions=[{"number": 181, "part": 7}],
+        context_images=[{"dataUrl": picture()}] * 5,
+    )
+    with api(draft={"items": []}) as (client, _calls):
+        assert client.post("/api/v1/ai/extract-page", json=p3_req).status_code == 200
+        assert client.post("/api/v1/ai/extract-page", json=p7_req).status_code == 200
+
+
+def test_provider_budget_guards_extract_page_and_records_cost_ledger(api):  # noqa: F811
+    with api(draft={"items": [item(131)]}, settings_overrides={"ai_provider_budget_enabled": True}) as (client, calls):
+        response = client.post("/api/v1/ai/extract-page", json=page())
+        assert response.status_code == 200
+        assert sum(call[1].endswith("/reserve_provider_budget") for call in calls) == 1
+        ledger_calls = [call[2] for call in calls if call[1].endswith("/record_ai_usage")]
+        assert len(ledger_calls) == 1
+        assert ledger_calls[0]["p_endpoint"] == "extract_page"
+        assert ledger_calls[0]["p_model"] == "gpt-6-luna"
+        assert ledger_calls[0]["p_cached_tokens"] == 50
+        assert ledger_calls[0]["p_status"] == "ok"
+
+    # When provider budget refuses, OpenAI is never called and 429 is returned with Retry-After.
+    with api(
+        provider_budget={"allowed": False, "code": "minute", "retry_after": 35},
+        settings_overrides={"ai_provider_budget_enabled": True},
+    ) as (client, calls):
+        refused = client.post("/api/v1/ai/extract-page", json=page())
+        assert refused.status_code == 429 and refused.headers["Retry-After"] == "35"
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_provider_budget_also_guards_explain_batch_calls(api):  # noqa: F811
+    with api(draft={"items": [item(131)]}, settings_overrides={"ai_provider_budget_enabled": True}) as (client, calls):
+        read_res = client.post("/api/v1/ai/extract-page", json=page()).json()
+        ticket = read_res["explainTicket"]
+        assert ticket
+        explain_res = client.post("/api/v1/ai/explain-batch", json={
+            "request_id": "44444444-4444-4444-8444-444444444444",
+            "consent": True,
+            "provider": "openai",
+            "ticket": ticket,
+            "items": [{
+                "number": 131,
+                "input": {
+                    "part": 6,
+                    "question": item(131)["question"],
+                    "context": PASSAGE,
+                    "options": item(131)["options"],
+                    "userChoiceState": "CHOSEN",
+                    "userChoice": "B",
+                    "sourceAnswer": "D",
+                },
+            }],
+        })
+        assert explain_res.status_code == 200
+        # 1 budget reservation for extract-page + 1 for explain-batch item!
+        assert sum(call[1].endswith("/reserve_provider_budget") for call in calls) == 2
+        endpoints = [call[2]["p_endpoint"] for call in calls if call[1].endswith("/record_ai_usage")]
+        assert endpoints == ["extract_page", "explain_batch"]

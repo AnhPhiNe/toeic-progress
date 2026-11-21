@@ -1,13 +1,22 @@
 // Shared setup for the v2 baseline tests: a Supabase-like auth schema in
 // PGlite, the baseline migration, and small query helpers.
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 
+export const MIGRATIONS_DIR = new URL('../../supabase/migrations/', import.meta.url);
 export const BASELINE = new URL('../../supabase/migrations/20261120000000_baseline_v2.sql', import.meta.url);
 export const uid = n => `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`;
 
 export async function baselineSql() {
   return readFile(BASELINE, 'utf8');
+}
+
+export async function migrationSqlList() {
+  const entries = (await readdir(MIGRATIONS_DIR, { withFileTypes: true }))
+    .filter(entry => entry.isFile() && entry.name.endsWith('.sql'))
+    .map(entry => entry.name)
+    .sort();
+  return Promise.all(entries.map(name => readFile(new URL(name, MIGRATIONS_DIR), 'utf8')));
 }
 
 export async function createDatabase({ apply = true } = {}) {
@@ -29,7 +38,9 @@ export async function createDatabase({ apply = true } = {}) {
     alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
     alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
   `);
-  if (apply) await db.exec(await baselineSql());
+  if (apply) {
+    for (const sql of await migrationSqlList()) await db.exec(sql);
+  }
   const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
   const value = async (sql, params = []) => Object.values((await db.query(sql, params)).rows[0])[0];
   const addUser = (id, { anonymous = false, email = null, name = null } = {}) => db.query(

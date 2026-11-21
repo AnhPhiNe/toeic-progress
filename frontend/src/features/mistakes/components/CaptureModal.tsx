@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -6,11 +6,13 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
 import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
-import { suggestGroups } from '@/features/mistakes/lib/wrongDetail';
+import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
-import { addFiles, backToInput, captureState, closeCapture, openCapture, patchItem, removeImage, removeItem, resetCapture, retryFailure,
-  setAllChecked, setGroup, setPart, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
+import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, replaceImageFile, resetCapture, retryFailure,
+  setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
@@ -38,9 +40,23 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [contextSupported, setContextSupported] = useState(true);
+  const [customPart7Ranges, setCustomPart7Ranges] = useState<CustomRangeMap>({});
+  const [clarity, setClarity] = useState<Record<string, ClarityResult | null>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const measured = useRef(new Set<string>());
+  const alive = useRef(true);
   const [owner] = useState(getActiveAccountId);
-  const close = useCallback(() => { closeCapture(); onClose(); }, [onClose]);
+  const close = useCallback(() => { if (editingId) { setEditingId(null); return; } closeCapture(); onClose(); }, [editingId, onClose]);
   const ref = useModalA11y(true, close);
+
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => {
+    for (const image of state.images) {
+      if (measured.current.has(image.id)) continue;
+      measured.current.add(image.id);
+      void checkPhotoClarity(image.url).then(result => { if (alive.current) setClarity(prev => ({ ...prev, [image.id]: result })); });
+    }
+  }, [state.images]);
 
   useEffect(() => {
     openCapture();
@@ -55,7 +71,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
 
   useEffect(() => {
     let cancelled = false;
-    void aiService.getAIConfiguration().then(value => { if (!cancelled) setContextSupported(Boolean(value.pageContextImages)); }).catch(() => {});
+    void aiService.getAIConfiguration().then(value => { if (!cancelled) setContextSupported(value.pageContextImages !== false); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -63,8 +79,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
     if (state.phase !== 'input' || !state.part) return;
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
-      // Part 6–7: the first paste is the passage, later ones the questions.
-      if (files.length) { event.preventDefault(); addFiles(files, captureState().images.some(image => image.zone === 'passage') ? 'questions' : 'passage'); }
+      if (files.length) { event.preventDefault(); addFiles(files, 'questions'); }
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
@@ -72,10 +87,22 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
 
   const testName = normalizeTestName(state.testName);
   const plan = useMemo(() => questionsToFind(sessions, testName), [sessions, testName]);
-  const groupRange = state.part && state.part >= 6 && state.group ? suggestGroups(state.part as 6 | 7, [state.group]).find(item => item.from === state.group) ?? null : null;
+  const groupRange = state.part && isGroupedPart(state.part) && state.group
+    ? suggestGroups(state.part, plan.logged ? plan.questions : [state.group], state.part === 7 ? customPart7Ranges : undefined).find(item => item.from === state.group) ?? null
+    : null;
   const full = state.images.length >= MAX_CAPTURE_IMAGES;
   const step = state.phase === 'input' ? 1 : state.phase === 'reading' ? 2 : 3;
   const checked = state.items.filter(item => item.checked);
+  const problemIndex = state.images.findIndex(image => clarity[image.id]?.problem);
+  const problemMessage = problemIndex >= 0 ? clarityMessage(problemIndex + 1, clarity[state.images[problemIndex].id]!.problem!) : null;
+  const editingFile = editingId ? getImageFile(editingId) : undefined;
+  const editPart7Range = (oldFrom: number, from: number, to: number): string | null => {
+    const res = updatePart7Range(customPart7Ranges, oldFrom, from, to);
+    if ('error' in res) return res.error;
+    setCustomPart7Ranges(res.next);
+    setGroup(from);
+    return null;
+  };
 
   const next = () => {
     if (!state.images.length || !testName || !state.part) return;
@@ -125,8 +152,17 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
         {step === 1 && <>
           <div className="cap-body">
             <TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} />
-            <CapturePartInput part={state.part} group={state.group} images={state.images} logged={plan.logged ? plan.questions : null}
-              onPart={setPart} onGroup={setGroup} onAdd={addFiles} onRemove={removeImage} />
+            <CapturePartInput part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
+              logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
+              onPart={setPart} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
+              onAdd={addFiles} onCameraAdd={(files, zone) => { if (files.length) setPhotoMode(true); addFiles(files, zone); }}
+              onEditImage={setEditingId} onRemove={removeImage} />
+            {problemMessage && problemIndex >= 0 && (
+              <div className="wd-clarity" role="status">
+                <span><b>{problemMessage.head}</b>{problemMessage.rest}</span>
+                <button type="button" className="wd-chip-btn" onClick={() => setEditingId(state.images[problemIndex].id)}>Chỉnh / cắt ảnh</button>
+              </div>
+            )}
             {(state.overflow || full) && <p className="cap-note is-warn" role="status">Gửi {MAX_CAPTURE_IMAGES} ảnh trước, phần còn lại gửi lần sau.</p>}
             {state.part && <p className="cap-hint">{plan.logged ? `Sóc tìm ${captureQuestions(plan, state.part, groupRange).length} câu bạn đã ghi sai ở đề này.` : 'Sóc tự tìm câu bạn sai.'}</p>}
             {(error || state.error) && <p role="alert" className="cap-error">{error || state.error}</p>}
@@ -181,9 +217,14 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
               <div className="cap-empty">
                 <Soc state="idle" size={110} />
                 <h3>Sóc chưa thấy câu sai nào trong ảnh</h3>
-                <p>Kiểm tra lại đề, hoặc chụp trang có đánh dấu câu sai rõ hơn.</p>
+                <p>{state.rejectionReasons[0]?.detail || 'Kiểm tra lại đề, hoặc chụp trang có đánh dấu câu sai rõ hơn.'}</p>
                 <button type="button" className="rd-btn rd-btn--white cap-sm" onClick={backToInput}>Thử ảnh khác</button>
               </div>
+            )}
+            {state.items.length > 0 && state.rejectionReasons.length > 0 && (
+              <ul className="wd-reasons" role="status">
+                {state.rejectionReasons.map((reason, idx) => <li key={`${reason.number ?? 'x'}-${idx}`}>{reason.detail}</li>)}
+              </ul>
             )}
             {error && <p role="alert" className="cap-error">{error}</p>}
           </div>
@@ -194,6 +235,18 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             <button type="button" className="rd-btn rd-btn--pink" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>
           </div>
         </>}
+        {editingId && editingFile && (
+          <PhotoReview
+            file={editingFile}
+            photoMode={state.photoMode}
+            onClose={() => setEditingId(null)}
+            onApply={({ file: nextFile, photoMode: nextPhotoMode, changed }) => {
+              setPhotoMode(nextPhotoMode);
+              if (changed) { measured.current.delete(editingId); replaceImageFile(editingId, nextFile); }
+              setEditingId(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );

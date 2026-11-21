@@ -180,8 +180,14 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
                                               body.batch_id)
-    found, missing = await request.app.state.gateway.generate_page(questions, [image.dataUrl for image in body.images], user["id"],
-                                                                   [image.dataUrl for image in body.context_images], body.slices)
+    found, missing, rejection_reasons = await request.app.state.gateway.generate_page(
+        questions,
+        [image.dataUrl for image in body.images],
+        user["id"],
+        [image.dataUrl for image in body.context_images],
+        body.slices,
+        photo_mode=body.photoMode,
+    )
     # The explanations for these questions are written next, without counting another use.
     ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
         number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")
@@ -191,6 +197,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         "items": [{"number": number, "draft": {**draft.model_dump(),
                    "userChoiceState": "CHOSEN" if draft.userChoice else "UNKNOWN"}} for number, draft in found],
         "missing": missing,
+        "rejectionReasons": rejection_reasons,
         "explainTicket": ticket,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
@@ -215,7 +222,11 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
     for image in body.images:
         input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
-    wrong, skipped, scores, timing = await request.app.state.gateway.read_results([image.dataUrl for image in body.images], user["id"])
+    wrong, skipped, scores, timing = await request.app.state.gateway.read_results(
+        [image.dataUrl for image in body.images],
+        user["id"],
+        photo_mode=body.photoMode,
+    )
     return {
         "wrong": wrong,
         "skipped": skipped,
@@ -256,7 +267,8 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
         learner = item.input
         try:
             result = await gateway.generate(learner.as_text(), user["id"], source_options=learner.options,
-                                            source_answer=learner.sourceAnswer, pin_question=True)
+                                            source_answer=learner.sourceAnswer, pin_question=True,
+                                            endpoint="explain_batch")
         except HTTPException:
             return None
         # Match the frontend's useful-explanation contract. An empty structured

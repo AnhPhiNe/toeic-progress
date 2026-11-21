@@ -1,13 +1,12 @@
 import { generateUUID } from '@/shared/domain/uuid';
 import { dataUrlBytes } from './captureBatch';
-import type { PreparedImage } from './imageInput';
+import { decodeUprightBitmap, fileExifOrientation, type PreparedImage } from './imageInput';
 
 /**
- * Screenshots go to the reader as they are: originals read best. Only when a question group does not fit one request
- * are they prepared on the device:
- * - a very tall page (a full-page passage) is cut into ~1600 px parts at blank bands, overlapping ~80 px, and the
- *   request says the parts are one page;
- * - anything else is drawn at long side 2400 px as JPEG 0.85, stepping down to 0.75 / 0.65 only while still too heavy.
+ * Screenshots and paper photos go to the reader as they are (zero destructive filters):
+ * - upright originals <= 4 MiB & <= 8 MP stay completely untouched;
+ * - EXIF-rotated phone photos are transposed upright at JPEG 0.92 with zero color/contrast changes;
+ * - only when a group exceeds the request limit are images sliced at blank bands or gently scaled.
  */
 export const PAGE_IMAGE_BYTES = 4 * 1024 * 1024;
 export const PAGE_IMAGE_PIXELS = 8_000_000;
@@ -21,7 +20,7 @@ const MAX_UPLOAD_BYTES = 30 * 1024 * 1024;
 const MAX_PIXELS = 60_000_000;
 const TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
-export interface SourceMeta { width: number; height: number; bytes: number; type?: string }
+export interface SourceMeta { width: number; height: number; bytes: number; type?: string; orientation?: number }
 /** One image to send: the file as it is, the whole picture redrawn, or a horizontal band of it. */
 export type Piece = { kind: 'keep' } | { kind: 'scale' } | { kind: 'slice'; top: number; height: number };
 
@@ -154,15 +153,16 @@ function rowBusyness(bitmap: ImageBitmap): Float32Array | undefined {
 }
 
 export async function decodeImage(file: File): Promise<DecodedImage> {
-  if (!TYPES.includes(file.type)) throw new Error('Chỉ nhận ảnh PNG, JPG hoặc WebP.');
+  if (!file.type.startsWith('image/')) throw new Error('Chỉ nhận tệp ảnh hợp lệ (PNG, JPG, WebP...).');
   if (!file.size || file.size > MAX_UPLOAD_BYTES) throw new Error('Mỗi ảnh chọn tối đa 30 MB.');
+  const orientation = await fileExifOrientation(file);
   let bitmap: ImageBitmap;
-  try { bitmap = await createImageBitmap(file); } catch { throw new Error('Không đọc được ảnh. Chọn ảnh khác.'); }
+  try { bitmap = await decodeUprightBitmap(file); } catch { throw new Error('Không đọc được ảnh. Chọn ảnh khác.'); }
   if (!bitmap.width || !bitmap.height || bitmap.width * bitmap.height > MAX_PIXELS) {
     bitmap.close();
     throw new Error('Ảnh quá lớn. Cắt phần bài đọc/câu hỏi cần dùng.');
   }
-  const meta = { width: bitmap.width, height: bitmap.height, bytes: file.size, type: file.type };
+  const meta: SourceMeta = { width: bitmap.width, height: bitmap.height, bytes: file.size, type: file.type, orientation };
   return { name: file.name || 'Ảnh đã dán', file, bitmap, meta, busy: isTall(meta) ? rowBusyness(bitmap) : undefined };
 }
 
@@ -173,8 +173,19 @@ const readDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
-export const encodeDecoded: Encoder<DecodedImage> = async ({ name, file, bitmap }, piece, quality) => {
-  if (piece.kind === 'keep') return { id: generateUUID(), name, dataUrl: await readDataUrl(file) };
+export const encodeDecoded: Encoder<DecodedImage> = async ({ name, file, bitmap, meta }, piece, quality) => {
+  if (piece.kind === 'keep') {
+    // Keep upright original bytes untouched; only redraw at JPEG 0.92 when EXIF orientation != 1.
+    if ((meta.orientation ?? 1) === 1) return { id: generateUUID(), name, dataUrl: await readDataUrl(file) };
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Trình duyệt chưa xử lý được ảnh.');
+    context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return { id: generateUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', 0.92) };
+  }
   const band = piece.kind === 'slice' ? piece : { top: 0, height: bitmap.height };
   const size = scaledSize(bitmap.width, band.height);
   const canvas = document.createElement('canvas');

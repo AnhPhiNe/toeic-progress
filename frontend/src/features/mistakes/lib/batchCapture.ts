@@ -18,7 +18,7 @@ export interface BatchExtractedItem {
 
 const cardFields = z.object({
   id: z.string().min(1), sourceTestName: z.string().min(1).max(300),
-  part: z.number().int().min(5).max(7), questionNumber: z.number().int().min(101).max(200),
+  part: z.number().int().min(1).max(7), questionNumber: z.number().int().min(1).max(200),
   category: z.enum(['VOCABULARY_TRAP', 'ADVANCED_GRAMMAR', 'LISTENING_SPEED', 'TIME_PRESSURE', 'CARELESS_DISTRACTION', 'OTHER']),
   status: z.enum(['NEEDS_REVIEW', 'MASTERED']), answerSource: z.enum(['PROVIDED', 'AI_PROPOSED', 'MISSING']).optional(),
   userChoice: z.enum(['A', 'B', 'C', 'D']).optional(), userChoiceState: z.enum(['CHOSEN', 'UNKNOWN', 'BLANK']).optional(),
@@ -33,7 +33,7 @@ export function buildBatchEntries(items: BatchExtractedItem[], sourceTestName: s
   const ids = new Set<string>();
   const numbers = new Set<number>();
   return items.map(item => {
-    if (ids.has(item.id) || numbers.has(item.number) || item.number < 101 || partOfQuestion(item.number) !== item.part) {
+    if (ids.has(item.id) || numbers.has(item.number) || item.number < 1 || item.number > 200 || partOfQuestion(item.number) !== item.part) {
       throw new Error(`Câu ${item.number}: số câu hoặc ID không hợp lệ. Chưa lưu câu nào.`);
     }
     ids.add(item.id); numbers.add(item.number);

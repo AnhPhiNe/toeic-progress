@@ -7,12 +7,13 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
 import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
-import { suggestGroups } from '@/features/mistakes/lib/wrongDetail';
+import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
+import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
-import { addFiles, backToInput, captureState, closeCapture, openCapture, patchItem, removeImage, removeItem, resetCapture, retryFailure,
-  setAllChecked, setGroup, setPart, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, replaceImageFile, resetCapture, retryFailure,
+  setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
@@ -50,8 +51,10 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const [tips, setTips] = useState(() => !tipsSeen());
   const [clarity, setClarity] = useState<Record<string, ClarityResult | null>>({});
   const [contextSupported, setContextSupported] = useState(true);
+  const [customPart7Ranges, setCustomPart7Ranges] = useState<CustomRangeMap>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [owner] = useState(getActiveAccountId);
-  const close = useCallback(() => { closeCapture(); onClose(); }, [onClose]);
+  const close = useCallback(() => { if (editingId) { setEditingId(null); return; } closeCapture(); onClose(); }, [editingId, onClose]);
   const ref = useModalA11y(true, close);
 
   useEffect(() => {
@@ -90,7 +93,17 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const problemIndex = state.images.findIndex(image => clarity[image.id]?.problem);
   const problem = problemIndex >= 0 ? clarity[state.images[problemIndex].id]!.problem! : null;
   const message = problem ? clarityMessage(problemIndex + 1, problem) : null;
-  const groupRange = state.part && state.part >= 6 && state.group ? suggestGroups(state.part as 6 | 7, [state.group]).find(item => item.from === state.group) ?? null : null;
+  const groupRange = state.part && isGroupedPart(state.part) && state.group
+    ? suggestGroups(state.part, plan.logged ? plan.questions : [state.group], state.part === 7 ? customPart7Ranges : undefined).find(item => item.from === state.group) ?? null
+    : null;
+  const editingFile = editingId ? getImageFile(editingId) : undefined;
+  const editPart7Range = (oldFrom: number, from: number, to: number): string | null => {
+    const res = updatePart7Range(customPart7Ranges, oldFrom, from, to);
+    if ('error' in res) return res.error;
+    setCustomPart7Ranges(res.next);
+    setGroup(from);
+    return null;
+  };
 
   const retake = () => { if (problemIndex >= 0) removeImage(state.images[problemIndex].id); };
   const closeTips = () => { markTipsSeen(); setTips(false); };
@@ -137,14 +150,21 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           </div>
           <div className="pc-test"><TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} /></div>
           <div className="pc-part">
-            <CapturePartInput phone part={state.part} group={state.group} images={state.images} logged={plan.logged ? plan.questions : null}
-              onPart={setPart} onGroup={setGroup} onAdd={addFiles} onRemove={removeImage} />
+            <CapturePartInput phone part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
+              logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
+              onPart={setPart} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
+              onAdd={addFiles} onCameraAdd={(files, zone) => { if (files.length) setPhotoMode(true); addFiles(files, zone); }}
+              onEditImage={setEditingId} onRemove={removeImage} />
           </div>
-          {message && (
-            <div className="pc-warn" role="status"><div><b>{message.head}</b>{message.rest}</div><button type="button" onClick={retake}>Chụp lại</button></div>
+          {message && problemIndex >= 0 && (
+            <div className="pc-warn" role="status">
+              <div><b>{message.head}</b>{message.rest}</div>
+              <button type="button" onClick={() => setEditingId(state.images[problemIndex].id)}>Chỉnh ảnh</button>
+              <button type="button" onClick={retake}>Chụp lại</button>
+            </div>
           )}
           {(error || state.error) && <p role="alert" className="pc-err">{error || state.error}</p>}
-          {(state.overflow || full) && <p className="pc-err" role="status">Mỗi lần gửi tối đa {MAX_CAPTURE_IMAGES} ảnh (3 ảnh đoạn văn).</p>}
+          {(state.overflow || full) && <p className="pc-err" role="status">Mỗi lần gửi tối đa {MAX_CAPTURE_IMAGES} ảnh.</p>}
           <div className="pc-foot is-row">
             <button type="button" className="pc-side is-light" onClick={() => { closeCapture(); onManual(); }}>Tự gõ</button>
             <button type="button" className="pc-send" disabled={!state.images.length || !testName || !state.part} onClick={send}>
@@ -195,9 +215,14 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
               <div className="pc-none">
                 <Soc state="idle" size={110} />
                 <h3>Sóc chưa thấy câu sai nào trong ảnh</h3>
-                <p>Kiểm tra lại đề, hoặc chụp trang có đánh dấu câu sai rõ hơn.</p>
+                <p>{state.rejectionReasons[0]?.detail || 'Kiểm tra lại đề, hoặc chụp trang có đánh dấu câu sai rõ hơn.'}</p>
                 <button type="button" className="pc-send is-light" onClick={backToInput}>Thử ảnh khác</button>
               </div>
+            )}
+            {state.items.length > 0 && state.rejectionReasons.length > 0 && (
+              <ul className="wd-reasons" role="status">
+                {state.rejectionReasons.map((reason, idx) => <li key={`${reason.number ?? 'x'}-${idx}`}>{reason.detail}</li>)}
+              </ul>
             )}
             {error && <p role="alert" className="pc-err is-light">{error}</p>}
           </div>
@@ -208,6 +233,19 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             </div>
           )}
         </>
+      )}
+
+      {editingId && editingFile && (
+        <PhotoReview
+          file={editingFile}
+          photoMode={state.photoMode}
+          onClose={() => setEditingId(null)}
+          onApply={({ file: nextFile, photoMode: nextPhotoMode, changed }) => {
+            setPhotoMode(nextPhotoMode);
+            if (changed) { measured.current.delete(editingId); replaceImageFile(editingId, nextFile); }
+            setEditingId(null);
+          }}
+        />
       )}
 
       {tips && (

@@ -25,7 +25,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @asynccontextmanager
     async def lifespan(app):
         configure_logging()
-        async with httpx.AsyncClient(timeout=35, transport=transport) as client:
+        limits = httpx.Limits(max_connections=100, max_keepalive_connections=40)
+        async with httpx.AsyncClient(timeout=35, limits=limits, transport=transport) as client:
             app.state.gateway = Gateway(settings, client)
             app.state.ticket_uses = TicketUses(app.state.gateway.rpc)
             app.state.readiness_lock = asyncio.Lock()

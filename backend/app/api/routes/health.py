@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.core.runtime import client_address, header_value
+from app.schemas.models import MAX_PAGE_CONTEXT_IMAGES, MAX_RESULT_IMAGE_BYTES
 
 router = APIRouter()
 
@@ -24,12 +25,16 @@ async def health(request: Request):
         "learner_error_category": True,
         "page_image_extraction": True,
         "page_context_images": True,
+        "max_page_context_images": MAX_PAGE_CONTEXT_IMAGES,
+        "paper_photo_ocr": True,
         "result_image_reading": True,
         "result_image_scores": True,
         "result_image_timing": True,
+        "max_result_image_bytes": MAX_RESULT_IMAGE_BYTES,
         "attempt_analysis": settings.attempt_analysis_ready,
         "explain_tickets": bool(settings.rate_limit_secret),
         "persistent_source_images": settings.source_images_enabled,
+        "provider_budget_guarded": settings.ai_provider_budget_enabled,
     }
 
 

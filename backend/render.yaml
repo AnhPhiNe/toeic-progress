@@ -5,7 +5,7 @@ services:
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 32 --no-access-log
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 64 --no-access-log
     healthCheckPath: /ready
     envVars:
       - key: PYTHON_VERSION
@@ -20,8 +20,28 @@ services:
         value: gpt-6-luna
       - key: OPENAI_REASONING_EFFORT
         value: medium
+      - key: OPENAI_OCR_MODEL
+        value: gpt-6-luna
+      - key: OPENAI_OCR_EFFORT
+        value: low
+      - key: OPENAI_PAPER_OCR_MODEL
+        value: gpt-6.1-terra
+      - key: OPENAI_PAPER_OCR_EFFORT
+        value: low
+      - key: OPENAI_PAPER_RESULTS_MODEL
+        value: gpt-6.1-terra
+      - key: OPENAI_PAPER_RESULTS_EFFORT
+        value: medium
+      - key: OPENAI_PART7_MODEL
+        value: gpt-6.1-terra
+      - key: OPENAI_PART7_EFFORT
+        value: medium
+      - key: OPENAI_ADVICE_MODEL
+        value: gpt-6.1-terra
       - key: OPENAI_ADVICE_REASONING_EFFORT
         value: medium
+      - key: AI_PROVIDER_BUDGET_ENABLED
+        value: "true"
       - key: API_LIMITS_ENABLED
         value: "true"
       - key: SUPABASE_URL

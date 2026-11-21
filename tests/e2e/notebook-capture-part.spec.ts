@@ -16,20 +16,19 @@ for (const phone of [false, true]) {
     await page.getByRole('button', { name: phone ? /Chụp$/ : /Chụp trang chữa bài/ }).first().click();
     const capture = page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true });
     await expect(capture.getByText('Chụp câu Part mấy?')).toBeVisible();
-    // Only Reading: Part 5, 6 and 7, with the test's wrong counts.
-    await expect(capture.getByRole('button', { name: /^Part \d · / })).toHaveCount(3);
+    // Reading (Part 5–7) plus optional Listening (Part 1–4) = 7 Part buttons with logged wrong counts.
+    await expect(capture.getByRole('button', { name: /^Part \d · / })).toHaveCount(7);
     await expect(capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true })).toContainText('21 câu sai');
     await shot(page, `1-pick-${phone ? 'phone' : 'desktop'}`);
 
     await capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true }).click();
     await capture.getByRole('button', { name: /^Nhóm 186–190/ }).click();
-    await capture.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles([screenshot, screenshot]);
-    await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
+    await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot, screenshot]);
     await shot(page, `2-part7-${phone ? 'phone' : 'desktop'}`);
     await capture.getByRole('button', { name: /^Gửi Sóc đọc/ }).click();
     await expect(capture.getByRole('heading', { name: /^Soát \d+ câu sai/ }).or(capture.getByText(/^Soát \d+ câu sai/))).toBeVisible();
-    // The passage and the question image went in one request, looking for the group's wrong questions only.
-    expect((await calls(page)).map(call => [call.questions, call.images, call.context])).toEqual([[[186, 189], 1, 2]]);
+    // All group photos went together in one unified request, looking for the group's wrong questions only.
+    expect((await calls(page)).map(call => [call.questions, call.images, call.context])).toEqual([[[186, 189], 3, 0]]);
     await shot(page, `3-review-${phone ? 'phone' : 'desktop'}`);
     await capture.getByRole('button', { name: /^Lưu \d+ câu vào Sổ tay/ }).click();
     await expect(capture).toHaveCount(0);

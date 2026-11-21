@@ -35,10 +35,11 @@ describe('chunkQuestions', () => {
 });
 
 describe('mergeItems', () => {
-  it('merges readings, sorted by question number, and drops Listening numbers', () => {
+  it('merges readings across all Parts 1–7 sorted by question number', () => {
     const first = mergeItems([], [read(131), read(107)], 'ticket-1', id);
     const merged = mergeItems(first, [read(120), { ...read(50), number: 50 }], 'ticket-2', id);
-    expect(merged.map(item => item.number)).toEqual([107, 120, 131]);
+    expect(merged.map(item => item.number)).toEqual([50, 107, 120, 131]);
+    expect(merged.find(item => item.number === 50)).toMatchObject({ part: 3, ticket: 'ticket-2', checked: true });
     expect(merged.find(item => item.number === 120)).toMatchObject({ part: 5, ticket: 'ticket-2', checked: true });
     expect(merged.find(item => item.number === 131)).toMatchObject({ part: 6 });
   });
@@ -70,8 +71,9 @@ describe('review helpers', () => {
     const found = mergeItems([], [read(107), read(120)], null, id);
     expect(remainingQuestions([107, 108, 120, 130], found)).toEqual([108, 130]);
   });
-  it('marks rows with a missing choice or answer as unsure', () => {
+  it('marks rows with a missing choice or answer as unsure, and accepts 3 options A–C for Part 2', () => {
     expect(rowStatus({ draft: draft() })).toBe('ok');
+    expect(rowStatus({ draft: draft({ part: 2, options: ['(A) Yes.', '(B) No.', '(C) Tomorrow.'], correctAnswer: '(C) Tomorrow.' }) })).toBe('ok');
     expect(rowStatus({ draft: draft({ userChoice: '' }) })).toBe('unsure');
     expect(rowStatus({ draft: draft({ answerSource: 'MISSING', correctAnswer: '' }) })).toBe('unsure');
     expect(rowStatus({ draft: draft({ options: ['(A) a', '(B) b'] }) })).toBe('unsure');

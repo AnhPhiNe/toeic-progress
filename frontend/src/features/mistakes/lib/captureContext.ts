@@ -4,13 +4,13 @@ import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
 import { learnerMistake, type ChoiceLetter, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { normalizeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { DEFAULT_QUESTIONS } from '@/features/mistakes/lib/captureBatch';
-import { partOfQuestion, questionsOfPart } from '@/shared/domain/questionNumbers';
+import { normalizeQuestionList, partOfQuestion, questionsOfPart, type PartNumber } from '@/shared/domain/questionNumbers';
 
 /**
- * The questions one capture of a Part looks for: the learner's logged wrong ones in that Part (one passage group of
- * Part 6–7 when a group is chosen), or the whole Part (or group) when the test has no wrong list there.
+ * The questions one capture of a Part looks for: the learner's logged wrong ones in that Part (one passage/audio group
+ * when a group is chosen), or the whole Part (or group) when the test has no wrong list there.
  */
-export function captureQuestions(plan: { questions: number[]; logged: boolean }, part: 5 | 6 | 7, group?: { from: number; to: number } | null): number[] {
+export function captureQuestions(plan: { questions: number[]; logged: boolean }, part: PartNumber, group?: { from: number; to: number } | null): number[] {
   const inPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === part) : [];
   const inGroup = group ? inPart.filter(number => number >= group.from && number <= group.to) : inPart;
   if (inGroup.length) return inGroup;
@@ -30,7 +30,7 @@ export function latestTestName(sessions: readonly StudySession[]): string {
 export function loggedSession(sessions: readonly StudySession[], testName: string): StudySession | undefined {
   const key = testNameKey(testName);
   return sessions.filter(session => !session.deletedAt && testNameKey(session.testName) === key).sort(newestFirst)
-    .find(session => draftQuestions(session).length > 0);
+    .find(session => (session.wrongQuestions?.length ?? 0) > 0 || draftQuestions(session).length > 0);
 }
 
 /** The newest saved session with this test name (any kind), to link a hand-typed note to the test it came from. */
@@ -39,10 +39,10 @@ export function sessionIdForTest(sessions: readonly StudySession[], testName: st
   return key ? sessions.filter(session => !session.deletedAt && testNameKey(session.testName) === key).sort(newestFirst)[0]?.id : undefined;
 }
 
-/** Part 5–7 questions the learner logged as wrong for this test, or the whole Reading range when none was logged. */
+/** Wrong questions the learner logged for this test (all Parts 1–7), or Reading range when none was logged. */
 export function questionsToFind(sessions: readonly StudySession[], testName: string): { questions: number[]; logged: boolean; sessionId?: string } {
   const session = loggedSession(sessions, testName);
-  const logged = session ? draftQuestions(session) : [];
+  const logged = session ? normalizeQuestionList(session.wrongQuestions?.length ? session.wrongQuestions : draftQuestions(session)) : [];
   return logged.length ? { questions: logged, logged: true, sessionId: session!.id } : { questions: [...DEFAULT_QUESTIONS], logged: false };
 }
 

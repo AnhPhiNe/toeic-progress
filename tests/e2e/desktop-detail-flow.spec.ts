@@ -56,17 +56,16 @@ test('a computer works through a test Part by Part: Part 5 images are read one b
   expect(q112.explanation).toBeUndefined();
 });
 
-test('a Part 6 set sends its passage and question images together and keeps the right answers out', async ({ page }) => {
+test('a Part 6 set sends its passage and question images together in one unified tray and keeps the right answers out', async ({ page }) => {
   const flow = await openDesktopFlow(page);
   await flow.getByRole('button', { name: /^Part 6 · Điền đoạn văn/ }).click();
   await expect(flow.getByRole('button', { name: /^Nhóm 131–134/ })).toHaveAttribute('aria-pressed', 'true');
-  await flow.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles(screenshot);
-  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
+  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot]);
   await flow.getByRole('button', { name: 'Gửi Sóc đọc nhóm này', exact: true }).click();
   await expect(flow.getByRole('heading', { name: /^Sóc đọc được 2 câu/ })).toBeVisible();
-  // One request: the passage as context, the question page as the image, the whole set's numbers.
+  // One unified request: both photos sent together in order with the whole set's numbers.
   expect((await calls(page) as { questions: number[]; images: number; context: number }[]).map(call => [call.questions, call.images, call.context]))
-    .toEqual([[[131, 132, 133, 134], 1, 1]]);
+    .toEqual([[[131, 132, 133, 134], 2, 0]]);
   await expect(flow.getByText(/bạn làm đúng, bỏ qua/)).toContainText('Câu 132');
 
   // AI solved 131 differently from the page: the row is yellow until the learner decides.
@@ -84,9 +83,14 @@ test('a Part 6 set sends its passage and question images together and keeps the 
   expect(await storedCard(page, 132)).toBeUndefined();
 });
 
-test('Part 1 asks only the reason; the Listening card is created when saved', async ({ page }) => {
+test('Part 1 defaults to fast reason chips with optional photo capture toggle; the Listening card is created when saved', async ({ page }) => {
   const flow = await openDesktopFlow(page);
   await flow.getByRole('button', { name: /^Part 1 · Tranh/ }).click();
+  await expect(flow.getByLabel('Ảnh câu hỏi')).toHaveCount(0);
+  // Optional photo capture is 1 click away, and toggles back cleanly to fast reason chips.
+  await flow.getByRole('button', { name: /Chụp tranh \/ chữa bài/ }).click();
+  await expect(flow.getByLabel('Ảnh câu hỏi', { exact: true })).toHaveCount(1);
+  await flow.getByRole('button', { name: /Quay lại chọn lý do nhanh/ }).click();
   await expect(flow.getByLabel('Ảnh câu hỏi')).toHaveCount(0);
   await flow.getByRole('group', { name: 'Vì sao sai câu 3' }).getByRole('button', { name: 'Nghe', exact: true }).click();
   await flow.getByRole('button', { name: 'Lưu 1 câu', exact: true }).click();

@@ -6,6 +6,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import Settings
+from app.core.image_input import MAX_IMAGE_BYTES, MAX_PAGE_IMAGE_BYTES, normalize_upright_images
 from app.integrations.openai_provider import OpenAIProvider, read_results
 from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
@@ -17,7 +18,12 @@ class Gateway:
     def __init__(self, settings: Settings, client: httpx.AsyncClient):
         self.settings = settings
         self.client = client
-        self.openai = OpenAIProvider(settings, client)
+        self.openai = OpenAIProvider(
+            settings,
+            client,
+            budget_guard=self.reserve_provider_budget,
+            usage_recorder=self.record_ai_usage,
+        )
         self.source_images = SourceImages(self)
 
     async def readiness(self) -> bool:
@@ -132,20 +138,81 @@ class Gateway:
         ):
             raise HTTPException(403, "Xác minh đã hết hạn. Vui lòng thử lại.")
 
+    async def reserve_provider_budget(self, owner_id: str | None) -> None:
+        """Guard every outbound OpenAI HTTP request (including explain-batch & OCR escalations)."""
+        if not self.settings.ai_provider_budget_enabled or not self.settings.database_ready:
+            return
+        result = await self.rpc(
+            "reserve_provider_budget",
+            {
+                "p_user_id": owner_id,
+                "p_day_limit": self.settings.ai_provider_day_limit,
+                "p_owner_limit": self.settings.ai_provider_owner_day_limit,
+                "p_minute_limit": self.settings.ai_provider_minute_limit,
+            },
+        )
+        if not isinstance(result, dict) or not result.get("allowed"):
+            code = result.get("code") if isinstance(result, dict) else None
+            retry_after = result.get("retry_after") if isinstance(result, dict) else None
+            message = (
+                "Hệ thống AI đang chạm giới hạn tốc độ xử lý tạm thời. Hãy đợi một chút rồi thử lại."
+                if code == "minute"
+                else "Tài khoản đã chạm trần lượt xử lý AI trong ngày để bảo vệ ngân sách. Bạn vẫn có thể lưu thủ công hoặc thử lại ngày mai."
+                if code == "owner_day"
+                else "Ngân sách AI trong ngày của ứng dụng đã chạm ngưỡng an toàn. Bạn vẫn có thể lưu thủ công."
+            )
+            headers = {"Retry-After": str(retry_after)} if isinstance(retry_after, int) and retry_after > 0 else None
+            raise HTTPException(429, message, headers=headers)
+
+    async def record_ai_usage(self, *, owner_id: str | None, endpoint: str, model: str, effort: str,
+                              input_tokens: int, cached_tokens: int, output_tokens: int,
+                              duration_ms: int, status: str) -> None:
+        """Best-effort metadata-only usage ledger entry."""
+        if not self.settings.ai_provider_budget_enabled or not self.settings.database_ready:
+            return
+        try:
+            await self.client.post(
+                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/record_ai_usage",
+                headers=self.admin_headers(),
+                timeout=3,
+                json={
+                    "p_user_id": owner_id,
+                    "p_endpoint": endpoint,
+                    "p_model": model,
+                    "p_effort": effort,
+                    "p_input_tokens": input_tokens,
+                    "p_cached_tokens": cached_tokens,
+                    "p_output_tokens": output_tokens,
+                    "p_duration_ms": duration_ms,
+                    "p_status": status,
+                },
+            )
+        except (httpx.HTTPError, ValueError, TypeError):
+            pass
+
     async def generate(self, text: str, user_id: str | None = None, *, source_options: list[str] | None = None,
                        source_answer: str | None = None, images: list[str] | None = None,
-                       persistent_images: bool = False, pin_question: bool = False) -> MistakeDraft:
+                       persistent_images: bool = False, pin_question: bool = False,
+                       endpoint: str = "extract") -> MistakeDraft:
+        upright_images = await normalize_upright_images(images, MAX_IMAGE_BYTES) if images else images
         return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None,
-                                          source_options=source_options, source_answer=source_answer, images=images,
-                                          persistent_images=persistent_images, pin_question=pin_question)
+                                          source_options=source_options, source_answer=source_answer, images=upright_images,
+                                          persistent_images=persistent_images, pin_question=pin_question,
+                                          endpoint=endpoint, owner_id=user_id)
 
     async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None,
-                            context_images: list[str] | None = None, slices: list[tuple[int, int]] | None = None):
-        return await self.openai.generate_page(questions, images, self.ip_hash(user_id) if user_id else None,
-                                               context_images or [], slices or [])
+                            context_images: list[str] | None = None, slices: list[tuple[int, int]] | None = None,
+                            *, photo_mode: bool = False):
+        upright_images = await normalize_upright_images(images, MAX_PAGE_IMAGE_BYTES)
+        upright_context = await normalize_upright_images(context_images or [], MAX_PAGE_IMAGE_BYTES)
+        return await self.openai.generate_page(questions, upright_images, self.ip_hash(user_id) if user_id else None,
+                                               upright_context, slices or [],
+                                               photo_mode=photo_mode, owner_id=user_id)
 
-    async def read_results(self, images: list[str], user_id: str | None = None):
-        return await read_results(self.openai, images, self.ip_hash(user_id) if user_id else None)
+    async def read_results(self, images: list[str], user_id: str | None = None, *, photo_mode: bool = False):
+        upright_images = await normalize_upright_images(images, MAX_PAGE_IMAGE_BYTES)
+        return await read_results(self.openai, upright_images, self.ip_hash(user_id) if user_id else None,
+                                  photo_mode=photo_mode, owner_id=user_id)
 
     async def delete_account(self, user_id: str):
         # Always purge any private source images even when new uploads are disabled.

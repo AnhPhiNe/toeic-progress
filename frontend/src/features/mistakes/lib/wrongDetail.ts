@@ -15,20 +15,74 @@ export type PartMode = 'reason' | 'page';
 export const partMode = (part: number): PartMode => part <= 4 ? 'reason' : 'page';
 export const PART_ACTION: Record<PartMode, string> = { reason: 'Chọn lý do', page: 'Chụp trang chữa bài' };
 
-/** Part 6 sets are always four questions; Part 7 follows the official layout (single, double, then triple passages). */
+/** Standard ETS cluster layouts: Part 3–4 (3 questions/set), Part 6 (4 questions/set), Part 7 (editable default). */
+export const P3_GROUPS: ReadonlyArray<readonly [number, number]> = Array.from({ length: 13 }, (_, index) => [32 + index * 3, 34 + index * 3] as const);
+export const P4_GROUPS: ReadonlyArray<readonly [number, number]> = Array.from({ length: 10 }, (_, index) => [71 + index * 3, 73 + index * 3] as const);
 export const P6_GROUPS: ReadonlyArray<readonly [number, number]> = [[131, 134], [135, 138], [139, 142], [143, 146]];
 export const P7_GROUPS: ReadonlyArray<readonly [number, number]> = [[147, 148], [149, 150], [151, 152], [153, 154], [155, 157], [158, 160],
   [161, 163], [164, 167], [168, 171], [172, 175], [176, 180], [181, 185], [186, 190], [191, 195], [196, 200]];
 
-export interface PassageGroup { from: number; to: number; kind: string; passages: number; wrong: number[] }
+export interface PassageGroup { from: number; to: number; kind: string; passages: number; wrong: number[]; custom?: boolean }
+export type CustomRangeMap = Record<number, readonly [number, number]>;
+export const isGroupedPart = (part: number): part is 3 | 4 | 6 | 7 => part === 3 || part === 4 || part === 6 || part === 7;
 const passageCount = (from: number) => from >= 186 ? 3 : from >= 176 ? 2 : 1;
-const kindOf = (part: number, from: number) => part === 6 ? 'Đoạn văn' : ['Đoạn đơn', 'Đoạn kép', 'Đoạn ba'][passageCount(from) - 1];
+const kindOf = (part: number, from: number) => part === 3 ? 'Hội thoại' : part === 4 ? 'Bài nói' : part === 6 ? 'Đoạn văn' : ['Đoạn đơn', 'Đoạn kép', 'Đoạn ba'][passageCount(from) - 1];
 
-/** The passage groups of Part 6 or 7 that hold at least one wrong question, in test order. */
-export function suggestGroups(part: 6 | 7, wrong: Iterable<number>): PassageGroup[] {
+/** The passage/audio groups of Part 3, 4, 6 or 7 that hold at least one wrong question, in test order. */
+export function suggestGroups(part: 3 | 4 | 6 | 7, wrong: Iterable<number>, customRanges?: CustomRangeMap): PassageGroup[] {
   const numbers = normalizeQuestionList(wrong);
-  return (part === 6 ? P6_GROUPS : P7_GROUPS).map(([from, to]) => ({ from, to, kind: kindOf(part, from), passages: part === 6 ? 1 : passageCount(from),
-    wrong: numbers.filter(number => number >= from && number <= to) })).filter(group => group.wrong.length > 0);
+  const presets = part === 3 ? P3_GROUPS : part === 4 ? P4_GROUPS : part === 6 ? P6_GROUPS : P7_GROUPS;
+  if (part !== 7 || !customRanges || !Object.keys(customRanges).length) {
+    return presets.map(([from, to]) => ({ from, to, kind: kindOf(part, from), passages: part === 7 ? passageCount(from) : 1,
+      wrong: numbers.filter(number => number >= from && number <= to) })).filter(group => group.wrong.length > 0);
+  }
+  // Apply learner-edited Part 7 ranges first, then bucket remaining wrong numbers into non-overlapping presets.
+  const customEntries = Object.values(customRanges)
+    .filter(([from, to]) => from >= 147 && to <= 200 && from <= to && to - from + 1 <= QUESTIONS_PER_REQUEST)
+    .sort((a, b) => a[0] - b[0]);
+  const claimed = new Set<number>();
+  const result: PassageGroup[] = [];
+  for (const [from, to] of customEntries) {
+    const groupWrong = numbers.filter(number => number >= from && number <= to && !claimed.has(number));
+    for (let n = from; n <= to; n++) claimed.add(n);
+    result.push({ from, to, kind: kindOf(7, from), passages: passageCount(from), wrong: groupWrong, custom: true });
+  }
+  for (const [from, to] of presets) {
+    const groupWrong = numbers.filter(number => number >= from && number <= to && !claimed.has(number));
+    if (!groupWrong.length) continue;
+    const min = Math.min(from, ...groupWrong);
+    const max = Math.max(to, ...groupWrong);
+    // Trim preset bounds around any already-claimed custom range so intervals never overlap.
+    let effFrom = min, effTo = max;
+    while (effFrom < groupWrong[0] && claimed.has(effFrom)) effFrom += 1;
+    while (effTo > groupWrong[groupWrong.length - 1] && claimed.has(effTo)) effTo -= 1;
+    result.push({ from: effFrom, to: effTo, kind: kindOf(7, effFrom), passages: passageCount(effFrom), wrong: groupWrong });
+  }
+  return result.sort((a, b) => a.from - b.from);
+}
+
+/** Validate and merge a learner-edited Part 7 group range (147–200, up to 6 questions). */
+export function updatePart7Range(
+  current: CustomRangeMap,
+  oldFrom: number,
+  from: number,
+  to: number
+): { next: CustomRangeMap } | { error: string } {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 147 || to > 200 || from > to) {
+    return { error: 'Dải câu Part 7 cần nằm trong khoảng 147–200 và số đầu ≤ số cuối.' };
+  }
+  if (to - from + 1 > QUESTIONS_PER_REQUEST) {
+    return { error: `Mỗi nhóm đọc tối đa ${QUESTIONS_PER_REQUEST} câu (ví dụ 149–151 hoặc 186–190).` };
+  }
+  const next: CustomRangeMap = {};
+  for (const [key, range] of Object.entries(current)) {
+    const keyNum = Number(key);
+    if (keyNum === oldFrom) continue;
+    // Drop any previous custom range that overlaps the newly edited range.
+    if (range[1] < from || range[0] > to) next[keyNum] = range;
+  }
+  next[from] = [from, to];
+  return { next };
 }
 export const groupNumbers = (group: Pick<PassageGroup, 'from' | 'to'>) => Array.from({ length: group.to - group.from + 1 }, (_, index) => group.from + index);
 
@@ -130,55 +184,96 @@ function packGroups<T>(groups: readonly (readonly T[])[], max: number): T[][][] 
 }
 
 /**
- * Part 5: all the screenshots in one request — more requests only when more than six questions are wanted (a reading
- * returns at most six) or more than six images were taken.
+ * Part 1/2/5 (independent questions):
+ * - 1–3 screenshots go in one fast request;
+ * - 4+ screenshots with multiple wanted questions auto-chunk into parallel packs of 3 images
+ *   so PARALLEL_READS = 3 processes them concurrently in ~10–15s instead of waiting serially.
  */
 export function planSingleRequests<T extends { dataUrl: string }>(shots: readonly (readonly T[])[], wanted: Iterable<number>,
-  { maxImages = IMAGES_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS } = {}): RequestPlan<T> {
+  { maxImages = IMAGES_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS, parallelPackSize = 3 } = {}): RequestPlan<T> {
   const numbers = normalizeQuestionList(wanted);
   const groups = shots.filter(group => group.length);
   if (!groups.length || !numbers.length) return { requests: [], split: false };
-  const packs = packGroups(groups, maxImages);
+  const effectiveMaxImages = groups.length >= 4 && numbers.length >= 2 && maxImages === IMAGES_PER_REQUEST
+    ? Math.min(maxImages, parallelPackSize)
+    : maxImages;
+  const packs = packGroups(groups, effectiveMaxImages);
   const questionGroups = chunkQuestions(numbers, QUESTIONS_PER_REQUEST);
   if (packs.length > maxRequests) return { requests: [], split: false, error: `Mỗi lần gửi tối đa ${maxRequests * maxImages} ảnh.` };
   const perPack = packs.length * questionGroups.length <= maxRequests ? questionGroups : [numbers];
   const requests = packs.flatMap(pack => perPack.map(questions => ({ contextImages: [], images: pack.flat(), questions, slices: runsOf(pack) })));
-  return { requests, split: packs.length > 1 || requests.some(request => bytesOf(request.images) > maxBytes) };
+  return { requests, split: requests.some(request => bytesOf(request.images) > maxBytes) };
 }
 
 /**
- * One passage group (Part 6–7): the passage pages and the question pages go in ONE request so the passage is read with
- * its questions. More than six question pages share the same passage across requests. Only when the images cannot fit
- * one request even after compression are they sent apart (`split`), and the screen says so. Each argument lists the
- * screenshots of a zone, each as its pieces (parts of a tall page stay together).
+ * One passage/transcript group (Part 3/4/6/7): passage and question pages are ALWAYS sent together.
+ * Never strips passage images away from their questions; when multiple question pages exceed the byte cap,
+ * repeats the full passage across smaller question packs, or reports a clear size error to trim duplicates.
  */
 export function planGroupRequests<T extends { dataUrl: string }>(passage: readonly (readonly T[])[], questions: readonly (readonly T[])[], wanted: Iterable<number>,
   { maxImages = IMAGES_PER_REQUEST, maxContext = CONTEXT_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS, contextSupported = true } = {}): RequestPlan<T> {
   const numbers = normalizeQuestionList(wanted);
   const context = passage.flat(), passageGroups = passage.filter(group => group.length);
-  if (!numbers.length || (!context.length && !questions.flat().length)) return { requests: [], split: false };
+  const questionGroups = questions.filter(group => group.length);
+  if (!numbers.length || (!context.length && !questionGroups.length)) return { requests: [], split: false };
   if (context.length > maxContext) return { requests: [], split: false, error: `Mỗi nhóm nhận tối đa ${maxContext} ảnh đoạn văn.` };
-  // A question printed on the passage page: the passage images are the question images.
-  if (!questions.flat().length) return planGroupRequests([], passage, numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
-  const packs = packGroups(questions.filter(group => group.length), contextSupported ? maxImages : maxImages - context.length);
-  const together: ReadRequest<T>[] = packs.map(pack => contextSupported
-    ? { contextImages: [...context], images: pack.flat(), questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] }
-    : { contextImages: [], images: [...context, ...pack.flat()], questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] });
+  // Unified single tray (or passage-only page where questions are printed on the same page):
+  if (!questionGroups.length) {
+    return planGroupRequests([], passage, numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
+  }
+  // Unified tray with >6 images in a grouped Part (3/4/6/7): promote leading pages to contextImages automatically.
+  const canUseContext = contextSupported && numbers.every(number => isGroupedPart(partOfQuestion(number) ?? 0));
+  if (!context.length && questionGroups.flat().length > maxImages && canUseContext) {
+    const lead: (readonly T[])[] = [];
+    let leadCount = 0;
+    let restStart = 0;
+    for (let i = 0; i < questionGroups.length - 1; i++) {
+      if (leadCount + questionGroups[i].length > maxContext) break;
+      lead.push(questionGroups[i]);
+      leadCount += questionGroups[i].length;
+      restStart = i + 1;
+      if (questionGroups.slice(restStart).flat().length <= maxImages) break;
+    }
+    if (lead.length) {
+      return planGroupRequests(lead, questionGroups.slice(restStart), numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
+    }
+  }
   const fits = (request: ReadRequest<T>) => bytesOf([...request.contextImages, ...request.images]) <= maxBytes
     && request.images.length <= maxImages && request.images.length > 0;
-  if (packs.length && together.length <= maxRequests && together.every(fits)) return { requests: together, split: false };
-  // Last resort: every screenshot in reading order, as many per request as fit.
-  const requests: ReadRequest<T>[] = [];
-  let current: T[][] = [];
-  const flush = () => { if (current.length) requests.push({ contextImages: [], images: current.flat(), questions: numbers, slices: runsOf(current) }); current = []; };
-  for (const group of [...passageGroups, ...questions.filter(item => item.length)]) {
-    const next = [...current.flat(), ...group];
-    if (current.length && (next.length > maxImages || bytesOf(next) > maxBytes)) flush();
-    current.push([...group]);
+  const maxQPerReq = contextSupported ? maxImages : maxImages - context.length;
+  if (maxQPerReq < 1) {
+    return { requests: [], split: false, error: 'Ảnh nhóm bài đọc và câu hỏi vượt giới hạn cho một lượt đọc. Bớt ảnh trùng hoặc cắt gọn trang cần đọc.' };
   }
-  flush();
-  if (requests.length > maxRequests) return { requests: [], split: true, error: 'Ảnh quá nhiều cho một lần gửi. Bớt ảnh hoặc cắt phần cần đọc.' };
-  return { requests, split: true };
+  const makeRequest = (pack: T[][]): ReadRequest<T> => contextSupported
+    ? { contextImages: [...context], images: pack.flat(), questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] }
+    : { contextImages: [], images: [...context, ...pack.flat()], questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] };
+
+  const packs = packGroups(questionGroups, maxQPerReq);
+  const together = packs.map(makeRequest);
+  if (together.length && together.length <= maxRequests && together.every(fits)) {
+    return { requests: together, split: false };
+  }
+  // Pack question groups greedily by BOTH count and bytes while ALWAYS keeping the full passage attached.
+  const bytePacks: ReadRequest<T>[] = [];
+  let current: T[][] = [];
+  for (const group of questionGroups) {
+    const candidate = [...current, [...group]];
+    if (current.length && !fits(makeRequest(candidate))) {
+      bytePacks.push(makeRequest(current));
+      current = [[...group]];
+    } else {
+      current = candidate;
+    }
+  }
+  if (current.length) bytePacks.push(makeRequest(current));
+  if (bytePacks.length && bytePacks.length <= maxRequests && bytePacks.every(fits)) {
+    return { requests: bytePacks, split: false };
+  }
+  return {
+    requests: [],
+    split: false,
+    error: 'Ảnh đoạn văn và câu hỏi vẫn vượt 8 MiB sau khi thu nhỏ. Bỏ bớt ảnh trùng hoặc cắt gọn phần cần đọc.',
+  };
 }
 
 /** "Bỏ qua phần Nghe": Listening Parts leave the counts until the learner takes them back. */

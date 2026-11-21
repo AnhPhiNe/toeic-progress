@@ -66,10 +66,13 @@ def api():
         ledger_mock=None,
         ledger_malformed=False,
         batch_mock=None,
+        provider_budget=None,
+        drafts=None,
     ):
         calls = []
         batches = batch_mock or BatchReservationMock()
         ledger = ledger_mock or ExplanationLedgerMock()
+        draft_queue = list(drafts) if drafts is not None else None
 
         def respond(request):
             body = (
@@ -109,6 +112,10 @@ def api():
                 return httpx.Response(200, json=reservation or batches.respond(body))
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
+            if request.url.path.endswith("/reserve_provider_budget"):
+                return httpx.Response(200, json=provider_budget or {"allowed": True})
+            if request.url.path.endswith("/record_ai_usage"):
+                return httpx.Response(200, json=None)
             if request.url.path.endswith("/get_ai_usage"):
                 return httpx.Response(200, json={"remaining": 3, "limit": 3, "guest": guest})
             if request.url.path.endswith("/rpc/ai_quota_status"):
@@ -120,10 +127,13 @@ def api():
             if request.url.host == "api.openai.com":
                 if provider_error:
                     raise provider_error("must not log API key or input", request=request)
+                next_draft = draft_queue.pop(0) if draft_queue else (draft if draft is not None else OPENAI_DRAFT)
                 return httpx.Response(provider_status, json={
-                    "status": finish, "output": [{
+                    "status": finish,
+                    "usage": {"input_tokens": 250, "output_tokens": 120, "input_tokens_details": {"cached_tokens": 50}},
+                    "output": [{
                         "type": "message", "role": "assistant", "status": "completed",
-                        "content": [{"type": "output_text", "text": json.dumps(draft or OPENAI_DRAFT)}],
+                        "content": [{"type": "output_text", "text": json.dumps(next_draft)}],
                     }],
                 })
             if request.url.path == "/storage/v1/bucket/mistake-sources":
@@ -498,7 +508,7 @@ def test_rejected_reservation_never_calls_openai(api, code, status):
     (False, {"user:": 10}, "10 lượt phân tích AI trong tháng", False),
     (True, {"user:": 3}, "Phiên khách đã dùng hết 3", False),
     (False, {"day:": 20}, "Hệ thống đã dùng hết 20", False),
-    (False, {"minute:": 2}, "2 lượt phân tích AI/phút", True),
+    (False, {"minute:": 20}, "20 lượt phân tích AI/phút", True),
     (False, {"ip:": 5}, "Kết nối mạng này đã dùng hết 5", False),
 ])
 def test_quota_errors_name_the_actual_app_limit_without_calling_openai(api, guest, counters, text, delay):

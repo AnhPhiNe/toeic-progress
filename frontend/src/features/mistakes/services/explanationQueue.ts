@@ -10,18 +10,22 @@ import type { AIMistakeParseResult } from './aiMistakeExtractor';
 
 /**
  * Writes the explanations for questions read from a screenshot, after the reading has returned.
- * One batch runs at a time; later ones wait. Each card's ticket is kept on this device for 24 hours so an
- * explanation that never arrived (app closed, network lost) can be asked for again without a new AI use.
+ * Runs up to 3 explanation batches concurrently so learners reviewing multiple groups see ready explanations faster.
+ * Each card's ticket is kept on this device for 24 hours so an explanation that never arrived can be retried free.
  */
 export interface ExplainItem { cardId: string; number: number; input: MistakeInput }
 interface StoredTicket { ticket: string; number: number; input: MistakeInput; expires: number; owner: string | null }
+interface QueuedBatch { ticket: string; items: ExplainItem[]; owner: string | null }
 
 const STORAGE_KEY = 'toeic_explain_tickets_v1';
 export const MISTAKES_CHANGED_EVENT = 'toeic:mistakes-changed';
+export const MAX_CONCURRENT_EXPLAINS = 3;
 const pending = new Map<string, number>();
 const listeners = new Set<() => void>();
+const jobQueue: QueuedBatch[] = [];
+let activeWorkers = 0;
+let pumpScheduled = false;
 let version = 0;
-let chain: Promise<void> = Promise.resolve();
 /** While the detail flow is open, it takes explanations for cards it has not saved yet. */
 let interceptor: ((cardId: string, draft: AIMistakeParseResult, originalInput: MistakeInput) => boolean) | null = null;
 
@@ -69,47 +73,68 @@ function applyToStorage(item: ExplainItem, draft: AIMistakeParseResult): boolean
   return stored;
 }
 
-function run(ticket: string, items: ExplainItem[], owner: string | null) {
-  items.forEach(item => pending.set(item.cardId, (pending.get(item.cardId) ?? 0) + 1)); notify();
-  chain = chain.then(async () => {
-    try {
-      // A batch may have waited behind another account's request. Never dispatch it under a new session.
-      if (getActiveAccountId() !== owner) return;
-      const result = await aiService.explainBatchWithAI(ticket, items.map(({ number, input }) => ({ number, input })), owner);
-      // An explanation that arrives after switching accounts belongs to the other account's cards; drop it.
-      if (getActiveAccountId() !== owner) return;
+async function executeBatch({ ticket, items, owner }: QueuedBatch) {
+  try {
+    // A batch may have been queued before an account switch. Never dispatch it under a new session.
+    if (getActiveAccountId() !== owner) return;
+    const result = await aiService.explainBatchWithAI(ticket, items.map(({ number, input }) => ({ number, input })), owner);
+    // An explanation that arrives after switching accounts belongs to the other account's cards; drop it.
+    if (getActiveAccountId() !== owner) return;
+    const tickets = readTickets();
+    for (const { number, draft } of result.items) {
+      const item = items.find(entry => entry.number === number);
+      if (!item) continue;
+      // Empty/invalid drafts cannot consume the only path to a free retry.
+      if (!draft.explanation?.quickTip?.trim()) continue;
+      const accepted = interceptor?.(item.cardId, draft, item.input) || applyToStorage(item, draft);
+      if (accepted && tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
+    }
+    for (const retry of result.retry ?? []) {
+      if (retry.status !== 'exhausted') continue;
+      const item = items.find(entry => entry.number === retry.number);
+      if (item && tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
+    }
+    writeTickets(tickets);
+  } catch (error) {
+    if (getActiveAccountId() !== owner) return;
+    // Permission changes and transport errors can recover; an invalid ticket cannot.
+    if (error instanceof ApiRequestError && error.code?.startsWith('EXPLAIN_TICKET_')) {
       const tickets = readTickets();
-      for (const { number, draft } of result.items) {
-        const item = items.find(entry => entry.number === number);
-        if (!item) continue;
-        // Empty/invalid drafts cannot consume the only path to a free retry.
-        if (!draft.explanation?.quickTip?.trim()) continue;
-        const accepted = interceptor?.(item.cardId, draft, item.input) || applyToStorage(item, draft);
-        if (accepted && tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
-      }
-      for (const retry of result.retry ?? []) {
-        if (retry.status !== 'exhausted') continue;
-        const item = items.find(entry => entry.number === retry.number);
-        if (item && tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
-      }
+      for (const item of items) if (tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
       writeTickets(tickets);
-    } catch (error) {
-      if (getActiveAccountId() !== owner) return;
-      // Permission changes and transport errors can recover; an invalid ticket cannot.
-      if (error instanceof ApiRequestError && error.code?.startsWith('EXPLAIN_TICKET_')) {
-        const tickets = readTickets();
-        for (const item of items) if (tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
-        writeTickets(tickets);
-      }
     }
-    finally {
-      items.forEach(item => {
-        const remaining = (pending.get(item.cardId) ?? 1) - 1;
-        if (remaining) pending.set(item.cardId, remaining); else pending.delete(item.cardId);
-      });
-      notify();
-    }
-  });
+  } finally {
+    items.forEach(item => {
+      const remaining = (pending.get(item.cardId) ?? 1) - 1;
+      if (remaining) pending.set(item.cardId, remaining); else pending.delete(item.cardId);
+    });
+    notify();
+  }
+}
+
+function pumpQueue() {
+  pumpScheduled = false;
+  while (activeWorkers < MAX_CONCURRENT_EXPLAINS && jobQueue.length > 0) {
+    const next = jobQueue.shift()!;
+    activeWorkers += 1;
+    void executeBatch(next).finally(() => {
+      activeWorkers -= 1;
+      if (jobQueue.length > 0) schedulePump();
+    });
+  }
+}
+
+function schedulePump() {
+  if (pumpScheduled) return;
+  pumpScheduled = true;
+  queueMicrotask(pumpQueue);
+}
+
+function run(ticket: string, items: ExplainItem[], owner: string | null) {
+  items.forEach(item => pending.set(item.cardId, (pending.get(item.cardId) ?? 0) + 1));
+  notify();
+  jobQueue.push({ ticket, items, owner });
+  schedulePump();
 }
 
 /** Queue explanations for cards just read from a screenshot. */

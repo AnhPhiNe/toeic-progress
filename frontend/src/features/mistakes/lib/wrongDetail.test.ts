@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { createDraftMistake } from './mistakeDrafts';
-import { flowCards, heroPart, listeningSkipped, partProgress, planGroupRequests, planSingleRequests, setListeningSkipped, suggestGroups, topReason, visibleProgress, waitingTests } from './wrongDetail';
+import { flowCards, heroPart, listeningSkipped, partProgress, planGroupRequests, planSingleRequests, setListeningSkipped, suggestGroups, topReason, updatePart7Range, visibleProgress, waitingTests } from './wrongDetail';
 
 const session: StudySession = { id: 's1', testName: 'ETS 2024 Test 03', date: '2026-11-10', createdAt: '2026-11-10T08:00:00.000Z',
   skillType: 'LR', sessionType: 'FULL_TEST', durationMinutes: 120, wrongQuestions: [4, 35, 103, 133, 186, 189, 190] };
@@ -20,6 +20,22 @@ describe('passage group suggestions', () => {
     expect(groups.map(group => `${group.from}–${group.to}`)).toEqual(['149–150', '153–154', '158–160', '176–180', '186–190', '196–200']);
     expect(groups.map(group => group.passages)).toEqual([1, 1, 1, 2, 3, 3]);
     expect(groups[4]).toMatchObject({ kind: 'Đoạn ba', wrong: [186, 189] });
+  });
+  it('supports editable Part 7 custom ranges (e.g. 149–151) without overlapping neighbors and groups Part 3–4 in ETS clusters of 3', () => {
+    const edited = updatePart7Range({}, 149, 149, 151);
+    expect('next' in edited).toBe(true);
+    if ('next' in edited) {
+      const groups = suggestGroups(7, [149, 151, 152, 153], edited.next);
+      expect(groups.map(group => [`${group.from}–${group.to}`, group.wrong])).toEqual([
+        ['149–151', [149, 151]],
+        ['152–152', [152]],
+        ['153–154', [153]],
+      ]);
+    }
+    expect('error' in updatePart7Range({}, 149, 149, 156)).toBe(true);
+    expect('error' in updatePart7Range({}, 149, 140, 148)).toBe(true);
+    expect(suggestGroups(3, [32, 34, 35]).map(group => `${group.from}–${group.to}`)).toEqual(['32–34', '35–37']);
+    expect(suggestGroups(4, [71, 73, 98]).map(group => `${group.from}–${group.to}`)).toEqual(['71–73', '98–100']);
   });
 });
 
@@ -81,20 +97,33 @@ describe('request planning', () => {
     const plan = planGroupRequests([one(100_000)], [], [147]);
     expect(plan.requests).toEqual([{ contextImages: [], images: [expect.anything()], questions: [147], slices: [] }]);
   });
-  it('splits only when the group cannot fit one request, and says so', () => {
-    const plan = planGroupRequests([one(3_500_000), one(3_500_000)], [one(3_000_000)], [131, 132]);
-    expect(plan.split).toBe(true);
-    expect(plan.requests.length).toBeGreaterThan(1);
-    expect(planGroupRequests([1, 2, 3, 4].map(() => one(10)), [one(10)], [131]).error).toMatch(/tối đa 3 ảnh đoạn văn/);
+  it('never separates passage images from questions: repeats passage across byte packs or reports clear size error', () => {
+    // 2 MB passage + two 3.5 MB question pages -> packs into 2 requests, EACH keeping the full passage!
+    const repeated = planGroupRequests([one(2_000_000)], [one(3_500_000), one(3_500_000)], [131, 132]);
+    expect(repeated.split).toBe(false);
+    expect(repeated.requests).toHaveLength(2);
+    expect(repeated.requests.every(req => req.contextImages.length === 1 && req.images.length === 1)).toBe(true);
+    // Impossible single pair > 8 MiB: refuses cleanly instead of sending questions without their passage.
+    const tooHeavy = planGroupRequests([one(3_500_000), one(3_500_000)], [one(3_000_000)], [131, 132]);
+    expect(tooHeavy.requests).toHaveLength(0);
+    expect(tooHeavy.error).toMatch(/vượt 8 MiB/);
+    // Up to 5 passage images are accepted; 6 are rejected.
+    expect(planGroupRequests([1, 2, 3, 4, 5].map(() => one(10)), [one(10)], [186]).requests).toHaveLength(1);
+    expect(planGroupRequests([1, 2, 3, 4, 5, 6].map(() => one(10)), [one(10)], [131]).error).toMatch(/tối đa 5 ảnh đoạn văn/);
+    // Unified single tray with 7 images automatically promotes leading pages to contextImages in one request.
+    const unified = planGroupRequests([], [1, 2, 3, 4, 5, 6, 7].map(() => one(10)), [186, 189]);
+    expect(unified.requests).toHaveLength(1);
+    expect(unified.requests[0].contextImages.length + unified.requests[0].images.length).toBe(7);
   });
   it('puts passage and questions in one plain request when the server cannot tell them apart', () => {
     const plan = planGroupRequests([one(100), one(100)], [one(100)], [131], { contextSupported: false });
     expect(plan).toMatchObject({ split: false, requests: [{ contextImages: [], images: [expect.anything(), expect.anything(), expect.anything()] }] });
   });
-  it('reads Part 5 images together, in more requests only for more than six questions', () => {
+  it('reads 1–3 Part 5 images together, and auto-chunks 4+ images into parallel packs of 3 for multiple questions', () => {
     const numbers = [101, 102, 103, 104, 105, 106, 107];
     expect(planSingleRequests([one(10), one(10)], [101, 102]).requests.map(request => [request.images.length, request.questions])).toEqual([[2, [101, 102]]]);
     expect(planSingleRequests([one(10), one(10)], numbers).requests.map(request => [request.images.length, request.questions.length])).toEqual([[2, 6], [2, 1]]);
+    expect(planSingleRequests([1, 2, 3, 4, 5, 6].map(() => one(10)), [101, 102, 103]).requests.map(request => request.images.length)).toEqual([3, 3]);
     expect(planSingleRequests([1, 2, 3, 4, 5, 6, 7].map(() => one(10)), [101]).requests.map(request => request.images.length)).toEqual([6, 1]);
     expect(planSingleRequests(Array.from({ length: 49 }, () => one(10)), numbers).error).toMatch(/tối đa 48 ảnh/);
   });

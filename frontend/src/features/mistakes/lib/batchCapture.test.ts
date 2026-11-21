@@ -35,4 +35,10 @@ describe('batch card preflight', () => {
     const card = item(101); card.draft.userChoiceState = 'CHOSEN';
     expect(() => buildBatchEntries([card], 'ETS')).toThrow('lựa chọn');
   });
+  it('accepts Listening Parts 1–4 captured cards alongside Reading cards', () => {
+    const p2: BatchExtractedItem = { ...item(12), part: 2, draft: { ...item(12).draft, part: 2, options: ['(A) Yes.', '(B) No.', '(C) Tomorrow.'], correctAnswer: '(C) Tomorrow.' } };
+    const p3: BatchExtractedItem = { ...item(32), part: 3, draft: { ...item(32).draft, part: 3 } };
+    const entries = buildBatchEntries([p2, p3, item(101)], 'ETS');
+    expect(entries.map(card => [card.part, card.questionNumber])).toEqual([[2, 12], [3, 32], [5, 101]]);
+  });
 });

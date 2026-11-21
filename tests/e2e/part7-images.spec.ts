@@ -95,8 +95,8 @@ test('invalid files and too many images retain the current attachments; changing
   await picker.setInputFiles({ name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
   await expect(modal.getByRole('alert')).toContainText('PNG, JPG hoặc WebP');
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
-  await picker.setInputFiles({ name: 'large.png', mimeType: 'image/png', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) });
-  await expect(modal.getByRole('alert')).toContainText('tối đa 5 MB');
+  await picker.setInputFiles({ name: 'large.png', mimeType: 'image/png', buffer: Buffer.alloc(20 * 1024 * 1024 + 1) });
+  await expect(modal.getByRole('alert')).toContainText('tối đa 20 MB');
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
   await picker.setInputFiles([notice, table, notice]);
   await expect(modal.getByRole('alert')).toContainText('tối đa 3 ảnh');

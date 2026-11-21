@@ -83,7 +83,7 @@ def test_analysis_is_owner_scoped_quota_counted_and_sent_once_to_luna_with_a_str
         response = client.post("/api/v1/ai/analyze-attempt", json=payload())
         assert response.status_code == 200, response.json()
         report = response.json()["report"]
-        assert report["version"] == 2 and report["model"] == "gpt-6-luna"
+        assert report["version"] == 2 and report["model"] == "gpt-6.1-terra"
         assert report["priorities"] == ADVICE["priorities"]
         assert report["parts"][4] == {"part": 5, "correct": 29, "total": 30, "wrong": 1}
         assert report["linkedNotes"] == report["sampledNotes"] == 1
@@ -99,7 +99,7 @@ def test_analysis_is_owner_scoped_quota_counted_and_sent_once_to_luna_with_a_str
         url, body, headers = provider[0]
         assert str(url) == "https://api.openai.com/v1/responses"
         assert headers["authorization"] == "Bearer private-openai-key"
-        assert body["model"] == "gpt-6-luna" and body["reasoning"] == {"effort": "medium"}
+        assert body["model"] == "gpt-6.1-terra" and body["reasoning"] == {"effort": "medium"}
         assert body["store"] is False and body["service_tier"] == "default" and body["max_output_tokens"] == 6144
         assert "temperature" not in body and "top_p" not in body
         assert len(body["safety_identifier"]) == 64 and OWNER not in json.dumps(body)

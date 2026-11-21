@@ -5,9 +5,9 @@ import { optionLetter } from '@/features/mistakes/lib/userChoice';
 
 /** One capture sends at most this many screenshots; the rest is sent in a later capture. */
 export const MAX_CAPTURE_IMAGES = 10;
-/** The page-reading API takes up to 6 question screenshots and 3 passage pages, 8 MiB in total, per request. */
+/** The page-reading API takes up to 6 question screenshots and 5 passage/transcript pages, 8 MiB in total, per request. */
 export const IMAGES_PER_REQUEST = 6;
-export const CONTEXT_PER_REQUEST = 3;
+export const CONTEXT_PER_REQUEST = 5;
 export const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 /** One reading returns at most this many wrong questions (backend MAX_PAGE_ITEMS). */
 export const QUESTIONS_PER_REQUEST = 6;
@@ -54,7 +54,8 @@ export function isUnreadable(draft: AIMistakeParseResult): boolean {
 export function rowStatus(item: Pick<CaptureItem, 'draft'>): RowStatus {
   const { draft } = item;
   if (isUnreadable(draft)) return 'unreadable';
-  return !draft.userChoice || draft.answerSource !== 'PROVIDED' || !optionLetter(draft.correctAnswer) || draft.options.length !== 4 ? 'unsure' : 'ok';
+  const expectedOptions = draft.part === 2 ? 3 : 4;
+  return !draft.userChoice || draft.answerSource !== 'PROVIDED' || !optionLetter(draft.correctAnswer) || draft.options.length !== expectedOptions ? 'unsure' : 'ok';
 }
 
 const completeness = (draft: AIMistakeParseResult) =>
@@ -66,7 +67,7 @@ export function mergeItems(existing: readonly CaptureItem[], incoming: readonly 
   const byNumber = new Map(existing.map(item => [item.number, item]));
   for (const read of incoming) {
     const part = partOfQuestion(read.number);
-    if (!part || part < 5) continue;
+    if (!part) continue;
     const before = byNumber.get(read.number);
     if (before && completeness(before.draft) >= completeness(read.draft)) continue;
     const next: CaptureItem = { id: before?.id ?? newId(), number: read.number, part: part as MistakeEntry['part'], draft: read.draft,

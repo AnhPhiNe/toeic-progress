@@ -156,13 +156,38 @@ try {
   const fresh = new Date(Date.now() + 24 * 3600_000 + 1000).toISOString();
   assert.equal((await claim(108, randomUUID(), randomUUID(), { ticketId: randomUUID(), expiresAt: fresh })).action, 'claimed', 'A ticket issued after reset works');
 
+  // Provider budget guard & metadata-only cost ledger (covers explain-batch + escalations).
+  const budget = (user, { day = 10, owner = 3, minute = 2 } = {}) => value(
+    'select public.reserve_provider_budget($1::uuid,$2,$3,$4)', [user, day, owner, minute]);
+  assert.deepEqual(await budget(alice), { allowed: true });
+  assert.deepEqual(await budget(alice), { allowed: true });
+  const minBlocked = await budget(alice);
+  assert.equal(minBlocked.allowed, false);
+  assert.equal(minBlocked.code, 'minute');
+  assert.ok(minBlocked.retry_after >= 1 && minBlocked.retry_after <= 60);
+  // Raising minute cap lets owner-day cap trigger on the 4th call.
+  assert.deepEqual(await budget(alice, { minute: 10 }), { allowed: true });
+  assert.equal((await budget(alice, { minute: 10 })).code, 'owner_day');
+  // Bob has a separate owner-day bucket, then hits shared global day cap.
+  assert.deepEqual(await budget(bob, { day: 4, owner: 3, minute: 10 }), { allowed: true });
+  assert.equal((await budget(bob, { day: 4, owner: 3, minute: 10 })).code, 'day');
+  await assert.rejects(budget(alice, { day: 0 }), /Invalid provider budget limits/);
+
+  await db.query("select public.record_ai_usage($1::uuid,'explain-batch','gpt-6-luna','medium',1200,300,450,1850,'ok')", [alice]);
+  const ledgerRow = await one('select user_id, endpoint, model, effort, input_tokens, cached_tokens, output_tokens, duration_ms, status from public.ai_cost_ledger');
+  assert.deepEqual(ledgerRow, {
+    user_id: alice, endpoint: 'explain-batch', model: 'gpt-6-luna', effort: 'medium',
+    input_tokens: 1200, cached_tokens: 300, output_tokens: 450, duration_ms: 1850, status: 'ok'
+  });
+
   // Account deletion removes every AI row of that account.
   await db.query('delete from auth.users where id=$1', [alice]);
-  for (const table of ['ai_usage_counters', 'ai_requests', 'ai_batches', 'ai_explanation_questions', 'ai_explanation_requests', 'api_rate_limits', 'user_plans', 'ai_access_grants']) {
+  for (const table of ['ai_usage_counters', 'ai_provider_budget_counters', 'ai_requests', 'ai_batches', 'ai_explanation_questions', 'ai_explanation_requests', 'api_rate_limits', 'user_plans', 'ai_access_grants']) {
     assert.equal(await value(`select count(*)::int from public.${table} where user_id=$1`, [alice]), 0, `${table} survived account deletion`);
   }
+  assert.equal(await value('select user_id from public.ai_cost_ledger limit 1'), null, 'Cost ledger anonymizes user_id on account deletion');
   assert.ok(await value("select count(*)::int from public.ai_usage_counters where user_id is null") > 0, 'Shared day/minute/IP counters stay');
-  console.log('AI quotas, batches, quota status, access/plans, API limits, explanation ledger and AI account deletion passed.');
+  console.log('AI quotas, batches, quota status, access/plans, API limits, explanation ledger, provider budget, cost ledger and AI account deletion passed.');
 } finally {
   await db.close();
 }

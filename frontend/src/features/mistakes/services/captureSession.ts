@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ErrorCategory } from '@/shared/types';
 import { generateUUID } from '@/shared/domain/uuid';
-import { partOfQuestion } from '@/shared/domain/questionNumbers';
+import { partOfQuestion, type PartNumber } from '@/shared/domain/questionNumbers';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { readFormDraft, removeFormDraft, writeFormDraft } from '@/shared/data/formDrafts';
 import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
@@ -9,32 +9,35 @@ import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
 import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, QUESTIONS_PER_REQUEST, isUnreadable, mergeItems,
   remainingQuestions, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
-import type { ReadRequest } from '@/features/mistakes/lib/wrongDetail';
+import { isGroupedPart, type ReadRequest } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from './aiMistakeExtractor';
-import type { AIMistakeParseResult, AIUsage } from './aiMistakeExtractor';
+import type { AIMistakeParseResult, AIUsage, PageRejectionReason } from './aiMistakeExtractor';
 
 /**
- * One "Chụp trang chữa bài" capture of one Part: the screenshots (Part 6–7 as passage + questions), the readings and
+ * One "Chụp trang chữa bài" capture of one Part: screenshots or paper photos, the readings and
  * the review list. It lives outside React so closing the dialog does not stop a reading: the learner is told when done.
  */
 export type CaptureImageStatus = 'waiting' | 'reading' | 'done' | 'failed';
 export type CaptureZone = 'passage' | 'questions';
-/** A screenshot as picked; `url` shows it on this device only. */
+/** A screenshot/photo as picked; `url` shows it on this device only. */
 export interface CaptureImage { id: string; name: string; url: string; zone: CaptureZone; status: CaptureImageStatus }
 export interface CaptureFailure { id: string; imageIds: string[]; questions: number[]; message: string }
 export type CapturePhase = 'input' | 'reading' | 'review';
-export type CapturePart = 5 | 6 | 7;
+export type CapturePart = PartNumber;
 
 export interface CaptureState {
   phase: CapturePhase;
   testName: string;
   /** The Part the screenshots are from; chosen first. */
   part: CapturePart | null;
-  /** Part 6–7 with a logged wrong list: the passage group being captured. */
+  /** Part 3/4/6/7 with a logged wrong list: the passage/audio group being captured. */
   group: number | null;
   images: CaptureImage[];
   items: CaptureItem[];
   failures: CaptureFailure[];
+  rejectionReasons: PageRejectionReason[];
+  /** True when photos are paper book pages (routes to paper OCR model). */
+  photoMode: boolean;
   /** More than `MAX_CAPTURE_IMAGES` were offered; the rest were left out. */
   overflow: boolean;
   /** Screenshots a capture could not send. */
@@ -62,10 +65,10 @@ export interface CaptureContext {
 
 export const COMPRESSED_NOTE = 'Ảnh nặng nên Sóc đã thu nhỏ hoặc cắt ảnh trên máy trước khi gửi.';
 export const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đọc đoạn văn và câu hỏi ở các lượt riêng. Kiểm tra kỹ đoạn văn của từng câu.';
-/** Two readings of one capture run at the same time. */
-const PARALLEL_READS = 2;
+/** Up to three readings of one capture run in parallel against OpenAI. */
+const PARALLEL_READS = 3;
 const DRAFT_SCOPE = 'capture:review';
-const blank = (): CaptureState => ({ phase: 'input', testName: '', part: null, group: null, images: [], items: [], failures: [], overflow: false, unsent: 0,
+const blank = (): CaptureState => ({ phase: 'input', testName: '', part: null, group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
   error: '', note: '', requestsTotal: 0, requestsDone: 0, usage: null, finishedInBackground: false, restored: false });
 
 let state: CaptureState = blank();
@@ -141,11 +144,25 @@ export function setGroup(group: number | null) {
   set({ group, images: [], overflow: false, error: '', note: '' });
 }
 
+export function setPhotoMode(photoMode: boolean) { set({ photoMode }); }
+
+export function getImageFile(id: string): File | undefined { return files.get(id); }
+
+export function replaceImageFile(id: string, nextFile: File) {
+  checkOwner();
+  const target = state.images.find(image => image.id === id);
+  if (!target) return;
+  try { URL.revokeObjectURL(target.url); } catch { /* not an object URL */ }
+  const nextUrl = URL.createObjectURL(nextFile);
+  files.set(id, nextFile);
+  set({ images: state.images.map(image => image.id === id ? { ...image, name: nextFile.name || image.name, url: nextUrl } : image) });
+}
+
 export function addFiles(picked: File[], zone: CaptureZone = 'questions') {
   checkOwner();
   const images = picked.filter(file => file.type.startsWith('image/'));
   if (!images.length) return;
-  const target: CaptureZone = state.part && state.part >= 6 ? zone : 'questions';
+  const target: CaptureZone = state.part && isGroupedPart(state.part) ? zone : 'questions';
   const roomTotal = MAX_CAPTURE_IMAGES - state.images.length;
   const roomZone = target === 'passage' ? CONTEXT_PER_REQUEST - state.images.filter(image => image.zone === 'passage').length : roomTotal;
   const accepted = images.slice(0, Math.max(0, Math.min(roomTotal, roomZone)));
@@ -175,11 +192,13 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
   requestsUsed += 1;
   try {
     const result = await aiService.extractPageWithAI(questionList(remaining), request.images, context!.getToken, owner, current, batchId,
-      request.contextImages, request.slices);
+      request.contextImages, request.slices, state.photoMode ? { photoMode: true } : undefined);
     if (!current()) return;
     const items = mergeItems(state.items, result.items, result.explainTicket, generateUUID);
+    const seenNumbers = new Set(items.map(item => item.number));
+    const reasons = [...state.rejectionReasons, ...(result.rejectionReasons ?? [])].filter(r => r.number === null || !seenNumbers.has(r.number));
     mark('done');
-    set({ items, usage: result.usage });
+    set({ items, rejectionReasons: reasons, usage: result.usage });
     // A reading returns at most six questions. A wide one (many questions at once) that filled up asks again for the rest.
     if (remaining.length > QUESTIONS_PER_REQUEST && result.items.length >= QUESTIONS_PER_REQUEST && requestsUsed < MAX_CAPTURE_REQUESTS
       && remainingQuestions(request.questions, state.items).length) await readOnce(request, imageIds, mine);
@@ -193,7 +212,7 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
   }
 }
 
-/** Runs the readings, two at a time, as one batch (one AI use). */
+/** Runs the readings, up to PARALLEL_READS at a time, as one batch (one AI use). */
 async function runAll(jobs: { request: ReadRequest<PreparedImage>; imageIds: string[] }[], mine: number) {
   let next = 0;
   const worker = async () => {
@@ -213,11 +232,11 @@ export async function startReading(ctx: CaptureContext) {
   context = ctx; requestsUsed = 0; batchId = generateUUID(); failed.clear();
   const mine = ++epoch;
   const passage = state.images.filter(image => image.zone === 'passage'), questions = state.images.filter(image => image.zone === 'questions');
-  set({ phase: 'reading', error: '', note: '', failures: [], items: [], restored: false, requestsTotal: 0, requestsDone: 0, finishedInBackground: false, unsent: 0,
+  set({ phase: 'reading', error: '', note: '', failures: [], rejectionReasons: [], items: [], restored: false, requestsTotal: 0, requestsDone: 0, finishedInBackground: false, unsent: 0,
     images: state.images.map(image => ({ ...image, status: 'waiting' as const })) });
   try {
     const fileOf = (image: CaptureImage) => files.get(image.id)!;
-    const plan = state.part! >= 6
+    const plan = isGroupedPart(state.part!)
       ? await prepareGroup(passage.map(fileOf), questions.map(fileOf), ctx.questions, ctx.contextSupported !== false)
       : await prepareSingles(questions.map(fileOf), ctx.questions);
     if (mine !== epoch) return;

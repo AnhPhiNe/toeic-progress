@@ -5,10 +5,11 @@ import { partOfQuestion, type PartNumber } from '@/shared/domain/questionNumbers
 import { generateUUID } from '@/shared/domain/uuid';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { useFormDraft } from '@/shared/hooks/useFormDraft';
+import { apiAvailable } from '@/shared/api/api';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
-import type { AIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
+import type { AIConfiguration, PageRejectionReason } from '@/features/mistakes/services/aiMistakeExtractor';
 import { enqueueExplanations, explanationsVersion, isExplaining, setExplanationInterceptor, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { buildDetailEntry, canExplainRead, detailExplanationInput, editDetailForm, EMPTY_FORM, explainInput, isEmptyForm, savedDetailForm, withArrivedExplanation, withReadResult, type CardForm } from '@/features/mistakes/lib/detailForm';
 import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
@@ -16,7 +17,9 @@ import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailD
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { MAX_CAPTURE_REQUESTS } from '@/features/mistakes/lib/captureBatch';
-import { flowCards, groupNumbers, heroPart, isRecorded, listeningSkipped, partMode, partProgress, setListeningSkipped, visibleProgress, suggestGroups } from '@/features/mistakes/lib/wrongDetail';
+import { checkPhotoClarity, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { flowCards, groupNumbers, heroPart, isGroupedPart, isRecorded, listeningSkipped, partMode, partProgress, setListeningSkipped, visibleProgress, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
+import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { DoneView, ManualCard, Overview, PartView, ReviewView, type Staged, type Zone } from './views';
 import './wrong-detail.css';
 
@@ -33,14 +36,15 @@ interface Props {
 }
 
 export type Screen = { name: 'overview' } | { name: 'part'; part: PartNumber }
-  | { name: 'review'; part: PartNumber | null; ids: string[]; skipped: number[]; missing: number[]; group?: number; job?: string };
-/** One capture being read: a question group of Part 6–7, or Part 5. */
+  | { name: 'review'; part: PartNumber | null; ids: string[]; skipped: number[]; missing: number[]; rejectionReasons?: PageRejectionReason[]; group?: number; job?: string };
+/** One capture being read: a question group of Part 3/4/6/7, or Part 1/2/5. */
 export interface ReadJob {
   key: string; part: PartNumber; group?: number; label: string; status: 'waiting' | 'reading' | 'done' | 'failed';
   done: number; total: number; startedAt?: number; passage: File[]; questions: File[]; wanted: number[]; requested: number[];
-  readIds: string[]; skipped: number[]; missing: number[]; error: string; note: string;
+  photoMode: boolean;
+  readIds: string[]; skipped: number[]; missing: number[]; rejectionReasons: PageRejectionReason[]; error: string; note: string;
 }
-const PARALLEL_READS = 2;
+const PARALLEL_READS = 3;
 const COMPRESSED_NOTE = 'Ảnh nặng nên Sóc đã thu nhỏ hoặc cắt ảnh trên máy trước khi gửi.';
 
 const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đọc đoạn văn và câu hỏi ở các lượt riêng. Kiểm tra kỹ đoạn văn của từng câu.';
@@ -64,6 +68,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const [groupFrom, setGroupFrom] = useState<number | null>(null);
   const groupRef = useRef(groupFrom);
   groupRef.current = groupFrom;
+  const [customPart7Ranges, setCustomPart7Ranges] = useState<CustomRangeMap>({});
+  const [listeningPhoto, setListeningPhoto] = useState(false);
+  const [photoMode, setPhotoMode] = useState(false);
+  const [clarity, setClarity] = useState<Record<string, ClarityResult | null>>({});
+  const [editingPhoto, setEditingPhoto] = useState<{ zone: Zone; id: string } | null>(null);
+  const measuredClarity = useRef(new Set<string>());
   const [zones, setZones] = useState<Record<Zone, Staged[]>>({ passage: [], questions: [] });
   const [activeZone, setActiveZone] = useState<Zone | null>(null);
   const [jobs, setJobs] = useState<Record<string, ReadJob>>({});
@@ -74,12 +84,13 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const [manual, setManual] = useState<{ part: PartNumber; number: number } | null>(null);
   const [openRow, setOpenRow] = useState('');
   const [config, setConfig] = useState<AIConfiguration | null>(null);
+  const [configFailed, setConfigFailed] = useState(false);
   const [savedTotal, setSavedTotal] = useState(0);
   const [draftsSeen, setDraftsSeen] = useState(false);
   const closing = useRef(false);
   const owner = useRef(getActiveAccountId());
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
-  const canReadPageImages = phone ? Boolean(config?.pageImages) : config?.pageImages !== false;
+  const canReadPageImages = config ? Boolean(config.pageImages) : (!configFailed && apiAvailable);
 
   const filledIds = (ids: Iterable<string>) => [...ids].filter(id => dirtyIds.current.has(id) && !isEmptyForm(formsRef.current[id] ?? EMPTY_FORM));
   const allFilled = filledIds(cards.map(card => card.id));
@@ -102,7 +113,9 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   }, []);
   useEffect(() => {
     let cancelled = false;
-    void aiService.getAIConfiguration().then(value => { if (!cancelled) setConfig(value); }).catch(() => {});
+    void aiService.getAIConfiguration()
+      .then(value => { if (!cancelled) { setConfig(value); setConfigFailed(false); } })
+      .catch(() => { if (!cancelled) setConfigFailed(true); });
     return () => { cancelled = true; };
   }, []);
   const anyReading = Object.values(jobs).some(job => job.status === 'reading' || job.status === 'waiting');
@@ -120,6 +133,16 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const zonesRef = useRef(zones);
   zonesRef.current = zones;
   useEffect(() => () => { for (const list of Object.values(zonesRef.current)) list.forEach(item => URL.revokeObjectURL(item.url)); }, []);
+  // On-device clarity check on staged photos (never edits images or leaves the device).
+  useEffect(() => {
+    for (const item of [...zones.passage, ...zones.questions]) {
+      if (measuredClarity.current.has(item.id)) continue;
+      measuredClarity.current.add(item.id);
+      void checkPhotoClarity(item.url).then(result => {
+        if (activeFlow()) setClarity(prev => ({ ...prev, [item.id]: result }));
+      });
+    }
+  }, [zones, activeFlow]);
 
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
   useEffect(() => {
@@ -171,7 +194,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     if (!persisted && unsavedCount && !window.confirm(`Chưa tự lưu được nháp. Đóng và bỏ ${unsavedCount} câu đã điền?`)) return;
     closing.current = true; removeCaptcha(); onClose(savedTotal);
   };
-  const ref = useModalA11y(true, () => { if (manual) setManual(null); else close(); });
+  const ref = useModalA11y(true, () => { if (editingPhoto) setEditingPhoto(null); else if (manual) setManual(null); else close(); });
 
   const allProgress = partProgress(cards, unsaved);
   const [skipListening, setSkipListening] = useState(() => listeningSkipped(owner.current, session.id));
@@ -208,34 +231,64 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
 
   const openPart = (part: PartNumber) => {
     setError(''); setNote(''); clearZones();
-    if (part >= 6) {
-      const groups = suggestGroups(part as 6 | 7, partCards(part).map(card => card.questionNumber!));
+    setListeningPhoto(false);
+    if (isGroupedPart(part)) {
+      const groups = suggestGroups(part, partCards(part).map(card => card.questionNumber!), part === 7 ? customPart7Ranges : undefined);
       const next = groups.find(group => group.wrong.some(number => !recorded(byNumber.get(number)!))) ?? groups[0];
       setGroupFrom(next?.from ?? null);
+    } else {
+      setGroupFrom(null);
     }
     setScreen({ name: 'part', part });
   };
 
-  /** The open group (or Part 5) is being read: its zones wait. */
+  /** The open group (or single Part) is being read: its zones wait. */
   const selectedBusy = () => {
     const shown = shownScreen.current;
     if (shown.name !== 'part') return false;
-    const key = shown.part >= 6 ? `g${groupRef.current}` : `p${shown.part}`;
+    const grouped = (partMode(shown.part) === 'page' || listeningPhoto) && isGroupedPart(shown.part);
+    const key = grouped ? `g${groupRef.current}` : `p${shown.part}`;
     return ['waiting', 'reading'].includes(jobsRef.current[key]?.status ?? '');
   };
   const addFiles = (files: File[], zone?: Zone) => {
     if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
-    if (!images.length || screen.name !== 'part' || partMode(screen.part) === 'reason' || !canReadPageImages || selectedBusy()) return;
-    const target: Zone = screen.part >= 6 ? zone ?? activeZone ?? (zonesRef.current.passage.length ? 'questions' : 'passage') : 'questions';
+    if (!images.length || screen.name !== 'part' || (partMode(screen.part) === 'reason' && !listeningPhoto) || !canReadPageImages || selectedBusy()) return;
+    // Unified single tray: all photos go into 'questions' in order unless explicitly added to 'passage'.
+    const target: Zone = zone === 'passage' ? 'passage' : 'questions';
     const staged = images.map(file => ({ id: generateUUID(), file, url: URL.createObjectURL(file) }));
     setZones(current => ({ ...current, [target]: [...current[target], ...staged] }));
     setActiveZone(target); setError('');
   };
+  const addCameraFiles = (files: File[], zone?: Zone) => {
+    if (files.some(file => file.type.startsWith('image/'))) setPhotoMode(true);
+    addFiles(files, zone);
+  };
   const removeStaged = (zone: Zone, id: string) => setZones(current => {
-    current[zone].filter(item => item.id === id).forEach(item => URL.revokeObjectURL(item.url));
-    return { ...current, [zone]: current[zone].filter(item => item.id !== id) };
+    // Allow removing from either zone when displayed in unified tray.
+    const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
+    current[actualZone].filter(item => item.id === id).forEach(item => URL.revokeObjectURL(item.url));
+    return { ...current, [actualZone]: current[actualZone].filter(item => item.id !== id) };
   });
+  const replaceStaged = (zone: Zone, id: string, nextFile: File) => {
+    setZones(current => {
+      const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
+      const existing = current[actualZone].find(item => item.id === id);
+      if (!existing) return current;
+      URL.revokeObjectURL(existing.url);
+      measuredClarity.current.delete(id);
+      const nextUrl = URL.createObjectURL(nextFile);
+      return { ...current, [actualZone]: current[actualZone].map(item => item.id === id ? { ...item, file: nextFile, url: nextUrl } : item) };
+    });
+  };
+  const editPart7Range = (oldFrom: number, from: number, to: number): string | null => {
+    const res = updatePart7Range(customPart7Ranges, oldFrom, from, to);
+    if ('error' in res) return res.error;
+    setCustomPart7Ranges(res.next);
+    setGroupFrom(from);
+    setError('');
+    return null;
+  };
   // Ctrl+V anywhere while a Part is open adds screenshots to the zone in use.
   const addRef = useRef(addFiles);
   addRef.current = addFiles;
@@ -261,29 +314,31 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const shownScreen = useRef(screen);
   shownScreen.current = screen;
 
-  const finishJob = (job: ReadJob, readIds: string[], skipped: number[], error: string) => {
+  const finishJob = (job: ReadJob, readIds: string[], skipped: number[], rejectionReasons: PageRejectionReason[], error: string) => {
     const missing = job.wanted.filter(number => !readIds.includes(byNumber.get(number)!.id));
     const ids = [...readIds].sort((a, b) => byId.get(a)!.questionNumber! - byId.get(b)!.questionNumber!);
     const failed = Boolean(error) || !ids.length;
-    patchJob(job.key, { status: failed ? 'failed' : 'done', readIds: ids, skipped, missing,
-      error: error || (failed ? 'Sóc chưa thấy câu nào bạn sai trong ảnh. Thêm ảnh rõ hơn hoặc ghi tay.' : '') });
+    const reasonSummary = rejectionReasons.length ? rejectionReasons[0].detail : '';
+    patchJob(job.key, { status: failed ? 'failed' : 'done', readIds: ids, skipped, missing, rejectionReasons,
+      error: error || (failed ? (reasonSummary || 'Sóc chưa thấy câu nào bạn sai trong ảnh. Thêm ảnh rõ hơn hoặc ghi tay.') : '') });
     if (failed) return;
     // The learner waiting on this capture sees the result; one busy with another group gets a note instead.
     const current = shownScreen.current;
     const waiting = current.name === 'part' && current.part === job.part && (job.group === undefined || job.group === groupRef.current);
-    if (waiting) { setOpenRow(''); setScreen({ name: 'review', part: job.part, ids, skipped, missing, group: job.group, job: job.key }); }
+    if (waiting) { setOpenRow(''); setScreen({ name: 'review', part: job.part, ids, skipped, missing, rejectionReasons, group: job.group, job: job.key }); }
     else setToast({ id: Date.now(), text: `${job.label} đọc xong ${ids.length} câu` });
   };
 
   const runJob = async (key: string) => {
     const job = jobsRef.current[key];
     active.current += 1;
-    patchJob(key, { status: 'reading', done: 0, total: 0, error: '', note: '', startedAt: Date.now() });
+    patchJob(key, { status: 'reading', done: 0, total: 0, error: '', note: '', rejectionReasons: [], startedAt: Date.now() });
     const readIds: string[] = [], skipped = new Set<number>(), seen = new Set<number>();
+    const rejectionReasons: PageRejectionReason[] = [];
     let error = '';
     try {
       const plan = job.group !== undefined
-        ? await prepareGroup(job.passage, job.questions, job.requested, Boolean(config?.pageContextImages))
+        ? await prepareGroup(job.passage, job.questions, job.requested, config?.pageContextImages !== false)
         : await prepareSingles(job.questions, job.requested);
       if (!activeFlow()) return;
       if (plan.error) throw new Error(plan.error);
@@ -292,11 +347,15 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       if (batch.current.used + plan.requests.length > MAX_CAPTURE_REQUESTS) batch.current = { id: generateUUID(), used: 0 };
       batch.current.used += plan.requests.length;
       const batchId = batch.current.id;
-      for (const request of plan.requests) {
+      const processRequest = async (request: (typeof plan.requests)[number]) => {
         if (!activeFlow()) return;
-        const result = await aiService.extractPageWithAI(request.questions.map(number => ({ number, part: partOfQuestion(number)! })), request.images, getToken,
-          owner.current, activeFlow, batchId, request.contextImages, request.slices);
+        const result = await aiService.extractPageWithAI(
+          request.questions.map(number => ({ number, part: partOfQuestion(number)! })),
+          request.images, getToken, owner.current, activeFlow, batchId, request.contextImages, request.slices,
+          job.photoMode ? { photoMode: true } : undefined
+        );
         if (!activeFlow()) return;
+        if (result.rejectionReasons?.length) rejectionReasons.push(...result.rejectionReasons);
         const next = { ...formsRef.current };
         const matches: { item: (typeof result.items)[number]; card: MistakeEntry }[] = [];
         for (const item of result.items) {
@@ -317,6 +376,19 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
         }).map(({ item, card }) => ({ cardId: card.id, number: item.number, input: explainInput(item.draft, card.part) })));
         removeCaptcha();
         patchJob(key, { done: jobsRef.current[key].done + 1 });
+      };
+      // For multi-pack Part 5 batches (4+ screenshots), dispatch packs in parallel up to PARALLEL_READS!
+      if (job.group === undefined && plan.requests.length > 1) {
+        let cursor = 0;
+        const worker = async () => {
+          while (cursor < plan.requests.length && activeFlow()) {
+            const req = plan.requests[cursor++];
+            await processRequest(req);
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(PARALLEL_READS, plan.requests.length) }, worker));
+      } else {
+        for (const request of plan.requests) await processRequest(request);
       }
     } catch (reason) {
       // The rest of this group waits for "Thử lại" instead of spending more on a failing reading.
@@ -326,7 +398,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       removeCaptcha();
     }
     if (!activeFlow()) return;
-    finishJob(job, readIds, [...skipped].filter(number => !byNumber.has(number)).sort((a, b) => a - b), error);
+    const filteredReasons = rejectionReasons.filter(r => r.number === null || !seen.has(r.number));
+    finishJob(job, readIds, [...skipped].filter(number => !byNumber.has(number)).sort((a, b) => a - b), filteredReasons, error);
     pump();
   };
   const pump = () => {
@@ -341,17 +414,20 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const retryJob = (key: string) => {
     const job = jobsRef.current[key];
     if (!job || job.status !== 'failed' || !activeFlow()) return;
-    enqueue({ ...job, status: 'waiting', error: '', done: 0, total: 0 });
+    enqueue({ ...job, status: 'waiting', error: '', rejectionReasons: [], done: 0, total: 0 });
   };
 
-  /** Sends the staged screenshots of the open group (or of Part 5); the learner can stage the next group meanwhile. */
-  const send = () => {
+  /** Sends staged photos for the open group/Part; optionally auto-advances to the next unread group immediately. */
+  const send = (advanceToFrom?: number) => {
     if (screen.name !== 'part') return;
     const part = screen.part;
     if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
     if (cards.some(card => card.sessionId !== session.id)) { setError('Danh sách có câu thuộc nhiều lượt làm. Đóng và mở riêng từng lượt trong Sổ tay.'); return; }
-    const group = part >= 6 ? suggestGroups(part as 6 | 7, partCards(part).map(card => card.questionNumber!)).find(item => item.from === groupFrom) : undefined;
-    if (part >= 6 && !group) return;
+    const grouped = isGroupedPart(part);
+    const group = grouped
+      ? suggestGroups(part, partCards(part).map(card => card.questionNumber!), part === 7 ? customPart7Ranges : undefined).find(item => item.from === groupFrom)
+      : undefined;
+    if (grouped && !group) return;
     const key = group ? `g${group.from}` : `p${part}`;
     if (['waiting', 'reading'].includes(jobsRef.current[key]?.status ?? '')) return;
     const wrong = group ? group.wrong : partCards(part).map(card => card.questionNumber!);
@@ -361,14 +437,15 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     if (!passage.length && !questions.length) return;
     setError(''); setNote('');
     clearZones();
+    if (advanceToFrom !== undefined) setGroupFrom(advanceToFrom);
     enqueue({ key, part, group: group?.from, label: group ? `Nhóm ${group.from}–${group.to}` : `Part ${part}`, status: 'waiting', done: 0, total: 0,
-      passage, questions, wanted, requested: group ? groupNumbers(group) : wanted, readIds: [], skipped: [], missing: [], error: '', note: '' });
+      passage, questions, wanted, requested: group ? groupNumbers(group) : wanted, photoMode, readIds: [], skipped: [], missing: [], rejectionReasons: [], error: '', note: '' });
   };
   const openJob = (key: string) => {
     const job = jobsRef.current[key];
     if (!job || job.status !== 'done') return;
     setOpenRow('');
-    setScreen({ name: 'review', part: job.part, ids: job.readIds, skipped: job.skipped, missing: job.missing, group: job.group, job: key });
+    setScreen({ name: 'review', part: job.part, ids: job.readIds, skipped: job.skipped, missing: job.missing, rejectionReasons: job.rejectionReasons, group: job.group, job: key });
   };
 
   const discardDrafts = () => {
@@ -395,7 +472,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   if (screen.name === 'review') {
     const ids = screen.ids.filter(id => byId.has(id));
     body = <ReviewView {...common} screen={{ ...screen, ids }} cards={byId} forms={forms} openRow={openRow} setOpenRow={setOpenRow}
-      writing={ids.filter(id => isExplaining(id)).length} saveCount={filledIds(ids).length} error={error} note={note || (screen.job ? jobs[screen.job]?.note ?? "" : "")}
+      writing={ids.filter(id => isExplaining(id)).length} saveCount={filledIds(ids).length} error={error} note={note || (screen.job ? jobs[screen.job]?.note ?? '' : '')}
+      rejectionReasons={screen.rejectionReasons ?? (screen.job ? jobs[screen.job]?.rejectionReasons ?? [] : [])}
       wrongTotal={screen.part ? partCards(screen.part).length : total}
       onUpdate={update} canAddImages={canReadPageImages && screen.part !== null}
       onBack={() => { setError(''); setScreen(screen.part ? { name: 'part', part: screen.part } : { name: 'overview' }); if (screen.group) setGroupFrom(screen.group); }}
@@ -409,9 +487,21 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     const part = screen.part;
     body = <PartView {...common} part={part} cards={partCards(part)} recorded={recorded} forms={forms} dirty={dirtyIds.current}
       groupFrom={groupFrom} setGroupFrom={from => { if (from !== groupFrom) { clearZones(); setError(''); } setGroupFrom(from); }}
-      zones={zones} activeZone={activeZone} setActiveZone={setActiveZone} onAddFiles={addFiles} onRemove={removeStaged}
+      customPart7Ranges={customPart7Ranges} onEditPart7Range={editPart7Range}
+      zones={zones} activeZone={activeZone} setActiveZone={setActiveZone}
+      onAddFiles={addFiles} onCameraAdd={addCameraFiles} onEditPhoto={(zone, id) => setEditingPhoto({ zone, id })} onRemove={removeStaged}
+      clarity={clarity} photoMode={photoMode} setPhotoMode={setPhotoMode}
+      listeningPhoto={listeningPhoto} setListeningPhoto={val => {
+        setListeningPhoto(val);
+        clearZones();
+        setError('');
+        if (val && isGroupedPart(part)) {
+          const groups = suggestGroups(part, partCards(part).map(card => card.questionNumber!));
+          setGroupFrom(groups[0]?.from ?? null);
+        }
+      }}
       jobs={jobs} now={now} onRetry={retryJob} onOpenJob={openJob} error={error} note={note} draftState={draftState} canRead={canReadPageImages}
-      onSend={send} onBack={() => { clearZones(); setError(''); setNote(''); setScreen({ name: 'overview' }); }}
+      onSend={() => send()} onSendNext={nextFrom => send(nextFrom)} onBack={() => { clearZones(); setError(''); setNote(''); setScreen({ name: 'overview' }); }}
       onManual={number => setManual({ part, number })} onUpdate={update}
       onSaveReasons={() => { if (save(partCards(part).map(card => card.id))) setScreen({ name: 'overview' }); }}
       saveCount={filledIds(partCards(part).map(card => card.id)).length}
@@ -438,6 +528,10 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     onSave={() => { if (save([byNumber.get(manual.number)!.id])) setManual(null); }}
     onCancel={() => { setError(''); setManual(null); }} />;
 
+  const editingStaged = editingPhoto
+    ? (zones[editingPhoto.zone].find(item => item.id === editingPhoto.id) ?? zones[editingPhoto.zone === 'questions' ? 'passage' : 'questions'].find(item => item.id === editingPhoto.id))
+    : undefined;
+
   if (!cards.length) return null;
   return createPortal(
     <div className={'wd-dim' + (phone ? ' is-phone' : '')}>
@@ -446,6 +540,18 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
         onDrop={event => { if (screen.name !== 'part') return; event.preventDefault(); addFiles([...event.dataTransfer.files]); }}>
         {body}
         {manualCard}
+        {editingPhoto && editingStaged && (
+          <PhotoReview
+            file={editingStaged.file}
+            photoMode={photoMode}
+            onClose={() => setEditingPhoto(null)}
+            onApply={({ file: nextFile, photoMode: nextPhotoMode, changed }) => {
+              setPhotoMode(nextPhotoMode);
+              if (changed) replaceStaged(editingPhoto.zone, editingPhoto.id, nextFile);
+              setEditingPhoto(null);
+            }}
+          />
+        )}
         {toast && screen.name !== 'overview' && <div className="wd-toast" role="status"><i aria-hidden="true">✓</i>{toast.text}</div>}
         <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
       </div>

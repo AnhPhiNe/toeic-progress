@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { ImagePlus } from 'lucide-react';
-import { prepareImage, MAX_RESULT_IMAGES, RESULT_IMAGE_OPTIONS } from '@/features/mistakes/lib/imageInput';
+import { prepareResultImages, MAX_RESULT_IMAGES } from '@/features/mistakes/lib/imageInput';
+import { checkPhotoClarity, clarityMessage } from '@/features/mistakes/lib/photoClarity';
+import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { normalizeQuestionList, parseQuestionList, PART_NUMBERS, questionsOfPart, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
@@ -146,6 +148,9 @@ export function ResultImageButton({
   // Reading images needs a Google sign-in when AI access is managed: say so up front instead of failing after a paste.
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [photoMode, setPhotoMode] = useState(false);
+  const [clarityWarn, setClarityWarn] = useState<{ text: string; file: File } | null>(null);
+  const [reviewFile, setReviewFile] = useState<File | null>(null);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [scoreReview, setScoreReviewState] = useState<aiService.ResultImageScores | null>(() => scoreStore?.current?.scores ?? null);
@@ -179,7 +184,7 @@ export function ResultImageButton({
     }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
-  const read = async (files: File[]) => {
+  const read = async (files: File[], overridePhotoMode?: boolean) => {
     if (running.current || !files.length) return;
     if (files.length > MAX_RESULT_IMAGES) { setError(`Mỗi lần chọn tối đa ${MAX_RESULT_IMAGES} ảnh.`); return; }
     const generation = ++lifecycle.current;
@@ -187,15 +192,22 @@ export function ResultImageButton({
     const isCurrent = () => lifecycle.current === generation && getActiveAccountId() === owner;
     running.current = true;
     manualEdits.current.clear();
-    setBusy(true); setError(''); setNote('');
+    setBusy(true); setError(''); setNote(''); setClarityWarn(null);
+    const usePaperMode = overridePhotoMode ?? photoMode;
     try {
-      const images = [];
-      for (const file of files) {
-        if (!isCurrent()) return;
-        images.push(await prepareImage(file, RESULT_IMAGE_OPTIONS));
+      const images = await prepareResultImages(files);
+      if (!isCurrent()) return;
+      // Non-blocking on-device clarity check so blurred/dark paper sheets can be cropped/retaken if needed.
+      for (let i = 0; i < images.length; i += 1) {
+        const reading = await checkPhotoClarity(images[i].dataUrl);
+        if (reading?.problem && isCurrent()) {
+          const msg = clarityMessage(i + 1, reading.problem);
+          setClarityWarn({ text: `${msg.head}${msg.rest}`, file: files[i] });
+          break;
+        }
       }
       if (!isCurrent()) return;
-      const result = await aiService.readResultsWithAI(images, getToken, owner, isCurrent);
+      const result = await aiService.readResultsWithAI(images, getToken, owner, isCurrent, usePaperMode ? { photoMode: true } : undefined);
       if (!isCurrent()) return;
       const imported = normalizeQuestionList([...result.wrong, ...result.skipped].filter(number => manualEdits.current.get(number) !== false));
       const count = imported.length;
@@ -425,11 +437,48 @@ export function ResultImageButton({
         </button>
       )}
 
-      <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label="Ảnh kết quả"
+      <input ref={input} type="file" accept="image/*" multiple hidden aria-label="Ảnh kết quả"
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; void read(files); }} />
+      {!isTyping && !needsSignIn && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            aria-pressed={photoMode}
+            onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
+            className={'cursor-pointer rounded-lg px-2.5 py-1 text-[11.5px] font-bold transition-colors ' + (photoMode
+              ? 'bg-pink-100 text-pink-800 ring-1 ring-pink-400 dark:bg-pink-950/60 dark:text-pink-200'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300')}
+          >
+            📄 Phiếu tô giấy{photoMode ? ': Bật' : ''}
+          </button>
+          {clarityWarn && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setReviewFile(clarityWarn.file)}
+              className="cursor-pointer rounded-lg bg-amber-100 px-2.5 py-1 text-[11.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200"
+            >
+              ✂️ {clarityWarn.text} Chỉnh / cắt đọc lại
+            </button>
+          )}
+        </div>
+      )}
       <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai. Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
+      {reviewFile && (
+        <PhotoReview
+          file={reviewFile}
+          photoMode={photoMode}
+          onClose={() => setReviewFile(null)}
+          onApply={({ file: nextFile, photoMode: nextPhotoMode }) => {
+            setPhotoMode(nextPhotoMode);
+            setReviewFile(null);
+            void read([nextFile], nextPhotoMode);
+          }}
+        />
+      )}
 
       {/* Fallback button when scoreCard is not provided (e.g. mobile) */}
       {!scoreCard && scoreReview && !scoreOpen && <button type="button" onClick={() => setScoreOpen(true)}

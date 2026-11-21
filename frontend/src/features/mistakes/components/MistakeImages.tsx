@@ -77,7 +77,7 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
       {!images.length && <ImageIcon className="mb-1 h-8 w-8 text-blue-400 dark:text-blue-500" strokeWidth={1.5} aria-hidden="true" />}
       <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{dragging ? 'Thả ảnh để thêm' : unavailable && !busy ? 'Đã đủ số ảnh' : 'Kéo ảnh vào đây'}</span>
       {!unavailable && <span className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">Bấm để chọn ảnh · Tab đến vùng này rồi Ctrl+V để dán</span>}
-      {!images.length && <span className="text-[11px] text-slate-500 dark:text-slate-400">PNG, JPG, WebP · Tối đa 5 MB/ảnh</span>}
+      {!images.length && <span className="text-[11px] text-slate-500 dark:text-slate-400">PNG, JPG, WebP · Tối đa 20 MB/ảnh</span>}
     </button>}
     {images.length > 0 && <div className="flex flex-wrap gap-2">{images.map((image, index) => <div key={image.id} className="relative w-24">
       <img src={image.dataUrl} alt={`Ảnh Part ${picture ? 1 : 7} ${index + 1}`} className="h-20 w-24 rounded-lg border border-slate-200 bg-white object-contain dark:border-slate-700" />

@@ -7,11 +7,13 @@ const RPCS = [
   'ai_quota_status(uuid,boolean,text)', 'claim_explanation_question(uuid,uuid,integer,text,timestamp with time zone,uuid,uuid)',
   'finish_explanation_question(uuid,uuid,integer,uuid,jsonb)', 'get_ai_access(uuid)', 'get_ai_usage(uuid,boolean,integer)',
   'league_join(uuid,date,text,text)', 'league_leave(uuid,date)', 'league_refresh(uuid,date,integer)', 'league_update(uuid,date,text,text)',
+  'record_ai_usage(uuid,text,text,text,integer,integer,integer,integer,text)',
   'redeem_code(uuid,text)', 'reserve_ai_batch_request(uuid,boolean,uuid,uuid,text,text,integer,integer,integer,integer,integer,integer)',
   'reserve_ai_request(uuid,boolean,uuid,text,text,integer,integer,integer,integer)', 'reserve_api_request(uuid,text,integer,integer)',
+  'reserve_provider_budget(uuid,integer,integer,integer)',
   'reset_learning_data(uuid)', 'run_maintenance(integer,integer)', 'schema_ready()', 'sync_account_records(uuid,jsonb,bigint,boolean)'
 ].sort();
-const TABLES = ['ai_access_grants', 'ai_batches', 'ai_explanation_questions', 'ai_explanation_requests', 'ai_requests', 'ai_usage_counters',
+const TABLES = ['ai_access_grants', 'ai_batches', 'ai_cost_ledger', 'ai_explanation_questions', 'ai_explanation_requests', 'ai_provider_budget_counters', 'ai_requests', 'ai_usage_counters',
   'api_rate_limits', 'learning_data_resets', 'league_groups', 'league_members', 'league_standings', 'league_weeks', 'mistakes',
   'pacing_run_phases', 'pacing_runs', 'redeem_code_uses', 'redeem_codes', 'streak_shields', 'study_session_parts', 'study_sessions',
   'sync_tombstones', 'user_plans', 'user_profiles', 'vocabulary_logs'];

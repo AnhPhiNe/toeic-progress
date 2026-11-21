@@ -8,7 +8,9 @@ import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { isExplaining } from '@/features/mistakes/services/explanationQueue';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
-import { PART_ACTION, PART_NAMES, partMode, suggestGroups, topReason, type PartProgress } from '@/features/mistakes/lib/wrongDetail';
+import { clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import type { PageRejectionReason } from '@/features/mistakes/services/aiMistakeExtractor';
+import { isGroupedPart, PART_ACTION, PART_NAMES, partMode, suggestGroups, topReason, type CustomRangeMap, type PartProgress, type PassageGroup } from '@/features/mistakes/lib/wrongDetail';
 import type { ReadJob, Screen } from './WrongDetailFlow';
 
 export type Zone = 'passage' | 'questions';
@@ -78,12 +80,17 @@ function Letters({ label, part, value, tone, onPick }: { label: string; part: nu
   );
 }
 
-/** A drop zone with thumbnails; on phones it can also open the camera. Shared with Sổ tay's "Chụp trang chữa bài". */
-export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, onAdd, onRemove, onActivate }: {
+/** A drop zone with thumbnails; supports optional local PhotoReview editing and mobile camera capture. */
+export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, clarity, onAdd, onCameraAdd, onEdit, onRemove, onActivate }: {
   zone: Zone; num?: number; title: string; note?: string; hint?: ReactNode; items: readonly { id: string; url: string }[]; phone: boolean; big?: boolean; disabled: boolean;
   /** Phones: a camera tile next to the gallery one. */
   camera?: boolean;
-  onAdd: (files: File[], zone: Zone) => void; onRemove: (zone: Zone, id: string) => void; onActivate: (zone: Zone) => void;
+  clarity?: Record<string, ClarityResult | null>;
+  onAdd: (files: File[], zone: Zone) => void;
+  onCameraAdd?: (files: File[], zone: Zone) => void;
+  onEdit?: (zone: Zone, id: string) => void;
+  onRemove: (zone: Zone, id: string) => void;
+  onActivate: (zone: Zone) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const shoot = useRef<HTMLInputElement>(null);
@@ -94,19 +101,29 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
       onDrop={event => { event.preventDefault(); event.stopPropagation(); onAdd([...event.dataTransfer.files], zone); }}>
       <h5>{num && <em>{num}</em>}{title}{note && <small>{note}</small>}</h5>
       <div className="wd-ths">
-        {items.map((item, index) => (
-          <span key={item.id} className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')}>
-            <img src={item.url} alt={`${label} ${index + 1}`} />
-            <button type="button" aria-label={`Bỏ ${label.toLowerCase()} ${index + 1}`} disabled={disabled} onClick={event => { event.stopPropagation(); onRemove(zone, item.id); }}>×</button>
-          </span>
-        ))}
+        {items.map((item, index) => {
+          const problem = clarity?.[item.id]?.problem;
+          return (
+            <span key={item.id} className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')}>
+              <img src={item.url} alt={`${label} ${index + 1}`}
+                onClick={event => { if (!disabled && onEdit) { event.stopPropagation(); onEdit(zone, item.id); } }} />
+              {problem && <span className="wd-pg-warn" title={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'} aria-label={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'}>!</span>}
+              {onEdit && (
+                <button type="button" className="wd-pg-edit" aria-label={`Chỉnh ${label.toLowerCase()} ${index + 1}`} disabled={disabled}
+                  onClick={event => { event.stopPropagation(); onEdit(zone, item.id); }}>✎</button>
+              )}
+              <button type="button" aria-label={`Bỏ ${label.toLowerCase()} ${index + 1}`} disabled={disabled}
+                onClick={event => { event.stopPropagation(); onRemove(zone, item.id); }}>×</button>
+            </span>
+          );
+        })}
         {camera && <button type="button" className="wd-pg is-add is-cam" aria-label={`Chụp ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); shoot.current?.click(); }}>📷</button>}
         <button type="button" className="wd-pg is-add" aria-label={`Thêm ${label.toLowerCase()}`} disabled={disabled} onClick={event => { event.stopPropagation(); onActivate(zone); input.current?.click(); }}>+</button>
       </div>
-      {camera && <input ref={shoot} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" hidden aria-label={`Chụp ${label.toLowerCase()}`}
-        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAdd(files, zone); }} />}
+      {camera && <input ref={shoot} type="file" accept="image/*" capture="environment" hidden aria-label={`Chụp ${label.toLowerCase()}`}
+        onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; (onCameraAdd ?? onAdd)(files, zone); }} />}
       {hint && <p className="wd-zp">{hint}</p>}
-      <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden aria-label={label}
+      <input ref={input} type="file" accept="image/*" multiple hidden aria-label={label}
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAdd(files, zone); }} />
     </div>
   );
@@ -179,43 +196,114 @@ export function Overview({ phone, testName, total, doneCount, onClose, progress,
 
 /* ---------- 2 · one Part ---------- */
 
-const groupHint = (part: number, passages: number) => part === 6 ? 'Thả ảnh đoạn văn có các chỗ trống. Câu hỏi nằm ngay trong đoạn thì chỉ cần ô ①.'
-  : passages === 3 ? 'Đoạn ba: thả cả 3 bài đọc, rồi ảnh câu hỏi. Sóc dùng chung đoạn văn cho cả nhóm.'
-    : passages === 2 ? 'Đoạn kép: thả cả 2 bài đọc, rồi ảnh câu hỏi. Sóc dùng chung đoạn văn cho cả nhóm.'
-      : 'Thả ảnh bài đọc, rồi ảnh câu hỏi. Câu hỏi cùng ảnh với bài đọc thì chỉ cần ô ①.';
+const groupHint = (part: number, passages: number) => part === 6
+  ? 'Thả hoặc chụp toàn bộ ảnh đoạn văn và câu hỏi vào một khay theo thứ tự (chụp gộp 1 trang hay tách trang đều được).'
+  : part === 3 || part === 4
+    ? 'Thả hoặc chụp ảnh transcript, bảng biểu và 3 câu hỏi của cụm này vào cùng một khay.'
+    : passages === 3
+      ? 'Đoạn ba: thả/chụp cả 3 bài đọc và ảnh câu hỏi vào cùng khay theo thứ tự. Sóc tự ghép ngữ cảnh.'
+      : passages === 2
+        ? 'Đoạn kép: thả/chụp cả 2 bài đọc và ảnh câu hỏi vào cùng khay theo thứ tự. Sóc tự ghép ngữ cảnh.'
+        : 'Thả hoặc chụp bài đọc và câu hỏi vào cùng khay theo thứ tự — không cần tách 2 ô.';
 
-export function PartView({ phone, testName, total, doneCount, onClose, part, cards, recorded, forms, groupFrom, setGroupFrom, zones, setActiveZone, onAddFiles, onRemove,
-  jobs, now, onRetry, onOpenJob, error, note, draftState, canRead, onSend, onBack, onManual, onUpdate, onSaveReasons, saveCount, onShowDrafts }: Common & {
+function RangeEditor({ group, onSave, onCancel }: { group: PassageGroup; onSave: (from: number, to: number) => string | null; onCancel: () => void }) {
+  const [fromVal, setFromVal] = useState(String(group.from));
+  const [toVal, setToVal] = useState(String(group.to));
+  const [err, setErr] = useState('');
+  const submit = () => {
+    const error = onSave(Number(fromVal), Number(toVal));
+    if (error) setErr(error); else onCancel();
+  };
+  return (
+    <div className="wd-range-bar" role="group" aria-label="Đổi dải câu Part 7">
+      <span>Từ</span>
+      <input type="number" min={147} max={200} value={fromVal} aria-label="Từ câu" onChange={e => { setFromVal(e.target.value); setErr(''); }} />
+      <span>đến</span>
+      <input type="number" min={147} max={200} value={toVal} aria-label="Đến câu" onChange={e => { setToVal(e.target.value); setErr(''); }} />
+      <button type="button" className="wd-chip-btn" onClick={submit}>Áp dụng</button>
+      <button type="button" className="wd-lnk is-muted" onClick={onCancel}>Huỷ</button>
+      {err && <span className="wd-err" style={{ marginTop: 0, width: '100%' }} role="alert">{err}</span>}
+    </div>
+  );
+}
+
+export function PartView({ phone, testName, total, doneCount, onClose, part, cards, recorded, forms, groupFrom, setGroupFrom, customPart7Ranges, onEditPart7Range,
+  zones, setActiveZone, onAddFiles, onCameraAdd, onEditPhoto, onRemove, clarity, photoMode, setPhotoMode, listeningPhoto, setListeningPhoto,
+  jobs, now, onRetry, onOpenJob, error, note, draftState, canRead, onSend, onSendNext, onBack, onManual, onUpdate, onSaveReasons, saveCount, onShowDrafts }: Common & {
   part: PartNumber; cards: MistakeEntry[]; recorded: (card: MistakeEntry) => boolean; forms: Record<string, CardForm>; dirty: Set<string>;
-  groupFrom: number | null; setGroupFrom: (from: number) => void; zones: Record<Zone, Staged[]>; activeZone: Zone | null; setActiveZone: (zone: Zone) => void;
-  onAddFiles: (files: File[], zone?: Zone) => void; onRemove: (zone: Zone, id: string) => void; jobs: Record<string, ReadJob>; now: number; onRetry: (key: string) => void; onOpenJob: (key: string) => void;
-  error: string; note: string; draftState: string; canRead: boolean; onSend: () => void; onBack: () => void; onManual: (number: number) => void;
+  groupFrom: number | null; setGroupFrom: (from: number) => void;
+  customPart7Ranges: CustomRangeMap; onEditPart7Range: (oldFrom: number, from: number, to: number) => string | null;
+  zones: Record<Zone, Staged[]>; activeZone: Zone | null; setActiveZone: (zone: Zone) => void;
+  onAddFiles: (files: File[], zone?: Zone) => void;
+  onCameraAdd: (files: File[], zone?: Zone) => void;
+  onEditPhoto: (zone: Zone, id: string) => void;
+  onRemove: (zone: Zone, id: string) => void;
+  clarity: Record<string, ClarityResult | null>;
+  photoMode: boolean; setPhotoMode: (value: boolean) => void;
+  listeningPhoto: boolean; setListeningPhoto: (value: boolean) => void;
+  jobs: Record<string, ReadJob>; now: number; onRetry: (key: string) => void; onOpenJob: (key: string) => void;
+  error: string; note: string; draftState: string; canRead: boolean;
+  onSend: () => void; onSendNext: (nextFrom: number) => void; onBack: () => void; onManual: (number: number) => void;
   onUpdate: (id: string, patch: Partial<CardForm>) => void; onSaveReasons: () => void; saveCount: number; onShowDrafts: () => void;
 }) {
+  const [editingRange, setEditingRange] = useState(false);
   const mode = partMode(part), numbers = cards.map(card => card.questionNumber!);
+  const usePhotoMode = mode === 'page' || listeningPhoto;
+  const grouped = usePhotoMode && isGroupedPart(part);
   const done = cards.filter(recorded).length;
   const jobOf = (key: string) => jobs[key];
   const isBusy = (job?: ReadJob) => job?.status === 'reading' || job?.status === 'waiting';
   const seconds = (job: ReadJob) => job.startedAt ? Math.max(0, Math.round((now - job.startedAt) / 1000)) : 0;
-  const selectedKey = part >= 6 ? `g${groupFrom}` : `p${part}`;
+  const selectedKey = grouped ? `g${groupFrom}` : `p${part}`;
   const current = jobOf(selectedKey), busy = isBusy(current);
+  const allStaged = [...zones.passage, ...zones.questions];
+  const badPhotoIndex = allStaged.findIndex(item => clarity[item.id]?.problem);
+  const badPhoto = badPhotoIndex >= 0 ? allStaged[badPhotoIndex] : null;
+  const badClarity = badPhoto ? clarityMessage(badPhotoIndex + 1, clarity[badPhoto.id]!.problem!) : null;
+  const badZone: Zone = badPhoto && zones.passage.some(item => item.id === badPhoto.id) ? 'passage' : 'questions';
+
   /** What happens to one capture: waiting, read so far, read (open it), or failed (try again). */
   const jobLine = (job: ReadJob | undefined) => !job ? null
     : isBusy(job) ? <p className="wd-reading" role="status"><Soc state="think" size={40} />{job.status === 'waiting' ? `${job.label} chờ đọc…`
       : `Đang đọc ${job.label.replace(/^Nhóm/, 'nhóm')}${job.total > 1 ? ` · lượt ${Math.min(job.done + 1, job.total)}/${job.total}` : ''} · ${seconds(job)} giây`}</p>
-      : job.status === 'failed' ? <p className="wd-err" role="alert">{job.label}: {job.error} <button type="button" className="wd-lnk" onClick={() => onRetry(job.key)}>Thử lại</button></p>
+      : job.status === 'failed' ? (
+        <div className="wd-err" role="alert">
+          {job.label}: {job.error} <button type="button" className="wd-lnk" onClick={() => onRetry(job.key)}>Thử lại</button>
+          {job.rejectionReasons.length > 0 && (
+            <ul className="wd-reasons">{job.rejectionReasons.map((r, i) => <li key={`${r.number ?? 'x'}-${i}`}>{r.detail}</li>)}</ul>
+          )}
+        </div>
+      )
         : <p className="wd-note" role="status">Đã đọc {job.label.replace(/^Nhóm/, 'nhóm')}: {job.readIds.length} câu. <button type="button" className="wd-lnk" onClick={() => onOpenJob(job.key)}>Xem và lưu</button></p>;
   const firstOpen = (list: number[]) => list.find(number => !recorded(cards.find(card => card.questionNumber === number)!)) ?? list[0];
   const title = `Part ${part} · ${PART_NAMES[part]}`;
   const sub = phone ? `${numbers.length} câu sai · đã ghi ${done}/${numbers.length}` : `${testName} · ${numbers.length} câu sai`;
   const head = <Head phone={phone} title={title} sub={sub} back={onBack} pill={<Pill done={doneCount} total={total} />} onClose={onClose} />;
+  const clarityBanner = badPhoto && badClarity && (
+    <div className="wd-clarity" role="status">
+      <span><b>{badClarity.head}</b>{badClarity.rest}</span>
+      <button type="button" className="wd-chip-btn" onClick={() => onEditPhoto(badZone, badPhoto.id)}>Chỉnh / cắt ảnh</button>
+      <button type="button" className="wd-lnk is-muted" onClick={() => onRemove(badZone, badPhoto.id)}>Bỏ ảnh</button>
+    </div>
+  );
+  const paperToggle = (
+    <button type="button" className="wd-paper-pill" aria-pressed={photoMode} onClick={() => setPhotoMode(!photoMode)}>
+      📄 Ảnh chụp giấy{photoMode ? ': Bật' : ''}
+    </button>
+  );
   const status = (
     <>
+      {clarityBanner}
       {jobLine(current)}
       {current?.note && <p className="wd-note">{current.note}</p>}
       {error && <p className="wd-err" role="alert">{error}</p>}
       {!error && note && <p className="wd-note" role="status">{note}</p>}
-      {!busy && saveCount > 0 && mode !== 'reason' && current?.status !== 'done' && <p className="wd-note">{saveCount} câu đã đọc, chưa lưu. <button type="button" className="wd-lnk" onClick={onShowDrafts}>Xem và lưu</button></p>}
+      {saveCount > 0 && usePhotoMode && current?.status !== 'done' && (
+        <div className="wd-all-bar" role="status">
+          <span>Đã có {saveCount} câu đọc xong, sẵn sàng lưu vào Sổ tay.</span>
+          <button type="button" className="rd-btn rd-btn--pink" style={{ padding: '7px 14px', fontSize: 13.5 }} onClick={onShowDrafts}>Soát &amp; Lưu tất cả ({saveCount})</button>
+        </div>
+      )}
     </>
   );
   const chips = (list: number[]) => (
@@ -228,13 +316,20 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     </div>
   );
 
-  // Listening: only the reason, one tap per question.
-  if (mode === 'reason') {
+  // Listening default: fast reason chips + optional button to switch to photo/transcript capture.
+  if (!usePhotoMode) {
     return (
       <>
         {head}
         <div className="wd-body">
-          <p className="wd-lead">Phần Nghe chỉ cần lý do: chạm một lý do cho từng câu.</p>
+          <div className="wd-lead-row">
+            <p className="wd-lead">Phần Nghe chỉ cần lý do: chạm một lý do cho từng câu.</p>
+            {canRead && (
+              <button type="button" className="wd-chip-btn" onClick={() => setListeningPhoto(true)}>
+                📸 {part === 1 ? 'Chụp tranh / chữa bài' : 'Chụp trang chữa bài / Transcript'}
+              </button>
+            )}
+          </div>
           <div className="wd-rlist">
             {cards.map(card => (
               <div key={card.id} className="wd-rr is-reason">
@@ -254,19 +349,28 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     );
   }
 
-  const zoneProps = { phone, disabled: busy, onAdd: onAddFiles, onRemove, onActivate: setActiveZone };
+  const zoneProps = { phone, disabled: busy, camera: phone, clarity, onAdd: onAddFiles, onCameraAdd, onEdit: onEditPhoto, onRemove, onActivate: setActiveZone };
   const noImages = !canRead && <p className="wd-note">Phiên bản này chưa đọc được ảnh. Ghi tay từng câu: chạm số câu bên dưới.</p>;
+  const backToReasonBar = mode === 'reason' && (
+    <div className="wd-lead-row">
+      <p className="wd-lead">Chụp trang chữa bài / transcript Part {part} để AI trích câu hỏi &amp; lời giải.</p>
+      <button type="button" className="wd-chip-btn" onClick={() => setListeningPhoto(false)}>‹ Quay lại chọn lý do nhanh</button>
+    </div>
+  );
 
-  // Part 5: one zone; each image is read on its own.
-  if (part <= 5) {
+  // Single-question Parts (Part 1, Part 2, Part 5): one unified zone, parallel auto-chunked for 4+ shots.
+  if (!grouped) {
     const count = zones.questions.length;
     const sendLabel = `Gửi Sóc đọc ${count || ''} ảnh`.replace('  ', ' ');
     return (
       <>
         {head}
         <div className="wd-body">
-          {canRead ? <DropZone {...zoneProps} zone="questions" big title={`Ảnh câu Part ${part}`} note="mỗi ảnh một hay nhiều câu"
-            items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc các ảnh cùng lúc, chỉ lấy câu bạn sai.</>} /> : noImages}
+          {backToReasonBar}
+          {canRead ? <DropZone {...zoneProps} zone="questions" big title={`Ảnh câu Part ${part}`}
+            note={part === 2 ? 'hỗ trợ 3 phương án A–C' : 'mỗi ảnh một hay nhiều câu'}
+            items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc song song tối đa 3 lượt cùng lúc, chỉ lấy câu bạn sai.</>} /> : noImages}
+          {canRead && <div className="wd-acts" style={{ marginTop: 10 }}>{paperToggle}</div>}
           <div className="wd-lbl">Câu cần gỡ<span className="wd-lg"><span><i className="is-d" />đã ghi</span><span><i />chưa ghi</span></span></div>
           {chips(numbers)}
           {status}
@@ -282,13 +386,27 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     );
   }
 
-  // Part 6–7: a passage group at a time; its passage and question images are read together.
-  const groups = suggestGroups(part as 6 | 7, numbers);
+  // Grouped Parts (Part 3, 4, 6, 7): 1 unified image tray per group (Module 2.7), Auto-Advance, editable Part 7 range.
+  const groups = suggestGroups(part as 3 | 4 | 6 | 7, numbers, part === 7 ? customPart7Ranges : undefined);
   const selected = groups.find(group => group.from === groupFrom) ?? groups[0];
-  const zonesFor = (stacked: boolean) => (
-    <div className={'wd-zones' + (stacked ? ' is-stacked' : '')}>
-      <DropZone {...zoneProps} zone="passage" num={1} title="Đoạn văn" note={part === 7 ? `${selected.passages} bài đọc` : undefined} items={zones.passage} />
-      <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zones.questions} hint={stacked ? undefined : pasteHint(false)} />
+  const selectedIdx = groups.findIndex(group => group.from === selected.from);
+  const nextUnread = [...groups.slice(selectedIdx + 1), ...groups.slice(0, selectedIdx)].find(group => {
+    const job = jobOf(`g${group.from}`);
+    const unrecorded = group.wrong.some(number => !recorded(cards.find(card => card.questionNumber === number)!));
+    return unrecorded && !job;
+  }) ?? null;
+
+  const unifiedTray = (
+    <div className="wd-zones is-single">
+      <DropZone
+        {...zoneProps}
+        zone="questions"
+        big={!phone}
+        title={part === 7 ? 'Ảnh bài đọc & câu hỏi' : part === 6 ? 'Ảnh đoạn văn & câu hỏi' : 'Ảnh transcript & câu hỏi'}
+        note={part === 7 ? `${selected.passages} bài đọc · tối đa 10 ảnh` : undefined}
+        items={allStaged}
+        hint={<>{pasteHint(phone)} {groupHint(part, selected.passages)}</>}
+      />
     </div>
   );
   const groupState = (from: number) => {
@@ -299,27 +417,39 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     const on = group.from === selected.from;
     return (
       <div key={group.from} className={'wd-gr' + (on ? ' is-on' : '') + (on && phone ? ' is-wrap' : '')}>
-        <button type="button" className="wd-gr-b" aria-pressed={on} onClick={() => setGroupFrom(group.from)}>
+        <button type="button" className="wd-gr-b" aria-pressed={on} onClick={() => { setEditingRange(false); setGroupFrom(group.from); }}>
           <span className="wd-gr-t"><b>Nhóm {group.from}–{group.to}</b><small>{groupState(group.from) || `${group.kind} · sai ${group.wrong.join(', ')}`}</small></span>
           <span className="wd-gq is-sm">{group.wrong.map(number => <span key={number} className={'wd-qn is-sm' + (recorded(cards.find(card => card.questionNumber === number)!) ? ' is-d' : '')}>{number}</span>)}</span>
         </button>
-        {on && phone && canRead && zonesFor(true)}
+        {on && phone && part === 7 && (
+          <div style={{ padding: '0 10px 6px' }}>
+            {editingRange
+              ? <RangeEditor group={selected} onSave={(f, t) => onEditPart7Range(selected.from, f, t)} onCancel={() => setEditingRange(false)} />
+              : <button type="button" className="wd-gr-edit" onClick={() => setEditingRange(true)}>✎ Đổi dải câu</button>}
+          </div>
+        )}
+        {on && phone && canRead && unifiedTray}
       </div>
     );
   };
-  const filesCount = zones.passage.length + zones.questions.length;
+  const filesCount = allStaged.length;
   if (phone) {
     return (
       <>
         {head}
         <div className="wd-body">
-          <div className="wd-lbl">Chọn nhóm bài đọc<small>{groups.length} nhóm</small></div>
+          {backToReasonBar}
+          <div className="wd-lbl">Chọn nhóm {part >= 6 ? 'bài đọc' : 'câu nghe'}<small>{groups.length} nhóm</small></div>
           {noImages}
           <div className="wd-glist">{groups.map(groupRow)}</div>
+          {canRead && <div className="wd-acts" style={{ marginTop: 10 }}>{paperToggle}</div>}
           {status}
         </div>
         <footer className="wd-foot">
           <button type="button" className="rd-btn rd-btn--white wd-side" onClick={() => onManual(firstOpen(selected.wrong))}>✎ Ghi tay</button>
+          {canRead && nextUnread && (
+            <button type="button" className="rd-btn rd-btn--white wd-side" disabled={!filesCount || busy} onClick={() => onSendNext(nextUnread.from)}>Gửi &amp; qua tiếp ›</button>
+          )}
           {canRead && <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!filesCount || busy} onClick={onSend}>Gửi Sóc đọc {selected.from}–{selected.to}</button>}
         </footer>
       </>
@@ -329,21 +459,39 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     <>
       {head}
       <div className="wd-body">
+        {backToReasonBar}
         <div className="wd-p7">
           <div className="wd-gcol">
-            <div className="wd-lbl is-top">Nhóm bài đọc<small>{groups.length} nhóm có câu sai</small></div>
+            <div className="wd-lbl is-top">Nhóm {part >= 6 ? 'bài đọc' : 'câu nghe'}<small>{groups.length} nhóm có câu sai</small></div>
             <div className="wd-glist is-scroll">{groups.map(groupRow)}</div>
           </div>
           <section className="wd-gsel" aria-label={`Nhóm ${selected.from}–${selected.to}`}>
             <div className="wd-gsh">
               <Soc state="think" size={54} className="wd-soc" />
-              <div><b>Nhóm {selected.from}–{selected.to} · bạn sai {selected.wrong.join(', ')}</b><small>{groupHint(part, selected.passages)}</small></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <b>
+                  Nhóm {selected.from}–{selected.to} · bạn sai {selected.wrong.join(', ')}
+                  {part === 7 && !editingRange && (
+                    <button type="button" className="wd-gr-edit" onClick={() => setEditingRange(true)}>✎ Đổi dải câu</button>
+                  )}
+                </b>
+                <small>{groupHint(part, selected.passages)}</small>
+                {part === 7 && editingRange && (
+                  <RangeEditor group={selected} onSave={(f, t) => onEditPart7Range(selected.from, f, t)} onCancel={() => setEditingRange(false)} />
+                )}
+              </div>
             </div>
             {canRead ? <>
-              {zonesFor(false)}
+              {unifiedTray}
               <div className="wd-acts">
                 <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!filesCount || busy} onClick={onSend}>Gửi Sóc đọc nhóm này</button>
-                <span className="wd-zp">Đọc song song tối đa 2 nhóm; trong lúc chờ, chọn nhóm khác để chụp tiếp.</span>
+                {nextUnread && (
+                  <button type="button" className="rd-btn rd-btn--white wd-side" disabled={!filesCount || busy} onClick={() => onSendNext(nextUnread.from)}>
+                    Gửi &amp; qua nhóm tiếp ›
+                  </button>
+                )}
+                {paperToggle}
+                <span className="wd-zp">Đọc song song tối đa 3 nhóm; trong lúc chờ, gửi tiếp nhóm khác.</span>
               </div>
             </> : noImages}
             {status}
@@ -352,6 +500,9 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
       </div>
       <footer className="wd-foot">
         <span className="wd-q">{draftState}</span>
+        {saveCount > 0 && (
+          <button type="button" className="rd-btn rd-btn--white wd-side" onClick={onShowDrafts}>Soát &amp; Lưu tất cả ({saveCount})</button>
+        )}
         <button type="button" className="wd-quiet is-pink" onClick={() => onManual(firstOpen(selected.wrong))}>✎ Ghi tay một câu</button>
       </footer>
     </>
@@ -360,17 +511,17 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
 
 /* ---------- 3 · after a capture ---------- */
 
-export function ReviewView({ phone, testName, total, doneCount, onClose, screen, cards, forms, openRow, setOpenRow, writing, saveCount, error, note, wrongTotal, onUpdate,
+export function ReviewView({ phone, testName, total, doneCount, onClose, screen, cards, forms, openRow, setOpenRow, writing, saveCount, error, note, rejectionReasons = [], wrongTotal, onUpdate,
   canAddImages, onBack, onSave }: Common & {
   screen: Extract<Screen, { name: 'review' }>; cards: Map<string, MistakeEntry>; forms: Record<string, CardForm>; openRow: string; setOpenRow: (id: string) => void;
-  writing: number; saveCount: number; error: string; note: string; wrongTotal: number; onUpdate: (id: string, patch: Partial<CardForm>) => void;
+  writing: number; saveCount: number; error: string; note: string; rejectionReasons?: PageRejectionReason[]; wrongTotal: number; onUpdate: (id: string, patch: Partial<CardForm>) => void;
   canAddImages: boolean; onBack: () => void; onSave: () => void;
 }) {
   const read = screen.ids.length + screen.skipped.length;
   const title = screen.part ? `Sóc đọc được ${read} câu` : `${screen.ids.length} câu chưa lưu`;
   const sub = screen.part ? <>Part {screen.part} · lý do Sóc chọn sẵn, chạm để đổi{!phone && <> · <span className="wd-key is-me">■</span> bạn chọn <span className="wd-key is-ok">■</span> đáp án</>}</>
     : `${testName} · kiểm tra rồi lưu`;
-  const groupTo = screen.group ? (screen.part === 6 ? screen.group + 3 : suggestGroups(7, [screen.group])[0]?.to) : undefined;
+  const groupTo = screen.group ? (screen.part === 6 ? screen.group + 3 : screen.part === 3 || screen.part === 4 ? screen.group + 2 : suggestGroups(7, [screen.group])[0]?.to) : undefined;
   return (
     <>
       <Head phone={phone} title={title} sub={sub} back={onBack} pill={<Pill done={doneCount} total={total} />} onClose={onClose} />
@@ -382,7 +533,12 @@ export function ReviewView({ phone, testName, total, doneCount, onClose, screen,
             <div key={number} className="wd-skip"><b>Câu {number}</b>bạn làm đúng, bỏ qua{!phone && <s>không thuộc {wrongTotal} câu sai</s>}</div>
           ))}
           {screen.missing.length > 0 && <p className="wd-miss">Chưa thấy câu {screen.missing.join(', ')} trong ảnh.{' '}
-            {canAddImages && <button type="button" className="wd-lnk" onClick={onBack}>{groupTo ? `Thêm ảnh câu hỏi nhóm ${screen.group}–${groupTo}` : 'Thêm ảnh'}</button>}</p>}
+            {canAddImages && <button type="button" className="wd-lnk" onClick={onBack}>{groupTo ? `Thêm ảnh nhóm ${screen.group}–${groupTo}` : 'Thêm ảnh'}</button>}</p>}
+          {rejectionReasons.length > 0 && (
+            <ul className="wd-reasons" role="status">
+              {rejectionReasons.map((reason, idx) => <li key={`${reason.number ?? 'x'}-${idx}`}>{reason.detail}</li>)}
+            </ul>
+          )}
         </div>
         {error && <p className="wd-err" role="alert">{error}</p>}
         {!error && note && <p className="wd-note" role="status">{note}</p>}
@@ -436,9 +592,9 @@ function RowDetail({ card, form, phone, onUpdate }: { card: MistakeEntry; form: 
   const question = ai?.question?.trim() ?? '';
   return (
     <div className="wd-detail">
-      {ai?.context?.trim() && card.part >= 6 && <div>
+      {ai?.context?.trim() && (card.part === 3 || card.part === 4 || card.part >= 6) && <div>
         <button type="button" className="wd-lnk is-muted" aria-expanded={showPassage} onClick={() => setShowPassage(value => !value)}>
-          {showPassage ? '▾' : '▸'} Đoạn văn: {ai.context.trim().split('\n')[0]}</button>
+          {showPassage ? '▾' : '▸'} {card.part <= 4 ? 'Transcript' : 'Đoạn văn'}: {ai.context.trim().split('\n')[0]}</button>
         {showPassage && <p className="wd-passage">{ai.context}</p>}
       </div>}
       {question.length > (phone ? 40 : 80) && <p className="wd-fullq">{question}</p>}

@@ -22,3 +22,11 @@
 .cpi-phone .cpi-part b { font-size: 19px; }
 .cpi-phone .cpi-part em { margin: 0 0 0 auto; }
 .cpi-note { margin-top: 10px; font-weight: 700; font-size: 13px; color: #5e6962; }
+.cpi-sub { font-weight: 900; font-size: 13.5px; color: var(--mut); margin: 14px 0 8px; }
+.cpi-listen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cpi-listen .cpi-part { padding: 11px 12px; border-radius: 16px; background: #f8f5ff; box-shadow: 0 0 0 2px #e5dcff, 0 3px 0 #e5dcff; }
+.cpi-listen .cpi-part:hover { box-shadow: 0 0 0 2px #9f85f7, 0 3px 0 #7c5ce0; }
+.cpi-listen .cpi-part b { font-size: 16px; }
+.cpi-listen .cpi-part span { font-size: 12px; }
+.cpi-phone .cpi-listen { grid-template-columns: repeat(2, 1fr); }
+.cpi-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }

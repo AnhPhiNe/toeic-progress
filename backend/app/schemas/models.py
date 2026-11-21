@@ -696,9 +696,9 @@ class OpenAIPageExplanationOutput(OpenAIDraftOutput):
 
 
 MAX_PAGE_ITEMS = 6
-# One request reads one question group: up to 6 question images plus up to 3 passage pages (a triple passage).
+# One request reads one question group: up to 6 question images plus up to 5 passage/transcript pages.
 MAX_PAGE_IMAGES = 6
-MAX_PAGE_CONTEXT_IMAGES = 3
+MAX_PAGE_CONTEXT_IMAGES = 5
 
 
 class PageImageAttachment(BaseModel):
@@ -743,11 +743,13 @@ class PageExtractRequest(BaseModel):
     batch_id: UUID | None = None
     questions: list[PageQuestion] = Field(min_length=1, max_length=200)
     images: list[PageImageAttachment] = Field(min_length=1, max_length=MAX_PAGE_IMAGES, repr=False)
-    # Part 6/7: the passage pages of one group, sent with its question images so both are read together.
+    # Part 3/4/6/7: optional passage/transcript pages sent with question images so both are read together.
     context_images: list[PageImageAttachment] = Field(default_factory=list, max_length=MAX_PAGE_CONTEXT_IMAGES, repr=False)
     # A tall screenshot cut into consecutive parts: [first, last] positions (1-based, passage images first, then
     # question images) of each run, so the reading joins them back into one page.
     slices: list[tuple[int, int]] = Field(default_factory=list, max_length=MAX_PAGE_IMAGES + MAX_PAGE_CONTEXT_IMAGES)
+    # True when learner marks photos as paper book/hand-graded pages (routes to paper OCR model & effort).
+    photoMode: bool = False
 
     @model_validator(mode="after")
     def check_page(self):
@@ -763,8 +765,8 @@ class PageExtractRequest(BaseModel):
             if (first <= len(self.context_images)) != (last <= len(self.context_images)):
                 raise ValueError("Các phần cắt của ảnh không hợp lệ")
             taken |= run
-        if self.context_images and any(question.part < 6 for question in self.questions):
-            raise ValueError("Ảnh đoạn văn chỉ dùng cho Part 6–7")
+        if self.context_images and any(question.part not in (3, 4, 6, 7) for question in self.questions):
+            raise ValueError("Ảnh ngữ cảnh chỉ dùng cho Part 3–4 hoặc Part 6–7")
         if sum(image.byte_count for image in [*self.context_images, *self.images]) > MAX_PAGE_TOTAL_BYTES:
             raise ValueError("Tổng ảnh gửi đi tối đa 8 MiB")
         return self
@@ -804,25 +806,27 @@ class OpenAIPageOutput(BaseModel):
 
 
 MAX_RESULT_IMAGES = 8
-# Base64 of 2.5 MiB plus the JSON envelope stays under the 4 MiB request body limit.
-MAX_RESULT_IMAGE_BYTES = 5 * 512 * 1024
+# Base64 of 6 MiB plus the JSON envelope stays under the 10 MiB result-route body limit,
+# keeping paper answer sheets sharp without forcing heavy 300 KB compression.
+MAX_RESULT_IMAGE_BYTES = 6 * 1024 * 1024
 
 
 class ResultsReadRequest(BaseModel):
-    """Screenshots of a test's result page (numbered questions marked right, wrong or skipped)."""
+    """Screenshots or paper photos of a test's result sheet (numbered questions marked right, wrong or skipped)."""
 
     model_config = ConfigDict(extra="forbid")
     request_id: UUID
     consent: Literal[True]
     provider: Literal["openai"]
     captcha_token: str | None = Field(default=None, max_length=2048)
-    # A whole result page often takes several screenshots; reading numbers is light work, so one request takes up to 8.
-    images: list[ImageAttachment] = Field(min_length=1, max_length=MAX_RESULT_IMAGES, repr=False)
+    # A whole result page often takes several screenshots or sharp paper sheet photos; up to 8 images, 6 MiB total.
+    images: list[PageImageAttachment] = Field(min_length=1, max_length=MAX_RESULT_IMAGES, repr=False)
+    photoMode: bool = False
 
     @model_validator(mode="after")
     def total_bytes(self):
         if sum(image.byte_count for image in self.images) > MAX_RESULT_IMAGE_BYTES:
-            raise ValueError("Tổng ảnh gửi đi tối đa 2,5 MiB")
+            raise ValueError("Tổng ảnh gửi đi tối đa 6 MiB")
         return self
 
 
