@@ -86,7 +86,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   }, [state.phase, state.part]);
 
   const testName = normalizeTestName(state.testName);
-  const plan = useMemo(() => questionsToFind(sessions, testName), [sessions, testName]);
+  const plan = useMemo(() => questionsToFind(sessions, testName, mistakes), [sessions, testName, mistakes]);
   const groupRange = state.part && isGroupedPart(state.part) && state.group
     ? suggestGroups(state.part, plan.logged ? plan.questions : [state.group], state.part === 7 ? customPart7Ranges : undefined).find(item => item.from === state.group) ?? null
     : null;

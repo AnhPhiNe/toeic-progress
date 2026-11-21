@@ -102,4 +102,21 @@ describe('capture session', () => {
     await startReading({ questions: [107], getToken: async () => 'tok' });
     expect(captureState().finishedInBackground).toBe(true);
   });
+
+  it('automatically widens to the full Part in the same batch when a narrow logged list matches 0 questions on the photo', async () => {
+    setPart(6); setTestName('Đề E10');
+    addFiles(files(1));
+    // First pass searches narrow logged list [143, 144, 146] -> finds 0 items on a 135–138 photo
+    mocks.group
+      .mockResolvedValueOnce({ requests: [request([143, 144, 146])], split: false, compressed: false })
+      .mockResolvedValueOnce({ requests: [request(Array.from({ length: 16 }, (_, i) => 131 + i))], split: false, compressed: false });
+    mocks.extract
+      .mockResolvedValueOnce(reply([]))
+      .mockResolvedValueOnce(reply([135, 136, 137, 138]));
+    await startReading({ questions: [143, 144, 146], getToken: async () => 'tok', contextSupported: true });
+    expect(mocks.extract).toHaveBeenCalledTimes(2);
+    // Both passes share the exact same batchId (1 AI use)
+    expect(mocks.extract.mock.calls[0][5]).toBe(mocks.extract.mock.calls[1][5]);
+    expect(captureState().items.map(item => item.number)).toEqual([135, 136, 137, 138]);
+  });
 });

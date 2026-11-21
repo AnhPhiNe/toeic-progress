@@ -87,7 +87,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   }, [state.images]);
 
   const testName = normalizeTestName(state.testName);
-  const plan = useMemo(() => questionsToFind(sessions, testName), [sessions, testName]);
+  const plan = useMemo(() => questionsToFind(sessions, testName, mistakes), [sessions, testName, mistakes]);
   const full = state.images.length >= MAX_CAPTURE_IMAGES;
   const checked = state.items.filter(item => item.checked);
   const problemIndex = state.images.findIndex(image => clarity[image.id]?.problem);

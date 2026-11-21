@@ -1,6 +1,6 @@
 import type { ErrorCategory, MistakeEntry, StudySession } from '@/shared/types';
 import { generateUUID } from '@/shared/domain/uuid';
-import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
+import { draftQuestions, isBlankDraft } from '@/features/mistakes/lib/mistakeDrafts';
 import { learnerMistake, type ChoiceLetter, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { normalizeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { DEFAULT_QUESTIONS } from '@/features/mistakes/lib/captureBatch';
@@ -39,11 +39,29 @@ export function sessionIdForTest(sessions: readonly StudySession[], testName: st
   return key ? sessions.filter(session => !session.deletedAt && testNameKey(session.testName) === key).sort(newestFirst)[0]?.id : undefined;
 }
 
-/** Wrong questions the learner logged for this test (all Parts 1–7), or Reading range when none was logged. */
-export function questionsToFind(sessions: readonly StudySession[], testName: string): { questions: number[]; logged: boolean; sessionId?: string } {
+/**
+ * Wrong questions the learner logged for this test (all Parts 1–7) that have not been recorded yet,
+ * or open capture when none was logged or all logged questions were already completed.
+ */
+export function questionsToFind(
+  sessions: readonly StudySession[],
+  testName: string,
+  existingMistakes: readonly MistakeEntry[] = []
+): { questions: number[]; logged: boolean; sessionId?: string } {
   const session = loggedSession(sessions, testName);
   const logged = session ? normalizeQuestionList(session.wrongQuestions?.length ? session.wrongQuestions : draftQuestions(session)) : [];
-  return logged.length ? { questions: logged, logged: true, sessionId: session!.id } : { questions: [...DEFAULT_QUESTIONS], logged: false };
+  if (!logged.length) return { questions: [...DEFAULT_QUESTIONS], logged: false };
+  const key = testNameKey(testName);
+  const recordedNumbers = new Set(
+    existingMistakes
+      .filter(card => !card.deletedAt && card.questionNumber !== undefined && !isBlankDraft(card)
+        && ((session && card.sessionId === session.id) || (key && testNameKey(card.sourceTestName ?? '') === key)))
+      .map(card => card.questionNumber!)
+  );
+  const unrecorded = logged.filter(number => !recordedNumbers.has(number));
+  return unrecorded.length
+    ? { questions: unrecorded, logged: true, sessionId: session!.id }
+    : { questions: [...DEFAULT_QUESTIONS], logged: false, sessionId: session!.id };
 }
 
 export interface ManualEntryFields {

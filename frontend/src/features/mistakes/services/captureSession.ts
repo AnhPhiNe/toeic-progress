@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ErrorCategory } from '@/shared/types';
 import { generateUUID } from '@/shared/domain/uuid';
-import { partOfQuestion, type PartNumber } from '@/shared/domain/questionNumbers';
+import { partOfQuestion, questionsOfPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { readFormDraft, removeFormDraft, writeFormDraft } from '@/shared/data/formDrafts';
 import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
@@ -236,14 +236,33 @@ export async function startReading(ctx: CaptureContext) {
     images: state.images.map(image => ({ ...image, status: 'waiting' as const })) });
   try {
     const fileOf = (image: CaptureImage) => files.get(image.id)!;
-    const plan = isGroupedPart(state.part!)
-      ? await prepareGroup(passage.map(fileOf), questions.map(fileOf), ctx.questions, ctx.contextSupported !== false)
-      : await prepareSingles(questions.map(fileOf), ctx.questions);
+    const buildPlan = (targetQuestions: number[]) => isGroupedPart(state.part!)
+      ? prepareGroup(passage.map(fileOf), questions.map(fileOf), targetQuestions, ctx.contextSupported !== false)
+      : prepareSingles(questions.map(fileOf), targetQuestions);
+    const plan = await buildPlan(ctx.questions);
     if (mine !== epoch) return;
     if (plan.error || !plan.requests.length) { set({ phase: 'input', error: plan.error || 'Không còn câu sai nào để tìm trong ảnh.' }); return; }
     set({ requestsTotal: plan.requests.length, note: plan.split ? SPLIT_NOTE : plan.compressed ? COMPRESSED_NOTE : '' });
     const allIds = state.images.map(image => image.id);
     await runAll(plan.requests.map(request => ({ request, imageIds: allIds })), mine);
+    if (mine !== epoch) return;
+    // General fallback for Parts 1–7: when the learner did not lock onto a specific passage group and the narrow
+    // logged list found 0 questions on the uploaded photo, automatically expand to the entire Part in the same batch.
+    if (state.part && state.group === null && state.items.length === 0 && state.failures.length === 0 && requestsUsed < MAX_CAPTURE_REQUESTS) {
+      const fullPart = questionsOfPart(state.part);
+      const narrow = new Set(ctx.questions);
+      if (fullPart.some(number => !narrow.has(number))) {
+        const widePlan = await buildPlan(fullPart);
+        if (mine !== epoch) return;
+        if (!widePlan.error && widePlan.requests.length) {
+          set({
+            requestsTotal: state.requestsDone + widePlan.requests.length,
+            images: state.images.map(image => ({ ...image, status: 'waiting' as const }))
+          });
+          await runAll(widePlan.requests.map(request => ({ request, imageIds: allIds })), mine);
+        }
+      }
+    }
   } catch (reason) {
     if (mine !== epoch) return;
     set({ phase: 'input', error: reason instanceof Error ? reason.message : 'Không đọc được ảnh. Chọn ảnh khác.' });
