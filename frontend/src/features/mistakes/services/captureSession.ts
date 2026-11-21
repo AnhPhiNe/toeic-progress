@@ -6,8 +6,9 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { readFormDraft, removeFormDraft, writeFormDraft } from '@/shared/data/formDrafts';
 import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
 import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
-import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, QUESTIONS_PER_REQUEST, isUnreadable, mergeItems,
+import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, QUESTIONS_PER_REQUEST, isRightAnswer, isUnreadable, mergeItems,
   remainingQuestions, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
+import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { isGroupedPart, type ReadRequest } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from './aiMistakeExtractor';
@@ -199,6 +200,56 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
     const reasons = [...state.rejectionReasons, ...(result.rejectionReasons ?? [])].filter(r => r.number === null || !seenNumbers.has(r.number));
     mark('done');
     set({ items, rejectionReasons: reasons, usage: result.usage });
+    // Solve and explain ungraded items immediately before review so the learner sees "Sóc giải X"
+    // and right answers (userChoice === correctAnswer) are automatically unticked before saving.
+    if (result.explainTicket && typeof aiService.explainBatchWithAI === 'function') {
+      const toSolve = result.items.filter(entry => {
+        const part = (partOfQuestion(entry.number) ?? 5) as CaptureItem['part'];
+        return entry.draft.answerSource === 'MISSING' && canExplainRead(entry.draft, part);
+      });
+      if (toSolve.length) {
+        try {
+          const explained = await aiService.explainBatchWithAI(
+            result.explainTicket,
+            toSolve.map(entry => {
+              const part = (partOfQuestion(entry.number) ?? 5) as CaptureItem['part'];
+              return { number: entry.number, input: explainInput(entry.draft, part) };
+            }),
+            owner
+          );
+          if (!current()) return;
+          if (explained.items.length) {
+            const byNum = new Map(explained.items.map(entry => [entry.number, entry.draft]));
+            const solvedItems = state.items.map(item => {
+              const solved = byNum.get(item.number);
+              if (!solved) return item;
+              const nextDraft: AIMistakeParseResult = {
+                ...item.draft,
+                ...(item.draft.answerSource === 'MISSING' && solved.answerSource !== 'MISSING'
+                  ? { correctAnswer: solved.correctAnswer, answerSource: solved.answerSource }
+                  : {}),
+                explanation: solved.explanation ?? item.draft.explanation,
+                optionNotes: solved.optionNotes?.length ? solved.optionNotes : item.draft.optionNotes,
+                trapTip: solved.trapTip || item.draft.trapTip,
+                tags: item.draft.tags.length ? item.draft.tags : solved.tags,
+                answerDoubt: solved.answerDoubt || item.draft.answerDoubt,
+                category: item.category === 'OTHER' ? solved.category : item.category,
+              };
+              const nextCategory = item.category === 'OTHER' ? solved.category : item.category;
+              return {
+                ...item,
+                draft: nextDraft,
+                category: nextCategory,
+                checked: item.checked && !isRightAnswer(nextDraft),
+              };
+            });
+            set({ items: solvedItems });
+          }
+        } catch {
+          // If immediate solving fails (e.g. transient network), saveCapture still queues explanations on save.
+        }
+      }
+    }
     // A reading returns at most six questions. A wide one (many questions at once) that filled up asks again for the rest.
     if (remaining.length > QUESTIONS_PER_REQUEST && result.items.length >= QUESTIONS_PER_REQUEST && requestsUsed < MAX_CAPTURE_REQUESTS
       && remainingQuestions(request.questions, state.items).length) await readOnce(request, imageIds, mine);

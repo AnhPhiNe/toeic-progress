@@ -586,3 +586,24 @@ def test_ungraded_single_choice_and_graded_blank_and_clean_page_are_preserved(ap
         assert res.status_code == 200 and res.json()["wrong"] == [103, 118] and res.json()["skipped"] == [115]
     sent = [call[2] for call in calls if call[0] == "api.openai.com"]
     assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "medium"}
+
+    # Single result image returning empty wrong/skipped on first pass auto-escalates once to gpt-6.1-terra medium.
+    empty_results = {
+        "wrong": [], "skipped": [],
+        "scores": {"listening": None, "reading": None, "total": None},
+        "timing": {
+            "totalSeconds": None, "listeningSeconds": None, "readingSeconds": None,
+            "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
+        },
+    }
+    with api(drafts=[empty_results, results_draft]) as (client, calls):
+        res_esc = client.post("/api/v1/ai/read-results", json={
+            "request_id": "55555555-5555-4555-8555-555555555555", "consent": True, "provider": "openai",
+            "images": [{"dataUrl": picture()}],
+            "photoMode": False,
+        })
+        assert res_esc.status_code == 200 and res_esc.json()["wrong"] == [103, 118] and res_esc.json()["skipped"] == [115]
+    esc_sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert len(esc_sent) == 2
+    assert esc_sent[0]["model"] == "gpt-6-luna" and esc_sent[0]["reasoning"] == {"effort": "low"}
+    assert esc_sent[1]["model"] == "gpt-6.1-terra" and esc_sent[1]["reasoning"] == {"effort": "medium"}

@@ -4,9 +4,10 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
-import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
+import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captureBatch';
 import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
@@ -54,7 +55,17 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
     for (const image of state.images) {
       if (measured.current.has(image.id)) continue;
       measured.current.add(image.id);
-      void checkPhotoClarity(image.url).then(result => { if (alive.current) setClarity(prev => ({ ...prev, [image.id]: result })); });
+      const file = getImageFile(image.id);
+      if (file) {
+        void fileExifOrientation(file).then(orientation => {
+          if (alive.current && orientation !== 1) setPhotoMode(true);
+        });
+      }
+      void checkPhotoClarity(image.url).then(result => {
+        if (!alive.current) return;
+        setClarity(prev => ({ ...prev, [image.id]: result }));
+        if (result?.problem) setPhotoMode(true);
+      });
     }
   }, [state.images]);
 
@@ -232,7 +243,9 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             <span className="cap-foot-note">Bỏ tick câu nào không muốn lưu.
               {state.items.length > 1 && <> <button type="button" className="cap-link is-quiet" onClick={() => setAllChecked(checked.length < state.items.length)}>{checked.length < state.items.length ? 'Tick tất cả' : 'Bỏ tick tất cả'}</button></>}
             </span>
-            <button type="button" className="rd-btn rd-btn--pink" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>
+            {!checked.length && state.items.length > 0 && state.items.every(item => isRightAnswer(item.draft))
+              ? <button type="button" className="rd-btn rd-btn--pink" onClick={backToInput}>Xong · Chụp trang khác</button>
+              : <button type="button" className="rd-btn rd-btn--pink" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>}
           </div>
         </>}
         {editingId && editingFile && (

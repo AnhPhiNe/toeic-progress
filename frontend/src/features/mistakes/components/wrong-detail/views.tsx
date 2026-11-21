@@ -558,7 +558,9 @@ export function ReviewView({ phone, testName, total, doneCount, onClose, screen,
         <span className="wd-sp" />
         <div className="wd-foot-acts">
           {canAddImages && <button type="button" className="rd-btn rd-btn--white wd-side" onClick={onBack}>{phone ? '+ Ảnh' : '+ Thêm ảnh'}</button>}
-          <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!saveCount} onClick={onSave}>{saveCount ? `Lưu ${saveCount} câu` : 'Lưu'}</button>
+          {!saveCount && screen.skipped.length > 0 && !writing
+            ? <button type="button" className="rd-btn rd-btn--pink wd-main" onClick={onBack}>Xong · Quay lại</button>
+            : <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!saveCount} onClick={onSave}>{saveCount ? `Lưu ${saveCount} câu` : 'Lưu'}</button>}
         </div>
       </footer>
     </>

@@ -18,6 +18,7 @@ import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { MAX_CAPTURE_REQUESTS } from '@/features/mistakes/lib/captureBatch';
 import { checkPhotoClarity, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { flowCards, groupNumbers, heroPart, isGroupedPart, isRecorded, listeningSkipped, partMode, partProgress, setListeningSkipped, visibleProgress, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { DoneView, ManualCard, Overview, PartView, ReviewView, type Staged, type Zone } from './views';
@@ -133,13 +134,18 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const zonesRef = useRef(zones);
   zonesRef.current = zones;
   useEffect(() => () => { for (const list of Object.values(zonesRef.current)) list.forEach(item => URL.revokeObjectURL(item.url)); }, []);
-  // On-device clarity check on staged photos (never edits images or leaves the device).
+  // On-device clarity & EXIF orientation check on staged photos: automatically enable photoMode when camera EXIF or dark/blurry paper photo is detected.
   useEffect(() => {
     for (const item of [...zones.passage, ...zones.questions]) {
       if (measuredClarity.current.has(item.id)) continue;
       measuredClarity.current.add(item.id);
+      void fileExifOrientation(item.file).then(orientation => {
+        if (activeFlow() && orientation !== 1) setPhotoMode(true);
+      });
       void checkPhotoClarity(item.url).then(result => {
-        if (activeFlow()) setClarity(prev => ({ ...prev, [item.id]: result }));
+        if (!activeFlow()) return;
+        setClarity(prev => ({ ...prev, [item.id]: result }));
+        if (result?.problem) setPhotoMode(true);
       });
     }
   }, [zones, activeFlow]);

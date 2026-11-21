@@ -526,21 +526,25 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     use_paper_tier = photo_mode or len(images) >= 2
     model = provider.settings.openai_paper_results_model if use_paper_tier else provider.settings.openai_ocr_model
     effort = provider.settings.openai_paper_results_effort if use_paper_tier else provider.settings.openai_ocr_effort
-    payload = {
-        "model": model,
-        "instructions": RESULTS_READING_PROMPT,
-        "input": [{"role": "user", "content": [{"type": "input_image", "image_url": image, "detail": "high"} for image in images]}],
-        "reasoning": {"effort": effort},
-        "text": {"format": {"type": "json_schema", "name": "toeic_results", "strict": True, "schema": RESULTS_OUTPUT_SCHEMA}},
-        "max_output_tokens": 4096,
-        "store": False,
-        "service_tier": "default",
-    }
-    if safety_identifier:
-        payload["safety_identifier"] = safety_identifier
+
+    def build_payload(target_model: str, target_effort: str) -> dict:
+        value = {
+            "model": target_model,
+            "instructions": RESULTS_READING_PROMPT,
+            "input": [{"role": "user", "content": [{"type": "input_image", "image_url": image, "detail": "high"} for image in images]}],
+            "reasoning": {"effort": target_effort},
+            "text": {"format": {"type": "json_schema", "name": "toeic_results", "strict": True, "schema": RESULTS_OUTPUT_SCHEMA}},
+            "max_output_tokens": 4096,
+            "store": False,
+            "service_tier": "default",
+        }
+        if safety_identifier:
+            value["safety_identifier"] = safety_identifier
+        return value
+
     try:
         output = OpenAIResultsOutput.model_validate_json(
-            await provider._respond(key, payload, provider.settings.openai_timeout_seconds,
+            await provider._respond(key, build_payload(model, effort), provider.settings.openai_timeout_seconds,
                                     endpoint="read_results", owner_id=owner_id)
         )
     except (ValueError, KeyError, TypeError, AttributeError) as error:
@@ -549,4 +553,24 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     valid = range(1, 201)
     wrong = sorted({number for number in output.wrong if number in valid})
     skipped = sorted({number for number in output.skipped if number in valid} - set(wrong))
+
+    # Automatic max-1 escalation when a single image sent without photoMode returns 0 wrong and 0 skipped
+    # (e.g. a single photo containing both a handwritten scratch answer sheet and an Answer Key).
+    escalate_model = provider.settings.openai_paper_results_model
+    escalate_effort = "medium"
+    if not wrong and not skipped and (model, effort) != (escalate_model, escalate_effort):
+        try:
+            retry_output = OpenAIResultsOutput.model_validate_json(
+                await provider._respond(key, build_payload(escalate_model, escalate_effort), provider.settings.openai_timeout_seconds,
+                                        endpoint="read_results_escalate", owner_id=owner_id)
+            )
+            wrong = sorted({number for number in retry_output.wrong if number in valid})
+            skipped = sorted({number for number in retry_output.skipped if number in valid} - set(wrong))
+            output = retry_output
+        except (HTTPException, ValueError, KeyError, TypeError, AttributeError) as error:
+            logger.warning(json.dumps({
+                "event": "openai_results_escalation_failed", "request_id": request_id_context.get(),
+                "error_type": type(error).__name__,
+            }))
+
     return wrong, skipped, output.scores.model_dump(exclude={"part5Minutes", "part6Minutes", "part7Minutes"}), output.timing.model_dump()

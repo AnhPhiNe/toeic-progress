@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ extract: vi.fn(), group: vi.fn(), singles: vi.fn() }));
-vi.mock('./aiMistakeExtractor', () => ({ extractPageWithAI: mocks.extract }));
+const mocks = vi.hoisted(() => ({ extract: vi.fn(), explainBatch: vi.fn(), group: vi.fn(), singles: vi.fn() }));
+vi.mock('./aiMistakeExtractor', () => ({ extractPageWithAI: mocks.extract, explainBatchWithAI: mocks.explainBatch }));
 vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.group, prepareSingles: mocks.singles }));
 vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => 'owner-1' }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
@@ -118,5 +118,36 @@ describe('capture session', () => {
     // Both passes share the exact same batchId (1 AI use)
     expect(mocks.extract.mock.calls[0][5]).toBe(mocks.extract.mock.calls[1][5]);
     expect(captureState().items.map(item => item.number)).toEqual([135, 136, 137, 138]);
+  });
+
+  it('solves ungraded items immediately via explainBatchWithAI and auto-unticks questions the learner answered right', async () => {
+    setPart(6); setTestName('Free Paper Test');
+    addFiles(files(1));
+    mocks.group.mockResolvedValueOnce({ requests: [request([139, 140])], split: false, compressed: false });
+    // Page reading returns 139 (learner chose B, no answer key) and 140 (learner chose B, no answer key)
+    mocks.extract.mockResolvedValueOnce({
+      items: [
+        { number: 139, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '', answerSource: 'MISSING' }) },
+        { number: 140, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '', answerSource: 'MISSING' }) },
+      ],
+      missing: [],
+      explainTicket: 'ticket-solve',
+      usage: { remaining: 26, limit: 27, guest: false },
+    });
+    // AI solves 139 -> (D) d (learner was WRONG) and 140 -> (B) b (learner was RIGHT!)
+    mocks.explainBatch.mockResolvedValueOnce({
+      failed: [],
+      items: [
+        { number: 139, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '(D) d', answerSource: 'AI_PROPOSED', category: 'VOCABULARY_TRAP' }) },
+        { number: 140, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '(B) b', answerSource: 'AI_PROPOSED', category: 'ADVANCED_GRAMMAR' }) },
+      ],
+    });
+    await startReading({ questions: [139, 140], getToken: async () => 'tok', contextSupported: true });
+    expect(mocks.explainBatch).toHaveBeenCalledOnce();
+    const [q139, q140] = captureState().items;
+    expect(q139.draft.correctAnswer).toBe('(D) d');
+    expect(q139.checked).toBe(true);
+    expect(q140.draft.correctAnswer).toBe('(B) b');
+    expect(q140.checked).toBe(false);
   });
 });

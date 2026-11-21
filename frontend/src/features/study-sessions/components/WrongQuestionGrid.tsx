@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { ImagePlus } from 'lucide-react';
-import { prepareResultImages, MAX_RESULT_IMAGES } from '@/features/mistakes/lib/imageInput';
+import { fileExifOrientation, prepareResultImages, MAX_RESULT_IMAGES } from '@/features/mistakes/lib/imageInput';
 import { checkPhotoClarity, clarityMessage } from '@/features/mistakes/lib/photoClarity';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
@@ -193,14 +193,23 @@ export function ResultImageButton({
     running.current = true;
     manualEdits.current.clear();
     setBusy(true); setError(''); setNote(''); setClarityWarn(null);
-    const usePaperMode = overridePhotoMode ?? photoMode;
+    let usePaperMode = overridePhotoMode ?? photoMode;
     try {
+      for (const file of files) {
+        if ((await fileExifOrientation(file)) !== 1) {
+          usePaperMode = true;
+          if (isCurrent()) setPhotoMode(true);
+          break;
+        }
+      }
       const images = await prepareResultImages(files);
       if (!isCurrent()) return;
       // Non-blocking on-device clarity check so blurred/dark paper sheets can be cropped/retaken if needed.
       for (let i = 0; i < images.length; i += 1) {
         const reading = await checkPhotoClarity(images[i].dataUrl);
         if (reading?.problem && isCurrent()) {
+          usePaperMode = true;
+          setPhotoMode(true);
           const msg = clarityMessage(i + 1, reading.problem);
           setClarityWarn({ text: `${msg.head}${msg.rest}`, file: files[i] });
           break;

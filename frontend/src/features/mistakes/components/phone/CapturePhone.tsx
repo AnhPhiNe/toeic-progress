@@ -5,13 +5,14 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
-import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
+import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captureBatch';
 import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { addFiles, backToInput, captureState, closeCapture, getImageFile, openCapture, patchItem, removeImage, removeItem, replaceImageFile, resetCapture, retryFailure,
   setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
@@ -82,7 +83,17 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
     for (const image of state.images) {
       if (measured.current.has(image.id)) continue;
       measured.current.add(image.id);
-      void checkPhotoClarity(image.url).then(result => { if (alive.current) setClarity(previous => ({ ...previous, [image.id]: result })); });
+      const file = getImageFile(image.id);
+      if (file) {
+        void fileExifOrientation(file).then(orientation => {
+          if (alive.current && orientation !== 1) setPhotoMode(true);
+        });
+      }
+      void checkPhotoClarity(image.url).then(result => {
+        if (!alive.current) return;
+        setClarity(previous => ({ ...previous, [image.id]: result }));
+        if (result?.problem) setPhotoMode(true);
+      });
     }
   }, [state.images]);
 
@@ -229,7 +240,9 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           {state.items.length > 0 && (
             <div className="pc-foot is-light">
               {state.items.length > 1 && <button type="button" className="pc-all" onClick={() => setAllChecked(checked.length < state.items.length)}>{checked.length < state.items.length ? 'Tick tất cả' : 'Bỏ tick tất cả'}</button>}
-              <button type="button" className="pc-send" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>
+              {!checked.length && state.items.every(item => isRightAnswer(item.draft))
+                ? <button type="button" className="pc-send" onClick={backToInput}>Xong · Chụp trang khác</button>
+                : <button type="button" className="pc-send" disabled={!checked.length || saving} onClick={save}>Lưu {checked.length} câu vào Sổ tay</button>}
             </div>
           )}
         </>

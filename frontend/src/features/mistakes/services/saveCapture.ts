@@ -46,6 +46,7 @@ export function saveCaptureItems(items: readonly CaptureItem[], options: SaveCap
     const byTicket = new Map<string, { cardId: string; number: number; input: MistakeInput }[]>();
     for (const item of keyed) {
       if (!item.ticket || !canExplainRead(item.draft, item.part)) continue;
+      if (item.draft.explanation?.quickTip?.trim() || item.draft.trapTip?.trim()) continue;
       const list = byTicket.get(item.ticket) ?? [];
       list.push({ cardId: item.id, number: item.number, input: explainInput(item.draft, item.part) });
       byTicket.set(item.ticket, list);
