@@ -8,7 +8,6 @@ import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
 import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
 import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, QUESTIONS_PER_REQUEST, isRightAnswer, isUnreadable, mergeItems,
   remainingQuestions, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
-import { ALL_QUESTIONS } from '@/features/mistakes/lib/captureContext';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { isGroupedPart, type ReadRequest } from '@/features/mistakes/lib/wrongDetail';
@@ -16,9 +15,8 @@ import * as aiService from './aiMistakeExtractor';
 import type { AIMistakeParseResult, AIUsage, PageRejectionReason } from './aiMistakeExtractor';
 
 /**
- * One "Chụp trang chữa bài" capture session: supports instant Auto-Part detection, explicit Part/group selection,
- * and queueing multiple batches in parallel while staging the next set of photos. Lives outside React so closing
- * the dialog never cancels in-flight readings.
+ * One "Chụp trang chữa bài" capture session: explicit Part/group capture with parallel multi-batch queueing
+ * while staging the next set of photos. Lives outside React so closing the dialog never cancels in-flight readings.
  */
 export type CaptureImageStatus = 'waiting' | 'reading' | 'done' | 'failed';
 export type CaptureZone = 'passage' | 'questions';
@@ -26,12 +24,12 @@ export type CaptureZone = 'passage' | 'questions';
 export interface CaptureImage { id: string; name: string; url: string; zone: CaptureZone; status: CaptureImageStatus }
 export interface CaptureFailure { id: string; imageIds: string[]; questions: number[]; message: string }
 export type CapturePhase = 'input' | 'reading' | 'review';
-export type CapturePart = PartNumber | 'auto';
+export type CapturePart = PartNumber;
 
 export interface CaptureState {
   phase: CapturePhase;
   testName: string;
-  /** The Part the screenshots are from (`'auto'` detects Part from question numbers 1–200 automatically). */
+  /** The explicit Part the screenshots are from (defaults to Part 5 or the test's first Part with wrong questions). */
   part: CapturePart;
   /** Part 3/4/6/7 with a logged wrong list: the passage/audio group being captured. */
   group: number | null;
@@ -79,7 +77,7 @@ export const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đ
 /** Up to three readings of one capture run in parallel against OpenAI. */
 const PARALLEL_READS = 3;
 const DRAFT_SCOPE = 'capture:review';
-const blank = (): CaptureState => ({ phase: 'input', testName: '', part: 'auto', group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
+const blank = (): CaptureState => ({ phase: 'input', testName: '', part: 5, group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
   error: '', note: '', requestsTotal: 0, requestsDone: 0, solving: false, activeJobs: 0, completedJobs: 0, queuedImagesCount: 0, usage: null, finishedInBackground: false, restored: false });
 
 let state: CaptureState = blank();
@@ -145,13 +143,12 @@ export const isReading = () => state.phase === 'reading' || state.activeJobs > 0
 
 export function setTestName(testName: string) { set({ testName }); }
 /** Choosing or switching the Part keeps staged photos intact so accidental mis-picks never lose uploads. */
-export function setPart(part: CapturePart | null) {
-  const nextPart: CapturePart = part ?? 'auto';
-  if (nextPart === state.part) return;
-  const normalizedImages = nextPart !== 'auto' && isGroupedPart(nextPart)
+export function setPart(part: CapturePart) {
+  if (part === state.part) return;
+  const normalizedImages = isGroupedPart(part)
     ? state.images
     : state.images.map(image => image.zone === 'questions' ? image : { ...image, zone: 'questions' as const });
-  set({ part: nextPart, group: null, images: normalizedImages, overflow: false, error: '', note: '' });
+  set({ part, group: null, images: normalizedImages, overflow: false, error: '', note: '' });
 }
 export function setGroup(group: number | null) {
   if (group === state.group) return;
@@ -205,7 +202,7 @@ export function addFiles(picked: File[], zone: CaptureZone = 'questions') {
   checkOwner();
   const images = picked.filter(file => file.type.startsWith('image/'));
   if (!images.length) return;
-  const target: CaptureZone = state.part !== 'auto' && isGroupedPart(state.part) ? zone : 'questions';
+  const target: CaptureZone = isGroupedPart(state.part) ? zone : 'questions';
   const roomTotal = MAX_CAPTURE_IMAGES - state.images.length;
   const roomZone = target === 'passage' ? CONTEXT_PER_REQUEST - state.images.filter(image => image.zone === 'passage').length : roomTotal;
   const accepted = images.slice(0, Math.max(0, Math.min(roomTotal, roomZone)));
@@ -372,16 +369,9 @@ async function runAll(
 
 async function executeBatch(opts: BatchOptions): Promise<boolean> {
   const { part, group, photoMode, passageFiles, questionFiles, imageIds, ctx, mine, background } = opts;
-  const buildPlan = (targetQuestions: number[]) => {
-    if (part === 'auto') {
-      // Auto-Part mode keeps up to 6 pages together (so multi-page Part 7 passages are never split apart)
-      // without attaching context_images (which the backend restricts to grouped Parts only).
-      return prepareGroup([], [...passageFiles, ...questionFiles], targetQuestions, false);
-    }
-    return isGroupedPart(part)
-      ? prepareGroup(passageFiles, questionFiles, targetQuestions, ctx.contextSupported !== false)
-      : prepareSingles(questionFiles, targetQuestions);
-  };
+  const buildPlan = (targetQuestions: number[]) => (isGroupedPart(part)
+    ? prepareGroup(passageFiles, questionFiles, targetQuestions, ctx.contextSupported !== false)
+    : prepareSingles(questionFiles, targetQuestions));
   const plan = await buildPlan(ctx.questions);
   if (mine !== epoch) return false;
   if (plan.error || !plan.requests.length) {
@@ -409,10 +399,10 @@ async function executeBatch(opts: BatchOptions): Promise<boolean> {
     () => { batchFailed += 1; }
   );
   if (mine !== epoch) return false;
-  // General fallback for Auto-Part & Parts 1–7: when not locked onto a specific passage group and the narrow
-  // logged list found 0 questions on the uploaded photo, automatically expand to the full Part (or all 200) in the same batch.
+  // General fallback for Parts 1–7: when not locked onto a specific passage group and the narrow
+  // logged list found 0 questions on the uploaded photo, automatically expand to the full Part in the same batch.
   if (group === null && batchFound === 0 && batchFailed === 0 && requestsUsed < MAX_CAPTURE_REQUESTS) {
-    const wideRange = part === 'auto' ? [...ALL_QUESTIONS] : questionsOfPart(part);
+    const wideRange = questionsOfPart(part);
     const narrow = new Set(ctx.questions);
     if (wideRange.some(number => !narrow.has(number))) {
       const widePlan = await buildPlan(wideRange);

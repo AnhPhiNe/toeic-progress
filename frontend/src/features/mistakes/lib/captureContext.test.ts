@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MistakeEntry, StudySession } from '@/shared/types';
-import { ALL_QUESTIONS, captureQuestions, looksLikePastedQuestion, questionsToFind } from './captureContext';
+import { captureQuestions, defaultCapturePart, looksLikePastedQuestion, questionsToFind } from './captureContext';
 
 describe('questions one Part capture looks for', () => {
   const logged = { questions: [103, 112, 133, 186, 189, 196], logged: true };
@@ -9,12 +9,11 @@ describe('questions one Part capture looks for', () => {
     expect(captureQuestions(logged, 7)).toEqual([186, 189, 196]);
     expect(captureQuestions(logged, 7, { from: 186, to: 190 })).toEqual([186, 189]);
   });
-  it('supports Auto-Part mode using all logged wrong questions or all 200 questions when free', () => {
-    expect(captureQuestions(logged, 'auto')).toEqual([103, 112, 133, 186, 189, 196]);
-    expect(captureQuestions({ questions: [], logged: false }, 'auto')).toEqual(ALL_QUESTIONS);
-    expect(ALL_QUESTIONS).toHaveLength(200);
-    expect(ALL_QUESTIONS[0]).toBe(1);
-    expect(ALL_QUESTIONS[199]).toBe(200);
+  it('picks a smart explicit default Part (first Reading Part with wrongs, else Listening, else Part 5)', () => {
+    expect(defaultCapturePart(logged)).toBe(5);
+    expect(defaultCapturePart({ questions: [186, 189], logged: true })).toBe(7);
+    expect(defaultCapturePart({ questions: [14, 42], logged: true })).toBe(2);
+    expect(defaultCapturePart({ questions: [], logged: false })).toBe(5);
   });
   it('captures freely without a wrong list (the whole Part, or the whole group)', () => {
     const free = { questions: [], logged: false };

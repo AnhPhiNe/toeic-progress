@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from 'react';
-import { Sparkles } from 'lucide-react';
 import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import type { CaptureImage, CapturePart, CaptureZone } from '@/features/mistakes/services/captureSession';
 import type { ClarityResult } from '@/features/mistakes/lib/photoClarity';
@@ -33,8 +32,8 @@ interface Props {
 }
 
 /**
- * Zero-wall capture input: starts immediately on Auto-Part (`Tự nhận`) with the dropzone open,
- * while keeping a 1-tap switcher (`Tự nhận | P5 P6 P7 | P1 P2 P3 P4`) and grouped-Part passage selectors.
+ * Explicit Part capture input: starts directly on a clear Part (default Part 5 or the test's first Part with
+ * wrong questions) with a labeled 1-tap switcher (`Đọc: P5 P6 P7 | Nghe: P1 P2 P3 P4`) that preserves staged photos.
  */
 export function CapturePartInput({
   phone = false, part, group, customPart7Ranges, images, logged, disabled = false, photoMode = false, clarity, extraTools,
@@ -45,9 +44,8 @@ export function CapturePartInput({
   const [toVal, setToVal] = useState('');
   const [rangeErr, setRangeErr] = useState('');
   const wrongIn = (value: number) => (logged ?? []).filter(number => partOfQuestion(number) === value);
-  const auto = part === 'auto';
-  const grouped = !auto && isGroupedPart(part);
-  const groups = !auto && grouped && logged ? suggestGroups(part, wrongIn(part), part === 7 ? customPart7Ranges : undefined) : [];
+  const grouped = isGroupedPart(part);
+  const groups = grouped && logged ? suggestGroups(part, wrongIn(part), part === 7 ? customPart7Ranges : undefined) : [];
   const selectedGroup = groups.find(item => item.from === group) ?? null;
   const zoneProps = {
     phone,
@@ -76,31 +74,21 @@ export function CapturePartInput({
     setEditingRange(false);
     setRangeErr('');
   };
-  const trayTitle = auto ? 'Ảnh trang chữa bài (Tự nhận Part)'
-    : part === 7 ? 'Ảnh bài đọc & câu hỏi'
-      : part === 6 ? 'Ảnh đoạn văn & câu hỏi'
-        : part === 3 || part === 4 ? 'Ảnh transcript & câu hỏi'
-          : `Ảnh câu Part ${part}`;
-  const trayNote = auto ? 'hỗ trợ cả trang có nhiều Part'
-    : part === 2 ? 'hỗ trợ 3 phương án A–C'
-      : grouped ? 'tối đa 10 ảnh theo thứ tự'
-        : 'mỗi ảnh một hay nhiều câu';
+  const trayTitle = part === 7 ? 'Ảnh bài đọc & câu hỏi'
+    : part === 6 ? 'Ảnh đoạn văn & câu hỏi'
+      : part === 3 || part === 4 ? 'Ảnh transcript & câu hỏi'
+        : `Ảnh câu Part ${part}`;
+  const trayNote = part === 2 ? 'hỗ trợ 3 phương án A–C'
+    : grouped ? 'tối đa 10 ảnh theo thứ tự'
+      : 'mỗi ảnh một hay nhiều câu';
   return (
     <div className={'wd-vars' + (phone ? ' cpi-phone' : '')}>
       <div className="cpi-head">
-        <span>{auto ? 'Tự nhận Part từ số câu trên ảnh' : `Part ${part} · ${PART_NAMES[part]}`}</span>
-        {auto
-          ? (logged && logged.length > 0 && <small>{logged.length} câu sai chưa ghi</small>)
-          : (logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>)}
+        <span>Part {part} · {PART_NAMES[part]}</span>
+        {logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>}
       </div>
       <div className="cpi-switch" role="group" aria-label="Chọn Part">
-        <button type="button" className="cpi-sw-btn is-auto" aria-pressed={auto} disabled={disabled}
-          aria-label="Tự nhận Part từ số câu trên ảnh"
-          onClick={() => { setEditingRange(false); onPart('auto'); }}>
-          <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>Tự nhận</span>
-        </button>
-        <i className="cpi-sw-sep" aria-hidden="true" />
+        <span className="cpi-sw-lbl">Đọc</span>
         {([5, 6, 7] as const).map(value => {
           const cnt = logged ? wrongIn(value).length : 0;
           return (
@@ -112,6 +100,7 @@ export function CapturePartInput({
           );
         })}
         <i className="cpi-sw-sep" aria-hidden="true" />
+        <span className="cpi-sw-lbl is-listen">Nghe</span>
         {([1, 2, 3, 4] as const).map(value => {
           const cnt = logged ? wrongIn(value).length : 0;
           return (
@@ -154,11 +143,9 @@ export function CapturePartInput({
         title={trayTitle}
         note={trayNote}
         items={images}
-        hint={<>{pasteHint(phone)} {auto
-          ? 'Sóc tự nhận Part từ số câu (1–200). Nếu chụp bài đọc dài nhiều trang, gửi cùng mẻ theo đúng thứ tự.'
-          : grouped
-            ? 'Thả/chụp tất cả ảnh bài đọc và câu hỏi của nhóm theo thứ tự — không cần tách 2 ô.'
-            : 'Sóc đọc song song nhiều ảnh cùng lúc, chỉ lấy câu bạn sai.'}</>}
+        hint={<>{pasteHint(phone)} {grouped
+          ? 'Thả/chụp trọn bộ ảnh bài đọc và câu hỏi của nhóm theo thứ tự — không cần tách 2 ô.'
+          : 'Sóc đọc song song nhiều ảnh cùng lúc, đổi Part bên trên bất cứ lúc nào không mất ảnh.'}</>}
       />
       {extraTools}
       {onPhotoMode && (
@@ -170,7 +157,7 @@ export function CapturePartInput({
           <span className="cpi-note" style={{ marginTop: 0 }}>
             {photoMode
               ? 'Đang dùng chế độ đọc ảnh giấy chuyên sâu (bóng gáy, chữ 2 cột, bút khoanh tay).'
-              : grouped || auto ? 'Tự bật khi ảnh tối/mờ; bấm bật tay nếu chụp sách rõ sáng.' : 'Ảnh gửi nguyên bản; tự bật chế độ giấy khi ảnh tối/mờ.'}
+              : grouped ? 'Tự bật khi ảnh tối/mờ; bấm bật tay nếu chụp sách rõ sáng.' : 'Ảnh gửi nguyên bản; tự bật chế độ giấy khi ảnh tối/mờ.'}
           </span>
         </div>
       )}

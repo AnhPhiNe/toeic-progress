@@ -8,7 +8,7 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captureBatch';
-import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
+import { captureQuestions, defaultCapturePart, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
@@ -64,9 +64,13 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   useEffect(() => {
     openCapture();
     const current = captureState();
-    if (!current.testName && current.phase === 'input') {
-      const name = normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '';
-      if (name) setTestName(name);
+    let effectiveName = normalizeTestName(current.testName);
+    if (!effectiveName && current.phase === 'input') {
+      effectiveName = normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '';
+      if (effectiveName) setTestName(effectiveName);
+    }
+    if (current.phase === 'input' && !current.images.length && !current.items.length && !current.activeJobs && effectiveName) {
+      setPart(defaultCapturePart(questionsToFind(sessions, effectiveName, mistakes)));
     }
     // Opening runs once; later changes of the lists must not overwrite the learner's pick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +113,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const problem = problemIndex >= 0 ? clarity[state.images[problemIndex].id]!.problem! : null;
   const message = problem ? clarityMessage(problemIndex + 1, problem) : null;
   const partGroups = useMemo(() => {
-    if (state.part === 'auto' || !isGroupedPart(state.part)) return [];
+    if (!isGroupedPart(state.part)) return [];
     const loggedInPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === state.part) : [];
     const seeds = loggedInPart.length ? loggedInPart : state.group ? [state.group] : [];
     return seeds.length ? suggestGroups(state.part, seeds, state.part === 7 ? customPart7Ranges : undefined) : [];

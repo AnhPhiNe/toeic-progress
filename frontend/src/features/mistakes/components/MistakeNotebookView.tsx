@@ -515,7 +515,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <div className="nb-drop-card">
               <ImagePlus className="h-11 w-11 text-[#d64570]" />
               <b>Thả ảnh vào đây để Sóc đọc ngay</b>
-              <span>Tự động nhận Part (1–7) và gom câu sai vào Sổ tay.</span>
+              <span>Mở ngay khay ảnh — chọn đúng Part bên trên bất cứ lúc nào mà không mất ảnh.</span>
             </div>
           </div>
         )}

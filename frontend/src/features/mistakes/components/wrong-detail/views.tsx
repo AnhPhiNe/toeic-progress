@@ -119,7 +119,9 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
             <span key={item.id} className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')} onClick={event => event.stopPropagation()}>
               <img src={item.url} alt={`${label} ${index + 1}`} title="Bấm để xem to, xoay hoặc cắt ảnh"
                 onClick={event => { if (!disabled && onEdit) { event.stopPropagation(); onEdit(zone, item.id); } }} />
-              {problem && <span className="wd-pg-warn" title={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'} aria-label={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'}>!</span>}
+              {problem
+                ? <span className="wd-pg-warn" title={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'} aria-label={problem === 'dark' ? 'Ảnh hơi tối' : 'Ảnh hơi mờ'}>!</span>
+                : items.length > 1 && <span className="wd-pg-num" aria-hidden="true">{index + 1}</span>}
               {onMove && items.length > 1 && (
                 <span className="wd-pg-ord">
                   {index > 0 && (

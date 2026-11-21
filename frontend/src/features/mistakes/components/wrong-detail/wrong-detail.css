@@ -281,6 +281,7 @@
 .wd-pg .wd-pg-mv { position: static; width: 18px; height: 18px; border-radius: 6px; background: rgba(47, 58, 51, .78); color: #fff; font-size: 13px; font-weight: 900; line-height: 1; display: grid; place-items: center; }
 .wd-pg .wd-pg-mv:hover { background: var(--ink); }
 .wd-pg-warn { position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #ffc83d; color: #4e3400; font-weight: 900; font-size: 11px; display: grid; place-items: center; pointer-events: none; }
+.wd-pg-num { position: absolute; left: 3px; top: 3px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 6px; background: rgba(47, 58, 51, .76); color: #fff; font-weight: 900; font-size: 10.5px; display: grid; place-items: center; pointer-events: none; }
 .wd-pg img { cursor: pointer; }
 .wd-zones.is-single { grid-template-columns: 1fr; }
 .wd-lead-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }

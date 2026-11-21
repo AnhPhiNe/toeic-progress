@@ -6,16 +6,18 @@ import { normalizeTestName, testNameKey } from '@/features/mistakes/lib/sourceTe
 import { DEFAULT_QUESTIONS } from '@/features/mistakes/lib/captureBatch';
 import { normalizeQuestionList, partOfQuestion, questionsOfPart, type PartNumber } from '@/shared/domain/questionNumbers';
 
-/** All 200 TOEIC L&R question numbers, used by ✨ Tự nhận Part mode when no narrow wrong list is logged. */
-export const ALL_QUESTIONS: readonly number[] = Array.from({ length: 200 }, (_, index) => index + 1);
+/** Smart default Part when opening capture: first Reading Part (5–7) with logged wrong questions, else first Listening Part (1–4) with wrongs, else Part 5. */
+export function defaultCapturePart(plan: { questions: number[]; logged: boolean }): PartNumber {
+  if (plan.logged && plan.questions.length) {
+    const order: readonly PartNumber[] = [5, 6, 7, 1, 2, 3, 4];
+    const match = order.find(part => plan.questions.some(number => partOfQuestion(number) === part));
+    if (match) return match;
+  }
+  return 5;
+}
 
-/**
- * The questions one capture looks for:
- * - `'auto'` (Tự nhận Part): all unrecorded logged wrong questions across Parts 1–7, or all 200 questions when open.
- * - Specific Part: the learner's logged wrong ones in that Part (or chosen passage group), or the whole Part/group.
- */
-export function captureQuestions(plan: { questions: number[]; logged: boolean }, part: PartNumber | 'auto', group?: { from: number; to: number } | null): number[] {
-  if (part === 'auto') return plan.logged && plan.questions.length ? plan.questions : [...ALL_QUESTIONS];
+/** The questions one capture looks for: the learner's logged wrong ones in that Part (or chosen passage group), or the whole Part/group. */
+export function captureQuestions(plan: { questions: number[]; logged: boolean }, part: PartNumber, group?: { from: number; to: number } | null): number[] {
   const inPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === part) : [];
   const inGroup = group ? inPart.filter(number => number >= group.from && number <= group.to) : inPart;
   if (inGroup.length) return inGroup;

@@ -35,11 +35,9 @@ describe('capture session', () => {
     setPart(5);
     expect(captureState().images).toHaveLength(10);
     expect(captureState().images.every(item => item.zone === 'questions')).toBe(true);
-    // Switching back to null maps to 'auto' and preserves staged images; switching to Part 3 supports reordering.
-    setPart(null);
-    expect(captureState().part).toBe('auto');
-    expect(captureState().images).toHaveLength(10);
+    // Resetting starts cleanly on Part 5 and switching to Part 3 supports image reordering.
     __resetCaptureForTests();
+    expect(captureState().part).toBe(5);
     setPart(3);
     addFiles(files(2), 'questions');
     const [firstId, secondId] = captureState().images.map(item => item.id);
@@ -196,25 +194,6 @@ describe('capture session', () => {
     expect(captureState().phase).toBe('review');
     expect(captureState().solving).toBe(false);
     expect(captureState().note).toContain('chưa kịp tự giải đáp án');
-  });
-
-  it('defaults to Auto-Part, keeps pages together without context_images, and widens to all 200 questions when narrow logged list misses', async () => {
-    expect(captureState().part).toBe('auto');
-    setTestName('Auto Mixed Test');
-    addFiles(files(2));
-    mocks.group
-      .mockResolvedValueOnce({ requests: [request([105, 132])], split: false, compressed: false })
-      .mockResolvedValueOnce({ requests: [request(Array.from({ length: 200 }, (_, i) => i + 1))], split: false, compressed: false });
-    mocks.extract
-      .mockResolvedValueOnce(reply([]))
-      .mockResolvedValueOnce(reply([147, 148]));
-    await startReading({ questions: [105, 132], getToken: async () => 'tok', contextSupported: true });
-    // Auto-Part passes empty contextFiles and contextSupported=false so backend never rejects mixed Parts.
-    expect(mocks.group.mock.calls[0][0]).toEqual([]);
-    expect(mocks.group.mock.calls[0][1]).toHaveLength(2);
-    expect(mocks.group.mock.calls[0][3]).toBe(false);
-    expect(mocks.extract).toHaveBeenCalledTimes(2);
-    expect(captureState().items.map(item => item.number)).toEqual([147, 148]);
   });
 
   it('queues multiple batches in parallel via queueAndContinue, merges results, and supports openReview + clearSavedItems', async () => {

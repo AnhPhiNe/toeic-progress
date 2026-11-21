@@ -7,7 +7,7 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captureBatch';
-import { captureQuestions, latestTestName, looksLikePastedQuestion, questionsToFind } from '@/features/mistakes/lib/captureContext';
+import { captureQuestions, defaultCapturePart, latestTestName, looksLikePastedQuestion, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
@@ -79,9 +79,13 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   useEffect(() => {
     openCapture();
     const current = captureState();
-    if (!current.testName && current.phase === 'input') {
-      const name = normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '';
-      if (name) setTestName(name);
+    let effectiveName = normalizeTestName(current.testName);
+    if (!effectiveName && current.phase === 'input') {
+      effectiveName = normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '';
+      if (effectiveName) setTestName(effectiveName);
+    }
+    if (current.phase === 'input' && !current.images.length && !current.items.length && !current.activeJobs && effectiveName) {
+      setPart(defaultCapturePart(questionsToFind(sessions, effectiveName, mistakes)));
     }
     // Opening runs once; later changes of the lists must not overwrite the learner's pick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,7 +121,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   const testName = normalizeTestName(state.testName);
   const plan = useMemo(() => questionsToFind(sessions, testName, mistakes), [sessions, testName, mistakes]);
   const partGroups = useMemo(() => {
-    if (state.part === 'auto' || !isGroupedPart(state.part)) return [];
+    if (!isGroupedPart(state.part)) return [];
     const loggedInPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === state.part) : [];
     const seeds = loggedInPart.length ? loggedInPart : state.group ? [state.group] : [];
     return seeds.length ? suggestGroups(state.part, seeds, state.part === 7 ? customPart7Ranges : undefined) : [];
@@ -193,15 +197,10 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   const foundParts = [...new Set(state.items.map(item => item.part))].sort();
 
   const hintText = useMemo(() => {
-    if (state.part === 'auto') {
-      return plan.logged && plan.questions.length > 0
-        ? `Sóc tự nhận Part và ưu tiên tìm ${plan.questions.length} câu bạn đã ghi sai ở đề này.`
-        : 'Sóc tự nhận Part từ số câu trên ảnh (1–200) và tự giải đối chiếu đáp án.';
-    }
     const hasLoggedInPart = plan.logged && plan.questions.some(number => partOfQuestion(number) === state.part);
     const count = captureQuestions(plan, state.part, groupRange).length;
     return hasLoggedInPart
-      ? `Sóc tìm ${count} câu bạn đã ghi sai ở đề này.`
+      ? `Sóc tìm ${count} câu bạn đã ghi sai ở Part ${state.part} đề này.`
       : `Sóc tìm trong cả Part ${state.part} (${count} câu) và tự giải đối chiếu.`;
   }, [state.part, plan, groupRange]);
 

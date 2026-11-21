@@ -7,7 +7,7 @@ const calls = (page: Page) => page.evaluate(() => (window as Window & { __pageCa
 const shot = async (page: Page, name: string) => { if (process.env.WD_SHOTS) await page.screenshot({ path: `design/previews/img/build-notebook-capture-part-${name}.png` }); };
 
 for (const phone of [false, true]) {
-  test(`Sổ tay capture on a ${phone ? 'phone' : 'computer'} opens directly on Auto-Part and switches to a Part 7 passage group`, async ({ page }) => {
+  test(`Sổ tay capture on a ${phone ? 'phone' : 'computer'} opens directly on an explicit Part (zero wall) and switches to a Part 7 passage group`, async ({ page }) => {
     await page.setViewportSize(phone ? { width: 390, height: 844 } : { width: 1440, height: 900 });
     await mockWrongDetailAI(page);
     await seedTests(page, [{ id: 's1', name: TEST, wrong: WRONG }]);
@@ -15,8 +15,8 @@ for (const phone of [false, true]) {
     await page.goto('/so-tay');
     await page.getByRole('button', { name: phone ? /Chụp$/ : /Chụp trang chữa bài/ }).first().click();
     const capture = page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true });
-    // Zero-wall entry: starts on Auto-Part with the image tray immediately visible and all 7 Part quick-switch pills.
-    await expect(capture.getByRole('button', { name: 'Tự nhận Part từ số câu trên ảnh', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    // Zero-wall explicit Part entry: starts on Part 5 with the image tray immediately visible and all 7 labeled Part pills.
+    await expect(capture.getByRole('button', { name: 'Part 5 · Điền câu', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(capture.getByLabel('Ảnh câu hỏi', { exact: true })).toHaveCount(1);
     await expect(capture.getByRole('button', { name: /^Part \d · / })).toHaveCount(7);
     await expect(capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true })).toContainText('21');
@@ -58,29 +58,19 @@ test('a test without a wrong list is captured freely: Part 5 sends every screens
   expect(sent.flatMap(call => call.questions)).toEqual(Array.from({ length: 30 }, (_, index) => 101 + index));
 });
 
-test('Auto-Part captures mixed screenshots immediately without selecting a Part', async ({ page }) => {
+test('smart explicit default opens directly on Part 7 when a test only has Part 7 wrongs, and switching Parts keeps staged photos', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await mockWrongDetailAI(page);
-  await seedTests(page, [{ id: 's1', name: TEST, wrong: WRONG }]);
+  await seedTests(page, [{ id: 's1', name: TEST, wrong: [186, 189] }]);
   await page.goto('/so-tay');
   await page.getByRole('button', { name: /Chụp trang chữa bài/ }).first().click();
   const capture = page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true });
-  // Stay on default Auto-Part and upload directly
+  await expect(capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  // Uploading first and switching Part never loses staged photos.
   await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot]);
-  await capture.getByRole('button', { name: 'Gửi Sóc đọc', exact: true }).click();
-  await expect(capture.getByRole('heading', { name: /^Soát \d+ câu/ })).toBeVisible();
-  const sent = await calls(page);
-  expect(sent.length).toBeGreaterThanOrEqual(1);
-  // Wide continuation passes stay within the exact same batchId (1 AI use) with no context_images split.
-  expect(new Set(sent.map(call => call.batch)).size).toBe(1);
-  expect(sent[0].context).toBe(0);
-  expect(sent[0].images).toBe(2);
-  // First pass searches all unrecorded logged wrong questions across Parts 1–7 in one unified request
-  expect(sent[0].questions).toEqual(WRONG);
-  // Mixed Parts (5, 6, 7) are extracted and shown together in review without ever picking a Part!
-  await expect(capture.getByText('Part 5 · câu 103')).toBeVisible();
-  await expect(capture.getByText('Part 6 · câu 133')).toBeVisible();
-  await expect(capture.getByText('Part 7 · câu 186')).toBeVisible();
+  await capture.getByRole('button', { name: 'Part 6 · Điền đoạn văn', exact: true }).click();
+  await expect(capture.getByRole('img', { name: 'Ảnh câu hỏi 1' })).toBeVisible();
+  await expect(capture.getByRole('img', { name: 'Ảnh câu hỏi 2' })).toBeVisible();
 });
 
 test('continuous multi-batch queue: Gửi & chụp tiếp queues in background and Lưu & chụp tiếp keeps modal open', async ({ page }) => {
@@ -158,7 +148,7 @@ test('mobile capture offers side-by-side Chụp liên tiếp & Chọn nhiều �
   await expect(capture.getByRole('button', { name: /Chọn nhiều ảnh/ })).toBeVisible();
 
   await capture.getByRole('button', { name: /Chụp liên tiếp/ }).click();
-  const burst = page.getByRole('dialog', { name: /Ảnh trang chữa bài/ });
+  const burst = page.getByRole('dialog', { name: /Ảnh câu Part 5/ });
   await expect(burst).toBeVisible();
   // Headless Chromium has no camera device: cleanly renders fallback UI with close button.
   await expect(burst.getByRole('button', { name: /Chọn nhiều ảnh từ thư viện/ }).or(burst.getByRole('button', { name: 'Chụp ảnh', exact: true }))).toBeVisible();
