@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import type { RecipeStep } from '../lib/bakery';
+import type { PacingMode } from '../lib/pacingModel';
+import { formatSpan, type RecipeStep } from '../lib/bakery';
 import { BulbString, ChefSoc, Oven } from './BakeryArt';
 
 interface Props {
+  mode?: PacingMode;
   label: string;
   /** "Bánh kem Part 7" */
   recipe: string;
@@ -65,14 +67,22 @@ export function BakeryRun(p: Props) {
           <i className="bk-tape" aria-hidden="true" />
           <div className="bk-recipe-kick">CÔNG THỨC</div>
           <h2>{p.recipe}</h2>
-          <div className="bk-recipe-meta">{p.questions} câu · {p.plannedMinutes} phút · nhịp {p.pace} một câu</div>
+          <div className="bk-recipe-meta">
+            {p.mode === 'FULL_READING'
+              ? `${p.questions} câu · ${p.plannedMinutes} phút · chiến thuật gợi ý 12/8/55p`
+              : `${p.questions} câu · ${p.plannedMinutes} phút · nhịp ${p.pace} một câu`}
+          </div>
           <ol>
             {p.steps.map(step => (
               <li key={step.name} className={'is-' + step.state} aria-current={step.state === 'now' ? 'step' : undefined}>
                 <i aria-hidden="true">{step.state === 'done' ? '✓' : step.state === 'now' ? '●' : ''}</i>
                 <div>
                   <b>{step.from === step.to ? `Câu ${step.from}` : `Câu ${step.from}–${step.to}`}</b>
-                  <small>{step.name}{step.state === 'now' && ` · nên ở khoảng câu ${p.at}`}</small>
+                  <small>
+                    {step.name}
+                    {step.durationSeconds ? ` · ${step.durationSeconds >= 60 ? `${Math.round(step.durationSeconds / 60)}p` : formatSpan(step.durationSeconds)}` : ''}
+                    {step.state === 'now' && ` · nên ở khoảng câu ${p.at}`}
+                  </small>
                 </div>
               </li>
             ))}

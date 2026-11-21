@@ -77,7 +77,14 @@ export function ConvertSkillCard({ skill, mode, correct, points, inputRef, onSho
     <section className={'cv-skill' + (listening ? ' is-listen' : ' is-read')} style={style} aria-label={`Ước tính ${name}`}>
       <div className="cv-skill__t">
         <b><span aria-hidden="true">{listening ? '🎧' : '📖'}</span> {name}</b>
-        <span className="cv-skill__pts" title={`Khoảng tham khảo ${range.min}–${range.max} điểm; dùng cận dưới.`}>{points} điểm</span>
+        <span className="cv-skill__scores">
+          {range.min !== range.max && (
+            <span className="cv-skill__range" aria-label={`Khoảng tham khảo IIBC 2023 từ ${range.min} đến ${range.max} điểm`}>
+              IIBC 2023: {range.min}–{range.max}
+            </span>
+          )}
+          <span className="cv-skill__pts" title={`Ước tính mượt trong khoảng tham khảo IIBC 2023 (${range.min}–${range.max} điểm).`}>{points} điểm</span>
+        </span>
       </div>
       <div className="cv-skill__row">
         <button type="button" className="cv-step" tabIndex={-1} aria-label={`Giảm số câu ${noun} ${name}`} disabled={shown <= 0}

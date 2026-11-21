@@ -22,5 +22,5 @@ async def source_image_urls(body: SourceImageIds, request: Request, user=Depends
 async def cleanup_source_images(body: CleanupSourceImages, request: Request, user=Depends(account)):
     if body.before > datetime.now(timezone.utc):
         raise HTTPException(422, "Thời điểm dọn ảnh không hợp lệ.")
-    await request.app.state.gateway.source_images.cleanup_before(user["id"], body.before)
+    await request.app.state.gateway.source_images.cleanup_before(user["id"], body.before, allow_missing=True)
     return {"cleaned": True}

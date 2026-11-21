@@ -70,4 +70,22 @@ describe('server database generation (epoch)', () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].records).toHaveLength(4);
   });
+
+  it('chunks large outbound sync payloads and only sets replace on the first chunk', async () => {
+    const big = bundleWith(1100);
+    replies = [
+      { cursor: 0, records: [], hasRecords: false, epoch: 'e1' },
+      { cursor: 10, records: [{ entity_type: 'profile', record_id: 'profile', payload: {}, updated_at: stamp, deleted_at: null }], hasRecords: true, epoch: 'e1' },
+      { cursor: 11, records: [], hasRecords: true, epoch: 'e1' },
+      { cursor: 12, records: [], hasRecords: true, epoch: 'e1' },
+      { cursor: 12, records: [{ entity_type: 'profile', record_id: 'profile', payload: {}, updated_at: stamp, deleted_at: null }], hasRecords: true, epoch: 'e1' },
+    ];
+    await exchangeCloudChanges('alice', big, true, true);
+    expect(requests[0].records).toHaveLength(0);
+    expect(requests.slice(1, 4).map(r => r.records.length)).toEqual([500, 500, 101]);
+    expect((requests[1] as { replace?: boolean }).replace).toBe(true);
+    expect((requests[2] as { replace?: boolean }).replace).toBe(false);
+    expect((requests[3] as { replace?: boolean }).replace).toBe(false);
+    expect(requests[4]).toMatchObject({ records: [], cursor: 0 });
+  });
 });

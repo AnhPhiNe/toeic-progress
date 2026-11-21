@@ -8,16 +8,18 @@ const parts = { part1: 5, part2: 20, part3: 35, part4: 27, part5: 25, part6: 12,
 const session: StudySession = { id: 's1', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'ETS', date: '2026-10-06', durationMinutes: 120, createdAt: '2026-10-06T00:00:00Z' };
 
 describe('full test score sources', () => {
-  it('adds actual Part counts and uses the lower endpoint of the sourced mock range', () => {
-    expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: parts })).toMatchObject({ rawListening: 87, rawReading: 70, totalScore: 690, scoreSource: 'ESTIMATED', scoreConversionVersion: SCORE_CONVERSION_VERSION });
+  it('adds actual Part counts and uses the smooth estimate within the sourced mock range', () => {
+    expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: parts })).toMatchObject({ rawListening: 87, rawReading: 70, totalScore: 715, scoreSource: 'ESTIMATED', scoreConversionVersion: SCORE_CONVERSION_VERSION });
     expect(() => resolveFullTestScore({ source: 'ESTIMATED' })).toThrow();
   });
 
-  it('preserves legacy estimates when editing metadata, but uses the new curve when raw counts change', () => {
+  it('preserves legacy and v2 estimates when editing metadata, but uses the new curve when raw counts change', () => {
     const old = { ...session, partScores: parts, ...calculateFromPartScores(parts, 'legacy-reference-v1'), scoreSource: 'ESTIMATED' as const, scoreConversionVersion: 'legacy-reference-v1' };
     expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: parts, previous: old })).toMatchObject({ totalScore: 855, scoreConversionVersion: 'legacy-reference-v1' });
+    const v2 = { ...session, partScores: parts, ...calculateFromPartScores(parts, 'iibc-mock-2023-perfect-v2'), scoreSource: 'ESTIMATED' as const, scoreConversionVersion: 'iibc-mock-2023-perfect-v2' };
+    expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: parts, previous: v2 })).toMatchObject({ totalScore: 690, scoreConversionVersion: 'iibc-mock-2023-perfect-v2' });
     const modified = { ...parts, part3: 39 };
-    expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: modified, previous: old })).toMatchObject({ totalScore: 720, scoreConversionVersion: SCORE_CONVERSION_VERSION });
+    expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: modified, previous: old })).toMatchObject({ totalScore: 740, scoreConversionVersion: SCORE_CONVERSION_VERSION });
     const unversioned = { ...session, partScores: parts, ...calculateFromPartScores(parts, 'legacy-reference-v1') };
     expect(scoreSourceForEditing(unversioned)).toBe('ESTIMATED');
     expect(resolveFullTestScore({ source: 'ESTIMATED', partScores: parts, previous: unversioned })).toMatchObject({ totalScore: 855, scoreConversionVersion: 'legacy-reference-v1' });

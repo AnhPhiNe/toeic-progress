@@ -67,4 +67,17 @@ describe('islands', () => {
     expect(chestPlan(partChests(session(), wrong({}), []))).toEqual({ numbered: [], opened: [] });
     expect(chestPlan(partChests(session(), wrong({ 5: 1 }), [])).numbered).toEqual([5]);
   });
+
+  it('opens Listening chests once the learner logs a mistake reason, without requiring an SRS text quiz', () => {
+    const s = session({ wrongQuestions: [40, 41, 75] });
+    const w = wrong({ 3: 2, 4: 1 });
+    const cards = [
+      card(3, 40, { category: 'LISTENING_SPEED' }),
+      card(3, 41, { category: 'OTHER', userReason: 'Nghe sót từ phủ định' }),
+      card(4, 75, { category: 'OTHER' }),
+    ];
+    const chests = partChests(s, w, cards);
+    expect(chests[3]).toMatchObject({ wrong: 2, reviewed: 2, remaining: 0, open: true });
+    expect(chests[4]).toMatchObject({ wrong: 1, reviewed: 0, remaining: 1, open: false });
+  });
 });

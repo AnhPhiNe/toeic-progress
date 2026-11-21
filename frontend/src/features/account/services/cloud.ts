@@ -1,5 +1,5 @@
 import type { DataBundle, SyncMeta } from '@/shared/data/dataBundle';
-import { defaultProfile } from '@/shared/data/dataBundle';
+import { StorageWriteError, defaultProfile } from '@/shared/data/dataBundle';
 import { apiAvailable, backendRequest } from '@/shared/api/api';
 import { cloud } from '@/shared/api/supabaseClient';
 export { cloud } from '@/shared/api/supabaseClient';
@@ -30,7 +30,14 @@ export function rememberSync(userId: string, reply: SyncReply, reset = false): v
   const acknowledged = reset || reply.fullResync ? {} : previous.acknowledged;
   for (const row of reply.records) acknowledged[identity(row)] = signature(row);
   const epoch = reply.epoch ?? previous.epoch;
-  localStorage.setItem(syncKey(userId), JSON.stringify({ cursor: reply.cursor, acknowledged, ...(epoch ? { epoch } : {}) }));
+  try {
+    localStorage.setItem(syncKey(userId), JSON.stringify({ cursor: reply.cursor, acknowledged, ...(epoch ? { epoch } : {}) }));
+  } catch (error) {
+    if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
+      throw new StorageWriteError('Bộ nhớ trình duyệt đã đầy nên chưa lưu được trạng thái đồng bộ. Hãy xuất bản sao lưu rồi xóa bớt dữ liệu cũ.', 'quota');
+    }
+    throw error;
+  }
 }
 export function recordsFromBundle(bundle: DataBundle): CloudRow[] {
   const rows: CloudRow[] = [];
@@ -78,12 +85,59 @@ export async function fetchCloudBundle(userId: string): Promise<{ bundle: DataBu
   const reply = await syncRequest(userId, [], 0);
   return { bundle: bundleFromRecords(reply.records), hasRecords: reply.hasRecords };
 }
+function chunkRecords(rows: CloudRow[]): CloudRow[][] {
+  if (!rows.length) return [];
+  const chunks: CloudRow[][] = [];
+  let chunk: CloudRow[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    const size = JSON.stringify(row).length;
+    if (chunk.length && (chunk.length >= RESYNC_CHUNK_RECORDS || bytes + size > RESYNC_CHUNK_BYTES)) {
+      chunks.push(chunk);
+      chunk = [];
+      bytes = 0;
+    }
+    chunk.push(row);
+    bytes += size;
+  }
+  if (chunk.length) chunks.push(chunk);
+  return chunks;
+}
+
 export async function exchangeCloudChanges(userId: string, bundle: DataBundle, replace = false, reset = false): Promise<SyncReply> {
   // An explicitly chosen guest transfer starts from the latest server epoch.
   // Old cursors from another device must not implicitly undo a prior reset.
   const snapshot = reset ? await syncRequest(userId, [], 0) : null;
   const state = snapshot ? { cursor: snapshot.cursor, acknowledged: {}, epoch: snapshot.epoch } : readSyncState(userId);
-  const reply = await syncRequest(userId, pendingRecords(bundle, state), state.cursor, replace);
+  const pending = pendingRecords(bundle, state);
+  const chunks = chunkRecords(pending);
+  let reply: SyncReply;
+  if (chunks.length <= 1) {
+    reply = await syncRequest(userId, pending, state.cursor, replace);
+  } else if (replace) {
+    const first = await syncRequest(userId, chunks[0], state.cursor, true);
+    if (first.resetBarrier) return first;
+    const profileRow = first.records.find(row => row.entity_type === 'profile' && row.record_id === 'profile');
+    const floorMs = Math.max(Date.now(), profileRow ? Date.parse(profileRow.updated_at) + 1000 : 0);
+    for (const chunk of chunks.slice(1)) {
+      const bumped = chunk.map(row => {
+        const updatedMs = Math.max(Date.parse(row.updated_at) || 0, floorMs);
+        const updated_at = new Date(updatedMs).toISOString();
+        const deleted_at = row.deleted_at ? new Date(Math.max(Date.parse(row.deleted_at) || 0, floorMs)).toISOString() : null;
+        return { ...row, updated_at, deleted_at };
+      });
+      const partial = await syncRequest(userId, bumped, state.cursor, false);
+      if (partial.resetBarrier) return partial;
+    }
+    reply = await syncRequest(userId, [], 0);
+  } else {
+    let last: SyncReply | null = null;
+    for (const chunk of chunks) {
+      last = await syncRequest(userId, chunk, state.cursor, false);
+      if (last.resetBarrier) return last;
+    }
+    reply = reset ? await syncRequest(userId, [], 0) : last!;
+  }
   // Nothing acknowledged yet means this request already carried every record.
   const sentEverything = Object.keys(state.acknowledged).length === 0;
   if (replace || reset || sentEverything || !reply.epoch || reply.epoch === state.epoch || reply.resetBarrier) return reply;
@@ -98,21 +152,7 @@ export async function exchangeCloudChanges(userId: string, bundle: DataBundle, r
  * server keeps whichever copy of each record is newer.
  */
 async function resendEverything(userId: string, bundle: DataBundle, cursor: number): Promise<SyncReply> {
-  const rows = recordsFromBundle(bundle);
-  let chunk: CloudRow[] = [];
-  let bytes = 0;
-  for (const row of rows) {
-    const size = JSON.stringify(row).length;
-    if (chunk.length && (chunk.length >= RESYNC_CHUNK_RECORDS || bytes + size > RESYNC_CHUNK_BYTES)) {
-      const partial = await syncRequest(userId, chunk, cursor);
-      if (partial.resetBarrier) return partial;
-      chunk = [];
-      bytes = 0;
-    }
-    chunk.push(row);
-    bytes += size;
-  }
-  if (chunk.length) {
+  for (const chunk of chunkRecords(recordsFromBundle(bundle))) {
     const partial = await syncRequest(userId, chunk, cursor);
     if (partial.resetBarrier) return partial;
   }

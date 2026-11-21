@@ -21,8 +21,25 @@ describe('sourced conservative mock score estimates', () => {
     }
     expect(getPracticeScoreRange('listening', 100)).toEqual({ min: 495, max: 495 });
     expect(getPracticeScoreRange('reading', 100)).toEqual({ min: 495, max: 495 });
-    expect(convertRawToListeningScore(88)).toBe(405);
-    expect(convertRawToReadingScore(93)).toBe(425);
+    // Smooth within-band estimate stays inside the published IIBC 2023 [min, max] range and avoids a +35 cliff at 99 -> 100.
+    for (const skill of ['listening', 'reading'] as const) {
+      const convert = skill === 'listening' ? convertRawToListeningScore : convertRawToReadingScore;
+      for (let raw = 0; raw <= 100; raw++) {
+        const range = getPracticeScoreRange(skill, raw);
+        const est = convert(raw);
+        expect(est).toBeGreaterThanOrEqual(range.min);
+        expect(est).toBeLessThanOrEqual(range.max);
+        expect(est % 5).toBe(0);
+        if (raw > 0) expect(est).toBeGreaterThanOrEqual(convert(raw - 1));
+      }
+      expect(convert(100) - convert(99)).toBeLessThanOrEqual(10);
+    }
+    expect(convertRawToListeningScore(86)).toBe(405);
+    expect(convertRawToListeningScore(88)).toBe(415);
+    expect(convertRawToReadingScore(91)).toBe(425);
+    expect(convertRawToReadingScore(93)).toBe(440);
+    expect(convertRawToReadingScore(99)).toBe(485);
+    expect(convertRawToListeningScore(99)).toBe(490);
   });
 });
 

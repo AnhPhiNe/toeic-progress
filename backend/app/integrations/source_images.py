@@ -19,12 +19,24 @@ class SourceImages:
         self.client = gateway.client
         self.base = gateway.settings.supabase_url.rstrip("/") + "/storage/v1"
 
+    async def private_bucket_exists(self, *, allow_missing: bool = False) -> bool:
+        response = await self.client.get(f"{self.base}/bucket/{BUCKET}", headers=self.gateway.admin_headers())
+        if allow_missing and response.status_code in (400, 404):
+            try:
+                body = response.json()
+            except ValueError:
+                body = {}
+            detail = f"{body.get('error', '')} {body.get('message', '')}".lower() if isinstance(body, dict) else ""
+            if response.status_code == 404 or str(body.get("statusCode")) == "404" or "not found" in detail:
+                return False
+        if not response.is_success or response.json().get("public") is not False:
+            raise HTTPException(503, "Kho ảnh riêng tư chưa sẵn sàng. Chưa lưu hoặc gửi ảnh để phân tích.")
+        return True
+
     async def check_private(self):
         if not self.gateway.settings.source_images_enabled:
             raise HTTPException(503, "Lưu ảnh nguồn chưa được bật. Nội dung đang nhập vẫn được giữ.")
-        response = await self.client.get(f"{self.base}/bucket/{BUCKET}", headers=self.gateway.admin_headers())
-        if not response.is_success or response.json().get("public") is not False:
-            raise HTTPException(503, "Kho ảnh riêng tư chưa sẵn sàng. Chưa lưu hoặc gửi ảnh để phân tích.")
+        await self.private_bucket_exists(allow_missing=False)
 
     @staticmethod
     def path(user_id: str, image_id: str) -> str:
@@ -114,13 +126,14 @@ class SourceImages:
             result.append(value)
         return result
 
-    async def purge(self, user_id: str):
+    async def purge(self, user_id: str, *, allow_missing: bool = False):
         """Used only by the owner's explicit reset/account deletion, never a shared-card edit."""
-        await self.check_private()
+        if not await self.private_bucket_exists(allow_missing=allow_missing):
+            return
         for _ in range(100):
             response = await self.client.post(
                 f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(),
-                json={"prefix": user_id + "/", "limit": 100, "offset": 0},
+                json={"prefix": user_id + "/", "limit": 100, "offset": 0, "sortBy": {"column": "name", "order": "asc"}},
             )
             if not response.is_success or not isinstance(response.json(), list):
                 raise HTTPException(503, "Chưa đọc được danh sách ảnh nguồn để xóa. Vui lòng thử lại.")
@@ -138,15 +151,16 @@ class SourceImages:
                 raise HTTPException(503, "Chưa xóa hết ảnh nguồn. Vui lòng thử lại.")
         raise HTTPException(503, "Ảnh nguồn còn đang được dọn. Vui lòng thử lại để hoàn tất.")
 
-    async def cleanup_before(self, user_id: str, before: datetime):
+    async def cleanup_before(self, user_id: str, before: datetime, *, allow_missing: bool = False):
         """Retry a completed reset without removing newly saved/referenced images."""
-        await self.check_private()
+        if not await self.private_bucket_exists(allow_missing=allow_missing):
+            return
         referenced = set()
         for offset in range(0, 100_000, 1000):
             response = await self.client.get(
                 self.gateway.settings.supabase_url.rstrip("/") + "/rest/v1/mistakes",
                 headers=self.gateway.admin_headers(), params={"select": "sourceImageIds:extra->sourceImageIds",
-                    "user_id": "eq." + user_id, "limit": 1000, "offset": offset},
+                    "user_id": "eq." + user_id, "order": "id.asc", "limit": 1000, "offset": offset},
             )
             if not response.is_success or not isinstance(response.json(), list):
                 raise HTTPException(503, "Chưa đối chiếu được ảnh đang dùng. Chưa xóa ảnh nguồn.")
@@ -161,7 +175,8 @@ class SourceImages:
         paths = []
         for offset in range(0, 100_000, 1000):
             response = await self.client.post(f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(),
-                                              json={"prefix": user_id + "/", "limit": 1000, "offset": offset})
+                                              json={"prefix": user_id + "/", "limit": 1000, "offset": offset,
+                                                    "sortBy": {"column": "name", "order": "asc"}})
             if not response.is_success or not isinstance(response.json(), list):
                 raise HTTPException(503, "Chưa đọc được kho ảnh để dọn. Vui lòng thử lại.")
             rows = response.json()

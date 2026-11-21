@@ -174,8 +174,39 @@ function migrateV2(raw: string, ownerId: string | null): DataBundle {
   return withoutRetired({ ...parsed, schemaVersion: 3, mistakes: parsed.mistakes.map(normalizeMistakeRecord) });
 }
 
+function isQuotaError(error: unknown): boolean {
+  return error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22);
+}
+
+function writeJsonWithRollback(key: string, serialized: string): void {
+  const previous = localStorage.getItem(key);
+  try {
+    localStorage.setItem(key, serialized);
+  } catch (error) {
+    // setItem replaces one key atomically; restore defensively for unusual browsers.
+    if (localStorage.getItem(key) !== previous) {
+      if (previous === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, previous);
+    }
+    if (isQuotaError(error)) {
+      throw new StorageWriteError('Bộ nhớ trình duyệt đã đầy nên thay đổi chưa được lưu. Hãy xuất bản sao lưu trong Cài đặt rồi xóa bớt dữ liệu cũ.', 'quota');
+    }
+    throw error;
+  }
+}
+
 export function writeAccountBundle(userId: string, bundle: DataBundle): void {
-  localStorage.setItem(accountKey(userId), JSON.stringify(compactDeletedRecords(bundle)));
+  writeJsonWithRollback(accountKey(userId), JSON.stringify(compactDeletedRecords(bundle)));
+}
+
+/** Clear the browser's guest bundle once its data has been moved into a signed-in account. */
+export function consumeTransferredGuestBundle(): void {
+  clearRetiredCopies(null);
+  try {
+    localStorage.setItem(BUNDLE_KEY, JSON.stringify(emptyBundle()));
+  } catch {
+    localStorage.removeItem(BUNDLE_KEY);
+  }
 }
 
 function parseStoredBundle(raw: string): DataBundle {
@@ -205,20 +236,7 @@ export function writeDataBundle(bundle: DataBundle): void {
     throw new StorageWriteError('Tài khoản chưa kết nối xong nên lần lưu này chưa được ghi. Dữ liệu cũ vẫn an toàn trên máy; hãy lưu lại khi trạng thái báo đã đồng bộ.', 'disconnected');
   }
   const key = accountId ? accountKey(accountId) : BUNDLE_KEY;
-  const previous = localStorage.getItem(key);
-  try {
-    localStorage.setItem(key, JSON.stringify(compactDeletedRecords(bundle)));
-  } catch (error) {
-    // setItem replaces one key atomically; restore defensively for unusual browsers.
-    if (localStorage.getItem(key) !== previous) {
-      if (previous === null) localStorage.removeItem(key);
-      else localStorage.setItem(key, previous);
-    }
-    if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
-      throw new StorageWriteError('Bộ nhớ trình duyệt đã đầy nên thay đổi chưa được lưu. Hãy xuất bản sao lưu trong Cài đặt rồi xóa bớt dữ liệu cũ.', 'quota');
-    }
-    throw error;
-  }
+  writeJsonWithRollback(key, JSON.stringify(compactDeletedRecords(bundle)));
   if (accountId) window.dispatchEvent(new CustomEvent('toeic:account-data-changed', { detail: accountId }));
 }
 
@@ -261,7 +279,25 @@ export function clearRetiredCopies(userId: string | null): void {
     if (key?.startsWith(draftPrefix)) draftKeys.push(key);
   }
   for (const key of draftKeys) localStorage.removeItem(key);
-  if (userId) localStorage.removeItem(`toeic_attempt_advice_${userId}_v1`);
+  if (userId) {
+    localStorage.removeItem(`toeic_attempt_advice_${userId}_v1`);
+    localStorage.removeItem(`toeic_attempt_advice_${userId}_v2`);
+  }
+  const rawTickets = localStorage.getItem('toeic_explain_tickets_v1');
+  if (rawTickets) {
+    try {
+      const parsed = JSON.parse(rawTickets) as Record<string, { owner?: string | null }>;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const kept = Object.fromEntries(Object.entries(parsed).filter(([, entry]) => entry?.owner !== userId));
+        if (Object.keys(kept).length === 0) localStorage.removeItem('toeic_explain_tickets_v1');
+        else localStorage.setItem('toeic_explain_tickets_v1', JSON.stringify(kept));
+      } else {
+        localStorage.removeItem('toeic_explain_tickets_v1');
+      }
+    } catch {
+      localStorage.removeItem('toeic_explain_tickets_v1');
+    }
+  }
   localStorage.removeItem(`toeic_pacing_draft_v1_${userId ?? 'guest'}`);
   if (userId) localStorage.removeItem(`toeic_progress_account_${userId}_v2`);
   else {

@@ -8,7 +8,7 @@ import { ReviewSession } from '@/features/mistakes/components/ReviewSession';
 import { AwardsPage, unseenBadges } from '@/features/awards/components/AwardsPage';
 import { computeBadges } from '@/features/awards/lib/badges';
 import { socLook } from '@/features/awards/lib/outfit';
-import type { TodayTask } from '@/features/today/lib/todayTasks';
+import { MISTAKE_BATCH_CAP, type TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { addSuggestion } from '@/features/today/lib/suggestedTasks';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -353,11 +353,12 @@ export const App: React.FC = () => {
     return { before: before!, after: persisted, undo: () => setMistakes(undoMistakeGrade(before!, persisted, owner)) };
   };
 
-  // Mở phiên ôn: các thẻ được chọn, hoặc mọi thẻ đến hạn. Danh sách được chốt lúc mở.
-  const openReview = (mistakeIds?: string[]) => {
+  // Mở phiên ôn: các thẻ được chọn, hoặc mọi thẻ đến hạn (có thể giới hạn số câu cho một phiên ngắn). Danh sách được chốt lúc mở.
+  const openReview = (mistakeIds?: string[], limit?: number) => {
     const ids = mistakeIds ? new Set(mistakeIds) : null;
     const latest = loadMistakes();
-    const cards = ids ? latest.filter(m => ids.has(m.id) && canReview(m)).sort(compareReviewPriority) : getDueMistakes(latest);
+    const all = ids ? latest.filter(m => ids.has(m.id) && canReview(m)).sort(compareReviewPriority) : getDueMistakes(latest);
+    const cards = typeof limit === 'number' && limit > 0 ? all.slice(0, limit) : all;
     if (cards.length > 0) setReviewCards(cards);
   };
 
@@ -456,7 +457,7 @@ export const App: React.FC = () => {
   const socCoat = socIdentity(bundle.profile).coat;
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
-    if (task.kind === 'REVIEW_MISTAKES') openReview();
+    if (task.kind === 'REVIEW_MISTAKES') openReview(undefined, task.count ?? MISTAKE_BATCH_CAP);
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
     else if (task.kind === 'FULL_TEST') openSessionLogger();
     else if (task.kind === 'WORD_CARDS') openSessionLogger({ sessionType: 'VOCAB' });
@@ -729,7 +730,7 @@ export const App: React.FC = () => {
           onRetry={() => void account.retry()} onSignOut={account.signOut} onDelete={account.deleteAccount} showSignOut={false} />}
       />
 
-      {account.pendingTransfer && <TransferChoiceDialog error={account.error} onChoose={account.chooseTransfer} onSkip={account.signOut} />}
+      {account.pendingTransfer && <TransferChoiceDialog error={account.error} accountHasData={account.pendingTransfer.accountHasData} onChoose={account.chooseTransfer} onSkip={account.signOut} />}
 
 
     </div>

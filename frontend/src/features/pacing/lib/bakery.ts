@@ -9,6 +9,8 @@ const DISHES: Partial<Record<PacingMode, { dish: Dish; name: string }>> = {
   PART_5: { dish: 'cupcake', name: 'Cupcake' },
   PART_6: { dish: 'cookies', name: 'Bánh quy' },
   PART_7: { dish: 'layer', name: 'Bánh kem' },
+  PART_7_SINGLE: { dish: 'layer', name: 'Bánh kem' },
+  PART_7_MULTI: { dish: 'layer', name: 'Bánh kem' },
   FULL_READING: { dish: 'tiers', name: 'Bánh ba tầng' },
   POMODORO: { dish: 'croissant', name: 'Bánh sừng bò' }
 };
@@ -36,19 +38,55 @@ export function nextBreak(focusToday: number, settings: { shortBreakMinutes: num
 /** "+25 phút" on the ra-lò card; under a minute it counts seconds. */
 export const gainLabel = (seconds: number) => seconds >= 60 ? `+${Math.round(seconds / 60)} phút` : `+${Math.max(0, Math.round(seconds))} giây`;
 
-// ----- recipe card: five steps split by question ranges -----
+// ----- recipe card: five steps split by question ranges (or 3 tactical phases for Full Reading) -----
 export const RECIPE_NAMES = ['Trộn bột', 'Cho vào lò', 'Bánh nở', 'Phủ kem', 'Trang trí'] as const;
-export interface RecipeStep { from: number; to: number; name: string; state: 'done' | 'now' | 'todo' }
+export interface RecipeStep { from: number; to: number; name: string; state: 'done' | 'now' | 'todo'; durationSeconds?: number }
 
-/** The question the pace says you should be on: one question per (planned / questions) seconds. */
-export function paceQuestion(spentSeconds: number, plannedSeconds: number, questions: number): number {
+/**
+ * Suggested 3-phase strategy for a 100-question Reading section (12m Part 5 / 8m Part 6 / 55m Part 7).
+ * Scaled proportionally when the learner adjusts total minutes. This is a practice pacing suggestion,
+ * not an official ETS timing breakdown.
+ */
+export const FULL_READING_PHASES = [
+  { from: 1, to: 30, name: 'Part 5 · 30 câu', weight: 12 / 75 },
+  { from: 31, to: 46, name: 'Part 6 · 16 câu', weight: 8 / 75 },
+  { from: 47, to: 100, name: 'Part 7 · 54 câu', weight: 55 / 75 },
+] as const;
+
+/** The question the pace says you should be on: piecewise 12/8/55 for Full Reading, else uniform. */
+export function paceQuestion(spentSeconds: number, plannedSeconds: number, questions: number, mode?: PacingMode): number {
   if (questions <= 0) return 1;
+  if (mode === 'FULL_READING' && Math.floor(questions) === 100 && plannedSeconds > 0) {
+    const spent = Math.max(0, spentSeconds);
+    let elapsed = 0;
+    for (let index = 0; index < FULL_READING_PHASES.length; index++) {
+      const phase = FULL_READING_PHASES[index];
+      const phaseSeconds = plannedSeconds * phase.weight;
+      const isLast = index === FULL_READING_PHASES.length - 1;
+      if (isLast || spent < elapsed + phaseSeconds) {
+        const count = phase.to - phase.from + 1;
+        const per = Math.max(1, phaseSeconds / count);
+        const within = Math.max(0, spent - elapsed);
+        return Math.min(phase.to, Math.max(phase.from, phase.from + Math.floor(within / per)));
+      }
+      elapsed += phaseSeconds;
+    }
+  }
   return Math.min(questions, Math.max(1, Math.floor(spentSeconds / Math.max(1, plannedSeconds / questions)) + 1));
 }
 
-/** Five (or fewer, for tiny drills) equal ranges; the last one takes the remainder. A step ticks once the pace passes its last question. */
-export function recipeSteps(questions: number, at: number): RecipeStep[] {
+/** Three tactical phases for Full Reading (12/8/55), or five equal ranges for single-Part drills. */
+export function recipeSteps(questions: number, at: number, mode?: PacingMode, plannedSeconds?: number): RecipeStep[] {
   const total = Math.max(1, Math.floor(questions));
+  if (mode === 'FULL_READING' && total === 100) {
+    return FULL_READING_PHASES.map(phase => ({
+      from: phase.from,
+      to: phase.to,
+      name: phase.name,
+      state: phase.to < at ? 'done' as const : phase.from <= at ? 'now' as const : 'todo' as const,
+      ...(plannedSeconds && plannedSeconds > 0 ? { durationSeconds: Math.round(plannedSeconds * phase.weight) } : {}),
+    }));
+  }
   const count = Math.min(RECIPE_NAMES.length, total);
   const size = Math.max(1, Math.floor(total / RECIPE_NAMES.length));
   return Array.from({ length: count }, (_, index) => {

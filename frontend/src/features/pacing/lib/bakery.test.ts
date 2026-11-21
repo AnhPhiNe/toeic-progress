@@ -40,6 +40,20 @@ describe('recipe steps', () => {
     expect(paceQuestion(99999, 3300, 54)).toBe(54);
     expect(paceQuestion(10, 600, 0)).toBe(1);
   });
+  it('uses the 3-phase 12/8/55 tactical pacing for FULL_READING (100 questions)', () => {
+    const planned = 75 * 60;
+    expect(paceQuestion(0, planned, 100, 'FULL_READING')).toBe(1);
+    expect(paceQuestion(12 * 60 - 1, planned, 100, 'FULL_READING')).toBe(30);
+    expect(paceQuestion(12 * 60, planned, 100, 'FULL_READING')).toBe(31);
+    expect(paceQuestion(20 * 60, planned, 100, 'FULL_READING')).toBe(47);
+    expect(paceQuestion(75 * 60, planned, 100, 'FULL_READING')).toBe(100);
+    const steps = recipeSteps(100, 31, 'FULL_READING', planned);
+    expect(steps).toEqual([
+      { from: 1, to: 30, name: 'Part 5 · 30 câu', state: 'done', durationSeconds: 720 },
+      { from: 31, to: 46, name: 'Part 6 · 16 câu', state: 'now', durationSeconds: 480 },
+      { from: 47, to: 100, name: 'Part 7 · 54 câu', state: 'todo', durationSeconds: 3300 },
+    ]);
+  });
 });
 
 describe('last stretch', () => {

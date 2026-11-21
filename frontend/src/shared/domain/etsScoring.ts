@@ -2,10 +2,11 @@ import { LRPartScore, PracticePartResult } from '@/shared/types';
 
 /**
  * Legacy tables are retained only to recognize/preserve existing estimates.
- * New estimates use the lower endpoint of the IIBC March 2023 mock test ranges.
- * The app assigns its maximum 495 to a perfect 100/100 section as a training
- * convention. This endpoint override is not an official ETS conversion claim.
- * Those ranges describe one mock test, not an ETS conversion for every form.
+ * New estimates interpolate smoothly (rounded to 5) within the published IIBC March 2023
+ * 5-question bands—anchored at each band's lower endpoint and capped within [min, max]—so
+ * single-question changes near 96–100 never create a sudden +35 cliff.
+ * Published ranges are still surfaced alongside the estimate; these are practice references,
+ * not an official ETS score conversion claim.
  */
 
 // Bảng Listening: Index đại diện cho số câu đúng (0 -> 100)
@@ -39,28 +40,46 @@ const READING_CONVERSION_TABLE: number[] = [
 ];
 
 /**
- * Quy đổi số câu đúng Listening sang Scaled Score
+ * Quy đổi số câu đúng Listening sang Scaled Score ước tính (mượt trong khung IIBC 2023)
  */
 export function convertRawToListeningScore(raw: number): number {
-  return getPracticeScoreRange('listening', raw).min;
+  return estimatePracticeScore('listening', raw);
 }
 
 /**
- * Quy đổi số câu đúng Reading sang Scaled Score
+ * Quy đổi số câu đúng Reading sang Scaled Score ước tính (mượt trong khung IIBC 2023)
  */
 export function convertRawToReadingScore(raw: number): number {
-  return getPracticeScoreRange('reading', raw).min;
+  return estimatePracticeScore('reading', raw);
 }
 
-export const SCORE_CONVERSION_VERSION = 'iibc-mock-2023-perfect-v2';
+export const SCORE_CONVERSION_VERSION = 'iibc-mock-2023-smooth-v3';
 export const PRACTICE_SCORE_SOURCE = 'https://www.iibc-global.org/hubfs/library/default/toeic/special/job/u-trial202303/pdf/utrial_score.pdf?hsLang=ja';
 
-// Each tuple is [minimum raw count, lower score, upper score], transcribed from
-// page 3 of the source. A band is constant; do not invent within-band precision.
+// Each tuple is [minimum raw count, lower score, upper score], transcribed from page 3 of the source.
 const PRACTICE_SCORE_RANGES: Record<'listening' | 'reading', readonly (readonly [number, number, number])[]> = {
   listening: [[0,5,35],[1,5,50],[6,5,60],[11,5,70],[16,30,90],[21,60,115],[26,85,145],[31,105,175],[36,130,205],[41,160,230],[46,190,255],[51,215,280],[56,240,310],[61,265,335],[66,290,360],[71,320,390],[76,345,420],[81,370,450],[86,405,470],[91,435,495],[96,475,495]],
   reading: [[0,5,15],[1,5,30],[6,10,40],[11,30,55],[16,45,75],[21,60,95],[26,75,120],[31,95,150],[36,115,180],[41,140,215],[46,170,245],[51,200,275],[56,230,310],[61,255,340],[66,285,370],[71,310,390],[76,340,415],[81,375,440],[86,400,465],[91,425,490],[96,460,495]],
 };
+
+function estimatePracticeScore(skill: 'listening' | 'reading', raw: number): number {
+  assertRawScore(raw);
+  if (raw === 0) return PRACTICE_SCORE_RANGES[skill][0][1];
+  if (raw === 100) return 495;
+  const bands = PRACTICE_SCORE_RANGES[skill];
+  for (let index = bands.length - 1; index >= 0; index--) {
+    const [start, min, max] = bands[index];
+    if (raw >= start) {
+      const next = bands[index + 1];
+      const end = next ? next[0] : 100;
+      const target = next ? next[1] : 495;
+      const ratio = (raw - start) / Math.max(1, end - start);
+      const smooth = Math.round((min + ratio * (target - min)) / 5) * 5;
+      return Math.max(min, Math.min(max, smooth));
+    }
+  }
+  throw new Error('Không tìm được điểm ước tính tham khảo.');
+}
 
 export function getPracticeScoreRange(skill: 'listening' | 'reading', raw: number): { min: number; max: number } {
   const published = getPublishedMockScoreRange(skill, raw);
@@ -105,9 +124,21 @@ export function calculateFromPartScores(partScores: LRPartScore, version = SCORE
     (partScores.part7 || 0)
   );
 
-  if (![SCORE_CONVERSION_VERSION, 'iibc-mock-2023-lower-v1', 'legacy-reference-v1'].includes(version)) throw new Error('Bảng quy đổi không được hỗ trợ.');
-  const scaledListening = version === 'legacy-reference-v1' ? LISTENING_CONVERSION_TABLE[rawListening] : version === 'iibc-mock-2023-lower-v1' ? getPublishedMockScoreRange('listening', rawListening).min : convertRawToListeningScore(rawListening);
-  const scaledReading = version === 'legacy-reference-v1' ? READING_CONVERSION_TABLE[rawReading] : version === 'iibc-mock-2023-lower-v1' ? getPublishedMockScoreRange('reading', rawReading).min : convertRawToReadingScore(rawReading);
+  if (![SCORE_CONVERSION_VERSION, 'iibc-mock-2023-perfect-v2', 'iibc-mock-2023-lower-v1', 'legacy-reference-v1'].includes(version)) throw new Error('Bảng quy đổi không được hỗ trợ.');
+  const scaledListening = version === 'legacy-reference-v1'
+    ? LISTENING_CONVERSION_TABLE[rawListening]
+    : version === 'iibc-mock-2023-lower-v1'
+      ? getPublishedMockScoreRange('listening', rawListening).min
+      : version === 'iibc-mock-2023-perfect-v2'
+        ? getPracticeScoreRange('listening', rawListening).min
+        : convertRawToListeningScore(rawListening);
+  const scaledReading = version === 'legacy-reference-v1'
+    ? READING_CONVERSION_TABLE[rawReading]
+    : version === 'iibc-mock-2023-lower-v1'
+      ? getPublishedMockScoreRange('reading', rawReading).min
+      : version === 'iibc-mock-2023-perfect-v2'
+        ? getPracticeScoreRange('reading', rawReading).min
+        : convertRawToReadingScore(rawReading);
   const totalScore = scaledListening + scaledReading;
 
   return {

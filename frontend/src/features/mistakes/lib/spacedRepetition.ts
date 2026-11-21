@@ -15,6 +15,17 @@ export function normalizeReviewRating(answer: ReviewAnswer): ReviewRating {
   return typeof answer === 'boolean' ? answer ? 'GOOD' : 'AGAIN' : answer;
 }
 
+/**
+ * Map self-check buttons + quiz pick onto an SRS rating.
+ * Choosing a wrong quiz option always schedules AGAIN (tomorrow): understanding an explanation
+ * passively after a miss must still be verified by active recall on the next day.
+ */
+export function reviewRating(understood: boolean, picked: string | null, answer: string): ReviewRating {
+  if (!understood) return 'AGAIN';
+  if (picked !== null && picked !== answer) return 'AGAIN';
+  return 'GOOD';
+}
+
 function boundedReviewStage(stage: number | undefined): number {
   return typeof stage === 'number' && Number.isFinite(stage)
     ? Math.max(0, Math.min(MAX_REVIEW_STAGE, Math.floor(stage))) : 0;
@@ -96,7 +107,7 @@ export function applyReviewResult(
       reviewStage: currentStage,
       reviewCount,
       lastReviewedAt,
-      nextReviewDate: addDays(today, Math.max(2, Math.ceil(REVIEW_INTERVALS_DAYS[currentStage] / 2)))
+      nextReviewDate: addDays(today, Math.max(1, Math.ceil(REVIEW_INTERVALS_DAYS[currentStage] / 2)))
     };
   }
 

@@ -23,7 +23,7 @@ test('manual section scores override the estimate and survive reload and editing
   await usePartCounts(dialog);
   for (const [index, count] of [5, 20, 35, 27, 25, 12, 33].entries()) await dialog.getByLabel(`Số câu đúng Part ${index + 1}`, { exact: true }).fill(String(count));
   await expect(dialog.getByText('Ước tính tham khảo', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('690', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('715', { exact: true })).toBeVisible();
   await useOfficialScore(dialog);
   await dialog.getByLabel('Điểm Nghe /495').fill('445');
   await dialog.getByLabel('Điểm Đọc /495').fill('350');
@@ -104,10 +104,10 @@ test('old estimates retain their version on metadata edits and switch only when 
   expect(await savedSession(page)).toMatchObject({totalScore:855,scoreConversionVersion:'legacy-reference-v1'});
   await openHistoryEdit(page, 'Legacy renamed');
   await dialog.getByLabel('Số câu đúng Part 3',{exact:true}).fill('39');
-  await expect(dialog.getByText('720',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('740',{exact:true})).toBeVisible();
   await dialog.getByRole('button',{name:'Lưu thay đổi'}).click();
   await expect(dialog).not.toBeVisible();
-  expect(await savedSession(page)).toMatchObject({totalScore:720,scoreConversionVersion:'iibc-mock-2023-perfect-v2'});
+  expect(await savedSession(page)).toMatchObject({totalScore:740,scoreConversionVersion:'iibc-mock-2023-smooth-v3'});
 });
 
 
@@ -118,9 +118,9 @@ test('a newly saved perfect Full Test receives 495 per section and 990 total', a
   for (const [index,count] of [6,25,39,30,30,16,54].entries()) await dialog.getByLabel('Số câu đúng Part '+(index+1), {exact:true}).fill(String(count));
   await expect(dialog.getByText('990',{exact:true})).toBeVisible();
   await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('53');
-  await expect(dialog.getByText('955',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('980',{exact:true})).toBeVisible();
   await dialog.getByLabel('Số câu đúng Part 7',{exact:true}).fill('54');
   await dialog.getByRole('button',{name:'Lưu kết quả'}).click();
   await expect(dialog).not.toBeVisible();
-  expect(await savedSession(page)).toMatchObject({rawListening:100,rawReading:100,scaledListening:495,scaledReading:495,totalScore:990,scoreSource:'ESTIMATED',scoreConversionVersion:'iibc-mock-2023-perfect-v2'});
+  expect(await savedSession(page)).toMatchObject({rawListening:100,rawReading:100,scaledListening:495,scaledReading:495,totalScore:990,scoreSource:'ESTIMATED',scoreConversionVersion:'iibc-mock-2023-smooth-v3'});
 });

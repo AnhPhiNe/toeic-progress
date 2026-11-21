@@ -33,7 +33,7 @@ export interface TodayTaskOptions {
 
 export const MAX_TODAY_TASKS = 4;
 /** One card takes about a minute; a review round is kept between 5 and 15 minutes. */
-const MISTAKE_BATCH_CAP = 15;
+export const MISTAKE_BATCH_CAP = 15;
 const MISTAKE_MIN_MINUTES = 5;
 const WORD_CARD_MINUTES = 10;
 const FULL_TEST_MINUTES = 120;

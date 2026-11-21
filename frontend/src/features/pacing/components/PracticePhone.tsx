@@ -66,7 +66,7 @@ function PracticePhoneWorkspace({ owner, resultDialogBlocked = false, onEditSess
     <>
     <PageTip id="practice" />
     <PhoneBakeryChoose
-      mode={b.mode} label={b.label} choices={b.choices}
+      mode={b.mode} label={b.label} choices={b.choices} part7Options={b.part7Options}
       lastTime={b.lastTime} minutes={b.plannedMinutes} canMinus={b.canMinus}
       recent={b.rows} error={b.error}
       onPick={b.pick} onStart={b.start} onMinutes={b.setMinutes}

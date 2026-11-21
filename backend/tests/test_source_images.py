@@ -22,14 +22,16 @@ def attachment():
 
 
 @contextmanager
-def storage_api(*, guest=False, enabled=True, public=False, storage_failure=False):
+def storage_api(*, guest=False, enabled=True, public=False, storage_failure=False, bucket_missing=False):
     objects, calls, refs = {}, [], []
     removed = []
+    queries = []
 
     def respond(request):
         path = request.url.path
         body = json.loads(request.content) if request.headers.get("content-type") == "application/json" and request.content else None
         calls.append((request.method, path, body))
+        queries.append((path, dict(request.url.params)))
         if path == "/auth/v1/user":
             return httpx.Response(200, json={"id": OTHER if request.headers.get("authorization") == "Bearer other" else OWNER, "is_anonymous": guest})
         if path.endswith("/reserve_ai_request"):
@@ -41,6 +43,8 @@ def storage_api(*, guest=False, enabled=True, public=False, storage_failure=Fals
         if path.startswith("/auth/v1/admin/users/"):
             return httpx.Response(200, json={})
         if path == "/storage/v1/bucket/mistake-sources":
+            if bucket_missing:
+                return httpx.Response(404, json={"statusCode": "404", "error": "Bucket not found"})
             return httpx.Response(503 if storage_failure else 200, json={"public": public})
         if path == "/storage/v1/object/list/mistake-sources":
             names = [name.split("/")[1] for name in objects if name.startswith(body["prefix"])]
@@ -81,6 +85,7 @@ def storage_api(*, guest=False, enabled=True, public=False, storage_failure=Fals
                         supabase_secret_key="secret", rate_limit_secret="rate", openai_api_key="private", source_images_enabled=enabled)
     with TestClient(create_app(settings, httpx.MockTransport(respond))) as client:
         client.headers["Authorization"] = "Bearer owner"
+        client.queries = queries
         yield client, objects, calls, refs, removed
 
 
@@ -167,3 +172,29 @@ def test_synced_image_ids_are_preserved_but_urls_and_wrong_parts_are_rejected_be
             with pytest.raises(ValueError):
                 Mistake.model_validate_json(json.dumps({**fields, **changes}))
         assert not calls
+
+
+def test_reset_and_delete_still_clean_stored_images_when_flag_is_disabled():
+    with storage_api(enabled=False) as (client, objects, calls, _refs, removed):
+        orphan = "c" * 64
+        objects[OWNER + "/" + orphan + ".jpg"] = b"old"
+        reset = client.post("/api/v1/data/reset", json={"confirm": True})
+        assert reset.status_code == 200 and not reset.json().get("sourceImageCleanupBefore")
+        assert removed == [OWNER + "/" + orphan + ".jpg"] and not objects
+        # Deterministic pagination ordering prevents skipping live references or objects on >1,000 rows.
+        mistakes_query = next(params for path, params in client.queries if path == "/rest/v1/mistakes")
+        assert mistakes_query.get("order") == "id.asc"
+        list_body = next(body for _, path, body in calls if path == "/storage/v1/object/list/mistake-sources")
+        assert list_body.get("sortBy") == {"column": "name", "order": "asc"}
+
+        # Account deletion also purges previously stored objects even while uploads are disabled.
+        objects[OWNER + "/" + ("d" * 64) + ".jpg"] = b"old-2"
+        deleted = client.delete("/api/v1/account")
+        assert deleted.status_code == 200 and not objects
+
+
+def test_reset_and_delete_succeed_quietly_when_bucket_does_not_exist():
+    with storage_api(enabled=False, bucket_missing=True) as (client, _objects, _calls, _refs, _removed):
+        reset = client.post("/api/v1/data/reset", json={"confirm": True})
+        assert reset.status_code == 200 and not reset.json().get("sourceImageCleanupBefore")
+        assert client.delete("/api/v1/account").status_code == 200

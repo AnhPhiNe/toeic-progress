@@ -6,19 +6,18 @@ Mục tiêu đầu tiên là tracker và đồng bộ cho nhóm nhỏ. Bật AI 
 
 Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md). Giữ project/config cũ tới khi staging mới được kiểm chứng.
 
-## 1. Chuẩn bị database
+## 1. Chuẩn bị database (Baseline v2)
 
-Xuất backup trước migration. Project đã áp dụng bốn migration nền tảng chạy file `20261006020000_api_rate_limits.sql` một lần. Project mới chạy năm file nền tảng theo thứ tự tên, rồi `20261010000000_retire_gemini_provider.sql`; OpenAI không cần migration pool ngày 07/10. Project đã có pool chạy migration retire sau khi deploy backend OpenAI mới. Giữ nguyên các migration đã áp dụng.
+Từ 20/11/2026 toàn bộ schema, RLS, RPC đồng bộ, giới hạn API, bảng giải đấu và ledger ticket lời giải nằm trong **một file baseline duy nhất**: `supabase/migrations/20261120000000_baseline_v2.sql`. Các migration v1 cũ trong `supabase/migrations/archive/` chỉ để tra cứu, không chạy lại.
 
-Giữ `API_LIMITS_ENABLED=false` ở local tới khi migration này đã được áp dụng; staging/production bắt buộc `true`. Xem Security Advisor và đối chiếu RLS. Dùng project staging riêng cho test tài khoản và test tải.
+- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp `supabase/migrations/20261120000000_baseline_v2.sql` (hoặc `supabase db push`).
+- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md).
+- Tạo bucket Supabase Storage riêng tư tên `mistake-sources` (`public = false`) nếu bật tính năng lưu ảnh nguồn (`SOURCE_IMAGES_ENABLED=true`).
+- Xác nhận RPC `schema_ready()` trả `{"baseline": 2, "ready": true}`; kiểm tra Security Advisor và xác nhận quyền `anon`/`authenticated` đều bị thu hồi trên các RPC nội bộ (chỉ `service_role` gọi được).
+- Giữ `API_LIMITS_ENABLED=false` ở local tới khi baseline v2 đã áp dụng; staging/production bắt buộc `true`. Dùng project staging riêng cho test tài khoản và test tải.
+- Không deploy Edge Function `delete-account` cũ (đã xóa khỏi repo; luồng xóa tài khoản đi qua FastAPI `DELETE /api/v1/account` kèm dọn ảnh Storage). Nếu project cũ từng deploy Edge Function này, hãy undeploy trên Supabase Dashboard.
 
-### Cập nhật luồng đọc nhiều câu từ ảnh
-
-Trước khi deploy backend có ticket bền vững, áp dụng riêng migration mới `20261020110041_durable_explanation_tickets.sql` lên project đang phục vụ. Không chạy lại toàn bộ migration nền tảng trên database đã có dữ liệu. Migration thêm hai bảng vận hành và RPC chỉ service role được gọi, cùng xử lý xóa cache khi người học xóa trắng dữ liệu; không đổi nội dung thẻ hay điểm hiện có.
-
-Xác nhận `explanation_ledger_ready()` trả `version=1`, `tables=true`; kiểm tra RLS và quyền execute của `anon`/`authenticated` đều bị thu hồi. Backend `/ready` kiểm tra ledger trước khi nhận luồng AI tương ứng. Triển khai backend sau migration, rồi frontend; giữ nguyên signing secret và các cấu hình AI/quyền hiện tại. Không áp dụng lại giá trị mặc định `AI_ENABLED=false` trong Blueprint lên service đang bật AI.
-
-Ticket lưu cả bộ đếm và kết quả trong Supabase nên restart/nhiều worker không tạo lại ngân sách. Generation bị ngắt giữa chừng vẫn tính một lần thử; không tự gọi lại bằng cùng request ID. Chi tiết giới hạn/chi phí ở [AI_ACCESS.md](AI_ACCESS.md).
+Ticket lời giải bền vững được lưu trong Supabase (đã có sẵn trong baseline v2) nên restart/nhiều worker không đặt lại ngân sách. Chi tiết giới hạn/chi phí ở [AI_ACCESS.md](AI_ACCESS.md).
 
 ## 2. Tạo frontend trên Vercel
 
@@ -41,7 +40,7 @@ Health check path: `/ready`. Blueprint `backend/render.yaml` có cùng cấu hì
 | Biến | Giá trị beta |
 |---|---|
 | `ENVIRONMENT` | `staging` |
-| `API_LIMITS_ENABLED` | `true`, sau migration 5 |
+| `API_LIMITS_ENABLED` | `true`, sau khi áp baseline v2 |
 | `AI_ENABLED` | `false` |
 | `SUPABASE_URL` | URL project đúng môi trường |
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable key |
@@ -80,8 +79,6 @@ Backend: điền key provider, `TURNSTILE_SECRET_KEY`, `TURNSTILE_HOSTNAMES`, đ
 
 Website production `toeictracking.vercel.app` với API Render hiện tại dùng `/api/ai-status` cùng origin để đọc cấu hình provider. Rewrite trong `frontend/vercel.json` chuyển đúng endpoint đó tới `/health` trên Render, trước SPA fallback; không cache. Request này không có token/câu hỏi và không gọi provider AI. Các API đồng bộ/extraction vẫn gọi URL backend đã cấu hình. Local/preview hoặc staging API khác vẫn đọc `/health` trực tiếp. Nếu đổi domain hoặc backend production, cập nhật cả route rewrite và điều kiện trong `getAIConfiguration` cùng một lần.
 
-Sau khi deploy backend mới, gỡ `AI_PROVIDER` và các biến `GEMINI_*` khỏi Render; chạy `20261010000000_retire_gemini_provider.sql` để dọn bảng/RPC cũ. Migration không thay dữ liệu học hoặc quota AI chung. Không rollback về backend phụ thuộc pool sau bước này.
-
 Kiểm thử nội dung có/thiếu đáp án, bản nháp cần người học kiểm tra; CAPTCHA sai, vượt lượt và lỗi provider. Mặc định AI: khách 3 lượt/danh tính, tài khoản 10 lượt/tháng, toàn app 20 lượt/ngày và 2 lượt/phút, IP 5 lượt/ngày. Đây là giới hạn app, không phải hạn mức của OpenAI.
 
 Tùy chọn miễn toàn bộ hạn mức AI app: đặt `AI_UNLIMITED_EMAILS=["your-account@gmail.com"]` ở Render/backend. Chỉ Gmail được Google xác minh trong Supabase Auth được miễn cap tháng/ngày/phút và spam theo tài khoản/IP cho AI; không thêm quyền database. Để `[]` để tắt. Không cần migration mới. Vẫn ghi counter, chống gửi trùng và giữ giới hạn tài nguyên/provider. Phí OpenAI vẫn áp dụng; giám sát ngân sách đã chọn trên OpenAI Platform.
@@ -113,6 +110,10 @@ Cài PostgreSQL client tools cùng major version với server. Cấu hình riên
 Từ root: `python scripts/ops/backup-database.py`. Script tạo `.backups/*.dump`, không đưa password vào argv/log, không ghi đè và kiểm tra archive bằng `pg_restore --list`. Kiểm tra cấu trúc archive chưa chứng minh restore thành công.
 
 Thử `pg_restore` vào database staging trống rồi kiểm tra schema, dữ liệu/RLS và các luồng đăng nhập/đồng bộ. Không restore vào database đang phục vụ để thử. Cấu hình lịch backup ở môi trường vận hành và kiểm tra kết quả thực tế.
+
+**Sao lưu & diễn tập khôi phục Storage (`mistake-sources`):** `pg_dump` chỉ sao lưu Postgres (bảng dữ liệu và metadata `storage.objects`), **không** sao lưu tệp ảnh nhị phân trong bucket riêng tư `mistake-sources`. Trước mỗi đợt nâng cấp hoặc định kỳ khi bật lưu ảnh nguồn:
+1. Đồng bộ/tải bản sao các tệp `<user_id>/<sha256>.jpg` trong bucket `mistake-sources` ra kho lưu trữ riêng tư ngoài máy chạy backend (chỉ dùng kết nối bảo mật của người vận hành, không lưu công khai).
+2. Diễn tập khôi phục trên môi trường staging: restore Postgres (`pg_restore`) + kiểm tra bucket `mistake-sources` (`public = false`) + nạp lại ảnh mẫu + xác minh tài khoản mở lại ảnh cũ bằng `POST /api/v1/mistake-images/urls` và xóa/reset dọn sạch ảnh kể cả khi `SOURCE_IMAGES_ENABLED=false`.
 
 Chạy `python -m app.commands.maintenance` từ `backend` với đúng `.env` để dọn counter hết hạn; cấu hình lịch bảo trì sau deploy. API tự dọn các phút cũ của owner khi có request; maintenance dọn thêm owner không còn hoạt động.
 

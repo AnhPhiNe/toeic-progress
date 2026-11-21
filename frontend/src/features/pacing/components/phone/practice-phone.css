@@ -52,6 +52,12 @@
 .pp-pc small { display: block; font-weight: 800; font-size: 11.5px; color: #a3aba5; }
 .pp-pc.is-on { background: #fffaf0; box-shadow: 0 0 0 3px #ffc83d, 0 5px 0 #f0b400; }
 .pp-panel { position: relative; background: #fbfaf7; border-radius: 28px 28px 0 0; padding: 16px 16px 18px; box-shadow: 0 -8px 24px rgba(200, 80, 120, .1); }
+.pp-submodes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.pp-submode { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 6px; border: 0; border-radius: 14px; background: #fff; color: var(--rd-ink); box-shadow: 0 2px 0 #ebe6de; cursor: pointer; }
+.pp-submode b { font-weight: 900; font-size: 12.5px; }
+.pp-submode small { font-weight: 800; font-size: 11px; color: var(--rd-mut); }
+.pp-submode.is-on { background: #fff4d1; color: #7a5200; box-shadow: 0 0 0 2px #ffc83d, 0 2px 0 #e8b62c; }
+.pp-submode.is-on small { color: #a06a00; }
 .pp-fire-row { display: flex; gap: 10px; align-items: center; }
 .pp-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
 .pp-tools .bk-tool { min-width: 0; gap: 5px; padding: 4px 6px 4px 4px; font-size: 12px; justify-content: flex-start; }

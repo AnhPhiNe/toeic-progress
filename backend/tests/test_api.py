@@ -126,6 +126,8 @@ def api():
                         "content": [{"type": "output_text", "text": json.dumps(draft or OPENAI_DRAFT)}],
                     }],
                 })
+            if request.url.path == "/storage/v1/bucket/mistake-sources":
+                return httpx.Response(404, json={"statusCode": "404", "error": "Bucket not found"})
             if request.url.path.startswith("/auth/v1/admin/users/"):
                 return httpx.Response(200, json={})
             raise AssertionError(f"Unexpected request: {request.url}")

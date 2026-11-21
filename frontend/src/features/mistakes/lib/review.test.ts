@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MistakeEntry } from '@/shared/types';
 import { gradeReview, reviewResultText, reviewStatus } from '@/features/mistakes/lib/review';
-import { getStageLabel } from './spacedRepetition';
+import { getStageLabel, reviewRating } from './spacedRepetition';
 
 const TODAY = '2026-10-07';
 const card = (changes: Partial<MistakeEntry> = {}): MistakeEntry => ({
@@ -46,16 +46,23 @@ describe('grading a review', () => {
     expect(gradeReview(almost, 'EASY', TODAY).status).toBe('MASTERED');
   });
 
-  it('uses at least two days for HARD on a new card', () => {
-    expect(gradeReview(card({ reviewStage: 0 }), 'HARD', TODAY)).toMatchObject({ reviewStage: 0, nextReviewDate: '2026-10-09' });
+  it('uses one day for HARD on a stage-0 card so HARD never spaces longer than stage 0', () => {
+    expect(gradeReview(card({ reviewStage: 0 }), 'HARD', TODAY)).toMatchObject({ reviewStage: 0, nextReviewDate: '2026-10-08' });
+  });
+
+  it('maps quiz misses to AGAIN even when the learner clicks Hiểu rồi', () => {
+    expect(reviewRating(true, 'A', 'B')).toBe('AGAIN');
+    expect(reviewRating(false, 'B', 'B')).toBe('AGAIN');
+    expect(reviewRating(true, 'B', 'B')).toBe('GOOD');
+    expect(reviewRating(true, null, '')).toBe('GOOD');
   });
 
   it.each([
     [99, 4, '2026-10-22'],
-    [-2, 0, '2026-10-09'],
+    [-2, 0, '2026-10-08'],
     [2.8, 2, '2026-10-11'],
-    [Number.NaN, 0, '2026-10-09'],
-    [Number.POSITIVE_INFINITY, 0, '2026-10-09']
+    [Number.NaN, 0, '2026-10-08'],
+    [Number.POSITIVE_INFINITY, 0, '2026-10-08']
   ])('bounds legacy stage %s before computing a HARD interval', (storedStage, stage, date) => {
     const after = gradeReview(card({ reviewStage: storedStage }), 'HARD', TODAY);
     expect(after).toMatchObject({ reviewStage: stage, nextReviewDate: date, status: 'NEEDS_REVIEW' });

@@ -18,12 +18,12 @@ async function openReview(page: Page) {
   return page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
 }
 
-// The old four self-ratings (Quên / Khó / Tốt / Dễ) became two buttons: "Vẫn chưa chắc" is AGAIN, "Hiểu rồi" is GOOD after a
-// right pick and HARD after a wrong one. The "Dễ" (EASY) rating is no longer offered, so its case was dropped.
-for (const [label, pick, button, stage, days] of [
-  ['Vẫn chưa chắc after a right pick (again)', 'B', 'Vẫn chưa chắc', 0, 1],
-  ['Hiểu rồi after a wrong pick (hard)', 'A', 'Hiểu rồi', 2, 4],
-  ['Hiểu rồi after a right pick (good)', 'B', 'Hiểu rồi', 3, 14],
+// Two self-check buttons: "Vẫn chưa chắc" is ALWAYS AGAIN; choosing a wrong quiz option ALSO schedules AGAIN
+// (tomorrow) even after clicking "Hiểu rồi", because understanding an explanation is not active recall yet.
+for (const [label, pick, button, stage, days, summaryText] of [
+  ['Vẫn chưa chắc after a right pick (again)', 'B', 'Vẫn chưa chắc', 0, 1, 'Ôn lại ngày mai 1'],
+  ['Hiểu rồi after a wrong pick (again)', 'A', 'Hiểu rồi', 0, 1, 'Ôn lại ngày mai 1'],
+  ['Hiểu rồi after a right pick (good)', 'B', 'Hiểu rồi', 3, 14, 'Hiểu rồi 1'],
 ] as const) {
   test(`self-rating ${label} persists its own schedule and survives reload`, async ({ page }) => {
     const review = await openReview(page);
@@ -39,12 +39,48 @@ for (const [label, pick, button, stage, days] of [
     });
     expect(saved).toMatchObject({ stage, count: 3, status: 'NEEDS_REVIEW', days });
     const done = page.getByRole('dialog', { name: 'Ôn xong', exact: true });
-    await expect(done).toContainText(button === 'Hiểu rồi' ? 'Hiểu rồi 1' : 'Ôn lại ngày mai 1');
+    await expect(done).toContainText(summaryText);
     await done.getByRole('button', { name: 'Về Sổ tay', exact: true }).click();
     await page.reload();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0].nextReviewDate)).toBe(saved.date);
   });
 }
+
+test('desktop Enter activates the focused rating button instead of forcing Hiểu rồi, and Undo restores the prior grade', async ({ page }) => {
+  const review = await openReview(page);
+  await review.getByRole('button', { name: /^\(B\)/ }).click();
+  const unsure = review.getByRole('button', { name: 'Vẫn chưa chắc', exact: true });
+  await unsure.focus();
+  await page.keyboard.press('Enter');
+  const done = page.getByRole('dialog', { name: 'Ôn xong', exact: true });
+  await expect(done).toContainText('Ôn lại ngày mai 1');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0].reviewStage)).toBe(0);
+  await done.getByRole('button', { name: 'Hoàn tác câu vừa chấm', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Ôn câu sai', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0].reviewStage)).toBe(2);
+  await page.getByRole('button', { name: 'Hiểu rồi', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Ôn xong', exact: true })).toContainText('Hiểu rồi 1');
+});
+
+test('Today review task caps the session at 15 due cards when more than 15 are due', async ({ page }) => {
+  await gotoPage(page, '/');
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+    const now = new Date().toISOString();
+    data.mistakes = Array.from({ length: 20 }, (_, i) => ({
+      id: `due-${i}`, part: 5, category: 'OTHER', status: 'NEEDS_REVIEW',
+      question: `Question ${i + 1} ____ ready.`, questionContext: `Question ${i + 1} ____ ready.`,
+      options: ['(A) is', '(B) are'], correctAnswer: '(A) is', userMistake: '', answerSource: 'PROVIDED',
+      tags: [], sourceTestName: 'Cap test', reviewStage: 0, reviewCount: 0,
+      nextReviewDate: '2020-01-01', createdAt: now, updatedAt: now, deletedAt: null,
+    }));
+    localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: /Ôn 15 câu sai|Bắt đầu/ }).first().click();
+  const review = page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
+  await expect(review).toContainText('1 / 15');
+});
 
 test('keyboard traversal stays inside the phone review dialog and wraps on its visible controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

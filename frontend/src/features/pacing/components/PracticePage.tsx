@@ -37,7 +37,7 @@ function PracticeWorkspace({ owner, resultDialogBlocked = false, onEditSession, 
   if (b.status === 'running' || b.status === 'paused') {
     return (
       <BakeryRun
-        label={label} recipe={mode === 'FULL_READING' ? dishName(mode) : `${dishName(mode)} ${label}`}
+        mode={mode} label={label} recipe={mode === 'FULL_READING' ? dishName(mode) : `${dishName(mode)} ${label}`}
         questions={b.questions} plannedMinutes={b.plannedMinutes} progress={b.progress}
         clock={b.clock} plannedClock={b.plannedClock} paused={b.paused} hot={b.hot}
         steps={b.steps} at={b.at} pace={paceWords(b.planned / Math.max(1, b.questions))} error={b.error}
@@ -66,7 +66,7 @@ function PracticeWorkspace({ owner, resultDialogBlocked = false, onEditSession, 
     <>
     <PageTip id="practice" />
     <BakeryChoose
-      mode={mode} label={label} choices={b.choices}
+      mode={mode} label={label} choices={b.choices} part7Options={b.part7Options}
       reason={free.on ? FREE_HINT : suggested === mode && suggestion ? suggestion.reason
         : suggestion && suggested ? `Gợi ý hôm nay: ${b.choices.find(c => c.mode === suggested)?.label ?? ''} · ${suggestion.reason}` : ''}
       lastTime={b.lastTime} minutes={b.plannedMinutes} canMinus={b.canMinus}

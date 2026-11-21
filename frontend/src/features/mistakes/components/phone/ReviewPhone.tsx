@@ -4,7 +4,7 @@ import type { MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
-import type { ReviewAnswer } from '@/features/mistakes/lib/spacedRepetition';
+import { reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/mistakes/lib/spacedRepetition';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { findFocus, groupLabel, groupNumbers, splitFocus } from '@/features/mistakes/lib/passageFocus';
 import { loadMistakes } from '@/shared/data/storage';
@@ -18,9 +18,16 @@ import './phone-notebook.css';
 interface Props {
   cards: MistakeEntry[];
   onClose: () => void;
-  onGrade: (snapshot: MistakeEntry, answer: ReviewAnswer) => { before: MistakeEntry; after: MistakeEntry };
+  onGrade: (snapshot: MistakeEntry, answer: ReviewAnswer) => { before: MistakeEntry; after: MistakeEntry; undo?: () => void };
   /** Passed by App for the old review; this one grades from the snapshot it was given, so it is unused. */
   onReload?: (id: string) => MistakeEntry | undefined;
+}
+
+interface LastGrade {
+  index: number;
+  rating: ReviewRating;
+  picked: string | null;
+  undo: () => void;
 }
 
 /** Signed links for the photos attached to a manual card; empty until loaded, `failed` when they cannot be opened. */
@@ -48,6 +55,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const [picked, setPicked] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [tally, setTally] = useState({ got: 0, again: 0 });
+  const [lastGrade, setLastGrade] = useState<LastGrade | null>(null);
   const [error, setError] = useState('');
   const [fullOpen, setFullOpen] = useState(false);
   const [zoom, setZoom] = useState(false);
@@ -59,19 +67,40 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const answer = quiz && quiz.correctIndex >= 0 ? quiz.options[quiz.correctIndex].letter : '';
   const before = card ? getUserChoice(card) : '';
   const right = picked !== null && picked === answer;
+  const missedQuiz = picked !== null && !right;
   const photos = usePhotos(card?.sourceImageIds);
-  // Text first: only a card with an attached photo and no reading text shows the photo in the passage box.
-  const showPhoto = Boolean(card?.sourceImageIds?.length) && !context && card.part >= 6;
-  const showPassage = card ? card.part >= 6 && (Boolean(context) || showPhoto) : false;
+  // Text first: any card (including Part 1 photos and Part 6–7 passages) with an attached photo and no text shows it.
+  const showPhoto = Boolean(card?.sourceImageIds?.length) && !context;
+  const showPassage = card ? (card.part >= 6 && Boolean(context)) || showPhoto : false;
 
   const pick = (letter: string) => { if (!revealed) { setPicked(letter); setRevealed(true); } };
   const grade = (understood: boolean) => {
     if (!card) return;
     try {
-      onGrade(card, understood ? (right || picked === null ? 'GOOD' : 'HARD') : 'AGAIN');
-      setTally(t => understood ? { ...t, got: t.got + 1 } : { ...t, again: t.again + 1 });
+      const rating = reviewRating(understood, picked, answer);
+      const graded = onGrade(card, rating);
+      setTally(t => rating === 'AGAIN' ? { ...t, again: t.again + 1 } : { ...t, got: t.got + 1 });
+      setLastGrade(graded.undo ? { index, rating, picked, undo: graded.undo } : null);
       setIndex(i => i + 1); setPicked(null); setRevealed(false); setError(''); setFullOpen(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được lịch ôn.'); }
+  };
+
+  const undoLast = () => {
+    if (!lastGrade) return;
+    try {
+      lastGrade.undo();
+      setTally(t => lastGrade.rating === 'AGAIN'
+        ? { ...t, again: Math.max(0, t.again - 1) }
+        : { ...t, got: Math.max(0, t.got - 1) });
+      setIndex(lastGrade.index);
+      setPicked(lastGrade.picked);
+      setRevealed(true);
+      setLastGrade(null);
+      setError('');
+      setFullOpen(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Chưa hoàn tác được lần chấm vừa rồi.');
+    }
   };
 
   if (done) {
@@ -81,13 +110,22 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
           <Soc state="cheerC" size={150} />
           <h2>Xong {cards.length} câu!</h2>
           <p>Hiểu rồi <b>{tally.got}</b> · Ôn lại ngày mai <b>{tally.again}</b>. Hôm nay đã tính vào chuỗi ngày.</p>
+          {error && <p role="alert" className="pr-err">{error}</p>}
         </div>
-        <div className="pr-bot"><button type="button" className="pr-btn pr-btn--go" onClick={onClose}>Về Sổ tay</button></div>
+        <div className="pr-bot">
+          {lastGrade && <button type="button" className="pr-btn pr-btn--white" onClick={undoLast}>Hoàn tác</button>}
+          <button type="button" className="pr-btn pr-btn--go" onClick={onClose}>Về Sổ tay</button>
+        </div>
       </div>, document.body);
   }
 
   const ex = card.explanation;
-  const why = ex?.analysis || card.trapTip || '';
+  const quickTip = ex?.quickTip?.trim() || '';
+  const analysis = ex?.analysis?.trim() || card.trapTip?.trim() || '';
+  const evidence = ex?.evidence?.trim() || '';
+  const paraphrase = ex?.paraphrase?.trim() || '';
+  const translation = ex?.translation?.trim() || '';
+  const keyVocabulary = ex?.keyVocabulary?.trim() || '';
   const chip = categoryChip(card.category);
   const partColor = PART_COLORS[card.part] ?? '#7c5ce0';
   const meta = (
@@ -102,6 +140,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
       <div className="pr-top">
         <button type="button" className="pr-x" aria-label="Thoát ôn tập" onClick={onClose}>×</button>
         <span className="pr-bar" role="progressbar" aria-valuemin={0} aria-valuemax={cards.length} aria-valuenow={index}><i style={{ width: `${(index + (revealed ? 0.5 : 0)) / cards.length * 100}%` }} /></span>
+        {lastGrade && <button type="button" className="pr-undo" onClick={undoLast}>↶ Hoàn tác</button>}
         <small>{index + 1}/{cards.length}</small>
       </div>
 
@@ -138,9 +177,14 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
         {revealed ? (
           <div className="pr-why">
             <Soc state={right ? 'cheerC' : 'idle'} size={56} />
-            <div>
-              <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{why || (right ? '' : `Đáp án là (${answer || card.correctAnswer}).`)}</p>
-              {showPassage && ex?.evidence?.trim() && <span className="pr-quote">“{ex.evidence.trim().replace(/^["“”]|["“”]$/g, '')}”</span>}
+            <div className="pr-why-body">
+              {quickTip && <p><b>Mẹo nhanh:</b> {quickTip}</p>}
+              <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{analysis || (!quickTip && !right ? `Đáp án là (${answer || card.correctAnswer}).` : '')}</p>
+              {evidence && <span className="pr-quote">“{evidence.replace(/^["“”]|["“”]$/g, '')}”</span>}
+              {paraphrase && <p className="pr-extra"><b>Tương đương:</b> {paraphrase}</p>}
+              {translation && <p className="pr-extra"><b>Dịch nghĩa:</b> {translation}</p>}
+              {keyVocabulary && <p className="pr-extra"><b>Từ vựng:</b> {keyVocabulary}</p>}
+              {missedQuiz && <p className="pr-note">Vừa chọn nhầm · Sóc sẽ hẹn ôn lại ngày mai kể cả khi bạn bấm “Hiểu rồi”.</p>}
             </div>
           </div>
         ) : (
@@ -187,7 +231,7 @@ function PassageBox({ card, context, short, photo, meta, onFull, onZoom }: {
   }, []);
 
   return (
-    <section className={'pr-psg' + (short ? ' is-short' : '')} aria-label="Đoạn văn">
+    <section className={'pr-psg' + (short ? ' is-short' : '')} aria-label={card.part >= 6 ? 'Đoạn văn' : 'Ảnh đề'}>
       <div className="pr-phd">{meta}{photo ? <span className="pr-src">Ảnh bạn đính kèm</span> : siblings && <span className="pr-grp">{siblings}</span>}</div>
       {photo ? (
         <div className="pr-shot">

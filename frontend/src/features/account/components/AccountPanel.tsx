@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Cloud, LogOut, Mail, RefreshCw, Trash2 } from 'lucide-react';
+import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
 import './account.css';
 
 export type AccountStatus = 'guest' | 'loading' | 'syncing' | 'synced' | 'disconnected' | 'error' | 'choice';
@@ -55,6 +56,7 @@ export const AccountPanel: React.FC<Props> = ({ available, status, email, error,
           <button type="button" disabled={busy || !inputEmail.trim()} onClick={() => sent ? void act(() => onVerifyOtp(inputEmail.trim(), token.trim())) : void sendCode()} className="st-btn"><Mail size={15} aria-hidden="true" />{sent ? 'Xác nhận mã' : 'Gửi mã qua email'}</button>
           </>}
         </>}
+      <LegalLinks />
     </section>
   );
 };

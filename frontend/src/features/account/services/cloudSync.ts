@@ -1,5 +1,5 @@
 import type { DataBundle } from '@/shared/data/dataBundle';
-import { readAccountBundle, writeAccountBundle } from '@/shared/data/dataBundle';
+import { clearRetiredCopies, consumeTransferredGuestBundle, readAccountBundle, writeAccountBundle } from '@/shared/data/dataBundle';
 import { bundleFromRecords, exchangeCloudChanges, rememberSync } from '@/features/account/services/cloud';
 import { hasCustomizedProfile, reconcileBundles, type TransferChoice } from '@/shared/data/syncMerge';
 
@@ -16,6 +16,8 @@ export async function finishAccountTransfer(userId: string, device: DataBundle, 
   const reply = await exchangeCloudChanges(userId, selected, choice === 'device', true);
   writeAccountBundle(userId, bundleFromRecords(reply.records));
   rememberSync(userId, reply, true);
+  // Consume the browser's guest bundle so signing into a second account later cannot absorb it.
+  consumeTransferredGuestBundle();
 }
 
 export async function synchronizeAccount(userId: string, shouldApply: () => boolean = () => true): Promise<boolean> {
@@ -29,5 +31,6 @@ export async function synchronizeAccount(userId: string, shouldApply: () => bool
   writeAccountBundle(userId, final);
   // Advance the cursor only AFTER the account snapshot is saved successfully.
   rememberSync(userId, reply, Boolean(reply.resetBarrier));
+  if (reply.resetBarrier) clearRetiredCopies(userId);
   return JSON.stringify(previous) !== JSON.stringify(final);
 }

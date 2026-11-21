@@ -4,7 +4,7 @@ import { PhoneSheet } from '@/app/components/phone';
 import { usePhoneShell } from '@/app/components/phone/PhoneShellContext';
 import { Soc } from '@/shared/ui/soc/Soc';
 import {
-  PRACTICE_SCORE_SOURCE, SCORE_REFERENCE_SOURCES, convertRawToListeningScore, convertRawToReadingScore, getConcordanceByToeic
+  PRACTICE_SCORE_SOURCE, SCORE_REFERENCE_SOURCES, convertRawToListeningScore, convertRawToReadingScore, getConcordanceByToeic, getPracticeScoreRange
 } from '@/shared/domain/etsScoring';
 import type { StudySession } from '@/shared/types';
 import { buildJourney, clampCount, convertTests } from '../lib/convert';
@@ -47,6 +47,8 @@ export function ConvertPhone({ sessions, targetScore, gear = [] }: ConvertPhoneP
 
   const scaledListening = convertRawToListeningScore(listening);
   const scaledReading = convertRawToReadingScore(reading);
+  const listeningRange = getPracticeScoreRange('listening', listening);
+  const readingRange = getPracticeScoreRange('reading', reading);
   const total = scaledListening + scaledReading;
   const tier = getConcordanceByToeic(scaledListening, scaledReading);
   const journey = useMemo(() => buildJourney(tier?.cefr ?? null), [tier?.cefr]);
@@ -110,7 +112,9 @@ export function ConvertPhone({ sessions, targetScore, gear = [] }: ConvertPhoneP
           <ScoreWheel label="Nghe" points={`${scaledListening}đ`} color="#1c8fe3" value={listening} onChange={n => setSkill('listening', n)} />
           <ScoreWheel label="Đọc" points={`${scaledReading}đ`} color="#14b8a6" value={reading} onChange={n => setSkill('reading', n)} />
         </div>
-        <p className="cvp__cap">Vuốt lên xuống để chọn số câu đúng</p>
+        <p className="cvp__cap">
+          Khoảng IIBC 2023: Nghe {listeningRange.min}–{listeningRange.max} · Đọc {readingRange.min}–{readingRange.max}
+        </p>
       </section>
 
       {infoOpen && (

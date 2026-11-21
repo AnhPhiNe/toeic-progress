@@ -46,7 +46,9 @@
 .cv-skill { margin-top: 14px; background: #fff; border-radius: 18px; padding: 12px 14px; box-shadow: 0 0 0 2px #efe6cf; }
 .cv-skill__t { display: flex; align-items: center; gap: 10px; }
 .cv-skill__t b { font-weight: 900; font-size: 15px; }
-.cv-skill__pts { margin-left: auto; font-weight: 900; font-size: 15px; border-radius: 10px; padding: 3px 9px; color: var(--c); background: color-mix(in srgb, var(--c) 11%, #fff); font-variant-numeric: tabular-nums; }
+.cv-skill__scores { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.cv-skill__range { font-weight: 800; font-size: 12px; color: #8c8266; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cv-skill__pts { font-weight: 900; font-size: 15px; border-radius: 10px; padding: 3px 9px; color: var(--c); background: color-mix(in srgb, var(--c) 11%, #fff); font-variant-numeric: tabular-nums; }
 .cv-skill__row { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 .cv-step { flex: none; width: 38px; height: 38px; border: 0; border-radius: 12px; background: #f6f2e6; box-shadow: 0 3px 0 #e6dcc4; font-weight: 900; font-size: 20px; line-height: 1; color: var(--rd-ink); cursor: pointer; user-select: none; touch-action: manipulation; }
 .cv-step:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #e6dcc4; }

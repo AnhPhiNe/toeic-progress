@@ -81,8 +81,21 @@ async def load_snapshot(gateway, owner: str, body: AnalyzeAttemptRequest) -> dic
         explanation = extra.get("explanation") if isinstance(extra.get("explanation"), dict) else {}
         question = extra.get("question") or row.get("question_context") or ""
         options = row.get("options") or []
-        # Auto-generated position-only drafts provide no evidence of cause.
-        if not options and not row.get("correct_answer") and not row.get("trap_tip") and not extra.get("userReason"):
+        # Auto-generated position-only drafts provide no evidence of cause,
+        # but Listening cards tagged with a mistake reason (category != OTHER) do.
+        has_listening_reason = row.get("part") in (1, 2, 3, 4) and str(row.get("category") or "OTHER") != "OTHER"
+        has_explanation = any(
+            str(explanation.get(key) or "").strip()
+            for key in ("quickTip", "analysis", "evidence", "paraphrase", "questionType")
+        )
+        if (
+            not options
+            and not row.get("correct_answer")
+            and not row.get("trap_tip")
+            and not extra.get("userReason")
+            and not has_listening_reason
+            and not has_explanation
+        ):
             continue
         evidence.append({"id": row["id"], "part": row["part"], "question": question[:1200],
                          "options": [str(option)[:300] for option in options[:4]],

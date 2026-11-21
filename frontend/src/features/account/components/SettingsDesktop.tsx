@@ -8,6 +8,7 @@ import { goalLabel, shownGoal } from '@/features/today/lib/goalSetup';
 import { examDateLabel, examState } from '@/features/today/lib/goalEdit';
 import { localDate } from '@/features/pacing/lib/pacingModel';
 import { PencilIcon } from '@/features/today/components/goal/GoalEditor';
+import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
 import { SettingsGoalEditor, SETTINGS_GOAL_POPOVER_ID } from './SettingsGoalEditor';
 
 /** Fields a desktop tile (or the header) edits on its own; "account" is the account popover. */
@@ -293,6 +294,7 @@ export function SettingsDesktop(props: Props) {
               try { await onSignIn(); } finally { setSignInBusy(false); }
             }}><GoogleLogo />Đăng nhập với Google</button>
             <small>Lưu lên mây để học trên mọi máy</small>
+            <LegalLinks className="stb-signin__legal" />
             {accountError && <p role="alert" className="st-err">{accountError}</p>}
           </div>
         ) : null}
@@ -354,6 +356,7 @@ export function SettingsDesktop(props: Props) {
             <Trash2 size={17} aria-hidden="true" />{resetBusy ? 'Đang xóa dữ liệu…' : 'Xóa toàn bộ dữ liệu'}
           </button>
         </>}
+        <LegalLinks className="stb-foot__legal" />
       </footer>
 
       {editing === 'targetScore' && <SettingsGoalEditor phone={false} anchor={buttons.current.targetScore ?? null} beside={tiles.current.targetScore ?? dialog} profile={profile} onSaveField={onSaveGoal} onClose={stableClose} />}

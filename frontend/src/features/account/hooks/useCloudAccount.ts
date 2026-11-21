@@ -8,7 +8,7 @@ import type { AccountStatus } from '@/features/account/components/AccountPanel';
 import { apiAvailable } from '@/shared/api/api';
 import { SLOW_AFTER_MS, backoffDelay, shouldKeepWaking } from '@/features/account/lib/syncStatus';
 
-interface PendingTransfer { userId: string; device: DataBundle; account: DataBundle }
+interface PendingTransfer { userId: string; device: DataBundle; account: DataBundle; accountHasData: boolean }
 
 export function useCloudAccount(onDataChanged: () => void) {
   const [status, setStatus] = useState<AccountStatus>(apiAvailable ? 'loading' : 'guest');
@@ -156,14 +156,14 @@ export function useCloudAccount(onDataChanged: () => void) {
         const remote = await fetchCloudBundle(id);
         if (run !== generation.current) return;
         const device = readGuestBundle();
-        if (hasPersonalData(device) && hasPersonalData(remote.bundle)) {
+        if (hasPersonalData(device)) {
           deactivateAccount();
-          setPendingTransfer({ userId: id, device, account: remote.bundle });
+          setPendingTransfer({ userId: id, device, account: remote.bundle, accountHasData: hasPersonalData(remote.bundle) });
           setStatus('choice');
           onDataChanged();
           return;
         }
-        await finishAccountTransfer(id, device, remote.bundle, hasPersonalData(device) ? 'merge' : 'account');
+        await finishAccountTransfer(id, device, remote.bundle, 'account');
       } else {
         await synchronizeAccount(id, () => run === generation.current && !resetting.current);
       }

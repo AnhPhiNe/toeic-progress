@@ -14,7 +14,9 @@ const stamp = (page: Page, label: string) => page.locator('.cv-stamp', { hasText
 
 test('the passport shows the equivalents, qualifies per skill and never assigns C2 from TOEIC', async ({ page }) => {
   await open(page);
-  await expect(page.getByTestId('estimated-total')).toHaveText('900');
+  await expect(page.getByTestId('estimated-total')).toHaveText('925');
+  await expect(page.getByText('IIBC 2023: 475–495', { exact: true })).toBeVisible();
+  await expect(page.getByText('IIBC 2023: 425–490', { exact: true })).toBeVisible();
   await expect(stamp(page, 'CEFR')).toContainText('B2');
   await expect(stamp(page, 'IELTS')).toContainText('5.5–6.5');
   await expect(stamp(page, 'VSTEP')).toContainText('Bậc 4');
@@ -23,11 +25,11 @@ test('the passport shows the equivalents, qualifies per skill and never assigns 
   await page.getByLabel('Số câu đúng Nghe', { exact: true }).fill('80');
   await page.getByLabel('Số câu đúng Đọc', { exact: true }).fill('95');
   await expect(stamp(page, 'CEFR')).toContainText('B1');
-  await expect(page.getByTestId('estimated-total')).toHaveText('770');
+  await expect(page.getByTestId('estimated-total')).toHaveText('820');
   await expect(page.getByRole('button', { name: /ETS 2024 Test 04/ })).toHaveAttribute('aria-pressed', 'false');
   await page.getByLabel('Số câu đúng Nghe', { exact: true }).fill('87');
   await page.getByLabel('Số câu đúng Đọc', { exact: true }).fill('87');
-  await expect(page.getByTestId('estimated-total')).toHaveText('805');
+  await expect(page.getByTestId('estimated-total')).toHaveText('815');
   await expect(stamp(page, 'CEFR')).toContainText('B2');
   await page.getByRole('button', { name: /ETS 2024 Test 04/ }).click();
   await expect(page.getByLabel('Số câu đúng Nghe', { exact: true })).toHaveValue('97');
@@ -46,11 +48,11 @@ test('the passport shows the equivalents, qualifies per skill and never assigns 
   await expect(page.getByRole('link', { name: 'ETS', exact: true })).toHaveAttribute('href', 'https://www.ets.org/pdfs/toeic/toeic-mapping-cefr-reference.pdf');
 });
 
-test('the converter uses conservative ranges, wrong-answer mode and stepper controls', async ({ page }) => {
+test('the converter uses smooth estimates inside IIBC ranges, wrong-answer mode and stepper controls', async ({ page }) => {
   await open(page);
   await page.getByLabel('Số câu đúng Nghe', { exact: true }).fill('0');
   await page.getByLabel('Số câu đúng Đọc', { exact: true }).fill('93');
-  await expect(page.getByTestId('estimated-total')).toHaveText('430');
+  await expect(page.getByTestId('estimated-total')).toHaveText('445');
   await expect(page.getByRole('button', { name: 'Giảm số câu đúng Nghe', exact: true })).toBeDisabled();
   await expect(stamp(page, 'CEFR')).toContainText('Dưới A1');
   await page.getByRole('button', { name: 'Câu sai', exact: true }).click();
@@ -65,9 +67,9 @@ test('the converter uses conservative ranges, wrong-answer mode and stepper cont
   await expect(page.getByRole('button', { name: 'Tăng số câu đúng Đọc', exact: true })).toBeDisabled();
   await page.getByLabel('Số câu đúng Nghe', { exact: true }).fill('99');
   await page.getByLabel('Số câu đúng Đọc', { exact: true }).fill('99');
-  await expect(page.getByTestId('estimated-total')).toHaveText('935');
+  await expect(page.getByTestId('estimated-total')).toHaveText('975');
   await page.getByRole('button', { name: 'Tăng số câu đúng Nghe', exact: true }).click();
-  await expect(page.getByTestId('estimated-total')).toHaveText('955');
+  await expect(page.getByTestId('estimated-total')).toHaveText('980');
   await page.getByLabel('Số câu đúng Đọc', { exact: true }).press('ArrowUp');
   await expect(page.getByTestId('estimated-total')).toHaveText('990');
   await page.getByRole('slider', { name: 'Thanh số câu đúng Đọc' }).focus();
@@ -98,7 +100,7 @@ test('legacy records with invalid raw counts cannot crash the calculator or disp
   await page.reload();
   await expect(page.getByLabel('Số câu đúng Nghe',{exact:true})).toHaveValue('97');
   await expect(page.getByLabel('Số câu đúng Đọc',{exact:true})).toHaveValue('94');
-  await expect(page.getByTestId('estimated-total')).toHaveText('900');
+  await expect(page.getByTestId('estimated-total')).toHaveText('925');
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.find((s:{id:string})=>s.id==='fractional-legacy').rawListening)).toBe(88.5);
   expect(errors).toEqual([]);
 });
@@ -113,20 +115,21 @@ test('an untouched converter follows the newest test and explicit numbers stay u
   await page.reload();
   await expect(page.getByLabel('Số câu đúng Nghe', { exact: true })).toHaveValue('100');
   await expect(page.getByLabel('Số câu đúng Đọc', { exact: true })).toHaveValue('99');
-  await expect(page.getByTestId('estimated-total')).toHaveText('955');
+  await expect(page.getByTestId('estimated-total')).toHaveText('980');
   await page.getByLabel('Số câu đúng Nghe', { exact: true }).fill('30');
   await expect(page.getByRole('button', { name: /New latest one error/ })).toHaveAttribute('aria-pressed', 'false');
   await page.getByRole('button', { name: /ETS 2024 Test 04/ }).click();
   await expect(page.getByLabel('Số câu đúng Nghe', { exact: true })).toHaveValue('97');
   await expect(page.getByLabel('Số câu đúng Đọc', { exact: true })).toHaveValue('94');
-  await expect(page.getByTestId('estimated-total')).toHaveText('900');
+  await expect(page.getByTestId('estimated-total')).toHaveText('925');
 });
 
 test('phones put the estimate first, step each skill on its wheel and restore the latest test', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page);
   const result = page.getByRole('region', { name: 'Kết quả quy đổi', exact: true });
-  await expect(result.getByTestId('estimated-total')).toHaveText('900');
+  await expect(result.getByTestId('estimated-total')).toHaveText('925');
+  await expect(page.getByText('Khoảng IIBC 2023: Nghe 475–495 · Đọc 425–490', { exact: true })).toBeVisible();
   await expect(result).toContainText('CEFR');
   await expect(result).toContainText('B2');
   const latest = page.getByRole('button', { name: /^ETS 2024 Test 04/ });
@@ -141,13 +144,13 @@ test('phones put the estimate first, step each skill on its wheel and restore th
   await expect(latest).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.press('PageUp');
   await expect(listening).toHaveAttribute('aria-valuenow', '86');
-  await expect(result.getByTestId('estimated-total')).not.toHaveText('900');
+  await expect(result.getByTestId('estimated-total')).not.toHaveText('925');
   const reading = page.getByRole('spinbutton', { name: 'Đọc: số câu', exact: true });
   await reading.focus();
   await page.keyboard.press('PageUp');
   await expect(reading).toHaveAttribute('aria-valuenow', '84');
   await latest.click();
-  await expect(result.getByTestId('estimated-total')).toHaveText('900');
+  await expect(result.getByTestId('estimated-total')).toHaveText('925');
   await expect(listening).toHaveAttribute('aria-valuenow', '97');
   await expect(reading).toHaveAttribute('aria-valuenow', '94');
   await page.getByRole('button', { name: 'Nguồn và cách ước tính', exact: true }).click();

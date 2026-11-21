@@ -11,6 +11,7 @@ interface Props {
   mode: PacingMode;
   label: string;
   choices: BakeryChoice[];
+  part7Options?: BakeryChoice[];
   /** Reason line under the headline. */
   reason: string;
   /** Time of the latest run of the chosen Part ("52:10"), for Sóc's bubble. */
@@ -93,8 +94,9 @@ export function BakeryChoose(p: Props) {
   const [going, setGoing] = useState(false);
   const timeout = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timeout.current), []);
-  const selected = p.choices.findIndex(c => c.mode === p.mode);
-  const chosen = p.choices[selected];
+  const isPart7 = p.mode === 'PART_7' || p.mode === 'PART_7_SINGLE' || p.mode === 'PART_7_MULTI';
+  const selected = p.choices.findIndex(c => c.mode === (isPart7 ? 'PART_7' : p.mode));
+  const chosen = (isPart7 ? p.part7Options?.find(c => c.mode === p.mode) : undefined) ?? p.choices[selected];
   const dish = dishName(p.mode);
   const free = p.mode === 'POMODORO';
 
@@ -158,6 +160,18 @@ export function BakeryChoose(p: Props) {
         </div>
       </div>
 
+      {isPart7 && p.part7Options && p.part7Options.length > 0 && (
+        <div className="bk-submodes" role="group" aria-label="Chế độ Part 7">
+          <span className="bk-submodes__lb">Chọn phạm vi Part 7:</span>
+          {p.part7Options.map(opt => (
+            <button key={opt.mode} type="button" className={'bk-submode' + (p.mode === opt.mode ? ' is-on' : '')}
+              aria-pressed={p.mode === opt.mode} onClick={() => p.onPick(opt.mode)}>
+              <b>{opt.label}</b><span>{opt.questions} câu · {opt.minutes}′</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="bk-ctrl">
         <button type="button" className="rd-btn bk-fire" data-guide="practice" onClick={light}><FlameIcon /> Bật lò</button>
         <div className="bk-step" role="group" aria-label="Số phút">
@@ -172,7 +186,7 @@ export function BakeryChoose(p: Props) {
           </button>
           {recipe && (free
             ? <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức"><p className="bk-recipe-free">{FREE_RECIPE(p.minutes)}</p></div>
-            : <RecipePop label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />)}
+            : <RecipePop mode={p.mode} label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />)}
         </div>
       </div>
       {p.error && <p role="alert" className="bk-err">{p.error}</p>}
@@ -210,19 +224,25 @@ export const FREE_RECIPE = (minutes: number) => `Chọn một việc, học ${mi
 /** Whole minutes for a recipe step ("10p"); seconds for very short steps. */
 const stepTime = (seconds: number) => (seconds >= 60 ? `${Math.round(seconds / 60)}p` : formatSpan(seconds));
 
-/** "Công thức" preview: the same five steps as the running oven's recipe card, with minutes per step at the chosen time. */
-function RecipePop({ label, questions, minutes }: { label: string; questions: number; minutes: number }) {
+/** "Công thức" preview: the same steps as the running oven's recipe card, with minutes per step at the chosen time. */
+function RecipePop({ mode, label, questions, minutes }: { mode: PacingMode; label: string; questions: number; minutes: number }) {
   const total = Math.max(1, questions);
   const per = (minutes * 60) / total;
+  const steps = recipeSteps(total, 0, mode, minutes * 60);
+  const fullReading = mode === 'FULL_READING';
   return (
     <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức">
-      <b>{label} · {paceWords(per)} một câu</b>
+      <b>{fullReading ? `${label} · chiến thuật gợi ý 12/8/55p` : `${label} · ${paceWords(per)} một câu`}</b>
       <ol>
-        {recipeSteps(total, 0).map((step, i) => (
-          <li key={step.from}><em>{i + 1}</em><span>Câu {step.from}–{step.to} · {step.name.toLowerCase()}</span><small>{stepTime((step.to - step.from + 1) * per)}</small></li>
+        {steps.map((step, i) => (
+          <li key={step.from}>
+            <em>{i + 1}</em>
+            <span>Câu {step.from}–{step.to} · {fullReading ? step.name : step.name.toLowerCase()}</span>
+            <small>{stepTime(step.durationSeconds ?? (step.to - step.from + 1) * per)}</small>
+          </li>
         ))}
       </ol>
-      <p>Quá giờ thì đánh dấu, qua câu sau.</p>
+      <p>{fullReading ? 'Chiến thuật phân bổ gợi ý khi luyện đề (không phải quy định chia giờ của ETS). Quá giờ thì đánh dấu, qua câu sau.' : 'Quá giờ thì đánh dấu, qua câu sau.'}</p>
     </div>
   );
 }

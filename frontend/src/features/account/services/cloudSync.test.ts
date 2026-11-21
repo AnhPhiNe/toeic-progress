@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ exchange: vi.fn(), remember: vi.fn() }));
 vi.mock('@/features/account/services/cloud', async original => ({ ...await original<typeof import('@/features/account/services/cloud')>(), exchangeCloudChanges: mocks.exchange, rememberSync: mocks.remember }));
 import { recordsFromBundle } from '@/features/account/services/cloud';
-import { activateAccount, emptyBundle, getActiveAccountId, readAccountBundle, writeAccountBundle } from '@/shared/data/dataBundle';
+import { activateAccount, emptyBundle, getActiveAccountId, readAccountBundle, readGuestBundle, writeAccountBundle, writeDataBundle } from '@/shared/data/dataBundle';
+import { hasPersonalData } from '@/shared/data/syncMerge';
 import { finishAccountTransfer, synchronizeAccount } from '@/features/account/services/cloudSync';
 
 const values = new Map<string, string>();
@@ -11,6 +12,8 @@ beforeEach(() => {
   values.clear(); failSave = false; vi.clearAllMocks();
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => values.get(key) ?? null,
+    get length() { return values.size; },
+    key: (index: number) => [...values.keys()][index] ?? null,
     setItem: (key: string, value: string) => { if (failSave) throw new Error('quota'); values.set(key, value); },
     removeItem: (key: string) => values.delete(key)
   });
@@ -69,5 +72,28 @@ describe('sync persistence boundaries', () => {
     await finishAccountTransfer('alice', guest, account, 'merge');
     expect(readAccountBundle('alice')?.profile.targetScore).toBe(800);
     expect(readAccountBundle('alice')?.profile.name).toBe('Alice');
+  });
+
+  it('consumes the browser guest bundle after transfer so a second account cannot inherit it', async () => {
+    const guest = emptyBundle();
+    guest.vocabLog = [{ id: 'g1', date: '2026-11-20', count: 15, updatedAt: guest.profile.updatedAt, deletedAt: null }];
+    writeDataBundle(guest);
+    expect(hasPersonalData(readGuestBundle())).toBe(true);
+    mocks.exchange.mockImplementation(async (_id, bundle) => ({ cursor: 11, records: recordsFromBundle(bundle), hasRecords: true }));
+    await finishAccountTransfer('alice', guest, emptyBundle(), 'merge');
+    expect(readAccountBundle('alice')?.vocabLog).toHaveLength(1);
+    expect(hasPersonalData(readGuestBundle())).toBe(false);
+    expect(readGuestBundle().vocabLog).toEqual([]);
+  });
+
+  it('clears local retired copies and AI caches when receiving a remote reset barrier', async () => {
+    const before = emptyBundle();
+    writeAccountBundle('alice', before);
+    values.set('toeic_attempt_advice_alice_v2', 'stale advice');
+    values.set('toeic_explain_tickets_v1', JSON.stringify({ c1: { owner: 'alice', ticket: 't1', expires: 9999999999999 } }));
+    mocks.exchange.mockResolvedValue({ cursor: 20, records: recordsFromBundle(emptyBundle()), hasRecords: true, resetBarrier: true });
+    await synchronizeAccount('alice');
+    expect(values.has('toeic_attempt_advice_alice_v2')).toBe(false);
+    expect(values.has('toeic_explain_tickets_v1')).toBe(false);
   });
 });

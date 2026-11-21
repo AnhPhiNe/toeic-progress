@@ -39,8 +39,14 @@ export function wrongTrend(counts: number[]): Trend | null {
 export const cardBelongsToTest = (card: MistakeEntry, session: StudySession) =>
   !card.deletedAt && (card.sessionId === session.id || (!card.sessionId && !!card.sourceTestName && card.sourceTestName === session.testName));
 
-/** A card has been looked at again in the review flow, or the learner marked it as known. */
-export const cardReviewed = (card: MistakeEntry) => card.status === 'MASTERED' || (card.reviewCount ?? 0) > 0;
+/**
+ * A card has been looked at again in the review flow, marked as known, or—for Listening Parts 1–4
+ * where cards are logged by mistake reason without a text quiz—recorded with a mistake reason.
+ */
+export const cardReviewed = (card: MistakeEntry) =>
+  card.status === 'MASTERED'
+  || (card.reviewCount ?? 0) > 0
+  || (card.part <= 4 && ((Boolean(card.category) && card.category !== 'OTHER') || Boolean(card.userReason?.trim())));
 
 export interface PartChest {
   part: PartNumber;

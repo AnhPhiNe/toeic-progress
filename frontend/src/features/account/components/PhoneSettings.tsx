@@ -4,6 +4,7 @@ import type { UserProfile } from '@/shared/types';
 import { PhoneSheet } from '@/app/components/phone/PhoneSheet';
 import { profileDisplayName, profileInitials } from '@/app/components/profileInitials';
 import { goalLabel } from '@/features/today/lib/goalSetup';
+import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
 import { SettingsGoalEditor } from './SettingsGoalEditor';
 import './account.css';
 
@@ -96,6 +97,7 @@ export function PhoneSettings({ profile, syncLabel, syncTone = 'local', editing,
         </div>
         {signOutAction}
         {dataNotice && <div className="mt-3 space-y-3">{dataNotice}</div>}
+        <LegalLinks className="st-ph__legal" />
       </section>
 
       {editing === 'targetScore' && <SettingsGoalEditor phone profile={profile} onSaveField={onSaveField} onClose={() => setEditing(null)} />}

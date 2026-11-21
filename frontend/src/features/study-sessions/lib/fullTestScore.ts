@@ -6,7 +6,7 @@ type ScoreResult = Pick<StudySession, 'rawListening' | 'rawReading' | 'scaledLis
 
 function inferEstimateVersion(session: StudySession): string | null {
   if (!session.partScores) return null;
-  for (const version of [SCORE_CONVERSION_VERSION, 'iibc-mock-2023-lower-v1', 'legacy-reference-v1']) {
+  for (const version of [SCORE_CONVERSION_VERSION, 'iibc-mock-2023-perfect-v2', 'iibc-mock-2023-lower-v1', 'legacy-reference-v1']) {
     const result = calculateFromPartScores(session.partScores, version);
     if (result.scaledListening === session.scaledListening && result.scaledReading === session.scaledReading) return version;
   }

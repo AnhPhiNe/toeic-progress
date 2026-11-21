@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { activateAccount, clearRetiredCopies, compactDeletedRecords, emptyBundle, readDataBundle, writeDataBundle } from '@/shared/data/dataBundle';
+import { activateAccount, clearRetiredCopies, compactDeletedRecords, emptyBundle, readDataBundle, StorageWriteError, writeAccountBundle, writeDataBundle } from '@/shared/data/dataBundle';
 import { createBackupSnapshot, resetToCleanSlate } from '@/shared/data/storage';
 import { parseBackup } from '@/shared/data/backup';
 
@@ -23,16 +23,40 @@ describe('deleted learning content', () => {
     values.set('toeic_form_draft_v1:bob:session%3Anew', 'bob draft');
     values.set('toeic_form_draft_v1:guest:session%3Anew', 'guest draft');
     values.set('toeic_attempt_advice_alice_v1', 'derived report');
+    values.set('toeic_attempt_advice_alice_v2', 'derived v2 report');
     values.set('toeic_attempt_advice_bob_v1', 'bob report');
+    values.set('toeic_attempt_advice_bob_v2', 'bob v2 report');
+    values.set('toeic_explain_tickets_v1', JSON.stringify({
+      c1: { owner: 'alice', ticket: 't1', expires: 9999999999999 },
+      c2: { owner: 'bob', ticket: 't2', expires: 9999999999999 },
+      c3: { owner: null, ticket: 't3', expires: 9999999999999 },
+    }));
     values.set('toeic_progress_account_alice_v3', 'saved records');
     clearRetiredCopies('alice');
     expect(values.has('toeic_form_draft_v1:alice:session%3Anew')).toBe(false);
     expect(values.has('toeic_form_draft_v1:alice:mistake%3Anew')).toBe(false);
     expect(values.has('toeic_attempt_advice_alice_v1')).toBe(false);
+    expect(values.has('toeic_attempt_advice_alice_v2')).toBe(false);
+    expect(JSON.parse(values.get('toeic_explain_tickets_v1')!)).toEqual({
+      c2: { owner: 'bob', ticket: 't2', expires: 9999999999999 },
+      c3: { owner: null, ticket: 't3', expires: 9999999999999 },
+    });
     expect(values.get('toeic_form_draft_v1:bob:session%3Anew')).toBe('bob draft');
     expect(values.get('toeic_form_draft_v1:guest:session%3Anew')).toBe('guest draft');
     expect(values.get('toeic_attempt_advice_bob_v1')).toBe('bob report');
+    expect(values.get('toeic_attempt_advice_bob_v2')).toBe('bob v2 report');
     expect(values.get('toeic_progress_account_alice_v3')).toBe('saved records');
+  });
+
+  it('wraps QuotaExceededError in writeAccountBundle into a StorageWriteError', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      get length() { return values.size; },
+      key: (index: number) => [...values.keys()][index] ?? null,
+      setItem: () => { throw new DOMException('full', 'QuotaExceededError'); },
+      removeItem: (key: string) => values.delete(key),
+    });
+    expect(() => writeAccountBundle('alice', emptyBundle())).toThrow(StorageWriteError);
   });
   it('stores only the deleted record ID and sync metadata', () => {
     const bundle = emptyBundle();

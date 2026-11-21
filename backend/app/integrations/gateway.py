@@ -148,8 +148,8 @@ class Gateway:
         return await read_results(self.openai, images, self.ip_hash(user_id) if user_id else None)
 
     async def delete_account(self, user_id: str):
-        if self.settings.source_images_enabled:
-            await self.source_images.purge(user_id)
+        # Always purge any private source images even when new uploads are disabled.
+        await self.source_images.purge(user_id, allow_missing=True)
         response = await self.client.delete(
             f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
             headers=self.admin_headers(),

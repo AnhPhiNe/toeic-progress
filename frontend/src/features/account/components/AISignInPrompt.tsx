@@ -1,4 +1,5 @@
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
+import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
 import { Soc } from '@/shared/ui/soc/Soc';
 
 /**
@@ -24,6 +25,7 @@ export function AISignInPrompt({ onSignIn, onClose }: { onSignIn: () => void; on
           className="mx-auto mt-2 block min-h-10 cursor-pointer px-4 text-[13.5px] font-black text-[#2f8a42] dark:text-emerald-300">
           Để sau, tôi nhập tay
         </button>
+        <LegalLinks className="mt-3 justify-center text-[12px]" />
       </div>
     </div>
   );

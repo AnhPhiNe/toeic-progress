@@ -255,6 +255,31 @@ def test_blank_drafts_and_total_only_are_insufficient_without_spending_ai():
         assert not any(url.host == OPENAI or url.path.endswith("/reserve_ai_request") for url, _, _ in calls)
 
 
+def test_listening_reason_only_cards_enter_attempt_evidence():
+    listening_note = {
+        "id": "listen-1", "updated_at": STAMP, "session_id": "attempt-a", "part": 3,
+        "category": "LISTENING_SPEED", "question_context": "Part 3 · Câu 45",
+        "user_mistake": "", "correct_answer": "", "trap_tip": "", "options": [], "tags": [], "extra": {},
+    }
+    blank_listening = {**listening_note, "id": "listen-blank", "category": "OTHER"}
+    advice = {"priorities": [{
+        "title": "Part 3: tốc độ nghe",
+        "observation": "Part 3 bạn ghi nhận bị trượt theo tốc độ nói ở câu 45.",
+        "practice": "Mở lại audio Part 3, nghe chậm rồi shadowing cụm từ nối để bắt kịp tốc độ.",
+        "part": 3, "evidenceIds": ["listen-1"], "minutes": 15,
+    }]}
+    with analysis_api(notes=[listening_note, blank_listening], advice=advice) as (client, calls):
+        response = client.post(
+            "/api/v1/ai/analyze-attempt",
+            json=payload(noteVersions={"listen-1": STAMP, "listen-blank": STAMP}),
+        )
+        assert response.status_code == 200, response.json()
+        assert response.json()["report"]["linkedNotes"] == 1
+        sent = json.loads(openai_calls(calls)[0][1]["input"][0]["content"][0]["text"])
+        assert [item["id"] for item in sent["evidence"]] == ["listen-1"]
+        assert sent["evidence"][0]["category"] == "LISTENING_SPEED"
+
+
 def test_useful_numbered_lesson_steps_and_grammar_notation_are_allowed():
     advice = {"priorities": [{**ADVICE["priorities"][0],
                 "practice": "Bước 1: tìm động từ. Bước 2: đối chiếu S + be + V3 ở câu Part 5 trước khi xem đáp án."}]}

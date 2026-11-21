@@ -27,7 +27,13 @@ export const FREE: PacingMode = 'POMODORO';
 const CHOICES: Array<{ mode: PacingMode; label: string }> = [
   { mode: 'PART_5', label: 'Part 5' }, { mode: 'PART_6', label: 'Part 6' }, { mode: 'PART_7', label: 'Part 7' }, { mode: 'FULL_READING', label: 'Cả phần Đọc' }, { mode: FREE, label: 'Mẻ tự do' }
 ];
-export const bakeryLabel = (mode: PacingMode) => CHOICES.find(c => c.mode === mode)?.label ?? PRESETS[mode].name;
+export const PART_7_MODES: Array<{ mode: PacingMode; shortLabel: string; label: string }> = [
+  { mode: 'PART_7', shortLabel: 'Toàn bộ', label: 'Part 7' },
+  { mode: 'PART_7_SINGLE', shortLabel: 'Đoạn đơn', label: 'Part 7 · Đoạn đơn' },
+  { mode: 'PART_7_MULTI', shortLabel: 'Đôi/ba', label: 'Part 7 · Đôi/ba' },
+];
+const ALL_MODES = [...CHOICES, ...PART_7_MODES.slice(1)];
+export const bakeryLabel = (mode: PacingMode) => ALL_MODES.find(c => c.mode === mode)?.label ?? PRESETS[mode].name;
 export const bakeryClock = (seconds: number) => {
   const s = Math.max(0, Math.round(seconds));
   return s >= 3600 ? `${Math.floor(s / 3600)}:${formatClock(s % 3600)}` : formatClock(s);
@@ -113,8 +119,8 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
   const stop = () => { if (window.confirm('Dừng phiên này? Thời gian đang bấm sẽ không được lưu.')) timer.reset(mode); };
 
   // Recipe: a step ticks when the pace time passes its last question; the pace says nothing about the learner's real position.
-  const at = paceQuestion(spent, planned, questions);
-  const steps = useMemo(() => free ? [] : recipeSteps(questions, at), [free, questions, at]);
+  const at = paceQuestion(spent, planned, questions, mode);
+  const steps = useMemo(() => free ? [] : recipeSteps(questions, at, mode, planned), [free, questions, at, mode, planned]);
   const stepIndex = currentStepIndex(steps);
   useEffect(() => {
     const before = step.current;
@@ -190,6 +196,10 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
     const best = bestSeconds(runs, c.mode);
     return { mode: c.mode, label: c.label, questions: PRESETS[c.mode].questions, minutes: PRESETS[c.mode].minutes, record: best === null ? null : short(best) };
   });
+  const part7Options: BakeryChoice[] = PART_7_MODES.map(c => {
+    const best = bestSeconds(runs, c.mode);
+    return { mode: c.mode, label: c.shortLabel, questions: PRESETS[c.mode].questions, minutes: PRESETS[c.mode].minutes, record: best === null ? null : short(best) };
+  });
   const rows: RecentRow[] = recent.slice(0, 60).map(s => {
     const parts = getPracticeParts(s), run = runOf(s.id);
     const secs = run?.actualSeconds;
@@ -199,7 +209,7 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
     }
     const wrongTotal = parts.reduce((a, p) => a + (p.total - p.correct), 0), total = parts.reduce((a, p) => a + p.total, 0);
     const graded = run ? run.correctAnswers !== undefined : parts.length > 0;
-    const kind = run?.partType, runMode = kind && isPacingMode(kind) && CHOICES.some(c => c.mode === kind) ? kind : null;
+    const kind = run?.partType, runMode = kind && isPacingMode(kind) && ALL_MODES.some(c => c.mode === kind) ? kind : null;
     const name = parts.length ? parts.map(p => `Part ${p.part}`).join(' + ') : runMode ? bakeryLabel(runMode) : run?.presetName ?? 'Part';
     const gradedWrong = run && run.correctAnswers !== undefined && run.totalQuestions ? run.totalQuestions - run.correctAnswers : wrongTotal;
     return {
@@ -220,7 +230,7 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
     paused: snapshot.status === 'paused', hot: isLastStretch(left, planned), timeUp: spent >= planned,
     steps, at, wrong, setWrong, error: error || timer.error,
     recordGain: gain === null ? null : formatSpan(gain),
-    suggestion, suggested, choices, rows, weekCount, lastTime: last === null || free ? null : short(last), canMinus: planned > 60,
+    suggestion, suggested, choices, part7Options, rows, weekCount, lastTime: last === null || free ? null : short(last), canMinus: planned > 60,
     start, pick, stop, save, setMinutes,
     logResult: () => onOpenSessionLogger({ sessionType: 'PART_PRACTICE', partNumber: PRESETS[mode].part ?? undefined }),
     /** Mẻ tự do: whether it is on, resting, today's count and the break that comes next. */
