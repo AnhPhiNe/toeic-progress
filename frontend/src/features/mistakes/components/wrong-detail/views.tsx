@@ -3,7 +3,7 @@ import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import type { PartNumber } from '@/shared/domain/questionNumbers';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { CHOICE_LETTERS, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
-import { EMPTY_FORM, isEmptyForm, openDoubt, type CardForm, type Choice } from '@/features/mistakes/lib/detailForm';
+import { EMPTY_FORM, isEmptyForm, isRightForm, openDoubt, type CardForm, type Choice } from '@/features/mistakes/lib/detailForm';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 import { isExplaining } from '@/features/mistakes/services/explanationQueue';
@@ -64,7 +64,7 @@ function Sheet({ number, part, form, ask, onAnswer }: { number: number; part: nu
     <span className="wd-abc" role="group" aria-label={`Câu ${number}: ${sheetLabel(chosen, form.answer, form.choice === 'BLANK')}`}>
       {lettersFor(part).map(letter => (
         <button key={letter} type="button" disabled={letter === chosen} aria-label={`Đáp án đúng ${letter}`} aria-pressed={letter === form.answer}
-          className={letter === chosen ? 'is-me' : letter === form.answer ? 'is-ok' : ask ? 'is-ask' : ''} onClick={() => onAnswer(letter)}>{letter}</button>
+          className={letter === form.answer ? 'is-ok' : letter === chosen ? 'is-me' : ask ? 'is-ask' : ''} onClick={() => onAnswer(letter)}>{letter}</button>
       ))}
     </span>
   );
@@ -527,6 +527,7 @@ export function ReviewView({ phone, testName, total, doneCount, onClose, screen,
   const sub = screen.part ? <>Part {screen.part} · lý do Sóc chọn sẵn, chạm để đổi{!phone && <> · <span className="wd-key is-me">■</span> bạn chọn <span className="wd-key is-ok">■</span> đáp án</>}</>
     : `${testName} · kiểm tra rồi lưu`;
   const groupTo = screen.group ? (screen.part === 6 ? screen.group + 3 : screen.part === 3 || screen.part === 4 ? screen.group + 2 : suggestGroups(7, [screen.group])[0]?.to) : undefined;
+  const hasRightCards = screen.ids.some(id => isRightForm(forms[id]));
   return (
     <>
       <Head phone={phone} title={title} sub={sub} back={onBack} pill={<Pill done={doneCount} total={total} />} onClose={onClose} />
@@ -558,7 +559,7 @@ export function ReviewView({ phone, testName, total, doneCount, onClose, screen,
         <span className="wd-sp" />
         <div className="wd-foot-acts">
           {canAddImages && <button type="button" className="rd-btn rd-btn--white wd-side" onClick={onBack}>{phone ? '+ Ảnh' : '+ Thêm ảnh'}</button>}
-          {!saveCount && screen.skipped.length > 0 && !writing
+          {!saveCount && (screen.skipped.length > 0 || hasRightCards) && !writing
             ? <button type="button" className="rd-btn rd-btn--pink wd-main" onClick={onBack}>Xong · Quay lại</button>
             : <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!saveCount} onClick={onSave}>{saveCount ? `Lưu ${saveCount} câu` : 'Lưu'}</button>}
         </div>
@@ -569,7 +570,9 @@ export function ReviewView({ phone, testName, total, doneCount, onClose, screen,
 
 function ReviewRow({ card, form, open, phone, onToggle, onUpdate }: { card: MistakeEntry; form: CardForm; open: boolean; phone: boolean;
   onToggle: () => void; onUpdate: (patch: Partial<CardForm>) => void }) {
-  const number = card.questionNumber!, doubt = openDoubt(form), ask = Boolean(form.ai) && !form.answer;
+  const number = card.questionNumber!, doubt = openDoubt(form), isRight = isRightForm(form);
+  const explaining = isExplaining(card.id);
+  const ask = Boolean(form.ai) && !form.answer && !explaining;
   const question = form.ai?.question?.trim().split('\n')[0] ?? '';
   const reasons = reasonsFor(card.part).map(([category]) => category);
   const keys = (event: KeyboardEvent) => {
@@ -578,19 +581,22 @@ function ReviewRow({ card, form, open, phone, onToggle, onUpdate }: { card: Mist
     event.preventDefault(); onUpdate({ category: reasons[digit - 1] });
   };
   return (
-    <div className={'wd-rr' + (doubt || ask ? ' is-unsure' : '') + (open ? ' is-open' : '') + (phone ? ' is-phone' : '')} onKeyDown={keys}>
+    <div className={'wd-rr' + (isRight ? ' is-right' : (doubt || ask ? ' is-unsure' : '')) + (open ? ' is-open' : '') + (phone ? ' is-phone' : '')} onKeyDown={keys}>
       <b className="wd-rn">Câu {number}</b>
       <button type="button" className="wd-qt" aria-expanded={open} onClick={onToggle} aria-label={`Mở câu ${number}`}>{question || 'Chưa có câu hỏi · chạm để điền'}</button>
       <span className="wd-sheet">
         {form.choice === 'BLANK' && <span className="wd-pl" style={{ marginRight: 6 }}>Bỏ trống</span>}
         <Sheet number={number} part={card.part} form={form} ask={ask} onAnswer={letter => onUpdate({ answer: letter })} />
-        {isExplaining(card.id) && <span className="wd-spin" role="img" aria-label="Đang viết lời giải" />}
+        {explaining && <span className="wd-spin" role="img" aria-label="Đang viết lời giải" />}
       </span>
-      <ReasonChips part={card.part} number={number} value={form.category} onPick={category => onUpdate({ category })} />
-      {doubt ? <div className="wd-un"><span className="wd-pl">chưa chắc</span>Sóc giải ra {doubt}, trang đề ghi {form.answer}
+      {isRight
+        ? <div className="wd-right-pill">✓ Làm đúng · không lưu câu sai</div>
+        : <ReasonChips part={card.part} number={number} value={form.category} onPick={category => onUpdate({ category })} />}
+      {!isRight && (doubt ? <div className="wd-un"><span className="wd-pl">kiểm tra lại</span>Sóc giải ra {doubt}, trang đề ghi {form.answer}
           <button type="button" onClick={() => onUpdate({ answer: doubt })}>Đổi sang {doubt}</button>
           <button type="button" onClick={() => form.ai && onUpdate({ ai: { ...form.ai, answerDoubt: '' } })}>Giữ {form.answer}</button></div>
-        : ask ? <div className="wd-un"><span className="wd-pl">chưa chắc</span>Ảnh không có đáp án. Chạm chữ cái đúng.{isExplaining(card.id) ? ' (Sóc đang tự giải…)' : ''}</div> : null}
+        : Boolean(form.ai) && !form.answer && explaining ? <div className="wd-solving" role="status"><i className="wd-spin" aria-hidden="true" />Sóc đang tự giải đáp án…</div>
+        : ask ? <div className="wd-un"><span className="wd-pl">thiếu đáp án</span>Chưa có đáp án đúng. Chạm chữ cái đúng trên lưới.</div> : null)}
       {open && <RowDetail card={card} form={form} phone={phone} onUpdate={onUpdate} />}
     </div>
   );

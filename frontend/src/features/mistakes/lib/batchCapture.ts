@@ -25,7 +25,8 @@ const cardFields = z.object({
   questionContext: z.string().min(1).max(16000), question: z.string().max(16000).optional(), context: z.string().max(16000).optional(),
   userMistake: z.string().max(4000), correctAnswer: z.string().max(1000), trapTip: z.string().max(4000).optional(),
   options: z.array(z.string().max(1000)).max(4).optional(), tags: z.array(z.string().max(50)).max(5),
-  userReason: z.string().max(2000).optional(), optionNotes: z.array(optionNoteSchema).max(4).optional(), explanation: explanationSchema.optional()
+  userReason: z.string().max(2000).optional(), optionNotes: z.array(optionNoteSchema).max(4).optional(), explanation: explanationSchema.optional(),
+  answerDoubt: z.enum(['A', 'B', 'C', 'D']).optional()
 });
 
 /** Preflight every card before the single storage mutation. IDs belong to the draft and survive failed saves. */
@@ -54,7 +55,7 @@ export function buildBatchEntries(items: BatchExtractedItem[], sourceTestName: s
       userMistake: draft.userMistake || learnerMistake(input), correctAnswer: draft.correctAnswer,
       answerSource: draft.correctAnswer ? draft.answerSource : 'MISSING', category: item.category, tags: draft.tags ?? [],
       trapTip: draft.trapTip || undefined, optionNotes: draft.optionNotes?.length ? draft.optionNotes : undefined,
-      explanation: draft.explanation ?? undefined
+      explanation: draft.explanation ?? undefined, answerDoubt: draft.answerDoubt || undefined
     };
     if (!cardFields.safeParse(entry).success) throw new Error(`Câu ${item.number}: nội dung vượt giới hạn hoặc chưa hợp lệ. Chưa lưu câu nào; bản nháp vẫn được giữ.`);
     if (!fitsSyncPayload(entry)) throw new Error(`Câu ${item.number}: nội dung vượt 32 KiB, chưa thể đồng bộ. Rút gọn ngữ cảnh trước khi lưu; chưa lưu câu nào.`);

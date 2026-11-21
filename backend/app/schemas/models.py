@@ -355,6 +355,7 @@ class SyncRequest(BaseModel):
 class MistakeInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     max_analysis_length: ClassVar[int] = 8000
+    check_context_for_multiple_questions: ClassVar[bool] = True
     question: str = Field(default="", max_length=4000)
     options: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(default_factory=list, max_length=4)
     rawText: str | None = Field(default=None, min_length=1, max_length=8000)
@@ -396,7 +397,8 @@ class MistakeInput(BaseModel):
             raise ValueError("Không nhớ/bỏ trống không có phương án đã chọn")
         if self.sourceAnswer and self.sourceAnswer not in labels:
             raise ValueError("Đáp án nguồn chưa khớp phương án")
-        if len(labels) < 2 or not self.question.strip() or has_multiple_questions(self.question + "\n" + self.context):
+        multi_text = self.question + "\n" + self.context if self.check_context_for_multiple_questions else self.question
+        if len(labels) < 2 or not self.question.strip() or has_multiple_questions(multi_text):
             raise ValueError("Mỗi lần nhập một câu hỏi")
         if len(self.as_text()) > self.max_analysis_length:
             raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
@@ -878,6 +880,9 @@ class PageExplanationInput(MistakeInput):
     # Existing per-field bounds limit real text to about 18k. Allow JSON's worst
     # case escaping without rejecting a valid 8k passage containing line breaks.
     max_analysis_length: ClassVar[int] = 120000
+    # Context is cryptographically bound to one extracted question via explainTicket's item_digest;
+    # legitimate Part 6/7 passages often contain numbered blanks (e.g. 139., 140.) or labeled lists.
+    check_context_for_multiple_questions: ClassVar[bool] = False
 
 
 class ExplainItem(BaseModel):

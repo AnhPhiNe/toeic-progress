@@ -607,3 +607,87 @@ def test_ungraded_single_choice_and_graded_blank_and_clean_page_are_preserved(ap
     assert len(esc_sent) == 2
     assert esc_sent[0]["model"] == "gpt-6-luna" and esc_sent[0]["reasoning"] == {"effort": "low"}
     assert esc_sent[1]["model"] == "gpt-6.1-terra" and esc_sent[1]["reasoning"] == {"effort": "medium"}
+
+
+def test_explain_batch_accepts_part6_context_with_line_start_blank_numbers(api):  # noqa: F811
+    part6_context = (
+        "Thank you for your message.\n"
+        "139. Please be advised that this situation is ____.\n"
+        "140. The highway is under repair.\n"
+        "141. We will have a police officer patrol the area.\n"
+        "142. A radar speed detector will be installed ____ the traffic."
+    )
+    page_items = {"items": [
+        item(139, question="Thank you for your message. ____", context=part6_context,
+             options=["(A) Opt A", "(B) Opt B", "(C) Opt C", "(D) Opt D"],
+             userChoice="B", correctAnswer="", answerSource="MISSING"),
+    ]}
+    req = page(questions=[{"number": 139, "part": 6}])
+    with api(draft=page_items) as (client, _calls):
+        read_res = client.post("/api/v1/ai/extract-page", json=req)
+        assert read_res.status_code == 200
+        ticket = read_res.json()["explainTicket"]
+        explain_res = client.post("/api/v1/ai/explain-batch", json={
+            "request_id": "66666666-6666-4666-8666-666666666666",
+            "consent": True,
+            "provider": "openai",
+            "ticket": ticket,
+            "items": [{
+                "number": 139,
+                "input": {
+                    "part": 6,
+                    "question": "Thank you for your message. ____",
+                    "context": part6_context,
+                    "options": ["(A) Opt A", "(B) Opt B", "(C) Opt C", "(D) Opt D"],
+                    "userChoiceState": "CHOSEN",
+                    "userChoice": "B",
+                    "sourceAnswer": "",
+                },
+            }],
+        })
+        assert explain_res.status_code == 200
+
+
+def test_wide_part_paper_photo_does_not_waste_escalation_when_page_questions_found(api):  # noqa: F811
+    wide_p6 = [{"number": n, "part": 6} for n in range(131, 147)]
+    found_four = {"items": [
+        item(135, context="Passage with —135— —136— —137— —138—"),
+        item(136, context="Passage with —135— —136— —137— —138—"),
+        item(137, context="Passage with —135— —136— —137— —138—"),
+        item(138, context="Passage with —135— —136— —137— —138—"),
+    ]}
+    with api(drafts=[found_four]) as (client, calls):
+        res = client.post("/api/v1/ai/extract-page", json=page(questions=wide_p6, photoMode=True))
+        assert res.status_code == 200
+        assert [entry["number"] for entry in res.json()["items"]] == [135, 136, 137, 138]
+    sent = [call[2] for call in calls if call[0] == "api.openai.com"]
+    assert len(sent) == 1
+    assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "low"}
+
+
+def test_read_results_escalation_preserves_pass1_scores_when_retry_also_empty(api):  # noqa: F811
+    perfect_scores = {
+        "wrong": [], "skipped": [],
+        "scores": {"listening": 495, "reading": 495, "total": 990},
+        "timing": {
+            "totalSeconds": None, "listeningSeconds": None, "readingSeconds": None,
+            "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
+        },
+    }
+    empty_retry = {
+        "wrong": [], "skipped": [],
+        "scores": {"listening": None, "reading": None, "total": None},
+        "timing": {
+            "totalSeconds": None, "listeningSeconds": None, "readingSeconds": None,
+            "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
+        },
+    }
+    with api(drafts=[perfect_scores, empty_retry]) as (client, calls):
+        res = client.post("/api/v1/ai/read-results", json={
+            "request_id": "77777777-7777-4777-8777-777777777777", "consent": True, "provider": "openai",
+            "images": [{"dataUrl": picture()}], "photoMode": False,
+        })
+        assert res.status_code == 200
+        assert res.json()["scores"] == {"listening": 495, "reading": 495, "total": 990}
+    assert len([call for call in calls if call[0] == "api.openai.com"]) == 2
+

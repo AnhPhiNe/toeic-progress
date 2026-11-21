@@ -190,9 +190,11 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="pc-top"><button type="button" className="pc-x" aria-label="Đóng" onClick={close}>×</button><b>Sóc đang đọc</b></div>
           <div className="pc-read">
             <Soc state="think" size={150} />
-            <h3>Sóc đang đọc {state.images.length} ảnh…</h3>
+            <h3>{state.solving ? 'Sóc đang tự giải & đối chiếu…' : `Sóc đang đọc ${state.images.length} ảnh…`}</h3>
             {state.note && <p className="pc-note">{state.note}</p>}
-            <p role="status">{state.items.length ? `Đã thấy ${state.items.length} câu sai.` : 'Chưa thấy câu sai nào, Sóc đang tìm tiếp.'} Thường mất khoảng {Math.max(20, state.requestsTotal * 20)} giây.</p>
+            <p role="status">{state.solving && state.items.length
+              ? `Đã đọc ${state.items.length} câu, Sóc đang tự giải và đối chiếu đáp án.`
+              : state.items.length ? `Đã thấy ${state.items.length} câu.` : 'Đang quét câu hỏi trên ảnh.'} Thường mất khoảng {Math.max(20, state.requestsTotal * 20)} giây.</p>
             <ul className="pc-thumbs is-read" aria-label="Ảnh đang đọc">
               {state.images.map((image, index) => (
                 <li key={image.id} className={'is-' + image.status}><img src={image.url} alt={`Ảnh ${index + 1}`} />
@@ -208,7 +210,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
         <>
           <div className="pc-top">
             <button type="button" className="pc-x" aria-label="Đóng" onClick={close}>×</button>
-            <b>{state.items.length ? `Soát ${state.items.length} câu sai` : 'Kết quả đọc ảnh'}</b>
+            <b>{state.items.length ? (state.items.some(item => isRightAnswer(item.draft)) ? `Soát ${state.items.length} câu đã đọc` : `Soát ${state.items.length} câu sai`) : 'Kết quả đọc ảnh'}</b>
           </div>
           <div className="pc-rev">
             {state.restored && <p className="pc-note" role="status">Đã khôi phục các câu bạn chưa lưu lần trước.</p>}

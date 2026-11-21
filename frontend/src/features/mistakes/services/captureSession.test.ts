@@ -19,6 +19,7 @@ const request = (questions: number[], images = [image('q')], contextImages: Retu
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.explainBatch.mockResolvedValue({ items: [], failed: [], retry: [] });
   __resetCaptureForTests();
 });
 
@@ -120,34 +121,58 @@ describe('capture session', () => {
     expect(captureState().items.map(item => item.number)).toEqual([135, 136, 137, 138]);
   });
 
-  it('solves ungraded items immediately via explainBatchWithAI and auto-unticks questions the learner answered right', async () => {
-    setPart(6); setTestName('Free Paper Test');
+  it('solves and verifies ALL read items (both MISSING and PROVIDED) via explainBatchWithAI, surfacing answerDoubt and unticking right answers', async () => {
+    setPart(7); setTestName('Free Paper Test');
     addFiles(files(1));
-    mocks.group.mockResolvedValueOnce({ requests: [request([139, 140])], split: false, compressed: false });
-    // Page reading returns 139 (learner chose B, no answer key) and 140 (learner chose B, no answer key)
+    mocks.group.mockResolvedValueOnce({ requests: [request([155, 156, 157])], split: false, compressed: false });
+    // Page reading returns 155 (2-mark PROVIDED C), 156 (1-mark MISSING), 157 (1-mark MISSING)
     mocks.extract.mockResolvedValueOnce({
       items: [
-        { number: 139, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '', answerSource: 'MISSING' }) },
-        { number: 140, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '', answerSource: 'MISSING' }) },
+        { number: 155, draft: draft({ part: 7, userChoice: 'D', correctAnswer: '(C) c', answerSource: 'PROVIDED' }) },
+        { number: 156, draft: draft({ part: 7, userChoice: 'D', correctAnswer: '', answerSource: 'MISSING' }) },
+        { number: 157, draft: draft({ part: 7, userChoice: 'A', correctAnswer: '', answerSource: 'MISSING' }) },
       ],
       missing: [],
       explainTicket: 'ticket-solve',
       usage: { remaining: 26, limit: 27, guest: false },
     });
-    // AI solves 139 -> (D) d (learner was WRONG) and 140 -> (B) b (learner was RIGHT!)
+    // AI solves all 3 independently: disagrees with 155's 2nd mark (answerDoubt: 'B'), solves 156 -> D (right), 157 -> B (wrong)
     mocks.explainBatch.mockResolvedValueOnce({
       failed: [],
+      retry: [],
       items: [
-        { number: 139, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '(D) d', answerSource: 'AI_PROPOSED', category: 'VOCABULARY_TRAP' }) },
-        { number: 140, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '(B) b', answerSource: 'AI_PROPOSED', category: 'ADVANCED_GRAMMAR' }) },
+        { number: 155, draft: draft({ part: 7, userChoice: 'D', correctAnswer: '(C) c', answerSource: 'PROVIDED', answerDoubt: 'B', category: 'VOCABULARY_TRAP' }) },
+        { number: 156, draft: draft({ part: 7, userChoice: 'D', correctAnswer: '(D) d', answerSource: 'AI_PROPOSED', category: 'ADVANCED_GRAMMAR' }) },
+        { number: 157, draft: draft({ part: 7, userChoice: 'A', correctAnswer: '(B) b', answerSource: 'AI_PROPOSED', category: 'VOCABULARY_TRAP' }) },
       ],
     });
-    await startReading({ questions: [139, 140], getToken: async () => 'tok', contextSupported: true });
+    await startReading({ questions: [155, 156, 157], getToken: async () => 'tok', contextSupported: true });
     expect(mocks.explainBatch).toHaveBeenCalledOnce();
-    const [q139, q140] = captureState().items;
-    expect(q139.draft.correctAnswer).toBe('(D) d');
-    expect(q139.checked).toBe(true);
-    expect(q140.draft.correctAnswer).toBe('(B) b');
-    expect(q140.checked).toBe(false);
+    expect(mocks.explainBatch.mock.calls[0][1].map((item: { number: number }) => item.number)).toEqual([155, 156, 157]);
+    const [q155, q156, q157] = captureState().items;
+    expect(q155.draft.answerDoubt).toBe('B');
+    expect(q155.checked).toBe(true);
+    expect(q156.draft.correctAnswer).toBe('(D) d');
+    expect(q156.checked).toBe(false);
+    expect(q157.draft.correctAnswer).toBe('(B) b');
+    expect(q157.checked).toBe(true);
+    expect(captureState().solving).toBe(false);
+  });
+
+  it('surfaces a clear non-blocking note when immediate solving fails instead of failing silently', async () => {
+    setPart(6); setTestName('Paper Test');
+    addFiles(files(1));
+    mocks.group.mockResolvedValueOnce({ requests: [request([139])], split: false, compressed: false });
+    mocks.extract.mockResolvedValueOnce({
+      items: [{ number: 139, draft: draft({ part: 6, userChoice: 'B', correctAnswer: '', answerSource: 'MISSING' }) }],
+      missing: [],
+      explainTicket: 'ticket-err',
+      usage: { remaining: 26, limit: 27, guest: false },
+    });
+    mocks.explainBatch.mockRejectedValueOnce(new Error('timeout'));
+    await startReading({ questions: [139], getToken: async () => 'tok', contextSupported: true });
+    expect(captureState().phase).toBe('review');
+    expect(captureState().solving).toBe(false);
+    expect(captureState().note).toContain('chưa kịp tự giải đáp án');
   });
 });

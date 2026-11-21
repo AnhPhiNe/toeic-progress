@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AIMistakeParseResult, PageItem } from '@/features/mistakes/services/aiMistakeExtractor';
-import { chunkQuestions, dataUrlBytes, mergeItems, questionPreview, remainingQuestions, rowStatus,
+import { chunkQuestions, dataUrlBytes, mergeItems, openDraftDoubt, questionPreview, remainingQuestions, rowStatus, rowUnsureReason,
   type CaptureItem } from './captureBatch';
 
 /** A data URL that decodes to exactly `bytes` bytes (bytes must be a multiple of 3). */
@@ -80,8 +80,15 @@ describe('review helpers', () => {
     expect(rowStatus({ draft: draft({ answerSource: 'AI_PROPOSED' }) })).toBe('ok');
     expect(rowStatus({ draft: draft({ part: 2, options: ['(A) Yes.', '(B) No.', '(C) Tomorrow.'], correctAnswer: '(C) Tomorrow.' }) })).toBe('ok');
     expect(rowStatus({ draft: draft({ userChoice: '', userChoiceState: 'UNKNOWN' }) })).toBe('unsure');
+    expect(rowUnsureReason({ draft: draft({ userChoice: '', userChoiceState: 'UNKNOWN' }) })).toBe('Chưa rõ bạn chọn');
     expect(rowStatus({ draft: draft({ answerSource: 'MISSING', correctAnswer: '' }) })).toBe('unsure');
+    expect(rowUnsureReason({ draft: draft({ answerSource: 'MISSING', correctAnswer: '' }) })).toBe('Chưa có đáp án đúng');
     expect(rowStatus({ draft: draft({ options: ['(A) a', '(B) b'] }) })).toBe('unsure');
+    expect(rowUnsureReason({ draft: draft({ options: ['(A) a', '(B) b'] }) })).toBe('Thiếu phương án A–D');
+    expect(openDraftDoubt(draft({ correctAnswer: '(C) follow', answerDoubt: 'D' }))).toBe('D');
+    expect(rowStatus({ draft: draft({ correctAnswer: '(C) follow', answerDoubt: 'D' }) })).toBe('unsure');
+    expect(rowUnsureReason({ draft: draft({ correctAnswer: '(C) follow', answerDoubt: 'D' }) })).toBe('Sóc giải ra D, khác ảnh (C)');
+    expect(openDraftDoubt(draft({ correctAnswer: '(C) follow', answerDoubt: 'C' }))).toBe('');
   });
   it('shortens the stem to one line', () => {
     expect(questionPreview(draft({ question: 'The manager asked all staff to ______ the new safety rules by Friday afternoon, as the memo said earlier today.' }), 60))

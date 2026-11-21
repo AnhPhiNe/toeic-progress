@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.core.runtime import request_id_context
 from app.schemas.models import (
+    MAX_PAGE_ITEMS,
     RESULTS_OUTPUT_SCHEMA,
     MistakeDraft,
     OpenAIDraftOutput,
@@ -405,16 +406,16 @@ class OpenAIProvider:
                                 "Các câu vẫn được giữ; hãy thử lại hoặc ghi tay.") from error
         found, rejection_reasons, rejected = self._parse_page_items(output.items, numbers)
 
-        # Automatic max-1 escalation when OCR misses completely (screen) or misses >50% (paper photo) without rejections.
+        # Automatic max-1 escalation when OCR misses completely (0 items) or under-reads (<50%) on a narrow single-page
+        # paper target (<= MAX_PAGE_ITEMS). Wide full-Part searches (e.g. 16–54 questions) on a 3–4 question page only
+        # escalate when 0 items were found, avoiding a wasted second high-effort call.
         escalate_model = self.settings.openai_paper_ocr_model
         escalate_effort = "medium"
+        under_read_narrow_group = len(numbers) <= MAX_PAGE_ITEMS and len(found) * 2 < len(numbers)
         should_escalate = (
             rejected == 0
             and (model, effort) != (escalate_model, escalate_effort)
-            and (
-                (photo_mode and (len(found) == 0 or len(found) * 2 < len(numbers)))
-                or (not photo_mode and len(found) == 0)
-            )
+            and (len(found) == 0 or (photo_mode and under_read_narrow_group))
         )
         if should_escalate:
             seen_first = {number for number, _ in found}
@@ -564,9 +565,14 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
                 await provider._respond(key, build_payload(escalate_model, escalate_effort), provider.settings.openai_timeout_seconds,
                                         endpoint="read_results_escalate", owner_id=owner_id)
             )
-            wrong = sorted({number for number in retry_output.wrong if number in valid})
-            skipped = sorted({number for number in retry_output.skipped if number in valid} - set(wrong))
-            output = retry_output
+            retry_wrong = sorted({number for number in retry_output.wrong if number in valid})
+            retry_skipped = sorted({number for number in retry_output.skipped if number in valid} - set(retry_wrong))
+            if retry_wrong or retry_skipped:
+                wrong, skipped = retry_wrong, retry_skipped
+                has_pass1_scores = any(v is not None for v in output.scores.model_dump().values())
+                has_retry_scores = any(v is not None for v in retry_output.scores.model_dump().values())
+                if has_retry_scores or not has_pass1_scores:
+                    output = retry_output
         except (HTTPException, ValueError, KeyError, TypeError, AttributeError) as error:
             logger.warning(json.dumps({
                 "event": "openai_results_escalation_failed", "request_id": request_id_context.get(),

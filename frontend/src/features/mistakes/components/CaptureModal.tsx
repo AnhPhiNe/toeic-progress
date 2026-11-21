@@ -4,6 +4,7 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { testNameKey, normalizeTestName } from '@/features/mistakes/lib/sourceTests';
+import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captureBatch';
 import { captureQuestions, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
@@ -153,7 +154,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
     <div className="cap-dim" onMouseDown={event => { if (event.target === event.currentTarget) close(); }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-label="Chụp trang chữa bài" className={'cap-mod' + (step === 3 ? ' is-wide' : '')}>
         <div className="cap-head">
-          <h2 id="cap-title">{step === 3 ? state.items.length ? `Soát ${state.items.length} câu sai` : 'Kết quả đọc ảnh' : 'Chụp trang chữa bài'}</h2>
+          <h2 id="cap-title">{step === 3 ? state.items.length ? (state.items.some(item => isRightAnswer(item.draft)) ? `Soát ${state.items.length} câu đã đọc` : `Soát ${state.items.length} câu sai`) : 'Kết quả đọc ảnh' : 'Chụp trang chữa bài'}</h2>
           <button type="button" className="cap-x" aria-label="Đóng" onClick={close}>×</button>
         </div>
         <div className="cap-prog" role="progressbar" aria-label="Các bước" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step}>
@@ -175,7 +176,11 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
               </div>
             )}
             {(state.overflow || full) && <p className="cap-note is-warn" role="status">Gửi {MAX_CAPTURE_IMAGES} ảnh trước, phần còn lại gửi lần sau.</p>}
-            {state.part && <p className="cap-hint">{plan.logged ? `Sóc tìm ${captureQuestions(plan, state.part, groupRange).length} câu bạn đã ghi sai ở đề này.` : 'Sóc tự tìm câu bạn sai.'}</p>}
+            {state.part && (() => {
+              const hasLoggedInPart = plan.logged && plan.questions.some(number => partOfQuestion(number) === state.part);
+              const count = captureQuestions(plan, state.part, groupRange).length;
+              return <p className="cap-hint">{hasLoggedInPart ? `Sóc tìm ${count} câu bạn đã ghi sai ở đề này.` : `Sóc tìm trong cả Part ${state.part} (${count} câu) và tự giải đối chiếu.`}</p>;
+            })()}
             {(error || state.error) && <p role="alert" className="cap-error">{error || state.error}</p>}
           </div>
           <div className="cap-foot">
@@ -188,11 +193,13 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="cap-body cap-read">
             <Soc state="think" size={150} />
             <div>
-              <h3>Sóc đang đọc {state.images.length} ảnh…</h3>
+              <h3>{state.solving ? 'Sóc đang tự giải & đối chiếu đáp án…' : `Sóc đang đọc ${state.images.length} ảnh…`}</h3>
               {state.note && <p className="cap-note">{state.note}</p>}
-              <p role="status">{state.items.length
-                ? `Đã thấy ${state.items.length} câu sai ở ${partsText(foundParts)}. `
-                : 'Chưa thấy câu sai nào, Sóc đang tìm tiếp. '}Thường mất khoảng {Math.max(20, state.requestsTotal * 20)} giây.</p>
+              <p role="status">{state.solving && state.items.length
+                ? `Đã đọc ${state.items.length} câu ở ${partsText(foundParts)}, Sóc đang giải và kiểm tra lại đáp án. `
+                : state.items.length
+                  ? `Đã thấy ${state.items.length} câu ở ${partsText(foundParts)}. `
+                  : 'Đang quét câu hỏi trên ảnh. '}Thường mất khoảng {Math.max(20, state.requestsTotal * 20)} giây.</p>
               <ul className="cap-thumbs is-read" aria-label="Ảnh đang đọc">
                 {state.images.map((image, index) => (
                   <li key={image.id} className={'cap-th is-' + image.status}>

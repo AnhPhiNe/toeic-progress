@@ -49,6 +49,8 @@ export interface CaptureState {
   /** How many readings are planned, and how many have finished. */
   requestsTotal: number;
   requestsDone: number;
+  /** True while Sóc is independently solving and verifying extracted questions before review. */
+  solving: boolean;
   usage: AIUsage | null;
   /** The reading finished while the dialog was closed. */
   finishedInBackground: boolean;
@@ -70,7 +72,7 @@ export const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đ
 const PARALLEL_READS = 3;
 const DRAFT_SCOPE = 'capture:review';
 const blank = (): CaptureState => ({ phase: 'input', testName: '', part: null, group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
-  error: '', note: '', requestsTotal: 0, requestsDone: 0, usage: null, finishedInBackground: false, restored: false });
+  error: '', note: '', requestsTotal: 0, requestsDone: 0, solving: false, usage: null, finishedInBackground: false, restored: false });
 
 let state: CaptureState = blank();
 let owner: string | null = getActiveAccountId();
@@ -78,6 +80,7 @@ let epoch = 0;
 let viewing = false;
 let batchId = generateUUID();
 let requestsUsed = 0;
+let solvingCount = 0;
 let context: CaptureContext | null = null;
 let restoreTried = false;
 const files = new Map<string, File>();
@@ -109,7 +112,7 @@ const release = (images: readonly CaptureImage[]) => images.forEach(image => {
 function checkOwner() {
   const active = getActiveAccountId();
   if (active === owner) return;
-  epoch += 1; owner = active; viewing = false; restoreTried = false; context = null; requestsUsed = 0; failed.clear();
+  epoch += 1; owner = active; viewing = false; restoreTried = false; context = null; requestsUsed = 0; solvingCount = 0; failed.clear();
   release(state.images);
   batchId = generateUUID(); state = blank(); emit();
 }
@@ -200,14 +203,19 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
     const reasons = [...state.rejectionReasons, ...(result.rejectionReasons ?? [])].filter(r => r.number === null || !seenNumbers.has(r.number));
     mark('done');
     set({ items, rejectionReasons: reasons, usage: result.usage });
-    // Solve and explain ungraded items immediately before review so the learner sees "Sóc giải X"
-    // and right answers (userChoice === correctAnswer) are automatically unticked before saving.
+    // Independently solve and verify ALL extracted questions before review so:
+    // - ungraded (0/1-mark) questions get "Sóc giải X" & right answers show as green "✓ Làm đúng" (unticked)
+    // - graded (2-mark) questions get cross-checked against Sóc's own answer (surfacing `answerDoubt` if they disagree)
+    // - saving skips a redundant second explain-batch call for already-explained cards.
+    const appendNote = (prev: string, extra: string) => (!extra || prev.includes(extra)) ? prev : prev ? `${prev} ${extra}` : extra;
     if (result.explainTicket && typeof aiService.explainBatchWithAI === 'function') {
       const toSolve = result.items.filter(entry => {
         const part = (partOfQuestion(entry.number) ?? 5) as CaptureItem['part'];
-        return entry.draft.answerSource === 'MISSING' && canExplainRead(entry.draft, part);
+        return canExplainRead(entry.draft, part);
       });
       if (toSolve.length) {
+        solvingCount += 1;
+        set({ solving: true });
         try {
           const explained = await aiService.explainBatchWithAI(
             result.explainTicket,
@@ -245,8 +253,17 @@ async function readOnce(request: ReadRequest<PreparedImage>, imageIds: string[],
             });
             set({ items: solvedItems });
           }
+          if (explained.failed.length) {
+            const list = explained.failed.map(n => `câu ${n}`).join(', ');
+            set({ note: appendNote(state.note, `Sóc chưa kịp tự giải ${explained.failed.length} câu (${list}). Bạn có thể chọn đáp án tay hoặc bấm Lưu để Sóc thử giải lại.`) });
+          }
         } catch {
-          // If immediate solving fails (e.g. transient network), saveCapture still queues explanations on save.
+          if (current()) {
+            set({ note: appendNote(state.note, 'Sóc đã đọc câu hỏi nhưng chưa kịp tự giải đáp án. Bạn có thể chọn đáp án tay hoặc bấm Lưu để Sóc thử giải lại.') });
+          }
+        } finally {
+          solvingCount = Math.max(0, solvingCount - 1);
+          if (current()) set({ solving: solvingCount > 0 });
         }
       }
     }
@@ -280,10 +297,10 @@ async function runAll(jobs: { request: ReadRequest<PreparedImage>; imageIds: str
 export async function startReading(ctx: CaptureContext) {
   checkOwner();
   if (state.phase === 'reading' || !state.images.length || !state.testName || !state.part) return;
-  context = ctx; requestsUsed = 0; batchId = generateUUID(); failed.clear();
+  context = ctx; requestsUsed = 0; solvingCount = 0; batchId = generateUUID(); failed.clear();
   const mine = ++epoch;
   const passage = state.images.filter(image => image.zone === 'passage'), questions = state.images.filter(image => image.zone === 'questions');
-  set({ phase: 'reading', error: '', note: '', failures: [], rejectionReasons: [], items: [], restored: false, requestsTotal: 0, requestsDone: 0, finishedInBackground: false, unsent: 0,
+  set({ phase: 'reading', error: '', note: '', failures: [], rejectionReasons: [], items: [], restored: false, requestsTotal: 0, requestsDone: 0, solving: false, finishedInBackground: false, unsent: 0,
     images: state.images.map(image => ({ ...image, status: 'waiting' as const })) });
   try {
     const fileOf = (image: CaptureImage) => files.get(image.id)!;
@@ -343,11 +360,11 @@ export function patchItem(id: string, patch: Partial<Pick<CaptureItem, 'draft' |
 }
 export function removeItem(id: string) { set({ items: state.items.filter(item => item.id !== id) }); }
 /** Back to the screenshots, keeping them so more can be added. */
-export function backToInput() { set({ phase: 'input', items: [], failures: [], error: '', note: '', restored: false, unsent: 0, images: state.images.map(image => ({ ...image, status: 'waiting' as const })) }); }
+export function backToInput() { solvingCount = 0; set({ phase: 'input', items: [], failures: [], error: '', note: '', restored: false, unsent: 0, solving: false, images: state.images.map(image => ({ ...image, status: 'waiting' as const })) }); }
 
 /** Forget the capture: after saving, or when the learner starts over. */
 export function resetCapture() {
-  epoch += 1; viewing = false; context = null; requestsUsed = 0; batchId = generateUUID(); restoreTried = true; failed.clear();
+  epoch += 1; viewing = false; context = null; requestsUsed = 0; solvingCount = 0; batchId = generateUUID(); restoreTried = true; failed.clear();
   const { testName } = state;
   release(state.images);
   removeFormDraft(DRAFT_SCOPE, owner);

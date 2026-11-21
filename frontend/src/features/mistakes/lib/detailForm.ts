@@ -100,6 +100,11 @@ export function openDoubt(value: CardForm): ChoiceLetter | '' {
   return doubt && value.answer && doubt !== value.answer ? doubt : '';
 }
 
+/** True when the learner's choice matches the right answer (e.g. an ungraded page solved by AI). */
+export function isRightForm(value: CardForm | undefined): boolean {
+  return Boolean(value && value.choice && value.choice !== 'BLANK' && value.answer && value.choice === value.answer);
+}
+
 /** Nothing filled in yet, so saving would not change the card. */
 export function isEmptyForm(value: CardForm): boolean {
   return !value.ai && !value.raw.trim() && !value.choice && !value.answer && !value.category && !Object.keys(value.touched ?? {}).length;

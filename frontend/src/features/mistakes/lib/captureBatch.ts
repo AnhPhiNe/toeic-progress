@@ -1,6 +1,7 @@
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { normalizeQuestionList, partOfQuestion } from '@/shared/domain/questionNumbers';
 import type { AIMistakeParseResult, PageItem } from '@/features/mistakes/services/aiMistakeExtractor';
+import type { ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
 
 /** One capture sends at most this many screenshots; the rest is sent in a later capture. */
@@ -57,13 +58,36 @@ export function isRightAnswer(draft: AIMistakeParseResult): boolean {
   return Boolean(draft.userChoice && answer && draft.userChoice === answer);
 }
 
+/** AI's own answer disagrees with the 2nd mark/source key on the page; cleared when the learner switches or keeps. */
+export function openDraftDoubt(draft: AIMistakeParseResult): ChoiceLetter | '' {
+  const doubt = draft.answerDoubt;
+  const answer = draft.answerSource !== 'MISSING' ? optionLetter(draft.correctAnswer) : '';
+  return doubt && answer && doubt !== answer ? doubt : '';
+}
+
+/** Plain-Vietnamese explanation of why a row needs the learner's attention, or '' when complete. */
+export function rowUnsureReason(item: Pick<CaptureItem, 'draft'>): string {
+  const { draft } = item;
+  if (isUnreadable(draft)) return 'Chưa đọc rõ câu hỏi hoặc phương án';
+  const doubt = openDraftDoubt(draft);
+  const answer = draft.answerSource !== 'MISSING' ? optionLetter(draft.correctAnswer) : '';
+  if (doubt) return `Sóc giải ra ${doubt}, khác ảnh (${answer})`;
+  const expectedOptions = draft.part === 2 ? 3 : 4;
+  const hasAnswer = (draft.answerSource === 'PROVIDED' || draft.answerSource === 'AI_PROPOSED') && Boolean(answer);
+  if (!hasAnswer) return 'Chưa có đáp án đúng';
+  if (draft.options.length !== expectedOptions) return `Thiếu phương án ${draft.part === 2 ? 'A–C' : 'A–D'}`;
+  const hasChoice = Boolean(draft.userChoice) || draft.userChoiceState === 'BLANK';
+  if (!hasChoice) return 'Chưa rõ bạn chọn';
+  return '';
+}
+
 export function rowStatus(item: Pick<CaptureItem, 'draft'>): RowStatus {
   const { draft } = item;
   if (isUnreadable(draft)) return 'unreadable';
   const expectedOptions = draft.part === 2 ? 3 : 4;
   const hasChoice = Boolean(draft.userChoice) || draft.userChoiceState === 'BLANK';
   const hasAnswer = (draft.answerSource === 'PROVIDED' || draft.answerSource === 'AI_PROPOSED') && Boolean(optionLetter(draft.correctAnswer));
-  return !hasChoice || !hasAnswer || draft.options.length !== expectedOptions ? 'unsure' : 'ok';
+  return Boolean(openDraftDoubt(draft)) || !hasChoice || !hasAnswer || draft.options.length !== expectedOptions ? 'unsure' : 'ok';
 }
 
 const completeness = (draft: AIMistakeParseResult) =>

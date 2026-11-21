@@ -26,10 +26,10 @@ test('a computer works through a test Part by Part: Part 5 images are read one b
   const sent = await calls(page) as { questions: number[]; images: number; context: number; batch: string; types: string[] }[];
   expect(sent.map(call => [call.questions, call.images, call.context, call.types])).toEqual([[[104, 112], 2, 0, ['image/png', 'image/png']]]);
 
-  // Rows read like an answer sheet; a missing answer asks for a tap.
+  // Rows read like an answer sheet; while Sóc is solving a missing answer, show calm solving status instead of alarming unsure.
   await expect(flow.getByRole('group', { name: 'Câu 104: Bạn chọn C, đáp án A', exact: true })).toBeVisible();
   await expect(flow.getByRole('group', { name: 'Câu 112: Bạn chọn B, chưa có đáp án', exact: true })).toBeVisible();
-  await expect(flow.getByText('Ảnh không có đáp án. Chạm chữ cái đúng.')).toBeVisible();
+  await expect(flow.getByText('Sóc đang tự giải đáp án…')).toBeVisible();
   await expect(flow.getByText(/Đang viết lời giải 2 câu/)).toBeVisible();
 
   // The explanation suggests the reason (and the page's missing answer); keys 1–6 change the reason on a row.

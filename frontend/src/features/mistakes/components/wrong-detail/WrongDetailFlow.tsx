@@ -11,7 +11,7 @@ import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import type { AIConfiguration, PageRejectionReason } from '@/features/mistakes/services/aiMistakeExtractor';
 import { enqueueExplanations, explanationsVersion, isExplaining, setExplanationInterceptor, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
-import { buildDetailEntry, canExplainRead, detailExplanationInput, editDetailForm, EMPTY_FORM, explainInput, isEmptyForm, savedDetailForm, withArrivedExplanation, withReadResult, type CardForm } from '@/features/mistakes/lib/detailForm';
+import { buildDetailEntry, canExplainRead, detailExplanationInput, editDetailForm, EMPTY_FORM, explainInput, isEmptyForm, isRightForm, savedDetailForm, withArrivedExplanation, withReadResult, type CardForm } from '@/features/mistakes/lib/detailForm';
 import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
 import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailDraft } from '@/features/mistakes/lib/detailDraft';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
@@ -160,39 +160,13 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       const effective = current && detailExplanationInput(current, card.part);
       if (!current?.ai || current.ai.explanation || current.ai.trapTip?.trim() || !effective || !sameExplanationInput(effective, originalInput)) return false;
       const arrived = withArrivedExplanation(current, arrivedDraft);
-      // If the page was ungraded (only 1 learner choice, no source key) and AI solved the question to the same letter
-      // the learner chose, automatically recognize it as a right answer and move it to 'skipped' ("bạn làm đúng, bỏ qua").
-      if (
-        current.ai.answerSource === 'MISSING'
-        && !current.touched?.answer
-        && arrived.choice
-        && arrived.choice !== 'BLANK'
-        && arrived.choice === arrived.answer
-      ) {
+      // If the learner's choice matches the solved answer, keep the card in place (styled green as "✓ Làm đúng")
+      // so the learner still sees the question and explanation without feeling it was dropped, while excluding it
+      // from unsaved mistake drafts (dirtyIds).
+      if (isRightForm(arrived) && !current.touched?.answer) {
         const nextForms = { ...formsRef.current, [cardId]: arrived };
         formsRef.current = nextForms; setForms(nextForms);
         dirtyIds.current.delete(cardId);
-        const qNum = card.questionNumber!;
-        const nextJobs = { ...jobsRef.current };
-        let jobsChanged = false;
-        for (const [jobKey, job] of Object.entries(nextJobs)) {
-          if (job.readIds.includes(cardId)) {
-            nextJobs[jobKey] = {
-              ...job,
-              readIds: job.readIds.filter(id => id !== cardId),
-              skipped: [...new Set([...job.skipped, qNum])].sort((a, b) => a - b)
-            };
-            jobsChanged = true;
-          }
-        }
-        if (jobsChanged) { jobsRef.current = nextJobs; setJobs(nextJobs); }
-        if (shownScreen.current.name === 'review' && shownScreen.current.ids.includes(cardId)) {
-          setScreen(prev => prev.name === 'review' ? {
-            ...prev,
-            ids: prev.ids.filter(id => id !== cardId),
-            skipped: [...new Set([...prev.skipped, qNum])].sort((a, b) => a - b)
-          } : prev);
-        }
         return true;
       }
       const candidate = buildDetailEntry(card, arrived);
@@ -217,8 +191,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   }, [cards, unsaved]);
 
   const update = (id: string, patch: Partial<CardForm>) => {
-    dirtyIds.current.add(id);
-    const next = { ...formsRef.current, [id]: editDetailForm(formsRef.current[id] ?? EMPTY_FORM, patch) };
+    const current = formsRef.current[id] ?? EMPTY_FORM;
+    const edited = editDetailForm(current, patch);
+    const acceptingDoubtAsRight = Boolean(patch.answer && current.ai?.answerDoubt === patch.answer && isRightForm(edited));
+    if (acceptingDoubtAsRight) dirtyIds.current.delete(id);
+    else dirtyIds.current.add(id);
+    const next = { ...formsRef.current, [id]: edited };
     formsRef.current = next; setForms(next); setError('');
   };
 

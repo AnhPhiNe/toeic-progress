@@ -3,7 +3,7 @@ import type { ErrorCategory } from '@/shared/types';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { CHOICE_LETTERS, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
-import { questionPreview, rowStatus, whyLine, isUnreadable, isRightAnswer, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
+import { questionPreview, rowStatus, rowUnsureReason, openDraftDoubt, whyLine, isUnreadable, isRightAnswer, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
 import { withLetters } from '@/features/mistakes/lib/multiQuestion';
 import type { AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
 
@@ -19,7 +19,7 @@ interface ListProps {
 }
 
 /** The review rows shared by a screenshot capture and a paste of several questions. */
-export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = 'Sóc chưa chắc' }: ListProps) {
+export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel }: ListProps) {
   const [editing, setEditing] = useState<string | null>(null);
   return (
     <ul className="cap-rows" aria-label="Các câu sai Sóc đã tìm thấy">
@@ -27,12 +27,14 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = '
         const status = rowStatus(item);
         const isBlank = item.draft.userChoiceState === 'BLANK';
         const isRight = isRightAnswer(item.draft);
+        const doubt = openDraftDoubt(item.draft);
+        const unsureText = unsureLabel ?? rowUnsureReason(item);
         const choice = isBlank ? 'bỏ trống' : (item.draft.userChoice || '?');
         const answer = optionLetter(item.draft.correctAnswer) || '?';
         const why = whyLine(item.draft);
         const open = editing === item.id;
         return (
-          <li key={item.id} className={'cap-row' + (status === 'unsure' ? ' is-unsure' : '') + (item.checked ? '' : ' is-off')}>
+          <li key={item.id} className={'cap-row' + (isRight ? ' is-right' : status === 'unsure' ? ' is-unsure' : '') + (!isRight && !item.checked ? ' is-off' : '')}>
             <button type="button" role="checkbox" aria-checked={item.checked} className="cap-ck" aria-label={`Lưu câu ${item.number}`} onClick={() => onToggle(item.id)}>
               {item.checked ? '✓' : ''}
             </button>
@@ -41,16 +43,36 @@ export function ReviewList({ items, onToggle, onPatch, onRemove, unsureLabel = '
               <p>{questionPreview(item.draft)}</p>
               <div className="cap-chips">
                 {isRight ? (
-                  <span className="is-ok">bạn chọn {choice} · làm đúng (bỏ qua)</span>
+                  <>
+                    <span className="is-ok">bạn chọn {choice}</span>
+                    <span className="is-ok">{item.draft.answerSource === 'AI_PROPOSED' ? `Sóc giải ${answer}` : `đúng ${answer}`}</span>
+                    <span className="is-right-tag">✓ Làm đúng</span>
+                  </>
                 ) : (
                   <>
                     <span className="is-me">{isBlank ? 'bạn bỏ trống' : `bạn chọn ${choice}`}</span>
                     <span className="is-ok">{item.draft.answerSource === 'AI_PROPOSED' && answer !== '?' ? `Sóc giải ${answer}` : `đúng ${answer}`}</span>
-                    {status === 'unsure' && <span className="is-unsure">{unsureLabel}</span>}
+                    {!doubt && status === 'unsure' && unsureText && <span className="is-unsure">{unsureText}</span>}
                   </>
                 )}
               </div>
-              {why && <p className="cap-why"><b>Sai vì:</b> {why}</p>}
+              {doubt && (
+                <div className="cap-doubt" role="status">
+                  <span className="is-unsure">Kiểm tra lại</span>
+                  <span>Sóc giải ra <b>{doubt}</b>, khác đáp án trên ảnh ({answer}).</span>
+                  <button type="button" onClick={() => {
+                    const userChoiceVal: ChoiceLetter | 'BLANK' | '' = isBlank ? 'BLANK' : (item.draft.userChoice as ChoiceLetter | '');
+                    const switched: AIMistakeParseResult = {
+                      ...withLetters(item.draft, userChoiceVal, doubt),
+                      answerSource: 'AI_PROPOSED',
+                      answerDoubt: ''
+                    };
+                    onPatch(item.id, { draft: switched, checked: !isRightAnswer(switched) });
+                  }}>Đổi sang {doubt}</button>
+                  <button type="button" onClick={() => onPatch(item.id, { draft: { ...item.draft, answerDoubt: '' } })}>Giữ {answer}</button>
+                </div>
+              )}
+              {why && <p className="cap-why"><b>{isRight ? 'Giải thích:' : 'Sai vì:'}</b> {why}</p>}
               {open && <RowEditor item={item} onClose={() => setEditing(null)} onPatch={patch => onPatch(item.id, patch)} onRemove={() => { setEditing(null); onRemove(item.id); }} />}
             </div>
             <button type="button" className="cap-link" aria-expanded={open} aria-label={`Sửa câu ${item.number}`} onClick={() => setEditing(open ? null : item.id)}>{open ? 'Đóng' : 'Sửa'}</button>
@@ -86,9 +108,23 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
     if ((choice && choice !== 'BLANK' && !draft.options.some(option => option.startsWith(`(${choice})`))) || (answer && !draft.options.some(option => option.startsWith(`(${answer})`)))) {
       setError('Lựa chọn chưa khớp phương án. Kiểm tra lại nội dung.'); return;
     }
-    if (choice && choice !== 'BLANK' && choice === answer) { setError('Đáp án bạn chọn trùng đáp án đúng.'); return; }
-    draft = { ...withLetters(draft, choice, answer), userReason: reason };
-    onPatch({ draft, category, ...(isUnreadable(item.draft) && !isUnreadable(draft) ? { checked: true } : {}) });
+    const prevAnswer = optionLetter(item.draft.correctAnswer);
+    draft = {
+      ...withLetters(draft, choice, answer),
+      userReason: reason,
+      ...(answer !== prevAnswer ? { answerDoubt: '' as const } : {})
+    };
+    const wasRight = isRightAnswer(item.draft);
+    const nowRight = isRightAnswer(draft);
+    onPatch({
+      draft,
+      category,
+      ...(isUnreadable(item.draft) && !isUnreadable(draft)
+        ? { checked: !nowRight }
+        : wasRight !== nowRight
+          ? { checked: !nowRight }
+          : {})
+    });
     onClose();
   };
   const chips = (label: string, value: ChoiceLetter | 'BLANK' | '', set: (letter: ChoiceLetter | 'BLANK' | '') => void, allowBlank = false) => (
