@@ -83,6 +83,8 @@ test('source names survive repeated entry, filter with other criteria, and scope
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.reload();
   const rows = page.locator('.nb-row');
+  // The list opens on "Cần ôn" while something is due; this test works on every card.
+  await page.getByRole('button', { name: /^Tất cả\s*\d+$/ }).click();
   await page.getByRole('button', { name: /^Lọc/ }).click();
   const filter = page.getByRole('dialog', { name: 'Bộ lọc' });
   // "Tất cả", the three tests and "Chưa gắn đề".

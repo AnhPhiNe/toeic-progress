@@ -110,7 +110,7 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
           <div className="nbd-plain"><p><b>Bạn chọn:</b> {m.userMistake || '—'}</p><p><b>Đáp án:</b> {m.correctAnswer || '—'}</p></div>
         )}
 
-        {tip && <div className="nbd-tip"><Soc state="idle" size={48} /><p><b>Mẹo nhanh:</b> {tip}</p></div>}
+        {tip && <div className="nbd-tip"><Soc state="idle" size={48} /><p><b>Mẹo nhanh:</b> <span>{tip}</span></p></div>}
         {reason && <p className="nbd-mine"><b>Bạn ghi:</b> {reason}</p>}
 
         {open && (ex?.analysis || ex?.keyVocabulary) && (

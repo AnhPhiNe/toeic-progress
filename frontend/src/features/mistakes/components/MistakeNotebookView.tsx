@@ -189,7 +189,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const activeFilterCount = Number(selectedTest !== 'ALL') + Number(selectedPart !== 'ALL') + Number(selectedCategory !== 'ALL') + Number(Boolean(searchTerm.trim()));
   const reviewCount = activeFilterCount ? stats.due : dueCount;
   const defaultSourceName = filterSourceNames.find(name => `test:${testNameKey(name)}` === selectedTest) ?? (initialSourceNames?.[0] ?? '');
-  const resetFilters = () => { setPage(1); setSearchTerm(''); setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedStatus(null); setSelectedCategory('ALL'); };
+  const resetFilters = () => { setPage(1); setSearchTerm(''); setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedStatus('ALL'); setSelectedCategory('ALL'); };
   useEffect(() => {
     if (!filterOpen) return;
     const close = (event: MouseEvent | KeyboardEvent) => {
