@@ -10,11 +10,11 @@ Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md
 
 Từ 20/11/2026 toàn bộ schema, RLS, RPC đồng bộ, giới hạn API, bảng giải đấu và ledger ticket lời giải nằm trong **một file baseline duy nhất**: `supabase/migrations/20261120000000_baseline_v2.sql`. Các migration v1 cũ trong `supabase/migrations/archive/` chỉ để tra cứu, không chạy lại.
 
-- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp `supabase/migrations/20261120000000_baseline_v2.sql` và migration bổ sung `supabase/migrations/20261121000000_ai_provider_budget_and_ledger.sql` (hoặc `supabase db push`).
-- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md), sau đó áp thêm `20261121000000_ai_provider_budget_and_ledger.sql`.
-- Tạo bucket Supabase Storage riêng tư tên `mistake-sources` (`public = false`) nếu bật tính năng lưu ảnh nguồn (`SOURCE_IMAGES_ENABLED=true`).
-- Xác nhận RPC `schema_ready()` trả `{"baseline": 2, "ready": true}`; kiểm tra Security Advisor và xác nhận quyền `anon`/`authenticated` đều bị thu hồi trên các RPC nội bộ (kể cả `reserve_provider_budget` và `record_ai_usage`, chỉ `service_role` gọi được).
-- Giữ `API_LIMITS_ENABLED=false` và `AI_PROVIDER_BUDGET_ENABLED=false` ở local tới khi các migration đã áp dụng; staging/production bắt buộc `true`. Dùng project staging riêng cho test tài khoản và test tải.
+- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp toàn bộ migration trong `supabase/migrations/` (`20261120000000_baseline_v2.sql`, `20261121000000_ai_provider_budget_and_ledger.sql`, `20261122000000_security_hardening_wave1.sql` — hoặc `supabase db push`).
+- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md), sau đó áp thêm `20261121000000_ai_provider_budget_and_ledger.sql` và `20261122000000_security_hardening_wave1.sql`.
+- Tạo bucket Supabase Storage riêng tư tên `mistake-sources` (`public = false`, `file_size_limit = 1048576`, `allowed_mime_types = ['image/jpeg']`) nếu bật tính năng lưu ảnh nguồn (`SOURCE_IMAGES_ENABLED=true`).
+- Xác nhận RPC `schema_ready()` trả `{"baseline": 2, "ready": true}`; kiểm tra Security Advisor và xác nhận quyền `anon`/`authenticated` đều bị thu hồi trên các RPC nội bộ (kể cả `reserve_provider_budget`, `record_ai_usage`, `prepare_account_deletion`, `apply_identity_carryover`, `reserve_batch_explain_quota` — chỉ `service_role` gọi được).
+- Giữ `API_LIMITS_ENABLED=false` và `AI_PROVIDER_BUDGET_ENABLED=false` ở local tới khi các migration đã áp dụng; staging/production bắt buộc `API_LIMITS_ENABLED=true`, và khi `AI_ENABLED=true` bắt buộc cả `AI_ACCESS_MANAGED=true` lẫn `AI_PROVIDER_BUDGET_ENABLED=true` (`validate_deployment()` sẽ chặn khởi động nếu thiếu). Dùng project staging riêng cho test tài khoản và test tải.
 - Không deploy Edge Function `delete-account` cũ (đã xóa khỏi repo; luồng xóa tài khoản đi qua FastAPI `DELETE /api/v1/account` kèm dọn ảnh Storage). Nếu project cũ từng deploy Edge Function này, hãy undeploy trên Supabase Dashboard.
 
 Ticket lời giải bền vững được lưu trong Supabase (đã có sẵn trong baseline v2) nên restart/nhiều worker không đặt lại ngân sách. Chi tiết giới hạn/chi phí ở [AI_ACCESS.md](AI_ACCESS.md).

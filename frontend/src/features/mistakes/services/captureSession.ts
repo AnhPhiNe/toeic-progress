@@ -80,6 +80,7 @@ const DRAFT_SCOPE = 'capture:review';
 const blank = (): CaptureState => ({ phase: 'input', testName: '', part: 5, group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
   error: '', note: '', requestsTotal: 0, requestsDone: 0, solving: false, activeJobs: 0, completedJobs: 0, queuedImagesCount: 0, usage: null, finishedInBackground: false, restored: false });
 
+const EMPTY_STATE: CaptureState = Object.freeze(blank());
 let state: CaptureState = blank();
 let owner: string | null = getActiveAccountId();
 let epoch = 0;
@@ -95,7 +96,7 @@ const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach(listener => listener());
 function set(patch: Partial<CaptureState>) { state = { ...state, ...patch }; emit(); persist(); }
-export const captureState = () => state;
+export const captureState = (): CaptureState => (owner === getActiveAccountId() ? state : EMPTY_STATE);
 export const subscribeCapture = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 
 const draftSchema = z.object({ testName: z.string().max(300),
@@ -114,13 +115,28 @@ const release = (images: readonly CaptureImage[]) => images.forEach(image => {
   try { URL.revokeObjectURL(image.url); } catch { /* not an object URL */ }
 });
 
+/** Immediately drop every in-memory file, preview URL and background job on sign-out, account switch, or reset. */
+export function clearCaptureSessionForAccountChange() {
+  epoch += 1;
+  owner = getActiveAccountId();
+  viewing = false;
+  restoreTried = false;
+  context = null;
+  requestsUsed = 0;
+  solvingCount = 0;
+  failed.clear();
+  release(state.images);
+  files.clear();
+  batchId = generateUUID();
+  state = blank();
+  emit();
+}
+
 /** Another account signed in: nothing of the previous one's capture may stay. */
 function checkOwner() {
   const active = getActiveAccountId();
   if (active === owner) return;
-  epoch += 1; owner = active; viewing = false; restoreTried = false; context = null; requestsUsed = 0; solvingCount = 0; failed.clear();
-  release(state.images);
-  batchId = generateUUID(); state = blank(); emit();
+  clearCaptureSessionForAccountChange();
 }
 
 /** Opening the dialog: bring back the review list of an earlier capture that was never saved. */

@@ -134,17 +134,29 @@ function migrateLegacy(): DataBundle {
   };
 }
 
+export const ACCOUNT_CHANGED_EVENT = 'toeic:account-changed';
+
+function notifyAccountChanged(): void {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(ACCOUNT_CHANGED_EVENT));
+  }
+}
+
 export function getActiveAccountId(): string | null {
-  return localStorage.getItem(ACTIVE_ACCOUNT_KEY);
+  return typeof localStorage === 'undefined' ? null : localStorage.getItem(ACTIVE_ACCOUNT_KEY);
 }
 
 export function activateAccount(userId: string): void {
+  const previous = localStorage.getItem(ACTIVE_ACCOUNT_KEY);
   localStorage.setItem(ACTIVE_ACCOUNT_KEY, userId);
+  if (previous !== userId) notifyAccountChanged();
 }
 
 export function deactivateAccount(): void {
+  const previous = localStorage.getItem(ACTIVE_ACCOUNT_KEY);
   accountWriteEnabled = false;
   localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+  if (previous !== null) notifyAccountChanged();
 }
 
 export function readGuestBundle(): DataBundle {
@@ -306,6 +318,44 @@ export function clearRetiredCopies(userId: string | null): void {
   }
   const owner = localStorage.getItem('toeic_weekly_plans_v1_owner');
   if (owner === (userId ?? 'guest')) localStorage.removeItem(OLD_PLANS_KEY);
+  const rawSkipListening = localStorage.getItem('toeic_wrong_detail_skip_listening_v1');
+  if (rawSkipListening) {
+    try {
+      const parsed = JSON.parse(rawSkipListening) as Record<string, unknown>;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        delete parsed[userId ?? 'guest'];
+        if (Object.keys(parsed).length === 0) localStorage.removeItem('toeic_wrong_detail_skip_listening_v1');
+        else localStorage.setItem('toeic_wrong_detail_skip_listening_v1', JSON.stringify(parsed));
+      } else {
+        localStorage.removeItem('toeic_wrong_detail_skip_listening_v1');
+      }
+    } catch {
+      localStorage.removeItem('toeic_wrong_detail_skip_listening_v1');
+    }
+  }
+}
+
+/**
+ * Scrub every persisted localStorage copy belonging to one signed-in account
+ * (called on explicit sign-out and account deletion to protect shared browsers).
+ */
+export function purgeAccountLocalStorage(userId: string): void {
+  clearRetiredCopies(userId);
+  localStorage.removeItem(accountKey(userId));
+  localStorage.removeItem(`toeic_sync_cursor_${userId}_v3`);
+  localStorage.removeItem(`toeic_attempt_advice_consent_${userId}_v1`);
+  localStorage.removeItem(`toeic_pomodoro_settings_v2_${userId}`);
+  localStorage.removeItem(`toeic_pacing_sound_${userId}`);
+  localStorage.removeItem(`toeic_source_image_cleanup_${userId}`);
+  const suffix = `:${userId}`;
+  const scopedKeys: string[] = [];
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (key && (key.startsWith('rd_') || key.startsWith('toeic_')) && key.endsWith(suffix)) {
+      scopedKeys.push(key);
+    }
+  }
+  for (const key of scopedKeys) localStorage.removeItem(key);
 }
 
 export function replaceCollection<T extends { id: string } & Partial<SyncMeta>>(

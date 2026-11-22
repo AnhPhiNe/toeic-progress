@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ACCOUNT_CHANGED_EVENT, getActiveAccountId } from '@/shared/data/dataBundle';
 
 /**
  * PC Fast-Capture watcher:
@@ -41,7 +42,8 @@ interface WindowWithPicker extends Window {
 
 const DB_NAME = 'toeic_screenshot_dir_v1';
 const STORE_NAME = 'handles';
-const HANDLE_KEY = 'screenshots';
+const LEGACY_HANDLE_KEY = 'screenshots';
+const handleKeyFor = (owner: string | null) => `screenshots:${owner ?? 'guest'}`;
 const MAX_CANDIDATES = 10;
 /** Only surface screenshots taken within the last 3 minutes (never flood old personal screenshots). */
 export const RECENT_WINDOW_MS = 3 * 60_000;
@@ -129,13 +131,13 @@ function openHandleDb(): Promise<IDBDatabase | null> {
   });
 }
 
-async function loadSavedHandle(): Promise<DirectoryHandleLike | null> {
+async function loadSavedHandle(owner: string | null): Promise<DirectoryHandleLike | null> {
   const db = await openHandleDb();
   if (!db) return null;
   return new Promise(resolve => {
     try {
       const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(HANDLE_KEY);
+      const req = tx.objectStore(STORE_NAME).get(handleKeyFor(owner));
       req.onsuccess = () => { db.close(); resolve((req.result as DirectoryHandleLike | undefined) ?? null); };
       req.onerror = () => { db.close(); resolve(null); };
     } catch {
@@ -145,13 +147,16 @@ async function loadSavedHandle(): Promise<DirectoryHandleLike | null> {
   });
 }
 
-async function saveHandle(handle: DirectoryHandleLike): Promise<void> {
+async function saveHandle(owner: string | null, handle: DirectoryHandleLike): Promise<void> {
   const db = await openHandleDb();
   if (!db) return;
   return new Promise(resolve => {
     try {
       const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(handle, HANDLE_KEY);
+      const store = tx.objectStore(STORE_NAME);
+      store.put(handle, handleKeyFor(owner));
+      // Drop any unscoped legacy handle so other accounts on a shared browser cannot inherit it.
+      store.delete(LEGACY_HANDLE_KEY);
       tx.oncomplete = () => { db.close(); resolve(); };
       tx.onerror = () => { db.close(); resolve(); };
     } catch {
@@ -161,13 +166,15 @@ async function saveHandle(handle: DirectoryHandleLike): Promise<void> {
   });
 }
 
-async function clearSavedHandle(): Promise<void> {
+async function clearSavedHandle(owner: string | null): Promise<void> {
   const db = await openHandleDb();
   if (!db) return;
   return new Promise(resolve => {
     try {
       const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).delete(HANDLE_KEY);
+      const store = tx.objectStore(STORE_NAME);
+      store.delete(handleKeyFor(owner));
+      store.delete(LEGACY_HANDLE_KEY);
       tx.oncomplete = () => { db.close(); resolve(); };
       tx.onerror = () => { db.close(); resolve(); };
     } catch {
@@ -180,12 +187,19 @@ async function clearSavedHandle(): Promise<void> {
 /** Shared across mounts in the same browser session so already-added or dismissed shots never reappear. */
 const seenKeys = new Set<string>();
 
+/** Clear saved IndexedDB directory handle and in-memory seen keys on sign-out, account delete, or reset. */
+export async function clearScreenshotWatcherForOwner(owner: string | null): Promise<void> {
+  seenKeys.clear();
+  await clearSavedHandle(owner);
+}
+
 export function __resetScreenshotWatcherSeenForTests() {
   seenKeys.clear();
 }
 
 export function useScreenshotWatcher(enabled: boolean) {
   const supported = supportsDirectoryWatcher();
+  const [activeOwner, setActiveOwner] = useState<string | null>(() => getActiveAccountId());
   const [status, setStatus] = useState<WatcherStatus>(() => (supported ? 'unlinked' : 'unsupported'));
   const [dirName, setDirName] = useState('');
   const [candidates, setCandidates] = useState<ScreenshotCandidate[]>([]);
@@ -207,6 +221,28 @@ export function useScreenshotWatcher(enabled: boolean) {
       try { URL.revokeObjectURL(item.url); } catch { /* ignore */ }
     }
   }, []);
+
+  useEffect(() => {
+    const syncOwner = () => {
+      const next = getActiveAccountId();
+      setActiveOwner(prev => {
+        if (prev === next) return prev;
+        // Immediately detach any previous account's directory handle, thumbnails and seen keys.
+        handleRef.current = null;
+        oldNamesRef.current.clear();
+        seenKeys.clear();
+        revokeAll(candidatesRef.current);
+        setCandidates([]);
+        setDirName('');
+        setNotice('');
+        setHandleVersion(v => v + 1);
+        setStatus(supported ? 'unlinked' : 'unsupported');
+        return next;
+      });
+    };
+    window.addEventListener(ACCOUNT_CHANGED_EVENT, syncOwner);
+    return () => window.removeEventListener(ACCOUNT_CHANGED_EVENT, syncOwner);
+  }, [revokeAll, supported]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -276,18 +312,18 @@ export function useScreenshotWatcher(enabled: boolean) {
     }
   }, [revokeAll]);
 
-  // Restore persisted folder handle on mount when enabled.
+  // Restore persisted folder handle for the active account on mount / owner switch when enabled.
   useEffect(() => {
     if (!enabled || !supported) return;
     let cancelled = false;
-    void loadSavedHandle().then(async saved => {
-      if (cancelled || !saved) return;
+    void loadSavedHandle(activeOwner).then(async saved => {
+      if (cancelled || !saved || getActiveAccountId() !== activeOwner) return;
       handleRef.current = saved;
       oldNamesRef.current.clear();
       setHandleVersion(v => v + 1);
       setDirName(saved.name || 'Screenshots');
       const perm = await saved.queryPermission?.({ mode: 'read' }).catch(() => 'prompt' as PermissionState);
-      if (cancelled) return;
+      if (cancelled || getActiveAccountId() !== activeOwner) return;
       if (perm === 'granted') {
         setStatus('watching');
         void scanHandle(saved, true);
@@ -296,7 +332,7 @@ export function useScreenshotWatcher(enabled: boolean) {
       }
     });
     return () => { cancelled = true; };
-  }, [enabled, supported, scanHandle]);
+  }, [enabled, supported, activeOwner, scanHandle]);
 
   // Fast detection while modal is open:
   // 1) Native FileSystemObserver (Chrome/Edge 133+) for near-instant OS events.
@@ -365,7 +401,7 @@ export function useScreenshotWatcher(enabled: boolean) {
       setHandleVersion(v => v + 1);
       setDirName(handle.name || 'Screenshots');
       setStatus('watching');
-      await saveHandle(handle);
+      await saveHandle(getActiveAccountId(), handle);
       await scanHandle(handle, false);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -397,7 +433,7 @@ export function useScreenshotWatcher(enabled: boolean) {
     setDirName('');
     setNotice('');
     setStatus(supported ? 'unlinked' : 'unsupported');
-    await clearSavedHandle();
+    await clearSavedHandle(getActiveAccountId());
   }, [revokeAll, supported]);
 
   const scanNow = useCallback(async () => {

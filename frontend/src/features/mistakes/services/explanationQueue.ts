@@ -35,6 +35,14 @@ export const explanationsVersion = () => version;
 export const isExplaining = (cardId: string) => pending.has(cardId);
 export function setExplanationInterceptor(value: typeof interceptor) { interceptor = value; }
 
+/** Clear queued and pending in-memory explanation jobs on sign-out, account switch, or reset. */
+export function clearExplanationQueue() {
+  jobQueue.length = 0;
+  pending.clear();
+  interceptor = null;
+  notify();
+}
+
 function readTickets(): Record<string, StoredTicket> {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Record<string, StoredTicket>;

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  clearScreenshotWatcherForOwner,
   extractClipboardImages,
   RECENT_WINDOW_MS,
   scanDirectoryFiles,
@@ -112,5 +113,38 @@ describe('screenshot watcher helpers', () => {
   it('returns false safely for feature detection in non-browser environments', () => {
     expect(supportsDirectoryWatcher()).toBe(false);
     expect(supportsClipboardImageRead()).toBe(false);
+  });
+
+  it('clears both owner-scoped and legacy IndexedDB screenshot handle keys on sign-out/reset', async () => {
+    const deletedKeys: string[] = [];
+    const fakeStore = { delete: (key: string) => { deletedKeys.push(key); } };
+    const fakeTx = {
+      objectStore: () => fakeStore,
+      oncomplete: null as (() => void) | null,
+      onerror: null as (() => void) | null
+    };
+    const fakeDb = {
+      objectStoreNames: { contains: () => true },
+      createObjectStore: vi.fn(),
+      transaction: () => {
+        queueMicrotask(() => fakeTx.oncomplete?.());
+        return fakeTx;
+      },
+      close: vi.fn()
+    };
+    vi.stubGlobal('indexedDB', {
+      open: () => {
+        const req = { result: fakeDb, onupgradeneeded: null as (() => void) | null, onsuccess: null as (() => void) | null, onerror: null as (() => void) | null };
+        queueMicrotask(() => req.onsuccess?.());
+        return req;
+      }
+    });
+    try {
+      await clearScreenshotWatcherForOwner('alice');
+      expect(deletedKeys).toEqual(['screenshots:alice', 'screenshots']);
+      expect(fakeDb.close).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

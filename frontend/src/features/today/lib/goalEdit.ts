@@ -1,4 +1,5 @@
 import type { StudySession } from '@/shared/types';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { STAIR_COUNT, buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
 import { splitTarget } from '@/features/journey/lib/scoreJourney';
 import { MAX_TARGET, MIN_TARGET } from './goalSetup';
@@ -110,12 +111,13 @@ export function markPastExamSeen(owner: string | null, examDate: string): void {
   try { localStorage.setItem(pastSeenKey(owner), examDate); } catch { /* The bubble may repeat; harmless. */ }
 }
 
-/** Shared with TodayPage: the full-page "Bạn đã chạm cúp" shows once per goal value. */
+/** Shared with TodayPage: the full-page "Bạn đã chạm cúp" shows once per goal value, scoped per account. */
 export const CELEBRATED_KEY = 'rd_goal_celebrated_v1';
+export const celebratedKey = (owner: string | null = getActiveAccountId()) => `${CELEBRATED_KEY}:${owner ?? 'guest'}`;
 /**
  * A goal edited down to (or below) the best score is reached at once: mark it celebrated before saving,
  * so the one-time celebration never fires for an edit.
  */
 export function skipCelebrationFor(target: number): void {
-  try { localStorage.setItem(CELEBRATED_KEY, String(target)); } catch { /* Without storage the celebration may show; harmless. */ }
+  try { localStorage.setItem(celebratedKey(), String(target)); } catch { /* Without storage the celebration may show; harmless. */ }
 }

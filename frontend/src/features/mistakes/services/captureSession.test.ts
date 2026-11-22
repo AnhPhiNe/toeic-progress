@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ extract: vi.fn(), explainBatch: vi.fn(), group: vi.fn(), singles: vi.fn() }));
+const mocks = vi.hoisted(() => ({ extract: vi.fn(), explainBatch: vi.fn(), group: vi.fn(), singles: vi.fn(), activeOwner: 'owner-1' as string | null }));
 vi.mock('./aiMistakeExtractor', () => ({ extractPageWithAI: mocks.extract, explainBatchWithAI: mocks.explainBatch }));
 vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.group, prepareSingles: mocks.singles }));
-vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => 'owner-1' }));
+vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => mocks.activeOwner }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
 
-import { __resetCaptureForTests, addFiles, backToInput, cancelReading, captureState, clearSavedItems, COMPRESSED_NOTE, moveImage, openReview, queueAndContinue, removeUncheckedItems, retryFailure, setGroup, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
+import { __resetCaptureForTests, addFiles, backToInput, cancelReading, captureState, clearCaptureSessionForAccountChange, clearSavedItems, COMPRESSED_NOTE, moveImage, openReview, queueAndContinue, removeUncheckedItems, retryFailure, setGroup, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
 
 const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 'Q ___', question: 'Q ___', context: '', userMistake: '', correctAnswer: '(B) b',
   trapTip: '', options: ['(A) a', '(B) b', '(C) c', '(D) d'], tags: [], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
@@ -19,6 +19,7 @@ const request = (questions: number[], images = [image('q')], contextImages: Retu
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.activeOwner = 'owner-1';
   mocks.explainBatch.mockResolvedValue({ items: [], failed: [], retry: [] });
   __resetCaptureForTests();
 });
@@ -261,5 +262,25 @@ describe('capture session', () => {
     await queueAndContinue({ questions: [101], getToken: async () => 'tok' }, null);
     expect(captureState().failures).toHaveLength(1);
     expect(captureState().failures[0].imageCount).toBe(2);
+  });
+
+  it('hides capture state immediately when the active account changes and clears state on sign-out', () => {
+    setPart(5);
+    setTestName('Alice Private Test');
+    addFiles(files(2));
+    expect(captureState().images).toHaveLength(2);
+    expect(captureState().testName).toBe('Alice Private Test');
+
+    // Another account becomes active before CaptureModal opens: captureState() must never leak Alice's images/toasts.
+    mocks.activeOwner = 'owner-2';
+    expect(captureState().images).toHaveLength(0);
+    expect(captureState().testName).toBe('');
+    expect(captureState().items).toHaveLength(0);
+
+    // Explicit clear resets internal state cleanly even if owner-1 returns later.
+    clearCaptureSessionForAccountChange();
+    mocks.activeOwner = 'owner-1';
+    expect(captureState().images).toHaveLength(0);
+    expect(captureState().testName).toBe('');
   });
 });

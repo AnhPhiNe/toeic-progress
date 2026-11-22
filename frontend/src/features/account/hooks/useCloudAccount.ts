@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
-import { activateAccount, clearRetiredCopies, deactivateAccount, getActiveAccountId, readAccountBundle, readGuestBundle, setAccountWriteEnabled, writeAccountBundle } from '@/shared/data/dataBundle';
+import { activateAccount, clearRetiredCopies, deactivateAccount, getActiveAccountId, purgeAccountLocalStorage, readAccountBundle, readGuestBundle, setAccountWriteEnabled, writeAccountBundle } from '@/shared/data/dataBundle';
 import { bundleFromRecords, cleanupResetImages, cloud, deleteCloudAccount, fetchCloudBundle, rememberSync, resetCloudLearningData, wakeBackend } from '@/features/account/services/cloud';
 import { finishAccountTransfer, synchronizeAccount } from '@/features/account/services/cloudSync';
 import { hasPersonalData, type TransferChoice } from '@/shared/data/syncMerge';
 import type { AccountStatus } from '@/features/account/components/AccountPanel';
 import { apiAvailable } from '@/shared/api/api';
 import { SLOW_AFTER_MS, backoffDelay, shouldKeepWaking } from '@/features/account/lib/syncStatus';
+import { clearCaptureSessionForAccountChange } from '@/features/mistakes/services/captureSession';
+import { clearExplanationQueue } from '@/features/mistakes/services/explanationQueue';
+import { clearScreenshotWatcherForOwner } from '@/features/mistakes/hooks/useScreenshotWatcher';
 
 interface PendingTransfer { userId: string; device: DataBundle; account: DataBundle; accountHasData: boolean }
 
@@ -115,6 +118,8 @@ export function useCloudAccount(onDataChanged: () => void) {
         // Keep the previous owner's stored bundle, but stop rendering it as
         // the new identity even if authentication or its first sync fails.
         deactivateAccount();
+        clearCaptureSessionForAccountChange();
+        clearExplanationQueue();
         setEmail(null);
         onDataChanged();
       }
@@ -277,9 +282,20 @@ export function useCloudAccount(onDataChanged: () => void) {
   };
   const signOut = async () => {
     if (!cloud) return;
+    const id = userId.current ?? getActiveAccountId();
+    if (id && (dirty.current || status === 'error' || status === 'disconnected')) {
+      const proceed = window.confirm(
+        'Có thay đổi chưa kịp đồng bộ lên máy chủ. Đăng xuất sẽ xóa bản sao cục bộ của tài khoản này trên thiết bị để bảo vệ dữ liệu. Bạn vẫn muốn đăng xuất?'
+      );
+      if (!proceed) return;
+    }
     const { error: authError } = await cloud.auth.signOut({ scope: 'local' });
     if (authError) { setError(authError.message); throw new Error(authError.message); }
     deactivateAccount();
+    if (id) purgeAccountLocalStorage(id);
+    clearCaptureSessionForAccountChange();
+    clearExplanationQueue();
+    void clearScreenshotWatcherForOwner(id);
     userId.current = null;
     initialized.current = false;
     setPendingTransfer(null);
@@ -292,10 +308,15 @@ export function useCloudAccount(onDataChanged: () => void) {
     onDataChanged();
   };
   const deleteAccount = async () => {
-    if (!window.confirm('Xóa tài khoản và toàn bộ dữ liệu trên máy chủ? Dữ liệu đã lưu trên máy này vẫn được giữ.')) return;
+    if (!window.confirm('Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu trên máy chủ lẫn bản sao cục bộ của tài khoản này trên trình duyệt?')) return;
+    const id = userId.current ?? getActiveAccountId();
     try {
       await deleteCloudAccount();
       deactivateAccount();
+      if (id) purgeAccountLocalStorage(id);
+      clearCaptureSessionForAccountChange();
+      clearExplanationQueue();
+      void clearScreenshotWatcherForOwner(id);
       userId.current = null;
       initialized.current = false;
       setPendingTransfer(null);
@@ -326,6 +347,9 @@ export function useCloudAccount(onDataChanged: () => void) {
       writeAccountBundle(id, bundleFromRecords(reply.records));
       rememberSync(id, reply, true);
       clearRetiredCopies(id);
+      clearCaptureSessionForAccountChange();
+      clearExplanationQueue();
+      void clearScreenshotWatcherForOwner(id);
       initialized.current = true;
       setAccountWriteEnabled(navigator.onLine);
       setError('');

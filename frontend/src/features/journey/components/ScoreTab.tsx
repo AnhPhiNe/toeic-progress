@@ -1,4 +1,5 @@
 import { Children, isValidElement, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import type { StudySession, UserProfile } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { DEFAULT_LIMIT, daysUntil, forecast, journeySeries, splitTarget, type JourneyPoint, type ScoreMetric } from '../lib/scoreJourney';
@@ -17,7 +18,8 @@ interface Props {
 }
 
 const FORCE_KEY = 'rd_journey_force_v1';
-const readForced = (): string[] => { try { return JSON.parse(localStorage.getItem(FORCE_KEY) || '[]'); } catch { return []; } };
+const forceKey = () => `${FORCE_KEY}:${getActiveAccountId() ?? 'guest'}`;
+const readForced = (): string[] => { try { return JSON.parse(localStorage.getItem(forceKey()) || '[]'); } catch { return []; } };
 const METRIC_LABEL: Record<ScoreMetric, string> = { total: 'Tổng', listening: 'Nghe', reading: 'Đọc' };
 const METRIC_MAX: Record<ScoreMetric, number> = { total: 990, listening: 495, reading: 495 };
 /** How long the ridge takes to draw on first show (see journey.css). */
@@ -61,7 +63,7 @@ export function ScoreTab({ sessions, profile, today, onOpenTest, onShowTests, on
   const force = (id: string) => {
     const next = [...new Set([...forced, id])];
     setForced(next);
-    try { localStorage.setItem(FORCE_KEY, JSON.stringify(next)); } catch { /* Kept for this visit only. */ }
+    try { localStorage.setItem(forceKey(), JSON.stringify(next)); } catch { /* Kept for this visit only. */ }
   };
 
   const sentence = (text: string) => prefix + (prefix ? text : text.charAt(0).toUpperCase() + text.slice(1));

@@ -31,8 +31,12 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren, S
   };
 
   private exportLocalData = () => {
-    const saved = Object.fromEntries(Object.entries(localStorage).filter(([key]) => key.startsWith('toeic_')));
-    const file = new Blob([JSON.stringify(saved, null, 2)], { type: 'application/json' });
+    // Export ONLY the active account's (or guest's) own study bundle — never other accounts' bundles or HMAC tickets.
+    const activeId = localStorage.getItem('toeic_active_account_v1');
+    const bundleKey = activeId ? `toeic_progress_account_${activeId}_v3` : 'toeic_progress_bundle_v3';
+    const raw = localStorage.getItem(bundleKey);
+    const payload = raw ? { [bundleKey]: raw } : {};
+    const file = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(file);
     const anchor = document.createElement('a');
     anchor.href = url;
@@ -63,7 +67,7 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren, S
           {this.state.error && (
             <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-mono text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
               <p className="font-bold">{this.state.error.name}: {this.state.error.message}</p>
-              {this.state.error.stack && (
+              {import.meta.env.DEV && this.state.error.stack && (
                 <details className="mt-2 text-[11px] opacity-80 cursor-pointer">
                   <summary className="font-semibold underline">Chi tiết kỹ thuật (Stack trace)</summary>
                   <pre className="mt-1.5 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-black/5 p-2 dark:bg-black/30">

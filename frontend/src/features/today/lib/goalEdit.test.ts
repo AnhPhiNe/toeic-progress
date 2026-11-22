@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StudySession } from '@/shared/types';
 import { defaultProfile } from '@/shared/data/dataBundle';
 import {
-  CELEBRATED_KEY, bestScore, examDateLabel, examState, goalPreview, hasSeenPastExam, isReachedGoal, markPastExamSeen,
+  bestScore, celebratedKey, examDateLabel, examState, goalPreview, hasSeenPastExam, isReachedGoal, markPastExamSeen,
   previewHeadline, savedLine, skipCelebrationFor, stepGoal
 } from './goalEdit';
 import { goalLabel, shownGoal } from './goalSetup';
@@ -84,9 +84,10 @@ describe('goals at or below the best score', () => {
     const practice = { ...test('5', '2026-11-05', 950), sessionType: 'PART_PRACTICE' } as StudySession;
     expect(bestScore([...climb, deleted, practice])).toBe(680);
   });
-  it('marks the goal celebrated so saving it never fires the one-time celebration', () => {
+  it('marks the goal celebrated per account so saving it never fires the one-time celebration or leaks across accounts', () => {
     skipCelebrationFor(650);
-    expect(localStorage.getItem(CELEBRATED_KEY)).toBe('650');
+    expect(localStorage.getItem(celebratedKey())).toBe('650');
+    expect(localStorage.getItem(celebratedKey('other-user'))).toBeNull();
   });
   it('has Sóc say one short line after saving', () => {
     expect(savedLine({ reached: false, target: 900, step: 50, dropped: true })).toBe('Mục tiêu 900 rồi, mỗi bậc giờ ~50 điểm!');

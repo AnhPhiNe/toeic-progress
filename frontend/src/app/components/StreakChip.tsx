@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Flame } from 'lucide-react';
+import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import './streak.css';
 
@@ -103,6 +104,7 @@ function StreakPopover({ anchor, streak, longestStreak, studiedDates, today, onC
 }
 
 const CELEBRATED_KEY = 'toeic_streak_celebrated_v1';
+const streakCelebratedKey = () => `${CELEBRATED_KEY}:${getActiveAccountId() ?? 'guest'}`;
 
 /**
  * The first study recorded today makes the flame flare up once, then it shrinks back toward the chip.
@@ -119,8 +121,9 @@ export function StreakCelebration({ streak, studiedToday, today, held = false }:
     previous.current = studiedToday;
     if (!becameStudied || streak <= 0) return;
     try {
-      if (localStorage.getItem(CELEBRATED_KEY) === today) return;
-      localStorage.setItem(CELEBRATED_KEY, today);
+      const key = streakCelebratedKey();
+      if (localStorage.getItem(key) === today) return;
+      localStorage.setItem(key, today);
     } catch {
       // Celebrating twice is harmless when storage is unavailable.
     }

@@ -1,4 +1,4 @@
-import type { DataBundle } from '@/shared/data/dataBundle';
+import { getActiveAccountId, type DataBundle } from '@/shared/data/dataBundle';
 import type { PacingRun, StudySession } from '@/shared/types';
 import { deriveStreakWithExtras, doneDates } from '@/shared/domain/streakWeek';
 import { wrongCountsByPart } from '@/features/journey/lib/journeyData';
@@ -76,16 +76,17 @@ type Spec = Omit<Badge, 'earned' | 'date' | 'left' | 'progress'> & { earned: boo
 const finish = (s: Spec): Badge => ({ ...s, date: s.earned ? s.date : undefined, left: s.earned ? undefined : s.left, progress: s.earned ? 1 : Math.min(0.95, clamp01(s.progress ?? 0)) });
 
 const CLEAN_KEY = 'rd_clean_notebook_v1';
-/** "Sổ tay sạch" can only be seen on the day itself (only the latest review per card is stored), so the day is remembered on this device. */
+const cleanKey = () => `${CLEAN_KEY}:${getActiveAccountId() ?? 'guest'}`;
+/** "Sổ tay sạch" can only be seen on the day itself (only the latest review per card is stored), so the day is remembered per account on this device. */
 function cleanNotebookDay(bundle: DataBundle, today: string): string | undefined {
   const live = bundle.mistakes.filter(m => !m.deletedAt);
   const anchor = bundle.mistakes[0]?.id ?? '';
   let saved: { date: string; anchor: string } | null;
-  try { saved = typeof localStorage === 'undefined' ? null : JSON.parse(localStorage.getItem(CLEAN_KEY) ?? 'null'); } catch { saved = null; }
+  try { saved = typeof localStorage === 'undefined' ? null : JSON.parse(localStorage.getItem(cleanKey()) ?? 'null'); } catch { saved = null; }
   if (saved && saved.anchor === anchor && typeof saved.date === 'string') return saved.date;
   const reviewedToday = live.filter(m => m.lastReviewedAt && localDate(m.lastReviewedAt) === today).length;
   if (reviewedToday < 3 || getDueMistakes(live, today).length > 0) return undefined;
-  try { if (typeof localStorage !== 'undefined') localStorage.setItem(CLEAN_KEY, JSON.stringify({ date: today, anchor })); } catch { /* Seen again today only. */ }
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(cleanKey(), JSON.stringify({ date: today, anchor })); } catch { /* Seen again today only. */ }
   return today;
 }
 

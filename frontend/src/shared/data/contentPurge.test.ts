@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { activateAccount, clearRetiredCopies, compactDeletedRecords, emptyBundle, readDataBundle, StorageWriteError, writeAccountBundle, writeDataBundle } from '@/shared/data/dataBundle';
+import { activateAccount, clearRetiredCopies, compactDeletedRecords, deactivateAccount, emptyBundle, purgeAccountLocalStorage, readDataBundle, StorageWriteError, writeAccountBundle, writeDataBundle } from '@/shared/data/dataBundle';
 import { createBackupSnapshot, resetToCleanSlate } from '@/shared/data/storage';
 import { parseBackup } from '@/shared/data/backup';
 
@@ -102,5 +102,48 @@ describe('deleted learning content', () => {
     const bundle = emptyBundle();
     bundle.vocabLog = [{id:'v1',date:'2026-10-06',count:12,updatedAt:bundle.profile.updatedAt,deletedAt:null}];
     expect(compactDeletedRecords(bundle).vocabLog).toEqual(bundle.vocabLog);
+  });
+
+  it('purgeAccountLocalStorage scrubs every persisted key of the signed-out account while preserving other accounts and guest', () => {
+    values.set('toeic_progress_account_alice_v3', '{"profile":{"name":"Alice"}}');
+    values.set('toeic_progress_account_bob_v3', '{"profile":{"name":"Bob"}}');
+    values.set('toeic_progress_bundle_v3', '{"profile":{"name":"Guest"}}');
+    values.set('toeic_sync_cursor_alice_v3', '{"cursor":9}');
+    values.set('toeic_attempt_advice_consent_alice_v1', 'true');
+    values.set('toeic_pomodoro_settings_v2_alice', '{"focus":25}');
+    values.set('toeic_pacing_sound_alice', 'true');
+    values.set('toeic_source_image_cleanup_alice', '2026-11-20T00:00:00Z');
+    values.set('rd_task_skip_v1:alice', '{"date":"2026-11-22","ids":["t1"]}');
+    values.set('rd_journey_force_v1:alice', '["s1"]');
+    values.set('rd_task_skip_v1:bob', '{"date":"2026-11-22","ids":["t2"]}');
+    values.set('toeic_wrong_detail_skip_listening_v1', JSON.stringify({ alice: true, bob: true }));
+    values.set('toeic_explain_tickets_v1', JSON.stringify({
+      c1: { owner: 'alice', ticket: 'secret-hmac', expires: 9999999999999 },
+      c2: { owner: 'bob', ticket: 'bob-hmac', expires: 9999999999999 },
+    }));
+
+    activateAccount('alice');
+    deactivateAccount();
+    purgeAccountLocalStorage('alice');
+
+    for (const removed of [
+      'toeic_progress_account_alice_v3',
+      'toeic_sync_cursor_alice_v3',
+      'toeic_attempt_advice_consent_alice_v1',
+      'toeic_pomodoro_settings_v2_alice',
+      'toeic_pacing_sound_alice',
+      'toeic_source_image_cleanup_alice',
+      'rd_task_skip_v1:alice',
+      'rd_journey_force_v1:alice',
+    ]) {
+      expect(values.has(removed)).toBe(false);
+    }
+    expect(JSON.parse(values.get('toeic_wrong_detail_skip_listening_v1')!)).toEqual({ bob: true });
+    expect(JSON.parse(values.get('toeic_explain_tickets_v1')!)).toEqual({
+      c2: { owner: 'bob', ticket: 'bob-hmac', expires: 9999999999999 },
+    });
+    expect(values.get('toeic_progress_account_bob_v3')).toBe('{"profile":{"name":"Bob"}}');
+    expect(values.get('toeic_progress_bundle_v3')).toBe('{"profile":{"name":"Guest"}}');
+    expect(values.get('rd_task_skip_v1:bob')).toBe('{"date":"2026-11-22","ids":["t2"]}');
   });
 });
