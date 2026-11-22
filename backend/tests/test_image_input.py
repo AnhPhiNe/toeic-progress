@@ -49,16 +49,26 @@ def test_image_mime_must_match_actual_bytes_and_pixel_count_is_bounded():
 
 def test_total_image_size_is_bounded_even_when_each_image_is_valid():
     stream = BytesIO()
-    Image.new("RGB", (500, 500), "white").save(stream, format="PNG", compress_level=0)
+    Image.new("RGB", (580, 580), "white").save(stream, format="PNG", compress_level=0)
     value = "data:image/png;base64," + base64.b64encode(stream.getvalue()).decode()
     assert ImageAttachment(dataUrl=value).byte_count < 1024 * 1024
+    # Four passage images fit the count but not the 3 MiB analysis total.
     with pytest.raises(ValidationError):
-        request([value] * 3)
+        request([value] * 4)
+
+
+def test_analysis_accepts_four_passage_images_and_rejects_five():
+    assert len(request([image_url()] * 4).images) == 4
+    part6 = {"question": "The entire project was ____ financed.", "options": ["(A) larger", "(B) largeness", "(C) large", "(D) largely"],
+             "context": "", "part": 6, "userChoiceState": "CHOSEN", "userChoice": "B"}
+    assert request([image_url()] * 4, input=part6).input.part == 6
+    with pytest.raises(ValidationError):
+        request([image_url()] * 5)
 
 
 def test_image_count_and_part_restrictions_do_not_weaken_text_validation():
     with pytest.raises(ValidationError):
-        request([image_url()] * 4)
+        request([image_url()] * 5)
     with pytest.raises(ValidationError):
         request([image_url()], input={"question": "Question", "options": [], "part": 5,
                                      "userChoiceState": "UNKNOWN"})

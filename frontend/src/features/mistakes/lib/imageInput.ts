@@ -1,6 +1,7 @@
 import { generateUUID } from '@/shared/domain/uuid';
 
-export const MAX_CONTEXT_IMAGES = 3;
+/** Passage images one single-card analysis sends (backend MAX_ANALYZE_IMAGES). */
+export const MAX_CONTEXT_IMAGES = 4;
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_PIXELS = 60_000_000;
 const MAX_PREPARED_BYTES = 600 * 1024;

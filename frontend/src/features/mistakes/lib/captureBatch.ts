@@ -12,8 +12,33 @@ export const CONTEXT_PER_REQUEST = 5;
 export const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 /** One reading returns at most this many wrong questions (backend MAX_PAGE_ITEMS). */
 export const QUESTIONS_PER_REQUEST = 6;
-/** The backend accepts this many requests per capture (one batch) and charges the first one only. */
-export const MAX_CAPTURE_REQUESTS = 8;
+/**
+ * The backend accepts this many requests per capture (one batch id, backend AI_BATCH_MAX_REQUESTS) and charges the
+ * first one only. /health reports it as `max_batch_requests`; this is the fallback when it does not.
+ */
+export const MAX_CAPTURE_REQUESTS = 4;
+/** The backend explains at most this many questions per capture (AI_BATCH_MAX_EXPLAIN_QUESTIONS). */
+export const MAX_CAPTURE_EXPLANATIONS = 16;
+
+/** Requests one capture may send: the backend's own limit when /health gives one, otherwise MAX_CAPTURE_REQUESTS. */
+export function captureRequestLimit(config?: { maxBatchRequests?: number } | null): number {
+  const value = config?.maxBatchRequests;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 20 ? value : MAX_CAPTURE_REQUESTS;
+}
+
+/** Calm note for the questions a capture read but cannot explain with its ticket; '' when every question is ticketed. */
+export function explainCapNote(left: number, limit = MAX_CAPTURE_EXPLANATIONS): string {
+  return left > 0 ? `Sóc giải thích tối đa ${limit} câu mỗi lần chụp. Các câu còn lại vẫn được lưu; mở thẻ và bấm Giải thích với AI khi cần.` : '';
+}
+
+/** The numbers a page reading's explain ticket covers: the backend's explainNumbers, or every item on an older backend. */
+export function ticketedNumbers(result: { items: readonly { number: number }[]; explainTicket?: string | null; explainNumbers?: readonly number[] }): number[] {
+  if (!result.explainTicket) return [];
+  return [...(result.explainNumbers ?? result.items.map(item => item.number))];
+}
+
+/** Note shown when a capture needs more readings than one batch accepts, so another AI use starts. */
+export const NEW_BATCH_NOTE = (limit: number) => `Một lần chụp đọc tối đa ${limit} lượt, nên phần tiếp theo Sóc tính thêm 1 lượt AI.`;
 /** Reading looks for these when the chosen test has no logged wrong-question list. */
 export const DEFAULT_QUESTIONS: readonly number[] = Array.from({ length: 100 }, (_, index) => 101 + index);
 
@@ -97,7 +122,10 @@ const completeness = (draft: AIMistakeParseResult) =>
 
 /** A repeated question number keeps the more complete reading; ties keep the first. Reading order is by question number. */
 export function mergeItems(existing: readonly CaptureItem[], incoming: readonly PageItem[], ticket: string | null | undefined,
-  newId: () => string, category = (draft: AIMistakeParseResult): ErrorCategory => draft.category): CaptureItem[] {
+  newId: () => string, category = (draft: AIMistakeParseResult): ErrorCategory => draft.category,
+  /** Numbers the ticket covers (the backend's explainNumbers); others keep no ticket. Omitted = every number. */
+  ticketed?: readonly number[]): CaptureItem[] {
+  const covered = ticketed ? new Set(ticketed) : null;
   const byNumber = new Map(existing.map(item => [item.number, item]));
   for (const read of incoming) {
     const part = partOfQuestion(read.number);
@@ -105,7 +133,7 @@ export function mergeItems(existing: readonly CaptureItem[], incoming: readonly 
     const before = byNumber.get(read.number);
     if (before && completeness(before.draft) >= completeness(read.draft)) continue;
     const next: CaptureItem = { id: before?.id ?? newId(), number: read.number, part: part as MistakeEntry['part'], draft: read.draft,
-      category: category(read.draft), ticket: ticket ?? null, checked: before?.checked ?? (!isUnreadable(read.draft) && !isRightAnswer(read.draft)) };
+      category: category(read.draft), ticket: covered && !covered.has(read.number) ? null : ticket ?? null, checked: before?.checked ?? (!isUnreadable(read.draft) && !isRightAnswer(read.draft)) };
     byNumber.set(read.number, next);
   }
   return [...byNumber.values()].sort((a, b) => a.number - b.number);

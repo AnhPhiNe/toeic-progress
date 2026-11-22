@@ -6,8 +6,8 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { readFormDraft, removeFormDraft, writeFormDraft } from '@/shared/data/formDrafts';
 import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
 import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
-import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, QUESTIONS_PER_REQUEST, isRightAnswer, isUnreadable, mergeItems,
-  remainingQuestions, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
+import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, NEW_BATCH_NOTE, QUESTIONS_PER_REQUEST, captureRequestLimit, explainCapNote,
+  isRightAnswer, isUnreadable, mergeItems, remainingQuestions, ticketedNumbers, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { isGroupedPart, type ReadRequest } from '@/features/mistakes/lib/wrongDetail';
@@ -87,6 +87,12 @@ let epoch = 0;
 let viewing = false;
 let batchId = generateUUID();
 let requestsUsed = 0;
+/** Readings one batch id accepts: the backend's /health limit once known, MAX_CAPTURE_REQUESTS until then. */
+let requestLimit = MAX_CAPTURE_REQUESTS;
+let requestLimitLoad: Promise<number> | null = null;
+const loadRequestLimit = () => requestLimitLoad ??= Promise.resolve()
+  .then(() => typeof aiService.getAIConfiguration === 'function' ? aiService.getAIConfiguration() : null)
+  .then(captureRequestLimit, () => MAX_CAPTURE_REQUESTS);
 let solvingCount = 0;
 let context: CaptureContext | null = null;
 let restoreTried = false;
@@ -270,7 +276,11 @@ async function readOnce(
   const remaining = remainingQuestions(request.questions, state.items);
   if (!remaining.length) { mark('done'); return; }
   mark('reading');
-  if (requestsUsed >= MAX_CAPTURE_REQUESTS) { batchId = generateUUID(); requestsUsed = 0; }
+  // A full batch would refuse the request (batch_full); a new batch is another AI use, so say so.
+  if (requestsUsed >= requestLimit) {
+    batchId = generateUUID(); requestsUsed = 0;
+    set({ note: appendNote(state.note, NEW_BATCH_NOTE(requestLimit)) });
+  }
   const activeBatchId = batchId;
   requestsUsed += 1;
   try {
@@ -278,7 +288,7 @@ async function readOnce(
       request.contextImages, request.slices, photoMode ? { photoMode: true } : undefined);
     if (!current()) return;
     if (result.items.length) onFound?.(result.items.length);
-    const items = mergeItems(state.items, result.items, result.explainTicket, generateUUID);
+    const items = mergeItems(state.items, result.items, result.explainTicket, generateUUID, undefined, ticketedNumbers(result));
     const seenNumbers = new Set(items.map(item => item.number));
     const reasons = [...state.rejectionReasons, ...(result.rejectionReasons ?? [])].filter(r => r.number === null || !seenNumbers.has(r.number));
     mark('done');
@@ -288,10 +298,15 @@ async function readOnce(
     // - graded (2-mark) questions get cross-checked against Sóc's own answer (surfacing `answerDoubt` if they disagree)
     // - saving skips a redundant second explain-batch call for already-explained cards.
     if (result.explainTicket && typeof aiService.explainBatchWithAI === 'function') {
-      const toSolve = result.items.filter(entry => {
+      const explainable = result.items.filter(entry => {
         const part = (partOfQuestion(entry.number) ?? 5) as CaptureItem['part'];
         return canExplainRead(entry.draft, part);
       });
+      // The ticket covers only explainNumbers (the backend's per-capture cap); sending any other number is refused.
+      const ticketed = new Set(ticketedNumbers(result));
+      const toSolve = explainable.filter(entry => ticketed.has(entry.number));
+      const capNote = explainCapNote(explainable.length - toSolve.length, result.explainLimit);
+      if (capNote) set({ note: appendNote(state.note, capNote) });
       if (toSolve.length) {
         solvingCount += 1;
         set({ solving: true });
@@ -347,7 +362,7 @@ async function readOnce(
       }
     }
     // A reading returns at most six questions. A wide one (many questions at once) that filled up asks again for the rest.
-    if (remaining.length > QUESTIONS_PER_REQUEST && result.items.length >= QUESTIONS_PER_REQUEST && requestsUsed < MAX_CAPTURE_REQUESTS
+    if (remaining.length > QUESTIONS_PER_REQUEST && result.items.length >= QUESTIONS_PER_REQUEST && requestsUsed < requestLimit
       && remainingQuestions(request.questions, state.items).length) {
       await readOnce(request, imageIds, mine, photoMode, getToken, onFound, onFailed);
     }
@@ -386,9 +401,11 @@ async function runAll(
 
 async function executeBatch(opts: BatchOptions): Promise<boolean> {
   const { part, group, photoMode, passageFiles, questionFiles, imageIds, ctx, mine, background } = opts;
+  // Learn the backend's limit for the next plan without delaying this one (the fallback equals today's backend).
+  void loadRequestLimit().then(value => { requestLimit = value; });
   const buildPlan = (targetQuestions: number[]) => (isGroupedPart(part)
-    ? prepareGroup(passageFiles, questionFiles, targetQuestions, ctx.contextSupported !== false)
-    : prepareSingles(questionFiles, targetQuestions));
+    ? prepareGroup(passageFiles, questionFiles, targetQuestions, ctx.contextSupported !== false, requestLimit)
+    : prepareSingles(questionFiles, targetQuestions, requestLimit));
   const plan = await buildPlan(ctx.questions);
   if (mine !== epoch) return false;
   if (plan.error || !plan.requests.length) {
@@ -418,7 +435,7 @@ async function executeBatch(opts: BatchOptions): Promise<boolean> {
   if (mine !== epoch) return false;
   // General fallback for Parts 1–7: when not locked onto a specific passage group and the narrow
   // logged list found 0 questions on the uploaded photo, automatically expand to the full Part in the same batch.
-  if (group === null && batchFound === 0 && batchFailed === 0 && requestsUsed < MAX_CAPTURE_REQUESTS) {
+  if (group === null && batchFound === 0 && batchFailed === 0 && requestsUsed < requestLimit) {
     const wideRange = questionsOfPart(part);
     const narrow = new Set(ctx.questions);
     if (wideRange.some(number => !narrow.has(number))) {
@@ -612,4 +629,4 @@ export function resetCapture() {
 export function dismissBackgroundNotice() { if (state.finishedInBackground) set({ finishedInBackground: false }); }
 
 /** Tests only. */
-export function __resetCaptureForTests() { epoch += 1; owner = getActiveAccountId(); viewing = false; restoreTried = false; context = null; requestsUsed = 0; solvingCount = 0; failed.clear(); files.clear(); state = blank(); emit(); }
+export function __resetCaptureForTests() { requestLimitLoad = null; requestLimit = MAX_CAPTURE_REQUESTS; epoch += 1; owner = getActiveAccountId(); viewing = false; restoreTried = false; context = null; requestsUsed = 0; solvingCount = 0; failed.clear(); files.clear(); state = blank(); emit(); }

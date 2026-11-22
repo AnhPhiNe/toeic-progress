@@ -32,6 +32,7 @@ import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { partOfQuestion, parseQuestionList } from '@/shared/domain/questionNumbers';
 import { enqueueExplanations } from '@/features/mistakes/services/explanationQueue';
 import { buildBatchEntries, type BatchExtractedItem } from '@/features/mistakes/lib/batchCapture';
+import { ticketedNumbers } from '@/features/mistakes/lib/captureBatch';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { loadStudySessions } from '@/shared/data/storage';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
@@ -267,9 +268,9 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
   const addImages = async (files: File[]) => {
     if (!files.length || busy || imageBusy || persisting) return;
     if (reading?.images.length || sourceImageIds.length && reading) { setError('Bấm “Đổi bài đọc” trước khi thêm ảnh của bài khác.'); return; }
-    if (effectivePart !== 1 && effectivePart !== 7) { setError('Chọn Part 1 (tranh) hoặc Part 7 (đoạn đọc) trước khi thêm ảnh.'); return; }
+    if (effectivePart !== 1 && effectivePart !== 6 && effectivePart !== 7) { setError('Chọn Part 1 (tranh), Part 6 hoặc Part 7 (đoạn đọc) trước khi thêm ảnh.'); return; }
     const maximum = effectivePart === 1 ? 1 : MAX_CONTEXT_IMAGES;
-    if (imageDrafts.length + files.length > maximum) { setError(effectivePart === 1 ? 'Mỗi câu Part 1 dùng một ảnh tranh.' : 'Mỗi lần phân tích tối đa 3 ảnh Part 7.'); return; }
+    if (imageDrafts.length + files.length > maximum) { setError(effectivePart === 1 ? 'Mỗi câu Part 1 dùng một ảnh tranh.' : `Mỗi lần phân tích tối đa ${maximum} ảnh Part ${effectivePart}.`); return; }
     const epoch = requestEpoch.current;
     setImageBusy(true); setError(''); setChanged(true);
     try {
@@ -359,7 +360,8 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
               part: itemPart,
               draft: item.draft,
               category,
-              ticket: result.explainTicket ?? null
+              // Only numbers the ticket covers may be explained with it (the backend caps them per capture).
+              ticket: ticketedNumbers(result).includes(item.number) ? result.explainTicket ?? null : null
             };
             if (idx >= 0) {
               updated[idx] = entry;
@@ -597,7 +599,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
     correctAnswer: draft?.correctAnswer ?? '', optionNotes: draft?.optionNotes });
   const choosePart = (nextPart: MistakeEntry['part'] | null) => {
     if ((reading && nextPart !== 7) || (imageIdsDraft.length && nextPart !== part)) clearReading();
-    setContextMode(nextPart === 1 || nextPart === 7 && (imageDrafts.length > 0 || imageIdsDraft.length > 0) ? 'image' : 'text');
+    setContextMode(nextPart === 1 || (nextPart === 6 || nextPart === 7) && (imageDrafts.length > 0 || imageIdsDraft.length > 0) ? 'image' : 'text');
     setPart(nextPart); setChanged(true);
   };
   const partButtons = (
@@ -754,7 +756,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
               </div>
 
               {batchSummary && <div role="status" className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-950 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-100">
-                <p className="font-bold">Đã đọc, cần kiểm tra</p><p>Đã đọc {batchReadCount}{batchSummary.requested ? `/${batchSummary.requested.length}` : ''} câu. Mỗi lượt đọc tối đa 6 câu từ 1–3 ảnh.</p>
+                <p className="font-bold">Đã đọc, cần kiểm tra</p><p>Đã đọc {batchReadCount}{batchSummary.requested ? `/${batchSummary.requested.length}` : ''} câu. Mỗi lượt đọc tối đa 6 câu từ 1–{MAX_CONTEXT_IMAGES} ảnh.</p>
                 {batchItems.length !== batchReadCount && <p>Tổng danh sách đang có {batchItems.length} câu.</p>}
                 {batchSummary.requested ? <p>{batchMissing.length ? `Chưa đọc được câu: ${batchMissing.join(', ')}. Thêm ảnh rõ các câu này để quét tiếp.` : 'Đã đọc đủ các câu yêu cầu.'}</p>
                   : <p>Kiểm tra danh sách bên dưới. Nếu còn câu chưa xuất hiện, nhập số câu và thêm ảnh rõ để quét tiếp.</p>}

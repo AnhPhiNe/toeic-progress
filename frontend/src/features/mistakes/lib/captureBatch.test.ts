@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AIMistakeParseResult, PageItem } from '@/features/mistakes/services/aiMistakeExtractor';
-import { chunkQuestions, dataUrlBytes, mergeItems, openDraftDoubt, questionPreview, remainingQuestions, rowStatus, rowUnsureReason,
+import { MAX_CAPTURE_REQUESTS, captureRequestLimit, chunkQuestions, dataUrlBytes, explainCapNote, mergeItems, ticketedNumbers, openDraftDoubt, questionPreview, remainingQuestions, rowStatus, rowUnsureReason,
   type CaptureItem } from './captureBatch';
 
 /** A data URL that decodes to exactly `bytes` bytes (bytes must be a multiple of 3). */
@@ -94,5 +94,27 @@ describe('review helpers', () => {
     expect(questionPreview(draft({ question: 'The manager asked all staff to ______ the new safety rules by Friday afternoon, as the memo said earlier today.' }), 60))
       .toBe('The manager asked all staff to ___ the new safety rules by…');
     expect(questionPreview(draft({ question: '' }))).toBe('Không đọc rõ phương án');
+  });
+});
+
+describe('capture limits', () => {
+  it('follows the backend batch limit and falls back to 4', () => {
+    expect(MAX_CAPTURE_REQUESTS).toBe(4);
+    expect(captureRequestLimit(null)).toBe(4);
+    expect(captureRequestLimit({})).toBe(4);
+    expect(captureRequestLimit({ maxBatchRequests: 3 })).toBe(3);
+    expect(captureRequestLimit({ maxBatchRequests: 0 })).toBe(4);
+  });
+  it('gives a ticket only to the numbers it covers', () => {
+    const read: PageItem[] = [131, 132, 133].map(number => ({ number, draft: { ...draft({ part: 6 }), questionContext: 'Q' } }));
+    let id = 0;
+    const merged = mergeItems([], read, 'ticket', () => `id${id++}`, undefined, [131, 133]);
+    expect(merged.map(item => [item.number, item.ticket])).toEqual([[131, 'ticket'], [132, null], [133, 'ticket']]);
+    expect(mergeItems([], read, 'ticket', () => `id${id++}`).every(item => item.ticket === 'ticket')).toBe(true);
+    expect(ticketedNumbers({ items: read, explainTicket: 't', explainNumbers: [131] })).toEqual([131]);
+    expect(ticketedNumbers({ items: read, explainTicket: 't' })).toEqual([131, 132, 133]);
+    expect(ticketedNumbers({ items: read, explainTicket: null, explainNumbers: [131] })).toEqual([]);
+    expect(explainCapNote(0)).toBe('');
+    expect(explainCapNote(2)).toBe('Sóc giải thích tối đa 16 câu mỗi lần chụp. Các câu còn lại vẫn được lưu; mở thẻ và bấm Giải thích với AI khi cần.');
   });
 });

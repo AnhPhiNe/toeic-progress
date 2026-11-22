@@ -6,6 +6,7 @@ import logging
 import math
 import re
 import time
+from contextvars import ContextVar
 
 import httpx
 from fastapi import HTTPException
@@ -64,17 +65,14 @@ class OpenAIError(HTTPException):
         self.code = code
 
 
-def _payload_cost(payload: dict) -> int:
-    """Estimate relative OpenAI cost units (1..5) from model tier, reasoning effort and image count."""
-    model = str(payload.get("model") or "").lower()
-    effort = str((payload.get("reasoning") or {}).get("effort") or "").lower()
-    image_count = sum(
-        1
-        for entry in payload.get("input") or []
-        if isinstance(entry, dict)
-        for part in entry.get("content") or []
-        if isinstance(part, dict) and part.get("type") == "input_image"
-    )
+# Provider budget units (the daily owner cap counts these, not requests).
+# Explanations: Part 2-6 text = 1 unit; Part 7 or Part 1 (image/heavy model) = 2 units.
+# Page reads, result reads and attempt analysis keep model-based weights:
+#   light OCR model = 1, heavy model = 2, heavy model at medium/high effort = +1,
+#   four or more images = +1, capped at 5.
+def model_cost(model, effort, image_count: int) -> int:
+    """Cost units of one page/results/analysis request from model tier, reasoning effort and image count."""
+    model, effort = str(model or "").lower(), str(effort or "").lower()
     heavy = "terra" in model or (bool(model) and "luna" not in model)
     cost = 2 if heavy else 1
     if heavy and effort in ("medium", "high"):
@@ -82,6 +80,53 @@ def _payload_cost(payload: dict) -> int:
     if image_count >= 4:
         cost += 1
     return min(5, max(1, cost))
+
+
+def explanation_cost(part, has_images: bool = False) -> int:
+    """Cost units of one explanation: Part 7 and Part 1 (or any image) use the heavy model and cost 2, others 1."""
+    real_part = isinstance(part, int) and not isinstance(part, bool)
+    return 2 if has_images or (real_part and part in (1, 7)) else 1
+
+
+def source_part(text: str):
+    """The Part named in a structured explanation input, or None for free text."""
+    try:
+        source = json.loads(text)
+    except ValueError:
+        return None
+    return source.get("part") if isinstance(source, dict) else None
+
+
+def _payload_cost(payload: dict) -> int:
+    """Estimate relative OpenAI cost units (1..5) from model tier, reasoning effort and image count."""
+    image_count = sum(
+        1
+        for entry in payload.get("input") or []
+        if isinstance(entry, dict)
+        for part in entry.get("content") or []
+        if isinstance(part, dict) and part.get("type") == "input_image"
+    )
+    return model_cost(payload.get("model"), (payload.get("reasoning") or {}).get("effort"), image_count)
+
+
+class PrepaidBudget:
+    """Provider budget units a route reserved before counting the learner's AI use.
+
+    Reserving first means a budget refusal never spends an AI use or an explanation attempt; the OpenAI call then
+    draws from this credit instead of reserving again.
+    """
+
+    def __init__(self, units: int):
+        self.units = units
+
+    def take(self, cost: int) -> bool:
+        if self.units >= cost:
+            self.units -= cost
+            return True
+        return False
+
+
+prepaid_budget: ContextVar[PrepaidBudget | None] = ContextVar("prepaid_provider_budget", default=None)
 
 
 class OpenAIProvider:
@@ -108,10 +153,13 @@ class OpenAIProvider:
             }))
 
     async def _respond(self, key: str, payload: dict, timeout: float, *,
-                       endpoint: str = "extract", owner_id: str | None = None, plan: str | None = None) -> str:
+                       endpoint: str = "extract", owner_id: str | None = None, plan: str | None = None,
+                       cost: int | None = None) -> str:
         """One billed attempt: guard provider budget, send the request and return joined output text. Never retried."""
-        if self.budget_guard is not None:
-            await self.budget_guard(owner_id, cost=_payload_cost(payload), plan=plan)
+        cost = _payload_cost(payload) if cost is None else cost
+        credit = prepaid_budget.get()
+        if self.budget_guard is not None and not (credit is not None and credit.take(cost)):
+            await self.budget_guard(owner_id, cost=cost, plan=plan)
         model = str(payload.get("model") or self.settings.openai_model)
         effort = str((payload.get("reasoning") or {}).get("effort") or "")
         started = time.monotonic()
@@ -241,8 +289,8 @@ class OpenAIProvider:
             schema["properties"]["correctAnswer"]["enum"] = ["", *(" ".join(option.split()) for option in source_options)]
             schema["properties"]["ownAnswer"]["enum"] = schema["properties"]["correctAnswer"]["enum"]
         if images:
-            if source.get("part") not in (1, 7) or (source.get("part") == 1 and len(images) != 1):
-                raise HTTPException(422, "Ảnh chỉ hỗ trợ Part 1 (một tranh) hoặc Part 7.")
+            if source.get("part") not in (1, 6, 7) or (source.get("part") == 1 and len(images) != 1):
+                raise HTTPException(422, "Ảnh chỉ hỗ trợ Part 1 (một tranh), Part 6 hoặc Part 7.")
             if not freeform and (source_options is None or len(source_options) != 4 or not isinstance(source.get("question"), str) or not source["question"].strip()):
                 raise HTTPException(422, "Dán câu hỏi và đủ A–D; ảnh chỉ cung cấp ngữ cảnh.")
             if not freeform:
@@ -259,8 +307,7 @@ class OpenAIProvider:
             image_instructions += PERSISTENT_IMAGE_INSTRUCTIONS
         content = [{"type": "input_text", "text": text}]
         content.extend({"type": "input_image", "image_url": image, "detail": "high"} for image in (images or []))
-        source_part = source.get("part")
-        heavy_explain = bool(images) or (isinstance(source_part, int) and not isinstance(source_part, bool) and source_part in (1, 7))
+        heavy_explain = explanation_cost(source.get("part"), bool(images)) == 2
         model = self.settings.openai_part7_model if heavy_explain else self.settings.openai_model
         effort = self.settings.openai_part7_effort if heavy_explain else self.settings.openai_reasoning_effort
         payload = {
@@ -281,7 +328,8 @@ class OpenAIProvider:
         phase = "response"
         try:
             text_output = await self._respond(key, payload, self.settings.openai_timeout_seconds,
-                                              endpoint=endpoint, owner_id=owner_id, plan=plan)
+                                              endpoint=endpoint, owner_id=owner_id, plan=plan,
+                                              cost=explanation_cost(source.get("part"), bool(images)))
             phase = "schema"
             output = output_model.model_validate_json(text_output)
             if isinstance(output, OpenAIPasteOutput) and output.inputIssue:
@@ -394,6 +442,22 @@ class OpenAIProvider:
             found.append((item.number, draft))
         return found, rejection_reasons, rejected
 
+    def page_models(self, photo_mode: bool) -> tuple[str, str]:
+        if photo_mode:
+            return self.settings.openai_paper_ocr_model, self.settings.openai_paper_ocr_effort
+        return self.settings.openai_ocr_model, self.settings.openai_ocr_effort
+
+    def results_models(self, photo_mode: bool, image_count: int) -> tuple[str, str]:
+        if photo_mode or image_count >= 2:
+            return self.settings.openai_paper_results_model, self.settings.openai_paper_results_effort
+        return self.settings.openai_ocr_model, self.settings.openai_ocr_effort
+
+    def page_cost(self, photo_mode: bool, image_count: int) -> int:
+        return model_cost(*self.page_models(photo_mode), image_count)
+
+    def results_cost(self, photo_mode: bool, image_count: int) -> int:
+        return model_cost(*self.results_models(photo_mode, image_count), image_count)
+
     async def generate_page(self, questions: list[dict], images: list[str],
                             safety_identifier: str | None = None,
                             context_images: list[str] | None = None,
@@ -408,8 +472,7 @@ class OpenAIProvider:
         numbers = [question["number"] for question in questions]
         context_images = context_images or []
         slices = slices or []
-        model = self.settings.openai_paper_ocr_model if photo_mode else self.settings.openai_ocr_model
-        effort = self.settings.openai_paper_ocr_effort if photo_mode else self.settings.openai_ocr_effort
+        model, effort = self.page_models(photo_mode)
         payload = self._build_page_payload(questions, images, context_images, slices,
                                            model=model, effort=effort, safety_identifier=safety_identifier)
         phase = "response"
@@ -510,9 +573,7 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     key = provider.settings.openai_api_key.get_secret_value().strip()
     if not key:
         raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
-    use_paper_tier = photo_mode or len(images) >= 2
-    model = provider.settings.openai_paper_results_model if use_paper_tier else provider.settings.openai_ocr_model
-    effort = provider.settings.openai_paper_results_effort if use_paper_tier else provider.settings.openai_ocr_effort
+    model, effort = provider.results_models(photo_mode, len(images))
 
     def build_payload(target_model: str, target_effort: str) -> dict:
         value = {

@@ -16,7 +16,7 @@ import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
 import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailDraft } from '@/features/mistakes/lib/detailDraft';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
-import { MAX_CAPTURE_REQUESTS } from '@/features/mistakes/lib/captureBatch';
+import { NEW_BATCH_NOTE, captureRequestLimit, explainCapNote, ticketedNumbers } from '@/features/mistakes/lib/captureBatch';
 import { checkPhotoClarity, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { flowCards, groupNumbers, heroPart, isGroupedPart, isRecorded, listeningSkipped, partMode, partProgress, setListeningSkipped, visibleProgress, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
@@ -367,15 +367,20 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     const rejectionReasons: PageRejectionReason[] = [];
     let error = '';
     try {
+      const limit = captureRequestLimit(config);
       const plan = job.group !== undefined
-        ? await prepareGroup(job.passage, job.questions, job.requested, config?.pageContextImages !== false)
-        : await prepareSingles(job.questions, job.requested);
+        ? await prepareGroup(job.passage, job.questions, job.requested, config?.pageContextImages !== false, limit)
+        : await prepareSingles(job.questions, job.requested, limit);
       if (!activeFlow()) return;
       if (plan.error) throw new Error(plan.error);
-      patchJob(key, { total: plan.requests.length, note: plan.split ? SPLIT_NOTE : plan.compressed ? COMPRESSED_NOTE : '' });
-      // The whole sitting is one AI use (one batch id) while the backend accepts more requests for it.
-      if (batch.current.used + plan.requests.length > MAX_CAPTURE_REQUESTS) batch.current = { id: generateUUID(), used: 0 };
+      // The whole sitting is one AI use (one batch id) while the backend accepts more requests for it; a group that
+      // no longer fits starts a new batch (another AI use), and the learner is told so.
+      const newBatch = batch.current.used > 0 && batch.current.used + plan.requests.length > limit;
+      if (batch.current.used + plan.requests.length > limit) batch.current = { id: generateUUID(), used: 0 };
       batch.current.used += plan.requests.length;
+      const notes = [plan.split ? SPLIT_NOTE : plan.compressed ? COMPRESSED_NOTE : '', newBatch ? NEW_BATCH_NOTE(limit) : ''];
+      const addNote = (text: string) => { if (text && !notes.includes(text)) { notes.push(text); patchJob(key, { note: notes.filter(Boolean).join(' ') }); } };
+      patchJob(key, { total: plan.requests.length, note: notes.filter(Boolean).join(' ') });
       const batchId = batch.current.id;
       const processRequest = async (request: (typeof plan.requests)[number]) => {
         if (!activeFlow()) return;
@@ -400,10 +405,17 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
           readIds.push(card.id); matches.push({ item, card });
         }
         formsRef.current = next; setForms(next);
-        if (result.explainTicket) enqueueExplanations(result.explainTicket, matches.filter(({ item, card }) => {
-          const effective = detailExplanationInput(next[card.id], card.part);
-          return canExplainRead(item.draft, card.part) && effective && sameExplanationInput(effective, explainInput(item.draft, card.part));
-        }).map(({ item, card }) => ({ cardId: card.id, number: item.number, input: explainInput(item.draft, card.part) })));
+        if (result.explainTicket) {
+          const explainable = matches.filter(({ item, card }) => {
+            const effective = detailExplanationInput(next[card.id], card.part);
+            return canExplainRead(item.draft, card.part) && effective && sameExplanationInput(effective, explainInput(item.draft, card.part));
+          });
+          // Only the numbers the ticket covers may be sent; the rest stay saved and can be explained from the card later.
+          const ticketed = explainable.filter(({ item }) => ticketedNumbers(result).includes(item.number));
+          addNote(explainCapNote(explainable.length - ticketed.length, result.explainLimit));
+          if (ticketed.length) enqueueExplanations(result.explainTicket,
+            ticketed.map(({ item, card }) => ({ cardId: card.id, number: item.number, input: explainInput(item.draft, card.part) })));
+        }
         removeCaptcha();
         patchJob(key, { done: jobsRef.current[key].done + 1 });
       };

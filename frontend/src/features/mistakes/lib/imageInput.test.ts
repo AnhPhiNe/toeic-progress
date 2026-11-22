@@ -39,8 +39,8 @@ describe('imageInput zero-destructive orientation & result caps', () => {
     expect(readJpegExifOrientation(new ArrayBuffer(0))).toBe(1);
   });
 
-  it('keeps single-question context cap (3), read-page context cap (5), and sharp result caps aligned with backend', () => {
-    expect(MAX_CONTEXT_IMAGES).toBe(3);
+  it('keeps single-question context cap (4), read-page context cap (5), and sharp result caps aligned with backend', () => {
+    expect(MAX_CONTEXT_IMAGES).toBe(4);
     expect(CONTEXT_PER_REQUEST).toBe(5);
     expect(MAX_RESULT_TOTAL_BYTES).toBe(6 * 1024 * 1024);
     expect(RESULT_IMAGE_OPTIONS.maxSide).toBe(2400);

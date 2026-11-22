@@ -125,7 +125,7 @@ describe('request planning', () => {
     expect(planSingleRequests([one(10), one(10)], numbers).requests.map(request => [request.images.length, request.questions.length])).toEqual([[2, 6], [2, 1]]);
     expect(planSingleRequests([1, 2, 3, 4, 5, 6].map(() => one(10)), [101, 102, 103]).requests.map(request => request.images.length)).toEqual([3, 3]);
     expect(planSingleRequests([1, 2, 3, 4, 5, 6, 7].map(() => one(10)), [101]).requests.map(request => request.images.length)).toEqual([6, 1]);
-    expect(planSingleRequests(Array.from({ length: 49 }, () => one(10)), numbers).error).toMatch(/tối đa 48 ảnh/);
+    expect(planSingleRequests(Array.from({ length: 49 }, () => one(10)), numbers).error).toMatch(/tối đa 24 ảnh/);
   });
 });
 
@@ -141,5 +141,30 @@ describe('Bỏ qua phần Nghe', () => {
     expect(listeningSkipped('owner-2', 's1')).toBe(false);
     setListeningSkipped('owner-1', 's1', false);
     expect(listeningSkipped('owner-1', 's1')).toBe(false);
+  });
+});
+
+describe('capture request limit', () => {
+  const one = (bytes: number) => [image(bytes)];
+  const reading = Array.from({ length: 30 }, (_, index) => 101 + index);
+  it('never plans more than 4 requests per capture for 5+ screenshot groups', () => {
+    for (const count of [5, 6, 8, 12, 13, 18, 24]) {
+      for (const wanted of [[101, 102], [101, 102, 103, 104, 105, 106, 107], reading]) {
+        const plan = planSingleRequests(Array.from({ length: count }, () => one(10)), wanted);
+        expect(plan.error).toBeUndefined();
+        expect(plan.requests.length).toBeLessThanOrEqual(4);
+        expect(new Set(plan.requests.flatMap(request => request.images)).size).toBe(count);
+      }
+    }
+    // More than one capture can take is a clear message, not a request the backend would refuse.
+    expect(planSingleRequests(Array.from({ length: 25 }, () => one(10)), [101, 102]).error).toMatch(/lần chụp sau/);
+  });
+  it('keeps grouped Parts within the limit, and follows a smaller backend limit', () => {
+    const plan = planGroupRequests([one(10)], Array.from({ length: 5 }, () => one(10)), [186, 187, 188, 189, 190]);
+    expect(plan.requests.length).toBeGreaterThan(0);
+    expect(plan.requests.length).toBeLessThanOrEqual(4);
+    const small = planSingleRequests(Array.from({ length: 6 }, () => one(10)), reading, { maxRequests: 2 });
+    expect(small.requests.length).toBeLessThanOrEqual(2);
+    expect(planSingleRequests(Array.from({ length: 13 }, () => one(10)), [101], { maxRequests: 2 }).error).toMatch(/tối đa 12 ảnh/);
   });
 });

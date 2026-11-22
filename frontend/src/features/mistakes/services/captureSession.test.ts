@@ -283,4 +283,32 @@ describe('capture session', () => {
     expect(captureState().images).toHaveLength(0);
     expect(captureState().testName).toBe('');
   });
+
+  it('explains only the numbers the ticket covers and says why the rest wait', async () => {
+    setPart(6); setTestName('ETS 2024 Test 11');
+    addFiles(files(1), 'passage'); addFiles(files(1), 'questions');
+    mocks.group.mockResolvedValueOnce({ requests: [request([131, 132, 133], [image('q')], [image('p')])], split: false, compressed: false });
+    mocks.extract.mockResolvedValueOnce({ ...reply([131, 132, 133]), explainNumbers: [131], explainLimit: 16 });
+    await startReading({ questions: [131, 132, 133], getToken: async () => 'tok', contextSupported: true });
+    expect(mocks.explainBatch).toHaveBeenCalledOnce();
+    expect(mocks.explainBatch.mock.calls[0][1].map((item: { number: number }) => item.number)).toEqual([131]);
+    expect(captureState().note).toContain('Sóc giải thích tối đa 16 câu mỗi lần chụp');
+    // Every card is still read and kept; only the ticketed one carries the ticket.
+    expect(captureState().items.map(item => [item.number, item.ticket])).toEqual([[131, 't'], [132, null], [133, null]]);
+  });
+
+  it('starts a new batch after 4 readings and tells the learner', async () => {
+    setPart(5); setTestName('ETS 2024 Test 11');
+    addFiles(files(5));
+    mocks.singles.mockResolvedValueOnce({
+      requests: [101, 102, 103, 104, 105].map(number => request([number])), split: false, compressed: false,
+    });
+    mocks.extract.mockImplementation(async (questions: { number: number }[]) => reply([questions[0].number]));
+    await startReading({ questions: [101, 102, 103, 104, 105], getToken: async () => 'tok' });
+    const batches = mocks.extract.mock.calls.map(call => call[5]);
+    expect(batches).toHaveLength(5);
+    expect(new Set(batches.slice(0, 4)).size).toBe(1);
+    expect(batches[4]).not.toBe(batches[0]);
+    expect(captureState().note).toContain('Một lần chụp đọc tối đa 4 lượt');
+  });
 });

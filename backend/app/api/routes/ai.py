@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app.api.dependencies import ai_authorized, identity
 from app.core.image_input import MAX_PAGE_IMAGE_BYTES, validate_images_async
 from app.core.runtime import client_address
+from app.integrations.openai_provider import PrepaidBudget, explanation_cost, model_cost, prepaid_budget, source_part
 from app.schemas.attempt_analysis import AnalyzeAttemptRequest
 from app.schemas.models import ExplainBatchRequest, ExtractRequest, PageExtractRequest, ResultsReadRequest
 from app.services import explain_tickets
@@ -21,7 +22,10 @@ async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=De
     access = request.state.ai_access
     gateway = request.app.state.gateway
     snapshot = await load_snapshot(gateway, user["id"], body)
-    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, None, snapshot_hash(snapshot))
+    reservation, unlimited = await reserve_ai(
+        request, user, access, body.request_id, None, snapshot_hash(snapshot),
+        provider_cost=model_cost(settings.openai_advice_model, settings.openai_advice_reasoning_effort, 0),
+    )
     # Reservation is committed before generation; OpenAI gets exactly one request.
     report = await generate_analysis(gateway, snapshot, user["id"], plan=access.plan)
     return {"report": report, "usage": {"remaining": None if unlimited else reservation["remaining"],
@@ -63,7 +67,10 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(ai_author
     input_hash = hashlib.sha256(extraction_text.encode())
     for image in source_images:
         input_hash.update(b"\0" + hashlib.sha256(image.encode()).digest())
-    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
+    reservation, unlimited = await reserve_ai(
+        request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
+        provider_cost=explanation_cost(source_part(extraction_text), bool(source_images)),
+    )
     # Reservation is committed before generation, including failed attempts.
     # OpenAI posts one request and does not retry ambiguous billed generations.
     if body.input is not None:
@@ -103,10 +110,27 @@ AI_BATCH_MAX_EXPLAIN_QUESTIONS = 16
 AI_BATCH_TTL_SECONDS = 3600
 
 
+async def prepay_provider_budget(request: Request, user: dict, access, cost: int) -> None:
+    """Reserve the provider budget for the OpenAI calls this request will make, before anything else is spent.
+
+    A refusal raises 429 while the learner's AI use and explanation attempts are still untouched; the later OpenAI
+    calls draw from this credit instead of reserving again. Units reserved for a request the quota then refuses are
+    not returned, which the per-owner daily cap bounds.
+    """
+    settings = request.app.state.settings
+    credit = PrepaidBudget(0)
+    prepaid_budget.set(credit)
+    if cost <= 0 or not settings.ai_provider_budget_enabled or not settings.database_ready:
+        return
+    await request.app.state.gateway.reserve_provider_budget(user["id"], cost=cost, plan=access.plan)
+    credit.units = cost
+
+
 async def reserve_ai(request: Request, user: dict, access, request_id, captcha_token: str | None, input_hash: str,
-                     batch_id=None):
+                     batch_id=None, *, provider_cost: int):
     """Count one AI request against every quota before generation; a refused request raises.
 
+    The provider budget (`provider_cost` units) is reserved first, so a budget refusal never spends the AI use.
     With a batch id, only the first request of that batch is charged to the account. Later requests of the same
     batch still count against the shared minute/day/IP safety caps, and a batch accepts a limited number of requests.
     """
@@ -114,6 +138,7 @@ async def reserve_ai(request: Request, user: dict, access, request_id, captcha_t
     unlimited = access.unlimited
     if user["is_anonymous"]:
         await gateway.verify_captcha(captcha_token)
+    await prepay_provider_budget(request, user, access, provider_cost)
     parameters = {
         "p_user_id": user["id"],
         "p_guest": user["is_anonymous"],
@@ -173,8 +198,10 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         input_hash.update(b"\1" + hashlib.sha256(image.dataUrl.encode()).digest())
     for image in body.images:
         input_hash.update(b"\0" + hashlib.sha256(image.dataUrl.encode()).digest())
-    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
-                                              body.batch_id)
+    reservation, unlimited = await reserve_ai(
+        request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(), body.batch_id,
+        provider_cost=request.app.state.gateway.openai.page_cost(body.photoMode, len(body.images) + len(body.context_images)),
+    )
     found, missing, rejection_reasons = await request.app.state.gateway.generate_page(
         questions,
         [image.dataUrl for image in body.images],
@@ -187,6 +214,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
     # The explanations for these questions are written next, without counting another use,
     # bounded across all chunks of a batch_id to prevent cost amplification.
     ticket = None
+    explain_numbers: list[int] = []
     if settings.rate_limit_secret and found:
         eligible = [
             (number, draft)
@@ -206,6 +234,7 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
             granted = int(quota.get("granted", 0)) if isinstance(quota, dict) else 0
             eligible = eligible[: max(0, granted)]
         if eligible:
+            explain_numbers = [number for number, _ in eligible]
             ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
                 number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")
                 for number, draft in eligible
@@ -217,6 +246,10 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         "missing": missing,
         "rejectionReasons": rejection_reasons,
         "explainTicket": ticket,
+        # Only these numbers may be sent to explain-batch with this ticket (at most
+        # AI_BATCH_MAX_EXPLAIN_QUESTIONS per capture); the rest keep their cards unexplained.
+        "explainNumbers": explain_numbers,
+        "explainLimit": AI_BATCH_MAX_EXPLAIN_QUESTIONS,
         "usage": {
             "remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"],
@@ -239,7 +272,10 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
     input_hash = hashlib.sha256(b"results")
     for image in body.images:
         input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
-    reservation, unlimited = await reserve_ai(request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest())
+    reservation, unlimited = await reserve_ai(
+        request, user, access, body.request_id, body.captcha_token, input_hash.hexdigest(),
+        provider_cost=request.app.state.gateway.openai.results_cost(body.photoMode, len(body.images)),
+    )
     wrong, skipped, scores, timing = await request.app.state.gateway.read_results(
         [image.dataUrl for image in body.images],
         user["id"],
@@ -278,6 +314,9 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
         if ticket["d"].get(str(item.number)) != digest:
             raise HTTPException(403, "Nội dung câu đã khác với lúc đọc ảnh. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",
                                 headers={"X-Error-Code": "EXPLAIN_TICKET_CONTENT_CHANGED"})
+    # Reserve the provider budget before any question is claimed: a budget refusal
+    # must not use up one of the MAX_TICKET_USES attempts per question.
+    await prepay_provider_budget(request, user, access, sum(explanation_cost(item.input.part) for item in body.items))
     gateway = request.app.state.gateway
 
     async def generate(item):

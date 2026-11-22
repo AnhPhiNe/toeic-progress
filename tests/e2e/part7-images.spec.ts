@@ -98,8 +98,8 @@ test('invalid files and too many images retain the current attachments; changing
   await picker.setInputFiles({ name: 'large.png', mimeType: 'image/png', buffer: Buffer.alloc(20 * 1024 * 1024 + 1) });
   await expect(modal.getByRole('alert')).toContainText('tối đa 20 MB');
   await expect(modal.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
-  await picker.setInputFiles([notice, table, notice]);
-  await expect(modal.getByRole('alert')).toContainText('tối đa 3 ảnh');
+  await picker.setInputFiles([notice, table, notice, table]);
+  await expect(modal.getByRole('alert')).toContainText('tối đa 4 ảnh Part 7');
   await modal.getByLabel('Câu hỏi + phương án').fill(question + '\n' + options.join('\n'));
 
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();

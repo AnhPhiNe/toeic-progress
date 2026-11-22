@@ -21,7 +21,8 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
   const [dragging, setDragging] = useState(false);
   const picture = part === 1;
   const maximum = picture ? 1 : MAX_CONTEXT_IMAGES;
-  const label = picture ? 'Ảnh tranh Part 1' : 'Ảnh ngữ cảnh · Part 7';
+  const passagePart = part === 6 ? 6 : 7;
+  const label = picture ? 'Ảnh tranh Part 1' : `Ảnh ngữ cảnh · Part ${passagePart}`;
   const unavailable = busy || part === null || images.length >= maximum;
   return <div className={`space-y-2 ${embedded ? '' : 'rounded-xl border px-3 py-2.5'} ${dragging ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30' : 'border-slate-200 dark:border-slate-700'}`}
     role="group" aria-label={label}
@@ -53,15 +54,15 @@ export function MistakeImages({ images, busy, part, onAdd, onRemove, persistent 
         <ImagePlus className="h-4 w-4" aria-hidden="true" />{busy ? 'Đang xử lý ảnh…' : 'Thêm ảnh'}
       </button>
       <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple={!picture} disabled={busy || part === null}
-        aria-label={picture ? 'Chọn ảnh Part 1' : 'Chọn ảnh Part 7'} className="sr-only" tabIndex={-1} onChange={event => {
+        aria-label={picture ? 'Chọn ảnh Part 1' : `Chọn ảnh Part ${passagePart}`} className="sr-only" tabIndex={-1} onChange={event => {
           onAdd(Array.from(event.target.files ?? [])); event.target.value = '';
         }} />
     </div>
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" disabled={busy || part === null}
-        aria-label={picture ? 'Chụp tranh Part 1' : 'Chụp trang Part 7'} className="sr-only" tabIndex={-1} onChange={event => {
+        aria-label={picture ? 'Chụp tranh Part 1' : `Chụp trang Part ${passagePart}`} className="sr-only" tabIndex={-1} onChange={event => {
           onAdd(Array.from(event.target.files ?? [])); event.target.value = '';
         }} />
-    {!picture && <Part7ImageNote />}
+    {!picture && <Part7ImageNote part={passagePart} />}
     {isPhone ? !unavailable && <div className="grid grid-cols-2 gap-2">
       {([['camera', picture ? 'Chụp tranh' : 'Chụp trang', Camera], ['library', 'Chọn ảnh', ImageIcon]] as const).map(([kind, text, Icon]) => (
         <button key={kind} type="button" disabled={unavailable} onClick={() => (kind === 'camera' ? cameraInput : fileInput).current?.click()}

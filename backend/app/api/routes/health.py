@@ -3,6 +3,8 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from app.api.routes.ai import AI_BATCH_MAX_EXPLAIN_QUESTIONS, AI_BATCH_MAX_REQUESTS
+from app.core.image_input import MAX_ANALYZE_IMAGES
 from app.core.runtime import client_address, header_value
 from app.schemas.models import MAX_PAGE_CONTEXT_IMAGES, MAX_RESULT_IMAGE_BYTES
 
@@ -26,6 +28,10 @@ async def health(request: Request):
         "page_image_extraction": True,
         "page_context_images": True,
         "max_page_context_images": MAX_PAGE_CONTEXT_IMAGES,
+        # One capture (batch id) reads at most this many question groups and explains at most this many questions.
+        "max_batch_requests": AI_BATCH_MAX_REQUESTS,
+        "max_batch_explain_questions": AI_BATCH_MAX_EXPLAIN_QUESTIONS,
+        "max_analyze_images": MAX_ANALYZE_IMAGES,
         "paper_photo_ocr": True,
         "result_image_reading": True,
         "result_image_scores": True,
