@@ -24,6 +24,12 @@ export interface AIConfiguration {
   pageImages?: boolean;
   pageContextImages?: boolean;
   maxPageContextImages?: number;
+  /** One capture (batch id) accepts this many readings (backend AI_BATCH_MAX_REQUESTS). */
+  maxBatchRequests?: number;
+  /** One capture explains at most this many questions (backend AI_BATCH_MAX_EXPLAIN_QUESTIONS). */
+  maxBatchExplainQuestions?: number;
+  /** A single-card analysis accepts this many passage images. */
+  maxAnalyzeImages?: number;
   paperPhotoOcr?: boolean;
   resultImages?: boolean;
   maxResultImageBytes?: number;
@@ -76,6 +82,9 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
     ...(value.page_image_extraction === true ? { pageImages: true } : {}),
     ...(value.page_context_images === true ? { pageContextImages: true } : {}),
     ...(typeof value.max_page_context_images === 'number' ? { maxPageContextImages: value.max_page_context_images } : {}),
+    ...(Number.isInteger(value.max_batch_requests) && value.max_batch_requests > 0 ? { maxBatchRequests: value.max_batch_requests } : {}),
+    ...(Number.isInteger(value.max_batch_explain_questions) && value.max_batch_explain_questions > 0 ? { maxBatchExplainQuestions: value.max_batch_explain_questions } : {}),
+    ...(Number.isInteger(value.max_analyze_images) && value.max_analyze_images > 0 ? { maxAnalyzeImages: value.max_analyze_images } : {}),
     ...(value.paper_photo_ocr === true ? { paperPhotoOcr: true } : {}),
     ...(value.result_image_reading === true ? { resultImages: true } : {}),
     ...(typeof value.max_result_image_bytes === 'number' ? { maxResultImageBytes: value.max_result_image_bytes } : {}) };
@@ -206,7 +215,10 @@ const pageSchema = z.object({
   items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
   missing: z.array(z.number().int().min(1).max(200)).max(200),
   rejectionReasons: z.array(pageRejectionReasonSchema).max(20).optional().default([]),
-  explainTicket: z.string().max(2048).nullish()
+  explainTicket: z.string().max(2048).nullish(),
+  /** The numbers this ticket may explain; the backend caps them per capture. Missing on an older backend. */
+  explainNumbers: z.array(z.number().int().min(1).max(200)).max(200).optional(),
+  explainLimit: z.number().int().min(1).max(200).optional()
 });
 export type PageItem = z.infer<typeof pageSchema>['items'][number];
 export type PageRejectionReason = z.infer<typeof pageRejectionReasonSchema>;
@@ -218,7 +230,9 @@ export type PageRejectionReason = z.infer<typeof pageRejectionReasonSchema>;
 export async function extractPageWithAI(questions: { number: number; part: number }[], images: PreparedImage[], getCaptcha: () => Promise<string>,
   expectedOwner?: string | null, isCurrent: () => boolean = () => true, batchId?: string, contextImages: PreparedImage[] = [], slices: [number, number][] = [],
   options?: { photoMode?: boolean })
-  : Promise<{ items: PageItem[]; missing: number[]; rejectionReasons?: PageRejectionReason[]; explainTicket?: string | null; usage: AIUsage }> {
+  : Promise<{ items: PageItem[]; missing: number[]; rejectionReasons?: PageRejectionReason[]; explainTicket?: string | null;
+    /** Only these numbers may be sent to explain-batch with explainTicket (empty without a ticket). */
+    explainNumbers: number[]; explainLimit?: number; usage: AIUsage }> {
   if (!questions.length) throw new Error('Không còn câu sai nào để tìm trong ảnh.');
   if (!images.length || images.length > 6) throw new Error('Chọn 1 đến 6 ảnh câu hỏi.');
   if (contextImages.length > 5) throw new Error('Chọn tối đa 5 ảnh đoạn văn.');
@@ -262,7 +276,9 @@ export async function extractPageWithAI(questions: { number: number; part: numbe
   const parsed = pageSchema.safeParse(value);
   if (!parsed.success) throw new Error('Kết quả AI chưa hợp lệ. Hãy thử lại hoặc ghi tay.');
   for (const item of parsed.data.items) if (item.draft.answerSource === 'MISSING') item.draft.correctAnswer = '';
-  return { ...parsed.data, usage: value.usage };
+  const explainNumbers = !parsed.data.explainTicket ? []
+    : parsed.data.explainNumbers ?? parsed.data.items.map(item => item.number);
+  return { ...parsed.data, explainNumbers, usage: value.usage };
 }
 
 const questionList = z.array(z.number().int().min(1).max(200)).max(200);

@@ -187,19 +187,22 @@ function packGroups<T>(groups: readonly (readonly T[])[], max: number): T[][][] 
  * Part 1/2/5 (independent questions):
  * - 1–3 screenshots go in one fast request;
  * - 4+ screenshots with multiple wanted questions auto-chunk into parallel packs of 3 images
- *   so PARALLEL_READS = 3 processes them concurrently in ~10–15s instead of waiting serially.
+ *   so PARALLEL_READS = 3 processes them concurrently in ~10–15s instead of waiting serially;
+ * - never more than `maxRequests` requests (one capture's batch limit, MAX_CAPTURE_REQUESTS = 4).
  */
 export function planSingleRequests<T extends { dataUrl: string }>(shots: readonly (readonly T[])[], wanted: Iterable<number>,
   { maxImages = IMAGES_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS, parallelPackSize = 3 } = {}): RequestPlan<T> {
   const numbers = normalizeQuestionList(wanted);
   const groups = shots.filter(group => group.length);
   if (!groups.length || !numbers.length) return { requests: [], split: false };
-  const effectiveMaxImages = groups.length >= 4 && numbers.length >= 2 && maxImages === IMAGES_PER_REQUEST
-    ? Math.min(maxImages, parallelPackSize)
-    : maxImages;
-  const packs = packGroups(groups, effectiveMaxImages);
+  // Small parallel packs read faster, but only while they fit the capture's request limit; otherwise full packs.
+  const parallel = groups.length >= 4 && numbers.length >= 2 && maxImages === IMAGES_PER_REQUEST
+    ? packGroups(groups, Math.min(maxImages, parallelPackSize)) : null;
+  const packs = parallel && parallel.length <= maxRequests ? parallel : packGroups(groups, maxImages);
   const questionGroups = chunkQuestions(numbers, QUESTIONS_PER_REQUEST);
-  if (packs.length > maxRequests) return { requests: [], split: false, error: `Mỗi lần gửi tối đa ${maxRequests * maxImages} ảnh.` };
+  // Never more requests than one capture (batch) accepts: say so instead of letting the backend refuse later ones.
+  if (packs.length > maxRequests) return { requests: [], split: false,
+    error: `Một lần chụp gửi tối đa ${maxRequests * maxImages} ảnh. Bớt ảnh ở lần này, phần còn lại gửi ở lần chụp sau nhé.` };
   const perPack = packs.length * questionGroups.length <= maxRequests ? questionGroups : [numbers];
   const requests = packs.flatMap(pack => perPack.map(questions => ({ contextImages: [], images: pack.flat(), questions, slices: runsOf(pack) })));
   return { requests, split: requests.some(request => bytesOf(request.images) > maxBytes) };
