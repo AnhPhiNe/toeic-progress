@@ -4,7 +4,8 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.api.dependencies import identity
+from app.api.dependencies import ai_authorized, identity
+from app.core.image_input import MAX_PAGE_IMAGE_BYTES, validate_images_async
 from app.core.runtime import client_address
 from app.schemas.attempt_analysis import AnalyzeAttemptRequest
 from app.schemas.models import ExplainBatchRequest, ExtractRequest, PageExtractRequest, ResultsReadRequest
@@ -15,15 +16,9 @@ router = APIRouter()
 
 
 @router.post("/api/v1/ai/analyze-attempt")
-async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=Depends(identity)):
+async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=Depends(ai_authorized)):
     settings = request.app.state.settings
     access = request.state.ai_access
-    if user["is_anonymous"]:
-        raise HTTPException(403, "Đăng nhập để phân tích lần làm đã đồng bộ của tài khoản.")
-    if not access.enabled:
-        raise access.denied()
-    if not settings.attempt_analysis_ready:
-        raise HTTPException(503, "AI gợi ý ôn tập chưa được cấu hình. Bạn vẫn có thể xem thống kê và ôn Sổ tay.")
     gateway = request.app.state.gateway
     snapshot = await load_snapshot(gateway, user["id"], body)
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, None, snapshot_hash(snapshot))
@@ -55,14 +50,9 @@ async def usage(request: Request, user=Depends(identity)):
 
 
 @router.post("/api/v1/ai/extract")
-async def extract(body: ExtractRequest, request: Request, user=Depends(identity)):
+async def extract(body: ExtractRequest, request: Request, user=Depends(ai_authorized)):
     settings = request.app.state.settings
-    if not settings.ai_ready:
-        message = "Chức năng phân tích AI đang được tắt." if not settings.ai_enabled else "Cấu hình dịch vụ phân tích AI chưa đầy đủ."
-        raise HTTPException(503, message + " Bạn vẫn có thể lưu thủ công.")
     access = request.state.ai_access
-    if not access.enabled:
-        raise access.denied()
     gateway = request.app.state.gateway
     source_images = [image.dataUrl for image in body.images]
     if body.sourceImageIds:
@@ -162,15 +152,17 @@ async def reserve_ai(request: Request, user: dict, access, request_id, captcha_t
 
 
 @router.post("/api/v1/ai/extract-page")
-async def extract_page(body: PageExtractRequest, request: Request, user=Depends(identity)):
+async def extract_page(body: PageExtractRequest, request: Request, user=Depends(ai_authorized)):
     """Read several wrong questions from screenshots of an on-screen test; one request counts as one AI use."""
     settings = request.app.state.settings
-    if not settings.ai_ready:
-        message = "Chức năng phân tích AI đang được tắt." if not settings.ai_enabled else "Cấu hình dịch vụ phân tích AI chưa đầy đủ."
-        raise HTTPException(503, message + " Bạn vẫn có thể ghi tay.")
     access = request.state.ai_access
-    if not access.enabled:
-        raise access.denied()
+    try:
+        await validate_images_async(
+            [image.dataUrl for image in body.context_images] + [image.dataUrl for image in body.images],
+            MAX_PAGE_IMAGE_BYTES,
+        )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
     questions = [question.model_dump() for question in body.questions]
     input_hash = hashlib.sha256(json.dumps(questions, separators=(",", ":")).encode())
     input_hash.update(json.dumps(body.slices).encode())
@@ -211,14 +203,14 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
 
 
 @router.post("/api/v1/ai/read-results")
-async def read_results(body: ResultsReadRequest, request: Request, user=Depends(identity)):
+async def read_results(body: ResultsReadRequest, request: Request, user=Depends(ai_authorized)):
     """Read which questions a result page marks wrong or skipped; one request counts as one AI use."""
     settings = request.app.state.settings
-    if not settings.ai_ready:
-        raise HTTPException(503, "Chức năng phân tích AI đang tắt hoặc chưa cấu hình. Bạn vẫn có thể chạm vào các câu sai.")
     access = request.state.ai_access
-    if not access.enabled:
-        raise access.denied()
+    try:
+        await validate_images_async([image.dataUrl for image in body.images], MAX_PAGE_IMAGE_BYTES)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
     input_hash = hashlib.sha256(b"results")
     for image in body.images:
         input_hash.update(hashlib.sha256(image.dataUrl.encode()).digest())
@@ -244,14 +236,9 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
 
 
 @router.post("/api/v1/ai/explain-batch")
-async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depends(identity)):
+async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depends(ai_authorized)):
     """Explain questions a screenshot reading already counted; the ticket stands in for a new AI use."""
     settings = request.app.state.settings
-    if not settings.ai_ready or not settings.rate_limit_secret:
-        raise HTTPException(503, "Chức năng phân tích AI đang tắt hoặc chưa cấu hình.")
-    access = request.state.ai_access
-    if not access.enabled:
-        raise access.denied()
     ticket = explain_tickets.verify(settings.rate_limit_secret, body.ticket, user["id"])
     if ticket is None:
         raise HTTPException(403, "Lượt viết lời giải kèm ảnh đã hết hạn hoặc không hợp lệ. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",

@@ -8,11 +8,13 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validato
 
 from app.core.image_input import (
     MAX_DATA_URL_LENGTH,
+    MAX_IMAGE_BYTES,
     MAX_PAGE_DATA_URL_LENGTH,
     MAX_PAGE_IMAGE_BYTES,
     MAX_PAGE_TOTAL_BYTES,
     MAX_TOTAL_IMAGE_BYTES,
     image_bytes,
+    image_header_bytes,
 )
 from app.core.text_input import has_multiple_questions
 
@@ -435,9 +437,27 @@ class SourceImageIds(BaseModel):
         return self
 
 
+class SourceImageUploadAttachment(BaseModel):
+    """Fast header/size validation in Pydantic; full Pillow decode & JPEG re-encode runs off-loop in SourceImages.upload."""
+
+    model_config = ConfigDict(extra="forbid")
+    dataUrl: str = Field(max_length=MAX_DATA_URL_LENGTH, repr=False)
+
+    @field_validator("dataUrl")
+    @classmethod
+    def validate_image_header(cls, value):
+        image_header_bytes(value, MAX_IMAGE_BYTES)
+        return value
+
+    @property
+    def byte_count(self) -> int:
+        encoded = self.dataUrl.split(",", 1)[1]
+        return len(encoded) * 3 // 4 - (len(encoded) - len(encoded.rstrip("=")))
+
+
 class UploadSourceImages(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    images: list[ImageAttachment] = Field(min_length=1, max_length=3, repr=False)
+    images: list[SourceImageUploadAttachment] = Field(min_length=1, max_length=3, repr=False)
 
     @model_validator(mode="after")
     def total_bytes(self):
@@ -705,7 +725,10 @@ MAX_PAGE_CONTEXT_IMAGES = 5
 
 
 class PageImageAttachment(BaseModel):
-    """A test-page screenshot, usually sent as it is: larger than the single-question attachments."""
+    """A test-page screenshot, usually sent as it is: larger than the single-question attachments.
+
+    Pydantic validates format/base64/size cheaply; Pillow pixel decoding runs off-loop via validate_images_async.
+    """
 
     model_config = ConfigDict(extra="forbid")
     dataUrl: str = Field(max_length=MAX_PAGE_DATA_URL_LENGTH, repr=False)
@@ -713,7 +736,7 @@ class PageImageAttachment(BaseModel):
     @field_validator("dataUrl")
     @classmethod
     def validate_image(cls, value):
-        image_bytes(value, MAX_PAGE_IMAGE_BYTES)
+        image_header_bytes(value, MAX_PAGE_IMAGE_BYTES)
         return value
 
     @property

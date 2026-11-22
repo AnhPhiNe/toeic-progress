@@ -1,14 +1,18 @@
 """Private, owner-scoped image storage; callers persist hashes, never signed URLs."""
 
+import asyncio
 import base64
 import hashlib
 from datetime import datetime
-from io import BytesIO
 
 from fastapi import HTTPException
-from PIL import Image, ImageOps
 
-from app.core.image_input import MAX_IMAGE_BYTES, MAX_TOTAL_IMAGE_BYTES, image_bytes
+from app.core.image_input import (
+    MAX_IMAGE_BYTES,
+    MAX_TOTAL_IMAGE_BYTES,
+    reencode_source_jpeg_async,
+    validate_images_async,
+)
 
 BUCKET = "mistake-sources"
 
@@ -20,7 +24,7 @@ class SourceImages:
         self.base = gateway.settings.supabase_url.rstrip("/") + "/storage/v1"
 
     async def private_bucket_exists(self, *, allow_missing: bool = False) -> bool:
-        response = await self.client.get(f"{self.base}/bucket/{BUCKET}", headers=self.gateway.admin_headers())
+        response = await self.client.get(f"{self.base}/bucket/{BUCKET}", headers=self.gateway.admin_headers(), timeout=8)
         if allow_missing and response.status_code in (400, 404):
             try:
                 body = response.json()
@@ -45,7 +49,7 @@ class SourceImages:
     async def upload(self, user_id: str, attachments) -> list[str]:
         await self.check_private()
         listing = await self.client.post(
-            f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(),
+            f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(), timeout=8,
             json={"prefix": user_id + "/", "limit": self.gateway.settings.source_image_account_limit + 1, "offset": 0},
         )
         if not listing.is_success or not isinstance(listing.json(), list):
@@ -53,10 +57,10 @@ class SourceImages:
         known = {row.get("name") for row in listing.json() if isinstance(row, dict)}
         result = []
         for attachment in attachments:
-            with Image.open(BytesIO(image_bytes(attachment.dataUrl))) as picture:
-                encoded = BytesIO()
-                ImageOps.exif_transpose(picture).convert("RGB").save(encoded, format="JPEG", quality=90)
-            data = encoded.getvalue()
+            try:
+                data = await reencode_source_jpeg_async(attachment.dataUrl)
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from error
             if len(data) > MAX_IMAGE_BYTES:
                 raise HTTPException(422, "Ảnh sau xử lý quá lớn. Hãy cắt gọn ảnh trước khi lưu.")
             image_id = hashlib.sha256(data).hexdigest()
@@ -68,7 +72,7 @@ class SourceImages:
             if len(known) >= self.gateway.settings.source_image_account_limit:
                 raise HTTPException(429, "Kho ảnh của tài khoản đã đạt giới hạn lưu. Dùng lại ảnh đã có hoặc liên hệ hỗ trợ để tăng dung lượng.")
             response = await self.client.post(
-                f"{self.base}/object/{self.path(user_id, image_id)}", content=data,
+                f"{self.base}/object/{self.path(user_id, image_id)}", content=data, timeout=10,
                 headers={**self.gateway.admin_headers(), "Content-Type": "image/jpeg", "x-upsert": "false"},
             )
             duplicate = response.status_code == 409
@@ -90,7 +94,7 @@ class SourceImages:
         for image_id in image_ids:
             path = self.path(user_id, image_id)
             response = await self.client.post(
-                f"{self.base}/object/sign/{path}", json={"expiresIn": 600}, headers=self.gateway.admin_headers(),
+                f"{self.base}/object/sign/{path}", json={"expiresIn": 600}, headers=self.gateway.admin_headers(), timeout=8,
             )
             if not response.is_success:
                 raise HTTPException(404, "Ảnh nguồn không còn tồn tại hoặc không thuộc tài khoản này.")
@@ -119,84 +123,98 @@ class SourceImages:
             total_bytes += len(data)
             if total_bytes > MAX_TOTAL_IMAGE_BYTES:
                 raise HTTPException(422, "Tổng ảnh nguồn vượt giới hạn 2 MiB.")
-            try:
-                image_bytes(value)
-            except ValueError as error:
-                raise HTTPException(422, "Ảnh nguồn không hợp lệ. Chọn lại ảnh để tiếp tục.") from error
             result.append(value)
+        try:
+            await validate_images_async(result, MAX_IMAGE_BYTES)
+        except ValueError as error:
+            raise HTTPException(422, "Ảnh nguồn không hợp lệ. Chọn lại ảnh để tiếp tục.") from error
         return result
 
     async def purge(self, user_id: str, *, allow_missing: bool = False):
         """Used only by the owner's explicit reset/account deletion, never a shared-card edit."""
-        if not await self.private_bucket_exists(allow_missing=allow_missing):
-            return
-        for _ in range(100):
-            response = await self.client.post(
-                f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(),
-                json={"prefix": user_id + "/", "limit": 100, "offset": 0, "sortBy": {"column": "name", "order": "asc"}},
-            )
-            if not response.is_success or not isinstance(response.json(), list):
-                raise HTTPException(503, "Chưa đọc được danh sách ảnh nguồn để xóa. Vui lòng thử lại.")
-            rows = response.json()
-            if not rows:
-                return
-            paths = [user_id + "/" + row["name"] for row in rows
-                     if isinstance(row, dict) and isinstance(row.get("name"), str) and "/" not in row["name"]]
-            if len(paths) != len(rows):
-                raise HTTPException(503, "Kho ảnh có dữ liệu cần kiểm tra trước khi xóa.")
-            deleted = await self.client.request(
-                "DELETE", f"{self.base}/object/{BUCKET}", headers=self.gateway.admin_headers(), json={"prefixes": paths},
-            )
-            if not deleted.is_success:
-                raise HTTPException(503, "Chưa xóa hết ảnh nguồn. Vui lòng thử lại.")
+        try:
+            async with asyncio.timeout(30):
+                if not await self.private_bucket_exists(allow_missing=allow_missing):
+                    return
+                for _ in range(100):
+                    response = await self.client.post(
+                        f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(), timeout=8,
+                        json={"prefix": user_id + "/", "limit": 100, "offset": 0, "sortBy": {"column": "name", "order": "asc"}},
+                    )
+                    if not response.is_success or not isinstance(response.json(), list):
+                        raise HTTPException(503, "Chưa đọc được danh sách ảnh nguồn để xóa. Vui lòng thử lại.")
+                    rows = response.json()
+                    if not rows:
+                        return
+                    paths = [user_id + "/" + row["name"] for row in rows
+                             if isinstance(row, dict) and isinstance(row.get("name"), str) and "/" not in row["name"]]
+                    if len(paths) != len(rows):
+                        raise HTTPException(503, "Kho ảnh có dữ liệu cần kiểm tra trước khi xóa.")
+                    deleted = await self.client.request(
+                        "DELETE", f"{self.base}/object/{BUCKET}", headers=self.gateway.admin_headers(), timeout=8,
+                        json={"prefixes": paths},
+                    )
+                    if not deleted.is_success:
+                        raise HTTPException(503, "Chưa xóa hết ảnh nguồn. Vui lòng thử lại.")
+        except TimeoutError as error:
+            raise HTTPException(503, "Quá thời gian dọn ảnh nguồn. Vui lòng thử lại.") from error
         raise HTTPException(503, "Ảnh nguồn còn đang được dọn. Vui lòng thử lại để hoàn tất.")
 
     async def cleanup_before(self, user_id: str, before: datetime, *, allow_missing: bool = False):
         """Retry a completed reset without removing newly saved/referenced images."""
-        if not await self.private_bucket_exists(allow_missing=allow_missing):
-            return
-        referenced = set()
-        for offset in range(0, 100_000, 1000):
-            response = await self.client.get(
-                self.gateway.settings.supabase_url.rstrip("/") + "/rest/v1/mistakes",
-                headers=self.gateway.admin_headers(), params={"select": "sourceImageIds:extra->sourceImageIds",
-                    "user_id": "eq." + user_id, "order": "id.asc", "limit": 1000, "offset": offset},
-            )
-            if not response.is_success or not isinstance(response.json(), list):
-                raise HTTPException(503, "Chưa đối chiếu được ảnh đang dùng. Chưa xóa ảnh nguồn.")
-            rows = response.json()
-            for row in rows:
-                if isinstance(row.get("sourceImageIds"), list):
-                    referenced.update(value for value in row["sourceImageIds"] if isinstance(value, str))
-            if len(rows) < 1000:
-                break
-        else:
-            raise HTTPException(503, "Cần kiểm tra kho ảnh lớn trước khi dọn.")
-        paths = []
-        for offset in range(0, 100_000, 1000):
-            response = await self.client.post(f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(),
-                                              json={"prefix": user_id + "/", "limit": 1000, "offset": offset,
-                                                    "sortBy": {"column": "name", "order": "asc"}})
-            if not response.is_success or not isinstance(response.json(), list):
-                raise HTTPException(503, "Chưa đọc được kho ảnh để dọn. Vui lòng thử lại.")
-            rows = response.json()
-            for row in rows:
-                name = row.get("name", "")
-                created = row.get("created_at")
-                if not isinstance(created, str) or not isinstance(name, str) or not name.endswith(".jpg") or "/" in name:
-                    continue
-                try:
-                    older = datetime.fromisoformat(created.replace("Z", "+00:00")) <= before
-                except (ValueError, TypeError):
-                    continue
-                if older and name[:-4] not in referenced:
-                    paths.append(user_id + "/" + name)
-            if len(rows) < 1000:
-                break
-        else:
-            raise HTTPException(503, "Cần kiểm tra kho ảnh lớn trước khi dọn.")
-        for start in range(0, len(paths), 100):
-            response = await self.client.request("DELETE", f"{self.base}/object/{BUCKET}", headers=self.gateway.admin_headers(),
-                                                 json={"prefixes": paths[start:start + 100]})
-            if not response.is_success:
-                raise HTTPException(503, "Chưa xóa hết ảnh nguồn. Vui lòng thử lại.")
+        try:
+            async with asyncio.timeout(30):
+                if not await self.private_bucket_exists(allow_missing=allow_missing):
+                    return
+                referenced = set()
+                for offset in range(0, 100_000, 1000):
+                    response = await self.client.get(
+                        self.gateway.settings.supabase_url.rstrip("/") + "/rest/v1/mistakes",
+                        headers=self.gateway.admin_headers(), timeout=8,
+                        params={"select": "sourceImageIds:extra->sourceImageIds",
+                                "user_id": "eq." + user_id, "order": "id.asc", "limit": 1000, "offset": offset},
+                    )
+                    if not response.is_success or not isinstance(response.json(), list):
+                        raise HTTPException(503, "Chưa đối chiếu được ảnh đang dùng. Chưa xóa ảnh nguồn.")
+                    rows = response.json()
+                    for row in rows:
+                        if isinstance(row.get("sourceImageIds"), list):
+                            referenced.update(value for value in row["sourceImageIds"] if isinstance(value, str))
+                    if len(rows) < 1000:
+                        break
+                else:
+                    raise HTTPException(503, "Cần kiểm tra kho ảnh lớn trước khi dọn.")
+                paths = []
+                for offset in range(0, 100_000, 1000):
+                    response = await self.client.post(
+                        f"{self.base}/object/list/{BUCKET}", headers=self.gateway.admin_headers(), timeout=8,
+                        json={"prefix": user_id + "/", "limit": 1000, "offset": offset,
+                              "sortBy": {"column": "name", "order": "asc"}},
+                    )
+                    if not response.is_success or not isinstance(response.json(), list):
+                        raise HTTPException(503, "Chưa đọc được kho ảnh để dọn. Vui lòng thử lại.")
+                    rows = response.json()
+                    for row in rows:
+                        name = row.get("name", "")
+                        created = row.get("created_at")
+                        if not isinstance(created, str) or not isinstance(name, str) or not name.endswith(".jpg") or "/" in name:
+                            continue
+                        try:
+                            older = datetime.fromisoformat(created.replace("Z", "+00:00")) <= before
+                        except (ValueError, TypeError):
+                            continue
+                        if older and name[:-4] not in referenced:
+                            paths.append(user_id + "/" + name)
+                    if len(rows) < 1000:
+                        break
+                else:
+                    raise HTTPException(503, "Cần kiểm tra kho ảnh lớn trước khi dọn.")
+                for start in range(0, len(paths), 100):
+                    response = await self.client.request(
+                        "DELETE", f"{self.base}/object/{BUCKET}", headers=self.gateway.admin_headers(), timeout=8,
+                        json={"prefixes": paths[start:start + 100]},
+                    )
+                    if not response.is_success:
+                        raise HTTPException(503, "Chưa xóa hết ảnh nguồn. Vui lòng thử lại.")
+        except TimeoutError as error:
+            raise HTTPException(503, "Quá thời gian dọn ảnh nguồn. Vui lòng thử lại.") from error

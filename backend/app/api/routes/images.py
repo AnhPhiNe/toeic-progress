@@ -2,14 +2,14 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.api.dependencies import account
+from app.api.dependencies import account, source_images_authorized
 from app.schemas.models import CleanupSourceImages, SourceImageIds, UploadSourceImages
 
 router = APIRouter()
 
 
 @router.post("/api/v1/mistake-images")
-async def upload_source_images(body: UploadSourceImages, request: Request, user=Depends(account)):
+async def upload_source_images(body: UploadSourceImages, request: Request, user=Depends(source_images_authorized)):
     return {"sourceImageIds": await request.app.state.gateway.source_images.upload(user["id"], body.images)}
 
 

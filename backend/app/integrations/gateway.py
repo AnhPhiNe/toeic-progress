@@ -1,6 +1,8 @@
 import hashlib
 import hmac
+import re
 from datetime import datetime, timezone
+from uuid import UUID
 
 import httpx
 from fastapi import HTTPException
@@ -12,6 +14,9 @@ from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
 from app.services.ai_access import AIAccess
 from app.services.ai_limits import explain_limit, quota_limits
+
+_BEARER_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+_MAX_BEARER_TOKEN_LENGTH = 8192
 
 
 class Gateway:
@@ -42,17 +47,25 @@ class Gateway:
     async def authenticate(self, token: str) -> dict:
         if not self.settings.database_ready:
             raise HTTPException(503, "Backend chưa được cấu hình Supabase.")
+        if not token or len(token) > _MAX_BEARER_TOKEN_LENGTH or not _BEARER_TOKEN_RE.fullmatch(token):
+            raise HTTPException(401, "Phiên đăng nhập không hợp lệ.")
         response = await self.client.get(
             f"{self.settings.supabase_url.rstrip('/')}/auth/v1/user",
             headers={"apikey": self.settings.supabase_publishable_key, "Authorization": f"Bearer {token}"},
+            timeout=6,
         )
         if response.status_code in (401, 403):
             raise HTTPException(401, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
         if not response.is_success:
             raise HTTPException(503, "Chưa kết nối được dịch vụ đăng nhập.")
         user = response.json()
-        if not user.get("id") or not isinstance(user.get("is_anonymous"), bool):
+        raw_id = user.get("id")
+        if not isinstance(raw_id, str) or not isinstance(user.get("is_anonymous"), bool):
             raise HTTPException(401, "Phiên đăng nhập không hợp lệ.")
+        try:
+            user["id"] = str(UUID(raw_id))
+        except ValueError as error:
+            raise HTTPException(401, "Phiên đăng nhập không hợp lệ.") from error
         return user
 
     def admin_headers(self) -> dict[str, str]:
@@ -63,11 +76,12 @@ class Gateway:
             headers["Authorization"] = f"Bearer {key}"
         return headers
 
-    async def rpc(self, name: str, parameters: dict):
+    async def rpc(self, name: str, parameters: dict, *, timeout: float = 12):
         response = await self.client.post(
             f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/{name}",
             headers=self.admin_headers(),
             json=parameters,
+            timeout=timeout,
         )
         if not response.is_success:
             raise HTTPException(503, "Chưa xử lý được dữ liệu trên máy chủ. Vui lòng thử lại.")
@@ -129,6 +143,7 @@ class Gateway:
                 "secret": self.settings.turnstile_secret_key,
                 "response": token,
             },
+            timeout=6,
         )
         value = response.json() if response.is_success else {}
         if (

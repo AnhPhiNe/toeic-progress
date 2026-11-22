@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     # Temporarily exposes /debug/client-ip so the operator can verify the header above.
     client_ip_debug: bool = False
     max_concurrent_requests: int = Field(default=24, ge=1, le=256)
+    max_ai_concurrent_requests: int = Field(default=10, ge=1, le=256)
+    max_concurrent_per_ip: int = Field(default=6, ge=1, le=64)
     body_timeout_seconds: float = Field(default=10, ge=1, le=30)
     # Test-page screenshots are sent as they are: that route takes a bigger body and more time to upload it.
     page_body_timeout_seconds: float = Field(default=45, ge=5, le=120)
@@ -58,13 +60,13 @@ class Settings(BaseSettings):
 
     supabase_url: str = ""
     supabase_publishable_key: str = ""
-    supabase_secret_key: str = ""
+    supabase_secret_key: str = Field(default="", repr=False)
     # Compatibility for existing deployments using a legacy JWT key.
-    supabase_service_role_key: str = ""
+    supabase_service_role_key: str = Field(default="", repr=False)
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    turnstile_secret_key: str = ""
+    turnstile_secret_key: str = Field(default="", repr=False)
     turnstile_hostnames: list[str] = ["localhost", "127.0.0.1"]
-    rate_limit_secret: str = ""
+    rate_limit_secret: str = Field(default="", repr=False)
     ai_guest_limit: int = Field(default=3, ge=0, le=100)
     ai_account_monthly_limit: int = Field(default=10, ge=0, le=1000)
     # Monthly cap for an active 'plus' plan (user_plans) without its own ai_monthly_limit.
@@ -209,8 +211,14 @@ class Settings(BaseSettings):
                 break
         if not self.cors_origins:
             missing.append("CORS_ORIGINS")
+        if self.environment == "production" and self.client_ip_debug:
+            missing.append("CLIENT_IP_DEBUG=false in production")
+        if self.environment == "production" and self.render_external_hostname and not self.client_ip_header:
+            missing.append("CLIENT_IP_HEADER (required behind hosting proxy in production)")
         if self.ai_enabled and (
             not self.ai_ready
+            or not self.ai_access_managed
+            or not self.ai_provider_budget_enabled
             or not self.turnstile_secret_key
             or not self.turnstile_hostnames
             or any(
@@ -218,6 +226,9 @@ class Settings(BaseSettings):
                 for host in self.turnstile_hostnames
             )
         ):
-            missing.append("AI provider key/TURNSTILE_SECRET_KEY/TURNSTILE_HOSTNAMES or AI_ENABLED=false")
+            missing.append(
+                "AI provider key/AI_ACCESS_MANAGED=true/AI_PROVIDER_BUDGET_ENABLED=true/"
+                "TURNSTILE_SECRET_KEY/TURNSTILE_HOSTNAMES or AI_ENABLED=false"
+            )
         if missing:
             raise ValueError("Deployment configuration incomplete: " + "; ".join(missing))

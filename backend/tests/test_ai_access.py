@@ -91,9 +91,13 @@ def test_grant_lookup_uses_verified_owner_and_does_not_trust_submitted_owner_or_
         auth, lookup = calls[:2]
         assert auth[1] == "/auth/v1/user" and lookup[1] == "/rest/v1/rpc/get_ai_access" and lookup[2] == {"p_user_id": USER_ID}
         assert lookup[3]["authorization"] == "Bearer server-secret"
-        assert client.post("/api/v1/ai/extract", json=extraction(owner_id=USER_ID)).status_code == 422
+        # Pending/blocked users are stopped in dependency BEFORE Pydantic/Pillow parses body.
+        assert client.post("/api/v1/ai/extract", json=extraction(owner_id=USER_ID)).status_code == 403
         assert not any(call[0] == "api.openai.com" for call in calls)
         assert USER_ID not in json.dumps(client.get("/api/v1/ai/usage").json())
+    with api(ai_grant={"status": "active", "monthly_limit": 10}, settings_overrides=MANAGED) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction(owner_id=USER_ID)).status_code == 422
+        assert not any(call[0] == "api.openai.com" for call in calls)
 
 
 def test_readiness_requires_the_v2_schema_when_managed_mode_is_enabled(api):

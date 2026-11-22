@@ -44,30 +44,43 @@ ROUTES = {
 }
 
 
-def header_value(scope, name: str) -> str | None:
+def header_values(scope, name: str) -> list[str]:
     wanted = name.lower().encode("latin-1")
-    for key, value in scope.get("headers") or []:
-        if key.lower() == wanted:
-            return value.decode("latin-1").strip()
-    return None
+    return [value.decode("latin-1").strip() for key, value in (scope.get("headers") or []) if key.lower() == wanted]
+
+
+def header_value(scope, name: str) -> str | None:
+    values = header_values(scope, name)
+    return values[0] if values else None
+
+
+def _normalize_ip_bucket(value: str) -> str:
+    """Group IPv6 addresses by /64 prefix so one host cannot rotate 2^64 addresses to evade IP limits."""
+    parsed = ipaddress.ip_address(value)
+    if isinstance(parsed, ipaddress.IPv6Address):
+        return str(ipaddress.ip_network(f"{parsed}/64", strict=False))
+    return str(parsed)
 
 
 def client_address(scope, settings: Settings) -> str:
     """Client IP for per-IP limits.
 
-    Only the configured edge header is trusted, and only when it holds exactly one valid IP;
+    Only the configured edge header is trusted, and only when it appears once with one valid IP;
     otherwise the socket peer is used. X-Forwarded-For is never read because the hosting
     proxy appends to a client-supplied value instead of replacing it.
     """
     socket_ip = (scope.get("client") or ("unknown", 0))[0]
     if settings.client_ip_header:
-        candidate = header_value(scope, settings.client_ip_header)
-        if candidate:
+        candidates = header_values(scope, settings.client_ip_header)
+        if len(candidates) == 1 and candidates[0]:
             try:
-                return str(ipaddress.ip_address(candidate))
+                return _normalize_ip_bucket(candidates[0])
             except ValueError:
                 pass
-    return socket_ip
+    try:
+        return _normalize_ip_bucket(socket_ip)
+    except ValueError:
+        return socket_ip
 
 
 def configure_logging():
@@ -113,6 +126,8 @@ class RuntimeMiddleware:
     def __init__(self, app, settings: Settings):
         self.app, self.settings = app, settings
         self.active = 0
+        self.ai_active = 0
+        self.ip_active: dict[str, int] = {}
         self.ip_windows = OrderedDict()
         # Opaque positive hints bypass only ingress throttling. Identity is
         # still revalidated by Supabase on EVERY request before granting AI.
@@ -129,8 +144,13 @@ class RuntimeMiddleware:
         scope["state"]["ai_limit_exempt"] = False
         path = scope.get("path", "")
         method = scope.get("method", "")
-        guarded = method != "OPTIONS" and not (path in ("/health", "/ready") and method in ("GET", "HEAD"))
+        # Valid CORS preflights are already handled by CORSMiddleware outside this layer;
+        # raw OPTIONS requests must NOT bypass ingress rate-limiting or concurrency guards.
+        guarded = not (path in ("/health", "/ready") and method in ("GET", "HEAD"))
+        is_ai_work = path in AI_PATHS and method == "POST"
         acquired = False
+        acquired_ai = False
+        acquired_address: str | None = None
         status = 500
         response_started = False
         ip_window = None
@@ -146,7 +166,11 @@ class RuntimeMiddleware:
                 headers["X-Request-ID"] = request_id
                 headers["X-Content-Type-Options"] = "nosniff"
                 headers["Referrer-Policy"] = "no-referrer"
-                if path.startswith("/api/") or path in ("/health", "/ready"):
+                headers["X-Frame-Options"] = "DENY"
+                if self.settings.environment != "development":
+                    headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+                    headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+                if path.startswith("/api/") or path in ("/health", "/ready", "/debug/client-ip"):
                     headers["Cache-Control"] = "no-store"
             await send(message)
 
@@ -180,12 +204,23 @@ class RuntimeMiddleware:
                         429,
                         headers={"Retry-After": delay},
                     )(scope, receive, tracked_send)
-                if self.active >= self.settings.max_concurrent_requests:
+                ai_cap = min(self.settings.max_ai_concurrent_requests, self.settings.max_concurrent_requests)
+                per_ip_cap = min(self.settings.max_concurrent_per_ip, self.settings.max_concurrent_requests)
+                if (
+                    self.active >= self.settings.max_concurrent_requests
+                    or (is_ai_work and self.ai_active >= ai_cap)
+                    or (not known_ai_exempt and self.ip_active.get(address, 0) >= per_ip_cap)
+                ):
                     return await JSONResponse(
                         {"detail": "Máy chủ đang bận. Vui lòng thử lại."}, 503, headers={"Retry-After": "3"}
                     )(scope, receive, tracked_send)
                 self.active += 1
                 acquired = True
+                if is_ai_work:
+                    self.ai_active += 1
+                    acquired_ai = True
+                self.ip_active[address] = self.ip_active.get(address, 0) + 1
+                acquired_address = address
             await self.app(scope, receive, tracked_send)
         except Exception as error:
             # Never log exception messages/tracebacks: they may contain upstream URLs or payloads.
@@ -210,6 +245,14 @@ class RuntimeMiddleware:
                     self.ai_exempt_tokens.pop(token_hash, None)
             if acquired:
                 self.active -= 1
+            if acquired_ai:
+                self.ai_active -= 1
+            if acquired_address is not None:
+                remaining = self.ip_active.get(acquired_address, 1) - 1
+                if remaining <= 0:
+                    self.ip_active.pop(acquired_address, None)
+                else:
+                    self.ip_active[acquired_address] = remaining
             logger.info(
                 json.dumps(
                     {

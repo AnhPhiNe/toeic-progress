@@ -113,3 +113,23 @@ def test_normalize_upright_keeps_upright_bytes_untouched_and_transposes_exif_rot
     with Image.open(BytesIO(raw_fixed)) as result:
         assert result.size == (90, 160)
         assert result.getexif().get(274, 1) == 1
+
+
+def test_png_ztxt_decompression_bomb_is_rejected_by_global_pillow_limits():
+    from PIL import PngImagePlugin
+
+    from app.core.image_input import MAX_IMAGE_PIXELS, image_bytes
+
+    assert Image.MAX_IMAGE_PIXELS == MAX_IMAGE_PIXELS
+    assert PngImagePlugin.MAX_TEXT_MEMORY == 64 * 1024
+    assert PngImagePlugin.MAX_TEXT_CHUNK == 16 * 1024
+
+    # Build a tiny 1x1 PNG with a highly compressible 128 KiB zTXt payload (> 64 KiB cap).
+    info = PngImagePlugin.PngInfo()
+    info.add_text("bomb", "A" * (128 * 1024), zip=True)
+    stream = BytesIO()
+    Image.new("RGB", (1, 1), "white").save(stream, format="PNG", pnginfo=info)
+    data_url = "data:image/png;base64," + base64.b64encode(stream.getvalue()).decode()
+    assert len(stream.getvalue()) < 4096  # tiny compressed file on wire
+    with pytest.raises(ValueError, match="Không đọc được ảnh"):
+        image_bytes(data_url)

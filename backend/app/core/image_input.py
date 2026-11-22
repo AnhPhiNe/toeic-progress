@@ -7,7 +7,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps, PngImagePlugin, UnidentifiedImageError
 
 MAX_IMAGE_BYTES = 1024 * 1024
 MAX_TOTAL_IMAGE_BYTES = 2 * 1024 * 1024
@@ -18,11 +18,17 @@ MAX_PAGE_IMAGE_BYTES = 4 * 1024 * 1024
 MAX_PAGE_TOTAL_BYTES = 8 * 1024 * 1024
 MAX_PAGE_DATA_URL_LENGTH = 4 * ((MAX_PAGE_IMAGE_BYTES + 2) // 3) + 32
 
+# Enforce decompression and PNG text-chunk (zTXt/iTXt/iCCP) ceilings globally before Image.open() reads headers.
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+PngImagePlugin.MAX_TEXT_CHUNK = 16 * 1024
+PngImagePlugin.MAX_TEXT_MEMORY = 64 * 1024
+
 _EXIF_ORIENTATION_TAG = 274
-_IMAGE_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="toeic-img")
+_IMAGE_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="toeic-img")
 
 
-def image_bytes(value: str, max_bytes: int = MAX_IMAGE_BYTES) -> bytes:
+def image_header_bytes(value: str, max_bytes: int = MAX_IMAGE_BYTES) -> tuple[str, bytes]:
+    """Fast O(n) format, base64 and byte-size check without invoking Pillow."""
     match = re.fullmatch(r"data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})", value)
     if not match:
         raise ValueError("Ảnh cần PNG, JPEG hoặc WebP dạng dữ liệu nội tuyến")
@@ -32,19 +38,62 @@ def image_bytes(value: str, max_bytes: int = MAX_IMAGE_BYTES) -> bytes:
         raise ValueError("Dữ liệu ảnh không hợp lệ") from error
     if not data or len(data) > max_bytes:
         raise ValueError(f"Mỗi ảnh gửi đi tối đa {max_bytes // (1024 * 1024)} MiB")
+    return match[1], data
+
+
+def image_bytes(value: str, max_bytes: int = MAX_IMAGE_BYTES) -> bytes:
+    mime, data = image_header_bytes(value, max_bytes)
+    expected = {"png": "PNG", "jpeg": "JPEG", "webp": "WEBP"}[mime]
     try:
         with Image.open(BytesIO(data)) as picture:
-            expected = {"png": "PNG", "jpeg": "JPEG", "webp": "WEBP"}[match[1]]
             if picture.format != expected or getattr(picture, "n_frames", 1) != 1:
-                raise ValueError("Loại ảnh không khớp hoặc ảnh động không được hỗ trợ")
+                raise _ImageConstraintError("Loại ảnh không khớp hoặc ảnh động không được hỗ trợ")
             if picture.width * picture.height > MAX_IMAGE_PIXELS:
-                raise ValueError("Ảnh có quá nhiều điểm ảnh")
-            picture.verify()
-        with Image.open(BytesIO(data)) as picture:
+                raise _ImageConstraintError("Ảnh có quá nhiều điểm ảnh")
             picture.load()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
+    except _ImageConstraintError as error:
+        raise ValueError(str(error)) from error
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as error:
         raise ValueError("Không đọc được ảnh") from error
     return data
+
+
+class _ImageConstraintError(Exception):
+    pass
+
+
+def reencode_source_jpeg(value: str, max_bytes: int = MAX_IMAGE_BYTES) -> bytes:
+    """Validate and re-encode a source image to upright EXIF-free JPEG in a single Pillow pass."""
+    mime, data = image_header_bytes(value, max_bytes)
+    expected = {"png": "PNG", "jpeg": "JPEG", "webp": "WEBP"}[mime]
+    try:
+        with Image.open(BytesIO(data)) as picture:
+            if picture.format != expected or getattr(picture, "n_frames", 1) != 1:
+                raise _ImageConstraintError("Loại ảnh không khớp hoặc ảnh động không được hỗ trợ")
+            if picture.width * picture.height > MAX_IMAGE_PIXELS:
+                raise _ImageConstraintError("Ảnh có quá nhiều điểm ảnh")
+            picture.load()
+            encoded = BytesIO()
+            ImageOps.exif_transpose(picture).convert("RGB").save(encoded, format="JPEG", quality=90)
+    except _ImageConstraintError as error:
+        raise ValueError(str(error)) from error
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as error:
+        raise ValueError("Không đọc được ảnh") from error
+    return encoded.getvalue()
+
+
+async def validate_images_async(values: list[str], max_bytes: int = MAX_PAGE_IMAGE_BYTES) -> None:
+    """Run Pillow raster validation off the main asyncio event loop."""
+    if not values:
+        return
+    loop = asyncio.get_running_loop()
+    await asyncio.gather(*(loop.run_in_executor(_IMAGE_EXECUTOR, image_bytes, item, max_bytes) for item in values))
+
+
+async def reencode_source_jpeg_async(value: str, max_bytes: int = MAX_IMAGE_BYTES) -> bytes:
+    """Run source-image validation + JPEG re-encoding off the main asyncio event loop."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_IMAGE_EXECUTOR, reencode_source_jpeg, value, max_bytes)
 
 
 def normalize_upright_data_url(value: str, max_bytes: int = MAX_PAGE_IMAGE_BYTES) -> str:
@@ -75,7 +124,7 @@ def normalize_upright_data_url(value: str, max_bytes: int = MAX_PAGE_IMAGE_BYTES
                 elif fmt == "WEBP":
                     save_kwargs.update(quality=quality)
                 else:
-                    save_kwargs.update(optimize=True)
+                    save_kwargs.update(compress_level=1)
                 transposed.save(out, **save_kwargs)
                 encoded = out.getvalue()
                 if len(encoded) <= max_bytes:
