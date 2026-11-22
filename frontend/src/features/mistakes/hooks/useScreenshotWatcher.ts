@@ -259,6 +259,9 @@ export function useScreenshotWatcher(enabled: boolean) {
       return;
     }
     scanningRef.current = true;
+    // The folder and account this scan belongs to; a switch while it runs drops its results.
+    const owner = getActiveAccountId();
+    const current = () => aliveRef.current && handleRef.current === handle && getActiveAccountId() === owner;
     if (!quiet) {
       oldNamesRef.current.clear();
       setBusy(true);
@@ -269,10 +272,10 @@ export function useScreenshotWatcher(enabled: boolean) {
         handle,
         cutoff,
         seenKeys,
-        () => aliveRef.current,
-        quiet ? { skipNames: oldNamesRef.current, onOldName: name => oldNamesRef.current.add(name) } : { onOldName: name => oldNamesRef.current.add(name) }
+        current,
+        { ...(quiet ? { skipNames: oldNamesRef.current } : {}), onOldName: name => { if (current()) oldNamesRef.current.add(name); } }
       );
-      if (!aliveRef.current) return;
+      if (!current()) return;
       const prevKeys = candidatesRef.current.map(item => item.key).join('|');
       const nextKeys = top.map(item => item.key).join('|');
       if (prevKeys !== nextKeys) {
@@ -295,7 +298,7 @@ export function useScreenshotWatcher(enabled: boolean) {
         setNotice('');
       }
     } catch (err) {
-      if (!aliveRef.current) return;
+      if (!current()) return;
       if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
         setStatus('needs-permission');
         setNotice('Quyền đọc thư mục đã hết hạn — bấm Bật lại theo dõi để tiếp tục.');
