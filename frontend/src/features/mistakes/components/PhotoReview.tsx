@@ -18,10 +18,13 @@ export function isFullCrop(crop: CropBox): boolean {
 async function renderEditedBlob(file: File, rotation: number, crop: CropBox, previewMaxSide?: number): Promise<Blob> {
   const bitmap = await decodeUprightBitmap(file);
   try {
+    const maxDim = previewMaxSide ?? MAX_SIDE;
+    // Downscale massive 48MP mobile photos before rotating so intermediate canvas stays well under iOS Safari's 16.7MP limit.
+    const base = scaledSize(bitmap.width, bitmap.height, maxDim);
     const turns = ((rotation % 360) + 360) % 360;
     const swap = turns === 90 || turns === 270;
-    const rotW = swap ? bitmap.height : bitmap.width;
-    const rotH = swap ? bitmap.width : bitmap.height;
+    const rotW = swap ? base.height : base.width;
+    const rotH = swap ? base.width : base.height;
 
     const fullCanvas = document.createElement('canvas');
     fullCanvas.width = rotW;
@@ -30,16 +33,17 @@ async function renderEditedBlob(file: File, rotation: number, crop: CropBox, pre
     if (!fullCtx) throw new Error('Trình duyệt chưa xử lý được ảnh.');
     fullCtx.fillStyle = '#ffffff';
     fullCtx.fillRect(0, 0, rotW, rotH);
+    fullCtx.imageSmoothingQuality = 'high';
     fullCtx.translate(rotW / 2, rotH / 2);
     fullCtx.rotate((turns * Math.PI) / 180);
-    fullCtx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+    fullCtx.drawImage(bitmap, -base.width / 2, -base.height / 2, base.width, base.height);
 
     const sx = Math.max(0, Math.round((crop.left / 100) * rotW));
     const sy = Math.max(0, Math.round((crop.top / 100) * rotH));
     const sw = Math.max(1, Math.min(rotW - sx, Math.round(((crop.right - crop.left) / 100) * rotW)));
     const sh = Math.max(1, Math.min(rotH - sy, Math.round(((crop.bottom - crop.top) / 100) * rotH)));
 
-    const target = scaledSize(sw, sh, previewMaxSide ?? MAX_SIDE);
+    const target = scaledSize(sw, sh, maxDim);
     const out = document.createElement('canvas');
     out.width = target.width;
     out.height = target.height;

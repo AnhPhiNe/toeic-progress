@@ -8,6 +8,8 @@ interface Props {
   disabled?: boolean;
   /** Label appended to the add button, e.g. "vào khay" or "kết quả". */
   addVerb?: string;
+  /** Remaining slots in the caller's tray; extra selected shots stay on the bar instead of being discarded. */
+  maxAdd?: number;
   onAddFiles: (files: File[]) => void;
 }
 
@@ -16,7 +18,7 @@ interface Props {
  * - Universal 1-click "Dán ảnh vừa chụp" (Clipboard API, zero folder permission required).
  * - Optional Chrome/Edge "Tự nhận nhiều ảnh chụp" (Zalo-style thumbnail strip with privacy checkboxes).
  */
-export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', onAddFiles }: Props) {
+export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles }: Props) {
   const watcher = useScreenshotWatcher(enabled);
   const [explainerOpen, setExplainerOpen] = useState(false);
   // Track manually unchecked items so newly discovered screenshots start checked without re-checking user-unticked ones.
@@ -47,11 +49,15 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
   };
 
   const selected = watcher.candidates.filter(item => !uncheckedKeys.has(item.key));
+  const limit = maxAdd === undefined ? selected.length : Math.max(0, maxAdd);
+  const toAdd = selected.slice(0, limit);
+  const overflowCount = Math.max(0, selected.length - toAdd.length);
 
   const addSelected = () => {
-    if (!selected.length || disabled) return;
-    onAddFiles(selected.map(item => item.file));
-    watcher.consumeKeys(selected.map(item => item.key));
+    if (!toAdd.length || disabled) return;
+    onAddFiles(toAdd.map(item => item.file));
+    // Only mark actually-added photos as seen; overflow photos stay on the bar for the next batch.
+    watcher.consumeKeys(toAdd.map(item => item.key));
   };
 
   const dismissAll = () => {
@@ -154,8 +160,12 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
             })}
           </ul>
           <div className="ssb-tray-foot">
-            <button type="button" className="ssb-go" disabled={!selected.length || disabled} onClick={addSelected}>
-              + Thêm {selected.length} ảnh {addVerb}
+            <button type="button" className="ssb-go" disabled={!toAdd.length || disabled} onClick={addSelected}>
+              {limit === 0
+                ? 'Khay đã đầy · gửi mẻ này trước'
+                : overflowCount > 0
+                  ? `+ Thêm ${toAdd.length}/${selected.length} ảnh ${addVerb} (còn ${overflowCount} ảnh chờ)`
+                  : `+ Thêm ${toAdd.length} ảnh ${addVerb}`}
             </button>
           </div>
         </div>

@@ -65,6 +65,9 @@ export function BurstCameraModal({ maxPhotos, title = 'Chụp liên tiếp', onC
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const shotsRef = useRef<Shot[]>([]);
   shotsRef.current = shots;
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const startingRef = useRef(false);
   const aliveRef = useRef(true);
   const nativeCamRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -97,65 +100,79 @@ export function BurstCameraModal({ maxPhotos, title = 'Chụp liên tiếp', onC
   });
 
   const startCamera = useCallback(async () => {
+    if (startingRef.current) return;
+    startingRef.current = true;
     stopStream();
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      setStatus('fallback');
-      setFallbackReason('Trình duyệt hoặc kết nối hiện tại chưa hỗ trợ mở camera trực tiếp trong web.');
-      return;
-    }
-    setStatus('loading');
-    let stream: MediaStream;
     try {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840, min: 1280 }, height: { ideal: 2160, min: 720 } },
-          audio: false
-        });
-      } catch {
-        // Some older phones reject min: 1280; retry cleanly with simple rear-camera preference.
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false
-        });
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        setStatus('fallback');
+        setFallbackReason('Trình duyệt hoặc kết nối hiện tại chưa hỗ trợ mở camera trực tiếp trong web.');
+        return;
       }
-    } catch (err) {
-      if (!aliveRef.current) return;
-      const denied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
-      setStatus('fallback');
-      setFallbackReason(denied
-        ? 'Bạn chưa cấp quyền camera cho trình duyệt. Vẫn có thể dùng Camera máy hoặc Chọn nhiều ảnh từ thư viện.'
-        : 'Chưa mở được camera sau trên thiết bị này. Hãy dùng Camera máy hoặc Chọn nhiều ảnh từ thư viện.');
-      return;
-    }
-    if (!aliveRef.current) {
-      stream.getTracks().forEach(t => t.stop());
-      return;
-    }
-    streamRef.current = stream;
-    const track = stream.getVideoTracks()[0] ?? null;
-    trackRef.current = track;
-    setHasImageCapture(Boolean(track && getImageCaptureCtor()));
-
-    if (track) {
+      setStatus('loading');
+      let stream: MediaStream;
       try {
-        const caps = track.getCapabilities?.() as TrackCapabilitiesWithExtras | undefined;
-        setTorchSupported(Boolean(caps?.torch));
-        if (caps?.focusMode?.includes('continuous')) {
-          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as ExtendedConstraintSet] }).catch(() => {});
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840, min: 1280 }, height: { ideal: 2160, min: 720 } },
+            audio: false
+          });
+        } catch {
+          // Some older phones reject min: 1280; retry cleanly with simple rear-camera preference.
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          });
         }
-      } catch { /* ignore unsupported capability probes */ }
-    }
-
-    const video = videoRef.current;
-    if (video) {
-      video.srcObject = stream;
-      try { await video.play(); } catch { /* autoplay handled by muted+playsInline */ }
-      if (aliveRef.current) {
-        const w = video.videoWidth || track?.getSettings?.().width || 0;
-        setLowResStream(w > 0 && w < 1280 && !getImageCaptureCtor());
+      } catch (err) {
+        if (!aliveRef.current) return;
+        const denied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+        setStatus('fallback');
+        setFallbackReason(denied
+          ? 'Bạn chưa cấp quyền camera cho trình duyệt. Vẫn có thể dùng Camera máy hoặc Chọn nhiều ảnh từ thư viện.'
+          : 'Chưa mở được camera sau trên thiết bị này. Hãy dùng Camera máy hoặc Chọn nhiều ảnh từ thư viện.');
+        return;
       }
+      if (!aliveRef.current) {
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
+      streamRef.current = stream;
+      const track = stream.getVideoTracks()[0] ?? null;
+      trackRef.current = track;
+      const imageCaptureReady = Boolean(track && getImageCaptureCtor());
+      setHasImageCapture(imageCaptureReady);
+
+      if (track) {
+        try {
+          const caps = track.getCapabilities?.() as TrackCapabilitiesWithExtras | undefined;
+          setTorchSupported(Boolean(caps?.torch));
+          if (caps?.focusMode?.includes('continuous')) {
+            await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as ExtendedConstraintSet] }).catch(() => {});
+          }
+        } catch { /* ignore unsupported capability probes */ }
+      }
+
+      const checkStreamRes = (vid: HTMLVideoElement) => {
+        if (!aliveRef.current) return;
+        const w = vid.videoWidth || track?.getSettings?.().width || 0;
+        const h = vid.videoHeight || track?.getSettings?.().height || 0;
+        const longEdge = Math.max(w, h);
+        // Check long edge so portrait 1080×1920 Full HD streams on iPhone are not falsely flagged as low-res.
+        setLowResStream(longEdge > 0 && longEdge < 1280 && !imageCaptureReady);
+      };
+
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => checkStreamRes(video);
+        try { await video.play(); } catch { /* autoplay handled by muted+playsInline */ }
+        checkStreamRes(video);
+      }
+      if (aliveRef.current) setStatus('ready');
+    } finally {
+      startingRef.current = false;
     }
-    if (aliveRef.current) setStatus('ready');
   }, [stopStream]);
 
   useEffect(() => {
@@ -165,7 +182,7 @@ export function BurstCameraModal({ maxPhotos, title = 'Chụp liên tiếp', onC
       if (document.visibilityState === 'hidden') {
         stopStream();
         setTorchOn(false);
-      } else if (aliveRef.current && status !== 'fallback') {
+      } else if (aliveRef.current && statusRef.current !== 'fallback') {
         void startCamera();
       }
     };

@@ -420,7 +420,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
           {canRead ? <DropZone {...zoneProps} zone="questions" big title={`Ảnh câu Part ${part}`}
             note={part === 2 ? 'hỗ trợ 3 phương án A–C' : 'mỗi ảnh một hay nhiều câu'}
             items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc song song tối đa 3 lượt cùng lúc, chỉ lấy câu bạn sai.</>} /> : noImages}
-          {canRead && !phone && <ScreenshotSuggestBar enabled={!busy} disabled={busy} onAddFiles={files => onAddFiles(files, 'questions')} />}
+          {canRead && !phone && <ScreenshotSuggestBar enabled disabled={busy} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - count)} onAddFiles={files => onAddFiles(files, 'questions')} />}
           {canRead && <div className="wd-acts" style={{ marginTop: 10 }}>{paperToggle}</div>}
           <div className="wd-lbl">Câu cần gỡ<span className="wd-lg"><span><i className="is-d" />đã ghi</span><span><i />chưa ghi</span></span></div>
           {chips(numbers)}
@@ -534,7 +534,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
             </div>
             {canRead ? <>
               {unifiedTray}
-              <ScreenshotSuggestBar enabled={!busy} disabled={busy} onAddFiles={files => onAddFiles(files, 'questions')} />
+              <ScreenshotSuggestBar enabled disabled={busy} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - filesCount)} onAddFiles={files => onAddFiles(files, 'questions')} />
               <div className="wd-acts">
                 <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!filesCount || busy} onClick={onSend}>Gửi Sóc đọc nhóm này</button>
                 {nextUnread && (

@@ -83,7 +83,8 @@ export async function scanDirectoryFiles(
     } catch { /* skip unreadable transient lock while OS is still flushing PNG */ }
   }
   found.sort((a, b) => b.file.lastModified - a.file.lastModified);
-  return found.slice(0, MAX_CANDIDATES);
+  // Keep the newest MAX_CANDIDATES, then return in chronological (capture) order so multi-page passages stay Page 1 -> Page N.
+  return found.slice(0, MAX_CANDIDATES).reverse();
 }
 
 /** Pure clipboard image extractor used on explicit button click. */
@@ -190,6 +191,7 @@ export function useScreenshotWatcher(enabled: boolean) {
   const [candidates, setCandidates] = useState<ScreenshotCandidate[]>([]);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [handleVersion, setHandleVersion] = useState(0);
   const handleRef = useRef<DirectoryHandleLike | null>(null);
   const candidatesRef = useRef<ScreenshotCandidate[]>([]);
   candidatesRef.current = candidates;
@@ -256,8 +258,14 @@ export function useScreenshotWatcher(enabled: boolean) {
       } else if (top.length) {
         setNotice('');
       }
-    } catch {
-      if (aliveRef.current && !quiet) setNotice('Không đọc được thư mục ảnh chụp. Hãy chọn lại thư mục.');
+    } catch (err) {
+      if (!aliveRef.current) return;
+      if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+        setStatus('needs-permission');
+        setNotice('Quyền đọc thư mục đã hết hạn — bấm Bật lại theo dõi để tiếp tục.');
+      } else if (!quiet) {
+        setNotice('Không đọc được thư mục ảnh chụp. Hãy chọn lại thư mục.');
+      }
     } finally {
       scanningRef.current = false;
       if (aliveRef.current && !quiet) setBusy(false);
@@ -276,6 +284,7 @@ export function useScreenshotWatcher(enabled: boolean) {
       if (cancelled || !saved) return;
       handleRef.current = saved;
       oldNamesRef.current.clear();
+      setHandleVersion(v => v + 1);
       setDirName(saved.name || 'Screenshots');
       const perm = await saved.queryPermission?.({ mode: 'read' }).catch(() => 'prompt' as PermissionState);
       if (cancelled) return;
@@ -343,7 +352,7 @@ export function useScreenshotWatcher(enabled: boolean) {
       timers.clear();
       try { observer?.disconnect(); } catch { /* ignore */ }
     };
-  }, [enabled, status, scanHandle]);
+  }, [enabled, status, handleVersion, scanHandle]);
 
   const linkDirectory = useCallback(async () => {
     const picker = (window as WindowWithPicker).showDirectoryPicker;
@@ -353,6 +362,7 @@ export function useScreenshotWatcher(enabled: boolean) {
       const handle = await picker({ id: 'toeic-screenshots', mode: 'read', startIn: 'pictures' });
       handleRef.current = handle;
       oldNamesRef.current.clear();
+      setHandleVersion(v => v + 1);
       setDirName(handle.name || 'Screenshots');
       setStatus('watching');
       await saveHandle(handle);

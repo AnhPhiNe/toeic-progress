@@ -155,13 +155,13 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
     try {
       const sessionId = plan.logged && testNameKey(testName) === testNameKey(state.testName) ? plan.sessionId : undefined;
       const result = saveCaptureItems(state.items, { testName, sessionId, existing: mistakes, onAddBatch, onUpdate });
-      const msg = `Đã lưu ${result.saved} câu sai${result.explanationsQueued ? '' : '. Chưa xếp được lời giải AI; bạn có thể mở thẻ để bổ sung.'}`;
+      const baseMsg = `Đã lưu ${result.saved} câu sai${result.explanationsQueued ? '' : '. Chưa xếp được lời giải AI; bạn có thể mở thẻ để bổ sung.'}`;
       if (keepOpen || state.activeJobs > 0) {
         clearSavedItems(checked.map(item => item.id));
-        onSaved(msg);
+        onSaved(!keepOpen && state.activeJobs > 0 ? `${baseMsg} · Sóc vẫn đang đọc nền ${state.activeJobs} mẻ nữa.` : baseMsg);
       } else {
         resetCapture(); closeCapture();
-        onSaved(msg);
+        onSaved(baseMsg);
         onClose();
       }
     } catch (reason) {
@@ -173,7 +173,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
     const groups = new Map<string, { message: string; ids: string[]; images: number }>();
     for (const failure of state.failures) {
       const group = groups.get(failure.message) ?? { message: failure.message, ids: [], images: 0 };
-      group.ids.push(failure.id); group.images += failure.imageIds.length; groups.set(failure.message, group);
+      group.ids.push(failure.id); group.images += failure.imageCount || failure.imageIds.length; groups.set(failure.message, group);
     }
     return [...groups.values()];
   }, [state.failures]);

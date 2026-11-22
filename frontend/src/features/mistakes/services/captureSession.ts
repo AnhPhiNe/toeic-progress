@@ -22,7 +22,7 @@ export type CaptureImageStatus = 'waiting' | 'reading' | 'done' | 'failed';
 export type CaptureZone = 'passage' | 'questions';
 /** A screenshot/photo as picked; `url` shows it on this device only. */
 export interface CaptureImage { id: string; name: string; url: string; zone: CaptureZone; status: CaptureImageStatus }
-export interface CaptureFailure { id: string; imageIds: string[]; questions: number[]; message: string }
+export interface CaptureFailure { id: string; imageIds: string[]; imageCount: number; questions: number[]; message: string }
 export type CapturePhase = 'input' | 'reading' | 'review';
 export type CapturePart = PartNumber;
 
@@ -340,7 +340,8 @@ async function readOnce(
     mark('failed');
     onFailed?.();
     const message = reason instanceof Error ? reason.message : 'Chưa đọc được ảnh. Hãy thử lại.';
-    const failure: CaptureFailure = { id: generateUUID(), imageIds, questions: request.questions, message };
+    const imageCount = imageIds.length || (request.images.length + request.contextImages.length);
+    const failure: CaptureFailure = { id: generateUUID(), imageIds, imageCount, questions: request.questions, message };
     failed.set(failure.id, request);
     set({ failures: [...state.failures, failure] });
   }
@@ -531,14 +532,15 @@ export function openReview() {
   set({ phase: 'review', finishedInBackground: false });
 }
 
-/** Remove saved items (used by "Lưu & chụp tiếp") and return to Step 1 keeping testName and active background jobs. */
+/** Remove saved items (used by "Lưu & chụp tiếp") and return to Step 1 keeping testName, unsent staged photos, and active background jobs. */
 export function clearSavedItems(savedIds: Iterable<string>) {
   const drop = new Set(savedIds);
   const remaining = state.items.filter(item => !drop.has(item.id));
-  release(state.images);
+  const waitingImages = state.images.filter(image => image.status === 'waiting');
+  release(state.images.filter(image => image.status !== 'waiting'));
   set({
     phase: 'input',
-    images: [],
+    images: waitingImages,
     items: remaining,
     failures: [],
     rejectionReasons: [],
@@ -570,11 +572,12 @@ export function patchItem(id: string, patch: Partial<Pick<CaptureItem, 'draft' |
 }
 export function removeItem(id: string) { set({ items: state.items.filter(item => item.id !== id) }); }
 export function removeUncheckedItems() { set({ items: state.items.filter(item => item.checked) }); }
-/** Back to the screenshots; keepAccumulated=true preserves queued items & background jobs while clearing the tray for the next batch. */
+/** Back to the screenshots; keepAccumulated=true preserves queued items, unsent staged photos & background jobs while clearing already-read thumbnails. */
 export function backToInput(keepAccumulated = false) {
   if (keepAccumulated === true || state.activeJobs > 0) {
-    release(state.images);
-    set({ phase: 'input', images: [], error: '', restored: false, unsent: 0 });
+    const waitingImages = state.images.filter(image => image.status === 'waiting');
+    release(state.images.filter(image => image.status !== 'waiting'));
+    set({ phase: 'input', images: waitingImages, error: '', restored: false, unsent: 0 });
     return;
   }
   solvingCount = 0;

@@ -55,17 +55,18 @@ describe('screenshot watcher helpers', () => {
     ]);
 
     const result = await scanDirectoryFiles(dir, cutoff, seen);
-    expect(result.map(item => item.file.name)).toEqual(['Screenshot 2.png', 'Screenshot 1.jpg']);
-    expect(result[0].key).toBe(screenshotFileKey(newest));
+    // Returns recent images in chronological capture order (Page 1 -> Page 2) so multi-page passages never invert.
+    expect(result.map(item => item.file.name)).toEqual(['Screenshot 1.jpg', 'Screenshot 2.png']);
+    expect(result[1].key).toBe(screenshotFileKey(newest));
 
-    // Caps to 10 newest images when folder has >10 recent shots.
+    // Caps to 10 newest images when folder has >10 recent shots, returned in chronological order (shot-4 -> shot-13).
     const many = Array.from({ length: 14 }, (_, idx) =>
       fileEntry(new File(['x'], `shot-${idx}.png`, { type: 'image/png', lastModified: now - (14 - idx) * 1000 }))
     );
     const capped = await scanDirectoryFiles(makeFakeDir(many), cutoff, new Set());
     expect(capped).toHaveLength(10);
-    expect(capped[0].file.name).toBe('shot-13.png');
-    expect(capped[9].file.name).toBe('shot-4.png');
+    expect(capped[0].file.name).toBe('shot-4.png');
+    expect(capped[9].file.name).toBe('shot-13.png');
 
     // Old filenames well past cutoff are reported via onOldName and skipped on subsequent silent scans without calling getFile().
     const ancient = new File(['old'], 'Ancient-2025.png', { type: 'image/png', lastModified: cutoff - 10 * 60_000 });

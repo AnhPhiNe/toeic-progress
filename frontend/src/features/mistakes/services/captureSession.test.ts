@@ -227,11 +227,14 @@ describe('capture session', () => {
     expect(captureState().items.map(item => item.number)).toEqual([151, 152]);
     expect(captureState().activeJobs).toBe(1);
 
-    // User opens review while batch 1 is still running, then goes back to snap more without losing items
+    // User stages 2 unsent photos for the next batch, peeks at Review while batch 1 is running, then returns -> unsent photos stay intact!
+    addFiles(files(2));
+    expect(captureState().images).toHaveLength(2);
     openReview();
     expect(captureState().phase).toBe('review');
     backToInput(true);
     expect(captureState().phase).toBe('input');
+    expect(captureState().images).toHaveLength(2);
     expect(captureState().items.map(item => item.number)).toEqual([151, 152]);
 
     finishBatch1();
@@ -240,11 +243,23 @@ describe('capture session', () => {
     expect(captureState().completedJobs).toBe(2);
     expect(captureState().items.map(item => item.number)).toEqual([147, 151, 152]);
 
-    // "Lưu & chụp tiếp" clears only saved IDs, keeps remaining unchecked item and testName
+    // "Lưu & chụp tiếp" clears only saved IDs, keeps remaining unchecked item, unsent waiting images, and testName
     const savedIds = captureState().items.filter(item => item.number !== 152).map(item => item.id);
     clearSavedItems(savedIds);
     expect(captureState().phase).toBe('input');
     expect(captureState().testName).toBe('ETS Continuous');
+    expect(captureState().images).toHaveLength(2);
     expect(captureState().items.map(item => item.number)).toEqual([152]);
+  });
+
+  it('reports accurate imageCount when a background queued batch fails', async () => {
+    setPart(5);
+    setTestName('Background Fail Test');
+    addFiles(files(2));
+    mocks.singles.mockResolvedValueOnce({ requests: [request([101], [image('a'), image('b')])], split: false, compressed: false });
+    mocks.extract.mockRejectedValueOnce(new Error('Máy chủ đang bận.'));
+    await queueAndContinue({ questions: [101], getToken: async () => 'tok' }, null);
+    expect(captureState().failures).toHaveLength(1);
+    expect(captureState().failures[0].imageCount).toBe(2);
   });
 });

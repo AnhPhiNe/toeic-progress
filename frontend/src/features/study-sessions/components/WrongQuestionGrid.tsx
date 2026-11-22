@@ -348,14 +348,14 @@ export function ResultImageButton({
   }, [available, initialFiles, onInitialFilesHandled]);
   // On a computer the screenshot can be pasted with Ctrl+V anywhere in the form, not only on the button.
   useEffect(() => {
-    if (!desktop || !available || !pasteEnabled) return;
+    if (!desktop || !available || !pasteEnabled || busy || needsSignIn || isTyping || Boolean(editingStagedId) || Boolean(reviewFile)) return;
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
       if (files.length) { event.preventDefault(); latestHandleIncoming.current(files); }
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
-  }, [desktop, available, pasteEnabled]);
+  }, [desktop, available, pasteEnabled, busy, needsSignIn, isTyping, editingStagedId, reviewFile]);
   if (!available) return null;
   const editingStaged = editingStagedId ? staged.find(item => item.id === editingStagedId) ?? null : null;
   const openEditAppliedScore = () => {
@@ -690,9 +690,10 @@ export function ResultImageButton({
       )}
       {desktop && !isTyping && !needsSignIn && (
         <ScreenshotSuggestBar
-          enabled={desktop && !busy && !isTyping && !needsSignIn}
+          enabled={desktop && !isTyping && !needsSignIn}
           disabled={busy}
           addVerb="kết quả"
+          maxAdd={stagingActive ? Math.max(0, MAX_RESULT_IMAGES - staged.length) : MAX_RESULT_IMAGES}
           onAddFiles={picked => handleIncomingFiles(picked)}
         />
       )}

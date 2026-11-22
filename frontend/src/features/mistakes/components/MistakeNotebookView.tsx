@@ -19,7 +19,7 @@ import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryMo
 import { CaptureModal } from '@/features/mistakes/components/CaptureModal';
 import { ManualQuestionModal } from '@/features/mistakes/components/ManualQuestionModal';
 import { NotebookEmpty } from '@/features/mistakes/components/NotebookEmpty';
-import { addFiles, captureState, closeCapture, openCapture, openReview, dismissBackgroundNotice, subscribeCapture } from '@/features/mistakes/services/captureSession';
+import { addFiles, backToInput, captureState, closeCapture, openCapture, openReview, dismissBackgroundNotice, subscribeCapture } from '@/features/mistakes/services/captureSession';
 import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
@@ -157,6 +157,17 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   }, []);
   const openEdit = (value: MistakeEntry) => { setReusedReading(null); setSessionSource(undefined); setEntry(value); };
 
+  const ingestDroppedOrPastedImages = useCallback((files: File[]) => {
+    const current = captureState();
+    if (current.phase === 'reading') {
+      openCreate();
+      return;
+    }
+    if (current.phase === 'review') backToInput(true);
+    addFiles(files, 'questions');
+    openCreate();
+  }, [openCreate]);
+
   // Zero-click desktop paste: Ctrl+V an image anywhere on Sổ tay immediately opens CaptureModal with the image staged.
   useEffect(() => {
     if (isPhone || detailId || entry !== undefined || manualOpen || detailSessionId) return;
@@ -166,12 +177,11 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
       if (!files.length) return;
       event.preventDefault();
-      addFiles(files, 'questions');
-      openCreate();
+      ingestDroppedOrPastedImages(files);
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
-  }, [isPhone, detailId, entry, manualOpen, detailSessionId, openCreate]);
+  }, [isPhone, detailId, entry, manualOpen, detailSessionId, ingestDroppedOrPastedImages]);
   const sessionNames = useMemo(() => new Map(sessions.filter(s => !s.deletedAt).map(s => [s.id, s.testName])), [sessions]);
   const sourcedMistakes = useMemo(() => mistakes.filter(m => !isRetiredDraft(m)).map(m => ({ ...m, sourceTestName: mistakeTestName(m, sessionNames) })), [mistakes, sessionNames]);
   const sourceNames = useMemo(() => uniqueTestNames(sourcedMistakes.map(m => m.sourceTestName)), [sourcedMistakes]);
@@ -506,8 +516,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           const files = [...(event.dataTransfer?.files ?? [])].filter(file => file.type.startsWith('image/'));
           if (!files.length) return;
           event.preventDefault();
-          addFiles(files, 'questions');
-          openCreate();
+          ingestDroppedOrPastedImages(files);
         }}
       >
         {dragOver && (
