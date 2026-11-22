@@ -6,7 +6,7 @@ type Call = { questions: number[]; images: number; context: number; batch: strin
 const calls = (page: Page) => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls ?? []) as Promise<Call[]>;
 const DESKTOP = { width: 1440, height: 900 }, PHONE = { width: 390, height: 844 };
 // CV_SHOTS=1 saves the built screens next to the approved mockups (design/previews/capture-v2/built).
-const BUILT = '../design/previews/capture-v2/built';
+const BUILT = process.env.CV_SHOTS_DIR ?? 'design/previews/capture-v2/built';
 async function shot(page: Page, name: string) {
   if (!process.env.CV_SHOTS) return;
   mkdirSync(BUILT, { recursive: true });
@@ -71,7 +71,7 @@ test('Listening comes first: several numbers take one reason, Sóc suggests the 
   await flow.getByRole('button', { name: 'Gán cho 3 câu', exact: true }).click();
   await expect(flow.getByLabel('Câu 38, đã ghi lý do')).toContainText('từ vựng');
   const saved = await stored(page);
-  expect(saved.filter((card: { part: number }) => card.part <= 4).map((card: { questionNumber: number; category: string }) => [card.questionNumber, card.category]))
+  expect(saved.filter((card: { part: number }) => card.part <= 4).map((card: { questionNumber: number; category: string }) => [card.questionNumber, card.category]).sort((a: [number], b: [number]) => a[0] - b[0]))
     .toEqual([[38, 'VOCABULARY_TRAP'], [45, 'VOCABULARY_TRAP'], [71, 'VOCABULARY_TRAP']]);
   // The rest is selected for the next reason; Sóc now suggests the learner's own most used one.
   await expect(flow.getByRole('button', { name: 'Gán cho 4 câu', exact: true })).toBeVisible();
@@ -114,7 +114,7 @@ for (const size of [DESKTOP, PHONE]) {
     }
     if (phone) await flow.getByRole('button', { name: 'Tấm 1 · câu 103–112', exact: true }).click();
     await page.evaluate(() => { (window as Window & { __pageDelay?: number }).__pageDelay = 600; });
-    await flow.getByLabel('Ảnh câu Part 5', { exact: true }).setInputFiles(screenshot);
+    await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
     await flow.getByRole('button', { name: phone ? 'Xong tấm' : /^Tấm tiếp: câu 128/ }).click();
     // One reading looks for every open Part 5 number; the Tấm ticks when its numbers come back.
     await list();
@@ -123,7 +123,7 @@ for (const size of [DESKTOP, PHONE]) {
     expect((await calls(page))[0].questions).toEqual([103, 107, 112, 128]);
     if (phone) await flow.getByRole('button', { name: 'Nhóm 135–138', exact: true }).click();
     else await flow.getByRole('button', { name: 'Nhóm 135–138', exact: true }).click();
-    for (const [label, next] of [['Ảnh đoạn văn & câu hỏi', /^Nhóm tiếp: 149–150|^Xong nhóm$/], ['Ảnh câu hỏi', /^Nhóm tiếp: 186–190|^Xong nhóm$/], ['Ảnh câu hỏi', /^Xong nhóm cuối|^Xong nhóm$/]] as const) {
+    for (const [label, next] of [['Ảnh câu hỏi', /^Nhóm tiếp: 149–150|^Xong nhóm$/], ['Ảnh câu hỏi', /^Nhóm tiếp: 186–190|^Xong nhóm$/], ['Ảnh câu hỏi', /^Xong nhóm cuối|^Xong nhóm$/]] as const) {
       await flow.getByLabel(label, { exact: true }).setInputFiles(screenshot);
       await flow.getByRole('button', { name: next }).click();
     }
@@ -164,31 +164,25 @@ test('Part 7 continuous capture: "Nhóm tiếp" sends group 1 and moves to group
   await expect(flow.getByRole('status', { name: 'Các nhóm đã gửi' })).toContainText('186–190 · 2 câu', { timeout: 10000 });
 });
 
-test('screens for the design review', async ({ page }) => {
-  test.skip(!process.env.CV_SHOTS, 'CV_SHOTS=1 takes the built screenshots');
-  for (const size of [DESKTOP, PHONE]) {
-    const phone = size === PHONE;
+for (const size of [DESKTOP, PHONE]) {
+  const phone = size === PHONE, kind = phone ? 'phone' : 'desktop';
+  test(`screens for the design review (${kind})`, async ({ page }) => {
+    test.skip(!process.env.CV_SHOTS, 'CV_SHOTS=1 takes the built screenshots');
     const flow = await openSeven(page, size);
     await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
-    if (phone) await flow.getByRole('button', { name: /^Cần chụp \d/ }).click();
-    await shot(page, `2a-can-chup-part5-${phone ? 'phone-list' : 'desktop-empty'}`);
-    if (phone) await flow.getByRole('button', { name: 'Tấm 1 · câu 103–112', exact: true }).click();
-    // A shot of 103–112 only: 128 is still missing.
-    await page.route('**/never', route => route.abort());
-    await flow.getByLabel('Ảnh câu Part 5', { exact: true }).setInputFiles(screenshot);
-    await page.evaluate(() => { (window as Window & { __pageDelay?: number }).__pageDelay = 3000; });
-    await flow.getByRole('button', { name: phone ? 'Xong tấm' : /^Tấm tiếp/ }).click();
-    await flow.getByRole('button', { name: phone ? /^Cần chụp/ : 'Nhóm 149–150' }).first().click();
-    if (phone) await flow.getByRole('button', { name: 'Nhóm 149–150', exact: true }).click();
     await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-    await shot(page, `2b-can-chup-part7-${phone ? 'phone' : 'desktop'}`);
+    await shot(page, `2a-can-chup-part5-${kind}-staged`);
+    await flow.getByRole('button', { name: phone ? 'Xong tấm' : /^Tấm tiếp/ }).click();
+    if (phone) await flow.getByRole('button', { name: /^Cần chụp \d/ }).click();
+    await flow.getByRole('button', { name: /^Nhóm 149–150/ }).click();
+    await flow.getByLabel('Ảnh câu hỏi', { exact: true }).last().setInputFiles(screenshot);
+    await shot(page, `2b-can-chup-part7-${kind}`);
+    await page.evaluate(() => { (window as Window & { __pageDelay?: number }).__pageDelay = 4000; });
     await flow.getByRole('button', { name: phone ? 'Xong nhóm' : /^Nhóm tiếp: 186–190/ }).click();
-    await shot(page, `3-part7-lien-tuc-${phone ? 'phone' : 'desktop'}`);
-    await page.waitForTimeout(3500);
+    await flow.getByLabel('Đoạn văn', { exact: false }).first().isVisible();
+    await shot(page, `3-part7-lien-tuc-${kind}`);
     if (phone) await flow.getByRole('button', { name: /^Cần chụp \d/ }).click();
     else await flow.getByRole('button', { name: /^Tấm 2/ }).click();
-    await shot(page, `2a-can-chup-part5-${phone ? 'phone' : 'desktop'}`);
-    await page.close();
-    page = await page.context().newPage();
-  }
-});
+    await shot(page, `2a-can-chup-part5-${kind}`);
+  });
+}

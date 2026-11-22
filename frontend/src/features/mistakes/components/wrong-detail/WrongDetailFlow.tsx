@@ -631,14 +631,16 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   } else {
     const currentJobs = current ? itemJobs(current.key) : [];
     const job = currentJobs.find(busyStatus) ?? currentJobs.filter(entry => entry.status === 'failed').pop() ?? null;
-    const strip: StripChip[] = Object.values(jobs).filter(entry => entry.item !== current?.key).slice(-4)
+    const strip: StripChip[] = Object.values(jobs).filter(entry => entry.item !== current?.key && !(current?.part === 5 && entry.part === 5)).slice(-4)
       .map(entry => ({ key: entry.key, label: entry.label, status: busyStatus(entry) ? 'reading' : entry.status === 'failed' ? 'failed' : 'done', count: entry.readIds.length }));
-    const sentThumbs: SentThumb[] = current ? (sent[current.key] ?? []).map(image => {
+    // Part 5 is one tray: every Tấm's sent images show there.
+    const sentHere = !current ? [] : current.part === 5 ? items.filter(item => item.part === 5).flatMap(item => sent[item.key] ?? []) : sent[current.key] ?? [];
+    const sentThumbs: SentThumb[] = sentHere.map(image => {
       const owner = jobs[image.job];
       const numbers = owner?.readIds.map(id => byId.get(id)?.questionNumber).filter(Boolean) ?? [];
       return { id: image.id, url: image.url, tone: !owner || owner.status === 'done' ? 'done' : owner.status === 'failed' ? 'fail' : 'read',
         label: !owner || owner.status === 'done' ? (numbers.length ? numbers.join(' · ') : 'đã đọc') : owner.status === 'failed' ? 'chưa đọc được' : 'Sóc đang đọc…' };
-    }) : [];
+    });
     const doneRows = rows.filter(row => row.state === 'done').length;
     body = <CaptureView {...common} rows={rows} current={current} currentState={current ? stateByKey.get(current.key) ?? 'open' : 'open'} next={next}
       part5Open={openOfPart(5)} zones={zones} activeZone={activeZone} onActivateZone={setActiveZone} sent={sentThumbs}

@@ -10,7 +10,7 @@ import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
 import { LISTENING_REASONS, listeningReasonShort, shotRange, shotSub, shotTitle, type Doubt, type ShotItem } from '@/features/mistakes/lib/captureShots';
 import { ScreenshotSuggestBar } from './ScreenshotSuggestBar';
 import { BurstCameraModal } from './BurstCameraModal';
-import { chosenOf, DropZone, ONE_SHOT_HINT, RangeEditor, ReasonChips, RowDetail, Sheet, type SentThumb, type Staged, type Zone } from './views';
+import { chosenOf, DropZone, RangeEditor, ReasonChips, RowDetail, Sheet, type SentThumb, type Staged, type Zone } from './views';
 import './capture-v2.css';
 
 /**
@@ -83,7 +83,7 @@ export function ListeningView({ phone, onClose, cards, recorded, suggested, erro
       {LISTENING_REASONS.map(([category, label]) => (
         <button key={category} type="button" className="cv-reason" aria-pressed={reason === category} onClick={() => setReason(category)}>
           <span>{label}</span>
-          {category === suggested && <span className="cv-sg"><Soc state="idle" size={18} className="cv-sg-soc" />Sóc gợi ý</span>}
+          {category === suggested && <span className="cv-sgb"><Soc state="idle" size={18} className="cv-sg-soc" />Sóc gợi ý</span>}
         </button>
       ))}
     </div>
@@ -266,7 +266,7 @@ export function CaptureView(props: Base & {
         <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zones.questions} sent={sent} active={activeZone === 'questions'} onSwitchZone={onSwitchZone}
           hint={!zones.questions.length && !sent.length ? `${phone ? 'Chụp' : 'Dán ảnh'} câu ${shotRange(current)} vào đây.` : undefined} />
       </div>
-      <p className="cv-tip"><ImageIcon size={15} aria-hidden="true" />{phone ? <>Cả đoạn văn và câu hỏi trong một ảnh? Chụp vào <b className="cv-c2">2</b> là được.</> : ONE_SHOT_HINT}</p>
+      <p className="cv-tip"><ImageIcon size={15} aria-hidden="true" /><span>{phone ? <>Cả đoạn văn và câu hỏi trong một ảnh? Chụp vào <b className="cv-c2">2</b> là được.</> : <>Ảnh có cả đoạn văn và câu hỏi? <b>Thả vào <span className="cv-c2">2</span> là được.</b></>}</span></p>
     </>
   ) : (
     <DropZone {...zoneProps} zone="questions" big={!phone} title={current.part === 6 ? 'Ảnh đoạn văn & câu hỏi' : `Ảnh câu Part ${current.part}`}
