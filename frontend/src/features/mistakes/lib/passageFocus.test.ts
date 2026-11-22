@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findFocus, groupLabel, groupNumbers, splitFocus } from './passageFocus';
+import { findFocus, groupLabel, groupNumbers, reviewFocus, splitFocus } from './passageFocus';
 
 const email = 'Dear Ms. Patel,\nThank you for choosing us. All rooms 135 ____ with a view of the lake. Breakfast is served daily.';
 
@@ -36,5 +36,21 @@ describe('groupNumbers', () => {
     expect(groupLabel([171, 173])).toBe('171, 173');
     expect(groupLabel([171])).toBe('171');
     expect(groupLabel([])).toBe('');
+  });
+});
+
+describe('reviewFocus', () => {
+  const text = 'The cafeteria is closed. Employees may use the temporary food court in the lobby of Building B, which opens at 7.';
+  const explanation = { quickTip: '', translation: '', questionType: '', evidence: 'food court in the lobby of Building B', paraphrase: '', analysis: '', keyVocabulary: '' };
+
+  it('Part 7: marks no evidence before the answer, then marks it once answered', () => {
+    const card = { part: 7 as const, questionNumber: 162, explanation };
+    expect(reviewFocus(text, card, false)).toBeNull();
+    expect(splitFocus(text, reviewFocus(text, card, true)).focus).toBe('food court in the lobby of Building B');
+  });
+
+  it('Part 6: marks the blank by its number before the answer, as that is where the question is', () => {
+    const card = { part: 6 as const, questionNumber: 135, explanation: { ...explanation, evidence: 'Breakfast is served daily' } };
+    expect(splitFocus(email, reviewFocus(email, card, false)).focus).toBe('All rooms 135 ____ with a view of the lake.');
   });
 });
