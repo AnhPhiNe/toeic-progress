@@ -8,7 +8,7 @@ import { ReviewSession } from '@/features/mistakes/components/ReviewSession';
 import { AwardsPage, unseenBadges } from '@/features/awards/components/AwardsPage';
 import { computeBadges } from '@/features/awards/lib/badges';
 import { socLook } from '@/features/awards/lib/outfit';
-import { MISTAKE_BATCH_CAP, type TodayTask } from '@/features/today/lib/todayTasks';
+import { MISTAKE_BATCH_CAP, todayReviewPlan, type TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
 import { addSuggestion } from '@/features/today/lib/suggestedTasks';
 import { deriveStreakWithExtras } from '@/shared/domain/streakWeek';
@@ -473,7 +473,11 @@ export const App: React.FC = () => {
   const socCoat = socIdentity(bundle.profile).coat;
   const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
-    if (task.kind === 'REVIEW_MISTAKES') openReview(undefined, task.count ?? MISTAKE_BATCH_CAP);
+    if (task.kind === 'REVIEW_MISTAKES') {
+      // The task's count is today's whole batch; cards already reviewed today come off it.
+      const { left } = todayReviewPlan(loadMistakes(), today);
+      openReview(undefined, left > 0 ? left : MISTAKE_BATCH_CAP);
+    }
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
     else if (task.kind === 'FULL_TEST') openSessionLogger();
     else if (task.kind === 'WORD_CARDS') openSessionLogger({ sessionType: 'VOCAB' });

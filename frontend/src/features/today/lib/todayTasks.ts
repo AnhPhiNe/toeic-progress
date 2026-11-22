@@ -1,6 +1,6 @@
-import type { LRPartScore, ReadingPartType } from '@/shared/types';
+import type { LRPartScore, MistakeEntry, ReadingPartType } from '@/shared/types';
 import type { DataBundle } from '@/shared/data/dataBundle';
-import { getDueMistakes } from '@/features/mistakes/lib/spacedRepetition';
+import { getDueMistakes, REVIEW_SESSION_CAP } from '@/features/mistakes/lib/spacedRepetition';
 import { rollingPartStats } from '@/shared/domain/learningAnalytics';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 
@@ -33,7 +33,7 @@ export interface TodayTaskOptions {
 
 export const MAX_TODAY_TASKS = 4;
 /** One card takes about a minute; a review round is kept between 5 and 15 minutes. */
-export const MISTAKE_BATCH_CAP = 15;
+export const MISTAKE_BATCH_CAP = REVIEW_SESSION_CAP;
 const MISTAKE_MIN_MINUTES = 5;
 const WORD_CARD_MINUTES = 10;
 const FULL_TEST_MINUTES = 120;
@@ -70,13 +70,21 @@ function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
-function reviewTask(bundle: DataBundle, today: string): TodayTask | null {
-  const mistakes = bundle.mistakes.filter(item => !item.deletedAt);
+/**
+ * Today's review budget. Cards reviewed today are no longer due today, so due + reviewed approximates this
+ * morning's queue and keeps the title steady while the learner works through it; `left` is what a session
+ * opened now may still hold, so "Ôn 15 câu" never turns into more than 15 cards over the day.
+ */
+export function todayReviewPlan(all: readonly MistakeEntry[], today: string): { due: number; reviewedToday: number; batch: number; left: number } {
+  const mistakes = all.filter(item => !item.deletedAt);
   const due = getDueMistakes(mistakes, today).length;
   const reviewedToday = mistakes.filter(item => item.lastReviewedAt && localDate(item.lastReviewedAt) === today).length;
-  // Cards reviewed today are no longer due today, so due + reviewed approximates this
-  // morning's queue and keeps the title steady while the learner works through it.
   const batch = Math.min(due + reviewedToday, MISTAKE_BATCH_CAP);
+  return { due, reviewedToday, batch, left: Math.min(due, Math.max(0, batch - reviewedToday)) };
+}
+
+function reviewTask(bundle: DataBundle, today: string): TodayTask | null {
+  const { reviewedToday, batch } = todayReviewPlan(bundle.mistakes, today);
   if (batch === 0) return null;
   return task('REVIEW_MISTAKES', today, {
     title: `Ôn ${batch} câu sai`,
