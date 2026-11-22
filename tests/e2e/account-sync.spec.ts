@@ -337,13 +337,24 @@ test('a score form left open in another tab after sign-out is refused with a not
   const guestBefore = await tabB.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
 
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
-  await expect(tabB.getByRole('alert').filter({ hasText: 'Tài khoản đã đăng xuất ở tab khác — thay đổi này chưa được lưu.' })).toBeVisible();
-  await expect(form).toHaveCount(0);
+  // The app-level notice and the form's own alert both say it.
+  await expect(tabB.getByRole('alert').filter({ hasText: 'Tài khoản đã đăng xuất ở tab khác — thay đổi này chưa được lưu.' })).toHaveCount(2);
+  // The form stays open with its own alert and what was typed, so nothing is lost silently.
+  await expect(form.getByRole('alert').filter({ hasText: 'Tài khoản đã đăng xuất ở tab khác' })).toBeVisible();
+  await expect(form.locator('#session-test-name')).toHaveValue('ETS Other Tab');
   expect(await tabB.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'))).toBe(guestBefore);
   expect(await sessionNames(tabB, 'toeic_progress_bundle_v3')).toEqual([]);
   expect(await tabB.evaluate(() => localStorage.getItem('toeic_progress_account_alice_v3'))).toBeNull();
 
-  // A form opened now belongs to the guest and saves normally.
+  // Closing it and opening a new form: that one belongs to the guest and saves normally.
+  // The stale draft cannot be kept for a signed-out account, so closing asks first.
+  const closing = tabB.waitForEvent('dialog');
+  const close = form.getByRole('button', { name: 'Đóng form ghi nhận buổi học', exact: true }).click();
+  const ask = await closing;
+  expect(ask.message()).toContain('Đóng form sẽ mất nội dung đang nhập');
+  await ask.accept();
+  await close;
+  await expect(form).toHaveCount(0);
   const fresh = await fillScore(tabB, 'ETS Guest Tab');
   await fresh.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
   await expect.poll(() => sessionNames(tabB, 'toeic_progress_bundle_v3')).toEqual(['ETS Guest Tab']);

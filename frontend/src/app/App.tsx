@@ -136,11 +136,10 @@ export const App: React.FC = () => {
   }, []);
   useEffect(() => { if (account.status === 'synced') setWriteNotice(''); }, [account.status]);
   // A form opened for an account that another tab signed out of tried to save: nothing was written.
-  // Say so, close the stale score form and show what is stored now.
+  // Say so and show what is stored now. The form stays open with what was typed (its own alert explains).
   useEffect(() => {
     const refused = (event: Event) => {
       setWriteNotice((event as CustomEvent<{ message: string }>).detail.message);
-      setIsSessionModalOpen(false); setSessionPrefill(undefined); setEditingSession(null);
       refreshFromStorage();
     };
     window.addEventListener(OWNER_CHANGED_WRITE_EVENT, refused);
