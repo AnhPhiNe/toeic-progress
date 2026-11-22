@@ -15,16 +15,18 @@ const NEW = '__new__';
 /** The test a card belongs to: known names in a list, or a new name typed in. */
 export function TestSelect({ value, names, onChange, variant = 'field', disabled = false }: Props) {
   const id = useId();
+  const known = uniqueTestNames(names);
   const list = uniqueTestNames([...names, value]);
   const [typing, setTyping] = useState(false);
+  // Typing mode starts on the first keystroke: the typed letter joins `list`, which must not swap the input for the select mid-typing.
   if (typing || !list.length) {
     return (
       <div className={'cap-field is-input' + (variant === 'bare' ? ' is-bare' : '')}>
         <label htmlFor={id}>{variant === 'field' && <small>Đề</small>}
           <input id={id} autoFocus={typing} value={value} maxLength={300} placeholder="Tên đề, ví dụ ETS 2024 Test 11" disabled={disabled}
-            onChange={event => onChange(event.target.value)} onBlur={() => { onChange(normalizeTestName(value)); if (list.length) setTyping(false); }} />
+            onChange={event => { setTyping(true); onChange(event.target.value); }} onBlur={() => { const next = normalizeTestName(value); onChange(next); if (typing && next) setTyping(false); }} />
         </label>
-        {list.length > 0 && <button type="button" className="cap-link" onClick={() => setTyping(false)}>Chọn đề có sẵn</button>}
+        {known.length > 0 && <button type="button" className="cap-link" onClick={() => setTyping(false)}>Chọn đề có sẵn</button>}
       </div>
     );
   }
