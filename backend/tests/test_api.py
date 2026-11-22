@@ -5,10 +5,13 @@ from io import BytesIO
 
 import httpx
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.core.config import Settings
+from app.integrations.gateway import Gateway
+from app.integrations.source_images import SourceImages
 from app.main import create_app
 from tests.batch_reservation_mock import BatchReservationMock
 from tests.explanation_ledger_mock import ExplanationLedgerMock
@@ -68,6 +71,7 @@ def api():
         batch_mock=None,
         provider_budget=None,
         drafts=None,
+        admin_statuses=None,
     ):
         calls = []
         batches = batch_mock or BatchReservationMock()
@@ -145,7 +149,8 @@ def api():
             if request.url.path == "/storage/v1/bucket/mistake-sources":
                 return httpx.Response(404, json={"statusCode": "404", "error": "Bucket not found"})
             if request.url.path.startswith("/auth/v1/admin/users/"):
-                return httpx.Response(200, json={})
+                queue = (admin_statuses or {}).get(request.method)
+                return httpx.Response(queue.pop(0) if queue else 200, json={})
             raise AssertionError(f"Unexpected request: {request.url}")
 
         settings = Settings(_env_file=None, **{
@@ -237,16 +242,24 @@ def test_modern_secret_key_is_not_sent_as_a_bearer_jwt(api):
             assert "authorization" not in call[3]
 
 
-def test_delete_account_bans_first_carries_hashed_identity_and_canonicalizes_gmail(api):
+def admin_steps(calls):
+    """(method, short name) of every account-deletion step, in order."""
+    steps = []
+    for _, path, body, _ in calls:
+        if path.endswith("/rpc/prepare_account_deletion"):
+            steps.append("prepare")
+        elif path == "/storage/v1/bucket/mistake-sources":
+            steps.append("purge")
+        elif path == f"/auth/v1/admin/users/{USER_ID}":
+            steps.append({"876000h": "ban", "none": "unban"}.get((body or {}).get("ban_duration"), "delete"))
+    return steps
+
+
+def test_delete_account_saves_carryover_before_ban_and_canonicalizes_gmail(api):
     with api(auth_user={"email": "A.B+spam@gmail.com"}) as (client, calls):
         assert client.delete("/api/v1/account").status_code == 200
-        paths = [call[1] for call in calls]
-        ban_idx = paths.index(f"/auth/v1/admin/users/{USER_ID}")
-        carry_idx = paths.index("/rest/v1/rpc/prepare_account_deletion")
-        purge_idx = paths.index("/storage/v1/bucket/mistake-sources")
-        del_idx = len(paths) - 1 - paths[::-1].index(f"/auth/v1/admin/users/{USER_ID}")
-        assert ban_idx < carry_idx < purge_idx < del_idx
-        carry_body = calls[carry_idx][2]
+        assert admin_steps(calls) == ["prepare", "ban", "purge", "delete"]
+        carry_body = next(call[2] for call in calls if call[1].endswith("/prepare_account_deletion"))
         assert carry_body["p_user_id"] == USER_ID and len(carry_body["p_identity_hash"]) == 64
         assert "gmail" not in json.dumps(carry_body).lower()
         first_hash = carry_body["p_identity_hash"]
@@ -254,6 +267,47 @@ def test_delete_account_bans_first_carries_hashed_identity_and_canonicalizes_gma
         assert client.delete("/api/v1/account").status_code == 200
         carry_body = next(call[2] for call in calls if call[1].endswith("/prepare_account_deletion"))
         assert carry_body["p_identity_hash"] == first_hash
+
+
+def test_failed_auth_delete_unbans_and_retry_finishes_without_double_carryover(api):
+    with api(auth_user={"email": "alice@example.test"}, admin_statuses={"DELETE": [500]}) as (client, calls):
+        failed = client.delete("/api/v1/account")
+        assert failed.status_code == 503
+        assert admin_steps(calls) == ["prepare", "ban", "purge", "delete", "unban"]
+        calls.clear()
+        assert client.delete("/api/v1/account").status_code == 200
+        assert admin_steps(calls) == ["prepare", "ban", "purge", "delete"]
+        # The retry sends the same idempotent carryover call (the SQL keeps one contribution per account).
+        bodies = [call[2] for call in calls if call[1].endswith("/prepare_account_deletion")]
+        assert len(bodies) == 1 and bodies[0]["p_user_id"] == USER_ID
+
+
+def test_failed_ban_stops_before_purge_and_failed_purge_unbans(api, monkeypatch):
+    with api(auth_user={"email": "alice@example.test"}, admin_statuses={"PUT": [500]}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 503
+        assert admin_steps(calls) == ["prepare", "ban"]
+
+    async def broken_purge(self, user_id, *, allow_missing=False):
+        raise HTTPException(503, "purge failed")
+
+    monkeypatch.setattr(SourceImages, "purge", broken_purge)
+    with api(auth_user={"email": "alice@example.test"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 503
+        assert admin_steps(calls) == ["prepare", "ban", "unban"]
+
+
+def test_failed_carryover_never_bans_or_purges(api, monkeypatch):
+    original = Gateway.rpc
+
+    async def failing_rpc(self, name, parameters, *, timeout=12):
+        if name == "prepare_account_deletion":
+            raise HTTPException(503, "down")
+        return await original(self, name, parameters, timeout=timeout)
+
+    monkeypatch.setattr(Gateway, "rpc", failing_rpc)
+    with api(auth_user={"email": "alice@example.test"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 503
+        assert admin_steps(calls) == []
 
 
 def score_record(**scores):
