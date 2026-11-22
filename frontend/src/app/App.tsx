@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { generateUUID } from '@/shared/domain/uuid';
 import { RdSidebar } from '@/app/components/RdSidebar';
 import { TodayPage } from '@/features/today/components/TodayPage';
@@ -36,7 +36,7 @@ import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
 import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
 import { useCloudAccount } from '@/features/account/hooks/useCloudAccount';
 import { useRouteTab } from '@/app/routing/useRouteTab';
-import { getActiveAccountId, readDataBundle, StorageWriteError } from '@/shared/data/dataBundle';
+import { getActiveAccountId, OWNER_CHANGED_WRITE_EVENT, readDataBundle, StorageWriteError } from '@/shared/data/dataBundle';
 import { ConnectionBanner } from '@/app/components/ConnectionBanner';
 import { hasPersonalData } from '@/shared/data/syncMerge';
 import { PageScrollCue } from '@/shared/components/ScrollCue';
@@ -135,6 +135,17 @@ export const App: React.FC = () => {
     };
   }, []);
   useEffect(() => { if (account.status === 'synced') setWriteNotice(''); }, [account.status]);
+  // A form opened for an account that another tab signed out of tried to save: nothing was written.
+  // Say so, close the stale score form and show what is stored now.
+  useEffect(() => {
+    const refused = (event: Event) => {
+      setWriteNotice((event as CustomEvent<{ message: string }>).detail.message);
+      setIsSessionModalOpen(false); setSessionPrefill(undefined); setEditingSession(null);
+      refreshFromStorage();
+    };
+    window.addEventListener(OWNER_CHANGED_WRITE_EVENT, refused);
+    return () => window.removeEventListener(OWNER_CHANGED_WRITE_EVENT, refused);
+  }, [refreshFromStorage]);
 
   const [activeTab, setActiveTab] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[]; part?: number } | null>(null);
@@ -173,7 +184,11 @@ export const App: React.FC = () => {
   const league = useLeague({ enabled: signedIn, owner: activeOwner, synced: account.status === 'synced', pageOpen: activeTab === 'league', coat: socIdentity(profile).coat });
   const leagueChip = chipLabel(league.state);
   const leagueShell = { label: sidebarLabel(league.state), chip: leagueChip.text, chipShort: leagueChip.short, chipAria: leagueChip.aria };
-  useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); setIsSessionModalOpen(false); setEditingSession(null); setSessionPrefill(undefined); }, [activeOwner]);
+  // The score form stays open across an owner change (another tab signed out or switched account) so
+  // what was typed is not wiped silently: it keeps the owner it opened for and its save is refused with a notice.
+  useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
+  const sessionModalOwner = useRef(activeOwner);
+  if (!isSessionModalOpen) sessionModalOwner.current = activeOwner;
 
   // Light only for now: the redesigned pages have no dark styles yet. Clear any dark class or saved choice from older versions.
   useEffect(() => {
@@ -680,7 +695,7 @@ export const App: React.FC = () => {
       {/* Modals */}
       {editingPacing && editingPacing.owner === activeOwner && <PacingResultEditor run={editingPacing.run} owner={editingPacing.owner} onClose={closePacingEditor} onSaved={handleSessionsChangedElsewhere} />}
       <SessionLoggerModal
-        key={activeOwner ?? 'guest'}
+        key={sessionModalOwner.current ?? 'guest'}
         isOpen={isSessionModalOpen}
         onClose={closeSessionLogger}
         onSaveSession={handleSaveSession}

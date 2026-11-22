@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { emptyBundle } from '../../frontend/src/shared/data/dataBundle';
 import { openSettings } from './helpers/accountGroup';
+import { openScoreLogger } from './helpers/nav';
 
 /** The profile name the app currently shows in Cài đặt (the old top bar's "Cài đặt hồ sơ <tên>" button is gone). */
 async function profileName(page: Page) {
@@ -266,4 +267,85 @@ test('another tab signing out stops this tab showing the account', async ({ page
   await expect.poll(() => profileName(page)).not.toBe('Alice');
   expect(await storedName(page)).toBeNull();
   expect(await storedVocab(page, 'toeic_progress_bundle_v3')).toEqual([]);
+});
+
+test('a score form left open in another tab after sign-out is refused with a notice, not saved as guest', async ({ browser }) => {
+  // Two tabs of one browser profile: shared localStorage, and the Supabase session lives there too.
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const alice = emptyBundle();
+  alice.profile.name = 'Alice';
+  await context.addInitScript(bundle => {
+    if (localStorage.getItem('__test_started')) return;
+    localStorage.setItem('__test_started', '1');
+    localStorage.setItem('toeic_active_account_v1', 'alice');
+    localStorage.setItem('toeic_progress_account_alice_v3', JSON.stringify(bundle));
+    localStorage.setItem('toeic_onboarding_done_v1', 'true');
+  }, alice);
+  await context.route('**/src/shared/api/supabaseClient.ts*', route => route.fulfill({
+    contentType: 'application/javascript', body: `
+      const session = { access_token: 'test-only', user: { id: 'alice', email: 'alice@example.test', is_anonymous: false } };
+      const signedOut = () => localStorage.getItem('__test_signed_out') === '1';
+      export const cloud = { auth: {
+        getSession: async () => ({ data: { session: signedOut() ? null : session }, error: null }),
+        getUser: async () => ({ data: { user: signedOut() ? null : session.user }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        signOut: async () => { localStorage.setItem('__test_signed_out', '1'); return { error: null }; }
+      }};
+    `
+  }));
+  await context.route('**/src/shared/api/api.ts*', route => route.fulfill({
+    contentType: 'application/javascript', body: `
+      export const apiAvailable = true;
+      export class ApiRequestError extends Error {}
+      export async function backendRequest(path, method = 'GET', body) {
+        const response = await fetch('/__test/api' + path, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
+        return response.json();
+      }
+    `
+  }));
+  await context.route('**/__test/api/api/v1/sync', route => route.fulfill({ json: {
+    cursor: 1, hasRecords: true,
+    records: [{ entity_type: 'profile', record_id: 'profile', payload: alice.profile, updated_at: alice.profile.updatedAt, deleted_at: null }]
+  } }));
+  const sessionNames = (tab: Page, key: string) => tab.evaluate(storageKey =>
+    (JSON.parse(localStorage.getItem(storageKey) ?? '{"sessions":[]}').sessions as Array<{ testName: string }>).map(item => item.testName), key);
+  const fillScore = async (tab: Page, name: string) => {
+    await openScoreLogger(tab);
+    const form = tab.getByRole('dialog', { name: 'Ghi điểm', exact: true });
+    await form.getByRole('button', { name: /^Nhập tay/ }).click();
+    await form.locator('#session-test-name').fill(name);
+    await form.getByLabel('Số câu sai', { exact: true }).fill('3');
+    await form.getByRole('heading', { name: 'Ghi điểm' }).click();
+    return form;
+  };
+
+  const tabA = await context.newPage();
+  const tabB = await context.newPage();
+  for (const tab of [tabA, tabB]) {
+    await tab.goto('/lich-su');
+    await expect(syncState(tab)).toContainText('Đã đồng bộ');
+  }
+
+  // Tab B: the score form is open with a typed test. Tab A signs out.
+  const form = await fillScore(tabB, 'ETS Other Tab');
+  const settingsA = await openSettings(tabA);
+  await settingsA.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  await expect.poll(() => tabA.evaluate(() => localStorage.getItem('toeic_active_account_v1'))).toBeNull();
+  // Tab B has seen it (no longer shows the account), but what was typed is still on screen.
+  await expect(syncState(tabB)).not.toContainText('Đã đồng bộ');
+  await expect(form.locator('#session-test-name')).toHaveValue('ETS Other Tab');
+  const guestBefore = await tabB.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'));
+
+  await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
+  await expect(tabB.getByRole('alert').filter({ hasText: 'Tài khoản đã đăng xuất ở tab khác — thay đổi này chưa được lưu.' })).toBeVisible();
+  await expect(form).toHaveCount(0);
+  expect(await tabB.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'))).toBe(guestBefore);
+  expect(await sessionNames(tabB, 'toeic_progress_bundle_v3')).toEqual([]);
+  expect(await tabB.evaluate(() => localStorage.getItem('toeic_progress_account_alice_v3'))).toBeNull();
+
+  // A form opened now belongs to the guest and saves normally.
+  const fresh = await fillScore(tabB, 'ETS Guest Tab');
+  await fresh.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
+  await expect.poll(() => sessionNames(tabB, 'toeic_progress_bundle_v3')).toEqual(['ETS Guest Tab']);
+  await context.close();
 });

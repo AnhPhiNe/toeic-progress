@@ -36,6 +36,8 @@ def storage_api(*, guest=False, enabled=True, public=False, storage_failure=Fals
             return httpx.Response(200, json={"id": OTHER if request.headers.get("authorization") == "Bearer other" else OWNER, "is_anonymous": guest})
         if path.endswith("/reserve_ai_request"):
             return httpx.Response(200, json={"allowed": True, "remaining": 5, "limit": 10})
+        if path.endswith("/mark_account_deletion_pending"):
+            return httpx.Response(200, json={"pending": True})
         if path.endswith("/reset_learning_data"):
             return httpx.Response(200, json={"cursor": 10, "records": [], "hasRecords": True, "resetBarrier": True})
         if path == "/rest/v1/mistakes":

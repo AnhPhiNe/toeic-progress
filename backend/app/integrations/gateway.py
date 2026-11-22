@@ -23,6 +23,15 @@ _BEARER_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 _MAX_BEARER_TOKEN_LENGTH = 8192
 
 
+class AccountDeletionError(Exception):
+    """Purge or Auth delete failed; step is "purge" or "delete"."""
+
+    def __init__(self, step: str, status: int | None = None):
+        super().__init__(f"account deletion failed at {step}")
+        self.step = step
+        self.status = status
+
+
 class Gateway:
     def __init__(self, settings: Settings, client: httpx.AsyncClient):
         self.settings = settings
@@ -277,6 +286,45 @@ class Gateway:
             timeout=8,
         )
 
+    async def finish_account_deletion(self, user_id: str) -> None:
+        """Purge private source images, then permanently delete the Auth user.
+
+        Deleting the Auth user cascades the learning rows and the pending-deletion row.
+        Shared by the API and by maintenance (stuck deletions). Raises AccountDeletionError.
+        """
+        step = "purge"
+        try:
+            await self.source_images.purge(user_id, allow_missing=True)
+            step = "delete"
+            response = await self.client.delete(
+                f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
+                headers=self.admin_headers(),
+                timeout=15,
+            )
+            if not response.is_success:
+                raise HTTPException(response.status_code, "Chưa xóa được tài khoản.")
+        except (HTTPException, httpx.HTTPError, ValueError, TypeError, KeyError) as error:
+            raise AccountDeletionError(step, getattr(error, "status_code", None)) from error
+
+    async def _lift_ban_and_forget(self, user_id: str) -> tuple[bool, bool]:
+        """After a failed deletion: unban, then drop the pending row. Returns (unbanned, pending_kept).
+
+        If the unban fails the pending row stays, so maintenance finishes the deletion later
+        instead of leaving the account banned forever.
+        """
+        try:
+            unbanned = (await self._set_ban(user_id, "none")).is_success
+        except httpx.HTTPError:
+            unbanned = False
+        if not unbanned:
+            return False, True
+        try:
+            await self.rpc("clear_account_deletion_pending", {"p_user_id": user_id}, timeout=8)
+        except (HTTPException, httpx.HTTPError, ValueError, TypeError):
+            # The user asked to delete; if the row stays, maintenance finishing the job is correct.
+            return True, True
+        return True, False
+
     async def delete_account(self, user: dict | str):
         user_id = user["id"] if isinstance(user, dict) else user
         id_hash = self.identity_hash(user) if isinstance(user, dict) else None
@@ -289,32 +337,34 @@ class Gateway:
                 {"p_user_id": user_id, "p_identity_hash": id_hash},
                 timeout=8,
             )
-        # 2. Ban on Auth to halt concurrent uploads/sessions on other tabs before purging storage.
+        # 2. Remember the deletion before banning, so a ban that cannot be lifted later is
+        #    finished by maintenance rather than leaving a banned, undeleted account.
+        await self.rpc("mark_account_deletion_pending", {"p_user_id": user_id}, timeout=8)
+        # 3. Ban on Auth to halt concurrent uploads/sessions on other tabs before purging storage.
         try:
             ban = await self._set_ban(user_id, "876000h")
         except httpx.HTTPError:
-            ban = None
+            ban = None  # Unknown outcome: the ban may have landed.
         if ban is None or not ban.is_success:
+            if ban is None:
+                unbanned, pending = await self._lift_ban_and_forget(user_id)
+            else:
+                unbanned, pending = False, False
+                try:
+                    await self.rpc("clear_account_deletion_pending", {"p_user_id": user_id}, timeout=8)
+                except (HTTPException, httpx.HTTPError, ValueError, TypeError):
+                    pending = True
+            logger.warning(json.dumps({"event": "account_delete_failed", "step": "ban", "unbanned": unbanned,
+                                       "pending": pending, "status": getattr(ban, "status_code", None)}))
             raise HTTPException(503, "Chưa khóa được phiên trước khi xóa tài khoản. Vui lòng thử lại.")
-        # 3. Purge private source images, then 4. permanently delete the Auth user (cascades learning rows).
-        #    If either fails, lift the ban so the user can sign in again and retry.
-        step = "purge"
+        # 4. Purge private source images, then 5. permanently delete the Auth user (cascades
+        #    learning rows and the pending row). If either fails, lift the ban so the user can retry.
         try:
-            await self.source_images.purge(user_id, allow_missing=True)
-            step = "delete"
-            response = await self.client.delete(
-                f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
-                headers=self.admin_headers(),
-                timeout=15,
-            )
-            if not response.is_success:
-                raise HTTPException(503, "Chưa xóa được tài khoản. Vui lòng thử lại.")
-        except (HTTPException, httpx.HTTPError, ValueError, TypeError, KeyError) as error:
-            unbanned = False
-            try:
-                unbanned = (await self._set_ban(user_id, "none")).is_success
-            except httpx.HTTPError:
-                pass
-            logger.warning(json.dumps({"event": "account_delete_failed", "step": step, "unbanned": unbanned,
-                                       "status": getattr(error, "status_code", None)}))
+            await self.finish_account_deletion(user_id)
+        except AccountDeletionError as error:
+            unbanned, pending = await self._lift_ban_and_forget(user_id)
+            logger.warning(json.dumps({"event": "account_delete_failed", "step": error.step, "unbanned": unbanned,
+                                       "pending": pending, "status": error.status}))
+            if not unbanned:
+                raise HTTPException(503, "Tài khoản đang được xóa, sẽ xong trong vòng một ngày.") from error
             raise HTTPException(503, "Chưa xóa xong tài khoản. Bạn thử lại sau ít phút nhé.") from error

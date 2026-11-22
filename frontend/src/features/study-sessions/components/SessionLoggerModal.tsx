@@ -27,7 +27,7 @@ import { DesktopVocabBody } from './DesktopVocabBody';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
-import { getActiveAccountId } from '@/shared/data/dataBundle';
+import { assertWriteOwner, getActiveAccountId, runAsOwner } from '@/shared/data/dataBundle';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { PhoneFullTestBody, PhonePracticeBody } from './PhoneSessionBody';
 import { PhoneLogger, type PhoneStep } from './phone/PhoneLogger';
@@ -359,7 +359,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     },
     onBack: () => { setDate(vocabToday); setVocabCount(vocabDefault); setVocabPicked(false); setScoreError(''); },
     onDelete: () => {
-      try { onDeleteVocab?.(date); } catch (error) { setScoreError(error instanceof Error ? error.message : 'Chưa xóa được ngày này.'); return; }
+      try { runAsOwner(draftOwner.current, () => onDeleteVocab?.(date)); } catch (error) { setScoreError(error instanceof Error ? error.message : 'Chưa xóa được ngày này.'); return; }
       setDate(vocabToday); setVocabCount(vocabDefault); setVocabPicked(false); setVocabTick(n => n + 1);
     }
   };
@@ -522,11 +522,12 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     const duplicateConfirmed = submitValue === 'duplicate' && duplicate !== null;
     const addMistakeAfterSave = duplicateConfirmed ? duplicate.addMistake : submitValue === 'mistake';
     try {
-      if (draftOwner.current !== getActiveAccountId()) throw new Error('Tài khoản đã thay đổi. Nội dung đang nhập được giữ để bạn sao chép; hãy mở lại form trước khi lưu.');
+      // Opened for one owner: refuse (and tell the app) if another tab signed out or switched account since.
+      assertWriteOwner(draftOwner.current);
       setScoreError('');
 
       if (sessionType === 'VOCAB') {
-        onSaveVocab(date, vocabCount);
+        runAsOwner(draftOwner.current, () => onSaveVocab(date, vocabCount));
         savedSession.current = true;
         persistentDraft.clear();
         onClose();
@@ -642,10 +643,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         if (existing) { setDuplicate({ session: existing, addMistake: addMistakeAfterSave }); return; }
       }
       setDuplicate(null);
+      const saved = newSession;
       if (editingSession && onUpdateSession) {
-        onUpdateSession(newSession, editingSession);
+        runAsOwner(draftOwner.current, () => onUpdateSession(saved, editingSession));
       } else {
-        onSaveSession(newSession);
+        runAsOwner(draftOwner.current, () => onSaveSession(saved));
       }
       savedSession.current = true;
       persistentDraft.clear();
