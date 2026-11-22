@@ -109,7 +109,7 @@ class Payload(BaseModel):
 
 class Profile(Payload):
     # habits, suggestedTasks, socGear, suggestOff, weeklyGoalDays, goalChosen, socCoat, socName.
-    EXTRA_BYTES: ClassVar[int] = 16384
+    EXTRA_BYTES: ClassVar[int] = 28672  # the whole payload is still at most 32 KiB
     name: str = Field(min_length=1, max_length=100)
     targetScore: int = Field(ge=10, le=990, strict=True)
     examDate: Day | Literal[""]

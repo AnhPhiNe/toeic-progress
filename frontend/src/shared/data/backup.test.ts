@@ -278,3 +278,63 @@ describe('backup restore', () => {
     expect(parseBackup(JSON.stringify({ profile: defaultProfile(), sessions: [record], mistakes: [] })).ok).toBe(false);
   });
 });
+
+describe('backup import limits (S-24)', () => {
+  const now = '2026-11-20T00:00:00.000Z';
+  const file = (extra: Record<string, unknown> = {}) => ({ ...bundle(), schemaVersion: 4, exportDate: now, ...extra });
+  const errors = (input: unknown) => {
+    const result = parseBackup(typeof input === 'string' ? input : JSON.stringify(input));
+    return result.ok ? [] : result.errors;
+  };
+
+  it('drops fields the app does not know instead of restoring them', () => {
+    const input = file({ checklist: [{ id: 'x' }], profile: { ...bundle().profile, secretFlag: true, habits: [{ id: 'h1', title: 'Nghe', doneDates: ['2026-11-19'], junk: 1 }] } });
+    input.pacingRuns[0] = { ...input.pacingRuns[0], injected: 'x'.repeat(100) } as typeof input.pacingRuns[0];
+    const result = parseBackup(JSON.stringify(input));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const data = result.preview.data as unknown as Record<string, Record<string, unknown> & { pacingRuns: Record<string, unknown>[] }>;
+    expect(data.profile).not.toHaveProperty('secretFlag');
+    expect((data.profile.habits as Record<string, unknown>[])[0]).toEqual({ id: 'h1', title: 'Nghe', doneDates: ['2026-11-19'] });
+    expect((result.preview.data as unknown as { pacingRuns: Record<string, unknown>[] }).pacingRuns[0]).not.toHaveProperty('injected');
+    expect(result.preview.data).not.toHaveProperty('checklist');
+  });
+
+  it('keeps every field the app writes', () => {
+    const profile = { ...bundle().profile, weeklyGoalDays: 4, goalChosen: true, suggestOff: ['FULL_TEST'], socGear: ['khan'], socCoat: 'xam', socName: 'Hạt Dẻ',
+      habits: [{ id: 'h1', title: 'Nghe', doneDates: ['2026-11-19'] }],
+      suggestedTasks: [{ id: 'a:7:timer', kind: 'timer', title: 'Bấm giờ Part 7', minutes: 20, part: 7, testName: 'ETS', testDate: '2026-11-18', addedDate: '2026-11-19' }] };
+    const session = { id: 's1', skillType: 'LR', sessionType: 'FULL_TEST', testName: 'ETS', date: '2026-11-19', durationMinutes: 120,
+      createdAt: now, updatedAt: now, deletedAt: null, partDurations: { part5: 10, part6: 8, part7: 50 } };
+    const result = parseBackup(JSON.stringify(file({ profile, sessions: [session] })));
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.preview.data.profile).toMatchObject(profile);
+      expect(result.preview.data.sessions[0]).toMatchObject(session);
+    }
+  });
+
+  it('ignores prototype keys from the file', () => {
+    const json = JSON.stringify(file()).replace('"profile":{', '"profile":{"__proto__":{"polluted":true},"constructor":{"prototype":{"x":1}},');
+    const result = parseBackup(json);
+    expect(result.ok).toBe(true);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    if (result.ok) expect(Object.getPrototypeOf(result.preview.data.profile)).toBe(Object.prototype);
+  });
+
+  it('refuses oversized files, too many records and records the server would refuse, in Vietnamese', () => {
+    expect(errors('x'.repeat(10 * 1024 * 1024 + 1))[0]).toContain('quá lớn');
+    const many = Array.from({ length: 10001 }, (_, n) => ({ id: `shield:${n}`, date: '2026-11-19', updatedAt: now, deletedAt: null }));
+    expect(errors(file({ shieldDays: many }))[0]).toContain('vượt giới hạn 10000 bản ghi');
+    expect(errors(file({ vocabLog: [{ id: 'v1', date: '2026-11-19', count: 1, sourceName: 'x'.repeat(40000), updatedAt: now, deletedAt: null }] }))[0]).toContain('quá lớn');
+    const profile = (patch: Record<string, unknown>) => file({ profile: { ...bundle().profile, ...patch } });
+    expect(errors(profile({ name: 'x'.repeat(101) }))[0]).toContain('profile.name');
+    expect(errors(profile({ name: 'a\u0000b' }))[0]).toContain('không hợp lệ');
+    expect(errors(profile({ currentStreak: 2 ** 31 })).length).toBeGreaterThan(0);
+    expect(errors(profile({ examDate: '9999-12-31' }))[0]).toContain('1970–2100');
+    const run = (patch: Record<string, unknown>) => file({ pacingRuns: [{ ...bundle().pacingRuns[0], ...patch }] });
+    expect(errors(run({ presetId: 'x'.repeat(101) }))[0]).toContain('pacingRuns.0.presetId');
+    expect(errors(run({ plannedMinutes: 1e308 })).length).toBeGreaterThan(0);
+    expect(errors(run({ updatedAt: '0001-01-01T00:00:00.000Z' }))[0]).toContain('1970–2100');
+  });
+});

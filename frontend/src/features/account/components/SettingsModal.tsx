@@ -3,7 +3,7 @@ import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { X, LogOut } from 'lucide-react';
 import { UserProfile } from '@/shared/types';
 import { exportDataAsJSON, loadUserProfile, restoreBackup } from '@/shared/data/storage';
-import { parseBackup, type BackupPreview } from '@/shared/data/backup';
+import { MAX_BACKUP_BYTES, parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { getActiveAccountId, live, readDataBundle } from '@/shared/data/dataBundle';
 import { mergeProfileEdit } from '@/features/account/lib/profileEdit';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
@@ -147,6 +147,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const session = requireSession(), request = ++readRequest.current;
       setOwnedPreview(null);
       setBackupErrors([]);
+      // Refuse before reading: a huge file would freeze the tab while it is parsed.
+      if (file.size > MAX_BACKUP_BYTES) {
+        setBackupErrors(['Tệp: tệp sao lưu quá lớn (tối đa 10 MB). Hãy chọn đúng tệp đã xuất từ ứng dụng.']);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         if (request !== readRequest.current || !sessionIsCurrent(session)) return;

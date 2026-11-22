@@ -96,8 +96,14 @@ def test_payload_depth_is_bounded():
 def test_unknown_fields_are_bounded_per_entity():
     habits = [{"id": f"h{n}", "title": "Nghe 10 phút", "doneDates": ["2026-11-19"] * 30} for n in range(3)]
     valid(row("profile", {**PROFILE, "habits": habits, "socGear": ["hat"], "goalChosen": True}))
+    # A heavy real profile: 3 habits with 120 ticked days each and 40 stored suggestions.
+    heavy_habits = [{"id": f"habit-{n}", "title": "Nghe chép chính tả mười phút", "doneDates": ["2026-11-19"] * 120} for n in range(3)]
+    tasks = [{"id": f"attempt-{n}:7:timer", "kind": "timer", "title": "Bấm giờ Part 7", "minutes": 20, "part": 7,
+              "testName": "ETS 2024 Test 10", "testDate": "2026-11-18", "addedDate": "2026-11-19", "doneDate": "2026-11-19"}
+             for n in range(40)]
+    valid(row("profile", {**PROFILE, "habits": heavy_habits, "suggestedTasks": tasks, "suggestOff": ["FULL_TEST"], "weeklyGoalDays": 5}))
     invalid(row("profile", {**PROFILE, **{f"k{n}": n for n in range(33)}}))
-    invalid(row("profile", {**PROFILE, "junk": "x" * 17000}))
+    invalid(row("profile", {**PROFILE, "junk": "x" * 29000}))
     invalid(vocab(junk="x" * 1100))
     invalid(session(partDurations={"part5": 10}, junk="x" * 2100))
     valid(session(partDurations={"part5": 10, "part6": 8, "part7": 50}))
