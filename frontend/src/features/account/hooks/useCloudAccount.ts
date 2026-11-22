@@ -10,8 +10,11 @@ import { SLOW_AFTER_MS, backoffDelay, shouldKeepWaking } from '@/features/accoun
 import { clearCaptureSessionForAccountChange } from '@/features/mistakes/services/captureSession';
 import { clearExplanationQueue } from '@/features/mistakes/services/explanationQueue';
 import { clearScreenshotWatcherForOwner } from '@/features/mistakes/hooks/useScreenshotWatcher';
+import { crossTabAccountChange, unsyncedRecordCount } from '@/features/account/lib/signOutSafety';
 
 interface PendingTransfer { userId: string; device: DataBundle; account: DataBundle; accountHasData: boolean }
+/** Shown before sign-out purges records the server has not acknowledged yet. */
+export interface SignOutWarning { count: number }
 
 export function useCloudAccount(onDataChanged: () => void) {
   const [status, setStatus] = useState<AccountStatus>(apiAvailable ? 'loading' : 'guest');
@@ -19,6 +22,8 @@ export function useCloudAccount(onDataChanged: () => void) {
   const [hasAccountSession, setHasAccountSession] = useState(false);
   const [error, setError] = useState('');
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null);
+  const [signOutWarning, setSignOutWarning] = useState<SignOutWarning | null>(null);
+  const warningAnswer = useRef<((proceed: boolean) => void) | null>(null);
   const userId = useRef<string | null>(null);
   const initialized = useRef(false);
   const syncing = useRef(false);
@@ -101,9 +106,14 @@ export function useCloudAccount(onDataChanged: () => void) {
   const bootstrap = useCallback(async () => {
     if (resetting.current) return;
     const run = ++generation.current;
+    // Another tab may already have cleared the pointer: still refresh if this tab was showing an account.
+    const shownBefore = userId.current;
+    const leaveAccount = () => {
+      if (getActiveAccountId() || shownBefore) { deactivateAccount(); onDataChanged(); }
+    };
     if (!cloud || !apiAvailable) {
       setHasAccountSession(false);
-      if (getActiveAccountId()) { deactivateAccount(); onDataChanged(); }
+      leaveAccount();
       return;
     }
     setStatus('loading');
@@ -129,7 +139,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       if (run !== generation.current) return;
       if (!session.data.session || session.data.session.user.is_anonymous) {
         setHasAccountSession(false);
-        if (getActiveAccountId()) { deactivateAccount(); onDataChanged(); }
+        leaveAccount();
         setPendingTransfer(null);
         setEmail(null);
         setStatus('guest');
@@ -144,7 +154,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       if (authError) throw authError;
       if (!data.user || data.user.is_anonymous) {
         setHasAccountSession(false);
-        if (getActiveAccountId()) { deactivateAccount(); onDataChanged(); }
+        leaveAccount();
         userId.current = null;
         setEmail(null);
         setStatus('guest');
@@ -191,12 +201,24 @@ export function useCloudAccount(onDataChanged: () => void) {
     }
   }, [onDataChanged, armSlow, keepWaking, markSynced, resetWake]);
 
+  /** Stop showing and writing the account at once (signed out here or in another tab); bootstrap settles the rest. */
+  const detachSignedOut = useCallback(() => {
+    const shown = userId.current;
+    setAccountWriteEnabled(false);
+    initialized.current = false;
+    userId.current = null;
+    deactivateAccount();
+    if (shown) { clearCaptureSessionForAccountChange(); clearExplanationQueue(); void clearScreenshotWatcherForOwner(shown); }
+    onDataChanged();
+  }, [onDataChanged]);
+
   useEffect(() => {
     const requestEpoch = generation;
     void bootstrap();
     let disposed = false;
     const subscription = cloud?.auth.onAuthStateChange((event, session) => {
       if (['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED'].includes(event)) {
+        if (event === 'SIGNED_OUT') detachSignedOut();
         setTimeout(() => {
           if (disposed) return;
           // Supabase also emits SIGNED_IN when an existing session is confirmed
@@ -212,6 +234,15 @@ export function useCloudAccount(onDataChanged: () => void) {
         }, 0);
       }
     });
+    // Another tab signed out, switched account or purged/rewrote the shown account's copy.
+    const storageChanged = (event: StorageEvent) => {
+      if (disposed || (event.storageArea && event.storageArea !== localStorage)) return;
+      const kind = crossTabAccountChange(event.key, userId.current);
+      if (!kind) return;
+      if (kind === 'data' && event.newValue !== null) { onDataChanged(); return; }
+      if (userId.current && getActiveAccountId() !== userId.current) detachSignedOut();
+      void bootstrap();
+    };
     const changed = (event: Event) => {
       if ((event as CustomEvent<string>).detail === userId.current) { userEdit.current = true; void sync(); }
     };
@@ -219,6 +250,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     const online = () => { if (userId.current) void sync(); };
     const focused = () => { if (userId.current && navigator.onLine) void sync(false); };
     window.addEventListener('toeic:account-data-changed', changed);
+    window.addEventListener('storage', storageChanged);
     window.addEventListener('offline', offline);
     window.addEventListener('online', online);
     window.addEventListener('focus', focused);
@@ -228,11 +260,12 @@ export function useCloudAccount(onDataChanged: () => void) {
       clearTimeout(wake.current.slow); clearTimeout(wake.current.retry);
       subscription?.data.subscription.unsubscribe();
       window.removeEventListener('toeic:account-data-changed', changed);
+      window.removeEventListener('storage', storageChanged);
       window.removeEventListener('offline', offline);
       window.removeEventListener('online', online);
       window.removeEventListener('focus', focused);
     };
-  }, [bootstrap, sync]);
+  }, [bootstrap, sync, detachSignedOut, onDataChanged]);
 
   // Keeps "vừa xong" / "3 phút trước" fresh without re-rendering constantly.
   useEffect(() => {
@@ -280,14 +313,32 @@ export function useCloudAccount(onDataChanged: () => void) {
     if (authError) { setError(authError.message); return; }
     await bootstrap();
   };
+  const settleSync = async () => {
+    for (let waited = 0; syncing.current && waited < 15_000; waited += 100) await new Promise(resolve => setTimeout(resolve, 100));
+  };
+  const askSignOut = (count: number) => new Promise<boolean>(resolve => {
+    warningAnswer.current?.(false);
+    warningAnswer.current = resolve;
+    setSignOutWarning({ count });
+  });
+  const answerSignOutWarning = (proceed: boolean) => {
+    const answer = warningAnswer.current;
+    warningAnswer.current = null;
+    setSignOutWarning(null);
+    answer?.(proceed);
+  };
   const signOut = async () => {
     if (!cloud) return;
     const id = userId.current ?? getActiveAccountId();
-    if (id && (dirty.current || status === 'error' || status === 'disconnected')) {
-      const proceed = window.confirm(
-        'Có thay đổi chưa kịp đồng bộ lên máy chủ. Đăng xuất sẽ xóa bản sao cục bộ của tài khoản này trên thiết bị để bảo vệ dữ liệu. Bạn vẫn muốn đăng xuất?'
-      );
-      if (!proceed) return;
+    if (id && unsyncedRecordCount(id) > 0) {
+      // Try one upload first; warn only about what is still not on the server.
+      if (initialized.current && userId.current === id && navigator.onLine) {
+        await settleSync();
+        await sync(false);
+        await settleSync();
+      }
+      const count = unsyncedRecordCount(id);
+      if (count > 0 && !await askSignOut(count)) return;
     }
     const { error: authError } = await cloud.auth.signOut({ scope: 'local' });
     if (authError) { setError(authError.message); throw new Error(authError.message); }
@@ -374,5 +425,5 @@ export function useCloudAccount(onDataChanged: () => void) {
     }
   };
 
-  return { available: apiAvailable, hasAccountSession, status, email, error, pendingTransfer, chooseTransfer, signInGoogle, sendOtp, verifyOtp, signOut, deleteAccount, resetLearningData, waking, syncedAt, savedAt, now, retry: () => { resetWake(); return userId.current && initialized.current ? sync() : bootstrap(); } };
+  return { available: apiAvailable, hasAccountSession, status, email, error, pendingTransfer, signOutWarning, answerSignOutWarning, chooseTransfer, signInGoogle, sendOtp, verifyOtp, signOut, deleteAccount, resetLearningData, waking, syncedAt, savedAt, now, retry: () => { resetWake(); return userId.current && initialized.current ? sync() : bootstrap(); } };
 }

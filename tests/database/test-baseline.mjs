@@ -86,6 +86,17 @@ try {
   await db.query("update public.ai_access_grants set email='someone-else@example.test' where user_id=$1", [uid(1)]);
   assert.equal(await value('select email from public.ai_access_grants where user_id=$1', [uid(1)]), 'alice@example.test', 'Display fields follow Auth');
 
+  // schema_ready() reports a missing wave-1 object (checked inside a rolled-back transaction).
+  assert.deepEqual(await value('select public.schema_ready()'), { baseline: 2, ready: true });
+  for (const drop of ['drop function public.reserve_batch_explain_quota(uuid,uuid,integer,integer)', 'alter table public.ai_batches drop column explain_questions',
+    'drop table private.identity_redeem_uses', 'drop table private.account_deletion_contributions cascade']) {
+    await assert.rejects(db.transaction(async tx => {
+      await tx.exec(drop);
+      assert.deepEqual((await tx.query('select public.schema_ready() as r')).rows[0].r, { baseline: 2, ready: false }, drop);
+      throw new Error('rollback');
+    }), /rollback/);
+  }
+
   // Re-applying the baseline is a no-op that keeps data, sync epoch, and incremental RPC grants.
   const epoch = await value("select value from private.settings where key='sync_epoch'");
   await db.exec(await baselineSql());

@@ -41,9 +41,10 @@ async function setupAccount(page: Page) {
         listeners.forEach(callback => callback(event, session));
       }};
       export const cloud = { auth: {
-        getSession: async () => ({ data: { session }, error: null }),
+        getSession: async () => ({ data: { session: window.__accountAuth.signedOut ? null : session }, error: null }),
         getUser: async () => ({ data: { user: await (await fetch('/__test/user?id=' + session.user.id)).json() }, error: null }),
-        onAuthStateChange: callback => { listeners.add(callback); return { data: { subscription: { unsubscribe: () => listeners.delete(callback) } } }; }
+        onAuthStateChange: callback => { listeners.add(callback); return { data: { subscription: { unsubscribe: () => listeners.delete(callback) } } }; },
+        signOut: async () => { window.__signOuts = (window.__signOuts || 0) + 1; window.__accountAuth.signedOut = true; return { error: null }; }
       }};
     `
   }));
@@ -75,6 +76,10 @@ async function setupAccount(page: Page) {
     if (holdSync) await holdSync;
     if (failSync) return route.fulfill({ status: 503, json: { detail: 'Test backend unavailable' } });
     const bundle = accounts[body.userId as keyof typeof accounts];
+    // Keep newer profile uploads, as the real server does, so they come back acknowledged.
+    for (const row of body.records as Array<{ entity_type: string; payload: typeof bundle.profile; updated_at: string }>) {
+      if (row.entity_type === 'profile' && Date.parse(row.updated_at) > Date.parse(bundle.profile.updatedAt)) bundle.profile = row.payload;
+    }
     const records = [
       { entity_type: 'profile', record_id: 'profile', payload: bundle.profile, updated_at: bundle.profile.updatedAt, deleted_at: null },
       ...bundle.vocabLog.map(entry => ({ entity_type: 'vocabLog', record_id: entry.id, payload: entry, updated_at: entry.updatedAt, deleted_at: entry.deletedAt }))
@@ -193,4 +198,72 @@ test('failed initialization of a different account detaches the previous owner w
   await expect(error).toHaveCount(0);
   expect(await storedVocab(page, 'toeic_progress_bundle_v3')).not.toContain(23);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3')!).profile.name)).toBe('Alice');
+});
+
+async function renameInSettings(page: Page, name: string) {
+  const modal = await openSettings(page);
+  await modal.getByRole('button', { name: 'Đổi tên', exact: true }).click();
+  await modal.getByLabel('Tên của bạn', { exact: true }).fill(name);
+  await modal.getByRole('button', { name: 'Lưu', exact: true }).click();
+  await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveCount(0);
+  return modal;
+}
+const signOuts = (page: Page) => page.evaluate(() => (window as Window & { __signOuts?: number }).__signOuts ?? 0);
+const storedName = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3') ?? 'null')?.profile.name ?? null);
+
+test('signing out with an edit the server never received warns first, and staying keeps the data', async ({ page }) => {
+  const state = await setupAccount(page);
+  await expect(syncState(page)).toContainText('Đã đồng bộ');
+  state.setFailure();
+  const modal = await renameInSettings(page, 'Alice offline edit');
+  await expect(syncState(page)).toContainText('Đồng bộ lỗi');
+  const requestsBefore = state.syncRequests();
+  await modal.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  const warning = page.getByRole('alertdialog', { name: /chưa lưu lên mây/ });
+  await expect(warning).toBeVisible();
+  await expect(warning).toContainText('Còn 1 thay đổi chưa lưu lên mây');
+  expect(state.syncRequests()).toBeGreaterThan(requestsBefore);
+  await expect(warning.getByRole('button', { name: 'Tải bản sao lưu', exact: true })).toBeVisible();
+  const download = page.waitForEvent('download');
+  await warning.getByRole('button', { name: 'Tải bản sao lưu', exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/^toeic-progress-990-backup-.*\.json$/);
+  await warning.getByRole('button', { name: 'Ở lại', exact: true }).click();
+  await expect(warning).toHaveCount(0);
+  expect(await signOuts(page)).toBe(0);
+  expect(await page.evaluate(() => localStorage.getItem('toeic_active_account_v1'))).toBe('alice');
+  expect(await storedName(page)).toBe('Alice offline edit');
+
+  // Once the upload goes through, sign-out needs no warning.
+  state.setFailure(false);
+  await modal.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  await expect.poll(() => signOuts(page)).toBe(1);
+  await expect(warning).toHaveCount(0);
+  expect(state.uploads.some(row => row.entity_type === 'profile' && (row.payload as { name?: string }).name === 'Alice offline edit')).toBe(true);
+  expect(await storedName(page)).toBeNull();
+});
+
+test('signing out with everything synced shows no warning', async ({ page }) => {
+  await setupAccount(page);
+  await expect(syncState(page)).toContainText('Đã đồng bộ');
+  const modal = await openSettings(page);
+  await modal.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  await expect.poll(() => signOuts(page)).toBe(1);
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('toeic_active_account_v1'))).toBeNull();
+  expect(await storedName(page)).toBeNull();
+});
+
+test('another tab signing out stops this tab showing the account', async ({ page }) => {
+  await setupAccount(page);
+  await expect(syncState(page)).toContainText('Đã đồng bộ');
+  // What another tab's sign-out leaves behind: no pointer, no account copy, then a storage event here.
+  await page.evaluate(() => {
+    (window as unknown as { __accountAuth: { signedOut: boolean } }).__accountAuth.signedOut = true;
+    localStorage.removeItem('toeic_active_account_v1');
+    localStorage.removeItem('toeic_progress_account_alice_v3');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'toeic_active_account_v1', oldValue: 'alice', newValue: null, storageArea: localStorage }));
+  });
+  await expect.poll(() => profileName(page)).not.toBe('Alice');
+  expect(await storedName(page)).toBeNull();
+  expect(await storedVocab(page, 'toeic_progress_bundle_v3')).toEqual([]);
 });

@@ -42,8 +42,10 @@ function withoutRetired(bundle: WithRetired): DataBundle {
 const BUNDLE_KEY = 'toeic_progress_bundle_v3';
 const OLD_BUNDLE_KEY = 'toeic_progress_bundle_v2';
 const OLD_PLANS_KEY = 'toeic_smart_weekly_plans_v1';
-const ACTIVE_ACCOUNT_KEY = 'toeic_active_account_v1';
+export const ACTIVE_ACCOUNT_KEY = 'toeic_active_account_v1';
 const accountKey = (userId: string) => `toeic_progress_account_${userId}_v3`;
+/** localStorage key of one signed-in account's bundle (other tabs watch it through `storage` events). */
+export const accountBundleKey = accountKey;
 let accountWriteEnabled = false;
 
 export function setAccountWriteEnabled(enabled: boolean): void {

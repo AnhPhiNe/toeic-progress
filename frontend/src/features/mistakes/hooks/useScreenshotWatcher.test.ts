@@ -93,6 +93,20 @@ describe('screenshot watcher helpers', () => {
     expect(getAncient).toHaveBeenCalledTimes(1);
   });
 
+  it('drops a scan whose folder or account changed while it ran', async () => {
+    const now = Date.now();
+    const first = new File(['a'], 'Shot A.png', { type: 'image/png', lastModified: now - 1_000 });
+    const second = new File(['b'], 'Shot B.png', { type: 'image/png', lastModified: now - 500 });
+    const handles = { current: null as DirectoryHandleLike | null };
+    const scanned = makeFakeDir([
+      { kind: 'file', name: first.name, getFile: async () => { handles.current = makeFakeDir([]); return first; } },
+      fileEntry(second)
+    ]);
+    handles.current = scanned;
+    const result = await scanDirectoryFiles(scanned, now - RECENT_WINDOW_MS, new Set(), () => handles.current === scanned);
+    expect(result).toEqual([]);
+  });
+
   it('extracts image blobs from clipboard items and skips text-only items', async () => {
     const pngBlob = new Blob(['png-bytes'], { type: 'image/png' });
     const jpgBlob = new Blob(['jpg-bytes'], { type: 'image/jpeg' });

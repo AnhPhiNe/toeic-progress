@@ -203,11 +203,32 @@ try {
   assert.equal((await value('select public.redeem_code($1::uuid,$2)', [alice, 'f'.repeat(64)])).code, 'invalid');
   assert.deepEqual(await value('select public.prepare_account_deletion($1::uuid,$2)', [alice, idHash]), { prepared: true, carried: true });
 
+  // A retry after a failed delete must not count the same usage twice; only growth since the last call is added.
+  const carried = async () => (await db.query('select bucket, used from private.identity_carryover_counters order by bucket')).rows;
+  const firstCarry = await carried();
+  assert.ok(firstCarry.length >= 2, 'Month and provider counters are carried');
+  assert.deepEqual(await value('select public.prepare_account_deletion($1::uuid,$2)', [alice, idHash]), { prepared: true, carried: true });
+  assert.deepEqual(await carried(), firstCarry, 'Retrying prepare_account_deletion does not double count');
+  const monthBucket = firstCarry.find(r => r.bucket.startsWith('id_month:'));
+  await db.query("update public.ai_usage_counters set used = used + 2 where bucket like 'user:' || $1 || ':%'", [alice]);
+  await value('select public.prepare_account_deletion($1::uuid,$2)', [alice, idHash]);
+  await value('select public.prepare_account_deletion($1::uuid,$2)', [alice, idHash]);
+  assert.equal((await carried()).find(r => r.bucket === monthBucket.bucket).used, monthBucket.used + 2, 'Only new usage is added on retry');
+  await db.query("update public.ai_usage_counters set used = used - 2 where bucket like 'user:' || $1 || ':%'", [alice]);
+  await value('select public.prepare_account_deletion($1::uuid,$2)', [alice, idHash]);
+  assert.equal((await carried()).find(r => r.bucket === monthBucket.bucket).used, monthBucket.used + 2, 'A lower reading never lowers the carryover');
+  await db.query("update private.identity_carryover_counters set used = used - 2 where bucket = $1", [monthBucket.bucket]);
+  await db.query("update private.account_deletion_contributions set used = used - 2 where bucket = $1", [monthBucket.bucket]);
+  assert.deepEqual(await carried(), firstCarry);
+  await assert.rejects(h.asRole('service_role', tx => tx.query('select count(*) from private.account_deletion_contributions')), /permission denied/);
+
   // Account deletion removes every AI row of that account.
   await db.query('delete from auth.users where id=$1', [alice]);
   for (const table of ['ai_usage_counters', 'ai_provider_budget_counters', 'ai_requests', 'ai_batches', 'ai_explanation_questions', 'ai_explanation_requests', 'api_rate_limits', 'user_plans', 'ai_access_grants']) {
     assert.equal(await value(`select count(*)::int from public.${table} where user_id=$1`, [alice]), 0, `${table} survived account deletion`);
   }
+  assert.equal(await value('select count(*)::int from private.account_deletion_contributions where user_id=$1', [alice]), 0, 'Per-account contributions go with the account');
+  assert.deepEqual(await carried(), firstCarry, 'Carryover itself survives the delete');
   assert.equal(await value('select user_id from public.ai_cost_ledger limit 1'), null, 'Cost ledger anonymizes user_id on account deletion');
   assert.ok(await value("select count(*)::int from public.ai_usage_counters where user_id is null") > 0, 'Shared day/minute/IP counters stay');
 

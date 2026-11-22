@@ -1,5 +1,7 @@
 import hashlib
 import hmac
+import json
+import logging
 import re
 from datetime import datetime, timezone
 from uuid import UUID
@@ -14,6 +16,8 @@ from app.integrations.source_images import SourceImages
 from app.schemas.models import MistakeDraft
 from app.services.ai_access import AIAccess
 from app.services.ai_limits import explain_limit, quota_limits
+
+logger = logging.getLogger("toeic.runtime")
 
 _BEARER_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 _MAX_BEARER_TOKEN_LENGTH = 8192
@@ -265,32 +269,52 @@ class Gateway:
         return await read_results(self.openai, upright_images, self.ip_hash(user_id) if user_id else None,
                                   photo_mode=photo_mode, owner_id=user_id, plan=plan)
 
+    async def _set_ban(self, user_id: str, duration: str):
+        return await self.client.put(
+            f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
+            headers=self.admin_headers(),
+            json={"ban_duration": duration},
+            timeout=8,
+        )
+
     async def delete_account(self, user: dict | str):
         user_id = user["id"] if isinstance(user, dict) else user
         id_hash = self.identity_hash(user) if isinstance(user, dict) else None
-        # 1. Ban account on Auth first to halt concurrent uploads/sessions on other tabs before purging storage.
-        ban = await self.client.put(
-            f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
-            headers=self.admin_headers(),
-            json={"ban_duration": "876000h"},
-            timeout=8,
-        )
-        if not ban.is_success:
-            raise HTTPException(503, "Chưa khóa được phiên trước khi xóa tài khoản. Vui lòng thử lại.")
-        # 2. Persist one-way hashed anti-abuse carryover (blocked status, current quota/rate counters, promo history).
+        # 1. Persist the one-way hashed anti-abuse carryover first (blocked status, quota/rate
+        #    counters, promo history). The RPC is idempotent per account, so a retry after a
+        #    later failure never counts the same usage twice. Nothing is banned or purged yet.
         if id_hash:
             await self.rpc(
                 "prepare_account_deletion",
                 {"p_user_id": user_id, "p_identity_hash": id_hash},
                 timeout=8,
             )
-        # 3. Always purge any private source images even when new uploads are disabled.
-        await self.source_images.purge(user_id, allow_missing=True)
-        # 4. Permanently delete Auth user (cascades learning rows).
-        response = await self.client.delete(
-            f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
-            headers=self.admin_headers(),
-            timeout=15,
-        )
-        if not response.is_success:
-            raise HTTPException(503, "Chưa xóa được tài khoản. Vui lòng thử lại.")
+        # 2. Ban on Auth to halt concurrent uploads/sessions on other tabs before purging storage.
+        try:
+            ban = await self._set_ban(user_id, "876000h")
+        except httpx.HTTPError:
+            ban = None
+        if ban is None or not ban.is_success:
+            raise HTTPException(503, "Chưa khóa được phiên trước khi xóa tài khoản. Vui lòng thử lại.")
+        # 3. Purge private source images, then 4. permanently delete the Auth user (cascades learning rows).
+        #    If either fails, lift the ban so the user can sign in again and retry.
+        step = "purge"
+        try:
+            await self.source_images.purge(user_id, allow_missing=True)
+            step = "delete"
+            response = await self.client.delete(
+                f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
+                headers=self.admin_headers(),
+                timeout=15,
+            )
+            if not response.is_success:
+                raise HTTPException(503, "Chưa xóa được tài khoản. Vui lòng thử lại.")
+        except (HTTPException, httpx.HTTPError, ValueError, TypeError, KeyError) as error:
+            unbanned = False
+            try:
+                unbanned = (await self._set_ban(user_id, "none")).is_success
+            except httpx.HTTPError:
+                pass
+            logger.warning(json.dumps({"event": "account_delete_failed", "step": step, "unbanned": unbanned,
+                                       "status": getattr(error, "status_code", None)}))
+            raise HTTPException(503, "Chưa xóa xong tài khoản. Bạn thử lại sau ít phút nhé.") from error
