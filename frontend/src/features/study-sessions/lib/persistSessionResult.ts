@@ -1,5 +1,5 @@
 import type { MistakeEntry, StudySession } from '@/shared/types';
-import { getActiveAccountId, live, nextUpdatedAt, replaceCollection, updateDataBundle, type DataBundle } from '@/shared/data/dataBundle';
+import { assertWriteOwner, live, nextUpdatedAt, replaceCollection, updateDataBundle, type DataBundle } from '@/shared/data/dataBundle';
 import { getTodayDateString } from '@/shared/data/storage';
 import { actualStudyDates, deriveStreak } from '@/shared/domain/streak';
 import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
@@ -28,7 +28,7 @@ export function persistSessionResult(session: StudySession, options: {
   newMistakes?: MistakeEntry[];
   expectedOwner: string | null;
 }) {
-  if (getActiveAccountId() !== options.expectedOwner) throw new Error('Tài khoản đã thay đổi. Chưa lưu kết quả đang nhập.');
+  assertWriteOwner(options.expectedOwner);
   const today = getTodayDateString();
   let isRecord = false;
   const committed = updateDataBundle(current => {
@@ -54,7 +54,7 @@ export function persistSessionResult(session: StudySession, options: {
         ? sessions.map(item => item.id === nextSession.id ? nextSession : item) : [nextSession, ...sessions]),
       mistakes: replaceCollection(current.mistakes, mistakes.filter(item => !deletedIds.has(item.id)))
     };
-    if (getActiveAccountId() !== options.expectedOwner) throw new Error('Tài khoản đã thay đổi. Chưa lưu kết quả đang nhập.');
+    assertWriteOwner(options.expectedOwner);
     return withAutomaticShield(next, today);
   });
   return { sessions: live(committed.sessions), mistakes: live(committed.mistakes),

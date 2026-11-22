@@ -236,15 +236,59 @@ export function readDataBundle(): DataBundle {
   return readGuestBundle();
 }
 
-/** A save the learner should be told about: the account is not connected or browser storage is full. */
+/** A save the learner should be told about: the account is not connected, browser storage is full, or the owner changed. */
 export class StorageWriteError extends Error {
-  constructor(message: string, readonly reason: 'disconnected' | 'quota') {
+  constructor(message: string, readonly reason: 'disconnected' | 'quota' | 'owner-changed') {
     super(message);
     this.name = 'StorageWriteError';
   }
 }
 
+/** Fired on window when a write is refused because the active owner is no longer the one the form opened for. */
+export const OWNER_CHANGED_WRITE_EVENT = 'toeic:owner-changed-write';
+
+/**
+ * A form opened for one owner (account id, or null for the guest) tried to save after
+ * another tab signed out or switched account. Nothing was written.
+ */
+export class OwnerChangedError extends StorageWriteError {
+  constructor(readonly expectedOwner: string | null, readonly activeOwner: string | null) {
+    super(activeOwner === null && expectedOwner !== null
+      ? 'Tài khoản đã đăng xuất ở tab khác — thay đổi này chưa được lưu.'
+      : 'Tài khoản đã thay đổi — thay đổi này chưa được lưu.', 'owner-changed');
+    this.name = 'OwnerChangedError';
+  }
+}
+
+/** Throws OwnerChangedError (and tells the app) when the active owner is not `expected`. */
+export function assertWriteOwner(expected: string | null): void {
+  const active = getActiveAccountId();
+  if (active === expected) return;
+  const error = new OwnerChangedError(expected, active);
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent(OWNER_CHANGED_WRITE_EVENT, { detail: { message: error.message, expected, active } }));
+  }
+  throw error;
+}
+
+const expectedWriteOwners: Array<string | null> = [];
+
+/**
+ * Run synchronous saves on behalf of the owner a form or modal was opened for (capture it with
+ * getActiveAccountId() on open). Every writeDataBundle inside refuses with OwnerChangedError if
+ * the active owner changed meanwhile, so an open form never saves into the guest or another account.
+ */
+export function runAsOwner<T>(owner: string | null, save: () => T): T {
+  expectedWriteOwners.push(owner);
+  try {
+    return save();
+  } finally {
+    expectedWriteOwners.pop();
+  }
+}
+
 export function writeDataBundle(bundle: DataBundle): void {
+  if (expectedWriteOwners.length) assertWriteOwner(expectedWriteOwners[expectedWriteOwners.length - 1]);
   const accountId = getActiveAccountId();
   if (accountId && !canWriteAccount()) {
     throw new StorageWriteError('Tài khoản chưa kết nối xong nên lần lưu này chưa được ghi. Dữ liệu cũ vẫn an toàn trên máy; hãy lưu lại khi trạng thái báo đã đồng bộ.', 'disconnected');
