@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
-import { reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/mistakes/lib/spacedRepetition';
+import { missedPick, reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/mistakes/lib/spacedRepetition';
+import { nextReviewLine } from '@/features/mistakes/lib/notebookSummary';
+import { isNumberLabel } from '@/features/mistakes/lib/questionSnippet';
+import { getTodayDateString, loadMistakes } from '@/shared/data/storage';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { PassageText } from './PassageText';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -43,7 +46,10 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
   const answer = quiz && quiz.correctIndex >= 0 ? quiz.options[quiz.correctIndex].letter : '';
   const before = card ? getUserChoice(card) : '';
   const right = picked !== null && picked === answer;
-  const missedQuiz = picked !== null && !right;
+  const missedQuiz = missedPick(picked, answer);
+  const firstOption = useRef<HTMLButtonElement>(null);
+  const primary = useRef<HTMLButtonElement>(null);
+  const showButton = useRef<HTMLButtonElement>(null);
 
   const pick = (letter: string) => { if (!revealed) { setPicked(letter); setRevealed(true); } };
   const grade = (understood: boolean) => {
@@ -75,10 +81,32 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
     }
   };
 
+  // Focus follows the step: the first option (or "Xem đáp án") on a new card, the main rating once answered.
+  // Runs before useModalA11y's queued initial focus, which then leaves it alone.
+  useEffect(() => {
+    if (done) return;
+    (revealed ? primary.current : firstOption.current ?? showButton.current)?.focus({ preventScroll: true });
+  }, [index, revealed, done]);
+
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (done || !quiz || revealed || !quizMode) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || done) return;
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      if (e.key === 'Enter') {
+        // Enter never closes the session: on "Thoát" it does nothing before the answer and rates after it.
+        // Another focused button (a rating, Hoàn tác, "Xem nghĩa…") keeps its own Enter.
+        const onButton = target?.closest('button');
+        if (onButton && !onButton.classList.contains('rv-x')) return;
+        e.preventDefault();
+        if (revealed) grade(!missedQuiz);
+        return;
+      }
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (revealed) {
+        if (!missedQuiz && (e.key === '0' || e.key === 'Backspace')) { e.preventDefault(); grade(false); }
+        return;
+      }
+      if (!quiz || !quizMode) return;
       const n = ['1', '2', '3', '4'].indexOf(e.key), l = 'ABCD'.indexOf(e.key.toUpperCase());
       const i = n >= 0 ? n : l;
       if (i >= 0 && quiz.options[i]) { e.preventDefault(); pick(quiz.options[i].letter); }
@@ -94,6 +122,7 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
           <Soc state="cheerB" size={150} />
           <h2>Xong {cards.length} câu!</h2>
           <p>Hiểu rồi <b>{tally.got}</b> · Ôn lại ngày mai <b>{tally.again}</b>. Hôm nay đã tính vào chuỗi ngày.</p>
+          <p className="rv-next">{nextReviewLine(loadMistakes(), getTodayDateString())}</p>
           {error && <p role="alert" className="rv-err">{error}</p>}
           <div className="rv-done-acts">
             {lastGrade && <button type="button" className="rd-btn rd-btn--white" onClick={undoLast}>Hoàn tác câu vừa chấm</button>}
@@ -111,7 +140,10 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
   const paraphrase = ex?.paraphrase?.trim() || '';
   const translation = ex?.translation?.trim() || '';
   const keyVocabulary = ex?.keyVocabulary?.trim() || '';
+  const reason = card.userReason?.trim() || '';
   const hasExtraDetails = Boolean(evidence || paraphrase || translation || keyVocabulary);
+  const hasMeanings = Boolean(quiz?.options.some(o => o.note?.meaning));
+  const sayLine = right || analysis;
   const meta = [`Part ${card.part}`, card.questionNumber ? `Câu ${card.questionNumber}` : '', card.sourceTestName ?? ''].filter(Boolean).join(' · ');
   return (
     <div ref={dialogRef} tabIndex={-1} className="rd rv" role="dialog" aria-modal="true" aria-label="Ôn câu sai">
@@ -126,14 +158,14 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
       <article className="rv-card">
         <small>{meta}</small>
         {context && <PassageText className="rv-ctx" text={context} />}
-        <h3 className="rv-q">{question}</h3>
+        {question && !isNumberLabel(question) && <h3 className="rv-q">{question}</h3>}
         {quizMode && quiz ? (
           <div className="rv-opts" role="group" aria-label="Chọn đáp án">
-            {quiz.options.map(o => {
+            {quiz.options.map((o, i) => {
               const isAns = o.letter === answer, isPick = o.letter === picked;
               const cls = !revealed ? '' : isAns ? 'is-ok' : isPick ? 'is-bad' : 'is-dim';
               return (
-                <button key={o.letter} type="button" className={'rv-o ' + cls} disabled={revealed} onClick={() => pick(o.letter)}>
+                <button key={o.letter} ref={i === 0 ? firstOption : undefined} type="button" className={'rv-o ' + cls} disabled={revealed} onClick={() => pick(o.letter)}>
                   <span><b>({o.letter})</b> {o.text}</span>
                   {revealed && isAns && <em>{isPick ? 'đúng rồi' : 'đáp án'}</em>}
                   {revealed && isPick && !isAns && <em>bạn chọn</em>}
@@ -144,15 +176,16 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
           </div>
         ) : (
           revealed ? <div className="rv-plain"><b>Đáp án:</b> {card.correctAnswer}</div>
-            : <button type="button" className="rd-btn rd-btn--white rv-show" onClick={() => setRevealed(true)}>Xem đáp án</button>
+            : <button ref={showButton} type="button" className="rd-btn rd-btn--white rv-show" onClick={() => setRevealed(true)}>Xem đáp án</button>
         )}
-        {revealed && (
+        {revealed && quickTip && <p className="rv-tip"><b>Mẹo nhanh:</b> {quickTip}</p>}
+        {revealed && (sayLine || reason || (more && hasExtraDetails)) && (
           <div className="rv-ex">
             <Soc state={right ? 'cheerC' : 'focus'} size={64} />
             <div className="rv-ex-body">
-              {quickTip && <p className="rv-tip"><b>Mẹo nhanh:</b> {quickTip}</p>}
-              <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{analysis || (!quickTip && !right ? `Đáp án là (${answer || card.correctAnswer}).` : '')}</p>
-              {hasExtraDetails && (
+              {sayLine && <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{analysis}</p>}
+              {reason && <p className="rv-mine"><b>Bạn ghi:</b> {reason}</p>}
+              {more && hasExtraDetails && (
                 <dl className="rv-details">
                   {evidence && <div><dt>Bằng chứng</dt><dd>“{evidence.replace(/^["“”]|["“”]$/g, '')}”</dd></div>}
                   {paraphrase && <div><dt>Diễn đạt tương đương</dt><dd>{paraphrase}</dd></div>}
@@ -168,15 +201,17 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
       {revealed ? (
         <>
           <div className="rv-acts">
-            <button type="button" className="rd-btn rd-btn--white" onClick={() => grade(false)}>Vẫn chưa chắc</button>
-            <button type="button" className="rd-btn" onClick={() => grade(true)}>Hiểu rồi</button>
-          </div>
-          <p className="rv-hint">
             {missedQuiz
-              ? 'Vừa chọn nhầm — Sóc sẽ hẹn ôn lại ngày mai kể cả khi bạn bấm "Hiểu rồi".'
-              : '"Hiểu rồi" thì vài ngày sau Sóc hỏi lại, "Vẫn chưa chắc" thì ngày mai.'}
-            {quiz?.options.some(o => o.note?.meaning) && !more && <button type="button" onClick={() => setMore(true)}>Xem nghĩa từng phương án</button>}
-          </p>
+              // A wrong pick is reviewed again tomorrow whichever button is pressed, so there is only one.
+              ? <button ref={primary} type="button" className="rd-btn" aria-keyshortcuts="Enter" onClick={() => grade(false)}>Tiếp<kbd aria-hidden="true">Enter</kbd></button>
+              : <>
+                <button type="button" className="rd-btn rd-btn--white" aria-keyshortcuts="0" onClick={() => grade(false)}>Vẫn chưa chắc<kbd aria-hidden="true">0</kbd></button>
+                <button ref={primary} type="button" className="rd-btn" aria-keyshortcuts="Enter" onClick={() => grade(true)}>Hiểu rồi<kbd aria-hidden="true">Enter</kbd></button>
+              </>}
+          </div>
+          {(hasMeanings || hasExtraDetails) && !more && (
+            <p className="rv-hint"><button type="button" onClick={() => setMore(true)}>{hasMeanings && !hasExtraDetails ? 'Xem nghĩa từng phương án' : 'Xem thêm giải thích'}</button></p>
+          )}
         </>
       ) : <p className="rv-hint">Chọn lại phương án lần này. Phím 1–4 cũng được.</p>}
     </div>

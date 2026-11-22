@@ -7,6 +7,8 @@ import { getTodayDateString } from '@/shared/data/storage';
  */
 export const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14, 30] as const;
 export const MAX_REVIEW_STAGE = REVIEW_INTERVALS_DAYS.length - 1;
+/** One review session holds at most this many cards (about a minute each). */
+export const REVIEW_SESSION_CAP = 15;
 
 /** Four recall choices; booleans retain the original quiz-answer behaviour. */
 export type ReviewRating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
@@ -22,8 +24,20 @@ export function normalizeReviewRating(answer: ReviewAnswer): ReviewRating {
  */
 export function reviewRating(understood: boolean, picked: string | null, answer: string): ReviewRating {
   if (!understood) return 'AGAIN';
-  if (picked !== null && picked !== answer) return 'AGAIN';
+  if (missedPick(picked, answer)) return 'AGAIN';
   return 'GOOD';
+}
+
+/** A wrong quiz pick: both self-check buttons would give AGAIN, so review shows a single "Tiếp". */
+export function missedPick(picked: string | null, answer: string): boolean {
+  return picked !== null && picked !== answer;
+}
+
+/** A session from `due` cards: at most REVIEW_SESSION_CAP now, the rest left for another round. */
+export function reviewBatch(due: number, cap = REVIEW_SESSION_CAP): { count: number; rest: number } {
+  const total = Math.max(0, Math.floor(due));
+  const count = Math.min(total, cap);
+  return { count, rest: total - count };
 }
 
 function boundedReviewStage(stage: number | undefined): number {
@@ -36,7 +50,7 @@ export function canReview(mistake: MistakeEntry): boolean {
   return !mistake.deletedAt && hasQuestion && mistake.answerSource !== 'MISSING' && Boolean(mistake.correctAnswer?.trim());
 }
 
-function addDays(dateStr: string, days: number): string {
+export function addDays(dateStr: string, days: number): string {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + days);
   const year = d.getFullYear();
@@ -53,6 +67,11 @@ export function isDueForReview(mistake: MistakeEntry, today = getTodayDateString
   if (!canReview(mistake) || mistake.status === 'MASTERED') return false;
   if (!mistake.nextReviewDate) return true;
   return mistake.nextReviewDate <= today;
+}
+
+/** How many cards will be due on `date` (e.g. tomorrow) as the schedule stands now. */
+export function dueCountOn(mistakes: readonly MistakeEntry[], date: string): number {
+  return mistakes.filter(m => isDueForReview(m, date)).length;
 }
 
 /** Keep the same queue priority for all-card and explicitly selected review sessions. */
