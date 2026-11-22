@@ -31,6 +31,11 @@ export function reviewLabel(m: MistakeEntry): { text: string; due: boolean } {
   if (isDueForReview(m)) return { text: 'ôn hôm nay', due: true };
   return { text: m.nextReviewDate ? `ôn ${ddmm(m.nextReviewDate)}` : 'chưa ôn', due: false };
 }
+/** List rows: a new card waiting for its first review needs no red "ôn hôm nay"; only a set date that has come does. */
+export function rowReviewLabel(m: MistakeEntry): { text: string; due: boolean } {
+  const label = reviewLabel(m);
+  return label.due && !m.nextReviewDate ? { text: '', due: false } : label;
+}
 
 /** Mark the evidence sentence inside the passage, when the AI quoted it exactly. */
 function withEvidence(text: string, evidence: string, show: boolean): ReactNode {
