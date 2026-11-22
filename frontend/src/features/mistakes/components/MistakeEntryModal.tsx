@@ -234,7 +234,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       return '';
     }
     if (effectivePart === 1 && options.length !== 4) return 'Part 1 cần đủ bốn phương án nghe A–D bằng văn bản.';
-    if (!question.trim()) return 'Dán câu hỏi và phương án trước khi tiếp tục; ảnh chỉ cung cấp ngữ cảnh.';
+    if (effectivePart !== 1 && !question.trim()) return 'Dán câu hỏi và phương án trước khi tiếp tục.';
     if (sourceTestName.length > 300) return 'Tên đề tối đa 300 ký tự.';
     if (!corrected && parsed.error) return config?.freeformInput ? 'Bấm “Phân tích với AI” để tách nội dung trước khi lưu. Bản nháp của bạn vẫn được giữ.' : parsed.error;
     if (input.userChoice && options.length && !options.some(option => option.startsWith(`(${input.userChoice})`))) return 'Lựa chọn chưa khớp phương án. Kiểm tra lại nội dung đã dán.';
