@@ -37,6 +37,11 @@ export function ticketedNumbers(result: { items: readonly { number: number }[]; 
   return [...(result.explainNumbers ?? result.items.map(item => item.number))];
 }
 
+/**
+ * Shown when one passage group still cannot fit one reading after shrinking: it is read in parts, each part with
+ * the passage images (the ① images, or the first images when ① is empty).
+ */
+export const SPLIT_NOTE = 'Ảnh nhiều hoặc nặng quá nên Sóc đọc nhóm này làm vài lượt, lượt nào cũng kèm ảnh đoạn văn. Xem kỹ từng câu nhé.';
 /** Note shown when a capture needs more readings than one batch accepts, so another AI use starts. */
 export const NEW_BATCH_NOTE = (limit: number) => `Một lần chụp đọc tối đa ${limit} lượt, nên phần tiếp theo Sóc tính thêm 1 lượt AI.`;
 /** Reading looks for these when the chosen test has no logged wrong-question list. */

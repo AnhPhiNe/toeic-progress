@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { mockWrongDetailAI, noisyPng, openFromNotebook, screenshot, seedTests, TEST, WRONG } from './helpers/wrongDetail';
 
@@ -113,4 +114,49 @@ test('the Listening Parts can be set aside and taken back', async ({ page }) => 
   await expect(again.getByRole('img', { name: 'Đã ghi 0 trên 30 câu', exact: true })).toBeVisible();
   await again.getByRole('button', { name: 'Ghi lại phần Nghe', exact: true }).click();
   await expect(again.getByRole('img', { name: 'Đã ghi 0 trên 43 câu', exact: true })).toBeVisible();
+});
+
+test('Part 7 has two zones: pastes go to the active zone, ② stays active, and ① is sent as the passage', async ({ page }) => {
+  const flow = await open(page);
+  await flow.getByRole('button', { name: /Chụp trang chữa bài Part 7/ }).click();
+  await flow.getByRole('button', { name: /^Nhóm 186–190/ }).click();
+  const passage = flow.locator('.wd-zn[data-zone="passage"]'), questions = flow.locator('.wd-zn[data-zone="questions"]');
+  await expect(passage).toHaveAttribute('data-active', 'true');
+  await expect(passage.getByText('Ảnh dán/chụp sẽ vào ô này')).toBeVisible();
+  await expect(flow.getByText(/Ảnh có cả đoạn văn và câu hỏi\? Thả vào ② là được\./)).toBeVisible();
+  const bytes = [...readFileSync(screenshot)];
+  const paste = (count: number) => page.evaluate(({ data, count }) => {
+    const dt = new DataTransfer();
+    for (let i = 0; i < count; i++) dt.items.add(new File([new Uint8Array(data)], `shot-${i}.png`, { type: 'image/png' }));
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, { data: bytes, count });
+  await paste(3);
+  await expect(passage.getByRole('img')).toHaveCount(3);
+  await page.keyboard.press('2');
+  await expect(questions).toHaveAttribute('data-active', 'true');
+  await expect(passage).not.toHaveAttribute('data-active', 'true');
+  await paste(1);
+  await expect(passage.getByRole('img')).toHaveCount(3);
+  await expect(questions.getByRole('img')).toHaveCount(1);
+  // The explicit control is the only way an image changes zone.
+  await questions.getByRole('button', { name: 'Chuyển ảnh câu hỏi 1 sang ô ①', exact: true }).click();
+  await expect(passage.getByRole('img')).toHaveCount(4);
+  await passage.getByRole('button', { name: 'Chuyển ảnh đoạn văn 4 sang ô ②', exact: true }).click();
+  await expect(questions.getByRole('img')).toHaveCount(1);
+  await expect(questions).toHaveAttribute('data-active', 'true');
+  await flow.getByRole('button', { name: 'Gửi Sóc đọc nhóm này', exact: true }).click();
+  await expect.poll(async () => (await calls(page)).length).toBe(1);
+  const [call] = await calls(page);
+  expect([call.questions, call.context, call.images]).toEqual([[186, 187, 188, 189, 190], 3, 1]);
+});
+
+test('Part 6 has one tray: the whole group is sent together in one request', async ({ page }) => {
+  const flow = await open(page);
+  await flow.getByRole('button', { name: /^Part 6 · Điền đoạn văn/ }).click();
+  await expect(flow.locator('.wd-zn[data-zone="passage"]')).toHaveCount(0);
+  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot, screenshot]);
+  await flow.getByRole('button', { name: 'Gửi Sóc đọc nhóm này', exact: true }).click();
+  await expect.poll(async () => (await calls(page)).length).toBe(1);
+  const [call] = await calls(page);
+  expect(call.images + call.context).toBe(3);
 });

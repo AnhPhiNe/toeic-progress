@@ -3,7 +3,8 @@ import { partOfQuestion } from '@/shared/domain/questionNumbers';
 import type { CaptureImage, CapturePart, CaptureZone } from '@/features/mistakes/services/captureSession';
 import type { ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { isGroupedPart, PART_NAMES, suggestGroups, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
-import { DropZone, pasteHint } from './views';
+import { CONTEXT_PER_REQUEST } from '@/features/mistakes/lib/captureBatch';
+import { DropZone, groupHint, ONE_SHOT_HINT, pasteHint, zoneSwitchHint } from './views';
 import './wrong-detail.css';
 import './capture-part.css';
 
@@ -13,6 +14,11 @@ interface Props {
   group: number | null;
   customPart7Ranges?: CustomRangeMap;
   images: readonly CaptureImage[];
+  /** Grouped Parts: the zone imports go to (① passage, ② questions). */
+  activeZone?: CaptureZone;
+  onActiveZone?: (zone: CaptureZone) => void;
+  /** "Chuyển sang ②/①" on a thumbnail. */
+  onSwitchZone?: (id: string) => void;
   /** The chosen test's logged wrong questions (Parts 1–7), or null when it has no wrong list. */
   logged: number[] | null;
   disabled?: boolean;
@@ -36,7 +42,7 @@ interface Props {
  * wrong questions) with a labeled 1-tap switcher (`Đọc: P5 P6 P7 | Nghe: P1 P2 P3 P4`) that preserves staged photos.
  */
 export function CapturePartInput({
-  phone = false, part, group, customPart7Ranges, images, logged, disabled = false, photoMode = false, clarity, extraTools,
+  phone = false, part, group, customPart7Ranges, images, activeZone = 'passage', onActiveZone, onSwitchZone, logged, disabled = false, photoMode = false, clarity, extraTools,
   onPart, onGroup, onEditPart7Range, onPhotoMode, onAdd, onCameraAdd, onEditImage, onMoveImage, onRemove
 }: Props) {
   const [editingRange, setEditingRange] = useState(false);
@@ -57,7 +63,7 @@ export function CapturePartInput({
     onEdit: onEditImage ? (_zone: CaptureZone, id: string) => onEditImage(id) : undefined,
     onMove: onMoveImage ? (_zone: CaptureZone, id: string, delta: -1 | 1) => onMoveImage(id, delta) : undefined,
     onRemove: (_zone: CaptureZone, id: string) => onRemove(id),
-    onActivate: () => {}
+    onActivate: (zone: CaptureZone) => onActiveZone?.(zone)
   };
   const openRangeEditor = () => {
     const target = selectedGroup ?? groups[0];
@@ -74,13 +80,8 @@ export function CapturePartInput({
     setEditingRange(false);
     setRangeErr('');
   };
-  const trayTitle = part === 7 ? 'Ảnh bài đọc & câu hỏi'
-    : part === 6 ? 'Ảnh đoạn văn & câu hỏi'
-      : part === 3 || part === 4 ? 'Ảnh transcript & câu hỏi'
-        : `Ảnh câu Part ${part}`;
-  const trayNote = part === 2 ? 'hỗ trợ 3 phương án A–C'
-    : grouped ? 'tối đa 10 ảnh theo thứ tự'
-      : 'mỗi ảnh một hay nhiều câu';
+  const trayNote = part === 2 ? 'hỗ trợ 3 phương án A–C' : 'mỗi ảnh một hay nhiều câu';
+  const switchZone = onSwitchZone ? (_zone: CaptureZone, id: string) => onSwitchZone(id) : undefined;
   return (
     <div className={'wd-vars' + (phone ? ' cpi-phone' : '')}>
       <div className="cpi-head">
@@ -136,17 +137,25 @@ export function CapturePartInput({
           {rangeErr && <span className="wd-err" style={{ marginTop: 0, width: '100%' }} role="alert">{rangeErr}</span>}
         </div>
       )}
-      <DropZone
-        {...zoneProps}
-        zone="questions"
-        big
-        title={trayTitle}
-        note={trayNote}
-        items={images}
-        hint={<>{pasteHint(phone)} {grouped
-          ? 'Thả/chụp trọn bộ ảnh bài đọc và câu hỏi của nhóm theo thứ tự — không cần tách 2 ô.'
-          : 'Sóc đọc song song nhiều ảnh cùng lúc, đổi Part bên trên bất cứ lúc nào không mất ảnh.'}</>}
-      />
+      {part === 7 ? <>
+        <div className={'wd-zones' + (phone ? ' is-stacked' : '')}>
+          <DropZone {...zoneProps} zone="passage" num={1} title="Đoạn văn" note={`tối đa ${CONTEXT_PER_REQUEST} ảnh`}
+            items={images.filter(image => image.zone === 'passage')} active={activeZone === 'passage'} onSwitchZone={switchZone} />
+          <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi"
+            items={images.filter(image => image.zone === 'questions')} active={activeZone === 'questions'} onSwitchZone={switchZone} />
+        </div>
+        <p className="wd-zp">{groupHint(part, selectedGroup?.passages ?? 1)} {ONE_SHOT_HINT} {pasteHint(phone)} {zoneSwitchHint(phone)}</p>
+      </> : (
+        <DropZone
+          {...zoneProps}
+          zone="questions"
+          big
+          title={part === 6 ? 'Ảnh đoạn văn & câu hỏi' : grouped ? 'Ảnh transcript & câu hỏi' : `Ảnh câu Part ${part}`}
+          note={grouped ? 'tối đa 10 ảnh theo thứ tự' : trayNote}
+          items={images}
+          hint={<>{pasteHint(phone)} {grouped ? groupHint(part, 1) : 'Sóc đọc song song nhiều ảnh cùng lúc, đổi Part bên trên bất cứ lúc nào không mất ảnh.'}</>}
+        />
+      )}
       {extraTools}
       {onPhotoMode && (
         <div className="cpi-bar">

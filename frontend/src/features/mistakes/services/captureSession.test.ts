@@ -6,7 +6,7 @@ vi.mock('@/features/mistakes/lib/capturePrepare', () => ({ prepareGroup: mocks.g
 vi.mock('@/shared/data/dataBundle', () => ({ getActiveAccountId: () => mocks.activeOwner }));
 vi.mock('@/shared/data/formDrafts', () => ({ readFormDraft: () => null, writeFormDraft: () => true, removeFormDraft: () => true }));
 
-import { __resetCaptureForTests, addFiles, backToInput, cancelReading, captureState, clearCaptureSessionForAccountChange, clearSavedItems, COMPRESSED_NOTE, moveImage, openReview, queueAndContinue, removeUncheckedItems, retryFailure, setGroup, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
+import { __resetCaptureForTests, addFiles, backToInput, cancelReading, captureState, clearCaptureSessionForAccountChange, clearSavedItems, COMPRESSED_NOTE, moveImage, moveImageToZone, openReview, queueAndContinue, removeUncheckedItems, retryFailure, setActiveZone, setGroup, setPart, setPhotoMode, setTestName, startReading } from './captureSession';
 
 const draft = (changes = {}) => ({ part: 5, category: 'OTHER', questionContext: 'Q ___', question: 'Q ___', context: '', userMistake: '', correctAnswer: '(B) b',
   trapTip: '', options: ['(A) a', '(B) b', '(C) c', '(D) d'], tags: [], missingInformation: [], answerSource: 'PROVIDED', userChoice: 'A',
@@ -25,6 +25,38 @@ beforeEach(() => {
 });
 
 describe('capture session', () => {
+  it('routes every import to the active zone in arrival order and moves images only on request', () => {
+    setPart(7);
+    setGroup(186);
+    expect(captureState().activeZone).toBe('passage');
+    // Paste 3 (no zone given: paste, watcher, burst camera all land in the active zone).
+    addFiles([new File(['a'], 'p1.png', { type: 'image/png' }), new File(['b'], 'p2.png', { type: 'image/png' })]);
+    addFiles([new File(['c'], 'p3.png', { type: 'image/png' })]);
+    setActiveZone('questions');
+    addFiles([new File(['d'], 'q1.png', { type: 'image/png' })]);
+    addFiles([new File(['e'], 'q2.png', { type: 'image/png' })]);
+    const zoneOf = () => captureState().images.map(image => `${image.name}:${image.zone}`);
+    expect(zoneOf()).toEqual(['p1.png:passage', 'p2.png:passage', 'p3.png:passage', 'q1.png:questions', 'q2.png:questions']);
+    // The active zone stays ② until the learner changes it.
+    expect(captureState().activeZone).toBe('questions');
+    // A drop on ① still uses ①.
+    addFiles([new File(['f'], 'p4.png', { type: 'image/png' })], 'passage');
+    expect(captureState().images[captureState().images.length - 1]).toMatchObject({ name: 'p4.png', zone: 'passage' });
+    // Reorder stays inside the zone; "Chuyển sang" is the only zone change.
+    const q2 = captureState().images.find(image => image.name === 'q2.png')!;
+    moveImage(q2.id, -1);
+    expect(captureState().images.filter(image => image.zone === 'questions').map(image => image.name)).toEqual(['q2.png', 'q1.png']);
+    moveImageToZone(q2.id);
+    expect(captureState().images.filter(image => image.zone === 'passage').map(image => image.name)).toEqual(['p1.png', 'p2.png', 'p3.png', 'p4.png', 'q2.png']);
+    // ① takes at most 5.
+    const q1 = captureState().images.find(image => image.name === 'q1.png')!;
+    moveImageToZone(q1.id);
+    expect(captureState().images.find(image => image.id === q1.id)?.zone).toBe('questions');
+    expect(captureState().error).toMatch(/tối đa 5/);
+    // Opening another group starts on ① again.
+    setGroup(191);
+    expect(captureState().activeZone).toBe('passage');
+  });
   it('keeps staged screenshots intact when switching between Parts, supports reordering, and lets cancelReading return to input', async () => {
     setPart(7);
     addFiles(files(6), 'passage');
