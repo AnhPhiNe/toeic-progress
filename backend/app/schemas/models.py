@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, ClassVar, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.image_input import (
     MAX_ANALYZE_IMAGES,
@@ -21,6 +21,59 @@ from app.core.image_input import (
 from app.core.text_input import has_multiple_questions
 
 Number = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+# Sync bounds (S-19): Postgres integer columns are int32; dates and instants stay
+# in a realistic range; minutes/seconds are finite and at most a week.
+INT32_MAX = 2_147_483_647
+FIRST_DAY, LAST_DAY = date(1970, 1, 1), date(2100, 12, 31)
+FIRST_INSTANT = datetime(1970, 1, 1, tzinfo=timezone.utc)
+LAST_INSTANT = datetime(2101, 1, 1, tzinfo=timezone.utc)
+WEEK_MINUTES = 10080
+# A synced payload is at most this deep (a scalar is 1, {"a": 1} is 2).
+MAX_PAYLOAD_DEPTH = 8
+
+
+def _in_day_range(value: date) -> date:
+    if not FIRST_DAY <= value <= LAST_DAY:
+        raise ValueError("Ngày phải trong khoảng 1970–2100")
+    return value
+
+
+def _in_instant_range(value: datetime) -> datetime:
+    if not FIRST_INSTANT <= value < LAST_INSTANT:
+        raise ValueError("Thời điểm phải trong khoảng 1970–2100")
+    return value
+
+
+Day = Annotated[date, AfterValidator(_in_day_range)]
+Instant = Annotated[AwareDatetime, AfterValidator(_in_instant_range)]
+Minutes = Annotated[float, Field(ge=0, le=WEEK_MINUTES, allow_inf_nan=False)]
+Seconds = Annotated[float, Field(ge=0, le=WEEK_MINUTES * 60, allow_inf_nan=False)]
+
+
+def payload_problem(value) -> str | None:
+    """Why a decoded JSON payload cannot be stored, or None: too deep, NUL characters, non-finite numbers.
+
+    Iterative, so a hostile nesting depth cannot raise RecursionError here.
+    """
+    stack = [(value, 1)]
+    while stack:
+        item, depth = stack.pop()
+        if depth > MAX_PAYLOAD_DEPTH:
+            return "Dữ liệu lồng quá sâu"
+        if isinstance(item, str):
+            if "\x00" in item:
+                return "Dữ liệu chứa ký tự không hợp lệ"
+        elif isinstance(item, float):
+            if item != item or item in (float("inf"), float("-inf")):
+                return "Số không hợp lệ"
+        elif isinstance(item, dict):
+            for key, child in item.items():
+                if "\x00" in key:
+                    return "Dữ liệu chứa ký tự không hợp lệ"
+                stack.append((child, depth + 1))
+        elif isinstance(item, list):
+            stack.extend((child, depth + 1) for child in item)
+    return None
 Part = Annotated[int, Field(ge=1, le=7, strict=True)]
 QuestionNumber = Annotated[int, Field(ge=1, le=200, strict=True)]
 # Last question number of each Part in a TOEIC Listening & Reading test.
@@ -39,20 +92,34 @@ PartOfSpeech = Literal["n", "v", "adj", "adv", "prep", "conj", "pron", "det", ""
 
 
 class Payload(BaseModel):
+    """A synced record. Fields the server does not know (UI preferences, newer app
+    fields) are kept in `extra`, bounded per entity (S-07): key count and bytes."""
+
     model_config = ConfigDict(extra="allow", allow_inf_nan=False, strict=True)
+    EXTRA_BYTES: ClassVar[int] = 2048
+    EXTRA_KEYS: ClassVar[int] = 32
+
+    @model_validator(mode="after")
+    def bounded_extra(self):
+        extra = self.model_extra or {}
+        if len(extra) > self.EXTRA_KEYS or len(json.dumps(extra, ensure_ascii=False).encode()) > self.EXTRA_BYTES:
+            raise ValueError("Trường bổ sung quá lớn")
+        return self
 
 
 class Profile(Payload):
+    # habits, suggestedTasks, socGear, suggestOff, weeklyGoalDays, goalChosen, socCoat, socName.
+    EXTRA_BYTES: ClassVar[int] = 16384
     name: str = Field(min_length=1, max_length=100)
     targetScore: int = Field(ge=10, le=990, strict=True)
-    examDate: date | Literal[""]
+    examDate: Day | Literal[""]
     selectedSkill: Literal["LR", "SW"]
     dailyMinGoalMinutes: int = Field(ge=1, le=1440, strict=True)
     streakFreezes: int = Field(ge=0, le=5, strict=True)
-    currentStreak: int = Field(default=0, ge=0)
-    longestStreak: int = Field(default=0, ge=0)
-    lastStudyDate: date | Literal[""] = ""
-    shieldAllowance: int | None = Field(default=None, ge=0)
+    currentStreak: int = Field(default=0, ge=0, le=100000)
+    longestStreak: int = Field(default=0, ge=0, le=100000)
+    lastStudyDate: Day | Literal[""] = ""
+    shieldAllowance: int | None = Field(default=None, ge=0, le=100000)
     motto: str = Field(default="", max_length=2000)
 
 
@@ -113,13 +180,14 @@ class ConfirmedResultTiming(ResultTiming):
 
 
 class Session(Payload):
-    id: str
+    # partDurations.
+    id: str = Field(min_length=1, max_length=200)
     skillType: Literal["LR", "SW"]
     sessionType: Literal["FULL_TEST", "PART_PRACTICE"]
     testName: str = Field(min_length=1, max_length=300)
-    date: date
+    date: Day
     durationMinutes: float = Field(ge=0, le=1440)
-    createdAt: AwareDatetime
+    createdAt: Instant
     rawListening: int | None = Field(default=None, ge=0, le=100)
     rawReading: int | None = Field(default=None, ge=0, le=100)
     scaledListening: int | None = Field(default=None, ge=0, le=495)
@@ -128,7 +196,7 @@ class Session(Payload):
     partScores: PartScores | None = None
     practiceParts: list[PracticePart] | None = Field(default=None, max_length=7)
     notes: str | None = Field(default=None, max_length=16000)
-    attemptNumber: int | None = Field(default=None, ge=1)
+    attemptNumber: int | None = Field(default=None, ge=1, le=10000)
     scoreSource: Literal["ESTIMATED", "MANUAL_SECTIONS", "MANUAL_TOTAL"] | None = None
     scoreConversionVersion: str | None = Field(default=None, max_length=100)
     wrongQuestions: list[QuestionNumber] | None = Field(default=None, max_length=200)
@@ -177,7 +245,9 @@ SourceImageId = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$", min_length=64, m
 
 
 class Mistake(Payload):
-    id: str
+    # optionNotes, explanation, answerDoubt (AI fields, bounded by the AI schema).
+    EXTRA_BYTES: ClassVar[int] = 20480
+    id: str = Field(min_length=1, max_length=200)
     part: Part
     questionNumber: QuestionNumber | None = None
     category: Category
@@ -195,14 +265,14 @@ class Mistake(Payload):
     answerProvidedBy: Literal["SOURCE", "LEARNER"] | None = None
     tags: list[Annotated[str, Field(max_length=80)]] = Field(max_length=20)
     options: list[Annotated[str, Field(max_length=2000)]] | None = Field(default=None, max_length=4)
-    createdAt: AwareDatetime
-    nextReviewDate: date | None = None
+    createdAt: Instant
+    nextReviewDate: Day | None = None
     sessionId: str | None = Field(default=None, max_length=200)
     sourceTestName: str | None = Field(default=None, max_length=300)
     trapTip: str | None = Field(default=None, max_length=4000)
-    reviewStage: int | None = Field(default=None, ge=0)
-    reviewCount: int | None = Field(default=None, ge=0)
-    lastReviewedAt: AwareDatetime | None = None
+    reviewStage: int | None = Field(default=None, ge=0, le=1000)
+    reviewCount: int | None = Field(default=None, ge=0, le=1_000_000)
+    lastReviewedAt: Instant | None = None
 
     @field_validator("lastReviewedAt", mode="before")
     @classmethod
@@ -232,28 +302,29 @@ class Mistake(Payload):
 
 
 class PacingPhase(Payload):
+    EXTRA_BYTES: ClassVar[int] = 512
     name: str = Field(max_length=200)
-    plannedMinutes: Number
-    actualMinutes: Number
-    overrunMinutes: float
+    plannedMinutes: Minutes
+    actualMinutes: Minutes
+    overrunMinutes: float = Field(ge=-WEEK_MINUTES, le=WEEK_MINUTES)
 
 
 class Pacing(Payload):
-    id: str
-    presetId: str
-    presetName: str
-    date: date
-    plannedMinutes: Number
-    actualMinutes: Number
+    id: str = Field(min_length=1, max_length=200)
+    presetId: str = Field(max_length=100)
+    presetName: str = Field(max_length=200)
+    date: Day
+    plannedMinutes: Minutes
+    actualMinutes: Minutes
     finishedNaturally: bool
     phases: list[PacingPhase] = Field(max_length=100)
-    createdAt: AwareDatetime
+    createdAt: Instant
     partType: Literal["PART_5", "PART_6", "PART_7", "PART_7_SINGLE", "PART_7_MULTI", "FULL_READING", "POMODORO", "CUSTOM"] | None = None
     testName: str | None = Field(default=None, max_length=300)
     totalQuestions: int | None = Field(default=None, ge=1, le=100, strict=True)
     correctAnswers: int | None = Field(default=None, ge=0, le=100, strict=True)
-    actualSeconds: Number | None = None
-    speedSecPerQuestion: Number | None = None
+    actualSeconds: Seconds | None = None
+    speedSecPerQuestion: Seconds | None = None
     accuracyPercent: float | None = Field(default=None, ge=0, le=100)
 
     @field_validator("partType", "testName", "totalQuestions", "correctAnswers", "actualSeconds", "speedSecPerQuestion", "accuracyPercent", mode="before")
@@ -272,8 +343,9 @@ class Pacing(Payload):
 
 
 class Vocabulary(Payload):
-    id: str
-    date: date
+    EXTRA_BYTES: ClassVar[int] = 1024
+    id: str = Field(min_length=1, max_length=200)
+    date: Day
     count: int = Field(ge=1, le=10000, strict=True)
     sourceName: str | None = Field(default=None, max_length=300)
     parts: list[Part] | None = Field(default=None, max_length=7)
@@ -287,8 +359,9 @@ class Vocabulary(Payload):
 
 
 class Shield(Payload):
-    id: str
-    date: date
+    EXTRA_BYTES: ClassVar[int] = 512
+    id: str = Field(min_length=1, max_length=200)
+    date: Day
 
 
 PAYLOAD_MODELS = {
@@ -314,6 +387,17 @@ class SyncRecord(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None
 
+    @model_validator(mode="before")
+    @classmethod
+    def check_shape(cls, data):
+        if isinstance(data, dict):
+            problem = payload_problem(data.get("payload")) if isinstance(data.get("payload"), dict) else None
+            if problem is None and isinstance(data.get("record_id"), str) and "\x00" in data["record_id"]:
+                problem = "Dữ liệu chứa ký tự không hợp lệ"
+            if problem:
+                raise ValueError(problem)
+        return data
+
     @model_validator(mode="after")
     def check_payload(self):
         if len(json.dumps(self.payload, ensure_ascii=False).encode()) > 32768:
@@ -334,19 +418,30 @@ class SyncRecord(BaseModel):
                 self.payload["resultTiming"] = validated.resultTiming.model_dump()
         if self.updated_at.tzinfo is None or (self.deleted_at and self.deleted_at.tzinfo is None):
             raise ValueError("Thời điểm đồng bộ phải có múi giờ")
+        for stamp in (self.updated_at, self.deleted_at):
+            if stamp is not None:
+                _in_instant_range(stamp)
         if self.updated_at > datetime.now(timezone.utc) + timedelta(minutes=5):
             raise ValueError("Kiểm tra lại đồng hồ thiết bị trước khi đồng bộ")
         return self
 
 
+# The app sends at most 500 records per request (cloud.ts); the database refuses more than 1000.
+SYNC_MAX_RECORDS = 1000
+
+
 class SyncRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    records: list[SyncRecord] = Field(default_factory=list, max_length=10000)
+    records: list[SyncRecord] = Field(default_factory=list, max_length=SYNC_MAX_RECORDS)
     cursor: int = Field(default=0, ge=0, le=9007199254740991, strict=True)
     replace: bool = False
+    # Continue a reply that said hasMore: the next page after this cursor (no records, no replace).
+    after: int | None = Field(default=None, ge=0, le=9007199254740991, strict=True)
 
     @model_validator(mode="after")
     def distinct_records(self):
+        if self.after is not None and (self.records or self.replace):
+            raise ValueError("Trang tiếp theo không gửi kèm bản ghi")
         identities = {(record.entity_type, record.record_id) for record in self.records}
         if len(identities) != len(self.records):
             raise ValueError("ID bị trùng trong yêu cầu")
