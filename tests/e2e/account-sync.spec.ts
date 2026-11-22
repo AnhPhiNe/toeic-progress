@@ -312,7 +312,8 @@ test('a score form left open in another tab after sign-out is refused with a not
   const fillScore = async (tab: Page, name: string) => {
     await openScoreLogger(tab);
     const form = tab.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-    await form.getByRole('button', { name: /^Nhập tay/ }).click();
+    await form.getByRole('button', { name: /^Tự chọn câu sai/ }).click();
+    await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
     await form.locator('#session-test-name').fill(name);
     await form.getByLabel('Số câu sai', { exact: true }).fill('3');
     await form.getByRole('heading', { name: 'Ghi điểm' }).click();

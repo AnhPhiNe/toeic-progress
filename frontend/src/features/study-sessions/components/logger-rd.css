@@ -15,13 +15,18 @@
 .rdl-seg button[aria-pressed="true"] { background: #fff; color: var(--rd-ink); font-weight: 900; box-shadow: 0 2px 0 rgba(47, 58, 51, .1); }
 .rdl-seg button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 1px; }
 
-.rdl-drop { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 300px; padding: 24px; border-radius: 20px; border: 3px dashed #a8dcb2; background: #eef8f0; text-align: center; cursor: pointer; transition: background .15s, border-color .15s; }
-.rdl-drop:hover, .rdl-drop:focus-visible { background: #e4f4e8; border-color: var(--rd-green); outline: none; }
-.rdl-drop b { font-weight: 900; font-size: 23px; color: var(--rd-green-d); margin-top: 6px; }
-.rdl-drop span { font-weight: 700; font-size: 14.5px; color: #4d5850; }
-.rdl-drop small { font-weight: 700; font-size: 13.5px; color: #5c675f; margin-top: 4px; }
+.rdl-drop { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 6px 20px; align-items: center; padding: 22px 24px; border-radius: 26px; border: 3px dashed #ffb8ca; background: #fff0f4; cursor: pointer; transition: background .15s, border-color .15s; }
+.rdl-drop:hover, .rdl-drop:focus-visible { background: #ffe8ee; border-color: var(--rd-pink); outline: none; }
+.rdl-drop-t b { display: block; font-weight: 900; font-size: 25px; letter-spacing: -.5px; color: var(--rd-ink); }
+.rdl-drop-t > span { display: block; margin-top: 4px; font-weight: 700; font-size: 14.5px; line-height: 1.4; color: #5e6962; }
+.rdl-drop-act { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 14px; }
+.rdl-drop-act em { font-style: normal; font-weight: 800; font-size: 13px; color: var(--rd-mut); }
+.rdl-drop-btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 15px; padding: 11px 18px; background: var(--rd-pink); color: #fff; font-weight: 900; font-size: 15.5px; box-shadow: 0 4px 0 var(--rd-pink-d); }
+.rdl-drop:active .rdl-drop-btn { transform: translateY(3px); box-shadow: 0 1px 0 var(--rd-pink-d); }
+.rdl-quiet { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; border: 0; background: none; padding: 6px 2px; font: 900 14.5px var(--rd-font); color: #6a756e; cursor: pointer; }
+.rdl-quiet:hover, .rdl-quiet:focus-visible { color: var(--rd-pink-d); outline: none; text-decoration: underline; }
 .rdl-kbd { display: inline-block; background: #fff; border: 2px solid var(--rd-line); border-radius: 7px; padding: 0 7px; font-weight: 900; font-size: 13px; box-shadow: 0 2px 0 var(--rd-line); }
-.rdl-compact { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; border: 2px dashed #a8dcb2; background: #eef8f0; font: 800 14px var(--rd-font); color: var(--rd-green-d); cursor: pointer; }
+.rdl-compact { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; border: 2px dashed #ffb8ca; background: #fff0f4; font: 800 14px var(--rd-font); color: var(--rd-pink-d); cursor: pointer; }
 .rdl-compact:disabled { cursor: wait; opacity: .7; }
 
 /* Sóc reading the image */

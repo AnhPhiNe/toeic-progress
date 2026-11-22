@@ -58,7 +58,7 @@ export async function openDesktopFlow(page: Page) {
   await gotoPage(page, '/lich-su');
   await openScoreLogger(page);
   const form = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Ghi điểm', exact: true }) });
-  // The paste view has no test-name field; the "Nhập tay" views do.
+  // The paste view has no test-name field; the "Tự chọn câu sai" views do.
   await openManualEntry(page, form);
   await form.locator('#session-test-name').fill('ETS Table');
   await form.getByRole('button', { name: 'Gõ số câu', exact: true }).click();

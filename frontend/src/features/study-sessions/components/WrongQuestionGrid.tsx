@@ -509,10 +509,15 @@ export function ResultImageButton({
         <div role="button" tabIndex={0} className="rdl-drop" onClick={() => input.current?.click()}
           onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.current?.click(); } }}
           aria-label="Dán ảnh kết quả: bấm Ctrl V, kéo ảnh vào, hoặc bấm để chọn tệp">
-          <svg width="56" height="50" viewBox="0 0 56 50" aria-hidden="true"><rect x="4" y="6" width="48" height="38" rx="9" fill="#fff" /><circle cx="19" cy="20" r="5" fill="#ffc83d" /><path d="M8 38 L22 26 L31 33 L39 27 L48 35 V40 H8Z" fill="#46b35a" /></svg>
-          <b>Dán ảnh kết quả vào đây</b>
-          <span>bấm <span className="rdl-kbd">Ctrl</span> + <span className="rdl-kbd">V</span>, kéo ảnh vào, hoặc bấm để chọn tệp</span>
-          <small>Chụp trang có điểm và danh sách câu sai, hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự dò.</small>
+          <Soc state="focus" size={132} />
+          <div className="rdl-drop-t">
+            <b>Chụp trang kết quả</b>
+            <span>Sóc đọc điểm và các câu bạn sai, bạn khỏi gõ tay.</span>
+            <div className="rdl-drop-act">
+              <span className="rdl-drop-btn"><ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />Chọn ảnh…</span>
+              <em>hoặc dán <span className="rdl-kbd">Ctrl</span> + <span className="rdl-kbd">V</span></em>
+            </div>
+          </div>
         </div>
       ) : desktop && extraButton ? (
         <div className="space-y-2">

@@ -20,7 +20,7 @@ async function openScores(page: Page, scores: { listening: number | null; readin
   await page.reload();
   await openScoreLogger(page);
   const form = sessionDialog(page);
-  // The paste view has no name field; the grid view behind "Nhập tay" does and keeps the "Ảnh kết quả" picker.
+  // The paste view has no name field; the grid view behind "Tự chọn câu sai" does and keeps the "Ảnh kết quả" picker.
   await openManualEntry(page, form);
   await form.locator('#session-test-name').fill('QA source score');
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();

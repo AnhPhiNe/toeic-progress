@@ -278,10 +278,9 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         </div>
 
         {aiFirst && !minimalOpen && (
-          <button type="button" onClick={() => onMinimalOpenChange(true)}
-            title="Chạm câu sai, gõ số câu, nhập điểm"
-            className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-[13.5px] font-black text-indigo-700 hover:bg-slate-50 active:translate-x-px active:translate-y-px dark:border-slate-300 dark:bg-slate-900 dark:text-indigo-300">
-            Nhập tay <span aria-hidden="true">›</span>
+          <button type="button" onClick={() => onManualOpenChange(true)} className="rdl-quiet">
+            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="currentColor" /></svg>
+            Tự chọn câu sai
           </button>
         )}
 

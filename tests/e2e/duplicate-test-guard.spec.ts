@@ -23,7 +23,8 @@ async function desktopLog(page: Page, typedName: string) {
   await seedToday(page);
   await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await form.getByRole('button', { name: /^Nhập tay/ }).click();
+  await form.getByRole('button', { name: /^Tự chọn câu sai/ }).click();
+  await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
   await form.locator('#session-test-name').fill(typedName);
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
   await form.getByLabel('Listening', { exact: true }).fill('450');
