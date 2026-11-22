@@ -13,19 +13,22 @@ export function MistakeContextInput({ part, mode, text, busy, onMode, onText, re
 }) {
   if (part === null) return null;
   const label = part === 1 ? 'Tranh' : part <= 4 ? 'Transcript' : part === 5 ? 'Ngữ cảnh' : 'Đoạn đọc';
+  // Part 6/7 passages may come as text or as up to MAX_CONTEXT_IMAGES screenshots.
+  const passage = part === 6 || part === 7;
+  const showImages = part === 1 || passage && mode === 'image';
   const content = <>
     {reuseLabel && <div className="flex items-center justify-between gap-3 text-xs">
       <span className="font-semibold text-blue-700 dark:text-blue-300">{reuseLabel}</span>
       <button type="button" disabled={busy} onClick={onReset} className="min-h-10 shrink-0 font-semibold text-blue-600 dark:text-blue-400">Đổi bài đọc</button>
     </div>}
     <div className="flex flex-wrap items-center justify-between gap-2">
-      {part === 1 || part === 7 && mode === 'image' ? <span className="text-sm font-bold">{label}</span> : <label htmlFor="mistake-context" className="text-sm font-bold">{label}</label>}
-      {part === 7 && <div role="group" aria-label="Loại ngữ cảnh" className="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
+      {showImages ? <span className="text-sm font-bold">{label}</span> : <label htmlFor="mistake-context" className="text-sm font-bold">{label}</label>}
+      {passage && <div role="group" aria-label="Loại ngữ cảnh" className="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
         {(['text', 'image'] as const).map(value => <button key={value} type="button" aria-pressed={mode === value} disabled={busy}
           onClick={() => onMode(value)} className={`min-h-10 rounded-md px-3 text-xs font-semibold ${mode === value ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>{value === 'text' ? 'Văn bản' : 'Ảnh'}</button>)}
       </div>}
     </div>
-    {part === 1 || part === 7 && mode === 'image' ? images : <textarea id="mistake-context" disabled={busy} value={text} maxLength={16000}
+    {showImages ? images : <textarea id="mistake-context" disabled={busy} value={text} maxLength={16000}
       onChange={event => onText(event.target.value)} rows={2}
       placeholder={part <= 4 ? 'Dán transcript câu hỏi, hội thoại hoặc bài nói…' : part === 5 ? 'Thêm ngữ cảnh nếu câu hỏi cần…' : 'Dán bài đọc, email hoặc các đoạn văn liên quan…'}
       className="min-h-[64px] w-full resize-y rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-base leading-relaxed placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900" />}
