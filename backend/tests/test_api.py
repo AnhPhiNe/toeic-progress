@@ -77,6 +77,8 @@ def api():
         batches = batch_mock or BatchReservationMock()
         ledger = ledger_mock or ExplanationLedgerMock()
         draft_queue = list(drafts) if drafts is not None else None
+        # private.pending_account_deletions: user_id -> attempts (Auth DELETE cascades the row).
+        pending = {}
 
         def respond(request):
             body = (
@@ -108,6 +110,19 @@ def api():
                 return httpx.Response(200, json={"applied": True, "blocked": False})
             if request.url.path.endswith("/rpc/prepare_account_deletion"):
                 return httpx.Response(200, json={"prepared": True, "carried": True})
+            if request.url.path.endswith("/rpc/mark_account_deletion_pending"):
+                pending.setdefault(body["p_user_id"], 0)
+                return httpx.Response(200, json={"pending": True})
+            if request.url.path.endswith("/rpc/list_pending_account_deletions"):
+                return httpx.Response(200, json=[{"userId": user, "requestedAt": "2026-11-21T00:00:00Z", "attempts": tries}
+                                                 for user, tries in pending.items()])
+            if request.url.path.endswith("/rpc/note_account_deletion_attempt"):
+                found = body["p_user_id"] in pending
+                if found:
+                    pending[body["p_user_id"]] += 1
+                return httpx.Response(200, json={"found": found, "attempts": pending.get(body["p_user_id"])})
+            if request.url.path.endswith("/rpc/clear_account_deletion_pending"):
+                return httpx.Response(200, json={"cleared": pending.pop(body["p_user_id"], None) is not None})
             if request.url.path.endswith("/rpc/reserve_batch_explain_quota"):
                 return httpx.Response(200, json=batches.reserve_explain(body))
             if request.url.path.endswith("/rpc/get_ai_access"):
@@ -150,7 +165,10 @@ def api():
                 return httpx.Response(404, json={"statusCode": "404", "error": "Bucket not found"})
             if request.url.path.startswith("/auth/v1/admin/users/"):
                 queue = (admin_statuses or {}).get(request.method)
-                return httpx.Response(queue.pop(0) if queue else 200, json={})
+                status = queue.pop(0) if queue else 200
+                if request.method == "DELETE" and status == 200:
+                    pending.pop(request.url.path.rsplit("/", 1)[-1], None)
+                return httpx.Response(status, json={})
             raise AssertionError(f"Unexpected request: {request.url}")
 
         settings = Settings(_env_file=None, **{
@@ -161,6 +179,7 @@ def api():
         })
         with TestClient(create_app(settings, httpx.MockTransport(respond))) as client:
             client.headers["Authorization"] = "Bearer user-token"
+            client.pending_deletions = pending
             yield client, calls
 
     return make
@@ -235,8 +254,8 @@ def test_modern_secret_key_is_not_sent_as_a_bearer_jwt(api):
         assert client.post("/api/v1/sync", json={}).status_code == 200
         assert client.delete("/api/v1/account").status_code == 200
         privileged = [call for call in calls if "/rest/v1/" in call[1] or "/auth/v1/admin/" in call[1]]
-        # 1 sync RPC + 1 PUT ban user + 1 DELETE user.
-        assert len(privileged) == 3
+        # 1 sync RPC + 1 pending-deletion RPC + 1 PUT ban user + 1 DELETE user.
+        assert len(privileged) == 4
         for call in privileged:
             assert call[3]["apikey"] == "sb_secret_test"
             assert "authorization" not in call[3]
@@ -248,6 +267,10 @@ def admin_steps(calls):
     for _, path, body, _ in calls:
         if path.endswith("/rpc/prepare_account_deletion"):
             steps.append("prepare")
+        elif path.endswith("/rpc/mark_account_deletion_pending"):
+            steps.append("pending")
+        elif path.endswith("/rpc/clear_account_deletion_pending"):
+            steps.append("clear")
         elif path == "/storage/v1/bucket/mistake-sources":
             steps.append("purge")
         elif path == f"/auth/v1/admin/users/{USER_ID}":
@@ -258,7 +281,7 @@ def admin_steps(calls):
 def test_delete_account_saves_carryover_before_ban_and_canonicalizes_gmail(api):
     with api(auth_user={"email": "A.B+spam@gmail.com"}) as (client, calls):
         assert client.delete("/api/v1/account").status_code == 200
-        assert admin_steps(calls) == ["prepare", "ban", "purge", "delete"]
+        assert admin_steps(calls) == ["prepare", "pending", "ban", "purge", "delete"]
         carry_body = next(call[2] for call in calls if call[1].endswith("/prepare_account_deletion"))
         assert carry_body["p_user_id"] == USER_ID and len(carry_body["p_identity_hash"]) == 64
         assert "gmail" not in json.dumps(carry_body).lower()
@@ -273,10 +296,10 @@ def test_failed_auth_delete_unbans_and_retry_finishes_without_double_carryover(a
     with api(auth_user={"email": "alice@example.test"}, admin_statuses={"DELETE": [500]}) as (client, calls):
         failed = client.delete("/api/v1/account")
         assert failed.status_code == 503
-        assert admin_steps(calls) == ["prepare", "ban", "purge", "delete", "unban"]
+        assert admin_steps(calls) == ["prepare", "pending", "ban", "purge", "delete", "unban", "clear"]
         calls.clear()
         assert client.delete("/api/v1/account").status_code == 200
-        assert admin_steps(calls) == ["prepare", "ban", "purge", "delete"]
+        assert admin_steps(calls) == ["prepare", "pending", "ban", "purge", "delete"]
         # The retry sends the same idempotent carryover call (the SQL keeps one contribution per account).
         bodies = [call[2] for call in calls if call[1].endswith("/prepare_account_deletion")]
         assert len(bodies) == 1 and bodies[0]["p_user_id"] == USER_ID
@@ -285,7 +308,7 @@ def test_failed_auth_delete_unbans_and_retry_finishes_without_double_carryover(a
 def test_failed_ban_stops_before_purge_and_failed_purge_unbans(api, monkeypatch):
     with api(auth_user={"email": "alice@example.test"}, admin_statuses={"PUT": [500]}) as (client, calls):
         assert client.delete("/api/v1/account").status_code == 503
-        assert admin_steps(calls) == ["prepare", "ban"]
+        assert admin_steps(calls) == ["prepare", "pending", "ban", "clear"]
 
     async def broken_purge(self, user_id, *, allow_missing=False):
         raise HTTPException(503, "purge failed")
@@ -293,7 +316,7 @@ def test_failed_ban_stops_before_purge_and_failed_purge_unbans(api, monkeypatch)
     monkeypatch.setattr(SourceImages, "purge", broken_purge)
     with api(auth_user={"email": "alice@example.test"}) as (client, calls):
         assert client.delete("/api/v1/account").status_code == 503
-        assert admin_steps(calls) == ["prepare", "ban", "unban"]
+        assert admin_steps(calls) == ["prepare", "pending", "ban", "unban", "clear"]
 
 
 def test_failed_carryover_never_bans_or_purges(api, monkeypatch):
@@ -308,6 +331,75 @@ def test_failed_carryover_never_bans_or_purges(api, monkeypatch):
     with api(auth_user={"email": "alice@example.test"}) as (client, calls):
         assert client.delete("/api/v1/account").status_code == 503
         assert admin_steps(calls) == []
+
+
+def test_successful_delete_leaves_no_pending_row(api):
+    with api(auth_user={"email": "alice@example.test"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 200
+        assert client.pending_deletions == {}
+
+
+def test_failed_pending_record_never_bans(api, monkeypatch):
+    original = Gateway.rpc
+
+    async def failing_rpc(self, name, parameters, *, timeout=12):
+        if name == "mark_account_deletion_pending":
+            raise HTTPException(503, "down")
+        return await original(self, name, parameters, timeout=timeout)
+
+    monkeypatch.setattr(Gateway, "rpc", failing_rpc)
+    with api(auth_user={"email": "alice@example.test"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 503
+        assert admin_steps(calls) == ["prepare"]
+
+
+def test_failed_unban_keeps_pending_row_and_maintenance_finishes_it(api):
+    import asyncio
+
+    from app.commands import maintenance
+
+    # DELETE fails, then lifting the ban fails too: banned but not deleted.
+    with api(auth_user={"email": "alice@example.test"}, admin_statuses={"DELETE": [500, 500], "PUT": [200, 500]}) as (client, calls):
+        failed = client.delete("/api/v1/account")
+        assert failed.status_code == 503 and "một ngày" in failed.json()["detail"]
+        assert admin_steps(calls) == ["prepare", "pending", "ban", "purge", "delete", "unban"]
+        assert client.pending_deletions == {USER_ID: 0}
+
+        gateway = client.app.state.gateway
+        calls.clear()
+        # First maintenance run: Auth DELETE fails again, the attempt is counted and the row stays.
+        assert asyncio.run(maintenance.finish_pending_deletions(gateway)) == {"finished": 0, "failed": 1}
+        note = next(call[2] for call in calls if call[1].endswith("/note_account_deletion_attempt"))
+        assert note == {"p_user_id": USER_ID, "p_error": "delete:500"}
+        assert client.pending_deletions == {USER_ID: 1}
+        listing = next(call[2] for call in calls if call[1].endswith("/list_pending_account_deletions"))
+        assert listing == {"p_older_than_seconds": 600, "p_limit": 50}
+
+        calls.clear()
+        # Next run: the same purge + delete path finishes it; the cascade removes the row.
+        assert asyncio.run(maintenance.finish_pending_deletions(gateway)) == {"finished": 1, "failed": 0}
+        assert admin_steps(calls) == ["purge", "delete"]
+        assert client.pending_deletions == {}
+        assert asyncio.run(maintenance.finish_pending_deletions(gateway)) == {"finished": 0, "failed": 0}
+
+
+def test_ban_timeout_is_lifted_before_the_pending_row_is_dropped(api, monkeypatch):
+    original = Gateway._set_ban
+
+    async def flaky_ban(self, user_id, duration):
+        if duration != "none":
+            raise httpx.ReadTimeout("ban may have landed")
+        return await original(self, user_id, duration)
+
+    monkeypatch.setattr(Gateway, "_set_ban", flaky_ban)
+    with api(auth_user={"email": "alice@example.test"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 503
+        assert admin_steps(calls) == ["prepare", "pending", "unban", "clear"]
+        assert client.pending_deletions == {}
+    with api(auth_user={"email": "alice@example.test"}, admin_statuses={"PUT": [500]}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 503
+        assert admin_steps(calls) == ["prepare", "pending", "unban"]
+        assert client.pending_deletions == {USER_ID: 0}, "Unknown ban outcome and failed unban: maintenance finishes it"
 
 
 def score_record(**scores):
