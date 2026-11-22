@@ -4,10 +4,11 @@ import assert from 'node:assert/strict';
 import { baselineSql, createDatabase, profile, record, uid } from './harness.mjs';
 
 const RPCS = [
-  'ai_quota_status(uuid,boolean,text)', 'apply_identity_carryover(uuid,text)',
+  'ai_quota_status(uuid,boolean,text)', 'apply_identity_carryover(uuid,text)', 'clear_account_deletion_pending(uuid)',
   'claim_explanation_question(uuid,uuid,integer,text,timestamp with time zone,uuid,uuid)',
   'finish_explanation_question(uuid,uuid,integer,uuid,jsonb)', 'get_ai_access(uuid)', 'get_ai_usage(uuid,boolean,integer)',
   'league_join(uuid,date,text,text)', 'league_leave(uuid,date)', 'league_refresh(uuid,date,integer)', 'league_update(uuid,date,text,text)',
+  'list_pending_account_deletions(integer,integer)', 'mark_account_deletion_pending(uuid)', 'note_account_deletion_attempt(uuid,text)',
   'prepare_account_deletion(uuid,text)',
   'record_ai_usage(uuid,text,text,text,integer,integer,integer,integer,text)',
   'redeem_code(uuid,text)', 'reserve_ai_batch_request(uuid,boolean,uuid,uuid,text,text,integer,integer,integer,integer,integer,integer)',
@@ -89,7 +90,8 @@ try {
   // schema_ready() reports a missing wave-1 object (checked inside a rolled-back transaction).
   assert.deepEqual(await value('select public.schema_ready()'), { baseline: 2, ready: true });
   for (const drop of ['drop function public.reserve_batch_explain_quota(uuid,uuid,integer,integer)', 'alter table public.ai_batches drop column explain_questions',
-    'drop table private.identity_redeem_uses', 'drop table private.account_deletion_contributions cascade']) {
+    'drop table private.identity_redeem_uses', 'drop table private.account_deletion_contributions cascade',
+    'drop table private.pending_account_deletions', 'drop function public.note_account_deletion_attempt(uuid,text)']) {
     await assert.rejects(db.transaction(async tx => {
       await tx.exec(drop);
       assert.deepEqual((await tx.query('select public.schema_ready() as r')).rows[0].r, { baseline: 2, ready: false }, drop);

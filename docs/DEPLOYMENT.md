@@ -10,8 +10,8 @@ Chuẩn bị chuyển project: xem [SUPABASE_RECONNECT.md](SUPABASE_RECONNECT.md
 
 Từ 20/11/2026 toàn bộ schema, RLS, RPC đồng bộ, giới hạn API, bảng giải đấu và ledger ticket lời giải nằm trong **một file baseline duy nhất**: `supabase/migrations/20261120000000_baseline_v2.sql`. Các migration v1 cũ trong `supabase/migrations/archive/` chỉ để tra cứu, không chạy lại.
 
-- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp toàn bộ migration trong `supabase/migrations/` (`20261120000000_baseline_v2.sql`, `20261121000000_ai_provider_budget_and_ledger.sql`, `20261122000000_security_hardening_wave1.sql`, `20261123000000_wave1_fixes.sql` — hoặc `supabase db push`).
-- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md), sau đó áp thêm `20261121000000_ai_provider_budget_and_ledger.sql`, `20261122000000_security_hardening_wave1.sql` và `20261123000000_wave1_fixes.sql`.
+- Project mới: xuất backup trước (nếu có dữ liệu), rồi áp toàn bộ migration trong `supabase/migrations/` (`20261120000000_baseline_v2.sql`, `20261121000000_ai_provider_budget_and_ledger.sql`, `20261122000000_security_hardening_wave1.sql`, `20261123000000_wave1_fixes.sql`, `20261124000000_pending_deletions.sql` — hoặc `supabase db push`).
+- Project đang chuyển từ v1: làm theo [DB_REBUILD_2026-11.md](DB_REBUILD_2026-11.md), sau đó áp thêm `20261121000000_ai_provider_budget_and_ledger.sql`, `20261122000000_security_hardening_wave1.sql`, `20261123000000_wave1_fixes.sql` và `20261124000000_pending_deletions.sql`.
 - Tạo bucket Supabase Storage riêng tư tên `mistake-sources` (`public = false`, `file_size_limit = 1048576`, `allowed_mime_types = ['image/jpeg']`) nếu bật tính năng lưu ảnh nguồn (`SOURCE_IMAGES_ENABLED=true`).
 - Xác nhận RPC `schema_ready()` trả `{"baseline": 2, "ready": true}`; kiểm tra Security Advisor và xác nhận quyền `anon`/`authenticated` đều bị thu hồi trên các RPC nội bộ (kể cả `reserve_provider_budget`, `record_ai_usage`, `prepare_account_deletion`, `apply_identity_carryover`, `reserve_batch_explain_quota` — chỉ `service_role` gọi được).
 - Giữ `API_LIMITS_ENABLED=false` và `AI_PROVIDER_BUDGET_ENABLED=false` ở local tới khi các migration đã áp dụng; staging/production bắt buộc `API_LIMITS_ENABLED=true`, và khi `AI_ENABLED=true` bắt buộc cả `AI_ACCESS_MANAGED=true` lẫn `AI_PROVIDER_BUDGET_ENABLED=true` (`validate_deployment()` sẽ chặn khởi động nếu thiếu). Dùng project staging riêng cho test tài khoản và test tải.
@@ -116,6 +116,8 @@ Thử `pg_restore` vào database staging trống rồi kiểm tra schema, dữ l
 2. Diễn tập khôi phục trên môi trường staging: restore Postgres (`pg_restore`) + kiểm tra bucket `mistake-sources` (`public = false`) + nạp lại ảnh mẫu + xác minh tài khoản mở lại ảnh cũ bằng `POST /api/v1/mistake-images/urls` và xóa/reset dọn sạch ảnh kể cả khi `SOURCE_IMAGES_ENABLED=false`.
 
 Chạy `python -m app.commands.maintenance` từ `backend` với đúng `.env` để dọn counter hết hạn; cấu hình lịch bảo trì sau deploy. API tự dọn các phút cũ của owner khi có request; maintenance dọn thêm owner không còn hoạt động.
+
+Maintenance cũng hoàn tất các lần xóa tài khoản bị kẹt: trước khi khóa tài khoản để xóa, backend ghi một dòng riêng trong `private.pending_account_deletions`. Nếu xóa thất bại mà mở khóa cũng thất bại, dòng đó còn lại; maintenance lấy các dòng cũ hơn 10 phút, xóa ảnh nguồn rồi xóa user Auth, tăng `attempts` và ghi `last_error` khi lỗi. Job trả mã lỗi khác 0 nếu còn tài khoản chưa xóa được, để GitHub báo.
 
 Maintenance cũng dọn tối đa 1.000 câu trong cache lời giải hết hạn mỗi lần. Claim mới dọn tối đa 100 câu hết hạn; khi không còn request, chạy maintenance theo lịch để cache không lưu lâu hơn cần thiết. Bản ghi của ticket còn hạn không bị xóa để tránh đặt lại ngân sách thử.
 
