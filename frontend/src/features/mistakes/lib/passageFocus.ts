@@ -54,6 +54,14 @@ export function findFocus(text: string, options: { part: number; number?: number
   return quoted;
 }
 
+/**
+ * The focus while reviewing. Before the answer only the question's own place (a Part 6 blank, found by its number)
+ * may be marked: the evidence sentence would give the answer away, so it is used only once the learner has answered.
+ */
+export function reviewFocus(text: string, card: Pick<MistakeEntry, 'part' | 'questionNumber' | 'explanation'>, revealed: boolean): FocusRange | null {
+  return findFocus(text, { part: card.part, number: card.questionNumber, evidence: revealed ? card.explanation?.evidence : undefined });
+}
+
 /** The text cut into what comes before, inside and after the focus. */
 export function splitFocus(text: string, range: FocusRange | null): { before: string; focus: string; after: string } {
   if (!range) return { before: text, focus: '', after: '' };

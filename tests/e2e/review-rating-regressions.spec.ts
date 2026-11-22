@@ -18,11 +18,11 @@ async function openReview(page: Page) {
   return page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
 }
 
-// Two self-check buttons: "Vẫn chưa chắc" is ALWAYS AGAIN; choosing a wrong quiz option ALSO schedules AGAIN
-// (tomorrow) even after clicking "Hiểu rồi", because understanding an explanation is not active recall yet.
+// Two self-check buttons after a right pick: "Vẫn chưa chắc" is AGAIN, "Hiểu rồi" GOOD. A wrong quiz option always
+// schedules AGAIN (tomorrow), because understanding an explanation is not active recall yet, so it shows one "Tiếp".
 for (const [label, pick, button, stage, days, summaryText] of [
   ['Vẫn chưa chắc after a right pick (again)', 'B', 'Vẫn chưa chắc', 0, 1, 'Ôn lại ngày mai 1'],
-  ['Hiểu rồi after a wrong pick (again)', 'A', 'Hiểu rồi', 0, 1, 'Ôn lại ngày mai 1'],
+  ['Tiếp after a wrong pick (again)', 'A', 'Tiếp', 0, 1, 'Ôn lại ngày mai 1'],
   ['Hiểu rồi after a right pick (good)', 'B', 'Hiểu rồi', 3, 14, 'Hiểu rồi 1'],
 ] as const) {
   test(`self-rating ${label} persists its own schedule and survives reload`, async ({ page }) => {
@@ -90,7 +90,7 @@ test('keyboard traversal stays inside the phone review dialog and wraps on its v
   for (let i = 0; i < 8; i++) { await page.keyboard.press('Tab'); expect(await inside()).toBe(true); }
   for (let i = 0; i < 8; i++) { await page.keyboard.press('Shift+Tab'); expect(await inside()).toBe(true); }
   await wrongPick.click();
-  await expect(review.getByRole('button', { name: 'Hiểu rồi', exact: true })).toBeVisible();
+  await expect(review.getByRole('button', { name: 'Tiếp', exact: true })).toBeVisible();
   for (let i = 0; i < 8; i++) { await page.keyboard.press('Tab'); expect(await inside()).toBe(true); }
   for (let i = 0; i < 8; i++) { await page.keyboard.press('Shift+Tab'); expect(await inside()).toBe(true); }
 });

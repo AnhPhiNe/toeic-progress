@@ -88,7 +88,7 @@ for (const width of [1280, 375]) test(`review completion reports actual results 
   await review.getByRole('button', { name: /^\(?B\)?\s*be/ }).click();
   await review.getByRole('button', { name: 'Hiểu rồi', exact: true }).click();
   await review.getByRole('button', { name: /^\(?A\)?\s*are/ }).click();
-  await review.getByRole('button', { name: 'Vẫn chưa chắc', exact: true }).click();
+  await review.getByRole('button', { name: 'Tiếp', exact: true }).click();
   const done = page.getByRole('dialog', { name: 'Ôn xong', exact: true });
   await expect(done).toContainText('Xong 2 câu!');
   await expect(done).toContainText('Hiểu rồi 1');

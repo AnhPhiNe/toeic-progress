@@ -23,9 +23,10 @@ test('the notebook paginates cards while searching, filtering and reviewing the 
   await expect(page.getByRole('button', { name: /^Tất cả\s*23$/ })).toBeVisible();
   const pagination = page.getByRole('navigation', { name: 'Trang Sổ tay', exact: true });
   await expect(pagination).toContainText('1 / 3');
-  await page.getByRole('button', { name: /^Ôn 23 câu/ }).click();
+  // One session holds at most 15 cards; the button says how many wait for the next round.
+  await page.getByRole('button', { name: /^Ôn 15 câu · còn 8/ }).click();
   const review = page.getByRole('dialog', { name: 'Ôn câu sai' });
-  await expect(review.getByText('1 / 23', { exact: true })).toBeVisible();
+  await expect(review.getByText('1 / 15', { exact: true })).toBeVisible();
   await review.getByRole('button', { name: /Thoát/ }).click();
   await expect(pagination.getByRole('button', { name: /Trước/ })).toBeDisabled();
   await pagination.getByRole('button', { name: /Sau/ }).click();

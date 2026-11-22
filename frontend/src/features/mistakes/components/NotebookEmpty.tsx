@@ -20,13 +20,7 @@ const STEPS = [
   { icon: STEP_ICONS.cards, title: 'Soát rồi lưu', text: 'Sóc gom thành thẻ, đến hạn sẽ nhắc ôn' }
 ];
 
-const GHOSTS = [
-  { label: 'Part 5 · 117', note: 'đến hạn hôm nay', color: '#ffe3ea' },
-  { label: 'Part 6 · 135', note: 'ôn lại sau 3 ngày', color: '#eef0ee' },
-  { label: 'Part 7 · 162', note: 'đã thuộc', color: '#e3f6e6' }
-];
-
-/** Computers: the empty notebook shows what a card will look like and how one is made (design/previews/mock-notebook-capture.html). */
+/** Computers: the empty notebook shows one example card and how a card is made (design/previews/mock-notebook-capture.html). */
 export function NotebookEmpty({ onCapture, onManual }: Props) {
   return (
     <>
@@ -35,7 +29,7 @@ export function NotebookEmpty({ onCapture, onManual }: Props) {
           <small>SỔ TAY CÒN TRỐNG</small>
           <h2 id="nbe-title">Chụp một trang chữa bài,<br />Sóc biến câu sai <em>thành thẻ ôn</em></h2>
           <p>Sóc đọc đáp án bạn chọn, đáp án đúng và giải thích vì sao sai. Bạn không cần gõ gì.</p>
-          <span className="nbe-only"><span aria-hidden="true">📖</span> Đọc được Part 5–7 · phần Nghe để sau</span>
+          <span className="nbe-only"><span aria-hidden="true">📖</span> Sóc đọc ảnh Part 5–7 · phần Nghe bạn ghi lý do sai</span>
           <div className="nbe-acts">
             <button type="button" className="rd-btn rd-btn--pink nbe-main" onClick={onCapture}><span aria-hidden="true">📸</span> Chụp trang chữa bài</button>
             <button type="button" className="cap-link" onClick={onManual}>hoặc tự gõ một câu</button>
@@ -47,7 +41,7 @@ export function NotebookEmpty({ onCapture, onManual }: Props) {
           <div className="nbe-card">
             <div className="nbe-tp"><span className="nbe-tag is-part">Part 5 · câu 117</span><span className="nbe-tag is-trap">Bẫy từ vựng</span></div>
             <p className="nbe-q">The manager asked all staff to <u>______</u> the new safety rules by Friday.</p>
-            <div className="nbe-opt"><span>(A) adhere</span><span className="is-bad">(B) comply ✗</span><span className="is-ok">(C) follow ✓</span></div>
+            <div className="nbe-opt"><span>(A) adhere</span><span className="is-bad">(B) comply</span><span className="is-ok">(C) follow</span></div>
             <p className="nbe-why"><b>Sai vì:</b> “comply” phải đi với “with”, ở đây không có “with”.</p>
           </div>
         </div>
@@ -61,19 +55,6 @@ export function NotebookEmpty({ onCapture, onManual }: Props) {
           </li>
         ))}
       </ol>
-
-      <section className="nbe-below" aria-label="Sổ tay của bạn sẽ trông thế này">
-        <p><b>Sổ tay của bạn sẽ trông thế này</b> <span>· thẻ đến hạn được nhắc ôn mỗi ngày, ôn đúng thì giãn lịch</span></p>
-        <div className="nbe-ghosts" aria-hidden="true">
-          {GHOSTS.map(ghost => (
-            <div key={ghost.label} className="nbe-ghost">
-              <i style={{ background: ghost.color }} />
-              <div><em /><em /></div>
-              <span>{ghost.label}<br />{ghost.note}</span>
-            </div>
-          ))}
-        </div>
-      </section>
     </>
   );
 }

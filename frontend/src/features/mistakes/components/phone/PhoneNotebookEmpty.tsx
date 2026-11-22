@@ -25,7 +25,7 @@ export function PhoneNotebookEmpty({ onCapture, onManual }: { onCapture: () => v
 
       <button type="button" className="pn-cam is-big" onClick={onCapture}><CameraIcon /> Chụp trang chữa bài</button>
       <button type="button" className="pn-link" onClick={onManual}>hoặc tự gõ một câu</button>
-      <span className="pn-only">Đọc được Part 5–7 · phần Nghe để sau</span>
+      <span className="pn-only">Sóc đọc ảnh Part 5–7 · phần Nghe bạn ghi lý do sai</span>
     </section>
   );
 }

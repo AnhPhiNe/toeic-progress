@@ -4,10 +4,12 @@ import type { MistakeEntry } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
-import { reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/mistakes/lib/spacedRepetition';
+import { nextReviewLine } from '@/features/mistakes/lib/notebookSummary';
+import { missedPick, reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/mistakes/lib/spacedRepetition';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
-import { findFocus, groupLabel, groupNumbers, splitFocus } from '@/features/mistakes/lib/passageFocus';
-import { loadMistakes } from '@/shared/data/storage';
+import { isNumberLabel } from '@/features/mistakes/lib/questionSnippet';
+import { groupLabel, groupNumbers, reviewFocus, splitFocus } from '@/features/mistakes/lib/passageFocus';
+import { getTodayDateString, loadMistakes } from '@/shared/data/storage';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { PhoneSheet } from '@/app/components/phone';
 import { PassageText } from '../PassageText';
@@ -50,8 +52,9 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const answer = quiz && quiz.correctIndex >= 0 ? quiz.options[quiz.correctIndex].letter : '';
   const before = card ? getUserChoice(card) : '';
   const right = picked !== null && picked === answer;
-  const missedQuiz = picked !== null && !right;
+  const missedQuiz = missedPick(picked, answer);
   const showPassage = card ? card.part >= 6 && Boolean(context) : false;
+  const [more, setMore] = useState(false);
 
   const pick = (letter: string) => { if (!revealed) { setPicked(letter); setRevealed(true); } };
   const grade = (understood: boolean) => {
@@ -61,7 +64,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
       const graded = onGrade(card, rating);
       setTally(t => rating === 'AGAIN' ? { ...t, again: t.again + 1 } : { ...t, got: t.got + 1 });
       setLastGrade(graded.undo ? { index, rating, picked, undo: graded.undo } : null);
-      setIndex(i => i + 1); setPicked(null); setRevealed(false); setError(''); setFullOpen(false);
+      setIndex(i => i + 1); setPicked(null); setRevealed(false); setError(''); setFullOpen(false); setMore(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được lịch ôn.'); }
   };
 
@@ -90,6 +93,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
           <Soc state="cheerC" size={150} />
           <h2>Xong {cards.length} câu!</h2>
           <p>Hiểu rồi <b>{tally.got}</b> · Ôn lại ngày mai <b>{tally.again}</b>. Hôm nay đã tính vào chuỗi ngày.</p>
+          <p className="pr-next">{nextReviewLine(loadMistakes(), getTodayDateString())}</p>
           {error && <p role="alert" className="pr-err">{error}</p>}
         </div>
         <div className="pr-bot">
@@ -106,6 +110,10 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const paraphrase = ex?.paraphrase?.trim() || '';
   const translation = ex?.translation?.trim() || '';
   const keyVocabulary = ex?.keyVocabulary?.trim() || '';
+  const reason = card.userReason?.trim() || '';
+  const hasExtras = Boolean(paraphrase || translation || keyVocabulary);
+  const sayLine = right || analysis;
+  const hasWhy = Boolean(quickTip || sayLine || reason || evidence || hasExtras);
   const chip = categoryChip(card.category);
   const partColor = PART_COLORS[card.part] ?? '#7c5ce0';
   const meta = (
@@ -126,12 +134,12 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
 
       <div className="pr-main">
         {showPassage ? (
-          <PassageBox key={card.id} card={card} context={context} short={revealed} meta={meta} onFull={() => setFullOpen(true)} />
+          <PassageBox key={card.id} card={card} context={context} revealed={revealed} meta={meta} onFull={() => setFullOpen(true)} />
         ) : (
           <div className="pr-meta">{meta}</div>
         )}
         {!showPassage && context && <p className="pr-ctx">{context}</p>}
-        {question && <h3 className={'pr-q' + (showPassage ? ' is-sm' : '')}>{question}</h3>}
+        {question && !isNumberLabel(question) && <h3 className={'pr-q' + (showPassage ? ' is-sm' : '')}>{question}</h3>}
 
         {quizMode && quiz ? (
           <div className="pr-opts" role="group" aria-label="Chọn đáp án">
@@ -153,17 +161,18 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
           <button type="button" className="pr-btn pr-btn--white" onClick={() => setRevealed(true)}>Xem đáp án</button>
         )}
 
-        {revealed ? (
+        {revealed ? hasWhy && (
           <div className="pr-why">
             <Soc state={right ? 'cheerC' : 'idle'} size={56} />
             <div className="pr-why-body">
-              {quickTip && <p><b>Mẹo nhanh:</b> {quickTip}</p>}
-              <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{analysis || (!quickTip && !right ? `Đáp án là (${answer || card.correctAnswer}).` : '')}</p>
+              {quickTip && <p className="pr-tip"><b>Mẹo nhanh:</b> {quickTip}</p>}
+              {sayLine && <p>{right ? <><b>Lần này đúng rồi!</b>{before && before !== answer ? ` Lần trước bạn chọn (${before}).` : ''} </> : null}{analysis}</p>}
+              {reason && <p className="pr-extra"><b>Bạn ghi:</b> {reason}</p>}
               {evidence && <span className="pr-quote">“{evidence.replace(/^["“”]|["“”]$/g, '')}”</span>}
-              {paraphrase && <p className="pr-extra"><b>Tương đương:</b> {paraphrase}</p>}
-              {translation && <p className="pr-extra"><b>Dịch nghĩa:</b> {translation}</p>}
-              {keyVocabulary && <p className="pr-extra"><b>Từ vựng:</b> {keyVocabulary}</p>}
-              {missedQuiz && <p className="pr-note">Vừa chọn nhầm · Sóc sẽ hẹn ôn lại ngày mai kể cả khi bạn bấm “Hiểu rồi”.</p>}
+              {more && paraphrase && <p className="pr-extra"><b>Tương đương:</b> {paraphrase}</p>}
+              {more && translation && <p className="pr-extra"><b>Dịch nghĩa:</b> {translation}</p>}
+              {more && keyVocabulary && <p className="pr-extra"><b>Từ vựng:</b> {keyVocabulary}</p>}
+              {hasExtras && <button type="button" className="pr-morebtn" aria-expanded={more} onClick={() => setMore(v => !v)}>{more ? 'Ẩn bớt ▴' : 'Xem thêm ▾'}</button>}
             </div>
           </div>
         ) : (
@@ -174,22 +183,28 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
 
       {revealed && (
         <div className="pr-bot">
-          <button type="button" className="pr-btn pr-btn--white" onClick={() => grade(false)}>Vẫn chưa chắc</button>
-          <button type="button" className="pr-btn pr-btn--go" onClick={() => grade(true)}>Hiểu rồi</button>
+          {missedQuiz
+            // A wrong pick is reviewed again tomorrow whichever button is pressed, so there is only one.
+            ? <button type="button" className="pr-btn pr-btn--go" onClick={() => grade(false)}>Tiếp</button>
+            : <>
+              <button type="button" className="pr-btn pr-btn--white" onClick={() => grade(false)}>Vẫn chưa chắc</button>
+              <button type="button" className="pr-btn pr-btn--go" onClick={() => grade(true)}>Hiểu rồi</button>
+            </>}
         </div>
       )}
 
       {fullOpen && showPassage && (
-        <FullPassage card={card} context={context} onClose={() => setFullOpen(false)} />
+        <FullPassage card={card} context={context} revealed={revealed} onClose={() => setFullOpen(false)} />
       )}
     </div>, document.body);
 }
 
 /** Fixed-height box: the reading text scrolled to the highlighted sentence. It shrinks after the answer. */
-function PassageBox({ card, context, short, meta, onFull }: {
-  card: MistakeEntry; context: string; short: boolean; meta: React.ReactNode; onFull: () => void;
+function PassageBox({ card, context, revealed, meta, onFull }: {
+  card: MistakeEntry; context: string; revealed: boolean; meta: React.ReactNode; onFull: () => void;
 }) {
-  const range = useMemo(() => findFocus(context, { part: card.part, number: card.questionNumber, evidence: card.explanation?.evidence }), [card, context]);
+  const short = revealed;
+  const range = useMemo(() => reviewFocus(context, card, revealed), [card, context, revealed]);
   const parts = splitFocus(context, range);
   const box = useRef<HTMLDivElement>(null);
   const mark = useRef<HTMLElement>(null);
@@ -220,8 +235,8 @@ function PassageBox({ card, context, short, meta, onFull }: {
 }
 
 /** Sheet with the whole passage, the highlight kept, and the numbers of the questions that share it. */
-function FullPassage({ card, context, onClose }: { card: MistakeEntry; context: string; onClose: () => void }) {
-  const range = useMemo(() => findFocus(context, { part: card.part, number: card.questionNumber, evidence: card.explanation?.evidence }), [card, context]);
+function FullPassage({ card, context, revealed, onClose }: { card: MistakeEntry; context: string; revealed: boolean; onClose: () => void }) {
+  const range = useMemo(() => reviewFocus(context, card, revealed), [card, context, revealed]);
   const parts = splitFocus(context, range);
   const numbers = useMemo(() => groupNumbers(card, loadMistakes()), [card]);
   const mark = useRef<HTMLElement>(null);

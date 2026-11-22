@@ -143,7 +143,8 @@
 .pr-why b { color: #a06a00; }
 .pr-why p { white-space: pre-line; margin: 0; }
 .pr-extra { font-size: 12.5px; font-weight: 700; color: #4f594f; }
-.pr-note { font-size: 12px; font-weight: 800; color: #b54565; }
+.pr-tip { font-size: 14px; color: #3a2f12; }
+.pr-morebtn { justify-self: start; border: 0; background: none; padding: 2px 0; font-weight: 900; font-size: 12.5px; color: #a06a00; cursor: pointer; }
 .pr-quote { display: block; margin-top: 2px; border-left: 3px solid #ffc83d; padding-left: 8px; font-weight: 700; font-size: 12.5px; color: #7a6a3e; font-style: italic; }
 .pr-err { color: #c23c63; font-weight: 800; font-size: 13px; }
 .pr-bot { display: flex; gap: 10px; padding: 8px 16px calc(18px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, #fbfaf7 30%); }
@@ -155,6 +156,7 @@
 .pr-done { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; padding: 24px; }
 .pr-done h2 { font-weight: 900; font-size: 26px; }
 .pr-done p { font-weight: 800; color: var(--rd-mut); }
+.pr-done .pr-next { color: #2f8a42; background: #e3f7e7; border-radius: 99px; padding: 6px 16px; }
 
 /* passage box: fixed height, shrinks to about three lines once the answer shows */
 .pr-psg { position: relative; flex: none; border-radius: 22px; background: #fff; box-shadow: 0 6px 18px rgba(200,80,120,.1); overflow: hidden; margin-top: 4px; }

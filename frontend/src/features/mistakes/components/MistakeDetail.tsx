@@ -7,6 +7,7 @@ import { Soc } from '@/shared/ui/soc/Soc';
 import { PassageText } from './PassageText';
 import { AnswerDoubtNote } from './AnswerDoubtNote';
 import { canExplain } from './MistakeCard';
+import { isNumberLabel } from '@/features/mistakes/lib/questionSnippet';
 
 export interface MistakeDetailActions {
   onEdit: () => void;
@@ -29,6 +30,11 @@ export function reviewLabel(m: MistakeEntry): { text: string; due: boolean } {
   if (m.status === 'MASTERED') return { text: 'đã thuộc', due: false };
   if (isDueForReview(m)) return { text: 'ôn hôm nay', due: true };
   return { text: m.nextReviewDate ? `ôn ${ddmm(m.nextReviewDate)}` : 'chưa ôn', due: false };
+}
+/** List rows: a new card waiting for its first review needs no red "ôn hôm nay"; only a set date that has come does. */
+export function rowReviewLabel(m: MistakeEntry): { text: string; due: boolean } {
+  const label = reviewLabel(m);
+  return label.due && !m.nextReviewDate ? { text: '', due: false } : label;
 }
 
 /** Mark the evidence sentence inside the passage, when the AI quoted it exactly. */
@@ -54,8 +60,10 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
   const question = (m.question ?? m.questionContext ?? '').trim();
   const context = (m.context ?? '').trim();
   const posDiffer = new Set(notes.map(n => n.pos).filter(Boolean)).size > 1;
-  const hasExplain = Boolean(ex && (ex.analysis || ex.translation || ex.keyVocabulary || ex.quickTip || ex.evidence)) || notes.some(n => n.meaning) || Boolean(m.trapTip);
-  const tip = ex?.quickTip || m.trapTip || '';
+  const tip = (ex?.quickTip || m.trapTip || '').trim();
+  const reason = m.userReason?.trim() ?? '';
+  // "Mẹo nhanh" is always shown; the toggle holds the rest.
+  const hasMore = Boolean(ex && (ex.analysis || ex.translation || ex.keyVocabulary || ex.evidence)) || notes.some(n => n.meaning);
 
   return (
     <div className="nbd">
@@ -78,7 +86,7 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
             {open && ex?.translation && <p className="nbd-tr">{ex.translation}</p>}
           </div>
         )}
-        {question && <h3 className="nbd-q">{question}</h3>}
+        {question && !isNumberLabel(question) && <h3 className="nbd-q">{question}</h3>}
         {!context && open && ex?.translation && <p className="nbd-tr is-solo">{ex.translation}</p>}
 
         {m.options?.length ? (
@@ -102,21 +110,18 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
           <div className="nbd-plain"><p><b>Bạn chọn:</b> {m.userMistake || '—'}</p><p><b>Đáp án:</b> {m.correctAnswer || '—'}</p></div>
         )}
 
-        {open && (
+        {tip && <div className="nbd-tip"><Soc state="idle" size={48} /><p><b>Mẹo nhanh:</b> <span>{tip}</span></p></div>}
+        {reason && <p className="nbd-mine"><b>Bạn ghi:</b> {reason}</p>}
+
+        {open && (ex?.analysis || ex?.keyVocabulary) && (
           <div className="nbd-why">
-            {ex?.analysis && <div className="nbd-say"><Soc state="idle" size={54} /><p>{ex.analysis}</p></div>}
-            {m.userReason && <p className="nbd-mine"><b>Bạn ghi:</b> {m.userReason}</p>}
-            {(ex?.keyVocabulary || tip) && (
-              <div className="nbd-two">
-                {ex?.keyVocabulary && <div><small>Từ cần nhớ</small><p>{ex.keyVocabulary}</p></div>}
-                {tip && <div><small>Mẹo</small><p>{tip}</p></div>}
-              </div>
-            )}
+            {ex?.analysis && <div className={'nbd-say' + (tip ? ' is-plain' : '')}>{!tip && <Soc state="idle" size={54} />}<p>{ex.analysis}</p></div>}
+            {ex?.keyVocabulary && <div className="nbd-two"><div><small>Từ cần nhớ</small><p>{ex.keyVocabulary}</p></div></div>}
           </div>
         )}
 
         <div className="nbd-foot">
-          {hasExplain
+          {hasMore
             ? <button type="button" className="nbd-toggle" onClick={() => setOpen(v => !v)} aria-expanded={open}>{open ? 'Ẩn giải thích ▴' : 'Xem giải thích ▾'}</button>
             : canExplain(m) ? <button type="button" className="nbd-toggle" onClick={actions.onExplain} disabled={actions.explaining}>{actions.explaining ? 'Sóc đang viết lời giải…' : `${actions.explainLabel} ✨`}</button>
             : <span />}

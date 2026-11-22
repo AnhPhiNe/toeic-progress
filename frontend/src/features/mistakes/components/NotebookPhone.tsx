@@ -12,7 +12,8 @@ import { DraftWaitRow } from './wrong-detail/DraftWaitRow';
 import { mistakeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
 import { questionSnippet } from '@/features/mistakes/lib/questionSnippet';
 import { collectTestNames } from '@/shared/domain/testNames';
-import { isDueForReview, canReview } from '@/features/mistakes/lib/spacedRepetition';
+import { isDueForReview, canReview, reviewBatch } from '@/features/mistakes/lib/spacedRepetition';
+import { matchesSearch } from '@/features/mistakes/lib/notebookSearch';
 import { dueSummary } from '@/features/mistakes/lib/notebookSummary';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
@@ -25,7 +26,7 @@ import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { MistakeEntryModal } from './MistakeEntryModal';
-import { MistakeDetail, categoryShort, reviewLabel } from './MistakeDetail';
+import { MistakeDetail, categoryShort, rowReviewLabel } from './MistakeDetail';
 import { CapturePhone } from './phone/CapturePhone';
 import { CameraIcon, PhoneNotebookEmpty } from './phone/PhoneNotebookEmpty';
 import { categoryChip, PART_COLORS } from './phone/partStyle';
@@ -45,7 +46,8 @@ export interface NotebookPhoneProps {
   /** Opens the note form for a test (or, with detailSessionId, the detail flow); also set by the + Ghi "Chụp câu sai" tile with an empty request. */
   createRequest?: { sourceName?: string; sessionId?: string; detailSessionId?: string };
   dueCount: number;
-  onStartReview: (ids?: string[]) => void;
+  /** Selected cards (or all due), at most `limit` of them. */
+  onStartReview: (ids?: string[], limit?: number) => void;
   onAddMistake: (entry: MistakeEntry) => void;
   onAddMistakes?: (entries: MistakeEntry[]) => void;
   onMarkMastered: (id: string) => void;
@@ -89,9 +91,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   // content is a card like the others.
   const reviewable = useMemo(() => sourced.filter(m => !isBlankDraft(m)), [sourced]);
   const matching = useMemo(() => {
-    const q = term.trim().toLowerCase();
-    return reviewable.filter(m => (!q || [m.questionContext, m.userMistake, m.userReason, m.correctAnswer, m.trapTip, m.sourceTestName, ...(m.tags ?? [])]
-      .some(value => typeof value === 'string' && value.toLowerCase().includes(q)))
+    return reviewable.filter(m => matchesSearch(m, term)
       && (part === null || m.part === part)
       && (testKey === null || (testKey === 'SCOPE' ? scopeKeys.has(testNameKey(m.sourceTestName)) : testNameKey(m.sourceTestName) === testKey)));
   }, [reviewable, term, part, testKey, scopeKeys]);
@@ -100,6 +100,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   const filtered = Boolean(term.trim()) || part !== null || testKey !== null;
   const summary = dueSummary(due);
   const reviewCount = filtered ? summary.count : dueCount;
+  const batch = reviewBatch(reviewCount);
   const activeTab: Tab = tab ?? (reviewCount > 0 ? 'due' : 'all');
   const rows = activeTab === 'due' ? due : activeTab === 'mastered' ? mastered : matching;
 
@@ -260,9 +261,9 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
             <div>
               {reviewCount > 0 ? <>
                 <h2>{reviewCount} câu đến hạn<br />ôn hôm nay</h2>
-                <p>{summary.topPart ? `Nhiều nhất Part ${summary.topPart} · ` : ''}khoảng {Math.max(1, Math.round(reviewCount * 0.8))} phút</p>
-                <button type="button" className="pn-go" onClick={() => onStartReview(filtered ? due.map(m => m.id) : undefined)}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5 12 7 3 12.5z" fill="currentColor" /></svg> Ôn {reviewCount} câu</button>
+                <p>{summary.topPart ? `Nhiều nhất Part ${summary.topPart} · ` : ''}khoảng {Math.max(1, Math.round(batch.count * 0.8))} phút</p>
+                <button type="button" className="pn-go" onClick={() => onStartReview(filtered ? due.map(m => m.id) : undefined, batch.count)}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5 12 7 3 12.5z" fill="currentColor" /></svg> Ôn {batch.count} câu{batch.rest ? ` · còn ${batch.rest}` : ''}</button>
               </> : <>
                 <h2>Hôm nay chưa có câu nào đến hạn</h2>
                 <p>Sóc sẽ nhắc khi tới lúc ôn lại. Có trang chữa bài mới thì chụp vào đây nhé.</p>
@@ -292,14 +293,14 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
           {rows.length ? (
             <ul className="pn-rows">
               {rows.slice(0, shown).map(m => {
-                const label = reviewLabel(m), chip = categoryChip(m.category);
+                const label = rowReviewLabel(m), chip = categoryChip(m.category);
                 return (
                   <li key={m.id}>
-                    <button type="button" className="pn-row" onClick={() => setDetailId(m.id)} aria-label={`${m.questionNumber ? `Câu ${m.questionNumber}, ` : ""}${questionSnippet(m)}, Part ${m.part}, ${chip ? categoryShort(m.category) + ', ' : ''}${label.text}`}>
+                    <button type="button" className="pn-row" onClick={() => setDetailId(m.id)} aria-label={[m.questionNumber ? `Câu ${m.questionNumber}` : '', questionSnippet(m), `Part ${m.part}`, chip ? categoryShort(m.category) : '', label.text].filter(Boolean).join(', ')}>
                       <span className="pn-pt" style={{ background: PART_COLORS[m.part] ?? '#7c5ce0' }}>P{m.part}</span>
                       <span className="pn-q"><b>{questionSnippet(m)}</b>
                         {chip && <span className="pn-chip" style={{ background: chip.bg, color: chip.fg }}>{chip.label}</span>}</span>
-                      <span className={'pn-when' + (label.due ? ' is-due' : '')}>{label.text}</span>
+                      {label.text && <span className={'pn-when' + (label.due ? ' is-due' : '')}>{label.text}</span>}
                     </button>
                   </li>
                 );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MistakeEntry, PacingRun, StudySession } from '@/shared/types';
 import { emptyBundle, type DataBundle } from '@/shared/data/dataBundle';
-import { pickTodayTasks } from './todayTasks';
+import { pickTodayTasks, todayReviewPlan } from './todayTasks';
 
 const TODAY = '2026-11-13';
 const meta = { updatedAt: '2026-11-01T00:00:00.000Z', deletedAt: null };
@@ -129,5 +129,21 @@ describe('pickTodayTasks', () => {
   it('caps the list at four tasks', () => {
     const data = bundle({ sessions: [test('1', '2026-10-01', { part7: 30 })], mistakes: [mistake('a')] });
     expect(pickTodayTasks(data, TODAY, { dueWordCards: 3 })).toHaveLength(4);
+  });
+});
+
+describe('todayReviewPlan', () => {
+  const due = (n: number) => Array.from({ length: n }, (_, i) => mistake(`d${i}`, { question: 'Q ____', answerSource: 'PROVIDED', nextReviewDate: '2026-11-01' }));
+  const done = (n: number) => Array.from({ length: n }, (_, i) => mistake(`r${i}`, { question: 'Q ____', answerSource: 'PROVIDED', nextReviewDate: '2026-11-14', lastReviewedAt: reviewedToday() }));
+
+  it('opens at most the 15-card batch, minus what was reviewed today', () => {
+    expect(todayReviewPlan(due(60), TODAY)).toMatchObject({ due: 60, batch: 15, left: 15 });
+    expect(todayReviewPlan([...due(55), ...done(5)], TODAY)).toMatchObject({ due: 55, reviewedToday: 5, batch: 15, left: 10 });
+    expect(todayReviewPlan([...due(45), ...done(15)], TODAY)).toMatchObject({ batch: 15, left: 0 });
+  });
+
+  it('never opens more than are due', () => {
+    expect(todayReviewPlan([...due(3), ...done(2)], TODAY)).toMatchObject({ due: 3, batch: 5, left: 3 });
+    expect(todayReviewPlan([], TODAY)).toMatchObject({ batch: 0, left: 0 });
   });
 });

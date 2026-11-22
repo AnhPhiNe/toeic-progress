@@ -107,7 +107,12 @@
 .nbd-why { margin-top: 18px; padding-top: 18px; border-top: 2px solid #f1f3f1; display: flex; flex-direction: column; gap: 14px; }
 .nbd-say { display: grid; grid-template-columns: 54px 1fr; gap: 12px; align-items: center; background: #f6f8f6; border-radius: 18px; padding: 10px 18px 10px 10px; }
 .nbd-say p { font-weight: 700; font-size: 15px; line-height: 1.55; color: #3f4a43; white-space: pre-line; }
-.nbd-mine { font-weight: 700; font-size: 14.5px; color: #5c675f; }
+.nbd-mine { margin-top: 14px; font-weight: 700; font-size: 14.5px; color: #5c675f; }
+.nbd-tip { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; margin-top: 16px; background: #fff8e6; border-radius: 18px; padding: 12px 18px 12px 10px; }
+.nbd-tip p { font-weight: 700; font-size: 15.5px; line-height: 1.55; color: #3a2f12; white-space: pre-line; }
+.nbd-tip b { font-weight: 900; color: #a06a00; }
+.nbd-say.is-plain { grid-template-columns: 1fr; }
+.nbd-two:has(> :only-child) { grid-template-columns: 1fr; }
 .nbd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .nbd-two small { display: block; font-weight: 900; font-size: 13px; color: var(--rd-mut); margin-bottom: 4px; }
 .nbd-two p { font-weight: 700; font-size: 15px; line-height: 1.55; white-space: pre-line; }

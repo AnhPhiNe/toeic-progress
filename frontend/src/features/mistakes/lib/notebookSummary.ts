@@ -1,4 +1,5 @@
 import type { MistakeEntry } from '@/shared/types';
+import { addDays, dueCountOn } from './spacedRepetition';
 
 /** The pink card on top of the phone notebook: how many are due, which Part has most, and a rough time. */
 export function dueSummary(due: readonly Pick<MistakeEntry, 'part'>[]): { count: number; topPart: number | null; minutes: number } {
@@ -7,4 +8,10 @@ export function dueSummary(due: readonly Pick<MistakeEntry, 'part'>[]): { count:
   let topPart: number | null = null, best = 0;
   for (const [part, count] of [...counts].sort((a, b) => a[0] - b[0])) if (count > best) { best = count; topPart = part; }
   return { count: due.length, topPart, minutes: due.length ? Math.max(1, Math.round(due.length * 0.8)) : 0 };
+}
+
+/** The next step on the review "Xong" screen, from the schedule as it stands after grading. */
+export function nextReviewLine(mistakes: readonly MistakeEntry[], today: string): string {
+  const count = dueCountOn(mistakes, addDays(today, 1));
+  return count ? `Ngày mai: ${count} câu` : 'Ngày mai chưa có câu nào đến hạn';
 }
