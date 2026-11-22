@@ -27,6 +27,7 @@ import { SessionLoggerModal } from '@/features/study-sessions/components/Session
 import { SessionResultScreen } from '@/features/study-sessions/components/SessionResultScreen';
 import { SettingsModal } from '@/features/account/components/SettingsModal';
 import { TransferChoiceDialog } from '@/features/account/components/TransferChoiceDialog';
+import { SignOutWarningDialog } from '@/features/account/components/SignOutWarningDialog';
 import { ReviewModal } from '@/features/mistakes/components/ReviewModal';
 import { AccountPanel } from '@/features/account/components/AccountPanel';
 import { describeSync } from '@/features/account/lib/syncStatus';
@@ -731,6 +732,7 @@ export const App: React.FC = () => {
       />
 
       {account.pendingTransfer && <TransferChoiceDialog error={account.error} accountHasData={account.pendingTransfer.accountHasData} onChoose={account.chooseTransfer} onSkip={account.signOut} />}
+      {account.signOutWarning && <SignOutWarningDialog count={account.signOutWarning.count} onStay={() => account.answerSignOutWarning(false)} onSignOut={() => account.answerSignOutWarning(true)} />}
 
 
     </div>
