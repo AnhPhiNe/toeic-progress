@@ -47,8 +47,15 @@ describe('new badges', () => {
     expect(five.progress).toBeCloseTo(0.6);
   });
 
-  it('counts reviews, screenshot captures and Part drills', () => {
-    const cards = Array.from({ length: 10 }, (_, i) => card(`c${i}`, { sourceImageIds: ['h'], reviewCount: 50 }));
+  it('counts the "10 câu" badge from cards saved with their question and options, not reason-only ones', () => {
+    const reasonOnly = Array.from({ length: 10 }, (_, i) => card(`r${i}`, { part: 3, questionContext: `Câu ${40 + i}` }));
+    const saved = Array.from({ length: 9 }, (_, i) => card(`q${i}`, { question: 'What is sold?', options: ['(A) Lamps', '(B) Desks'] }));
+    const almost = byId(computeBadges(bundle([], { mistakes: [...reasonOnly, ...saved] } as Partial<DataBundle>), '2026-11-13'))['effort-capture10'];
+    expect(almost).toMatchObject({ earned: false, left: 'còn 1' });
+  });
+
+  it('counts reviews, saved questions and Part drills', () => {
+    const cards = Array.from({ length: 10 }, (_, i) => card(`c${i}`, { options: ['(A) a', '(B) b', '(C) c', '(D) d'], reviewCount: 50 }));
     const practice = Array.from({ length: 50 }, (_, i) => test(`p${i}`, '2026-11-01', 0, { sessionType: 'PART_PRACTICE' }));
     const b = byId(computeBadges(bundle(practice, { mistakes: cards } as Partial<DataBundle>), '2026-11-13'));
     expect(b['effort-capture10'].earned).toBe(true);

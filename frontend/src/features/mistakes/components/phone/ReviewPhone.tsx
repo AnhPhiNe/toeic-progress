@@ -8,10 +8,9 @@ import { reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/m
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
 import { findFocus, groupLabel, groupNumbers, splitFocus } from '@/features/mistakes/lib/passageFocus';
 import { loadMistakes } from '@/shared/data/storage';
-import { sourceImageUrls } from '@/features/mistakes/services/sourceImages';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { PhoneSheet } from '@/app/components/phone';
-import { PhoneImageViewer } from './PhoneImageViewer';
+import { PassageText } from '../PassageText';
 import { categoryChip, PART_COLORS } from './partStyle';
 import './phone-notebook.css';
 
@@ -30,21 +29,6 @@ interface LastGrade {
   undo: () => void;
 }
 
-/** Signed links for the photos attached to a manual card; empty until loaded, `failed` when they cannot be opened. */
-function usePhotos(ids: string[] | undefined) {
-  const key = ids?.join(',') ?? '';
-  const [state, setState] = useState<{ key: string; images: Array<{ id: string; url: string }>; failed: boolean }>({ key: '', images: [], failed: false });
-  useEffect(() => {
-    if (!key) return;
-    let cancelled = false;
-    sourceImageUrls(key.split(',')).then(images => { if (!cancelled) setState({ key, images, failed: false }); })
-      .catch(() => { if (!cancelled) setState({ key, images: [], failed: true }); });
-    return () => { cancelled = true; };
-  }, [key]);
-  const mine = state.key === key;
-  return { images: mine ? state.images : [], failed: mine && state.failed, loading: Boolean(key) && !mine };
-}
-
 /**
  * Reviewing due mistakes on phones (design/previews/mock-phone-notebook.html): one question full screen, four big options,
  * Sóc's explanation, then "Vẫn chưa chắc" or "Hiểu rồi" with the grading of the computer ReviewSession.
@@ -58,7 +42,6 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const [lastGrade, setLastGrade] = useState<LastGrade | null>(null);
   const [error, setError] = useState('');
   const [fullOpen, setFullOpen] = useState(false);
-  const [zoom, setZoom] = useState(false);
   const done = index >= cards.length;
   const card = cards[Math.min(index, cards.length - 1)];
   const quiz = useMemo(() => card ? resolveQuizOptions(card) : null, [card]);
@@ -68,10 +51,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const before = card ? getUserChoice(card) : '';
   const right = picked !== null && picked === answer;
   const missedQuiz = picked !== null && !right;
-  const photos = usePhotos(card?.sourceImageIds);
-  // Text first: any card (including Part 1 photos and Part 6–7 passages) with an attached photo and no text shows it.
-  const showPhoto = Boolean(card?.sourceImageIds?.length) && !context;
-  const showPassage = card ? (card.part >= 6 && Boolean(context)) || showPhoto : false;
+  const showPassage = card ? card.part >= 6 && Boolean(context) : false;
 
   const pick = (letter: string) => { if (!revealed) { setPicked(letter); setRevealed(true); } };
   const grade = (understood: boolean) => {
@@ -146,8 +126,7 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
 
       <div className="pr-main">
         {showPassage ? (
-          <PassageBox key={card.id} card={card} context={context} short={revealed} photo={showPhoto ? photos : null} meta={meta}
-            onFull={() => setFullOpen(true)} onZoom={() => setZoom(true)} />
+          <PassageBox key={card.id} card={card} context={context} short={revealed} meta={meta} onFull={() => setFullOpen(true)} />
         ) : (
           <div className="pr-meta">{meta}</div>
         )}
@@ -200,16 +179,15 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
         </div>
       )}
 
-      {fullOpen && showPassage && !showPhoto && (
+      {fullOpen && showPassage && (
         <FullPassage card={card} context={context} onClose={() => setFullOpen(false)} />
       )}
-      {zoom && photos.images.length > 0 && <PhoneImageViewer images={photos.images} onClose={() => setZoom(false)} />}
     </div>, document.body);
 }
 
-/** Fixed-height box: the reading text scrolled to the highlighted sentence, or the attached photo. It shrinks after the answer. */
-function PassageBox({ card, context, short, photo, meta, onFull, onZoom }: {
-  card: MistakeEntry; context: string; short: boolean; photo: ReturnType<typeof usePhotos> | null; meta: React.ReactNode; onFull: () => void; onZoom: () => void;
+/** Fixed-height box: the reading text scrolled to the highlighted sentence. It shrinks after the answer. */
+function PassageBox({ card, context, short, meta, onFull }: {
+  card: MistakeEntry; context: string; short: boolean; meta: React.ReactNode; onFull: () => void;
 }) {
   const range = useMemo(() => findFocus(context, { part: card.part, number: card.questionNumber, evidence: card.explanation?.evidence }), [card, context]);
   const parts = splitFocus(context, range);
@@ -231,21 +209,12 @@ function PassageBox({ card, context, short, photo, meta, onFull, onZoom }: {
   }, []);
 
   return (
-    <section className={'pr-psg' + (short ? ' is-short' : '')} aria-label={card.part >= 6 ? 'Đoạn văn' : 'Ảnh đề'}>
-      <div className="pr-phd">{meta}{photo ? <span className="pr-src">Ảnh bạn đính kèm</span> : siblings && <span className="pr-grp">{siblings}</span>}</div>
-      {photo ? (
-        <div className="pr-shot">
-          {photo.images[0] ? <img src={photo.images[0].url} alt="Ảnh bạn đính kèm" /> : <p>{photo.failed ? 'Chưa mở được ảnh. Hãy đăng nhập đồng bộ rồi thử lại.' : 'Đang tải ảnh…'}</p>}
-          {photo.images.length > 0 && <button type="button" className="pr-zoom" onClick={onZoom}>⤢ Phóng to</button>}
-        </div>
-      ) : (
-        <>
-          <div className="pr-ptx" ref={box} tabIndex={0} aria-label="Đoạn văn của câu này">
-            <p>{parts.before}{parts.focus && <mark ref={mark}>{parts.focus}</mark>}{parts.after}</p>
-          </div>
-          <button type="button" className="pr-more" onClick={onFull}>Xem cả đoạn ⌄</button>
-        </>
-      )}
+    <section className={'pr-psg' + (short ? ' is-short' : '')} aria-label="Đoạn văn">
+      <div className="pr-phd">{meta}{siblings && <span className="pr-grp">{siblings}</span>}</div>
+      <div className="pr-ptx" ref={box} tabIndex={0} aria-label="Đoạn văn của câu này">
+        <p>{parts.before}{parts.focus && <mark ref={mark}>{parts.focus}</mark>}{parts.after}</p>
+      </div>
+      <button type="button" className="pr-more" onClick={onFull}>Xem cả đoạn ⌄</button>
     </section>
   );
 }
@@ -259,7 +228,8 @@ function FullPassage({ card, context, onClose }: { card: MistakeEntry; context: 
   useEffect(() => { mark.current?.scrollIntoView({ block: 'center' }); }, []);
   return (
     <PhoneSheet title={`Đoạn văn · câu ${groupLabel(numbers) || card.questionNumber || ''}`.trim()} onClose={onClose}>
-      <p className="pr-full">{parts.before}{parts.focus && <mark ref={mark}>{parts.focus}</mark>}{parts.after}</p>
+      {parts.focus ? <p className="pr-full">{parts.before}<mark ref={mark}>{parts.focus}</mark>{parts.after}</p>
+        : <PassageText className="pr-full" text={context} />}
       {numbers.length > 0 && (
         <div className="pr-nums">Câu trong nhóm:
           {numbers.map(n => <span key={n} className={n === card.questionNumber ? 'is-me' : ''}>{n}</span>)}

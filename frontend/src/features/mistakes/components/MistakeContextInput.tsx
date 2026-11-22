@@ -11,11 +11,12 @@ export function MistakeContextInput({ part, mode, text, busy, onMode, onText, re
   onReset: () => void;
   images: ReactNode;
 }) {
-  if (part === null) return null;
-  const label = part === 1 ? 'Tranh' : part <= 4 ? 'Transcript' : part === 5 ? 'Ngữ cảnh' : 'Đoạn đọc';
+  // Listening (Part 1–4) keeps only the reason, error type and an optional note: no picture or transcript box.
+  if (part === null || part <= 4) return null;
+  const label = part === 5 ? 'Ngữ cảnh' : 'Đoạn đọc';
   // Part 6/7 passages may come as text or as up to MAX_CONTEXT_IMAGES screenshots.
   const passage = part === 6 || part === 7;
-  const showImages = part === 1 || passage && mode === 'image';
+  const showImages = passage && mode === 'image';
   const content = <>
     {reuseLabel && <div className="flex items-center justify-between gap-3 text-xs">
       <span className="font-semibold text-blue-700 dark:text-blue-300">{reuseLabel}</span>
@@ -30,7 +31,7 @@ export function MistakeContextInput({ part, mode, text, busy, onMode, onText, re
     </div>
     {showImages ? images : <textarea id="mistake-context" disabled={busy} value={text} maxLength={16000}
       onChange={event => onText(event.target.value)} rows={2}
-      placeholder={part <= 4 ? 'Dán transcript câu hỏi, hội thoại hoặc bài nói…' : part === 5 ? 'Thêm ngữ cảnh nếu câu hỏi cần…' : 'Dán bài đọc, email hoặc các đoạn văn liên quan…'}
+      placeholder={part === 5 ? 'Thêm ngữ cảnh nếu câu hỏi cần…' : 'Dán bài đọc, email hoặc các đoạn văn liên quan…'}
       className="min-h-[64px] w-full resize-y rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-base leading-relaxed placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900" />}
   </>;
   const classes = 'space-y-1.5 rounded-xl border border-slate-200 px-3 py-1.5 dark:border-slate-700';

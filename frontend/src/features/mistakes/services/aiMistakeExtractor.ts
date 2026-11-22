@@ -18,9 +18,7 @@ export interface AIConfiguration {
   freeformInput?: boolean;
   managedAccess?: boolean;
   part7Images?: boolean;
-  part1Images?: boolean;
   learnerCategory?: boolean;
-  persistentImages?: boolean;
   pageImages?: boolean;
   pageContextImages?: boolean;
   maxPageContextImages?: number;
@@ -76,9 +74,7 @@ export async function getAIConfiguration(): Promise<AIConfiguration> {
     ...(value.freeform_mistake_input === true ? { freeformInput: true } : {}),
     ...(value.managed_ai_access === true ? { managedAccess: true } : {}),
     ...(value.part7_context_images === true ? { part7Images: true } : {}),
-    ...(value.part1_picture_input === true ? { part1Images: true } : {}),
     ...(value.learner_error_category === true ? { learnerCategory: true } : {}),
-    ...(value.persistent_source_images === true ? { persistentImages: true } : {}),
     ...(value.page_image_extraction === true ? { pageImages: true } : {}),
     ...(value.page_context_images === true ? { pageContextImages: true } : {}),
     ...(typeof value.max_page_context_images === 'number' ? { maxPageContextImages: value.max_page_context_images } : {}),
@@ -115,7 +111,7 @@ export async function getAIUsage(): Promise<AIUsage | null> {
 }
 
 export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, input?: MistakeInput,
-  images: PreparedImage[] = [], sourceImageIds: string[] = [], expectedOwner?: string | null, isCurrent: () => boolean = () => true): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
+  images: PreparedImage[] = [], expectedOwner?: string | null, isCurrent: () => boolean = () => true): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
   if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
   const checkCurrent = () => { if (!isCurrent()) throw new Error('Tác vụ phân tích đã đóng hoặc thay đổi. Chưa gửi yêu cầu mới.'); };
@@ -147,7 +143,6 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
   const value = await backendRequest<{ draft: unknown; usage: AIUsage }>('/api/v1/ai/extract', 'POST', {
     text: rawInput.trim(), request_id: generateUUID(), consent: true, captcha_token: captchaToken,
     provider: 'openai', ...(input ? { input } : {}), ...(images.length ? { images: images.map(image => ({ dataUrl: image.dataUrl })) } : {}),
-    ...(sourceImageIds.length ? { sourceImageIds } : {})
   }, session.user.id, isCurrent);
   checkCurrent();
   const parsed = draftSchema.safeParse(value.draft);

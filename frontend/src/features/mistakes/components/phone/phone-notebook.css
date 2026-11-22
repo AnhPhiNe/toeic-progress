@@ -159,19 +159,13 @@
 /* passage box: fixed height, shrinks to about three lines once the answer shows */
 .pr-psg { position: relative; flex: none; border-radius: 22px; background: #fff; box-shadow: 0 6px 18px rgba(200,80,120,.1); overflow: hidden; margin-top: 4px; }
 .pr-phd { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 12px 14px 6px; }
-.pr-grp, .pr-src { margin-left: auto; font-weight: 900; font-size: 12px; color: #a3aba5; }
-.pr-src { background: #f3f1ec; border-radius: 99px; padding: 3px 9px; color: #5e6962; }
+.pr-grp { margin-left: auto; font-weight: 900; font-size: 12px; color: #a3aba5; }
 .pr-ptx { position: relative; height: min(236px, 34dvh); overflow-y: auto; padding: 0 14px 8px; font-weight: 700; font-size: 14px; line-height: 1.55; color: #3f4a43; transition: height .25s ease; scrollbar-width: none; }
 .pr-ptx::-webkit-scrollbar { display: none; }
 .pr-ptx p { white-space: pre-line; }
 .pr-psg.is-short .pr-ptx { height: 84px; }
 .pr-psg mark, .pr-full mark { background: #fff1b8; color: inherit; border-radius: 4px; padding: 0 2px; box-shadow: 0 0 0 2px #fff1b8; }
 .pr-more { display: block; margin: 4px auto 10px; min-height: 40px; border: 0; border-radius: 99px; background: #f3f1ec; padding: 0 16px; font-weight: 900; font-size: 12.5px; color: #5e6962; white-space: nowrap; cursor: pointer; }
-.pr-shot { position: relative; margin: 0 14px 14px; height: min(196px, 30dvh); border-radius: 14px; overflow: hidden; background: #f4f1ea; display: grid; place-items: center; transition: height .25s ease; }
-.pr-psg.is-short .pr-shot { height: 84px; }
-.pr-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.pr-shot p { font-weight: 800; font-size: 13px; color: var(--rd-mut); padding: 0 16px; text-align: center; }
-.pr-zoom { position: absolute; right: 10px; bottom: 10px; min-height: 36px; border: 0; border-radius: 99px; background: rgba(47,58,51,.78); color: #fff; padding: 0 13px; font-weight: 900; font-size: 12.5px; cursor: pointer; }
 .pr-full { font-weight: 700; font-size: 15px; line-height: 1.65; color: #3f4a43; white-space: pre-line; }
 .pr-nums { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; font-weight: 900; font-size: 12.5px; color: #a3aba5; }
 .pr-nums span { border-radius: 99px; padding: 3px 10px; background: #f3f1ec; color: var(--rd-ink); }
@@ -298,4 +292,4 @@
 .pc-tiplist { list-style: none; padding: 0; margin: 8px 0 0; }
 .pc-tiplist li { display: flex; align-items: center; gap: 10px; padding: 8px 2px; font-weight: 900; font-size: 14px; }
 .pc-tiplist em { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 14px; }
-@media (prefers-reduced-motion: reduce) { .pr-ptx, .pr-shot, .pr-bar i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pr-ptx, .pr-bar i { transition: none; } }

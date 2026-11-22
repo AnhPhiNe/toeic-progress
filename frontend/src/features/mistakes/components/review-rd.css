@@ -7,7 +7,6 @@
 .rv-bar-acts { display: flex; align-items: center; gap: 8px; }
 .rv-undo { background: #fff4d1; border: 2px solid #f3d98a; border-radius: 12px; padding: 7px 14px; font-weight: 900; font-size: 14px; color: #8a5a00; cursor: pointer; }
 .rv-x { background: #fff; border: 2px solid var(--rd-line); border-radius: 12px; padding: 7px 14px; font-weight: 900; font-size: 14px; color: #5c675f; cursor: pointer; }
-.rv-src { margin-top: 12px; }
 .rv-prog { align-self: stretch; height: 12px; border-radius: 99px; background: #f6dde4; margin-top: 20px; overflow: hidden; }
 .rv-prog i { display: block; height: 100%; border-radius: 99px; background: var(--rd-pink); transition: width .3s; }
 .rv-card { width: min(820px, 100%); margin-top: 34px; background: #fff; border: 2px solid #f1e6ea; border-radius: 28px; padding: 28px 34px 30px; }

@@ -87,7 +87,6 @@
 .nbd-links { display: flex; gap: 16px; padding-top: 8px; }
 .nbd-links button { border: 0; background: none; font-weight: 900; font-size: 14.5px; color: #5c675f; cursor: pointer; }
 .nbd-links button:hover { color: var(--rd-ink); }
-.nbd-img { margin-top: 14px; }
 .nbd-ctx { margin-top: 18px; background: #f6f6f6; border-radius: 18px; padding: 16px 20px; }
 .nbd-ctx p { font-weight: 700; font-size: 16px; line-height: 1.7; white-space: pre-line; }
 .nbd-ev { background: #e7f6ea; color: var(--rd-green-d); font-weight: 900; border-radius: 6px; padding: 1px 3px; }

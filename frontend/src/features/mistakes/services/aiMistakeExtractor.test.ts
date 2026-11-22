@@ -320,25 +320,25 @@ describe('single extraction lifecycle', () => {
   const raw = () => getDemoSampleInput().input;
   it('blocks an owner changed while getSession was pending', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: { ...account, user: { ...account.user, id: 'other-account' } } } });
-    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], [], account.user.id)).rejects.toThrow('Tài khoản đã thay đổi');
+    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], account.user.id)).rejects.toThrow('Tài khoản đã thay đổi');
     expect(mocks.backendRequest).not.toHaveBeenCalled();
   });
   it('does not send after closing while getSession is pending', async () => {
     let current = true;
     mocks.getSession.mockImplementation(async () => { current = false; return { data: { session: account } }; });
-    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], [], account.user.id, () => current)).rejects.toThrow('đã đóng');
+    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], account.user.id, () => current)).rejects.toThrow('đã đóng');
     expect(mocks.backendRequest).not.toHaveBeenCalled();
   });
   it('does not replace an account that signs in during guest CAPTCHA', async () => {
     mocks.getSession.mockResolvedValueOnce({ data: { session: null } }).mockResolvedValueOnce({ data: { session: account } });
-    await expect(extractMistakeWithAI(raw(), async () => 'token', undefined, [], [], null)).rejects.toThrow('Tài khoản đã thay đổi');
+    await expect(extractMistakeWithAI(raw(), async () => 'token', undefined, [], null)).rejects.toThrow('Tài khoản đã thay đổi');
     expect(mocks.signInAnonymously).not.toHaveBeenCalled();
     expect(mocks.backendRequest).not.toHaveBeenCalled();
   });
   it('does not create a guest or send after closing during CAPTCHA', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: null } });
     let current = true;
-    await expect(extractMistakeWithAI(raw(), async () => { current = false; return 'token'; }, undefined, [], [], null, () => current)).rejects.toThrow('đã đóng');
+    await expect(extractMistakeWithAI(raw(), async () => { current = false; return 'token'; }, undefined, [], null, () => current)).rejects.toThrow('đã đóng');
     expect(mocks.signInAnonymously).not.toHaveBeenCalled();
     expect(mocks.backendRequest).not.toHaveBeenCalled();
   });
@@ -346,7 +346,7 @@ describe('single extraction lifecycle', () => {
     let current = true;
     const guard = () => current;
     mocks.backendRequest.mockImplementation(async () => { current = false; return { draft: getDemoSampleInput().result, usage: {} }; });
-    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], [], account.user.id, guard)).rejects.toThrow('đã đóng');
+    await expect(extractMistakeWithAI(raw(), vi.fn(), undefined, [], account.user.id, guard)).rejects.toThrow('đã đóng');
     expect(mocks.backendRequest).toHaveBeenCalledOnce();
     expect(mocks.backendRequest.mock.calls[0][4]).toBe(guard);
   });

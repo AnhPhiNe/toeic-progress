@@ -7,6 +7,7 @@ import { questionPreview, rowStatus, rowUnsureReason, openDraftDoubt, whyLine, i
 import { withLetters } from '@/features/mistakes/lib/multiQuestion';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
+import { PassageText } from '@/features/mistakes/components/PassageText';
 import type { AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
 
 type ItemPatch = Partial<Pick<CaptureItem, 'draft' | 'category' | 'checked'>>;
@@ -111,7 +112,7 @@ function RowPreview({ item, answer, doubt }: { item: CaptureItem; answer: string
           <button type="button" className="cap-prev-psg-btn" aria-expanded={showPassage} onClick={() => setShowPassage(v => !v)}>
             {showPassage ? '▾' : '▸'} {item.part <= 4 ? 'Transcript' : 'Đoạn văn'}: {draft.context.trim().split('\n')[0]}
           </button>
-          {showPassage && <p className="cap-prev-psg">{draft.context}</p>}
+          {showPassage && <PassageText className="cap-prev-psg" text={draft.context} />}
         </div>
       )}
       {fullQ.length > 90 && <p className="cap-prev-q">{fullQ}</p>}
@@ -150,6 +151,9 @@ const optionLines = (draft: AIMistakeParseResult) => [draft.question ?? '', ...d
 
 function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; onClose: () => void; onPatch: (patch: ItemPatch) => void; onRemove: () => void }) {
   const [text, setText] = useState(optionLines(item.draft));
+  // Part 6/7 keep the passage as text (no image is stored), so the learner can fix what AI read.
+  const [passage, setPassage] = useState(item.draft.context ?? '');
+  const passageEditable = item.part >= 6 && Boolean(item.draft.context?.trim());
   const [choice, setChoice] = useState<ChoiceLetter | 'BLANK' | ''>(
     item.draft.userChoiceState === 'BLANK' ? 'BLANK' : (item.draft.userChoice as ChoiceLetter | '')
   );
@@ -167,6 +171,10 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
       const parsed = parsePastedQuestion(text, item.part);
       if (parsed.error) { setError(parsed.error); return; }
       draft = { ...draft, question: parsed.question, options: parsed.options, questionContext: [parsed.question, draft.context ?? ''].filter(Boolean).join('\n\n') };
+    }
+    if (passageEditable && passage !== (draft.context ?? '')) {
+      if (!passage.trim()) { setError('Đoạn văn không được để trống.'); return; }
+      draft = { ...draft, context: passage, questionContext: [draft.question ?? '', passage].filter(Boolean).join('\n\n') };
     }
     if ((choice && choice !== 'BLANK' && !draft.options.some(option => option.startsWith(`(${choice})`))) || (answer && !draft.options.some(option => option.startsWith(`(${answer})`)))) {
       setError('Lựa chọn chưa khớp phương án. Kiểm tra lại nội dung.'); return;
@@ -208,6 +216,9 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
       <label>Câu hỏi và các phương án
         <textarea value={text} rows={Math.min(7, Math.max(3, text.split('\n').length))} spellCheck={false} maxLength={8000} onChange={event => { setText(event.target.value); setError(''); }} />
       </label>
+      {passageEditable && <label>Đoạn văn
+        <textarea value={passage} rows={Math.min(8, Math.max(3, passage.split('\n').length))} spellCheck={false} maxLength={8000} onChange={event => { setPassage(event.target.value); setError(''); }} />
+      </label>}
       {chips('Mình chọn', choice, setChoice, true)}
       {chips('Đáp án đúng', answer, letter => setAnswer(letter === 'BLANK' ? '' : letter))}
       <div className="cap-edit-two">
