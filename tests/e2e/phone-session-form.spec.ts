@@ -54,7 +54,8 @@ test('phone Full Test keeps the wrong questions, which become draft notebook car
   const dialog = phoneLogger(page);
   // The next test in the series is suggested and already chosen.
   await expect(dialog.getByRole('group', { name: 'Đề', exact: true }).getByRole('button', { name: 'ETS 2024 Test 04', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await dialog.getByRole('button', { name: /^Tự nhập điểm/ }).click();
+  await dialog.getByRole('button', { name: /^✎ Tự chọn câu sai/ }).click();
+  await dialog.getByRole('button', { name: /^Sửa điểm/ }).click();
   await expect(dialog.locator('.pl-total b')).toHaveText('800');
   await dialog.getByRole('button', { name: /^Câu sai/ }).click();
   const summary = dialog.locator('.pl-score-mini');

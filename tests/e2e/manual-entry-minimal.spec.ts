@@ -6,8 +6,9 @@ async function openMinimal(page: Page, name: string) {
   await page.goto('/lich-su');
   await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  // The paste view has no name field (the picture names the test); the short "Nhập tay" view does.
-  await form.getByRole('button', { name: /^Nhập tay/ }).click();
+  // The paste view has no name field (the picture names the test); the short "Tự chọn câu sai" view does.
+  await form.getByRole('button', { name: /^Tự chọn câu sai/ }).click();
+  await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
   await form.locator('#session-test-name').fill(name);
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
   return form;
@@ -63,5 +64,5 @@ test('the grid view opens from the short view and goes back to it', async ({ pag
   await form.getByRole('button', { name: /^‹ Quay lại$/ }).click();
   await expect(form.getByLabel('Số câu sai', { exact: true })).toHaveValue('3');
   await form.getByRole('button', { name: /^‹ Quay lại dán ảnh/ }).click();
-  await expect(form.getByRole('button', { name: /^Nhập tay/ })).toBeVisible();
+  await expect(form.getByRole('button', { name: /^Tự chọn câu sai/ })).toBeVisible();
 });

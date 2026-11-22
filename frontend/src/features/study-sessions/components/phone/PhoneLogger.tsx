@@ -258,11 +258,13 @@ export function PhoneLogger(props: PhoneLoggerProps) {
               <input type="date" required max={today} value={props.date} aria-label="Chọn ngày" onChange={event => event.target.value && props.setDate(event.target.value)} />
             </label>
           </div>
-          <p className="pl-lab pl-lab--gap">GHI THẾ NÀO?</p>
-          <label className={'pl-tile pl-tile--pink' + (aiOn ? '' : ' is-off')}>
-            <i aria-hidden="true">📷</i>
-            <span><b>Chụp màn kết quả</b><small>{aiOn ? 'Sóc đọc điểm và câu sai · 1 lượt AI' : 'Chưa dùng được lúc này'}</small></span>
-            <em aria-hidden="true">›</em>
+          <div className="pl-hero">
+            <div className="pl-hero-art" aria-hidden="true"><Soc state="focus" size={120} /></div>
+            <h3>Chụp trang kết quả</h3>
+            <p>Sóc đọc điểm và các câu bạn sai.</p>
+          </div>
+          <label className={'pl-shoot' + (aiOn ? '' : ' is-off')}>
+            <span><i aria-hidden="true">📷</i>{aiOn ? 'Chụp hoặc chọn ảnh' : 'Chưa dùng được lúc này'}</span>
             <input type="file" accept="image/*" multiple disabled={!aiOn} aria-label="Chụp màn kết quả"
               onChange={event => {
                 const files = [...(event.target.files ?? [])];
@@ -271,12 +273,7 @@ export function PhoneLogger(props: PhoneLoggerProps) {
                 setWrongFrom('pick'); props.setInitialFiles(files); setStep('wrong');
               }} />
           </label>
-          <button type="button" className="pl-tile pl-tile--blue" onClick={goManual}>
-            <i aria-hidden="true">✎</i>
-            <span><b>Tự nhập điểm</b><small>Nghe + Đọc, câu sai thêm sau</small></span>
-            <em aria-hidden="true">›</em>
-          </button>
-          <div className="pl-tip"><Soc state="idle" size={56} /><p>Chụp màn có điểm, thời gian và câu sai là đủ, không cần ghép ảnh.</p></div>
+          <button type="button" className="pl-quiet" onClick={() => { setWrongFrom('pick'); setStep('wrong'); }}>✎ Tự chọn câu sai</button>
         </div>
       </div>
     );

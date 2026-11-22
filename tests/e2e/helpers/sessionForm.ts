@@ -18,11 +18,10 @@ export async function choosePractice(dialog: Locator) {
 
 /** Switch a Full Test from per-Part estimation to typing the official score. */
 export async function useOfficialScore(dialog: Locator) {
-  // Computer Full Test opens on the paste view; the official-score switch lives in the 200-question grid behind "Nhập tay".
-  const manual = dialog.getByRole('button', { name: /^Nhập tay/ });
+  // Computer Full Test opens on the paste view; the official-score switch lives in the 200-question grid behind "Tự chọn câu sai".
+  const manual = dialog.getByRole('button', { name: /^Tự chọn câu sai/ });
   if (await manual.isVisible()) {
     await manual.click();
-    await dialog.getByRole('button', { name: /^Chạm từng câu trên lưới/ }).click();
   }
   await dialog.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
 }
@@ -37,10 +36,9 @@ export async function openHistoryEdit(page: Page, testName: string) {
 
 /** Phones log a Full Test by its wrong questions; tests that type per-Part counts switch to the counts entry first. */
 export async function usePartCounts(dialog: Locator) {
-  const manual = dialog.getByRole('button', { name: /^Nhập tay/ });
+  const manual = dialog.getByRole('button', { name: /^Tự chọn câu sai/ });
   if (await manual.isVisible()) {
     await manual.click();
-    await dialog.getByRole('button', { name: /^Chạm từng câu trên lưới/ }).click();
   }
   const link = dialog.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true });
   if (await link.isVisible()) await link.click();
@@ -54,7 +52,7 @@ export async function openPracticeEdit(page: Page, rowTitle: string) {
   await page.getByRole('button', { name: rowTitle }).first().click();
 }
 
-/** The computer score form on its grid view: the paste view has no test-name field, the "Nhập tay" views do. */
+/** The computer score form on its grid view: the paste view has no test-name field, the grid view behind "Tự chọn câu sai" does. */
 export async function openGridForm(page: Page) {
   await openScoreLogger(page);
   const form = sessionDialog(page);
@@ -76,10 +74,11 @@ export async function pickPhoneTestName(page: Page, name: string) {
   await ((await existing.count()) ? existing : page.getByRole('option', { name: `+ Thêm tên đề “${name}”`, exact: true })).click();
 }
 
-/** PhoneLogger: step 1 (name) then "Tự nhập điểm" to reach the Nghe/Đọc wheels. */
+/** PhoneLogger: step 1 (name) then "Tự chọn câu sai" and "Sửa điểm" to reach the Nghe/Đọc wheels. */
 export async function phoneManualScore(page: Page, name: string) {
   await pickPhoneTestName(page, name);
-  await phoneLogger(page).getByRole('button', { name: /^Tự nhập điểm/ }).click();
+  await phoneLogger(page).getByRole('button', { name: /^✎ Tự chọn câu sai/ }).click();
+  await phoneLogger(page).getByRole('button', { name: /^Sửa điểm/ }).click();
 }
 
 /** Moves a wheel to a value with the keyboard (Home, then PageDown = 10 rows, ArrowDown = 1 row). */
