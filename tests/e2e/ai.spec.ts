@@ -56,7 +56,9 @@ test('review reveals meanings after answering and saves a real timestamp', async
   await expect(modal.getByText('to be, hiện tại số nhiều')).toHaveCount(0);
   await modal.getByRole('button', { name: 'Xem nghĩa từng phương án', exact: true }).click();
   await expect(modal.getByText('to be, hiện tại số nhiều')).toBeVisible();
-  await modal.getByRole('button', { name: 'Vẫn chưa chắc', exact: true }).click();
+  // A wrong pick is reviewed again tomorrow either way, so there is a single "Tiếp".
+  await expect(modal.getByRole('button', { name: 'Vẫn chưa chắc', exact: true })).toHaveCount(0);
+  await modal.getByRole('button', { name: 'Tiếp', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.lastReviewedAt).toMatch(/T.*Z$/);
   await expect(page.getByRole('dialog', { name: 'Ôn xong' })).toContainText('Ôn lại ngày mai 1');
@@ -169,7 +171,7 @@ test('review cannot overwrite a newer question stored elsewhere', async ({ page 
   const review = page.getByRole('dialog', { name: 'Ôn câu sai' });
   await page.evaluate(() => { const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!); bundle.mistakes[0].questionContext = 'Question corrected on another device.'; localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle)); });
   await review.getByRole('button', { name: /^\(A\)\s*are/ }).click();
-  await review.getByRole('button', { name: 'Hiểu rồi', exact: true }).click();
+  await review.getByRole('button', { name: 'Tiếp', exact: true }).click();
   await expect(review.getByRole('alert')).toContainText('Nội dung thẻ đã thay đổi');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
   expect(saved.questionContext).toBe('Question corrected on another device.'); expect(saved.reviewCount).toBeUndefined();
