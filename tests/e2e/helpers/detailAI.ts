@@ -79,3 +79,8 @@ export async function openPendingList(page: Page, testName = 'ETS Table', index 
 
 export const storedCard = (page: Page, number: number, testName = 'ETS Table') => page.evaluate(([value, name]) => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
   .find((card: { sourceTestName?: string; questionNumber?: number; deletedAt?: string | null }) => card.sourceTestName === name && card.questionNumber === value && !card.deletedAt), [number, testName] as const);
+
+/** Gỡ câu sai opens on Listening (question 3); this sets it aside and lands on "Chụp câu sai". */
+export async function skipListening(flow: import('@playwright/test').Locator) {
+  await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
+}

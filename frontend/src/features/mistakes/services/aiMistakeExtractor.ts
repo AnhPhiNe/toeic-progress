@@ -207,7 +207,9 @@ const pageRejectionReasonSchema = z.object({
   detail: z.string().max(300)
 });
 const pageSchema = z.object({
-  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema,
+    /** Whether the number was printed on the page or guessed by Sóc; sent by newer backends only. */
+    numberSource: z.enum(['printed', 'inferred']).optional().catch(undefined) })).max(6),
   missing: z.array(z.number().int().min(1).max(200)).max(200),
   rejectionReasons: z.array(pageRejectionReasonSchema).max(20).optional().default([]),
   explainTicket: z.string().max(2048).nullish(),
@@ -333,7 +335,9 @@ export async function readResultsWithAI(images: PreparedImage[], getCaptcha: () 
   return { ...parsed.data, usage: value.usage };
 }
 const explainSchema = z.object({
-  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema })).max(6),
+  items: z.array(z.object({ number: z.number().int().min(1).max(200), draft: pageDraftSchema,
+    /** Whether the number was printed on the page or guessed by Sóc; sent by newer backends only. */
+    numberSource: z.enum(['printed', 'inferred']).optional().catch(undefined) })).max(6),
   failed: z.array(z.number().int().min(1).max(200)).max(6),
   retry: z.array(z.object({
     number: z.number().int().min(1).max(200),

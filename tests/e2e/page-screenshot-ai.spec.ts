@@ -62,10 +62,12 @@ async function readSet(page: Page) {
   await form.getByRole('button', { name: /^Lưu điểm/ }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   const flow = page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Screen', exact: true });
-  await flow.getByRole('button', { name: /Chụp trang chữa bài Part 6/ }).click();
+  // The phone opens on the first item of the shot list; its progress chip opens the whole list.
+  await flow.getByRole('button', { name: 'Cần chụp 0/2', exact: true }).click();
+  await flow.getByRole('button', { name: 'Nhóm 131–134', exact: true }).click();
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: 'Gửi Sóc đọc 131–134', exact: true }).click();
-  await expect(flow.getByRole('heading', { name: /^Sóc đọc được 2 câu/ })).toBeVisible();
+  await flow.getByRole('button', { name: 'Xong nhóm', exact: true }).click();
+  await expect(flow.getByRole('heading', { name: 'Soát · 2 câu', exact: true })).toBeVisible();
   return flow;
 }
 
@@ -76,8 +78,8 @@ test('on a phone one page of a Part 6 set fills its wrong questions, and they ar
   const flow = await readSet(page);
   const call = await page.evaluate(() => (window as Window & { __pageCall: { questions: unknown; images: number; context: number } }).__pageCall);
   expect(call).toEqual({ questions: [131, 132, 133, 134].map(number => ({ number, part: 6 })), images: 1, context: 0 });
-  await expect(flow.getByRole('group', { name: 'Câu 131: Bạn chọn C, đáp án D', exact: true })).toBeVisible();
-  await expect(flow.getByRole('group', { name: 'Câu 132: Bạn chọn B, đáp án D', exact: true })).toBeVisible();
+  await expect(flow.getByRole('button', { name: 'Mở câu 131', exact: true })).toContainText(/C\s*D/);
+  await expect(flow.getByRole('button', { name: 'Mở câu 132', exact: true })).toContainText(/B\s*D/);
 
   await flow.getByRole('button', { name: 'Mở câu 131', exact: true }).click();
   await flow.getByRole('button', { name: /^▸ Đoạn văn: Library Reopens/ }).click();
@@ -89,13 +91,14 @@ test('on a phone one page of a Part 6 set fills its wrong questions, and they ar
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132]]);
 
   // Correcting the learner's choice invalidates the rationale written for the screenshot's earlier choice.
+  await flow.getByRole('button', { name: 'Mở câu 131', exact: true }).click();
   await flow.getByRole('button', { name: 'Mở câu 132', exact: true }).click();
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await flow.getByRole('group', { name: 'Bạn chọn', exact: true }).getByRole('button', { name: 'A', exact: true }).click();
   await expect(flow.getByRole('group', { name: 'Vì sao sai câu 132' }).getByRole('button', { name: 'Ngữ pháp' })).toHaveAttribute('aria-pressed', 'false');
   await expect(flow.getByText(TIP, { exact: true })).toHaveCount(0);
-  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
-  await expect(flow.getByRole('img', { name: 'Đã ghi 2 trên 3 câu', exact: true })).toBeAttached();
+  await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
+  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 2 câu vào Sổ tay' })).toBeVisible();
 
   const cards = await stored(page);
   const q132 = cards.find((card: { questionNumber: number }) => card.questionNumber === 132);
@@ -111,9 +114,11 @@ test('on a phone one page of a Part 6 set fills its wrong questions, and they ar
 
 test('a corrected answer is kept as the learner’s', async ({ page }) => {
   const flow = await readSet(page);
-  await flow.getByRole('group', { name: /^Câu 131:/ }).getByRole('button', { name: 'Đáp án đúng B' }).click();
-  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
-  await expect(flow.getByRole('img', { name: 'Đã ghi 2 trên 3 câu', exact: true })).toBeAttached();
+  await flow.getByRole('button', { name: 'Mở câu 131', exact: true }).click();
+  await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
+  await flow.getByRole('group', { name: 'Đáp án', exact: true }).getByRole('button', { name: 'B', exact: true }).click();
+  await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
+  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 2 câu vào Sổ tay' })).toBeVisible();
   const cards = await stored(page);
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 131))
     .toMatchObject({ correctAnswer: '(B) The library will close early.', answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' });
@@ -124,10 +129,11 @@ test('a corrected answer is kept as the learner’s', async ({ page }) => {
 test('an explanation that never arrived is asked for again on the card without a new AI use', async ({ page }) => {
   await page.addInitScript(() => { (window as Window & { __explainFails?: boolean }).__explainFails = true; });
   const flow = await readSet(page);
-  await expect(flow.getByRole('img', { name: 'Đang viết lời giải' }).first()).toBeVisible();
+  await expect(flow.getByText(/Đang viết lời giải 2 câu/)).toBeVisible();
   await page.waitForFunction(() => (window as Window & { __explainFinished?: number }).__explainFinished === 1);
-  await expect(flow.getByRole('img', { name: 'Đang viết lời giải' })).toHaveCount(0);
-  await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
+  await expect(flow.getByText(/Đang viết lời giải/)).toHaveCount(0);
+  await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
+  await flow.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
 
