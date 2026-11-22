@@ -51,7 +51,11 @@ test('three passage groups are read side by side with unified tray and Auto-Adva
   await expect(flow.getByRole('group', { name: /^Câu 186:/ })).toBeVisible();
   await flow.getByRole('button', { name: 'Lưu 2 câu', exact: true }).click();
   await expect(flow.getByRole('img', { name: 'Đã ghi 2 trên 43 câu', exact: true })).toBeVisible();
-  expect(new Set((await calls(page)).map(call => call.batch)).size).toBe(1);
+  // One batch takes 4 readings (backend AI_BATCH_MAX_REQUESTS); the retry is the 5th, so it starts a second batch.
+  const all = await calls(page);
+  expect(all).toHaveLength(5);
+  expect(new Set(all.slice(0, 4).map(call => call.batch)).size).toBe(1);
+  expect(all[4].batch).not.toBe(all[0].batch);
 });
 
 test('Part 7 allows editing group range (e.g. 149–151), Auto-Advance, and optional PhotoReview', async ({ page }) => {
