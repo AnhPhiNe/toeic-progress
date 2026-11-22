@@ -11,6 +11,9 @@ from PIL import Image, ImageOps, PngImagePlugin, UnidentifiedImageError
 
 MAX_IMAGE_BYTES = 1024 * 1024
 MAX_TOTAL_IMAGE_BYTES = 2 * 1024 * 1024
+# A single-card analysis may send up to MAX_ANALYZE_IMAGES passage images (Part 6/7), each prepared to ~600 KiB.
+MAX_ANALYZE_IMAGES = 4
+MAX_ANALYZE_TOTAL_BYTES = 3 * 1024 * 1024
 MAX_IMAGE_PIXELS = 8_000_000
 MAX_DATA_URL_LENGTH = 4 * ((MAX_IMAGE_BYTES + 2) // 3) + 32
 # Screenshots of a test page are read as they are (originals give the best reading); the page route takes bigger ones.

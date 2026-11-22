@@ -7,6 +7,8 @@ from uuid import UUID
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.image_input import (
+    MAX_ANALYZE_IMAGES,
+    MAX_ANALYZE_TOTAL_BYTES,
     MAX_DATA_URL_LENGTH,
     MAX_IMAGE_BYTES,
     MAX_PAGE_DATA_URL_LENGTH,
@@ -479,7 +481,7 @@ class ExtractRequest(BaseModel):
     provider: Literal["openai"]
     captcha_token: str | None = Field(default=None, max_length=2048)
     input: MistakeInput | None = None
-    images: list[ImageAttachment] = Field(default_factory=list, max_length=3, repr=False)
+    images: list[ImageAttachment] = Field(default_factory=list, max_length=MAX_ANALYZE_IMAGES, repr=False)
     sourceImageIds: list[SourceImageId] = Field(default_factory=list, max_length=3)
 
     @model_validator(mode="after")
@@ -491,14 +493,14 @@ class ExtractRequest(BaseModel):
         if self.input is not None and self.input.part == 1 and not (self.images or self.sourceImageIds):
             raise ValueError("Cần ảnh tranh để phân tích Part 1")
         if self.images or self.sourceImageIds:
-            if self.input is None or self.input.part not in (1, 7):
-                raise ValueError("Ảnh chỉ hỗ trợ Part 1/7 với input có cấu trúc")
+            if self.input is None or self.input.part not in (1, 6, 7):
+                raise ValueError("Ảnh chỉ hỗ trợ Part 1/6/7 với input có cấu trúc")
             if self.input.part == 1 and len(self.images or self.sourceImageIds) != 1:
                 raise ValueError("Mỗi câu Part 1 dùng một ảnh tranh")
             if self.input.rawText is None and len(self.input.options) != 4:
                 raise ValueError("Dán đủ bốn phương án A–D; ảnh chỉ cung cấp ngữ cảnh")
-            if sum(image.byte_count for image in self.images) > MAX_TOTAL_IMAGE_BYTES:
-                raise ValueError("Tổng ảnh gửi đi tối đa 2 MiB")
+            if sum(image.byte_count for image in self.images) > MAX_ANALYZE_TOTAL_BYTES:
+                raise ValueError("Tổng ảnh gửi đi tối đa 3 MiB")
         else:
             if len(self.text.strip()) < 20:
                 raise ValueError("Nội dung tối thiểu 20 ký tự")
