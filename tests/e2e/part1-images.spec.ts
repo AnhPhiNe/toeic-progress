@@ -25,4 +25,15 @@ test('new notes are Reading only, while an existing Part 1 card keeps its Part w
   const editor = await openCardEditor(page);
   await expect(editor.getByRole('button', { name: 'Part 1', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(editor.getByRole('group', { name: 'Part', exact: true }).getByRole('button')).toHaveText(['1', '5', '6', '7']);
+  // Listening keeps reason, error type and a short note: no picture to add, no transcript box.
+  await expect(editor.getByLabel(/Chọn ảnh|Chụp tranh|Chụp trang/)).toHaveCount(0);
+  await expect(editor.getByRole('region', { name: /Khu vực/ })).toHaveCount(0);
+  await expect(editor.getByText('Tranh', { exact: true })).toHaveCount(0);
+  await expect(editor.getByLabel('Lý do chọn')).toBeVisible();
+  await editor.getByLabel('Lý do chọn').fill('Nghe nhầm seated với standing.');
+  await editor.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0]);
+  expect(saved).toMatchObject({ part: 1, userReason: 'Nghe nhầm seated với standing.', context: description });
+  expect(saved.sourceImageIds).toBeUndefined();
 });

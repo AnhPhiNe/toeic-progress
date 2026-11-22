@@ -5,7 +5,7 @@ import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
 import { reviewRating, type ReviewAnswer, type ReviewRating } from '@/features/mistakes/lib/spacedRepetition';
 import { getUserChoice } from '@/features/mistakes/lib/userChoice';
-import { SourceImageViewer } from './SourceImageViewer';
+import { PassageText } from './PassageText';
 import { Soc } from '@/shared/ui/soc/Soc';
 import './review-rd.css';
 
@@ -125,8 +125,7 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
       <div className="rv-prog"><i style={{ width: `${(index + (revealed ? 0.5 : 0)) / cards.length * 100}%` }} /></div>
       <article className="rv-card">
         <small>{meta}</small>
-        {card.sourceImageIds?.length ? <div className="rv-src"><SourceImageViewer ids={card.sourceImageIds} part={card.part} /></div> : null}
-        {context && <p className="rv-ctx">{context}</p>}
+        {context && <PassageText className="rv-ctx" text={context} />}
         <h3 className="rv-q">{question}</h3>
         {quizMode && quiz ? (
           <div className="rv-opts" role="group" aria-label="Chọn đáp án">

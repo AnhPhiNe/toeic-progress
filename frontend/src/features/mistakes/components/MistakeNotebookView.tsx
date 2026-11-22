@@ -102,7 +102,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   // The test whose wrong questions are being worked through (Gỡ câu sai); its cards are read live from `mistakes`.
   const [detailSessionId, setDetailSessionId] = useState<string | null>(createRequest?.detailSessionId ?? null);
   const [sessionSource, setSessionSource] = useState(createRequest);
-  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; sourceImageIds?: string[]; cardId: string } | null>(null);
+  const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; cardId: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
   // Computers (2026-11 redesign): a list of rows; a row opens one detail card.
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -238,7 +238,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     if (explainingId) return;
     const owner = getActiveAccountId();
     const isCurrent = () => explanationMounted.current && getActiveAccountId() === owner;
-    const sourceImageIds = [...(card.sourceImageIds ?? [])];
     const chosen = getUserChoice(card);
     const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
     const input: MistakeInput = { question: card.question ?? card.questionContext, options: [...(card.options ?? [])], context: card.context ?? '', part: card.part,
@@ -246,11 +245,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
-      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], sourceImageIds, owner, isCurrent);
+      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], owner, isCurrent);
       if (!isCurrent()) return;
       const latest = loadMistakes().find(value => value.id === card.id);
-      if (!latest || !matchesExplanationCard(latest, input)
-        || JSON.stringify(latest.sourceImageIds ?? []) !== JSON.stringify(sourceImageIds)) {
+      if (!latest || !matchesExplanationCard(latest, input)) {
         throw new Error('Nội dung thẻ đã thay đổi hoặc bị xóa. Chưa áp dụng lời giải; hãy mở lại thẻ để kiểm tra.');
       }
       if (latest.explanation || latest.trapTip?.trim()) throw new Error('Thẻ đã có lời giải mới. Giữ nguyên lời giải đang lưu.');
@@ -267,8 +265,8 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     onToggle: () => toggleRow(mistake.id),
     onReview: () => onStartReview([mistake.id]),
     onEdit: () => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake),
-    onReuseReading: mistake.part === 7 && typeof mistake.question === 'string' && (mistake.context?.trim() || mistake.sourceImageIds?.length) ? () => {
-      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', sourceImageIds: mistake.sourceImageIds, cardId: mistake.id }); setEntry(null);
+    onReuseReading: mistake.part === 7 && typeof mistake.question === 'string' && mistake.context?.trim() ? () => {
+      setReusedReading({ text: mistake.context ?? '', sourceName: mistake.sourceTestName ?? '', cardId: mistake.id }); setEntry(null);
     } : undefined,
     onDelete: () => deleteCard(mistake.id),
     onMarkMastered: () => markMastered(mistake.id),
@@ -447,7 +445,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         initialSessionId={sessionSource?.sessionId}
         initialReading={reusedReading?.text}
         draftScope={reusedReading ? `reuse:${reusedReading.cardId}` : undefined}
-        initialSourceImageIds={reusedReading?.sourceImageIds}
         onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={closeEntry} onSaved={savedFeedback}
         onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
       {!isPhone && entry !== null && !manualOpen && (capture.phase === 'reading' || capture.activeJobs > 0 || capture.finishedInBackground) && (() => {

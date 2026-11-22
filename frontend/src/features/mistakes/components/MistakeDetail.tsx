@@ -4,7 +4,7 @@ import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
 import { isDueForReview } from '@/features/mistakes/lib/spacedRepetition';
 import { Soc } from '@/shared/ui/soc/Soc';
-import { SourceImageViewer } from './SourceImageViewer';
+import { PassageText } from './PassageText';
 import { AnswerDoubtNote } from './AnswerDoubtNote';
 import { canExplain } from './MistakeCard';
 
@@ -46,7 +46,6 @@ function withEvidence(text: string, evidence: string, show: boolean): ReactNode 
  */
 export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mistake: MistakeEntry; testName?: string; actions: MistakeDetailActions; onBack: () => void }) {
   const [open, setOpen] = useState(false);
-  const [image, setImage] = useState(false);
   const chosen = getUserChoice(m);
   const answer = optionLetter(m.correctAnswer);
   const notes = m.optionNotes ?? [];
@@ -68,16 +67,14 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
             <p>{testName ? `${testName} · ` : ''}{categoryShort(m.category)} · <b className={due.due ? 'is-due' : undefined}>{due.text}</b></p>
           </div>
           <div className="nbd-links">
-            {m.sourceImageIds?.length ? <button type="button" onClick={() => setImage(v => !v)} aria-expanded={image}>Ảnh gốc</button> : null}
             <button type="button" onClick={actions.onEdit}>Sửa</button>
           </div>
         </header>
-        {image && <div className="nbd-img"><SourceImageViewer ids={m.sourceImageIds} part={m.part} /></div>}
         {m.answerDoubt && answer !== m.answerDoubt && <AnswerDoubtNote doubt={m.answerDoubt} current={answer} onSwitch={() => actions.onResolveDoubt(true)} onKeep={() => actions.onResolveDoubt(false)} />}
 
         {context && (
           <div className="nbd-ctx">
-            <p>{withEvidence(context, ex?.evidence ?? '', open)}</p>
+            <PassageText text={context} renderText={text => withEvidence(text, ex?.evidence ?? '', open)} />
             {open && ex?.translation && <p className="nbd-tr">{ex.translation}</p>}
           </div>
         )}

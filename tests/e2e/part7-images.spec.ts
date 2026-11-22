@@ -50,8 +50,10 @@ test('Part 7 requires pasted text and uses images solely for context while savin
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
   await expect(modal.getByRole('heading', { name: 'Kiểm tra và lưu' })).toBeVisible();
   await expect(modal.getByText(question, { exact: true })).toBeVisible();
-  await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
-  await expect(modal.getByText(context, { exact: true })).toHaveCount(0);
+  // The image is not kept: the text AI read is what the card saves, so the preview opens it for checking.
+  await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toBeVisible();
+  await expect(modal.getByText(context, { exact: true })).toBeVisible();
+  await expect(modal.getByText(/lưu riêng tư|Ảnh gốc/)).toHaveCount(0);
   await expect(modal.getByText('AI đề xuất', { exact: true })).toBeVisible();
   await modal.getByText('Đối chiếu ảnh (2)', { exact: true }).click();
   await expect(modal.getByRole('img', { name: 'Ảnh nguồn Part 7 1', exact: true })).toBeVisible();

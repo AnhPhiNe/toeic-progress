@@ -800,6 +800,10 @@ class PageExtractRequest(BaseModel):
         return self
 
 
+PAGE_CONTEXT_DESCRIPTION = ("Part 6/7: mỗi bài đọc mở đầu bằng dòng 'Đoạn N — Loại' (vd 'Đoạn 1 — Email'), "
+                            "bảng dạng Markdown '| cột | cột |'; giữ tiêu đề, ngày, chữ ký. Part 1/2/5: ''.")
+
+
 class OpenAIPageItem(BaseModel):
     """One wrong question copied from the screenshots. No explanation: that is written later, on request."""
 
@@ -807,7 +811,8 @@ class OpenAIPageItem(BaseModel):
     number: int
     question: str = Field(max_length=4000)
     # Never shorten a passage silently: an oversized item is reported as missing.
-    context: str = Field(max_length=8000)
+    # Part 6/7 passages are labelled text ('Đoạn 1 — Email', Markdown tables): cards keep no image.
+    context: str = Field(max_length=8000, description=PAGE_CONTEXT_DESCRIPTION)
     options: list[Annotated[str, Field(max_length=1000)]] = Field(max_length=4)
     userChoice: PageUserChoice
     correctAnswer: str = Field(max_length=1000)

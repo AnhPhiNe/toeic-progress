@@ -8,7 +8,7 @@ test('a single-question form passes its captured owner and invalidates the reque
     contentType: 'application/javascript', body: `
       export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true }; }
       export async function getAIUsage() { return null; }
-      export async function extractMistakeWithAI(text, captcha, input, images, ids, owner, isCurrent) {
+      export async function extractMistakeWithAI(text, captcha, input, images, owner, isCurrent) {
         window.__singleStart = { owner, hasGuard: typeof isCurrent === 'function', current: isCurrent?.() };
         await new Promise(resolve => { window.__releaseSingle = resolve; });
         window.__singleStillCurrent = isCurrent?.();

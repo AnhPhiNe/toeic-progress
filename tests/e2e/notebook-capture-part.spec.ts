@@ -155,3 +155,37 @@ test('mobile capture offers side-by-side Chụp liên tiếp & Chọn nhiều �
   await burst.getByRole('button', { name: 'Đóng camera', exact: true }).click();
   await expect(burst).toHaveCount(0);
 });
+
+test('Part 7 capture keeps the passage as labelled text with its table, editable in review, and never offers the original image', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockWrongDetailAI(page);
+  await seedTests(page, [{ id: 's1', name: TEST, wrong: [186, 189] }]);
+  await page.goto('/so-tay');
+  await page.getByRole('button', { name: /Chụp trang chữa bài/ }).first().click();
+  const capture = page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true });
+  await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot]);
+  await capture.getByRole('button', { name: /^Gửi Sóc đọc/ }).click();
+  await expect(capture.getByText(/^Soát \d+ câu sai/)).toBeVisible();
+  await capture.getByRole('button', { name: /What is the purpose of the e-mail/ }).click();
+  await capture.getByRole('button', { name: /^▸ Đoạn văn: Đoạn 1 — Email/ }).click();
+  await expect(capture.getByText('Đoạn 1 — Email', { exact: true })).toBeVisible();
+  await expect(capture.getByText('Đoạn 2 — Phiếu giao hàng', { exact: true })).toBeVisible();
+  await expect(capture.getByRole('columnheader', { name: 'Qty', exact: true })).toBeVisible();
+  await expect(capture.getByRole('cell', { name: 'Towels', exact: true })).toBeVisible();
+  await expect(capture.getByText(/Ảnh gốc|lưu ảnh|Lưu ảnh/)).toHaveCount(0);
+  // The learner fixes what Sóc read in the existing editor.
+  await capture.getByRole('button', { name: 'Sửa câu 186', exact: true }).click();
+  const passage = capture.getByRole('textbox', { name: 'Đoạn văn', exact: true });
+  await passage.fill((await passage.inputValue()).replace('| Towels | 2 |', '| Towels | 3 |'));
+  await capture.getByRole('button', { name: 'Xong', exact: true }).click();
+  await capture.getByRole('button', { name: /^Lưu \d+ câu vào Sổ tay/ }).click();
+  await expect(capture).toHaveCount(0);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
+    .find((card: { questionNumber?: number; question?: string }) => card.question && card.questionNumber === 186));
+  expect(saved.context).toContain('| Towels | 3 |'); expect(saved.sourceImageIds).toBeUndefined();
+  expect(JSON.stringify(saved)).not.toContain('data:image');
+  await page.locator('.nb-row').filter({ hasText: 'What is the purpose of the e-mail' }).click();
+  await expect(page.getByText('Đoạn 2 — Phiếu giao hàng', { exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '3', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ảnh gốc', exact: true })).toHaveCount(0);
+});

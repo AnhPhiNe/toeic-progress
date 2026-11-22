@@ -1,0 +1,9 @@
+/* Labelled passage text (PassageText). Doubled class names win over the hosts' ".x p" rules. */
+.psg { display: grid; gap: 6px; }
+.psg .psg-text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.psg .psg-label { margin: 8px 0 0; font-size: .78em; font-weight: 800; letter-spacing: .02em; line-height: 1.3; color: var(--pd, #c2477a); }
+.psg .psg-label:first-child { margin-top: 0; }
+.psg .psg-tw { max-width: 100%; overflow-x: auto; }
+.psg .psg-table { border-collapse: collapse; font-size: .92em; line-height: 1.45; white-space: normal; }
+.psg .psg-table th, .psg .psg-table td { border: 1px solid rgba(110, 120, 114, .22); padding: 4px 10px; text-align: left; vertical-align: top; }
+.psg .psg-table th { background: rgba(110, 120, 114, .08); font-weight: 800; }

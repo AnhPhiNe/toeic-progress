@@ -16,6 +16,7 @@ import { isGroupedPart, PART_ACTION, PART_NAMES, partMode, suggestGroups, topRea
 import { ScreenshotSuggestBar } from './ScreenshotSuggestBar';
 import { BurstCameraModal } from './BurstCameraModal';
 import type { ReadJob, Screen } from './WrongDetailFlow';
+import { PassageText } from '../PassageText';
 
 export type Zone = 'passage' | 'questions';
 export interface Staged { id: string; file: File; url: string }
@@ -661,7 +662,7 @@ function RowDetail({ card, form, phone, onUpdate }: { card: MistakeEntry; form: 
       {ai?.context?.trim() && (card.part === 3 || card.part === 4 || card.part >= 6) && <div>
         <button type="button" className="wd-lnk is-muted" aria-expanded={showPassage} onClick={() => setShowPassage(value => !value)}>
           {showPassage ? '▾' : '▸'} {card.part <= 4 ? 'Transcript' : 'Đoạn văn'}: {ai.context.trim().split('\n')[0]}</button>
-        {showPassage && <p className="wd-passage">{ai.context}</p>}
+        {showPassage && <PassageText className="wd-passage" text={ai.context} />}
       </div>}
       {question.length > (phone ? 40 : 80) && <p className="wd-fullq">{question}</p>}
       {ai && ai.options.length > 0 && <ul className="wd-opts">

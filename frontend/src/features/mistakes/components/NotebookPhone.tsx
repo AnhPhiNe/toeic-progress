@@ -113,7 +113,6 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
     if (explainingId) return;
     const owner = getActiveAccountId();
     const isCurrent = () => mounted.current && getActiveAccountId() === owner;
-    const sourceImageIds = [...(card.sourceImageIds ?? [])];
     const chosen = getUserChoice(card);
     const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
     const input: MistakeInput = { question: card.question ?? card.questionContext, options: [...(card.options ?? [])], context: card.context ?? '', part: card.part,
@@ -121,10 +120,10 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
       userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
-      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], sourceImageIds, owner, isCurrent);
+      const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], owner, isCurrent);
       if (!isCurrent()) return;
       const latest = loadMistakes().find(value => value.id === card.id);
-      if (!latest || !matchesExplanationCard(latest, input) || JSON.stringify(latest.sourceImageIds ?? []) !== JSON.stringify(sourceImageIds)) {
+      if (!latest || !matchesExplanationCard(latest, input)) {
         throw new Error('Nội dung thẻ đã thay đổi hoặc bị xóa. Chưa áp dụng lời giải; hãy mở lại thẻ để kiểm tra.');
       }
       if (latest.explanation || latest.trapTip?.trim()) throw new Error('Thẻ đã có lời giải mới. Giữ nguyên lời giải đang lưu.');

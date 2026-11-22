@@ -72,6 +72,29 @@ def test_one_screenshot_fills_every_wrong_question_found_and_reports_the_rest(ap
         assert "3.998" not in request["instructions"]
 
 
+def test_page_passages_are_labelled_text_with_markdown_tables():
+    # Learner images are never stored: a Part 7 card keeps its passages as structured text instead.
+    from app.services.toeic_prompt import PAGE_READING_PROMPT, PART7_IMAGE_INSTRUCTIONS, PASSAGE_TEXT_FORMAT
+    for rule in ("'Đoạn N — Loại'", "Phiếu giao hàng", "bảng Markdown", "|---|---|", "chữ ký", "ngày tháng"):
+        assert rule in PASSAGE_TEXT_FORMAT
+    assert PASSAGE_TEXT_FORMAT in PAGE_READING_PROMPT and PASSAGE_TEXT_FORMAT in PART7_IMAGE_INSTRUCTIONS
+    context = page_output_schema([176])["properties"]["items"]["items"]["properties"]["context"]
+    assert context["maxLength"] == 8000 and "Đoạn 1 — Email" in context["description"]
+
+
+def test_labelled_passage_with_table_reaches_the_draft_unchanged(api):  # noqa: F811
+    passage = ("Đoạn 1 — Email\nTo: Ana Ruiz\nDate: 4 May\nYour order has shipped.\nKen Ito, Sales\n\n"
+               "Đoạn 2 — Phiếu giao hàng\n| Item | Qty |\n|---|---|\n| Desk lamp | 2 |")
+    output = {"items": [item(176, question="What was shipped?", context=passage)]}
+    with api(draft=output) as (client, calls):
+        response = client.post("/api/v1/ai/extract-page", json=page(questions=[{"number": 176, "part": 7}]))
+        assert response.status_code == 200
+        assert response.json()["items"][0]["draft"]["context"] == passage
+        request = next(call[2] for call in calls if call[0] == "api.openai.com")
+        schema = request["text"]["format"]["schema"]["properties"]["items"]["items"]["properties"]["context"]
+        assert "Đoạn N — Loại" in schema["description"]
+
+
 def test_items_that_do_not_fit_their_question_are_left_for_another_try(api):  # noqa: F811
     output = {"items": [
         item(132, correctAnswer="(E) invented", userChoice="D"),

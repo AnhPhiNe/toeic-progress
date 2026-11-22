@@ -162,7 +162,8 @@ export function computeBadges(bundle: DataBundle, today: string): Badge[] {
   const practice = live.filter(s => s.sessionType === 'PART_PRACTICE').sort((a, b) => a.date.localeCompare(b.date));
   const liveCards = bundle.mistakes.filter(m => !m.deletedAt);
   const reviews = liveCards.reduce((sum, m) => sum + (m.reviewCount ?? 0), 0);
-  const captures = liveCards.filter(m => (m.sourceImageIds?.length ?? 0) > 0).sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
+  // Images are never stored, so a "captured" card is one saved with its question and options (read or pasted).
+  const captures = liveCards.filter(m => (m.options?.length ?? 0) >= 2 && Boolean((m.question ?? m.questionContext).trim())).sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
   const count = (id: string, tier: BadgeTier, n: number, have: number, icon: BadgeIconKey, label: string, title: string, how: string, hint: string, date?: string) =>
     specs.push({ id, family: 'effort', tier, icon, label, title, how, hint: hint.replace('{n}', String(Math.max(0, n - have))), earned: have >= n, date, left: `còn ${n - have}`, progress: ratio(have, n) });
   count('effort-tests5', 'b', 5, tests.length, 'book', '5 ĐỀ', '5 đề full', 'Ghi 5 đề full.', 'Ghi thêm {n} đề full.', tests[4]?.date);
@@ -173,7 +174,7 @@ export function computeBadges(bundle: DataBundle, today: string): Badge[] {
   count('effort-review50', 'b', 50, reviews, 'cards', '50 CÂU', 'Ôn 50 câu', 'Ôn lại 50 lượt câu sai.', 'Ôn thêm {n} câu trong Sổ tay.');
   count('effort-review200', 's', 200, reviews, 'cards', '200 CÂU', 'Ôn 200 câu', 'Ôn lại 200 lượt câu sai.', 'Ôn thêm {n} câu trong Sổ tay.');
   count('effort-review500', 'g', 500, reviews, 'cards', '500 CÂU', 'Ôn 500 câu', 'Ôn lại 500 lượt câu sai.', 'Ôn thêm {n} câu trong Sổ tay.');
-  count('effort-capture10', 'b', 10, captures.length, 'camera', '10 ẢNH', 'Chụp 10 câu', 'Tạo 10 thẻ Sổ tay từ ảnh chụp màn hình.', 'Chụp thêm {n} câu vào Sổ tay.', localDate(captures[9]?.createdAt ?? '') ?? undefined);
+  count('effort-capture10', 'b', 10, captures.length, 'camera', '10 CÂU', 'Lưu 10 câu', 'Lưu 10 câu sai có đủ đề và phương án vào Sổ tay.', 'Lưu thêm {n} câu có đề vào Sổ tay.', localDate(captures[9]?.createdAt ?? '') ?? undefined);
 
   // ---- Gỡ Part: some full test with few mistakes in that Part
   const withParts = tests.map(t => ({ t, w: wrongCountsByPart(t) })).filter(x => x.w);
