@@ -10,6 +10,7 @@ class AIAccess:
     status: str
     limit: int | None
     guest: bool = False
+    plan: str = "free"
 
     @property
     def enabled(self) -> bool:

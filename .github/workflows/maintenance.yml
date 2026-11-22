@@ -25,6 +25,8 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -38,6 +40,7 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SECRET_KEY" ]; then
-            echo "SUPABASE_URL / SUPABASE_SECRET_KEY secrets are not set; skipping." && exit 0
+            echo "ERROR: SUPABASE_URL / SUPABASE_SECRET_KEY secrets are not set." >&2
+            exit 1
           fi
           python -m app.commands.maintenance

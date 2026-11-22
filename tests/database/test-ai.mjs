@@ -156,22 +156,35 @@ try {
   const fresh = new Date(Date.now() + 24 * 3600_000 + 1000).toISOString();
   assert.equal((await claim(108, randomUUID(), randomUUID(), { ticketId: randomUUID(), expiresAt: fresh })).action, 'claimed', 'A ticket issued after reset works');
 
-  // Provider budget guard & metadata-only cost ledger (covers explain-batch + escalations).
-  const budget = (user, { day = 10, owner = 3, minute = 2 } = {}) => value(
-    'select public.reserve_provider_budget($1::uuid,$2,$3,$4)', [user, day, owner, minute]);
+  // Provider budget guard (cost-weighted) & metadata-only cost ledger.
+  const budget = (user, { day = 10, owner = 3, minute = 2, cost = 1 } = {}) => value(
+    'select public.reserve_provider_budget($1::uuid,$2,$3,$4,$5)', [user, day, owner, minute, cost]);
   assert.deepEqual(await budget(alice), { allowed: true });
   assert.deepEqual(await budget(alice), { allowed: true });
   const minBlocked = await budget(alice);
   assert.equal(minBlocked.allowed, false);
   assert.equal(minBlocked.code, 'minute');
   assert.ok(minBlocked.retry_after >= 1 && minBlocked.retry_after <= 60);
-  // Raising minute cap lets owner-day cap trigger on the 4th call.
-  assert.deepEqual(await budget(alice, { minute: 10 }), { allowed: true });
-  assert.equal((await budget(alice, { minute: 10 })).code, 'owner_day');
+  // Cost-weighted check: remaining owner capacity is 1, so cost=2 is refused while cost=1 fits.
+  assert.equal((await budget(alice, { minute: 10, cost: 2 })).code, 'owner_day');
+  assert.deepEqual(await budget(alice, { minute: 10, cost: 1 }), { allowed: true });
+  assert.equal((await budget(alice, { minute: 10, cost: 1 })).code, 'owner_day');
   // Bob has a separate owner-day bucket, then hits shared global day cap.
-  assert.deepEqual(await budget(bob, { day: 4, owner: 3, minute: 10 }), { allowed: true });
-  assert.equal((await budget(bob, { day: 4, owner: 3, minute: 10 })).code, 'day');
+  assert.deepEqual(await budget(bob, { day: 5, owner: 3, minute: 10, cost: 2 }), { allowed: true });
+  assert.equal((await budget(bob, { day: 5, owner: 3, minute: 10, cost: 1 })).code, 'day');
   await assert.rejects(budget(alice, { day: 0 }), /Invalid provider budget limits/);
+  await assert.rejects(budget(alice, { cost: 0 }), /Invalid provider budget limits/);
+  await assert.rejects(h.asRole('authenticated', tx => tx.query('select public.reserve_provider_budget($1::uuid,10,10,10,1)', [alice]), { sub: alice }), /permission denied/);
+  await assert.rejects(h.asRole('anon', tx => tx.query('select public.reserve_provider_budget($1::uuid,10,10,10,1)', [alice])), /permission denied/);
+  assert.deepEqual((await h.asRole('service_role', tx => tx.query('select public.reserve_provider_budget($1::uuid,100,100,100,1) as r', [bob]))).rows[0].r, { allowed: true });
+
+  // Batch-level explain ticket question ceiling on ai_batches.
+  const explainBatchId = randomUUID();
+  await reserveBatch(bob, req(90), explainBatchId);
+  assert.deepEqual(await value('select public.reserve_batch_explain_quota($1::uuid,$2::uuid,6,16)', [bob, explainBatchId]), { granted: 6, used: 6, limit: 16 });
+  assert.deepEqual(await value('select public.reserve_batch_explain_quota($1::uuid,$2::uuid,6,16)', [bob, explainBatchId]), { granted: 6, used: 12, limit: 16 });
+  assert.deepEqual(await value('select public.reserve_batch_explain_quota($1::uuid,$2::uuid,6,16)', [bob, explainBatchId]), { granted: 4, used: 16, limit: 16 });
+  assert.deepEqual(await value('select public.reserve_batch_explain_quota($1::uuid,$2::uuid,3,16)', [bob, explainBatchId]), { granted: 0, used: 16, limit: 16 });
 
   await db.query("select public.record_ai_usage($1::uuid,'explain-batch','gpt-6-luna','medium',1200,300,450,1850,'ok')", [alice]);
   const ledgerRow = await one('select user_id, endpoint, model, effort, input_tokens, cached_tokens, output_tokens, duration_ms, status from public.ai_cost_ledger');
@@ -180,6 +193,16 @@ try {
     input_tokens: 1200, cached_tokens: 300, output_tokens: 450, duration_ms: 1850, status: 'ok'
   });
 
+  // Identity carryover across self-service account deletion (S-01):
+  // block status, monthly AI usage, daily provider owner units, redeem rate limit and multi-use promo history survive delete + re-login.
+  const idHash = 'd'.repeat(64);
+  const promoHash = 'e'.repeat(64);
+  await db.query("update public.ai_access_grants set status='blocked' where user_id=$1", [alice]);
+  await db.query("insert into public.redeem_codes(code_hash,plan,duration_days,max_redemptions) values($1,'plus',30,10)", [promoHash]);
+  assert.equal((await value('select public.redeem_code($1::uuid,$2)', [alice, promoHash])).ok, true);
+  assert.equal((await value('select public.redeem_code($1::uuid,$2)', [alice, 'f'.repeat(64)])).code, 'invalid');
+  assert.deepEqual(await value('select public.prepare_account_deletion($1::uuid,$2)', [alice, idHash]), { prepared: true, carried: true });
+
   // Account deletion removes every AI row of that account.
   await db.query('delete from auth.users where id=$1', [alice]);
   for (const table of ['ai_usage_counters', 'ai_provider_budget_counters', 'ai_requests', 'ai_batches', 'ai_explanation_questions', 'ai_explanation_requests', 'api_rate_limits', 'user_plans', 'ai_access_grants']) {
@@ -187,7 +210,22 @@ try {
   }
   assert.equal(await value('select user_id from public.ai_cost_ledger limit 1'), null, 'Cost ledger anonymizes user_id on account deletion');
   assert.ok(await value("select count(*)::int from public.ai_usage_counters where user_id is null") > 0, 'Shared day/minute/IP counters stay');
-  console.log('AI quotas, batches, quota status, access/plans, API limits, explanation ledger, provider budget, cost ledger and AI account deletion passed.');
+
+  // Re-registering with the same verified identity restores block, quotas, rate limits and promo history.
+  const aliceReborn = uid(99);
+  await h.addUser(aliceReborn, { email: 'alice@example.test' });
+  assert.equal((await access(aliceReborn)).status, 'active', 'Raw trigger starts active before carryover');
+  assert.deepEqual(await value('select public.apply_identity_carryover($1::uuid,$2)', [aliceReborn, idHash]), { applied: true, blocked: true });
+  assert.equal((await access(aliceReborn)).status, 'blocked', 'Admin block survives account delete + re-login');
+  // Provider owner units (3) carried over -> next unit hits owner=3 cap immediately.
+  assert.equal((await budget(aliceReborn, { day: 100, owner: 3, minute: 100, cost: 1 })).code, 'owner_day');
+  // Multi-use promo code cannot be redeemed again by the recreated account.
+  assert.equal((await value('select public.redeem_code($1::uuid,$2)', [aliceReborn, promoHash])).code, 'already_used');
+  // If an admin later unblocks aliceReborn, subsequent carryover calls stay active.
+  await db.query("update public.ai_access_grants set status='active' where user_id=$1", [aliceReborn]);
+  assert.deepEqual(await value('select public.apply_identity_carryover($1::uuid,$2)', [aliceReborn, idHash]), { applied: true, blocked: false });
+  assert.equal((await access(aliceReborn)).status, 'active');
+  console.log('AI quotas, batches, quota status, access/plans, API limits, explanation ledger, provider budget, cost ledger and AI account deletion carryover passed.');
 } finally {
   await db.close();
 }

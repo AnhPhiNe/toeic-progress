@@ -90,16 +90,45 @@ class Gateway:
     def ip_hash(self, address: str) -> str:
         return hmac.new(self.settings.rate_limit_secret.encode(), address.encode(), hashlib.sha256).hexdigest()
 
+    def identity_hash(self, user: dict) -> str | None:
+        """Keyed one-way HMAC of a permanent account's canonical email for anti-abuse carryover (no raw PII stored)."""
+        if user.get("is_anonymous") is not False or not self.settings.rate_limit_secret:
+            return None
+        email = user.get("email")
+        if not isinstance(email, str) or "@" not in email:
+            return None
+        local, _, domain = email.strip().lower().partition("@")
+        if not local or not domain:
+            return None
+        if domain in ("gmail.com", "googlemail.com"):
+            local = local.split("+", 1)[0].replace(".", "")
+            domain = "gmail.com"
+        return hmac.new(
+            self.settings.rate_limit_secret.encode(),
+            f"identity:v1:{local}@{domain}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
     async def ai_access(self, user: dict) -> AIAccess:
         guest = user["is_anonymous"]
         if not self.settings.ai_access_managed:
-            limit = None if self.settings.unlimited_ai_for(user) else (
+            unlimited = self.settings.unlimited_ai_for(user)
+            limit = None if unlimited else (
                 self.settings.ai_guest_limit if guest else self.settings.ai_account_monthly_limit
             )
-            return AIAccess("active", limit, guest)
+            return AIAccess("active", limit, guest, "admin" if unlimited else "free")
         if guest:
-            return AIAccess("login_required", 0, True)
+            return AIAccess("login_required", 0, True, "free")
         try:
+            id_hash = self.identity_hash(user)
+            if id_hash:
+                carry = await self.client.post(
+                    f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/apply_identity_carryover",
+                    headers=self.admin_headers(), timeout=5,
+                    json={"p_user_id": user["id"], "p_identity_hash": id_hash},
+                )
+                if not carry.is_success:
+                    raise ValueError("Identity carryover unavailable")
             # Status from ai_access_grants (no row = active), plan and cap from user_plans.
             response = await self.client.post(
                 f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/get_ai_access", headers=self.admin_headers(), timeout=5,
@@ -114,9 +143,9 @@ class Gateway:
                     (not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 10000))):
                 raise ValueError("Invalid AI access grant")
             if unlimited:
-                return AIAccess(status, None)
+                return AIAccess(status, None, False, plan)
             default = self.settings.ai_plus_monthly_limit if plan == "plus" else self.settings.ai_account_monthly_limit
-            return AIAccess(status, limit if limit is not None else default)
+            return AIAccess(status, limit if limit is not None else default, False, plan)
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới dịch vụ AI; hãy thử lại hoặc lưu thủ công.") from error
 
@@ -153,17 +182,23 @@ class Gateway:
         ):
             raise HTTPException(403, "Xác minh đã hết hạn. Vui lòng thử lại.")
 
-    async def reserve_provider_budget(self, owner_id: str | None) -> None:
-        """Guard every outbound OpenAI HTTP request (including explain-batch & OCR escalations)."""
+    async def reserve_provider_budget(self, owner_id: str | None, *, cost: int = 1, plan: str | None = None) -> None:
+        """Guard every outbound OpenAI HTTP request with cost-weighted provider caps."""
         if not self.settings.ai_provider_budget_enabled or not self.settings.database_ready:
             return
+        owner_limit = (
+            self.settings.ai_provider_owner_day_limit_free
+            if plan == "free"
+            else self.settings.ai_provider_owner_day_limit
+        )
         result = await self.rpc(
             "reserve_provider_budget",
             {
                 "p_user_id": owner_id,
                 "p_day_limit": self.settings.ai_provider_day_limit,
-                "p_owner_limit": self.settings.ai_provider_owner_day_limit,
+                "p_owner_limit": owner_limit,
                 "p_minute_limit": self.settings.ai_provider_minute_limit,
+                "p_cost": max(1, min(100, int(cost))),
             },
         )
         if not isinstance(result, dict) or not result.get("allowed"):
@@ -208,33 +243,54 @@ class Gateway:
     async def generate(self, text: str, user_id: str | None = None, *, source_options: list[str] | None = None,
                        source_answer: str | None = None, images: list[str] | None = None,
                        persistent_images: bool = False, pin_question: bool = False,
-                       endpoint: str = "extract") -> MistakeDraft:
+                       endpoint: str = "extract", plan: str | None = None) -> MistakeDraft:
         upright_images = await normalize_upright_images(images, MAX_IMAGE_BYTES) if images else images
         return await self.openai.generate(text, self.ip_hash(user_id) if user_id else None,
                                           source_options=source_options, source_answer=source_answer, images=upright_images,
                                           persistent_images=persistent_images, pin_question=pin_question,
-                                          endpoint=endpoint, owner_id=user_id)
+                                          endpoint=endpoint, owner_id=user_id, plan=plan)
 
     async def generate_page(self, questions: list[dict], images: list[str], user_id: str | None = None,
                             context_images: list[str] | None = None, slices: list[tuple[int, int]] | None = None,
-                            *, photo_mode: bool = False):
+                            *, photo_mode: bool = False, plan: str | None = None):
         upright_images = await normalize_upright_images(images, MAX_PAGE_IMAGE_BYTES)
         upright_context = await normalize_upright_images(context_images or [], MAX_PAGE_IMAGE_BYTES)
         return await self.openai.generate_page(questions, upright_images, self.ip_hash(user_id) if user_id else None,
                                                upright_context, slices or [],
-                                               photo_mode=photo_mode, owner_id=user_id)
+                                               photo_mode=photo_mode, owner_id=user_id, plan=plan)
 
-    async def read_results(self, images: list[str], user_id: str | None = None, *, photo_mode: bool = False):
+    async def read_results(self, images: list[str], user_id: str | None = None, *, photo_mode: bool = False,
+                           plan: str | None = None):
         upright_images = await normalize_upright_images(images, MAX_PAGE_IMAGE_BYTES)
         return await read_results(self.openai, upright_images, self.ip_hash(user_id) if user_id else None,
-                                  photo_mode=photo_mode, owner_id=user_id)
+                                  photo_mode=photo_mode, owner_id=user_id, plan=plan)
 
-    async def delete_account(self, user_id: str):
-        # Always purge any private source images even when new uploads are disabled.
+    async def delete_account(self, user: dict | str):
+        user_id = user["id"] if isinstance(user, dict) else user
+        id_hash = self.identity_hash(user) if isinstance(user, dict) else None
+        # 1. Ban account on Auth first to halt concurrent uploads/sessions on other tabs before purging storage.
+        ban = await self.client.put(
+            f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
+            headers=self.admin_headers(),
+            json={"ban_duration": "876000h"},
+            timeout=8,
+        )
+        if not ban.is_success:
+            raise HTTPException(503, "Chưa khóa được phiên trước khi xóa tài khoản. Vui lòng thử lại.")
+        # 2. Persist one-way hashed anti-abuse carryover (blocked status, current quota/rate counters, promo history).
+        if id_hash:
+            await self.rpc(
+                "prepare_account_deletion",
+                {"p_user_id": user_id, "p_identity_hash": id_hash},
+                timeout=8,
+            )
+        # 3. Always purge any private source images even when new uploads are disabled.
         await self.source_images.purge(user_id, allow_missing=True)
+        # 4. Permanently delete Auth user (cascades learning rows).
         response = await self.client.delete(
             f"{self.settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
             headers=self.admin_headers(),
+            timeout=15,
         )
         if not response.is_success:
             raise HTTPException(503, "Chưa xóa được tài khoản. Vui lòng thử lại.")

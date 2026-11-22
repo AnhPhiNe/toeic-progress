@@ -4,13 +4,16 @@ import assert from 'node:assert/strict';
 import { baselineSql, createDatabase, profile, record, uid } from './harness.mjs';
 
 const RPCS = [
-  'ai_quota_status(uuid,boolean,text)', 'claim_explanation_question(uuid,uuid,integer,text,timestamp with time zone,uuid,uuid)',
+  'ai_quota_status(uuid,boolean,text)', 'apply_identity_carryover(uuid,text)',
+  'claim_explanation_question(uuid,uuid,integer,text,timestamp with time zone,uuid,uuid)',
   'finish_explanation_question(uuid,uuid,integer,uuid,jsonb)', 'get_ai_access(uuid)', 'get_ai_usage(uuid,boolean,integer)',
   'league_join(uuid,date,text,text)', 'league_leave(uuid,date)', 'league_refresh(uuid,date,integer)', 'league_update(uuid,date,text,text)',
+  'prepare_account_deletion(uuid,text)',
   'record_ai_usage(uuid,text,text,text,integer,integer,integer,integer,text)',
   'redeem_code(uuid,text)', 'reserve_ai_batch_request(uuid,boolean,uuid,uuid,text,text,integer,integer,integer,integer,integer,integer)',
   'reserve_ai_request(uuid,boolean,uuid,text,text,integer,integer,integer,integer)', 'reserve_api_request(uuid,text,integer,integer)',
-  'reserve_provider_budget(uuid,integer,integer,integer)',
+  'reserve_batch_explain_quota(uuid,uuid,integer,integer)',
+  'reserve_provider_budget(uuid,integer,integer,integer,integer)',
   'reset_learning_data(uuid)', 'run_maintenance(integer,integer)', 'schema_ready()', 'sync_account_records(uuid,jsonb,bigint,boolean)'
 ].sort();
 const TABLES = ['ai_access_grants', 'ai_batches', 'ai_cost_ledger', 'ai_explanation_questions', 'ai_explanation_requests', 'ai_provider_budget_counters', 'ai_requests', 'ai_usage_counters',
@@ -83,12 +86,15 @@ try {
   await db.query("update public.ai_access_grants set email='someone-else@example.test' where user_id=$1", [uid(1)]);
   assert.equal(await value('select email from public.ai_access_grants where user_id=$1', [uid(1)]), 'alice@example.test', 'Display fields follow Auth');
 
-  // Re-applying the baseline is a no-op that keeps data and the sync epoch.
+  // Re-applying the baseline is a no-op that keeps data, sync epoch, and incremental RPC grants.
   const epoch = await value("select value from private.settings where key='sync_epoch'");
   await db.exec(await baselineSql());
   assert.equal(await value('select count(*)::int from public.vocabulary_logs'), 1);
   assert.equal(await value("select value from private.settings where key='sync_epoch'"), epoch);
   assert.deepEqual(await value('select public.schema_ready()'), { baseline: 2, ready: true });
+  const serviceRpcsAfterReapply = (await db.query(`select p.oid::regprocedure::text as name from pg_proc p where p.pronamespace='public'::regnamespace
+    and has_function_privilege('service_role', p.oid, 'execute') order by 1`)).rows.map(r => r.name).sort();
+  assert.deepEqual(serviceRpcsAfterReapply, RPCS, 'Re-applying baseline must not revoke incremental service_role RPCs');
 
   // Refuses to build on top of v1 objects.
   const old = await createDatabase({ apply: false });

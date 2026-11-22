@@ -100,6 +100,12 @@ def api():
                 if ledger_malformed:
                     return httpx.Response(200, text="not-json")
                 return httpx.Response(200, json=ledger.respond(request.url.path.rsplit("/", 1)[-1], body))
+            if request.url.path.endswith("/rpc/apply_identity_carryover"):
+                return httpx.Response(200, json={"applied": True, "blocked": False})
+            if request.url.path.endswith("/rpc/prepare_account_deletion"):
+                return httpx.Response(200, json={"prepared": True, "carried": True})
+            if request.url.path.endswith("/rpc/reserve_batch_explain_quota"):
+                return httpx.Response(200, json=batches.reserve_explain(body))
             if request.url.path.endswith("/rpc/get_ai_access"):
                 # Fixtures describe a v1-style grant row: monthly_limit None = unlimited (admin plan).
                 rows = ai_grants.pop(0) if ai_grants else [] if ai_grant is None else [ai_grant]
@@ -224,10 +230,30 @@ def test_modern_secret_key_is_not_sent_as_a_bearer_jwt(api):
         assert client.post("/api/v1/sync", json={}).status_code == 200
         assert client.delete("/api/v1/account").status_code == 200
         privileged = [call for call in calls if "/rest/v1/" in call[1] or "/auth/v1/admin/" in call[1]]
-        assert len(privileged) == 2
+        # 1 sync RPC + 1 PUT ban user + 1 DELETE user.
+        assert len(privileged) == 3
         for call in privileged:
             assert call[3]["apikey"] == "sb_secret_test"
             assert "authorization" not in call[3]
+
+
+def test_delete_account_bans_first_carries_hashed_identity_and_canonicalizes_gmail(api):
+    with api(auth_user={"email": "A.B+spam@gmail.com"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 200
+        paths = [call[1] for call in calls]
+        ban_idx = paths.index(f"/auth/v1/admin/users/{USER_ID}")
+        carry_idx = paths.index("/rest/v1/rpc/prepare_account_deletion")
+        purge_idx = paths.index("/storage/v1/bucket/mistake-sources")
+        del_idx = len(paths) - 1 - paths[::-1].index(f"/auth/v1/admin/users/{USER_ID}")
+        assert ban_idx < carry_idx < purge_idx < del_idx
+        carry_body = calls[carry_idx][2]
+        assert carry_body["p_user_id"] == USER_ID and len(carry_body["p_identity_hash"]) == 64
+        assert "gmail" not in json.dumps(carry_body).lower()
+        first_hash = carry_body["p_identity_hash"]
+    with api(auth_user={"email": "ab@googlemail.com"}) as (client, calls):
+        assert client.delete("/api/v1/account").status_code == 200
+        carry_body = next(call[2] for call in calls if call[1].endswith("/prepare_account_deletion"))
+        assert carry_body["p_identity_hash"] == first_hash
 
 
 def score_record(**scores):

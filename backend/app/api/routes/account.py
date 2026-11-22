@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.delete("/api/v1/account")
 async def delete_account(request: Request, user=Depends(account)):
-    await request.app.state.gateway.delete_account(user["id"])
+    await request.app.state.gateway.delete_account(user)
     return {"deleted": True}
 
 

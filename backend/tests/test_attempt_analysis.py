@@ -338,3 +338,38 @@ def test_no_deepinfra_setting_or_code_path_remains():
     backend = Path(__file__).resolve().parents[1]
     sources = [*backend.joinpath("app").rglob("*.py"), backend / ".env.example", backend / "render.yaml"]
     assert not [path.name for path in sources if "deepinfra" in path.read_text(encoding="utf-8").lower()]
+
+
+def test_load_snapshot_caps_total_evidence_characters():
+    from app.services.attempt_analysis import MAX_EVIDENCE_CHARS
+
+    huge_notes = [
+        {
+            **NOTE,
+            "id": f"note-{index:02d}",
+            "question_context": "Q" * 1200,
+            "user_mistake": "M" * 600,
+            "correct_answer": "A" * 300,
+            "trap_tip": "T" * 600,
+            "options": ["(A) " + "a" * 300, "(B) " + "b" * 300, "(C) " + "c" * 300, "(D) " + "d" * 300],
+            "extra": {
+                "answerSource": "PROVIDED",
+                "context": "C" * 1500,
+                "userReason": "R" * 600,
+                "explanation": {"evidence": "E" * 600, "paraphrase": "P" * 400, "questionType": "K" * 200},
+            },
+        }
+        for index in range(40)
+    ]
+    versions = {note["id"]: STAMP for note in huge_notes}
+    advice = {"priorities": [{**ADVICE["priorities"][0], "evidenceIds": ["note-00"]}]}
+    with analysis_api(notes=huge_notes, advice=advice) as (client, calls):
+        res = client.post("/api/v1/ai/analyze-attempt", json=payload(noteVersions=versions))
+        assert res.status_code == 200
+        report = res.json()["report"]
+        assert report["linkedNotes"] == 40
+        assert 1 <= report["sampledNotes"] < 40
+        sent_text = openai_calls(calls)[0][1]["input"][0]["content"][0]["text"]
+        sent_snapshot = json.loads(sent_text)
+        evidence_chars = len(json.dumps(sent_snapshot["evidence"], ensure_ascii=False, separators=(",", ":")))
+        assert evidence_chars <= MAX_EVIDENCE_CHARS + 512

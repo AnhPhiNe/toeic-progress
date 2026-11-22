@@ -23,7 +23,7 @@ async def analyze_attempt(body: AnalyzeAttemptRequest, request: Request, user=De
     snapshot = await load_snapshot(gateway, user["id"], body)
     reservation, unlimited = await reserve_ai(request, user, access, body.request_id, None, snapshot_hash(snapshot))
     # Reservation is committed before generation; OpenAI gets exactly one request.
-    report = await generate_analysis(gateway, snapshot, user["id"])
+    report = await generate_analysis(gateway, snapshot, user["id"], plan=access.plan)
     return {"report": report, "usage": {"remaining": None if unlimited else reservation["remaining"],
             "limit": None if unlimited else reservation["limit"], "guest": False, "unlimited": unlimited,
             **(access.usage_fields() if settings.ai_access_managed else {})}}
@@ -69,9 +69,10 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(ai_author
     if body.input is not None:
         result = await gateway.generate(extraction_text, user["id"],
                                         source_options=body.input.options or None, source_answer=body.input.sourceAnswer,
-                                        images=source_images, persistent_images=bool(body.sourceImageIds))
+                                        images=source_images, persistent_images=bool(body.sourceImageIds),
+                                        plan=access.plan)
     else:
-        result = await gateway.generate(extraction_text, user["id"])
+        result = await gateway.generate(extraction_text, user["id"], plan=access.plan)
     draft = result.model_dump()
     if body.input is not None:
         learner = body.input
@@ -95,8 +96,10 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(ai_author
     }
 
 
-# A capture is read as one request per question group (up to two at a time), all sharing one batch id.
-AI_BATCH_MAX_REQUESTS = 8
+# A capture is read as one request per question group, sharing one batch id.
+# Cap batch chunks and cumulative ticketed questions to prevent OpenAI cost amplification.
+AI_BATCH_MAX_REQUESTS = 4
+AI_BATCH_MAX_EXPLAIN_QUESTIONS = 16
 AI_BATCH_TTL_SECONDS = 3600
 
 
@@ -179,12 +182,34 @@ async def extract_page(body: PageExtractRequest, request: Request, user=Depends(
         [image.dataUrl for image in body.context_images],
         body.slices,
         photo_mode=body.photoMode,
+        plan=access.plan,
     )
-    # The explanations for these questions are written next, without counting another use.
-    ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
-        number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")
-        for number, draft in found if draft.part != 1 and draft.question and len(draft.options) >= 2
-    }) if settings.rate_limit_secret and found else None
+    # The explanations for these questions are written next, without counting another use,
+    # bounded across all chunks of a batch_id to prevent cost amplification.
+    ticket = None
+    if settings.rate_limit_secret and found:
+        eligible = [
+            (number, draft)
+            for number, draft in found
+            if draft.part != 1 and draft.question and len(draft.options) >= 2
+        ]
+        if eligible and body.batch_id is not None:
+            quota = await request.app.state.gateway.rpc(
+                "reserve_batch_explain_quota",
+                {
+                    "p_user_id": user["id"],
+                    "p_batch_id": str(body.batch_id),
+                    "p_count": len(eligible),
+                    "p_max_questions": AI_BATCH_MAX_EXPLAIN_QUESTIONS,
+                },
+            )
+            granted = int(quota.get("granted", 0)) if isinstance(quota, dict) else 0
+            eligible = eligible[: max(0, granted)]
+        if eligible:
+            ticket = explain_tickets.issue(settings.rate_limit_secret, user["id"], str(body.request_id), {
+                number: explain_tickets.item_digest(number, draft.question or "", draft.options, draft.context or "")
+                for number, draft in eligible
+            })
     return {
         "items": [{"number": number, "draft": {**draft.model_dump(),
                    "userChoiceState": "CHOSEN" if draft.userChoice else "BLANK"}}
@@ -219,6 +244,7 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
         [image.dataUrl for image in body.images],
         user["id"],
         photo_mode=body.photoMode,
+        plan=access.plan,
     )
     return {
         "wrong": wrong,
@@ -239,6 +265,9 @@ async def read_results(body: ResultsReadRequest, request: Request, user=Depends(
 async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depends(ai_authorized)):
     """Explain questions a screenshot reading already counted; the ticket stands in for a new AI use."""
     settings = request.app.state.settings
+    access = request.state.ai_access
+    if user["is_anonymous"]:
+        raise HTTPException(403, "Đăng nhập Google để dùng tính năng giải thích theo mẻ.")
     ticket = explain_tickets.verify(settings.rate_limit_secret, body.ticket, user["id"])
     if ticket is None:
         raise HTTPException(403, "Lượt viết lời giải kèm ảnh đã hết hạn hoặc không hợp lệ. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",
@@ -256,7 +285,7 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
         try:
             result = await gateway.generate(learner.as_text(), user["id"], source_options=learner.options,
                                             source_answer=learner.sourceAnswer, pin_question=True,
-                                            endpoint="explain_batch")
+                                            endpoint="explain_batch", plan=access.plan)
         except HTTPException:
             return None
         # Match the frontend's useful-explanation contract. An empty structured

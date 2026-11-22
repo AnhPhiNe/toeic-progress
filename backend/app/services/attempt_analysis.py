@@ -21,6 +21,7 @@ logger = logging.getLogger('toeic.attempt_analysis')
 VERSION = 2
 MAX_PRIORITIES = 2
 MAX_NOTES = 40
+MAX_EVIDENCE_CHARS = 24_000
 PART_MAX = (6, 25, 39, 30, 30, 16, 54)
 SESSION_FIELDS = "id,updated_at,skill_type,session_type,test_name,study_date,scaled_listening,scaled_reading,total_score,part1_correct,part2_correct,part3_correct,part4_correct,part5_correct,part6_correct,part7_correct,extra"
 NOTE_FIELDS = "id,updated_at,session_id,part,category,question_context,user_mistake,correct_answer,trap_tip,options,tags,extra"
@@ -97,19 +98,27 @@ async def load_snapshot(gateway, owner: str, body: AnalyzeAttemptRequest) -> dic
             and not has_explanation
         ):
             continue
-        evidence.append({"id": row["id"], "part": row["part"], "question": question[:1200],
-                         "options": [str(option)[:300] for option in options[:4]],
-                         "learnerNote": str(extra.get("userReason") or row.get("user_mistake") or "")[:600],
-                         "answer": str(row.get("correct_answer") or "")[:300],
+        evidence.append({"id": row["id"], "part": row["part"], "question": question[:450],
+                         "options": [str(option)[:180] for option in options[:4]],
+                         "learnerNote": str(extra.get("userReason") or row.get("user_mistake") or "")[:300],
+                         "answer": str(row.get("correct_answer") or "")[:200],
                          "answerSource": extra.get("answerSource", "UNKNOWN"),
                          "category": row.get("category", "OTHER"),
-                         "context": str(extra.get("context") or "")[:1500],
-                         "explanationEvidence": str(explanation.get("evidence") or "")[:600],
-                         "paraphrase": str(explanation.get("paraphrase") or "")[:400],
-                         "questionType": str(explanation.get("questionType") or "")[:200],
-                         "tip": str(row.get("trap_tip") or explanation.get("quickTip") or "")[:600]})
+                         "context": str(extra.get("context") or "")[:400],
+                         "explanationEvidence": str(explanation.get("evidence") or "")[:300],
+                         "paraphrase": str(explanation.get("paraphrase") or "")[:220],
+                         "questionType": str(explanation.get("questionType") or "")[:160],
+                         "tip": str(row.get("trap_tip") or explanation.get("quickTip") or "")[:300]})
     if not facts and not evidence:
         raise HTTPException(422, "Lần làm này mới có điểm tổng. Thêm số câu đúng theo Part hoặc ghi chi tiết câu sai để nhận gợi ý có bằng chứng; chưa dùng lượt AI.")
+    sampled = []
+    evidence_chars = 0
+    for entry in evidence[:MAX_NOTES]:
+        size = len(json.dumps(entry, ensure_ascii=False, separators=(",", ":")))
+        if sampled and evidence_chars + size > MAX_EVIDENCE_CHARS:
+            break
+        sampled.append(entry)
+        evidence_chars += size
     scores = {key: session.get(key) for key in ("scaled_listening", "scaled_reading", "total_score")}
     extra = session.get("extra") if isinstance(session.get("extra"), dict) else {}
     timing = None
@@ -121,7 +130,7 @@ async def load_snapshot(gateway, owner: str, body: AnalyzeAttemptRequest) -> dic
     return {"attemptId": body.attemptId, "testName": session["test_name"], "date": session["study_date"],
             "scores": scores, "parts": facts, "linkedNotes": len(evidence),
             "confirmedElapsedTiming": timing,
-            "sampledNotes": min(MAX_NOTES, len(evidence)), "evidence": evidence[:MAX_NOTES]}
+            "sampledNotes": len(sampled), "evidence": sampled}
 
 
 def snapshot_hash(snapshot: dict) -> str:
@@ -208,7 +217,7 @@ def check_grounding(advice: AnalysisAdvice, snapshot: dict) -> None:
             raise ValueError("Mismatched evidence Part")
 
 
-async def generate_analysis(gateway, snapshot: dict, owner: str) -> dict:
+async def generate_analysis(gateway, snapshot: dict, owner: str, *, plan: str | None = None) -> dict:
     """One billed OpenAI request; a failed or ungrounded answer is reported, never retried."""
     settings, provider = gateway.settings, gateway.openai
     key = settings.openai_api_key.get_secret_value().strip()
@@ -230,7 +239,7 @@ async def generate_analysis(gateway, snapshot: dict, owner: str) -> dict:
     phase = "response"
     try:
         text = await provider._respond(key, payload, settings.openai_advice_timeout_seconds,
-                                       endpoint="analyze_attempt", owner_id=owner)
+                                       endpoint="analyze_attempt", owner_id=owner, plan=plan)
         phase = "schema"
         advice = AnalysisAdvice.model_validate_json(text)
         phase = "grounding"

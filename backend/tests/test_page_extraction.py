@@ -143,18 +143,71 @@ def test_only_the_first_request_of_a_capture_is_charged(api):  # noqa: F811
         assert not any(call[1].endswith("/reserve_ai_request") for call in calls)
         assert sum(call[0] == "api.openai.com" for call in calls) == 2
         sent = [call[2] for call in calls if call[1].endswith("reserve_ai_batch_request")]
-        assert all(body["p_batch_id"] == BATCH and body["p_max_chunks"] == 8 and body["p_ttl_seconds"] == 3600 for body in sent)
+        assert all(body["p_batch_id"] == BATCH and body["p_max_chunks"] == 4 and body["p_ttl_seconds"] == 3600 for body in sent)
 
 
-def test_a_ninth_request_of_one_capture_is_refused_before_reading_the_page(api):  # noqa: F811
+def test_a_fifth_request_of_one_capture_is_refused_before_reading_the_page(api):  # noqa: F811
     mock = BatchReservationMock()
     with api(draft={"items": [item(131)]}, batch_mock=mock) as (client, calls):
-        assert [client.post("/api/v1/ai/extract-page", json=chunk(n)).status_code for n in range(1, 9)] == [200] * 8
+        assert [client.post("/api/v1/ai/extract-page", json=chunk(n)).status_code for n in range(1, 5)] == [200] * 4
         openai_calls = sum(call[0] == "api.openai.com" for call in calls)
-        refused = client.post("/api/v1/ai/extract-page", json=chunk(9))
+        refused = client.post("/api/v1/ai/extract-page", json=chunk(5))
         assert refused.status_code == 429 and "lần chụp mới" in refused.json()["detail"]
         assert sum(call[0] == "api.openai.com" for call in calls) == openai_calls
-        assert mock.global_used == 8 and sum(mock.account_used.values()) == 1
+        assert mock.global_used == 4 and sum(mock.account_used.values()) == 1
+
+
+def test_batch_explain_ticket_question_cap_stops_cost_amplification(api):  # noqa: F811
+    from app.services import explain_tickets
+
+    mock = BatchReservationMock()
+    six_questions = [{"number": n, "part": 5} for n in range(101, 107)]
+    six_items = {
+        "items": [
+            item(n, question=f"Sentence {n} ____ today.", context="",
+                 options=["(A) one", "(B) two", "(C) three", "(D) four"],
+                 correctAnswer="(A) one", answerSource="PROVIDED", userChoice="B")
+            for n in range(101, 107)
+        ]
+    }
+    ticket_counts = []
+    with api(draft=six_items, batch_mock=mock) as (client, _calls):
+        for n in range(1, 5):
+            req = {**chunk(n), "questions": six_questions}
+            res = client.post("/api/v1/ai/extract-page", json=req)
+            assert res.status_code == 200
+            tok = res.json()["explainTicket"]
+            if tok is None:
+                ticket_counts.append(0)
+            else:
+                decoded = explain_tickets.verify("rate-secret", tok, "11111111-1111-4111-8111-111111111111")
+                ticket_counts.append(len(decoded["d"]))
+    # Across 4 chunks * 6 found = 24 questions, at most 16 receive explain tickets (6 + 6 + 4 + 0).
+    assert ticket_counts == [6, 6, 4, 0]
+
+
+def test_explain_batch_rejects_anonymous_guests(api):  # noqa: F811
+    from app.services import explain_tickets
+
+    tok = explain_tickets.issue("rate-secret", "11111111-1111-4111-8111-111111111111", "page-1", {
+        104: explain_tickets.item_digest(104, "Reports should ____ submitted.", ["(A) are", "(B) be"], ""),
+    })
+    with api(guest=True) as (client, calls):
+        res = client.post("/api/v1/ai/explain-batch", json={
+            "request_id": "44444444-4444-4444-8444-444444444444",
+            "consent": True,
+            "provider": "openai",
+            "ticket": tok,
+            "items": [{
+                "number": 104,
+                "input": {
+                    "part": 5, "question": "Reports should ____ submitted.", "context": "",
+                    "options": ["(A) are", "(B) be"], "userChoiceState": "CHOSEN", "userChoice": "A", "sourceAnswer": "B",
+                },
+            }],
+        })
+        assert res.status_code == 403
+        assert not any(call[0] == "api.openai.com" for call in calls)
 
 
 def test_owners_never_share_a_capture(api):  # noqa: F811
@@ -441,35 +494,29 @@ def test_paper_option_labels_part6_shadow_and_rejection_reasons(api):  # noqa: F
     assert any(reason["number"] == 132 and reason["code"] == "missing_options" for reason in body["rejectionReasons"])
 
 
-def test_photo_mode_routes_to_terra_and_escalates_once_when_under_read(api):  # noqa: F811
-    # Paper photo pass 1 finds 1 of 3 (<50%) on terra low -> auto-escalates once to terra medium for missing ones.
-    pass1 = {"items": [item(131)]}
-    pass2 = {"items": [item(132), item(107, question="She ____ left.", context="",
-                                      options=["(A) has", "(B) have", "(C) is", "(D) are"],
-                                      correctAnswer="", answerSource="MISSING", userChoice="")]}
-    with api(drafts=[pass1, pass2]) as (client, calls):
+def test_photo_mode_routes_to_terra_once_without_silent_double_billing(api):  # noqa: F811
+    # Paper photo routes directly to gpt-6.1-terra low and never silently doubles cost with an automatic 2nd call.
+    with api(draft={"items": [item(131)]}) as (client, calls):
         response = client.post("/api/v1/ai/extract-page", json=page(photoMode=True))
         assert response.status_code == 200
         body = response.json()
-    assert [entry["number"] for entry in body["items"]] == [107, 131, 132]
-    assert body["missing"] == []
+    assert [entry["number"] for entry in body["items"]] == [131]
+    assert body["missing"] == [132, 107]
     sent = [call[2] for call in calls if call[0] == "api.openai.com"]
-    assert len(sent) == 2
+    assert len(sent) == 1
     assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "low"}
-    assert sent[1]["model"] == "gpt-6.1-terra" and sent[1]["reasoning"] == {"effort": "medium"}
-    # Only one user quota reservation even with escalation.
     assert sum(call[1].endswith("reserve_ai_request") for call in calls) == 1
 
 
-def test_screen_ocr_escalates_once_to_terra_medium_when_zero_items_found(api):  # noqa: F811
-    with api(drafts=[{"items": []}, {"items": [item(131)]}]) as (client, calls):
+def test_screen_ocr_zero_items_does_not_auto_escalate_to_second_expensive_call(api):  # noqa: F811
+    # A blank or unreadable image must not trigger a silent 2nd gpt-6.1-terra call (anti cost-amplification).
+    with api(draft={"items": []}) as (client, calls):
         response = client.post("/api/v1/ai/extract-page", json=page(photoMode=False))
         assert response.status_code == 200
-        assert [entry["number"] for entry in response.json()["items"]] == [131]
+        assert response.json()["items"] == []
     sent = [call[2] for call in calls if call[0] == "api.openai.com"]
-    assert len(sent) == 2
+    assert len(sent) == 1
     assert sent[0]["model"] == "gpt-6-luna" and sent[0]["reasoning"] == {"effort": "low"}
-    assert sent[1]["model"] == "gpt-6.1-terra" and sent[1]["reasoning"] == {"effort": "medium"}
 
 
 def test_paper_results_uses_terra_medium_and_allows_sharp_photos_up_to_six_megabytes(api):  # noqa: F811
@@ -587,7 +634,7 @@ def test_ungraded_single_choice_and_graded_blank_and_clean_page_are_preserved(ap
     sent = [call[2] for call in calls if call[0] == "api.openai.com"]
     assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "medium"}
 
-    # Single result image returning empty wrong/skipped on first pass auto-escalates once to gpt-6.1-terra medium.
+    # Single result image returning empty wrong/skipped makes strictly 1 OpenAI call (no silent 2nd-call cost amplification).
     empty_results = {
         "wrong": [], "skipped": [],
         "scores": {"listening": None, "reading": None, "total": None},
@@ -596,17 +643,16 @@ def test_ungraded_single_choice_and_graded_blank_and_clean_page_are_preserved(ap
             "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
         },
     }
-    with api(drafts=[empty_results, results_draft]) as (client, calls):
-        res_esc = client.post("/api/v1/ai/read-results", json={
+    with api(draft=empty_results) as (client, calls):
+        res_empty = client.post("/api/v1/ai/read-results", json={
             "request_id": "55555555-5555-4555-8555-555555555555", "consent": True, "provider": "openai",
             "images": [{"dataUrl": picture()}],
             "photoMode": False,
         })
-        assert res_esc.status_code == 200 and res_esc.json()["wrong"] == [103, 118] and res_esc.json()["skipped"] == [115]
+        assert res_empty.status_code == 200 and res_empty.json()["wrong"] == [] and res_empty.json()["skipped"] == []
     esc_sent = [call[2] for call in calls if call[0] == "api.openai.com"]
-    assert len(esc_sent) == 2
+    assert len(esc_sent) == 1
     assert esc_sent[0]["model"] == "gpt-6-luna" and esc_sent[0]["reasoning"] == {"effort": "low"}
-    assert esc_sent[1]["model"] == "gpt-6.1-terra" and esc_sent[1]["reasoning"] == {"effort": "medium"}
 
 
 def test_explain_batch_accepts_part6_context_with_line_start_blank_numbers(api):  # noqa: F811
@@ -665,7 +711,7 @@ def test_wide_part_paper_photo_does_not_waste_escalation_when_page_questions_fou
     assert sent[0]["model"] == "gpt-6.1-terra" and sent[0]["reasoning"] == {"effort": "low"}
 
 
-def test_read_results_escalation_preserves_pass1_scores_when_retry_also_empty(api):  # noqa: F811
+def test_read_results_perfect_score_keeps_scores_in_single_call_and_weights_provider_budget(api):  # noqa: F811
     perfect_scores = {
         "wrong": [], "skipped": [],
         "scores": {"listening": 495, "reading": 495, "total": 990},
@@ -674,20 +720,24 @@ def test_read_results_escalation_preserves_pass1_scores_when_retry_also_empty(ap
             "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
         },
     }
-    empty_retry = {
-        "wrong": [], "skipped": [],
-        "scores": {"listening": None, "reading": None, "total": None},
-        "timing": {
-            "totalSeconds": None, "listeningSeconds": None, "readingSeconds": None,
-            "parts": {"part1": None, "part2": None, "part3": None, "part4": None, "part5": None, "part6": None, "part7": None},
-        },
-    }
-    with api(drafts=[perfect_scores, empty_retry]) as (client, calls):
+    with api(draft=perfect_scores, settings_overrides={"ai_provider_budget_enabled": True}) as (client, calls):
         res = client.post("/api/v1/ai/read-results", json={
             "request_id": "77777777-7777-4777-8777-777777777777", "consent": True, "provider": "openai",
             "images": [{"dataUrl": picture()}], "photoMode": False,
         })
         assert res.status_code == 200
         assert res.json()["scores"] == {"listening": 495, "reading": 495, "total": 990}
-    assert len([call for call in calls if call[0] == "api.openai.com"]) == 2
+        budget_call = next(call[2] for call in calls if call[1].endswith("/reserve_provider_budget"))
+        assert budget_call["p_cost"] == 1 and budget_call["p_owner_limit"] == 24
+    assert len([call for call in calls if call[0] == "api.openai.com"]) == 1
+
+    # Paper mode (gpt-6.1-terra medium) charges higher cost weight (3 units) on Free owner cap (24).
+    with api(draft=perfect_scores, settings_overrides={"ai_provider_budget_enabled": True}) as (client, calls):
+        res = client.post("/api/v1/ai/read-results", json={
+            "request_id": "88888888-8888-4888-8888-888888888888", "consent": True, "provider": "openai",
+            "images": [{"dataUrl": picture()}], "photoMode": True,
+        })
+        assert res.status_code == 200
+        budget_call = next(call[2] for call in calls if call[1].endswith("/reserve_provider_budget"))
+        assert budget_call["p_cost"] == 3 and budget_call["p_owner_limit"] == 24
 

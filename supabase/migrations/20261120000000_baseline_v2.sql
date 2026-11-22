@@ -1388,7 +1388,8 @@ $$;
 revoke all on all sequences in schema public from public, anon, authenticated, service_role;
 revoke all on all sequences in schema private from public, anon, authenticated, service_role;
 revoke all on all tables in schema private from public, anon, authenticated, service_role;
-revoke all on all functions in schema public from public, anon, authenticated, service_role;
+-- Keep browser roles locked out of every function; avoid revoking service_role on functions added by later migrations on re-apply.
+revoke all on all functions in schema public from public, anon, authenticated;
 revoke all on all functions in schema private from public, anon, authenticated, service_role;
 
 -- The backend reads these through PostgREST (stars, attempt analysis, image cleanup, league membership).

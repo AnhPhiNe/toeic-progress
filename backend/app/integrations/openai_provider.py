@@ -14,7 +14,6 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.core.runtime import request_id_context
 from app.schemas.models import (
-    MAX_PAGE_ITEMS,
     RESULTS_OUTPUT_SCHEMA,
     MistakeDraft,
     OpenAIDraftOutput,
@@ -65,6 +64,26 @@ class OpenAIError(HTTPException):
         self.code = code
 
 
+def _payload_cost(payload: dict) -> int:
+    """Estimate relative OpenAI cost units (1..5) from model tier, reasoning effort and image count."""
+    model = str(payload.get("model") or "").lower()
+    effort = str((payload.get("reasoning") or {}).get("effort") or "").lower()
+    image_count = sum(
+        1
+        for entry in payload.get("input") or []
+        if isinstance(entry, dict)
+        for part in entry.get("content") or []
+        if isinstance(part, dict) and part.get("type") == "input_image"
+    )
+    heavy = "terra" in model or (bool(model) and "luna" not in model)
+    cost = 2 if heavy else 1
+    if heavy and effort in ("medium", "high"):
+        cost += 1
+    if image_count >= 4:
+        cost += 1
+    return min(5, max(1, cost))
+
+
 class OpenAIProvider:
     def __init__(self, settings: Settings, client: httpx.AsyncClient, *, budget_guard=None, usage_recorder=None):
         self.settings, self.client = settings, client
@@ -89,10 +108,10 @@ class OpenAIProvider:
             }))
 
     async def _respond(self, key: str, payload: dict, timeout: float, *,
-                       endpoint: str = "extract", owner_id: str | None = None) -> str:
+                       endpoint: str = "extract", owner_id: str | None = None, plan: str | None = None) -> str:
         """One billed attempt: guard provider budget, send the request and return joined output text. Never retried."""
         if self.budget_guard is not None:
-            await self.budget_guard(owner_id)
+            await self.budget_guard(owner_id, cost=_payload_cost(payload), plan=plan)
         model = str(payload.get("model") or self.settings.openai_model)
         effort = str((payload.get("reasoning") or {}).get("effort") or "")
         started = time.monotonic()
@@ -196,7 +215,7 @@ class OpenAIProvider:
     async def generate(self, text: str, safety_identifier: str | None = None, *,
                        source_options: list[str] | None = None, source_answer: str | None = None,
                        images: list[str] | None = None, persistent_images: bool = False, pin_question: bool = False,
-                       endpoint: str = "extract", owner_id: str | None = None) -> MistakeDraft:
+                       endpoint: str = "extract", owner_id: str | None = None, plan: str | None = None) -> MistakeDraft:
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
@@ -262,7 +281,7 @@ class OpenAIProvider:
         phase = "response"
         try:
             text_output = await self._respond(key, payload, self.settings.openai_timeout_seconds,
-                                              endpoint=endpoint, owner_id=owner_id)
+                                              endpoint=endpoint, owner_id=owner_id, plan=plan)
             phase = "schema"
             output = output_model.model_validate_json(text_output)
             if isinstance(output, OpenAIPasteOutput) and output.inputIssue:
@@ -380,8 +399,9 @@ class OpenAIProvider:
                             context_images: list[str] | None = None,
                             slices: list[tuple[int, int]] | None = None,
                             *, photo_mode: bool = False,
-                            owner_id: str | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int], list[dict]]:
-        """Read wrong questions from screenshots or paper photos. Returns (found, missing, rejection_reasons)."""
+                            owner_id: str | None = None,
+                            plan: str | None = None) -> tuple[list[tuple[int, MistakeDraft]], list[int], list[dict]]:
+        """Read wrong questions from screenshots or paper photos in one billed OpenAI request."""
         key = self.settings.openai_api_key.get_secret_value().strip()
         if not key:
             raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
@@ -395,7 +415,7 @@ class OpenAIProvider:
         phase = "response"
         try:
             text_output = await self._respond(key, payload, self.settings.openai_page_timeout_seconds,
-                                              endpoint="extract_page", owner_id=owner_id)
+                                              endpoint="extract_page", owner_id=owner_id, plan=plan)
             phase = "schema"
             output = OpenAIPageOutput.model_validate_json(text_output)
         except (ValueError, KeyError, TypeError, AttributeError) as error:
@@ -406,44 +426,9 @@ class OpenAIProvider:
                                 "Các câu vẫn được giữ; hãy thử lại hoặc ghi tay.") from error
         found, rejection_reasons, rejected = self._parse_page_items(output.items, numbers)
 
-        # Automatic max-1 escalation when OCR misses completely (0 items) or under-reads (<50%) on a narrow single-page
-        # paper target (<= MAX_PAGE_ITEMS). Wide full-Part searches (e.g. 16–54 questions) on a 3–4 question page only
-        # escalate when 0 items were found, avoiding a wasted second high-effort call.
-        escalate_model = self.settings.openai_paper_ocr_model
-        escalate_effort = "medium"
-        under_read_narrow_group = len(numbers) <= MAX_PAGE_ITEMS and len(found) * 2 < len(numbers)
-        should_escalate = (
-            rejected == 0
-            and (model, effort) != (escalate_model, escalate_effort)
-            and (len(found) == 0 or (photo_mode and under_read_narrow_group))
-        )
-        if should_escalate:
-            seen_first = {number for number, _ in found}
-            retry_questions = [q for q in questions if q["number"] not in seen_first]
-            if retry_questions:
-                retry_numbers = [q["number"] for q in retry_questions]
-                retry_payload = self._build_page_payload(
-                    retry_questions, images, context_images, slices,
-                    model=escalate_model, effort=escalate_effort, safety_identifier=safety_identifier,
-                )
-                try:
-                    retry_text = await self._respond(key, retry_payload, self.settings.openai_page_timeout_seconds,
-                                                     endpoint="extract_page_escalate", owner_id=owner_id)
-                    retry_output = OpenAIPageOutput.model_validate_json(retry_text)
-                    retry_found, retry_reasons, retry_rejected = self._parse_page_items(retry_output.items, retry_numbers)
-                    found.extend(retry_found)
-                    rejection_reasons.extend(retry_reasons)
-                    rejected += retry_rejected
-                except (HTTPException, ValueError, KeyError, TypeError, AttributeError) as error:
-                    logger.warning(json.dumps({
-                        "event": "openai_page_escalation_failed", "request_id": request_id_context.get(),
-                        "error_type": type(error).__name__,
-                    }))
-
         if rejected:
             logger.warning(json.dumps({"event": "openai_page_items_rejected", "request_id": request_id_context.get(), "count": rejected}))
         seen = {number for number, _ in found}
-        # Drop stale rejection reasons for numbers recovered during escalation.
         final_reasons = [reason for reason in rejection_reasons if reason["number"] not in seen]
         return sorted(found, key=lambda pair: pair[0]), [number for number in numbers if number not in seen], final_reasons
 
@@ -519,8 +504,9 @@ def page_item_draft(item: OpenAIPageItem) -> tuple[MistakeDraft | None, tuple[st
 
 
 async def read_results(provider: OpenAIProvider, images: list[str], safety_identifier: str | None = None, *,
-                       photo_mode: bool = False, owner_id: str | None = None) -> tuple[list[int], list[int], dict, dict]:
-    """Read marked questions and visible source scores; never convert counts into source scores."""
+                       photo_mode: bool = False, owner_id: str | None = None,
+                       plan: str | None = None) -> tuple[list[int], list[int], dict, dict]:
+    """Read marked questions and visible source scores in one billed OpenAI request."""
     key = provider.settings.openai_api_key.get_secret_value().strip()
     if not key:
         raise HTTPException(503, "AI chưa có key OpenAI được cấu hình.")
@@ -546,7 +532,7 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     try:
         output = OpenAIResultsOutput.model_validate_json(
             await provider._respond(key, build_payload(model, effort), provider.settings.openai_timeout_seconds,
-                                    endpoint="read_results", owner_id=owner_id)
+                                    endpoint="read_results", owner_id=owner_id, plan=plan)
         )
     except (ValueError, KeyError, TypeError, AttributeError) as error:
         logger.warning(json.dumps({"event": "openai_invalid_results", "request_id": request_id_context.get(), "error_type": type(error).__name__}))
@@ -554,29 +540,5 @@ async def read_results(provider: OpenAIProvider, images: list[str], safety_ident
     valid = range(1, 201)
     wrong = sorted({number for number in output.wrong if number in valid})
     skipped = sorted({number for number in output.skipped if number in valid} - set(wrong))
-
-    # Automatic max-1 escalation when a single image sent without photoMode returns 0 wrong and 0 skipped
-    # (e.g. a single photo containing both a handwritten scratch answer sheet and an Answer Key).
-    escalate_model = provider.settings.openai_paper_results_model
-    escalate_effort = "medium"
-    if not wrong and not skipped and (model, effort) != (escalate_model, escalate_effort):
-        try:
-            retry_output = OpenAIResultsOutput.model_validate_json(
-                await provider._respond(key, build_payload(escalate_model, escalate_effort), provider.settings.openai_timeout_seconds,
-                                        endpoint="read_results_escalate", owner_id=owner_id)
-            )
-            retry_wrong = sorted({number for number in retry_output.wrong if number in valid})
-            retry_skipped = sorted({number for number in retry_output.skipped if number in valid} - set(retry_wrong))
-            if retry_wrong or retry_skipped:
-                wrong, skipped = retry_wrong, retry_skipped
-                has_pass1_scores = any(v is not None for v in output.scores.model_dump().values())
-                has_retry_scores = any(v is not None for v in retry_output.scores.model_dump().values())
-                if has_retry_scores or not has_pass1_scores:
-                    output = retry_output
-        except (HTTPException, ValueError, KeyError, TypeError, AttributeError) as error:
-            logger.warning(json.dumps({
-                "event": "openai_results_escalation_failed", "request_id": request_id_context.get(),
-                "error_type": type(error).__name__,
-            }))
 
     return wrong, skipped, output.scores.model_dump(exclude={"part5Minutes", "part6Minutes", "part7Minutes"}), output.timing.model_dump()

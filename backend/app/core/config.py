@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     ai_provider_budget_enabled: bool = False
     ai_provider_day_limit: int = Field(default=300, ge=1, le=50000)
     ai_provider_owner_day_limit: int = Field(default=60, ge=1, le=5000)
+    ai_provider_owner_day_limit_free: int = Field(default=24, ge=1, le=5000)
     ai_provider_minute_limit: int = Field(default=20, ge=1, le=500)
     ai_unlimited_emails: list[str] = Field(default_factory=list, max_length=100, repr=False)
 
