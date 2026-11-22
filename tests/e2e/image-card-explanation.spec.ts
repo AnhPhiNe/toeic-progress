@@ -10,10 +10,10 @@ async function openImageCard(page: Page) {
   // Mock only the provider-facing module: the notebook, merge and storage paths remain real.
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({
     contentType: 'application/javascript', body: `
-      export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true, persistentImages: true }; }
+      export async function getAIConfiguration() { return { provider: 'openai', structuredInput: true }; }
       export async function getAIUsage() { return null; }
-      export async function extractMistakeWithAI(text, captcha, input, images, sourceImageIds) {
-        window.__imageExplanationCall = { text, input, images, sourceImageIds };
+      export async function extractMistakeWithAI(text, captcha, input, images) {
+        window.__imageExplanationCall = { text, input, images, args: JSON.stringify([...arguments].slice(4)) };
         if (window.__holdImageExplanation) await new Promise(resolve => { window.__releaseImageExplanation = resolve; });
         return { usage: {}, draft: { part: 7, category: 'VOCABULARY_TRAP',
           question: input.question, context: 'OCR text must not replace the saved source image.',
@@ -28,7 +28,7 @@ async function openImageCard(page: Page) {
     `
   }));
   await gotoPage(page, '/so-tay');
-  // This is the persisted shape produced by saving a manual note with context images.
+  // An older card saved when source images were still stored: its ids stay in data, unused.
   await page.evaluate(({ question, sourceImageIds }) => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     const now = new Date().toISOString();
@@ -44,17 +44,18 @@ async function openImageCard(page: Page) {
   await openCard(page, question);
 }
 
-test('explaining an image-only Part 7 card forwards its source images and preserves learner facts after reload', async ({ page }) => {
+test('an older image-only Part 7 card shows its text, is explained from text only and keeps learner facts after reload', async ({ page }) => {
   await openImageCard(page);
+  await expect(page.getByRole('button', { name: 'Ảnh gốc', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: /^Giải thích với AI/ }).click();
   await page.getByRole('button', { name: /^Xem giải thích/ }).click();
   await expect(page.getByText(tip, { exact: true })).toBeVisible();
 
   const call = await page.evaluate(() => (window as Window & { __imageExplanationCall: {
     input: { context: string; sourceAnswer: string; userChoice: string; userChoiceState: string; userReason: string };
-    images: unknown[]; sourceImageIds: string[];
+    images: unknown[]; args: string;
   } }).__imageExplanationCall);
-  expect(call.sourceImageIds).toEqual(sourceImageIds);
+  expect(call.args).not.toContain('aaaa');
   expect(call.images).toEqual([]);
   expect(call.input).toMatchObject({ context: '', sourceAnswer: 'A', userChoice: 'B', userChoiceState: 'CHOSEN', userReason: 'Nhầm ngày trong ảnh' });
 
@@ -68,7 +69,7 @@ test('explaining an image-only Part 7 card forwards its source images and preser
   await expect(page.getByRole('button', { name: /^Giải thích với AI/ })).toHaveCount(0);
 });
 
-for (const changedField of ['question', 'sourceImageIds', 'deletedAt'] as const) {
+for (const changedField of ['question', 'deletedAt'] as const) {
   test(`a late image explanation cannot overwrite a card whose ${changedField} changed`, async ({ page }) => {
     await openImageCard(page);
     await page.evaluate(() => { (window as Window & { __holdImageExplanation: boolean }).__holdImageExplanation = true; });
@@ -79,7 +80,6 @@ for (const changedField of ['question', 'sourceImageIds', 'deletedAt'] as const)
       const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
       const card = bundle.mistakes[0];
       if (changedField === 'question') card.question = 'What is the new opening time?';
-      if (changedField === 'sourceImageIds') card.sourceImageIds = ['c'.repeat(64)];
       if (changedField === 'deletedAt') card.deletedAt = new Date().toISOString();
       localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
       (window as Window & { __releaseImageExplanation: () => void }).__releaseImageExplanation();
@@ -89,7 +89,6 @@ for (const changedField of ['question', 'sourceImageIds', 'deletedAt'] as const)
     expect(saved.explanation).toBeUndefined();
     expect(saved.trapTip).toBeUndefined();
     if (changedField === 'question') expect(saved.question).toBe('What is the new opening time?');
-    if (changedField === 'sourceImageIds') expect(saved.sourceImageIds).toEqual(['c'.repeat(64)]);
     if (changedField === 'deletedAt') expect(saved.deletedAt).toMatch(/T.*Z$/);
   });
 }

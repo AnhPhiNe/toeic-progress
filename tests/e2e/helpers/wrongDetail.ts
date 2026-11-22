@@ -25,11 +25,14 @@ export const TEST = 'ETS 2024 Test 03';
 export const WRONG = [4, 9, 14, 18, 22, 27, 35, 41, 48, 62, 74, 83, 95, 103, 112, 118, 124, 129, 133, 134, 141, 146,
   149, 153, 158, 162, 163, 166, 171, 173, 176, 178, 181, 183, 184, 186, 189, 191, 194, 196, 198, 199, 200];
 
+/** Part 7 passages come back as labelled text (images are never stored): one label per passage, tables in Markdown. */
+export const PART7_PASSAGE = 'Đoạn 1 — Email\nFrom: Lena Ortiz\nTo: Harbor Hotel\nSubject: My stay in May\nI am writing about…\nLena Ortiz\n\n'
+  + 'Đoạn 2 — Phiếu giao hàng\n| Item | Qty |\n|---|---|\n| Towels | 2 |';
 const option = (letter: string, text: string) => `(${letter}) ${text}`;
 const OPTIONS = ['To announce a change', 'To ask for a refund', 'To confirm a booking', 'To report a problem'];
 const read = (number: number, question: string, choice: string, answer: string) => ({
   number, draft: { part: number >= 147 ? 7 : number >= 131 ? 6 : 5, category: 'OTHER', question, questionContext: question,
-    context: number >= 131 ? 'From: Lena Ortiz\nTo: Harbor Hotel\nSubject: My stay in May\nI am writing about…' : '',
+    context: number >= 147 ? PART7_PASSAGE : number >= 131 ? 'From: Lena Ortiz\nTo: Harbor Hotel\nSubject: My stay in May\nI am writing about…' : '',
     options: OPTIONS.map((text, index) => option('ABCD'[index], text)), correctAnswer: answer ? option(answer, OPTIONS['ABCD'.indexOf(answer)]) : '',
     answerSource: answer ? 'PROVIDED' : 'MISSING', userChoice: choice, userChoiceState: 'CHOSEN', userMistake: '', trapTip: '', tags: [],
     missingInformation: [], optionNotes: [], explanation: null }

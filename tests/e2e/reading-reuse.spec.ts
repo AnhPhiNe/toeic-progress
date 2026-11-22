@@ -40,8 +40,7 @@ test('five questions reuse three images once and preserve the full source withou
     resolve('tests/fixtures/part7-notice.png'), resolve('tests/fixtures/part7-table-question.png'), resolve('tests/fixtures/part7-notice.png')
   ]);
   await modal.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
-  await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toHaveCount(0);
-  await expect(modal.getByText(passage, { exact: true })).toHaveCount(0);
+  await expect(modal.getByText('Đoạn đọc / ngữ cảnh', { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 375, height: 820 });
   await expect(modal.getByRole('button', { name: 'Lưu & thêm câu cùng bài', exact: true })).toBeInViewport();
   await expect(modal.getByRole('button', { name: 'Lưu câu sai', exact: true })).toBeInViewport();
