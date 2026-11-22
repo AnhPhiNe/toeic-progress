@@ -7,7 +7,7 @@ const RPCS = [
   'ai_quota_status(uuid,boolean,text)', 'apply_identity_carryover(uuid,text)', 'clear_account_deletion_pending(uuid)',
   'claim_explanation_question(uuid,uuid,integer,text,timestamp with time zone,uuid,uuid)',
   'finish_explanation_question(uuid,uuid,integer,uuid,jsonb)', 'get_ai_access(uuid)', 'get_ai_usage(uuid,boolean,integer)',
-  'league_join(uuid,date,text,text)', 'league_leave(uuid,date)', 'league_refresh(uuid,date,integer)', 'league_update(uuid,date,text,text)',
+  'league_join(uuid,date,text,text)', 'league_leave(uuid,date)', 'league_refresh(uuid,date,integer)', 'league_state(uuid)', 'league_update(uuid,date,text,text)',
   'list_pending_account_deletions(integer,integer)', 'mark_account_deletion_pending(uuid)', 'note_account_deletion_attempt(uuid,text)',
   'prepare_account_deletion(uuid,text)',
   'record_ai_usage(uuid,text,text,text,integer,integer,integer,integer,text)',
@@ -15,7 +15,8 @@ const RPCS = [
   'reserve_ai_request(uuid,boolean,uuid,text,text,integer,integer,integer,integer)', 'reserve_api_request(uuid,text,integer,integer)',
   'reserve_batch_explain_quota(uuid,uuid,integer,integer)',
   'reserve_provider_budget(uuid,integer,integer,integer,integer)',
-  'reset_learning_data(uuid)', 'run_maintenance(integer,integer)', 'schema_ready()', 'sync_account_records(uuid,jsonb,bigint,boolean)'
+  'reset_learning_data(uuid)', 'run_maintenance(integer,integer)', 'schema_ready()', 'sync_account_records(uuid,jsonb,bigint,boolean)',
+  'sync_page(uuid,bigint)'
 ].sort();
 const TABLES = ['ai_access_grants', 'ai_batches', 'ai_cost_ledger', 'ai_explanation_questions', 'ai_explanation_requests', 'ai_provider_budget_counters', 'ai_requests', 'ai_usage_counters',
   'api_rate_limits', 'learning_data_resets', 'league_groups', 'league_members', 'league_standings', 'league_weeks', 'mistakes',
@@ -91,7 +92,9 @@ try {
   assert.deepEqual(await value('select public.schema_ready()'), { baseline: 2, ready: true });
   for (const drop of ['drop function public.reserve_batch_explain_quota(uuid,uuid,integer,integer)', 'alter table public.ai_batches drop column explain_questions',
     'drop table private.identity_redeem_uses', 'drop table private.account_deletion_contributions cascade',
-    'drop table private.pending_account_deletions', 'drop function public.note_account_deletion_attempt(uuid,text)']) {
+    'drop table private.pending_account_deletions', 'drop function public.note_account_deletion_attempt(uuid,text)',
+    'drop function public.league_state(uuid)', 'drop function public.sync_page(uuid,bigint)', 'drop table private.sync_floors',
+    'alter table public.study_sessions drop column first_synced_at cascade', 'alter table public.league_standings drop column opted_out']) {
     await assert.rejects(db.transaction(async tx => {
       await tx.exec(drop);
       assert.deepEqual((await tx.query('select public.schema_ready() as r')).rows[0].r, { baseline: 2, ready: false }, drop);

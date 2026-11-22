@@ -3,7 +3,9 @@
 Calls public.run_maintenance (service role only), which deletes in bounded
 batches: expired AI usage counters, AI request hashes older than 30 days, AI
 batches and API rate-limit windows older than a day, expired explanation
-tickets without an active lease, and league history older than 12 weeks.
+tickets without an active lease, league history older than 12 weeks, sync
+tombstones older than 180 days, and finalises league weeks past their grace
+window (Monday 12:00 in Vietnam).
 Then finishes stuck account deletions: accounts whose delete failed after the
 ban and whose unban also failed keep a private pending row; those older than
 PENDING_GRACE_SECONDS are purged and deleted with the same code path as the API.
@@ -32,11 +34,11 @@ async def run(gateway: Gateway) -> dict:
     totals: dict[str, int] = {}
     for _ in range(MAX_ROUNDS):
         result = await gateway.rpc("run_maintenance", {"p_limit": BATCH, "p_league_weeks": 12})
-        steps = {key: value for key, value in result.items() if key != "limit"}
+        steps = {key: value for key, value in result.items() if key not in ("limit", "leagueMore")}
         for key, value in steps.items():
             totals[key] = totals.get(key, 0) + value
-        # A step that filled its batch may have more to delete.
-        if all(value < BATCH for value in steps.values()):
+        # A step that filled its batch may have more to delete; league groups are finalised in smaller batches.
+        if all(value < BATCH for value in steps.values()) and not result.get("leagueMore"):
             break
     return totals
 

@@ -41,18 +41,23 @@ try {
     ($1,'extract','gpt-6-luna','low',100,0,50,500,'ok',now()-interval '10 days')`, [alice]);
   await db.query(`insert into private.identity_carryover_counters(bucket,used,expires_at) values
     ('old-carry',4,now()-interval '2 days'),('fresh-carry',2,now()+interval '1 day')`);
+  // Deletion markers: two older than 180 days, one recent.
+  const marker = await value(`insert into public.sync_tombstones(user_id,entity_type,record_id,updated_at,deleted_at) values
+    ($1,'vocabLog','old-1',now()-interval '200 days',now()-interval '200 days'),
+    ($1,'vocabLog','old-2',now()-interval '190 days',now()-interval '190 days'),
+    ($1,'vocabLog','new-1',now()-interval '2 days',now()-interval '2 days') returning server_version`, [alice]);
 
   // Bounded: with a limit of 5, the ledger needs two passes.
   const first = await value('select public.run_maintenance(5)');
   assert.deepEqual(first, {
     aiUsageCounters: 2, aiRequests: 1, aiBatches: 1, apiRateLimits: 1, explanationQuestions: 5, leagueWeeks: 2,
-    providerBudgetCounters: 1, aiCostLedger: 1, identityCarryover: 1, limit: 5
+    providerBudgetCounters: 1, aiCostLedger: 1, identityCarryover: 1, syncTombstones: 2, leagueGroups: 2, leagueMore: false, limit: 5
   });
   const second = await value('select public.run_maintenance(5)');
   assert.equal(second.explanationQuestions, 2);
   assert.deepEqual(await value('select public.run_maintenance()'), {
     aiUsageCounters: 0, aiRequests: 0, aiBatches: 0, apiRateLimits: 0, explanationQuestions: 0, leagueWeeks: 0,
-    providerBudgetCounters: 0, aiCostLedger: 0, identityCarryover: 0, limit: 5000
+    providerBudgetCounters: 0, aiCostLedger: 0, identityCarryover: 0, syncTombstones: 0, leagueGroups: 0, leagueMore: false, limit: 5000
   });
 
   // What stays: unexpired counters, the guest bucket, recent rows, active leases, 12 weeks of league history.
@@ -69,6 +74,15 @@ try {
   assert.equal(await value('select count(*)::int from public.league_standings'), 3, 'Old standings go with their week');
   assert.equal(await value('select group_id is not null from public.league_members'), true, 'The current group is kept');
   await assert.rejects(value('select public.run_maintenance(0)'), /Invalid maintenance request/);
+
+  // Tombstone TTL: old markers go, the account's floor rises to the newest purged one.
+  assert.deepEqual((await db.query('select record_id from public.sync_tombstones order by 1')).rows.map(r => r.record_id), ['new-1']);
+  const floor = await value('select server_version from private.sync_floors where user_id=$1', [alice]);
+  assert.ok(Number(floor) >= Number(marker), 'Floor covers the purged markers');
+  // Past league weeks beyond the grace window are finalised by maintenance, not by a user request.
+  assert.equal(await value('select count(*)::int from public.league_standings where final_rank is null and week_start<$1', [monday(0)]), 0);
+  assert.equal(await value('select count(*)::int from public.league_standings where final_rank is null and week_start=$1', [monday(0)]), 1,
+    'The open week stays open');
   console.log('Maintenance: bounded cleanup of AI logs, batches, rate limits, explanation ledger and league history passed.');
 } finally {
   await db.close();

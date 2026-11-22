@@ -23,6 +23,30 @@ _BEARER_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 _MAX_BEARER_TOKEN_LENGTH = 8192
 
 
+# Postgres errors caused by the submitted data, not by the server (S-19): the
+# request is refused (4xx) instead of reported as an outage (503) and retried.
+_DATA_ERROR_CODES = frozenset({"22001", "22003", "22007", "22008", "22P02", "22P05", "23502", "23514"})
+_DATA_ERROR_MESSAGES = ("Invalid record", "Invalid profile", "Invalid replacement", "Invalid sync request",
+                        "Missing timestamp", "Unknown entity type")
+
+
+def _data_error(response: httpx.Response) -> tuple[int, str] | None:
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    if not isinstance(body, dict):
+        return None
+    code, message = str(body.get("code") or ""), str(body.get("message") or "")
+    if "Stale league week" in message:
+        return 409, "Tuần giải đấu mới vừa bắt đầu. Vui lòng thử lại."
+    if "Account record limit reached" in message:
+        return 409, "Tài khoản đã đạt giới hạn 10.000 bản ghi. Hãy xóa bớt dữ liệu cũ rồi đồng bộ lại."
+    if code in _DATA_ERROR_CODES or (code == "P0001" and message.startswith(_DATA_ERROR_MESSAGES)):
+        return 422, "Dữ liệu đồng bộ không hợp lệ. Hãy xuất bản sao lưu rồi kiểm tra bản ghi vừa sửa."
+    return None
+
+
 class AccountDeletionError(Exception):
     """Purge or Auth delete failed; step is "purge" or "delete"."""
 
@@ -89,7 +113,7 @@ class Gateway:
             headers["Authorization"] = f"Bearer {key}"
         return headers
 
-    async def rpc(self, name: str, parameters: dict, *, timeout: float = 12):
+    async def rpc(self, name: str, parameters: dict, *, timeout: float = 12, data_errors: bool = False):
         response = await self.client.post(
             f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/{name}",
             headers=self.admin_headers(),
@@ -97,6 +121,10 @@ class Gateway:
             timeout=timeout,
         )
         if not response.is_success:
+            if data_errors:
+                refused = _data_error(response)
+                if refused:
+                    raise HTTPException(*refused)
             raise HTTPException(503, "Chưa xử lý được dữ liệu trên máy chủ. Vui lòng thử lại.")
         return response.json() if response.content else None
 

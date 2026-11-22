@@ -7,10 +7,18 @@ export { cloud } from '@/shared/api/supabaseClient';
 type EntityType = 'profile' | 'sessions' | 'mistakes' | 'pacingRuns' | 'vocabLog' | 'shieldDays';
 const COLLECTIONS: Exclude<EntityType, 'profile'>[] = ['sessions', 'mistakes', 'pacingRuns', 'vocabLog', 'shieldDays'];
 export interface CloudRow { entity_type: EntityType; record_id: string; payload: Record<string, unknown>; updated_at: string; deleted_at: string | null }
-/** epoch names the server database generation; fullResync marks a reply after this device re-sent everything. */
-export interface SyncReply { cursor: number; records: CloudRow[]; hasRecords: boolean; resetBarrier?: boolean; sourceImageCleanupBefore?: string; epoch?: string; fullResync?: boolean }
+/**
+ * epoch names the server database generation; fullResync marks a reply after this device re-sent everything.
+ * hasMore: the server pages large replies (cursor = last version sent); syncRequest follows the pages.
+ * fullSnapshot: this device was behind a tombstone purge, so records holds the whole canonical set.
+ * resetVersion: the account's reset barrier; it must not change while the pages are read.
+ */
+export interface SyncReply {
+  cursor: number; records: CloudRow[]; hasRecords: boolean; resetBarrier?: boolean; sourceImageCleanupBefore?: string; epoch?: string;
+  fullResync?: boolean; hasMore?: boolean; fullSnapshot?: boolean; resetVersion?: number;
+}
 export interface SyncState { cursor: number; acknowledged: Record<string, string>; epoch?: string }
-// Re-sending every record after a server rebuild goes in requests well below the 10,000-record / 4 MiB sync limit.
+// Re-sending every record after a server rebuild goes in requests well below the 1,000-record / 4 MiB sync limit.
 const RESYNC_CHUNK_RECORDS = 500;
 const RESYNC_CHUNK_BYTES = 1_000_000;
 const syncKey = (id: string) => `toeic_sync_cursor_${id}_v3`;
@@ -65,9 +73,28 @@ export function bundleFromRecords(rows: CloudRow[]): DataBundle {
   for (const key of COLLECTIONS) bundle[key].sort((a, b) => a.id.localeCompare(b.id));
   return bundle;
 }
+// 10,000 records at 1,000 per page plus slack; a reply that never ends is refused, not followed forever.
+const MAX_SYNC_PAGES = 50;
 async function syncRequest(userId: string, records: CloudRow[], cursor: number, replace = false): Promise<SyncReply> {
-  const reply = await backendRequest<SyncReply>('/api/v1/sync', 'POST', { records, cursor, replace }, userId);
-  return validateSyncReply(reply);
+  const first = validateSyncReply(await backendRequest<SyncReply>('/api/v1/sync', 'POST', { records, cursor, replace }, userId));
+  return first.hasMore ? followPages(userId, first) : first;
+}
+/** Read the remaining pages of a large reply; later pages win for the same record. */
+async function followPages(userId: string, first: SyncReply): Promise<SyncReply> {
+  const rows = new Map<string, CloudRow>();
+  for (const row of first.records) rows.set(identity(row), row);
+  let reply = first;
+  for (let pages = 1; reply.hasMore; pages++) {
+    if (pages >= MAX_SYNC_PAGES) throw new Error('Phản hồi đồng bộ quá dài. Vui lòng thử lại.');
+    const next = validateSyncReply(await backendRequest<SyncReply>('/api/v1/sync', 'POST', { records: [], after: reply.cursor }, userId));
+    if (next.hasMore && next.cursor <= reply.cursor) throw new Error('Phản hồi đồng bộ không hợp lệ.');
+    if ((next.resetVersion ?? 0) !== (first.resetVersion ?? 0)) {
+      throw new Error('Dữ liệu tài khoản vừa được xóa trên thiết bị khác. Vui lòng đồng bộ lại.');
+    }
+    for (const row of next.records) rows.set(identity(row), row);
+    reply = next;
+  }
+  return { ...first, records: [...rows.values()], cursor: reply.cursor, hasMore: false, epoch: reply.epoch ?? first.epoch };
 }
 function validateSyncReply(reply: SyncReply): SyncReply {
   if (!Number.isSafeInteger(reply?.cursor) || reply.cursor < 0 || !Array.isArray(reply.records)) throw new Error('Phản hồi đồng bộ không hợp lệ.');

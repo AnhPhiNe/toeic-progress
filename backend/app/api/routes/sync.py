@@ -8,7 +8,11 @@ router = APIRouter()
 
 @router.post("/api/v1/sync")
 async def synchronize(body: SyncRequest, request: Request, user=Depends(account)):
-    return await request.app.state.gateway.rpc(
+    gateway = request.app.state.gateway
+    if body.after is not None:
+        # Next page of a reply that said hasMore (only databases with security wave 2 page).
+        return await gateway.rpc("sync_page", {"p_user_id": user["id"], "p_after": body.after}, data_errors=True)
+    return await gateway.rpc(
         "sync_account_records",
         {
             "p_user_id": user["id"],
@@ -16,4 +20,5 @@ async def synchronize(body: SyncRequest, request: Request, user=Depends(account)
             "p_cursor": body.cursor,
             "p_replace": body.replace,
         },
+        data_errors=True,
     )
