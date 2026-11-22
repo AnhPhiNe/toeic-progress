@@ -29,10 +29,11 @@ const stored = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getIt
 
 test('on a phone a question is written by hand in a bottom sheet and saved', async ({ page }) => {
   const flow = await logTest(page);
-  await expect(flow.getByRole('heading', { name: /^Gỡ câu sai/ })).toBeVisible();
-  await expect(flow.getByText('ETS Detail · 4 câu sai', { exact: true })).toBeVisible();
-  // No AI on this build: the Part opens for writing by hand.
-  await flow.getByRole('button', { name: 'Ghi tay Part 5', exact: true }).click();
+  // Listening comes first and can be set aside.
+  await expect(flow.getByRole('heading', { name: 'Sai vì sao?', exact: true })).toBeVisible();
+  await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
+  // No AI on this build: the item's main action writes by hand.
+  await expect(flow.getByRole('heading', { name: /^câu 103–107/ })).toBeVisible();
   await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
   const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
   await card.getByRole('button', { name: '107', exact: true }).click();
@@ -44,10 +45,10 @@ test('on a phone a question is written by hand in a bottom sheet and saved', asy
   await card.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'A', exact: true }).click();
   await card.getByRole('button', { name: 'Lưu câu 107', exact: true }).click();
   await expect(card).toHaveCount(0);
-  await expect(flow.getByRole('button', { name: 'Câu 107, đã ghi', exact: true })).toBeVisible();
 
   const saved = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
   expect(saved).toMatchObject({ part: 5, userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(B)', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
+  await flow.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Đã ghi chi tiết' })).toContainText('Đã ghi chi tiết 1 câu');
@@ -55,16 +56,20 @@ test('on a phone a question is written by hand in a bottom sheet and saved', asy
   await expect(page.getByRole('button', { name: '2 câu chờ ghi chi tiết, ETS Detail. Gỡ câu sai', exact: true })).toBeVisible();
 });
 
-test('the pink row restores unsaved reasons after closing on a phone', async ({ page }) => {
+test('the pink row restores an unsaved reason after closing on a phone', async ({ page }) => {
   const flow = await logTest(page);
-  await flow.getByRole('button', { name: /^Part 1 · Tranh/ }).click();
-  await flow.getByRole('group', { name: 'Vì sao sai câu 3' }).getByRole('button', { name: 'Hết giờ', exact: true }).click();
+  await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
+  await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
+  const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
+  await card.getByRole('group', { name: 'Vì sao sai câu 103' }).getByRole('button', { name: 'Hết giờ', exact: true }).click();
+  await card.getByRole('button', { name: 'Đóng ghi tay', exact: true }).click();
+  await flow.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await page.reload();
   await page.getByRole('button', { name: '3 câu chờ ghi chi tiết, ETS Detail. Gỡ câu sai', exact: true }).click();
-  await expect(flow.getByText('Còn 1 câu nháp chưa lưu')).toBeVisible();
-  await flow.getByRole('button', { name: /^Part 1 · Tranh/ }).click();
-  await expect(flow.getByRole('group', { name: 'Vì sao sai câu 3' }).getByRole('button', { name: 'Hết giờ', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await flow.getByRole('button', { name: 'Soát 1 câu', exact: true }).click();
+  await flow.getByRole('button', { name: 'Mở câu 103', exact: true }).click();
+  await expect(flow.getByRole('group', { name: 'Vì sao sai câu 103' }).getByRole('button', { name: 'Hết giờ', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

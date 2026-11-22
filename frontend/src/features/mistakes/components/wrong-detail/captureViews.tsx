@@ -438,7 +438,7 @@ function DoubtCard({ row, phone, onUpdate, onConfirm, onPickNumber, onMore }: { 
   const question = form.ai?.question?.trim() ?? '';
   const aiDoubt = openDoubt(form);
   let head: ReactNode;
-  let action: ReactNode = null;
+  let action: ReactNode;
   switch (doubt?.kind) {
     case 'number':
       head = <>Sóc đoán là câu {number}</>;
