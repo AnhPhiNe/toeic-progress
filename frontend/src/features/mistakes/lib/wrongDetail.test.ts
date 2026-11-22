@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { createDraftMistake } from './mistakeDrafts';
 import { flowCards, heroPart, listeningSkipped, partProgress, planGroupRequests, planSingleRequests, setListeningSkipped, suggestGroups, topReason, updatePart7Range, visibleProgress, waitingTests } from './wrongDetail';
+import { compressTogether } from './imageCompress';
 
 const session: StudySession = { id: 's1', testName: 'ETS 2024 Test 03', date: '2026-11-10', createdAt: '2026-11-10T08:00:00.000Z',
   skillType: 'LR', sessionType: 'FULL_TEST', durationMinutes: 120, wrongQuestions: [4, 35, 103, 133, 186, 189, 190] };
@@ -81,17 +82,20 @@ describe('request planning', () => {
     expect(plan.requests[0].contextImages).toHaveLength(3);
     expect(plan.requests[0].images).toHaveLength(1);
   });
-  it('takes up to six question images and reuses the passage past that', () => {
+  it('takes up to six question images, then moves the earliest question images to the passage slot', () => {
     expect(planGroupRequests([one(100)], [1, 2, 3, 4, 5, 6].map(() => one(100)), [176]).requests).toHaveLength(1);
     const plan = planGroupRequests([one(100)], [1, 2, 3, 4, 5, 6, 7].map(() => one(100)), [176, 177]);
-    expect(plan.requests.map(request => [request.contextImages.length, request.images.length])).toEqual([[1, 6], [1, 1]]);
+    expect(plan.split).toBe(false);
+    expect(plan.requests.map(request => [request.contextImages.length, request.images.length])).toEqual([[2, 6]]);
   });
   it('keeps the parts of one tall screenshot together and marks them', () => {
     const plan = planGroupRequests([[image(10), image(10), image(10)]], [one(10), [image(10), image(10)]], [186]);
     expect(plan.requests[0].slices).toEqual([[1, 3], [5, 6]]);
+    // Part 5 numbers never use the passage slot: split, every request repeating the leading images.
     const packed = planGroupRequests([], [one(10), one(10), one(10), one(10), one(10), [image(10), image(10)]], [101]);
-    expect(packed.requests.map(request => request.images.length)).toEqual([5, 2]);
-    expect(packed.requests[1].slices).toEqual([[1, 2]]);
+    expect(packed.split).toBe(true);
+    expect(packed.requests.map(request => request.images.length)).toEqual([5, 6]);
+    expect(packed.requests[1].slices).toEqual([[5, 6]]);
   });
   it('reads a question printed on the passage page from the passage images alone', () => {
     const plan = planGroupRequests([one(100_000)], [], [147]);
@@ -100,7 +104,7 @@ describe('request planning', () => {
   it('never separates passage images from questions: repeats passage across byte packs or reports clear size error', () => {
     // 2 MB passage + two 3.5 MB question pages -> packs into 2 requests, EACH keeping the full passage!
     const repeated = planGroupRequests([one(2_000_000)], [one(3_500_000), one(3_500_000)], [131, 132]);
-    expect(repeated.split).toBe(false);
+    expect(repeated.split).toBe(true);
     expect(repeated.requests).toHaveLength(2);
     expect(repeated.requests.every(req => req.contextImages.length === 1 && req.images.length === 1)).toBe(true);
     // Impossible single pair > 8 MiB: refuses cleanly instead of sending questions without their passage.
@@ -114,6 +118,53 @@ describe('request planning', () => {
     const unified = planGroupRequests([], [1, 2, 3, 4, 5, 6, 7].map(() => one(10)), [186, 189]);
     expect(unified.requests).toHaveLength(1);
     expect(unified.requests[0].contextImages.length + unified.requests[0].images.length).toBe(7);
+  });
+  it('(a) heavy passage + question images: one request once shrunk, never split before that', async () => {
+    const heavy = [one(2_500_000), one(2_500_000), one(2_500_000)], question = [one(1_500_000)];
+    const before = planGroupRequests(heavy, question, [186, 187]);
+    // Too heavy as originals (passage + its one question cannot be split): not accepted, so the caller shrinks.
+    expect(before.requests).toHaveLength(0);
+    expect(before.error).toMatch(/vượt 8 MiB/);
+    const result = await compressTogether([...heavy, ...question].map(() => ({ meta: { width: 1000, height: 1400, bytes: 2_500_000, type: 'image/png' } })),
+      async (_source, piece, quality) => ({ id: String(quality), name: 'x', dataUrl: image(piece.kind === 'keep' ? 2_500_000 : 1_000_000).dataUrl }),
+      { fits: groups => { const value = planGroupRequests(groups.slice(0, 3), groups.slice(3), [186, 187]); return !value.split && !value.error; } });
+    expect(result.compressed).toBe(true);
+    const after = planGroupRequests(result.groups.slice(0, 3), result.groups.slice(3), [186, 187]);
+    expect(after).toMatchObject({ split: false, requests: [{ questions: [186, 187] }] });
+    expect(after.requests[0].contextImages).toHaveLength(3);
+    expect(after.requests[0].images).toHaveLength(1);
+  });
+  it('(b) 9 images with nothing in ① and context support: one request using the passage slot', () => {
+    const plan = planGroupRequests([], Array.from({ length: 9 }, () => one(100_000)), [186, 187, 188]);
+    expect(plan.split).toBe(false);
+    expect(plan.requests).toHaveLength(1);
+    expect(plan.requests[0].contextImages).toHaveLength(3);
+    expect(plan.requests[0].images).toHaveLength(6);
+    // 11 images (5 + 6) still fit one request; 12 do not.
+    expect(planGroupRequests([], Array.from({ length: 11 }, () => one(10)), [186]).requests).toHaveLength(1);
+    expect(planGroupRequests([], Array.from({ length: 12 }, () => one(10)), [186]).split).toBe(true);
+  });
+  it('(c) impossible fit: every request carries the passage images and the plan says split', () => {
+    // Nothing in ①: the earliest images are the passage, repeated with each slice of question images.
+    const tray = [one(2_000_000), one(2_000_000), one(2_500_000), one(2_500_000)];
+    const plan = planGroupRequests([], tray, [186, 187]);
+    expect(plan.split).toBe(true);
+    expect(plan.requests.length).toBeGreaterThan(1);
+    const lead = plan.requests[0].contextImages;
+    expect(lead[0]).toBe(tray[0][0]);
+    expect(plan.requests.every(request => request.contextImages.length === lead.length && request.contextImages.every((item, index) => item === lead[index]))).toBe(true);
+    expect(new Set(plan.requests.flatMap(request => request.images))).toEqual(new Set(tray.slice(lead.length).flat()));
+    // Passage given in ①: kept whole in every request.
+    const marked = planGroupRequests([one(2_000_000), one(1_000_000)], [one(3_000_000), one(3_000_000)], [186]);
+    expect(marked.split).toBe(true);
+    expect(marked.requests.every(request => request.contextImages.length === 2)).toBe(true);
+    // Never more requests than the batch takes.
+    expect(planGroupRequests([one(2_000_000)], Array.from({ length: 6 }, () => one(4_000_000)), [186], { maxRequests: 4 }).error).toMatch(/vượt 8 MiB/);
+  });
+  it('sends a group with images only in ② (passage and questions on one screenshot) as one normal request', () => {
+    const plan = planGroupRequests([], [one(500_000), one(500_000)], [131, 132]);
+    expect(plan).toMatchObject({ split: false, requests: [{ contextImages: [], questions: [131, 132] }] });
+    expect(plan.requests[0].images).toHaveLength(2);
   });
   it('puts passage and questions in one plain request when the server cannot tell them apart', () => {
     const plan = planGroupRequests([one(100), one(100)], [one(100)], [131], { contextSupported: false });

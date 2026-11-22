@@ -6,11 +6,12 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { readFormDraft, removeFormDraft, writeFormDraft } from '@/shared/data/formDrafts';
 import { mistakeFormDraftSchema } from '@/shared/data/studyFormDrafts';
 import type { PreparedImage } from '@/features/mistakes/lib/imageInput';
-import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, NEW_BATCH_NOTE, QUESTIONS_PER_REQUEST, captureRequestLimit, explainCapNote,
+import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES, MAX_CAPTURE_REQUESTS, NEW_BATCH_NOTE, QUESTIONS_PER_REQUEST, SPLIT_NOTE, captureRequestLimit, explainCapNote,
   isRightAnswer, isUnreadable, mergeItems, remainingQuestions, ticketedNumbers, type CaptureItem } from '@/features/mistakes/lib/captureBatch';
 import { canExplainRead, explainInput } from '@/features/mistakes/lib/detailForm';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
 import { isGroupedPart, type ReadRequest } from '@/features/mistakes/lib/wrongDetail';
+import { FIRST_ZONE, hasZones, importZone, otherZone, type CaptureZone } from '@/features/mistakes/lib/captureZones';
 import * as aiService from './aiMistakeExtractor';
 import type { AIMistakeParseResult, AIUsage, PageRejectionReason } from './aiMistakeExtractor';
 
@@ -19,7 +20,8 @@ import type { AIMistakeParseResult, AIUsage, PageRejectionReason } from './aiMis
  * while staging the next set of photos. Lives outside React so closing the dialog never cancels in-flight readings.
  */
 export type CaptureImageStatus = 'waiting' | 'reading' | 'done' | 'failed';
-export type CaptureZone = 'passage' | 'questions';
+export type { CaptureZone };
+export { SPLIT_NOTE };
 /** A screenshot/photo as picked; `url` shows it on this device only. */
 export interface CaptureImage { id: string; name: string; url: string; zone: CaptureZone; status: CaptureImageStatus }
 export interface CaptureFailure { id: string; imageIds: string[]; imageCount: number; questions: number[]; message: string }
@@ -33,6 +35,8 @@ export interface CaptureState {
   part: CapturePart;
   /** Part 3/4/6/7 with a logged wrong list: the passage/audio group being captured. */
   group: number | null;
+  /** Part 7: the zone (① passage, ② questions) every paste, drop, watcher or camera import goes to. */
+  activeZone: CaptureZone;
   images: CaptureImage[];
   items: CaptureItem[];
   failures: CaptureFailure[];
@@ -73,11 +77,10 @@ export interface CaptureContext {
 }
 
 export const COMPRESSED_NOTE = 'Ảnh nặng nên Sóc đã thu nhỏ hoặc cắt ảnh trên máy trước khi gửi.';
-export const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đọc đoạn văn và câu hỏi ở các lượt riêng. Kiểm tra kỹ đoạn văn của từng câu.';
 /** Up to three readings of one capture run in parallel against OpenAI. */
 const PARALLEL_READS = 3;
 const DRAFT_SCOPE = 'capture:review';
-const blank = (): CaptureState => ({ phase: 'input', testName: '', part: 5, group: null, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
+const blank = (): CaptureState => ({ phase: 'input', testName: '', part: 5, group: null, activeZone: FIRST_ZONE, images: [], items: [], failures: [], rejectionReasons: [], photoMode: false, overflow: false, unsent: 0,
   error: '', note: '', requestsTotal: 0, requestsDone: 0, solving: false, activeJobs: 0, completedJobs: 0, queuedImagesCount: 0, usage: null, finishedInBackground: false, restored: false });
 
 const EMPTY_STATE: CaptureState = Object.freeze(blank());
@@ -167,25 +170,45 @@ export function setTestName(testName: string) { set({ testName }); }
 /** Choosing or switching the Part keeps staged photos intact so accidental mis-picks never lose uploads. */
 export function setPart(part: CapturePart) {
   if (part === state.part) return;
-  const normalizedImages = isGroupedPart(part)
+  const normalizedImages = hasZones(part)
     ? state.images
     : state.images.map(image => image.zone === 'questions' ? image : { ...image, zone: 'questions' as const });
-  set({ part, group: null, images: normalizedImages, overflow: false, error: '', note: '' });
+  set({ part, group: null, activeZone: FIRST_ZONE, images: normalizedImages, overflow: false, error: '', note: '' });
 }
 export function setGroup(group: number | null) {
   if (group === state.group) return;
-  set({ group, overflow: false, error: '', note: '' });
+  set({ group, activeZone: FIRST_ZONE, overflow: false, error: '', note: '' });
+}
+/** The learner picks the zone imports go to (click a zone, or keys 1/2); it never changes by itself. */
+export function setActiveZone(activeZone: CaptureZone) {
+  if (activeZone !== state.activeZone) set({ activeZone });
 }
 
+/** Moves an image one place earlier or later among the images of its own zone. */
 export function moveImage(id: string, delta: -1 | 1) {
   checkOwner();
   const index = state.images.findIndex(image => image.id === id);
-  const target = index + delta;
-  if (index < 0 || target < 0 || target >= state.images.length) return;
+  if (index < 0) return;
+  const zone = state.images[index].zone;
+  let target = index + delta;
+  while (target >= 0 && target < state.images.length && state.images[target].zone !== zone) target += delta;
+  if (target < 0 || target >= state.images.length) return;
   const next = [...state.images];
-  const [moved] = next.splice(index, 1);
-  next.splice(target, 0, moved);
+  [next[index], next[target]] = [next[target], next[index]];
   set({ images: next });
+}
+
+/** "Chuyển sang ②/①": the image goes to the end of the other zone. Only the learner moves images between zones. */
+export function moveImageToZone(id: string) {
+  checkOwner();
+  const image = state.images.find(entry => entry.id === id);
+  if (!image || !hasZones(state.part)) return;
+  const zone = otherZone(image.zone);
+  if (zone === 'passage' && state.images.filter(entry => entry.zone === 'passage').length >= CONTEXT_PER_REQUEST) {
+    set({ error: `Ô ① nhận tối đa ${CONTEXT_PER_REQUEST} ảnh đoạn văn.` });
+    return;
+  }
+  set({ images: [...state.images.filter(entry => entry.id !== id), { ...image, zone }], error: '' });
 }
 
 /** Cancel an in-flight reading and return to Step 1 with staged images intact. */
@@ -220,11 +243,12 @@ export function replaceImageFile(id: string, nextFile: File) {
   set({ images: state.images.map(image => image.id === id ? { ...image, name: nextFile.name || image.name, url: nextUrl } : image) });
 }
 
-export function addFiles(picked: File[], zone: CaptureZone = 'questions') {
+/** Adds images in arrival order to `zone` (dropped on a zone) or else to the active zone. */
+export function addFiles(picked: File[], zone?: CaptureZone) {
   checkOwner();
   const images = picked.filter(file => file.type.startsWith('image/'));
   if (!images.length) return;
-  const target: CaptureZone = isGroupedPart(state.part) ? zone : 'questions';
+  const target = importZone(hasZones(state.part), state.activeZone, zone);
   const roomTotal = MAX_CAPTURE_IMAGES - state.images.length;
   const roomZone = target === 'passage' ? CONTEXT_PER_REQUEST - state.images.filter(image => image.zone === 'passage').length : roomTotal;
   const accepted = images.slice(0, Math.max(0, Math.min(roomTotal, roomZone)));
@@ -522,6 +546,7 @@ export async function queueAndContinue(ctx: CaptureContext, nextGroup: number | 
     phase: 'input',
     images: [],
     group: nextGroup,
+    activeZone: FIRST_ZONE,
     overflow: false,
     error: '',
     activeJobs: state.activeJobs + 1,

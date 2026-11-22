@@ -11,7 +11,7 @@ import { isExplaining } from '@/features/mistakes/services/explanationQueue';
 import { ExplanationView } from '@/features/mistakes/components/ExplanationView';
 import { clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import type { PageRejectionReason } from '@/features/mistakes/services/aiMistakeExtractor';
-import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
+import { CONTEXT_PER_REQUEST, MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
 import { isGroupedPart, PART_ACTION, PART_NAMES, partMode, suggestGroups, topReason, type CustomRangeMap, type PartProgress, type PassageGroup } from '@/features/mistakes/lib/wrongDetail';
 import { ScreenshotSuggestBar } from './ScreenshotSuggestBar';
 import { BurstCameraModal } from './BurstCameraModal';
@@ -91,8 +91,12 @@ function Letters({ label, part, value, tone, allowBlank = false, onPick }: { lab
 }
 
 /** A drop zone with thumbnails; clicking the empty tray opens the picker, and mobile offers side-by-side Burst Camera & multi-select Library. */
-export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, clarity, onAdd, onCameraAdd, onEdit, onMove, onRemove, onActivate }: {
+export function DropZone({ zone, num, title, note, hint, items, big = false, disabled, camera = false, clarity, active = false, onAdd, onCameraAdd, onEdit, onMove, onSwitchZone, onRemove, onActivate }: {
   zone: Zone; num?: number; title: string; note?: string; hint?: ReactNode; items: readonly { id: string; url: string }[]; phone: boolean; big?: boolean; disabled: boolean;
+  /** Passage groups: the zone every paste, drop, watcher or camera import goes to. */
+  active?: boolean;
+  /** Passage groups: the visible "Chuyển sang ②/①" control on each thumbnail. */
+  onSwitchZone?: (zone: Zone, id: string) => void;
   /** Phones: side-by-side Burst Camera and multi-select Gallery buttons. */
   camera?: boolean;
   clarity?: Record<string, ClarityResult | null>;
@@ -107,17 +111,20 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
   const [burstOpen, setBurstOpen] = useState(false);
   const label = zone === 'passage' ? 'Ảnh đoạn văn' : 'Ảnh câu hỏi';
   const remaining = Math.max(1, MAX_CAPTURE_IMAGES - items.length);
+  const other = zone === 'passage' ? '②' : '①';
   return (
-    <div className={'wd-zn' + (big ? ' is-big' : '') + (disabled ? '' : ' is-click')}
+    <div className={'wd-zn' + (big ? ' is-big' : '') + (disabled ? '' : ' is-click') + (active ? ' is-active' : '')} data-zone={zone} data-active={active || undefined}
       onClick={() => { onActivate(zone); if (!disabled) input.current?.click(); }}
       onDragOver={event => { if (!disabled) { event.preventDefault(); event.stopPropagation(); } }}
       onDrop={event => { event.preventDefault(); event.stopPropagation(); onAdd([...event.dataTransfer.files], zone); }}>
       <h5>{num && <em>{num}</em>}{title}{note && <small>{note}</small>}</h5>
+      {active && <p className="wd-zn-on">Ảnh dán/chụp sẽ vào ô này</p>}
       <div className="wd-ths">
         {items.map((item, index) => {
           const problem = clarity?.[item.id]?.problem;
           return (
-            <span key={item.id} className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')} onClick={event => event.stopPropagation()}>
+            <span key={item.id} className="wd-pgw" onClick={event => event.stopPropagation()}>
+            <span className={'wd-pg' + (zone === 'questions' ? ' is-q' : '')}>
               <img src={item.url} alt={`${label} ${index + 1}`} title="Bấm để xem to, xoay hoặc cắt ảnh"
                 onClick={event => { if (!disabled && onEdit) { event.stopPropagation(); onEdit(zone, item.id); } }} />
               {problem
@@ -141,6 +148,12 @@ export function DropZone({ zone, num, title, note, hint, items, big = false, dis
               )}
               <button type="button" aria-label={`Bỏ ${label.toLowerCase()} ${index + 1}`} title="Xóa ảnh" disabled={disabled}
                 onClick={event => { event.stopPropagation(); onRemove(zone, item.id); }}>×</button>
+            </span>
+            {onSwitchZone && (
+              <button type="button" className="wd-pg-sw" disabled={disabled} title={`Chuyển sang ${other}`}
+                aria-label={`Chuyển ${label.toLowerCase()} ${index + 1} sang ô ${other}`}
+                onClick={event => { event.stopPropagation(); onSwitchZone(zone, item.id); }}>Chuyển sang {other}</button>
+            )}
             </span>
           );
         })}
@@ -245,15 +258,19 @@ export function Overview({ phone, testName, total, doneCount, onClose, progress,
 
 /* ---------- 2 · one Part ---------- */
 
-const groupHint = (part: number, passages: number) => part === 6
-  ? 'Thả hoặc chụp toàn bộ ảnh đoạn văn và câu hỏi vào một khay theo thứ tự (chụp gộp 1 trang hay tách trang đều được).'
+export const groupHint = (part: number, passages: number) => part === 6
+  ? 'Thả hoặc chụp ảnh đoạn văn và câu hỏi của nhóm theo thứ tự, Sóc đọc cả nhóm cùng lúc.'
   : part === 3 || part === 4
-    ? 'Thả hoặc chụp ảnh transcript, bảng biểu và 3 câu hỏi của cụm này vào cùng một khay.'
+    ? 'Thả hoặc chụp ảnh transcript, bảng biểu và 3 câu hỏi của cụm theo thứ tự.'
     : passages === 3
-      ? 'Đoạn ba: thả/chụp cả 3 bài đọc và ảnh câu hỏi vào cùng khay theo thứ tự. Sóc tự ghép ngữ cảnh.'
+      ? 'Đoạn ba: cả 3 bài đọc vào ô ①, câu hỏi vào ô ②.'
       : passages === 2
-        ? 'Đoạn kép: thả/chụp cả 2 bài đọc và ảnh câu hỏi vào cùng khay theo thứ tự. Sóc tự ghép ngữ cảnh.'
-        : 'Thả hoặc chụp bài đọc và câu hỏi vào cùng khay theo thứ tự — không cần tách 2 ô.';
+        ? 'Đoạn kép: cả 2 bài đọc vào ô ①, câu hỏi vào ô ②.'
+        : 'Bài đọc vào ô ①, câu hỏi vào ô ②.';
+/** ① is optional: a screenshot with both passage and questions goes in ② alone. */
+export const ONE_SHOT_HINT = 'Ảnh có cả đoạn văn và câu hỏi? Thả vào ② là được.';
+/** How the learner changes the zone imports go to. */
+export const zoneSwitchHint = (phone: boolean) => phone ? 'Chạm vào ô để đổi ô.' : <>Bấm vào ô hoặc phím <span className="wd-kbd">1</span>/<span className="wd-kbd">2</span> để đổi ô.</>;
 
 function RangeEditor({ group, onSave, onCancel }: { group: PassageGroup; onSave: (from: number, to: number) => string | null; onCancel: () => void }) {
   const [fromVal, setFromVal] = useState(String(group.from));
@@ -277,16 +294,17 @@ function RangeEditor({ group, onSave, onCancel }: { group: PassageGroup; onSave:
 }
 
 export function PartView({ phone, testName, total, doneCount, onClose, part, cards, recorded, forms, groupFrom, setGroupFrom, customPart7Ranges, onEditPart7Range,
-  zones, setActiveZone, onAddFiles, onCameraAdd, onEditPhoto, onMovePhoto, onRemove, clarity, photoMode, setPhotoMode, listeningPhoto, setListeningPhoto,
+  zones, activeZone, setActiveZone, onAddFiles, onCameraAdd, onEditPhoto, onMovePhoto, onSwitchZone, onRemove, clarity, photoMode, setPhotoMode, listeningPhoto, setListeningPhoto,
   jobs, now, onRetry, onOpenJob, error, note, draftState, canRead, onSend, onSendNext, onBack, onManual, onUpdate, onSaveReasons, saveCount, onShowDrafts }: Common & {
   part: PartNumber; cards: MistakeEntry[]; recorded: (card: MistakeEntry) => boolean; forms: Record<string, CardForm>; dirty: Set<string>;
   groupFrom: number | null; setGroupFrom: (from: number) => void;
   customPart7Ranges: CustomRangeMap; onEditPart7Range: (oldFrom: number, from: number, to: number) => string | null;
-  zones: Record<Zone, Staged[]>; activeZone: Zone | null; setActiveZone: (zone: Zone) => void;
+  zones: Record<Zone, Staged[]>; activeZone: Zone; setActiveZone: (zone: Zone) => void;
   onAddFiles: (files: File[], zone?: Zone) => void;
   onCameraAdd: (files: File[], zone?: Zone) => void;
   onEditPhoto: (zone: Zone, id: string) => void;
   onMovePhoto?: (zone: Zone, id: string, delta: -1 | 1) => void;
+  onSwitchZone: (zone: Zone, id: string) => void;
   onRemove: (zone: Zone, id: string) => void;
   clarity: Record<string, ClarityResult | null>;
   photoMode: boolean; setPhotoMode: (value: boolean) => void;
@@ -421,7 +439,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
           {canRead ? <DropZone {...zoneProps} zone="questions" big title={`Ảnh câu Part ${part}`}
             note={part === 2 ? 'hỗ trợ 3 phương án A–C' : 'mỗi ảnh một hay nhiều câu'}
             items={zones.questions} hint={<>{pasteHint(phone)} Sóc đọc song song tối đa 3 lượt cùng lúc, chỉ lấy câu bạn sai.</>} /> : noImages}
-          {canRead && !phone && <ScreenshotSuggestBar enabled disabled={busy} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - count)} onAddFiles={files => onAddFiles(files, 'questions')} />}
+          {canRead && !phone && <ScreenshotSuggestBar enabled disabled={busy} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - count)} onAddFiles={files => onAddFiles(files)} />}
           {canRead && <div className="wd-acts" style={{ marginTop: 10 }}>{paperToggle}</div>}
           <div className="wd-lbl">Câu cần gỡ<span className="wd-lg"><span><i className="is-d" />đã ghi</span><span><i />chưa ghi</span></span></div>
           {chips(numbers)}
@@ -438,7 +456,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     );
   }
 
-  // Grouped Parts (Part 3, 4, 6, 7): 1 unified image tray per group (Module 2.7), Auto-Advance, editable Part 7 range.
+  // Grouped Parts (Part 3, 4, 6, 7): two zones per group (① passage, ② questions), one active zone, editable Part 7 range.
   const groups = suggestGroups(part as 3 | 4 | 6 | 7, numbers, part === 7 ? customPart7Ranges : undefined);
   const selected = groups.find(group => group.from === groupFrom) ?? groups[0];
   const selectedIdx = groups.findIndex(group => group.from === selected.from);
@@ -448,17 +466,20 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
     return unrecorded && !job;
   }) ?? null;
 
-  const unifiedTray = (
+  // Part 7: ① Đoạn văn (optional) and ② Câu hỏi; Part 6 and Part 3/4: one tray, the whole group sent together in order.
+  const twoZones = part === 7 ? (
+    <>
+      <div className={'wd-zones' + (phone ? ' is-stacked' : '')}>
+        <DropZone {...zoneProps} zone="passage" num={1} title="Đoạn văn" note={`${selected.passages} bài đọc · tối đa ${CONTEXT_PER_REQUEST} ảnh`}
+          items={zones.passage} active={activeZone === 'passage'} onSwitchZone={onSwitchZone} />
+        <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zones.questions} active={activeZone === 'questions'} onSwitchZone={onSwitchZone} />
+      </div>
+      <p className="wd-zp">{ONE_SHOT_HINT} {pasteHint(phone)} {zoneSwitchHint(phone)}</p>
+    </>
+  ) : (
     <div className="wd-zones is-single">
-      <DropZone
-        {...zoneProps}
-        zone="questions"
-        big={!phone}
-        title={part === 7 ? 'Ảnh bài đọc & câu hỏi' : part === 6 ? 'Ảnh đoạn văn & câu hỏi' : 'Ảnh transcript & câu hỏi'}
-        note={part === 7 ? `${selected.passages} bài đọc · tối đa 10 ảnh` : undefined}
-        items={allStaged}
-        hint={<>{pasteHint(phone)} {groupHint(part, selected.passages)}</>}
-      />
+      <DropZone {...zoneProps} zone="questions" big={!phone} title={part === 6 ? 'Ảnh đoạn văn & câu hỏi' : 'Ảnh transcript & câu hỏi'}
+        items={zones.questions} hint={<>{pasteHint(phone)} {groupHint(part, selected.passages)}</>} />
     </div>
   );
   const groupState = (from: number) => {
@@ -480,7 +501,7 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
               : <button type="button" className="wd-gr-edit" onClick={() => setEditingRange(true)}>✎ Đổi dải câu</button>}
           </div>
         )}
-        {on && phone && canRead && unifiedTray}
+        {on && phone && canRead && twoZones}
       </div>
     );
   };
@@ -534,8 +555,8 @@ export function PartView({ phone, testName, total, doneCount, onClose, part, car
               </div>
             </div>
             {canRead ? <>
-              {unifiedTray}
-              <ScreenshotSuggestBar enabled disabled={busy} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - filesCount)} onAddFiles={files => onAddFiles(files, 'questions')} />
+              {twoZones}
+              <ScreenshotSuggestBar enabled disabled={busy} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - filesCount)} onAddFiles={files => onAddFiles(files)} />
               <div className="wd-acts">
                 <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!filesCount || busy} onClick={onSend}>Gửi Sóc đọc nhóm này</button>
                 {nextUnread && (

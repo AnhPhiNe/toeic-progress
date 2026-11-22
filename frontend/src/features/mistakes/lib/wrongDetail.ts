@@ -209,68 +209,55 @@ export function planSingleRequests<T extends { dataUrl: string }>(shots: readonl
 }
 
 /**
- * One passage/transcript group (Part 3/4/6/7): passage and question pages are ALWAYS sent together.
- * Never strips passage images away from their questions; when multiple question pages exceed the byte cap,
- * repeats the full passage across smaller question packs, or reports a clear size error to trim duplicates.
+ * One passage/transcript group (Part 3/4/6/7): the whole group goes in ONE request whenever it can, the earliest
+ * images moved to the passage slot (`contextImages`) when the questions alone exceed `maxImages`. The caller shrinks
+ * the images until that holds (`split` false). Only when it never fits is the group split, and then every request
+ * carries the same passage: the passage images, or, when none were given, the earliest images in order.
  */
 export function planGroupRequests<T extends { dataUrl: string }>(passage: readonly (readonly T[])[], questions: readonly (readonly T[])[], wanted: Iterable<number>,
   { maxImages = IMAGES_PER_REQUEST, maxContext = CONTEXT_PER_REQUEST, maxBytes = MAX_REQUEST_BYTES, maxRequests = MAX_CAPTURE_REQUESTS, contextSupported = true } = {}): RequestPlan<T> {
   const numbers = normalizeQuestionList(wanted);
-  const context = passage.flat(), passageGroups = passage.filter(group => group.length);
-  const questionGroups = questions.filter(group => group.length);
+  const passageGroups = passage.filter(group => group.length), questionGroups = questions.filter(group => group.length);
+  const context = passageGroups.flat();
   if (!numbers.length || (!context.length && !questionGroups.length)) return { requests: [], split: false };
   if (context.length > maxContext) return { requests: [], split: false, error: `Mỗi nhóm nhận tối đa ${maxContext} ảnh đoạn văn.` };
-  // Unified single tray (or passage-only page where questions are printed on the same page):
-  if (!questionGroups.length) {
-    return planGroupRequests([], passage, numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
-  }
-  // Unified tray with >6 images in a grouped Part (3/4/6/7): promote leading pages to contextImages automatically.
-  const canUseContext = contextSupported && numbers.every(number => isGroupedPart(partOfQuestion(number) ?? 0));
-  if (!context.length && questionGroups.flat().length > maxImages && canUseContext) {
-    const lead: (readonly T[])[] = [];
-    let leadCount = 0;
-    let restStart = 0;
-    for (let i = 0; i < questionGroups.length - 1; i++) {
-      if (leadCount + questionGroups[i].length > maxContext) break;
-      lead.push(questionGroups[i]);
-      leadCount += questionGroups[i].length;
-      restStart = i + 1;
-      if (questionGroups.slice(restStart).flat().length <= maxImages) break;
-    }
-    if (lead.length) {
-      return planGroupRequests(lead, questionGroups.slice(restStart), numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
-    }
-  }
-  const fits = (request: ReadRequest<T>) => bytesOf([...request.contextImages, ...request.images]) <= maxBytes
-    && request.images.length <= maxImages && request.images.length > 0;
-  const maxQPerReq = contextSupported ? maxImages : maxImages - context.length;
-  if (maxQPerReq < 1) {
+  // A question printed on the passage page: the passage images are the questions.
+  if (!questionGroups.length) return planGroupRequests([], passageGroups, numbers, { maxImages, maxContext, maxBytes, maxRequests, contextSupported });
+  if (!contextSupported && context.length >= maxImages) {
     return { requests: [], split: false, error: 'Ảnh nhóm bài đọc và câu hỏi vượt giới hạn cho một lượt đọc. Bớt ảnh trùng hoặc cắt gọn trang cần đọc.' };
   }
-  const makeRequest = (pack: T[][]): ReadRequest<T> => contextSupported
-    ? { contextImages: [...context], images: pack.flat(), questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] }
-    : { contextImages: [], images: [...context, ...pack.flat()], questions: numbers, slices: [...runsOf(passageGroups), ...runsOf(pack, context.length)] };
+  const all = [...passageGroups, ...questionGroups], given = passageGroups.length;
+  // Question images go to the passage slot only for grouped Parts on a backend that reads it.
+  const canUseContext = contextSupported && numbers.every(number => isGroupedPart(partOfQuestion(number) ?? 0));
+  const asContext = (lead: number) => lead > 0 && (lead === given ? contextSupported : canUseContext);
+  const make = (lead: readonly (readonly T[])[], pack: readonly (readonly T[])[]): ReadRequest<T> => asContext(lead.length)
+    ? { contextImages: lead.flat(), images: pack.flat(), questions: numbers, slices: runsOf([...lead, ...pack]) }
+    : { contextImages: [], images: [...lead, ...pack].flat(), questions: numbers, slices: runsOf([...lead, ...pack]) };
+  const fits = (request: ReadRequest<T>) => request.images.length > 0 && request.images.length <= maxImages
+    && request.contextImages.length <= maxContext && bytesOf([...request.contextImages, ...request.images]) <= maxBytes;
 
-  const packs = packGroups(questionGroups, maxQPerReq);
-  const together = packs.map(makeRequest);
-  if (together.length && together.length <= maxRequests && together.every(fits)) {
-    return { requests: together, split: false };
+  // 1. The whole group in one request: the passage first, then more leading images in the passage slot (6 + 5).
+  const leads = [given];
+  if (canUseContext) for (let lead = given + 1; lead < all.length; lead++) leads.push(lead);
+  for (const lead of leads) {
+    const request = make(all.slice(0, lead), all.slice(lead));
+    if (fits(request)) return { requests: [request], split: false };
   }
-  // Pack question groups greedily by BOTH count and bytes while ALWAYS keeping the full passage attached.
-  const bytePacks: ReadRequest<T>[] = [];
-  let current: T[][] = [];
-  for (const group of questionGroups) {
-    const candidate = [...current, [...group]];
-    if (current.length && !fits(makeRequest(candidate))) {
-      bytePacks.push(makeRequest(current));
-      current = [[...group]];
-    } else {
-      current = candidate;
+  // 2. Split: each request = the same passage + a slice of the questions. With no passage given, the longest
+  //    leading run of images that still lets every request fit is the passage.
+  const splitLeads = given ? [given] : Array.from({ length: all.length - 1 }, (_, index) => all.length - 1 - index);
+  for (const lead of splitLeads) {
+    const head = all.slice(0, lead), rest = all.slice(lead);
+    const requests: ReadRequest<T>[] = [];
+    let current: (readonly T[])[] = [], ok = true;
+    for (const group of rest) {
+      if (current.length && !fits(make(head, [...current, group]))) { requests.push(make(head, current)); current = []; }
+      current.push(group);
+      if (!fits(make(head, current))) { ok = false; break; }
     }
-  }
-  if (current.length) bytePacks.push(makeRequest(current));
-  if (bytePacks.length && bytePacks.length <= maxRequests && bytePacks.every(fits)) {
-    return { requests: bytePacks, split: false };
+    if (!ok) continue;
+    if (current.length) requests.push(make(head, current));
+    if (requests.length <= maxRequests) return { requests, split: true };
   }
   return {
     requests: [],

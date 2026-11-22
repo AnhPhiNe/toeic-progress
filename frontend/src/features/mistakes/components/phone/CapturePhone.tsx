@@ -15,9 +15,9 @@ import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/Ca
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
-import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, openCapture, openReview, patchItem,
+import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, moveImageToZone, openCapture, openReview, patchItem,
   queueAndContinue, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
-  setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+  setActiveZone, setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
@@ -209,6 +209,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="pc-test"><TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} /></div>
           <div className="pc-part">
             <CapturePartInput phone part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
+              activeZone={state.activeZone} onActiveZone={setActiveZone} onSwitchZone={moveImageToZone}
               logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
               onPart={setPart} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
               onAdd={addFiles} onCameraAdd={(files, zone) => { if (files.length) setPhotoMode(true); addFiles(files, zone); }}

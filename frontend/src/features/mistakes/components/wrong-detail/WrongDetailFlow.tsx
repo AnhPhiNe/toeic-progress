@@ -16,10 +16,11 @@ import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
 import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailDraft } from '@/features/mistakes/lib/detailDraft';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
-import { NEW_BATCH_NOTE, captureRequestLimit, explainCapNote, ticketedNumbers } from '@/features/mistakes/lib/captureBatch';
+import { NEW_BATCH_NOTE, SPLIT_NOTE, captureRequestLimit, explainCapNote, ticketedNumbers } from '@/features/mistakes/lib/captureBatch';
 import { checkPhotoClarity, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { flowCards, groupNumbers, heroPart, isGroupedPart, isRecorded, listeningSkipped, partMode, partProgress, setListeningSkipped, visibleProgress, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
+import { addToZone, FIRST_ZONE, hasZones, importZone, removeFromZones, reorderInZone, switchZone, zoneForKey } from '@/features/mistakes/lib/captureZones';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { DoneView, ManualCard, Overview, PartView, ReviewView, type Staged, type Zone } from './views';
 import './wrong-detail.css';
@@ -48,8 +49,6 @@ export interface ReadJob {
 const PARALLEL_READS = 3;
 const COMPRESSED_NOTE = 'Ảnh nặng nên Sóc đã thu nhỏ hoặc cắt ảnh trên máy trước khi gửi.';
 
-const SPLIT_NOTE = 'Ảnh quá nặng để gửi cùng lúc nên Sóc đọc đoạn văn và câu hỏi ở các lượt riêng. Kiểm tra kỹ đoạn văn của từng câu.';
-
 /**
  * Gỡ câu sai (design/previews/mock-wrong-detail.html): a logged test's wrong questions, one Part at a time. A Part's
  * review page is captured (Part 6–7 one passage group at a time, passage and questions read together), Sóc fills each
@@ -76,7 +75,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const [editingPhoto, setEditingPhoto] = useState<{ zone: Zone; id: string } | null>(null);
   const measuredClarity = useRef(new Set<string>());
   const [zones, setZones] = useState<Record<Zone, Staged[]>>({ passage: [], questions: [] });
-  const [activeZone, setActiveZone] = useState<Zone | null>(null);
+  const [activeZone, setActiveZone] = useState<Zone>(FIRST_ZONE);
   const [jobs, setJobs] = useState<Record<string, ReadJob>>({});
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
@@ -202,7 +201,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
 
   const clearZones = () => {
     for (const list of Object.values(zonesRef.current)) list.forEach(item => URL.revokeObjectURL(item.url));
-    setZones({ passage: [], questions: [] }); setActiveZone(null);
+    setZones({ passage: [], questions: [] }); setActiveZone(FIRST_ZONE);
   };
 
   const close = () => {
@@ -273,42 +272,31 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
     if (!images.length || screen.name !== 'part' || (partMode(screen.part) === 'reason' && !listeningPhoto) || !canReadPageImages || selectedBusy()) return;
-    // Unified single tray: all photos go into 'questions' in order unless explicitly added to 'passage'.
-    const target: Zone = zone === 'passage' ? 'passage' : 'questions';
+    // Part 7: the zone it was dropped on, else the active zone, in arrival order; nothing moves by itself.
+    const target = importZone(hasZones(screen.part), activeZone, zone);
     const staged = images.map(file => ({ id: generateUUID(), file, url: URL.createObjectURL(file) }));
-    setZones(current => ({ ...current, [target]: [...current[target], ...staged] }));
-    setActiveZone(target); setError('');
+    setZones(current => addToZone(current, target, staged));
+    setError('');
   };
   const addCameraFiles = (files: File[], zone?: Zone) => {
     if (files.some(file => file.type.startsWith('image/'))) setPhotoMode(true);
     addFiles(files, zone);
   };
   const removeStaged = (zone: Zone, id: string) => setZones(current => {
-    // Allow removing from either zone when displayed in unified tray.
-    const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
-    current[actualZone].filter(item => item.id === id).forEach(item => URL.revokeObjectURL(item.url));
-    return { ...current, [actualZone]: current[actualZone].filter(item => item.id !== id) };
+    current[zone].filter(item => item.id === id).forEach(item => URL.revokeObjectURL(item.url));
+    return removeFromZones(current, zone, id);
   });
-  const moveStaged = (zone: Zone, id: string, delta: -1 | 1) => setZones(current => {
-    const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
-    const list = current[actualZone];
-    const index = list.findIndex(item => item.id === id);
-    const target = index + delta;
-    if (index < 0 || target < 0 || target >= list.length) return current;
-    const next = [...list];
-    const [moved] = next.splice(index, 1);
-    next.splice(target, 0, moved);
-    return { ...current, [actualZone]: next };
-  });
+  const moveStaged = (zone: Zone, id: string, delta: -1 | 1) => setZones(current => reorderInZone(current, zone, id, delta));
+  /** "Chuyển sang ②/①": the only way an image changes zone. */
+  const switchStaged = (zone: Zone, id: string) => setZones(current => switchZone(current, zone, id));
   const replaceStaged = (zone: Zone, id: string, nextFile: File) => {
     setZones(current => {
-      const actualZone: Zone = current[zone].some(item => item.id === id) ? zone : (zone === 'questions' ? 'passage' : 'questions');
-      const existing = current[actualZone].find(item => item.id === id);
+      const existing = current[zone].find(item => item.id === id);
       if (!existing) return current;
       URL.revokeObjectURL(existing.url);
       measuredClarity.current.delete(id);
       const nextUrl = URL.createObjectURL(nextFile);
-      return { ...current, [actualZone]: current[actualZone].map(item => item.id === id ? { ...item, file: nextFile, url: nextUrl } : item) };
+      return { ...current, [zone]: current[zone].map(item => item.id === id ? { ...item, file: nextFile, url: nextUrl } : item) };
     });
   };
   const editPart7Range = (oldFrom: number, from: number, to: number): string | null => {
@@ -330,6 +318,19 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
   }, []);
+  // Desktop: keys 1/2 pick zone ① or ② of an open Part 7 group.
+  const zoneKeysOn = screen.name === 'part' && canReadPageImages && hasZones(screen.part) && !phone;
+  useEffect(() => {
+    if (!zoneKeysOn) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.ctrlKey || event.metaKey || event.altKey || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      const zone = zoneForKey(event.key);
+      if (zone) { event.preventDefault(); setActiveZone(zone); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [zoneKeysOn]);
 
   /** One capture of one question group (or of Part 5), read in the background; up to two run at the same time. */
   const jobsRef = useRef(jobs);
@@ -552,7 +553,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       groupFrom={groupFrom} setGroupFrom={from => { if (from !== groupFrom) { clearZones(); setError(''); } setGroupFrom(from); }}
       customPart7Ranges={customPart7Ranges} onEditPart7Range={editPart7Range}
       zones={zones} activeZone={activeZone} setActiveZone={setActiveZone}
-      onAddFiles={addFiles} onCameraAdd={addCameraFiles} onEditPhoto={(zone, id) => setEditingPhoto({ zone, id })} onMovePhoto={moveStaged} onRemove={removeStaged}
+      onAddFiles={addFiles} onCameraAdd={addCameraFiles} onEditPhoto={(zone, id) => setEditingPhoto({ zone, id })} onMovePhoto={moveStaged} onSwitchZone={switchStaged} onRemove={removeStaged}
       clarity={clarity} photoMode={photoMode} setPhotoMode={setPhotoMode}
       listeningPhoto={listeningPhoto} setListeningPhoto={val => {
         setListeningPhoto(val);
@@ -592,7 +593,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     onCancel={() => { setError(''); setManual(null); }} />;
 
   const editingStaged = editingPhoto
-    ? (zones[editingPhoto.zone].find(item => item.id === editingPhoto.id) ?? zones[editingPhoto.zone === 'questions' ? 'passage' : 'questions'].find(item => item.id === editingPhoto.id))
+    ? zones[editingPhoto.zone].find(item => item.id === editingPhoto.id)
     : undefined;
 
   if (!cards.length) return null;

@@ -15,9 +15,10 @@ import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { ScreenshotSuggestBar } from '@/features/mistakes/components/wrong-detail/ScreenshotSuggestBar';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
-import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, openCapture, openReview, patchItem,
+import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, moveImageToZone, openCapture, openReview, patchItem,
   queueAndContinue, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
-  setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+  setActiveZone, setAllChecked, setGroup, setPart, setPhotoMode, setTestName, startReading, subscribeCapture, toggleItem } from '@/features/mistakes/services/captureSession';
+import { hasZones, zoneForKey } from '@/features/mistakes/lib/captureZones';
 import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
@@ -104,7 +105,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
       if (files.length) {
         event.preventDefault();
         setPastedTextPrompt('');
-        addFiles(files, 'questions');
+        addFiles(files);
         return;
       }
       if (isEditableTarget(event.target)) return;
@@ -117,6 +118,18 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
   }, [state.phase]);
+  // Keys 1/2 pick zone ① or ② of a Part 7 group.
+  const zoneKeys = state.phase === 'input' && hasZones(state.part);
+  useEffect(() => {
+    if (!zoneKeys) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || isEditableTarget(event.target)) return;
+      const zone = zoneForKey(event.key);
+      if (zone) { event.preventDefault(); setActiveZone(zone); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [zoneKeys]);
 
   const testName = normalizeTestName(state.testName);
   const plan = useMemo(() => questionsToFind(sessions, testName, mistakes), [sessions, testName, mistakes]);
@@ -237,12 +250,13 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             )}
             <TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} />
             <CapturePartInput part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
+              activeZone={state.activeZone} onActiveZone={setActiveZone} onSwitchZone={moveImageToZone}
               logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
               extraTools={
                 <ScreenshotSuggestBar
                   enabled={step === 1}
                   maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - state.images.length)}
-                  onAddFiles={picked => { setPastedTextPrompt(''); addFiles(picked, 'questions'); }}
+                  onAddFiles={picked => { setPastedTextPrompt(''); addFiles(picked); }}
                 />
               }
               onPart={p => { setPastedTextPrompt(''); setPart(p); }} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}

@@ -164,7 +164,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       return;
     }
     if (current.phase === 'review') backToInput(true);
-    addFiles(files, 'questions');
+    addFiles(files);
     openCreate();
   }, [openCreate]);
 
