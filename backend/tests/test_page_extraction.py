@@ -728,10 +728,10 @@ def test_read_results_perfect_score_keeps_scores_in_single_call_and_weights_prov
         assert res.status_code == 200
         assert res.json()["scores"] == {"listening": 495, "reading": 495, "total": 990}
         budget_call = next(call[2] for call in calls if call[1].endswith("/reserve_provider_budget"))
-        assert budget_call["p_cost"] == 1 and budget_call["p_owner_limit"] == 24
+        assert budget_call["p_cost"] == 1 and budget_call["p_owner_limit"] == 60
     assert len([call for call in calls if call[0] == "api.openai.com"]) == 1
 
-    # Paper mode (gpt-6.1-terra medium) charges higher cost weight (3 units) on Free owner cap (24).
+    # Paper mode (gpt-6.1-terra medium) charges higher cost weight (3 units) on Free owner cap (60).
     with api(draft=perfect_scores, settings_overrides={"ai_provider_budget_enabled": True}) as (client, calls):
         res = client.post("/api/v1/ai/read-results", json={
             "request_id": "88888888-8888-4888-8888-888888888888", "consent": True, "provider": "openai",
@@ -739,5 +739,5 @@ def test_read_results_perfect_score_keeps_scores_in_single_call_and_weights_prov
         })
         assert res.status_code == 200
         budget_call = next(call[2] for call in calls if call[1].endswith("/reserve_provider_budget"))
-        assert budget_call["p_cost"] == 3 and budget_call["p_owner_limit"] == 24
+        assert budget_call["p_cost"] == 3 and budget_call["p_owner_limit"] == 60
 

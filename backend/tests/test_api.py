@@ -119,7 +119,8 @@ def api():
             if request.url.path.endswith("/reserve_ai_request"):
                 return httpx.Response(200, json=reservation or {"allowed": True, "remaining": 2, "limit": 3})
             if request.url.path.endswith("/reserve_provider_budget"):
-                return httpx.Response(200, json=provider_budget or {"allowed": True})
+                budget = provider_budget(body) if callable(provider_budget) else provider_budget
+                return httpx.Response(200, json=budget or {"allowed": True})
             if request.url.path.endswith("/record_ai_usage"):
                 return httpx.Response(200, json=None)
             if request.url.path.endswith("/get_ai_usage"):

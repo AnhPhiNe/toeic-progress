@@ -205,13 +205,13 @@ class Gateway:
             code = result.get("code") if isinstance(result, dict) else None
             retry_after = result.get("retry_after") if isinstance(result, dict) else None
             message = (
-                "Hệ thống AI đang chạm giới hạn tốc độ xử lý tạm thời. Hãy đợi một chút rồi thử lại."
+                "Sóc đang bận một chút. Đợi khoảng một phút rồi thử lại nhé, lượt AI của bạn chưa bị trừ."
                 if code == "minute"
-                else "Tài khoản đã chạm trần lượt xử lý AI trong ngày để bảo vệ ngân sách. Bạn vẫn có thể lưu thủ công hoặc thử lại ngày mai."
-                if code == "owner_day"
-                else "Ngân sách AI trong ngày của ứng dụng đã chạm ngưỡng an toàn. Bạn vẫn có thể lưu thủ công."
+                else "Hôm nay Sóc đã dùng hết lượt AI, mai quay lại nhé. Lượt của bạn chưa bị trừ, bạn vẫn lưu tay được."
             )
-            headers = {"Retry-After": str(retry_after)} if isinstance(retry_after, int) and retry_after > 0 else None
+            headers = {"X-Error-Code": "AI_PROVIDER_BUDGET"}
+            if isinstance(retry_after, int) and retry_after > 0:
+                headers["Retry-After"] = str(retry_after)
             raise HTTPException(429, message, headers=headers)
 
     async def record_ai_usage(self, *, owner_id: str | None, endpoint: str, model: str, effort: str,
