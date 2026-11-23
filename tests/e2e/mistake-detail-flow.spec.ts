@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { captureMore } from './helpers/wrongDetail';
 import { gotoPage } from './helpers/nav';
 
 /**
@@ -33,8 +34,8 @@ test('on a phone a question is written by hand in a bottom sheet and saved', asy
   await expect(flow.getByRole('heading', { name: 'Sai vì sao?', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
   // No AI on this build: the item's main action writes by hand.
-  await expect(flow.getByRole('heading', { name: /^câu 103–107/ })).toBeVisible();
-  await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
+  await expect(flow.getByRole('heading', { name: /^Part 5 · Tấm 1/ })).toBeVisible();
+  await captureMore(flow, 'Ghi tay câu này');
   const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
   await card.getByRole('button', { name: '107', exact: true }).click();
   await card.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'B', exact: true }).click();
@@ -48,7 +49,6 @@ test('on a phone a question is written by hand in a bottom sheet and saved', asy
 
   const saved = (await stored(page)).find((item: { questionNumber: number }) => item.questionNumber === 107);
   expect(saved).toMatchObject({ part: 5, userChoice: 'A', userChoiceState: 'CHOSEN', correctAnswer: '(B)', answerSource: 'PROVIDED', category: 'ADVANCED_GRAMMAR' });
-  await flow.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Đã ghi chi tiết' })).toContainText('Đã ghi chi tiết 1 câu');
@@ -59,16 +59,15 @@ test('on a phone a question is written by hand in a bottom sheet and saved', asy
 test('the pink row restores an unsaved reason after closing on a phone', async ({ page }) => {
   const flow = await logTest(page);
   await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
-  await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
+  await captureMore(flow, 'Ghi tay câu này');
   const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
   await card.getByRole('group', { name: 'Vì sao sai câu 103' }).getByRole('button', { name: 'Hết giờ', exact: true }).click();
   await card.getByRole('button', { name: 'Đóng ghi tay', exact: true }).click();
-  await flow.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
   await page.reload();
   await page.getByRole('button', { name: '3 câu chờ ghi chi tiết, ETS Detail. Gỡ câu sai', exact: true }).click();
-  await flow.getByRole('button', { name: 'Soát 1 câu', exact: true }).click();
+  await captureMore(flow, 'Soát 1 câu');
   await flow.getByRole('button', { name: 'Mở câu 103', exact: true }).click();
   await expect(flow.getByRole('group', { name: 'Vì sao sai câu 103' }).getByRole('button', { name: 'Hết giờ', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

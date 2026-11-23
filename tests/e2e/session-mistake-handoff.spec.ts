@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { openManualForm } from './helpers/mistakeForm';
 import { closeTestResult, sessionDialog, useOfficialScore } from './helpers/sessionForm';
 import { openManualEntry } from './helpers/manualEntry';
+import { captureMore } from './helpers/wrongDetail';
 import { gotoPage, openScoreLogger } from './helpers/nav';
 
 async function openSession(page: Page, practice = false) {
@@ -47,7 +48,7 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions);
   expect(sessions).toHaveLength(1);
   expect(sessions[0]).toMatchObject({ testName: source, sessionType: practice ? 'PART_PRACTICE' : 'FULL_TEST' });
-  await capture.getByRole('button', { name: /Tự gõ một câu/ }).click();
+  await captureMore(capture, 'Tự gõ một câu');
   const manual = page.getByRole('dialog', { name: 'Tự gõ một câu sai', exact: true });
   await expect(manual.getByLabel('Đề', { exact: true })).toHaveValue(source);
   await manual.getByLabel('Câu hỏi và các phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
@@ -67,7 +68,7 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
 test('a note typed right after logging a test is linked to that test session', async ({ page }) => {
   const sessionModal = await openSession(page);
   await sessionModal.getByRole('button', { name: 'Lưu & thêm câu sai', exact: true }).click();
-  await captureDialog(page).getByRole('button', { name: /Tự gõ một câu/ }).click();
+  await captureMore(captureDialog(page), 'Tự gõ một câu');
   const manual = page.getByRole('dialog', { name: 'Tự gõ một câu sai', exact: true });
   await manual.getByLabel('Câu hỏi và các phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
   await manual.getByRole('button', { name: 'Lưu, Sóc giải thích giúp', exact: true }).click();

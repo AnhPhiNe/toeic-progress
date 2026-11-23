@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openScoreLogger } from './helpers/nav';
+import { chooseMore } from './helpers/manualEntry';
 import { phoneLogger, phoneManualScore } from './helpers/sessionForm';
 
 /** One Full Test already logged today: "ETS Dup 04", 960. */
@@ -23,7 +24,7 @@ async function desktopLog(page: Page, typedName: string) {
   await seedToday(page);
   await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await form.getByRole('button', { name: /^Tự chọn câu sai/ }).click();
+  await chooseMore(form, /^Tự chọn câu sai/);
   await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
   await form.locator('#session-test-name').fill(typedName);
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { chooseMore } from './helpers/manualEntry';
 import { openScoreLogger } from './helpers/nav';
 
 async function openMinimal(page: Page, name: string) {
@@ -7,7 +8,7 @@ async function openMinimal(page: Page, name: string) {
   await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   // The paste view has no name field (the picture names the test); the short "Tự chọn câu sai" view does.
-  await form.getByRole('button', { name: /^Tự chọn câu sai/ }).click();
+  await chooseMore(form, /^Tự chọn câu sai/);
   await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
   await form.locator('#session-test-name').fill(name);
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
@@ -64,5 +65,5 @@ test('the grid view opens from the short view and goes back to it', async ({ pag
   await form.getByRole('button', { name: /^‹ Quay lại$/ }).click();
   await expect(form.getByLabel('Số câu sai', { exact: true })).toHaveValue('3');
   await form.getByRole('button', { name: /^‹ Quay lại dán ảnh/ }).click();
-  await expect(form.getByRole('button', { name: /^Tự chọn câu sai/ })).toBeVisible();
+  await expect(form.getByRole('button', { name: /^Cách khác/ })).toBeVisible();
 });

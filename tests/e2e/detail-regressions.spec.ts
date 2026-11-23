@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { gotoPage } from './helpers/nav';
+import { captureMore } from './helpers/wrongDetail';
 import { openDesktopFlow, openPendingList, screenshot, skipListening, storedCard, TIP } from './helpers/detailAI';
 
 test('answers typed by hand before a screenshot win over what the screenshot shows', async ({ page }) => {
   const flow = await openDesktopFlow(page);
   await skipListening(flow);
-  await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
+  await captureMore(flow, 'Ghi tay câu này');
   const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
   await expect(card.getByRole('button', { name: '104', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await card.getByRole('group', { name: 'Bạn chọn' }).getByRole('button', { name: 'D', exact: true }).click();
@@ -18,7 +19,7 @@ test('answers typed by hand before a screenshot win over what the screenshot sho
 
   await page.evaluate(() => { Object.assign(window, { __pageDelay: 800 }); });
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 131–134/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect(flow.getByRole('button', { name: 'Tấm 1 · câu 104–112, Sóc đang đọc', exact: true })).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Tấm 1 · câu 104–112, xong', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
@@ -37,7 +38,7 @@ test('a late explanation reaches a card saved before it arrived', async ({ page 
   await page.evaluate(() => { Object.assign(window, { __explainDelay: 3000 }); });
   await skipListening(flow);
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 131–134/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
   await expect(flow.getByRole('button', { name: 'Mở câu 112', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
@@ -64,9 +65,9 @@ test('retakes with overlapping question numbers open their own Gỡ câu sai', a
   await openPendingList(page, 'ETS Table', 1);
   await skipListening(flow);
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 131–134/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
-  await expect(flow.getByRole('heading', { name: 'Sóc đọc xong 2 câu', exact: true })).toBeVisible();
+  await expect(flow.getByRole('heading', { name: '2 câu sai đã sẵn sàng thành thẻ', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
   const cards = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
     .filter((card: { questionNumber?: number; question?: string }) => card.questionNumber === 104 && card.question)
@@ -80,7 +81,7 @@ test('changing accounts during screenshot reading cancels later readings and exp
   await skipListening(flow);
   // Ten Part 5 screenshots auto-chunk into 4 packs (3+3+3+1); 3 start in parallel and the 4th waits for a slot.
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(Array.from({ length: 10 }, () => screenshot));
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 131–134/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls?.length)).toBe(3);
   await page.evaluate(async () => {
     const path = '/src/shared/data/dataBundle.ts';

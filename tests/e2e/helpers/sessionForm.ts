@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { openScoreLogger } from './nav';
+import { chooseMore } from './manualEntry';
 import { openManualEntry } from './manualEntry';
 
 /** A new Full Test ends on its result screen; tests that keep working in the app close it first. */
@@ -19,10 +20,8 @@ export async function choosePractice(dialog: Locator) {
 /** Switch a Full Test from per-Part estimation to typing the official score. */
 export async function useOfficialScore(dialog: Locator) {
   // Computer Full Test opens on the paste view; the official-score switch lives in the 200-question grid behind "Tự chọn câu sai".
-  const manual = dialog.getByRole('button', { name: /^Tự chọn câu sai/ });
-  if (await manual.isVisible()) {
-    await manual.click();
-  }
+  const more = dialog.getByRole('button', { name: /^Cách khác/ });
+  if (await more.isVisible()) await chooseMore(dialog, /^Tự chọn câu sai/);
   await dialog.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
 }
 
@@ -36,10 +35,10 @@ export async function openHistoryEdit(page: Page, testName: string) {
 
 /** Phones log a Full Test by its wrong questions; tests that type per-Part counts switch to the counts entry first. */
 export async function usePartCounts(dialog: Locator) {
-  const manual = dialog.getByRole('button', { name: /^Tự chọn câu sai/ });
-  if (await manual.isVisible()) {
-    await manual.click();
-  }
+  const more = dialog.getByRole('button', { name: /^Cách khác/ });
+  if (await more.isVisible()) await chooseMore(dialog, /^Tự chọn câu sai/);
+  const phoneManual = dialog.getByRole('button', { name: /^✎ Tự chọn câu sai/ });
+  if (await phoneManual.isVisible()) await phoneManual.click();
   const link = dialog.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true });
   if (await link.isVisible()) await link.click();
 }

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Layers, Loader2 } from 'lucide-react';
+import { ArrowRight, Camera, Layers, Loader2, MoreHorizontal } from 'lucide-react';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -11,9 +11,9 @@ import { MAX_CAPTURE_IMAGES, isRightAnswer } from '@/features/mistakes/lib/captu
 import { captureQuestions, defaultCapturePart, latestTestName, questionsToFind } from '@/features/mistakes/lib/captureContext';
 import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
-import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
+import { CapturePartInput, type CapturePartControls } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
-import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
+import { checkPhotoClarity, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, moveImageToZone, openCapture, openReview, patchItem,
   queueAndContinue, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
@@ -58,6 +58,8 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const [customPart7Ranges, setCustomPart7Ranges] = useState<CustomRangeMap>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [owner] = useState(getActiveAccountId);
+  const controls = useRef<CapturePartControls | null>(null);
+  const [sheet, setSheet] = useState(false);
   const close = useCallback(() => { if (editingId) { setEditingId(null); return; } closeCapture(); onClose(); }, [editingId, onClose]);
   const ref = useModalA11y(true, close);
 
@@ -107,11 +109,11 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const testName = normalizeTestName(state.testName);
   const plan = useMemo(() => questionsToFind(sessions, testName, mistakes), [sessions, testName, mistakes]);
   const full = state.images.length >= MAX_CAPTURE_IMAGES;
+  const sendReady = state.part === 7 ? state.images.some(image => image.zone === 'questions') : state.images.length > 0;
   const checked = state.items.filter(item => item.checked);
   const hasQueueStatus = state.activeJobs > 0 || state.items.length > 0 || state.failures.length > 0;
   const problemIndex = state.images.findIndex(image => clarity[image.id]?.problem);
   const problem = problemIndex >= 0 ? clarity[state.images[problemIndex].id]!.problem! : null;
-  const message = problem ? clarityMessage(problemIndex + 1, problem) : null;
   const partGroups = useMemo(() => {
     if (!isGroupedPart(state.part)) return [];
     const loggedInPart = plan.logged ? plan.questions.filter(number => partOfQuestion(number) === state.part) : [];
@@ -133,7 +135,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
     return null;
   };
 
-  const retake = () => { if (problemIndex >= 0) removeImage(state.images[problemIndex].id); };
+  const passageOnly = state.part === 7 && state.images.length > 0 && !sendReady;
   const closeTips = () => { markTipsSeen(); setTips(false); };
   const send = () => {
     if (!state.images.length || !testName) return;
@@ -179,6 +181,20 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   }, [state.failures]);
   const retryAll = async (ids: string[]) => { for (const id of ids) await retryFailure(id); };
 
+  const badImage = problemIndex >= 0 ? state.images[problemIndex] : null;
+  const wide = 'pc-send';
+  let primary: ReactNode;
+  let under: ReactNode = null;
+  if (!testName && state.images.length) primary = <button type="button" className={wide} disabled>Chọn đề trước khi gửi</button>;
+  else if (badImage) primary = <button type="button" className={wide} onClick={() => { removeImage(badImage.id); controls.current?.open(badImage.zone); }}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp lại ảnh {problemIndex + 1}</button>;
+  else if (sendReady) {
+    primary = <button type="button" className={wide} onClick={send}>Gửi Sóc đọc{nextGroup !== null ? ' · Nhóm tiếp' : ''} <ArrowRight className="h-5 w-5" aria-hidden="true" /></button>;
+    under = <button type="button" className={wide + ' is-outline'} disabled={full} onClick={() => controls.current?.open()}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp tiếp</button>;
+  } else if (passageOnly) {
+    primary = <button type="button" className={wide} onClick={() => { setActiveZone('questions'); controls.current?.open('questions'); }}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp câu hỏi</button>;
+    under = <p className="pc-tiny">Cần ảnh câu hỏi để gửi</p>;
+  } else primary = <button type="button" className={wide} disabled={full} onClick={() => controls.current?.open()}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp hoặc chọn ảnh</button>;
+
   return createPortal(
     <div ref={ref} role="dialog" aria-modal="true" aria-label="Chụp trang chữa bài" tabIndex={-1} className={'rd pc' + (state.phase !== 'reading' ? ' is-light' : '')}>
       {state.phase === 'input' && (
@@ -187,6 +203,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             <button type="button" className="pc-x" aria-label="Đóng" onClick={close}>×</button>
             <b>Chụp trang chữa bài</b>
             <button type="button" className="pc-i" aria-label="Mẹo chụp rõ" onClick={() => setTips(true)}>i</button>
+            <button type="button" className="pc-i" aria-label="Thêm lựa chọn" aria-haspopup="dialog" onClick={() => setSheet(true)}><MoreHorizontal className="h-5 w-5" aria-hidden="true" /></button>
           </div>
           {hasQueueStatus && (
             <div className="pc-queue" role="status" aria-live="polite">
@@ -208,32 +225,24 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           )}
           <div className="pc-test"><TestSelect value={state.testName} names={sourceSuggestions} onChange={setTestName} /></div>
           <div className="pc-part">
-            <CapturePartInput phone part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
+            <CapturePartInput phone controlsRef={controls} part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
               activeZone={state.activeZone} onActiveZone={setActiveZone} onSwitchZone={moveImageToZone}
               logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
               onPart={setPart} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
               onAdd={addFiles} onCameraAdd={(files, zone) => { if (files.length) setPhotoMode(true); addFiles(files, zone); }}
               onEditImage={setEditingId} onMoveImage={moveImage} onRemove={removeImage} />
           </div>
-          {message && problemIndex >= 0 && (
-            <div className="pc-warn" role="status">
-              <div><b>{message.head}</b>{message.rest}</div>
-              <button type="button" onClick={() => setEditingId(state.images[problemIndex].id)}>Chỉnh ảnh</button>
-              <button type="button" onClick={retake}>Chụp lại</button>
+          {problemIndex >= 0 && (
+            <div className="cv-warn-row" role="status">
+              <span>Ảnh {problemIndex + 1} {problem === 'dark' ? 'hơi tối' : 'hơi mờ'}</span>
+              <button type="button" className="cv-wbtn is-mut" disabled={!sendReady || !testName} onClick={send}>Vẫn gửi</button>
             </div>
           )}
           {(error || state.error) && <p role="alert" className="pc-err">{error || state.error}</p>}
           {(state.overflow || full) && <p className="pc-err" role="status">Mỗi lần gửi tối đa {MAX_CAPTURE_IMAGES} ảnh.</p>}
-          <div className="pc-foot">
-            {state.images.length > 0 && Boolean(testName) && (
-              <button type="button" className="pc-queue-go" onClick={sendAndContinue}>Gửi &amp; chụp tiếp ›</button>
-            )}
-            <div className="pc-foot-row">
-              <button type="button" className="pc-side is-light" onClick={() => { closeCapture(); onManual(); }}>Tự gõ</button>
-              <button type="button" className="pc-send" disabled={!state.images.length || !testName} onClick={send}>
-                {state.images.length && !testName ? 'Chọn đề trước khi gửi' : state.images.length ? `Gửi Sóc đọc ${state.images.length} ảnh · 1 lượt AI` : 'Chụp ít nhất một ảnh'}
-              </button>
-            </div>
+          <div className="pc-foot is-calm">
+            {primary}
+            {under}
           </div>
         </>
       )}
@@ -334,6 +343,15 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
             setEditingId(null);
           }}
         />
+      )}
+
+      {sheet && (
+        <PhoneSheet title="Thêm lựa chọn" hideTitle onClose={() => setSheet(false)}>
+          <div className="pc-menu">
+            <button type="button" onClick={() => { setSheet(false); closeCapture(); onManual(); }}><b>Tự gõ một câu</b><small>Gõ câu hỏi và đáp án thay vì chụp</small></button>
+            {state.images.length > 0 && Boolean(testName) && <button type="button" onClick={() => { setSheet(false); sendAndContinue(); }}><b>Gửi &amp; chụp tiếp</b><small>Gửi mẻ này, Sóc đọc nền, chụp nhóm tiếp theo</small></button>}
+          </div>
+        </PhoneSheet>
       )}
 
       {tips && (

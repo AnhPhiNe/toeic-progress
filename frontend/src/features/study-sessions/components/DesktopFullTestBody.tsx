@@ -108,23 +108,6 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
   // questions laid out like the answer sheet so the learner can check what Sóc read; a click toggles a question.
   const pen = <svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="currentColor" /></svg>;
   const bar = (value: number | string) => typeof value === 'number' ? `${Math.min(100, value / 495 * 100)}%` : '0%';
-  const sheet = (title: string, parts: PartNumber[], first: boolean) => (
-    <div>
-      <div className="rdl-sec">{title}{first && <span>{wrong.length} câu sai</span>}</div>
-      {parts.map(part => (
-        <div key={part} className="rdl-pg">
-          <b>P{part}</b>
-          <div className="rdl-cells" role="group" aria-label={`Câu sai Part ${part}`}>
-            {questionsOfPart(part).map(question => {
-              const on = marked.has(question);
-              return <button key={question} type="button" aria-pressed={on} aria-label={`Câu ${question}${on ? ', đang tính là sai' : ''}`} className={on ? 'is-w' : undefined} onClick={() => toggle(question)}>{question}</button>;
-            })}
-          </div>
-          <em>{byPart[part].length || ''}</em>
-        </div>
-      ))}
-    </div>
-  );
   const summaryTable = (api: { editScore: () => void }) => (
     <div className="rdl-review">
       <div className="rdl-hero">
@@ -149,9 +132,12 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         )}
         <Soc state="idle" size={104} className="rdl-hero-soc" />
       </div>
-      {sheet('NGHE', PART_NUMBERS.filter(listening), true)}
-      {sheet('ĐỌC', PART_NUMBERS.filter(part => !listening(part)), false)}
-      <div className="rdl-leg"><span><i className="is-w" />sai</span><span><i />đúng</span><span className="rdl-leg-tip">Bấm ô để đổi đúng/sai</span></div>
+      <div className="rdl-wrong">
+        <span>Sai {wrong.length} câu:</span>
+        {wrong.slice(0, 7).map(question => <b key={question}>{question}</b>)}
+        {wrong.length > 7 && <span>+{wrong.length - 7}</span>}
+        <button type="button" className="rdl-wrong-edit" onClick={() => onManualOpenChange(true)}>Sửa</button>
+      </div>
     </div>
   );
   return (
@@ -186,6 +172,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           onInitialFilesHandled={onInitialFilesHandled}
           desktop
           dropzone={aiFirst}
+          extraMenu={aiFirst && !minimalOpen ? [{ key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) }] : undefined}
           scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
@@ -277,12 +264,6 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         />
         </div>
 
-        {aiFirst && !minimalOpen && (
-          <button type="button" onClick={() => onManualOpenChange(true)} className="rdl-quiet">
-            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="currentColor" /></svg>
-            Tự chọn câu sai
-          </button>
-        )}
 
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
         <div className={'rounded-xl border border-slate-200 bg-slate-50/70 p-2 items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400 ' + (manualOpen ? 'flex' : 'hidden')}>

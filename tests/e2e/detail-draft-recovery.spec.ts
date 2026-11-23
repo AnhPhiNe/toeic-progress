@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { captureMore } from './helpers/wrongDetail';
 import { openDesktopFlow, openPendingList, screenshot, skipListening } from './helpers/detailAI';
 
 const reason = (flow: Locator, number: number, label: string) =>
@@ -9,7 +10,7 @@ async function readPart5(page: Page) {
   const flow = await openDesktopFlow(page);
   await skipListening(flow);
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 131–134/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
   return flow;
 }
@@ -24,7 +25,7 @@ test('read questions and learner corrections survive reload without another AI r
   await openPendingList(page);
   // The unsaved rows wait for Soát; they open as they were.
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
-  await expect(flow.getByRole('heading', { name: '2 câu chưa lưu', exact: true })).toBeVisible();
+  await expect(flow.getByRole('heading', { name: '2 câu sai đã sẵn sàng thành thẻ', exact: true })).toBeVisible();
   await flow.getByRole('button', { name: 'Mở câu 104', exact: true }).click();
   await expect(reason(flow, 104, 'Hết giờ')).toHaveAttribute('aria-pressed', 'true');
   await expect(flow.getByRole('button', { name: 'Mở câu 104', exact: true })).toContainText(/C\s*D/);
@@ -63,7 +64,7 @@ test('a quota failure on the close click keeps the flow open when losing the dra
       return original.call(this, key, value);
     };
   });
-  await flow.getByRole('button', { name: '✎ Ghi tay', exact: true }).click();
+  await captureMore(flow, 'Ghi tay câu này');
   const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
   await card.getByRole('group', { name: 'Vì sao sai câu 104' }).getByRole('button', { name: 'Hết giờ', exact: true }).click();
   await card.getByRole('button', { name: 'Đóng ghi tay', exact: true }).click();

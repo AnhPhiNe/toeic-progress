@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Camera, Check, ChevronRight, ImageIcon, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ArrowLeft, Camera, ChevronRight, X } from 'lucide-react';
 import type { ErrorCategory, MistakeEntry } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import type { ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
 import { isRightForm, openDoubt, type CardForm } from '@/features/mistakes/lib/detailForm';
 import { optionLetter } from '@/features/mistakes/lib/userChoice';
-import { clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
-import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
-import { LISTENING_REASONS, listeningReasonShort, shotRange, shotSub, shotTitle, type Doubt, type ShotItem } from '@/features/mistakes/lib/captureShots';
-import { ScreenshotSuggestBar } from './ScreenshotSuggestBar';
-import { BurstCameraModal } from './BurstCameraModal';
-import { chosenOf, DropZone, RangeEditor, ReasonChips, RowDetail, Sheet, type SentThumb, type Staged, type Zone } from './views';
+import { LISTENING_REASONS, listeningReasonShort, type Doubt } from '@/features/mistakes/lib/captureShots';
+import { chosenOf, ReasonChips, RowDetail, Sheet } from './views';
 import './capture-v2.css';
 
 /**
@@ -141,270 +137,6 @@ export function ListeningView({ phone, onClose, cards, recorded, suggested, erro
   );
 }
 
-/* ---------- Cần chụp: the shot list and one tray ---------- */
-
-export type ShotState = 'done' | 'reading' | 'failed' | 'skipped' | 'open';
-export interface ShotRow { item: ShotItem; state: ShotState }
-export interface StripChip { key: string; label: string; status: 'reading' | 'done' | 'failed'; count: number }
-export interface CurrentJob { status: 'waiting' | 'reading' | 'done' | 'failed'; seconds: number; done: number; total: number; error: string; note: string; reasons: string[] }
-
-const nextLabel = (item: ShotItem) => item.kind === 'group' ? `Nhóm tiếp: ${shotRange(item)}` : `Tấm tiếp: câu ${shotRange(item)}`;
-
-export function CaptureView(props: Base & {
-  rows: ShotRow[]; current: ShotItem | null; currentState: ShotState; next: ShotItem | null;
-  /** Part 5's numbers still to capture (the tray title). */
-  part5Open: number[];
-  zones: Record<Zone, Staged[]>; activeZone: Zone; onActivateZone: (zone: Zone) => void; sent: SentThumb[];
-  clarity: Record<string, ClarityResult | null>; photoMode: boolean; onPhotoMode: (value: boolean) => void;
-  onAddFiles: (files: File[], zone?: Zone) => void; onCameraAdd: (files: File[], zone?: Zone) => void;
-  onEditPhoto: (zone: Zone, id: string) => void; onMovePhoto: (zone: Zone, id: string, delta: -1 | 1) => void;
-  onSwitchZone: (zone: Zone, id: string) => void; onRemove: (zone: Zone, id: string) => void;
-  canRead: boolean; inFlight: boolean; job: CurrentJob | null; strip: StripChip[]; onRetry: (key: string) => void;
-  missing: number[]; onCaptureMissing: () => ShotItem | null;
-  reviewCount: number; allDone: boolean; anyReading: boolean;
-  onSelect: (key: string) => void; onSend: () => void; onSkip: () => void; onManual: () => void; onReview: () => void;
-  onEditRange: (from: number, to: number) => string | null;
-  listeningLeft: number; onListening: () => void;
-  error: string; note: string;
-}) {
-  const { phone, testName, onClose, rows, current, currentState, next, part5Open, zones, activeZone, onActivateZone, sent, clarity, photoMode, onPhotoMode,
-    onAddFiles, onCameraAdd, onEditPhoto, onMovePhoto, onSwitchZone, onRemove, canRead, inFlight, job, strip, onRetry, missing, onCaptureMissing,
-    reviewCount, allDone, anyReading, onSelect, onSend, onSkip, onManual, onReview, onEditRange, listeningLeft, onListening, error, note } = props;
-  const [list, setList] = useState(false);
-  const [burst, setBurst] = useState<Zone | null>(null);
-  const [editingRange, setEditingRange] = useState(false);
-  const pick = useRef<HTMLInputElement>(null);
-  const pickZone = useRef<Zone>('questions');
-  useEffect(() => { setEditingRange(false); }, [current?.key]);
-  const staged = zones.passage.length + zones.questions.length;
-  const done = rows.filter(row => row.state === 'done').length;
-  const twoZones = current?.part === 7;
-  const cameraZone: Zone = twoZones ? activeZone : 'questions';
-  const openCapture = (zone: Zone) => {
-    if (phone) setBurst(zone);
-    else { pickZone.current = zone; pick.current?.click(); }
-  };
-  const captureMissing = () => {
-    const item = onCaptureMissing();
-    if (!item) return;
-    setList(false);
-    openCapture(item.part === 7 ? 'questions' : 'questions');
-  };
-
-  /* list */
-  const listItems = (
-    <>
-      {[5, 6, 7].map(part => {
-        const partRows = rows.filter(row => row.item.part === part);
-        if (!partRows.length) return null;
-        const count = partRows.reduce((sum, row) => sum + row.item.wrong.length, 0);
-        return (
-          <div key={part} className="cv-sg">
-            <h4>Part {part}<span>{count} câu</span></h4>
-            <ul>
-              {partRows.map(({ item, state }) => {
-                const on = item.key === current?.key;
-                const cls = state === 'done' ? ' is-done' : state === 'reading' ? ' is-reading' : state === 'skipped' ? ' is-skipped' : on ? (item.kind === 'group' ? ' is-active' : ' is-next') : '';
-                const sub = shotSub(item);
-                return (
-                  <li key={item.key}>
-                    <button type="button" className={'cv-si' + cls} aria-current={on ? 'step' : undefined}
-                      aria-label={`${shotTitle(item)}${state === 'done' ? ', xong' : state === 'reading' ? ', Sóc đang đọc' : state === 'failed' ? ', chưa đọc được' : state === 'skipped' ? ', bỏ qua' : ''}`}
-                      onClick={() => { onSelect(item.key); setList(false); }}>
-                      <span className={'cv-tk' + (state === 'done' ? ' is-on' : state === 'reading' ? ' is-rd' : '')} aria-hidden="true">
-                        {state === 'done' ? <Check size={16} strokeWidth={3} /> : state === 'reading' ? <Soc state="think" size={30} /> : null}
-                      </span>
-                      <span className="cv-si-t"><b>{shotTitle(item)}</b>{sub && <small>{sub}</small>}</span>
-                      {state === 'reading' ? <em className="is-rdg">Sóc đang đọc…</em>
-                        : state === 'failed' ? <em className="is-fail">Thử lại</em>
-                        : state === 'skipped' ? <em className="is-skip">bỏ qua</em>
-                        : on && state === 'open' ? (item.kind === 'group' ? <em className="is-now">đang chụp</em> : <em className="is-nx">tiếp theo</em>) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
-      })}
-      {listeningLeft > 0 && <button type="button" className="cv-link cv-lback" onClick={onListening}>Phần Nghe còn {listeningLeft} câu · Ghi lý do</button>}
-    </>
-  );
-
-  /* tray */
-  const allStaged = [...zones.passage, ...zones.questions];
-  const badIndex = allStaged.findIndex(item => clarity[item.id]?.problem);
-  const bad = badIndex >= 0 ? allStaged[badIndex] : null;
-  const badText = bad ? clarityMessage(badIndex + 1, clarity[bad.id]!.problem!) : null;
-  const badZone: Zone = bad && zones.passage.some(item => item.id === bad.id) ? 'passage' : 'questions';
-  const zoneProps = { phone, disabled: !canRead, camera: false, clarity, onAdd: onAddFiles, onCameraAdd, onEdit: onEditPhoto, onMove: onMovePhoto, onRemove, onActivate: onActivateZone };
-  const stripRow = (strip.length > 0 || phone) && (
-    <div className="cv-strip" role="status" aria-label="Các nhóm đã gửi">
-      {phone && <button type="button" className="cv-chip is-prog" onClick={() => setList(true)}>Cần chụp {done}/{rows.length}</button>}
-      {strip.map(chip => chip.status === 'failed'
-        ? <button key={chip.key} type="button" className="cv-chip is-fail" onClick={() => onRetry(chip.key)}>{chip.label} · Thử lại</button>
-        : chip.status === 'reading'
-          ? <span key={chip.key} className="cv-chip is-rd"><Soc state="think" size={22} className="cv-chip-soc" />{chip.label} · Sóc đang đọc<i className="cv-dots3" aria-hidden="true"><b /><b /><b /></i></span>
-          : <span key={chip.key} className="cv-chip is-ok"><span className="cv-chip-tk" aria-hidden="true"><Check size={12} strokeWidth={3.4} /></span>{chip.label} · {chip.count} câu</span>)}
-    </div>
-  );
-  const jobLine = job && (job.status === 'waiting' || job.status === 'reading')
-    ? <p className="wd-reading" role="status"><Soc state="think" size={34} />{job.status === 'waiting' ? 'Chờ Sóc đọc…' : `Sóc đang đọc${job.total > 1 ? ` · lượt ${Math.min(job.done + 1, job.total)}/${job.total}` : ''} · ${job.seconds} giây`}</p>
-    : job?.status === 'failed' ? <div className="wd-err" role="alert">{job.error}{job.reasons.length > 0 && <ul className="wd-reasons">{job.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}</div> : null;
-  const title = !current ? '' : current.part === 5 ? 'Part 5' : shotTitle(current);
-  const sub = !current ? '' : current.part === 5 ? (part5Open.length ? `câu ${part5Open.join(', ')}` : 'xong') : shotSub(current);
-  const paper = (
-    <button type="button" className="wd-paper-pill" aria-pressed={photoMode} onClick={() => onPhotoMode(!photoMode)}>
-      <span className="wd-sw" aria-hidden="true"><i /></span><span>Ảnh chụp giấy</span>
-    </button>
-  );
-  const zonesView = current && canRead && (twoZones ? (
-    <>
-      <div className={'cv-zones' + (phone ? ' is-stacked' : '')}>
-        <DropZone {...zoneProps} zone="passage" num={1} title="Đoạn văn" note={zones.passage.length ? `${zones.passage.length} ảnh` : 'không bắt buộc'}
-          items={zones.passage} active={activeZone === 'passage'} onSwitchZone={onSwitchZone} />
-        <DropZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zones.questions} sent={sent} active={activeZone === 'questions'} onSwitchZone={onSwitchZone}
-          hint={!zones.questions.length && !sent.length ? `${phone ? 'Chụp' : 'Dán ảnh'} câu ${shotRange(current)} vào đây.` : undefined} />
-      </div>
-      <p className="cv-tip"><ImageIcon size={15} aria-hidden="true" /><span>{phone ? <>Cả đoạn văn và câu hỏi trong một ảnh? Chụp vào <b className="cv-c2">2</b> là được.</> : <>Ảnh có cả đoạn văn và câu hỏi? <b>Thả vào <span className="cv-c2">2</span> là được.</b></>}</span></p>
-    </>
-  ) : (
-    <DropZone {...zoneProps} zone="questions" big={!phone} title={current.part === 6 ? 'Ảnh đoạn văn & câu hỏi' : `Ảnh câu Part ${current.part}`}
-      items={zones.questions} sent={sent} hint={phone ? 'Chạm ô để chọn ảnh có sẵn.' : 'Thả, dán hoặc chọn ảnh. Một tấm có nhiều câu cũng được.'} />
-  ));
-  const missBanner = missing.length > 0 && (
-    <div className="cv-miss" role="status">
-      <Soc state="surprised" size={phone ? 38 : 46} />
-      <span className="cv-miss-t">Còn thiếu: <b>{missing.join(', ')}</b></span>
-      {!phone && <button type="button" className="rd-btn rd-btn--pink cv-sm" onClick={captureMissing}><Camera size={17} aria-hidden="true" />Chụp tiếp</button>}
-    </div>
-  );
-  const status = (
-    <>
-      {bad && badText && (
-        <div className="wd-clarity" role="status"><span><b>{badText.head}</b>{badText.rest}</span>
-          <button type="button" className="wd-chip-btn" onClick={() => onEditPhoto(badZone, bad.id)}>Chỉnh / cắt ảnh</button>
-          <button type="button" className="wd-lnk is-muted" onClick={() => onRemove(badZone, bad.id)}>Bỏ ảnh</button></div>
-      )}
-      {jobLine}
-      {job?.note && <p className="wd-note">{job.note}</p>}
-      {error && <p className="wd-err" role="alert">{error}</p>}
-      {!error && note && <p className="wd-note" role="status">{note}</p>}
-      {!canRead && <p className="wd-note">Phiên bản này chưa đọc được ảnh. Ghi tay từng câu bằng nút Ghi tay.</p>}
-    </>
-  );
-  const rangeEdit = current?.part === 7 && (editingRange
-    ? <RangeEditor group={current} onSave={onEditRange} onCancel={() => setEditingRange(false)} />
-    : <button type="button" className="wd-gr-edit" onClick={() => setEditingRange(true)}>✎ Đổi dải câu</button>);
-  const reviewTone = allDone && !anyReading ? 'rd-btn--pink' : 'rd-btn--white';
-  const lastLabel = current?.kind === 'group' ? 'Xong nhóm cuối' : 'Xong tấm cuối';
-  const skipLabel = current?.kind === 'shot' && current.wrong.length === 1 ? `Bỏ qua câu ${current.wrong[0]}` : current?.kind === 'shot' ? 'Bỏ qua tấm này' : 'Bỏ qua nhóm này';
-  const hiddenPicker = <input ref={pick} type="file" accept="image/*" multiple hidden aria-label="Chọn ảnh chụp tiếp"
-    onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; onAddFiles(files, pickZone.current); }} />;
-  const burstModal = burst && <BurstCameraModal maxPhotos={Math.max(1, MAX_CAPTURE_IMAGES - staged)} title={burst === 'passage' ? 'Đoạn văn' : 'Câu hỏi'}
-    onClose={() => setBurst(null)} onComplete={files => { const zone = burst; setBurst(null); onCameraAdd(files, zone); }} />;
-
-  if (phone && (list || !current)) {
-    return (
-      <>
-        <StepHead phone title="Cần chụp" step={3} onClose={onClose} />
-        <div className="wd-body cv-body"><div className="cv-plist">{listItems}</div></div>
-        <footer className="cv-pfoot">
-          {missing.length > 0 && <div className="cv-pmiss"><Soc state="surprised" size={34} />Còn thiếu: <b>{missing.join(', ')}</b></div>}
-          {missing.length > 0 && canRead
-            ? <button type="button" className="rd-btn rd-btn--pink cv-wide" onClick={captureMissing}><Camera size={19} aria-hidden="true" />Chụp tiếp</button>
-            : reviewCount > 0 && (allDone || !current)
-              ? <button type="button" className={`rd-btn ${reviewTone} cv-wide`} onClick={onReview}>Soát {reviewCount} câu</button>
-              : current && <button type="button" className="rd-btn rd-btn--pink cv-wide" onClick={() => setList(false)}>Chụp {shotTitle(current)}</button>}
-        </footer>
-        {hiddenPicker}{burstModal}
-      </>
-    );
-  }
-
-  if (phone && current) {
-    const sendLabel = current.kind === 'group' ? 'Xong nhóm' : 'Xong tấm';
-    return (
-      <>
-        <StepHead phone title={shotTitle(current).replace(/^Tấm \d+ · /, '')} sub={current.kind === 'group' ? `câu ${current.wrong.join(', ')}` : `Tấm ${current.index}`} step={3}
-          back={() => setList(true)} onClose={onClose} />
-        <div className="wd-body cv-body">
-          {stripRow}
-          {currentState === 'done' && !staged && <p className="cv-donebar"><Check size={16} strokeWidth={3} aria-hidden="true" />Sóc đã đọc đủ {current.kind === 'group' ? 'nhóm' : 'tấm'} này.</p>}
-          {zonesView}
-          {missBanner}
-          {status}
-          {canRead && <div className="cv-row">{paper}{rangeEdit}</div>}
-        </div>
-        <footer className="cv-pfoot">
-          {allDone && !staged && reviewCount > 0
-            ? <button type="button" className={`rd-btn ${reviewTone} cv-wide`} onClick={onReview}>Soát {reviewCount} câu</button>
-            : <div className="cv-prow2">
-                <button type="button" className="rd-btn rd-btn--white cv-half" disabled={!staged || inFlight} onClick={onSend}>{sendLabel}</button>
-                {canRead
-                  ? <button type="button" className="rd-btn rd-btn--pink cv-half is-main" disabled={staged >= MAX_CAPTURE_IMAGES} onClick={() => openCapture(cameraZone)}>
-                      <Camera size={19} aria-hidden="true" />{twoZones ? <>Chụp vào <b className="cv-c2 is-w">{cameraZone === 'passage' ? 1 : 2}</b></> : 'Chụp ảnh'}</button>
-                  : <button type="button" className="rd-btn rd-btn--pink cv-half is-main" onClick={onManual}>✎ Ghi tay</button>}
-              </div>}
-          <div className="cv-prow">
-            {canRead && <button type="button" className="cv-link is-mut" onClick={onManual}>✎ Ghi tay</button>}
-            <button type="button" className="cv-link is-mut" onClick={onSkip}>{skipLabel}</button>
-            {!allDone && reviewCount > 0 && <button type="button" className="cv-link" onClick={onReview}>Soát {reviewCount} câu</button>}
-          </div>
-        </footer>
-        {hiddenPicker}{burstModal}
-      </>
-    );
-  }
-
-  let main: ReactNode;
-  if (staged) {
-    main = <button type="button" className="rd-btn rd-btn--pink wd-main cv-main" disabled={inFlight} onClick={onSend}>{next ? nextLabel(next) : lastLabel}<ArrowRight size={18} aria-hidden="true" /></button>;
-  } else if (reviewCount > 0) {
-    main = <button type="button" className={`rd-btn ${reviewTone} wd-main cv-main`} onClick={onReview}>Soát {reviewCount} câu<ArrowRight size={18} aria-hidden="true" /></button>;
-  } else {
-    main = <button type="button" className="rd-btn rd-btn--pink wd-main cv-main" disabled>{next ? nextLabel(next) : lastLabel}<ArrowRight size={18} aria-hidden="true" /></button>;
-  }
-  return (
-    <>
-      <StepHead phone={false} title="Chụp câu sai" sub={testName} step={3} onClose={onClose} />
-      <div className="wd-body cv-body">
-        <div className="cv-cap">
-          <nav className="cv-list" aria-label="Cần chụp">
-            <h3>Cần chụp <span>{done}/{rows.length} {rows.some(row => row.item.kind === 'group') ? 'mục' : 'tấm'}</span></h3>
-            {listItems}
-          </nav>
-          {current && (
-            <section className="cv-tray" aria-label={title}>
-              {canRead && <ScreenshotSuggestBar enabled disabled={false} maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - staged)} onAddFiles={files => onAddFiles(files)} />}
-              {stripRow}
-              <div className="cv-trow">
-                <h3>{title}<small>{sub}</small></h3>
-                {rangeEdit}
-                <span className="wd-sp" />
-                {canRead && <span className="cv-hintk">Dán <kbd>Ctrl+V</kbd>{twoZones && <> · đổi ô bằng phím <kbd>1</kbd><kbd>2</kbd></>}</span>}
-              </div>
-              {currentState === 'done' && !staged && <p className="cv-donebar"><Check size={16} strokeWidth={3} aria-hidden="true" />Sóc đã đọc đủ {current.kind === 'group' ? 'nhóm' : 'tấm'} này. Chọn mục khác bên trái hoặc thêm ảnh.</p>}
-              {zonesView}
-              {missBanner}
-              {status}
-              {canRead && <div className="cv-row">{paper}</div>}
-            </section>
-          )}
-        </div>
-      </div>
-      <footer className="cv-foot">
-        {current && <button type="button" className="cv-link is-mut" onClick={onSkip}>{skipLabel}</button>}
-        {current && <button type="button" className="cv-link is-mut" onClick={onManual}>✎ Ghi tay</button>}
-        <span className="wd-sp" />
-        {staged > 0 && reviewCount > 0 && <button type="button" className="cv-link" onClick={onReview}>Soát {reviewCount} câu</button>}
-        {main}
-      </footer>
-      {hiddenPicker}{burstModal}
-    </>
-  );
-}
-
 /* ---------- Soát: doubtful rows open, the rest folded ---------- */
 
 export interface SoatRow { id: string; card: MistakeEntry; form: CardForm; doubt: Doubt | null; choices: number[] }
@@ -518,7 +250,7 @@ function FoldRow({ row, phone, open, onToggle, onUpdate }: { row: SoatRow; phone
   );
 }
 
-export function SoatView({ phone, testName, onClose, rows, read, openRow, setOpenRow, writing, saveCount, error, note, skipped, reasons,
+export function SoatView({ phone, testName, onClose, rows, openRow, setOpenRow, writing, saveCount, error, note, skipped, reasons,
   onUpdate, onConfirm, onPickNumber, onMore, onSave, onDiscard }: Base & {
   rows: SoatRow[]; read: boolean; openRow: string; setOpenRow: (id: string) => void; writing: number; saveCount: number; error: string; note: string;
   skipped: number[]; reasons: string[];
@@ -530,13 +262,14 @@ export function SoatView({ phone, testName, onClose, rows, read, openRow, setOpe
   const doubts = rows.filter(row => row.doubt), sure = rows.filter(row => !row.doubt);
   const lead = !doubts.length ? 'Sóc chắc cả rồi, bạn lướt lại rồi lưu nhé.'
     : doubts.length === 1 ? 'Chỉ một câu Sóc chưa chắc, bạn xem giúp nhé.' : `Có ${doubts.length} câu Sóc chưa chắc, bạn xem giúp nhé.`;
-  const titleText = read ? `Sóc đọc xong ${rows.length} câu` : `${rows.length} câu chưa lưu`;
+  const titleText = `${rows.length} câu sai đã sẵn sàng thành thẻ`;
   return (
     <>
       <StepHead phone={phone} title={phone ? `Soát · ${rows.length} câu` : 'Soát'} sub={phone ? undefined : `${testName} · Reading`} step={4} back={phone ? onMore : undefined} onClose={onClose} />
       <div className="wd-body cv-body">
         {!phone && (
           <div className="cv-shero">
+            <div className="wd-conf is-small" aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
             <Soc state={doubts.length ? 'idle' : 'yay'} size={74} />
             <div><h3>{titleText}</h3><p>{lead}</p></div>
           </div>

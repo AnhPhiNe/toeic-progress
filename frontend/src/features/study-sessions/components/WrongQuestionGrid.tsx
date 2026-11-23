@@ -118,6 +118,7 @@ export function ResultImageButton({
   initialFiles,
   onInitialFilesHandled,
   dropzone = false,
+  extraMenu,
   compactDrop = false,
   flatCard = false,
   pasteEnabled = true
@@ -127,6 +128,8 @@ export function ResultImageButton({
   desktop?: boolean;
   /** Computer AI-first view: one large paste/drop area instead of two small buttons. */
   dropzone?: boolean;
+  /** Ghi điểm desktop: extra "Cách khác" items (e.g. Tự chọn câu sai). */
+  extraMenu?: Array<{ key: string; label: string; onClick: () => void }>;
   /** With a summary on screen the drop area shrinks to one line so the next actions stay in view. */
   compactDrop?: boolean;
   /** Summary supplies its own frame; no score-entry rows are added under it. */
@@ -488,10 +491,7 @@ export function ResultImageButton({
           </button>
         </div>
       ) : dropzone && compactDrop ? (
-        <button type="button" disabled={busy} onClick={() => input.current?.click()} className="rdl-compact">
-          <ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {busy ? 'Sóc đang đọc ảnh…' : 'Dán ảnh khác: Ctrl + V hoặc thả vào đây'}
-        </button>
+        busy ? <p className="rdl-compact" role="status">Sóc đang đọc ảnh…</p> : null
       ) : dropzone && busy ? (
         <div className="rdl-read" role="status" aria-live="polite">
           <div className="rdl-thumb" aria-hidden="true">
@@ -514,7 +514,7 @@ export function ResultImageButton({
             <b>Chụp trang kết quả</b>
             <span>Sóc đọc điểm và các câu bạn sai, bạn khỏi gõ tay.</span>
             <div className="rdl-drop-act">
-              <span className="rdl-drop-btn"><ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />Chọn ảnh…</span>
+              <span className="rdl-drop-btn"><ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />Chọn ảnh</span>
               <em>hoặc dán <span className="rdl-kbd">Ctrl</span> + <span className="rdl-kbd">V</span></em>
             </div>
           </div>
@@ -543,7 +543,7 @@ export function ResultImageButton({
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; handleIncomingFiles(files); }} />
       {!isTyping && !needsSignIn && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
+          {!(desktop && dropzone) && <button
             type="button"
             disabled={busy}
             aria-pressed={photoMode}
@@ -556,8 +556,8 @@ export function ResultImageButton({
               <span className={'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ' + (photoMode ? 'translate-x-3' : '')} />
             </span>
             <span>Phiếu tô giấy</span>
-          </button>
-          {desktop && !photoMode && staged.length === 0 && (
+          </button>}
+          {desktop && !dropzone && !photoMode && staged.length === 0 && (
             <button
               type="button"
               disabled={busy}
@@ -700,6 +700,12 @@ export function ResultImageButton({
           addVerb="kết quả"
           maxAdd={stagingActive ? Math.max(0, MAX_RESULT_IMAGES - staged.length) : MAX_RESULT_IMAGES}
           onAddFiles={picked => handleIncomingFiles(picked)}
+          menuItems={dropzone ? [
+            { key: 'paper', label: 'Phiếu tô giấy', pressed: photoMode, disabled: busy, onClick: () => { triggerHaptic(4); setPhotoMode(value => !value); } },
+            ...(!photoMode && staged.length === 0 ? [{ key: 'multi', label: 'Ghép nhiều ảnh', pressed: multiStage, disabled: busy, onClick: () => { triggerHaptic(4); setMultiStage(value => !value); } }] : []),
+            ...(compactDrop ? [{ key: 'again', label: 'Chọn ảnh khác', disabled: busy, onClick: () => input.current?.click() }] : []),
+            ...(extraMenu ?? [])
+          ] : undefined}
         />
       )}
       <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>

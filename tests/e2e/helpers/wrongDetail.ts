@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { crc32, deflateSync } from 'node:zlib';
@@ -117,3 +117,42 @@ export async function openFromNotebook(page: Page, name = TEST) {
 
 export const stored = (page: Page, name = TEST) => page.evaluate(test => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
   .filter((card: { sourceTestName?: string; deletedAt?: string | null }) => card.sourceTestName === test && !card.deletedAt), name);
+
+/** Capture's other ways: the phone's ⋯ sheet, or the computer's "Cách khác" menu. */
+export async function captureMore(flow: Locator, name: string) {
+  const dots = flow.getByRole('button', { name: 'Thêm lựa chọn', exact: true });
+  if (await dots.isVisible()) {
+    await dots.click();
+    // Gỡ câu sai keeps its sheet inside the flow; the Sổ tay capture's sheet is a portal on the page.
+    const inside = flow.getByRole('dialog', { name: 'Thêm lựa chọn' });
+    const sheet = (await inside.count()) ? inside : flow.page().getByRole('dialog', { name: 'Thêm lựa chọn' });
+    await sheet.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+    return;
+  }
+  await flow.getByRole('button', { name: /^Cách khác/ }).click();
+  await flow.getByRole('menuitem', { name: new RegExp(`^${name}`) }).click();
+}
+
+/** A portrait "page" (600×800): a title block and ruled text lines, so thumbnails show the top of a page. */
+export function pageTopPng(): { name: string; mimeType: string; buffer: Buffer } {
+  const width = 600, height = 800;
+  const chunk = (type: string, data: Buffer) => {
+    const head = Buffer.alloc(8); head.writeUInt32BE(data.length, 0); head.write(type, 4, 'ascii');
+    const tail = Buffer.alloc(4); tail.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type, 'ascii'), data])) >>> 0, 0);
+    return Buffer.concat([head, data, tail]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
+  const rows: Buffer[] = [];
+  for (let y = 0; y < height; y += 1) {
+    const row = Buffer.alloc(1 + width * 3, 255); row[0] = 0;
+    const line = Math.floor((y - 90) / 30);
+    let from = 0, to = 0, shade = 70;
+    if (y >= 40 && y < 70) { from = 40; to = 260; shade = 40; }
+    else if (y >= 90 && (y - 90) % 30 < 10) { from = 40; to = 40 + Math.round(width * (0.6 + 0.3 * ((line * 7) % 5) / 4)) - 40; shade = 90; }
+    for (let x = from; x < to && x < width - 40; x += 1) { row[1 + x * 3] = shade; row[2 + x * 3] = shade; row[3 + x * 3] = shade; }
+    rows.push(row);
+  }
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', header), chunk('IDAT', deflateSync(Buffer.concat(rows))), chunk('IEND', Buffer.alloc(0))]);
+  return { name: 'page-top.png', mimeType: 'image/png', buffer: png };
+}

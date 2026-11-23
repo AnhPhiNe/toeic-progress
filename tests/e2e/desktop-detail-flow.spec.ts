@@ -18,7 +18,7 @@ test('a computer works through a test: Listening first, then the shot list; Part
   await expect(flow.getByRole('button', { name: 'Nhóm 131–134', exact: true })).toBeVisible();
   await page.evaluate(() => { (window as Window & { __explainDelay?: number }).__explainDelay = 1500; });
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot]);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 131–134/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   // The next item opens while Sóc reads; the screenshots go together, as they are, in one request.
   await expect(flow.getByRole('heading', { name: /^Nhóm 131–134/ })).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Tấm 1 · câu 104–112, xong', exact: true })).toBeVisible();
@@ -26,7 +26,7 @@ test('a computer works through a test: Listening first, then the shot list; Part
   expect(sent.map(call => [call.questions, call.images, call.context, call.types])).toEqual([[[104, 112], 2, 0, ['image/png', 'image/png']]]);
 
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
-  await expect(flow.getByRole('heading', { name: 'Sóc đọc xong 2 câu', exact: true })).toBeVisible();
+  await expect(flow.getByRole('heading', { name: '2 câu sai đã sẵn sàng thành thẻ', exact: true })).toBeVisible();
   await expect(flow.getByText(/Đang viết lời giải 2 câu/)).toBeVisible();
   // The explanation suggests the reason and solves the page's missing answer; both rows are confident and folded.
   await expect(flow.getByRole('region', { name: /^Kiểm lại/ })).toHaveCount(0);
@@ -40,7 +40,7 @@ test('a computer works through a test: Listening first, then the shot list; Part
 
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
   // Back on the list: a toast and the ticked Tấm.
-  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 2 câu vào Sổ tay' })).toBeVisible();
+  await expect(flow.getByText('Đã lưu 2 thẻ vào Sổ tay')).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Tấm 1 · câu 104–112, xong', exact: true })).toBeVisible();
   expect(await storedCard(page, 104)).toMatchObject({ userChoice: 'C', correctAnswer: '(A) accommodates', category: 'VOCABULARY_TRAP', explanation: { quickTip: TIP } });
   // Changing a key also invalidates the earlier rationale and its inferred reason.
@@ -55,9 +55,9 @@ test('a Part 6 set sends its images together in one tray, keeps the right answer
   await flow.getByRole('button', { name: 'Nhóm 131–134', exact: true }).click();
   await expect(flow.getByRole('button', { name: 'Nhóm 131–134', exact: true })).toHaveAttribute('aria-current', 'step');
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot]);
-  await flow.getByRole('button', { name: /^Xong nhóm cuối/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm cuối/ }).click();
   // After the last item Soát opens by itself.
-  await expect(flow.getByRole('heading', { name: 'Sóc đọc xong 1 câu', exact: true })).toBeVisible();
+  await expect(flow.getByRole('heading', { name: '1 câu sai đã sẵn sàng thành thẻ', exact: true })).toBeVisible();
   expect((await calls(page) as { questions: number[]; images: number; context: number }[]).map(call => [call.questions, call.images, call.context]))
     .toEqual([[[131, 132, 133, 134], 2, 0]]);
   await expect(flow.getByText('Câu 132: bạn làm đúng, Sóc bỏ qua.')).toBeVisible();
@@ -87,7 +87,7 @@ test('a doubt left open when saving stays on the notebook card until the learner
   await skipListening(flow);
   await flow.getByRole('button', { name: 'Nhóm 131–134', exact: true }).click();
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Xong nhóm cuối/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm cuối/ }).click();
   await expect(flow.getByRole('region', { name: 'Kiểm lại câu 131' })).toContainText('Sóc giải ra C, trang đề ghi A');
   await flow.getByRole('button', { name: 'Lưu tất cả (1)', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
