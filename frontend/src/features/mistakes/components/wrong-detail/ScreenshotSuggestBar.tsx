@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ClipboardPaste, FolderSearch, ImageIcon, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ClipboardPaste, FolderSearch, ImageIcon, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { useScreenshotWatcher } from '@/features/mistakes/hooks/useScreenshotWatcher';
 import './screenshot-bar.css';
 
@@ -14,6 +14,8 @@ interface Props {
   /** capture-calm: always-visible quick buttons (Dán · Tự nhận ảnh mới · Chọn ảnh) under the active zone. */
   quick?: boolean;
   onPick?: () => void;
+  /** Ghi điểm: one "Cách khác" menu holds these items plus paste and the folder watcher. */
+  menuItems?: Array<{ key: string; label: string; pressed?: boolean; disabled?: boolean; onClick: () => void }>;
 }
 
 /**
@@ -21,12 +23,20 @@ interface Props {
  * - Universal 1-click "Dán ảnh vừa chụp" (Clipboard API, zero folder permission required).
  * - Optional Chrome/Edge "Tự nhận nhiều ảnh chụp" (Zalo-style thumbnail strip with privacy checkboxes).
  */
-export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles, quick = false, onPick }: Props) {
+export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles, quick = false, onPick, menuItems }: Props) {
   const watcher = useScreenshotWatcher(enabled);
   const [explainerOpen, setExplainerOpen] = useState(false);
   // Track manually unchecked items so newly discovered screenshots start checked without re-checking user-unticked ones.
   const [uncheckedKeys, setUncheckedKeys] = useState<Set<string>>(() => new Set());
   const [pasting, setPasting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: MouseEvent) => { if (!menuBox.current?.contains(event.target as Node)) setMenuOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menuOpen]);
 
   useEffect(() => {
     const active = new Set(watcher.candidates.map(item => item.key));
@@ -78,9 +88,38 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
     }
   };
 
+  const menuMode = Boolean(menuItems);
+  const folderLabel = watcher.status === 'watching' ? 'Tắt theo dõi thư mục' : watcher.status === 'needs-permission' ? `Bật lại theo dõi (${watcher.dirName || 'Screenshots'})` : 'Tự nhận nhiều ảnh chụp';
+  const folderRun = () => {
+    if (watcher.status === 'watching') void watcher.unlinkDirectory();
+    else if (watcher.status === 'needs-permission') void watcher.reauthorize();
+    else setExplainerOpen(true);
+  };
+  const menuRow = menuItems && (
+    <div className="ssb-row">
+      <div className="ssb-more" ref={menuBox}>
+        <button type="button" className={'ssb-more-b' + (menuOpen ? ' is-open' : '')} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
+          Cách khác <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        </button>
+        {menuOpen && (
+          <div className="ssb-menu" role="menu" aria-label="Cách khác">
+            {menuItems.map(item => (
+              <button key={item.key} type="button" role="menuitem" disabled={item.disabled} aria-checked={item.pressed === undefined ? undefined : item.pressed}
+                className={'ssb-mi' + (item.pressed ? ' is-on' : '')} onClick={() => { setMenuOpen(false); item.onClick(); }}>
+                <span>{item.label}</span>{item.pressed !== undefined && <span className="ssb-mi-sw" aria-hidden="true" />}
+              </button>
+            ))}
+            <button type="button" role="menuitem" className="ssb-mi" disabled={disabled || pasting} onClick={() => { setMenuOpen(false); void pasteClipboard(); }}><span>Dán ảnh vừa chụp</span></button>
+            <button type="button" role="menuitem" className="ssb-mi" disabled={disabled} onClick={() => { setMenuOpen(false); folderRun(); }}><span>{folderLabel}</span></button>
+          </div>
+        )}
+      </div>
+      {watcher.status === 'watching' && <span className="ssb-watch" role="status"><span className="ssb-dot" aria-hidden="true" /><span>Đang theo dõi thư mục</span></span>}
+    </div>
+  );
   return (
-    <div className={'ssb' + (quick ? ' is-quick' : '')}>
-      <div className="ssb-row">
+    <div className={'ssb' + (quick ? ' is-quick' : '') + (menuMode ? ' is-menu' : '')}>
+      {menuMode ? menuRow : <div className="ssb-row">
         {(watcher.clipboardSupported || quick) && (
           <button type="button" className="ssb-btn is-clip" disabled={disabled || pasting} onClick={() => void pasteClipboard()}>
             <ClipboardPaste className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -123,7 +162,7 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
             <span>Chọn ảnh</span>
           </button>
         )}
-      </div>
+      </div>}
 
       {watcher.status === 'unlinked' && explainerOpen && (
         <div className="ssb-info" role="region" aria-label="Hướng dẫn nối thư mục ảnh chụp">

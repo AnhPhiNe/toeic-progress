@@ -186,6 +186,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           onInitialFilesHandled={onInitialFilesHandled}
           desktop
           dropzone={aiFirst}
+          extraMenu={aiFirst && !minimalOpen ? [{ key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) }] : undefined}
           scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
@@ -277,12 +278,6 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         />
         </div>
 
-        {aiFirst && !minimalOpen && (
-          <button type="button" onClick={() => onManualOpenChange(true)} className="rdl-quiet">
-            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14 L3 10 L11 2 L14 5 L6 13Z" fill="currentColor" /></svg>
-            Tự chọn câu sai
-          </button>
-        )}
 
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
         <div className={'rounded-xl border border-slate-200 bg-slate-50/70 p-2 items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400 ' + (manualOpen ? 'flex' : 'hidden')}>

@@ -429,6 +429,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
   const aiDesktop = sessionType === 'FULL_TEST' && !isPhone && wrongEntry && !fullTestManual && !manualMinimal;
+  // Ghi điểm (capture-v3): "Lưu điểm" appears once Sóc has read a photo (or the learner chose a manual way).
+  const awaitingRead = aiDesktop && !isEditing && scoreSource === 'ESTIMATED' && wrongQuestions.length === 0 && !sourceScorePending;
   const compactTop = sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && !detailsOpen;
   const durationBlank = sessionType === 'FULL_TEST' && !isPhone && ((!isEditing && !durationEdited) || durationEmpty);
   const typedWrongParsed = wrongEntry && wrongNumberDraft.typing ? parseQuestionList(wrongNumberDraft.text) : null;
@@ -1060,7 +1062,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             >
               Hủy
             </button>
-            {sessionType !== 'VOCAB' && !wrongEntry && !duplicate && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
+            {!awaitingRead && sessionType !== 'VOCAB' && !wrongEntry && !duplicate && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
               <button
                 type="submit"
                 name="afterSave"
@@ -1070,14 +1072,14 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 Lưu & thêm câu sai
               </button>
             )}
-            <button
+            {!awaitingRead && <button
               type="submit"
               name="afterSave" value={duplicate ? 'duplicate' : 'close'} data-primary
               className="rdl-save max-md:flex-1 max-md:justify-center flex items-center space-x-1.5 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{duplicate ? 'Vẫn lưu' : sessionType === 'VOCAB' ? (vocabApi.edit ? `Lưu ngày ${vocabDm}` : 'Lưu từ vựng') : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
-            </button>
+            </button>}
           </div>
           </div>
 
