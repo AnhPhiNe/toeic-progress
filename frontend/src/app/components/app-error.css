@@ -1,0 +1,12 @@
+/* Crash screen (AppErrorBoundary): same warm world as the public pages, Sóc a little sad. */
+.pp-crash { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: #fff8ee; font-family: var(--rd-font); color: var(--rd-ink); }
+.pp-crash__card { width: 100%; max-width: 520px; background: #fff; border-radius: 24px; border: 2px solid #f1e6d4; box-shadow: 0 4px 0 #f1e6d4; padding: 24px 26px 26px; }
+.pp-crash__head { display: flex; align-items: flex-end; gap: 14px; }
+.pp-crash__head .soc { flex: none; }
+.pp-crash__head h1 { margin: 0; font-size: 21px; font-weight: 900; line-height: 1.25; }
+.pp-crash__head p { margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #6c7770; }
+.pp-crash__text { margin: 18px 0 0; font-size: 15px; font-weight: 600; line-height: 1.6; color: #47524c; }
+.pp-crash__error { margin-top: 12px; border-radius: 14px; background: var(--rd-pink-l); color: #a3284d; padding: 12px 14px; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+.pp-crash__actions { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.pp-crash__link { border: 0; background: none; padding: 6px 4px; font: 800 14px var(--rd-font); color: var(--rd-green-d); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.pp-crash__link:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; border-radius: 6px; }
