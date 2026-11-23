@@ -151,3 +151,8 @@
 .cv-pv-b { flex: 1; min-height: 52px; border-radius: 16px; border: 0; background: none; box-shadow: 0 0 0 2px #5a625d; font-weight: 900; font-size: 15px; color: #fff; }
 .cv-pv-b.is-del { flex: .5; color: #ff8fa8; box-shadow: 0 0 0 2px #7a3a4a; }
 .cv-shero { position: relative; }
+
+.cv-tray > .cz, .cv-tray > .cv-zones { flex: 1 1 auto; }
+.cv-tray > .cz { min-height: 220px; }
+.cz.is-phone { flex: none; }
+.wd .rd-btn.rd-btn--white.cv-again { color: var(--pd); box-shadow: 0 0 0 2px var(--pk); }

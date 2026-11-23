@@ -182,7 +182,7 @@ export function CaptureView(props: Props) {
     : job?.status === 'failed' ? <div className="wd-err" role="alert">{job.error}{job.reasons.length > 0 && <ul className="wd-reasons">{job.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}</div> : null;
   const status = (
     <>
-      {blurLine}
+      {!phone && blurLine}
       {missLine}
       {jobLine}
       {job?.note && <p className="wd-note">{job.note}</p>}
@@ -364,7 +364,7 @@ export function CaptureView(props: Props) {
           {current && (
             <section className="cv-tray" aria-label={PART_TITLE(current)}>
               <div className="cv-trow">
-                <h3>{PART_TITLE(current)}</h3>
+                {!showHero && <h3>{PART_TITLE(current)}</h3>}
                 <span className="wd-sp" />
                 {canRead && !showHero && <PaperToggle on={photoMode} onChange={onPhotoMode} />}
                 {canRead && twoZones && !showHero && <span className="cv-hintk">đổi ô <kbd>1</kbd><kbd>2</kbd></span>}

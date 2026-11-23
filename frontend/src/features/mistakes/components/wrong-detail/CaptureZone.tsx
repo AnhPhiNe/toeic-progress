@@ -64,7 +64,7 @@ export function CaptureZone(props: CaptureZoneProps) {
             <p>{emptyText}</p>
           </div>
         : (
-          <div ref={strip} className={'cz-ths' + (hidden > 0 ? ' is-scroll' : '')} role="list" aria-label={label}>
+          <div ref={strip} className={'cz-ths' + (hidden > 0 ? ' is-scroll' : '')} role="list" aria-label={`Các ${label.toLowerCase()}`}>
             {sent.map(item => (
               <span key={item.id} className="cz-th is-sent" role="listitem">
                 <img src={item.url} alt={`Ảnh đã gửi · ${item.label}`} />

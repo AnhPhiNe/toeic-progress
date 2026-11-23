@@ -177,22 +177,29 @@ test('Ghi điểm: "Lưu điểm" appears only after Sóc has read the photo; th
 
 for (const size of [DESKTOP, PHONE]) {
   const phone = size === PHONE, kind = phone ? 'phone' : 'desktop';
-  test(`screens for the design review (${kind})`, async ({ page }) => {
+  test(`screens for the design review: Part 5, blurry photo, missing number (${kind})`, async ({ page }) => {
     test.skip(!process.env.CV_SHOTS, 'CV_SHOTS=1 takes the built screenshots');
     const flow = await openSeven(page, size, [128]);
     const inputQ = flow.getByLabel('Ảnh câu hỏi', { exact: true });
     await shot(page, `2a-part5-trong-${kind}`);
     await inputQ.setInputFiles(files(2));
     await shot(page, `2b-part5-da-them-${kind}`);
-    // 2g: one blurry page among the photos.
     await inputQ.setInputFiles(flatPng(500, 700));
     await shot(page, `2g-anh-mo-${kind}`);
     await flow.getByRole('button', { name: 'Vẫn gửi', exact: true }).first().click();
-    // After Tấm 1 the reading leaves 128 missing; Tấm 2 shows the banner.
     await expect(flow.getByRole('button', { name: /^Tấm 1 · câu 103–112, xong/ })).toBeVisible({ timeout: 10000 });
     await flow.getByRole('button', { name: /^Tấm 2/ }).click();
     await expect(flow.getByText(/Còn thiếu câu/).first()).toBeVisible();
     await shot(page, `2f-con-thieu-${kind}`);
+  });
+
+  test(`screens for the design review: Part 7 to saved (${kind})`, async ({ page }) => {
+    test.skip(!process.env.CV_SHOTS, 'CV_SHOTS=1 takes the built screenshots');
+    const flow = await openSeven(page, size);
+    const inputQ = flow.getByLabel('Ảnh câu hỏi', { exact: true });
+    await inputQ.setInputFiles(files(1));
+    await send(flow).click();
+    await expect(flow.getByRole('button', { name: /^Tấm 1 · câu 103–112, xong/ })).toBeVisible({ timeout: 10000 });
     await flow.getByRole('button', { name: /^Nhóm 135–138/ }).click();
     await inputQ.setInputFiles(files(1));
     await send(flow).click();
@@ -200,25 +207,24 @@ for (const size of [DESKTOP, PHONE]) {
     if (phone) await flow.getByRole('tab', { name: /^Đoạn văn/ }).click();
     await flow.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles(files(3));
     await shot(page, `2c-part7-o1-${kind}`);
-    if (!phone) {
-      await flow.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles(files(4));
-      await shot(page, `2c-part7-o4-nhieu-anh-${kind}`);
-      await flow.getByLabel('Ảnh câu hỏi', { exact: true }).last().click({ trial: true }).catch(() => undefined);
-    } else {
-      await flow.getByRole('tab', { name: /^Câu hỏi/ }).click();
-      await shot(page, `2c-part7-o2-${kind}`);
-    }
-    await delay(page, 4000);
-    await flow.getByRole('tab', { name: /^Câu hỏi/ }).click().catch(() => undefined);
-    await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(files(1));
-    await send(flow).click();
-    await shot(page, `2d-doc-nhom-truoc-${kind}`);
-    await delay(page, 0);
-    await expect(flow.getByRole('button', { name: /^Nhóm 149–150, xong/ })).toBeVisible({ timeout: 15000 });
+    if (!phone) await flow.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles(files(2));
+    if (!phone) await shot(page, `2c-part7-o4-nhieu-anh-${kind}`);
+    if (phone) { await flow.getByRole('tab', { name: /^Câu hỏi/ }).click(); await shot(page, `2c-part7-o2-${kind}`); }
+    await delay(page, 5000);
     if (phone) await flow.getByRole('tab', { name: /^Câu hỏi/ }).click();
     await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(files(1));
     await send(flow).click();
-    await expect(flow.getByRole('button', { name: /^Soát \d+ câu/ })).toBeVisible({ timeout: 15000 });
+    await expect(flow.getByText('Sóc đang đọc… ~10 giây')).toBeVisible().catch(() => undefined);
+    await shot(page, `2d-doc-nhom-truoc-${kind}`);
+    await expect(flow.getByRole('button', { name: /^Nhóm 149–150, xong/ })).toBeVisible({ timeout: 15000 });
+    await delay(page, 0);
+    await flow.getByRole('button', { name: /^Nhóm 189|^Nhóm 186–190/ }).first().click();
+    if (phone) await flow.getByRole('tab', { name: /^Câu hỏi/ }).click();
+    await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(files(1));
+    await send(flow).click();
+    await expect(flow.getByRole('button', { name: /^Lưu tất cả/ })).toBeVisible({ timeout: 15000 });
+    await flow.getByRole('button', { name: phone ? 'Quay lại' : /^Chụp thêm/ }).click();
+    await expect(flow.getByText(/câu sai đã sẵn sàng thành thẻ/)).toBeVisible();
     await shot(page, `2e-soat-${kind}`);
     await flow.getByRole('button', { name: /^Soát \d+ câu/ }).click();
     await flow.getByRole('button', { name: /^Lưu tất cả/ }).click();
