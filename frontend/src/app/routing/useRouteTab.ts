@@ -9,6 +9,9 @@ export function useRouteTab(): [NavTabId, (tab: NavTabId) => void] {
   useEffect(() => {
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
     if (tabFromPath(path) === 'dashboard' && path !== '/') window.history.replaceState({}, '', '/');
+    // Renamed pages (/thanh-tich, /giai-dau) redirect to their new address.
+    const moved: Record<string, string> = { '/thanh-tich': TAB_PATHS.awards, '/giai-dau': TAB_PATHS.league };
+    if (moved[path]) window.history.replaceState({}, '', moved[path]);
   }, []);
   useEffect(() => {
     const restore = () => setActiveTab(tabFromPath(window.location.pathname));

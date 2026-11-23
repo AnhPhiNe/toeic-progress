@@ -17,7 +17,8 @@ describe('league helpers', () => {
     expect(sidebarLabel(table)).toBe('Hạng 5 · còn 3 ngày');
     expect(sidebarLabel({ ...table, mode: 'fallback' })).toBe('160★ · còn 3 ngày');
     expect(chipLabel(table).text).toBe('Hạng 5');
-    expect(chipLabel({ ...table, member: null }).text).toBe('Giải đấu');
+    expect(chipLabel({ ...table, member: null }).text).toBe('Xếp hạng');
+    expect(sidebarLabel({ ...table, rank: { name: 'Vàng II' } })).toBe('Vàng II · hạng 5');
   });
 
   it('marks the promotion and demotion zones', () => {

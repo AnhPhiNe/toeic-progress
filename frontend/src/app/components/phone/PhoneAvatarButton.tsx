@@ -38,13 +38,13 @@ function AvatarSheet({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <button type="button" className="ph-row" onClick={go(() => goTab('awards'))}>
-        <i style={{ background: 'var(--rd-blue)' }}><Trophy size={20} aria-hidden="true" /></i>
-        <span><b>Thành tích</b><small>Huy hiệu và đồ cho Sóc</small></span>
+        <i style={{ background: '#ff9a3d' }}><Trophy size={20} aria-hidden="true" /></i>
+        <span><b>Hồ sơ của Sóc</b><small>Tủ đồ và huy hiệu</small></span>
         {newBadges > 0 ? <em className="ph-pill">{newBadges} mới</em> : <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />}
       </button>
       <button type="button" className="ph-row" onClick={go(() => goTab('league'))}>
         <i style={{ background: '#3b7ddd' }}><Shield size={20} fill="currentColor" aria-hidden="true" /></i>
-        <span><b>Giải đấu tuần</b><small>{league?.label === 'Tham gia' || !league ? 'So sao với bạn cùng hạng · tham gia' : league.label}</small></span>
+        <span><b>Xếp hạng</b><small>{!league?.label ? 'Leo hạng cùng bạn học · tham gia' : league.label}</small></span>
         <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />
       </button>
       <button type="button" className="ph-row" onClick={go(() => goTab('resources'))}>

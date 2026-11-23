@@ -5,11 +5,11 @@ import type { NavTabId } from '@/shared/types';
 /** What the phone shell hands to any phone page header (PhoneAvatarButton reads it, pages need no props). */
 export interface PhoneShellValue {
   soc: SocLook;
-  /** Badges earned but not yet seen (0 while on Thành tích). */
+  /** Badge tiers reached but not yet seen (0 while on Hồ sơ của Sóc). */
   newBadges: number;
   goTab: (tab: NavTabId) => void;
   openSettings: () => void;
-  /** Giải đấu tuần: live line for the avatar sheet row and the 🛡 chip on Hôm nay (goTab('league') opens it). */
+  /** Xếp hạng: live line for the avatar sheet row and the 🛡 chip on Hôm nay (goTab('league') opens it). */
   league?: { label: string; chip: string; chipShort: string; chipAria: string };
 }
 

@@ -5,8 +5,9 @@ import { TodayPage } from '@/features/today/components/TodayPage';
 import { JourneyPage } from '@/features/journey/components/JourneyPage';
 import { PracticePage } from '@/features/pacing/components/PracticePage';
 import { ReviewSession } from '@/features/mistakes/components/ReviewSession';
-import { AwardsPage, unseenBadges } from '@/features/awards/components/AwardsPage';
+import { ProfilePage } from '@/features/awards/components/ProfilePage';
 import { computeBadges } from '@/features/awards/lib/badges';
+import { badgeValues, computeTierBadges, loadBest, unseenTiers } from '@/features/awards/lib/badgeTiers';
 import { socLook } from '@/features/awards/lib/outfit';
 import { MISTAKE_BATCH_CAP, todayReviewPlan, type TodayTask } from '@/features/today/lib/todayTasks';
 import { extraStudyDates } from '@/features/today/lib/habits';
@@ -75,7 +76,7 @@ import { GuideContext } from '@/features/guide/GuideContext';
 import { adviceEnabled } from '@/features/journey/services/adviceTransport';
 import { SocCoatContext } from '@/shared/ui/soc/Soc';
 import { socIdentity } from '@/shared/ui/soc/socIdentity';
-import { LeaguePage } from '@/features/league/components/LeaguePage';
+import { RankPage } from '@/features/league/components/RankPage';
 import { useLeague } from '@/features/league/hooks/useLeague';
 import { chipLabel, sidebarLabel } from '@/features/league/lib/league';
 
@@ -107,7 +108,7 @@ export const App: React.FC = () => {
   }, [account.savedAt]);
   // Guests who reach for AI get one sign-in prompt; it only appears when signing in is possible.
   const isGuest = account.available && !account.hasAccountSession;
-  // Giải đấu tuần needs a permanent account; guests see the opt-in card asking them to sign in.
+  // Xếp hạng needs a permanent account; guests see the join card asking them to sign in.
   const signedIn = account.hasAccountSession && Boolean(account.email);
   const [aiSignInOpen, setAISignInOpen] = useState(false);
   useEffect(() => {
@@ -462,7 +463,7 @@ export const App: React.FC = () => {
   const showPractice = activeTab === 'exam-mode' && !isPhone;
   const showNotebook = activeTab === 'mistakes' && !isPhone;
   const showAwards = activeTab === 'awards';
-  // Giải đấu is one page for both layouts; on phones it fills the screen (opened from the avatar sheet or the 🛡 chip).
+  // Xếp hạng is one page for both layouts; on phones it fills the screen (opened from the avatar sheet or the 🛡 chip).
   const showLeague = activeTab === 'league';
   const showConvert = activeTab === 'resources' && !isPhone;
   const showGuide = activeTab === 'guide' && !isPhone;
@@ -470,7 +471,7 @@ export const App: React.FC = () => {
   const phonePageTab = isPhone && ['dashboard', 'history', 'analytics', 'exam-mode', 'mistakes', 'resources', 'guide'].includes(activeTab);
   const soc = useMemo(() => socLook(bundle, today), [bundle, today]);
   const socCoat = socIdentity(bundle.profile).coat;
-  const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenBadges(computeBadges(bundle, today), activeOwner ?? null).length, [bundle, today, activeOwner, activeTab]);
+  const newBadges = useMemo(() => activeTab === 'awards' ? 0 : unseenTiers(computeTierBadges(badgeValues(bundle, today), loadBest(activeOwner ?? null), computeBadges(bundle, today)), activeOwner ?? null), [bundle, today, activeOwner, activeTab]);
   const startTodayTask = (task: TodayTask) => {
     if (task.kind === 'REVIEW_MISTAKES') {
       // The task's count is today's whole batch; cards already reviewed today come off it.
@@ -624,11 +625,12 @@ export const App: React.FC = () => {
         ) : showGuide ? guidePage : showConvert ? (
           <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
         ) : showLeague ? (
-          <LeaguePage league={league} signedIn={signedIn} gear={soc.worn}
+          <RankPage league={league} signedIn={signedIn} gear={soc.worn} coat={socCoat}
             onSignIn={() => (account.available ? void account.signInGoogle() : setIsSettingsModalOpen(true))}
             onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} />
         ) : showAwards ? (
-          <AwardsPage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} />
+          <ProfilePage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} rank={league.state} onGoTab={setActiveTab}
+            onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} />
         ) : showPractice ? (
           <PracticePage
             sessions={sessions}
@@ -680,7 +682,7 @@ export const App: React.FC = () => {
       </div>
 
       <StreakCelebration streak={profile.currentStreak} studiedToday={hasStudiedToday} today={today} held={savedTest !== null || isSessionModalOpen || reviewCards !== null} />
-      {/* Redesigned phone pages (and Thành tích) have their own bottom nav; the old floating cue would cover it. */}
+      {/* Redesigned phone pages (and Hồ sơ của Sóc) have their own bottom nav; the old floating cue would cover it. */}
       {!(isPhone && (phonePageTab || activeTab === 'awards' || activeTab === 'league')) && <PageScrollCue activeTab={activeTab} />}
 
       {isPhone && !(practiceFocus && activeTab === 'exam-mode') && (
