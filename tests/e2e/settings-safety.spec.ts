@@ -136,11 +136,12 @@ test('an owner switch blocks both a stale profile draft and backup restore befor
   // The name editor keeps the draft and says why; the dialog says it too.
   await expect(modal.getByLabel('Tên của bạn', { exact: true })).toHaveValue('Old owner draft');
   await expect(modal.getByRole('alert').filter({ hasText: 'Tài khoản đã thay đổi' })).toHaveCount(2);
-  let confirmations = 0;
-  page.on('dialog', async dialog => { confirmations += 1; await dialog.dismiss(); });
+  let nativeDialogs = 0;
+  page.on('dialog', async dialog => { nativeDialogs += 1; await dialog.dismiss(); });
   await modal.getByRole('button', { name: 'Xóa toàn bộ dữ liệu', exact: true }).click();
   await modal.getByRole('button', { name: 'Dữ liệu mẫu', exact: true }).click();
-  expect(confirmations).toBe(0);
+  expect(nativeDialogs).toBe(0);
+  await expect(page.getByTestId('confirm-dialog')).toHaveCount(0);
   await expect(modal.getByRole('alert').filter({ hasText: 'Tài khoản đã thay đổi' }).first()).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('toeic_progress_account_audit-new-owner_v3'))).toBe(before);
   expect(await page.evaluate(() => localStorage.getItem('toeic_progress_bundle_v3'))).toBe(before);

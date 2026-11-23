@@ -11,10 +11,10 @@ export function AISignInPrompt({ onSignIn, onClose }: { onSignIn: () => void; on
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm animate-backdrop sm:items-center">
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ai-sign-in-title" tabIndex={-1}
-        className="rd w-full max-w-[380px] rounded-[28px] bg-[#FBFDF8] px-6 pb-6 pt-4 text-center text-slate-900 shadow-[0_24px_60px_-26px_rgba(30,60,20,.45)] animate-sheet-up dark:bg-[#121A2B] dark:text-white sm:animate-modal-pop">
+        className="rd w-full max-w-[380px] rounded-[28px] bg-[#FBFDF8] px-6 pb-6 pt-4 text-center text-[#2f3a33] shadow-[0_24px_60px_-26px_rgba(30,60,20,.45)] animate-sheet-up sm:animate-modal-pop">
         <Soc state="think" size={104} className="mx-auto" />
         <h2 id="ai-sign-in-title" className="mt-1 text-[21px] font-extrabold tracking-tight">Đăng nhập để dùng AI</h2>
-        <p className="mx-auto mt-1.5 max-w-[300px] text-[14px] leading-relaxed text-slate-600 dark:text-slate-300">
+        <p className="mx-auto mt-1.5 max-w-[300px] text-[14px] font-bold leading-relaxed text-[#7a857e]">
           Một lần đăng nhập Google, AI sẽ đọc ảnh kết quả và giải thích câu sai giúp bạn. Dữ liệu trên máy này vẫn được giữ.
         </p>
         <button type="button" onClick={onSignIn}
@@ -22,7 +22,7 @@ export function AISignInPrompt({ onSignIn, onClose }: { onSignIn: () => void; on
           Đăng nhập Google
         </button>
         <button type="button" onClick={onClose}
-          className="mx-auto mt-2 block min-h-10 cursor-pointer px-4 text-[13.5px] font-black text-[#2f8a42] dark:text-emerald-300">
+          className="mx-auto mt-2 block min-h-10 cursor-pointer px-4 text-[13.5px] font-black text-[#2f8a42]">
           Để sau, tôi nhập tay
         </button>
         <LegalLinks className="mt-3 justify-center text-[12px]" />
