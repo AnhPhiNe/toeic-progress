@@ -39,6 +39,24 @@
 .il-pop button { margin-top: 9px; border: 0; border-radius: 11px; background: #ff7a9c; color: #fff; font: 900 13.5px var(--rd-font); padding: 7px 12px; box-shadow: 0 3px 0 #e0577d; cursor: pointer; }
 .il-pop button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
 
+/* Sea of the Từng Part map: a few seconds of gentle motion after load, then still */
+.il-waves { animation: il-sway 3.2s ease-in-out 2; }
+.il-waves2 { animation: il-sway 3.6s .5s ease-in-out 2 reverse; }
+@keyframes il-sway { 50% { transform: translateX(7px); } }
+.il-chop { animation: il-chop 1.2s ease-in-out 4; }
+@keyframes il-chop { 50% { transform: translateY(-2px); } }
+.il-rain { animation: il-rain .7s linear 5; }
+@keyframes il-rain { from { transform: translateY(-4px); opacity: .3; } to { transform: translateY(4px); opacity: 1; } }
+.il-boat { display: inline-block; animation: il-boat 2.4s ease-in-out 3; }
+@keyframes il-boat { 50% { transform: translateY(-4px) rotate(-1.5deg); } }
+.il-bob2 { animation: il-boat 2.8s .3s ease-in-out 2; }
+.il-pulse { animation: il-pulse 2s ease-in-out 2; }
+@keyframes il-pulse { 50% { opacity: .45; } }
+.il-twinkle { animation: il-tw 1.2s .8s ease-in-out 2; transform-box: fill-box; transform-origin: center; }
+.il-route { animation: il-fade .5s var(--dl, 0s) ease-out backwards; }
+@keyframes il-fade { from { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
+  .il-waves, .il-waves2, .il-chop, .il-rain, .il-boat, .il-bob2, .il-pulse, .il-twinkle, .il-route { animation: none !important; }
   .il-drift, .il-drift2, .il-float, .il-wave, .il-shimmer, .il-blades, .il-halo, .il-glint, .il-rays, .il-tw, .il-bob { animation: none !important; }
 }

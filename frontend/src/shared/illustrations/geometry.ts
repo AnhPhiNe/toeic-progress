@@ -93,6 +93,31 @@ export function seeded(seed: number): () => number {
   return () => (r = (r * 9301 + 49297) % 233280) / 233280;
 }
 
+/** Closed smooth path through the points (Catmull-Rom as cubic Béziers, wrapping around). */
+export function closedPath(pts: readonly Pt[]): string {
+  const n = pts.length;
+  let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const [c1, c2] = controls(pts[(i - 1 + n) % n], pts[i], pts[(i + 1) % n], pts[(i + 2) % n]);
+    const p = pts[(i + 1) % n];
+    d += ` C${f1(c1[0])} ${f1(c1[1])} ${f1(c2[0])} ${f1(c2[1])} ${f1(p[0])} ${f1(p[1])}`;
+  }
+  return d + 'Z';
+}
+
+/** Organic blob around (cx, cy); the same seed gives the same wobble, so stacked layers stay concentric. */
+export function blobPath(cx: number, cy: number, rx: number, ry: number, seed: number, jag = 0.07, n = 16): string {
+  const r = seeded(seed);
+  const ph = [r() * 6.28, r() * 6.28, r() * 6.28];
+  const pts: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2;
+    const k = 1 + jag * (Math.sin(a * 2 + ph[0]) * 0.6 + Math.sin(a * 3 + ph[1]) * 0.5 + Math.sin(a * 5 + ph[2]) * 0.3);
+    pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]);
+  }
+  return closedPath(pts);
+}
+
 /** Filled ribbon (a stream) along a smooth centre line, its width growing from w0 to w1. */
 export function ribbon(center: readonly Pt[], w0: number, w1: number): { poly: string; mid: string } {
   const d = sampleSmooth(center, 4).pts;
