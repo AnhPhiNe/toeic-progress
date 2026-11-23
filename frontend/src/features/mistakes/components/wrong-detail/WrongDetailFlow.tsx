@@ -25,7 +25,8 @@ import { buildShotList, classifyDoubt, firstOpenShot, nextOpenShot, numberChoice
   type ShotItem } from '@/features/mistakes/lib/captureShots';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { DoneView, ManualCard, type SentThumb, type Staged, type Zone } from './views';
-import { CaptureView, ListeningView, SoatView, type ShotRow, type ShotState, type SoatRow, type StripChip } from './captureViews';
+import { ListeningView, SoatView, type SoatRow } from './captureViews';
+import { CaptureView, type ShotRow, type ShotState, type StripChip } from './CaptureShotView';
 import './wrong-detail.css';
 
 interface Props {
@@ -104,6 +105,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const [config, setConfig] = useState<AIConfiguration | null>(null);
   const [configFailed, setConfigFailed] = useState(false);
   const [savedTotal, setSavedTotal] = useState(0);
+  /** Cards just saved from Soát: the Cần chụp hero says "Đã lưu N thẻ" with "Ôn ngay". */
+  const [savedHero, setSavedHero] = useState<string[] | null>(null);
   const closing = useRef(false);
   /** A read moved to another number: a late explanation follows it. */
   const moved = useRef(new Map<string, string>());
@@ -270,6 +273,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const askedMissing = new Set(Object.values(jobs).filter(job => job.status === 'done').flatMap(job => job.missing));
   const missing = [...new Set(items.flatMap(item => shotMissing(item, askedMissing, covered)))].sort((a, b) => a - b);
   const selectItem = (key: string) => {
+    setSavedHero(null);
     if (key !== current?.key) { clearZones(); setError(''); setNote(''); }
     setSkippedItems(currentSet => { if (!currentSet.has(key)) return currentSet; const nextSet = new Set(currentSet); nextSet.delete(key); return nextSet; });
     setCurrentKey(key);
@@ -528,7 +532,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       wanted = [...wanted, ...others].sort((a, b) => a - b);
     }
     const key = `${item.key}#${++jobSeq.current}`;
-    setError(''); setNote('');
+    setError(''); setNote(''); setSavedHero(null);
     // The sent images stay on the item's tray with what Sóc found.
     setSent(currentSent => ({ ...currentSent, [item.key]: [...(currentSent[item.key] ?? []), ...[...passage, ...questions].map(image => ({ id: image.id, url: image.url, job: key }))] }));
     setZones({ passage: [], questions: [] });
@@ -587,7 +591,9 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     return null;
   };
   const saveAll = () => {
+    const savedIds = filledIds(reviewIds);
     if (!save(reviewIds)) return;
+    setSavedHero(savedIds);
     setDismissed(currentSet => new Set([...currentSet, ...reviewIds]));
     // Saved readings leave the strip; the rows are recorded now.
     const nextJobs = Object.fromEntries(Object.entries(jobsRef.current).filter(([, job]) => job.status !== 'done'));
@@ -624,7 +630,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   } else if (showListening) {
     body = <ListeningView {...common} cards={listeningCards} recorded={recorded} suggested={suggestedReason} error={error}
       onAssign={assignListening} onSkip={() => toggleListening(true)} />;
-  } else if (!hero && !allFilled.length && !anyReading) {
+  } else if (!hero && !allFilled.length && !anyReading && !savedHero) {
     const reviewable = cards.filter(card => !unsaved.has(card.id) && canReview(card)).map(card => card.id);
     body = <DoneView {...common} total={total} doneCount={total} progress={shown} cards={cards} reviewIds={reviewable}
       onReview={() => { closing.current = true; removeCaptcha(); onClose(savedTotal); onReview(reviewable); }} />;
@@ -669,6 +675,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       onReview={() => { setError(''); setOpenRow(''); setScreen({ name: 'review' }); }}
       onEditRange={editPart7Range}
       listeningLeft={skipListening || screen.name === 'listening' ? listeningLeft : 0} onListening={() => toggleListening(false)}
+      saved={savedHero && { count: savedHero.length, reviewable: savedHero.filter(id => { const card = byId.get(id); return Boolean(card && canReview(card)); }).length }}
+      onReviewSaved={() => {
+        const reviewable = (savedHero ?? []).filter(id => { const card = byId.get(id); return Boolean(card && canReview(card)); });
+        closing.current = true; removeCaptcha(); onClose(savedTotal); onReview(reviewable);
+      }}
+      onNotify={text => setToast({ id: Date.now(), text })}
       error={error} note={note} />;
   }
 

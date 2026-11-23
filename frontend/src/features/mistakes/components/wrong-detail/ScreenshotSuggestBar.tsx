@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardPaste, FolderSearch, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { ClipboardPaste, FolderSearch, ImageIcon, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { useScreenshotWatcher } from '@/features/mistakes/hooks/useScreenshotWatcher';
 import './screenshot-bar.css';
 
@@ -11,6 +11,9 @@ interface Props {
   /** Remaining slots in the caller's tray; extra selected shots stay on the bar instead of being discarded. */
   maxAdd?: number;
   onAddFiles: (files: File[]) => void;
+  /** capture-calm: always-visible quick buttons (Dán · Tự nhận ảnh mới · Chọn ảnh) under the active zone. */
+  quick?: boolean;
+  onPick?: () => void;
 }
 
 /**
@@ -18,7 +21,7 @@ interface Props {
  * - Universal 1-click "Dán ảnh vừa chụp" (Clipboard API, zero folder permission required).
  * - Optional Chrome/Edge "Tự nhận nhiều ảnh chụp" (Zalo-style thumbnail strip with privacy checkboxes).
  */
-export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles }: Props) {
+export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles, quick = false, onPick }: Props) {
   const watcher = useScreenshotWatcher(enabled);
   const [explainerOpen, setExplainerOpen] = useState(false);
   // Track manually unchecked items so newly discovered screenshots start checked without re-checking user-unticked ones.
@@ -76,12 +79,13 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
   };
 
   return (
-    <div className="ssb">
+    <div className={'ssb' + (quick ? ' is-quick' : '')}>
       <div className="ssb-row">
-        {watcher.clipboardSupported && (
+        {(watcher.clipboardSupported || quick) && (
           <button type="button" className="ssb-btn is-clip" disabled={disabled || pasting} onClick={() => void pasteClipboard()}>
             <ClipboardPaste className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>{pasting ? 'Đang dán…' : 'Dán ảnh vừa chụp'}</span>
+            {quick && !pasting && <><span aria-hidden="true">·</span><kbd>Ctrl+V</kbd></>}
           </button>
         )}
 
@@ -89,7 +93,7 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
           <button type="button" className="ssb-btn" disabled={disabled} aria-expanded={explainerOpen}
             onClick={() => setExplainerOpen(value => !value)}>
             <FolderSearch className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>Tự nhận nhiều ảnh chụp</span>
+            <span>{quick ? 'Tự nhận ảnh mới' : 'Tự nhận nhiều ảnh chụp'}</span>
           </button>
         )}
 
@@ -103,7 +107,7 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
         {watcher.status === 'watching' && (
           <div className="ssb-watch" role="status">
             <span className="ssb-dot" aria-hidden="true" />
-            <span>Đang theo dõi: <b>{watcher.dirName}</b></span>
+            {quick ? <span>Đang theo dõi thư mục</span> : <span>Đang theo dõi: <b>{watcher.dirName}</b></span>}
             <button type="button" className="ssb-lnk" disabled={disabled || watcher.busy} onClick={() => void watcher.scanNow()} title="Quét ảnh chụp mới ngay">
               <RefreshCw className={'h-3 w-3' + (watcher.busy ? ' animate-spin' : '')} aria-hidden="true" />
               <span>Quét</span>
@@ -111,6 +115,13 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
             <button type="button" className="ssb-lnk" disabled={disabled} onClick={() => void watcher.linkDirectory()}>Đổi</button>
             <button type="button" className="ssb-lnk is-muted" disabled={disabled} onClick={() => void watcher.unlinkDirectory()}>Tắt</button>
           </div>
+        )}
+
+        {quick && onPick && (
+          <button type="button" className="ssb-btn" disabled={disabled} onClick={onPick}>
+            <ImageIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>Chọn ảnh</span>
+          </button>
         )}
       </div>
 

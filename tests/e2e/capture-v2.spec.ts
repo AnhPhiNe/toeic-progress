@@ -97,7 +97,7 @@ test('on a phone Listening asks only "Sai vì sao?" and assigns the chosen numbe
   await flow.getByRole('button', { name: /^Không kịp tốc độ/ }).click();
   await flow.getByRole('button', { name: 'Gán cho 4 câu', exact: true }).click();
   // Listening is done: the capture opens on the first Tấm.
-  await expect(flow.getByRole('button', { name: 'Cần chụp 0/5', exact: true })).toBeVisible();
+  await expect(flow.getByRole('button', { name: /^Tấm 1 · câu 103–112/ })).toBeVisible();
   expect((await stored(page)).filter((card: { part: number }) => card.part <= 4)).toHaveLength(7);
 });
 
@@ -106,24 +106,22 @@ for (const size of [DESKTOP, PHONE]) {
   test(`the shot list ticks itself after a reading and Soát opens doubtful rows only (${phone ? 'phone' : 'desktop'})`, async ({ page }) => {
     const flow = await openSeven(page, size);
     await flow.getByRole('button', { name: 'Bỏ qua phần Nghe', exact: true }).click();
-    const list = async () => { if (phone) await flow.getByRole('button', { name: /^Cần chụp \d/ }).click(); };
-    await list();
     // Derived from the wrong list: 103, 107, 112 share one Tấm; 128 has its own.
     for (const name of ['Tấm 1 · câu 103–112', 'Tấm 2 · câu 128', 'Nhóm 135–138', 'Nhóm 149–150', 'Nhóm 186–190']) {
       await expect(flow.getByRole('button', { name, exact: true })).toBeVisible();
     }
-    if (phone) await flow.getByRole('button', { name: 'Tấm 1 · câu 103–112', exact: true }).click();
     await page.evaluate(() => { (window as Window & { __pageDelay?: number }).__pageDelay = 600; });
     await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-    await flow.getByRole('button', { name: phone ? 'Xong tấm' : /^Tấm tiếp: câu 128/ }).click();
+    await flow.getByRole('button', { name: /^Gửi Sóc đọc · Tấm tiếp/ }).click();
     // One reading looks for every open Part 5 number; the Tấm ticks when its numbers come back.
-    await list();
     await expect(flow.getByRole('button', { name: 'Tấm 1 · câu 103–112, xong', exact: true })).toBeVisible();
     await expect(flow.getByRole('button', { name: 'Tấm 2 · câu 128, xong', exact: true })).toBeVisible();
     expect((await calls(page))[0].questions).toEqual([103, 107, 112, 128]);
-    if (phone) await flow.getByRole('button', { name: 'Nhóm 135–138', exact: true }).click();
-    else await flow.getByRole('button', { name: 'Nhóm 135–138', exact: true }).click();
-    for (const [label, next] of [['Ảnh câu hỏi', /^Nhóm tiếp: 149–150|^Xong nhóm$/], ['Ảnh câu hỏi', /^Nhóm tiếp: 186–190|^Xong nhóm$/], ['Ảnh câu hỏi', /^Xong nhóm cuối|^Xong nhóm$/]] as const) {
+    await flow.getByRole('button', { name: 'Nhóm 135–138', exact: true }).click();
+    let sentGroups = 0;
+    for (const [label, next] of [['Ảnh câu hỏi', /^Gửi Sóc đọc · Nhóm tiếp/], ['Ảnh câu hỏi', /^Gửi Sóc đọc · Nhóm tiếp/], ['Ảnh câu hỏi', /^Gửi Sóc đọc · Nhóm cuối/]] as const) {
+      // A phone shows one Part 7 zone at a time: the questions' tab first.
+      if (phone && sentGroups++ > 0) await flow.getByRole('tab', { name: /^Câu hỏi/ }).click();
       await flow.getByLabel(label, { exact: true }).setInputFiles(screenshot);
       await flow.getByRole('button', { name: next }).click();
     }
@@ -151,17 +149,17 @@ test('Part 7 continuous capture: "Nhóm tiếp" sends group 1 and moves to group
   await page.evaluate(() => { (window as Window & { __pageDelay?: number }).__pageDelay = 2500; });
   await expect(flow.getByRole('heading', { name: /^Nhóm 181–185/ })).toBeVisible();
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 186–190/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect(flow.getByRole('heading', { name: /^Nhóm 186–190/ })).toBeVisible();
-  await expect(flow.getByRole('status', { name: 'Các nhóm đã gửi' })).toContainText('181–185 · Sóc đang đọc');
+  await expect(flow.getByText('Sóc đang đọc… ~10 giây')).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Nhóm 181–185, Sóc đang đọc', exact: true })).toBeVisible();
   await shot(page, '3-part7-lien-tuc-desktop');
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 191–195/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect.poll(async () => (await calls(page)).map(call => call.questions)).toEqual([[181, 182, 183, 184, 185], [186, 187, 188, 189, 190]]);
   // One sitting, one AI use.
   expect(new Set((await calls(page)).map(call => call.batch)).size).toBe(1);
-  await expect(flow.getByRole('status', { name: 'Các nhóm đã gửi' })).toContainText('186–190 · 2 câu', { timeout: 10000 });
+  await expect(flow.getByRole('button', { name: 'Nhóm 186–190, xong', exact: true })).toBeVisible({ timeout: 10000 });
 });
 
 for (const size of [DESKTOP, PHONE]) {
