@@ -35,7 +35,7 @@
 
 /* ladder + rewards */
 .rk-ladder { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
-.rk-ladder__it { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 8px; border-radius: 14px; font-weight: 800; font-size: 12.5px; color: var(--rk-mut); text-align: center; }
+.rk-ladder__it { white-space: nowrap; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 8px; border-radius: 14px; font-weight: 800; font-size: 12.5px; color: var(--rk-mut); text-align: center; }
 .rk-ladder__it i { width: 44px; height: 48px; display: block; }
 .rk-ladder__it i svg { width: 100%; height: 100%; overflow: visible; }
 .rk-ladder__it.is-soft i { filter: grayscale(.75) opacity(.55); }
@@ -56,9 +56,11 @@
 .rk-board__h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 2px; }
 .rk-board__h h2 { font-weight: 900; font-size: 21px; margin: 0; }
 .rk-board__h span { font-weight: 800; font-size: 13.5px; color: var(--rk-mut); white-space: nowrap; }
-.rk-tabs { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+.rk-board > * { flex: none; }
+.rk-board > .rk-scroll { flex: 1 1 auto; min-height: 0; }
+.rk-tabs { display: flex; gap: 6px; margin-top: 12px; padding-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
 .rk-tabs::-webkit-scrollbar { display: none; }
-.rk-tab { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 14px; background: #f6f4ef; padding: 11px 14px; font-weight: 900; font-size: 14.5px; color: #4b5650; cursor: pointer; white-space: nowrap; flex: none; }
+.rk-tab { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 14px; background: #f6f4ef; min-height: 48px; padding: 0 10px; gap: 6px; font-weight: 900; font-size: 14px; color: #4b5650; cursor: pointer; white-space: nowrap; flex: 1 0 auto; }
 .rk-tab svg { color: #8a948d; }
 .rk-tab.is-on { background: #fff; color: var(--rd-ink); box-shadow: inset 0 0 0 2.5px #e8b000, 0 3px 0 #f3e2b0; }
 .rk-tab.is-on svg { color: #d99a00; }
@@ -156,8 +158,10 @@
 .rk-phero h2 { font-weight: 900; font-size: 28px; margin: 0; line-height: 1.1; }
 .rk-phero .rk-bar-wrap { margin-top: 8px; }
 .rk-phero .rk-bar__meta { font-size: 13px; }
+.rk-phero__row .rk-link { text-decoration: none; }
 .rk-phero__row { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
 .rk-phone .rk-tabs { margin: 0 -16px; padding: 2px 16px 4px; }
+.rk-phone .rk-tab { flex: none; }
 .rk-phone .rk-sub { font-size: 13px; margin: 10px 0 6px; }
 .rk-phone .rk-list { margin: 0 -16px; }
 .rk-phone .rk-row { padding: 4px 16px; gap: 12px; font-size: 15.5px; min-height: 50px; }
@@ -167,7 +171,9 @@
 .rk-sheet-h { font-weight: 900; font-size: 16px; margin: 4px 0 8px; }
 .rk-sheet-h small { font-weight: 800; font-size: 12.5px; color: var(--rk-mut); margin-left: 4px; }
 .ph-sheet .rk-rewards { grid-template-columns: repeat(2, 1fr); margin-bottom: 14px; }
-.ph-sheet .rk-reward { flex-direction: row; text-align: left; gap: 8px; padding: 8px 10px; flex-wrap: wrap; }
+.ph-sheet .rk-reward { display: grid; grid-template-columns: 48px 1fr; column-gap: 8px; align-items: center; text-align: left; padding: 8px 10px; }
+.ph-sheet .rk-reward .soc { grid-row: span 2; }
+.ph-sheet .rk-ladder__it { white-space: normal; font-size: 11.5px; }
 .ph-sheet .rk-ladder { margin-bottom: 12px; }
 .ph-sheet .rk-rules { padding: 0; margin-bottom: 14px; }
 .rk.is-phone .rk-join { grid-template-columns: 1fr; min-height: 0; border-radius: 22px; }

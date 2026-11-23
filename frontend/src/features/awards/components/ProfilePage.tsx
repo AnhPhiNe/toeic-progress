@@ -77,7 +77,8 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
       const mine = ownedIds.filter(id => id.startsWith(slot.base + '.')).sort().slice(-1)[0];
       if (mine) out.push({ id: mine, label: slot.label, gear: [mine], state: gear.includes(mine as SocGearId) ? 'on' : 'free', sub: gear.includes(mine as SocGearId) ? 'Đang đeo' : `Quà mùa ${gearItem(mine)!.season}` });
       else if (best >= tierIndex(slot.tier)) out.push({ id: `${slot.base}.m${season}`, label: slot.label, gear: [`${slot.base}.m${season}`], state: 'soon', sub: `Cuối mùa ${season}` });
-      else out.push({ id: `${slot.base}.m${season}`, label: slot.label, gear: [`${slot.base}.m${season}`], state: 'locked', sub: tierLook(slot.tier).name });
+      // Locked season cape and crown look like the level items of the same name: only shown once in reach.
+      else if (slot.base === 'frame-vang' || slot.base === 'khan-ngoc') out.push({ id: `${slot.base}.m${season}`, label: slot.label, gear: [`${slot.base}.m${season}`], state: 'locked', sub: tierLook(slot.tier).name });
     }
     return out;
   }, [gear, lvl, owned, rank]);
