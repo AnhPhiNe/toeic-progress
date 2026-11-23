@@ -106,6 +106,7 @@ const mistake = z.object({
   answerDoubt: z.enum(['A', 'B', 'C', 'D']).optional(),
   optionNotes: z.array(optionNoteSchema).max(4).optional(),
   explanation: explanationSchema.optional(),
+  savedWords: z.array(text(80)).max(20).optional(),
   trapTip: text(4000).optional(),
   options: z.array(text(2000)).max(4).optional(),
   category, tags: z.array(text(80)).max(20), status: z.enum(['NEEDS_REVIEW', 'MASTERED']),

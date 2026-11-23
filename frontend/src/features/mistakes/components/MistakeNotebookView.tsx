@@ -33,6 +33,7 @@ import './notebook.css';
 import './notebook-rd.css';
 import './capture-rd.css';
 import { MistakeDetail, categoryShort, rowReviewLabel } from './MistakeDetail';
+import { withSavedWords } from '@/features/mistakes/lib/savedWords';
 import { Soc } from '@/shared/ui/soc/Soc';
 
 const NOTEBOOK_PAGE_SIZE = 8;
@@ -252,6 +253,12 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       // Switching makes the learner the one who set the answer; keeping it just closes the question.
       onUpdateMistake({ ...latest, answerDoubt: undefined, ...(switchToAI && option ? { correctAnswer: option, answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' } : {}) }, latest);
       notify(switchToAI ? `Đã đổi đáp án sang ${latest.answerDoubt}` : 'Đã giữ đáp án trang đề');
+    },
+    onSaveWords: (words: string[]) => {
+      const latest = mistakes.find(value => value.id === mistake.id) ?? mistake;
+      const next = withSavedWords(latest, words);
+      try { if (next !== latest) onUpdateMistake(next, latest); }
+      catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được từ.', true); }
     }
   });
 
@@ -310,7 +317,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   if (opened) {
     const p = cardProps(opened);
     return (
-      <div className="rd nb-page">
+      <div className="rd nb-page is-detail">
         <MistakeDetail mistake={opened} testName={opened.sourceTestName ?? undefined} onBack={() => setDetailId(null)}
           actions={{ ...p, onDelete: () => { p.onDelete(); if (!loadMistakes().some(x => x.id === opened.id && !x.deletedAt)) setDetailId(null); } }} />
         {overlays}

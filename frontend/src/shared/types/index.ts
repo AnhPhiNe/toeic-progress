@@ -40,7 +40,18 @@ export interface OptionNote {
   /** Từ loại viết tắt tiếng Anh; '' với cụm từ hoặc câu */
   pos: PartOfSpeech;
   meaning: string;
+  /** Một dòng: vì sao phương án này đúng/sai trong câu; thẻ cũ không có */
+  reason?: string;
 }
+
+/** Một câu bằng chứng chép nguyên văn từ bài đọc Part 6/7, kèm bản dịch */
+export interface EvidenceNote {
+  passageLabel?: string;
+  text: string;
+  translation?: string;
+}
+
+export interface KeyWord { word: string; meaning: string }
 
 /** Các mục giải thích; mục không áp dụng là '' */
 export interface MistakeExplanation {
@@ -51,6 +62,10 @@ export interface MistakeExplanation {
   paraphrase: string;
   analysis: string;
   keyVocabulary: string;
+  /** Mọi câu bằng chứng, có thể ở nhiều đoạn; thẻ cũ chỉ có evidence */
+  evidences?: EvidenceNote[];
+  /** keyVocabulary tách từng dòng; thẻ cũ chỉ có keyVocabulary */
+  words?: KeyWord[];
 }
 
 // Sổ tay bẫy & lỗi sai
@@ -85,6 +100,8 @@ export interface MistakeEntry {
   optionNotes?: OptionNote[];
   /** Giải thích theo từng mục do AI trả về; không có thì hiển thị trapTip dạng văn bản */
   explanation?: MistakeExplanation;
+  /** Từ trong "Từ cần nhớ" người học đã bấm + Ôn (chữ thường); đồng bộ cùng thẻ */
+  savedWords?: string[];
   trapTip?: string;        // Mẹo bẫy thi / Bí kíp 10s cần nhớ
   options?: string[];      // 4 phương án trắc nghiệm (vd: ['(A) are', '(B) be', '(C) were', '(D) will be'])
   category: ErrorCategory;
