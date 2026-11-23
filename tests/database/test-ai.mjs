@@ -87,16 +87,16 @@ try {
 
   // Access: grant status + plan; one place for the monthly cap.
   const access = user => value('select public.get_ai_access($1::uuid)', [user]);
-  assert.deepEqual(await access(alice), { status: 'active', plan: 'free', planExpiresAt: null, unlimited: false, monthlyLimit: null });
+  assert.deepEqual(await access(alice), { status: 'active', plan: 'free', planExpiresAt: null, unlimited: false, monthlyLimit: null, rankBonus: 0 });
   await db.query("update public.ai_access_grants set status='blocked' where user_id=$1", [alice]);
   assert.equal((await access(alice)).status, 'blocked');
   await db.query("update public.ai_access_grants set status='active' where user_id=$1", [alice]);
   await db.query("insert into public.user_plans(user_id,plan,ai_monthly_limit) values($1,'free',25)", [alice]);
   assert.equal((await access(alice)).monthlyLimit, 25);
   await db.query("update public.user_plans set plan='admin' where user_id=$1", [alice]);
-  assert.deepEqual(await access(alice), { status: 'active', plan: 'admin', planExpiresAt: null, unlimited: true, monthlyLimit: null });
+  assert.deepEqual(await access(alice), { status: 'active', plan: 'admin', planExpiresAt: null, unlimited: true, monthlyLimit: null, rankBonus: 0 });
   await db.query("update public.user_plans set plan='plus', ai_monthly_limit=200, expires_at=now()-interval '1 day' where user_id=$1", [alice]);
-  assert.deepEqual(await access(alice), { status: 'active', plan: 'free', planExpiresAt: null, unlimited: false, monthlyLimit: null },
+  assert.deepEqual(await access(alice), { status: 'active', plan: 'free', planExpiresAt: null, unlimited: false, monthlyLimit: null, rankBonus: 0 },
     'An expired plan falls back to free and its cap no longer applies');
   assert.equal((await access(guest)).status, 'active', 'No grant row means active (the backend still requires sign-in)');
   await assert.rejects(db.query("insert into public.user_plans(user_id,plan) values($1,'gold')", [bob]), /check constraint/);

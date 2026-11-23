@@ -51,13 +51,13 @@ try {
   const first = await value('select public.run_maintenance(5)');
   assert.deepEqual(first, {
     aiUsageCounters: 2, aiRequests: 1, aiBatches: 1, apiRateLimits: 1, explanationQuestions: 5, leagueWeeks: 2,
-    providerBudgetCounters: 1, aiCostLedger: 1, identityCarryover: 1, syncTombstones: 2, leagueGroups: 2, leagueMore: false, limit: 5
+    providerBudgetCounters: 1, aiCostLedger: 1, identityCarryover: 1, syncTombstones: 2, leagueGroups: 2, leagueMore: false, rankSeasons: 0, limit: 5
   });
   const second = await value('select public.run_maintenance(5)');
   assert.equal(second.explanationQuestions, 2);
   assert.deepEqual(await value('select public.run_maintenance()'), {
     aiUsageCounters: 0, aiRequests: 0, aiBatches: 0, apiRateLimits: 0, explanationQuestions: 0, leagueWeeks: 0,
-    providerBudgetCounters: 0, aiCostLedger: 0, identityCarryover: 0, syncTombstones: 0, leagueGroups: 0, leagueMore: false, limit: 5000
+    providerBudgetCounters: 0, aiCostLedger: 0, identityCarryover: 0, syncTombstones: 0, leagueGroups: 0, leagueMore: false, rankSeasons: 0, limit: 5000
   });
 
   // What stays: unexpired counters, the guest bucket, recent rows, active leases, 12 weeks of league history.

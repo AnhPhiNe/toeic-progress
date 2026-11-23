@@ -100,13 +100,16 @@ try {
   const outcomes = async week => Object.fromEntries((await db.query(
     'select s.user_id,s.final_rank,s.outcome,m.tier from public.league_standings s join public.league_members m using(user_id) where s.week_start=$1', [week])).rows.map(r => [r.user_id, r]));
   let w1 = await outcomes(W1);
-  for (const n of [20, 19, 18, 17, 16]) assert.deepEqual([w1[id(n)].outcome, w1[id(n)].tier], ['up', 2], `Top 5 must move up (member ${n})`);
-  for (const n of [1, 2, 3, 4, 5]) assert.deepEqual([w1[id(n)].outcome, w1[id(n)].tier], ['stay', 1], 'Đồng has no lower tier');
+  const rankOf = async user => one('select level, points, shield_used_week::text as shield from private.rank_players where user_id=$1', [user]);
+  // Rank points (Xếp hạng): stars/10 + top 6 of 20 get +20; bottom 5 lose 20 but the season shield turns the first loss into 0.
+  for (const n of [20, 19, 18, 17, 16, 15]) assert.deepEqual([w1[id(n)].outcome, w1[id(n)].tier], ['stay', 1], `Top 6 earn points, still Đồng IV (member ${n})`);
+  assert.deepEqual(await rankOf(id(20)), { level: 0, points: 22, shield: null });
+  assert.deepEqual(await rankOf(id(15)), { level: 0, points: 21, shield: null });
+  for (const n of [1, 2, 3, 4, 5]) assert.deepEqual([w1[id(n)].outcome, (await rankOf(id(n))).shield], ['stay', W1], 'Bottom 5: shield used');
   assert.equal(w1[id(3)].final_rank, 20, 'Zero stars ranks last');
   assert.deepEqual([w1[id(21)].outcome, w1[id(22)].outcome], ['stay', 'stay'], 'A group too small for a table moves nobody');
   assert.equal((await value('select public.run_maintenance()')).leagueGroups, 0, 'Finalising twice changes nothing');
-  assert.equal((await state(id(20))).group.tier, 2, 'A seat taken at the old tier is given up after promotion');
-  assert.deepEqual((await state(id(16))).lastWeek, { rank: 5, outcome: 'up', stars: 16, tier: 1, weekStart: W1 });
+  assert.deepEqual((await state(id(16))).lastWeek, { rank: 5, outcome: 'stay', stars: 16, tier: 1, weekStart: W1 });
 
   // Stale weeks are refused; a future week from a fast app clock goes to the database week.
   await assert.rejects(join(id(23), W1, 'Muộn'), /Stale league week/);
@@ -119,6 +122,9 @@ try {
   // A full Vàng group in W2; ties go to whoever reached the count first.
   await setNow(vn('2026-11-24', 10));
   await db.query('update public.league_members set tier=3 where user_id = any($1::uuid[])', [Array.from({ length: 20 }, (_, k) => id(k + 1))]);
+  // Vàng IV with 10 points; the top six are 90 points from Vàng III.
+  await db.query('update private.rank_players set level=8, points=case when user_id = any($2::uuid[]) then 90 else 10 end where user_id = any($1::uuid[])',
+    [Array.from({ length: 20 }, (_, k) => id(k + 1)), Array.from({ length: 6 }, (_, k) => id(k + 15))]);
   await db.query('delete from public.league_standings where week_start=$1 and user_id = any($2::uuid[])', [W2, Array.from({ length: 20 }, (_, k) => id(k + 1))]);
   for (let n = 1; n <= 20; n++) await state(id(n));
   for (const n of [2, 1]) await sync(id(n), cards(2, n, '2026-11-24'));
@@ -143,8 +149,10 @@ try {
   await setNow(vn(W3, 12));
   await state(id(5));
   const w2 = await outcomes(W2);
-  for (const n of [20, 19, 18, 17, 16]) assert.deepEqual([w2[id(n)].outcome, w2[id(n)].tier], ['up', 4], `Top 5 move up, leaving or not (member ${n})`);
-  for (const n of [5, 4, 3, 2, 1]) assert.deepEqual([w2[id(n)].outcome, w2[id(n)].tier], ['down', 2], `Bottom 5 move down, leaving or not (member ${n})`);
+  for (const n of [20, 19, 18, 17, 16, 15]) assert.deepEqual([w2[id(n)].outcome, w2[id(n)].tier], ['up', 3], `Top 6 go up a division, leaving or not (member ${n})`);
+  assert.deepEqual(await rankOf(id(20)), { level: 9, points: 12, shield: null }, 'Points carry over into Vàng III');
+  for (const n of [5, 4, 3, 2, 1]) assert.deepEqual([w2[id(n)].outcome, w2[id(n)].tier], ['down', 2], `Bottom 5 (shield spent) fall one division, leaving or not (member ${n})`);
+  assert.deepEqual(await rankOf(id(1)), { level: 7, points: 75, shield: W1 }, 'Bạc I with 75 points');
   assert.equal(w2[id(6)].outcome, 'stay');
   assert.equal(await value('select count(*)::int from public.league_standings where user_id=$1 and week_start=$2', [id(4), W3]), 0, 'Left members are not seated next week');
 
