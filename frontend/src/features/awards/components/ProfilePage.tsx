@@ -12,7 +12,7 @@ import { PhoneSheet } from '@/app/components/phone';
 import type { RankState, RankTierKey } from '@/features/league/services/rankApi';
 import { medalSvg, roomScene, tierIndex, tierLook } from '@/features/league/lib/rankArt';
 import { computeBadges } from '../lib/badges';
-import { GROUPS, TIER_COLORS, TIER_LABEL, badgeLabel, badgeValues, computeTierBadges, earnedTiers, fmtValue, loadBest, markTiersSeen, saveBest, segmentFill, type TierBadge } from '../lib/badgeTiers';
+import { GROUPS, TIER_COLORS, TIER_LABEL, badgeLabel, badgeLines, badgeValues, computeTierBadges, earnedTiers, fmtValue, loadBest, markTiersSeen, saveBest, segmentFill, type TierBadge } from '../lib/badgeTiers';
 import { levelProgress, markLevelSeen, pendingLevelUps } from '../lib/levels';
 import { LevelUpGift } from './LevelUpGift';
 import './awardsDesk.css';
@@ -239,7 +239,7 @@ function BadgeGrid({ badges, selected, onOpen }: { badges: TierBadge[]; selected
                 <Medal badge={b} size={60} />
                 <span className="pf-bn">{b.name}</span>
                 <TierBar badge={b} />
-                <span className="pf-nx" title={badgeLabel(b)}>{badgeLabel(b, true)}</span>
+                <span className="pf-nx">{badgeLines(b).map((line, i) => <span key={i} className={i ? 'pf-nx__p' : 'pf-nx__t'}>{line}</span>)}</span>
               </button>
             ))}
           </div>

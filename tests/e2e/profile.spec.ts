@@ -1,4 +1,4 @@
-﻿import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import type { DataBundle } from '../../frontend/src/shared/data/dataBundle';
 import { joined, signIn } from './helpers/rank';
 
@@ -18,13 +18,26 @@ async function open(page: Page) {
   await expect(page.getByRole('heading', { name: 'Hồ sơ của Sóc', level: 1 })).toBeVisible();
 }
 
+
+async function labelsFit(page: Page) {
+  // Every progress line stays inside its tile: no clipping, no "…".
+  const over = await page.locator('.pf-bt').evaluateAll(tiles => tiles
+    .map(t => ({ text: t.querySelector('.pf-nx__p')?.textContent ?? '', line: t.querySelector('.pf-nx__p') as HTMLElement, tile: t as HTMLElement }))
+    .filter(x => x.line && (x.line.scrollWidth > x.line.clientWidth + 1 || x.line.getBoundingClientRect().width > x.tile.getBoundingClientRect().width + 1))
+    .map(x => x.text));
+  expect(over).toEqual([]);
+}
+
 test.describe('Hồ sơ của Sóc', () => {
   test('desktop: badges show tiers; detail lists the three tiers and opens the right page', async ({ page }) => {
     await open(page);
     await expect(page.getByRole('heading', { name: /Huy hiệu/ })).toContainText('/60 bậc');
+    await expect(page.getByRole('button', { name: /^Cán mốc:/ })).toContainText('700/750 → Bạc');
+    await expect(page.getByRole('button', { name: /^Tai thính:/ })).toContainText('100/120 → Vàng');
+    await labelsFit(page);
     const streak = page.getByRole('button', { name: /^Ôn đúng liên tiếp:/ });
     await expect(streak).toHaveAccessibleName('Ôn đúng liên tiếp: Bạc · 24/50 tới Vàng');
-    await expect(streak).toContainText('Bạc · 24/50→Vàng');
+    await expect(streak).toContainText('24/50 → Vàng');
     await streak.click();
     const dialog = page.getByRole('dialog', { name: 'Ôn đúng liên tiếp' });
     await expect(dialog).toContainText('Bậc hiện tại: Bạc');
@@ -63,6 +76,8 @@ test.describe('Hồ sơ của Sóc', () => {
       await expect(page.getByRole('tab', { name: 'Tủ đồ' })).toHaveAttribute('aria-selected', 'true');
       await expect(page.getByRole('button', { name: 'Lưu bộ đồ' })).toBeVisible();
       await page.getByRole('tab', { name: /Huy hiệu · \d+\/60/ }).click();
+      await expect(page.getByRole('button', { name: /^Cán mốc:/ })).toContainText('700/750 → Bạc');
+      await labelsFit(page);
       await page.getByRole('button', { name: /^Cán mốc:/ }).click();
       const sheet = page.getByRole('dialog', { name: 'Cán mốc' });
       await expect(sheet).toContainText('Bậc hiện tại: Đồng');

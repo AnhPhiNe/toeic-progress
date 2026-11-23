@@ -205,13 +205,19 @@ export const tierStars = (badges: readonly TierBadge[]) => badges.reduce((sum, b
 
 export const fmtValue = (b: Pick<TierBadgeDef, 'pre' | 'suf'>, v: number) => `${b.pre && v ? b.pre : ''}${v}${b.suf ?? ''}`;
 
-/** "Bạc · 34/50 tới Vàng", "Vàng · đủ 3 bậc", "3/10 tới Đồng" (none yet). `short` uses → for one-line tiles. */
-export function badgeLabel(b: TierBadge, short = false): string {
+/** "Bạc · 34/50 tới Vàng", "Vàng · đủ 3 bậc", "3/10 tới Đồng" (none yet): the spoken label of a tile. */
+export function badgeLabel(b: TierBadge): string {
   if (b.tier === 3) return 'Vàng · đủ 3 bậc';
-  // The short form drops the "+" of gains so tiles stay on one line.
-  const v = (n: number) => (short ? `${n}${b.suf ?? ''}` : fmtValue(b, n));
-  const progress = `${v(b.value)}/${v(b.th[b.tier])}${short ? '→' : ' tới '}${TIER_LABEL[b.tier + 1]}`;
+  const progress = `${fmtValue(b, b.value)}/${fmtValue(b, b.th[b.tier])} tới ${TIER_LABEL[b.tier + 1]}`;
   return b.tier === 0 ? progress : `${TIER_LABEL[b.tier]} · ${progress}`;
+}
+
+/** Two short lines under a badge tile: the tier word, then "100/120 → Vàng", "đủ 3 bậc" or "0/10 → Đồng". */
+export function badgeLines(b: TierBadge): [string, string] {
+  if (b.tier === 3) return ['Vàng', 'đủ 3 bậc'];
+  // No "+" on gains here: tiles are narrow (the spoken label keeps it).
+  const n = (v: number) => `${v}${b.suf ?? ''}`;
+  return [TIER_LABEL[b.tier], `${n(b.value)}/${n(b.th[b.tier])} → ${TIER_LABEL[b.tier + 1]}`];
 }
 
 /** Fill of each of the 3 bar segments, 0..1. */

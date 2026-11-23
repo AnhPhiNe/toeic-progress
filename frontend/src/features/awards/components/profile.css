@@ -47,15 +47,15 @@
 .pf-gt.is-soon small { color: #a86a00; }
 
 /* badges */
-.pf-badges { margin-top: 18px; padding: 18px 20px 20px; max-width: 1110px; }
+.pf-badges { margin-top: 18px; padding: 18px 14px 20px; max-width: 1110px; }
 .pf-badges__h { display: flex; align-items: baseline; justify-content: space-between; }
 .pf-badges__h h2 { margin: 0; font-weight: 900; font-size: 22px; }
 .pf-badges__h h2 small { font-size: 15px; color: #4b5650; margin-left: 8px; }
 .pf-legend { display: flex; gap: 14px; font-weight: 800; font-size: 13px; color: #4b5650; }
 .pf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
-.pf-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+.pf-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
 .pf-cat h3 { margin: 10px 0 4px 4px; font-weight: 900; font-size: 14px; color: var(--cc); }
-.pf-bgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
+.pf-bgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; }
 .pf-bt { border: 0; background: none; border-radius: 16px; padding: 6px 0 8px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; text-align: center; }
 .pf-bt:hover { background: #faf7f0; }
 .pf-bt.is-sel { box-shadow: inset 0 0 0 2.5px var(--cc); background: #fff5f7; }
@@ -65,7 +65,9 @@
 .pf-bt.is-locked .pf-bn { color: #9aa29c; }
 .pf-tb3 { display: flex; gap: 3px; width: 70%; }
 .pf-tb3 u { flex: 1; height: 4px; border-radius: 3px; background: linear-gradient(90deg, var(--c) var(--f), #e8ebe6 var(--f)); }
-.pf-nx { font-weight: 800; font-size: 11.5px; color: var(--pf-mut); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
+.pf-nx { display: flex; flex-direction: column; align-items: center; text-align: center; font-weight: 800; font-size: 11px; line-height: 1.3; color: var(--pf-mut); max-width: 100%; }
+.pf-nx__t { font-weight: 900; color: #4b5650; }
+.pf-nx__p { white-space: nowrap; letter-spacing: -.2px; }
 .pf-nx b { color: var(--rd-ink); }
 
 /* detail */
