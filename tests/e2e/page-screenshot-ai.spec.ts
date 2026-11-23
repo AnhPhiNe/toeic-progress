@@ -62,11 +62,10 @@ async function readSet(page: Page) {
   await form.getByRole('button', { name: /^Lưu điểm/ }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   const flow = page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Screen', exact: true });
-  // The phone opens on the first item of the shot list; its progress chip opens the whole list.
-  await flow.getByRole('button', { name: 'Cần chụp 0/2', exact: true }).click();
+  // The phone opens on the first item; the chips on top jump between items.
   await flow.getByRole('button', { name: 'Nhóm 131–134', exact: true }).click();
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
-  await flow.getByRole('button', { name: 'Xong nhóm', exact: true }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc/ }).click();
   await expect(flow.getByRole('heading', { name: 'Soát · 2 câu', exact: true })).toBeVisible();
   return flow;
 }
@@ -133,7 +132,6 @@ test('an explanation that never arrived is asked for again on the card without a
   await page.waitForFunction(() => (window as Window & { __explainFinished?: number }).__explainFinished === 1);
   await expect(flow.getByText(/Đang viết lời giải/)).toHaveCount(0);
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
-  await flow.getByRole('button', { name: 'Quay lại', exact: true }).click();
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
   await expect(flow).toHaveCount(0);
 

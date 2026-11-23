@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { crc32, deflateSync } from 'node:zlib';
@@ -117,3 +117,15 @@ export async function openFromNotebook(page: Page, name = TEST) {
 
 export const stored = (page: Page, name = TEST) => page.evaluate(test => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
   .filter((card: { sourceTestName?: string; deletedAt?: string | null }) => card.sourceTestName === test && !card.deletedAt), name);
+
+/** Capture's other ways: the phone's ⋯ sheet, or the computer's "Cách khác" menu. */
+export async function captureMore(flow: Locator, name: string) {
+  const dots = flow.getByRole('button', { name: 'Thêm lựa chọn', exact: true });
+  if (await dots.isVisible()) {
+    await dots.click();
+    await flow.getByRole('dialog', { name: 'Thêm lựa chọn' }).getByRole('button', { name: new RegExp(`^${name}`) }).click();
+    return;
+  }
+  await flow.getByRole('button', { name: /^Cách khác/ }).click();
+  await flow.getByRole('menuitem', { name: new RegExp(`^${name}`) }).click();
+}

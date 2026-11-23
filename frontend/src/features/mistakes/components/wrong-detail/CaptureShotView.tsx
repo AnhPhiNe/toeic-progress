@@ -235,7 +235,7 @@ export function CaptureView(props: Props) {
     { key: 'manual', icon: <span>✎</span>, title: current.kind === 'group' || current.wrong.length > 1 ? 'Ghi tay câu này' : 'Ghi tay câu này', sub: 'Gõ số câu và đáp án thay vì chụp', run: onManual },
     ...(canRead ? [{ key: 'skip', icon: <span>⏭</span>, title: skipLabel, sub: skipSub, run: onSkip }] : []),
     ...(current.part === 7 ? [{ key: 'range', icon: <span>↔</span>, title: 'Đổi dải câu', sub: 'Sửa câu bắt đầu và kết thúc của nhóm', run: () => setEditingRange(true) }] : []),
-    ...(staged > 0 && reviewCount > 0 ? [{ key: 'review', icon: <Check size={18} />, title: `Soát ${reviewCount} câu`, sub: 'Xem lại các câu Sóc đã đọc', run: onReview }] : []),
+    ...(reviewCount > 0 && (staged > 0 || (phone && !allDone)) ? [{ key: 'review', icon: <Check size={18} />, title: `Soát ${reviewCount} câu`, sub: 'Xem lại các câu Sóc đã đọc', run: onReview }] : []),
     ...(phone && listeningLeft > 0 ? [{ key: 'listening', icon: <span>🎧</span>, title: `Phần Nghe còn ${listeningLeft} câu`, sub: 'Ghi lý do cho các câu Nghe', run: onListening }] : [])
   ] : [];
   const rangeEdit = current?.part === 7 && editingRange && <RangeEditor group={current} onSave={onEditRange} onCancel={() => setEditingRange(false)} />;

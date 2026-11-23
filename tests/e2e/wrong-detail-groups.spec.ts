@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { mockWrongDetailAI, noisyPng, openFromNotebook, screenshot, seedTests, TEST, WRONG } from './helpers/wrongDetail';
+import { mockWrongDetailAI, noisyPng, openFromNotebook, screenshot, seedTests, TEST, WRONG, captureMore } from './helpers/wrongDetail';
 
 type Call = { questions: number[]; images: number; context: number; batch: string; types: string[]; slices: number[][] };
 const calls = (page: Page) => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls ?? []) as Promise<Call[]>;
@@ -24,10 +24,10 @@ test('passage groups are sent one after another and read side by side; a failed 
     await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(Array.from({ length: count }, () => screenshot));
     await flow.getByRole('button', { name: next }).click();
   };
-  await sendGroup(2, /^Nhóm tiếp: 186–190/);
-  await sendGroup(4, /^Nhóm tiếp: 191–195/);
-  await sendGroup(4, /^Nhóm tiếp: 196–200/);
-  await sendGroup(1, /^Xong nhóm cuối/);
+  await sendGroup(2, /^Gửi Sóc đọc · Nhóm tiếp/);
+  await sendGroup(4, /^Gửi Sóc đọc · Nhóm tiếp/);
+  await sendGroup(4, /^Gửi Sóc đọc · Nhóm tiếp/);
+  await sendGroup(1, /^Gửi Sóc đọc · Nhóm cuối/);
   // Up to three groups run in parallel; the fourth waits its turn.
   await expect.poll(async () => (await calls(page)).length).toBe(3);
   await expect(item(flow, 'Nhóm 186–190, Sóc đang đọc')).toBeVisible();
@@ -63,7 +63,7 @@ test('passage groups are sent one after another and read side by side; a failed 
 test('a Part 7 group range can be edited (149–151); photo review turns on paper mode; "Nhóm tiếp" moves on', async ({ page }) => {
   const flow = await open(page);
   await item(flow, 'Nhóm 149–150').click();
-  await flow.getByRole('button', { name: '✎ Đổi dải câu', exact: true }).click();
+  await captureMore(flow, 'Đổi dải câu');
   await flow.getByLabel('Từ câu', { exact: true }).fill('149');
   await flow.getByLabel('Đến câu', { exact: true }).fill('151');
   await flow.getByRole('button', { name: 'Áp dụng', exact: true }).click();
@@ -77,9 +77,12 @@ test('a Part 7 group range can be edited (149–151); photo review turns on pape
   await review.getByRole('checkbox').check();
   await review.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await expect(review).toHaveCount(0);
-  await expect(flow.getByRole('button', { name: /Ảnh chụp giấy/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(flow.getByRole('button', { name: /^Ảnh giấy/ })).toHaveAttribute('aria-pressed', 'true');
+  // Passage photos alone cannot be sent: the primary waits for the question photos.
+  await expect(flow.getByRole('button', { name: /^Gửi Sóc đọc/ })).toBeDisabled();
+  await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
 
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 191–195/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect(flow.getByRole('heading', { name: /^Nhóm 191–195/ })).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Soát 2 câu', exact: true })).toBeVisible({ timeout: 5000 });
 });
@@ -88,7 +91,7 @@ test('screenshots too heavy for one request are made smaller on the device, and 
   const flow = await open(page);
   // Three ~3 MB PNGs: 9 MB is over the 8 MB a request takes.
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([noisyPng(1000), noisyPng(1000), noisyPng(1000)]);
-  await flow.getByRole('button', { name: /^Tấm tiếp: câu 118–124/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Tấm tiếp/ }).click();
   await flow.getByRole('button', { name: /^Soát 2 câu/ }).click({ timeout: 20000 });
   await expect(flow.getByText('Ảnh nặng nên Sóc đã thu nhỏ hoặc cắt ảnh trên máy trước khi gửi.')).toBeVisible();
   if (process.env.WD_SHOTS) await page.screenshot({ path: 'design/previews/img/build-wrong-detail-8-compressed-note-desktop.png' });
@@ -118,10 +121,8 @@ test('the Listening step can be set aside and taken back', async ({ page }) => {
 test('Part 7 has two zones: pastes go to the active zone, ① is sent as the passage, and the zone is remembered', async ({ page }) => {
   const flow = await open(page);
   await item(flow, 'Nhóm 186–190').click();
-  const passage = flow.locator('.wd-zn[data-zone="passage"]'), questions = flow.locator('.wd-zn[data-zone="questions"]');
+  const passage = flow.locator('.cz[data-zone="passage"]'), questions = flow.locator('.cz[data-zone="questions"]');
   await expect(passage).toHaveAttribute('data-active', 'true');
-  await expect(passage.getByText('Ảnh dán/chụp sẽ vào ô này')).toBeVisible();
-  await expect(flow.getByText(/Ảnh có cả đoạn văn và câu hỏi\? Thả vào 2 là được\./)).toBeVisible();
   const bytes = [...readFileSync(screenshot)];
   const paste = (count: number) => page.evaluate(({ data, count }) => {
     const dt = new DataTransfer();
@@ -142,7 +143,7 @@ test('Part 7 has two zones: pastes go to the active zone, ① is sent as the pas
   await passage.getByRole('button', { name: 'Chuyển ảnh đoạn văn 4 sang ô ②', exact: true }).click();
   await expect(questions.getByRole('img')).toHaveCount(1);
   await expect(questions).toHaveAttribute('data-active', 'true');
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 191–195/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect.poll(async () => (await calls(page)).length).toBe(1);
   const [call] = await calls(page);
   expect([call.questions, call.context, call.images]).toEqual([[186, 187, 188, 189, 190], 3, 1]);
@@ -151,15 +152,15 @@ test('Part 7 has two zones: pastes go to the active zone, ① is sent as the pas
   await page.reload();
   const again = await openFromNotebook(page);
   await item(again, 'Nhóm 196–200').click();
-  await expect(again.locator('.wd-zn[data-zone="questions"]')).toHaveAttribute('data-active', 'true');
+  await expect(again.locator('.cz[data-zone="questions"]')).toHaveAttribute('data-active', 'true');
 });
 
 test('Part 6 has one tray: the whole group is sent together in one request', async ({ page }) => {
   const flow = await open(page);
   await item(flow, 'Nhóm 131–134').click();
-  await expect(flow.locator('.wd-zn[data-zone="passage"]')).toHaveCount(0);
+  await expect(flow.locator('.cz[data-zone="passage"]')).toHaveCount(0);
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot, screenshot]);
-  await flow.getByRole('button', { name: /^Nhóm tiếp: 139–142/ }).click();
+  await flow.getByRole('button', { name: /^Gửi Sóc đọc · Nhóm tiếp/ }).click();
   await expect.poll(async () => (await calls(page)).length).toBe(1);
   const [call] = await calls(page);
   expect(call.images + call.context).toBe(3);
