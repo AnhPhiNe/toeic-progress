@@ -37,21 +37,24 @@ export function gapAbove(state: LeagueState): { stars: number; nickname: string 
   return { stars: above.stars - rows[mine].stars + 1, nickname: above.nickname };
 }
 
-/** Small live text under "Giải đấu" in the sidebar. */
-export function sidebarLabel(state: LeagueState | null): string {
-  // Before joining the row is just "Giải đấu" like the other items; the live line appears once joined.
+type WithRank = LeagueState & { rank?: { name: string } | null };
+
+/** Small live text under "Xếp hạng" in the sidebar: "Vàng II · hạng 8". */
+export function sidebarLabel(state: WithRank | null): string {
+  // Before joining the row is just "Xếp hạng" like the other items; the live line appears once joined.
   if (!state?.member) return '';
+  if (state.rank) return state.mode === 'table' && state.me?.rank ? `${state.rank.name} · hạng ${state.me.rank}` : state.rank.name;
   const left = `còn ${state.week.daysLeft} ngày`;
   if (state.mode === 'table' && state.me?.rank) return `Hạng ${state.me.rank} · ${left}`;
   return `${state.me?.stars ?? 0}★ · ${left}`;
 }
 
 /** The 🛡 chip on phone Hôm nay: short text plus a full spoken label. */
-export function chipLabel(state: LeagueState | null): { text: string; short: string; aria: string } {
-  if (!state?.member) return { text: 'Giải đấu', short: '', aria: 'Giải đấu tuần · tham gia' };
-  if (state.mode === 'table' && state.me?.rank) return { text: `Hạng ${state.me.rank}`, short: String(state.me.rank), aria: `Giải đấu tuần · hạng ${state.me.rank}, còn ${state.week.daysLeft} ngày` };
+export function chipLabel(state: WithRank | null): { text: string; short: string; aria: string } {
+  if (!state?.member) return { text: 'Xếp hạng', short: '', aria: 'Xếp hạng · tham gia' };
+  if (state.mode === 'table' && state.me?.rank) return { text: `Hạng ${state.me.rank}`, short: String(state.me.rank), aria: `Xếp hạng${state.rank ? ' ' + state.rank.name : ''} · hạng ${state.me.rank} trong nhóm, còn ${state.week.daysLeft} ngày` };
   const stars = `${state.me?.stars ?? 0}★`;
-  return { text: stars, short: stars, aria: `Giải đấu tuần · ${state.me?.stars ?? 0} sao tuần này` };
+  return { text: stars, short: stars, aria: `Xếp hạng · ${state.me?.stars ?? 0} sao tuần này` };
 }
 
 /** dd/mm – dd/mm for the week starting on ISO date `start`. */

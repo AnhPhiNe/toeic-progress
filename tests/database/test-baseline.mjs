@@ -9,7 +9,7 @@ const RPCS = [
   'finish_explanation_question(uuid,uuid,integer,uuid,jsonb)', 'get_ai_access(uuid)', 'get_ai_usage(uuid,boolean,integer)',
   'league_join(uuid,date,text,text)', 'league_leave(uuid,date)', 'league_refresh(uuid,date,integer)', 'league_state(uuid)', 'league_update(uuid,date,text,text)',
   'list_pending_account_deletions(integer,integer)', 'mark_account_deletion_pending(uuid)', 'note_account_deletion_attempt(uuid,text)',
-  'prepare_account_deletion(uuid,text)',
+  'prepare_account_deletion(uuid,text)', 'rank_state(uuid)',
   'record_ai_usage(uuid,text,text,text,integer,integer,integer,integer,text)',
   'redeem_code(uuid,text)', 'reserve_ai_batch_request(uuid,boolean,uuid,uuid,text,text,integer,integer,integer,integer,integer,integer)',
   'reserve_ai_request(uuid,boolean,uuid,text,text,integer,integer,integer,integer)', 'reserve_api_request(uuid,text,integer,integer)',

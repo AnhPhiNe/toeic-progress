@@ -114,3 +114,30 @@ def test_plan_caps_come_from_user_plans_with_backend_defaults(api, grant, expect
         assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 200
         reservation = next(call for call in calls if call[1].endswith("reserve_ai_request"))
         assert reservation[2]["p_user_limit"] == expected
+
+
+@pytest.mark.parametrize("grant,expected", [({"status": "active", "monthly_limit": 10, "rank_bonus": 30}, 40),
+                                            ({"status": "active", "plan": "plus", "monthly_limit": None, "rank_bonus": 20}, 120),
+                                            ({"status": "active", "monthly_limit": 9990, "rank_bonus": 30}, 10000),
+                                            ({"status": "active", "monthly_limit": 10, "rank_bonus": 0}, 10)])
+def test_season_rank_bonus_is_added_to_the_monthly_cap(api, grant, expected):
+    with api(ai_grant=grant, settings_overrides=MANAGED) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 200
+        reservation = next(call for call in calls if call[1].endswith("reserve_ai_request"))
+        assert reservation[2]["p_user_limit"] == expected
+
+
+@pytest.mark.parametrize("bonus", [-1, 101, True, "30"])
+def test_malformed_rank_bonus_fails_closed(api, bonus):
+    with api(ai_grant={"status": "active", "monthly_limit": 10, "rank_bonus": bonus}, settings_overrides=MANAGED) as (client, calls):
+        assert client.post("/api/v1/ai/extract", json=extraction()).status_code == 503
+        assert not any("reserve_ai" in call[1] for call in calls)
+
+
+def test_rank_bonus_never_bypasses_the_provider_budget(api):
+    refused = {"allowed": False, "code": "owner_day", "retry_after": 3600}
+    with api(ai_grant={"status": "active", "monthly_limit": 10, "rank_bonus": 30}, provider_budget=refused,
+             settings_overrides={**MANAGED, "ai_provider_budget_enabled": True}) as (client, calls):
+        response = client.post("/api/v1/ai/extract", json=extraction())
+        assert response.status_code == 429 and response.headers["X-Error-Code"] == "AI_PROVIDER_BUDGET"
+        assert not any(call[0] == "api.openai.com" for call in calls)

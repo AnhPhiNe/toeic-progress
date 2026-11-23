@@ -11,7 +11,7 @@ async function fresh(page: Page) {
   await page.mouse.click(5, 300);
 }
 
-test('phone: pick a coat and name after the goal, change both in Đồ cho Sóc', async ({ page }) => {
+test('phone: pick a coat and name after the goal, change both in Hồ sơ của Sóc', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await fresh(page);
   const avatar = page.locator('.ph-av .soc').first();
@@ -34,19 +34,18 @@ test('phone: pick a coat and name after the goal, change both in Đồ cho Sóc'
   await expect(page.locator('.tp-soc .soc')).toHaveAttribute('data-coat', 'soco');
 
   await page.getByRole('button', { name: /Hồ sơ của bạn/ }).click();
-  await page.getByRole('button', { name: /Thành tích/ }).click();
-  await page.getByRole('button', { name: '👕 Đồ cho Sóc' }).click();
-  const sheet = page.getByRole('dialog', { name: 'Đồ cho Sóc' });
-  await expect(sheet.getByLabel('Tên Sóc')).toHaveValue('Bắp Rang');
-  await sheet.getByRole('radio', { name: 'Hồng dâu' }).click();
-  await sheet.getByLabel('Tên Sóc').fill('Mây Bay');
-  await sheet.getByRole('button', { name: 'Xong' }).click();
-  await expect(page.locator('.ph-av .soc').first()).toHaveAttribute('data-coat', 'dau');
-  await expect(page.locator('.awp-soc .soc')).toHaveAttribute('data-coat', 'dau');
+  await page.getByRole('button', { name: /Hồ sơ của Sóc/ }).click();
+  await expect(page.locator('.pf-name b')).toHaveText('Bắp Rang');
+  await page.getByRole('button', { name: 'Đổi tên Sóc' }).click();
+  await page.getByLabel('Tên của Sóc').fill('Mây Bay');
+  await page.getByLabel('Tên của Sóc').press('Enter');
+  await page.getByRole('radio', { name: 'Hồng dâu' }).click();
+  await page.getByRole('button', { name: 'Lưu bộ đồ' }).click();
+  await expect(page.locator('.pf-pid .soc')).toHaveAttribute('data-coat', 'dau');
   expect(await stored(page)).toMatchObject({ socCoat: 'dau', socName: 'Mây Bay' });
 });
 
-test('desktop: the welcome coat card, then Tủ đồ; the sidebar Sóc follows, the logo stays Nâu cam', async ({ page }) => {
+test('desktop: the welcome coat card, then Tủ đồ in Hồ sơ của Sóc; the sidebar Sóc follows, the logo stays Nâu cam', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await fresh(page);
   const me = page.locator('.rd-side__me .soc');
@@ -66,15 +65,15 @@ test('desktop: the welcome coat card, then Tủ đồ; the sidebar Sóc follows,
   await expect(page.locator('.rd-side__logosoc')).toHaveAttribute('data-coat', 'nau');
 
   await me.click();
-  await page.getByRole('button', { name: '👕 Đổi đồ cho Sóc' }).click();
-  const panel = page.getByRole('dialog', { name: 'Tủ đồ của Sóc' });
-  await expect(panel.getByLabel('Tên Sóc')).toHaveAttribute('placeholder', 'Hạt Tiêu');
-  await panel.getByRole('radio', { name: 'Kem sữa' }).click();
-  await panel.getByLabel('Tên Sóc').fill('Trà Sữa');
-  await panel.getByLabel('Tên Sóc').press('Enter');
-  await expect(page.locator('.awd-soc')).toHaveAttribute('data-coat', 'kem');
+  await expect(page).toHaveURL(/\/ho-so-soc$/);
+  await expect(page.locator('.pf-name b')).toHaveText('Hạt Tiêu');
+  await page.getByRole('radio', { name: 'Kem sữa' }).click();
+  await expect(me).toHaveAttribute('data-coat', 'xam'); // a preview until saved
+  await page.getByRole('button', { name: 'Đổi tên Sóc' }).click();
+  await page.getByLabel('Tên của Sóc').fill('Trà Sữa');
+  await page.getByLabel('Tên của Sóc').press('Enter');
+  await page.getByRole('button', { name: 'Lưu bộ đồ' }).click();
   await expect(me).toHaveAttribute('data-coat', 'kem');
-  await page.keyboard.press('Escape');
   expect(await stored(page)).toMatchObject({ socCoat: 'kem', socName: 'Trà Sữa' });
 });
 

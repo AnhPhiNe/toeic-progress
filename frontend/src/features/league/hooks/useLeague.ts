@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchLeague, joinLeague, leaveLeague, updateLeague, type LeagueState } from '../services/leagueApi';
+import { saveOwnedGear } from '@/features/awards/lib/outfit';
+import { fetchRank as fetchLeague, joinRank as joinLeague, leaveRank as leaveLeague, updateRank as updateLeague, type RankState as LeagueState } from '../services/rankApi';
 
 export interface LeagueHandle {
   state: LeagueState | null;
@@ -17,7 +18,7 @@ export interface LeagueHandle {
 const SYNC_REFRESH_MS = 20_000;
 
 /**
- * League state for a signed-in learner. Loads on sign-in, after each finished sync (new rows
+ * Xếp hạng state (league + rank + boards) for a signed-in learner. Loads on sign-in, after each finished sync (new rows
  * may earn stars) and when the page opens. Guests get null and never call the API.
  */
 export function useLeague({ enabled, owner, synced, pageOpen, coat }: { enabled: boolean; owner: string | null; synced: boolean; pageOpen: boolean; coat: string }): LeagueHandle {
@@ -35,7 +36,7 @@ export function useLeague({ enabled, owner, synced, pageOpen, coat }: { enabled:
     setLoading(true);
     fetchLeague()
       .then(value => { if (id === run.current) { setState(value); setError(''); } })
-      .catch((reason: unknown) => { if (id === run.current) setError(reason instanceof Error ? reason.message : 'Chưa tải được giải đấu.'); })
+      .catch((reason: unknown) => { if (id === run.current) setError(reason instanceof Error ? reason.message : 'Chưa tải được bảng xếp hạng.'); })
       .finally(() => { if (id === run.current) setLoading(false); });
   }, [enabled]);
 
@@ -65,6 +66,12 @@ export function useLeague({ enabled, owner, synced, pageOpen, coat }: { enabled:
       setBusy(false);
     }
   }, []);
+
+  // Season reward items are kept on the device so every page (Hôm nay, Hồ sơ) can draw them.
+  const rewards = state?.rewards;
+  useEffect(() => {
+    if (enabled && owner && rewards) saveOwnedGear(owner, rewards.flatMap(r => r.cosmetics));
+  }, [enabled, owner, rewards]);
 
   // The learner's Sóc coat (chosen in the welcome or Tủ đồ) follows them onto the league table.
   const memberCoat = state?.member?.coat;

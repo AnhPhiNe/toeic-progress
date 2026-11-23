@@ -41,6 +41,10 @@ ROUTES = {
     "/api/v1/league/join": "sync",
     "/api/v1/league/leave": "sync",
     "/api/v1/league/me": "sync",
+    "/api/v1/rank": "sync",
+    "/api/v1/rank/join": "sync",
+    "/api/v1/rank/leave": "sync",
+    "/api/v1/rank/me": "sync",
 }
 
 
