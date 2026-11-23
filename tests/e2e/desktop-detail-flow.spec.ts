@@ -40,7 +40,7 @@ test('a computer works through a test: Listening first, then the shot list; Part
 
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
   // Back on the list: a toast and the ticked Tấm.
-  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 2 câu vào Sổ tay' })).toBeVisible();
+  await expect(flow.getByText('Đã lưu 2 thẻ vào Sổ tay')).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Tấm 1 · câu 104–112, xong', exact: true })).toBeVisible();
   expect(await storedCard(page, 104)).toMatchObject({ userChoice: 'C', correctAnswer: '(A) accommodates', category: 'VOCABULARY_TRAP', explanation: { quickTip: TIP } });
   // Changing a key also invalidates the earlier rationale and its inferred reason.

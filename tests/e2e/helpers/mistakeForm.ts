@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { captureMore } from './wrongDetail';
 import { isPhoneLayout, openRecordSheet } from './nav';
 
 /** Phones pick the Part with seven buttons; larger screens keep the select. */
@@ -37,7 +38,7 @@ export async function openNoteForm(page: Page) {
   // The first-time camera tips sheet would cover the camera screen.
   await page.evaluate(() => localStorage.setItem('toeic.capture.tipsSeen', '1'));
   await openRecordSheet(page, 'mistake');
-  await page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true }).getByRole('button', { name: 'Tự gõ', exact: true }).click();
+  await captureMore(page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true }), 'Tự gõ một câu');
   await expect(page.getByRole('dialog', { name: 'Thêm câu sai', exact: true })).toBeVisible();
   return noteModal(page);
 }

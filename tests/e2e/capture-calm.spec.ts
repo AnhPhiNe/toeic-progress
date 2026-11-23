@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { crc32, deflateSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
-import { openFromNotebook, screenshot, seedTests, stored, TEST } from './helpers/wrongDetail';
+import { mockWrongDetailAI, openFromNotebook, pageTopPng, seedTests, stored, TEST, WRONG } from './helpers/wrongDetail';
 import { mockResultsAI } from './helpers/resultsAI';
 import { openScoreLogger } from './helpers/nav';
 
@@ -72,7 +72,7 @@ async function openSeven(page: Page, size = DESKTOP, omit: number[] = []) {
   return flow;
 }
 const delay = (page: Page, ms: number) => page.evaluate(value => { (window as Window & { __pageDelay?: number }).__pageDelay = value; }, ms);
-const files = (count: number) => Array.from({ length: count }, () => screenshot);
+const files = (count: number) => Array.from({ length: count }, () => pageTopPng());
 const send = (flow: ReturnType<Page['locator']>) => flow.getByRole('button', { name: /^Gửi Sóc đọc/ });
 
 test('desktop: quick buttons stay visible under the zone and Cách khác holds the rest', async ({ page }) => {
@@ -170,7 +170,7 @@ test('Ghi điểm: "Lưu điểm" appears only after Sóc has read the photo; th
   for (const name of ['Phiếu tô giấy', 'Ghép nhiều ảnh', 'Dán ảnh vừa chụp', 'Tự nhận nhiều ảnh chụp', 'Tự chọn câu sai']) await expect(form.getByRole('menuitem', { name })).toBeVisible();
   await shot(page, '6b-ghi-diem-cach-khac-desktop');
   await form.getByRole('button', { name: /^Cách khác/ }).click();
-  await form.getByLabel('Ảnh kết quả', { exact: true }).setInputFiles(screenshot);
+  await form.getByLabel('Ảnh kết quả', { exact: true }).setInputFiles(pageTopPng());
   await expect(form.getByRole('button', { name: 'Lưu điểm', exact: true })).toBeVisible({ timeout: 10000 });
   await shot(page, '6c-ghi-diem-da-doc-desktop');
 });
@@ -190,6 +190,7 @@ for (const size of [DESKTOP, PHONE]) {
     await expect(flow.getByRole('button', { name: /^Tấm 1 · câu 103–112, xong/ })).toBeVisible({ timeout: 10000 });
     await flow.getByRole('button', { name: /^Tấm 2/ }).click();
     await expect(flow.getByText(/Còn thiếu câu/).first()).toBeVisible();
+    await inputQ.setInputFiles(files(1));
     await shot(page, `2f-con-thieu-${kind}`);
   });
 
@@ -231,5 +232,49 @@ for (const size of [DESKTOP, PHONE]) {
     await expect(flow.getByText(/^Đã lưu \d+ thẻ vào Sổ tay/)).toBeVisible();
     await shot(page, `2h-da-luu-${kind}`);
     expect((await stored(page)).length).toBeGreaterThan(0);
+  });
+}
+
+for (const size of [DESKTOP, PHONE]) {
+  const phone = size === PHONE, kind = phone ? 'phone' : 'desktop';
+  test(`Sổ tay capture uses the same calm layout and bottom-bar rules (${kind})`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await mockWrongDetailAI(page);
+    await seedTests(page, [{ id: 's1', name: TEST, wrong: WRONG }]);
+    await page.evaluate(() => localStorage.setItem('toeic.capture.tipsSeen', '1'));
+    await page.goto('/so-tay');
+    await page.getByRole('button', { name: phone ? /Chụp$/ : /Chụp trang chữa bài/ }).first().click();
+    const capture = page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true });
+    await shot(page, `7-so-tay-trong-${kind}`);
+    if (phone) {
+      await expect(capture.getByRole('button', { name: /^Chụp hoặc chọn ảnh/ }).last()).toBeVisible();
+      await capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true }).click();
+      await capture.getByRole('button', { name: /^Nhóm 186–190/ }).click();
+      await capture.getByRole('tab', { name: /^Đoạn văn/ }).click();
+      await capture.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles(files(2));
+      // Passage photos alone: the primary asks for the question photos.
+      await expect(capture.getByRole('button', { name: /^Chụp câu hỏi/ })).toBeVisible();
+      await expect(capture.getByText('Cần ảnh câu hỏi để gửi')).toBeVisible();
+      await shot(page, `7-so-tay-doan-van-${kind}`);
+      await capture.getByRole('tab', { name: /^Câu hỏi/ }).click();
+      await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(files(1));
+      await expect(capture.getByRole('button', { name: /^Gửi Sóc đọc/ })).toBeVisible();
+      await expect(capture.getByRole('button', { name: /^Chụp tiếp/ })).toBeVisible();
+      await shot(page, `7-so-tay-san-sang-${kind}`);
+      await capture.getByRole('button', { name: 'Thêm lựa chọn', exact: true }).click();
+      await expect(page.getByRole('dialog', { name: 'Thêm lựa chọn' }).getByRole('button', { name: /^Tự gõ một câu/ })).toBeVisible();
+    } else {
+      for (const name of [/^Dán ảnh vừa chụp/, /^Tự nhận ảnh mới/, /^Chọn ảnh/]) await expect(capture.getByRole('button', { name })).toBeVisible();
+      await expect(capture.getByRole('button', { name: 'Gửi Sóc đọc', exact: true })).toBeDisabled();
+      await capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true }).click();
+      await capture.getByRole('button', { name: /^Nhóm 186–190/ }).click();
+      await capture.getByLabel('Ảnh đoạn văn', { exact: true }).setInputFiles(files(2));
+      await expect(capture.getByRole('button', { name: 'Gửi Sóc đọc', exact: true })).toBeDisabled();
+      await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(files(1));
+      await expect(capture.getByRole('button', { name: 'Gửi Sóc đọc', exact: true })).toBeEnabled();
+      await shot(page, `7-so-tay-san-sang-${kind}`);
+      await capture.getByRole('button', { name: /^Cách khác/ }).click();
+      for (const name of ['Tự gõ một câu', 'Gửi & chụp tiếp']) await expect(capture.getByRole('menuitem', { name: new RegExp(`^${name}`) })).toBeVisible();
+    }
   });
 }

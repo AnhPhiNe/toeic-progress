@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mockWrongDetailAI, screenshot, seedTests, TEST, WRONG } from './helpers/wrongDetail';
+import { captureMore, mockWrongDetailAI, screenshot, seedTests, TEST, WRONG } from './helpers/wrongDetail';
 
 type Call = { questions: number[]; images: number; context: number; batch: string };
 const calls = (page: Page) => page.evaluate(() => (window as Window & { __pageCalls?: unknown[] }).__pageCalls ?? []) as Promise<Call[]>;
@@ -24,6 +24,8 @@ for (const phone of [false, true]) {
 
     await capture.getByRole('button', { name: 'Part 7 · Đọc hiểu', exact: true }).click();
     await capture.getByRole('button', { name: /^Nhóm 186–190/ }).click();
+    // A phone shows one Part 7 zone at a time.
+    if (phone) await capture.getByRole('tab', { name: /^Câu hỏi/ }).click();
     await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles([screenshot, screenshot, screenshot]);
     await shot(page, `2-part7-${phone ? 'phone' : 'desktop'}`);
     await capture.getByRole('button', { name: /^Gửi Sóc đọc/ }).click();
@@ -85,7 +87,7 @@ test('continuous multi-batch queue: Gửi & chụp tiếp queues in background a
   await capture.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);
 
   // Queue in background and stay on Step 1 ready for next group
-  await capture.getByRole('button', { name: /Gửi & chụp tiếp/ }).click();
+  await captureMore(capture, 'Gửi & chụp tiếp');
   // Tray clears immediately and group auto-advances to Nhóm 191–195
   await expect(capture.getByRole('button', { name: /^Nhóm 191–195/ })).toHaveAttribute('aria-pressed', 'true');
   // Live queue bar shows accumulated items and Soát ngay button
@@ -144,10 +146,10 @@ test('mobile capture offers side-by-side Chụp liên tiếp & Chọn nhiều �
   await page.getByRole('button', { name: /Chụp$/ }).first().click();
 
   const capture = page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true });
-  await expect(capture.getByRole('button', { name: /Chụp liên tiếp/ })).toBeVisible();
-  await expect(capture.getByRole('button', { name: /Chọn nhiều ảnh/ })).toBeVisible();
+  // The bottom bar's primary is the action that works now: take or choose photos.
+  await expect(capture.getByRole('button', { name: /Chụp hoặc chọn ảnh/ }).first()).toBeVisible();
 
-  await capture.getByRole('button', { name: /Chụp liên tiếp/ }).click();
+  await capture.getByRole('button', { name: /Chụp hoặc chọn ảnh/ }).last().click();
   const burst = page.getByRole('dialog', { name: /Ảnh câu Part 5/ });
   await expect(burst).toBeVisible();
   // Headless Chromium has no camera device: cleanly renders fallback UI with close button.

@@ -14,6 +14,7 @@ import { isGroupedPart, suggestGroups, updatePart7Range, type CustomRangeMap } f
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { CapturePartInput } from '@/features/mistakes/components/wrong-detail/CapturePartInput';
 import { ScreenshotSuggestBar } from '@/features/mistakes/components/wrong-detail/ScreenshotSuggestBar';
+import { MoreMenu } from '@/features/mistakes/components/wrong-detail/CaptureShotView';
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { addFiles, backToInput, cancelReading, captureState, clearSavedItems, closeCapture, getImageFile, moveImage, moveImageToZone, openCapture, openReview, patchItem,
   queueAndContinue, removeImage, removeItem, removeUncheckedItems, replaceImageFile, resetCapture, retryFailure,
@@ -23,6 +24,7 @@ import { saveCaptureItems } from '@/features/mistakes/services/saveCapture';
 import { ReviewList } from '@/features/mistakes/components/CaptureReview';
 import { TestSelect } from '@/features/mistakes/components/TestSelect';
 import './capture-rd.css';
+import '@/features/mistakes/components/wrong-detail/capture-calm.css';
 
 interface Props {
   sessions: StudySession[];
@@ -147,6 +149,9 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   }, [partGroups, state.group]);
 
   const full = state.images.length >= MAX_CAPTURE_IMAGES;
+  // A Part 7 group needs its question photos; passage photos alone cannot be sent.
+  const sendReady = state.part === 7 ? state.images.some(image => image.zone === 'questions') : state.images.length > 0;
+  const sendHint = !testName ? 'Chọn đề để gửi' : !state.images.length ? (state.part === 7 ? 'Thêm ảnh câu hỏi để gửi' : 'Thêm ảnh để gửi') : !sendReady ? 'Cần ảnh câu hỏi để gửi' : '';
   const step = state.phase === 'input' ? 1 : state.phase === 'reading' ? 2 : 3;
   const checked = state.items.filter(item => item.checked);
   const hasQueueStatus = state.activeJobs > 0 || state.items.length > 0 || state.failures.length > 0;
@@ -252,13 +257,15 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             <CapturePartInput part={state.part} group={state.group} customPart7Ranges={customPart7Ranges} images={state.images}
               activeZone={state.activeZone} onActiveZone={setActiveZone} onSwitchZone={moveImageToZone}
               logged={plan.logged ? plan.questions : null} photoMode={state.photoMode} clarity={clarity}
-              extraTools={
+              extraTools={pick => (
                 <ScreenshotSuggestBar
                   enabled={step === 1}
+                  quick
+                  onPick={pick}
                   maxAdd={Math.max(0, MAX_CAPTURE_IMAGES - state.images.length)}
                   onAddFiles={picked => { setPastedTextPrompt(''); addFiles(picked); }}
                 />
-              }
+              )}
               onPart={p => { setPastedTextPrompt(''); setPart(p); }} onGroup={setGroup} onEditPart7Range={editPart7Range} onPhotoMode={setPhotoMode}
               onAdd={(picked, zone) => { setPastedTextPrompt(''); addFiles(picked, zone); }}
               onCameraAdd={(files, zone) => { if (files.length) setPhotoMode(true); setPastedTextPrompt(''); addFiles(files, zone); }}
@@ -282,12 +289,13 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
             {(error || state.error) && <p role="alert" className="cap-error">{error || state.error}</p>}
           </div>
           <div className="cap-foot">
-            <button type="button" className="cap-link" onClick={() => onManual()}>Tự gõ một câu</button>
+            <MoreMenu items={[
+              { key: 'manual', icon: <span>✎</span>, title: 'Tự gõ một câu', sub: 'Gõ câu hỏi và đáp án thay vì chụp', run: () => onManual() },
+              ...(state.images.length > 0 && Boolean(testName) ? [{ key: 'continue', icon: <span>›</span>, title: 'Gửi & chụp tiếp', sub: 'Gửi mẻ này, Sóc đọc nền, chụp nhóm tiếp theo', run: sendAndContinue }] : [])
+            ]} />
             <div className="cap-foot-acts">
-              {state.images.length > 0 && Boolean(testName) && (
-                <button type="button" className="rd-btn rd-btn--white cap-sm" onClick={sendAndContinue}>Gửi &amp; chụp tiếp ›</button>
-              )}
-              <button type="button" className="rd-btn rd-btn--pink" disabled={!state.images.length || !testName} onClick={next}>Gửi Sóc đọc</button>
+              {sendHint && <span className="cv-ahint">{sendHint}</span>}
+              <button type="button" className="rd-btn rd-btn--pink" disabled={!sendReady || !testName} onClick={next}>Gửi Sóc đọc</button>
             </div>
           </div>
         </>}

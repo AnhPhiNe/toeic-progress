@@ -307,7 +307,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được thẻ.'); return false; }
     if (!dirtyIds.current.size) draft.clear(); else draft.persist();
     setSavedTotal(value => value + entries.length);
-    setToast({ id: Date.now(), text: `Đã lưu ${entries.length} câu vào Sổ tay` });
+    setToast({ id: Date.now(), text: `Đã lưu ${entries.length} thẻ vào Sổ tay` });
     setError(''); setNote(''); setOpenRow('');
     return true;
   };
@@ -593,7 +593,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const saveAll = () => {
     const savedIds = filledIds(reviewIds);
     if (!save(reviewIds)) return;
-    setSavedHero(savedIds);
+    setSavedHero(savedIds); setToast(null);
     setDismissed(currentSet => new Set([...currentSet, ...reviewIds]));
     // Saved readings leave the strip; the rows are recorded now.
     const nextJobs = Object.fromEntries(Object.entries(jobsRef.current).filter(([, job]) => job.status !== 'done'));

@@ -156,3 +156,5 @@
 .cv-tray > .cz { min-height: 220px; }
 .cz.is-phone { flex: none; }
 .wd .rd-btn.rd-btn--white.cv-again { color: var(--pd); box-shadow: 0 0 0 2px var(--pk); }
+
+.cz-th img { object-fit: cover; object-position: top center; }

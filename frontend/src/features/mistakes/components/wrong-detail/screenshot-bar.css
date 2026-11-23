@@ -60,7 +60,7 @@
 .ssb-more { position: relative; }
 .ssb-more-b { border: 0; background: none; font-weight: 900; font-size: 14.5px; color: #5e6962; display: inline-flex; align-items: center; gap: 6px; padding: 8px 4px; cursor: pointer; }
 .ssb-more-b.is-open { color: #2f3a33; }
-.ssb-menu { position: absolute; left: 0; top: 100%; min-width: 280px; background: #fff; border-radius: 18px; box-shadow: 0 0 0 1.5px #eee7ea, 0 18px 40px rgba(47, 58, 51, .18); padding: 8px; display: flex; flex-direction: column; z-index: 30; }
+.ssb-menu { position: absolute; left: 0; bottom: 100%; margin-bottom: 4px; min-width: 280px; background: #fff; border-radius: 18px; box-shadow: 0 0 0 1.5px #eee7ea, 0 18px 40px rgba(47, 58, 51, .18); padding: 8px; display: flex; flex-direction: column; z-index: 30; }
 .ssb-mi { border: 0; background: none; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: 14.5px; color: #2f3a33; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
 .ssb-mi:hover:not(:disabled) { background: #fff4f7; }
 .ssb-mi:disabled { opacity: .5; }

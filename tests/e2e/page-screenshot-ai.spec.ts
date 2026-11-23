@@ -97,7 +97,7 @@ test('on a phone one page of a Part 6 set fills its wrong questions, and they ar
   await expect(flow.getByRole('group', { name: 'Vì sao sai câu 132' }).getByRole('button', { name: 'Ngữ pháp' })).toHaveAttribute('aria-pressed', 'false');
   await expect(flow.getByText(TIP, { exact: true })).toHaveCount(0);
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
-  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 2 câu vào Sổ tay' })).toBeVisible();
+  await expect(flow.getByText('Đã lưu 2 thẻ vào Sổ tay')).toBeVisible();
 
   const cards = await stored(page);
   const q132 = cards.find((card: { questionNumber: number }) => card.questionNumber === 132);
@@ -117,7 +117,7 @@ test('a corrected answer is kept as the learner’s', async ({ page }) => {
   await flow.getByRole('button', { name: 'Sửa đáp án', exact: true }).click();
   await flow.getByRole('group', { name: 'Đáp án', exact: true }).getByRole('button', { name: 'B', exact: true }).click();
   await flow.getByRole('button', { name: 'Lưu tất cả (2)', exact: true }).click();
-  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 2 câu vào Sổ tay' })).toBeVisible();
+  await expect(flow.getByText('Đã lưu 2 thẻ vào Sổ tay')).toBeVisible();
   const cards = await stored(page);
   expect(cards.find((card: { questionNumber: number }) => card.questionNumber === 131))
     .toMatchObject({ correctAnswer: '(B) The library will close early.', answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' });

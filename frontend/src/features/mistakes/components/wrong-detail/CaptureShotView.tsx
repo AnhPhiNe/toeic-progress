@@ -47,7 +47,7 @@ interface Props {
 const PART_TITLE = (item: ShotItem) => item.kind === 'shot' ? `Part ${item.part} · Tấm ${item.index}` : shotTitle(item);
 const stateWord = (state: ShotState) => state === 'done' ? ', xong' : state === 'reading' ? ', Sóc đang đọc' : state === 'failed' ? ', chưa đọc được' : state === 'skipped' ? ', bỏ qua' : '';
 
-function PaperToggle({ on, onChange }: { on: boolean; onChange: (value: boolean) => void }) {
+export function PaperToggle({ on, onChange }: { on: boolean; onChange: (value: boolean) => void }) {
   return (
     <button type="button" className="wd-paper-pill" aria-pressed={on} onClick={() => onChange(!on)}>
       <span className="wd-sw" aria-hidden="true"><i /></span><span>Ảnh giấy</span>
@@ -55,7 +55,7 @@ function PaperToggle({ on, onChange }: { on: boolean; onChange: (value: boolean)
   );
 }
 
-function MoreMenu({ items }: { items: Array<{ key: string; icon: ReactNode; title: string; sub: string; run: () => void }> }) {
+export function MoreMenu({ items }: { items: Array<{ key: string; icon: ReactNode; title: string; sub: string; run: () => void }> }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -165,15 +165,15 @@ export function CaptureView(props: Props) {
   const badZone: Zone = bad && zones.passage.some(item => item.id === bad.id) ? 'passage' : 'questions';
   const blurLine = bad && badText && (
     <div className="cv-warn-row" role="status">
-      <span><b>{badText.head}</b>{badText.rest}</span>
-      <button type="button" className="cv-wbtn" onClick={() => { onRemove(badZone, bad.id); openCapture(badZone); }}>{phone ? 'Chụp lại' : 'Thay ảnh'}</button>
+      {phone ? <span>Ảnh {badIndex + 1} {clarity[bad.id]?.problem === 'dark' ? 'hơi tối' : 'hơi mờ'}</span> : <span><b>{badText.head}</b>{badText.rest}</span>}
+      {!phone && <button type="button" className="cv-wbtn" onClick={() => { onRemove(badZone, bad.id); openCapture(badZone); }}>Thay ảnh</button>}
       <button type="button" className="cv-wbtn is-mut" disabled={inFlight || !ready} onClick={onSend}>Vẫn gửi</button>
     </div>
   );
   const missLine = missing.length > 0 && (
     <div className="cv-warn-row" role="status">
       <span>Còn thiếu câu <b>{missing.join(', ')}</b></span>
-      <button type="button" className="cv-wbtn" onClick={captureMissing}>Chụp tiếp</button>
+      {!phone && <button type="button" className="cv-wbtn" onClick={captureMissing}>Chụp tiếp</button>}
       <button type="button" className="cv-wbtn is-mut" onClick={onManual}>Ghi tay</button>
     </div>
   );
@@ -182,7 +182,7 @@ export function CaptureView(props: Props) {
     : job?.status === 'failed' ? <div className="wd-err" role="alert">{job.error}{job.reasons.length > 0 && <ul className="wd-reasons">{job.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}</div> : null;
   const status = (
     <>
-      {!phone && blurLine}
+      {blurLine}
       {missLine}
       {jobLine}
       {job?.note && <p className="wd-note">{job.note}</p>}
@@ -292,7 +292,6 @@ export function CaptureView(props: Props) {
     else if (hasBlur && bad) {
       const index = allStaged.findIndex(item => item.id === bad.id) + 1;
       primary = <button type="button" className="rd-btn rd-btn--pink cv-wide" onClick={() => { onRemove(badZone, bad.id); openCapture(badZone); }}><Camera size={19} aria-hidden="true" />Chụp lại ảnh {index}</button>;
-      under = <p className="cv-under"><span>Ảnh {index} {clarity[bad.id]?.problem === 'dark' ? 'hơi tối' : 'hơi mờ'}</span><button type="button" className="cv-wbtn" disabled={inFlight || !ready} onClick={onSend}>Vẫn gửi</button></p>;
     } else if (ready) {
       primary = <button type="button" className="rd-btn rd-btn--pink cv-wide" disabled={inFlight} onClick={onSend}>{sendLabel}<ArrowRight size={18} aria-hidden="true" /></button>;
       under = <button type="button" className="rd-btn rd-btn--white cv-wide cv-again" disabled={staged >= MAX_CAPTURE_IMAGES} onClick={() => openCapture(zone)}><Camera size={19} aria-hidden="true" />Chụp tiếp</button>;

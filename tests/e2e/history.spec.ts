@@ -70,9 +70,7 @@ test('a same-named SW result does not count as an earlier LR attempt', async ({ 
   await openScoreLogger(page);
   const modal = sessionDialog(page);
   await openManualEntry(page, modal);
-  const nameField = modal.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/);
-  await nameField.click();
-  await nameField.fill('Shared source');
+  await modal.getByLabel(/^Tên (đề|Đề Thi \/ Nguồn)$/).fill('Shared source');
   await page.getByRole('option', { name: 'Shared source', exact: true }).click();
   await expect(modal.getByText('Lần 4', { exact: true })).toHaveCount(0);
   await usePartCounts(modal);

@@ -52,7 +52,7 @@ test('passage groups are sent one after another and read side by side; a failed 
   // 194: Sóc solved the missing answer and it matches the learner's choice, so it is shown but not saved.
   await expect(flow.getByRole('button', { name: 'Mở câu 194', exact: true })).toContainText('làm đúng');
   await flow.getByRole('button', { name: 'Lưu tất cả (3)', exact: true }).click();
-  await expect(flow.getByRole('status').filter({ hasText: 'Đã lưu 3 câu vào Sổ tay' })).toBeVisible();
+  await expect(flow.getByText('Đã lưu 3 thẻ vào Sổ tay')).toBeVisible();
   // One batch takes 4 readings (backend AI_BATCH_MAX_REQUESTS); the retry is the 5th, so it starts a second batch.
   const all = await calls(page);
   expect(all).toHaveLength(5);
