@@ -47,6 +47,35 @@ def normalized(value: str) -> str:
     return " ".join(value.casefold().split())
 
 
+_QUOTES = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'", " ": " "})
+
+
+def _plain(value: str) -> str:
+    return normalized(value.translate(_QUOTES).replace("**", ""))
+
+
+def ground_evidences(draft: MistakeDraft, passage: str) -> MistakeDraft:
+    """Keep only evidence sentences that appear verbatim in the stored passage, so the app can highlight them.
+
+    Quote marks and spacing are ignored; anything else not found in the passage is dropped (never repaired), and blank
+    word rows are dropped too. Without a passage (Part 5, kept images) there is nothing to highlight, so none stay.
+    """
+    if draft.explanation is None:
+        return draft
+    source = _plain(passage or "")
+    kept, seen = [], set()
+    for evidence in draft.explanation.evidences:
+        text = evidence.text.strip().strip('"“”').strip()
+        key = _plain(text)
+        if len(key) >= 10 and key in source and key not in seen:
+            seen.add(key)
+            kept.append(evidence.model_copy(update={"text": text, "translation": evidence.translation.strip(),
+                                                    "passageLabel": evidence.passageLabel.strip()}))
+    draft.explanation.evidences = kept
+    draft.explanation.words = [word for word in draft.explanation.words if word.word.strip() and word.meaning.strip()]
+    return draft
+
+
 def source_option(answer: str, options: list[str]) -> str | None:
     """Accept only a choice matching an existing label AND its original text."""
     answer = normalized(answer).rstrip(" .;")

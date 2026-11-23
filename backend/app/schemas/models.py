@@ -618,6 +618,25 @@ class OptionNote(BaseModel):
     label: Literal["A", "B", "C", "D"]
     pos: PartOfSpeech
     meaning: str = Field(max_length=120)
+    # Why this option is right or wrong in this sentence, one line. Older cards have none.
+    reason: str = Field(default="", max_length=160)
+
+
+class Evidence(BaseModel):
+    """One evidence sentence quoted verbatim from a Part 6/7 passage, with its Vietnamese translation."""
+
+    model_config = ConfigDict(extra="forbid")
+    passageLabel: str = Field(default="", max_length=80)
+    text: str = Field(max_length=400)
+    translation: str = Field(default="", max_length=400)
+
+
+class KeyWord(BaseModel):
+    """A word or phrase from the question worth learning, with its meaning in this sentence."""
+
+    model_config = ConfigDict(extra="forbid")
+    word: str = Field(max_length=80)
+    meaning: str = Field(max_length=120)
 
 
 class Explanation(BaseModel):
@@ -631,6 +650,10 @@ class Explanation(BaseModel):
     paraphrase: str = Field(max_length=400)
     analysis: str = Field(max_length=1200)
     keyVocabulary: str = Field(max_length=400)
+    # Part 6/7: every sentence that decides the answer, possibly in different passages. Older cards only have evidence.
+    evidences: list[Evidence] = Field(default_factory=list, max_length=3)
+    # keyVocabulary as rows, so the app can save one word for review. Older cards only have keyVocabulary.
+    words: list[KeyWord] = Field(default_factory=list, max_length=4)
 
 
 EXPLANATION_LABELS = (
@@ -674,6 +697,12 @@ class DraftCore(BaseModel):
         for name in ("question", "context"):
             properties[name] = {"type": "string", "maxLength": 4000}
         schema["required"] = list(properties)
+        # Strict structured output: nested objects list every property as required, without defaults.
+        for definition in schema.get("$defs", {}).values():
+            if "properties" in definition:
+                for field in definition["properties"].values():
+                    field.pop("default", None)
+                definition["required"] = list(definition["properties"])
         return schema
 
     @model_validator(mode="after")

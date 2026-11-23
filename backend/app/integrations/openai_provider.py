@@ -27,7 +27,7 @@ from app.schemas.models import (
     page_output_schema,
     part_of_question,
 )
-from app.services.ai_grounding import ground_draft, ground_pasted_draft
+from app.services.ai_grounding import ground_draft, ground_evidences, ground_pasted_draft
 from app.services.toeic_prompt import (
     FREEFORM_INPUT_INSTRUCTIONS,
     OPENAI_TOEIC_PROMPT,
@@ -44,7 +44,8 @@ logger = logging.getLogger("toeic.runtime")
 def schema_issues(error: ValidationError) -> list[dict]:
     """Log only known field names/error codes, never source values or raw messages."""
     fields = set(OpenAIPasteOutput.model_fields) | {"label", "pos", "meaning", "quickTip", "translation",
-        "questionType", "evidence", "paraphrase", "analysis", "keyVocabulary"}
+        "questionType", "evidence", "paraphrase", "analysis", "keyVocabulary", "reason", "evidences", "passageLabel",
+        "text", "words", "word"}
     rules = {
         "Value error, AI options must have an A-D label and nonempty text": "option_labels",
         "Value error, AI option labels must be unique": "duplicate_option_labels",
@@ -342,7 +343,8 @@ class OpenAIProvider:
             draft = output.to_draft()
             phase = "source_verification"
             if freeform:
-                return ground_pasted_draft(source, draft, image_source=bool(images), persistent_images=persistent_images)
+                pasted = ground_pasted_draft(source, draft, image_source=bool(images), persistent_images=persistent_images)
+                return ground_evidences(pasted, pasted.context or "")
             grounded = ground_draft(text, draft, allow_ai_answer=True, source_options=source_options,
                                     source_answer=source_answer, image_source=bool(images), persistent_images=persistent_images)
             if pin_question:
@@ -353,7 +355,7 @@ class OpenAIProvider:
             own = re.match(r"^\s*\(([A-D])\)", output.ownAnswer or "")
             if source_answer and own and grounded.answerSource == "PROVIDED" and own[1] != source_answer.upper():
                 grounded.answerDoubt = own[1]
-            return grounded
+            return ground_evidences(grounded, grounded.context or "")
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             logger.warning(json.dumps({"event": "openai_invalid_draft", "request_id": request_id_context.get(),
                                        "phase": phase, "error_type": type(error).__name__,

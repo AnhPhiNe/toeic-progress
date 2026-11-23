@@ -406,7 +406,7 @@ def test_legacy_explanation_text_is_bounded_without_truncating_structured_sectio
                 "evidence": "e" * 800, "paraphrase": "p" * 400, "analysis": "s" * 1200, "keyVocabulary": "v" * 400}
     output = OpenAIDraftOutput(**{**DRAFT, "explanation": sections}).to_draft()
     assert len(output.trapTip) <= 4000 and "Đã rút gọn" in output.trapTip
-    assert output.explanation.model_dump() == sections
+    assert output.explanation.model_dump() == {**sections, "evidences": [], "words": []}
     assert output.options == DRAFT["options"] and output.correctAnswer == DRAFT["correctAnswer"]
 
 
