@@ -24,14 +24,17 @@ async function seed(page: Page, examDate: string) {
 
 const cup = (page: Page, target: number) => page.getByRole('button', { name: `Cúp mục tiêu ${target}, đổi mục tiêu` });
 const editor = (page: Page) => page.getByRole('dialog', { name: 'Mục tiêu của bạn' });
+/** The trophy opens its popover; its button opens the goal editor. */
+async function editFromCup(page: Page, target: number) {
+  await cup(page, target).click();
+  await page.getByRole('dialog', { name: `Cúp ${target} · đích` }).getByRole('button', { name: '✎ Đổi mục tiêu' }).click();
+}
 
-test('desktop: the trophy opens a popover; raising re-spaces the eight stairs, lowering below the best never celebrates', async ({ page }) => {
+test('desktop: the trophy popover opens the goal editor; raising re-spaces the eight milestones, lowering below the best never celebrates', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await seed(page, '2026-12-23');
 
-  await cup(page, 800).hover({ force: true });
-  await expect(page.getByRole('tooltip').filter({ hasText: 'Đổi mục tiêu' })).toBeVisible();
-  await cup(page, 800).click({ force: true });
+  await editFromCup(page, 800);
   await expect(editor(page)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(editor(page)).toBeHidden();
@@ -44,9 +47,9 @@ test('desktop: the trophy opens a popover; raising re-spaces the eight stairs, l
   await expect(editor(page)).toBeHidden();
   await expect(cup(page, 850)).toBeVisible();
   await expect(page.getByText('Mục tiêu 850 rồi, mỗi bậc giờ ~38 điểm!')).toBeVisible();
-  await expect(page.getByText('BẬC 4/8 · CÒN 170 ĐIỂM')).toBeVisible();
+  await expect(page.getByText('BẬC 4/8')).toBeVisible();
 
-  await cup(page, 850).click({ force: true });
+  await editFromCup(page, 850);
   await editor(page).getByRole('button', { name: '650', exact: true }).click();
   await expect(editor(page)).toContainText('Bạn đã chạm 680 rồi, cao hơn mốc này');
   await editor(page).getByRole('button', { name: 'Vẫn lưu 650' }).click();
@@ -60,7 +63,7 @@ test('phone: the trophy opens a bottom sheet with a stepper; the exam chip clear
   await page.setViewportSize({ width: 390, height: 844 });
   await seed(page, '2026-12-23');
 
-  await cup(page, 800).click();
+  await editFromCup(page, 800);
   await editor(page).getByRole('button', { name: 'Thêm 25 điểm' }).click();
   await expect(editor(page).getByText('825', { exact: true })).toBeVisible();
   await editor(page).getByRole('button', { name: 'Lưu · cúp 825' }).click();

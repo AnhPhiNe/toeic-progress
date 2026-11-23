@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useScenePopover, type PopData } from '@/shared/illustrations/ScenePopover';
 import type { SocMood } from '@/shared/ui/soc/socSvg';
+import { Soc } from '@/shared/ui/soc/Soc';
 import { Balloon, Bush, Cloud, FlowerDots, House, Pine, Sun, Tree, Windmill } from '@/shared/illustrations/Scenery';
 import { Bridge, Coin, FlowerArch, Podium, SocSprite, Stone } from '@/shared/illustrations/Landmarks';
 import type { Pt } from '@/shared/illustrations/geometry';
@@ -222,11 +223,9 @@ export function RoadScene(props: RoadSceneProps) {
 
           <g transform={`translate(${socSpot[0].toFixed(1)} ${socSpot[1].toFixed(1)})`}>
             <g ref={walkRef}>
-              <g className={'tp-soc rr-soc' + (sleeping ? ' is-wake' : '')} pointerEvents={sleeping ? 'auto' : 'none'}
-                role={sleeping ? 'button' : undefined} tabIndex={sleeping ? 0 : undefined} aria-label={sleeping ? 'Sóc đang ngủ gật trên bậc, chạm để đánh thức' : undefined}
-                onClick={sleeping ? onWake : undefined} onKeyDown={sleeping ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onWake?.(); } } : undefined}>
+              {!sleeping && <g className="tp-soc rr-soc" pointerEvents="none">
                 <g className="il-bob"><SocSprite x={0} y={0} w={L.socW} mood={mood} gear={gear} /></g>
-              </g>
+              </g>}
             </g>
           </g>
           {confetti && <g className="rr-confetti" aria-hidden="true">
@@ -238,6 +237,16 @@ export function RoadScene(props: RoadSceneProps) {
         </g>}
       </svg>}
 
+      {/* A dozing Sóc is an HTML button over the scene (a steady target while its zzz floats). */}
+      {sleeping && !hidden && box.w > 0 && (() => {
+        const k = phone ? 1 : box.h / H, w = L.socW * k;
+        return (
+          <button type="button" className="tp-soc rr-soc rr-wake" style={{ left: socSpot[0] * k - w * .47, top: socSpot[1] * k - w * 260 / 240 * .95, width: w }}
+            aria-label="Sóc đang ngủ gật trên bậc, chạm để đánh thức" onClick={onWake}>
+            <Soc state="zzz" size={w} gear={gear} />
+          </button>
+        );
+      })()}
       {popover.node}
     </div>
   );

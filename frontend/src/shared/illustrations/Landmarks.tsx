@@ -149,7 +149,7 @@ export function SocSprite({ x, y, w, mood, gear, className }: { x: number; y: nu
   const gearKey = gear ? gear.join(',') : '';
   const h = w * 260 / 240;
   const html = useMemo(() => socMoodSvg(mood, gearKey ? gearKey.split(',') : undefined, coat)
-    .replace('<svg viewBox="0 0 240 260"', `<svg x="${(x - w * .47).toFixed(1)}" y="${(y - h * .95).toFixed(1)}" width="${w}" height="${h.toFixed(1)}" viewBox="0 0 240 260" overflow="visible" style="width:${w}px;height:${h.toFixed(1)}px"`),
+    .replace('<svg viewBox="0 0 240 260"', `<svg x="${(x - w * .47).toFixed(1)}" y="${(y - h * .95).toFixed(1)}" width="${w}" height="${h.toFixed(1)}" viewBox="0 0 240 260" style="width:${w}px;height:${h.toFixed(1)}px"`),
   [mood, gearKey, coat, x, y, w, h]);
   return <g className={'soc' + (className ? ' ' + className : '')} data-coat={coat} data-mood={mood} dangerouslySetInnerHTML={{ __html: html }} />;
 }

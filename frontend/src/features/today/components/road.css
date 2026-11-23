@@ -2,7 +2,8 @@
 .rr { position: absolute; inset: 0; overflow: hidden; }
 .rr-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .rr .soc svg { overflow: visible; }
-.rr-soc.is-wake { cursor: pointer; }
+.rr .rr-wake { position: absolute; z-index: 4; pointer-events: auto; border: 0; padding: 0; background: none; line-height: 0; cursor: pointer; border-radius: 50%; }
+.rr .rr-wake:focus-visible { outline: 3px solid #8a7aa0; outline-offset: 2px; }
 .rr-coin { animation: rr-pop .45s var(--d, 0s) cubic-bezier(.3, 1.6, .5, 1) backwards; transform-box: fill-box; transform-origin: center; }
 @keyframes rr-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 .rr-flag { animation: rr-plant .4s var(--d, 0s) cubic-bezier(.3, 1.6, .6, 1) backwards; transform-box: fill-box; transform-origin: 0% 100%; }
