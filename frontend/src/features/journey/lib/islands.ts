@@ -16,9 +16,13 @@ export function partAccuracy(size: number, wrong: number): number {
   return Math.round(Math.max(0, Math.min(size, size - wrong)) / size * 100);
 }
 
-/** 85% and up is lush ("Vững"), 75-84% is "Ổn", below 75% is sand and palms ("Cần ôn"). */
+/** Accuracy from which a Part counts as "Vững" (green) and as "Ổn" (amber); below that it is "Cần ôn" (pink). */
+export const STRONG_FROM = 85;
+export const OK_FROM = 75;
+
+/** 85% and up is lush ("Vững"), 75-84% is "Ổn", below 75% is dry and stormy ("Cần ôn"). */
 export function islandState(accuracy: number): IslandState {
-  return accuracy >= 85 ? 'strong' : accuracy >= 75 ? 'ok' : 'weak';
+  return accuracy >= STRONG_FROM ? 'strong' : accuracy >= OK_FROM ? 'ok' : 'weak';
 }
 
 /** Island radius in sketch pixels: bigger Parts (more questions) get bigger islands. */
