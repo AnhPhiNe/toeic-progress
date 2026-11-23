@@ -95,23 +95,33 @@ export function polyAt(pts: readonly Pt[], x: number): number {
   return pts[pts.length - 1][1];
 }
 
-/** Island layout of "Từng Part" in a w × h scene, below the test picker and above the bottom panel. */
-export const ISLAND_PANEL_CLEAR = 176;
+/**
+ * Island layout of "Từng Part" in a w × h scene (below the tabs): the stat card on top and the bottom sheet at the
+ * foot stay clear, the islands sit between them (sketch: design/previews/journey-v3/parts-islands-v3.html, phone).
+ */
+export const ISLAND_PANEL_CLEAR = 186;
+/** Where the card ends in scene pixels (islands' signs start below it). */
+export const ISLAND_CARD_CLEAR = 104;
+/** Centres in the 390 × 612 sketch scene (x as a share of the width). */
 const MOCK: Record<PartNumber, readonly [number, number]> = {
-  1: [85 / 390, 250], 2: [275 / 390, 244], 3: [105 / 390, 370], 4: [282 / 390, 355], 5: [80 / 390, 490], 7: [290 / 390, 480], 6: [185 / 390, 560]
+  1: [58 / 390, 182], 2: [172 / 390, 194], 3: [84 / 390, 392], 4: [132 / 390, 290], 5: [314 / 390, 184], 6: [306 / 390, 404], 7: [292 / 390, 292]
 };
+/** Sóc's boat in the same scene. */
+const MOCK_BOAT: readonly [number, number] = [200 / 390, 424];
 
-export interface PhoneIsland { part: PartNumber; x: number; y: number; w: number; }
+export interface PhoneIsland { part: PartNumber; x: number; y: number; /** Radius of the landmass. */ r: number; }
 
+/** Where each island sits (stretched to the height that is free) and how big it is. */
 export function phoneIslands(w: number, h: number): PhoneIsland[] {
-  const top = 262, bottom = Math.max(top + 300, h - ISLAND_PANEL_CLEAR - 56);
-  const k = (bottom - top) / (560 - 250);
-  return PART_NUMBERS.map(p => {
-    const r = islandRadius(partSize(p));
-    // Wider scenes spread sideways a little; the mock was drawn at 390.
-    return { part: p, x: MOCK[p][0] * w, y: Math.round(top + (MOCK[p][1] - 250) * k), w: Math.round((50 + r * 0.62) * Math.min(1.15, Math.max(0.9, w / 390))) };
-  });
+  const s = phoneScale(h);
+  return PART_NUMBERS.map(p => ({ part: p, x: Math.round(MOCK[p][0] * w), y: Math.round(MOCK[p][1] * s), r: Math.round(islandRadius(partSize(p)) * 0.5 * Math.min(1.12, Math.max(0.9, w / 390))) }));
 }
+
+/** Boat position of the phone map. */
+export function phoneBoat(w: number, h: number): Pt { return [Math.round(MOCK_BOAT[0] * w), Math.round(MOCK_BOAT[1] * phoneScale(h))]; }
+
+const phoneScale = (h: number) => Math.min(1.14, Math.max(0.86, (h - ISLAND_PANEL_CLEAR) / (612 - 170)));
+
 
 export interface MonthGroup { key: string; label: string; tests: StudySession[]; }
 

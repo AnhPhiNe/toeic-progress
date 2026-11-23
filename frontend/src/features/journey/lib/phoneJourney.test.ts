@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StudySession } from '@/shared/types';
-import { emptyClimb, monthGroups, partBars, phoneIslands, phoneMountain, polyAt } from './phoneJourney';
+import { ISLAND_CARD_CLEAR, ISLAND_PANEL_CLEAR, emptyClimb, monthGroups, partBars, phoneIslands, phoneMountain, polyAt } from './phoneJourney';
 import type { JourneyPoint } from './scoreJourney';
 
 const pt = (i: number, score: number): JourneyPoint => ({ id: 'p' + i, date: '2026-11-0' + (i + 1), testName: 'T' + i, score, total: score, listening: null, reading: null, retake: false, sameDayGroup: i, excluded: false, excludeReason: null, forced: false, deviation: null });
@@ -50,7 +50,11 @@ describe('phoneIslands', () => {
   it('places seven islands inside the width', () => {
     const is = phoneIslands(390, 758);
     expect(is).toHaveLength(7);
-    for (const i of is) { expect(i.x).toBeGreaterThan(0); expect(i.x).toBeLessThan(390); }
+    for (const i of is) { expect(i.x).toBeGreaterThan(0); expect(i.x).toBeLessThan(390); expect(i.y).toBeGreaterThan(ISLAND_CARD_CLEAR); expect(i.y).toBeLessThan(758 - ISLAND_PANEL_CLEAR); }
+    const r = (p: number) => is.find(i => i.part === p)!.r;
+    expect(r(7)).toBeGreaterThan(r(3));
+    expect(r(1)).toBeLessThan(r(2));
+    for (const a of is) for (const b of is) if (a.part < b.part) expect(Math.hypot(a.x - b.x, (a.y - b.y) * 1.8)).toBeGreaterThan((a.r + b.r) * 0.9);
   });
 });
 

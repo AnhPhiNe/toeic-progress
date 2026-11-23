@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PART_NUMBERS, type PartNumber } from '@/shared/domain/questionNumbers';
-import { MAP_H, MAP_W, MIN_MAP_W, PANEL_W, boatRoute, chestSpot, mapLayout, radiusOf, shorePoint, signBox } from './islandMap';
+import { MAP_H, MAP_W, MIN_MAP_W, PANEL_W, boatRoute, chestSpot, mapLayout, radiusOf, shorePoint, signBox, stormSpot } from './islandMap';
 
 const WIDTHS = [MIN_MAP_W, 1073, MAP_W, 1131, 1300];
 type Box = { x0: number; y0: number; x1: number; y1: number };
@@ -75,6 +75,20 @@ describe('island map layout', () => {
         for (const leg of boatRoute([a as PartNumber, b as PartNumber], L)) { total++; if (leg.collisions > 4) bad++; expect(leg.d).toMatch(/^M[-\d. ]+Q/); }
       }
       expect(bad / total).toBeLessThan(0.15);
+    }
+  });
+
+  it('hangs a rain cloud beside each island, inside the sea and clear of the card, at every width', () => {
+    for (const W of WIDTHS) {
+      const L = mapLayout(W);
+      for (const p of PART_NUMBERS) {
+        const [cx, cy] = stormSpot(p, 47, L);
+        expect(cx - 47).toBeGreaterThanOrEqual(0);
+        expect(cx + 47).toBeLessThanOrEqual(L.space);
+        expect(cy).toBeGreaterThan(0);
+        expect(cy).toBeLessThan(MAP_H);
+        expect(cx - 47 < 300 && cy - 30 < 190).toBe(false);
+      }
     }
   });
 });

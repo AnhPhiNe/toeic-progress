@@ -1,6 +1,6 @@
 /* Hành trình điểm on phones (design/previews/mock-phone-journey.html, rows "Bản bớt chữ" and "Khi chạm"). */
 .jp { position: relative; height: calc(100dvh - 86px - env(safe-area-inset-bottom)); overflow: hidden; background: #cfe9fb; }
-.jp.is-parts { background: linear-gradient(180deg, #bfe6fb, #7fcaf0); }
+.jp.is-parts { background: #8fd3f3; }
 .jp.is-tests { height: auto; min-height: calc(100dvh - 86px - env(safe-area-inset-bottom)); overflow: visible; background: #fbfaf7; }
 
 .jp-head { position: relative; z-index: 5; display: flex; align-items: center; gap: 8px; padding: calc(14px + env(safe-area-inset-top)) 18px 0; }
@@ -58,32 +58,38 @@
 .jp-sub + .jp-x { margin-left: 0; }
 
 /* Từng Part */
-.jp-pick { position: absolute; left: 16px; top: calc(122px + env(safe-area-inset-top)); z-index: 4; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 99px; background: rgba(255,255,255,.9); box-shadow: 0 2px 0 rgba(0,0,0,.06); font-weight: 900; font-size: 14px; }
-.jp-pick i { font-style: normal; font-size: 11px; }
-.jp-pick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; }
-.jp-isl { position: absolute; z-index: 2; transform: translate(-50%, -50%); border: 0; background: none; padding: 0; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.jp-isl s { position: absolute; text-decoration: none; display: block; }
-.jp-isl__halo { inset: -10px -14px; border-radius: 50%; background: rgba(255,255,255,.35); }
-.jp-isl__ring { inset: -18px -22px; border-radius: 50%; border: 2.5px dashed #fff; animation: jp-spin 18s linear infinite; }
-.jp-isl__land { inset: 0; border-radius: 50%; background: var(--top); box-shadow: 0 7px 0 var(--side); }
-.jp-tree { top: -22%; width: 4px; height: 30%; background: #7a5130; border-radius: 2px; }
-.jp-tree::before { content: ''; position: absolute; left: -8px; top: -10px; width: 20px; height: 18px; border-radius: 50%; background: #46a85a; }
-.jp-tree.is-b { top: -14%; }
-.jp-isl.is-sand .jp-tree::before { width: 14px; height: 6px; left: -5px; top: -2px; border-radius: 3px; background: #5bb46b; }
-.jp-chest { width: 22px; height: 16px; border-radius: 4px; background: #c98a3b; box-shadow: inset 0 5px 0 #e0a552; }
-.jp-chest em { position: absolute; right: -9px; top: -11px; width: 18px; height: 18px; border-radius: 50%; background: #ff5c86; color: #fff; font-style: normal; font-weight: 900; font-size: 11px; display: grid; place-items: center; box-shadow: 0 0 0 2px #fff; }
-.jp-chest.is-open { background: #b8763e; box-shadow: inset 0 5px 0 #5a3a22; opacity: .85; }
-.jp-isl__lbl { position: absolute; left: 50%; top: -34px; transform: translateX(-50%); background: #fff; border-radius: 10px; padding: 3px 9px; font-weight: 900; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,.08); }
-.jp-isl::after { content: ''; position: absolute; inset: -40px -14px -14px; }
-.jp-isl.is-on .jp-isl__lbl { box-shadow: 0 0 0 2.5px #ff7a9c; }
-@keyframes jp-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .jp-isl__ring { animation: none; } }
-.jp-h { font-weight: 900; font-size: 20px; }
-.jp-wrong { font-weight: 900; font-size: 16px; color: #d6416a; }
-.jp-wrong.is-zero { color: var(--rd-green-d); }
-.jp-bar { height: 8px; border-radius: 9px; background: #ffe3ea; margin-top: 8px; overflow: hidden; }
-.jp-bar i { display: block; height: 100%; background: #6cc77a; border-radius: 9px; }
-.jp-btns { display: flex; gap: 10px; margin-top: 12px; min-height: 52px; }
+.jp.is-parts { display: flex; flex-direction: column; }
+.jp-scene.is-parts { position: relative; inset: auto; flex: 1; min-height: 0; margin-top: 10px; }
+.jp-scene.is-parts > svg { position: absolute; left: 0; top: 0; display: block; }
+.jp-scene.is-parts .jp-empty { top: 30px; }
+.jp-boat-soc { position: absolute; z-index: 3; line-height: 0; pointer-events: none; }
+.jp-card { position: absolute; z-index: 4; left: 12px; right: 12px; top: 4px; background: rgba(255,255,255,.96); border-radius: 18px; padding: 10px 14px 11px; box-shadow: 0 4px 0 rgba(31,95,134,.14), 0 10px 24px rgba(31,95,134,.1); }
+.jp-card__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.jp-card h2 { margin: 3px 0 0; font-weight: 900; font-size: 18px; letter-spacing: -.3px; line-height: 1.2; }
+.jp-card h2 em { font-style: normal; color: #e0970f; }
+.jr-kick { display: block; font-weight: 900; font-size: 11.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--rd-blue); }
+.jr-kick.is-pink { color: #c23c63; }
+.jp-dd { position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border-radius: 11px; box-shadow: 0 0 0 2px #dcecf8; background: #f3f9ff; font-weight: 900; font-size: 12.5px; color: var(--rd-ink); max-width: 56%; }
+.jp-dd span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jp-dd i { font-style: normal; font-size: 11px; color: #7a857e; }
+.jp-dd select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; }
+.jp-dd:focus-within { outline: 3px solid var(--rd-blue); outline-offset: 1px; }
+.jp-sheet { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 24px 24px 0 0; padding: 18px 16px 10px; box-shadow: 0 -6px 24px rgba(31,95,134,.16); }
+.jp-sheet::before { content: ''; position: absolute; left: 50%; top: 6px; width: 40px; height: 4px; margin-left: -20px; border-radius: 3px; background: #e3e7e4; }
+.jp-sh-h { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.jp-sh-h small { display: block; font-weight: 800; font-size: 12.5px; color: var(--rd-mut); }
+.jp-sh-h b { display: block; font-weight: 900; font-size: 19px; line-height: 1.2; }
+.jp-sh-h b span { font-size: 16px; }
+.jp-sheet .jp-main { display: block; width: 100%; margin-top: 10px; min-height: 48px; font-size: 16px; }
+.jp-textlink { display: block; margin: 2px auto 0; min-height: 32px; border: 0; background: none; font: 900 13.5px var(--rd-font); color: var(--rd-blue); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0 12px; }
+.jp-textlink:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; border-radius: 8px; }
+.jp-next { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; min-height: 22px; font-weight: 800; font-size: 12.5px; color: var(--rd-mut); }
+.jr-tag { display: inline-flex; align-items: center; gap: 4px; font-weight: 900; font-size: 12.5px; border-radius: 10px; padding: 6px 10px 6px 7px; flex: none; }
+.jr-wx { flex: none; }
+.jr-legend { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 800; color: #4b5650; white-space: nowrap; margin-left: auto; }
+.jr-pl { display: inline-flex; align-items: center; gap: 4px; }
+.jr-pl i { display: block; width: 8px; height: 8px; border-radius: 50%; }
+.jp-next .jr-legend { position: static; background: none; box-shadow: none; padding: 0; }
 .jp-main { flex: 1; min-height: 48px; font-size: 16px; }
 .jp-ico { flex: none; width: 56px; min-height: 48px; border: 0; border-radius: 14px; background: #fff; color: var(--rd-ink); box-shadow: inset 0 0 0 2px #e3e6e3, 0 3px 0 #e3e6e3; display: grid; place-items: center; cursor: pointer; }
 .jp-btns .jp-ico:only-child { margin-left: auto; }
