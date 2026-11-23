@@ -1,0 +1,44 @@
+/* Ambient motion of the illustrated scenes: a few seconds after the page opens, then everything rests. */
+.il-drift { animation: il-drift 5s ease-out 1 both; }
+.il-drift2 { animation: il-drift 6s .4s ease-out 1 both; }
+@keyframes il-drift { from { transform: translateX(-18px); } to { transform: translateX(0); } }
+.il-float { animation: il-float 3s ease-in-out 1; }
+@keyframes il-float { 50% { transform: translateY(-8px); } }
+.il-wave { animation: il-wave 1.4s ease-in-out 3; }
+@keyframes il-wave { 0%, 100% { transform: skewY(0); } 50% { transform: skewY(-9deg); } }
+.il-shimmer { animation: il-shim 3.2s linear 2; }
+@keyframes il-shim { to { stroke-dashoffset: -64; } }
+.il-blades { animation: il-spin 5s cubic-bezier(.2, .6, .4, 1) 1; }
+@keyframes il-spin { to { transform: rotate(180deg); } }
+.il-halo { animation: il-halo 2.2s ease-in-out 2; }
+@keyframes il-halo { 0%, 100% { transform: scale(1); opacity: .7; } 50% { transform: scale(1.08); opacity: .35; } }
+.il-glint { animation: il-glint 1s 2.2s ease-in-out 1; transform: skewX(-18deg); }
+@keyframes il-glint { from { transform: skewX(-18deg) translateX(0); } to { transform: skewX(-18deg) translateX(170px); } }
+.il-rays { animation: il-rays 6s ease-out 1; }
+@keyframes il-rays { from { transform: rotate(-12deg); } to { transform: rotate(0); } }
+.il-tw { animation: il-tw 1s var(--dl, 0s) ease-in-out 2; }
+@keyframes il-tw { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.3); opacity: .3; } }
+/* Sóc's subtle bob keeps going while resting */
+.il-bob { animation: il-bob 2.8s 1.3s ease-in-out infinite; }
+@keyframes il-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+.il-decor { filter: saturate(.62) brightness(1.04); }
+.il-tap { cursor: pointer; outline: none; }
+.il-tap:focus-visible > .il-ring { stroke: #1c8fe3; stroke-width: 3; }
+.il-ring { fill: transparent; stroke: transparent; }
+
+.il-tap:hover > :not(.il-ring) { filter: brightness(1.05); }
+
+/* popover of a tapped scene object (ScenePopover.tsx) */
+.il-pop { position: fixed; z-index: 60; background: #fff; border-radius: 14px; padding: 10px 14px 12px; min-width: 170px; max-width: 260px;
+  box-shadow: 0 6px 0 rgba(47, 58, 51, .1), 0 0 0 2px #f0e2c8, 0 12px 28px rgba(80, 60, 30, .12); transform: translate(-50%, -100%); }
+.il-pop.is-below { transform: translate(-50%, 0); }
+.il-pop::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.il-pop.is-below::after { bottom: auto; top: -8px; border: 8px solid transparent; border-top: 0; border-bottom-color: #fff; }
+.il-pop b { display: block; font-size: 16px; font-weight: 900; color: var(--rd-ink); }
+.il-pop span { display: block; font-size: 13px; font-weight: 700; color: #6c7770; margin-top: 2px; }
+.il-pop button { margin-top: 9px; border: 0; border-radius: 11px; background: #ff7a9c; color: #fff; font: 900 13.5px var(--rd-font); padding: 7px 12px; box-shadow: 0 3px 0 #e0577d; cursor: pointer; }
+.il-pop button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .il-drift, .il-drift2, .il-float, .il-wave, .il-shimmer, .il-blades, .il-halo, .il-glint, .il-rays, .il-tw, .il-bob { animation: none !important; }
+}

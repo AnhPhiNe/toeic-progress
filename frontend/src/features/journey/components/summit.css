@@ -1,0 +1,64 @@
+/* Hành trình điểm › Điểm số v3: the illustrated mountain (SummitScene.tsx; mockup design/previews/journey-v3/score-mountain-v3.html) */
+.sm { position: relative; overflow: hidden; }
+.sm-svg { position: absolute; left: 0; top: 0; display: block; }
+.sm .soc svg { overflow: visible; }
+.sm-plant { animation: sm-plant .4s var(--dl, 0s) cubic-bezier(.3, 1.6, .6, 1) backwards; }
+@keyframes sm-plant { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.sm-bub { position: absolute; z-index: 2; background: #fff; border-radius: 14px; padding: 8px 13px; font-size: 14px; font-weight: 700; white-space: nowrap;
+  box-shadow: 0 4px 0 rgba(120, 90, 60, .1); pointer-events: none; animation: sm-fade .35s 1.7s ease-out backwards; }
+.sm-bub b { font-weight: 900; }
+.sm-bub::after { content: ""; position: absolute; right: -7px; bottom: 12px; border: 7px solid transparent; border-right: 0; border-left-color: #fff; }
+@keyframes sm-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* the card: MÌNH CÓ KỊP KHÔNG? */
+.sm-card { position: absolute; z-index: 3; left: 22px; top: 22px; width: 318px; background: #fff; border-radius: 22px; padding: 18px 20px 12px;
+  box-shadow: 0 5px 0 rgba(120, 90, 60, .1), 0 12px 30px rgba(120, 90, 60, .08); }
+.sm-kick { display: block; font-weight: 900; font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--rd-blue); }
+.sm-card h3 { font-size: 38px; font-weight: 900; color: var(--rd-green-d); line-height: 1; margin: 6px 0; letter-spacing: -.01em; }
+.sm-card h3.is-late { color: #d9822b; }
+.sm-card p { font-size: 15.5px; font-weight: 700; line-height: 1.4; color: #4b5650; margin: 0; }
+.sm-card p b { color: var(--rd-ink); }
+.sm-new { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+.sm-new h4 { font-size: 19px; font-weight: 900; line-height: 1.25; margin: 0; }
+.sm-big { font-size: 46px; font-weight: 900; letter-spacing: -.02em; line-height: 1; margin-top: 14px; padding-top: 14px; border-top: 2px solid #f1f2ef; display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+.sm-big > span { font-size: 16px; font-weight: 800; color: var(--rd-mut); letter-spacing: 0; }
+.sm-pills { margin-top: 8px; }
+.sm-pill { display: inline-block; font-size: 13px; font-weight: 800; color: #5d685f; background: #f3f4f1; border-radius: 10px; padding: 4px 10px; letter-spacing: 0; }
+.sm-pill.is-up { color: var(--rd-green-d); background: var(--rd-green-l, #e3f6e6); }
+.sm-pill.is-dn { color: #c23c63; background: var(--rd-pink-l, #ffe3ec); }
+.sm-rows { margin-top: 10px; }
+.sm-rows > div { display: flex; justify-content: space-between; font-size: 14.5px; font-weight: 800; padding: 8px 0; border-top: 2px solid #f3f4f1; }
+.sm-rows span { color: #6c7770; }
+.sm-rows .is-up, .sm-prow .is-up { color: var(--rd-green-d); }
+.sm-rows .is-dn, .sm-prow .is-dn { color: #c23c63; }
+.sm-note { font-size: 12px; font-weight: 700; color: var(--rd-mut); line-height: 1.4; margin-top: 6px; }
+.sm-first { margin-top: 12px; }
+.sm-hidden { margin-top: 8px; border: 0; background: none; padding: 0; font: 900 13px var(--rd-font); color: var(--rd-blue); cursor: pointer; }
+.sm-hidden:hover { text-decoration: underline; }
+
+.sm-tog { position: absolute; z-index: 3; right: 20px; top: 20px; display: flex; background: #fff; border-radius: 13px; padding: 4px; gap: 2px; box-shadow: 0 3px 0 rgba(120, 90, 60, .1); }
+.sm-tog button { border: 0; background: none; padding: 6px 12px; border-radius: 10px; font: 900 13.5px var(--rd-font); color: #6c7770; cursor: pointer; }
+.sm-tog button[aria-pressed="true"] { background: var(--rd-ink); color: #fff; }
+.sm-tog button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 1px; }
+
+.sm-card .soc svg { position: static; }
+.sm-stage { background: #ffdcc2; }
+
+/* phone */
+.jp.is-score { background: #fdf8f1; }
+.sm-phone { position: absolute; left: 0; right: 0; bottom: 0; top: calc(112px + env(safe-area-inset-top)); overflow: hidden; }
+.sm-phone .sm-card { left: 14px; right: 14px; top: 12px; width: auto; padding: 14px 16px 12px; }
+.sm-phone .sm-card h3 { font-size: 30px; margin: 4px 0; }
+.sm-phone .sm-card p { font-size: 14px; }
+.sm-phone .sm-new h4 { font-size: 16px; }
+.sm-phone .sm-big { font-size: 32px; margin-top: 10px; padding-top: 10px; align-items: center; gap: 6px; }
+.sm-phone .sm-big > span { font-size: 13.5px; }
+.sm-phone .sm-pill { font-size: 12px; padding: 3px 8px; margin-left: auto; }
+.sm-prow { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; font-weight: 800; color: #6c7770; }
+.sm-prow b { color: var(--rd-ink); font-weight: 900; }
+.sm-phone .sm-tog { top: 22px; right: 24px; padding: 3px; box-shadow: none; background: #f3f4f1; }
+.sm-phone .sm-tog button { padding: 5px 10px; font-size: 12.5px; min-height: 30px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-plant, .sm-bub { animation: none; }
+}

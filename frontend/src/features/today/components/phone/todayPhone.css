@@ -179,3 +179,8 @@ button.tp-cup { cursor: pointer; }
 .tp-say::after { content: ''; position: absolute; top: 14px; border: 7px solid transparent; }
 .tp-say.is-left::after { right: -13px; border-left-color: #fff; }
 .tp-say.is-right::after { left: -13px; border-right-color: #fff; }
+
+/* the road: the sky sign under the heading (RoadScene) */
+.tp-head .tp-sign { margin-top: 12px; gap: 6px; padding: 6px 12px 6px 8px; border-width: 3px; font-size: 12.5px; border-radius: 10px; }
+.tp-head .tp-sign svg { width: 20px; height: 17px; }
+.tp-head .tp-sign::after { bottom: -14px; height: 10px; width: 5px; }
