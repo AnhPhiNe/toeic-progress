@@ -13,7 +13,9 @@ import type { RankState, RankTierKey } from '@/features/league/services/rankApi'
 import { medalSvg, roomScene, tierIndex, tierLook } from '@/features/league/lib/rankArt';
 import { computeBadges } from '../lib/badges';
 import { GROUPS, TIER_COLORS, TIER_LABEL, badgeLabel, badgeValues, computeTierBadges, earnedTiers, fmtValue, loadBest, markTiersSeen, saveBest, segmentFill, type TierBadge } from '../lib/badgeTiers';
-import { levelProgress } from '../lib/levels';
+import { levelProgress, markLevelSeen, pendingLevelUps } from '../lib/levels';
+import { LevelUpGift } from './LevelUpGift';
+import './awardsDesk.css';
 import { levelStars, loadOwnedGear } from '../lib/outfit';
 import '@/features/league/components/rank.css';
 import './profile.css';
@@ -84,6 +86,21 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
   }, [gear, lvl, owned, rank]);
   const toggle = (item: WardItem) => { if (item.state === 'on' || item.state === 'free') setGear(g => toggleGear(g, item.id as SocGearId, lvl, owned)); };
 
+  // Level-up gift (from Thành tích): the newly unlocked item drops onto Sóc once.
+  const [gifts, setGifts] = useState<number[]>([]);
+  useEffect(() => { setGifts(pendingLevelUps(lvl, owner)); }, [lvl, owner]);
+  const giftLevel = gifts[0];
+  const giftItem = giftLevel ? gearAtLevel(giftLevel) : undefined;
+  const closeGift = (wear: boolean) => {
+    if (!giftLevel) return;
+    if (wear && giftItem) onUpdateProfile(p => ({ ...p, socGear: sanitizeGear([...wornGear(p.socGear, lvl, owned), giftItem.id], lvl, owned) }));
+    markLevelSeen(giftLevel, owner);
+    setGifts(g => g.slice(1));
+  };
+  const gift = giftLevel && giftItem
+    ? <LevelUpGift key={giftLevel} level={giftLevel} item={giftItem} worn={saved} socName={identity.name} onWear={() => closeGift(true)} onLater={() => closeGift(false)} />
+    : null;
+
   const nextGear = progress.next ? gearAtLevel(progress.next.n) : undefined;
   const levelCard = (
     <div className="pf-lvl">
@@ -117,7 +134,7 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
           <div className="pf-pfoot">{saveBtn}</div>
         </>
       ) : badgeGrid} />
-      {detail}
+      {detail}{gift}
     </main>
   );
 
@@ -142,7 +159,7 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
         </div>
         {badgeGrid}
       </section>
-      {detail}
+      {detail}{gift}
     </main>
   );
 }
