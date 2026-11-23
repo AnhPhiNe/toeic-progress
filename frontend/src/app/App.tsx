@@ -38,6 +38,7 @@ import { PRESETS, supportedMode } from '@/features/pacing/lib/pacingModel';
 import { PacingResultEditor } from '@/features/pacing/components/PacingResultEditor';
 import { useCloudAccount } from '@/features/account/hooks/useCloudAccount';
 import { useRouteTab } from '@/app/routing/useRouteTab';
+import { takeSignInParam } from '@/app/routing/routes';
 import { getActiveAccountId, OWNER_CHANGED_WRITE_EVENT, readDataBundle, StorageWriteError } from '@/shared/data/dataBundle';
 import { ConnectionBanner } from '@/app/components/ConnectionBanner';
 import { hasPersonalData } from '@/shared/data/syncMerge';
@@ -80,6 +81,9 @@ import { socIdentity } from '@/shared/ui/soc/socIdentity';
 import { RankPage } from '@/features/league/components/RankPage';
 import { useLeague } from '@/features/league/hooks/useLeague';
 import { chipLabel, sidebarLabel } from '@/features/league/lib/league';
+
+// Read once per page load (before StrictMode re-runs effects): /?dang-nhap asks to open Cài đặt on sign-in.
+const OPEN_SIGN_IN = typeof window !== 'undefined' && takeSignInParam();
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
@@ -188,6 +192,8 @@ export const App: React.FC = () => {
   // The score form stays open across an owner change (another tab signed out or switched account) so
   // what was typed is not wiped silently: it keeps the owner it opened for and its save is refused with a notice.
   useEffect(() => { setSavedTest(null); setReviewCards(null); setNotebookSourceFilter(null); setSessionMistakeRequest(null); setEditingPacing(null); setIsSettingsModalOpen(false); }, [activeOwner]);
+  // "Đã có tài khoản? Đăng nhập" on the public pages links to /?dang-nhap: open Cài đặt (sign-in) once. Runs after the reset above.
+  useEffect(() => { if (OPEN_SIGN_IN) setIsSettingsModalOpen(true); }, []);
   const sessionModalOwner = useRef(activeOwner);
   if (!isSessionModalOpen) sessionModalOwner.current = activeOwner;
 
