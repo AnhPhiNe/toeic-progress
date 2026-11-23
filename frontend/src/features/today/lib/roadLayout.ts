@@ -112,7 +112,7 @@ export function roadRoute(layout: RoadLayout): RoadRoute {
  * The last leg ends before the arch (FINISH_AT of the way from the last stop to the podium), so a flag at or above
  * the goal stands on the road in front of the arch, never on the podium.
  */
-export const FINISH_AT = .45;
+export const FINISH_AT = .12;
 export function scoreLen(route: RoadRoute, values: readonly number[], score: number): number {
   const n = values.length;
   if (!n) return 0;
@@ -140,6 +140,7 @@ export const MAX_FLAGS = 6;
 export function flagSpots(route: RoadRoute, values: readonly number[], tests: readonly FlagTest[], r: number): FlagSpot[] {
   const out: FlagSpot[] = [];
   const used: number[] = [];
+  const midX = route.dense.reduce((a, p) => a + p[0], 0) / Math.max(1, route.dense.length);
   for (let i = tests.length - 1; i >= 0 && out.length < MAX_FLAGS; i--) {
     const t = tests[i];
     let len = scoreLen(route, values, t.score);
@@ -149,9 +150,10 @@ export function flagSpots(route: RoadRoute, values: readonly number[], tests: re
     used.push(len);
     const [px, py] = route.atLen(len);
     const [dx, dy] = route.dirAt(len);
-    // The side of the road that faces up (or left on a vertical stretch).
+    // The side of the road that faces up; on a steep bend, the side facing the middle of the map (never off its edge).
     let nx = dy, ny = -dx;
-    if (ny > 0 || (Math.abs(ny) < .2 && nx > 0)) { nx = -nx; ny = -ny; }
+    if (Math.abs(ny) < .5) { if ((px - midX) * nx > 0) { nx = -nx; ny = -ny; } }
+    else if (ny > 0) { nx = -nx; ny = -ny; }
     out.push({ ...t, x: px + nx * r * 1.2, y: py + ny * r * 1.2, latest: i === tests.length - 1 });
   }
   return out.reverse();
