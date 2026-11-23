@@ -19,7 +19,7 @@ test('direct routes and public legal pages are available without an account', as
   await page.goto('/dieu-khoan');
   await expect(page.getByRole('heading', { name: 'Điều khoản sử dụng' })).toBeVisible();
   await page.goto('/gioi-thieu');
-  await expect(page.getByRole('heading', { name: 'Giới thiệu' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /Chụp câu sai/ })).toBeVisible();
   const manifest = await page.request.get('/manifest.webmanifest');
   expect(manifest.ok()).toBe(true);
   expect((await manifest.json()).icons).toHaveLength(3);
