@@ -94,6 +94,8 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   const [partTimeOpen, setPartTimeOpen] = useState(false);
   const [wrongFrom, setWrongFrom] = useState<'pick' | 'manual'>('pick');
   const [aiOn, setAiOn] = useState(true);
+  /** Sóc has read a result photo: the wrong step shows a compact result card instead of the grid. */
+  const [aiRead, setAiRead] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const [confirmDel, setConfirmDel] = useState(false);
   useEffect(() => { setConfirmDel(false); }, [props.date]);
@@ -288,12 +290,14 @@ export function PhoneLogger(props: PhoneLoggerProps) {
         <Header title="Câu sai" onClose={props.onClose}
           right={!markOnly && !fromManual ? <button type="button" className="pl-link" onClick={goManual}>Sửa điểm ›</button> : undefined} />
         <div className="pl-body">
-          <div className="pl-score-mini" aria-live="polite">
-            <span>{props.testName || 'Đề'}</span>
-            <b>{props.totalPreview ?? '—'}</b>
-            <small>{props.wrongQuestions.length ? `${props.wrongQuestions.length} câu sai` : 'Chưa chọn câu sai'}</small>
-          </div>
-          <WrongQuestionGrid wrong={props.wrongQuestions} onChange={props.onWrong} onTiming={props.onTiming}
+          {!aiRead && (
+            <div className="pl-score-mini" aria-live="polite">
+              <span>{props.testName || 'Đề'}</span>
+              <b>{props.totalPreview ?? '—'}</b>
+              <small>{props.wrongQuestions.length ? `${props.wrongQuestions.length} câu sai` : 'Chưa chọn câu sai'}</small>
+            </div>
+          )}
+          <WrongQuestionGrid phone={{ read: aiRead && !markOnly, onRead: () => setAiRead(true) }} testName={props.testName} wrong={props.wrongQuestions} onChange={props.onWrong} onTiming={props.onTiming}
             onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore}
             numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft}
             appliedScore={props.scoreSource !== 'ESTIMATED' ? { listening: props.manualListening, reading: props.manualReading, total: props.manualTotal || (props.totalPreview ? String(props.totalPreview) : '') } : undefined}

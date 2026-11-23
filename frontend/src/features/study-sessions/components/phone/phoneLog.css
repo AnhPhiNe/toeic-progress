@@ -141,3 +141,24 @@
 .pl-shoot input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
 .pl-quiet { display: block; margin: 12px auto 0; border: 0; background: none; padding: 8px 12px; font: 900 14.5px var(--rd-font); color: var(--pl-mut); cursor: pointer; }
 .pl-quiet:active { color: var(--rd-pink-d); }
+
+/* Wrong step after Sóc read the photo: one result card, one reassuring line, quiet "Cách khác". */
+.pl-read { position: relative; margin-top: 4px; padding: 16px 16px 14px; border-radius: 24px; background: #fff; box-shadow: 0 4px 0 var(--pl-line), 0 0 0 2px var(--pl-line); }
+.pl-read-soc { position: absolute; right: 10px; top: 8px; }
+.pl-read small { display: block; max-width: 62%; font-weight: 800; font-size: 13px; color: var(--pl-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-read-score { margin-top: 2px; }
+.pl-read-score b { display: block; font-weight: 900; font-size: 54px; letter-spacing: -2px; line-height: 1; }
+.pl-read-score span { display: inline-block; margin-top: 8px; border-radius: 99px; background: #e8f6ff; color: #1c6fc0; padding: 3px 11px; font-weight: 900; font-size: 13px; }
+.pl-read-wrong { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--pl-line); }
+.pl-read-wrong-h { display: flex; align-items: center; justify-content: space-between; }
+.pl-read-wrong-h span { font-weight: 900; font-size: 14px; color: #d6416a; }
+.pl-read-nums { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.pl-read-nums i { font-style: normal; border-radius: 99px; background: #ffeef3; color: #d3456b; padding: 3px 10px; font-weight: 900; font-size: 13px; }
+.pl-read-edit { min-height: 44px; min-width: 56px; border: 0; background: none; font: 900 15px var(--rd-font); color: var(--rd-blue); cursor: pointer; }
+.pl-read-line { margin: 14px 4px 0; text-align: center; font-weight: 800; font-size: 14.5px; color: var(--pl-mut); }
+.pl-reading { margin: 10px 0 0; text-align: center; font-weight: 900; font-size: 13.5px; color: var(--rd-violet-d); }
+.pl-more { display: block; margin: 6px auto 0; min-height: 44px; border: 0; background: none; padding: 0 16px; font: 900 15px var(--rd-font); color: var(--pl-mut); cursor: pointer; }
+.pl-more-slot { padding-bottom: 8px; }
+.pl-more-items > * { margin-top: 10px; }
+.pl-more-items button { min-height: 44px; }
+.pl-edit-grid { max-height: 70dvh; overflow-y: auto; padding-bottom: 4px; }

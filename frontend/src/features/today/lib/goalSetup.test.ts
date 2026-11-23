@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { estimateMilestones } from '@/shared/domain/milestones';
-import { goalLabel, hasChosenGoal, shownGoal, parseTargetInput, profileWithGoal, stairsSummary, todayMode } from './goalSetup';
+import { dmyLabel, monthsFromToday, goalLabel, hasChosenGoal, shownGoal, parseTargetInput, profileWithGoal, stairsSummary, todayMode } from './goalSetup';
 import { defaultProfile } from '@/shared/data/dataBundle';
+
+describe('exam date helpers', () => {
+  it('adds calendar months and clamps the day', () => {
+    expect(monthsFromToday('2026-11-23', 1)).toBe('2026-12-23');
+    expect(monthsFromToday('2026-11-30', 3)).toBe('2027-02-28');
+    expect(monthsFromToday('2026-12-31', 2)).toBe('2027-02-28');
+  });
+  it('formats dd/mm/yyyy', () => {
+    expect(dmyLabel('2027-01-05')).toBe('05/01/2027');
+    expect(dmyLabel('')).toBe('');
+  });
+});
 
 describe('estimateMilestones', () => {
   it('climbs 450 -> 850 in eight blocks of 50', () => {

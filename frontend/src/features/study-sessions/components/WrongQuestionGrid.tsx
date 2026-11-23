@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { PhoneSheet } from '@/app/components/phone';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { Camera, ImagePlus, Layers, Plus, Sparkles } from 'lucide-react';
 import { generateUUID } from '@/shared/domain/uuid';
@@ -20,10 +22,11 @@ import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDr
 const listening = (part: PartNumber) => part <= 4;
 
 /** Tap the questions answered wrong, one Part at a time; or type the numbers ("3 15 101-104"). */
-export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming, appliedScore, onRevertScore, initialFiles, onInitialFilesHandled }: { wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void; appliedScore?: { listening?: string; reading?: string; total?: string }; onRevertScore?: () => void; initialFiles?: File[]; onInitialFilesHandled?: () => void }) {
+export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming, appliedScore, onRevertScore, initialFiles, onInitialFilesHandled, phone, testName }: { /** Phone logger: after Sóc reads a photo the grid collapses to a result card; "Sửa" opens it in a sheet. */ phone?: { read: boolean; onRead: () => void }; testName?: string; wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void; appliedScore?: { listening?: string; reading?: string; total?: string }; onRevertScore?: () => void; initialFiles?: File[]; onInitialFilesHandled?: () => void }) {
   const [part, setPart] = useState<PartNumber>(1);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
   const byPart = wrongQuestionsByPart(wrong);
   const marked = new Set(wrong);
   const toggle = (question: number) => {
@@ -36,14 +39,8 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
     if (!parsed.invalid.length) { onChange(parsed.questions); setTyping(false); }
   };
 
-  return (
-    <div className="space-y-3">
-      <ResultImageButton marks={wrong} onTiming={onTiming} onScores={onScores} onScoresPending={onScoresPending} scoreStore={scoreStore} appliedScore={appliedScore} onRevertScore={onRevertScore} initialFiles={initialFiles} onInitialFilesHandled={onInitialFilesHandled} onRead={numbers => {
-        // Marks from the screenshot are added to any taps; the grid opens on the first marked Part.
-        const merged = normalizeQuestionList([...wrong, ...numbers]);
-        onChange(merged);
-        if (numbers.length) setPart(PART_NUMBERS.find(item => questionsOfPart(item).includes(Math.min(...numbers))) ?? 1);
-      }} />
+  const gridBody = (
+    <>
       <p className="text-[14.5px] font-black text-slate-900 dark:text-white">Chạm vào câu bạn làm sai</p>
       <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="Part">
         {PART_NUMBERS.map(item => {
@@ -92,6 +89,50 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
             <span aria-hidden="true" className="text-base">⌨️</span>
             <span>Gõ số câu thay vì chạm</span>
           </button>}
+    </>
+  );
+  const readCard = phone?.read ? (
+    <>
+      <section className="pl-read" aria-label="Kết quả Sóc đọc">
+        <Soc state="yay" size={64} className="pl-read-soc" />
+        <small>{testName || 'Đề'}</small>
+        <div className="pl-read-score">
+          <b>{appliedScore?.total || '—'}</b>
+          {appliedScore?.listening && appliedScore?.reading && <span>Nghe {appliedScore.listening} · Đọc {appliedScore.reading}</span>}
+        </div>
+        <div className="pl-read-wrong">
+          <div className="pl-read-wrong-h">
+            <span>{wrong.length ? `Sai ${wrong.length} câu` : 'Không có câu sai'}</span>
+            <button type="button" className="pl-read-edit" onClick={() => setEditOpen(true)}>Sửa</button>
+          </div>
+          {wrong.length > 0 && <div className="pl-read-nums">
+            {wrong.slice(0, 8).map(number => <i key={number}>{number}</i>)}
+            {wrong.length > 8 && <i>+{wrong.length - 8}</i>}
+          </div>}
+        </div>
+      </section>
+      <p className="pl-read-line" role="status">Sóc đã đọc ảnh — kiểm tra lại nhé</p>
+    </>
+  ) : null;
+
+  return (
+    <div className="space-y-3">
+      <ResultImageButton marks={wrong} phone={Boolean(phone)} compactPhone={Boolean(phone?.read)} phoneCard={readCard} onTiming={onTiming} onScores={onScores} onScoresPending={onScoresPending} scoreStore={scoreStore} appliedScore={appliedScore} onRevertScore={onRevertScore} initialFiles={initialFiles} onInitialFilesHandled={onInitialFilesHandled} onRead={numbers => {
+        // Marks from the screenshot are added to any taps; the grid opens on the first marked Part.
+        const merged = normalizeQuestionList([...wrong, ...numbers]);
+        onChange(merged);
+        phone?.onRead();
+        if (numbers.length) setPart(PART_NUMBERS.find(item => questionsOfPart(item).includes(Math.min(...numbers))) ?? 1);
+      }} />
+      {phone?.read ? null : gridBody}
+      {phone?.read && editOpen && (
+        <PhoneSheet title="Sửa câu sai" onClose={() => setEditOpen(false)}>
+          <div className="pl-edit-grid">
+            {gridBody}
+            <button type="button" className="pl-save pl-save--green pl-save--sheet" onClick={() => setEditOpen(false)}>Xong</button>
+          </div>
+        </PhoneSheet>
+      )}
     </div>
   );
 }
@@ -121,7 +162,10 @@ export function ResultImageButton({
   extraMenu,
   compactDrop = false,
   flatCard = false,
-  pasteEnabled = true
+  pasteEnabled = true,
+  phone = false,
+  compactPhone = false,
+  phoneCard
 }: {
   onRead: (numbers: number[]) => void;
   marks: number[];
@@ -136,6 +180,11 @@ export function ResultImageButton({
   flatCard?: boolean;
   /** Ctrl+V anywhere reads an image (off while a view without the drop area is shown). */
   pasteEnabled?: boolean;
+  /** Phone logger: no long instruction paragraph, no "AI đã tô" line (the read card says it). */
+  phone?: boolean;
+  /** Phone, after Sóc read a photo: only `phoneCard` and a "Cách khác" link stay; every other photo option moves into that sheet. */
+  compactPhone?: boolean;
+  phoneCard?: ReactNode;
   onScores?: (score: AppliedResultScore) => void;
   onScoresPending?: (pending: boolean) => void;
   scoreStore?: ResultScoreStore;
@@ -170,6 +219,17 @@ export function ResultImageButton({
   const scoreEdited = useRef(scoreStore?.current?.edited ?? false);
   const lastImageScores = useRef<aiService.ResultImageScores | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [slot, setSlot] = useState<HTMLDivElement | null>(null);
+  /** On the phone read view these blocks live in the "Cách khác" sheet; elsewhere they stay where they are. */
+  const place = (node: ReactNode): ReactNode => {
+    if (!compactPhone) return node;
+    if (!moreOpen || !slot) return null;
+    return createPortal(
+      <div className="pl-more-items" onClick={event => { const button = (event.target as HTMLElement).closest('button'); if (button && !button.hasAttribute('aria-pressed')) setMoreOpen(false); }}>{node}</div>,
+      slot
+    );
+  };
   const { containerRef, getToken, remove } = useTurnstile();
   const lifecycle = useRef(0);
   const running = useRef(false);
@@ -321,8 +381,8 @@ export function ResultImageButton({
         }
       }
       // Paste view: the grid is hidden and the summary table already shows the count, so only the empty case needs a line.
-      setNote(dropzone
-        ? (count ? '' : 'Không thấy câu sai nào trong ảnh. Thử ảnh khác hoặc bấm Nhập tay.')
+      setNote(phone ? '' : dropzone
+        ?(count ? '' : 'Không thấy câu sai nào trong ảnh. Thử ảnh khác hoặc bấm Nhập tay.')
         : count ? `AI đã tô ${count} câu${skippedCount ? ` (${skippedCount} câu bỏ trống)` : ''}. Kiểm tra lại trên lưới.`
           : 'Không thấy câu sai nào trong ảnh. Chạm vào các câu sai bên dưới.');
     } catch (reason) {
@@ -479,6 +539,7 @@ export function ResultImageButton({
       )}
 
       {/* Action Area: Either Typing or Buttons */}
+      {place(<>
       {isTyping && typingContent ? (
         typingContent
       ) : dropzone && needsSignIn ? (
@@ -539,9 +600,18 @@ export function ResultImageButton({
         </button>
       )}
 
+      </>)}
       <input ref={input} type="file" accept="image/*" multiple hidden aria-label="Ảnh kết quả"
         onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; handleIncomingFiles(files); }} />
-      {!isTyping && !needsSignIn && (
+      {compactPhone && (
+        <>
+          {phoneCard}
+          {busy && <p role="status" className="pl-reading">Sóc đang đọc ảnh…</p>}
+          <button type="button" className="pl-more" onClick={() => setMoreOpen(true)}>Cách khác ›</button>
+          {moreOpen && <PhoneSheet title="Cách khác" onClose={() => setMoreOpen(false)}><div ref={setSlot} className="pl-more-slot" /></PhoneSheet>}
+        </>
+      )}
+      {place(<>{!isTyping && !needsSignIn && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {!(desktop && dropzone) && <button
             type="button"
@@ -593,7 +663,7 @@ export function ResultImageButton({
             </button>
           )}
         </div>
-      )}
+      )}</>)}
       {!isTyping && !needsSignIn && stagingActive && (
         <div className="mt-2.5 rounded-2xl border-2 border-dashed border-pink-300 bg-pink-50/60 p-3 dark:border-pink-500/50 dark:bg-pink-950/20" aria-label="Khay ảnh chờ đọc">
           <div className="flex items-center justify-between gap-2">
@@ -708,7 +778,7 @@ export function ResultImageButton({
           ] : undefined}
         />
       )}
-      <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>
+      {!phone && <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>}
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
       {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
       {editingStaged && (
@@ -753,6 +823,7 @@ export function ResultImageButton({
       {/* Fallback button when scoreCard is not provided (e.g. mobile) */}
       {!scoreCard && scoreReview && !scoreOpen && <button type="button" onClick={() => setScoreOpen(true)}
         className="min-h-11 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Kiểm tra điểm chưa áp dụng</button>}
+      {place(<>
       {!scoreCard && onScores && !scoreReview && hasAppliedScore && (
         <div className="mt-2 flex min-h-9 w-full items-center justify-between rounded-xl border border-amber-300 bg-amber-50/70 px-3 py-1.5 text-xs font-black text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
           <span className="flex items-center gap-1.5">
@@ -818,6 +889,7 @@ export function ResultImageButton({
           <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Đang kiểm tra ›</span>
         </button>
       )}
+      </>)}
       <div ref={containerRef} aria-label="Xác minh yêu cầu AI" />
     </div>
   );
