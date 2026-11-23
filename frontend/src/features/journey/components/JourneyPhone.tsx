@@ -33,7 +33,7 @@ export interface JourneyPhoneProps {
   /** Sóc's advice: add a one-off task to Hôm nay. */
   onAddSuggestion: (task: Omit<SuggestedTask, 'addedDate' | 'doneDate'>) => void;
   /** Open this test's detail with the advice block in view (from the result screen). */
-  openRequest?: { id: string; nonce: number } | null;
+  openRequest?: { id: string; nonce: number; advice?: boolean } | null;
   /** Extras for the phone version. */
   bundle: DataBundle;
   activeTab: NavTabId;
@@ -43,8 +43,8 @@ export interface JourneyPhoneProps {
 export function JourneyPhone({ sessions, mistakes, profile, today, initialTab, onOpenNotebook, onPractice, onEditSession, onDeleteSession, onOpenSessionLogger, onAddSuggestion, openRequest }: JourneyPhoneProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [openId, setOpenId] = useState<string | null>(openRequest?.id ?? null);
-  const [focusAdvice, setFocusAdvice] = useState(Boolean(openRequest));
-  useEffect(() => { if (openRequest) { setOpenId(openRequest.id); setFocusAdvice(true); } }, [openRequest]);
+  const [focusAdvice, setFocusAdvice] = useState(Boolean(openRequest) && openRequest?.advice !== false);
+  useEffect(() => { if (openRequest) { setOpenId(openRequest.id); setFocusAdvice(openRequest.advice !== false); } }, [openRequest]);
   const openTest = (id: string | null) => { setFocusAdvice(false); setOpenId(id); };
   const startAdvice = (action: AdviceAction, name: string) => {
     setOpenId(null);

@@ -2,19 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
-import { STAIR_COUNT, buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
+import { STAIR_COUNT, estimateMilestones } from '@/shared/domain/milestones';
 import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
-import { daysUntil, forecast, journeyPoints } from '@/features/journey/lib/scoreJourney';
+import { daysUntil } from '@/features/journey/lib/scoreJourney';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { socLook } from '@/features/awards/lib/outfit';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
 import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
-import { countWord } from '../lib/stairsGeometry';
 import { PREVIEW_TARGET, hasChosenGoal, profileWithGoal, todayMode } from '../lib/goalSetup';
+import { buildRoadModel } from '../lib/roadModel';
 import { FirstDayPanel } from './FirstDayPanel';
 import { GoalCard } from './GoalCard';
-import { StairsScene } from './StairsScene';
+import { RoadScene, RoadSign } from './RoadScene';
 import { TodayCard } from './TodayCard';
 import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
 import { useWelcome } from './welcome/useWelcome';
@@ -36,12 +36,13 @@ interface Props {
   /** Unused since the goal and exam date are edited in place (kept so App's call site needs no change). */
   onOpenSettings?: () => void;
   onUpdateProfile: (update: (profile: UserProfile) => UserProfile) => void;
+  /** Opens a logged test's detail (Hành trình) from its flag on the road. */
+  onOpenTest?: (id: string) => void;
 }
 
-export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onUpdateProfile }: Props) {
+export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onUpdateProfile, onOpenTest }: Props) {
   const { profile, sessions, mistakes } = bundle;
   const target = profile.targetScore;
-  const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
   const [skipped, skipTask] = useSkippedToday(today);
   const suggestions = useMemo(() => suggestionsToday(profile, bundle.pacingRuns, today), [profile, bundle.pacingRuns, today]);
   const tasks = useMemo(() => withoutRepeatedTimers(pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), suggestions), [bundle, today, skipped, profile.suggestOff, suggestions]);
@@ -50,16 +51,14 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
   const lastDone = useMemo(() => lastDoneDate(doneDates(bundle, today, extra), today), [bundle, today, extra]);
   const [rest, wake] = useWake(todaySocMood({ today, lastDone, current: week.current, longest: week.longest }));
   const goal = useMemo(() => weeklyGoal(bundle, today, clampWeeklyGoal(profile.weeklyGoalDays), extra), [bundle, today, profile.weeklyGoalDays, extra]);
-  const ahead = useMemo(() => {
-    const f = forecast(journeyPoints(sessions), target, profile.examDate, today);
-    return f && f.kind === 'rising' ? f.testsAhead : null;
-  }, [sessions, target, profile.examDate, today]);
   const examIn = daysUntil(profile.examDate, today);
   const gear = useMemo(() => socLook(bundle, today).worn, [bundle, today]);
 
-  const climbing = plan.status === 'empty' ? null : plan;
-  // No test yet: pick a goal (choose), see the estimated stairs (ready), or climb the real ones.
+  // No test yet: pick a goal (choose), see the estimated road (ready), or walk the real one.
   const chosen = hasChosenGoal(profile);
+  const road = useMemo(() => buildRoadModel(sessions, target, profile.examDate, today, chosen ? target : PREVIEW_TARGET), [sessions, target, profile.examDate, today, chosen]);
+  const plan = road.plan;
+  const climbing = plan.status === 'empty' ? null : plan;
   const [editingGoal, setEditingGoal] = useState(() => !hasChosenGoal(profile));
   const mode = todayMode({ hasTests: climbing !== null, chosen, editing: editingGoal });
   const estimate = useMemo(() => estimateMilestones(chosen ? target : PREVIEW_TARGET), [chosen, target]);
@@ -70,8 +69,6 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
   const [coatStep, setCoatStep] = useState(false);
   const finishGoal = () => { setCoatStep(false); setEditingGoal(false); welcome.confirm(); };
   const firstTask = tasks.find(item => !item.done) ?? null;
-  // Eight stairs then the trophy: from Sóc's stair, this many steps up to the cup.
-  const remaining = climbing ? STAIR_COUNT - climbing.currentIndex : 0;
   const stairDots = Array.from({ length: STAIR_COUNT }, (_, i) => i);
 
   // One full-page celebration per goal, the first time it is reached.
@@ -92,18 +89,26 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
 
   return (
     <div className={'rd td-page' + (welcome.fresh ? ' is-welcome' : '') + (welcome.greeting ? ' is-greeting' : '') + (mode !== 'choose' && goalEdit.pastTip ? ' has-pasttip' : '')}>
-      <StairsScene
+      <RoadScene
         key={welcome.grew ? 'grown' : 'plain'}
+        variant="desk"
         lit={welcome.lit}
-        plan={climbing}
+        steps={road.steps}
+        cur={road.cur}
+        best={road.best}
+        done={road.done}
+        estimate={road.estimate}
+        proj={road.proj}
+        tests={road.tests}
+        walkFrom={road.walkFrom}
         target={chosen || climbing ? target : PREVIEW_TARGET}
-        testsAhead={ahead}
         cupLabel={chosen || climbing ? undefined : '?'}
-        banner={mode === 'choose' ? (chosen ? `Mục tiêu ${target}` : 'Chọn mục tiêu') : undefined}
         gear={gear}
         rest={rest}
         onWake={wake}
-        onEditGoal={canEdit ? goalEdit.open : undefined}
+        onEditGoal={canEdit ? el => goalEdit.open(el as SVGElement) : undefined}
+        onOpenTest={onOpenTest}
+        hidden={welcome.greeting}
       />
 
       {mode === 'choose' && coatStep && <CoatCard profile={profile} onUpdateProfile={onUpdateProfile} onDone={finishGoal} />}
@@ -126,18 +131,18 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
             <div className="td-dots" aria-hidden="true">
               {stairDots.map(i => <i key={i} className={i < climbing.currentIndex ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : ''} />)}
             </div>
-            <small>{plan.status === 'done' ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${STAIR_COUNT} · CÒN ${target - climbing.best} ĐIỂM`}</small>
+            <small>{plan.status === 'done' ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${STAIR_COUNT}`}</small>
           </div>
           {plan.status === 'done'
-            ? <><h1>Bạn đã <em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} ·<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Đặt mục tiêu mới</button></p></>
-            : <><h1>{countWord(remaining)} bậc nữa là <em>chạm tay vào cúp</em></h1><p>Mỗi bậc ≈ {climbing.step} điểm · rê chuột để xem ngày đạt</p></>}
+            ? <><h1>Bạn đã<br /><em>chạm tay vào cúp</em></h1><p>Điểm cao nhất {climbing.best} ·<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Đặt mục tiêu mới</button></p></>
+            : <><h1>Còn {target - climbing.best} điểm là<br /><em>chạm tay vào cúp</em></h1><RoadSign text={road.sign} late={road.late} /></>}
         </> : <>
           <div className="td-row">
             <div className="td-dots" aria-hidden="true">{stairDots.map(i => <i key={i} />)}</div>
             <small>{STAIR_COUNT} BẬC ƯỚC LƯỢNG · {estimate.values[0]} → {target}</small>
           </div>
-          <h1>Cầu thang lên <em>cúp {target}</em><br />đã dựng xong</h1>
-          <p>Ghi đề đầu tiên để Sóc đặt bạn lên đúng bậc.<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button></p>
+          <h1>Đường tới <em>cúp {target}</em><br />đã sẵn sàng</h1>
+          <p>Ghi đề đầu tiên để Sóc đặt bạn lên đúng chặng.<button type="button" className="td-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button></p>
         </>}
       </header>}
 

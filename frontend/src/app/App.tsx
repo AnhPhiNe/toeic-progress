@@ -177,7 +177,7 @@ export const App: React.FC = () => {
   const [savedTest, setSavedTest] = useState<StudySession | null>(null);
   const closeSavedTest = useCallback(() => setSavedTest(null), []);
   // "Nhờ Sóc xem đề này" on the result screen opens that test in Hành trình with the advice block in view.
-  const [journeyOpen, setJourneyOpen] = useState<{ id: string; nonce: number; owner: string | null } | null>(null);
+  const [journeyOpen, setJourneyOpen] = useState<{ id: string; nonce: number; owner: string | null; advice?: boolean } | null>(null);
   useEffect(() => { if (activeTab !== 'history' && activeTab !== 'analytics') setJourneyOpen(null); }, [activeTab]);
   const activeOwner = getActiveAccountId();
   const league = useLeague({ enabled: signedIn, owner: activeOwner, synced: account.status === 'synced', pageOpen: activeTab === 'league', coat: socIdentity(profile).coat });
@@ -499,6 +499,11 @@ export const App: React.FC = () => {
     setJourneyOpen({ id: session.id, nonce: Date.now(), owner: activeOwner });
     setActiveTab('history');
   };
+  /** A test flag on the Hôm nay road: open that test's detail in Hành trình. */
+  const openTestDetail = (id: string) => {
+    setJourneyOpen({ id, nonce: Date.now(), owner: activeOwner, advice: false });
+    setActiveTab('history');
+  };
 
   return (
     <SocCoatContext.Provider value={socCoat}>
@@ -550,6 +555,7 @@ export const App: React.FC = () => {
                 onOpenSessionLogger={() => openSessionLogger()}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
                 onUpdateProfile={updateProfile}
+                onOpenTest={openTestDetail}
                 streak={streakNow}
                 dueMistakesCount={dueMistakesCount}
                 soc={soc}
@@ -620,6 +626,7 @@ export const App: React.FC = () => {
             onOpenSessionLogger={() => openSessionLogger()}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateProfile={updateProfile}
+            onOpenTest={openTestDetail}
           />
         ) : showGuide ? guidePage : showConvert ? (
           <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />

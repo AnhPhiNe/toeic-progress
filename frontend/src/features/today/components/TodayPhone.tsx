@@ -5,17 +5,17 @@ import type { DataBundle } from '@/shared/data/dataBundle';
 import type { NavTabId, SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
 import type { SocLook } from '@/features/awards/lib/outfit';
-import { STAIR_COUNT, buildMilestones, estimateMilestones } from '@/shared/domain/milestones';
+import { STAIR_COUNT } from '@/shared/domain/milestones';
 import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
 import { daysUntil } from '@/features/journey/lib/scoreJourney';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
 import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
-import { countWord } from '../lib/stairsGeometry';
 import { PREVIEW_TARGET, TARGET_PRESETS, hasChosenGoal, profileWithGoal, todayMode } from '../lib/goalSetup';
 import { buildPhoneItems } from '../lib/phoneToday';
 import { useSkippedToday } from '../lib/useSkippedToday';
-import { PhoneStairs, type StairTest } from './phone/PhoneStairs';
+import { RoadScene, RoadSign } from './RoadScene';
+import { buildRoadModel } from '../lib/roadModel';
 import { TaskPanel } from './phone/TaskPanel';
 import { StreakSheet } from './phone/StreakSheet';
 import { AddHabitSheet } from './phone/AddHabitSheet';
@@ -51,22 +51,24 @@ export interface TodayPhoneProps {
   soc: SocLook;
   /** Unused since the trophy opens the goal editor instead of Hành trình (kept so App's call site needs no change). */
   onNavigate?: (tab: NavTabId) => void;
+  /** Opens a logged test's detail (Hành trình) from its flag on the road. */
+  onOpenTest?: (id: string) => void;
 }
 
 interface Size { w: number; h: number; head: number; panel: number }
 
-export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc }: TodayPhoneProps) {
+export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPracticeMore, onOpenSessionLogger, onOpenSettings, onUpdateProfile, streak, soc, onOpenTest }: TodayPhoneProps) {
   const { profile, sessions, mistakes } = bundle;
   const shell = usePhoneShell();
   const target = profile.targetScore;
-  const plan = useMemo(() => buildMilestones(sessions, target), [sessions, target]);
-  const climbing = plan.status === 'empty' ? null : plan;
   const chosen = hasChosenGoal(profile);
+  const road = useMemo(() => buildRoadModel(sessions, target, profile.examDate, today, chosen ? target : PREVIEW_TARGET), [sessions, target, profile.examDate, today, chosen]);
+  const plan = road.plan;
+  const climbing = plan.status === 'empty' ? null : plan;
   const [editingGoal, setEditingGoal] = useState(() => !hasChosenGoal(profile));
   const mode = todayMode({ hasTests: climbing !== null, chosen, editing: editingGoal });
   const welcome = useWelcome({ hasTests: climbing !== null, chosen });
   const shownTarget = chosen || climbing ? target : PREVIEW_TARGET;
-  const estimate = useMemo(() => estimateMilestones(shownTarget), [shownTarget]);
 
   const [skipped, skipTask] = useSkippedToday(today);
   const suggestions = useMemo(() => suggestionsToday(profile, bundle.pacingRuns, today), [profile, bundle.pacingRuns, today]);
@@ -84,11 +86,6 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
   // First visit: after the goal, one compact step to pick Sóc's coat and name (skippable), then the confetti.
   const [coatStep, setCoatStep] = useState(false);
   const finishGoal = () => { setCoatStep(false); setEditingGoal(false); welcome.confirm(); };
-
-  const tests = useMemo<StairTest[]>(() => sessions
-    .filter(s => !s.deletedAt && s.sessionType === 'FULL_TEST' && s.skillType === 'LR' && Number.isFinite(s.totalScore))
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
-    .map(s => ({ score: s.totalScore as number, name: s.testName, date: s.date })), [sessions]);
 
   const [expanded, setExpanded] = useState(false);
   const [sheet, setSheet] = useState<'streak' | 'add' | null>(null);
@@ -113,12 +110,9 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
   });
   useEffect(() => { if (items.restOpen === 0) setExpanded(false); }, [items.restOpen]);
 
-  // Eight stairs then the trophy, before and after the first test.
-  const remaining = climbing ? STAIR_COUNT - climbing.currentIndex : 0;
-  const steps = climbing ? climbing.steps : estimate.values.map(value => ({ value, reached: false }));
   const finished = plan.status === 'done';
-  const cur = !climbing ? -1 : finished ? STAIR_COUNT - 1 : climbing.currentIndex;
-  const base = Math.min(size.h, size.h - size.panel + 26);
+  // The road fills the band between the heading and the task panel.
+  const base = Math.min(size.h - 20, size.h - size.panel - 10);
 
   const fallback = mode === 'ready'
     ? { kicker: 'BƯỚC ĐẦU TIÊN', title: 'Ghi đề đầu tiên', button: 'Ghi đề', onClick: onOpenSessionLogger }
@@ -126,12 +120,15 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
 
   return (
     <div className={'rd tp' + (welcome.fresh ? ' is-welcome' : '') + (canEdit && goalEdit.pastTip ? ' has-pasttip' : '')} ref={root}>
-      <PhoneStairs
-        steps={steps} cur={cur} best={climbing?.best ?? 0} done={finished} estimate={!climbing}
-        target={shownTarget} cupLabel={chosen || climbing ? undefined : '?'} tests={tests} gear={soc.worn} rest={rest} onWake={wake}
-        w={size.w} top={size.head + 6} base={base}
-        onCup={canEdit ? goalEdit.open : undefined}
-        hidden={welcome.greeting || coatStep} grow={welcome.grew} lit={welcome.lit}
+      <RoadScene
+        variant="phone"
+        steps={road.steps} cur={road.cur} best={road.best} done={road.done} estimate={road.estimate} lit={welcome.lit}
+        proj={road.proj} tests={road.tests} walkFrom={road.walkFrom}
+        target={shownTarget} cupLabel={chosen || climbing ? undefined : '?'} gear={soc.worn} rest={rest} onWake={wake}
+        top={size.head + 10} base={base}
+        onEditGoal={canEdit ? el => goalEdit.open(el as SVGElement) : undefined}
+        onOpenTest={onOpenTest}
+        hidden={welcome.greeting || coatStep}
       />
 
       <header className="tp-top">
@@ -162,16 +159,16 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
             {Array.from({ length: STAIR_COUNT }, (_, i) => <i key={i} className={climbing ? (finished || i < climbing.currentIndex ? 'is-on' : i === climbing.currentIndex ? 'is-cur' : '') : ''} />)}
           </span>
           <small>{climbing
-            ? (finished ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${STAIR_COUNT} · CÒN ${target - climbing.best} ĐIỂM`)
-            : `${STAIR_COUNT} BẬC ƯỚC LƯỢNG · ${estimate.values[0]} → ${shownTarget}`}</small>
+            ? (finished ? `ĐÃ CHẠM ${target}` : `BẬC ${climbing.currentIndex + 1}/${STAIR_COUNT}`)
+            : `${STAIR_COUNT} BẬC ƯỚC LƯỢNG · ${road.steps[0].value} → ${shownTarget}`}</small>
         </div>}
         {welcome.greeting ? <h1>Chào bạn!<br /><em>Mình là Sóc</em></h1> : coatStep ? <h1>Sóc của bạn<br /><em>trông thế nào?</em></h1> : climbing
           ? (finished
             ? <h1>Bạn đã<br /><em>chạm tay vào cúp</em></h1>
-            : <h1>{countWord(remaining)} bậc nữa là<br /><em>chạm tay vào cúp</em></h1>)
+            : <><h1>Còn {target - climbing.best} điểm là<br /><em>chạm tay vào cúp</em></h1><RoadSign text={road.sign} late={road.late} className="tp-sign" /></>)
           : mode === 'choose'
             ? <h1>Bạn muốn lên<br /><em>cúp bao nhiêu?</em></h1>
-            : <h1>Cầu thang lên<br /><em>cúp {target}</em> đã dựng</h1>}
+            : <h1>Đường tới<br /><em>cúp {target}</em> đã sẵn sàng</h1>}
         {mode === 'ready' && <button type="button" className="tp-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button>}
       </div>
 

@@ -1,0 +1,36 @@
+/* Hôm nay hero: the road (RoadScene.tsx; mockup design/previews/journey-v2/1b-today-road.html) */
+.rr { position: absolute; inset: 0; overflow: hidden; }
+.rr-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.rr .soc svg { overflow: visible; }
+.rr-soc.is-wake { cursor: pointer; }
+.rr-coin { animation: rr-pop .45s var(--d, 0s) cubic-bezier(.3, 1.6, .5, 1) backwards; transform-box: fill-box; transform-origin: center; }
+@keyframes rr-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.rr-flag { animation: rr-plant .4s var(--d, 0s) cubic-bezier(.3, 1.6, .6, 1) backwards; transform-box: fill-box; transform-origin: 0% 100%; }
+@keyframes rr-plant { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+.rr-walked { stroke-dasharray: 4000; animation: rr-draw 1.2s .2s ease-out backwards; }
+@keyframes rr-draw { from { stroke-dashoffset: 4000; } to { stroke-dashoffset: 0; } }
+.rr-confetti rect { animation: rr-conf 1.8s var(--dl) ease-in both; }
+@keyframes rr-conf { 0% { transform: translate(0, -40px) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(var(--dx), 170px) rotate(260deg); opacity: 0; } }
+.rr-tap:hover > :not(.il-ring) { filter: brightness(1.05); }
+
+.rr-pop { position: absolute; z-index: 20; background: #fff; border-radius: 14px; padding: 10px 14px 12px; min-width: 170px; max-width: 260px;
+  box-shadow: 0 6px 0 rgba(47, 58, 51, .1), 0 0 0 2px #f0e2c8; transform: translate(-50%, calc(-100% - 14px)); }
+.rr-pop::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.rr-pop b { display: block; font-size: 16px; font-weight: 900; color: var(--rd-ink); }
+.rr-pop span { display: block; font-size: 13px; font-weight: 700; color: #6c7770; margin-top: 2px; }
+.rr-pop button { margin-top: 9px; border: 0; border-radius: 11px; background: #ff7a9c; color: #fff; font: 900 13.5px var(--rd-font); padding: 7px 12px; box-shadow: 0 3px 0 #e0577d; cursor: pointer; }
+.rr-pop button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+
+/* the sky sign under the headline */
+.rr-sign { position: relative; display: inline-flex; align-items: center; gap: 10px; margin-top: 18px; padding: 9px 18px 9px 12px; background: #f6e2bf; border: 4px solid #d9a066;
+  border-radius: 12px; box-shadow: 0 3px 0 #a8723f; font-weight: 900; font-size: 15px; color: #5a3d1a; max-width: 100%; }
+.rr-sign::after { content: ""; position: absolute; left: 50%; bottom: -17px; width: 6px; height: 13px; margin-left: -3px; background: #9a6a3f; }
+.rr-sign svg { flex: none; }
+.rr-sign.is-late { color: #8a4b12; }
+
+.rr.is-hidden .rr-world { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-coin, .rr-flag, .rr-walked, .rr-confetti rect { animation: none; }
+  .rr-confetti { display: none; }
+}
