@@ -110,8 +110,8 @@ export function BakeryChoose(p: Props) {
   const renderRow = (row: RecentRow) => (
     <button key={row.id} type="button" className="bk-row" onClick={() => p.onOpenSession(row.session)}>
       <DishIcon dish={row.dish} />
-      <span className="bk-row-text"><b>{row.title}</b><small>{row.sub}</small></span>
-      {row.tag ? <span className={'bk-pill is-' + row.tag.kind}>{row.tag.text}</span> : <span className="bk-pill">không bấm giờ</span>}
+      <span className="bk-row-text"><b>{row.title}</b><small>{row.sub}</small>
+        {row.tag && <span className={'bk-pill is-' + row.tag.kind}>{row.tag.text}</span>}</span>
     </button>
   );
 
@@ -173,20 +173,24 @@ export function BakeryChoose(p: Props) {
       )}
 
       <div className="bk-ctrl">
-        <button type="button" className="rd-btn bk-fire" data-guide="practice" onClick={light}><FlameIcon /> Bật lò</button>
-        <div className="bk-step" role="group" aria-label="Số phút">
-          <button type="button" aria-label="Bớt một phút" onClick={() => p.onMinutes(-1)} disabled={!p.canMinus}>−</button>
-          <b>{p.minutes}</b><span>p</span>
-          <button type="button" aria-label="Thêm một phút" onClick={() => p.onMinutes(1)}>+</button>
+        <div className="bk-go">
+          <button type="button" className="rd-btn bk-fire" data-guide="practice" onClick={light}><FlameIcon /> Bật lò · {p.minutes} phút</button>
+          <div className="bk-step" role="group" aria-label="Số phút">
+            <span className="bk-step-lb">Đổi</span>
+            <button type="button" aria-label="Bớt một phút" onClick={() => p.onMinutes(-1)} disabled={!p.canMinus}>−</button>
+            <span className="bk-sr">{p.minutes} phút</span>
+            <button type="button" aria-label="Thêm một phút" onClick={() => p.onMinutes(1)}>+</button>
+          </div>
         </div>
-        <button type="button" className="bk-tool is-mint" onClick={p.onLog}><i aria-hidden="true"><PenIcon /></i>Chỉ ghi kết quả</button>
-        <div className="bk-recipe-wrap" ref={recipeBox}>
-          <button type="button" className={'bk-tool is-gold' + (recipe ? ' is-on' : '')} aria-expanded={recipe} aria-controls="bk-recipe-pop" onClick={() => setRecipe(v => !v)}>
-            <i aria-hidden="true"><CardIcon /></i>Công thức
-          </button>
-          {recipe && (free
-            ? <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức"><p className="bk-recipe-free">{FREE_RECIPE(p.minutes)}</p></div>
-            : <RecipePop mode={p.mode} label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />)}
+        <div className="bk-links">
+          <button type="button" className="bk-quiet" onClick={p.onLog}>Chỉ ghi kết quả</button>
+          <span aria-hidden="true">·</span>
+          <div className="bk-recipe-wrap" ref={recipeBox}>
+            <button type="button" className={'bk-quiet' + (recipe ? ' is-on' : '')} aria-expanded={recipe} aria-controls="bk-recipe-pop" onClick={() => setRecipe(v => !v)}>Công thức</button>
+            {recipe && (free
+              ? <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức"><p className="bk-recipe-free">{FREE_RECIPE(p.minutes)}</p></div>
+              : <RecipePop mode={p.mode} label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />)}
+          </div>
         </div>
       </div>
       {p.error && <p role="alert" className="bk-err">{p.error}</p>}
@@ -249,10 +253,4 @@ function RecipePop({ mode, label, questions, minutes }: { mode: PacingMode; labe
 
 const FlameIcon = () => (
   <svg width="20" height="22" viewBox="0 0 20 22" aria-hidden="true"><path d="M10 1c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-3-1-6 1-9z" fill="#fff" /><path d="M10 12c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1 1-2 1-3 1 1 2 0 2-2z" fill="#ffd25e" /></svg>
-);
-const PenIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 15l1-4 8-8 3 3-8 8z" fill="#2f8a42" /><path d="M11 4l3 3" stroke="#fff" strokeWidth="1.5" /></svg>
-);
-const CardIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18"><rect x="2" y="2" width="14" height="14" rx="3" fill="#e0a100" /><path d="M5 7h8M5 10h8M5 13h5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></svg>
 );
