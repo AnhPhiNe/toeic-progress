@@ -36,7 +36,8 @@ describe('20 badges × 3 tiers', () => {
     const b = byId(computeTierBadges({ 'on-streak': 34, 'tb-weak': 12, 'de-mark': 950 }));
     expect(badgeLabel(b['on-streak'])).toBe('Bạc · 34/50 tới Vàng');
     expect(badgeLabel(b['tb-weak'])).toBe('Bạc · +12%/+20% tới Vàng');
-    expect(badgeLabel(b['on-hard'])).toBe('Chưa có · 0/10 tới Đồng');
+    expect(badgeLabel(b['on-hard'])).toBe('0/10 tới Đồng');
+    expect(badgeLabel(b['on-streak'], true)).toBe('Bạc · 34/50→Vàng');
     expect(badgeLabel(b['de-mark'])).toBe('Vàng · đủ 3 bậc');
     expect(segmentFill(b['on-streak'])).toEqual([1, 1, (34 - 20) / 30]);
   });

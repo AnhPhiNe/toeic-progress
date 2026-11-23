@@ -239,7 +239,7 @@ function BadgeGrid({ badges, selected, onOpen }: { badges: TierBadge[]; selected
                 <Medal badge={b} size={60} />
                 <span className="pf-bn">{b.name}</span>
                 <TierBar badge={b} />
-                <span className="pf-nx">{b.tier === 3 ? 'Đủ 3 bậc' : <>{TIER_LABEL[b.tier === 0 ? 1 : b.tier]} <b>{fmtValue(b, b.value)}</b>/{fmtValue(b, b.th[b.tier as 0 | 1 | 2])}</>}</span>
+                <span className="pf-nx" title={badgeLabel(b)}>{badgeLabel(b, true)}</span>
               </button>
             ))}
           </div>

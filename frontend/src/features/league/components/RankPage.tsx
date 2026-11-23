@@ -213,9 +213,13 @@ function addDays(day: string, n: number) {
 
 /* ------------------------------------------------------------------ board */
 
-function Avatar({ row, size }: { row: Pick<BoardRow, 'coat' | 'award'>; size?: number }) {
+/** Season gear a member earned (highest item of their latest award), drawn on their board avatar. */
+const AWARD_GEAR: Partial<Record<RankTierKey, string>> = { 'bach-kim': 'khan-ngoc', 'kim-cuong': 'ao-choang', 'cao-thu': 'vuong-mien' };
+function Avatar({ row, size }: { row: Pick<BoardRow, 'coat' | 'award' | 'nickname'>; size?: number }) {
   const ring = row.award ? tierLook(row.award.tier).rim : undefined;
-  return <span className={'rk-av' + (ring ? ' has-frame' : '')} style={{ ['--ring' as string]: ring, width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: leagueSocSvg(row.coat) }} />;
+  const item = row.award ? AWARD_GEAR[row.award.tier] : undefined;
+  const gear = item ? [`${item}.m${row.award!.season}`] : [];
+  return <span className={'rk-av' + (ring ? ' has-frame' : '')} style={{ ['--ring' as string]: ring, width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: leagueSocSvg(row.coat, row.nickname, gear) }} />;
 }
 
 function valueText(tab: Tab, v: number | null): ReactNode {

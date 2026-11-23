@@ -11,8 +11,8 @@ const names = ['Mây Bay', 'Tí Hon', 'Kem Dâu', 'Bắp Rang', 'Trà Sữa', 'M
 const ME = 7; // Hạt Tiêu, rank 8
 const stars = [236, 230, 220, 212, 203, 198, 190, 184, 175, 167, 161, 150, 140, 133, 120, 101, 90, 70, 41, 12];
 const board = (values: Array<number | null>) => names.map((nickname, i) => ({ nickname, i, value: values[i] }))
-  .sort((a, b) => (b.value ?? -1) - (a.value ?? -1)).map((r, k) => ({ rank: k + 1, nickname: r.nickname, coat: 'nau', value: r.value, me: r.i === ME,
-    award: r.i === 0 ? { tier: 'vang', season: 1 } : null }));
+  .sort((a, b) => (b.value ?? -1) - (a.value ?? -1)).map((r, k) => ({ rank: k + 1, nickname: r.nickname, coat: ['nau', 'xam', 'kem', 'soco', 'dau', 'nau-cam'][r.i % 6], value: r.value, me: r.i === ME,
+    award: r.i === 0 ? { tier: 'vang', season: 1 } : r.i === 2 ? { tier: 'cao-thu', season: 1 } : null }));
 const describe = (level: number) => {
   const tiers = ['dong', 'bac', 'vang', 'bach-kim', 'kim-cuong', 'cao-thu'], names6 = ['Đồng', 'Bạc', 'Vàng', 'Bạch kim', 'Kim cương', 'Cao thủ'];
   const t = level >= 20 ? 5 : Math.floor(level / 4), division = t === 5 ? null : ['IV', 'III', 'II', 'I'][level % 4];

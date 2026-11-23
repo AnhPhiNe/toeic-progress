@@ -205,10 +205,13 @@ export const tierStars = (badges: readonly TierBadge[]) => badges.reduce((sum, b
 
 export const fmtValue = (b: Pick<TierBadgeDef, 'pre' | 'suf'>, v: number) => `${b.pre && v ? b.pre : ''}${v}${b.suf ?? ''}`;
 
-/** "Bạc · 34/50 tới Vàng", "Vàng · đủ 3 bậc", "Chưa có · 3/10 tới Đồng". */
-export function badgeLabel(b: TierBadge): string {
-  if (b.tier === 3) return `Vàng · đủ 3 bậc`;
-  return `${TIER_LABEL[b.tier]} · ${fmtValue(b, b.value)}/${fmtValue(b, b.th[b.tier])} tới ${TIER_LABEL[b.tier + 1]}`;
+/** "Bạc · 34/50 tới Vàng", "Vàng · đủ 3 bậc", "3/10 tới Đồng" (none yet). `short` uses → for one-line tiles. */
+export function badgeLabel(b: TierBadge, short = false): string {
+  if (b.tier === 3) return 'Vàng · đủ 3 bậc';
+  // The short form drops the "+" of gains so tiles stay on one line.
+  const v = (n: number) => (short ? `${n}${b.suf ?? ''}` : fmtValue(b, n));
+  const progress = `${v(b.value)}/${v(b.th[b.tier])}${short ? '→' : ' tới '}${TIER_LABEL[b.tier + 1]}`;
+  return b.tier === 0 ? progress : `${TIER_LABEL[b.tier]} · ${progress}`;
 }
 
 /** Fill of each of the 3 bar segments, 0..1. */

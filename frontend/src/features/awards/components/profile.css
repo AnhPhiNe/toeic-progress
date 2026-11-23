@@ -53,10 +53,10 @@
 .pf-badges__h h2 small { font-size: 15px; color: #4b5650; margin-left: 8px; }
 .pf-legend { display: flex; gap: 14px; font-weight: 800; font-size: 13px; color: #4b5650; }
 .pf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
-.pf-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 26px; }
+.pf-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
 .pf-cat h3 { margin: 10px 0 4px 4px; font-weight: 900; font-size: 14px; color: var(--cc); }
-.pf-bgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-.pf-bt { border: 0; background: none; border-radius: 16px; padding: 6px 2px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; text-align: center; }
+.pf-bgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
+.pf-bt { border: 0; background: none; border-radius: 16px; padding: 6px 0 8px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; text-align: center; }
 .pf-bt:hover { background: #faf7f0; }
 .pf-bt.is-sel { box-shadow: inset 0 0 0 2.5px var(--cc); background: #fff5f7; }
 .pf-medal { display: block; line-height: 0; }
@@ -65,7 +65,7 @@
 .pf-bt.is-locked .pf-bn { color: #9aa29c; }
 .pf-tb3 { display: flex; gap: 3px; width: 70%; }
 .pf-tb3 u { flex: 1; height: 4px; border-radius: 3px; background: linear-gradient(90deg, var(--c) var(--f), #e8ebe6 var(--f)); }
-.pf-nx { font-weight: 800; font-size: 12.5px; color: var(--pf-mut); }
+.pf-nx { font-weight: 800; font-size: 11.5px; color: var(--pf-mut); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
 .pf-nx b { color: var(--rd-ink); }
 
 /* detail */

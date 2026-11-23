@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+﻿import { test, expect, type Page } from '@playwright/test';
 import type { DataBundle } from '../../frontend/src/shared/data/dataBundle';
 import { joined, signIn } from './helpers/rank';
 
@@ -24,6 +24,7 @@ test.describe('Hồ sơ của Sóc', () => {
     await expect(page.getByRole('heading', { name: /Huy hiệu/ })).toContainText('/60 bậc');
     const streak = page.getByRole('button', { name: /^Ôn đúng liên tiếp:/ });
     await expect(streak).toHaveAccessibleName('Ôn đúng liên tiếp: Bạc · 24/50 tới Vàng');
+    await expect(streak).toContainText('Bạc · 24/50→Vàng');
     await streak.click();
     const dialog = page.getByRole('dialog', { name: 'Ôn đúng liên tiếp' });
     await expect(dialog).toContainText('Bậc hiện tại: Bạc');
