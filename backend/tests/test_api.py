@@ -131,7 +131,8 @@ def api():
                 row = rows[0] if rows else None
                 plan = None if row is None else row.get("plan") or ("admin" if row["monthly_limit"] is None else "free")
                 body = {"status": "active", "plan": "free", "monthlyLimit": None, "unlimited": False} if row is None else {
-                    "status": row["status"], "plan": plan, "monthlyLimit": row["monthly_limit"], "unlimited": plan == "admin"}
+                    "status": row["status"], "plan": plan, "monthlyLimit": row["monthly_limit"], "unlimited": plan == "admin",
+                    **({"rankBonus": row["rank_bonus"]} if "rank_bonus" in row else {})}
                 return httpx.Response(ai_grant_status, json=body)
             if request.url.path.endswith("/reserve_ai_batch_request"):
                 return httpx.Response(200, json=reservation or batches.respond(body))

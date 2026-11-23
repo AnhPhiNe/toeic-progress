@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.dependencies import account
-from app.services import league
+from app.services import league, rank
 
 router = APIRouter()
 
@@ -49,6 +49,38 @@ async def league_state(request: Request, user_id: str) -> dict:
     return league.build_state(result, now=now_utc())
 
 
+async def rank_state(request: Request, user_id: str) -> dict:
+    """Xếp hạng screen: league_state plus rank, season, rewards and the five boards, in one call."""
+    result = await request.app.state.gateway.rpc("rank_state", {"p_user_id": user_id})
+    if not isinstance(result, dict):
+        raise HTTPException(503, "Chưa tải được bảng xếp hạng. Vui lòng thử lại.")
+    return rank.build_state(result, now=now_utc())
+
+
+async def _reply(request: Request, user_id: str, view: str) -> dict:
+    return await (rank_state if view == "rank" else league_state)(request, user_id)
+
+
+@router.get("/api/v1/rank")
+async def get_rank(request: Request, user=Depends(account)):
+    return await rank_state(request, user["id"])
+
+
+@router.post("/api/v1/rank/join")
+async def join_rank(body: JoinRequest, request: Request, user=Depends(account)):
+    return await _join(body, request, user, "rank")
+
+
+@router.post("/api/v1/rank/leave")
+async def leave_rank(request: Request, user=Depends(account)):
+    return await _leave(request, user, "rank")
+
+
+@router.patch("/api/v1/rank/me")
+async def update_rank(body: UpdateRequest, request: Request, user=Depends(account)):
+    return await _update(body, request, user, "rank")
+
+
 @router.get("/api/v1/league")
 async def get_league(request: Request, user=Depends(account)):
     return await league_state(request, user["id"])
@@ -56,24 +88,36 @@ async def get_league(request: Request, user=Depends(account)):
 
 @router.post("/api/v1/league/join")
 async def join_league(body: JoinRequest, request: Request, user=Depends(account)):
+    return await _join(body, request, user, "league")
+
+
+async def _join(body: JoinRequest, request: Request, user: dict, view: str) -> dict:
     try:
         nickname, coat = league.clean_nickname(body.nickname), league.clean_coat(body.coat)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     await request.app.state.gateway.rpc("league_join", {
         "p_user_id": user["id"], "p_week": league.week_start(now_utc()).isoformat(), "p_nickname": nickname, "p_coat": coat}, data_errors=True)
-    return await league_state(request, user["id"])
+    return await _reply(request, user["id"], view)
 
 
 @router.post("/api/v1/league/leave")
 async def leave_league(request: Request, user=Depends(account)):
+    return await _leave(request, user, "league")
+
+
+async def _leave(request: Request, user: dict, view: str) -> dict:
     await request.app.state.gateway.rpc("league_leave", {
         "p_user_id": user["id"], "p_week": league.week_start(now_utc()).isoformat()}, data_errors=True)
-    return await league_state(request, user["id"])
+    return await _reply(request, user["id"], view)
 
 
 @router.patch("/api/v1/league/me")
 async def update_league(body: UpdateRequest, request: Request, user=Depends(account)):
+    return await _update(body, request, user, "league")
+
+
+async def _update(body: UpdateRequest, request: Request, user: dict, view: str) -> dict:
     try:
         nickname = league.clean_nickname(body.nickname) if body.nickname is not None else None
         coat = league.clean_coat(body.coat) if body.coat is not None else None
@@ -86,4 +130,4 @@ async def update_league(body: UpdateRequest, request: Request, user=Depends(acco
         raise HTTPException(409, "Bạn chưa tham gia giải đấu.")
     await gateway.rpc("league_update", {
         "p_user_id": user["id"], "p_week": league.week_start(now_utc()).isoformat(), "p_nickname": nickname, "p_coat": coat}, data_errors=True)
-    return await league_state(request, user["id"])
+    return await _reply(request, user["id"], view)

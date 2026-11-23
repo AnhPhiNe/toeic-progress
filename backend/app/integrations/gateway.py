@@ -183,10 +183,14 @@ class Gateway:
                     or not isinstance(unlimited, bool) or (limit is not None and
                     (not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 10000))):
                 raise ValueError("Invalid AI access grant")
+            # Xếp hạng season reward for this month (older databases send none). Provider budget caps still apply per request.
+            bonus = row.get("rankBonus", 0)
+            if not isinstance(bonus, int) or isinstance(bonus, bool) or not 0 <= bonus <= 100:
+                raise ValueError("Invalid AI rank bonus")
             if unlimited:
                 return AIAccess(status, None, False, plan)
             default = self.settings.ai_plus_monthly_limit if plan == "plus" else self.settings.ai_account_monthly_limit
-            return AIAccess(status, limit if limit is not None else default, False, plan)
+            return AIAccess(status, min(10000, (limit if limit is not None else default) + bonus), False, plan)
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới dịch vụ AI; hãy thử lại hoặc lưu thủ công.") from error
 
