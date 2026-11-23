@@ -12,6 +12,18 @@ async function open(page: Page) {
 const data = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
 const dish = (page: Page, label: string) => page.getByRole('button', { name: new RegExp(`^${label}, \\d+ câu`) });
 const fire = (page: Page) => page.getByRole('button', { name: /Bật lò/ });
+/** Phones keep the Part list in a bottom sheet behind the chosen-Part card; computers show it on the counter. */
+async function openParts(page: Page) {
+  const trigger = page.getByRole('button', { name: /^Part đang chọn/ });
+  if (await trigger.count()) await trigger.click();
+}
+async function closeParts(page: Page) {
+  if (await page.getByRole('dialog', { name: 'Chọn Part' }).count()) await page.keyboard.press('Escape');
+}
+async function pick(page: Page, label: string) {
+  await openParts(page);
+  await (label === 'Mẻ tự do' ? free(page) : dish(page, label)).click();
+}
 const finish = (page: Page) => page.getByRole('button', { name: 'Xong rồi · ra lò', exact: true });
 /** Computers list the recent bakes on the page; phones keep them in a sheet behind the clock button. */
 async function recentRow(page: Page, name: RegExp) {
@@ -27,10 +39,14 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
 
     test('Part 7 bakes for its full time; saving the wrong count writes the run and its paired Part practice', async ({ page }) => {
       await open(page);
+      await openParts(page);
+      await expect(dish(page, 'Part 7')).toHaveAccessibleName('Part 7, 54 câu, 55 phút, kỷ lục chưa có');
       await dish(page, 'Part 7').click();
       await expect(page.getByRole('heading', { name: /Hôm nay nướng Part 7 nhé\?/ })).toBeVisible();
+      await openParts(page);
       await expect(dish(page, 'Part 7')).toHaveAttribute('aria-pressed', 'true');
-      await expect(dish(page, 'Part 7')).toHaveAccessibleName('Part 7, 54 câu, 55 phút, kỷ lục chưa có');
+      await closeParts(page);
+      await expect(fire(page)).toHaveText(/Bật lò · 55 phút/);
       await fire(page).click();
       await expect(clock(page, '55:00')).toBeVisible();
       await page.clock.fastForward(10000);
@@ -138,9 +154,38 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
       expect((await data(page)).pacingRuns[0]).toMatchObject({ totalQuestions: 30, correctAnswers: 26 });
     });
 
+    test('one primary says the minutes; the other ways in are quiet links; Part 5 has no mode chips', async ({ page }) => {
+      await open(page);
+      await expect(fire(page)).toHaveText(/Bật lò · 12 phút/);
+      await expect(fire(page)).toHaveCount(1);
+      await expect(page.getByRole('button', { name: /^(Chỉ ghi kết quả|Ghi kết quả)$/ })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Công thức', exact: true })).toBeVisible();
+      await expect(page.getByRole('group', { name: 'Chế độ Part 7' })).toHaveCount(0);
+      await page.getByRole('group', { name: 'Số phút', exact: true }).getByRole('button', { name: 'Thêm một phút', exact: true }).click();
+      await expect(fire(page)).toHaveText(/Bật lò · 13 phút/);
+      await pick(page, 'Part 7');
+      await expect(page.getByRole('group', { name: 'Chế độ Part 7' })).toBeVisible();
+      for (const name of [/Bật lò/, /^(Chỉ ghi kết quả|Ghi kết quả)$/, /^Công thức$/]) {
+        const box = await page.getByRole('button', { name }).first().boundingBox();
+        expect(box!.height).toBeGreaterThanOrEqual(43);
+      }
+    });
+
+    test('recent bakes show their whole title and day (no ellipsis)', async ({ page }) => {
+      await open(page);
+      await fire(page).click();
+      await page.clock.fastForward(10000);
+      await finish(page).click();
+      await page.getByRole('button', { name: 'Để sau', exact: true }).click();
+      const row = await recentRow(page, /^Part 5 · chưa chấm/);
+      await expect(row).toBeVisible();
+      const clipped = await row.locator('b, small').evaluateAll(els => els.some(el => el.scrollWidth > el.clientWidth + 1 || getComputedStyle(el).textOverflow === 'ellipsis'));
+      expect(clipped).toBe(false);
+    });
+
     test('"Ghi kết quả" opens the Part practice logger without starting a clock', async ({ page }) => {
       await open(page);
-      await dish(page, 'Part 6').click();
+      await pick(page, 'Part 6');
       await page.getByRole('button', { name: /^(Chỉ ghi kết quả|Ghi kết quả)$/ }).click();
       await expect(page.getByRole('dialog', { name: /^Ghi (điểm|buổi luyện)$/ })).toBeVisible();
       await page.keyboard.press('Escape');
@@ -185,8 +230,10 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
     test('choose a short free bake, let it finish, start the break and skip it', async ({ page }) => {
       await open(page);
       await expect(page.getByRole('button', { name: 'Pomodoro', exact: true })).toHaveCount(0);
-      await free(page).click();
+      await pick(page, 'Mẻ tự do');
+      await openParts(page);
       await expect(free(page)).toHaveAttribute('aria-pressed', 'true');
+      await closeParts(page);
       await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
       await expect(page.getByText('Học từ, nghe, shadowing… phút vẫn tính vào chuỗi.', { exact: true })).toHaveCount(1);
       const minutes = page.getByRole('group', { name: 'Số phút', exact: true });
@@ -232,7 +279,7 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
     test('the fourth bake of the day offers the long break, which ends by itself back at the case', async ({ page }) => {
       await open(page);
       await seedFocusRuns(page, 3);
-      await free(page).click();
+      await pick(page, 'Mẻ tự do');
       const less = page.getByRole('group', { name: 'Số phút', exact: true }).getByRole('button', { name: 'Bớt một phút', exact: true });
       for (let i = 0; i < 8; i++) await less.click();
       await fire(page).click();
@@ -256,6 +303,7 @@ test('the old /phong-thi link opens the bakery on Mẻ tự do', async ({ page }
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/phong-thi');
+  await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Hôm nay nướng Mẻ tự do nhé\?/ })).toBeVisible();
   await expect(free(page)).toHaveAttribute('aria-pressed', 'true');
 });
