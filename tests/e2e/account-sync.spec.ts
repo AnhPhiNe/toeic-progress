@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { emptyBundle } from '../../frontend/src/shared/data/dataBundle';
 import { openSettings } from './helpers/accountGroup';
+import { chooseMore } from './helpers/manualEntry';
 import { openScoreLogger } from './helpers/nav';
 
 /** The profile name the app currently shows in Cài đặt (the old top bar's "Cài đặt hồ sơ <tên>" button is gone). */
@@ -312,7 +313,7 @@ test('a score form left open in another tab after sign-out is refused with a not
   const fillScore = async (tab: Page, name: string) => {
     await openScoreLogger(tab);
     const form = tab.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-    await form.getByRole('button', { name: /^Tự chọn câu sai/ }).click();
+    await chooseMore(form, /^Tự chọn câu sai/);
     await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
     await form.locator('#session-test-name').fill(name);
     await form.getByLabel('Số câu sai', { exact: true }).fill('3');
