@@ -1,4 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useScenePopover, type PopData } from '@/shared/illustrations/ScenePopover';
 import type { SocMood } from '@/shared/ui/soc/socSvg';
 import { Balloon, Bush, Cloud, FlowerDots, House, Pine, Sun, Tree, Windmill } from '@/shared/illustrations/Scenery';
 import { Bridge, Coin, FlowerArch, Podium, SocSprite, Stone } from '@/shared/illustrations/Landmarks';
@@ -43,7 +44,6 @@ export interface RoadSceneProps {
   hidden?: boolean;
 }
 
-interface Pop { key: string; title: string; sub: string; action?: { label: string; run: (anchor: Element) => void }; x: number; y: number; anchor: Element }
 
 const CONFETTI = ['#ffd766', '#ff7a9c', '#46b35a', '#1c8fe3', '#a78bfa'];
 
@@ -131,36 +131,8 @@ export function RoadScene(props: RoadSceneProps) {
   }, [walkKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Popover on a coin, stone, flag or the trophy.
-  const [pop, setPop] = useState<Pop | null>(null);
-  useEffect(() => {
-    if (!pop) return;
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
-      if (e.type === 'pointerdown' && (e.target as Element).closest?.('.rr-pop, .rr-tap')) return;
-      setPop(null);
-    };
-    window.addEventListener('keydown', close);
-    window.addEventListener('pointerdown', close);
-    return () => { window.removeEventListener('keydown', close); window.removeEventListener('pointerdown', close); };
-  }, [pop]);
-  const open = (el: Element, key: string, title: string, sub: string, action?: Pop['action']) => {
-    if (pop?.key === key) { setPop(null); return; }
-    const host = boxRef.current?.getBoundingClientRect(), g = el.getBoundingClientRect();
-    if (!host) return;
-    setPop({ key, title, sub, action, anchor: el, x: g.left + g.width / 2 - host.left, y: g.top - host.top });
-  };
-  const tap = (key: string, label: string, title: string, sub: string, action?: Pop['action']) => ({
-    className: 'rr-tap il-tap', role: 'button', tabIndex: 0, 'aria-label': label, 'aria-expanded': pop?.key === key,
-    onClick: (e: { currentTarget: Element }) => open(e.currentTarget, key, title, sub, action),
-    onKeyDown: (e: ReactKeyboardEvent<SVGGElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e.currentTarget, key, title, sub, action); } }
-  });
-  const popRef = useRef<HTMLDivElement>(null);
-  const [popX, setPopX] = useState(0);
-  useLayoutEffect(() => {
-    if (!pop || !popRef.current) return;
-    const w = popRef.current.offsetWidth, hostW = boxRef.current?.clientWidth ?? 0;
-    setPopX(Math.max(w / 2 + 8, Math.min(hostW - w / 2 - 8, pop.x)));
-  }, [pop, boxRef]);
+  const popover = useScenePopover();
+  const tap = (key: string, label: string, title: string, sub: string, action?: PopData['action']) => popover.tapProps({ key, title, sub, action }, label, 'rr-tap');
 
   const goalDate = proj[stopCount] ?? null;
   const cupText = cupLabel ?? String(target);
@@ -266,10 +238,7 @@ export function RoadScene(props: RoadSceneProps) {
         </g>}
       </svg>}
 
-      {pop && <div ref={popRef} className="rr-pop" role="dialog" aria-label={pop.title} style={{ left: popX || pop.x, top: pop.y }}>
-        <b>{pop.title}</b><span>{pop.sub}</span>
-        {pop.action && <button type="button" onClick={() => { const a = pop.action!, el = pop.anchor; setPop(null); a.run(el); }}>{pop.action.label}</button>}
-      </div>}
+      {popover.node}
     </div>
   );
 }

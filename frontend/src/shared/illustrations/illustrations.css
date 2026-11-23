@@ -26,6 +26,19 @@
 .il-tap:focus-visible > .il-ring { stroke: #1c8fe3; stroke-width: 3; }
 .il-ring { fill: transparent; stroke: transparent; }
 
+.il-tap:hover > :not(.il-ring) { filter: brightness(1.05); }
+
+/* popover of a tapped scene object (ScenePopover.tsx) */
+.il-pop { position: fixed; z-index: 60; background: #fff; border-radius: 14px; padding: 10px 14px 12px; min-width: 170px; max-width: 260px;
+  box-shadow: 0 6px 0 rgba(47, 58, 51, .1), 0 0 0 2px #f0e2c8, 0 12px 28px rgba(80, 60, 30, .12); transform: translate(-50%, -100%); }
+.il-pop.is-below { transform: translate(-50%, 0); }
+.il-pop::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.il-pop.is-below::after { bottom: auto; top: -8px; border: 8px solid transparent; border-top: 0; border-bottom-color: #fff; }
+.il-pop b { display: block; font-size: 16px; font-weight: 900; color: var(--rd-ink); }
+.il-pop span { display: block; font-size: 13px; font-weight: 700; color: #6c7770; margin-top: 2px; }
+.il-pop button { margin-top: 9px; border: 0; border-radius: 11px; background: #ff7a9c; color: #fff; font: 900 13.5px var(--rd-font); padding: 7px 12px; box-shadow: 0 3px 0 #e0577d; cursor: pointer; }
+.il-pop button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+
 @media (prefers-reduced-motion: reduce) {
   .il-drift, .il-drift2, .il-float, .il-wave, .il-shimmer, .il-blades, .il-halo, .il-glint, .il-rays, .il-tw, .il-bob { animation: none !important; }
 }
