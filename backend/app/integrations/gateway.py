@@ -196,7 +196,9 @@ class Gateway:
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, "Chưa kiểm tra được quyền AI của tài khoản. Chưa gửi yêu cầu tới dịch vụ AI; hãy thử lại hoặc lưu thủ công.") from error
 
-    async def explain_ai_limit(self, user_id: str, guest: bool, ip_hash: str, user_limit: int | None = None):
+    async def explain_ai_limit(
+        self, user_id: str, guest: bool, ip_hash: str, user_limit: int | None = None, *, include_account: bool = True
+    ):
         """Learner-facing reason for a quota refusal, from the database's own bucket definitions."""
         try:
             response = await self.client.post(
@@ -205,10 +207,30 @@ class Gateway:
                 json={"p_user_id": user_id, "p_guest": guest, "p_ip_hash": ip_hash},
             )
             if response.is_success:
-                return explain_limit(quota_limits(self.settings, guest, user_limit), response.json(), datetime.now(timezone.utc))
+                return explain_limit(
+                    quota_limits(self.settings, guest, user_limit, include_account=include_account),
+                    response.json(),
+                    datetime.now(timezone.utc),
+                )
         except (httpx.HTTPError, ValueError, TypeError):
             pass
         return None
+
+    async def ai_batch_state(self, user_id: str, batch_id: str, max_chunks: int, ttl_seconds: int) -> tuple[bool, bool]:
+        """Read-only batch check before reserving shared provider budget: returns (active_open, full)."""
+        try:
+            response = await self.client.post(
+                f"{self.settings.supabase_url.rstrip('/')}/rest/v1/rpc/ai_batch_status",
+                headers=self.admin_headers(), timeout=5,
+                json={"p_user_id": user_id, "p_batch_id": batch_id, "p_max_chunks": max_chunks, "p_ttl_seconds": ttl_seconds},
+            )
+            if response.is_success:
+                row = response.json()
+                if isinstance(row, dict):
+                    return bool(row.get("active")), bool(row.get("full"))
+        except (httpx.HTTPError, ValueError, TypeError):
+            pass
+        return False, False
 
     async def verify_captcha(self, token: str | None):
         if not token or not self.settings.turnstile_secret_key:

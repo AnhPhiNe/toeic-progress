@@ -420,6 +420,8 @@ class SyncRecord(BaseModel):
                 # Null scope is meaningful: it is unknown, never zero. Keep the
                 # canonical shape so backups and older clients round-trip it.
                 self.payload["resultTiming"] = validated.resultTiming.model_dump()
+            if len(json.dumps(self.payload, ensure_ascii=False).encode()) > max_bytes:
+                raise ValueError("Bản ghi quá lớn")
         if self.updated_at.tzinfo is None or (self.deleted_at and self.deleted_at.tzinfo is None):
             raise ValueError("Thời điểm đồng bộ phải có múi giờ")
         for stamp in (self.updated_at, self.deleted_at):
@@ -482,8 +484,9 @@ class MistakeInput(BaseModel):
                 raise ValueError("Cần phương án đã chọn")
             if self.part == 2 and (self.userChoice == "D" or self.sourceAnswer == "D"):
                 raise ValueError("Part 2 chỉ có A–C")
-            if len(self.as_text()) > self.max_analysis_length:
-                raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
+            limit = 12000 if self.savedCard else self.max_analysis_length
+            if len(self.as_text()) > limit:
+                raise ValueError(f"Nội dung phân tích tối đa {limit} ký tự")
             return self
         labels = []
         for option in self.options:
@@ -908,6 +911,24 @@ class OpenAIPageExplanationOutput(OpenAIDraftOutput):
 
     def to_draft(self) -> PageMistakeDraft:
         draft = PageMistakeDraft(**self.model_dump(exclude={"ownAnswer"}), trapTip="")
+        draft.compose_trap_tip()
+        return draft
+
+
+class OpenAIPagePasteOutput(OpenAIPasteOutput):
+    """Saved long-passage card re-analyzed through freeform rawText keeps up to 8,000 chars of context."""
+
+    questionContext: str = Field(min_length=1, max_length=12002)
+    context: str | None = Field(default=None, max_length=8000)
+
+    @classmethod
+    def ai_schema(cls) -> dict:
+        schema = super().ai_schema()
+        schema["properties"]["context"] = {"type": "string", "maxLength": 8000}
+        return schema
+
+    def to_draft(self) -> PageMistakeDraft:
+        draft = PageMistakeDraft(**self.model_dump(exclude={"inputIssue", "ownAnswer"}), trapTip="")
         draft.compose_trap_tip()
         return draft
 

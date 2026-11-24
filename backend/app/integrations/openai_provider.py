@@ -21,6 +21,7 @@ from app.schemas.models import (
     OpenAIPageExplanationOutput,
     OpenAIPageItem,
     OpenAIPageOutput,
+    OpenAIPagePasteOutput,
     OpenAIPasteOutput,
     OpenAIResultsOutput,
     PageMistakeDraft,
@@ -275,7 +276,12 @@ class OpenAIProvider:
         if not isinstance(source, dict):
             source = {}
         freeform = isinstance(source.get("rawText"), str)
-        output_model = OpenAIPasteOutput if freeform else OpenAIPageExplanationOutput if pin_question else OpenAIDraftOutput
+        output_model = (
+            OpenAIPagePasteOutput if freeform and pin_question
+            else OpenAIPasteOutput if freeform
+            else OpenAIPageExplanationOutput if pin_question
+            else OpenAIDraftOutput
+        )
         schema = output_model.ai_schema()
         if source_options is not None or freeform:
             if isinstance(source, dict) and isinstance(source.get("part"), int) and not isinstance(source["part"], bool) and 1 <= source["part"] <= 7:

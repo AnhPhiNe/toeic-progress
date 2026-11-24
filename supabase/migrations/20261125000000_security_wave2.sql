@@ -116,7 +116,7 @@ do $$
 declare t text; lim integer;
 begin
   for t, lim in select * from (values ('user_profiles', 40960), ('study_sessions', 16384), ('study_session_parts', 2048),
-      ('mistakes', 49152), ('vocabulary_logs', 4096), ('pacing_runs', 8192), ('pacing_run_phases', 2048),
+      ('mistakes', 65536), ('vocabulary_logs', 4096), ('pacing_runs', 8192), ('pacing_run_phases', 2048),
       ('streak_shields', 2048)) v(t, lim) loop
     if not exists (select 1 from pg_catalog.pg_constraint where conrelid = ('public.' || t)::regclass and conname = 'extra_bounded') then
       execute format('alter table public.%I add constraint extra_bounded check (octet_length(extra::text) <= %s and private.jsonb_depth(extra) <= 8) not valid', t, lim);

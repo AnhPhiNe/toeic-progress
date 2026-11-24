@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { baselineSql, createDatabase, profile, record, uid } from './harness.mjs';
 
 const RPCS = [
+  'ai_batch_status(uuid,uuid,integer,integer)',
   'ai_quota_status(uuid,boolean,text)', 'apply_identity_carryover(uuid,text)', 'clear_account_deletion_pending(uuid)',
   'claim_explanation_question(uuid,uuid,integer,text,timestamp with time zone,uuid,uuid)',
   'finish_explanation_question(uuid,uuid,integer,uuid,jsonb)', 'get_ai_access(uuid)', 'get_ai_usage(uuid,boolean,integer)',

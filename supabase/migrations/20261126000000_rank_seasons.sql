@@ -209,6 +209,27 @@ begin
 end;
 $$;
 
+-- Align public.mistakes.extra_bounded to 64 KiB (metadata-only NOT VALID, safe on legacy rows).
+alter table public.mistakes drop constraint if exists extra_bounded;
+alter table public.mistakes add constraint extra_bounded
+  check (octet_length(extra::text) <= 65536 and private.jsonb_depth(extra) <= 8) not valid;
+
+create or replace function public.ai_batch_status(
+  p_user_id uuid, p_batch_id uuid, p_max_chunks integer default 4, p_ttl_seconds integer default 3600
+)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select coalesce(
+    (select jsonb_build_object(
+        'active', chunks < greatest(1, p_max_chunks),
+        'full', chunks >= greatest(1, p_max_chunks),
+        'chunks', chunks)
+     from public.ai_batches
+     where user_id = p_user_id and batch_id = p_batch_id
+       and created_at >= now() - make_interval(secs => greatest(1, p_ttl_seconds))),
+    jsonb_build_object('active', false, 'full', false, 'chunks', 0)
+  )
+$$;
+
 create or replace function public.sync_account_records(p_user_id uuid, p_records jsonb, p_cursor bigint default 0, p_replace boolean default false)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
@@ -894,6 +915,7 @@ returns jsonb language sql stable security definer set search_path = '' as $$
     and to_regprocedure('public.note_account_deletion_attempt(uuid,text)') is not null
     and to_regprocedure('public.league_state(uuid)') is not null
     and to_regprocedure('public.rank_state(uuid)') is not null
+    and to_regprocedure('public.ai_batch_status(uuid,uuid,integer,integer)') is not null
     and to_regprocedure('public.sync_page(uuid,bigint)') is not null
     and to_regprocedure('private.league_stars(uuid,date,timestamp with time zone)') is not null
     and to_regprocedure('private.rank_week(uuid,date,integer,integer,integer)') is not null
@@ -923,6 +945,8 @@ revoke all on function public.rank_state(uuid) from public, anon, authenticated;
 grant execute on function public.rank_state(uuid) to service_role;
 revoke all on function public.get_ai_access(uuid) from public, anon, authenticated;
 grant execute on function public.get_ai_access(uuid) to service_role;
+revoke all on function public.ai_batch_status(uuid, uuid, integer, integer) from public, anon, authenticated;
+grant execute on function public.ai_batch_status(uuid, uuid, integer, integer) to service_role;
 revoke all on function public.run_maintenance(integer, integer) from public, anon, authenticated;
 grant execute on function public.run_maintenance(integer, integer) to service_role;
 revoke all on function public.schema_ready() from public, anon, authenticated;

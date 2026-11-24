@@ -10,7 +10,7 @@ export const MAX_BACKUP_RECORDS = 10_000;
 export const MAX_RECORD_BYTES = 32_768;
 export const MAX_MISTAKE_RECORD_BYTES = 65_536;
 const utf8Encoder = new TextEncoder();
-export const jsonByteLength = (value: unknown): number => utf8Encoder.encode(JSON.stringify(value ?? null)).length;
+export const jsonByteLength = (value: unknown): number => utf8Encoder.encode(JSON.stringify(value ?? null, null, 1)).length;
 export const fitsSyncPayload = (kind: 'mistakes' | 'other', record: unknown): boolean =>
   jsonByteLength(record) <= (kind === 'mistakes' ? MAX_MISTAKE_RECORD_BYTES : MAX_RECORD_BYTES);
 const NUL = String.fromCharCode(0);
@@ -279,6 +279,8 @@ export function parseBackup(json: string): BackupParseResult {
     };
   }
   const value = parsed.data as unknown as DataBundle | LegacyContent;
+  const normalizedOversized = oversizedRecord(parsed.data as Record<string, unknown>);
+  if (normalizedOversized) return { ok: false, errors: [normalizedOversized] };
   const collections: Array<[string, Array<{ id: string }>]> = [
     ['sessions', value.sessions], ['mistakes', value.mistakes]
   ];

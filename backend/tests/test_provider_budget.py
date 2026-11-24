@@ -137,3 +137,71 @@ def test_replaying_settled_explain_batch_does_not_re_spend_provider_budget(api):
         replay = client.post("/api/v1/ai/explain-batch", json=explain_body(ticket, "88888888-8888-4888-8888-888888888888"))
         assert replay.status_code == 200
         assert len(paths(calls, "/reserve_provider_budget")) == before
+
+
+def test_exhausted_user_extract_page_does_not_burn_global_provider_budget(api):  # noqa: F811
+    batch = "55555555-5555-4555-8555-555555555555"
+    with api(
+        settings_overrides=BUDGETED,
+        quota_counters={"user:": 10},
+    ) as (client, calls):
+        res = client.post("/api/v1/ai/extract-page", json=page(batch_id=batch))
+        assert res.status_code == 429
+        assert not paths(calls, "/reserve_provider_budget")
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_active_batch_chunk2_still_succeeds_after_last_monthly_use(api):  # noqa: F811
+    batch = "55555555-5555-4555-8555-555555555555"
+    batches = BatchReservationMock()
+    batches.batches[(USER_ID, batch)] = 1  # chunk 1 already open on this batch
+    batches.account_used[USER_ID] = 1
+    with api(
+        draft={"items": [item(131)]},
+        batch_mock=batches,
+        settings_overrides=BUDGETED,
+        quota_counters={"user:": 10},  # monthly cap reached by chunk 1
+    ) as (client, calls):
+        res = client.post("/api/v1/ai/extract-page", json=page(batch_id=batch))
+        assert res.status_code == 200
+        assert len(paths(calls, "/reserve_provider_budget")) == 1
+
+
+def test_saved_card_raw_text_with_long_part7_passage_succeeds(api):  # noqa: F811
+    long_passage = ("Customer service policy regarding hotel stay refunds and voucher terms. " * 75).strip()
+    assert 4500 < len(long_passage) < 7500
+    question = "What will the guest receive under the revised hotel policy?"
+    raw = f"{question}\n(A) A free night\n(B) A partial refund\n(C) A new booking\n(D) A voucher"
+    draft = {
+        "part": 7, "category": "CARELESS_DISTRACTION", "inputIssue": "",
+        "question": question, "context": long_passage,
+        "userMistake": "(A) A free night", "correctAnswer": "(B) A partial refund",
+        "options": ["(A) A free night", "(B) A partial refund", "(C) A new booking", "(D) A voucher"],
+        "tags": ["refund"], "missingInformation": [], "answerSource": "PROVIDED",
+        "userChoice": "A", "ownAnswer": "(B) A partial refund",
+        "optionNotes": [
+            {"label": "A", "pos": "", "meaning": "đêm miễn phí", "reason": "không nêu trong thư"},
+            {"label": "B", "pos": "", "meaning": "hoàn tiền một phần", "reason": "đúng theo chính sách"},
+            {"label": "C", "pos": "", "meaning": "đặt mới", "reason": "không đề cập"},
+            {"label": "D", "pos": "", "meaning": "voucher", "reason": "không nhắc tới"},
+        ],
+        "explanation": {
+            "quickTip": "Đọc kỹ mục hoàn tiền.", "translation": "", "questionType": "Chi tiết",
+            "evidence": "", "paraphrase": "", "analysis": "Khớp đoạn chính sách.", "keyVocabulary": "",
+            "evidences": [], "words": [],
+        },
+    }
+    with api(draft=draft, settings_overrides=BUDGETED) as (client, _calls):
+        res = client.post("/api/v1/ai/extract", json={
+            "request_id": "99999999-9999-4999-8999-999999999999",
+            "text": f"{raw}\n\n{long_passage}",
+            "consent": True,
+            "provider": "openai",
+            "input": {
+                "rawText": raw, "context": long_passage, "part": 7,
+                "userChoiceState": "CHOSEN", "userChoice": "A", "sourceAnswer": "B",
+                "savedCard": True,
+            },
+        })
+        assert res.status_code == 200
+        assert len(res.json()["draft"]["context"]) == len(long_passage)

@@ -10,6 +10,14 @@ class BatchReservationMock:
         self.global_used = 0
         self.requests = set()
 
+    def status(self, body):
+        owner, batch = body["p_user_id"], body["p_batch_id"]
+        chunks = self.batches.get((owner, batch), 0)
+        max_chunks = max(1, int(body.get("p_max_chunks", 4)))
+        if chunks <= 0:
+            return {"active": False, "full": False, "chunks": 0}
+        return {"active": chunks < max_chunks, "full": chunks >= max_chunks, "chunks": chunks}
+
     def respond(self, body):
         owner, request, batch = body["p_user_id"], body["p_request_id"], body["p_batch_id"]
         if (owner, request) in self.requests:

@@ -145,13 +145,26 @@ async def reserve_ai(request: Request, user: dict, access, request_id, captcha_t
     ip_hash = gateway.ip_hash(client_address(request.scope, settings))
     if user["is_anonymous"]:
         await gateway.verify_captcha(captcha_token)
-    # Pre-check learner quota (read-only) before reserving shared provider minute/day budget
-    # so an exhausted account cannot burn the global provider_minute cap without spending a use.
-    if settings.ai_provider_budget_enabled and settings.database_ready and not unlimited and batch_id is None:
-        exhausted = await gateway.explain_ai_limit(user["id"], user["is_anonymous"], ip_hash, access.limit)
-        if exhausted is not None:
-            detail, delay = exhausted
-            raise HTTPException(429, detail, headers={"Retry-After": str(delay)} if delay else None)
+    # Pre-check batch state & learner/shared quota (read-only) before reserving shared provider budget
+    # so an exhausted account or full batch cannot burn global provider_minute/day caps without spending a use.
+    if settings.ai_provider_budget_enabled and settings.database_ready:
+        active_batch = False
+        if batch_id is not None:
+            active_batch, batch_full = await gateway.ai_batch_state(
+                user["id"], str(batch_id), AI_BATCH_MAX_REQUESTS, AI_BATCH_TTL_SECONDS
+            )
+            if batch_full:
+                raise HTTPException(
+                    429,
+                    f"Một lần chụp đọc tối đa {AI_BATCH_MAX_REQUESTS} nhóm câu. Hãy bắt đầu lần chụp mới để đọc phần còn lại.",
+                )
+        if not unlimited:
+            exhausted = await gateway.explain_ai_limit(
+                user["id"], user["is_anonymous"], ip_hash, access.limit, include_account=not active_batch
+            )
+            if exhausted is not None:
+                detail, delay = exhausted
+                raise HTTPException(429, detail, headers={"Retry-After": str(delay)} if delay else None)
     await prepay_provider_budget(request, user, access, provider_cost)
     parameters = {
         "p_user_id": user["id"],

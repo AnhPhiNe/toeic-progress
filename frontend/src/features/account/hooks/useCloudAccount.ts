@@ -104,6 +104,13 @@ export function useCloudAccount(onDataChanged: () => void) {
     if (dirty.current && initialized.current && !resetting.current) setTimeout(() => void sync(), 0);
   }, [onDataChanged, armSlow, keepWaking, markSynced, resetWake]);
 
+  const answerSignOutWarning = useCallback((proceed: boolean) => {
+    const answer = warningAnswer.current;
+    warningAnswer.current = null;
+    setSignOutWarning(null);
+    answer?.(proceed);
+  }, []);
+
   const bootstrap = useCallback(async () => {
     if (resetting.current) return;
     const run = ++generation.current;
@@ -129,6 +136,7 @@ export function useCloudAccount(onDataChanged: () => void) {
         // Keep the previous owner's stored bundle, but stop rendering it as
         // the new identity even if authentication or its first sync fails.
         deactivateAccount();
+        answerSignOutWarning(false);
         clearCaptureSessionForAccountChange();
         clearExplanationQueue();
         setEmail(null);
@@ -200,18 +208,19 @@ export function useCloudAccount(onDataChanged: () => void) {
       setError(reason instanceof Error ? reason.message : 'Không thể kết nối tài khoản.');
       setStatus(navigator.onLine ? 'error' : 'disconnected');
     }
-  }, [onDataChanged, armSlow, keepWaking, markSynced, resetWake]);
+  }, [onDataChanged, armSlow, keepWaking, markSynced, resetWake, answerSignOutWarning]);
 
   /** Stop showing and writing the account at once (signed out here or in another tab); bootstrap settles the rest. */
   const detachSignedOut = useCallback(() => {
     const shown = userId.current;
+    answerSignOutWarning(false);
     setAccountWriteEnabled(false);
     initialized.current = false;
     userId.current = null;
     if (!shown || getActiveAccountId() === shown) deactivateAccount();
     if (shown) { clearCaptureSessionForAccountChange(); clearExplanationQueue(); void clearScreenshotWatcherForOwner(shown); }
     onDataChanged();
-  }, [onDataChanged]);
+  }, [onDataChanged, answerSignOutWarning]);
 
   useEffect(() => {
     const requestEpoch = generation;
@@ -322,12 +331,6 @@ export function useCloudAccount(onDataChanged: () => void) {
     warningAnswer.current = resolve;
     setSignOutWarning({ count, userId: id });
   });
-  const answerSignOutWarning = (proceed: boolean) => {
-    const answer = warningAnswer.current;
-    warningAnswer.current = null;
-    setSignOutWarning(null);
-    answer?.(proceed);
-  };
   const signOut = async () => {
     if (!cloud) return;
     const id = userId.current ?? getActiveAccountId();
@@ -340,6 +343,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       }
       const count = unsyncedRecordCount(id);
       if (count > 0 && !await askSignOut(count, id)) return;
+      if ((userId.current && userId.current !== id) || (getActiveAccountId() && getActiveAccountId() !== id)) return;
     }
     const { error: authError } = await cloud.auth.signOut({ scope: 'local' });
     if (authError) { setError(authError.message); throw new Error(authError.message); }

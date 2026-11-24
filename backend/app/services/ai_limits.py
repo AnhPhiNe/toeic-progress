@@ -7,8 +7,13 @@ public.ai_quota_status returns them with their counts. Only the limits come from
 from datetime import datetime, timedelta, timezone
 
 
-def quota_limits(settings, guest: bool, user_limit: int | None = None) -> dict[str, int | None]:
-    account = user_limit if user_limit is not None else settings.ai_guest_limit if guest else settings.ai_account_monthly_limit
+def quota_limits(settings, guest: bool, user_limit: int | None = None, *, include_account: bool = True) -> dict[str, int | None]:
+    account = (
+        None if not include_account
+        else user_limit if user_limit is not None
+        else settings.ai_guest_limit if guest
+        else settings.ai_account_monthly_limit
+    )
     return {"guest": account, "month": account, "day": settings.ai_global_daily_limit,
             "minute": settings.ai_global_minute_limit, "ip": settings.ai_ip_daily_limit}
 

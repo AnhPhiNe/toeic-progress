@@ -246,9 +246,13 @@ export function getCurrentRankTier(highestScore: number, targetScore = 990): Ran
   return [...RANK_TIERS].reverse().find(tier => highestScore * 100 >= target * tier.minPercent) || RANK_TIERS[0];
 }
 
-// Hiệu ứng pháo hoa chúc mừng
+// Hiệu ứng pháo hoa chúc mừng (tắt worker để không phụ thuộc blob worker dưới CSP chặt)
+let celebrationFire: ((options?: confetti.Options) => unknown) | null = null;
 export function triggerCelebrationConfetti(): void {
-  confetti({
+  const fire = celebrationFire ?? (celebrationFire = typeof confetti.create === 'function'
+    ? confetti.create(undefined, { resize: true, useWorker: false })
+    : confetti);
+  void fire({
     particleCount: 120,
     spread: 80,
     origin: { y: 0.6 },

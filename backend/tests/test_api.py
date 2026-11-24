@@ -123,6 +123,8 @@ def api():
                 return httpx.Response(200, json={"found": found, "attempts": pending.get(body["p_user_id"])})
             if request.url.path.endswith("/rpc/clear_account_deletion_pending"):
                 return httpx.Response(200, json={"cleared": pending.pop(body["p_user_id"], None) is not None})
+            if request.url.path.endswith("/rpc/ai_batch_status"):
+                return httpx.Response(200, json=batches.status(body))
             if request.url.path.endswith("/rpc/reserve_batch_explain_quota"):
                 return httpx.Response(200, json=batches.reserve_explain(body))
             if request.url.path.endswith("/rpc/get_ai_access"):

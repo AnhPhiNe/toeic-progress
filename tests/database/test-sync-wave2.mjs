@@ -118,6 +118,15 @@ try {
   assert.equal(new Date(await value("select first_synced_at from public.study_sessions where id='s1'")).toISOString(), '2026-11-18T03:00:00.000Z');
   await db.query("select set_config('toeic.now','',false)");
 
+  // S-07 + Card-v2: mistakes up to 64 KiB sync cleanly through both sync_account_records and public.mistakes.extra_bounded.
+  const bigContext = 'A'.repeat(52000);
+  const bigRes = await sync(bob, [record('mistakes', 'm-big', {
+    part: 7, category: 'CARELESS_DISTRACTION', status: 'NEEDS_REVIEW', question: 'Q?', questionContext: 'Q?', context: bigContext,
+    userMistake: '(A) x', correctAnswer: '(B) y', nextReviewDate: '2026-11-25', reviewStage: 0,
+    createdAt: '2026-11-20T00:00:00Z'
+  })]);
+  assert.ok(bigRes.records.some(r => r.entity_type === 'mistakes' && r.record_id === 'm-big'), '52 KiB Card-v2 mistake must sync without hitting 48 KiB extra_bounded');
+
   // The migration is idempotent and keeps data.
   const rows = await value('select count(*)::int from public.vocabulary_logs');
   await db.exec(await readFile(new URL('20261125000000_security_wave2.sql', MIGRATIONS_DIR), 'utf8'));
