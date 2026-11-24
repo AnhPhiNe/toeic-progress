@@ -172,7 +172,17 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           onInitialFilesHandled={onInitialFilesHandled}
           desktop
           dropzone={aiFirst}
-          extraMenu={aiFirst && !minimalOpen ? [{ key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) }] : undefined}
+          extraMenu={
+            aiFirst && !minimalOpen
+              ? [{ key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) }]
+              : manualOpen
+                ? [
+                    { key: 'notes', label: notes.trim() ? 'Ghi chú (đã có)' : 'Ghi chú bài thi', pressed: showNotes, onClick: () => setShowNotes(prev => !prev) },
+                    { key: 'counts', label: 'Số câu đúng mỗi Part', onClick: onCounts },
+                    { key: 'official', label: 'Điểm chính thức ETS', onClick: onOfficial }
+                  ]
+                : undefined
+          }
           scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
@@ -265,47 +275,8 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         </div>
 
 
-        {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
-        <div className={'rounded-xl border border-[var(--rd-line)] bg-[var(--rd-soft)] p-2 items-center justify-between text-[11px] font-bold text-[#5c675f]' + (manualOpen ? 'flex' : 'hidden')}>
-          <button
-            type="button"
-            onClick={() => setShowNotes(prev => !prev)}
-            aria-label={showNotes ? 'Đóng ghi chú' : 'Thêm ghi chú'}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer ${
-              showNotes || notes.trim()
-                ? 'bg-[var(--rd-gold-l)] text-[#8a6a10] font-black'
-                : 'hover:bg-white hover:text-[var(--rd-ink)]'
-            }`}
-          >
-            <span aria-hidden="true">📝</span>
-            <span>{notes.trim() ? 'Có ghi chú' : 'Ghi chú'}</span>
-          </button>
-
-          <span className="text-[#c3cac5]" aria-hidden="true">|</span>
-
-          <div className="flex items-center gap-1.5" role="group" aria-label="Chế độ nhập khác">
-            <button
-              type="button"
-              onClick={onCounts}
-              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-[var(--rd-ink)] transition-colors"
-              title="Chuyển sang chế độ nhập số câu đúng mỗi Part"
-            >
-              Số câu đúng mỗi Part
-            </button>
-            <span className="text-[#c3cac5]" aria-hidden="true">·</span>
-            <button
-              type="button"
-              onClick={onOfficial}
-              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-[var(--rd-ink)] transition-colors"
-              title="Chuyển sang chế độ nhập điểm chính thức ETS"
-            >
-              Điểm chính thức
-            </button>
-          </div>
-        </div>
-
         {/* Ô Ghi chú mở rộng (nếu được mở hoặc đã có text) */}
-        {showNotes && (
+        {manualOpen && showNotes && (
           <div className="animate-sheet-up space-y-1">
             <div className="flex items-center justify-between text-[11px] font-bold text-[var(--rd-mut)]">
               <label htmlFor="session-notes" className="cursor-pointer">Ghi chú bài thi (tùy chọn)</label>

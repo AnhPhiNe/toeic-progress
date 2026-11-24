@@ -85,6 +85,7 @@ export interface ManualEntryFields {
   testName: string;
   sessionId?: string;
   question: string;
+  context?: string;
   options: string[];
   choice: ChoiceLetter | '';
   answer: ChoiceLetter | '';
@@ -97,13 +98,15 @@ export interface ManualEntryFields {
 /** A card typed in by hand, in the same shape the old form saved. */
 export function buildManualEntry(fields: ManualEntryFields): MistakeEntry {
   const { options, choice, answer } = fields;
+  const context = fields.context?.trim() ?? '';
   const input: Pick<MistakeInput, 'userChoiceState' | 'userChoice' | 'userReason' | 'options'> = {
     userChoiceState: choice ? 'CHOSEN' : 'UNKNOWN', userChoice: choice, userReason: fields.reason, options };
   const correct = answer ? options.find(option => option.startsWith(`(${answer})`)) ?? '' : '';
   return {
     id: fields.id ?? generateUUID(), createdAt: new Date().toISOString(), status: 'NEEDS_REVIEW', sourceTestName: fields.testName,
-    ...(fields.sessionId ? { sessionId: fields.sessionId } : {}), part: fields.part, questionContext: fields.question,
-    question: fields.question, context: '', options: options.length ? options : undefined,
+    ...(fields.sessionId ? { sessionId: fields.sessionId } : {}), part: fields.part,
+    questionContext: [fields.question, context].filter(Boolean).join('\n\n'),
+    question: fields.question, context, options: options.length ? options : undefined,
     userChoice: choice || undefined, userChoiceState: input.userChoiceState, userReason: fields.reason.trim() ? fields.reason : undefined,
     userMistake: learnerMistake(input), correctAnswer: correct, answerSource: correct ? 'PROVIDED' : 'MISSING',
     answerProvidedBy: correct ? 'SOURCE' : undefined, category: fields.category || 'OTHER',

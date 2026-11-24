@@ -7,6 +7,7 @@ import { goalLabel } from '@/features/today/lib/goalSetup';
 import { daysUntil as localDaysUntil } from '@/features/journey/lib/scoreJourney';
 import { getTodayDateString } from '@/shared/data/storage';
 import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
+import { DateField } from '@/shared/components/DateField';
 import { SettingsGoalEditor } from './SettingsGoalEditor';
 import './account.css';
 
@@ -154,7 +155,7 @@ function EditSheet({ field, profile, accountPanel, onSave, onClose }: {
           </div>
         </>}
 
-        {field === 'examDate' && <input type="date" aria-label="Chọn ngày thi" value={text} onChange={event => setText(event.target.value)} className="st-text mt-4" />}
+        {field === 'examDate' && <DateField ariaLabel="Chọn ngày thi" value={text} min={getTodayDateString()} onChange={setText} className="st-text mt-4" />}
         {field === 'motto' && <textarea aria-label="Châm ngôn" rows={3} value={text} onChange={event => setText(event.target.value)} placeholder="Ví dụ: Mỗi ngày một đề" className="st-text mt-4" />}
         {field === 'account' && <>
           <label className="st-label mt-4">Tên học viên

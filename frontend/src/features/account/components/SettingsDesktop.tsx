@@ -9,6 +9,7 @@ import { examDateLabel, examState } from '@/features/today/lib/goalEdit';
 import { localDate } from '@/features/pacing/lib/pacingModel';
 import { PencilIcon } from '@/features/today/components/goal/GoalEditor';
 import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
+import { DateField } from '@/shared/components/DateField';
 import { SettingsGoalEditor, SETTINGS_GOAL_POPOVER_ID } from './SettingsGoalEditor';
 
 /** Fields a desktop tile (or the header) edits on its own; "account" is the account popover. */
@@ -180,7 +181,7 @@ function DateEditor({ value, onSave, onClose }: { value: string; onSave: SaveFie
   return <>
     <h4 className="stb-pop__h">Ngày thi</h4>
     <p className="st-note">Hôm nay đếm ngược tới ngày này. Không bắt buộc.</p>
-    <input type="date" aria-label="Ngày thi" value={date} min={localDate(Date.now())} onChange={e => setDate(e.target.value)} className="st-text mt-3" />
+    <DateField ariaLabel="Ngày thi" value={date} min={localDate(Date.now())} onChange={setDate} className="st-text mt-3" />
     <EditorActions error={error} onCancel={onClose} onSave={() => commit(date)}
       extra={value ? <button type="button" className="st-btn st-btn--quiet stb-acts__left" onClick={() => commit('')}>Bỏ ngày thi</button> : undefined} />
   </>;

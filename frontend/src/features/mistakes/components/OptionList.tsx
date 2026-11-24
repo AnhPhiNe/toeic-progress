@@ -54,18 +54,18 @@ export const OptionList: React.FC<OptionListProps> = ({
           )}
         </>
       );
-      const className = `w-full text-left rounded-[10px] border-[1.5px] flex items-start gap-2.5 text-slate-900 dark:text-slate-100 ${
-                large ? 'px-3.5 py-3 text-base leading-relaxed' : 'px-3 py-2 text-sm'
+      const className = `w-full text-left rounded-2xl border-2 flex items-start gap-2.5 text-[var(--rd-ink)] ${
+        large ? 'px-3.5 py-3 text-base leading-relaxed' : 'px-3 py-2 text-sm'
       } ${
         tone === 'right'
-          ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40'
+          ? 'border-[#a9deb2] bg-[#e9f7ec]'
           : tone === 'wrong'
-            ? 'border-rose-400 bg-rose-50 dark:border-rose-700 dark:bg-rose-950/40'
-            : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/60'
+            ? 'border-[#ffc2d1] bg-[#ffeef2]'
+            : 'border-[#efeae4] bg-white'
       }`;
       return onSelect ? (
         <button key={index} type="button" onClick={() => onSelect(index)}
-          className={`${className} cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600`}>
+          className={`${className} cursor-pointer hover:border-[#ffc2d1] hover:bg-[#fff8fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--rd-blue)]`}>
           {body}
         </button>
       ) : (

@@ -5,6 +5,6 @@ export function mistakeInstructions(part: number | null): { label: string; hint:
   if (part === 3 || part === 4) return { label: 'Câu hỏi + phương án', hint: 'Dán một câu hỏi kèm phương án.' };
   if (part === 5) return { label: 'Câu hỏi + phương án', hint: 'Dán một câu có chỗ trống và bốn phương án A–D.' };
   if (part === 6) return { label: 'Câu hỏi + phương án', hint: 'Dán câu cần xét kèm phương án. Đoạn đọc thêm ở khung bên dưới.' };
-  if (part === 7) return { label: 'Câu hỏi + phương án', hint: 'Dán một câu hỏi kèm phương án. Bài đọc thêm bằng chữ hoặc ảnh ở khung bên dưới.' };
+  if (part === 7) return { label: 'Câu hỏi + phương án', hint: 'Dán một câu hỏi kèm phương án. Bài đọc thêm ở khung bên dưới.' };
   return { label: 'Câu hỏi + phương án', hint: 'Chọn Part trước khi phân tích hoặc lưu. Mỗi lần ghi một câu lỗi sai.' };
 }

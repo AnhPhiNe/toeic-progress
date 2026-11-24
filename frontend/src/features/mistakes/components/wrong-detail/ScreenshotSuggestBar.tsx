@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, ClipboardPaste, FolderSearch, ImageIcon, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { useScreenshotWatcher } from '@/features/mistakes/hooks/useScreenshotWatcher';
 import './screenshot-bar.css';
@@ -16,6 +17,8 @@ interface Props {
   onPick?: () => void;
   /** Ghi điểm: one "Cách khác" menu holds these items plus paste and the folder watcher. */
   menuItems?: Array<{ key: string; label: string; pressed?: boolean; disabled?: boolean; onClick: () => void }>;
+  /** Horizontal alignment of the "Cách khác" dropdown relative to its trigger button. */
+  menuAlign?: 'left' | 'right';
 }
 
 /**
@@ -23,19 +26,66 @@ interface Props {
  * - Universal 1-click "Dán ảnh vừa chụp" (Clipboard API, zero folder permission required).
  * - Optional Chrome/Edge "Tự nhận nhiều ảnh chụp" (Zalo-style thumbnail strip with privacy checkboxes).
  */
-export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles, quick = false, onPick, menuItems }: Props) {
+export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'vào khay', maxAdd, onAddFiles, quick = false, onPick, menuItems, menuAlign = 'left' }: Props) {
   const watcher = useScreenshotWatcher(enabled);
   const [explainerOpen, setExplainerOpen] = useState(false);
   // Track manually unchecked items so newly discovered screenshots start checked without re-checking user-unticked ones.
   const [uncheckedKeys, setUncheckedKeys] = useState<Set<string>>(() => new Set());
   const [pasting, setPasting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+  const menuId = useId();
   const menuBox = useRef<HTMLDivElement>(null);
+  const menuPop = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!menuOpen) return;
+    const place = () => {
+      const rect = menuBox.current?.getBoundingClientRect();
+      if (!rect) return;
+      const vw = window.innerWidth || 1024;
+      const vh = window.innerHeight || 768;
+      const width = Math.min(284, vw - 24);
+      const spaceBelow = vh - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+      const rawLeft = menuAlign === 'right' ? rect.right - width : rect.left;
+      const left = Math.max(12, Math.min(rawLeft, vw - width - 12));
+      setMenuStyle(openUp
+        ? { left, bottom: vh - rect.top + 6, width, maxHeight: Math.min(340, Math.max(160, spaceAbove - 6)) }
+        : { left, top: rect.bottom + 6, width, maxHeight: Math.min(340, Math.max(160, spaceBelow - 6)) });
+    };
+    place();
+    window.addEventListener('resize', place);
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && menuPop.current?.contains(event.target)) return;
+      place();
+    };
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, [menuOpen, menuAlign]);
+
   useEffect(() => {
     if (!menuOpen) return;
-    const close = (event: MouseEvent) => { if (!menuBox.current?.contains(event.target as Node)) setMenuOpen(false); };
+    const close = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!menuBox.current?.contains(target) && !menuPop.current?.contains(target)) setMenuOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setMenuOpen(false);
+      }
+    };
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', onKey, true);
+    };
   }, [menuOpen]);
 
   useEffect(() => {
@@ -98,11 +148,11 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
   const menuRow = menuItems && (
     <div className="ssb-row">
       <div className="ssb-more" ref={menuBox}>
-        <button type="button" className={'ssb-more-b' + (menuOpen ? ' is-open' : '')} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
+        <button type="button" className={'ssb-more-b' + (menuOpen ? ' is-open' : '')} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} onClick={() => setMenuOpen(value => !value)}>
           Cách khác <ChevronDown className="h-4 w-4" aria-hidden="true" />
         </button>
-        {menuOpen && (
-          <div className="ssb-menu" role="menu" aria-label="Cách khác">
+        {menuOpen && createPortal(
+          <div ref={menuPop} id={menuId} data-modal-owner={menuId} className="rd ssb-menu" style={menuStyle} role="menu" aria-label="Cách khác">
             {menuItems.map(item => (
               <button key={item.key} type="button" role={item.pressed !== undefined ? 'menuitemcheckbox' : 'menuitem'} disabled={item.disabled} aria-checked={item.pressed === undefined ? undefined : item.pressed}
                 className={'ssb-mi' + (item.pressed ? ' is-on' : '')} onClick={() => { setMenuOpen(false); item.onClick(); }}>
@@ -113,7 +163,8 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
             {watcher.status !== 'unsupported' && (
               <button type="button" role="menuitem" className="ssb-mi" disabled={disabled} onClick={() => { setMenuOpen(false); folderRun(); }}><span>{folderLabel}</span></button>
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
       {watcher.status === 'watching' && <span className="ssb-watch" role="status"><span className="ssb-dot" aria-hidden="true" /><span>Đang theo dõi thư mục</span></span>}

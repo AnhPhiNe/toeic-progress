@@ -8,6 +8,7 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import type { AIConfiguration, AIUsage } from '@/features/mistakes/services/aiMistakeExtractor';
 import { CHOICE_LETTERS, inferPart, parsePastedQuestion, type ChoiceLetter } from '@/features/mistakes/lib/mistakeInput';
+import { fitsSyncPayload } from '@/features/mistakes/lib/explanationMerge';
 import { CATEGORY_CHOICES } from '@/features/mistakes/lib/categoryChoices';
 import { normalizeTestName } from '@/features/mistakes/lib/sourceTests';
 import { buildManualEntry, latestTestName, questionsToFind, sessionIdForTest } from '@/features/mistakes/lib/captureContext';
@@ -41,6 +42,7 @@ const PARTS = [5, 6, 7] as const;
 /** "Tự gõ một câu": paste a question from the test, tick what you chose and the key. Several numbered questions become a review list. */
 export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, initialTestName = '', initialRaw = '', onClose, onAdd, onAddBatch, onUpdate, onExplain, onSaved }: Props) {
   const [raw, setRaw] = useState(() => initialRaw);
+  const [context, setContext] = useState('');
   const [part, setPart] = useState<MistakeEntry['part']>(5);
   const [partTouched, setPartTouched] = useState(false);
   const [testName, setTestName] = useState(() => normalizeTestName(initialTestName) || latestTestName(sessions) || sourceSuggestions[0] || '');
@@ -65,12 +67,12 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
   const letters = CHOICE_LETTERS.filter(letter => !parsed || parsed.error || parsed.options.some(option => option.startsWith(`(${letter})`)));
   const aiReady = Boolean(config?.structuredInput) && access?.enabled !== false;
 
-  const draftValue: ManualDraft = { raw, part, partTouched, testName, choice, answer, reason, category, more };
+  const draftValue: ManualDraft = { raw, context, part, partTouched, testName, choice, answer, reason, category, more };
   const draft = useFormDraft({
-    scope: 'manual-question', value: draftValue, meaningful: Boolean(raw.trim()), validate: parseManualDraft,
+    scope: 'manual-question', value: draftValue, meaningful: Boolean(raw.trim() || context.trim()), validate: parseManualDraft,
     restore: value => {
       if (initialRaw) return;
-      setRaw(value.raw); setPart(value.part as MistakeEntry['part']); setPartTouched(value.partTouched); setTestName(value.testName || testName);
+      setRaw(value.raw); setContext(value.context ?? ''); setPart(value.part as MistakeEntry['part']); setPartTouched(value.partTouched); setTestName(value.testName || testName);
       setChoice(value.choice); setAnswer(value.answer); setReason(value.reason); setCategory(value.category); setMore(value.more);
     }
   });
@@ -119,8 +121,9 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
     if (getActiveAccountId() !== owner) { setError('Tài khoản đã thay đổi. Chưa lưu câu sai.'); return; }
     setSaving(true); setError('');
     try {
-      const entry = buildManualEntry({ part: effectivePart, testName, sessionId: sessionIdForTest(sessions, testName), question: parsed.question, options: parsed.options, choice, answer, reason, category, tags: '' });
-      if (new TextEncoder().encode(JSON.stringify(entry)).byteLength > 32768) throw new Error('Thẻ vượt giới hạn 32 KiB. Rút gọn câu hỏi/đoạn trích trước khi lưu; bản nháp được giữ.');
+      const cardContext = effectivePart >= 6 ? context.trim() : '';
+      const entry = buildManualEntry({ part: effectivePart, testName, sessionId: sessionIdForTest(sessions, testName), question: parsed.question, context: cardContext, options: parsed.options, choice, answer, reason, category, tags: '' });
+      if (!fitsSyncPayload(entry)) throw new Error('Thẻ vượt giới hạn 64 KiB. Rút gọn câu hỏi/đoạn văn trước khi lưu; bản nháp được giữ.');
       onAdd(entry);
       finish(aiReady ? 'Đã lưu, Sóc đang viết lời giải…' : 'Đã lưu ghi chú. Mở thẻ để nhờ Sóc giải thích khi AI sẵn sàng.', entry);
     } catch (reason) {
@@ -164,7 +167,7 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
           <div className="cap-body">
             <ReviewList items={items} unsureLabel="Chưa chọn đáp án" onToggle={id => setItems(list => list!.map(item => item.id === id ? { ...item, checked: !item.checked } : item))}
               onPatch={(id, patch) => setItems(list => list!.map(item => item.id === id ? { ...item, ...patch } : item))}
-              onRemove={id => setItems(list => list!.filter(item => item.id !== id))} />
+              onRemove={id => setItems(list => { const next = list!.filter(item => item.id !== id); return next.length ? next : null; })} />
             {error && <p role="alert" className="cap-error">{error}</p>}
           </div>
           <div className="cap-foot">
@@ -193,6 +196,13 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
             {multi
               ? <p className="cap-note" role="status">Sóc thấy {blocks.length} câu trong đoạn dán (câu {blocks.map(block => block.number).join(', ')}). Bấm “Soát {blocks.length} câu” để kiểm tra từng câu.</p>
               : rawSeen && parsed?.error && <p id="man-raw-error" className="cap-note is-warn" role="status">{parsed.error}</p>}
+            {!multi && effectivePart >= 6 && (
+              <>
+                <div className="cap-lbl"><label htmlFor="man-context">Đoạn văn</label><small>không bắt buộc, giúp Sóc giải thích chính xác hơn</small></div>
+                <textarea id="man-context" className="cap-ta is-ctx" value={context} rows={3} maxLength={8000} spellCheck={false}
+                  placeholder="Dán email, thông báo hoặc đoạn đọc liên quan…" onChange={event => { setContext(event.target.value); setError(''); }} />
+              </>
+            )}
             {!multi && <>
               {chips('Mình chọn', 'me', choice, setChoice)}
               {chips('Đáp án đúng', 'ok', answer, setAnswer)}
@@ -222,7 +232,7 @@ export function ManualQuestionModal({ sessions, mistakes, sourceSuggestions, ini
             <span className="cap-foot-note is-dim" role="status">{draft.state === 'unavailable' ? 'Chưa tự lưu được nháp. Giữ cửa sổ này mở để tránh mất nội dung.' : 'Nháp tự lưu trên máy này'}</span>
             {multi
               ? <button type="button" className="rd-btn rd-btn--pink" onClick={review}>Soát {blocks.length} câu</button>
-              : <button type="button" className="rd-btn rd-btn--pink" disabled={saving} onClick={saveOne}>Lưu, Sóc giải thích giúp</button>}
+              : <button type="button" className="rd-btn rd-btn--pink" disabled={saving} onClick={saveOne}>{aiReady ? 'Lưu, Sóc giải thích giúp' : 'Lưu vào Sổ tay'}</button>}
           </div>
         </>}
       </div>

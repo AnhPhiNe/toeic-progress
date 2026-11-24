@@ -47,9 +47,9 @@ export const ExplanationView: React.FC<ExplanationViewProps> = ({
   return (
     <div className="space-y-3">
       {tip && (
-        <div className="flex gap-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/40 px-3.5 py-3 text-base leading-relaxed text-slate-900 dark:text-amber-50">
-          <Lightbulb className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p><span className="font-bold">Mẹo 10s:</span> {tip}</p>
+        <div className="flex gap-2.5 rounded-2xl bg-[#fff4dc] px-4 py-3 text-[15.5px] leading-relaxed text-[#3d3a2e]">
+          <Lightbulb className="w-4 h-4 mt-1 shrink-0 text-[#b07400]" />
+          <p><span className="font-black text-[#9a6200]">Mẹo 10s:</span> {tip}</p>
         </div>
       )}
       {(collapsible && hasDetails) || actions ? (

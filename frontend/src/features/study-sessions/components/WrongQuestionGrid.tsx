@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { PhoneSheet } from '@/app/components/phone';
 import { Soc } from '@/shared/ui/soc/Soc';
-import { Camera, ImagePlus, Layers, Plus, Sparkles } from 'lucide-react';
+import { Camera, ImagePlus, Plus, Sparkles } from 'lucide-react';
 import { generateUUID } from '@/shared/domain/uuid';
 import { fileExifOrientation, prepareResultImages, MAX_RESULT_IMAGES } from '@/features/mistakes/lib/imageInput';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
@@ -174,7 +174,7 @@ export function ResultImageButton({
   /** Computer AI-first view: one large paste/drop area instead of two small buttons. */
   dropzone?: boolean;
   /** Ghi điểm desktop: extra "Cách khác" items (e.g. Tự chọn câu sai). */
-  extraMenu?: Array<{ key: string; label: string; onClick: () => void }>;
+  extraMenu?: Array<{ key: string; label: string; pressed?: boolean; disabled?: boolean; onClick: () => void }>;
   /** With a summary on screen the drop area shrinks to one line so the next actions stay in view. */
   compactDrop?: boolean;
   /** Summary supplies its own frame; no score-entry rows are added under it. */
@@ -612,9 +612,9 @@ export function ResultImageButton({
           {moreOpen && <PhoneSheet title="Cách khác" onClose={() => setMoreOpen(false)}><div ref={setSlot} className="pl-more-slot" /></PhoneSheet>}
         </>
       )}
-      {place(<>{!isTyping && !needsSignIn && (
+      {place(<>{!isTyping && !needsSignIn && (!desktop || clarityWarn) && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {!(desktop && dropzone) && <button
+          {!desktop && <button
             type="button"
             disabled={busy}
             aria-pressed={photoMode}
@@ -628,20 +628,6 @@ export function ResultImageButton({
             </span>
             <span>Phiếu tô giấy</span>
           </button>}
-          {desktop && !dropzone && !photoMode && staged.length === 0 && (
-            <button
-              type="button"
-              disabled={busy}
-              aria-pressed={multiStage}
-              onClick={() => { triggerHaptic(4); setMultiStage(value => !value); }}
-              className={'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-extrabold transition-colors ' + (multiStage
-                ? 'border-[var(--rd-violet)] bg-[var(--rd-violet-l)] text-[var(--rd-violet-d)]'
-                : 'border-[var(--rd-line)] bg-white text-[#5c675f] hover:bg-[var(--rd-soft)]')}
-            >
-              <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>Ghép nhiều ảnh</span>
-            </button>
-          )}
           {!desktop && (
             <button
               type="button"
@@ -771,12 +757,14 @@ export function ResultImageButton({
           addVerb="kết quả"
           maxAdd={stagingActive ? Math.max(0, MAX_RESULT_IMAGES - staged.length) : MAX_RESULT_IMAGES}
           onAddFiles={picked => handleIncomingFiles(picked)}
-          menuItems={dropzone ? [
+          menuAlign={!dropzone ? 'right' : 'left'}
+          menuItems={[
+            ...(!dropzone ? [{ key: 'pick-image', label: 'Chọn ảnh kết quả', disabled: busy, onClick: () => input.current?.click() }] : []),
             { key: 'paper', label: 'Phiếu tô giấy', pressed: photoMode, disabled: busy, onClick: () => { triggerHaptic(4); setPhotoMode(value => !value); } },
             ...(!photoMode && staged.length === 0 ? [{ key: 'multi', label: 'Ghép nhiều ảnh', pressed: multiStage, disabled: busy, onClick: () => { triggerHaptic(4); setMultiStage(value => !value); } }] : []),
             ...(compactDrop ? [{ key: 'again', label: 'Chọn ảnh khác', disabled: busy, onClick: () => input.current?.click() }] : []),
             ...(extraMenu ?? [])
-          ] : undefined}
+          ]}
         />
       )}
       {!phone && <p className={'mt-2 text-xs leading-5 text-[var(--rd-mut)]' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>}

@@ -5,6 +5,7 @@ const letter = z.enum(['A', 'B', 'C', 'D', '']);
 /** What "Tự gõ một câu" keeps on this device while the learner types. */
 export const manualDraftSchema = z.object({
   raw: z.string().max(64 * 1024),
+  context: z.string().max(16 * 1024).optional().default(''),
   part: z.number().int().min(5).max(7),
   partTouched: z.boolean(),
   testName: z.string().max(300),

@@ -1,42 +1,41 @@
-import type { ReactNode } from 'react';
-
-export function MistakeContextInput({ part, mode, text, busy, onMode, onText, reuseLabel, onReset, images }: {
+export function MistakeContextInput({ part, text, busy, onText, reuseLabel, onReset }: {
   part: number | null;
-  mode: 'text' | 'image';
   text: string;
   busy: boolean;
-  onMode: (mode: 'text' | 'image') => void;
   onText: (text: string) => void;
   reuseLabel?: string;
   onReset: () => void;
-  images: ReactNode;
 }) {
-  // Listening (Part 1–4) keeps only the reason, error type and an optional note: no picture or transcript box.
+  // Listening (Part 1–4) keeps only the reason, error type and an optional note: no passage box.
   if (part === null || part <= 4) return null;
   const label = part === 5 ? 'Ngữ cảnh' : 'Đoạn đọc';
-  // Part 6/7 passages may come as text or as up to MAX_CONTEXT_IMAGES screenshots.
-  const passage = part === 6 || part === 7;
-  const showImages = passage && mode === 'image';
-  const content = <>
-    {reuseLabel && <div className="flex items-center justify-between gap-3 text-xs">
-      <span className="font-semibold text-blue-700 dark:text-blue-300">{reuseLabel}</span>
-      <button type="button" disabled={busy} onClick={onReset} className="min-h-10 shrink-0 font-semibold text-blue-600 dark:text-blue-400">Đổi bài đọc</button>
-    </div>}
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      {showImages ? <span className="text-sm font-bold">{label}</span> : <label htmlFor="mistake-context" className="text-sm font-bold">{label}</label>}
-      {passage && <div role="group" aria-label="Loại ngữ cảnh" className="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
-        {(['text', 'image'] as const).map(value => <button key={value} type="button" aria-pressed={mode === value} disabled={busy}
-          onClick={() => onMode(value)} className={`min-h-10 rounded-md px-3 text-xs font-semibold ${mode === value ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>{value === 'text' ? 'Văn bản' : 'Ảnh'}</button>)}
-      </div>}
-    </div>
-    {showImages ? images : <textarea id="mistake-context" disabled={busy} value={text} maxLength={16000}
-      onChange={event => onText(event.target.value)} rows={2}
-      placeholder={part === 5 ? 'Thêm ngữ cảnh nếu câu hỏi cần…' : 'Dán bài đọc, email hoặc các đoạn văn liên quan…'}
-      className="min-h-[64px] w-full resize-y rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-base leading-relaxed placeholder:text-slate-400 focus:outline-2 focus:outline-blue-500 dark:border-slate-700 dark:bg-slate-900" />}
-  </>;
-  const classes = 'space-y-1.5 rounded-xl border border-slate-200 px-3 py-1.5 dark:border-slate-700';
-  return part === 5 ? <details open={text.trim() ? true : undefined} className={classes}>
-    <summary className="cursor-pointer py-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Ngữ cảnh<span className="ml-1 text-xs font-semibold text-slate-400 dark:text-slate-500">không bắt buộc</span></summary>
-    <div className="space-y-2">{content}</div>
-  </details> : <section aria-label={`Khu vực ${label.toLowerCase()}`} className={classes}>{content}</section>;
+  const content = (
+    <>
+      {reuseLabel && (
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <span className="font-extrabold text-[var(--rd-pink-d)]">{reuseLabel}</span>
+          <button type="button" disabled={busy} onClick={onReset} className="rdm-link is-quiet shrink-0">Đổi bài đọc</button>
+        </div>
+      )}
+      <label htmlFor="mistake-context" className="rdm-lab">{label}</label>
+      <textarea
+        id="mistake-context"
+        disabled={busy}
+        value={text}
+        maxLength={16000}
+        onChange={event => onText(event.target.value)}
+        rows={part === 5 ? 2 : 3}
+        placeholder={part === 5 ? 'Thêm ngữ cảnh nếu câu hỏi cần…' : 'Dán bài đọc, email hoặc các đoạn văn liên quan…'}
+        className="rdm-in min-h-[72px] w-full resize-y"
+      />
+    </>
+  );
+  return part === 5 ? (
+    <details open={text.trim() ? true : undefined} className="rdm-ctx">
+      <summary>Ngữ cảnh<span className="rdm-opt">không bắt buộc</span></summary>
+      <div className="mt-2 space-y-2">{content}</div>
+    </details>
+  ) : (
+    <section aria-label={`Khu vực ${label.toLowerCase()}`} className="rdm-ctx space-y-2">{content}</section>
+  );
 }

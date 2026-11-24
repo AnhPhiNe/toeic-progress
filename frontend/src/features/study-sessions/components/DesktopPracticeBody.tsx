@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { PracticePartResult } from '@/shared/types';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
+import { DateField } from '@/shared/components/DateField';
 import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 
 type Part = PracticePartResult['part'];
@@ -123,8 +124,8 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
             </div>
             <div className="sm:col-span-3">
               <label htmlFor="session-date" className="mb-1 block text-xs font-bold text-[#5c675f]">Ngày luyện</label>
-              <input id="session-date" type="date" required max={today} value={date} onChange={e => setDate(e.target.value)}
-                className={`w-full rounded-xl px-3 py-1.5 text-sm ${FIELD}`} />
+              <DateField id="session-date" required max={today} value={date} onChange={setDate}
+                className={`w-full rounded-xl px-3 py-1.5 text-sm font-bold ${FIELD}`} />
             </div>
             <div className="sm:col-span-3">
               <label htmlFor="session-duration" className="mb-1 block text-xs font-bold text-[#5c675f]">Thời gian làm (phút)</label>

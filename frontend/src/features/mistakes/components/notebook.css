@@ -15,11 +15,11 @@
 @media (max-width: 767px) {
   .notebook-feedback-region { bottom: calc(5rem + env(safe-area-inset-bottom)); right: 16px; width: calc(100vw - 32px); }
 }
-.notebook-feedback { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid #0f172a; border-radius: 12px; background: #fff; color: #0f172a; box-shadow: 3px 3px 0 #0f172a; pointer-events: auto; }
-.notebook-feedback .study-success-mark { width: 32px; height: 32px; border-radius: 9px; }
+.notebook-feedback { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 0; border-radius: 18px; background: #fff; color: var(--rd-ink, #2f3a33); font-family: var(--rd-font, inherit); box-shadow: 0 12px 34px rgba(47, 58, 51, .16), 0 0 0 2px #efeae4; pointer-events: auto; }
+.notebook-feedback .study-success-mark { width: 32px; height: 32px; border-radius: 10px; }
 .notebook-feedback .study-success-mark svg { width: 19px; height: 19px; }
-.notebook-feedback.is-error { color: #be123c; }
-.dark .notebook-feedback { border-color: #cbd5e1; background: #121a2b; color: #f1f5f9; box-shadow: 3px 3px 0 #cbd5e1; }
+.notebook-feedback.is-error { color: #b92d57; box-shadow: 0 12px 34px rgba(185, 45, 87, .16), 0 0 0 2px #ffc2d1; background: #fff8fa; }
+.dark .notebook-feedback { background: #121a2b; color: #f1f5f9; box-shadow: 0 12px 34px rgba(0, 0, 0, .4), 0 0 0 2px #334155; }
 .dark .notebook-feedback.is-error { color: #fda4af; }
 @media (pointer: coarse) {
   .notebook-view .notebook-menu-trigger { min-width: 44px; min-height: 44px; }

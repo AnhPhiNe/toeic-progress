@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { PhoneAvatarButton } from '@/app/components/phone';
+import { PhoneAvatarButton, PhoneSheet } from '@/app/components/phone';
 import { PageTip } from '@/features/guide/PageTip';
 import type { MistakeUndoAction } from '../lib/mistakeUndo';
-import type { MistakeEntry, StudySession } from '@/shared/types';
+import { ERROR_CATEGORY_LABELS, type ErrorCategory, type MistakeEntry, type StudySession } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { isBlankDraft, isRetiredDraft } from '@/features/mistakes/lib/mistakeDrafts';
 import { groupDetailAttempts } from '@/features/mistakes/lib/detailGroups';
 import { waitingTests } from '@/features/mistakes/lib/wrongDetail';
 import { WrongDetailFlow } from './wrong-detail/WrongDetailFlow';
 import { DraftWaitRow } from './wrong-detail/DraftWaitRow';
-import { mistakeTestName, testNameKey } from '@/features/mistakes/lib/sourceTests';
+import { mistakeTestName, testNameKey, uniqueTestNames } from '@/features/mistakes/lib/sourceTests';
 import { questionSnippet } from '@/features/mistakes/lib/questionSnippet';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { isDueForReview, canReview, reviewBatch } from '@/features/mistakes/lib/spacedRepetition';
@@ -27,6 +27,7 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { MistakeEntryModal } from './MistakeEntryModal';
+import { ManualQuestionModal } from './ManualQuestionModal';
 import { categoryShort, rowReviewLabel } from './MistakeDetail';
 import { CardDetailPhone } from './phone/CardDetailPhone';
 import { savedVocabulary, toggleSavedWord, withSavedWords, withoutSavedWord } from '@/features/mistakes/lib/savedWords';
@@ -67,12 +68,15 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: NotebookPhoneProps) {
   const [tab, setTab] = useState<Tab | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [term, setTerm] = useState('');
   const [part, setPart] = useState<number | null>(initialPart ?? null);
+  const [category, setCategory] = useState<ErrorCategory | null>(null);
   const [testKey, setTestKey] = useState<string | null>(initialSourceNames?.length ? 'SCOPE' : null);
   const [shown, setShown] = useState(STEP);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [captureOpen, setCaptureOpen] = useState(Boolean(createRequest && !createRequest.detailSessionId));
+  const [manualOpen, setManualOpen] = useState(false);
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>(undefined);
   const [editorVersion, setEditorVersion] = useState(0);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(createRequest?.detailSessionId ?? null);
@@ -93,14 +97,19 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   // Number-only drafts of a logged test wait in one row (Gỡ câu sai), out of the list and its counts; a draft with any
   // content is a card like the others.
   const reviewable = useMemo(() => sourced.filter(m => !isBlankDraft(m)), [sourced]);
+  const filterSourceNames = useMemo(() => uniqueTestNames([...sourced.map(m => m.sourceTestName), ...(initialSourceNames ?? [])]), [sourced, initialSourceNames]);
+  const partsPresent = useMemo(() => [...new Set(sourced.map(m => m.part))].sort((a, b) => a - b), [sourced]);
   const matching = useMemo(() => {
     return reviewable.filter(m => matchesSearch(m, term)
       && (part === null || m.part === part)
-      && (testKey === null || (testKey === 'SCOPE' ? scopeKeys.has(testNameKey(m.sourceTestName)) : testNameKey(m.sourceTestName) === testKey)));
-  }, [reviewable, term, part, testKey, scopeKeys]);
+      && (category === null || m.category === category)
+      && (testKey === null || (testKey === 'SCOPE' ? scopeKeys.has(testNameKey(m.sourceTestName))
+        : testKey === 'NONE' ? !m.sourceTestName : testNameKey(m.sourceTestName) === testKey)));
+  }, [reviewable, term, part, category, testKey, scopeKeys]);
   const due = useMemo(() => matching.filter(m => isDueForReview(m)), [matching]);
   const mastered = useMemo(() => matching.filter(m => m.status === 'MASTERED' && canReview(m)), [matching]);
-  const filtered = Boolean(term.trim()) || part !== null || testKey !== null;
+  const pickedFilterCount = Number(part !== null) + Number(testKey !== null) + Number(category !== null);
+  const filtered = Boolean(term.trim()) || pickedFilterCount > 0;
   const savedWordsList = useMemo(() => savedVocabulary(sourced), [sourced]);
   const summary = dueSummary(due);
   const reviewCount = filtered ? summary.count : dueCount;
@@ -218,12 +227,44 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
         onReview={ids => onStartReview(ids)}
         onClose={saved => { setDetailSessionId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {captureOpen && <CapturePhone sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions} initialTestName={defaultTestName} getToken={getToken}
-        onClose={() => { closeCapture(); setCaptureOpen(false); }} onManual={() => { setCaptureOpen(false); setEntry(null); }}
+        onClose={() => { closeCapture(); setCaptureOpen(false); }} onManual={() => { setCaptureOpen(false); setManualOpen(true); }}
         onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={message => notify(message)} />}
-      {entry !== undefined && <MistakeEntryModal key={`${entry?.id ?? 'new'}:${editorVersion}`} original={entry} sourceSuggestions={sourceSuggestions}
-        initialSourceName={entry ? mistakeTestName(entry, sessionNames) : defaultTestName} initialSessionId={createRequest?.sessionId}
+      {manualOpen && <ManualQuestionModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
+        initialTestName={defaultTestName} onClose={() => setManualOpen(false)} onAdd={onAddMistake} onAddBatch={onAddMistakes}
+        onUpdate={onUpdateMistake} onExplain={card => void explain(card)} onSaved={message => notify(message)} />}
+      {entry !== undefined && entry !== null && <MistakeEntryModal key={`${entry.id}:${editorVersion}`} original={entry} sourceSuggestions={sourceSuggestions}
+        initialSourceName={mistakeTestName(entry, sessionNames)} initialSessionId={createRequest?.sessionId}
         onAdd={onAddMistake} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onClose={() => setEntry(undefined)} onSaved={message => notify(message)}
-        onReload={() => { setEntry(loadMistakes().find(value => value.id === entry?.id)); setEditorVersion(value => value + 1); }} />}
+        onReload={() => { setEntry(loadMistakes().find(value => value.id === entry.id)); setEditorVersion(value => value + 1); }} />}
+      {filterOpen && (
+        <PhoneSheet title="Lọc câu sai" onClose={() => setFilterOpen(false)}>
+          <div className="pn-flt-body">
+            <h5>ĐỀ</h5>
+            <div className="pn-flt-cs">
+              <button type="button" aria-pressed={testKey === null} onClick={() => { setTestKey(null); setShown(STEP); }}>Tất cả</button>
+              {initialSourceNames && initialSourceNames.length > 1 && <button type="button" aria-pressed={testKey === 'SCOPE'} onClick={() => { setTestKey('SCOPE'); setShown(STEP); }}>Các đề đang xem</button>}
+              {filterSourceNames.map(name => { const key = testNameKey(name); return <button key={name} type="button" aria-pressed={testKey === key} onClick={() => { setTestKey(key); setShown(STEP); }}>{name}</button>; })}
+              <button type="button" aria-pressed={testKey === 'NONE'} onClick={() => { setTestKey('NONE'); setShown(STEP); }}>Chưa gắn đề</button>
+            </div>
+            <h5>PART</h5>
+            <div className="pn-flt-cs">
+              <button type="button" aria-pressed={part === null} onClick={() => { setPart(null); setShown(STEP); }}>Tất cả</button>
+              {partsPresent.map(n => <button key={n} type="button" aria-pressed={part === n} onClick={() => { setPart(n); setShown(STEP); }}>Part {n}</button>)}
+            </div>
+            <h5>LÝ DO SAI</h5>
+            <div className="pn-flt-cs">
+              <button type="button" aria-pressed={category === null} onClick={() => { setCategory(null); setShown(STEP); }}>Tất cả</button>
+              {(Object.keys(ERROR_CATEGORY_LABELS) as ErrorCategory[]).map(c => (
+                <button key={c} type="button" aria-pressed={category === c} onClick={() => { setCategory(c); setShown(STEP); }}>{categoryShort(c)}</button>
+              ))}
+            </div>
+            <div className="pn-flt-acts">
+              {pickedFilterCount > 0 && <button type="button" className="pn-flt-reset" onClick={() => { setPart(null); setTestKey(null); setCategory(null); setShown(STEP); }}>Đặt lại</button>}
+              <button type="button" className="rd-btn rd-btn--pink pn-flt-ok" onClick={() => setFilterOpen(false)}>Xem {matching.length} câu</button>
+            </div>
+          </div>
+        </PhoneSheet>
+      )}
     </>
   );
 
@@ -290,7 +331,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
       <PageTip id="notebook" ready={!empty} />
 
       {empty ? (
-        <PhoneNotebookEmpty onCapture={openCamera} onManual={() => setEntry(null)} />
+        <PhoneNotebookEmpty onCapture={openCamera} onManual={() => setManualOpen(true)} />
       ) : (
         <>
           <section className={'pn-due' + (reviewCount > 0 ? '' : ' is-none')}>
@@ -314,15 +355,22 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
             {tabs.map(([id, label, count]) => (
               <button key={id} type="button" aria-pressed={activeTab === id} onClick={() => { setTab(id); setShown(STEP); }}>{label}<b>{count}</b></button>
             ))}
+            <button type="button" className={'pn-flt' + (pickedFilterCount > 0 ? ' is-on' : '')} aria-label="Lọc theo đề, Part, lý do" aria-haspopup="dialog" onClick={() => setFilterOpen(true)}>
+              <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M1 2 H15 M4 7 H12 M6.5 12 H9.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+              {pickedFilterCount > 0 && <em>{pickedFilterCount}</em>}
+            </button>
             <button type="button" className="pn-srch" aria-label={searchOpen ? 'Ẩn tìm kiếm' : 'Tìm trong sổ tay'} aria-pressed={searchOpen || Boolean(term.trim())} onClick={() => setSearchOpen(v => !v)}>
               <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="M11 11 L14.5 14.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
             </button>
           </div>
           {searchOpen && <input type="search" className="pn-search" autoFocus value={term} onChange={e => { setTerm(e.target.value); setShown(STEP); }} placeholder="Tìm câu hỏi, mẹo…" aria-label="Tìm trong sổ tay" />}
-          {(part !== null || testKey !== null) && (
+          {filtered && (
             <div className="pn-chips">
+              {term.trim() && !searchOpen && <button type="button" aria-label="Xóa từ khóa tìm kiếm" onClick={() => setTerm('')}>“{term.trim()}”<i>×</i></button>}
               {part !== null && <button type="button" aria-label="Bỏ lọc Part" onClick={() => setPart(null)}>Part {part}<i>×</i></button>}
-              {testKey !== null && <button type="button" aria-label="Bỏ lọc đề" onClick={() => setTestKey(null)}>{testLabel ? `Đề ${testLabel}` : 'Đề này'}<i>×</i></button>}
+              {testKey !== null && <button type="button" aria-label="Bỏ lọc đề" onClick={() => setTestKey(null)}>{testKey === 'NONE' ? 'Chưa gắn đề' : testLabel ? `Đề ${testLabel}` : 'Đề này'}<i>×</i></button>}
+              {category !== null && <button type="button" aria-label="Bỏ lọc lý do" onClick={() => setCategory(null)}>{categoryShort(category)}<i>×</i></button>}
+              {(pickedFilterCount + Number(Boolean(term.trim()))) > 1 && <button type="button" className="pn-chips-clr" onClick={() => { setTerm(''); setPart(null); setTestKey(null); setCategory(null); }}>Bỏ lọc</button>}
             </div>
           )}
 
@@ -358,7 +406,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
           ) : (
             <div className="pn-none">
               <p>{filtered ? 'Không có câu nào khớp bộ lọc.' : activeTab === 'due' ? 'Không có câu nào đến hạn.' : activeTab === 'mastered' ? 'Chưa có câu nào đã thuộc.' : 'Chưa có câu nào.'}</p>
-              {filtered && <button type="button" onClick={() => { setTerm(''); setPart(null); setTestKey(null); }}>Bỏ lọc</button>}
+              {filtered && <button type="button" onClick={() => { setTerm(''); setPart(null); setTestKey(null); setCategory(null); }}>Bỏ lọc</button>}
             </div>
           )}
           {activeTab !== 'words' && rows.length > shown && <button type="button" className="pn-more" onClick={() => setShown(value => value + STEP)}>Xem thêm {Math.min(STEP, rows.length - shown)} câu</button>}

@@ -25,6 +25,8 @@ import { normalizeQuestionList, partScoresFromWrong } from '@/shared/domain/ques
 import { DesktopPracticeBody } from './DesktopPracticeBody';
 import { DesktopVocabBody } from './DesktopVocabBody';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
+import { DateField } from '@/shared/components/DateField';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveFullTestScore, scoreSourceForEditing, type ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { assertWriteOwner, getActiveAccountId, runAsOwner } from '@/shared/data/dataBundle';
@@ -415,8 +417,18 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setDiscarded(null);
     persistentDraft.restart();
   };
+  const confirmingSubmit = useRef(false);
   const closeWithDraft = () => {
-    if (!persistentDraft.persist() && !window.confirm('Chưa tự lưu được nháp. Đóng form sẽ mất nội dung đang nhập. Vẫn đóng?')) return;
+    if (!persistentDraft.persist()) {
+      void askConfirm({
+        title: 'Đóng mà chưa lưu nháp?',
+        message: 'Chưa tự lưu được nháp. Đóng form sẽ mất nội dung đang nhập. Vẫn đóng?',
+        confirmLabel: 'Vẫn đóng',
+        cancelLabel: 'Ở lại',
+        destructive: true
+      }).then(ok => { if (ok) onClose(); });
+      return;
+    }
     onClose();
   };
   const modalRef = useModalA11y(isOpen, closeWithDraft);
@@ -515,9 +527,9 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setPartScores(prev => ({ ...prev, [partKey]: clamped }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (savedSession.current) return;
+    if (savedSession.current || confirmingSubmit.current) return;
     const submitter = (e.nativeEvent as SubmitEvent).submitter;
     const submitValue = submitter instanceof HTMLButtonElement ? submitter.value : '';
     // "Vẫn lưu" on the duplicate warning repeats the save the learner first asked for.
@@ -594,7 +606,22 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
         }
         if (sourceScorePending) { setScoreError('Kiểm tra và áp dụng điểm từ đề, hoặc chọn “Dùng điểm ước tính” trước khi lưu.'); return; }
-        if (wrongEntry && scoreSource === 'ESTIMATED' && !finalWrong.length && !window.confirm('Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.')) return;
+        if (wrongEntry && scoreSource === 'ESTIMATED' && !finalWrong.length) {
+          confirmingSubmit.current = true;
+          let ok = false;
+          try {
+            ok = await askConfirm({
+              title: 'Lưu 990 điểm?',
+              message: 'Bạn không sai câu nào? Đề sẽ được lưu 990 điểm.',
+              confirmLabel: 'Lưu 990 điểm',
+              cancelLabel: 'Chọn câu sai'
+            });
+          } finally {
+            confirmingSubmit.current = false;
+          }
+          if (!ok || savedSession.current) return;
+          assertWriteOwner(draftOwner.current);
+        }
         const submitParts = wrongEntry ? partScoresFromWrong(finalWrong) : partScores;
         const submitIncludeParts = includePartDetails || (entry === 'wrong' && finalWrong.length > 0);
         let resolved: ReturnType<typeof resolveFullTestScore>;
@@ -749,7 +776,15 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 type="button"
                 className="rde-pill-x"
                 onClick={() => {
-                  if (window.confirm('Xóa bản nháp đang nhập và đóng form? Kết quả đã lưu không bị ảnh hưởng.') && persistentDraft.clear()) onClose();
+                  void askConfirm({
+                    title: 'Bỏ bản nháp đang nhập?',
+                    message: 'Xóa bản nháp đang nhập và đóng form? Kết quả đã lưu không bị ảnh hưởng.',
+                    confirmLabel: 'Bỏ nháp',
+                    cancelLabel: 'Giữ lại',
+                    destructive: true
+                  }).then(ok => {
+                    if (ok && persistentDraft.clear()) onClose();
+                  });
                 }}
               >
                 Bỏ nháp
@@ -849,12 +884,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             </div>
             <div className={compactTop ? 'hidden' : 'sm:col-span-3'}>
               <label htmlFor="session-date" className="rde-lab block">Ngày làm</label>
-              <input
+              <DateField
                 id="session-date"
-                type="date"
                 required
                 value={date}
-                onChange={e => setDate(e.target.value)}
+                onChange={setDate}
                 className="rde-in"
               />
             </div>
@@ -1011,39 +1045,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
           {sessionType === 'VOCAB' && !isPhone && (
             <DesktopVocabBody count={vocabCount} setCount={setVocabCount} date={date} setDate={setDate} today={vocabToday} vocab={vocabApi} />
-          )}
-
-          {sessionType === 'VOCAB' && isPhone && (
-            <div className="space-y-3.5 rounded-2xl border-[1.5px] border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Ngày học
-                  <input type="date" required max={getTodayDateString()} value={date} onChange={e => setDate(e.target.value)} className="mt-1 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-semibold dark:border-slate-700 dark:bg-slate-950" />
-                </label>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Số từ đã học
-                  <input type="number" min="1" step="1" required value={vocabCount} onChange={e => setVocabCount(Number(e.target.value))} className="mt-1 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-black text-blue-600 tabular-nums dark:border-slate-700 dark:bg-slate-950 dark:text-blue-400" />
-                </label>
-              </div>
-              <div className="space-y-1.5">
-                <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Chọn nhanh số từ hôm nay:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[5, 10, 15, 20, 30, 50].map(preset => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setVocabCount(preset)}
-                      className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs tabular-nums transition ${
-                        vocabCount === preset
-                          ? 'border-2 border-slate-900 bg-blue-600 font-black text-white shadow-[1.5px_1.5px_0_0_#0f172a] dark:border-slate-200'
-                          : 'border border-slate-300 bg-white font-bold text-slate-700 hover:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300'
-                      }`}
-                    >
-                      +{preset} từ
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <p className="border-t border-slate-200/80 pt-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">Ghi riêng theo ngày; không tạo buổi thi hay cộng điểm TOEIC.</p>
-            </div>
           )}
 
             </div>

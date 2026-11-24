@@ -4,6 +4,7 @@ import type { LRPartScore, PracticePartResult, StudySession, PartTimingDurations
 import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
+import { DateField } from '@/shared/components/DateField';
 import { getTodayDateString } from '@/shared/data/storage';
 import type { ScoreSource } from '@/features/study-sessions/lib/fullTestScore';
 import { WrongQuestionGrid } from './WrongQuestionGrid';
@@ -54,7 +55,7 @@ function DetailsRow({ date, setDate, duration, setDuration, notes, setNotes }: {
       <div className="space-y-3 px-3.5 pb-3.5">
         <div className="grid grid-cols-2 gap-3">
           <label className="rde-lab">Ngày làm
-            <input id="session-date" type="date" required value={date} onChange={event => setDate(event.target.value)} className="rde-in" />
+            <DateField id="session-date" required value={date} onChange={setDate} className="rde-in" />
           </label>
           <label className="rde-lab">Thời gian (phút)
             <input id="session-duration" type="number" inputMode="decimal" min="0.01" max="1440" step="any" required value={duration} onChange={event => setDuration(Number(event.target.value))} className="rde-in" />

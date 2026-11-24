@@ -80,7 +80,7 @@ export function DesktopManualEntry({ wrong, onWrong, numberDraft, onNumberDraft,
         <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2.5">
           {section('Listening', listening, next => onSections(next, reading))}
           {section('Reading', reading, next => onSections(listening, next))}
-          <span className={'min-w-[64px] text-right text-[14px] font-bold text-[var(--rd-mut)]' + (bothSections ? '' : 'invisible')} aria-hidden={!bothSections}>
+          <span className={'min-w-[64px] text-right text-[14px] font-bold text-[var(--rd-mut)]' + (bothSections ? '' : ' invisible')} aria-hidden={!bothSections}>
             = <b className="text-[22px] font-extrabold tabular-nums text-[var(--rd-ink)]">{bothSections ? Number(listening) + Number(reading) : 0}</b>
           </span>
         </div>

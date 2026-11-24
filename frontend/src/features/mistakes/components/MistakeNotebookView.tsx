@@ -438,15 +438,15 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             <div>
               {reviewCount > 0 ? <>
                 <h2>{reviewCount} câu đến hạn ôn hôm nay</h2>
-                <p>{topPart ? `Nhiều nhất Part ${topPart} · ` : ''}~{Math.max(1, Math.round(batch.count * 0.8))} phút</p>
+                <p>{topPart ? `Nhiều nhất Part ${topPart} · ` : ''}~{Math.max(1, Math.round(batch.count * 0.8))} phút · Đã thuộc {stats.mastered}/{stats.total} câu</p>
                 <button type="button" className="rd-btn" onClick={() => onStartReview(activeFilterCount ? dueList.map(m => m.id) : undefined, batch.count)}>Ôn {batch.count} câu{batch.rest ? ` · còn ${batch.rest}` : ''}</button>
               </> : <>
                 <h2>Hôm nay không có câu nào đến hạn</h2>
-                <p>Sóc sẽ nhắc khi tới lúc ôn lại. Có trang chữa bài mới thì chụp vào đây nhé.</p>
+                <p>Đã thuộc {stats.mastered}/{stats.total} câu. Sóc sẽ nhắc khi tới lúc ôn lại — có trang chữa bài mới thì chụp vào đây nhé.</p>
                 <button type="button" className="rd-btn" onClick={openCreate}>Chụp trang chữa bài</button>
               </>}
             </div>
-            <Soc state={reviewCount > 0 ? 'idle' : 'cheerC'} size={170} className="nb-hsoc" />
+            <Soc state={reviewCount > 0 ? 'idle' : 'cheerC'} size={154} className="nb-hsoc" />
           </section>
 
           {waiting.length > 0 && (
@@ -490,7 +490,13 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                     <button type="button" aria-pressed={selectedCategory === 'ALL'} onClick={() => { setSelectedCategory('ALL'); setPage(1); }}>Tất cả</button>
                     {(Object.keys(ERROR_CATEGORY_LABELS) as ErrorCategory[]).map(c => <button key={c} type="button" aria-pressed={selectedCategory === c} onClick={() => { setSelectedCategory(c); setPage(1); }}>{categoryShort(c)}</button>)}
                   </div>
-                  <div className="nb-pft"><span>{filteredMistakes.length} câu khớp</span><button type="button" onClick={() => setFilterOpen(false)}>Xong</button></div>
+                  <div className="nb-pft">
+                    <span>{filteredMistakes.length} câu khớp</span>
+                    <div className="nb-pft-acts">
+                      {pickedFilters > 0 && <button type="button" className="is-reset" onClick={() => { setSelectedTest('ALL'); setSelectedPart('ALL'); setSelectedCategory('ALL'); setPage(1); }}>Đặt lại</button>}
+                      <button type="button" onClick={() => setFilterOpen(false)}>Xong</button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -524,10 +530,15 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
             </ul>
           ) : !activeFilterCount && selectedStatus === 'ALL' && waiting.length ? (
             <p className="nb-hint">Câu chờ ghi chi tiết không nằm trong danh sách; ghi xong câu nào, câu đó hiện ở đây.</p>
-          ) : (
+          ) : activeFilterCount > 0 ? (
             <div className="nb-none">
               <p>Không có câu nào khớp bộ lọc.</p>
               <button type="button" className="nb-ghost" onClick={resetFilters}>Bỏ lọc</button>
+            </div>
+          ) : (
+            <div className="nb-none">
+              <p>{selectedStatus === 'DUE' ? 'Hôm nay chưa có câu nào đến hạn ôn.' : selectedStatus === 'MASTERED' ? 'Chưa có câu nào được đánh dấu Đã thuộc.' : 'Chưa có câu sai nào trong danh sách.'}</p>
+              {selectedStatus !== 'ALL' && stats.total > 0 && <button type="button" className="nb-ghost" onClick={() => { setSelectedStatus('ALL'); setPage(1); }}>Xem tất cả ({stats.total})</button>}
             </div>
           )}
           {pageCount > 1 && (

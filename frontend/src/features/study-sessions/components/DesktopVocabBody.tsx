@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DateField } from '@/shared/components/DateField';
 import { loadVocabLog } from '@/shared/data/storage';
 import { VOCAB_CHIPS, dayMonth, vocabWeek, type VocabEditApi } from './phone/phoneLogLib';
 
@@ -58,8 +59,8 @@ export const DesktopVocabBody = ({ count, setCount, date, today, vocab }: Props)
         {dateOpen && (
           <div className="mt-2">
             <label className="sr-only" htmlFor="vocab-date">Ngày học</label>
-            <input id="vocab-date" type="date" required max={today} value={date} onChange={e => e.target.value && vocab.onPick(e.target.value)}
- className={`rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-[var(--rd-ink)] ${INK}`} />
+            <DateField id="vocab-date" required max={today} value={date} onChange={next => next && vocab.onPick(next)}
+              className={`min-w-[164px] rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-[var(--rd-ink)] ${INK}`} />
           </div>
         )}
       </div>
