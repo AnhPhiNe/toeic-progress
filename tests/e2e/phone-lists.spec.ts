@@ -31,7 +31,7 @@ test('phone notebook splits cards by status, keeps review above the bottom bar a
   expect(reviewBox.y + reviewBox.height).toBeLessThanOrEqual(navBox.y);
 
   await openCard(page);
-  const actions = page.locator('.nbd-actions');
+  const actions = page.locator('.cdp-foot');
   // The old card kept its three actions on one row at 320px. The redesigned card page stacks them (full-width buttons), so the check
   // is now that every action stays on screen inside the viewport.
   const boxes = await actions.getByRole('button').evaluateAll(buttons => buttons.map(button => { const r = button.getBoundingClientRect(); return { left: r.left, right: r.right }; }));

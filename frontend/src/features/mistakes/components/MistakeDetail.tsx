@@ -145,7 +145,7 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
                 : evidences.length === 1 ? <span>Câu bằng chứng tô vàng</span> : null}
             </div>
             <div className="cd-pscroll" ref={jump.box} tabIndex={0} aria-label="Nội dung đoạn văn">
-              <EvidencePassage context={context} evidences={evidences} at={jump.at} />
+              <EvidencePassage context={context} evidences={evidences} at={evidences.length > 1 ? jump.at : -1} />
             </div>
           </section>
           <aside className="cd-panel">

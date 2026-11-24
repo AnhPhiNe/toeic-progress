@@ -46,6 +46,7 @@
 .cd.is-reading .cd-panel { max-height: none; }
 .cd-pbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; margin: -4px; padding: 4px; scrollbar-width: thin; }
 .cd-tip { display: flex; gap: 12px; align-items: center; background: #fff4dc; border-radius: 20px; padding: 12px 16px 12px 10px; flex: none; }
+.cd-tip > :first-child { flex: none; }
 .cd-tip p { font-weight: 700; font-size: 15.5px; line-height: 1.45; color: #3d3a2e; white-space: pre-line; }
 .cd-tip b { font-weight: 900; color: #9a6200; }
 .cd-sign { padding: 0 4px; }
@@ -68,6 +69,7 @@
 .cd-explain:disabled { opacity: .6; cursor: wait; }
 .cd-acts { flex: none; border-top: 2px solid #f1f3f1; padding-top: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cd-acts .rd-btn { min-height: 48px; padding: 12px 20px; }
+.cd-acts .rd-btn--white { box-shadow: 0 0 0 2px var(--rd-line), 0 5px 0 var(--rd-line); }
 .cd-sp { flex: 1; }
 .cd-link { border: 0; background: none; font-weight: 900; font-size: 14.5px; color: var(--rd-mut); min-height: 44px; padding: 0 8px; }
 .cd-link:hover { color: var(--rd-ink); }
@@ -104,7 +106,8 @@
 
 /* phone: full screen over the app's tab bar */
 .rd.cdp { position: fixed; inset: 0; z-index: 41; display: flex; flex-direction: column; background: #faf8f5; padding-top: env(safe-area-inset-top); font-family: var(--rd-font); color: var(--rd-ink); }
-.cdp button { font-family: var(--rd-font); cursor: pointer; color: inherit; }
+.cdp button { font-family: var(--rd-font); cursor: pointer; }
+.cdp button:not(.rd-btn) { color: inherit; }
 .cdp-head { display: flex; align-items: center; gap: 8px; padding: 12px 8px 4px; }
 .cdp-head > div:not(.cdp-more) { flex: 1; min-width: 0; }
 .cdp-head h2 { font-weight: 900; font-size: 19px; letter-spacing: -.3px; }
@@ -134,8 +137,8 @@
 .cdp-body .cd-wm b { font-size: 16px; }
 .cdp-body .cd-words button { min-height: 44px; font-size: 14px; padding: 0 14px; }
 .cdp-body .cd-explain { align-self: stretch; }
-.cdp-sticky { display: flex; flex-direction: column; gap: 8px; flex: none; }
-.cdp-sticky .cd-jump { align-self: flex-end; }
+.cdp-sticky { display: flex; align-items: center; gap: 8px; flex: none; }
+.cdp-sticky .cdp-qchip { flex: 1; min-width: 0; }
 .cdp-qchip { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 14px; box-shadow: 0 0 0 2px #efeae4; padding: 8px 12px; min-height: 44px; font-weight: 800; font-size: 13.5px; line-height: 1.3; flex: none; }
 .cdp-qchip b { font-weight: 900; color: var(--rd-pink-d); white-space: nowrap; }
 .cdp-qchip span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

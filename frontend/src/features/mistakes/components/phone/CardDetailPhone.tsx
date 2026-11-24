@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { MistakeEntry } from '@/shared/types';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { AnswerDoubtNote } from '../AnswerDoubtNote';
+import { canExplain } from '../MistakeCard';
 import { EvidenceJumper, EvidencePassage, OptionRows, useEvidenceJump } from '../CardParts';
 import { ExplainBody, Words, cardTitle, categoryShort, useCardView, type CardView, type MistakeDetailActions } from '../MistakeDetail';
 
@@ -20,7 +21,7 @@ function PassageTab({ m, view }: { m: MistakeEntry; view: CardView }) {
     <div className="cdp-sticky"><QuestionChip m={m} view={view} />
       {view.evidences.length > 1 && <EvidenceJumper at={jump.at} count={view.evidences.length} onNext={jump.next} />}</div>
     <div className="cdp-pcard" ref={jump.box} tabIndex={0} aria-label="Nội dung đoạn văn">
-      <EvidencePassage context={view.context} evidences={view.evidences} at={jump.at} />
+      <EvidencePassage context={view.context} evidences={view.evidences} at={view.evidences.length > 1 ? jump.at : -1} />
     </div>
   </>;
 }
@@ -35,7 +36,8 @@ export function CardDetailPhone({ mistake: m, testName, actions, onBack }: { mis
   const reading = Boolean(view.context);
   const hasWords = view.words.length > 0 || Boolean(view.ex?.keyVocabulary?.trim());
   const tabs: Tab[] = [...(reading ? ['passage' as const] : []), 'question', 'explain', ...(hasWords ? ['words' as const] : [])];
-  const [tab, setTab] = useState<Tab>(tabs[0]);
+  // Without an explanation nothing is marked in the passage yet: open on the question, where "Giải thích với AI" is.
+  const [tab, setTab] = useState<Tab>(reading && canExplain(m) ? 'question' : tabs[0]);
   const [menu, setMenu] = useState(false);
   const menuId = useId();
   const tabId = useId();
@@ -54,7 +56,7 @@ export function CardDetailPhone({ mistake: m, testName, actions, onBack }: { mis
   return (
     <div className="rd cdp">
       <header className="cdp-head">
-        <button type="button" className="cdp-ib" onClick={onBack} aria-label="Về Sổ tay">
+        <button type="button" className="cdp-ib" onClick={onBack} aria-label="Quay lại Sổ tay">
           <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
         <div>
@@ -86,6 +88,11 @@ export function CardDetailPhone({ mistake: m, testName, actions, onBack }: { mis
           {view.rows.length
             ? <OptionRows rows={view.rows} reasonOnly={reading} showPos={view.showPos} />
             : <div className="cd-plain"><p><b>Bạn chọn:</b> {m.userMistake || '—'}</p><p><b>Đáp án:</b> {m.correctAnswer || '—'}</p></div>}
+          {canExplain(m) && (
+            <button type="button" className="cd-explain" onClick={actions.onExplain} disabled={actions.explaining}>
+              {actions.explaining ? 'Sóc đang viết lời giải…' : `${actions.explainLabel} ✨`}
+            </button>
+          )}
         </>}
         {current === 'explain' && <><QuestionChip m={m} view={view} /><ExplainBody m={m} view={view} actions={actions} words={false} /></>}
         {current === 'words' && <><QuestionChip m={m} view={view} /><Words m={m} view={view} actions={actions} all /></>}

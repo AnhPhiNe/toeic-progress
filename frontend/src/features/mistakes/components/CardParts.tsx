@@ -53,7 +53,7 @@ export function OptionRows({ rows, reasonOnly = false, showPos = false }: { rows
 }
 
 export function TipBlock({ tip, size = 54 }: { tip: string; size?: number }) {
-  return <div className="cd-tip"><Soc state="idle" size={size} /><p><b>Mẹo nhanh:</b> {tip}</p></div>;
+  return <div className="cd-tip"><Soc state="idle" size={size} /><p><b>Mẹo nhanh:</b> <span>{tip}</span></p></div>;
 }
 
 export function SignalBlock({ text }: { text: string }) {
@@ -95,15 +95,17 @@ export function WordRows({ words, isSaved, onSave, all = false }: { words: KeyWo
 export function useEvidenceJump(count: number, key: string) {
   const box = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
-  const go = useCallback((index: number) => {
+  const go = useCallback((index: number, onlyIfHidden = false) => {
     const container = box.current;
     const mark = container?.querySelector<HTMLElement>(`[data-ev="${index}"]`);
     setAt(index);
     if (!container || !mark) return;
-    const top = mark.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 56;
-    container.scrollTop = Math.max(0, top);
+    const outer = container.getBoundingClientRect(), inner = mark.getBoundingClientRect();
+    // Opening the card keeps the passage at its start (labels in view) when the first evidence is already on screen.
+    if (onlyIfHidden && inner.top >= outer.top && inner.bottom <= outer.bottom - 40) return;
+    container.scrollTop = Math.max(0, inner.top - outer.top + container.scrollTop - 56);
   }, []);
-  useLayoutEffect(() => { if (count > 0) go(0); }, [count, key, go]);
+  useLayoutEffect(() => { if (count > 0) go(0, true); }, [count, key, go]);
   return { box, at, next: () => go(count ? (at + 1) % count : 0) };
 }
 
