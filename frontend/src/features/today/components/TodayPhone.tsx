@@ -107,7 +107,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
     const observer = new ResizeObserver(measure);
     for (const el of [root.current, headRef.current, panelRef.current]) if (el) observer.observe(el);
     return () => observer.disconnect();
-  });
+  }, [mode, expanded, welcome.greeting, coatStep]);
   useEffect(() => { if (items.restOpen === 0) setExpanded(false); }, [items.restOpen]);
 
   const finished = plan.status === 'done';

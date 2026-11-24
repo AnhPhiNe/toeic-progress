@@ -26,11 +26,13 @@ interface Props {
   onAddSuggestion: (task: Omit<SuggestedTask, 'addedDate' | 'doneDate'>) => void;
   /** Open this test's detail with the advice block in view (from the result screen). */
   openRequest?: { id: string; nonce: number; advice?: boolean } | null;
+  gear?: readonly string[];
 }
 
 /** Hành trình điểm (design/previews/mock-journey-score3.html J1, mock-journey-parts4.html, mock-journey-tabs.html). */
-export function JourneyPage({ sessions, mistakes, profile, today, initialTab = 'score', onOpenNotebook, onPractice, onEditSession, onDeleteSession, onOpenSessionLogger, onAddSuggestion, openRequest }: Props) {
+export function JourneyPage({ sessions, mistakes, profile, today, initialTab = 'score', onOpenNotebook, onPractice, onEditSession, onDeleteSession, onOpenSessionLogger, onAddSuggestion, openRequest, gear }: Props) {
   const [tab, setTab] = useState<Tab>(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
   const [openId, setOpenId] = useState<string | null>(openRequest?.id ?? null);
   const [focusAdvice, setFocusAdvice] = useState(Boolean(openRequest) && openRequest?.advice !== false);
   useEffect(() => { if (openRequest) { setOpenId(openRequest.id); setFocusAdvice(openRequest.advice !== false); } }, [openRequest]);
@@ -56,8 +58,8 @@ export function JourneyPage({ sessions, mistakes, profile, today, initialTab = '
           ))}
         </div>
       </div>
-      {tab === 'score' && <ScoreTab sessions={sessions} profile={profile} today={today} onOpenTest={openTest} onShowTests={() => setTab('tests')} onLog={onOpenSessionLogger} />}
-      {tab === 'parts' && <PartsTab sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
+      {tab === 'score' && <ScoreTab sessions={sessions} profile={profile} today={today} onOpenTest={openTest} onShowTests={() => setTab('tests')} onLog={onOpenSessionLogger} gear={gear} />}
+      {tab === 'parts' && <PartsTab sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} gear={gear} />}
       {tab === 'tests' && <TestsTab sessions={sessions} onOpenTest={openTest} onOpenSessionLogger={onOpenSessionLogger} />}
       <PageTip id="journey" ready={tests.length > 0} />
       {open && (

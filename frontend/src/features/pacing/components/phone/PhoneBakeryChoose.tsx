@@ -80,8 +80,8 @@ export function PhoneBakeryChoose(p: Props) {
 
       <button type="button" className="pp-chosen" aria-haspopup="dialog" aria-label={`Part đang chọn: ${chosenCard ? cardName(chosenCard) : p.label}. Đổi Part`} onClick={() => setSheet('parts')}>
         <DishIcon dish={dishOf(p.mode)} />
-        <span className="pp-chosen__t"><b>{chosenCard ? cardName(chosenCard) : p.label}<em>{chosenCard?.minutes ?? p.minutes}′</em></b>
-          <small>{free ? 'học tự do' : `${chosenCard?.questions ?? 0} câu`}</small></span>
+        <span className="pp-chosen__t"><b>{chosenCard ? cardName(chosenCard) : p.label}<em>{chosen?.minutes ?? p.minutes}′</em></b>
+          <small>{free ? 'học tự do' : `${chosen?.questions ?? chosenCard?.questions ?? 0} câu`}</small></span>
         <span className="pp-chosen__chg">Đổi ›</span>
       </button>
 

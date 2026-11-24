@@ -27,7 +27,7 @@ function Road({ pts, w }: { pts: Pt[]; w: number }) {
     <g>
       <path d={d} fill="none" stroke="#e2c287" strokeWidth={w + 4} strokeLinecap="round" strokeLinejoin="round" transform="translate(0 4)" />
       <path d={d} fill="none" stroke="#f8e6bf" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
-      <path className="pp-roadline" d={d} fill="none" stroke="#fff" strokeWidth={Math.max(2.5, w * .08)} strokeLinecap="round" strokeDasharray={`${w * .3} ${w * .45}`} opacity=".9" />
+      <path className="pub-roadline" d={d} fill="none" stroke="#fff" strokeWidth={Math.max(2.5, w * .08)} strokeLinecap="round" strokeDasharray={`${w * .3} ${w * .45}`} opacity=".9" />
     </g>
   );
 }
@@ -37,7 +37,7 @@ export function HeroSceneDesk() {
   const uid = useId().replace(/:/g, '');
   const road: Pt[] = [[-40, 600], [250, 548], [530, 566], [800, 506], [960, 438], [1090, 404], [1215, 392]];
   return (
-    <svg className="pp-hero__art pp-hero__art--desk" viewBox="0 0 1440 600" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+    <svg className="pub-hero__art pub-hero__art--desk" viewBox="0 0 1440 600" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
       <Defs uid={uid} />
       <rect width="1440" height="600" fill={`url(#${uid}sky)`} />
       <Sun x={1010} y={128} r={50} rays glowId={`${uid}sun`} />
@@ -69,7 +69,7 @@ export function HeroSceneDesk() {
       <Coin x={530} y={566} r={30} text="550" />
       <Coin x={800} y={506} r={33} text="650" today glowId={`${uid}glow`} />
       <Stone x={960} y={438} r={27} f={20} text="750" next glowId={`${uid}glow`} />
-      <g className="pp-hero__soc"><SocSprite x={800} y={500} w={124} mood="hi" className="il-bob" /></g>
+      <g className="pub-hero__soc"><SocSprite x={800} y={500} w={124} mood="hi" className="il-bob" /></g>
     </svg>
   );
 }
@@ -79,7 +79,7 @@ export function HeroScenePhone() {
   const uid = useId().replace(/:/g, '');
   const road: Pt[] = [[-30, 300], [78, 270], [196, 266], [318, 236], [340, 196], [292, 170], [228, 162]];
   return (
-    <svg className="pp-hero__art pp-hero__art--phone" viewBox="0 0 390 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+    <svg className="pub-hero__art pub-hero__art--phone" viewBox="0 0 390 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
       <Defs uid={uid} top="#fff8ee" />
       <rect width="390" height="300" fill={`url(#${uid}sky)`} />
       <Sun x={56} y={58} r={24} rays glowId={`${uid}sun`} />
@@ -107,7 +107,7 @@ export function HeroScenePhone() {
 /** Step 1 · Ghi điểm & chụp trang chữa bài: the corrected answer sheet framed by a phone camera. */
 export function StepCaptureArt() {
   return (
-    <svg className="pp-step__art" viewBox="0 0 320 180" aria-hidden="true" focusable="false">
+    <svg className="pub-step__art" viewBox="0 0 320 180" aria-hidden="true" focusable="false">
       <ellipse cx="170" cy="168" rx="150" ry="14" fill="#cfeed5" />
       <g transform="translate(132 30) rotate(-6)">
         <rect x="0" y="4" width="112" height="132" rx="10" fill="#d5ecd9" />
@@ -137,7 +137,7 @@ export function StepCaptureArt() {
 /** Step 2 · Sóc đọc câu sai, giải thích: Sóc thinking beside the explained question card. */
 export function StepExplainArt() {
   return (
-    <svg className="pp-step__art" viewBox="0 0 320 180" aria-hidden="true" focusable="false">
+    <svg className="pub-step__art" viewBox="0 0 320 180" aria-hidden="true" focusable="false">
       <ellipse cx="160" cy="168" rx="150" ry="14" fill="#e4dcff" />
       <circle cx="116" cy="66" r="5" fill="#c9b4ff" /><circle cx="128" cy="50" r="7" fill="#c9b4ff" />
       <g transform="translate(140 18)">
@@ -166,7 +166,7 @@ export function StepExplainArt() {
 /** Step 3 · Ôn đúng hạn, leo lên cúp: a little hill of coins up to the cup, today's due cards pinned on top. */
 export function StepClimbArt() {
   return (
-    <svg className="pp-step__art" viewBox="0 0 320 180" aria-hidden="true" focusable="false">
+    <svg className="pub-step__art" viewBox="0 0 320 180" aria-hidden="true" focusable="false">
       <path d="M0 180 C70 150 150 150 200 118 S290 82 320 80 V180Z" fill="#ffe6a6" />
       <path d="M0 180 C80 166 170 160 230 134 S300 110 320 108 V180Z" fill="#ffd97a" opacity=".55" />
       <path d="M40 164 C90 150 130 140 160 126 S220 100 250 92" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeDasharray="6 8" opacity=".9" />
@@ -189,7 +189,7 @@ export function StepClimbArt() {
 /** Xếp hạng extra: a blue podium with stars. */
 export function RankArt() {
   return (
-    <svg className="pp-extra__art" viewBox="0 0 96 72" aria-hidden="true" focusable="false">
+    <svg className="pub-extra__art" viewBox="0 0 96 72" aria-hidden="true" focusable="false">
       <rect x="6" y="40" width="28" height="28" rx="5" fill="#8db8f0" />
       <rect x="34" y="26" width="28" height="42" rx="5" fill="#3b7ddd" />
       <rect x="62" y="48" width="28" height="20" rx="5" fill="#b7d2f6" />
@@ -204,7 +204,7 @@ export function RankArt() {
 /** Meadow strip above the footer of every public page. */
 export function MeadowStrip() {
   return (
-    <svg className="pp-meadow" viewBox="0 0 1440 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+    <svg className="pub-meadow" viewBox="0 0 1440 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
       <path d="M0 70 C240 40 480 66 760 52 S1200 30 1440 46 V120 H0Z" fill="#cdeccb" />
       <Pine x={210} y={58} s={.7} /><Pine x={236} y={62} s={.5} />
       <House x={980} y={50} s={.6} roof="#6fb7ff" />

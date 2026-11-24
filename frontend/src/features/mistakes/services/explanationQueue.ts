@@ -106,7 +106,11 @@ async function executeBatch({ ticket, items, owner }: QueuedBatch) {
   } catch (error) {
     if (getActiveAccountId() !== owner) return;
     // Permission changes and transport errors can recover; an invalid ticket cannot.
-    if (error instanceof ApiRequestError && error.code?.startsWith('EXPLAIN_TICKET_')) {
+    // If one edited card triggers EXPLAIN_TICKET_CONTENT_CHANGED inside a multi-card batch, retry each card alone
+    // so only the edited card drops its ticket and untouched siblings still receive their free explanations.
+    if (error instanceof ApiRequestError && error.code === 'EXPLAIN_TICKET_CONTENT_CHANGED' && items.length > 1) {
+      for (const item of items) run(ticket, [item], owner);
+    } else if (error instanceof ApiRequestError && error.code?.startsWith('EXPLAIN_TICKET_')) {
       const tickets = readTickets();
       for (const item of items) if (tickets[item.cardId]?.ticket === ticket) delete tickets[item.cardId];
       writeTickets(tickets);

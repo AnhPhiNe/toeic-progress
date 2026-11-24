@@ -56,8 +56,9 @@
 .sm-phone .sm-pill { font-size: 12px; padding: 3px 8px; margin-left: auto; }
 .sm-prow { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; font-weight: 800; color: #6c7770; }
 .sm-prow b { color: var(--rd-ink); font-weight: 900; }
-.sm-phone .sm-tog { top: 22px; right: 24px; padding: 3px; box-shadow: none; background: #f3f4f1; }
-.sm-phone .sm-tog button { padding: 5px 10px; font-size: 12.5px; min-height: 30px; }
+.sm-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sm-phone .sm-card__top .sm-tog { position: static; padding: 3px; box-shadow: none; background: #f3f4f1; flex: none; }
+.sm-phone .sm-card__top .sm-tog button { padding: 5px 10px; font-size: 12.5px; min-height: 30px; }
 
 @media (prefers-reduced-motion: reduce) {
   .sm-plant, .sm-bub { animation: none; }

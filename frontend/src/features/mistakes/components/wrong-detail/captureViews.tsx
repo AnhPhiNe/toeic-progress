@@ -43,8 +43,8 @@ export function StepHead({ phone, title, sub, step, back, onClose }: { phone: bo
 
 /* ---------- Listening: one reason for several numbers ---------- */
 
-export function ListeningView({ phone, onClose, cards, recorded, suggested, error, onAssign, onSkip }: Base & {
-  cards: MistakeEntry[]; recorded: (card: MistakeEntry) => boolean; suggested: ErrorCategory; error: string;
+export function ListeningView({ phone, onClose, cards, recorded, suggested, error, hasReading = true, onAssign, onSkip }: Base & {
+  cards: MistakeEntry[]; recorded: (card: MistakeEntry) => boolean; suggested: ErrorCategory; error: string; hasReading?: boolean;
   onAssign: (ids: string[], category: ErrorCategory) => void; onSkip: () => void;
 }) {
   const open = useMemo(() => cards.filter(card => !recorded(card)), [cards, recorded]);
@@ -109,7 +109,7 @@ export function ListeningView({ phone, onClose, cards, recorded, suggested, erro
           {picking
             ? <button type="button" className="rd-btn rd-btn--pink cv-wide" disabled={!chosen.length} onClick={() => setPicking(false)}>Xong · {chosen.length} câu</button>
             : <button type="button" className="rd-btn rd-btn--pink cv-wide" disabled={!chosen.length} onClick={assign}>{assignLabel}</button>}
-          <div className="cv-prow">{restLine && <span className="cv-rest">{restLine}</span>}<button type="button" className="cv-link is-mut" onClick={onSkip}>Bỏ qua phần Nghe</button></div>
+          <div className="cv-prow">{restLine && <span className="cv-rest">{restLine}</span>}<button type="button" className="cv-link is-mut" onClick={onSkip}>{hasReading ? 'Bỏ qua phần Nghe' : 'Để sau'}</button></div>
         </footer>
       </>
     );
@@ -129,7 +129,7 @@ export function ListeningView({ phone, onClose, cards, recorded, suggested, erro
       </div>
       <footer className="cv-foot">
         <span className="cv-rest">{restLine}</span>
-        <button type="button" className="cv-link is-mut" onClick={onSkip}>Bỏ qua phần Nghe</button>
+        <button type="button" className="cv-link is-mut" onClick={onSkip}>{hasReading ? 'Bỏ qua phần Nghe' : 'Để sau'}</button>
         <span className="wd-sp" />
         <button type="button" className="rd-btn rd-btn--pink wd-main" disabled={!chosen.length} onClick={assign}>{assignLabel}</button>
       </footer>
@@ -251,15 +251,16 @@ function FoldRow({ row, phone, open, onToggle, onUpdate }: { row: SoatRow; phone
 }
 
 export function SoatView({ phone, testName, onClose, rows, openRow, setOpenRow, writing, saveCount, error, note, skipped, reasons,
-  onUpdate, onConfirm, onPickNumber, onMore, onSave, onDiscard }: Base & {
+  onUpdate, onConfirm, onPickNumber, onMore, onSave, onDoneRight, onDiscard }: Base & {
   rows: SoatRow[]; read: boolean; openRow: string; setOpenRow: (id: string) => void; writing: number; saveCount: number; error: string; note: string;
   skipped: number[]; reasons: string[];
   onUpdate: (id: string, patch: Partial<CardForm>) => void; onConfirm: (id: string) => void; onPickNumber: (id: string, number: number) => string | null;
-  onMore: () => void; onSave: () => void;
+  onMore: () => void; onSave: () => void; onDoneRight?: () => void;
   /** Rows restored from an earlier sitting can be dropped. */
   onDiscard?: () => void;
 }) {
   const doubts = rows.filter(row => row.doubt), sure = rows.filter(row => !row.doubt);
+  const allRight = saveCount === 0 && rows.length > 0 && rows.every(row => isRightForm(row.form));
   const lead = !doubts.length ? 'Sóc chắc cả rồi, bạn lướt lại rồi lưu nhé.'
     : doubts.length === 1 ? 'Chỉ một câu Sóc chưa chắc, bạn xem giúp nhé.' : `Có ${doubts.length} câu Sóc chưa chắc, bạn xem giúp nhé.`;
   const titleText = `${rows.length} câu sai đã sẵn sàng thành thẻ`;
@@ -293,7 +294,9 @@ export function SoatView({ phone, testName, onClose, rows, openRow, setOpenRow, 
         {!phone && <button type="button" className="cv-link is-mut" onClick={onMore}><Camera size={16} aria-hidden="true" />Chụp thêm</button>}
         {onDiscard && <button type="button" className="cv-link is-mut" onClick={onDiscard}>Bỏ nháp</button>}
         {!phone && <span className="wd-sp" />}
-        <button type="button" className={'rd-btn rd-btn--pink ' + (phone ? 'cv-wide' : 'wd-main')} disabled={!saveCount} onClick={onSave}>Lưu tất cả ({saveCount})</button>
+        {allRight && onDoneRight
+          ? <button type="button" className={'rd-btn rd-btn--pink ' + (phone ? 'cv-wide' : 'wd-main')} onClick={onDoneRight}>Xong</button>
+          : <button type="button" className={'rd-btn rd-btn--pink ' + (phone ? 'cv-wide' : 'wd-main')} disabled={!saveCount} onClick={onSave}>Lưu tất cả ({saveCount})</button>}
       </footer>
     </>
   );

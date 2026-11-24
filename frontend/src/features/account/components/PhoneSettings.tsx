@@ -4,6 +4,8 @@ import type { UserProfile } from '@/shared/types';
 import { PhoneSheet } from '@/app/components/phone/PhoneSheet';
 import { profileDisplayName, profileInitials } from '@/app/components/profileInitials';
 import { goalLabel } from '@/features/today/lib/goalSetup';
+import { daysUntil as localDaysUntil } from '@/features/journey/lib/scoreJourney';
+import { getTodayDateString } from '@/shared/data/storage';
 import { LegalLinks } from '@/features/public-pages/components/LegalLinks';
 import { SettingsGoalEditor } from './SettingsGoalEditor';
 import './account.css';
@@ -30,9 +32,7 @@ interface Props {
 }
 
 function daysUntil(date: string) {
-  if (!date) return null;
-  const diff = Math.ceil((new Date(date).getTime() - Date.now()) / 86_400_000);
-  return diff >= 0 ? diff : null;
+  return localDaysUntil(date, getTodayDateString());
 }
 
 const formatDate = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');

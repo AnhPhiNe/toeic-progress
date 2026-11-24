@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Flame, Gift, RefreshCw, Shield, ArrowDown, Star, TrendingUp, X } from 'lucide-react';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
@@ -59,7 +60,7 @@ export function RankPage({ league, signedIn, onSignIn, onBack, gear = [], coat =
     body = league.error
       ? <div className="rk-wait"><Soc state="think" size={92} /><p>{league.error}</p><button type="button" className="rd-btn rd-btn--blue" onClick={league.refresh}>Thử lại</button></div>
       : <div className="rk-wait" role="status"><Soc state="think" size={92} /><p>Đang tải bảng xếp hạng…</p></div>;
-  } else if (!signedIn || !state?.member) {
+  } else if (!signedIn || !state?.member || !state.rank) {
     body = <Join guest={!signedIn} league={league} onSignIn={onSignIn} isPhone={isPhone} gear={gear} coat={coat} season={state} />;
   } else {
     body = isPhone ? <PhoneRank state={state} league={league} gear={gear} coat={coat} /> : <DeskRank state={state} league={league} gear={gear} coat={coat} />;
@@ -258,6 +259,7 @@ function Board({ state, tab, section }: { state: RankState; tab: Tab; section: '
     );
   };
   const label = TABS.find(t => t.key === tab)!.label;
+  if (!rows.length) return <p className="rk-empty">Chưa có dữ liệu cho bảng {label.toLowerCase()} trong tuần này.</p>;
   return (
     <ol className="rk-list" aria-label={`Bảng ${label}`}>
       {upRows.length > 0 && (
@@ -332,8 +334,10 @@ function MemberFooter({ state, league }: { state: RankState; league: LeagueHandl
     setProblem(issue);
     if (!issue && await league.rename(name.trim().replace(/\s+/g, ' '))) setEditing(false);
   };
-  const leave = () => {
-    if (window.confirm('Rời bảng xếp hạng? Tuần này bạn vẫn giữ chỗ và vẫn được tính. Tham gia lại lúc nào cũng được.')) void league.leave();
+  const leave = async () => {
+    if (await askConfirm({ title: 'Rời bảng xếp hạng?', message: 'Tuần này bạn vẫn giữ chỗ và vẫn được tính. Tham gia lại lúc nào cũng được.', confirmLabel: 'Rời bảng', destructive: true })) {
+      void league.leave();
+    }
   };
   return (
     <section className="rk-foot" aria-label="Biệt danh trên bảng">

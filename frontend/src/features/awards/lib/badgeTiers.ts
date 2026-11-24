@@ -16,6 +16,7 @@ import { scoredFullTests } from '@/features/journey/lib/scoreJourney';
 import { clampWeeklyGoal, extraStudyDates } from '@/features/today/lib/habits';
 import { localDate } from '@/features/today/lib/todayTasks';
 import { isTooShortRun, runSeconds } from '@/features/pacing/lib/pacingStats';
+import { associatedStudyId } from '@/features/pacing/services/pacingStorage';
 import type { Badge } from './badges';
 
 export type BadgeGroup = 'on' | 'tb' | 'bb' | 'de';
@@ -160,14 +161,14 @@ export function badgeValues(bundle: DataBundle, today: string): Record<string, n
     if (s.sessionType === 'FULL_TEST') addParts(s.date, [1, 2, 3, 4, 5, 6, 7]);
     else addParts(s.date, (s.practiceParts ?? []).map(p => p.part));
   }
-  const PART_OF: Record<string, number> = { PART_5: 5, PART_6: 6, PART_7: 7, PART_7_SINGLE: 7, PART_7_MULTI: 7 };
-  for (const r of runs) if (r.partType && PART_OF[r.partType]) addParts(r.date, [PART_OF[r.partType]]);
+  const PART_OF: Record<string, readonly number[]> = { PART_5: [5], PART_6: [6], PART_7: [7], PART_7_SINGLE: [7], PART_7_MULTI: [7], FULL_READING: [5, 6, 7] };
+  for (const r of runs) if (r.partType && PART_OF[r.partType]) addParts(r.date, PART_OF[r.partType]);
   const sevenWeeks = [...partsByWeek.values()].filter(set => set.size >= 7).length;
   const vocabDays = new Set(bundle.vocabLog.filter(v => !v.deletedAt).map(v => v.date)).size;
 
-  // Đề & thời gian
+  // Đề & thời gian: skip pacing runs that already have a paired StudySession so study hours are never double-counted.
   const minutes = sessions.reduce((sum, s) => sum + Math.max(0, num(s.durationMinutes) ?? 0), 0)
-    + runs.reduce((sum, r) => sum + Math.max(0, (runSeconds(r) ?? 0) / 60), 0);
+    + runs.reduce((sum, r) => (associatedStudyId(r, sessions) ? sum : sum + Math.max(0, (runSeconds(r) ?? 0) / 60)), 0);
   const timed = runs.filter(r => r.partType && r.partType !== 'POMODORO' && runSeconds(r) !== null && !isTooShortRun(r)).length;
 
   return {
@@ -252,7 +253,7 @@ export function saveBest(owner: string | null, badges: readonly TierBadge[]): vo
 export function unseenTiers(badges: readonly TierBadge[], owner: string | null): number {
   try {
     const raw = localStorage.getItem(seenKey(owner));
-    if (raw === null) return 0;
+    if (raw === null) { markTiersSeen(badges, owner); return 0; }
     const seen = JSON.parse(raw) as Record<string, number>;
     return badges.filter(b => b.tier > (seen[b.id] ?? 0)).length;
   } catch { return 0; }

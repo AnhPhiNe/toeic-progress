@@ -105,29 +105,33 @@ export function CapturePartInput({
         {logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>}
       </div>
       <div className="cpi-switch" role="group" aria-label="Chọn Part">
-        <span className="cpi-sw-lbl">Đọc</span>
-        {([5, 6, 7] as const).map(value => {
-          const cnt = logged ? wrongIn(value).length : 0;
-          return (
-            <button key={value} type="button" className="cpi-sw-btn is-read" aria-pressed={part === value} disabled={disabled}
-              aria-label={`Part ${value} · ${PART_NAMES[value]}`}
-              onClick={() => { setEditingRange(false); onPart(value); }}>
-              P{value}{cnt > 0 && <em>{cnt}</em>}
-            </button>
-          );
-        })}
+        <span className="cpi-sw-grp">
+          <span className="cpi-sw-lbl">Đọc</span>
+          {([5, 6, 7] as const).map(value => {
+            const cnt = logged ? wrongIn(value).length : 0;
+            return (
+              <button key={value} type="button" className="cpi-sw-btn is-read" aria-pressed={part === value} disabled={disabled}
+                aria-label={`Part ${value} · ${PART_NAMES[value]}`}
+                onClick={() => { setEditingRange(false); onPart(value); }}>
+                P{value}{cnt > 0 && <em>{cnt}</em>}
+              </button>
+            );
+          })}
+        </span>
         <i className="cpi-sw-sep" aria-hidden="true" />
-        <span className="cpi-sw-lbl is-listen">Nghe</span>
-        {([1, 2, 3, 4] as const).map(value => {
-          const cnt = logged ? wrongIn(value).length : 0;
-          return (
-            <button key={value} type="button" className="cpi-sw-btn is-listen" aria-pressed={part === value} disabled={disabled}
-              aria-label={`Part ${value} · ${PART_NAMES[value]}`}
-              onClick={() => { setEditingRange(false); onPart(value); }}>
-              P{value}{cnt > 0 && <em>{cnt}</em>}
-            </button>
-          );
-        })}
+        <span className="cpi-sw-grp">
+          <span className="cpi-sw-lbl is-listen">Nghe</span>
+          {([1, 2, 3, 4] as const).map(value => {
+            const cnt = logged ? wrongIn(value).length : 0;
+            return (
+              <button key={value} type="button" className="cpi-sw-btn is-listen" aria-pressed={part === value} disabled={disabled}
+                aria-label={`Part ${value} · ${PART_NAMES[value]}`}
+                onClick={() => { setEditingRange(false); onPart(value); }}>
+                P{value}{cnt > 0 && <em>{cnt}</em>}
+              </button>
+            );
+          })}
+        </span>
       </div>
       {groups.length > 0 && (
         <div className="cpi-groups" role="group" aria-label="Nhóm bài đọc">

@@ -58,7 +58,7 @@ export function buildBatchEntries(items: BatchExtractedItem[], sourceTestName: s
       explanation: draft.explanation ?? undefined, answerDoubt: draft.answerDoubt || undefined
     };
     if (!cardFields.safeParse(entry).success) throw new Error(`Câu ${item.number}: nội dung vượt giới hạn hoặc chưa hợp lệ. Chưa lưu câu nào; bản nháp vẫn được giữ.`);
-    if (!fitsSyncPayload(entry)) throw new Error(`Câu ${item.number}: nội dung vượt 32 KiB, chưa thể đồng bộ. Rút gọn ngữ cảnh trước khi lưu; chưa lưu câu nào.`);
+    if (!fitsSyncPayload(entry)) throw new Error(`Câu ${item.number}: nội dung vượt 64 KiB, chưa thể đồng bộ. Rút gọn ngữ cảnh trước khi lưu; chưa lưu câu nào.`);
     return entry;
   });
 }
@@ -76,7 +76,7 @@ export function assertBatchEntries(entries: MistakeEntry[]): void {
       || entry.userChoiceState !== 'CHOSEN' && Boolean(entry.userChoice)) {
       throw new Error(`Câu ${entry.questionNumber ?? '?'}: nội dung hoặc ID chưa hợp lệ. Chưa lưu câu nào.`);
     }
-    if (!fitsSyncPayload(entry)) throw new Error(`Câu ${entry.questionNumber}: nội dung vượt 32 KiB. Chưa lưu câu nào; bản nháp vẫn được giữ.`);
+    if (!fitsSyncPayload(entry)) throw new Error(`Câu ${entry.questionNumber}: nội dung vượt 64 KiB. Chưa lưu câu nào; bản nháp vẫn được giữ.`);
     ids.add(entry.id); numbers.add(entry.questionNumber!);
   }
 }

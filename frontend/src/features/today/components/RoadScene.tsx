@@ -142,28 +142,36 @@ export function RoadScene(props: RoadSceneProps) {
     : `Bậc ${socAt + 1} trên ${stopCount}, ${best} điểm, mục tiêu ${target}`;
   const walkedTo = estimate ? 0 : done ? route.L : route.stopLen[socAt];
 
+  // Desktop: keep the road + trophy + bridge comfortably left of the right-hand task panel at 1100–1360px widths.
+  const panelReserve = !phone && box.w <= 1140 ? 372 : 412;
+  const availDeskW = Math.max(420, box.w - panelReserve);
+  const roadRightPx = !phone && box.h > 0 ? 748 * (box.h / DESK_H) : 0;
+  const deskScale = !phone && roadRightPx > availDeskW ? Math.max(0.72, availDeskW / roadRightPx) : 1;
+  const worldTransform = deskScale < 1 ? `translate(0 ${((1 - deskScale) * H).toFixed(1)}) scale(${deskScale.toFixed(4)})` : undefined;
+
   const stops: ReactNode[] = L.stops.map(([x, y], i) => {
     const step = steps[i];
     if (!step) return null;
     const label = `Bậc ${i + 1} · ${step.value}`;
+    const ring = <rect className="il-ring" x={x - r * 1.3} y={y - r * 1.3} width={r * 2.6} height={r * 2.6} rx={r} />;
     if (estimate) {
       return <g key={i} {...tap(`m${i}`, `Bậc ${i + 1}: ${step.value} điểm, ước lượng`, label, 'Ước lượng · ghi đề đầu tiên để Sóc đặt lại')}>
-        <Stone x={x} y={y} r={r} f={f} text={String(step.value)} next={lit && i === 0} glowId={glow} /></g>;
+        {ring}<Stone x={x} y={y} r={r} f={f} text={String(step.value)} next={lit && i === 0} glowId={glow} /></g>;
     }
     if (done || i < socAt) {
       const sub = step.reachedDate ? `Đạt ${roadDate(step.reachedDate)}` : 'Đã đạt';
       return <g key={i} className="rr-coin" style={{ '--d': `${.1 + i * .06}s` } as CSSProperties}>
-        <g {...tap(`m${i}`, `Bậc ${i + 1}: ${step.value} điểm, ${sub.toLowerCase()}`, label, sub)}><Coin x={x} y={y} r={r} text={String(step.value)} /></g></g>;
+        <g {...tap(`m${i}`, `Bậc ${i + 1}: ${step.value} điểm, ${sub.toLowerCase()}`, label, sub)}>{ring}<Coin x={x} y={y} r={r} text={String(step.value)} /></g></g>;
     }
     if (i === socAt) {
       const sub = `${step.reachedDate ? `Đạt ${roadDate(step.reachedDate)} · ` : ''}bạn đang ở đây`;
       return <g key={i} {...tap(`m${i}`, `Bậc ${i + 1}: ${best} điểm, bạn đang ở đây`, `Bậc ${i + 1} · ${best}`, sub)}>
-        <Coin x={x} y={y} r={r * 1.1} text={String(best)} today glowId={glow} /></g>;
+        {ring}<Coin x={x} y={y} r={r * 1.1} text={String(best)} today glowId={glow} /></g>;
     }
     const date = proj[i];
     const sub = date ? `Dự báo ~${roadDate(date)}` : `Còn ${step.value - best} điểm`;
     return <g key={i} {...tap(`m${i}`, `Bậc ${i + 1}: ${step.value} điểm, ${sub.toLowerCase()}`, label, sub)}>
-      <Stone x={x} y={y} r={r} f={f} text={String(step.value)} date={date ? `~${roadDate(date)}` : undefined} next={i === socAt + 1} glowId={glow} /></g>;
+      {ring}<Stone x={x} y={y} r={r} f={f} text={String(step.value)} date={date ? `~${roadDate(date)}` : undefined} next={i === socAt + 1} glowId={glow} /></g>;
   });
 
   const archAt = L.arch;
@@ -182,7 +190,7 @@ export function RoadScene(props: RoadSceneProps) {
         </defs>
         <rect width={W} height={H} fill={`url(#${uid}sky)`} />
         {scenery}
-        {!hidden && <g className="rr-world">
+        {!hidden && <g className="rr-world" transform={worldTransform}>
           <path d={route.d} fill="none" stroke="#e2c287" strokeWidth={r * 1.5} strokeLinecap="round" strokeLinejoin="round" transform="translate(0 4)" />
           <path d={route.d} fill="none" stroke="#f8e6bf" strokeWidth={r * 1.4} strokeLinecap="round" strokeLinejoin="round" />
           {walkedTo > 0 && <path className="rr-walked" d={route.pathTo(walkedTo)} fill="none" stroke="#ffd766" strokeWidth={r * .5} strokeLinecap="round" opacity=".9" />}

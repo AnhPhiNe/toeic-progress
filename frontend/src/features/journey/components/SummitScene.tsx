@@ -161,7 +161,8 @@ export function SummitScene({ variant, W, H, points, hidden, target, latestIdx, 
 
   const geo = useMemo(() => trailGeometry(P, n, phone ? 1 : 0), [P.tx, P.ty, P.s, n, phone]); // eslint-disable-line react-hooks/exhaustive-deps
   const stakes = stakeCount(n);
-  const fLast = geo.latest;
+  const lk = latestIdx >= 0 ? latestIdx : n - 1;
+  const fLast = n > 0 ? stakeAt(lk, stakes) : geo.latest;
   const walked = n > 0 ? slicePts(geo.dense, 0, fLast) : [];
   const proj = n > 0 ? slicePts(geo.dense, fLast, 1) : geo.dense;
   const pj = polyline(proj);
@@ -185,16 +186,15 @@ export function SummitScene({ variant, W, H, points, hidden, target, latestIdx, 
   const [px, py] = place(P, PEAK);
   const f = S.f;
 
-  // Sóc beside the latest flag: steps up from the previous one on arrival.
-  const lk = latestIdx >= 0 ? latestIdx : n - 1;
-  const socF = n > 0 ? Math.min(1, geo.latest + .035) : .0;
+  // Sóc beside the latest counted flag: steps up from the previous one on arrival.
+  const socF = n > 0 ? Math.min(1, fLast + .035) : .0;
   const [sx, sy] = n > 0 ? geo.at(socF) : [geo.at(0)[0] - S.socW * .9, geo.at(0)[1] + 2];
   const socMood: SocMood = n <= 1 ? 'hi' : 'proud';
   const climbRef = useRef<SVGGElement>(null);
   useEffect(() => {
     const el = climbRef.current;
     if (!el || n < 1 || !el.animate || reduceMotion()) return;
-    const from = n > 1 ? stakeAt(n - 2, stakes) + .02 : Math.max(0, socF - .06);
+    const from = lk > 0 ? stakeAt(lk - 1, stakes) + .02 : Math.max(0, socF - .06);
     const frames: Keyframe[] = [0, .33, .66].flatMap((t, i) => {
       const [a, b] = geo.at(from + (socF - from) * t);
       const x = a - sx, y = b - sy;

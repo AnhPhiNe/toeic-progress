@@ -95,7 +95,7 @@ let requestLimit = MAX_CAPTURE_REQUESTS;
 let requestLimitLoad: Promise<number> | null = null;
 const loadRequestLimit = () => requestLimitLoad ??= Promise.resolve()
   .then(() => typeof aiService.getAIConfiguration === 'function' ? aiService.getAIConfiguration() : null)
-  .then(captureRequestLimit, () => MAX_CAPTURE_REQUESTS);
+  .then(captureRequestLimit, () => { requestLimitLoad = null; return MAX_CAPTURE_REQUESTS; });
 let solvingCount = 0;
 let context: CaptureContext | null = null;
 let restoreTried = false;
@@ -625,7 +625,7 @@ export async function retryFailure(failureId: string) {
 
 export function toggleItem(id: string) { set({ items: state.items.map(item => item.id === id ? { ...item, checked: !item.checked } : item) }); }
 export function setAllChecked(checked: boolean) { set({ items: state.items.map(item => ({ ...item, checked: checked && !isUnreadable(item.draft) })) }); }
-export function patchItem(id: string, patch: Partial<Pick<CaptureItem, 'draft' | 'category' | 'checked'>>) {
+export function patchItem(id: string, patch: Partial<Pick<CaptureItem, 'draft' | 'category' | 'checked' | 'ticket'>>) {
   set({ items: state.items.map(item => item.id === id ? { ...item, ...patch } : item) });
 }
 export function removeItem(id: string) { set({ items: state.items.filter(item => item.id !== id) }); }

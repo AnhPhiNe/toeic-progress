@@ -27,7 +27,7 @@ interface Props {
 function Chest({ x, y, k, rank, open, label, onClick, onHover }: { x: number; y: number; k: number; rank: number; open: boolean; label: string; onClick: () => void; onHover: (on: boolean) => void }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${k})`} className={'jr-chest' + (open ? ' is-open' : '')} role="button" tabIndex={0} aria-label={label}
-      onClick={e => { e.stopPropagation(); onClick(); }} onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); onClick(); } }}
+      onClick={e => { e.stopPropagation(); onClick(); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClick(); } }}
       onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} onFocus={() => onHover(true)} onBlur={() => onHover(false)}>
       {!open && <><circle r="28" fill="#fff6c8" opacity=".5" /><circle className="il-pulse" r="19" fill="#fff6c8" opacity=".6" /></>}
       <ellipse cx="0" cy="13" rx="19" ry="4" fill="#000" opacity=".12" />
@@ -128,24 +128,26 @@ export function IslandMap({ device, L, height, parts, plan, shown, ariaLabel, on
         const box = sb(p), showChest = info.rank >= 0 || info.open;
         const [cx, cy] = chestSpot(p, info.rank === 1 ? 1 : 0, L);
         return (
-          <g key={p} className={'jr-isl' + (on ? ' is-on' : '')} role="button" tabIndex={0}
-            aria-label={`Part ${p}: ${info.pct}% đúng, ${info.wrong} câu sai${info.rank >= 0 ? `, rương số ${info.rank + 1}` : ''}`} aria-pressed={on}
-            onMouseEnter={onHover ? () => onHover(p) : undefined} onMouseLeave={onLeave} onFocus={phone ? undefined : () => onChoose(p)} onClick={() => onChoose(p)}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChoose(p); } }}>
-            <rect x={Math.min(box.x, x - r * 1.16)} y={box.y - 4} width={Math.max(box.w, r * 2.32)} height={y + r * 0.9 - box.y + 4} fill="transparent" />
-            {on && <path className="il-pulse" d={blobPath(x, y + radius(p) * 0.18, radius(p) * 1.46, radius(p) * 0.8, 3, 0.02)} fill="none" stroke="#fff" strokeWidth={3.5 * k} strokeDasharray={`${11 * k} ${8 * k}`} strokeLinecap="round" />}
-            <g className="jr-lift">
-              <IslandArt part={p} x={x} y={y} r={radius(p)} k={artK(p)} weather={info.weather} />
-              <line x1={x} y1={box.y + sh} x2={x} y2={y + 4 * k} stroke="#8a5a36" strokeWidth={4 * k} strokeLinecap="round" />
-              {showChest && (
-                <Chest x={cx} y={cy} k={phone ? 0.62 : 1} rank={info.rank + 1} open={info.open}
-                  label={info.open ? `Rương Part ${p} đã mở, xem lại câu sai` : `Rương số ${info.rank + 1}, Part ${p}: xem ${info.wrong} câu sai`}
-                  onClick={() => (phone ? onChoose(p) : onOpenNotebook(p))} onHover={o => onTip(o ? p : null)} />
-              )}
-              <rect x={box.x} y={box.y + 3 * k} width={sw} height={sh} rx={sh / 2.3} fill="#1f5f86" opacity=".2" />
-              <rect x={box.x} y={box.y} width={sw} height={sh} rx={sh / 2.3} fill="#fff" stroke={on ? '#ff7a9c' : 'none'} strokeWidth={2.6 * k + 0.4} />
-              <text x={x} y={box.y + sh * 0.68} textAnchor="middle" fontWeight="900" fontSize={fs} fill="#2f3a33">Part {p}<tspan dx={fs * 0.45} fill={c.ink}>{info.pct}%</tspan></text>
+          <g key={p}>
+            <g className={'jr-isl' + (on ? ' is-on' : '')} role="button" tabIndex={0}
+              aria-label={`Part ${p}: ${info.pct}% đúng, ${info.wrong} câu sai${info.rank >= 0 ? `, rương số ${info.rank + 1}` : ''}`} aria-pressed={on}
+              onMouseEnter={onHover ? () => onHover(p) : undefined} onMouseLeave={onLeave} onFocus={phone ? undefined : () => onChoose(p)} onClick={() => onChoose(p)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChoose(p); } }}>
+              <rect x={Math.min(box.x, x - r * 1.16)} y={box.y - 4} width={Math.max(box.w, r * 2.32)} height={y + r * 0.9 - box.y + 4} fill="transparent" />
+              {on && <path className="il-pulse" d={blobPath(x, y + radius(p) * 0.18, radius(p) * 1.46, radius(p) * 0.8, 3, 0.02)} fill="none" stroke="#fff" strokeWidth={3.5 * k} strokeDasharray={`${11 * k} ${8 * k}`} strokeLinecap="round" />}
+              <g className="jr-lift">
+                <IslandArt part={p} x={x} y={y} r={radius(p)} k={artK(p)} weather={info.weather} />
+                <line x1={x} y1={box.y + sh} x2={x} y2={y + 4 * k} stroke="#8a5a36" strokeWidth={4 * k} strokeLinecap="round" />
+                <rect x={box.x} y={box.y + 3 * k} width={sw} height={sh} rx={sh / 2.3} fill="#1f5f86" opacity=".2" />
+                <rect x={box.x} y={box.y} width={sw} height={sh} rx={sh / 2.3} fill="#fff" stroke={on ? '#ff7a9c' : 'none'} strokeWidth={2.6 * k + 0.4} />
+                <text x={x} y={box.y + sh * 0.68} textAnchor="middle" fontWeight="900" fontSize={fs} fill="#2f3a33">Part {p}<tspan dx={fs * 0.45} fill={c.ink}>{info.pct}%</tspan></text>
+              </g>
             </g>
+            {showChest && (
+              <Chest x={cx} y={cy} k={phone ? 0.62 : 1} rank={info.rank + 1} open={info.open}
+                label={info.open ? `Rương Part ${p} đã mở, xem lại câu sai` : `Rương số ${info.rank + 1}, Part ${p}: xem ${info.wrong} câu sai`}
+                onClick={() => (phone ? onChoose(p) : onOpenNotebook(p))} onHover={o => onTip(o ? p : null)} />
+            )}
           </g>
         );
       })}

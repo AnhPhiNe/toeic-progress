@@ -10,7 +10,7 @@
 .rk-card h3 { font-weight: 900; font-size: 17px; margin: 0 0 12px; }
 .rk-card h3 small { font-weight: 800; font-size: 13px; color: var(--rk-mut); margin-left: 6px; }
 
-.rk-grid { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 22px; align-items: start; max-width: 1180px; }
+.rk-grid { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 22px; align-items: stretch; max-width: 1240px; }
 .rk-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 /* hero */
@@ -52,7 +52,8 @@
 .rk-rules svg { flex: none; margin-top: 2px; color: #8a948d; }
 
 /* board */
-.rk-board { padding: 18px 18px 0; display: flex; flex-direction: column; max-height: calc(100vh - 120px); min-height: 520px; overflow: hidden; }
+.rk-board { padding: 18px 18px 0; display: flex; flex-direction: column; min-height: 620px; overflow: hidden; }
+.rk-empty { margin: 28px 18px; text-align: center; font-weight: 800; font-size: 14.5px; color: var(--rk-mut); }
 .rk-board__h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 2px; }
 .rk-board__h h2 { font-weight: 900; font-size: 21px; margin: 0; }
 .rk-board__h span { font-weight: 800; font-size: 13.5px; color: var(--rk-mut); white-space: nowrap; }

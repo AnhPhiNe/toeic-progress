@@ -5,6 +5,7 @@ import { Soc } from '@/shared/ui/soc/Soc';
 import { DEFAULT_LIMIT, forecast, journeySeries, splitTarget, type JourneyPoint, type ScoreMetric } from '../lib/scoreJourney';
 import { MTN_H, MTN_W, verdict } from '../lib/summitTrail';
 import { ddmm } from '../lib/journeyData';
+import { hasChosenGoal, PREVIEW_TARGET } from '@/features/today/lib/goalSetup';
 import { SceneStage } from './SceneStage';
 import { SummitScene } from './SummitScene';
 
@@ -29,8 +30,10 @@ export const METRIC_MAX: Record<ScoreMetric, number> = { total: 990, listening: 
 export function useSummitData(sessions: StudySession[], profile: UserProfile, today: string) {
   const [metric, setMetric] = useState<ScoreMetric>('total');
   const [forced, setForced] = useState<string[]>(readForced);
-  const split = useMemo(() => splitTarget(profile.targetScore, sessions), [profile.targetScore, sessions]);
-  const target = metric === 'total' ? profile.targetScore : split[metric];
+  const goalChosen = hasChosenGoal(profile);
+  const effectiveGoal = goalChosen ? profile.targetScore : PREVIEW_TARGET;
+  const split = useMemo(() => splitTarget(effectiveGoal, sessions), [effectiveGoal, sessions]);
+  const target = metric === 'total' ? effectiveGoal : split[metric];
   const series = useMemo(() => journeySeries(sessions, { limit: DEFAULT_LIMIT, metric, forceInclude: forced }), [sessions, metric, forced]);
   const everything = useMemo(() => journeySeries(sessions, { limit: 100000, metric, forceInclude: forced }).points, [sessions, metric, forced]);
   const T = series.points;
@@ -48,7 +51,7 @@ export function useSummitData(sessions: StudySession[], profile: UserProfile, to
   const delta = latest && prev ? latest.score - prev.score : null;
   const first = everything[0];
   const bestBefore = latest ? Math.max(-Infinity, ...everything.slice(0, everything.findIndex(p => p.id === latest.id)).map(p => p.score)) : -Infinity;
-  return { metric, setMetric, split, target, T, hidden: series.hiddenCount, fc, latestIdx, latest, answer, force, delta, first, bestBefore, counted: counted.length };
+  return { metric, setMetric, split, target, goalChosen, effectiveGoal, T, hidden: series.hiddenCount, fc, latestIdx, latest, answer, force, delta, first, bestBefore, counted: counted.length };
 }
 
 /** The sentence with the given parts (first occurrence of each, in order) in bold. */
@@ -66,8 +69,8 @@ function withBold(text: string, bold: string[]): ReactNode[] {
 }
 
 /** Desktop card: "MÌNH CÓ KỊP KHÔNG?" with the answer, the latest score and its Nghe / Đọc. */
-export function SummitCard({ data, phone, onLog, onShowTests, profileTarget }: { data: ReturnType<typeof useSummitData>; phone?: boolean; onLog?: () => void; onShowTests?: () => void; profileTarget: number }) {
-  const { answer, latest, metric, delta, first, target, split, hidden } = data;
+export function SummitCard({ data, phone, onLog, onShowTests }: { data: ReturnType<typeof useSummitData>; phone?: boolean; onLog?: () => void; onShowTests?: () => void; profileTarget?: number }) {
+  const { answer, latest, metric, setMetric, delta, first, target, goalChosen, effectiveGoal, split, hidden } = data;
   const pill = delta === null ? <span className="sm-pill">Đề đầu tiên của bạn</span>
     : delta > 0 ? <span className="sm-pill is-up">▲ {delta} so với đề trước</span>
     : delta < 0 ? <span className="sm-pill is-dn">▼ {-delta} so với đề trước</span>
@@ -79,7 +82,10 @@ export function SummitCard({ data, phone, onLog, onShowTests, profileTarget }: {
   else head = <div className="sm-new"><Soc state="think" size={phone ? 36 : 42} /><h4>{answer.text}</h4></div>;
   return (
     <div className="sm-card">
-      <small className="sm-kick">Mình có kịp không?</small>
+      <div className="sm-card__top">
+        <small className="sm-kick">Mình có kịp không?</small>
+        {phone && <MetricToggle metric={metric} onChange={setMetric} />}
+      </div>
       {head}
       {latest ? <>
         <div className="sm-big">{latest.score}<span>/{METRIC_MAX[metric]} · {ddmm(latest.date)}</span>{phone && pill}</div>
@@ -91,10 +97,10 @@ export function SummitCard({ data, phone, onLog, onShowTests, profileTarget }: {
             <div>Đọc <span>{latest.reading ?? '–'}</span></div>
             {growText && <div>Tăng từ đề đầu {growText}</div>}
           </div>}
-        {metric !== 'total' && <p className="sm-note">Mình chia mục tiêu {profileTarget} theo điểm hiện tại của bạn: Nghe {split.listening}, Đọc {split.reading}.</p>}
+        {metric !== 'total' && <p className="sm-note">Mình chia mục tiêu {effectiveGoal} theo điểm hiện tại của bạn: Nghe {split.listening}, Đọc {split.reading}.</p>}
         {hidden > 0 && onShowTests && !phone && <button type="button" className="sm-hidden" onClick={onShowTests}>+{hidden} đề cũ hơn trong Các đề</button>}
       </> : <>
-        <div className="sm-big">{target}<span>/{METRIC_MAX[metric]} · mục tiêu</span></div>
+        <div className="sm-big">{goalChosen ? target : '—'}<span>{goalChosen ? `/${METRIC_MAX[metric]} · mục tiêu` : 'chưa đặt mục tiêu'}</span></div>
         {onLog && <button type="button" className="rd-btn sm-first" onClick={onLog}>+ Ghi điểm đề</button>}
       </>}
     </div>

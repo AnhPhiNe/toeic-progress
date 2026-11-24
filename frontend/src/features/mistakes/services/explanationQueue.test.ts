@@ -105,12 +105,24 @@ describe('queued explanation delivery', () => {
   });
 
   it('keeps the original card and retry ticket when an explanation would exceed the sync payload limit', async () => {
-    const context = 'x'.repeat(15500), longInput = { ...input, context };
+    const context = 'ữ'.repeat(11000), longInput = { ...input, context };
     state.cards = [{ ...card(), context, questionContext: `${input.question}\n\n${context}` }];
     const original = structuredClone(state.cards[0]);
     state.explain.mockResolvedValue({ ...result(), items: [{ number: 178, draft: { ...draft, trapTip: 'x'.repeat(4000) } }] });
     enqueueExplanations(ticket(), [{ cardId: 'c1', number: 178, input: longInput }]); await settled('c1');
     expect(state.cards[0]).toEqual(original); expect(canRetryFree('c1')).toBe(true);
+  });
+
+  it('retries siblings individually when EXPLAIN_TICKET_CONTENT_CHANGED rejects one item in a batch', async () => {
+    state.cards = [card('c1'), card('c2')];
+    state.explain
+      .mockRejectedValueOnce(new ApiRequestError('Content changed', 403, undefined, undefined, 'EXPLAIN_TICKET_CONTENT_CHANGED'))
+      .mockRejectedValueOnce(new ApiRequestError('Content changed', 403, undefined, undefined, 'EXPLAIN_TICKET_CONTENT_CHANGED'))
+      .mockResolvedValueOnce(result(179));
+    enqueueExplanations(ticket(), [{ cardId: 'c1', number: 178, input }, { cardId: 'c2', number: 179, input }]);
+    await settled('c1', 'c2');
+    expect(canRetryFree('c1')).toBe(false);
+    expect(state.cards[1].explanation).toEqual(draft.explanation);
   });
 
   it('retains the final evidence of a 4,839-character passage after saving the explanation', async () => {

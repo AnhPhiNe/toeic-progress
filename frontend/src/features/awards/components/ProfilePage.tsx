@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, Lock, Pencil, X } from 'lucide-react';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { NavTabId, UserProfile } from '@/shared/types';
@@ -45,7 +45,7 @@ interface WardItem { id: string; label: string; sub: string; state: 'on' | 'free
 export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoTab, onBack }: Props) {
   const isPhone = useMediaQuery(PHONE_QUERY);
   const owned = useMemo(() => rank?.rewards ? rank.rewards.flatMap(r => r.cosmetics) : loadOwnedGear(owner), [rank, owner]);
-  const progress = useMemo(() => levelProgress(levelStars(bundle, today)), [bundle, today]);
+  const progress = useMemo(() => levelProgress(levelStars(bundle, today, owner)), [bundle, today, owner]);
   const lvl = progress.level.n;
   const badges = useMemo(() => computeTierBadges(badgeValues(bundle, today), loadBest(owner), computeBadges(bundle, today)), [bundle, today, owner]);
   useEffect(() => { saveBest(owner, badges); markTiersSeen(badges, owner); }, [badges, owner]);
@@ -71,12 +71,13 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
     const best = rank?.rank ? Math.max(tierIndex(rank.rank.tier), rank.rank.best ? tierIndex(rank.rank.best.tier) : 0) : -1;
     const season = rank?.season.number ?? 1;
     const ownedIds = owned.filter(id => gearItem(id));
+    const bySeason = (a: string, b: string) => (gearItem(a)?.season ?? 0) - (gearItem(b)?.season ?? 0);
     if (ownedIds.some(id => id.startsWith('frame-bac.')) && !ownedIds.some(id => id.startsWith('frame-vang.'))) {
-      const id = ownedIds.filter(x => x.startsWith('frame-bac.')).slice(-1)[0];
+      const id = ownedIds.filter(x => x.startsWith('frame-bac.')).sort(bySeason).slice(-1)[0];
       out.push({ id, label: 'Khung Bạc', gear: [id], state: gear.includes(id as SocGearId) ? 'on' : 'free', sub: gear.includes(id as SocGearId) ? 'Đang đeo' : `Quà mùa ${gearItem(id)!.season}` });
     }
     for (const slot of RANK_SLOTS) {
-      const mine = ownedIds.filter(id => id.startsWith(slot.base + '.')).sort().slice(-1)[0];
+      const mine = ownedIds.filter(id => id.startsWith(slot.base + '.')).sort(bySeason).slice(-1)[0];
       if (mine) out.push({ id: mine, label: slot.label, gear: [mine], state: gear.includes(mine as SocGearId) ? 'on' : 'free', sub: gear.includes(mine as SocGearId) ? 'Đang đeo' : `Quà mùa ${gearItem(mine)!.season}` });
       else if (best >= tierIndex(slot.tier)) out.push({ id: `${slot.base}.m${season}`, label: slot.label, gear: [`${slot.base}.m${season}`], state: 'soon', sub: `Cuối mùa ${season}` });
       // Locked season cape and crown look like the level items of the same name: only shown once in reach.
@@ -131,7 +132,7 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
         <>
           <div className="pf-stage" dangerouslySetInnerHTML={{ __html: roomScene(358, 150, 96, true, gear, coat) }} />
           {wardrobe}
-          <div className="pf-pfoot">{saveBtn}</div>
+          {(dirty || justSaved) && <div className="pf-pfoot">{saveBtn}</div>}
         </>
       ) : badgeGrid} />
       {detail}{gift}
@@ -180,9 +181,12 @@ function PhoneTabs({ tiers, render }: { tiers: number; render: (tab: 'tudo' | 'h
 function SocName({ name, onSave }: { name: string; onSave: (name: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
+  const cancelled = useRef(false);
   if (editing) return (
-    <form className="pf-name is-edit" onSubmit={e => { e.preventDefault(); onSave(draft); setEditing(false); }}>
-      <input value={draft} maxLength={20} autoFocus aria-label="Tên của Sóc" onChange={e => setDraft(e.target.value)} onBlur={() => { onSave(draft); setEditing(false); }} />
+    <form className="pf-name is-edit" onSubmit={e => { e.preventDefault(); cancelled.current = false; onSave(draft); setEditing(false); }}>
+      <input value={draft} maxLength={20} autoFocus aria-label="Tên của Sóc" onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); cancelled.current = true; setDraft(name); setEditing(false); } }}
+        onBlur={() => { if (!cancelled.current) onSave(draft); cancelled.current = false; setEditing(false); }} />
     </form>
   );
   return (

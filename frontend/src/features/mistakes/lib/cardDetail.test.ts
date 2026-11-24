@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { MistakeEntry, MistakeExplanation } from '@/shared/types';
 import { cardEvidences, looseFind, markPassage, optionRows, quotedParts, signalLine, type MarkedBlock } from './cardDetail';
 import { reviewFocus, splitFocus } from './passageFocus';
-import { isWordSaved, savedVocabulary, withSavedWords } from './savedWords';
+import { isWordSaved, savedVocabulary, toggleSavedWord, withoutSavedWord, withSavedWords } from './savedWords';
 import { EvidencePassage } from '@/features/mistakes/components/CardParts';
 
 const TRIPLE = [
@@ -69,10 +69,38 @@ describe('evidence across passages', () => {
     expect(html).not.toContain('Câu bằng chứng');
   });
 
-  it('ignores spacing, case and quote style but never a sentence that is not in the passage', () => {
+  it('ignores spacing, case, dashes, table pipes and quote style but never a sentence that is not in the passage', () => {
     expect(looseFind('He said “hello there” loudly.', '"Hello   there"')).toEqual({ start: 9, end: 20 });
+    expect(looseFind('Standard – Deluxe package is $50.', 'Standard - Deluxe package')).not.toBeNull();
+    expect(looseFind('| Dưới 3 ngày | Không hoàn |', 'Dưới 3 ngày|Không hoàn')).not.toBeNull();
     expect(looseFind(TRIPLE, 'All guests receive a full refund.')).toBeNull();
     expect(looseFind(TRIPLE, 'stay')).toBeNull();
+  });
+
+  it('honors passageLabel when duplicate sentences appear in different passages and marks table headers', () => {
+    const dup = [
+      'Đoạn 1 — Email',
+      'All orders must be confirmed by Friday.',
+      '',
+      'Đoạn 2 — Policy',
+      '| Fee Category | Standard Rate |',
+      '|---|---|',
+      '| Late Cancel | $25 |',
+      '',
+      'Đoạn 3 — Reply',
+      'All orders must be confirmed by Friday.'
+    ].join('\n');
+    const { blocks, count } = markPassage(dup, [
+      { passageLabel: 'Đoạn 3 — Reply', text: 'All orders must be confirmed by Friday.', translation: 'Mọi đơn cần xác nhận trước thứ Sáu.' },
+      { passageLabel: 'Đoạn 2 — Policy', text: 'Fee Category | Standard Rate', translation: 'Mục phí và mức chuẩn.' }
+    ]);
+    expect(count).toBe(2);
+    // Block 1 (Đoạn 1 text) must remain unmarked; Block 3 (Đoạn 2 table header) gets order 0; Block 5 (Đoạn 3 text) gets order 1.
+    const textBlocks = blocks.filter(b => b.kind === 'text');
+    expect(textBlocks[0].kind === 'text' && textBlocks[0].segments.some(s => s.kind === 'mark')).toBe(false);
+    expect(textBlocks[1].kind === 'text' && textBlocks[1].segments.some(s => s.kind === 'mark' && s.order === 1)).toBe(true);
+    const tableBlock = blocks.find(b => b.kind === 'table');
+    expect(tableBlock?.kind === 'table' && tableBlock.headerOrder).toBe(0);
   });
 
   it('cardEvidences keeps found AI evidences, else the Part 6 blank sentence or the old single evidence', () => {
@@ -109,14 +137,21 @@ describe('options, signal and words', () => {
     expect(signalLine('Không có dòng này.')).toBe('');
   });
 
-  it('saved words stay on the card once each and are listed across cards', () => {
+  it('saved words stay on the card once each, can be toggled off, and are listed across cards', () => {
     const first = card({ explanation: base({ words: [{ word: 'Rely on', meaning: 'dựa vào' }] }) });
     const saved = withSavedWords(first, ['Rely  on', 'rely on']);
     expect(saved.savedWords).toEqual(['rely on']);
     expect(isWordSaved(saved, 'RELY ON')).toBe(true);
     expect(withSavedWords(saved, ['rely on'])).toBe(saved);
-    const other = withSavedWords(card({ id: 'c2', createdAt: '2026-11-21T00:00:00.000Z' }), ['refund']);
+    const toggledOff = toggleSavedWord(saved, 'Rely on');
+    expect(isWordSaved(toggledOff, 'rely on')).toBe(false);
+    expect(toggledOff.savedWords).toBeUndefined();
+    expect(withoutSavedWord(saved, 'missing')).toBe(saved);
+    const other = withSavedWords(card({ id: 'c2', part: 5, questionNumber: 112, createdAt: '2026-11-21T00:00:00.000Z' }), ['refund']);
     expect(savedVocabulary([saved, other, { ...other, id: 'gone', deletedAt: '2026-11-22T00:00:00.000Z', savedWords: ['gone'] }]))
-      .toEqual([{ word: 'refund', meaning: '', cardId: 'c2' }, { word: 'Rely on', meaning: 'dựa vào', cardId: 'c1' }]);
+      .toEqual([
+        { word: 'refund', meaning: '', cardId: 'c2', part: 5, questionNumber: 112 },
+        { word: 'Rely on', meaning: 'dựa vào', cardId: 'c1', part: 7, questionNumber: undefined }
+      ]);
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { MistakeEntry } from '@/shared/types';
+import { Soc } from '@/shared/ui/soc/Soc';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { AnswerDoubtNote } from '../AnswerDoubtNote';
 import { canExplain } from '../MistakeCard';
@@ -16,12 +17,12 @@ function QuestionChip({ m, view }: { m: MistakeEntry; view: CardView }) {
 }
 
 function PassageTab({ m, view }: { m: MistakeEntry; view: CardView }) {
-  const jump = useEvidenceJump(view.evidences.length, m.id);
+  const jump = useEvidenceJump(view.marked.count, `${m.id}:${view.context.length}`);
   return <>
     <div className="cdp-sticky"><QuestionChip m={m} view={view} />
-      {view.evidences.length > 1 && <EvidenceJumper at={jump.at} count={view.evidences.length} onNext={jump.next} />}</div>
+      {view.marked.count > 1 && <EvidenceJumper at={jump.at} count={view.marked.count} onNext={jump.next} />}</div>
     <div className="cdp-pcard" ref={jump.box} tabIndex={0} aria-label="Nội dung đoạn văn">
-      <EvidencePassage context={view.context} evidences={view.evidences} at={view.evidences.length > 1 ? jump.at : -1} />
+      <EvidencePassage context={view.context} evidences={view.evidences} marked={view.marked} at={view.marked.count > 1 ? jump.at : -1} />
     </div>
   </>;
 }
@@ -34,8 +35,11 @@ function PassageTab({ m, view }: { m: MistakeEntry; view: CardView }) {
 export function CardDetailPhone({ mistake: m, testName, actions, onBack }: { mistake: MistakeEntry; testName?: string; actions: MistakeDetailActions; onBack: () => void }) {
   const view = useCardView(m);
   const reading = Boolean(view.context);
+  const noteOnly = !reading && !view.rows.length;
+  const reviewable = canReview(m);
   const hasWords = view.words.length > 0 || Boolean(view.ex?.keyVocabulary?.trim());
-  const tabs: Tab[] = [...(reading ? ['passage' as const] : []), 'question', 'explain', ...(hasWords ? ['words' as const] : [])];
+  const showExplainTab = !noteOnly && (view.hasExplain || canExplain(m));
+  const tabs: Tab[] = [...(reading ? ['passage' as const] : []), 'question', ...(showExplainTab ? ['explain' as const] : []), ...(hasWords ? ['words' as const] : [])];
   // Without an explanation nothing is marked in the passage yet: open on the question, where "Giải thích với AI" is.
   const [tab, setTab] = useState<Tab>(reading && canExplain(m) ? 'question' : tabs[0]);
   const [menu, setMenu] = useState(false);
@@ -52,6 +56,10 @@ export function CardDetailPhone({ mistake: m, testName, actions, onBack }: { mis
     document.addEventListener('keydown', escape);
     return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', escape); };
   }, [menu]);
+
+  const pick = m.userMistake?.trim();
+  const ans = m.correctAnswer?.trim();
+  const showFooter = reviewable || m.status === 'MASTERED';
 
   return (
     <div className="rd cdp">
@@ -74,36 +82,56 @@ export function CardDetailPhone({ mistake: m, testName, actions, onBack }: { mis
         </div>
       </header>
 
-      <div className="cdp-seg" role="tablist" aria-label="Phần của thẻ">
-        {tabs.map(id => (
-          <button key={id} type="button" role="tab" id={`${tabId}-${id}`} aria-selected={current === id} aria-controls={`${tabId}-panel`} onClick={() => setTab(id)}>{LABELS[id]}</button>
-        ))}
-      </div>
+      {tabs.length > 1 && (
+        <div className="cdp-seg" role="tablist" aria-label="Phần của thẻ">
+          {tabs.map(id => (
+            <button key={id} type="button" role="tab" id={`${tabId}-${id}`} aria-selected={current === id} aria-controls={`${tabId}-panel`} onClick={() => setTab(id)}>{LABELS[id]}</button>
+          ))}
+        </div>
+      )}
 
-      <div className={'cdp-body' + (current === 'passage' ? ' is-passage' : '')} role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${current}`}>
+      <div className={'cdp-body' + (current === 'passage' ? ' is-passage' : '')} role={tabs.length > 1 ? 'tabpanel' : undefined} id={`${tabId}-panel`} aria-labelledby={tabs.length > 1 ? `${tabId}-${current}` : undefined}>
         {m.answerDoubt && view.answer !== m.answerDoubt && <div className="cd-doubt"><AnswerDoubtNote doubt={m.answerDoubt} current={view.answer} onSwitch={() => actions.onResolveDoubt(true)} onKeep={() => actions.onResolveDoubt(false)} /></div>}
         {current === 'passage' && <PassageTab m={m} view={view} />}
-        {current === 'question' && <>
-          {view.question && <h3 className="cd-q">{view.question}</h3>}
-          {view.rows.length
-            ? <OptionRows rows={view.rows} reasonOnly={reading} showPos={view.showPos} />
-            : <div className="cd-plain"><p><b>Bạn chọn:</b> {m.userMistake || '—'}</p><p><b>Đáp án:</b> {m.correctAnswer || '—'}</p></div>}
-          {canExplain(m) && (
-            <button type="button" className="cd-explain" onClick={actions.onExplain} disabled={actions.explaining}>
-              {actions.explaining ? 'Sóc đang viết lời giải…' : `${actions.explainLabel} ✨`}
-            </button>
-          )}
-        </>}
+        {current === 'question' && (noteOnly ? (
+          <>
+            <div className="cd-note-banner">
+              <Soc state="idle" size={54} />
+              <div>
+                <span className={'nb-part p' + m.part}>Part {m.part} · {m.part <= 4 ? 'Nghe hiểu' : 'Đọc hiểu'}</span>
+                <span className={'nb-cat c-' + m.category}>{categoryShort(m.category)}</span>
+                <p>{m.part <= 4 ? 'Thẻ ghi nhanh lý do sai phần Nghe. Chạm ⋯ → Sửa nếu muốn thêm ghi chú.' : 'Thẻ chưa có câu hỏi A–D. Chạm ⋯ → Sửa để bổ sung.'}</p>
+              </div>
+            </div>
+            {view.question && <h3 className="cd-q">{view.question}</h3>}
+            {(pick || ans) && <div className="cd-plain">{pick && <p><b>Bạn chọn:</b> {pick}</p>}{ans && <p><b>Đáp án:</b> {ans}</p>}</div>}
+            <ExplainBody m={m} view={view} actions={actions} words={!hasWords} />
+          </>
+        ) : (
+          <>
+            {view.question && <h3 className="cd-q">{view.question}</h3>}
+            {view.rows.length
+              ? <OptionRows rows={view.rows} reasonOnly={reading} showPos={view.showPos} />
+              : (pick || ans) && <div className="cd-plain">{pick && <p><b>Bạn chọn:</b> {pick}</p>}{ans && <p><b>Đáp án:</b> {ans}</p>}</div>}
+            {canExplain(m) && (
+              <button type="button" className="cd-explain" onClick={actions.onExplain} disabled={actions.explaining}>
+                {actions.explaining ? 'Sóc đang viết lời giải…' : `${actions.explainLabel} ✨`}
+              </button>
+            )}
+          </>
+        ))}
         {current === 'explain' && <><QuestionChip m={m} view={view} /><ExplainBody m={m} view={view} actions={actions} words={false} /></>}
         {current === 'words' && <><QuestionChip m={m} view={view} /><Words m={m} view={view} actions={actions} all /></>}
       </div>
 
-      <footer className="cdp-foot">
-        {canReview(m) && <button type="button" className="rd-btn rd-btn--pink" onClick={actions.onReview}>Ôn câu này</button>}
-        {m.status === 'MASTERED'
-          ? <button type="button" className="cd-link" onClick={actions.onReopen}>Ôn lại từ đầu</button>
-          : <button type="button" className="cd-link" onClick={actions.onMarkMastered}>Đã thuộc</button>}
-      </footer>
+      {showFooter && (
+        <footer className="cdp-foot">
+          {reviewable && <button type="button" className="rd-btn rd-btn--pink" onClick={actions.onReview}>Ôn câu này</button>}
+          {m.status === 'MASTERED'
+            ? <button type="button" className="cd-link" onClick={actions.onReopen}>Ôn lại từ đầu</button>
+            : reviewable && <button type="button" className="cd-link" onClick={actions.onMarkMastered}>Đã thuộc</button>}
+        </footer>
+      )}
     </div>
   );
 }

@@ -11,8 +11,8 @@ import './convert.css';
 /** Quy đổi điểm, desktop (design/previews/mock-convert3.html): a passport book over the CEFR road. */
 interface Props {
   sessions?: StudySession[];
-  /** The learner's goal total; 990 when none is set. */
-  targetScore?: number;
+  /** The learner's chosen goal total, or null/undefined when none is set. */
+  targetScore?: number | null;
   /** What Sóc wears (same outfit as everywhere else). */
   gear?: readonly string[];
 }
@@ -31,7 +31,7 @@ function Stamp({ shape, color, rotate, style, label, value, note }: StampProps) 
 }
 
 export function ConvertPage({ sessions, targetScore, gear = [] }: Props) {
-  const goal = Math.max(10, Math.min(990, targetScore || 990));
+  const goal = typeof targetScore === 'number' && targetScore >= 10 ? Math.max(10, Math.min(990, targetScore)) : null;
   const tests = useMemo(() => convertTests(sessions), [sessions]);
   const recent = tests.slice(0, 2);
   const others = tests.slice(2);
@@ -62,7 +62,7 @@ export function ConvertPage({ sessions, targetScore, gear = [] }: Props) {
   const total = scaledListening + scaledReading;
   const tier = getConcordanceByToeic(scaledListening, scaledReading);
   const journey = useMemo(() => buildJourney(tier?.cefr ?? null), [tier?.cefr]);
-  const reached = total >= goal;
+  const reached = goal !== null && total >= goal;
 
   // Scale the fixed-size stage to the room the window gives it.
   const panelRef = useRef<HTMLDivElement>(null);
@@ -109,12 +109,16 @@ export function ConvertPage({ sessions, targetScore, gear = [] }: Props) {
                   <small>TỔNG ĐIỂM DỰ KIẾN</small>
                   <p><b data-testid="estimated-total">{total}</b><span> / 990</span></p>
                 </div>
-                <div className="cv-goal">
-                  <span>Mục tiêu {goal} · {reached ? <>đã chạm <span aria-hidden="true">🎉</span></> : `còn ${goal - total}`}</span>
-                  <div className="cv-goal__bar" role="progressbar" aria-label="Tiến độ tới mục tiêu" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(total / goal * 100))}>
-                    <i style={{ width: `${Math.min(100, total / goal * 100)}%` }} />
+                {goal !== null ? (
+                  <div className="cv-goal">
+                    <span>Mục tiêu {goal} · {reached ? <>đã chạm <span aria-hidden="true">🎉</span></> : `còn ${goal - total}`}</span>
+                    <div className="cv-goal__bar" role="progressbar" aria-label="Tiến độ tới mục tiêu" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(total / goal * 100))}>
+                      <i style={{ width: `${Math.min(100, total / goal * 100)}%` }} />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="cv-goal"><span>Chưa đặt mục tiêu</span></div>
+                )}
               </section>
 
               <div className="cv-pick" role="group" aria-label="Lấy số câu từ đề đã làm">

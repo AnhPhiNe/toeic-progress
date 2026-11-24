@@ -17,10 +17,11 @@ interface Props {
   onOpenNotebook: (testName: string, part?: number) => void;
   onPractice: (part: 5 | 6 | 7) => void;
   onOpenSessionLogger: () => void;
+  gear?: readonly string[];
 }
 
 /** Từng Part on phones (design/previews/journey-v3/parts-islands-v3.html): short card, island map, one bottom sheet. */
-export function JourneyParts({ sessions, mistakes, onOpenNotebook, onPractice, onOpenSessionLogger }: Props) {
+export function JourneyParts({ sessions, mistakes, onOpenNotebook, onPractice, onOpenSessionLogger, gear }: Props) {
   const [ref, { w, h }] = useSize<HTMLDivElement>();
   const withParts = useMemo(() => fullTests(sessions).filter(s => wrongCountsByPart(s)).reverse(), [sessions]);
   const [pickTest, setPickTest] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export function JourneyParts({ sessions, mistakes, onOpenNotebook, onPractice, o
     return (
       <div ref={ref} className="jp-scene is-parts">
         <div className="jp-empty">
-          <Soc state="think" size={110} />
+          <Soc state="think" size={110} gear={gear} />
           <p>Chưa có đề nào ghi câu sai theo Part. Ghi một đề kèm ảnh kết quả, Sóc sẽ chia câu sai theo từng Part.</p>
           <button type="button" className="rd-btn" onClick={onOpenSessionLogger}>+ Ghi điểm</button>
         </div>
@@ -65,7 +66,7 @@ export function JourneyParts({ sessions, mistakes, onOpenNotebook, onPractice, o
     <div ref={ref} className="jp-scene is-parts">
       <IslandMap device="phone" L={layout} height={h} parts={mapParts} plan={plan.numbered} shown={shown} ariaLabel={`Câu sai theo Part của đề ${ddmm(test.date)}`}
         onChoose={setSel} onOpenNotebook={setSel} tip={tip} onTip={setTip} />
-      <div className="jp-boat-soc" style={{ left: layout.boat[0] - 22, top: layout.boat[1] - 42 }}><span className="il-boat"><Soc state="hi" size={44} /></span></div>
+      <div className="jp-boat-soc" style={{ left: layout.boat[0] - 22, top: layout.boat[1] - 42 }}><span className="il-boat"><Soc state="hi" size={44} gear={gear} /></span></div>
 
       <div className="jp-card">
         <div className="jp-card__row">

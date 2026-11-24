@@ -10,7 +10,7 @@ import { ExplanationView } from '@/features/mistakes/components/ExplanationView'
 import { PassageText } from '@/features/mistakes/components/PassageText';
 import type { AIMistakeParseResult } from '@/features/mistakes/services/aiMistakeExtractor';
 
-type ItemPatch = Partial<Pick<CaptureItem, 'draft' | 'category' | 'checked'>>;
+type ItemPatch = Partial<Pick<CaptureItem, 'draft' | 'category' | 'checked' | 'ticket'>>;
 
 interface ListProps {
   items: readonly CaptureItem[];
@@ -167,14 +167,17 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
   const letters = CHOICE_LETTERS.filter(letter => item.draft.options.some(option => option.startsWith(`(${letter})`)) || isUnreadable(item.draft));
   const apply = () => {
     let draft = item.draft;
+    let contentChanged = false;
     if (text !== optionLines(item.draft)) {
       const parsed = parsePastedQuestion(text, item.part);
       if (parsed.error) { setError(parsed.error); return; }
       draft = { ...draft, question: parsed.question, options: parsed.options, questionContext: [parsed.question, draft.context ?? ''].filter(Boolean).join('\n\n') };
+      contentChanged = true;
     }
     if (passageEditable && passage !== (draft.context ?? '')) {
       if (!passage.trim()) { setError('Đoạn văn không được để trống.'); return; }
       draft = { ...draft, context: passage, questionContext: [draft.question ?? '', passage].filter(Boolean).join('\n\n') };
+      contentChanged = true;
     }
     if ((choice && choice !== 'BLANK' && !draft.options.some(option => option.startsWith(`(${choice})`))) || (answer && !draft.options.some(option => option.startsWith(`(${answer})`)))) {
       setError('Lựa chọn chưa khớp phương án. Kiểm tra lại nội dung.'); return;
@@ -190,6 +193,7 @@ function RowEditor({ item, onClose, onPatch, onRemove }: { item: CaptureItem; on
     onPatch({
       draft,
       category,
+      ...(contentChanged ? { ticket: undefined } : {}),
       ...(isUnreadable(item.draft) && !isUnreadable(draft)
         ? { checked: !nowRight }
         : wasRight !== nowRight

@@ -10,6 +10,8 @@ interface Props {
   firstStep: number;
   week: StreakWeek;
   onStartTask: (task: TodayTask) => void;
+  /** While GoalCard on the left already carries the primary "+ Ghi điểm đề đầu tiên" CTA, omit the duplicate button here. */
+  hideCta?: boolean;
 }
 
 const GOLD = ['#ffd766', '#e0a400', '#6b4a00'] as const;
@@ -53,7 +55,7 @@ function Rewards({ firstStep }: { firstStep: number }) {
 }
 
 /** Right-hand column of the new-user Hôm nay page: next task, the rewards waiting, and a ghost of the first week. */
-export function FirstDayPanel({ task, firstStep, week, onStartTask }: Props) {
+export function FirstDayPanel({ task, firstStep, week, onStartTask, hideCta = false }: Props) {
   return (
     <>
       <section className="td-card" aria-label="Việc tiếp theo">
@@ -63,7 +65,7 @@ export function FirstDayPanel({ task, firstStep, week, onStartTask }: Props) {
             <small>{task.kicker}</small>
             <h2>{task.title}</h2>
             <p>{task.reason}</p>
-            <div className="td-acts"><button type="button" className="td-go" onClick={() => onStartTask(task)}>{task.kind === 'FULL_TEST' ? '+ Ghi điểm' : '▶ Bắt đầu'}</button></div>
+            {!hideCta && <div className="td-acts"><button type="button" className="td-go" onClick={() => onStartTask(task)}>{task.kind === 'FULL_TEST' ? '+ Ghi điểm' : '▶ Bắt đầu'}</button></div>}
           </> : <>
             <small>HÔM NAY</small>
             <h2>Ghi điểm đề đầu tiên</h2>

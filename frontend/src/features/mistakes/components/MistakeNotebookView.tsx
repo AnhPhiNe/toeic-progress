@@ -11,7 +11,7 @@ import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
-import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
+import { matchesExplanationCard, mergeExplanation, fitsSyncPayload } from '@/features/mistakes/lib/explanationMerge';
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { MistakeEntryModal } from '@/features/mistakes/components/MistakeEntryModal';
 import { CaptureModal } from '@/features/mistakes/components/CaptureModal';
@@ -27,13 +27,14 @@ import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { mistakeTestName, testNameKey, uniqueTestNames } from '@/features/mistakes/lib/sourceTests';
 import { collectTestNames } from '@/shared/domain/testNames';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import type { MistakeUndoAction } from '@/features/mistakes/lib/mistakeUndo';
 import { PageTip } from '@/features/guide/PageTip';
 import './notebook.css';
 import './notebook-rd.css';
 import './capture-rd.css';
 import { MistakeDetail, categoryShort, rowReviewLabel } from './MistakeDetail';
-import { withSavedWords } from '@/features/mistakes/lib/savedWords';
+import { savedVocabulary, toggleSavedWord, withSavedWords, withoutSavedWord } from '@/features/mistakes/lib/savedWords';
 import { Soc } from '@/shared/ui/soc/Soc';
 
 const NOTEBOOK_PAGE_SIZE = 8;
@@ -83,8 +84,6 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   // Computers (2026-11 redesign): a list of rows; a row opens one detail card.
   const [detailId, setDetailId] = useState<string | null>(null);
   const [nbTab, setNbTab] = useState<'mistakes' | 'words'>('mistakes');
-  // Word cards do not exist yet: their tab stays hidden until there are some.
-  const wordCards = 0;
   const [manualOpen, setManualOpen] = useState(false);
   const [manualInitialRaw, setManualInitialRaw] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -99,12 +98,14 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     const timeout = window.setTimeout(() => setFeedback(null), feedback.undo ? 15000 : feedback.error ? 7000 : 4000);
     return () => window.clearTimeout(timeout);
   }, [feedback]);
-  const deleteCard = (id: string) => {
-    if (!window.confirm('Xóa lỗi này khỏi sổ tay?')) return;
+  const deleteCard = async (id: string) => {
+    const ok = await askConfirm({ title: 'Xóa thẻ lỗi?', message: 'Xóa lỗi này khỏi sổ tay? Bạn vẫn có thể bấm Hoàn tác ngay sau đó.', confirmLabel: 'Xóa thẻ', cancelLabel: 'Giữ lại', destructive: true });
+    if (!ok) return;
     try {
       const owner = getActiveAccountId();
       const undo = onDeleteMistake(id);
       setFeedback({ id: ++feedbackSequence.current, message: 'Đã xóa thẻ', error: false, ...(undo ? { undo, owner } : {}) });
+      setDetailId(current => (current === id ? null : current));
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa xóa được thẻ.', true); }
   };
   const undoDelete = () => {
@@ -216,7 +217,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
     const input: MistakeInput = { question: card.question ?? card.questionContext, options: [...(card.options ?? [])], context: card.context ?? '', part: card.part,
       userChoiceState: card.userChoiceState ?? (chosen ? 'CHOSEN' : 'UNKNOWN'), userChoice: chosen,
-      userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
+      userReason: card.userReason ?? '', sourceAnswer, savedCard: true, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
       const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], owner, isCurrent);
@@ -232,12 +233,24 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     finally { if (isCurrent()) { setExplainingId(''); removeCaptcha(); } }
   };
 
+  const savedWordsList = useMemo(() => savedVocabulary(sourcedMistakes), [sourcedMistakes]);
+  const removeSavedWordEverywhere = (word: string) => {
+    try {
+      for (const m of mistakes) {
+        if (m.deletedAt) continue;
+        const next = withoutSavedWord(m, word);
+        if (next !== m) onUpdateMistake(next, m);
+      }
+      notify(`Đã bỏ lưu từ "${word}"`);
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa bỏ lưu được từ.', true); }
+  };
+
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
   const cardProps = (mistake: (typeof sourcedMistakes)[number]) => ({
     mistake,
     onReview: () => onStartReview([mistake.id]),
     onEdit: () => openEdit(mistakes.find(value => value.id === mistake.id) ?? mistake),
-    onDelete: () => deleteCard(mistake.id),
+    onDelete: () => { void deleteCard(mistake.id); },
     onMarkMastered: () => markMastered(mistake.id),
     onReopen: () => onReopenCards([mistake.id]),
     // A card read from a screenshot asks again with its ticket (no new AI use); otherwise one AI use.
@@ -257,8 +270,18 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     onSaveWords: (words: string[]) => {
       const latest = mistakes.find(value => value.id === mistake.id) ?? mistake;
       const next = withSavedWords(latest, words);
-      try { if (next !== latest) onUpdateMistake(next, latest); }
+      if (next === latest) return;
+      if (!fitsSyncPayload(next)) { notify('Thẻ đã quá dài để lưu thêm từ. Hãy rút gọn ghi chú hoặc bỏ bớt từ đã lưu.', true); return; }
+      try { onUpdateMistake(next, latest); }
       catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được từ.', true); }
+    },
+    onToggleWord: (word: string) => {
+      const latest = mistakes.find(value => value.id === mistake.id) ?? mistake;
+      const next = toggleSavedWord(latest, word);
+      if (next === latest) return;
+      if (!fitsSyncPayload(next)) { notify('Thẻ đã quá dài để lưu thêm từ. Hãy rút gọn ghi chú hoặc bỏ bớt từ đã lưu.', true); return; }
+      try { onUpdateMistake(next, latest); }
+      catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa cập nhật được từ đã lưu.', true); }
     }
   });
 
@@ -318,8 +341,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
     const p = cardProps(opened);
     return (
       <div className="rd nb-page is-detail">
-        <MistakeDetail mistake={opened} testName={opened.sourceTestName ?? undefined} onBack={() => setDetailId(null)}
-          actions={{ ...p, onDelete: () => { p.onDelete(); if (!loadMistakes().some(x => x.id === opened.id && !x.deletedAt)) setDetailId(null); } }} />
+        <MistakeDetail mistake={opened} testName={opened.sourceTestName ?? undefined} onBack={() => setDetailId(null)} actions={p} />
         {overlays}
       </div>
     );
@@ -372,10 +394,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       <div className="nb-top">
         <div><h1>Sổ tay</h1>{!empty && <p>Câu sai Sóc gom từ các trang chữa bài bạn chụp.</p>}</div>
         <div className="nb-topr">
-          {wordCards > 0 && (
+          {savedWordsList.length > 0 && (
             <div className="nb-tabs" role="tablist" aria-label="Sổ tay">
-              <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{sourcedMistakes.length}</em></button>
-              <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Thẻ từ<em>{wordCards}</em></button>
+              <button type="button" role="tab" aria-selected={nbTab === 'mistakes'} onClick={() => setNbTab('mistakes')}>Câu sai<em>{listedMistakes.length}</em></button>
+              <button type="button" role="tab" aria-selected={nbTab === 'words'} onClick={() => setNbTab('words')}>Từ đã lưu<em>{savedWordsList.length}</em></button>
             </div>
           )}
           <PageTip id="notebook" ready={!empty} />
@@ -383,10 +405,30 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
         </div>
       </div>
 
-      {nbTab === 'words' ? (
-        <section className="nb-hero is-empty">
-          <Soc state="think" size={200} className="nb-hsoc" />
-          <div><h2>Thẻ từ sắp có</h2><p>Mỗi thẻ sẽ là một từ làm bạn sai câu, kèm đúng câu gốc trong đề. Sóc đang học cách tách từ mới từ trang chữa bài.</p></div>
+      {nbTab === 'words' && savedWordsList.length > 0 ? (
+        <section className="nb-words" aria-label="Từ đã lưu từ các câu sai">
+          <div className="nb-words-head">
+            <div>
+              <h2>{savedWordsList.length} từ cần nhớ</h2>
+              <p>Các từ bạn đã bấm “+ Ôn” trong thẻ câu sai. Bấm vào thẻ gốc để xem lại ngữ cảnh trong đề.</p>
+            </div>
+            <button type="button" className="nb-ghost" onClick={() => setNbTab('mistakes')}>← Về danh sách câu sai</button>
+          </div>
+          <ul className="nb-words-list">
+            {savedWordsList.map(item => (
+              <li key={item.word.toLowerCase()}>
+                <div className="nb-w-main">
+                  <b lang="en">{item.word}</b>
+                  {item.meaning && <span>{item.meaning}</span>}
+                </div>
+                <button type="button" className="nb-w-card" onClick={() => setDetailId(item.cardId)}>
+                  <span className={'nb-part p' + item.part}>Part {item.part}</span>
+                  <span>{item.questionNumber ? `Câu ${item.questionNumber}` : 'Xem thẻ'} ›</span>
+                </button>
+                <button type="button" className="nb-w-rm" aria-label={`Bỏ lưu ${item.word}`} onClick={() => removeSavedWordEverywhere(item.word)}>Bỏ lưu</button>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : empty ? (
         <NotebookEmpty onCapture={openCreate} onManual={() => openManual()} />

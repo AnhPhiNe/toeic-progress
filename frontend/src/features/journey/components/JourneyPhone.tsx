@@ -38,10 +38,12 @@ export interface JourneyPhoneProps {
   bundle: DataBundle;
   activeTab: NavTabId;
   onNavigate: (tab: NavTabId) => void;
+  gear?: readonly string[];
 }
 
-export function JourneyPhone({ sessions, mistakes, profile, today, initialTab, onOpenNotebook, onPractice, onEditSession, onDeleteSession, onOpenSessionLogger, onAddSuggestion, openRequest }: JourneyPhoneProps) {
+export function JourneyPhone({ sessions, mistakes, profile, today, initialTab, onOpenNotebook, onPractice, onEditSession, onDeleteSession, onOpenSessionLogger, onAddSuggestion, openRequest, gear }: JourneyPhoneProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
   const [openId, setOpenId] = useState<string | null>(openRequest?.id ?? null);
   const [focusAdvice, setFocusAdvice] = useState(Boolean(openRequest) && openRequest?.advice !== false);
   useEffect(() => { if (openRequest) { setOpenId(openRequest.id); setFocusAdvice(openRequest.advice !== false); } }, [openRequest]);
@@ -66,8 +68,8 @@ export function JourneyPhone({ sessions, mistakes, profile, today, initialTab, o
           <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
-      {tab === 'score' && <JourneyScore sessions={sessions} profile={profile} today={today} onOpenTest={openTest} onLog={onOpenSessionLogger} />}
-      {tab === 'parts' && <JourneyParts sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} />}
+      {tab === 'score' && <JourneyScore sessions={sessions} profile={profile} today={today} onOpenTest={openTest} onLog={onOpenSessionLogger} gear={gear} />}
+      {tab === 'parts' && <JourneyParts sessions={sessions} mistakes={mistakes} onOpenNotebook={onOpenNotebook} onPractice={onPractice} onOpenSessionLogger={onOpenSessionLogger} gear={gear} />}
       {tab === 'tests' && <JourneyTests sessions={sessions} onOpenTest={openTest} onOpenSessionLogger={onOpenSessionLogger} />}
       <PageTip id="journey" ready={tests.length > 0} />
       {open && (

@@ -16,6 +16,8 @@ export interface MistakeInput {
   userReason: string;
   sourceAnswer: ChoiceLetter | '';
   errorCategory?: ErrorCategory;
+  /** True when explaining an already-saved card (allows long multi-passage Part 6/7 contexts up to 8,000 chars). */
+  savedCard?: boolean;
 }
 
 /** Copy/paste formatting is not part of the exam wording. Never interpret HTML as markup. */

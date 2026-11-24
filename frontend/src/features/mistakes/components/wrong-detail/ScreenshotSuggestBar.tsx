@@ -104,13 +104,15 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
         {menuOpen && (
           <div className="ssb-menu" role="menu" aria-label="Cách khác">
             {menuItems.map(item => (
-              <button key={item.key} type="button" role="menuitem" disabled={item.disabled} aria-checked={item.pressed === undefined ? undefined : item.pressed}
+              <button key={item.key} type="button" role={item.pressed !== undefined ? 'menuitemcheckbox' : 'menuitem'} disabled={item.disabled} aria-checked={item.pressed === undefined ? undefined : item.pressed}
                 className={'ssb-mi' + (item.pressed ? ' is-on' : '')} onClick={() => { setMenuOpen(false); item.onClick(); }}>
                 <span>{item.label}</span>{item.pressed !== undefined && <span className="ssb-mi-sw" aria-hidden="true" />}
               </button>
             ))}
             <button type="button" role="menuitem" className="ssb-mi" disabled={disabled || pasting} onClick={() => { setMenuOpen(false); void pasteClipboard(); }}><span>Dán ảnh vừa chụp</span></button>
-            <button type="button" role="menuitem" className="ssb-mi" disabled={disabled} onClick={() => { setMenuOpen(false); folderRun(); }}><span>{folderLabel}</span></button>
+            {watcher.status !== 'unsupported' && (
+              <button type="button" role="menuitem" className="ssb-mi" disabled={disabled} onClick={() => { setMenuOpen(false); folderRun(); }}><span>{folderLabel}</span></button>
+            )}
           </div>
         )}
       </div>

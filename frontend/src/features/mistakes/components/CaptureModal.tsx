@@ -167,14 +167,14 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
   };
 
   const next = () => {
-    if (!state.images.length || !testName) return;
+    if (!sendReady || !testName) return;
     setError('');
     setPastedTextPrompt('');
     void startReading({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported });
   };
 
   const sendAndContinue = () => {
-    if (!state.images.length || !testName) return;
+    if (!sendReady || !testName) return;
     setError('');
     setPastedTextPrompt('');
     void queueAndContinue({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported }, nextGroup);
@@ -291,7 +291,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="cap-foot">
             <MoreMenu items={[
               { key: 'manual', icon: <span>✎</span>, title: 'Tự gõ một câu', sub: 'Gõ câu hỏi và đáp án thay vì chụp', run: () => onManual() },
-              ...(state.images.length > 0 && Boolean(testName) ? [{ key: 'continue', icon: <span>›</span>, title: 'Gửi & chụp tiếp', sub: 'Gửi mẻ này, Sóc đọc nền, chụp nhóm tiếp theo', run: sendAndContinue }] : [])
+              ...(sendReady && Boolean(testName) ? [{ key: 'continue', icon: <span>›</span>, title: 'Gửi & chụp tiếp', sub: 'Gửi mẻ này, Sóc đọc nền, chụp nhóm tiếp theo', run: sendAndContinue }] : [])
             ]} />
             <div className="cap-foot-acts">
               {sendHint && <span className="cv-ahint">{sendHint}</span>}
@@ -304,7 +304,7 @@ export function CaptureModal({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="cap-body cap-read">
             <Soc state="think" size={150} />
             <div>
-              <h3>{state.solving ? 'Sóc đang tự giải & đối chiếu đáp án…' : `Sóc đang đọc ${state.images.length} ảnh…`}</h3>
+              <h3>{state.solving ? 'Sóc đang tự giải & đối chiếu đáp án…' : state.images.length ? `Sóc đang đọc ${state.images.length} ảnh…` : 'Sóc đang đọc lại ảnh…'}</h3>
               {state.note && <p className="cap-note">{state.note}</p>}
               <p role="status">{state.solving && state.items.length
                 ? `Đã đọc ${state.items.length} câu ở ${partsText(foundParts)}, Sóc đang giải và kiểm tra lại đáp án. `

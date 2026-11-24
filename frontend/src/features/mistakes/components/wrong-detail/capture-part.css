@@ -13,6 +13,11 @@
 .cpi-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; font-weight: 900; font-size: 16px; }
 .cpi-head small { font-weight: 800; font-size: 12.5px; color: var(--mut); }
 .cpi-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cpi-sw-grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.cpi-phone .cpi-switch { gap: 6px 8px; }
+.cpi-phone .cpi-sw-sep { display: none; }
+.cpi-phone .cpi-sw-grp { gap: 5px; }
+.cpi-phone .cpi-sw-btn { padding: 5px 8px; font-size: 12.5px; }
 .cpi-sw-lbl { font-weight: 900; font-size: 11.5px; letter-spacing: .3px; text-transform: uppercase; color: var(--mut); margin-right: 1px; }
 .cpi-sw-lbl.is-listen { color: #7c5ce0; }
 .cpi-sw-btn { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 11px; padding: 5px 10px; font-weight: 900; font-size: 13px; background: #f5f3f4; color: #5e6962; box-shadow: inset 0 0 0 1.5px #e8e3e5; transition: background .12s, color .12s, box-shadow .12s; }

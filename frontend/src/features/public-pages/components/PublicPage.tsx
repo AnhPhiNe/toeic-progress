@@ -19,23 +19,23 @@ const support = import.meta.env.VITE_SUPPORT_EMAIL || '';
 
 /** Brand mark of the public pages: the sidebar's Sóc tile with the two-line word mark. */
 export const PublicBrand: React.FC = () => (
-  <a href="/gioi-thieu" className="pp-brand" aria-label="TOEIC Progress · Giới thiệu">
-    <span className="pp-brand__mark" aria-hidden="true"><Soc state="idle" size={42} coat="nau" /></span>
-    <b className="pp-brand__word">toeic<span>progress</span></b>
+  <a href="/gioi-thieu" className="pub-brand" aria-label="TOEIC Progress · Giới thiệu">
+    <span className="pub-brand__mark" aria-hidden="true"><Soc state="idle" size={42} coat="nau" /></span>
+    <b className="pub-brand__word">toeic<span>progress</span></b>
   </a>
 );
 
 /** Meadow, page links and the small "không liên kết với ETS" line, shared by every public page. */
 export const PublicFooter: React.FC = () => (
-  <footer className="pp-foot">
+  <footer className="pub-foot">
     <MeadowStrip />
-    <div className="pp-foot__band">
-      <nav aria-label="Trang công khai" className="pp-foot__links">
+    <div className="pub-foot__band">
+      <nav aria-label="Trang công khai" className="pub-foot__links">
         <a href="/gioi-thieu">Giới thiệu</a><span aria-hidden="true">·</span>
         <a href="/chinh-sach-quyen-rieng-tu">Chính sách quyền riêng tư</a><span aria-hidden="true">·</span>
         <a href="/dieu-khoan">Điều khoản</a>
       </nav>
-      <p className="pp-foot__note">TOEIC Progress là công cụ theo dõi cá nhân, không liên kết với ETS và không cung cấp đề thi hoặc điểm TOEIC chính thức.</p>
+      <p className="pub-foot__note">TOEIC Progress là công cụ theo dõi cá nhân, không liên kết với ETS và không cung cấp đề thi hoặc điểm TOEIC chính thức.</p>
     </div>
   </footer>
 );
@@ -43,19 +43,19 @@ export const PublicFooter: React.FC = () => (
 export const PublicPage: React.FC<{ kind: PublicPageKind }> = ({ kind }) => {
   const title = kind === 'about' ? 'Giới thiệu' : kind === 'privacy' ? 'Chính sách quyền riêng tư' : 'Điều khoản sử dụng';
   useEffect(() => { document.title = `${title} · TOEIC Progress`; }, [title]);
-  if (kind === 'about') return <div className="rd pp"><Landing brand={<PublicBrand />} /><PublicFooter /></div>;
-  return <div className="rd pp">
-    <header className="pp-head">
+  if (kind === 'about') return <div className="rd pub"><Landing brand={<PublicBrand />} /><PublicFooter /></div>;
+  return <div className="rd pub">
+    <header className="pub-head">
       <PublicBrand />
-      <a href="/" className="rd-btn rd-btn--white pp-head__app">Vào ứng dụng</a>
+      <a href="/" className="rd-btn rd-btn--white pub-head__app">Vào ứng dụng</a>
     </header>
-    <main className="pp-doc">
-      <article className="pp-article">
-        <div className="pp-article__head">
+    <main className="pub-doc">
+      <article className="pub-article">
+        <div className="pub-article__head">
           <Soc state="focus" size={58} />
           <h1>{title}</h1>
         </div>
-        {kind === 'privacy' && <div className="pp-legal">
+        {kind === 'privacy' && <div className="pub-legal">
           <p>Cập nhật: 21/11/2026. Đơn vị vận hành: {operator}.</p>
           <section><h2>Dữ liệu chúng tôi xử lý</h2><p>Ứng dụng lưu hồ sơ học tập gồm tên hiển thị, mục tiêu, ngày thi, kết quả làm đề, lỗi sai, số từ vựng và lịch sử Phòng Thi. Nếu đăng nhập, Supabase Auth xử lý email hoặc định danh Google để xác thực; các bản ghi học tập được đồng bộ với tài khoản.</p></section>
           <section><h2>Nơi lưu và mục đích</h2><p>Chế độ khách lưu dữ liệu trên trình duyệt của thiết bị này. Khi đăng nhập, dữ liệu tài khoản được lưu tại Supabase để đồng bộ giữa các thiết bị. Chúng tôi dùng dữ liệu để hiển thị tiến độ, phân tích và khôi phục theo lựa chọn của bạn. Ứng dụng không có quảng cáo. Để biết trang nào được dùng, ứng dụng dùng Vercel Web Analytics: chỉ đếm lượt xem trang ở dạng tổng hợp (trang, thiết bị, quốc gia, nguồn truy cập), không dùng cookie, không gắn với tài khoản và không gửi nội dung học tập.</p></section>
@@ -67,7 +67,7 @@ export const PublicPage: React.FC<{ kind: PublicPageKind }> = ({ kind }) => {
           <section><h2>Xóa trắng nội dung học</h2><p>Khi đăng nhập, xóa trắng loại nội dung học của tài khoản khỏi toàn bộ các bảng chi tiết trên máy chủ; máy chủ chỉ giữ mã bản ghi và dấu xóa để đồng bộ. Thiết bị khác loại nội dung cũ, bản nháp cục bộ, nhận xét AI và ticket lời giải cục bộ khi kết nối lại. Ảnh nguồn cũ không còn được thẻ tham chiếu cũng được dọn khỏi Storage (kể cả khi tạm tắt lưu ảnh mới); nếu dọn bị gián đoạn, app báo rõ và cho thử lại. Tài khoản đăng nhập và hạn mức AI vẫn giữ. Dữ liệu khách riêng và tệp sao lưu đã tải không bị xóa từ xa. Khi dùng khách, xóa trắng chỉ tác động dữ liệu khách trên trình duyệt đang dùng.</p></section>
           <section><h2>Liên hệ</h2><p>{support ? <>Gửi yêu cầu về quyền riêng tư tới <a href={`mailto:${support}`}>{support}</a>.</> : 'Kênh liên hệ hỗ trợ sẽ được công bố trước khi mở công khai.'}</p></section>
         </div>}
-        {kind === 'terms' && <div className="pp-legal">
+        {kind === 'terms' && <div className="pub-legal">
           <p>Cập nhật: 21/11/2026. Đơn vị vận hành: {operator}.</p>
           <section><h2>Phạm vi dịch vụ</h2><p>TOEIC Progress là công cụ cá nhân để ghi chép và phân tích việc luyện thi. Ứng dụng không tổ chức kỳ thi, chấm thi chính thức hoặc đại diện ETS. Điểm dự kiến và mức lợi ích “ước tính” chỉ giúp tự theo dõi, không bảo đảm kết quả thi thực tế.</p></section>
           <section><h2>Tài khoản và dữ liệu</h2><p>Bạn chịu trách nhiệm về thông tin mình nhập và có thể sao lưu dữ liệu bất cứ lúc nào. Chế độ khách chỉ lưu trên thiết bị đang dùng. Đồng bộ nhiều thiết bị cần tài khoản và kết nối mạng. Khi đăng nhập trên trình duyệt đang có dữ liệu khách, ứng dụng luôn hỏi cách xử lý trước khi gộp và dọn bản khách sau khi chuyển để tránh trộn giữa các tài khoản.</p></section>

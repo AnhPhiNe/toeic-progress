@@ -138,13 +138,13 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   const passageOnly = state.part === 7 && state.images.length > 0 && !sendReady;
   const closeTips = () => { markTipsSeen(); setTips(false); };
   const send = () => {
-    if (!state.images.length || !testName) return;
+    if (!sendReady || !testName) return;
     setError('');
     void startReading({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported });
   };
 
   const sendAndContinue = () => {
-    if (!state.images.length || !testName) return;
+    if (!sendReady || !testName) return;
     setError('');
     void queueAndContinue({ questions: captureQuestions(plan, state.part, groupRange), getToken, contextSupported }, nextGroup);
   };
@@ -188,7 +188,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   if (!testName && state.images.length) primary = <button type="button" className={wide} disabled>Chọn đề trước khi gửi</button>;
   else if (badImage) primary = <button type="button" className={wide} onClick={() => { removeImage(badImage.id); controls.current?.open(badImage.zone); }}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp lại ảnh {problemIndex + 1}</button>;
   else if (sendReady) {
-    primary = <button type="button" className={wide} onClick={send}>Gửi Sóc đọc{nextGroup !== null ? ' · Nhóm tiếp' : ''} <ArrowRight className="h-5 w-5" aria-hidden="true" /></button>;
+    primary = <button type="button" className={wide} onClick={nextGroup !== null ? sendAndContinue : send}>Gửi Sóc đọc{nextGroup !== null ? ' · Nhóm tiếp' : ''} <ArrowRight className="h-5 w-5" aria-hidden="true" /></button>;
     under = <button type="button" className={wide + ' is-outline'} disabled={full} onClick={() => controls.current?.open()}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp tiếp</button>;
   } else if (passageOnly) {
     primary = <button type="button" className={wide} onClick={() => { setActiveZone('questions'); controls.current?.open('questions'); }}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp câu hỏi</button>;
@@ -252,7 +252,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
           <div className="pc-top"><button type="button" className="pc-x" aria-label="Đóng" onClick={close}>×</button><b>Sóc đang đọc</b></div>
           <div className="pc-read">
             <Soc state="think" size={150} />
-            <h3>{state.solving ? 'Sóc đang tự giải & đối chiếu…' : `Sóc đang đọc ${state.images.length} ảnh…`}</h3>
+            <h3>{state.solving ? 'Sóc đang tự giải & đối chiếu…' : state.images.length ? `Sóc đang đọc ${state.images.length} ảnh…` : 'Sóc đang đọc lại ảnh…'}</h3>
             {state.note && <p className="pc-note">{state.note}</p>}
             <p role="status">{state.solving && state.items.length
               ? `Đã đọc ${state.items.length} câu, Sóc đang tự giải và đối chiếu đáp án.`
@@ -349,7 +349,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
         <PhoneSheet title="Thêm lựa chọn" hideTitle onClose={() => setSheet(false)}>
           <div className="pc-menu">
             <button type="button" onClick={() => { setSheet(false); closeCapture(); onManual(); }}><b>Tự gõ một câu</b><small>Gõ câu hỏi và đáp án thay vì chụp</small></button>
-            {state.images.length > 0 && Boolean(testName) && <button type="button" onClick={() => { setSheet(false); sendAndContinue(); }}><b>Gửi &amp; chụp tiếp</b><small>Gửi mẻ này, Sóc đọc nền, chụp nhóm tiếp theo</small></button>}
+            {sendReady && Boolean(testName) && <button type="button" onClick={() => { setSheet(false); sendAndContinue(); }}><b>Gửi &amp; chụp tiếp</b><small>Gửi mẻ này, Sóc đọc nền, chụp nhóm tiếp theo</small></button>}
           </div>
         </PhoneSheet>
       )}

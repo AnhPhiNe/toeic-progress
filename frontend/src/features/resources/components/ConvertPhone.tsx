@@ -19,18 +19,19 @@ import './phone/convertPhone.css';
 export interface ConvertPhoneProps {
   /** Same data ConvertPage (desktop) receives. */
   sessions?: StudySession[];
-  /** The learner's goal total; 990 when none is set. */
-  targetScore?: number;
+  /** The learner's chosen goal total, or null/undefined when none is set. */
+  targetScore?: number | null;
   /** What Sóc wears. */
   gear?: readonly string[];
+  onBack?: () => void;
 }
 
 const NONE = '—';
 const RECENT = 2;
 
-export function ConvertPhone({ sessions, targetScore, gear = [] }: ConvertPhoneProps) {
+export function ConvertPhone({ sessions, targetScore, gear = [], onBack }: ConvertPhoneProps) {
   const { goTab } = usePhoneShell();
-  const goal = Math.max(10, Math.min(990, targetScore || 990));
+  const goal = typeof targetScore === 'number' && targetScore >= 10 ? Math.max(10, Math.min(990, targetScore)) : null;
   const tests = useMemo(() => convertTests(sessions), [sessions]);
   const recent = tests.slice(0, RECENT);
 
@@ -53,7 +54,7 @@ export function ConvertPhone({ sessions, targetScore, gear = [] }: ConvertPhoneP
   const tier = getConcordanceByToeic(scaledListening, scaledReading);
   const journey = useMemo(() => buildJourney(tier?.cefr ?? null), [tier?.cefr]);
   const band = buildBandBar(total, journey);
-  const reached = total >= goal;
+  const reached = goal !== null && total >= goal;
 
   const tiles: Array<{ k: string; v: string; c: string }> = [
     { k: 'CEFR', v: tier?.cefr ?? 'Dưới A1', c: '#14b8a6' },
@@ -62,7 +63,7 @@ export function ConvertPhone({ sessions, targetScore, gear = [] }: ConvertPhoneP
     { k: 'TOEFL', v: tier?.toeflIbt ?? NONE, c: '#7c5ce0' }
   ];
 
-  const back = () => { if (window.history.length > 1) window.history.back(); else goTab('dashboard'); };
+  const back = () => { if (onBack) onBack(); else goTab('dashboard'); };
 
   return (
     <div className="rd cvp">
@@ -77,7 +78,7 @@ export function ConvertPhone({ sessions, targetScore, gear = [] }: ConvertPhoneP
           <div>
             <small>TỔNG TOEIC</small>
             <b data-testid="estimated-total">{total}</b>
-            <p>{reached ? `đã chạm mục tiêu ${goal}` : `còn ${goal - total} điểm tới mục tiêu ${goal}`}</p>
+            <p>{goal === null ? 'Chưa đặt mục tiêu' : reached ? `đã chạm mục tiêu ${goal}` : `còn ${goal - total} điểm tới mục tiêu ${goal}`}</p>
           </div>
           <Soc state="idle" size={110} gear={gear} />
         </div>

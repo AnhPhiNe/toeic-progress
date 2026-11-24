@@ -49,7 +49,7 @@ export function GoalCard({ target, examDate, today, onPick, onExamDate, onLog, o
   const openPicker = () => {
     const el = dateIn.current;
     if (!el) return;
-    try { el.showPicker(); } catch { el.focus(); }
+    try { el.showPicker(); } catch { el.focus(); el.click(); }
   };
   const customDate = examDate !== '' && !DATE_CHIPS.some(n => monthsFromToday(today, n) === examDate);
   const typingOn = draft !== '' || (target !== null && !isPreset(target));

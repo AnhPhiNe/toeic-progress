@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { EvidenceNote, KeyWord } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
-import { markPassage, quotedParts, type OptionRow } from '@/features/mistakes/lib/cardDetail';
+import { markPassage, quotedParts, type MarkedBlock, type OptionRow } from '@/features/mistakes/lib/cardDetail';
 import './card-detail.css';
 
 /** Pieces of the card detail (design/previews/card-v2) shared by the desktop columns and the phone tabs. */
@@ -65,19 +65,23 @@ export function SignalBlock({ text }: { text: string }) {
   );
 }
 
-/** "Từ cần nhớ" rows; "+ Ôn" keeps the word on the card for review and turns into "Đã lưu". */
-export function WordRows({ words, isSaved, onSave, all = false }: { words: KeyWord[]; isSaved: (word: string) => boolean; onSave: (words: string[]) => void; all?: boolean }) {
+/** "Từ cần nhớ" rows; "+ Ôn" keeps the word on the card and turns into "Đã lưu" (tap again to unsave). */
+export function WordRows({ words, isSaved, onSave, onToggle, all = false }: { words: KeyWord[]; isSaved: (word: string) => boolean; onSave: (words: string[]) => void; onToggle?: (word: string) => void; all?: boolean }) {
   const unsaved = words.filter(item => !isSaved(item.word));
   return (
     <div className="cd-wd">
       <ul className="cd-words" aria-label="Từ cần nhớ">
         {words.map(item => {
           const saved = isSaved(item.word);
+          const canUntoggle = Boolean(onToggle);
           return (
             <li key={item.word}>
               <span className="cd-wm"><b lang="en">{item.word}</b><em>{item.meaning}</em></span>
-              <button type="button" className={saved ? 'is-saved' : undefined} disabled={saved} aria-label={saved ? `Đã lưu ${item.word}` : `Ôn từ ${item.word}`}
-                onClick={() => onSave([item.word])}>{saved ? 'Đã lưu' : '+ Ôn'}</button>
+              <button type="button" className={saved ? 'is-saved' : undefined} disabled={saved && !canUntoggle}
+                aria-pressed={saved}
+                aria-label={saved ? (canUntoggle ? `Bỏ lưu ${item.word}` : `Đã lưu ${item.word}`) : `Ôn từ ${item.word}`}
+                title={saved && canUntoggle ? 'Bấm để bỏ lưu' : undefined}
+                onClick={() => (onToggle ? onToggle(item.word) : onSave([item.word]))}>{saved ? 'Đã lưu' : '+ Ôn'}</button>
             </li>
           );
         })}
@@ -116,15 +120,21 @@ export function EvidenceJumper({ at, count, onNext }: { at: number; count: numbe
   </button>;
 }
 
-export function EvidencePassage({ context, evidences, at }: { context: string; evidences: readonly EvidenceNote[]; at: number }) {
-  const { blocks } = useMemo(() => markPassage(context, evidences), [context, evidences]);
+export function EvidencePassage({ context, evidences, at, marked }: { context: string; evidences: readonly EvidenceNote[]; at: number; marked?: { blocks: MarkedBlock[]; count: number } }) {
+  const computed = useMemo(() => marked ?? markPassage(context, evidences), [marked, context, evidences]);
+  const { blocks } = computed;
   return (
     <div className="psg cd-psg" lang="en">
       {blocks.map((block, index) => block.kind === 'label'
         ? <p key={index} className="psg-label" lang="vi">{block.text}</p>
         : block.kind === 'table'
           ? <div key={index} className="psg-tw"><table className="psg-table">
-              <thead><tr>{block.header.map((cell, column) => <th key={column} scope="col">{cell}</th>)}</tr></thead>
+              <thead>
+                <tr className={block.headerOrder !== undefined ? 'cd-ev-row' + (block.headerOrder === at ? ' is-at' : '') : undefined} data-ev={block.headerOrder}>
+                  {block.header.map((cell, column) => <th key={column} scope="col">{cell}</th>)}
+                </tr>
+                {block.headerTranslation ? <tr className="cd-ev-tr"><td colSpan={block.header.length} lang="vi">{block.headerTranslation}</td></tr> : null}
+              </thead>
               <tbody>{block.rows.map((row, line) => (
                 <Fragment key={line}>
                   <tr className={row.order !== undefined ? 'cd-ev-row' + (row.order === at ? ' is-at' : '') : undefined} data-ev={row.order}>

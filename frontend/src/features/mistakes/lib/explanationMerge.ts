@@ -3,9 +3,9 @@ import type { AIMistakeParseResult } from '@/features/mistakes/services/aiMistak
 import { getUserChoice, optionLetter } from './userChoice';
 import type { MistakeInput } from './mistakeInput';
 
-/** Includes sync metadata and conservative whitespace overhead from the backend's JSON serializer. */
+/** Includes sync metadata and conservative whitespace overhead from the backend's JSON serializer (64 KiB cap for mistakes). */
 export function fitsSyncPayload(card: MistakeEntry): boolean {
-  return new TextEncoder().encode(JSON.stringify({ ...card, updatedAt: new Date().toISOString(), deletedAt: null }, null, 1)).byteLength <= 32768;
+  return new TextEncoder().encode(JSON.stringify({ ...card, updatedAt: new Date().toISOString(), deletedAt: null }, null, 1)).byteLength <= 65536;
 }
 
 /** The wording and learner/source facts used to write a queued explanation must still be current. */

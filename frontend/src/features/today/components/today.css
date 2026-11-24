@@ -96,7 +96,7 @@
 .td-gc-date:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
 .td-gc-hint { font-weight: 700; font-size: 13px; color: var(--rd-mut); }
 .td-gc-lab .td-gc-hint { margin-left: 6px; font-size: 12.5px; }
-.td-gc-dates { flex-wrap: nowrap; gap: 6px; }
+.td-gc-dates { flex-wrap: wrap; gap: 6px; }
 .td-gc-dates .td-gc-chip { flex: 1 1 auto; padding: 0 8px; font-size: 14px; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .td-gc-pick { position: relative; }
 .td-gc-pick button { all: unset; box-sizing: border-box; width: 100%; height: 100%; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -298,7 +298,11 @@
 .td-cele-bt { display: flex; gap: 12px; justify-content: center; margin-top: 22px; }
 .td-cele-bt .rd-btn { min-width: 190px; }
 
-/* Narrower desktops: let the panel sit over the sky, keep the stairs left of it. */
+/* Narrower desktops (1101-1360px): give the road + trophy breathing room left of the right panel. */
+@media (max-width: 1360px) {
+  .td-panel { right: 20px; width: 344px; }
+  .td-hd { left: 32px; max-width: min(560px, calc(100% - 390px)); }
+}
 @media (max-width: 1279px) {
   .td-hd h1 { font-size: 32px; }
   .td-hd { max-width: 340px; }

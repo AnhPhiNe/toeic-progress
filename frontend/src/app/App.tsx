@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ConfirmHost } from '@/shared/components/ConfirmDialog';
+import { askConfirm, ConfirmHost } from '@/shared/components/ConfirmDialog';
+import { PREVIEW_TARGET, shownGoal } from '@/features/today/lib/goalSetup';
 import { generateUUID } from '@/shared/domain/uuid';
 import { RdSidebar } from '@/app/components/RdSidebar';
 import { TodayPage } from '@/features/today/components/TodayPage';
@@ -152,7 +153,7 @@ export const App: React.FC = () => {
     return () => window.removeEventListener(OWNER_CHANGED_WRITE_EVENT, refused);
   }, [refreshFromStorage]);
 
-  const [activeTab, setActiveTab] = useRouteTab();
+  const [activeTab, setActiveTab, goBack] = useRouteTab();
   const [notebookSourceFilter, setNotebookSourceFilter] = useState<{ owner: string | null; names?: string[]; part?: number } | null>(null);
   const [sessionMistakeRequest, setSessionMistakeRequest] = useState<{ id: string; owner: string | null; sourceName?: string; sessionId?: string; detailSessionId?: string } | null>(null);
   useEffect(() => { if (activeTab !== 'mistakes') { setNotebookSourceFilter(null); setSessionMistakeRequest(null); } }, [activeTab]);
@@ -161,12 +162,17 @@ export const App: React.FC = () => {
   const [pacingInitialPart, setPacingInitialPart] = useState<ReadingPartType>(() => window.location.pathname.replace(/\/+$/, '') === '/phong-thi' ? 'POMODORO' : 'PART_5');
   const [practiceFocus, setPracticeFocus] = useState(false);
   useEffect(() => { if (activeTab !== 'exam-mode') setPacingInitialPart(part => part === 'POMODORO' ? 'PART_5' : part); }, [activeTab]);
-  const navigateToPacing = (part: ReadingPartType) => {
+  const navigateToPacing = async (part: ReadingPartType) => {
     const owner = getActiveAccountId(), draft = readTimer(owner), target = supportedMode(part);
     if (draft && (draft.mode !== target || target === 'POMODORO' && draft.phase !== 'WORK')) {
       const currentName = PRESETS[draft.mode]?.name ?? 'Luyện tập';
       const targetName = PRESETS[target]?.name ?? 'Luyện tập';
-      if (draft.status !== 'ready' && !window.confirm(`Phiên ${currentName} đang được giữ trên máy. Làm mới để luyện ${targetName}?`)) return;
+      if (draft.status !== 'ready' && !await askConfirm({
+        title: `Chuyển sang ${targetName}?`,
+        message: `Phiên ${currentName} đang được giữ trên máy. Làm mới để luyện ${targetName}?`,
+        confirmLabel: 'Làm mới',
+        destructive: true
+      })) return;
       clearTimer(owner, draft.id);
     }
     setPacingInitialPart(supportedMode(part)); setActiveTab('exam-mode');
@@ -491,7 +497,7 @@ export const App: React.FC = () => {
   };
   // First-visit page tips wait while anything else holds the screen.
   const tipsHeld = isSessionModalOpen || savedTest !== null || reviewCards !== null || practiceFocus || isSettingsModalOpen || editingPacing !== null || aiSignInOpen || Boolean(account.pendingTransfer);
-  const guidePage = <GuidePage onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} onOpenSessionLogger={() => openSessionLogger()} onNavigate={setActiveTab} />;
+  const guidePage = <GuidePage onBack={goBack} onOpenSessionLogger={() => openSessionLogger()} onNavigate={setActiveTab} />;
   const updateProfile = (update: (current: UserProfile) => UserProfile) => {
     saveUserProfile(update(loadUserProfile()));
     setProfile(loadUserProfile());
@@ -587,6 +593,7 @@ export const App: React.FC = () => {
                 bundle={bundle}
                 activeTab={activeTab}
                 onNavigate={setActiveTab}
+                gear={soc.worn}
               />
             )}
             {activeTab === 'exam-mode' && (
@@ -620,7 +627,7 @@ export const App: React.FC = () => {
               />
             )}
             {activeTab === 'resources' && (
-              <ConvertPhone sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
+              <ConvertPhone sessions={sessions} targetScore={shownGoal(profile)} gear={soc.worn} onBack={goBack} />
             )}
             {activeTab === 'guide' && guidePage}
           </div>
@@ -637,14 +644,14 @@ export const App: React.FC = () => {
             onOpenTest={openTestDetail}
           />
         ) : showGuide ? guidePage : showConvert ? (
-          <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={profile.targetScore} gear={soc.worn} />
+          <ConvertPage key={activeOwner ?? 'guest'} sessions={sessions} targetScore={shownGoal(profile)} gear={soc.worn} />
         ) : showLeague ? (
           <RankPage league={league} signedIn={signedIn} gear={soc.worn} coat={socCoat}
             onSignIn={() => (account.available ? void account.signInGoogle() : setIsSettingsModalOpen(true))}
-            onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} />
+            onBack={goBack} />
         ) : showAwards ? (
           <ProfilePage bundle={bundle} today={today} owner={activeOwner ?? null} onUpdateProfile={updateProfile} rank={league.state} onGoTab={setActiveTab}
-            onBack={() => (window.history.length > 1 ? window.history.back() : setActiveTab('dashboard'))} />
+            onBack={goBack} />
         ) : showPractice ? (
           <PracticePage
             sessions={sessions}
@@ -670,6 +677,7 @@ export const App: React.FC = () => {
             onOpenSessionLogger={() => openSessionLogger()}
             onAddSuggestion={addSuggestedTask}
             openRequest={journeyRequest}
+            gear={soc.worn}
           />
         ) : showNotebook ? (
           <main key={`mistakes:${activeOwner ?? 'guest'}`} className="flex-1 w-full flex flex-col min-h-0">
@@ -728,7 +736,7 @@ export const App: React.FC = () => {
         onSavedFullTest={setSavedTest}
         onOpenExistingSession={openSessionEditor}
       />
-      {savedTest && <SessionResultScreen session={savedTest} sessions={sessions} mistakes={mistakes} targetScore={profile.targetScore}
+      {savedTest && <SessionResultScreen session={savedTest} sessions={sessions} mistakes={mistakes} targetScore={shownGoal(profile) ?? PREVIEW_TARGET}
         onSignIn={isGuest ? () => void account.signInGoogle() : undefined}
         onClose={closeSavedTest} onMarkWrong={() => markSessionWrong(savedTest)}
         onDetails={() => { setSavedTest(null); openSessionDrafts(savedTest); }}

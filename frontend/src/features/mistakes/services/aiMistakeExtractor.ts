@@ -112,7 +112,11 @@ export async function getAIUsage(): Promise<AIUsage | null> {
 
 export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => Promise<string>, input?: MistakeInput,
   images: PreparedImage[] = [], expectedOwner?: string | null, isCurrent: () => boolean = () => true): Promise<{ draft: AIMistakeParseResult; usage: AIUsage }> {
-  if (rawInput.trim().length < 20 || rawInput.length > 8000) throw new Error('Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
+  const maxChars = input?.savedCard ? 12000 : 8000;
+  const minChars = input?.savedCard ? 1 : 20;
+  if (rawInput.trim().length < minChars || rawInput.length > maxChars) {
+    throw new Error(input?.savedCard ? 'Nội dung thẻ quá dài để phân tích (tối đa 12.000 ký tự).' : 'Dán nội dung từ 20 đến 8.000 ký tự để phân tích.');
+  }
   if (!apiAvailable || !cloud) throw new Error('Phân tích AI chưa được cấu hình cho phiên bản này. Bạn vẫn có thể lưu thủ công.');
   const checkCurrent = () => { if (!isCurrent()) throw new Error('Tác vụ phân tích đã đóng hoặc thay đổi. Chưa gửi yêu cầu mới.'); };
   const checkOwner = (session: { user: { id: string; is_anonymous?: boolean } } | null) => {
@@ -145,7 +149,7 @@ export async function extractMistakeWithAI(rawInput: string, getCaptcha: () => P
     provider: 'openai', ...(input ? { input } : {}), ...(images.length ? { images: images.map(image => ({ dataUrl: image.dataUrl })) } : {}),
   }, session.user.id, isCurrent);
   checkCurrent();
-  const parsed = draftSchema.safeParse(value.draft);
+  const parsed = (input?.savedCard ? pageDraftSchema : draftSchema).safeParse(value.draft);
   if (!parsed.success) throw new Error('Bản nháp AI chưa hợp lệ. Vui lòng nhập thủ công hoặc thử lại sau.');
   const draft = parsed.data;
   if (draft.answerSource === 'MISSING') draft.correctAnswer = '';

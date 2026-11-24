@@ -18,9 +18,9 @@ describe('batch card preflight', () => {
       question: items[0].draft.question, options: items[0].draft.options });
   });
   it('rejects the entire batch when a later card exceeds the UTF-8 payload limit', () => {
-    const second = item(102); second.draft.context = 'ễ'.repeat(8000);
+    const second = item(102); second.draft.context = 'ễ'.repeat(11500);
     second.draft.questionContext = second.draft.question + '\n\n' + second.draft.context;
-    expect(() => buildBatchEntries([item(101), second], 'ETS')).toThrow('32 KiB');
+    expect(() => buildBatchEntries([item(101), second], 'ETS')).toThrow('64 KiB');
   });
   it.each(['x'.repeat(1001), 'x'.repeat(16001)])('rejects field violations even before the byte ceiling', value => {
     const second = item(102); second.draft.correctAnswer = value;

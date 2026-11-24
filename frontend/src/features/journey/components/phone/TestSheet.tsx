@@ -1,3 +1,4 @@
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { PhoneSheet } from '@/app/components/phone';
 import type { MistakeEntry, StudySession, SuggestedTask, UserProfile } from '@/shared/types';
 import { TestAdvice } from '../advice/TestAdvice';
@@ -74,7 +75,9 @@ export function TestSheet({ session, sessions, onClose, onOpenNotebook, onEdit, 
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg>
           </button>
         </div>
-        <button type="button" className="jp-del" onClick={() => { if (window.confirm(`Xoá bản ghi “${session.testName}” ngày ${ddmm(session.date)}?`)) onDelete(session); }}>Xoá bản ghi này</button>
+        <button type="button" className="jp-del" onClick={async () => {
+          if (await askConfirm({ title: 'Xoá bản ghi đề này?', message: `Xoá bản ghi “${session.testName}” ngày ${ddmm(session.date)}?`, confirmLabel: 'Xoá', destructive: true })) onDelete(session);
+        }}>Xoá bản ghi này</button>
       </div>
     </PhoneSheet>
   );

@@ -195,3 +195,18 @@
 .nb-drop-card { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 440px; width: 100%; border: 3px dashed #ff7a9c; border-radius: 28px; background: #fff; padding: 34px 28px; text-align: center; box-shadow: 0 24px 60px rgba(214, 69, 112, .18); }
 .nb-drop-card b { font-weight: 900; font-size: 21px; color: var(--rd-ink); }
 .nb-drop-card span { font-weight: 700; font-size: 14px; color: #5e6962; }
+
+/* Saved words tab ("Từ đã lưu") */
+.nb-words { margin-top: 24px; }
+.nb-words-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.nb-words-head h2 { font-weight: 900; font-size: 26px; letter-spacing: -.6px; }
+.nb-words-head p { font-weight: 700; font-size: 14.5px; color: var(--rd-mut); margin-top: 4px; }
+.nb-words-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+.nb-words-list li { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 18px; box-shadow: 0 0 0 2px #efeae4; padding: 12px 14px; }
+.nb-w-main { flex: 1; min-width: 0; }
+.nb-w-main b { display: block; font-weight: 900; font-size: 16px; color: var(--rd-ink); overflow-wrap: anywhere; }
+.nb-w-main span { display: block; font-weight: 700; font-size: 14px; color: #5c675f; margin-top: 2px; }
+.nb-w-card { display: inline-flex; align-items: center; gap: 6px; border: 0; background: #f6f8f6; border-radius: 12px; padding: 6px 10px; font-weight: 800; font-size: 13px; color: #4d5850; cursor: pointer; flex: none; }
+.nb-w-card:hover { background: #fff0f4; color: var(--rd-pink-d); }
+.nb-w-rm { border: 0; background: none; font-weight: 800; font-size: 13px; color: var(--rd-mut); min-height: 36px; padding: 0 8px; border-radius: 10px; cursor: pointer; flex: none; }
+.nb-w-rm:hover { background: #fff0f4; color: var(--rd-pink-d); }

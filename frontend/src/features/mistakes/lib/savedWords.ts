@@ -24,7 +24,20 @@ export function withSavedWords<T extends MistakeEntry>(m: T, words: readonly str
   return saved.length === (m.savedWords?.length ?? 0) ? m : { ...m, savedWords: saved };
 }
 
-export interface SavedWord extends KeyWord { cardId: string }
+/** The card with one word removed; returns the same card when that word was not saved on it. */
+export function withoutSavedWord<T extends MistakeEntry>(m: T, word: string): T {
+  const key = wordKey(word).slice(0, 80);
+  if (!key || !(m.savedWords ?? []).includes(key)) return m;
+  const saved = (m.savedWords ?? []).filter(item => item !== key);
+  return { ...m, savedWords: saved.length ? saved : undefined };
+}
+
+/** Toggles one word on the card (adds when missing, removes when already saved). */
+export function toggleSavedWord<T extends MistakeEntry>(m: T, word: string): T {
+  return isWordSaved(m, word) ? withoutSavedWord(m, word) : withSavedWords(m, [word]);
+}
+
+export interface SavedWord extends KeyWord { cardId: string; part: MistakeEntry['part']; questionNumber?: number }
 
 /** Every saved word across live cards, newest card first, each word once, with the meaning its card gives. */
 export function savedVocabulary(mistakes: readonly MistakeEntry[]): SavedWord[] {
@@ -36,7 +49,7 @@ export function savedVocabulary(mistakes: readonly MistakeEntry[]): SavedWord[] 
       if (seen.has(key)) continue;
       seen.add(key);
       const row = m.explanation?.words?.find(item => wordKey(item.word) === key);
-      list.push({ word: row?.word.trim() ?? key, meaning: row?.meaning.trim() ?? '', cardId: m.id });
+      list.push({ word: row?.word.trim() ?? key, meaning: row?.meaning.trim() ?? '', cardId: m.id, part: m.part, questionNumber: m.questionNumber });
     }
   }
   return list;

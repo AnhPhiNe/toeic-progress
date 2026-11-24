@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import type { MistakeEntry, StudySession, SuggestedTask, UserProfile } from '@/shared/types';
 import { PART_NUMBERS, wrongQuestionsByPart, type PartNumber } from '@/shared/domain/questionNumbers';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -37,14 +38,7 @@ export function TestDrawer({ session, sessions, mistakes, target, onClose, onOpe
   const total = counts ? PART_NUMBERS.reduce((s, p) => s + counts[p], 0) : 0;
   const worst = counts ? PART_NUMBERS.reduce((w, p) => (counts[p] >= counts[w] ? p : w), 1 as PartNumber) : 7;
   const retake = Boolean(story.earlier) || (session.attemptNumber ?? 1) > 1;
-  const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    panel.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const panel = useModalA11y(true, onClose);
 
   const say = story.earlier
     ? <>Lần đầu làm đề này ({ddmm(story.earlier.date)}) bạn được <b>{story.earlier.totalScore}</b>. Lần này {score >= (story.earlier.totalScore ?? 0) ? 'hơn' : 'kém'} <b>{Math.abs(score - (story.earlier.totalScore ?? 0))} điểm</b>, dù đã gặp câu hỏi rồi.</>
@@ -93,7 +87,9 @@ export function TestDrawer({ session, sessions, mistakes, target, onClose, onOpe
           <button type="button" className="rd-btn" onClick={() => onOpenNotebook(session.testName)}>{worst >= 5 && total ? `Chụp trang chữa bài Part ${worst}` : 'Mở Sổ tay đề này'}</button>
           <div className="jr-lnks">
             <button type="button" className="jr-lnk" onClick={() => onEdit(session)}>Sửa điểm</button>
-            <button type="button" className="jr-lnk is-del" onClick={() => { if (window.confirm(`Xoá bản ghi “${session.testName}” ngày ${ddmm(session.date)}?`)) onDelete(session); }}>Xoá</button>
+            <button type="button" className="jr-lnk is-del" onClick={async () => {
+              if (await askConfirm({ title: 'Xoá bản ghi đề này?', message: `Xoá bản ghi “${session.testName}” ngày ${ddmm(session.date)}?`, confirmLabel: 'Xoá', destructive: true })) onDelete(session);
+            }}>Xoá</button>
           </div>
         </div>
       </div>

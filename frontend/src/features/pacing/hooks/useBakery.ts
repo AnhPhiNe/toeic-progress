@@ -1,3 +1,4 @@
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PacingRun, ReadingPartType, StudySession } from '@/shared/types';
 import { readDataBundle } from '@/shared/data/dataBundle';
@@ -116,7 +117,11 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
     timer.start();
   }, [timer]);
   const pick = (next: PacingMode) => { if (snapshot.status === 'ready' && next !== snapshot.mode) timer.reset(next); };
-  const stop = () => { if (window.confirm('Dừng phiên này? Thời gian đang bấm sẽ không được lưu.')) timer.reset(mode); };
+  const stop = async () => {
+    if (await askConfirm({ title: 'Dừng phiên này?', message: 'Thời gian đang bấm sẽ không được lưu.', confirmLabel: 'Dừng phiên', destructive: true })) {
+      timer.reset(mode);
+    }
+  };
 
   // Recipe: a step ticks when the pace time passes its last question; the pace says nothing about the learner's real position.
   const at = paceQuestion(spent, planned, questions, mode);
@@ -130,7 +135,7 @@ export function useBakery({ owner, sessions, initialPart, onOpenSessionLogger, o
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || resting || document.querySelector('[role="dialog"]')) return;
+      if (event.code !== 'Space' || resting || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
       if (event.target instanceof Element && event.target.closest('input,textarea,select,button')) return;
       if (snapshot.status === 'running') { event.preventDefault(); timer.pause(); }
       else if (snapshot.status === 'ready' || snapshot.status === 'paused') { event.preventDefault(); start(); }

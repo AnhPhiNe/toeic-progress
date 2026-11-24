@@ -16,9 +16,10 @@ interface Props {
   onOpenNotebook: (testName: string, part?: number) => void;
   onPractice: (part: 5 | 6 | 7) => void;
   onOpenSessionLogger: () => void;
+  gear?: readonly string[];
 }
 
-const TREND_TEXT = { down: 'đang giảm', up: 'đang tăng', flat: 'đứng yên' } as const;
+const TREND_TEXT = { down: 'câu sai đang giảm', up: 'câu sai đang tăng', flat: 'câu sai giữ nguyên' } as const;
 const TREND_INK = { down: '#2f8a42', up: '#c23c63', flat: '#7a857e' } as const;
 const HELP: Array<[string, string]> = [
   ['big', 'Đảo to là Part có nhiều câu'],
@@ -28,7 +29,7 @@ const HELP: Array<[string, string]> = [
 ];
 
 /** Từng Part tab (design/previews/journey-v3/parts-islands-v3.html): one island per Part, weather by strength, chests on the Parts to visit first. */
-export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpenSessionLogger }: Props) {
+export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpenSessionLogger, gear }: Props) {
   const withParts = useMemo(() => fullTests(sessions).filter(s => wrongCountsByPart(s)).reverse(), [sessions]);
   const [pick, setPick] = useState<string | null>(null);
   const [sel, setSel] = useState<PartNumber | null>(null);
@@ -51,10 +52,24 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
 
   if (!test || !now || !chests || !mapParts) {
     return (
-      <div className="jr-empty">
-        <Soc state="think" size={110} />
-        <p>Chưa có đề nào ghi câu sai theo Part. Ghi một đề kèm ảnh kết quả, Sóc sẽ chia câu sai theo từng Part.</p>
-        <button type="button" className="rd-btn" onClick={onOpenSessionLogger}>+ Ghi điểm</button>
+      <div className="jr-empty jr-empty--sea">
+        <svg className="jr-empty__art" viewBox="0 0 880 340" aria-hidden="true">
+          <defs><linearGradient id="jr-es" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stopColor="#c3ebff" /><stop offset=".55" stopColor="#94d5f4" /><stop offset="1" stopColor="#65bce8" /></linearGradient></defs>
+          <rect width="880" height="340" rx="28" fill="url(#jr-es)" />
+          <g fill="#dff6ff" opacity=".55"><ellipse cx="145" cy="120" rx="76" ry="34" /><ellipse cx="730" cy="108" rx="88" ry="38" /><ellipse cx="185" cy="258" rx="68" ry="30" /><ellipse cx="705" cy="248" rx="78" ry="34" /></g>
+          <g opacity=".42">
+            <ellipse cx="145" cy="116" rx="50" ry="20" fill="#77ca83" /><ellipse cx="730" cy="104" rx="58" ry="24" fill="#f7dfae" />
+            <ellipse cx="185" cy="252" rx="44" ry="18" fill="#77ca83" /><ellipse cx="705" cy="242" rx="52" ry="22" fill="#77ca83" />
+          </g>
+          <path d="M195 130 Q350 95 440 165 T670 118" fill="none" stroke="#fff" strokeWidth="4" strokeDasharray="3 12" strokeLinecap="round" opacity=".6" />
+          <path d="M230 248 Q420 278 650 242" fill="none" stroke="#fff" strokeWidth="3.5" strokeDasharray="3 12" strokeLinecap="round" opacity=".5" />
+        </svg>
+        <div className="jr-empty__card">
+          <Soc state="think" size={102} gear={gear} />
+          <h2>Bản đồ 7 đảo TOEIC đang chờ đề đầu tiên</h2>
+          <p>Ghi một đề kèm ảnh kết quả, Sóc sẽ hiện đảo nào đang vững và Part nào cần gỡ trước.</p>
+          <button type="button" className="rd-btn" onClick={onOpenSessionLogger}>+ Ghi điểm</button>
+        </div>
       </div>
     );
   }
@@ -100,7 +115,7 @@ export function PartsTab({ sessions, mistakes, onOpenNotebook, onPractice, onOpe
           </label>
         </div>
 
-        <div className="jr-boat-soc" style={{ left: L.boat[0] - 34, top: L.boat[1] - 66 }}><span className="il-boat"><Soc state="hi" size={68} /></span></div>
+        <div className="jr-boat-soc" style={{ left: L.boat[0] - 34, top: L.boat[1] - 66 }}><span className="il-boat"><Soc state="hi" size={68} gear={gear} /></span></div>
 
         <div className="jr-side">
         <div className="jr-pn" aria-live="polite">

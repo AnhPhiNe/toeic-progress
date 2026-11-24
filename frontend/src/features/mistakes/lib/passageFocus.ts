@@ -1,4 +1,5 @@
 import type { MistakeEntry } from '@/shared/types';
+import { looseFind } from './cardDetail';
 
 export interface FocusRange { start: number; end: number }
 
@@ -28,14 +29,13 @@ function blankRange(text: string, number?: number): FocusRange | null {
   return null;
 }
 
-/** The longest piece of a quoted evidence line that appears in the text; "…" and quote marks around it are ignored. */
+/** The longest piece of a quoted evidence line that appears in the text; "…", quote marks, dashes and spacing differences are ignored. */
 function evidenceRange(text: string, evidence: string): FocusRange | null {
-  const lower = text.toLowerCase();
   const pieces = evidence.split(/…|\.\.\./).map(piece => piece.trim().replace(/^["“”']+|["“”']+$/g, '').trim()).filter(piece => piece.length >= 6)
     .sort((a, b) => b.length - a.length);
   for (const piece of pieces) {
-    const index = lower.indexOf(piece.toLowerCase());
-    if (index >= 0) return { start: index, end: index + piece.length };
+    const found = looseFind(text, piece);
+    if (found) return found;
   }
   return null;
 }

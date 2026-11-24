@@ -61,7 +61,7 @@ describe('detail form preserves learner decisions', () => {
   });
 
   it('refuses an oversized UTF-8 card with an explicit message and leaves the full form intact', () => {
-    const context = 'ữ'.repeat(8000);
+    const context = 'ữ'.repeat(11500);
     const form = fromAI({ ...draft, context, part: 7 });
     expect(buildDetailEntry({ ...card(), part: 7 }, form)).toMatch(/quá dài để đồng bộ/);
     expect(form.ai?.context).toBe(context);

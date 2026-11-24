@@ -43,7 +43,7 @@ function GoalEditorBody({ sessions, current, initial, best, examDate, today, onS
   const pickDate = () => {
     const el = dateIn.current;
     if (!el) return;
-    try { el.showPicker(); } catch { el.focus(); }
+    try { el.showPicker(); } catch { el.focus(); el.click(); }
   };
   const n = preview.bars.length;
 

@@ -5,6 +5,7 @@ import { partOfQuestion, type PartNumber } from '@/shared/domain/questionNumbers
 import { generateUUID } from '@/shared/domain/uuid';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { useFormDraft } from '@/shared/hooks/useFormDraft';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { apiAvailable } from '@/shared/api/api';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
@@ -232,14 +233,21 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     setZones({ passage: [], questions: [] });
   };
 
-  const close = () => {
+  const closeAsync = async () => {
     if (closing.current) return;
-    if (anyReading && !window.confirm('Sóc đang đọc ảnh. Đóng thì các ảnh còn lại không được đọc. Vẫn đóng?')) return;
+    if (anyReading) {
+      const ok = await askConfirm({ title: 'Sóc đang đọc ảnh', message: 'Đóng ngay lúc này thì các ảnh còn lại sẽ không được đọc. Vẫn đóng?', confirmLabel: 'Vẫn đóng', cancelLabel: 'Ở lại', destructive: true });
+      if (!ok || closing.current) return;
+    }
     const persisted = draft.persist();
     const unsavedCount = filledIds(cards.map(card => card.id)).length;
-    if (!persisted && unsavedCount && !window.confirm(`Chưa tự lưu được nháp. Đóng và bỏ ${unsavedCount} câu đã điền?`)) return;
+    if (!persisted && unsavedCount) {
+      const ok = await askConfirm({ title: 'Chưa lưu được nháp', message: `Đóng và bỏ ${unsavedCount} câu đã điền?`, confirmLabel: 'Đóng và bỏ', cancelLabel: 'Ở lại', destructive: true });
+      if (!ok || closing.current) return;
+    }
     closing.current = true; removeCaptcha(); onClose(savedTotal);
   };
+  const close = () => { void closeAsync(); };
   const ref = useModalA11y(true, () => { if (editingPhoto) setEditingPhoto(null); else if (manual) setManual(null); else close(); });
 
   const allProgress = partProgress(cards, unsaved);
@@ -455,8 +463,9 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
           // Only the wrong list is kept; a recorded question keeps what was saved.
           if (!card || !job.requested.includes(item.number)) { skipped.add(item.number); continue; }
           if (recorded(card) && !dirtyIds.current.has(card.id)) { skipped.add(item.number); continue; }
-          nextForms[card.id] = withReadResult(nextForms[card.id] ?? EMPTY_FORM, item.draft);
-          dirtyIds.current.add(card.id);
+          const nextForm = withReadResult(nextForms[card.id] ?? EMPTY_FORM, item.draft);
+          nextForms[card.id] = nextForm;
+          if (!isRightForm(nextForm)) dirtyIds.current.add(card.id);
           readIds.push(card.id); matches.push({ item, card });
           if (item.numberSource === 'inferred') guessed.push(card.id);
         }
@@ -601,8 +610,16 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     setScreen({ name: 'capture' });
   };
 
-  const discardDrafts = () => {
-    if (!window.confirm('Bỏ nháp chưa lưu của các câu này? Dữ liệu đã lưu trong Sổ tay vẫn được giữ.')) return;
+  const dismissRightRows = () => {
+    setDismissed(currentSet => new Set([...currentSet, ...reviewIds]));
+    const nextJobs = Object.fromEntries(Object.entries(jobsRef.current).filter(([, job]) => job.status !== 'done'));
+    jobsRef.current = nextJobs; setJobs(nextJobs);
+    setScreen({ name: 'capture' });
+  };
+
+  const discardDrafts = async () => {
+    const ok = await askConfirm({ title: 'Bỏ nháp chưa lưu?', message: 'Bỏ nháp chưa lưu của các câu này? Dữ liệu đã lưu trong Sổ tay vẫn được giữ.', confirmLabel: 'Bỏ nháp', cancelLabel: 'Giữ lại', destructive: true });
+    if (!ok) return;
     const nextForms = { ...formsRef.current };
     for (const id of dirtyIds.current) { const card = byId.get(id); if (card) nextForms[id] = savedDetailForm(card); }
     dirtyIds.current.clear(); draft.clear();
@@ -625,11 +642,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       writing={reviewIds.filter(id => isExplaining(id)).length} saveCount={filledIds(reviewIds).length} error={error}
       note={note || [...new Set(Object.values(jobs).map(job => job.note).filter(Boolean))].join(' ')}
       skipped={skippedNumbers} reasons={[...new Set(generalReasons)]} onUpdate={update} onConfirm={confirm} onPickNumber={pickNumber}
-      onMore={() => { setError(''); setScreen({ name: 'capture' }); }} onSave={saveAll}
-      onDiscard={readNumbers.size ? undefined : discardDrafts} />;
+      onMore={() => { setError(''); setScreen({ name: 'capture' }); }} onSave={saveAll} onDoneRight={dismissRightRows}
+      onDiscard={readNumbers.size ? undefined : () => { void discardDrafts(); }} />;
   } else if (showListening) {
-    body = <ListeningView {...common} cards={listeningCards} recorded={recorded} suggested={suggestedReason} error={error}
-      onAssign={assignListening} onSkip={() => toggleListening(true)} />;
+    const hasReading = readingNumbers.length > 0;
+    body = <ListeningView {...common} cards={listeningCards} recorded={recorded} suggested={suggestedReason} error={error} hasReading={hasReading}
+      onAssign={assignListening} onSkip={() => { if (hasReading) toggleListening(true); else close(); }} />;
   } else if (!hero && !allFilled.length && !anyReading && !savedHero) {
     const reviewable = cards.filter(card => !unsaved.has(card.id) && canReview(card)).map(card => card.id);
     body = <DoneView {...common} total={total} doneCount={total} progress={shown} cards={cards} reviewIds={reviewable}

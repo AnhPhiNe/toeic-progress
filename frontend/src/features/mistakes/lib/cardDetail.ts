@@ -29,14 +29,20 @@ export function optionRows(m: MistakeEntry): OptionRow[] {
   });
 }
 
-const QUOTE_CLASS: Record<string, string> = { '"': '["“”]', '“': '["“”]', '”': '["“”]', "'": "['‘’]", '‘': "['‘’]", '’': "['‘’]" };
+const CHAR_CLASS: Record<string, string> = {
+  '"': '["“”]', '“': '["“”]', '”': '["“”]',
+  "'": "['‘’]", '‘': "['‘’]", '’': "['‘’]",
+  '-': '[-–—−]', '–': '[-–—−]', '—': '[-–—−]', '−': '[-–—−]',
+  '|': '\\s*\\|\\s*'
+};
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Where `needle` sits in `text`, ignoring case, spacing and curly/straight quotes; null when it is not there. */
+/** Where `needle` sits in `text`, ignoring case, spacing, dashes, table pipes and curly/straight quotes; null when it is not there. */
 export function looseFind(text: string, needle: string): { start: number; end: number } | null {
-  const words = needle.trim().replace(/^["“”']+|["“”']+$/g, '').split(/\s+/).filter(Boolean);
+  const cleaned = needle.trim().replace(/^["“”']+|["“”']+$/g, '').replace(/^\s*\||\|\s*$/g, '').replace(/\s*\|\s*/g, '|').trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
   if (!words.length || words.join(' ').length < 6) return null;
-  const pattern = words.map(word => [...word].map(char => QUOTE_CLASS[char] ?? escape(char)).join('')).join('\\s+');
+  const pattern = words.map(word => [...word].map(char => CHAR_CLASS[char] ?? escape(char)).join('')).join('\\s+');
   const match = new RegExp(pattern, 'i').exec(text);
   return match ? { start: match.index, end: match.index + match[0].length } : null;
 }
@@ -67,33 +73,89 @@ export interface PassageRow { cells: string[]; order?: number; translation?: str
 export type MarkedBlock =
   | { kind: 'label'; text: string }
   | { kind: 'text'; segments: PassageSegment[] }
-  | { kind: 'table'; header: string[]; rows: PassageRow[] };
+  | { kind: 'table'; header: string[]; headerOrder?: number; headerTranslation?: string; rows: PassageRow[] };
+
+const normLabel = (value: string) => value.trim().toLowerCase().replace(/[–—−]/g, '-').replace(/\s+/g, ' ');
+function matchesSection(blockLabel: string, wanted?: string): boolean {
+  const a = normLabel(blockLabel);
+  const b = normLabel(wanted ?? '');
+  if (!a || !b) return false;
+  return a === b || a.startsWith(b) || b.startsWith(a);
+}
 
 /**
  * The passage cut into blocks with each evidence marked where it is found, numbered in reading order (0, 1, …), so
- * the first one can be scrolled to and "Bằng chứng 1/2 ›" can step through them. An evidence found nowhere is left out.
+ * the first one can be scrolled to and "Bằng chứng 1/2 ›" can step through them. Honors `passageLabel` first before
+ * falling back across passages; searches table headers as well as rows. An evidence found nowhere is left out.
  */
 export function markPassage(context: string, evidences: readonly EvidenceNote[]): { blocks: MarkedBlock[]; count: number } {
+  const parsed = parsePassage(context);
+  const blockLabels: string[] = [];
+  let activeLabel = '';
+  for (const block of parsed) {
+    if (block.kind === 'label') activeLabel = block.text;
+    blockLabels.push(activeLabel);
+  }
+
   const placed = new Set<number>();
+  const textMatches = new Map<number, Array<{ start: number; end: number; index: number }>>();
+  const tableHeaderMatch = new Map<number, number>();
+  const tableRowMatch = new Map<string, number>();
+
+  const tryPlace = (evidenceIndex: number, item: EvidenceNote, strictLabel: boolean) => {
+    for (let b = 0; b < parsed.length; b += 1) {
+      const block = parsed[b];
+      if (block.kind === 'label') continue;
+      if (strictLabel && !matchesSection(blockLabels[b], item.passageLabel)) continue;
+      if (block.kind === 'table') {
+        const headerLine = block.header.join(' | ');
+        if (!tableHeaderMatch.has(b) && (looseFind(headerLine, item.text) || block.header.some(cell => looseFind(cell, item.text)))) {
+          tableHeaderMatch.set(b, evidenceIndex);
+          placed.add(evidenceIndex);
+          return;
+        }
+        for (let r = 0; r < block.rows.length; r += 1) {
+          const key = `${b}:${r}`;
+          if (tableRowMatch.has(key)) continue;
+          const cells = block.rows[r];
+          const line = cells.join(' | ');
+          if (looseFind(line, item.text) || cells.some(cell => looseFind(cell, item.text))) {
+            tableRowMatch.set(key, evidenceIndex);
+            placed.add(evidenceIndex);
+            return;
+          }
+        }
+      } else {
+        const range = looseFind(block.text, item.text);
+        const existing = textMatches.get(b) ?? [];
+        if (range && !existing.some(other => range.start < other.end && other.start < range.end)) {
+          existing.push({ ...range, index: evidenceIndex });
+          textMatches.set(b, existing);
+          placed.add(evidenceIndex);
+          return;
+        }
+      }
+    }
+  };
+
+  evidences.forEach((item, i) => { if (item.passageLabel?.trim()) tryPlace(i, item, true); });
+  evidences.forEach((item, i) => { if (!placed.has(i)) tryPlace(i, item, false); });
+
   let order = 0;
-  const blocks = parsePassage(context).map((block): MarkedBlock => {
+  const blocks = parsed.map((block, b): MarkedBlock => {
     if (block.kind === 'label') return block;
     if (block.kind === 'table') {
-      return { kind: 'table', header: block.header, rows: block.rows.map(cells => {
-        const line = cells.join(' | ');
-        const index = evidences.findIndex((item, i) => !placed.has(i) && (looseFind(line, item.text.replace(/^\s*\||\|\s*$/g, '')) || cells.some(cell => looseFind(cell, item.text))));
-        if (index < 0) return { cells };
-        placed.add(index);
-        return { cells, order: order++, translation: evidences[index].translation?.trim() ?? '' };
-      }) };
+      const hIndex = tableHeaderMatch.get(b);
+      const headerOrder = hIndex !== undefined ? order++ : undefined;
+      const headerTranslation = hIndex !== undefined ? (evidences[hIndex].translation?.trim() ?? '') : undefined;
+      const rows = block.rows.map((cells, r): PassageRow => {
+        const rIndex = tableRowMatch.get(`${b}:${r}`);
+        if (rIndex === undefined) return { cells };
+        return { cells, order: order++, translation: evidences[rIndex].translation?.trim() ?? '' };
+      });
+      return { kind: 'table', header: block.header, ...(headerOrder !== undefined ? { headerOrder, headerTranslation } : {}), rows };
     }
-    const found: Array<{ start: number; end: number; index: number }> = [];
-    evidences.forEach((item, index) => {
-      if (placed.has(index)) return;
-      const range = looseFind(block.text, item.text);
-      if (range && !found.some(other => range.start < other.end && other.start < range.end)) { found.push({ ...range, index }); placed.add(index); }
-    });
-    found.sort((a, b) => a.start - b.start);
+    const found = (textMatches.get(b) ?? []).sort((a, bRange) => a.start - bRange.start);
     const segments: PassageSegment[] = [];
     let cursor = 0;
     for (const range of found) {

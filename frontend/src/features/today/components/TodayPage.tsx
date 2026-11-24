@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import type { SuggestedTask, UserProfile } from '@/shared/types';
 import { suggestionsToday, toggleSuggestion, withoutRepeatedTimers } from '../lib/suggestedTasks';
@@ -73,6 +74,7 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
 
   // One full-page celebration per goal, the first time it is reached.
   const [celebrate, setCelebrate] = useState(false);
+  const celebrateRef = useModalA11y(celebrate && climbing !== null, () => setCelebrate(false));
   useEffect(() => {
     if (plan.status !== 'done') return;
     try {
@@ -175,7 +177,7 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
           suggestOff={profile.suggestOff ?? []}
           onToggleSuggest={kind => onUpdateProfile(p => { const off = p.suggestOff ?? []; return { ...p, suggestOff: off.includes(kind) ? off.filter(k => k !== kind) : [...off, kind] }; })}
           onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))}
-        /> : <FirstDayPanel task={firstTask} firstStep={estimate.values[0]} week={week} onStartTask={onStartTask} />}
+        /> : <FirstDayPanel task={firstTask} firstStep={estimate.values[0]} week={week} onStartTask={onStartTask} hideCta={mode === 'choose'} />}
       </aside>
 
       {welcome.greeting && <GreetSoc size={190} className="td-greet" />}
@@ -200,7 +202,7 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
           ))}
           <Soc state="cheerD" size={130} className="td-cele-soc is-l" />
           <Soc state="cheerD" size={130} className="td-cele-soc is-r" />
-          <div className="td-cele-box">
+          <div ref={celebrateRef} tabIndex={-1} className="td-cele-box">
             <svg className="td-bigcup" viewBox="-110 -110 220 190" aria-hidden="true">
               <defs><linearGradient id="tdCup2" x1="0" x2="1"><stop offset="0" stopColor="#ffe9a3" /><stop offset=".45" stopColor="#ffc83d" /><stop offset="1" stopColor="#e09a12" /></linearGradient></defs>
               <path d="M-64 -64 C-104 -64 -100 -10 -58 -16" fill="none" stroke="#e8a516" strokeWidth="11" strokeLinecap="round" /><path d="M64 -64 C104 -64 100 -10 58 -16" fill="none" stroke="#d99a00" strokeWidth="11" strokeLinecap="round" />

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { StudySession, UserProfile } from '@/shared/types';
-import { MetricToggle, SummitCard, useSummitData } from '../ScoreTab';
+import { SummitCard, useSummitData } from '../ScoreTab';
 import { SummitScene } from '../SummitScene';
 import { useSize } from './useSize';
 import '../summit.css';
@@ -11,10 +11,11 @@ interface Props {
   today: string;
   onOpenTest: (id: string) => void;
   onLog: () => void;
+  gear?: readonly string[];
 }
 
 /** Điểm số on phones: the same illustrated mountain under the "Mình có kịp không?" card (no speech bubble). */
-export function JourneyScore({ sessions, profile, today, onOpenTest, onLog }: Props) {
+export function JourneyScore({ sessions, profile, today, onOpenTest, onLog, gear }: Props) {
   const [ref, { w, h }] = useSize<HTMLDivElement>();
   const data = useSummitData(sessions, profile, today);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -33,11 +34,10 @@ export function JourneyScore({ sessions, profile, today, onOpenTest, onLog }: Pr
   return (
     <div ref={ref} className="sm-phone">
       <SummitScene variant="phone" W={w} H={h} points={data.T} hidden={data.hidden} target={data.target} latestIdx={data.latestIdx}
-        ghost={data.counted < 2} cardBottom={cardBottom} onOpenTest={onOpenTest} onForce={data.force} />
+        ghost={data.counted < 2} cardBottom={cardBottom} onOpenTest={onOpenTest} onForce={data.force} gear={gear} />
       <div ref={cardRef} style={{ display: 'contents' }}>
-        <SummitCard data={data} phone onLog={onLog} profileTarget={profile.targetScore} />
+        <SummitCard data={data} phone onLog={onLog} />
       </div>
-      <MetricToggle metric={data.metric} onChange={data.setMetric} />
     </div>
   );
 }

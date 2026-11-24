@@ -22,7 +22,7 @@ import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDr
 const listening = (part: PartNumber) => part <= 4;
 
 /** Tap the questions answered wrong, one Part at a time; or type the numbers ("3 15 101-104"). */
-export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming, appliedScore, onRevertScore, initialFiles, onInitialFilesHandled, phone, testName }: { /** Phone logger: after Sóc reads a photo the grid collapses to a result card; "Sửa" opens it in a sheet. */ phone?: { read: boolean; onRead: () => void }; testName?: string; wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void; appliedScore?: { listening?: string; reading?: string; total?: string }; onRevertScore?: () => void; initialFiles?: File[]; onInitialFilesHandled?: () => void }) {
+export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, scoreStore, numberDraft, onNumberDraft, onTiming, appliedScore, estimatedScore, onRevertScore, initialFiles, onInitialFilesHandled, phone, testName }: { /** Phone logger: after Sóc reads a photo the grid collapses to a result card; "Sửa" opens it in a sheet. */ phone?: { read: boolean; onRead: () => void }; testName?: string; wrong: number[]; onChange: (wrong: number[]) => void; onScores?: (score: AppliedResultScore) => void; onScoresPending?: (pending: boolean) => void; scoreStore?: ResultScoreStore; numberDraft?: WrongNumberDraft; onNumberDraft?: (value: WrongNumberDraft) => void; onTiming?: (value: ResultImageTiming) => void; appliedScore?: { listening?: string; reading?: string; total?: string }; estimatedScore?: { listening?: string; reading?: string; total?: string }; onRevertScore?: () => void; initialFiles?: File[]; onInitialFilesHandled?: () => void }) {
   const [part, setPart] = useState<PartNumber>(1);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -91,14 +91,15 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
           </button>}
     </>
   );
+  const cardScore = appliedScore?.total ? appliedScore : estimatedScore;
   const readCard = phone?.read ? (
     <>
       <section className="pl-read" aria-label="Kết quả Sóc đọc">
         <Soc state="yay" size={64} className="pl-read-soc" />
         <small>{testName || 'Đề'}</small>
         <div className="pl-read-score">
-          <b>{appliedScore?.total || '—'}</b>
-          {appliedScore?.listening && appliedScore?.reading && <span>Nghe {appliedScore.listening} · Đọc {appliedScore.reading}</span>}
+          <b>{cardScore?.total || '—'}</b>
+          {cardScore?.listening && cardScore?.reading && <span>Nghe {cardScore.listening} · Đọc {cardScore.reading}{!appliedScore?.total ? ' (ước tính)' : ''}</span>}
         </div>
         <div className="pl-read-wrong">
           <div className="pl-read-wrong-h">
@@ -873,20 +874,6 @@ export function ResultImageButton({
             <span>Nhập điểm từ đề (tùy chọn)</span>
           </span>
           <span className="text-[var(--rd-mut)] font-bold" aria-hidden="true">›</span>
-        </button>
-      )}
-      {!scoreCard && onScores && scoreReview && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => triggerHaptic(4)}
-          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-[var(--rd-gold)] bg-[var(--rd-gold-l)] px-3 py-1.5 text-xs font-black text-[#8a6a10] transition-all"
-        >
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden="true" className="animate-pulse">📄</span>
-            <span>Điểm từ đề: Đang mở hộp thoại</span>
-          </span>
-          <span className="text-[11px] font-bold text-[#8a6a10]" aria-hidden="true">Đang kiểm tra ›</span>
         </button>
       )}
       </>)}

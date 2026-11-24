@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import type { StudySession } from '@/shared/types';
 import type { PacingMode } from '../lib/pacingModel';
 import { dishName, dishOf, formatSpan, paceWords, recipeSteps, type Dish, type PaceTag } from '../lib/bakery';
@@ -75,12 +76,7 @@ export function BakeryChoose(p: Props) {
   const [page, fit, scale, wide] = useFit();
   const off = (wide - W) / 2;
   const [all, setAll] = useState(false);
-  useEffect(() => {
-    if (!all) return;
-    const close = (e: KeyboardEvent) => { if (e.key === 'Escape') setAll(false); };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [all]);
+  const allRef = useModalA11y(all, () => setAll(false));
   const [recipe, setRecipe] = useState(false);
   const recipeBox = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -210,7 +206,7 @@ export function BakeryChoose(p: Props) {
 
       {all && (
         <div className="bk-all-dim" onClick={() => setAll(false)}>
-          <div className="bk-all" role="dialog" aria-modal="true" aria-label="Tất cả mẻ bánh" onClick={e => e.stopPropagation()}>
+          <div ref={allRef} className="bk-all" role="dialog" aria-modal="true" aria-label="Tất cả mẻ bánh" tabIndex={-1} onClick={e => e.stopPropagation()}>
             <div className="bk-all-h"><h3>Tất cả mẻ bánh<span>{p.recent.length} mẻ</span></h3>
               <button type="button" className="bk-all-x" aria-label="Đóng" onClick={() => setAll(false)}>×</button></div>
             <div className="bk-all-list">{p.recent.map(row => renderRow(row))}</div>

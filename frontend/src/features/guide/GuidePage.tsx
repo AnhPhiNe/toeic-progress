@@ -33,16 +33,18 @@ export function GuidePage({ onBack, onOpenSessionLogger, onNavigate }: Props) {
           <h1>Ba bước<br />là <em>đủ</em></h1>
           <Soc state="idle" size={110} />
         </div>
+        <div className="gd-steps">
         {steps.map(s => (
           <button key={s.n} type="button" className="gd-step" style={{ ['--gd-b' as string]: s.border }} onClick={s.run}>
             <span className="gd-n" style={{ background: s.color }} aria-hidden="true">{s.n}</span>
-            <span>
+            <span className="gd-step__body">
               <b className="gd-t">{s.title}</b>
               <small>{s.text}</small>
               <span className="gd-go" style={{ color: s.link }}>{s.go} ›</span>
             </span>
           </button>
         ))}
+        </div>
         <p className="gd-note">GỢI Ý TRÊN TỪNG TRANG</p>
         <div className="gd-row">
           <div>

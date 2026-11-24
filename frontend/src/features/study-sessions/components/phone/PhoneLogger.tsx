@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LRPartScore, PartTimingDurations, PracticePartResult, StudySession } from '@/shared/types';
-import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
+import { calculateFromPartScores, PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
+import { partScoresFromWrong } from '@/shared/domain/questionNumbers';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { getTodayDateString, loadVocabLog } from '@/shared/data/storage';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -70,14 +71,28 @@ function DateChip({ date, setDate, today }: { date: string; setDate: (value: str
 }
 
 function Stepper({ title, sub, value, min, max, onChange, label }: { title: string; sub: string; value: number; min: number; max: number; onChange: (value: number) => void; label: string }) {
-  const set = (next: number) => onChange(clamp(Math.round(next), min, max));
+  const [draft, setDraft] = useState<string | null>(null);
+  const set = (next: number) => { setDraft(null); onChange(clamp(Math.round(next), min, max)); };
+  const displayed = draft ?? String(value);
   return (
     <div className="pl-row pl-row--step">
       <div><b>{title}</b><small>{sub}</small></div>
       <span className="pl-pm">
         <button type="button" aria-label={`Giảm ${label}`} onClick={() => set(value - 1)}>−</button>
-        <input data-large-text type="text" inputMode="numeric" pattern="[0-9]*" aria-label={label} value={String(value)}
-          onFocus={event => event.currentTarget.select()} onChange={event => set(Number(event.target.value.replace(/\D/g, '') || 0))} />
+        <input data-large-text type="text" inputMode="numeric" pattern="[0-9]*" aria-label={label} value={displayed}
+          onFocus={event => { setDraft(String(value)); event.currentTarget.select(); }}
+          onChange={event => {
+            const digits = event.target.value.replace(/\D/g, '');
+            setDraft(digits);
+            if (digits) onChange(clamp(Number(digits), min, max));
+          }}
+          onBlur={() => {
+            if (draft !== null) {
+              const parsed = draft ? Number(draft) : min;
+              onChange(clamp(Math.round(parsed), min, max));
+              setDraft(null);
+            }
+          }} />
         <button type="button" aria-label={`Tăng ${label}`} onClick={() => set(value + 1)}>+</button>
       </span>
     </div>
@@ -98,7 +113,8 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   const [aiRead, setAiRead] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const [confirmDel, setConfirmDel] = useState(false);
-  useEffect(() => { setConfirmDel(false); }, [props.date]);
+  const [vocabDraft, setVocabDraft] = useState<string | null>(null);
+  useEffect(() => { setConfirmDel(false); setVocabDraft(null); }, [props.date]);
   useEffect(() => { let off = false; void getAIConfiguration().then(c => { if (!off) setAiOn(c.resultImages !== false); }).catch(() => {}); return () => { off = true; }; }, []);
 
   const listening = Number(props.manualListening) || 0;
@@ -157,15 +173,25 @@ export function PhoneLogger(props: PhoneLoggerProps) {
           {edit && <button type="button" className="pl-back" onClick={props.vocab.onBack}>‹ Hôm nay</button>}
           <p className="pl-mut">{props.date === today ? 'Hôm nay' : edit ? `Ngày ${dm}` : dayLabel(props.date, today)} bạn học được</p>
           <div className="pl-big-count">
-            <button type="button" aria-label="Giảm số từ" onClick={() => props.setVocabCount(clamp(props.vocabCount - 1, 1, 10000))}>−</button>
-            <input data-large-text type="text" inputMode="numeric" pattern="[0-9]*" aria-label="Số từ đã học" value={String(props.vocabCount)}
-              onFocus={event => event.currentTarget.select()}
-              onChange={event => props.setVocabCount(clamp(Number(event.target.value.replace(/\D/g, '') || 0), 1, 10000))} />
-            <button type="button" aria-label="Tăng số từ" onClick={() => props.setVocabCount(clamp(props.vocabCount + 1, 1, 10000))}>+</button>
+            <button type="button" aria-label="Giảm số từ" onClick={() => { setVocabDraft(null); props.setVocabCount(clamp(props.vocabCount - 1, 1, 10000)); }}>−</button>
+            <input data-large-text type="text" inputMode="numeric" pattern="[0-9]*" aria-label="Số từ đã học" value={vocabDraft ?? String(props.vocabCount)}
+              onFocus={event => { setVocabDraft(String(props.vocabCount)); event.currentTarget.select(); }}
+              onChange={event => {
+                const digits = event.target.value.replace(/\D/g, '');
+                setVocabDraft(digits);
+                if (digits) props.setVocabCount(clamp(Number(digits), 1, 10000));
+              }}
+              onBlur={() => {
+                if (vocabDraft !== null) {
+                  props.setVocabCount(clamp(Number(vocabDraft || 1), 1, 10000));
+                  setVocabDraft(null);
+                }
+              }} />
+            <button type="button" aria-label="Tăng số từ" onClick={() => { setVocabDraft(null); props.setVocabCount(clamp(props.vocabCount + 1, 1, 10000)); }}>+</button>
           </div>
           <p className="pl-unit">từ mới</p>
           <div className="pl-chips pl-chips--c" role="group" aria-label="Chọn nhanh số từ">
-            {VOCAB_CHIPS.map(n => <button key={n} type="button" aria-pressed={props.vocabCount === n} className={'pl-chip' + (props.vocabCount === n ? ' is-on' : '')} onClick={() => props.setVocabCount(n)}>{n}</button>)}
+            {VOCAB_CHIPS.map(n => <button key={n} type="button" aria-pressed={props.vocabCount === n} className={'pl-chip' + (props.vocabCount === n ? ' is-on' : '')} onClick={() => { setVocabDraft(null); props.setVocabCount(n); }}>{n}</button>)}
           </div>
           <div className="pl-week">
             <p className="pl-lab">7 NGÀY QUA · CHẠM ĐỂ SỬA</p>
@@ -285,6 +311,10 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   if (step === 'wrong') {
     const fromManual = wrongFrom === 'manual';
     const markOnly = props.isEditing;
+    const est = calculateFromPartScores(partScoresFromWrong(props.wrongQuestions));
+    const displayScore = props.scoreSource !== 'ESTIMATED'
+      ? { listening: props.manualListening, reading: props.manualReading, total: props.manualTotal || (props.totalPreview ? String(props.totalPreview) : '') }
+      : { listening: String(est.scaledListening), reading: String(est.scaledReading), total: String(props.totalPreview ?? est.totalScore) };
     return (
       <div className="pl" key="wrong">
         <Header title="Câu sai" onClose={props.onClose}
@@ -300,7 +330,8 @@ export function PhoneLogger(props: PhoneLoggerProps) {
           <WrongQuestionGrid phone={{ read: aiRead && !markOnly, onRead: () => setAiRead(true) }} testName={props.testName} wrong={props.wrongQuestions} onChange={props.onWrong} onTiming={props.onTiming}
             onScores={props.onScores} onScoresPending={props.onScoresPending} scoreStore={props.scoreStore}
             numberDraft={props.numberDraft} onNumberDraft={props.onNumberDraft}
-            appliedScore={props.scoreSource !== 'ESTIMATED' ? { listening: props.manualListening, reading: props.manualReading, total: props.manualTotal || (props.totalPreview ? String(props.totalPreview) : '') } : undefined}
+            appliedScore={props.scoreSource !== 'ESTIMATED' ? displayScore : undefined}
+            estimatedScore={displayScore}
             onRevertScore={props.onRevertScore} initialFiles={props.initialFiles} onInitialFilesHandled={() => props.setInitialFiles(undefined)} />
           {props.timingNotice}
         </div>

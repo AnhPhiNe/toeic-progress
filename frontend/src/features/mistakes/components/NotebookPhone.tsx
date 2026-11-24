@@ -17,7 +17,7 @@ import { matchesSearch } from '@/features/mistakes/lib/notebookSearch';
 import { dueSummary } from '@/features/mistakes/lib/notebookSummary';
 import { inputText, type MistakeInput } from '@/features/mistakes/lib/mistakeInput';
 import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
-import { matchesExplanationCard, mergeExplanation } from '@/features/mistakes/lib/explanationMerge';
+import { matchesExplanationCard, mergeExplanation, fitsSyncPayload } from '@/features/mistakes/lib/explanationMerge';
 import { canRetryFree, explanationsVersion, isExplaining, retryExplanation, subscribeExplanations } from '@/features/mistakes/services/explanationQueue';
 import { captureState, closeCapture, dismissBackgroundNotice, openCapture, openReview, subscribeCapture } from '@/features/mistakes/services/captureSession';
 import * as aiService from '@/features/mistakes/services/aiMistakeExtractor';
@@ -25,10 +25,11 @@ import { useTurnstile } from '@/features/mistakes/hooks/useTurnstile';
 import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { MistakeEntryModal } from './MistakeEntryModal';
 import { categoryShort, rowReviewLabel } from './MistakeDetail';
 import { CardDetailPhone } from './phone/CardDetailPhone';
-import { withSavedWords } from '@/features/mistakes/lib/savedWords';
+import { savedVocabulary, toggleSavedWord, withSavedWords, withoutSavedWord } from '@/features/mistakes/lib/savedWords';
 import { CapturePhone } from './phone/CapturePhone';
 import { CameraIcon, PhoneNotebookEmpty } from './phone/PhoneNotebookEmpty';
 import { categoryChip, PART_COLORS } from './phone/partStyle';
@@ -59,7 +60,7 @@ export interface NotebookPhoneProps {
   onOpenSessionLogger?: () => void;
 }
 
-type Tab = 'due' | 'mastered' | 'all';
+type Tab = 'due' | 'mastered' | 'all' | 'words';
 const STEP = 30;
 
 export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, initialPart, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
@@ -100,10 +101,11 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   const due = useMemo(() => matching.filter(m => isDueForReview(m)), [matching]);
   const mastered = useMemo(() => matching.filter(m => m.status === 'MASTERED' && canReview(m)), [matching]);
   const filtered = Boolean(term.trim()) || part !== null || testKey !== null;
+  const savedWordsList = useMemo(() => savedVocabulary(sourced), [sourced]);
   const summary = dueSummary(due);
   const reviewCount = filtered ? summary.count : dueCount;
   const batch = reviewBatch(reviewCount);
-  const activeTab: Tab = tab ?? (reviewCount > 0 ? 'due' : 'all');
+  const activeTab: Tab = (tab === 'words' && savedWordsList.length === 0) ? (reviewCount > 0 ? 'due' : 'all') : (tab ?? (reviewCount > 0 ? 'due' : 'all'));
   const rows = activeTab === 'due' ? due : activeTab === 'mastered' ? mastered : matching;
 
   // Writing explanations and deleting, as on computers.
@@ -120,7 +122,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
     const sourceAnswer = card.answerSource === 'PROVIDED' ? optionLetter(card.correctAnswer) : '';
     const input: MistakeInput = { question: card.question ?? card.questionContext, options: [...(card.options ?? [])], context: card.context ?? '', part: card.part,
       userChoiceState: card.userChoiceState ?? (chosen ? 'CHOSEN' : 'UNKNOWN'), userChoice: chosen,
-      userReason: card.userReason ?? '', sourceAnswer, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
+      userReason: card.userReason ?? '', sourceAnswer, savedCard: true, ...(card.category !== 'OTHER' ? { errorCategory: card.category } : {}) };
     setExplainingId(card.id);
     try {
       const { draft } = await aiService.extractMistakeWithAI(inputText(input), getToken, input, [], owner, isCurrent);
@@ -135,14 +137,25 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
     } catch (reason) { if (isCurrent()) notify(reason instanceof Error ? reason.message : 'Chưa giải thích được. Hãy thử lại.', true); }
     finally { if (isCurrent()) { setExplainingId(''); removeCaptcha(); } }
   };
-  const deleteCard = (id: string) => {
-    if (!window.confirm('Xóa lỗi này khỏi sổ tay?')) return;
+  const deleteCard = async (id: string) => {
+    const ok = await askConfirm({ title: 'Xóa thẻ lỗi?', message: 'Xóa lỗi này khỏi sổ tay? Bạn vẫn có thể bấm Hoàn tác ngay sau đó.', confirmLabel: 'Xóa thẻ', cancelLabel: 'Giữ lại', destructive: true });
+    if (!ok) return;
     try {
       const owner = getActiveAccountId();
       const undo = onDeleteMistake(id);
       setFeedback({ id: ++sequence.current, message: 'Đã xóa thẻ', error: false, ...(undo ? { undo, owner } : {}) });
       setDetailId(null);
     } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa xóa được thẻ.', true); }
+  };
+  const removeSavedWordEverywhere = (word: string) => {
+    try {
+      for (const m of mistakes) {
+        if (m.deletedAt) continue;
+        const next = withoutSavedWord(m, word);
+        if (next !== m) onUpdateMistake(next, m);
+      }
+      notify(`Đã bỏ lưu từ "${word}"`);
+    } catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa bỏ lưu được từ.', true); }
   };
   const undoDelete = () => {
     if (!feedback?.undo) return;
@@ -217,7 +230,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   if (detail) {
     const actions = {
       onEdit: () => setEntry(mistakes.find(m => m.id === detail.id) ?? detail),
-      onDelete: () => deleteCard(detail.id),
+      onDelete: () => { void deleteCard(detail.id); },
       onMarkMastered: () => markMastered(detail.id),
       onReopen: () => onReopenCards([detail.id]),
       onReview: () => onStartReview([detail.id]),
@@ -236,8 +249,18 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
       onSaveWords: (words: string[]) => {
         const latest = mistakes.find(m => m.id === detail.id) ?? detail;
         const next = withSavedWords(latest, words);
-        try { if (next !== latest) onUpdateMistake(next, latest); }
+        if (next === latest) return;
+        if (!fitsSyncPayload(next)) { notify('Thẻ đã quá dài để lưu thêm từ. Hãy rút gọn ghi chú hoặc bỏ bớt từ đã lưu.', true); return; }
+        try { onUpdateMistake(next, latest); }
         catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được từ.', true); }
+      },
+      onToggleWord: (word: string) => {
+        const latest = mistakes.find(m => m.id === detail.id) ?? detail;
+        const next = toggleSavedWord(latest, word);
+        if (next === latest) return;
+        if (!fitsSyncPayload(next)) { notify('Thẻ đã quá dài để lưu thêm từ. Hãy rút gọn ghi chú hoặc bỏ bớt từ đã lưu.', true); return; }
+        try { onUpdateMistake(next, latest); }
+        catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa cập nhật được từ đã lưu.', true); }
       }
     } as const;
     return (
@@ -250,7 +273,12 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
 
   const empty = mistakes.length === 0;
   const testLabel = testKey === 'SCOPE' ? 'Đề đang xem' : testKey ? sourced.find(m => testNameKey(m.sourceTestName) === testKey)?.sourceTestName ?? '' : '';
-  const tabs: Array<[Tab, string, number]> = [['due', 'Cần ôn', due.length], ['mastered', 'Đã thuộc', mastered.length], ['all', 'Tất cả', matching.length]];
+  const tabs: Array<[Tab, string, number]> = [
+    ['due', 'Cần ôn', due.length],
+    ['mastered', 'Đã thuộc', mastered.length],
+    ['all', 'Tất cả', matching.length],
+    ...(savedWordsList.length > 0 ? [['words', 'Từ', savedWordsList.length] as [Tab, string, number]] : [])
+  ];
 
   return (
     <div className="rd pn">
@@ -298,7 +326,20 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
             </div>
           )}
 
-          {rows.length ? (
+          {activeTab === 'words' ? (
+            <ul className="pn-words" aria-label="Từ đã lưu">
+              {savedWordsList.map(item => (
+                <li key={item.word.toLowerCase()}>
+                  <button type="button" className="pn-word-go" onClick={() => setDetailId(item.cardId)}>
+                    <b lang="en">{item.word}</b>
+                    {item.meaning && <span>{item.meaning}</span>}
+                    <small>Part {item.part}{item.questionNumber ? ` · Câu ${item.questionNumber}` : ''} ›</small>
+                  </button>
+                  <button type="button" className="pn-word-rm" aria-label={`Bỏ lưu ${item.word}`} onClick={() => removeSavedWordEverywhere(item.word)}>Bỏ lưu</button>
+                </li>
+              ))}
+            </ul>
+          ) : rows.length ? (
             <ul className="pn-rows">
               {rows.slice(0, shown).map(m => {
                 const label = rowReviewLabel(m), chip = categoryChip(m.category);
@@ -320,7 +361,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
               {filtered && <button type="button" onClick={() => { setTerm(''); setPart(null); setTestKey(null); }}>Bỏ lọc</button>}
             </div>
           )}
-          {rows.length > shown && <button type="button" className="pn-more" onClick={() => setShown(value => value + STEP)}>Xem thêm {Math.min(STEP, rows.length - shown)} câu</button>}
+          {activeTab !== 'words' && rows.length > shown && <button type="button" className="pn-more" onClick={() => setShown(value => value + STEP)}>Xem thêm {Math.min(STEP, rows.length - shown)} câu</button>}
         </>
       )}
       {overlays}

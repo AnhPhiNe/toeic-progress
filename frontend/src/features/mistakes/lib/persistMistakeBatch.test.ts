@@ -33,7 +33,7 @@ describe('atomic mistake batch persistence', () => {
 
   it('rejects invalid second cards, duplicate IDs and existing IDs before any write', () => {
     const before = values.get('toeic_progress_bundle_v3');
-    expect(() => commitMistakeBatch([card('one'), { ...card('two'), context: 'ữ'.repeat(16000) }])).toThrow(/32 KiB/);
+    expect(() => commitMistakeBatch([card('one'), { ...card('two'), context: 'ữ'.repeat(12000), questionContext: 'ữ'.repeat(12000) }])).toThrow(/64 KiB/);
     expect(() => commitMistakeBatch([card('one'), card('one')])).toThrow(/ID/);
     expect(() => commitMistakeBatch([card('one'), card('existing')])).toThrow(/đã được lưu/);
     expect(values.get('toeic_progress_bundle_v3')).toBe(before);
