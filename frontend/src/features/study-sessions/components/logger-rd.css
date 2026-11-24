@@ -205,21 +205,21 @@
 .rdl-wrong-edit { border: 0; background: none; color: #d64570; font-weight: 900; font-size: 14px; padding: 6px; cursor: pointer; }
 
 /* Wrong-question grid (computer): calm Nghe / Đọc sections, roomy cells, pink marks. */
-.rdl-sec { min-width: 0; padding: 12px 12px 6px; border-radius: 20px; background: var(--rd-soft); }
-.rdl-sec-h { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px 2px; }
-.rdl-sec-h span { font-size: 17px; }
-.rdl-sec-h b { font-weight: 900; font-size: 16px; color: var(--rd-ink); }
-.rdl-sec-h small { font-weight: 800; font-size: 12px; color: var(--rd-mut); }
-.rdl-sec-h em { margin-left: auto; font-style: normal; font-weight: 900; font-size: 12px; color: var(--rd-pink-d); background: var(--rd-pink-l); border-radius: 99px; padding: 2px 9px; }
-.rdl-part { display: flex; gap: 8px; margin-bottom: 8px; }
-.rdl-part-t { flex: none; width: 36px; text-align: center; }
-.rdl-part-t span { display: grid; place-items: center; height: 30px; border-radius: 10px; font-weight: 900; font-size: 13px; background: #fff; color: var(--rd-ink); box-shadow: 0 2px 0 var(--rd-line); }
-.rdl-sec.is-l .rdl-part-t span { background: var(--rd-violet-l); color: var(--rd-violet-d); box-shadow: 0 2px 0 #ddd3ff; }
-.rdl-sec.is-r .rdl-part-t span { background: #e0f7f4; color: var(--rd-teal-d); box-shadow: 0 2px 0 #bfece6; }
-.rdl-part-t small { display: block; margin-top: 3px; font-weight: 900; font-size: 11px; color: var(--rd-pink-d); }
-.rdl-cells { display: grid; grid-template-columns: repeat(10, 30px); gap: 4px; }
-.rdl-cells button { height: 30px; border: 0; border-radius: 9px; background: #fff; box-shadow: 0 2px 0 var(--rd-line); font: 800 12.5px var(--rd-font); font-variant-numeric: tabular-nums; color: #5c675f; cursor: pointer; transition: transform .06s, background .1s; }
-.rdl-cells button:hover { background: var(--rd-pink-l); color: var(--rd-pink-d); }
-.rdl-cells button:active { transform: translateY(2px); box-shadow: 0 0 0 var(--rd-line); }
-.rdl-cells button[aria-pressed="true"] { background: var(--rd-pink); color: #fff; box-shadow: 0 2px 0 var(--rd-pink-d); }
-.rdl-cells button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 1px; }
+.rdg-sec { min-width: 0; padding: 12px 12px 6px; border-radius: 20px; background: var(--rd-soft); }
+.rdg-sec-h { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px 2px; }
+.rdg-sec-h span { font-size: 17px; }
+.rdg-sec-h b { font-weight: 900; font-size: 16px; color: var(--rd-ink); }
+.rdg-sec-h small { font-weight: 800; font-size: 12px; color: var(--rd-mut); }
+.rdg-sec-h em { margin-left: auto; font-style: normal; font-weight: 900; font-size: 12px; color: var(--rd-pink-d); background: var(--rd-pink-l); border-radius: 99px; padding: 2px 9px; }
+.rdg-part { display: flex; gap: 8px; margin-bottom: 8px; }
+.rdg-part-t { flex: none; width: 36px; text-align: center; }
+.rdg-part-t span { display: grid; place-items: center; height: 30px; border-radius: 10px; font-weight: 900; font-size: 13px; background: #fff; color: var(--rd-ink); box-shadow: 0 2px 0 var(--rd-line); }
+.rdg-sec.is-l .rdg-part-t span { background: var(--rd-violet-l); color: var(--rd-violet-d); box-shadow: 0 2px 0 #ddd3ff; }
+.rdg-sec.is-r .rdg-part-t span { background: #e0f7f4; color: var(--rd-teal-d); box-shadow: 0 2px 0 #bfece6; }
+.rdg-part-t small { display: block; margin-top: 3px; font-weight: 900; font-size: 11px; color: var(--rd-pink-d); }
+.rdg-cells { display: grid; grid-template-columns: repeat(10, 27px); gap: 3px; }
+.rdg-cells button { height: 28px; border: 0; border-radius: 9px; background: #fff; box-shadow: 0 2px 0 var(--rd-line); font: 800 12px var(--rd-font); font-variant-numeric: tabular-nums; color: #5c675f; cursor: pointer; transition: transform .06s, background .1s; }
+.rdg-cells button:hover { background: var(--rd-pink-l); color: var(--rd-pink-d); }
+.rdg-cells button:active { transform: translateY(2px); box-shadow: 0 0 0 var(--rd-line); }
+.rdg-cells button[aria-pressed="true"] { background: var(--rd-pink); color: #fff; box-shadow: 0 2px 0 var(--rd-pink-d); }
+.rdg-cells button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 1px; }

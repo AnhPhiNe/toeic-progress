@@ -74,20 +74,20 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
     const isL = title === 'Listening';
     const count = parts.reduce((sum, part) => sum + byPart[part].length, 0);
     return (
-      <div className={'rdl-sec ' + (isL ? 'is-l' : 'is-r')}>
-        <p className="rdl-sec-h">
+      <div className={'rdg-sec ' + (isL ? 'is-l' : 'is-r')}>
+        <p className="rdg-sec-h">
           <span aria-hidden="true">{isL ? '🎧' : '📖'}</span>
           <b>{isL ? 'Nghe' : 'Đọc'}</b>
           <small>{isL ? 'Part 1 – 4 · 100 câu' : 'Part 5 – 7 · 100 câu'}</small>
           {count > 0 && <em>{count} sai</em>}
         </p>
         {parts.map(part => (
-          <div key={part} className="rdl-part">
-            <div className="rdl-part-t">
+          <div key={part} className="rdg-part">
+            <div className="rdg-part-t">
               <span>P{part}</span>
               {byPart[part].length > 0 && <small>{byPart[part].length} sai</small>}
             </div>
-            <div className="rdl-cells" role="group" aria-label={`Câu sai Part ${part}`}>
+            <div className="rdg-cells" role="group" aria-label={`Câu sai Part ${part}`}>
               {questionsOfPart(part).map(question => (
                 <button key={question} type="button" aria-pressed={marked.has(question)} aria-label={`Câu ${question}`} onClick={() => toggle(question)}>{question}</button>
               ))}
