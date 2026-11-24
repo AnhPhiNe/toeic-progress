@@ -57,6 +57,18 @@ export function stairsSummary(target: number): { blocks: number; step: number } 
   return { blocks: values.length - 1, step };
 }
 
+/** The date `months` calendar months after `today` (YYYY-MM-DD), clamped to the month's last day. */
+export function monthsFromToday(today: string, months: number): string {
+  const [y, m, d] = today.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 1 + months, Math.min(d, last))).toISOString().slice(0, 10);
+}
+
+/** "dd/mm/yyyy" for a YYYY-MM-DD string (empty stays empty). */
+export function dmyLabel(date: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}` : '';
+}
+
 export function profileWithGoal(profile: UserProfile, target: number): UserProfile {
   return { ...profile, targetScore: target, goalChosen: true };
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { MAX_TARGET, MIN_TARGET, TARGET_PRESETS, parseTargetInput, stairsSummary } from '../lib/goalSetup';
+import { MAX_TARGET, MIN_TARGET, TARGET_PRESETS, dmyLabel, monthsFromToday, parseTargetInput, stairsSummary } from '../lib/goalSetup';
+
+const DATE_CHIPS = [1, 2, 3] as const;
 
 interface Props {
   /** The chosen goal, or null while the learner has not picked one. */
@@ -43,6 +45,13 @@ export function GoalCard({ target, examDate, today, onPick, onExamDate, onLog, o
     onPick(value);
   };
 
+  const dateIn = useRef<HTMLInputElement>(null);
+  const openPicker = () => {
+    const el = dateIn.current;
+    if (!el) return;
+    try { el.showPicker(); } catch { el.focus(); }
+  };
+  const customDate = examDate !== '' && !DATE_CHIPS.some(n => monthsFromToday(today, n) === examDate);
   const typingOn = draft !== '' || (target !== null && !isPreset(target));
   const invalid = draft !== '' && typed === null && (touched || draft.length >= 3);
   const summary = target !== null ? stairsSummary(target) : null;
@@ -75,10 +84,17 @@ export function GoalCard({ target, examDate, today, onPick, onExamDate, onLog, o
       </div>
       {invalid && <p className="td-gc-err" role="status">Nhập số từ {MIN_TARGET} đến {MAX_TARGET}, tròn 5 (ví dụ 725).</p>}
 
-      <label className="td-gc-lab" htmlFor="td-gc-date">Ngày thi</label>
-      <div className="td-gc-row">
-        <input id="td-gc-date" className="td-gc-date" type="date" value={examDate} min={today} onChange={event => onExamDate(event.target.value)} />
-        <span className="td-gc-hint">không bắt buộc</span>
+      <span className="td-gc-lab" id="td-gc-exam">Ngày thi <small className="td-gc-hint">không bắt buộc</small></span>
+      <div className="td-gc-chips td-gc-dates" role="group" aria-labelledby="td-gc-exam">
+        <button type="button" className={'td-gc-chip' + (examDate === '' ? ' is-on' : '')} aria-pressed={examDate === ''} onClick={() => onExamDate('')}>Chưa có ngày</button>
+        {DATE_CHIPS.map(n => {
+          const value = monthsFromToday(today, n);
+          return <button key={n} type="button" className={'td-gc-chip' + (examDate === value ? ' is-on' : '')} aria-pressed={examDate === value} onClick={() => onExamDate(value)}>{n} tháng{n === 1 ? ' nữa' : ''}</button>;
+        })}
+        <span className={'td-gc-chip td-gc-pick' + (customDate ? ' is-on' : '')}>
+          <button type="button" aria-label={customDate ? `Ngày thi ${dmyLabel(examDate)}, đổi ngày` : 'Chọn ngày thi'} onClick={openPicker}>{customDate ? dmyLabel(examDate) : 'Chọn ngày'}</button>
+          <input ref={dateIn} type="date" aria-label="Ngày thi" tabIndex={-1} value={examDate} min={today} onChange={event => onExamDate(event.target.value)} />
+        </span>
       </div>
 
       <div className="td-gc-go">

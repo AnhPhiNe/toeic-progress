@@ -32,14 +32,14 @@ export function ResultTimingReview({ candidate, onChange, onApply, onDiscard }: 
     if (next.totalSeconds === 0) { setError('Tổng thời gian làm cần lớn hơn 0. Xóa ô này nếu ảnh không có tổng thời gian.'); return; }
     onApply({ ...next, source: 'IMAGE_CONFIRMED' });
   };
-  return <section aria-label="Kiểm tra thời gian từ ảnh" className="mt-3 space-y-3 rounded-xl border border-amber-300 bg-amber-50/60 p-3 dark:bg-amber-950/20 dark:text-slate-100">
+  return <section aria-label="Kiểm tra thời gian từ ảnh" className="mt-3 space-y-3 rounded-xl border border-[var(--rd-gold)] bg-[var(--rd-gold-l)] p-3">
     <h3 className="text-sm font-extrabold">Thời gian từ ảnh · cần kiểm tra</h3>
-    <p className="text-xs leading-5 text-slate-600 dark:text-slate-300">Chỉ xác nhận thời gian đã làm. Không dùng thời gian còn lại hoặc giới hạn bài thi. Để trống phần ảnh không hiển thị.</p>
+    <p className="text-xs leading-5 text-[#5c675f]">Chỉ xác nhận thời gian đã làm. Không dùng thời gian còn lại hoặc giới hạn bài thi. Để trống phần ảnh không hiển thị.</p>
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{labels.filter(([key], index) => index < 3 || candidate.timing.parts[key as keyof ResultImageTiming['parts']] !== null).map(([key, label]) => <label key={key} className="min-w-0 text-xs font-semibold">{label}<input aria-label={`Thời gian từ ảnh: ${label}`} type="text" inputMode="text" placeholder="phút:giây" value={candidate.fields[key] ?? ''}
       onChange={event => { onChange({ ...candidate, edited: true, fields: { ...candidate.fields, [key]: event.target.value } }); setError(''); }}
-      className="mt-1 min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white" /></label>)}</div>
-    {error && <p role="alert" className="text-xs text-rose-700 dark:text-rose-300">{error}</p>}
-    <div className="flex flex-wrap gap-2"><button type="button" onClick={apply} className="min-h-11 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white dark:bg-white dark:text-slate-900">Áp dụng thời gian từ ảnh</button>
+      className="mt-1 min-h-11 w-full min-w-0 rounded-lg border border-[var(--rd-line)] bg-white px-2 text-sm tabular-nums text-[var(--rd-ink)]" /></label>)}</div>
+    {error && <p role="alert" className="text-xs text-[var(--rd-pink-d)]">{error}</p>}
+    <div className="flex flex-wrap gap-2"><button type="button" onClick={apply} className="min-h-11 rounded-lg bg-[var(--rd-ink)] px-3 text-xs font-bold text-white">Áp dụng thời gian từ ảnh</button>
       <button type="button" onClick={onDiscard} className="min-h-11 px-2 text-xs font-bold underline">Bỏ qua thời gian</button></div>
   </section>;
 }

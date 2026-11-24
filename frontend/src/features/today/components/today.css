@@ -95,6 +95,13 @@
 .td-gc-date { background: #fff; border: 2px solid var(--rd-line); border-radius: 14px; padding: 7px 12px; font: 900 16px var(--rd-font); color: var(--rd-ink); }
 .td-gc-date:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
 .td-gc-hint { font-weight: 700; font-size: 13px; color: var(--rd-mut); }
+.td-gc-lab .td-gc-hint { margin-left: 6px; font-size: 12.5px; }
+.td-gc-dates { flex-wrap: nowrap; gap: 6px; }
+.td-gc-dates .td-gc-chip { flex: 1 1 auto; padding: 0 8px; font-size: 14px; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.td-gc-pick { position: relative; }
+.td-gc-pick button { all: unset; box-sizing: border-box; width: 100%; height: 100%; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.td-gc-pick button:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 4px; border-radius: 14px; }
+.td-gc-pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0; }
 .td-gc-go { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
 .td-gap { display: inline-flex; align-items: center; background: #fff6d6; color: #8a6a10; border-radius: 99px; padding: 5px 12px; font-weight: 900; font-size: 13.5px; }
 .td-gc-done { margin-left: auto; background: none; border: 0; font-weight: 900; font-size: 14px; color: var(--rd-blue); cursor: pointer; padding: 4px; }

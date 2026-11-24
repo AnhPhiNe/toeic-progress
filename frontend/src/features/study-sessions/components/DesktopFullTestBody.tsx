@@ -70,33 +70,33 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
     if (!parsed.invalid.length) { onWrong(parsed.questions); setTyping(false); }
   };
 
-  const section = (title: string, parts: PartNumber[]) => (
-    <div>
-      <p className={'mb-1.5 flex items-center gap-1.5 text-[11.5px] font-black uppercase tracking-wider ' + (title === 'Listening' ? 'text-indigo-700 dark:text-indigo-300' : 'text-teal-700 dark:text-teal-300')}>
-        <span className={'h-1.5 w-1.5 rounded-full ' + (title === 'Listening' ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-teal-600 dark:bg-teal-400')} aria-hidden="true" />
-        {title}
-      </p>
-      {parts.map(part => (
-        <div key={part} className="mb-1 flex gap-2">
-          <div className="w-[34px] shrink-0 text-center">
-            <span className={'flex h-6 items-center justify-center rounded-[7px] text-[11.5px] font-black text-white ' + (listening(part) ? 'bg-indigo-600' : 'bg-teal-600')}>P{part}</span>
-            {byPart[part].length > 0 && <span className="mt-0.5 block text-[11px] font-black tabular-nums text-rose-600 dark:text-rose-400">{byPart[part].length} sai</span>}
+  const section = (title: string, parts: PartNumber[]) => {
+    const isL = title === 'Listening';
+    const count = parts.reduce((sum, part) => sum + byPart[part].length, 0);
+    return (
+      <div className={'rdg-sec ' + (isL ? 'is-l' : 'is-r')}>
+        <p className="rdg-sec-h">
+          <span aria-hidden="true">{isL ? '🎧' : '📖'}</span>
+          <b>{isL ? 'Nghe' : 'Đọc'}</b>
+          <small>{isL ? 'Part 1 – 4 · 100 câu' : 'Part 5 – 7 · 100 câu'}</small>
+          {count > 0 && <em>{count} sai</em>}
+        </p>
+        {parts.map(part => (
+          <div key={part} className="rdg-part">
+            <div className="rdg-part-t">
+              <span>P{part}</span>
+              {byPart[part].length > 0 && <small>{byPart[part].length} sai</small>}
+            </div>
+            <div className="rdg-cells" role="group" aria-label={`Câu sai Part ${part}`}>
+              {questionsOfPart(part).map(question => (
+                <button key={question} type="button" aria-pressed={marked.has(question)} aria-label={`Câu ${question}`} onClick={() => toggle(question)}>{question}</button>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-[repeat(10,29px)] gap-[3px]" role="group" aria-label={`Câu sai Part ${part}`}>
-            {questionsOfPart(part).map(question => {
-              const on = marked.has(question);
-              return (
-                <button key={question} type="button" aria-pressed={on} aria-label={`Câu ${question}`} onClick={() => toggle(question)}
-                  className={'h-[25px] cursor-pointer rounded-[7px] border-[1.5px] text-[11.5px] font-bold tabular-nums transition-colors ' + (on
-                    ? 'border-slate-900 bg-rose-600 text-white dark:border-slate-200'
-                    : 'border-stone-200 bg-white text-slate-600 hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-rose-950/40')}>{question}</button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+        ))}
+      </div>
+    );
+  };
 
   const hasMarks = wrong.length > 0;
   const aiFirst = !manualOpen && !minimalOpen;
@@ -153,7 +153,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
       <div className="flex flex-col gap-2.5 max-lg:order-first">
         {manualOpen && (
           <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(true); }}
-            className="w-fit cursor-pointer text-[13px] font-black text-indigo-700 hover:underline dark:text-indigo-300">
+            className="w-fit cursor-pointer text-[13px] font-black text-[var(--rd-violet-d)] hover:underline">
             ‹ Quay lại
           </button>
         )}
@@ -176,35 +176,35 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
             <div>
               <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
-                isOfficial ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
+                isOfficial ? 'text-[#8a6a10]' : 'text-[var(--rd-mut)]'
               }`}>
-                <span className={`flex items-center gap-1.5 ${isOfficial ? 'text-amber-900 dark:text-amber-200 font-black' : 'text-slate-700 dark:text-slate-300'}`}>
-                  <span className={`h-2 w-2 rounded-full ${isOfficial ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} aria-hidden="true" />
+                <span className={`flex items-center gap-1.5 ${isOfficial ? 'text-[#8a6a10] font-black' : 'text-[#5c675f]'}`}>
+                  <span className={`h-2 w-2 rounded-full ${isOfficial ? 'bg-[var(--rd-gold)] animate-pulse' : 'bg-[var(--rd-green)]'}`} aria-hidden="true" />
                   {isOfficial ? 'Điểm từ đề thi' : 'Điểm ước tính'}
                 </span>
                 {isOfficial ? (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9.5px] font-black text-amber-900 dark:bg-amber-950/70 dark:text-amber-200">
+                  <span className="rounded bg-[var(--rd-gold-l)] px-1.5 py-0.5 text-[9.5px] font-black text-[#8a6a10]">
                     Chính thức
                   </span>
                 ) : hasMarks ? (
-                  <span className="font-black normal-case tabular-nums text-rose-600 dark:text-rose-400">{wrong.length} câu sai</span>
+                  <span className="font-black normal-case tabular-nums text-[var(--rd-pink-d)]">{wrong.length} câu sai</span>
                 ) : (
-                  <span className="font-semibold normal-case text-slate-400">Chạm câu sai</span>
+                  <span className="font-semibold normal-case text-[var(--rd-mut)]">Chạm câu sai</span>
                 )}
               </div>
-              <p className="mt-0.5 text-[40px] font-black leading-none tracking-tight tabular-nums text-slate-950 dark:text-white">
+              <p className="mt-0.5 text-[40px] font-black leading-none tracking-tight tabular-nums text-[var(--rd-ink)]">
                 {isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—'}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs font-black tabular-nums">
-                <span className="rounded-lg border border-indigo-200 bg-indigo-50 py-1 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:text-indigo-300">
+                <span className="rounded-lg border border-[var(--rd-violet)] bg-[var(--rd-violet-l)] py-1 text-[var(--rd-violet-d)]">
                   L {isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—'}
                 </span>
-                <span className="rounded-lg border border-teal-200 bg-teal-50 py-1 text-teal-700 dark:border-teal-800/60 dark:bg-teal-950/50 dark:text-teal-300">
+                <span className="rounded-lg border border-[#bfece6] bg-[#e0f7f4] py-1 text-[var(--rd-teal-d)]">
                   R {isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—'}
                 </span>
               </div>
               {isOfficial && hasMarks && (
-                <p className="mt-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                <p className="mt-1.5 text-[11px] font-bold text-[var(--rd-pink-d)]">
                   Đã đánh dấu {wrong.length} câu sai trên đề
                 </p>
               )}
@@ -224,7 +224,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           isTyping={manualOpen && typing}
           typingContent={
             <div className="space-y-2">
-              <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
+              <label className="block text-[13px] font-bold text-[#5c675f]">
                 Số câu sai
                 <textarea
                   aria-label="Số câu sai"
@@ -234,14 +234,14 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
                   onChange={event => { setText(event.target.value); setInvalid([]); }}
                   placeholder="3 15 22 101-104"
                   onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyTyped(); } }}
-                  className="mt-1 w-full resize-none rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[14px] font-bold tabular-nums text-slate-950 focus:border-blue-600 focus:outline-none dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  className="mt-1 w-full resize-none rounded-xl border-2 border-[var(--rd-line)] bg-white px-3 py-2 text-[14px] font-bold tabular-nums text-[var(--rd-ink)] focus:border-[var(--rd-violet)] focus:outline-none"
                 />
               </label>
-              <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Cách nhau bằng dấu cách; 101-104 là một dải câu.</p>
-              {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">Không đọc được: {invalid.join(', ')}</p>}
+              <p className="text-[12px] font-semibold text-[var(--rd-mut)]">Cách nhau bằng dấu cách; 101-104 là một dải câu.</p>
+              {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-[var(--rd-pink-d)]">Không đọc được: {invalid.join(', ')}</p>}
               <div className="flex gap-2">
-                <button type="button" onClick={applyTyped} className="min-h-10 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[13.5px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Áp dụng</button>
-                <button type="button" onClick={() => { cancelNumbers(); setInvalid([]); }} className="min-h-10 cursor-pointer px-3 text-[13.5px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
+                <button type="button" onClick={applyTyped} className="min-h-10 flex-1 cursor-pointer rounded-xl border-2 border-[var(--rd-line)] bg-white text-[13.5px] font-black text-[var(--rd-ink)]">Áp dụng</button>
+                <button type="button" onClick={() => { cancelNumbers(); setInvalid([]); }} className="min-h-10 cursor-pointer px-3 text-[13.5px] font-bold text-[var(--rd-mut)]">Hủy</button>
               </div>
             </div>
           }
@@ -249,7 +249,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
             <button
               type="button"
               onClick={openNumbers}
-              className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 text-xs font-black text-slate-950 shadow-[2px_2px_0_0_#0f172a] hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-slate-900 dark:text-white dark:shadow-none"
+              className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[var(--rd-line)] bg-white px-3 text-xs font-black text-[var(--rd-ink)] shadow-[0_3px_0_var(--rd-line)] hover:bg-[var(--rd-soft)] active:translate-x-px active:translate-y-px active:shadow-none"
             >
               <Keyboard className="h-4 w-4 shrink-0" aria-hidden="true" />
               Gõ số câu
@@ -266,37 +266,37 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
 
         {/* Slim Utility Bar: Ghi chú & Chế độ nhập khác */}
-        <div className={'rounded-xl border border-slate-200 bg-slate-50/70 p-2 items-center justify-between text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400 ' + (manualOpen ? 'flex' : 'hidden')}>
+        <div className={'rounded-xl border border-[var(--rd-line)] bg-[var(--rd-soft)] p-2 items-center justify-between text-[11px] font-bold text-[#5c675f]' + (manualOpen ? 'flex' : 'hidden')}>
           <button
             type="button"
             onClick={() => setShowNotes(prev => !prev)}
             aria-label={showNotes ? 'Đóng ghi chú' : 'Thêm ghi chú'}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer ${
               showNotes || notes.trim()
-                ? 'bg-amber-100 text-amber-900 font-black dark:bg-amber-950/60 dark:text-amber-200'
-                : 'hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white'
+                ? 'bg-[var(--rd-gold-l)] text-[#8a6a10] font-black'
+                : 'hover:bg-white hover:text-[var(--rd-ink)]'
             }`}
           >
             <span aria-hidden="true">📝</span>
             <span>{notes.trim() ? 'Có ghi chú' : 'Ghi chú'}</span>
           </button>
 
-          <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">|</span>
+          <span className="text-[#c3cac5]" aria-hidden="true">|</span>
 
           <div className="flex items-center gap-1.5" role="group" aria-label="Chế độ nhập khác">
             <button
               type="button"
               onClick={onCounts}
-              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-[var(--rd-ink)] transition-colors"
               title="Chuyển sang chế độ nhập số câu đúng mỗi Part"
             >
               Số câu đúng mỗi Part
             </button>
-            <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+            <span className="text-[#c3cac5]" aria-hidden="true">·</span>
             <button
               type="button"
               onClick={onOfficial}
-              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+              className="cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-bold hover:bg-white hover:text-[var(--rd-ink)] transition-colors"
               title="Chuyển sang chế độ nhập điểm chính thức ETS"
             >
               Điểm chính thức
@@ -307,12 +307,12 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         {/* Ô Ghi chú mở rộng (nếu được mở hoặc đã có text) */}
         {showNotes && (
           <div className="animate-sheet-up space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[var(--rd-mut)]">
               <label htmlFor="session-notes" className="cursor-pointer">Ghi chú bài thi (tùy chọn)</label>
               <button
                 type="button"
                 onClick={() => setShowNotes(false)}
-                className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                className="text-[10px] text-[var(--rd-mut)] hover:text-[#5c675f] cursor-pointer"
               >
                 Thu gọn ✕
               </button>
@@ -324,7 +324,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
               value={notes}
               onChange={event => setNotes(event.target.value)}
               placeholder="VD: Làm lúc mệt, mất tập trung Part 7..."
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              className="w-full rounded-xl border border-[var(--rd-line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--rd-ink)] placeholder:text-[var(--rd-mut)] focus:border-[var(--rd-line)] focus:outline-none"
             />
           </div>
         )}
