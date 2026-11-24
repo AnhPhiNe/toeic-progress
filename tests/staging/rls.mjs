@@ -41,12 +41,40 @@ try {
   const record = { entity_type: 'vocabLog', record_id: id, payload: { id, date: '2026-09-23', count: 1, updatedAt: stamp, deletedAt: null }, updated_at: stamp, deleted_at: null };
   const first = await synchronize(alice, [record]);
   assert(first.records.some(row => row.record_id === id), 'Owner did not get the record back through the API');
-  // Baseline v2: browsers have no direct access at all, only the API.
-  const directRpc = await alice.rpc('sync_account_records', { p_user_id: created[0], p_records: [record], p_cursor: 0, p_replace: false });
-  assert(!!directRpc.error, 'Browser could call service-only sync RPC');
-  for (const table of ['vocabulary_logs', 'study_sessions', 'mistakes', 'user_profiles', 'league_standings', 'user_plans', 'redeem_codes']) {
-    const read = await alice.from(table).select('*').limit(1);
-    assert(!!read.error || (read.data?.length ?? 0) === 0, `Browser read ${table} directly`);
+  // Baseline v2 + wave 1/2 + rank: browsers (both authenticated and anon) have no direct DB access at all.
+  const anon = makeClient();
+  const ready = await admin.rpc('schema_ready');
+  assert(!ready.error && ready.data?.ready === true, `schema_ready() failed on staging: ${JSON.stringify(ready.error || ready.data)}`);
+
+  const rpcChecks = [
+    ['sync_account_records', { p_user_id: created[0], p_records: [record], p_cursor: 0, p_replace: false }],
+    ['sync_page', { p_user_id: created[0], p_after: 0 }],
+    ['league_state', { p_user_id: created[0] }],
+    ['rank_state', { p_user_id: created[0] }],
+    ['get_ai_access', { p_user_id: created[0] }],
+    ['prepare_account_deletion', { p_user_id: created[0], p_identity_hash: '0'.repeat(64) }],
+    ['apply_identity_carryover', { p_user_id: created[0], p_identity_hash: '0'.repeat(64) }],
+    ['reserve_provider_budget', { p_owner_id: created[0], p_day_limit: 300, p_owner_day_limit: 60, p_minute_limit: 20, p_cost: 1 }],
+    ['reserve_batch_explain_quota', { p_user_id: created[0], p_batch_id: randomUUID(), p_add: 1, p_max: 16 }],
+    ['mark_account_deletion_pending', { p_user_id: created[0] }],
+    ['clear_account_deletion_pending', { p_user_id: created[0] }],
+    ['list_pending_account_deletions', { p_older_than_seconds: 600, p_limit: 10 }],
+    ['note_account_deletion_attempt', { p_user_id: created[0], p_error: 'test' }],
+    ['run_maintenance', { p_limit: 10, p_league_weeks: 12 }],
+    ['schema_ready', {}]
+  ];
+  for (const [fn, args] of rpcChecks) {
+    assert(!!(await alice.rpc(fn, args)).error, `Authenticated browser could call service-only RPC ${fn}`);
+    assert(!!(await anon.rpc(fn, args)).error, `Anon browser could call service-only RPC ${fn}`);
+  }
+  const tables = [
+    'vocabulary_logs', 'study_sessions', 'mistakes', 'user_profiles', 'pacing_runs', 'streak_shields',
+    'sync_tombstones', 'league_members', 'league_groups', 'league_standings', 'user_plans', 'redeem_codes',
+    'ai_access_grants', 'ai_provider_budget_counters', 'ai_cost_ledger'
+  ];
+  for (const table of tables) {
+    assert(!!(await alice.from(table).select('*').limit(1)).error, `Authenticated browser read ${table} directly without error`);
+    assert(!!(await anon.from(table).select('*').limit(1)).error, `Anon browser read ${table} directly without error`);
   }
   const crossWrite = await bob.from('vocabulary_logs').insert({ user_id: created[0], id, study_date: '2026-09-23', word_count: 1, updated_at: stamp });
   assert(!!crossWrite.error, 'Cross-account direct write was allowed');

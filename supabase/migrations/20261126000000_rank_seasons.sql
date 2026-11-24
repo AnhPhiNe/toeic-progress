@@ -38,13 +38,263 @@ begin
   alter table public.league_members drop constraint if exists league_members_tier_check;
   alter table public.league_members add constraint league_members_tier_check check (tier between 1 and 6);
   if first_run then
-    update public.league_groups g set tier = 5 where g.tier = 4
-      and exists (select 1 from public.league_standings s where s.group_id = g.id and s.final_rank is null);
+    update public.league_groups set tier = 5 where tier = 4;
     update public.league_members set tier = 5 where tier = 4;
   end if;
 end;
 $$;
 comment on column public.league_members.tier is 'Rank tier 1 Đồng … 5 Kim cương, 6 Cao thủ: follows private.rank_players.level; groups are seated by it.';
+
+-- ---------------------------------------------------------------------------
+-- Round 5 hardening bundled into this migration (safe on DBs that already
+-- applied 20261125):
+-- 1. Server-stamped last_reviewed_synced_at on mistakes for card_reviewed stars
+-- 2. sync_snapshot / sync_account_records: floor-aware latest + 64 KiB mistakes
+-- 3. carry_identity_counter: skip insert when delta <= 0
+-- ---------------------------------------------------------------------------
+
+alter table public.mistakes add column if not exists last_reviewed_synced_at timestamptz;
+
+create or replace function private.keep_mistake_review_synced() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    new.last_reviewed_synced_at := case when new.last_reviewed_at is not null then private.app_now() else null end;
+  elsif new.last_reviewed_at is distinct from old.last_reviewed_at then
+    new.last_reviewed_synced_at := case when new.last_reviewed_at is not null then private.app_now() else null end;
+  else
+    new.last_reviewed_synced_at := old.last_reviewed_synced_at;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists keep_mistake_review_synced on public.mistakes;
+create trigger keep_mistake_review_synced before insert or update on public.mistakes
+  for each row execute function private.keep_mistake_review_synced();
+
+create or replace function private.league_stars(p_user_id uuid, p_week date, p_now timestamptz) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  with b as (
+    select greatest(p_week, coalesce((select private.vn_date(m.joined_at) from public.league_members m where m.user_id = p_user_id), p_week)) as first_day,
+           least(p_week + 6, private.vn_date(p_now)) as last_day,
+           private.vn_midnight(p_week) as week_at,
+           p_now + interval '5 minutes' as latest_at
+  ), ev as (
+    select s.study_date as day, 'full_test'::text as kind, 20 as stars, s.created_at as at
+      from public.study_sessions s, b
+     where s.user_id = p_user_id and s.study_date between b.first_day and b.last_day and s.session_type = 'FULL_TEST'
+       and (s.total_score is not null or s.part1_correct is not null) and s.duration_minutes >= 15
+       and s.first_synced_at between b.week_at and p_now and s.created_at <= b.latest_at
+    union all
+    select s.study_date, 'part_practice', 8, s.created_at
+      from public.study_sessions s, b
+     where s.user_id = p_user_id and s.study_date between b.first_day and b.last_day and s.session_type = 'PART_PRACTICE'
+       and (s.has_practice_parts or s.duration_minutes >= 5)
+       and s.first_synced_at between b.week_at and p_now and s.created_at <= b.latest_at
+    union all
+    select r.study_date, 'bake', 6, r.created_at
+      from public.pacing_runs r, b
+     where r.user_id = p_user_id and r.study_date between b.first_day and b.last_day and r.finished_naturally and r.actual_minutes >= 3
+       and r.first_synced_at between b.week_at and p_now and r.created_at <= b.latest_at
+    union all
+    select v.study_date, 'vocab_day', 5, min(v.updated_at)
+      from public.vocabulary_logs v, b
+     where v.user_id = p_user_id and v.study_date between b.first_day and b.last_day and v.first_synced_at between b.week_at and p_now
+     group by v.study_date
+    union all
+    select private.vn_date(m.created_at), 'card_added', 1, m.created_at
+      from public.mistakes m, b
+     where m.user_id = p_user_id and m.created_at between b.week_at and b.latest_at and m.first_synced_at between b.week_at and p_now
+    union all
+    select private.vn_date(m.last_reviewed_at), 'card_reviewed', 2, m.last_reviewed_at
+      from public.mistakes m, b
+     where m.user_id = p_user_id and m.last_reviewed_at between b.week_at and b.latest_at
+       and coalesce(m.last_reviewed_synced_at, m.updated_at) between b.week_at and p_now
+  ), counted as (
+    select ev.day, ev.kind, ev.stars, row_number() over (partition by ev.day, ev.kind order by ev.at, ev.stars) as n
+      from ev, b where ev.day between b.first_day and b.last_day
+  ), daily as (
+    select day, least(60, sum(stars))::integer as stars from counted
+     where n <= case kind when 'full_test' then 3 when 'part_practice' then 5 when 'bake' then 5 else 1000 end
+     group by day
+  )
+  select jsonb_build_object(
+    'total', coalesce((select sum(stars) from daily), 0)::integer,
+    'today', coalesce((select stars from daily where day = private.vn_date(p_now)), 0),
+    'daily', coalesce((select jsonb_object_agg(day::text, stars order by day) from daily), '{}'::jsonb))
+$$;
+
+create or replace function private.carry_identity_counter(
+  p_user_id uuid,
+  p_bucket text,
+  p_used integer,
+  p_expires_at timestamptz,
+  p_now timestamptz
+) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  previous integer := 0;
+  delta integer;
+begin
+  if p_used is null or p_used <= 0 then
+    return;
+  end if;
+  select used into previous
+    from private.account_deletion_contributions
+   where user_id = p_user_id and bucket = p_bucket and expires_at > p_now
+   for update;
+  previous := coalesce(previous, 0);
+  delta := greatest(p_used - previous, 0);
+
+  insert into private.account_deletion_contributions(user_id, bucket, used, expires_at, updated_at)
+  values (p_user_id, p_bucket, greatest(p_used, previous), p_expires_at, p_now)
+  on conflict (user_id, bucket) do update
+    set used = greatest(excluded.used, case when private.account_deletion_contributions.expires_at > p_now
+                                            then private.account_deletion_contributions.used else 0 end),
+        expires_at = excluded.expires_at,
+        updated_at = p_now;
+
+  if delta <= 0 then
+    return;
+  end if;
+
+  insert into private.identity_carryover_counters(bucket, used, expires_at, updated_at)
+  values (p_bucket, delta, p_expires_at, p_now)
+  on conflict (bucket) do update
+    set used = case when private.identity_carryover_counters.expires_at > p_now
+                    then private.identity_carryover_counters.used + delta else delta end,
+        expires_at = excluded.expires_at,
+        updated_at = p_now;
+end;
+$$;
+
+create or replace function private.sync_snapshot(p_user_id uuid, p_cursor bigint, p_submitted jsonb, p_extra jsonb default '{}'::jsonb)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+declare
+  max_key bigint; floor_version bigint; latest bigint; since bigint; epoch text; page_rows integer; page_bytes bigint; reset_version bigint;
+  rows_json jsonb; echo_json jsonb; page_last bigint; more boolean := false; upto bigint;
+begin
+  select coalesce(max(server_version), 0) into max_key from private.sync_keys where user_id = p_user_id;
+  select coalesce(server_version, 0) into floor_version from private.sync_floors where user_id = p_user_id;
+  latest := greatest(max_key, floor_version);
+  select value into epoch from private.settings where key = 'sync_epoch';
+  page_rows := coalesce((select value::integer from private.settings where key = 'sync_page_rows'), 1000);
+  page_bytes := coalesce((select value::bigint from private.settings where key = 'sync_page_bytes'), 2097152);
+  select server_version into reset_version from public.learning_data_resets where user_id = p_user_id;
+  since := case when p_cursor > latest then 0 else p_cursor end;
+  select coalesce(jsonb_agg(jsonb_build_object('entity_type',x.entity_type,'record_id',x.record_id,'payload',x.payload,
+      'updated_at',x.updated_at,'deleted_at',x.deleted_at) order by x.server_version), '[]'::jsonb), max(x.server_version)
+    into rows_json, page_last
+    from (
+      select y.*, sum(y.size) over (order by y.server_version) - y.size as prior_bytes from (
+        select v.entity_type, v.record_id, v.payload, v.updated_at, v.deleted_at, v.server_version, octet_length(v.payload::text) as size
+        from (select k.entity_type, k.record_id from private.sync_keys k
+              where k.user_id = p_user_id and k.server_version > since order by k.server_version limit page_rows) k
+        join private.sync_rows v on v.user_id = p_user_id and v.entity_type = k.entity_type and v.record_id = k.record_id
+      ) y
+    ) x where x.prior_bytes < page_bytes;
+  more := page_last is not null and exists (select 1 from private.sync_keys k where k.user_id = p_user_id and k.server_version > page_last);
+  upto := case when more then page_last else latest end;
+  select coalesce(jsonb_agg(jsonb_build_object('entity_type',v.entity_type,'record_id',v.record_id,'payload',v.payload,
+      'updated_at',v.updated_at,'deleted_at',v.deleted_at) order by v.entity_type, v.record_id), '[]'::jsonb)
+    into echo_json from private.sync_rows v
+    where v.user_id = p_user_id and not (v.server_version > since and v.server_version <= upto)
+      and (v.entity_type, v.record_id) in (select s->>'entity_type', s->>'record_id' from jsonb_array_elements(p_submitted) s);
+  return jsonb_build_object('cursor', upto, 'records', rows_json || echo_json, 'hasRecords', max_key > 0, 'hasMore', more,
+    'resetVersion', coalesce(reset_version, 0), 'epoch', epoch) || p_extra;
+end;
+$$;
+
+create or replace function public.sync_account_records(p_user_id uuid, p_records jsonb, p_cursor bigint default 0, p_replace boolean default false)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  records jsonb; item jsonb; existing record; stamp timestamptz; removed timestamptz; override_at timestamptz;
+  reset_version bigint; floor_version bigint; max_key bigint; latest bigint; full_snapshot boolean := false;
+  max_bytes integer;
+  ghosts jsonb := '[]'::jsonb; result jsonb;
+begin
+  if p_user_id is null or p_cursor is null or p_cursor < 0 or jsonb_typeof(p_records) is distinct from 'array'
+     or jsonb_array_length(p_records) > 1000 or octet_length(p_records::text) > 4194304 then
+    raise exception 'Invalid sync request';
+  end if;
+  if not exists (select 1 from auth.users where id = p_user_id and not is_anonymous) then
+    raise exception 'Permanent account required';
+  end if;
+  records := coalesce((select jsonb_agg(value) from jsonb_array_elements(p_records)
+    where coalesce(value->>'entity_type','') not in ('checklist','weeklyPlans')), '[]'::jsonb);
+  if p_replace and not exists (select 1 from jsonb_array_elements(records) s
+      where s->>'entity_type' = 'profile' and s->>'record_id' = 'profile') then
+    raise exception 'Invalid replacement';
+  end if;
+  perform private.lock_account(p_user_id);
+  perform private.set_writer(true);
+
+  select server_version into reset_version from public.learning_data_resets where user_id = p_user_id;
+  if coalesce(reset_version, 0) > p_cursor and not p_replace then
+    result := private.sync_snapshot(p_user_id, 9223372036854775807, '[]'::jsonb, '{"resetBarrier": true}'::jsonb);
+    perform private.set_writer(false);
+    return result;
+  end if;
+  select coalesce(server_version, 0) into floor_version from private.sync_floors where user_id = p_user_id;
+  select coalesce(max(server_version), 0) into max_key from private.sync_keys where user_id = p_user_id;
+  latest := greatest(max_key, floor_version);
+  full_snapshot := not p_replace and p_cursor > 0 and p_cursor <= latest and p_cursor < floor_version;
+
+  if p_replace then
+    select greatest(clock_timestamp(), coalesce(max(updated_at) + interval '1 millisecond', clock_timestamp()))
+      into override_at from private.sync_keys where user_id = p_user_id;
+  end if;
+  for item in select value from jsonb_array_elements(records) loop
+    max_bytes := case when item->>'entity_type' = 'mistakes' then 65536 else 32768 end;
+    if jsonb_typeof(item->'payload') is distinct from 'object' or private.entity_table(item->>'entity_type') is null
+       or item->>'record_id' is null or length(item->>'record_id') not between 1 and 200
+       or octet_length((item->'payload')::text) > max_bytes then
+      raise exception 'Invalid record';
+    end if;
+    if item->>'entity_type' = 'profile' then
+      if item->>'record_id' <> 'profile' or item->>'deleted_at' is not null then raise exception 'Invalid profile'; end if;
+    elsif item->'payload'->>'id' is distinct from item->>'record_id' then
+      raise exception 'Invalid record identity';
+    end if;
+    stamp := case when p_replace then override_at else (item->>'updated_at')::timestamptz end;
+    removed := case when item->>'deleted_at' is null then null when p_replace then override_at else (item->>'deleted_at')::timestamptz end;
+    if stamp is null then raise exception 'Missing timestamp'; end if;
+    if removed is not null and not exists (select 1 from private.sync_keys k where k.user_id = p_user_id
+        and k.entity_type = item->>'entity_type' and k.record_id = item->>'record_id') then
+      ghosts := ghosts || jsonb_build_array(jsonb_build_object('entity_type', item->>'entity_type', 'record_id', item->>'record_id',
+        'payload', jsonb_build_object('id', item->>'record_id'), 'updated_at', stamp, 'deleted_at', removed));
+      continue;
+    end if;
+    perform private.store_record(p_user_id, item->>'entity_type', item->>'record_id', item->'payload', stamp, removed);
+  end loop;
+  if p_replace then
+    for existing in select k.entity_type, k.record_id from private.sync_keys k
+        where k.user_id = p_user_id and k.deleted_at is null and k.entity_type <> 'profile'
+          and (k.entity_type, k.record_id) not in (select s->>'entity_type', s->>'record_id' from jsonb_array_elements(records) s) loop
+      perform private.store_record(p_user_id, existing.entity_type, existing.record_id, jsonb_build_object('id', existing.record_id), override_at, override_at);
+    end loop;
+  end if;
+  if (select count(*) from private.sync_keys where user_id = p_user_id and deleted_at is null) > 10000 then
+    raise exception 'Account record limit reached';
+  end if;
+  perform private.trim_tombstones(p_user_id, 10000);
+  perform private.league_sync_user(p_user_id);
+  if full_snapshot then
+    result := private.sync_snapshot(p_user_id, 9223372036854775807, '[]'::jsonb, '{"fullSnapshot": true}'::jsonb);
+  else
+    result := private.sync_snapshot(p_user_id, p_cursor, records);
+  end if;
+  if jsonb_array_length(ghosts) > 0 then
+    result := jsonb_set(result, '{records}', (result->'records') || ghosts);
+  end if;
+  perform private.set_writer(false);
+  return result;
+end;
+$$;
 
 create table if not exists private.rank_players (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -205,6 +455,12 @@ begin
     update private.rank_players set season = p.season, level = p.level, points = 0, best_level = null,
       shield_used_week = null, updated_at = now() where user_id = p_user_id;
     update public.league_members set tier = private.rank_tier(p.level), updated_at = now() where user_id = p_user_id;
+    -- Drop any unfinalised open-week seat taken at the pre-rollover tier so the
+    -- learner is re-seated in their new tier's room.
+    delete from public.league_standings s using public.league_groups g
+      where s.user_id = p_user_id and g.id = s.group_id and s.final_rank is null
+        and g.tier <> private.rank_tier(p.level)
+        and private.league_grace_end(s.week_start) > private.app_now();
   end if;
   return closed;
 end;
@@ -318,7 +574,7 @@ create or replace function private.rank_board_values(p_user_id uuid, p_week date
 language sql stable security definer set search_path = '' as $$
   with b as (select private.vn_date(p_now) as today, private.vn_midnight(p_week) as week_at),
   tests as (
-    select s.scaled_listening, s.scaled_reading, s.study_date, s.created_at from public.study_sessions s
+    select s.id, s.scaled_listening, s.scaled_reading, s.study_date, s.created_at from public.study_sessions s
      where s.user_id = p_user_id and s.session_type = 'FULL_TEST'
   ),
   days as (
@@ -326,25 +582,33 @@ language sql stable security definer set search_path = '' as $$
       select s.study_date as d from public.study_sessions s, b where s.user_id = p_user_id and s.study_date between b.today - 400 and b.today
       union all select r.study_date from public.pacing_runs r, b where r.user_id = p_user_id and r.study_date between b.today - 400 and b.today
       union all select v.study_date from public.vocabulary_logs v, b where v.user_id = p_user_id and v.study_date between b.today - 400 and b.today
+      union all select ss.study_date from public.streak_shields ss, b where ss.user_id = p_user_id and ss.study_date between b.today - 400 and b.today
       union all select private.vn_date(m.last_reviewed_at) from public.mistakes m, b
         where m.user_id = p_user_id and m.last_reviewed_at between private.vn_midnight(b.today - 400) and p_now
       union all select private.vn_date(m.created_at) from public.mistakes m, b
         where m.user_id = p_user_id and m.created_at between private.vn_midnight(b.today - 400) and p_now
     ) x
   ),
+  day_minutes as (
+    select day, least(300, sum(mins)) as mins from (
+      select s.study_date as day, least(s.duration_minutes, 300)::numeric as mins from public.study_sessions s, b
+       where s.user_id = p_user_id and s.study_date between p_week and b.today and s.first_synced_at between b.week_at and p_now
+      union all
+      select r.study_date as day, least(r.actual_minutes, 300)::numeric as mins from public.pacing_runs r, b
+       where r.user_id = p_user_id and r.study_date between p_week and b.today and r.first_synced_at between b.week_at and p_now
+    ) dm group by day
+  ),
   islands as (select d, d + (row_number() over (order by d desc))::integer as k from days)
   select jsonb_build_object(
     'listening', (select max(t.scaled_listening) - (select t2.scaled_listening from tests t2 where t2.scaled_listening is not null
-                   order by t2.study_date, t2.created_at limit 1) from tests t where t.scaled_listening is not null),
+                   order by t2.study_date, t2.created_at, t2.id limit 1) from tests t where t.scaled_listening is not null),
     'reading', (select max(t.scaled_reading) - (select t2.scaled_reading from tests t2 where t2.scaled_reading is not null
-                 order by t2.study_date, t2.created_at limit 1) from tests t where t.scaled_reading is not null),
-    'minutes', round(coalesce((select sum(least(s.duration_minutes, 300)) from public.study_sessions s, b
-                 where s.user_id = p_user_id and s.study_date between p_week and b.today), 0)
-             + coalesce((select sum(least(r.actual_minutes, 300)) from public.pacing_runs r, b
-                 where r.user_id = p_user_id and r.study_date between p_week and b.today), 0))::integer,
+                 order by t2.study_date, t2.created_at, t2.id limit 1) from tests t where t.scaled_reading is not null),
+    'minutes', round(coalesce((select sum(mins) from day_minutes), 0))::integer,
     'streak', coalesce((select count(*) from islands i where i.k = (select i2.k from islands i2 order by i2.d desc limit 1)
                  and (select max(d) from days) >= (select today - 1 from b)), 0)::integer,
     'reviews', (select count(*) from public.mistakes m, b where m.user_id = p_user_id and m.last_reviewed_at between b.week_at and p_now
+                 and coalesce(m.last_reviewed_synced_at, m.updated_at) between b.week_at and p_now
                  and (m.status = 'MASTERED' or coalesce(m.review_stage, 0) > 0))::integer)
 $$;
 
@@ -377,6 +641,73 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- League state & join: close due seasons before seating so a season drop never
+-- places the learner in the previous season's tier room.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.league_state(p_user_id uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  now_at timestamptz := private.app_now(); cw date := private.league_week(now_at);
+  mem public.league_members; gid bigint; gtier smallint; rows_json jsonb; last_json jsonb; n integer; stars_json jsonb; last_stars integer;
+begin
+  perform private.league_check(p_user_id, cw);
+  if exists (select 1 from public.league_groups g where g.week_start < cw and private.league_grace_end(g.week_start) <= now_at
+       and exists (select 1 from public.league_standings s where s.group_id = g.id and s.final_rank is null)) then
+    if pg_try_advisory_xact_lock(hashtextextended('league:rollover', 20261118)) then
+      perform private.league_finalize_due(now_at, 20);
+    end if;
+  end if;
+  perform pg_advisory_xact_lock_shared(hashtextextended('league:rollover', 20261118));
+  perform private.league_open_week(now_at);
+  perform private.rank_catch_up(p_user_id, now_at);
+  select jsonb_build_object('rank', s.final_rank, 'outcome', s.outcome, 'stars', s.stars, 'tier', g.tier, 'weekStart', s.week_start)
+    into last_json from public.league_standings s join public.league_groups g on g.id = s.group_id
+    where s.user_id = p_user_id and s.week_start = cw - 7 and s.final_rank is not null;
+  select * into mem from public.league_members where user_id = p_user_id;
+  if found and mem.opted_out_at is null then gid := private.league_place(p_user_id, cw); end if;
+  if gid is null then
+    return jsonb_build_object('weekStart', cw, 'member', null, 'lastWeek', coalesce(last_json, 'null'::jsonb));
+  end if;
+  perform private.league_sync_user(p_user_id);
+  stars_json := private.league_stars(p_user_id, cw, now_at);
+  last_stars := (private.league_stars(p_user_id, cw - 7, least(now_at, private.league_grace_end(cw - 7)))->>'total')::integer;
+  select tier into gtier from public.league_groups where id = gid;
+  select count(*)::integer, coalesce(jsonb_agg(jsonb_build_object('rank', t.rnk, 'nickname', t.nickname, 'coat', t.coat, 'stars', t.stars,
+      'me', t.user_id = p_user_id) order by t.rnk), '[]'::jsonb)
+    into n, rows_json from (
+      select s.*, row_number() over (order by s.stars desc, s.reached_at, s.user_id) as rnk
+      from public.league_standings s where s.group_id = gid) t;
+  return jsonb_build_object(
+    'weekStart', cw,
+    'member', jsonb_build_object('nickname', mem.nickname, 'coat', mem.coat, 'tier', mem.tier, 'joinedAt', mem.joined_at),
+    'group', jsonb_build_object('tier', gtier, 'size', n, 'zone', private.league_zone(n), 'rows', rows_json),
+    'lastWeek', coalesce(last_json, 'null'::jsonb),
+    'stars', stars_json,
+    'lastWeekStars', last_stars);
+end;
+$$;
+
+create or replace function public.league_join(p_user_id uuid, p_week date, p_nickname text, p_coat text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare cw date := private.league_guard(p_user_id, p_week); now_at timestamptz := private.app_now();
+  season integer := private.rank_season(cw); open_season integer;
+begin
+  perform pg_advisory_xact_lock_shared(hashtextextended('league:rollover', 20261118));
+  perform private.league_open_week(now_at);
+  insert into public.league_members(user_id, nickname, coat, joined_at) values (p_user_id, p_nickname, coalesce(p_coat, 'nau-cam'), now_at)
+    on conflict (user_id) do update set nickname = excluded.nickname, coat = excluded.coat, opted_out_at = null, updated_at = now();
+  select min(private.rank_season(s.week_start)) into open_season
+    from public.league_standings s where s.user_id = p_user_id and s.final_rank is null;
+  perform private.rank_ensure(p_user_id, least(season, coalesce(open_season, season)));
+  perform private.rank_catch_up(p_user_id, now_at);
+  update public.league_standings set nickname = p_nickname, coat = coalesce(p_coat, 'nau-cam') where week_start = cw and user_id = p_user_id;
+  perform private.league_place(p_user_id, cw);
+  perform private.league_sync_user(p_user_id);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- The Xếp hạng screen in one call: league_state plus rank, season, rewards and boards.
 -- ---------------------------------------------------------------------------
 
@@ -387,12 +718,19 @@ declare
   now_at timestamptz := private.app_now();
   cw date := (base->>'weekStart')::date;
   season integer := private.rank_season(cw);
+  open_season integer;
+  rolled integer := 0;
   p private.rank_players; gid bigint; last_json jsonb; rewards jsonb; boards jsonb := null;
 begin
   if base->'member' is not null and base->'member' <> 'null'::jsonb then
-    perform private.rank_ensure(p_user_id, season);
+    select min(private.rank_season(s.week_start)) into open_season
+      from public.league_standings s where s.user_id = p_user_id and s.final_rank is null;
+    perform private.rank_ensure(p_user_id, least(season, coalesce(open_season, season)));
   end if;
-  perform private.rank_catch_up(p_user_id, now_at);
+  rolled := private.rank_catch_up(p_user_id, now_at);
+  if rolled > 0 then
+    base := public.league_state(p_user_id);
+  end if;
   select * into p from private.rank_players where user_id = p_user_id;
   select s.group_id into gid from public.league_standings s where s.user_id = p_user_id and s.week_start = cw;
   if gid is not null and base->'member' <> 'null'::jsonb then
@@ -481,10 +819,15 @@ begin
   delete from private.identity_carryover_counters where bucket in (select bucket from private.identity_carryover_counters
     where expires_at < stamp - interval '1 day' order by expires_at limit p_limit);
   get diagnostics carryover = row_count;
+  delete from private.account_deletion_contributions where (user_id, bucket) in (
+    select user_id, bucket from private.account_deletion_contributions
+    where expires_at < stamp - interval '1 day' order by expires_at limit p_limit);
   with gone as (
     delete from public.sync_tombstones t where (t.user_id, t.entity_type, t.record_id) in (
       select user_id, entity_type, record_id from public.sync_tombstones
-      where deleted_at < stamp - interval '180 days' order by deleted_at limit p_limit for update skip locked)
+      where deleted_at < stamp - interval '180 days'
+        and pg_try_advisory_xact_lock(hashtextextended(user_id::text, 20261005))
+      order by deleted_at limit p_limit for update skip locked)
     returning t.user_id, t.server_version
   ), floors as (
     insert into private.sync_floors(user_id, server_version) select user_id, max(server_version) from gone group by user_id
@@ -509,6 +852,7 @@ begin
     'leagueGroups', groups,
     'leagueMore', groups >= group_limit,
     'rankSeasons', seasons,
+    'rankMore', seasons >= least(p_limit, 2000),
     'limit', p_limit
   );
 end;
@@ -558,15 +902,23 @@ returns jsonb language sql stable security definer set search_path = '' as $$
     and exists (select 1 from pg_catalog.pg_attribute
                  where attrelid = to_regclass('public.study_sessions') and attname = 'first_synced_at' and not attisdropped)
     and exists (select 1 from pg_catalog.pg_attribute
-                 where attrelid = to_regclass('public.league_standings') and attname = 'opted_out' and not attisdropped))
+                 where attrelid = to_regclass('public.league_standings') and attname = 'opted_out' and not attisdropped)
+    and exists (select 1 from pg_catalog.pg_attribute
+                 where attrelid = to_regclass('public.mistakes') and attname = 'last_reviewed_synced_at' and not attisdropped))
 $$;
 
 -- ---------------------------------------------------------------------------
--- Privileges: private helpers for nobody; rank_state for the backend only.
+-- Privileges: private helpers for nobody; rank/sync/league RPCs for the backend only.
 -- ---------------------------------------------------------------------------
 
 revoke all on all functions in schema private from public, anon, authenticated, service_role;
 revoke all on all tables in schema private from public, anon, authenticated, service_role;
+revoke all on function public.sync_account_records(uuid, jsonb, bigint, boolean) from public, anon, authenticated;
+grant execute on function public.sync_account_records(uuid, jsonb, bigint, boolean) to service_role;
+revoke all on function public.league_state(uuid) from public, anon, authenticated;
+grant execute on function public.league_state(uuid) to service_role;
+revoke all on function public.league_join(uuid, date, text, text) from public, anon, authenticated;
+grant execute on function public.league_join(uuid, date, text, text) to service_role;
 revoke all on function public.rank_state(uuid) from public, anon, authenticated;
 grant execute on function public.rank_state(uuid) to service_role;
 revoke all on function public.get_ai_access(uuid) from public, anon, authenticated;

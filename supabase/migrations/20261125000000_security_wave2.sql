@@ -85,6 +85,29 @@ language sql immutable set search_path = '' as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- S-09: immutable server first-sync time on the rows that earn stars.
+-- Runs BEFORE adding NOT VALID check constraints below so the backfill UPDATE
+-- does not force PostgreSQL to recheck legacy rows against new bounds.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare t text;
+begin
+  -- Backfill must not bump versions or timestamps.
+  perform set_config('toeic.sync_writer', 'on', true);
+  foreach t in array array['study_sessions','mistakes','vocabulary_logs','pacing_runs'] loop
+    if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = t and column_name = 'first_synced_at') then
+      execute format('alter table public.%I add column first_synced_at timestamptz', t);
+      -- The best server-side evidence for old rows: their last write.
+      execute format('update public.%I set first_synced_at = least(updated_at, now())', t);
+      execute format('alter table public.%I alter column first_synced_at set default now(), alter column first_synced_at set not null', t);
+    end if;
+  end loop;
+  perform set_config('toeic.sync_writer', 'off', true);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- S-07: bounded `extra` on every synced table. NOT VALID: rows already stored
 -- are not rechecked; every new write is.
 -- ---------------------------------------------------------------------------
@@ -109,27 +132,6 @@ begin
     alter table public.pacing_runs add constraint pacing_runs_preset_bounded
       check (length(preset_id) <= 100 and length(preset_name) <= 200) not valid;
   end if;
-end;
-$$;
-
--- ---------------------------------------------------------------------------
--- S-09: immutable server first-sync time on the rows that earn stars.
--- ---------------------------------------------------------------------------
-
-do $$
-declare t text;
-begin
-  -- Backfill must not bump versions or timestamps.
-  perform set_config('toeic.sync_writer', 'on', true);
-  foreach t in array array['study_sessions','mistakes','vocabulary_logs','pacing_runs'] loop
-    if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = t and column_name = 'first_synced_at') then
-      execute format('alter table public.%I add column first_synced_at timestamptz', t);
-      -- The best server-side evidence for old rows: their last write.
-      execute format('update public.%I set first_synced_at = least(updated_at, now())', t);
-      execute format('alter table public.%I alter column first_synced_at set default now(), alter column first_synced_at set not null', t);
-    end if;
-  end loop;
-  perform set_config('toeic.sync_writer', 'off', true);
 end;
 $$;
 
