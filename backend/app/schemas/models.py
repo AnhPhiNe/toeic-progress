@@ -15,7 +15,6 @@ from app.core.image_input import (
     MAX_PAGE_IMAGE_BYTES,
     MAX_PAGE_TOTAL_BYTES,
     MAX_TOTAL_IMAGE_BYTES,
-    image_bytes,
     image_header_bytes,
 )
 from app.core.text_input import has_multiple_questions
@@ -273,6 +272,10 @@ class Mistake(Payload):
     reviewStage: int | None = Field(default=None, ge=0, le=1000)
     reviewCount: int | None = Field(default=None, ge=0, le=1_000_000)
     lastReviewedAt: Instant | None = None
+    savedWords: list[Annotated[str, Field(max_length=80)]] | None = Field(default=None, max_length=20)
+    answerDoubt: Literal["", "A", "B", "C", "D"] | None = None
+    optionNotes: list["OptionNote"] | None = Field(default=None, max_length=4)
+    explanation: "Explanation | None" = None
 
     @field_validator("lastReviewedAt", mode="before")
     @classmethod
@@ -400,7 +403,8 @@ class SyncRecord(BaseModel):
 
     @model_validator(mode="after")
     def check_payload(self):
-        if len(json.dumps(self.payload, ensure_ascii=False).encode()) > 32768:
+        max_bytes = 65536 if self.entity_type == "mistakes" else 32768
+        if len(json.dumps(self.payload, ensure_ascii=False).encode()) > max_bytes:
             raise ValueError("Bản ghi quá lớn")
         if self.entity_type == "profile":
             if self.record_id != "profile" or self.deleted_at is not None:
@@ -465,6 +469,7 @@ class MistakeInput(BaseModel):
     userReason: str = Field(default="", max_length=2000)
     sourceAnswer: UserChoice = ""
     errorCategory: Category | None = None
+    savedCard: bool = False
 
     @model_validator(mode="after")
     def check_input(self):
@@ -496,11 +501,13 @@ class MistakeInput(BaseModel):
             raise ValueError("Không nhớ/bỏ trống không có phương án đã chọn")
         if self.sourceAnswer and self.sourceAnswer not in labels:
             raise ValueError("Đáp án nguồn chưa khớp phương án")
-        multi_text = self.question + "\n" + self.context if self.check_context_for_multiple_questions else self.question
+        check_context = self.check_context_for_multiple_questions and not self.savedCard
+        multi_text = self.question + "\n" + self.context if check_context else self.question
         if len(labels) < 2 or not self.question.strip() or has_multiple_questions(multi_text):
             raise ValueError("Mỗi lần nhập một câu hỏi")
-        if len(self.as_text()) > self.max_analysis_length:
-            raise ValueError(f"Nội dung phân tích tối đa {self.max_analysis_length} ký tự")
+        limit = 12000 if self.savedCard else self.max_analysis_length
+        if len(self.as_text()) > limit:
+            raise ValueError(f"Nội dung phân tích tối đa {limit} ký tự")
         return self
 
     def as_text(self) -> str:
@@ -514,7 +521,7 @@ class ImageAttachment(BaseModel):
     @field_validator("dataUrl")
     @classmethod
     def validate_image(cls, value):
-        image_bytes(value)
+        image_header_bytes(value, MAX_IMAGE_BYTES)
         return value
 
     @property
@@ -570,7 +577,7 @@ class CleanupSourceImages(BaseModel):
 
 class ExtractRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    text: str = Field(max_length=8000)
+    text: str = Field(max_length=12000)
     request_id: UUID
     consent: Literal[True]
     provider: Literal["openai"]
@@ -581,6 +588,9 @@ class ExtractRequest(BaseModel):
 
     @model_validator(mode="after")
     def single_question(self):
+        saved_card = self.input is not None and self.input.savedCard
+        if not saved_card and len(self.text) > 8000:
+            raise ValueError("Nội dung tối đa 8.000 ký tự")
         if len(set(self.sourceImageIds)) != len(self.sourceImageIds):
             raise ValueError("Ảnh nguồn bị trùng")
         if self.images and self.sourceImageIds:
@@ -597,7 +607,7 @@ class ExtractRequest(BaseModel):
             if sum(image.byte_count for image in self.images) > MAX_ANALYZE_TOTAL_BYTES:
                 raise ValueError("Tổng ảnh gửi đi tối đa 3 MiB")
         else:
-            if len(self.text.strip()) < 20:
+            if not saved_card and len(self.text.strip()) < 20:
                 raise ValueError("Nội dung tối thiểu 20 ký tự")
             if self.input is not None and self.input.rawText is None and (not self.input.question.strip() or len(self.input.options) < 2):
                 raise ValueError("Cần câu hỏi và ít nhất hai phương án")
@@ -656,6 +666,9 @@ class Explanation(BaseModel):
     words: list[KeyWord] = Field(default_factory=list, max_length=4)
 
 
+Mistake.model_rebuild()
+
+
 EXPLANATION_LABELS = (
     ("translation", "Dịch ngữ cảnh"), ("questionType", "Dạng câu hỏi"), ("evidence", "Bằng chứng"),
     ("paraphrase", "Paraphrase"), ("analysis", "Phân tích"), ("keyVocabulary", "Từ vựng"), ("quickTip", "Mẹo 10s"),
@@ -696,6 +709,9 @@ class DraftCore(BaseModel):
         properties.pop("questionContext")
         for name in ("question", "context"):
             properties[name] = {"type": "string", "maxLength": 4000}
+        for field in properties.values():
+            if isinstance(field, dict):
+                field.pop("default", None)
         schema["required"] = list(properties)
         # Strict structured output: nested objects list every property as required, without defaults.
         for definition in schema.get("$defs", {}).values():
@@ -757,6 +773,58 @@ class OpenAIDraftOutput(DraftCore):
     explanation: Explanation
     # AI's own answer from the question alone; compared with the source answer, never shown as the answer itself.
     ownAnswer: str = Field(default="", max_length=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def soften_v2_optional_bounds(cls, value):
+        """Trim non-critical Card-v2 extras so a slight length overshoot never discards a paid draft."""
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        if isinstance(data.get("optionNotes"), list):
+            notes = []
+            for note in data["optionNotes"]:
+                if isinstance(note, dict) and isinstance(note.get("reason"), str) and len(note["reason"]) > 160:
+                    note = {**note, "reason": note["reason"][:160].rstrip()}
+                notes.append(note)
+            data["optionNotes"] = notes
+        ex = data.get("explanation")
+        if isinstance(ex, dict):
+            ex = dict(ex)
+            if isinstance(ex.get("evidences"), list):
+                kept_ev = []
+                for ev in ex["evidences"]:
+                    if not isinstance(ev, dict):
+                        continue
+                    text = ev.get("text")
+                    if not isinstance(text, str) or len(text) > 400:
+                        continue
+                    cleaned_text = text.strip().strip('"“”\'‘’').strip()
+                    if len(cleaned_text) < 10 or re.match(r"^Đoạn\s+\d+(?:\s*[—–-]\s*[^\n]+)?$", cleaned_text, re.IGNORECASE):
+                        continue
+                    ev = dict(ev)
+                    if isinstance(ev.get("passageLabel"), str) and len(ev["passageLabel"]) > 80:
+                        ev["passageLabel"] = ev["passageLabel"][:80].rstrip()
+                    if isinstance(ev.get("translation"), str) and len(ev["translation"]) > 400:
+                        ev["translation"] = ev["translation"][:400].rstrip()
+                    kept_ev.append(ev)
+                    if len(kept_ev) >= 3:
+                        break
+                ex["evidences"] = kept_ev
+            if isinstance(ex.get("words"), list):
+                kept_w = []
+                for w in ex["words"][:4]:
+                    if not isinstance(w, dict):
+                        continue
+                    w = dict(w)
+                    if isinstance(w.get("word"), str) and len(w["word"]) > 80:
+                        w["word"] = w["word"][:80].rstrip()
+                    if isinstance(w.get("meaning"), str) and len(w["meaning"]) > 120:
+                        w["meaning"] = w["meaning"][:120].rstrip()
+                    kept_w.append(w)
+                ex["words"] = kept_w
+            data["explanation"] = ex
+        return data
 
     @model_validator(mode="after")
     def check_option_notes(self):

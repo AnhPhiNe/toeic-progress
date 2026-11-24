@@ -102,3 +102,74 @@ def test_part5_without_a_passage_keeps_no_evidences():
         {"passageLabel": "", "text": "Reports should ____ submitted.", "translation": "Báo cáo nên được nộp."}]}}
     result, _calls = run_provider(lambda _request: httpx.Response(200, json=respond(draft)))
     assert result.explanation.evidences == []
+
+
+def test_grounding_handles_quotes_dashes_pipes_headings_and_fixes_passage_label():
+    passage = (
+        "Đoạn 1 — Email\n"
+        "Please review 'Order 42 — urgent' before 5 PM.\n\n"
+        "Đoạn 2 — Bảng giá\n"
+        "| Gói | Giá |\n|---|---|\n| Pro – Năm | 100$ |\n\n"
+        "Đoạn 3 — Thư trả lời\n"
+        "Refunds are processed within five business days after approval."
+    )
+    evidences = [
+        # Bare heading must be rejected
+        {"passageLabel": "Đoạn 1 — Email", "text": "Đoạn 1 — Email", "translation": "Tiêu đề"},
+        # Single-quoted + ASCII hyphen matching em-dash
+        {"passageLabel": "Đoạn 1", "text": "'Please review 'Order 42 - urgent' before 5 PM.'", "translation": "Xem đơn 42 trước 5h."},
+        # Pipe spacing & dash normalized
+        {"passageLabel": "", "text": "|Pro - Năm|100$|", "translation": "Gói Pro 100$."},
+        # Wrong passageLabel auto-corrected to Đoạn 3 — Thư trả lời
+        {"passageLabel": "Đoạn 1 — Email", "text": "Refunds are processed within five business days after approval.", "translation": "Hoàn tiền trong 5 ngày."},
+    ]
+    draft = {**part7_draft(evidences), "context": passage}
+    source = json.dumps({"question": QUESTION, "context": passage, "options": OPTIONS, "part": 7,
+                         "sourceAnswer": "B", "userChoice": "A"}, ensure_ascii=False)
+    result, _calls = run_provider(lambda _request: httpx.Response(200, json=respond(draft)), text=source,
+                                  generate_kwargs={"source_options": OPTIONS, "source_answer": "B"})
+    kept = result.explanation.evidences
+    assert len(kept) == 3
+    assert kept[0].passageLabel == "Đoạn 1 — Email"
+    assert kept[1].passageLabel == "Đoạn 2 — Bảng giá"
+    assert kept[2].passageLabel == "Đoạn 3 — Thư trả lời"
+
+
+def test_soft_bounds_trim_excess_evidences_words_and_long_reason_instead_of_502():
+    evidences = [
+        {"passageLabel": "Đoạn 1 — Email", "text": "I am writing to ask about a refund for my stay.", "translation": "d1"},
+        {"passageLabel": "Đoạn 1 — Email", "text": "The air conditioning did not work.", "translation": "d2"},
+        {"passageLabel": "Đoạn 3 — Thư trả lời", "text": "Guests who report a problem during their stay may receive a partial refund after review.", "translation": "d3"},
+        {"passageLabel": "Đoạn 2 — Bảng hoàn tiền", "text": "| Trước 7 ngày | 100% |", "translation": "d4"},
+    ]
+    words = [{"word": f"term{i}", "meaning": f"nghĩa {i}"} for i in range(1, 6)]
+    draft = part7_draft(evidences, words)
+    draft["optionNotes"][0]["reason"] = "Lý do rất dài " * 14
+    result, _calls = run_part7(draft)
+    assert len(result.explanation.evidences) == 3
+    assert len(result.explanation.words) == 4
+    assert len(result.optionNotes[0].reason) <= 160
+
+
+def test_saved_card_extract_allows_long_multi_question_part7_context():
+    from app.schemas.models import ExtractRequest
+
+    long_context = ("Đoạn 1 — Email\n176. First reference. 177. Second reference.\n" + ("Detail sentence. " * 380))
+    assert 5000 < len(long_context) <= 8000
+    req = ExtractRequest.model_validate({
+        "text": "",
+        "provider": "openai",
+        "consent": True,
+        "request_id": "22222222-2222-4222-8222-222222222222",
+        "input": {
+            "part": 7,
+            "question": QUESTION,
+            "context": long_context,
+            "options": OPTIONS,
+            "userChoiceState": "CHOSEN",
+            "userChoice": "A",
+            "sourceAnswer": "B",
+            "savedCard": True,
+        },
+    })
+    assert req.input.savedCard is True and len(req.input.context) == len(long_context)

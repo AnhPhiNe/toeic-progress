@@ -98,3 +98,42 @@ def test_page_returns_only_the_ticketed_numbers_when_the_capture_explain_cap_is_
         refused["items"][0]["number"] = 132
         refused["items"][0]["input"]["question"] = item(132)["question"]
         assert client.post("/api/v1/ai/explain-batch", json=refused).status_code == 403
+
+
+def test_exhausted_user_does_not_burn_global_provider_budget(api):  # noqa: F811
+    with api(
+        settings_overrides=BUDGETED,
+        quota_counters={"user:": 10},
+    ) as (client, calls):
+        res = client.post("/api/v1/ai/extract", json=extraction())
+        assert res.status_code == 429
+        assert not paths(calls, "/reserve_provider_budget")
+        assert not any(call[0] == "api.openai.com" for call in calls)
+
+
+def test_replaying_settled_explain_batch_does_not_re_spend_provider_budget(api):  # noqa: F811
+    explained = {
+        "part": 6, "category": "ADVANCED_GRAMMAR",
+        "question": item(131)["question"], "context": "",
+        "userMistake": "(B) largeness", "correctAnswer": "(D) largely",
+        "options": item(131)["options"], "tags": [], "missingInformation": [],
+        "answerSource": "PROVIDED", "userChoice": "B", "ownAnswer": "(D) largely",
+        "optionNotes": [
+            {"label": label, "pos": "adj" if label != "D" else "adv", "meaning": label, "reason": ""}
+            for label in "ABCD"
+        ],
+        "explanation": {
+            "quickTip": "Trạng từ bổ nghĩa cho phân từ.", "translation": "", "questionType": "Từ loại",
+            "evidence": "", "paraphrase": "", "analysis": "Trạng từ đứng trước financed.",
+            "keyVocabulary": "", "evidences": [], "words": [],
+        },
+    }
+    with api(drafts=[{"items": [item(131)]}, explained], settings_overrides=BUDGETED) as (client, calls):
+        ticket = client.post("/api/v1/ai/extract-page", json=page()).json()["explainTicket"]
+        first = client.post("/api/v1/ai/explain-batch", json=explain_body(ticket))
+        assert first.status_code == 200 and first.json()["items"]
+        before = len(paths(calls, "/reserve_provider_budget"))
+        # Replaying the exact settled ticket item must skip prepay_provider_budget completely.
+        replay = client.post("/api/v1/ai/explain-batch", json=explain_body(ticket, "88888888-8888-4888-8888-888888888888"))
+        assert replay.status_code == 200
+        assert len(paths(calls, "/reserve_provider_budget")) == before

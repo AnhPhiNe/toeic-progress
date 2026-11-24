@@ -17,7 +17,7 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: gpt-6-luna
+        value: gpt-6.1-terra
       - key: OPENAI_REASONING_EFFORT
         value: medium
       - key: OPENAI_OCR_MODEL

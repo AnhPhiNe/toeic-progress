@@ -58,7 +58,7 @@ def test_official_responses_api_uses_medium_and_strict_schema_without_sampling_o
     assert str(request.url) == "https://api.openai.com/v1/responses"
     assert request.headers["authorization"] == "Bearer private-openai-key"
     body = json.loads(request.content)
-    assert body["model"] == "gpt-6-luna" and body["reasoning"] == {"effort": "medium"}
+    assert body["model"] == "gpt-6.1-terra" and body["reasoning"] == {"effort": "medium"}
     assert body["store"] is False and body["service_tier"] == "default"
     assert body["max_output_tokens"] == 8192 and body["safety_identifier"] == "opaque-user-hash"
     assert "temperature" not in body and "top_p" not in body

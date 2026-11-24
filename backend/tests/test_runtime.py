@@ -22,6 +22,7 @@ def deployed_settings(**changes):
         rate_limit_secret="a" * 32,
         allowed_hosts=["api.example"],
         cors_origins=["https://app.example"],
+        client_ip_header="cf-connecting-ip",
     )
     return Settings(**{**values, **changes})
 
@@ -52,6 +53,7 @@ def deployed_settings(**changes):
             "ai_provider_budget_enabled": False,
         },
         {"client_ip_debug": True},
+        {"client_ip_header": ""},
         {"render_external_hostname": "api.onrender.com", "client_ip_header": ""},
         {"supabase_secret_key": ""},
         {"cors_origins": ["https://app.example/"]},
@@ -85,6 +87,7 @@ def test_tracker_beta_accepts_config_and_hides_development_docs():
     assert deployed_settings(allowed_hosts=[], render_external_hostname="api.onrender.com").effective_allowed_hosts == [
         "api.onrender.com"
     ]
+    deployed_settings(client_ip_header="", trust_socket_ip=True).validate_deployment()
 
 
 def scope():

@@ -21,7 +21,7 @@ DAILY_CAP = 60
 GROUP_SIZE = 20
 # Fewer than this many OTHER learners in the group: show "Bạn so với tuần trước" instead of a table.
 FALLBACK_MIN_OTHERS = 5
-TIERS = {1: "dong", 2: "bac", 3: "vang", 4: "kim-cuong"}
+TIERS = {1: "dong", 2: "bac", 3: "vang", 4: "bach-kim", 5: "kim-cuong", 6: "cao-thu"}
 DEFAULT_COAT = "nau-cam"
 
 # One row per real in-app action, mirrored by private.league_stars. A full test is
@@ -85,7 +85,9 @@ def clean_nickname(raw: str) -> str:
 
 
 def clean_coat(raw: str | None) -> str:
-    coat = raw or DEFAULT_COAT
+    if raw is None:
+        return DEFAULT_COAT
+    coat = raw.strip()
     if not COAT_PATTERN.match(coat):
         raise ValueError("Màu áo không hợp lệ.")
     return coat
@@ -137,7 +139,7 @@ def build_state(result: dict, *, now: datetime) -> dict:
     state["group"] = {
         "tier": TIERS.get(tier, "dong"),
         "size": size,
-        "promote": z if tier < 4 else 0,
+        "promote": z if tier < 6 else 0,
         "demote": z if tier > 1 else 0,
         "rows": [{"rank": row["rank"], "nickname": row["nickname"], "coat": row["coat"], "stars": row["stars"],
                   "me": bool(row.get("me"))} for row in rows],

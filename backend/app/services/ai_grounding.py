@@ -1,5 +1,6 @@
 import json
 import re
+import unicodedata
 from html import unescape
 
 from app.core.text_input import has_multiple_questions
@@ -47,30 +48,74 @@ def normalized(value: str) -> str:
     return " ".join(value.casefold().split())
 
 
-_QUOTES = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'", " ": " "})
+_QUOTES = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'", "–": "-", "—": "-", "−": "-", "\u00a0": " "})
+_PASSAGE_HEADING = re.compile(r"^\s*(Đoạn\s+\d+(?:\s*[—–-]\s*[^\n]+)?)\s*$", re.IGNORECASE)
 
 
 def _plain(value: str) -> str:
-    return normalized(value.translate(_QUOTES).replace("**", ""))
+    text = unicodedata.normalize("NFKC", value).translate(_QUOTES).replace("**", "")
+    text = re.sub(r"\s*\|\s*", " | ", text)
+    return normalized(text)
+
+
+def _passage_blocks(passage: str) -> list[tuple[str, str]]:
+    """Split a labelled multi-passage string into (label, normalized_body) blocks."""
+    blocks: list[tuple[str, list[str]]] = []
+    current_label = ""
+    current_lines: list[str] = []
+    for raw_line in (passage or "").splitlines():
+        match = _PASSAGE_HEADING.match(raw_line)
+        if match:
+            if current_lines:
+                blocks.append((current_label, current_lines))
+            current_label = match.group(1).strip()
+            current_lines = []
+        else:
+            current_lines.append(raw_line)
+    if current_lines:
+        blocks.append((current_label, current_lines))
+    return [(label, _plain("\n".join(lines))) for label, lines in blocks if any(line.strip() for line in lines)]
 
 
 def ground_evidences(draft: MistakeDraft, passage: str) -> MistakeDraft:
     """Keep only evidence sentences that appear verbatim in the stored passage, so the app can highlight them.
 
-    Quote marks and spacing are ignored; anything else not found in the passage is dropped (never repaired), and blank
-    word rows are dropped too. Without a passage (Part 5, kept images) there is nothing to highlight, so none stay.
+    Quote marks, dashes, table pipe spacing and Unicode forms are normalized; bare passage headings and anything not
+    found in a passage block are dropped (never repaired), and blank word rows are dropped too.
     """
     if draft.explanation is None:
         return draft
+    blocks = _passage_blocks(passage or "")
     source = _plain(passage or "")
     kept, seen = [], set()
     for evidence in draft.explanation.evidences:
-        text = evidence.text.strip().strip('"“”').strip()
+        text = evidence.text.strip().strip('"“”\'‘’').strip()
         key = _plain(text)
-        if len(key) >= 10 and key in source and key not in seen:
-            seen.add(key)
-            kept.append(evidence.model_copy(update={"text": text, "translation": evidence.translation.strip(),
-                                                    "passageLabel": evidence.passageLabel.strip()}))
+        if len(key) < 10 or key in seen or _PASSAGE_HEADING.match(text):
+            continue
+        req_label = evidence.passageLabel.strip()
+        matched_label: str | None = None
+        if blocks:
+            if req_label:
+                for blk_label, blk_body in blocks:
+                    if blk_label and _plain(blk_label) == _plain(req_label) and key in blk_body:
+                        matched_label = blk_label
+                        break
+            if matched_label is None:
+                for blk_label, blk_body in blocks:
+                    if key in blk_body:
+                        matched_label = blk_label or req_label
+                        break
+        elif key in source:
+            matched_label = req_label
+        if matched_label is None:
+            continue
+        seen.add(key)
+        kept.append(evidence.model_copy(update={
+            "text": text,
+            "translation": evidence.translation.strip(),
+            "passageLabel": matched_label,
+        }))
     draft.explanation.evidences = kept
     draft.explanation.words = [word for word in draft.explanation.words if word.word.strip() and word.meaning.strip()]
     return draft

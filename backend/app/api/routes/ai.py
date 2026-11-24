@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import ai_authorized, identity
-from app.core.image_input import MAX_PAGE_IMAGE_BYTES, validate_images_async
+from app.core.image_input import MAX_IMAGE_BYTES, MAX_PAGE_IMAGE_BYTES, validate_images_async
 from app.core.runtime import client_address
 from app.integrations.openai_provider import PrepaidBudget, explanation_cost, model_cost, prepaid_budget, source_part
 from app.schemas.attempt_analysis import AnalyzeAttemptRequest
@@ -59,6 +59,11 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(ai_author
     access = request.state.ai_access
     gateway = request.app.state.gateway
     source_images = [image.dataUrl for image in body.images]
+    if source_images:
+        try:
+            await validate_images_async(source_images, MAX_IMAGE_BYTES)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
     if body.sourceImageIds:
         if user["is_anonymous"]:
             raise HTTPException(403, "Đăng nhập Google để lưu và dùng lại ảnh nguồn.")
@@ -77,6 +82,7 @@ async def extract(body: ExtractRequest, request: Request, user=Depends(ai_author
         result = await gateway.generate(extraction_text, user["id"],
                                         source_options=body.input.options or None, source_answer=body.input.sourceAnswer,
                                         images=source_images, persistent_images=bool(body.sourceImageIds),
+                                        pin_question=bool(body.input.savedCard),
                                         plan=access.plan)
     else:
         result = await gateway.generate(extraction_text, user["id"], plan=access.plan)
@@ -136,15 +142,23 @@ async def reserve_ai(request: Request, user: dict, access, request_id, captcha_t
     """
     settings, gateway = request.app.state.settings, request.app.state.gateway
     unlimited = access.unlimited
+    ip_hash = gateway.ip_hash(client_address(request.scope, settings))
     if user["is_anonymous"]:
         await gateway.verify_captcha(captcha_token)
+    # Pre-check learner quota (read-only) before reserving shared provider minute/day budget
+    # so an exhausted account cannot burn the global provider_minute cap without spending a use.
+    if settings.ai_provider_budget_enabled and settings.database_ready and not unlimited and batch_id is None:
+        exhausted = await gateway.explain_ai_limit(user["id"], user["is_anonymous"], ip_hash, access.limit)
+        if exhausted is not None:
+            detail, delay = exhausted
+            raise HTTPException(429, detail, headers={"Retry-After": str(delay)} if delay else None)
     await prepay_provider_budget(request, user, access, provider_cost)
     parameters = {
         "p_user_id": user["id"],
         "p_guest": user["is_anonymous"],
         "p_request_id": str(request_id),
         "p_input_hash": input_hash,
-        "p_ip_hash": gateway.ip_hash(client_address(request.scope, settings)),
+        "p_ip_hash": ip_hash,
         # These RPC parameters are service-role only. NULL leaves the
         # corresponding cap unset while still recording usage/idempotency.
         "p_user_limit": access.limit,
@@ -314,9 +328,14 @@ async def explain_batch(body: ExplainBatchRequest, request: Request, user=Depend
         if ticket["d"].get(str(item.number)) != digest:
             raise HTTPException(403, "Nội dung câu đã khác với lúc đọc ảnh. Bấm Giải thích với AI trên thẻ để dùng một lượt mới.",
                                 headers={"X-Error-Code": "EXPLAIN_TICKET_CONTENT_CHANGED"})
-    # Reserve the provider budget before any question is claimed: a budget refusal
-    # must not use up one of the MAX_TICKET_USES attempts per question.
-    await prepay_provider_budget(request, user, access, sum(explanation_cost(item.input.part) for item in body.items))
+    # Reserve the provider budget only for items not already settled on this worker:
+    # avoids burning global provider_minute budget on replays while still protecting ticket attempts.
+    uncached_cost = sum(
+        explanation_cost(item.input.part)
+        for item in body.items
+        if not ledger.is_settled(user["id"], ticket["i"], item.number)
+    )
+    await prepay_provider_budget(request, user, access, uncached_cost)
     gateway = request.app.state.gateway
 
     async def generate(item):

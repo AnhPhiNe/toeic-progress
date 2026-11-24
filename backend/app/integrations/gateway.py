@@ -40,6 +40,8 @@ def _data_error(response: httpx.Response) -> tuple[int, str] | None:
     code, message = str(body.get("code") or ""), str(body.get("message") or "")
     if "Stale league week" in message:
         return 409, "Tuần giải đấu mới vừa bắt đầu. Vui lòng thử lại."
+    if "Not a league member" in message:
+        return 409, "Bạn chưa tham gia bảng xếp hạng."
     if "Account record limit reached" in message:
         return 409, "Tài khoản đã đạt giới hạn 10.000 bản ghi. Hãy xóa bớt dữ liệu cũ rồi đồng bộ lại."
     if code in _DATA_ERROR_CODES or (code == "P0001" and message.startswith(_DATA_ERROR_MESSAGES)):
@@ -318,14 +320,19 @@ class Gateway:
             timeout=8,
         )
 
-    async def finish_account_deletion(self, user_id: str) -> None:
+    async def finish_account_deletion(self, user_id: str, *, ensure_banned: bool = False) -> None:
         """Purge private source images, then permanently delete the Auth user.
 
         Deleting the Auth user cascades the learning rows and the pending-deletion row.
         Shared by the API and by maintenance (stuck deletions). Raises AccountDeletionError.
         """
-        step = "purge"
+        step = "ban" if ensure_banned else "purge"
         try:
+            if ensure_banned:
+                ban = await self._set_ban(user_id, "876000h")
+                if not ban.is_success:
+                    raise HTTPException(ban.status_code, "Chưa khóa được phiên trước khi xóa tài khoản.")
+            step = "purge"
             await self.source_images.purge(user_id, allow_missing=True)
             step = "delete"
             response = await self.client.delete(
@@ -388,6 +395,8 @@ class Gateway:
                     pending = True
             logger.warning(json.dumps({"event": "account_delete_failed", "step": "ban", "unbanned": unbanned,
                                        "pending": pending, "status": getattr(ban, "status_code", None)}))
+            if pending:
+                raise HTTPException(503, "Tài khoản đang được xóa, sẽ xong trong vòng một ngày.")
             raise HTTPException(503, "Chưa khóa được phiên trước khi xóa tài khoản. Vui lòng thử lại.")
         # 4. Purge private source images, then 5. permanently delete the Auth user (cascades
         #    learning rows and the pending row). If either fails, lift the ban so the user can retry.
@@ -397,6 +406,6 @@ class Gateway:
             unbanned, pending = await self._lift_ban_and_forget(user_id)
             logger.warning(json.dumps({"event": "account_delete_failed", "step": error.step, "unbanned": unbanned,
                                        "pending": pending, "status": error.status}))
-            if not unbanned:
+            if pending or not unbanned:
                 raise HTTPException(503, "Tài khoản đang được xóa, sẽ xong trong vòng một ngày.") from error
             raise HTTPException(503, "Chưa xóa xong tài khoản. Bạn thử lại sau ít phút nhé.") from error

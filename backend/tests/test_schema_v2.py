@@ -38,8 +38,8 @@ class FakeGateway:
     def __init__(self, rounds):
         self.rounds, self.calls = rounds, []
 
-    async def rpc(self, name, parameters):
-        self.calls.append((name, parameters))
+    async def rpc(self, name, parameters, *, timeout=None):
+        self.calls.append((name, parameters, timeout))
         return self.rounds[len(self.calls) - 1]
 
 
@@ -49,6 +49,15 @@ def test_maintenance_repeats_only_while_a_step_fills_its_batch():
     rest = {**{key: 0 for key in full}, "aiUsageCounters": 7, "limit": maintenance.BATCH}
     gateway = FakeGateway([full, rest])
     totals = asyncio.run(maintenance.run(gateway))
-    assert [name for name, _ in gateway.calls] == ["run_maintenance", "run_maintenance"]
+    assert [name for name, _, _ in gateway.calls] == ["run_maintenance", "run_maintenance"]
     assert gateway.calls[0][1] == {"p_limit": maintenance.BATCH, "p_league_weeks": 12}
+    assert gateway.calls[0][2] == 60
     assert totals["aiUsageCounters"] == maintenance.BATCH + 7 and totals["leagueWeeks"] == 1 and "limit" not in totals
+
+
+def test_maintenance_repeats_while_rank_more_is_set():
+    first = {"rankWeeks": 200, "rankMore": True, "limit": maintenance.BATCH}
+    second = {"rankWeeks": 14, "rankMore": False, "limit": maintenance.BATCH}
+    gateway = FakeGateway([first, second])
+    totals = asyncio.run(maintenance.run(gateway))
+    assert len(gateway.calls) == 2 and totals["rankWeeks"] == 214 and "rankMore" not in totals

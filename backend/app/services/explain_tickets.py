@@ -76,6 +76,16 @@ class TicketUses:
     def __init__(self, rpc):
         self.rpc = rpc
         self.running: set[asyncio.Task] = set()
+        self._settled: dict[tuple[str, str, int], None] = {}
+
+    def is_settled(self, owner: str, ticket_id: str, number: int) -> bool:
+        return (owner, ticket_id, number) in self._settled
+
+    def _mark_settled(self, owner: str, ticket_id: str, number: int) -> None:
+        key = (owner, ticket_id, number)
+        self._settled[key] = None
+        if len(self._settled) > 4096:
+            self._settled.pop(next(iter(self._settled)))
 
     async def run(self, owner: str, ticket_id: str, number: int, expires: int | float, request_id: str, binding: str,
                   generate: Callable[[], Awaitable[dict | None]]) -> dict:
@@ -109,14 +119,19 @@ class TicketUses:
         if claim["action"] == "completed":
             if not isinstance(claim.get("draft"), dict):
                 raise HTTPException(503, "Lời giải đã lưu chưa hợp lệ. Vui lòng thử lại sau.")
+            self._mark_settled(owner, ticket_id, number)
             return self._outcome(number, remaining, claim["draft"])
         if claim["action"] != "claimed":
+            if claim["action"] == "exhausted":
+                self._mark_settled(owner, ticket_id, number)
             return self._outcome(number, remaining, None, pending=claim["action"] == "pending")
         result = await generate()
         finished = await self.rpc("finish_explanation_question", {**parameters, "p_lease_id": lease, "p_result": result})
         if not isinstance(finished, dict) or finished.get("accepted") is not True:
             # A late worker cannot claim success after its fenced lease expired.
             return self._outcome(number, remaining, None, pending=True)
+        if result is not None or remaining == 0:
+            self._mark_settled(owner, ticket_id, number)
         return self._outcome(number, remaining, result)
 
     @staticmethod

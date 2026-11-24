@@ -378,9 +378,9 @@ def test_failed_unban_keeps_pending_row_and_maintenance_finishes_it(api):
         assert listing == {"p_older_than_seconds": 600, "p_limit": 50}
 
         calls.clear()
-        # Next run: the same purge + delete path finishes it; the cascade removes the row.
+        # Next run: re-bans to close the unknown-ban window, then purge + delete finishes it.
         assert asyncio.run(maintenance.finish_pending_deletions(gateway)) == {"finished": 1, "failed": 0}
-        assert admin_steps(calls) == ["purge", "delete"]
+        assert admin_steps(calls) == ["ban", "purge", "delete"]
         assert client.pending_deletions == {}
         assert asyncio.run(maintenance.finish_pending_deletions(gateway)) == {"finished": 0, "failed": 0}
 

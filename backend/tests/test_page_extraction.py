@@ -491,7 +491,9 @@ def test_slices_must_stay_inside_one_zone(api, slices):  # noqa: F811
 
 def test_only_the_page_route_takes_a_bigger_body(api):  # noqa: F811
     with api() as (client, _calls):
-        assert client.post("/api/v1/ai/extract", content=b"a" * (4 * 1024 * 1024 + 1)).status_code == 413
+        assert client.post("/api/v1/sync", content=b"a" * (4 * 1024 * 1024 + 1)).status_code == 413
+        assert client.post("/api/v1/ai/extract", content=b"a" * (4 * 1024 * 1024 + 1)).status_code != 413
+        assert client.post("/api/v1/ai/extract", content=b"a" * (6 * 1024 * 1024 + 1)).status_code == 413
         assert client.post("/api/v1/ai/extract-page", content=b"a" * (4 * 1024 * 1024 + 1)).status_code != 413
         assert client.post("/api/v1/ai/extract-page", content=b"a" * (12 * 1024 * 1024 + 1)).status_code == 413
         assert client.post("/api/v1/ai/read-results", content=b"a" * (4 * 1024 * 1024 + 1)).status_code != 413

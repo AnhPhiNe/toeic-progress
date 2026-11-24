@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     source_images_enabled: bool = False
     source_image_account_limit: int = Field(default=200, ge=3, le=1000)
     openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
-    openai_model: str = "gpt-6-luna"
+    openai_model: str = "gpt-6.1-terra"
     openai_reasoning_effort: Literal["low", "medium", "high"] = "medium"
     openai_ocr_model: str = "gpt-6-luna"
     openai_ocr_effort: Literal["low", "medium", "high"] = "low"
@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     # would be shared by all users. Name a header the edge overwrites (e.g. cf-connecting-ip)
     # only after verifying on staging that clients cannot set it; empty uses the socket address.
     client_ip_header: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9-]*$")
+    # Only set true in production when traffic connects directly to the app without a reverse proxy.
+    trust_socket_ip: bool = False
     # Temporarily exposes /debug/client-ip so the operator can verify the header above.
     client_ip_debug: bool = False
     max_concurrent_requests: int = Field(default=24, ge=1, le=256)
@@ -98,7 +100,7 @@ class Settings(BaseSettings):
         cleaned = value.strip()
         if not cleaned:
             defaults = {
-                "openai_model": "gpt-6-luna",
+                "openai_model": "gpt-6.1-terra",
                 "openai_ocr_model": "gpt-6-luna",
                 "openai_paper_ocr_model": "gpt-6.1-terra",
                 "openai_paper_results_model": "gpt-6.1-terra",
@@ -214,7 +216,7 @@ class Settings(BaseSettings):
             missing.append("CORS_ORIGINS")
         if self.environment == "production" and self.client_ip_debug:
             missing.append("CLIENT_IP_DEBUG=false in production")
-        if self.environment == "production" and self.render_external_hostname and not self.client_ip_header:
+        if self.environment == "production" and not self.trust_socket_ip and not self.client_ip_header:
             missing.append("CLIENT_IP_HEADER (required behind hosting proxy in production)")
         if self.ai_enabled and (
             not self.ai_ready

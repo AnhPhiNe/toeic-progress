@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 
 # Routes that take original test-page or paper-result photos: bigger body (bytes) and longer upload timeout.
 LARGE_BODY_PATHS = {
+    "/api/v1/ai/extract": 6 * 1024 * 1024,
     "/api/v1/ai/extract-page": 12 * 1024 * 1024,
     "/api/v1/ai/read-results": 10 * 1024 * 1024,
 }

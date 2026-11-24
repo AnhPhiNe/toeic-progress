@@ -48,8 +48,14 @@ def test_state_marks_zones_and_respects_tier_ends():
     assert state["mode"] == "table"
     assert state["group"]["promote"] == 5 and state["group"]["demote"] == 0  # Đồng cannot go lower
     assert state["me"] == {"stars": 96, "today": 10, "rank": 4, "lastWeekStars": 50}
-    top = {**result, "group": {"tier": 4, "rows": rows}, "stars": None}
-    assert league.build_state(top, now=NOW)["group"]["promote"] == 0
+    t4 = league.build_state({**result, "group": {"tier": 4, "rows": rows}, "stars": None}, now=NOW)
+    assert t4["group"]["tier"] == "bach-kim" and t4["group"]["promote"] == 5
+    t5 = league.build_state({**result, "group": {"tier": 5, "rows": rows}, "stars": None}, now=NOW)
+    assert t5["group"]["tier"] == "kim-cuong" and t5["group"]["promote"] == 5
+    top = league.build_state({**result, "group": {"tier": 6, "rows": rows}, "stars": None}, now=NOW)
+    assert top["group"]["tier"] == "cao-thu" and top["group"]["promote"] == 0
+    with pytest.raises(ValueError):
+        league.clean_coat("")
 
 
 def test_fallback_when_fewer_than_five_others():

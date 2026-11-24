@@ -33,12 +33,12 @@ logger = logging.getLogger("toeic.maintenance")
 async def run(gateway: Gateway) -> dict:
     totals: dict[str, int] = {}
     for _ in range(MAX_ROUNDS):
-        result = await gateway.rpc("run_maintenance", {"p_limit": BATCH, "p_league_weeks": 12})
-        steps = {key: value for key, value in result.items() if key not in ("limit", "leagueMore")}
+        result = await gateway.rpc("run_maintenance", {"p_limit": BATCH, "p_league_weeks": 12}, timeout=60)
+        steps = {key: value for key, value in result.items() if key not in ("limit", "leagueMore", "rankMore")}
         for key, value in steps.items():
             totals[key] = totals.get(key, 0) + value
-        # A step that filled its batch may have more to delete; league groups are finalised in smaller batches.
-        if all(value < BATCH for value in steps.values()) and not result.get("leagueMore"):
+        # A step that filled its batch may have more to delete; league groups & rank seasons run in smaller batches.
+        if all(value < BATCH for value in steps.values()) and not result.get("leagueMore") and not result.get("rankMore"):
             break
     return totals
 
@@ -51,7 +51,7 @@ async def finish_pending_deletions(gateway: Gateway) -> dict:
     for row in pending:
         user_id = row["userId"]
         try:
-            await gateway.finish_account_deletion(user_id)
+            await gateway.finish_account_deletion(user_id, ensure_banned=True)
         except AccountDeletionError as error:
             failed += 1
             note = f"{error.step}:{error.status}" if error.status else error.step
@@ -71,14 +71,25 @@ async def main():
     settings = Settings()
     if not settings.database_ready:
         raise SystemExit("Configure Supabase before running maintenance.")
-    async with httpx.AsyncClient(timeout=30) as client:
+    had_error = False
+    async with httpx.AsyncClient(timeout=65) as client:
         gateway = Gateway(settings, client)
-        totals = await run(gateway)
-        print("Maintenance removed: " + json.dumps(totals, sort_keys=True))
-        deletions = await finish_pending_deletions(gateway)
-    print("Pending account deletions: " + json.dumps(deletions, sort_keys=True))
-    if deletions["failed"]:
-        # Fail the scheduled job so a stuck account is noticed; the next run retries.
+        try:
+            totals = await run(gateway)
+            print("Maintenance removed: " + json.dumps(totals, sort_keys=True))
+        except (HTTPException, httpx.HTTPError, ValueError, TypeError) as error:
+            had_error = True
+            logger.error(json.dumps({"event": "maintenance_run_failed", "error_type": type(error).__name__}))
+        try:
+            deletions = await finish_pending_deletions(gateway)
+            print("Pending account deletions: " + json.dumps(deletions, sort_keys=True))
+            if deletions["failed"]:
+                had_error = True
+        except (HTTPException, httpx.HTTPError, ValueError, TypeError) as error:
+            had_error = True
+            logger.error(json.dumps({"event": "pending_deletions_run_failed", "error_type": type(error).__name__}))
+    if had_error:
+        # Fail the scheduled job so a stuck run or account is noticed; the next run retries.
         raise SystemExit(1)
 
 

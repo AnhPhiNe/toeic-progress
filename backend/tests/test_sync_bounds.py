@@ -109,6 +109,43 @@ def test_unknown_fields_are_bounded_per_entity():
     valid(session(partDurations={"part5": 10, "part6": 8, "part7": 50}))
 
 
+def test_mistakes_sync_record_allows_up_to_64kib_and_typed_v2_fields():
+    rich_card = {
+        "id": "m-rich",
+        "part": 7,
+        "category": "VOCABULARY_TRAP",
+        "status": "NEEDS_REVIEW",
+        "questionContext": "Q" + ("x" * 15000),
+        "question": "What is implied? " + ("q" * 12000),
+        "context": "Đoạn 1 — Email\n" + ("Nội dung dài tiếng Việt. " * 400),
+        "userMistake": "(A) Wrong",
+        "correctAnswer": "(B) Right",
+        "options": ["(A) Wrong", "(B) Right", "(C) C", "(D) D"],
+        "optionNotes": [{"label": "A", "pos": "n", "meaning": "sai", "reason": "không đúng bài"}],
+        "explanation": {
+            "quickTip": "Đọc kỹ đoạn 3.",
+            "translation": "Bản dịch ngắn.",
+            "questionType": "Suy luận",
+            "evidence": "Evidence sentence here.",
+            "paraphrase": "",
+            "analysis": "Phân tích chi tiết.",
+            "keyVocabulary": "refund: hoàn tiền",
+            "evidences": [{"passageLabel": "Đoạn 3", "text": "Evidence sentence here.", "translation": "Dịch bằng chứng."}],
+            "words": [{"word": "refund", "meaning": "hoàn tiền"}],
+        },
+        "savedWords": ["refund"],
+        "answerDoubt": "B",
+        "tags": ["part7"],
+        "createdAt": STAMP,
+        "trapTip": "a" * 3500,
+    }
+    assert len(json.dumps(rich_card, ensure_ascii=False).encode()) > 32768
+    valid(row("mistakes", rich_card))
+    # Above 64 KiB for mistakes must still be rejected; non-mistakes stay capped at 32 KiB.
+    invalid(row("mistakes", {**rich_card, "question": "q" * 16000, "context": "Đoạn 1\n" + ("b" * 15990), "questionContext": "x" * 16000, "userMistake": "u" * 4000, "correctAnswer": "c" * 2000, "extraBlob": "z" * 15000}))
+    invalid(session(notes="a" * 33000))
+
+
 def test_request_size_and_continuation_shape():
     valid(*[vocab(id=f"v{n}") | {"record_id": f"v{n}"} for n in range(1000)])
     invalid(*[vocab(id=f"v{n}") | {"record_id": f"v{n}"} for n in range(1001)])

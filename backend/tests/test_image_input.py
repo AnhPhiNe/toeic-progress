@@ -32,19 +32,26 @@ def test_context_images_keep_the_pasted_question_options_learner_choice_and_sour
 
 @pytest.mark.parametrize("value", [
     "https://private.example/image.png", "data:image/svg+xml;base64,PHN2Zz4=",
-    "data:image/png;base64,not-base64", "data:image/png;base64,YmFkLWltYWdl",
+    "data:image/png;base64,not-base64",
     "data:image/png;base64," + "A" * 1_400_000,
-], ids=["remote-url", "svg", "invalid-base64", "corrupt-raster", "oversized"])
-def test_untrusted_urls_types_corrupt_and_oversized_images_are_rejected(value):
+], ids=["remote-url", "svg", "invalid-base64", "oversized"])
+def test_untrusted_urls_types_and_oversized_images_are_rejected(value):
     with pytest.raises(ValidationError):
         request([value])
 
 
-def test_image_mime_must_match_actual_bytes_and_pixel_count_is_bounded():
-    with pytest.raises(ValidationError):
-        request([image_url(format="JPEG").replace("image/jpeg", "image/png")])
-    with pytest.raises(ValidationError):
-        request([image_url(size=(3000, 3000), format="JPEG")])
+def test_corrupt_mismatched_and_pixel_heavy_rasters_are_rejected_off_loop():
+    import asyncio
+
+    from app.core.image_input import validate_images_async
+
+    for bad in (
+        "data:image/png;base64,YmFkLWltYWdl",
+        image_url(format="JPEG").replace("image/jpeg", "image/png"),
+        image_url(size=(3000, 3000), format="JPEG"),
+    ):
+        with pytest.raises(ValueError):
+            asyncio.run(validate_images_async([bad]))
 
 
 def test_total_image_size_is_bounded_even_when_each_image_is_valid():
@@ -82,11 +89,15 @@ def test_image_count_and_part_restrictions_do_not_weaken_text_validation():
 
 
 def test_truncated_raster_is_rejected_before_generation():
+    import asyncio
+
+    from app.core.image_input import validate_images_async
+
     url = image_url(format="JPEG")
     data = base64.b64decode(url.split(",", 1)[1])
     broken = "data:image/jpeg;base64," + base64.b64encode(data[:-30]).decode()
-    with pytest.raises(ValidationError):
-        request([broken])
+    with pytest.raises(ValueError):
+        asyncio.run(validate_images_async([broken]))
 
 
 def test_part1_requires_one_picture_and_four_pasted_spoken_options():
