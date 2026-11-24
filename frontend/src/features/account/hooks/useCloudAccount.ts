@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import type { DataBundle } from '@/shared/data/dataBundle';
 import { activateAccount, clearRetiredCopies, deactivateAccount, getActiveAccountId, purgeAccountLocalStorage, readAccountBundle, readGuestBundle, setAccountWriteEnabled, writeAccountBundle } from '@/shared/data/dataBundle';
 import { bundleFromRecords, cleanupResetImages, cloud, deleteCloudAccount, fetchCloudBundle, rememberSync, resetCloudLearningData, wakeBackend } from '@/features/account/services/cloud';
@@ -359,7 +360,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     onDataChanged();
   };
   const deleteAccount = async () => {
-    if (!window.confirm('Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu trên máy chủ lẫn bản sao cục bộ của tài khoản này trên trình duyệt?')) return;
+    if (!await askConfirm({ title: 'Xóa tài khoản vĩnh viễn?', message: 'Tài khoản và toàn bộ dữ liệu trên máy chủ lẫn bản sao cục bộ trên trình duyệt này sẽ bị xóa, không thể khôi phục.', confirmLabel: 'Xóa tài khoản', destructive: true })) return;
     const id = userId.current ?? getActiveAccountId();
     try {
       await deleteCloudAccount();

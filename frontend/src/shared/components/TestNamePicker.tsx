@@ -137,12 +137,12 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
         const selected = testNameKey(option.value) === testNameKey(value);
         return <button type="button" disabled={disabled} role="option" tabIndex={-1} key={option.value} id={`${listId}-${index}`} aria-selected={searchInPopup ? selected : index === active}
           onPointerDown={event => event.preventDefault()} onClick={() => finish(option.value)}
-          className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm break-words ${index === active ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800'} ${option.isNew ? 'border-t border-slate-200 font-semibold dark:border-slate-700' : ''}`}><span className="min-w-0">{option.label}</span>{searchInPopup && selected && <Check className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />}</button>;
+          className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm break-words ${index === active ? 'bg-[#e7f6ea] font-extrabold text-[#2f8a42]' : 'text-[#2f3a33] hover:bg-[#f6f8f6]'} ${option.isNew ? 'border-t-2 border-[#e6e9e6] font-extrabold' : ''}`}><span className="min-w-0">{option.label}</span>{searchInPopup && selected && <Check className="h-4 w-4 shrink-0 text-[#46b35a]" aria-hidden="true" />}</button>;
       })}
-      {!choices.length && <p className="px-3 py-2 text-sm text-slate-500">Nhập tên đề để thêm.</p>}
+      {!choices.length && <p className="px-3 py-2 text-sm font-bold text-[#7a857e]">Nhập tên đề để thêm.</p>}
     </div>;
 
-  return <div ref={rootRef} className={compact ? 'flex min-w-0 items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400' : 'relative'}>
+  return <div ref={rootRef} className={compact ? 'flex min-w-0 items-center gap-2 text-[13px] font-bold text-[#7a857e]' : 'relative'}>
     {compact && !field && <Folder className="h-4 w-4 shrink-0" aria-hidden="true" />}
     {searchInPopup ? <button ref={triggerRef} type="button" disabled={disabled} aria-label="Chọn đề" aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined}
       onPointerDown={event => { if (open) event.preventDefault(); }} onClick={() => { if (open) cancel(); else showPicker(); }}
@@ -150,14 +150,14 @@ export function TestNamePicker({ value, onChange, suggestions, compact = false, 
       <span className="truncate">{value || (required ? 'Chọn đề' : 'Chọn đề (tùy chọn)')}</span><ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
     </button> : compact && !editing ? <><span className="min-w-0 break-words">{value || 'Chưa gắn đề'}</span>
       <button ref={triggerRef} type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded="false" onClick={showPicker}
-        className="min-h-9 cursor-pointer px-1 text-[13px] font-semibold text-blue-600 dark:text-blue-400 disabled:opacity-40">{value ? 'Đổi' : 'Gắn đề'}</button></> : <>
+        className="min-h-9 cursor-pointer px-1 text-[13px] font-black text-[#2f8a42] disabled:opacity-40">{value ? 'Đổi' : 'Gắn đề'}</button></> : <>
       {searchInput}
-      {compact && <button type="button" disabled={disabled} aria-label="Hủy đổi đề" className="flex min-h-10 min-w-10 cursor-pointer items-center justify-center text-slate-500" onPointerDown={event => event.preventDefault()} onClick={cancel}><X className="h-4 w-4" aria-hidden="true" /></button>}
+      {compact && <button type="button" disabled={disabled} aria-label="Hủy đổi đề" className="flex min-h-10 min-w-10 cursor-pointer items-center justify-center text-[#7a857e]" onPointerDown={event => event.preventDefault()} onClick={cancel}><X className="h-4 w-4" aria-hidden="true" /></button>}
     </>}
     {open && createPortal(<div ref={popupRef} data-modal-owner={listId}
       style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.height }}
       className={`tnp-pop fixed z-[70] ${searchInPopup ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-1'}`}>
-      {searchInPopup && <div className="relative shrink-0 border-b border-slate-200 p-2 dark:border-slate-700"><Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />{searchInput}</div>}
+      {searchInPopup && <div className="relative shrink-0 border-b-2 border-[#e6e9e6] p-2"><Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#b3bab4]" aria-hidden="true" />{searchInput}</div>}
       {optionList}
     </div>, searchInPopup ? rootRef.current?.closest('[role="dialog"]') ?? document.body : document.body)}
   </div>;

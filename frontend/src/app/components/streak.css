@@ -32,7 +32,6 @@
 }
 
 .streak-popover-flame { background: radial-gradient(circle at 50% 60%, #fed7aa, #fef3c7 70%); }
-:root.dark .streak-popover-flame { background: radial-gradient(circle at 50% 60%, #7c2d12, #431407 75%); }
 .streak-popover { animation: streak-pop 160ms ease-out; transform-origin: 75% 0; }
 @keyframes streak-pop { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .streak-popover { animation: none; } }
