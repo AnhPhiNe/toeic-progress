@@ -44,7 +44,7 @@ export function PartTimingModal({ isOpen, onClose, value, onChange }: PartTiming
   };
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px] pointer-events-none animate-backdrop" />
+      <div aria-hidden="true" className="absolute inset-0 bg-[var(--rd-ink)] backdrop-blur-[2px] pointer-events-none animate-backdrop" />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="timing-modal-title" tabIndex={-1}
         className="rd rdt relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto overscroll-contain animate-modal-pop">
         <div className="flex items-start justify-between gap-3">
@@ -103,40 +103,40 @@ export function PartTimingStrip({
 
   return (
     <div className="space-y-1 pt-0.5">
-      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[var(--rd-mut)]">
         <span className="flex items-center gap-1">
           <span className="text-xs" aria-hidden="true">⏱️</span>
           <span>Thời gian Reading</span>
         </span>
-        <span className="rounded px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-black dark:bg-emerald-950 dark:text-emerald-300 text-[9.5px]">
+        <span className="rounded px-1.5 py-0.5 bg-[var(--rd-green-l)] text-[var(--rd-green-d)] font-black text-[9.5px]">
           Đã ghi {[durations.part5, durations.part6, durations.part7].filter(value => value != null).length}/3 Part
         </span>
       </div>
       <div className="grid grid-cols-[1fr_1fr_1fr_32px] gap-1.5 items-center">
         <div
           title={`Part 5: ${durations.part5 ?? '—'} phút`}
-          className="rounded-lg border-[1.5px] border-indigo-200 bg-indigo-50/70 p-1 text-center dark:border-indigo-800/80 dark:bg-indigo-950/40"
+          className="rounded-lg border-[1.5px] border-[var(--rd-violet)] bg-[var(--rd-violet-l)] p-1 text-center"
         >
-          <span className="text-[9px] font-black uppercase text-indigo-700 dark:text-indigo-400 block">P5</span>
-          <span className="text-sm font-black tabular-nums text-indigo-950 dark:text-white leading-tight">
+          <span className="text-[9px] font-black uppercase text-[var(--rd-violet-d)] block">P5</span>
+          <span className="text-sm font-black tabular-nums text-[var(--rd-violet-d)] leading-tight">
             {durations.part5 ?? '—'}p
           </span>
         </div>
         <div
           title={`Part 6: ${durations.part6 ?? '—'} phút`}
-          className="rounded-lg border-[1.5px] border-teal-200 bg-teal-50/70 p-1 text-center dark:border-teal-800/80 dark:bg-teal-950/40"
+          className="rounded-lg border-[1.5px] border-[#bfece6] bg-[#e0f7f4] p-1 text-center"
         >
-          <span className="text-[9px] font-black uppercase text-teal-700 dark:text-teal-400 block">P6</span>
-          <span className="text-sm font-black tabular-nums text-teal-950 dark:text-white leading-tight">
+          <span className="text-[9px] font-black uppercase text-[var(--rd-teal-d)] block">P6</span>
+          <span className="text-sm font-black tabular-nums text-[var(--rd-teal-d)] leading-tight">
             {durations.part6 ?? '—'}p
           </span>
         </div>
         <div
           title={`Part 7: ${durations.part7 ?? '—'} phút`}
-          className="rounded-lg border-[1.5px] border-slate-200 bg-slate-50/70 p-1 text-center dark:border-slate-700 dark:bg-slate-900"
+          className="rounded-lg border-[1.5px] border-[var(--rd-line)] bg-[var(--rd-soft)] p-1 text-center"
         >
-          <span className="text-[9px] font-black uppercase text-slate-600 dark:text-slate-400 block">P7</span>
-          <span className="text-sm font-black tabular-nums text-slate-950 dark:text-white leading-tight">
+          <span className="text-[9px] font-black uppercase text-[#5c675f] block">P7</span>
+          <span className="text-sm font-black tabular-nums text-[var(--rd-ink)] leading-tight">
             {durations.part7 ?? '—'}p
           </span>
         </div>
@@ -147,7 +147,7 @@ export function PartTimingStrip({
             onOpenEdit();
           }}
           title="Chỉnh sửa thời gian thực tế" aria-label="Chỉnh sửa thời gian thực tế"
-          className="h-[34px] w-8 rounded-lg border-[1.5px] border-slate-300 bg-white hover:border-slate-900 hover:bg-slate-900 hover:text-white flex items-center justify-center text-xs font-black text-slate-700 transition-colors shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400 cursor-pointer"
+          className="h-[34px] w-8 rounded-lg border-[1.5px] border-[var(--rd-line)] bg-white hover:border-[var(--rd-line)] hover:bg-[var(--rd-ink)] hover:text-white flex items-center justify-center text-xs font-black text-[#5c675f] transition-colors shadow-2xs cursor-pointer"
         >
           ✏️
         </button>

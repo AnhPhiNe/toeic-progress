@@ -41,7 +41,7 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
 
   const gridBody = (
     <>
-      <p className="text-[14.5px] font-black text-slate-900 dark:text-white">Chạm vào câu bạn làm sai</p>
+      <p className="text-[14.5px] font-black text-[var(--rd-ink)]">Chạm vào câu bạn làm sai</p>
       <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="Part">
         {PART_NUMBERS.map(item => {
           const on = item === part, count = byPart[item].length;
@@ -49,9 +49,9 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
             <button key={item} type="button" aria-pressed={on} aria-label={`Part ${item}${count ? `, ${count} câu sai` : ''}`} onClick={() => setPart(item)}
               className="flex cursor-pointer flex-col items-center gap-0.5">
               <span className={'flex h-9 w-full items-center justify-center rounded-[10px] border-2 text-[13px] font-black ' + (on
-                ? (listening(item) ? 'border-slate-900 bg-indigo-600 text-white' : 'border-slate-900 bg-teal-600 text-white') + ' dark:border-slate-200'
-                : 'border-stone-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200')}>P{item}</span>
-              <span className="h-4 text-[11px] font-black tabular-nums text-rose-600 dark:text-rose-400" aria-hidden="true">{count ? `${count} sai` : ''}</span>
+                ? (listening(item) ? 'border-[var(--rd-line)] bg-[var(--rd-violet-d)] text-white' : 'border-[var(--rd-line)] bg-[var(--rd-teal)] text-white') + ''
+                : 'border-[var(--rd-line)] bg-white text-[#5c675f]')}>P{item}</span>
+              <span className="h-4 text-[11px] font-black tabular-nums text-[var(--rd-pink-d)]" aria-hidden="true">{count ? `${count} sai` : ''}</span>
             </button>
           );
         })}
@@ -62,29 +62,29 @@ export function WrongQuestionGrid({ wrong, onChange, onScores, onScoresPending, 
           return (
             <button key={question} type="button" aria-pressed={on} aria-label={`Câu ${question}`} onClick={() => toggle(question)}
               className={'h-11 cursor-pointer rounded-[10px] border-2 text-[14px] font-black tabular-nums active:scale-90 transition-transform duration-75 ' + (on
-                ? 'border-slate-900 bg-rose-600 text-white dark:border-slate-200'
-                : 'border-stone-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200')}>{question}</button>
+                ? 'border-[var(--rd-line)] bg-[var(--rd-pink)] text-white'
+                : 'border-[var(--rd-line)] bg-white text-[#5c675f]')}>{question}</button>
           );
         })}
       </div>
       {typing
         ? <div className="space-y-2">
-            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">Số câu sai
+            <label className="block text-[13px] font-bold text-[#5c675f]">Số câu sai
               <input aria-label="Số câu sai" autoFocus type="text" value={text} onChange={event => { setText(event.target.value); setInvalid([]); }} placeholder="3 15 22 101-104"
                 onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyTyped(); } }}
-                className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold tabular-nums text-slate-950 dark:border-slate-600 dark:bg-slate-950 dark:text-white" />
+                className="mt-1 h-12 w-full rounded-xl border-2 border-[var(--rd-line)] bg-white px-3 font-bold tabular-nums text-[var(--rd-ink)]" />
             </label>
-            {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">Không đọc được: {invalid.join(', ')}</p>}
+            {invalid.length > 0 && <p role="alert" className="text-[13px] font-semibold text-[var(--rd-pink-d)]">Không đọc được: {invalid.join(', ')}</p>}
             <div className="flex gap-2">
-              <button type="button" onClick={applyTyped} className="min-h-11 flex-1 cursor-pointer rounded-xl border-2 border-slate-900 bg-white text-[14px] font-black text-slate-950 dark:border-slate-200 dark:bg-slate-900 dark:text-white">Áp dụng</button>
-              <button type="button" onClick={() => { cancelNumbers(); setInvalid([]); }} className="min-h-11 cursor-pointer px-3 text-[14px] font-bold text-slate-500 dark:text-slate-400">Hủy</button>
+              <button type="button" onClick={applyTyped} className="min-h-11 flex-1 cursor-pointer rounded-xl border-2 border-[var(--rd-line)] bg-white text-[14px] font-black text-[var(--rd-ink)]">Áp dụng</button>
+              <button type="button" onClick={() => { cancelNumbers(); setInvalid([]); }} className="min-h-11 cursor-pointer px-3 text-[14px] font-bold text-[var(--rd-mut)]">Hủy</button>
             </div>
           </div>
         : <button
             type="button"
             aria-label="Gõ số câu thay vì chạm"
             onClick={openNumbers}
-            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 px-4 py-2.5 text-[13.5px] font-bold text-slate-700 transition-all hover:border-slate-900 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-slate-400 dark:hover:bg-slate-800"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--rd-line)] bg-[var(--rd-soft)] px-4 py-2.5 text-[13.5px] font-bold text-[#5c675f] transition-all hover:border-[var(--rd-line)] hover:bg-[var(--rd-soft)] hover:text-[var(--rd-ink)]"
           >
             <span aria-hidden="true" className="text-base">⌨️</span>
             <span>Gõ số câu thay vì chạm</span>
@@ -441,33 +441,33 @@ export function ResultImageButton({
     >
       {/* Unified Score Card (if provided on desktop) */}
       {scoreCard && (
-        <div className={flatCard ? 'mb-2.5' : 'rounded-[20px] border-2 border-slate-900 bg-[#FFFDF7] p-3.5 text-center shadow-[3px_3px_0_0_#0f172a] dark:border-slate-300 dark:bg-[#111A2C] dark:shadow-[3px_3px_0_0_#cbd5e1] mb-2.5'} aria-live="polite">
+        <div className={flatCard ? 'mb-2.5' : 'rounded-[20px] border-2 border-[var(--rd-line)] bg-[#FFFDF7] p-3.5 text-center shadow-[0_3px_0_var(--rd-line)] mb-2.5'} aria-live="polite">
           {typeof scoreCard === 'function' ? scoreCard({ editScore: openEditAppliedScore }) : scoreCard}
           {onScores && flatCard && scoreReview && (
             <button type="button" disabled={busy} onClick={() => { triggerHaptic(4); setScoreOpen(true); }}
-              className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-slate-900 bg-white px-3 text-[13px] font-black text-slate-950 dark:border-slate-300 dark:bg-slate-900 dark:text-white">
+              className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-[var(--rd-line)] bg-white px-3 text-[13px] font-black text-[var(--rd-ink)]">
               <span>Điểm từ đề: {scoreOpen ? 'đang mở hộp thoại' : 'cần kiểm tra'}</span>
-              <span className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300" aria-hidden="true">Kiểm tra ›</span>
+              <span className="text-[12px] font-bold text-[var(--rd-violet-d)]" aria-hidden="true">Kiểm tra ›</span>
             </button>
           )}
           {onScores && !flatCard && (
-            <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
+            <div className="mt-2.5 pt-2 border-t border-[var(--rd-line)] space-y-1.5">
               {scoreReview ? (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => { triggerHaptic(4); setScoreOpen(true); }}
-                  className="flex min-h-8 w-full cursor-pointer items-center justify-between rounded-lg bg-amber-100/70 px-2.5 py-1 text-xs font-black text-amber-950 dark:bg-amber-950/50 dark:text-amber-200 transition-colors"
+                  className="flex min-h-8 w-full cursor-pointer items-center justify-between rounded-lg bg-[var(--rd-gold-l)] px-2.5 py-1 text-xs font-black text-[#8a6a10] transition-colors"
                 >
                   <span className="flex items-center gap-1.5">
                     <span aria-hidden="true" className="animate-pulse">📄</span>
                     <span>Điểm từ đề: {scoreOpen ? 'Đang mở hộp thoại' : 'Cần kiểm tra'}</span>
                   </span>
-                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Kiểm tra ›</span>
+                  <span className="text-[11px] font-bold text-[#8a6a10]" aria-hidden="true">Kiểm tra ›</span>
                 </button>
               ) : hasAppliedScore ? (
                 <div className="flex w-full items-center justify-between py-0.5 text-xs font-black">
-                  <span className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+                  <span className="flex items-center gap-1.5 text-[#8a6a10]">
                     <span aria-hidden="true">📄</span>
                     <span>Điểm từ đề thi</span>
                   </span>
@@ -475,7 +475,7 @@ export function ResultImageButton({
                     <button
                       type="button"
                       onClick={openEditAppliedScore}
-                      className="cursor-pointer rounded-md bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200 transition-colors"
+                      className="cursor-pointer rounded-md bg-[var(--rd-gold-l)] px-2 py-0.5 text-[10.5px] font-bold text-[#8a6a10] hover:bg-[var(--rd-gold-l)] transition-colors"
                       title="Chỉnh sửa điểm từ đề"
                     >
                       ✏️ Sửa
@@ -488,7 +488,7 @@ export function ResultImageButton({
                         scoreEdited.current = false;
                         onRevertScore?.();
                       }}
-                      className="cursor-pointer rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-500 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-950 dark:hover:text-rose-300 transition-colors"
+                      className="cursor-pointer rounded-md bg-[var(--rd-soft)] px-1.5 py-0.5 text-[10.5px] font-bold text-[var(--rd-mut)] hover:bg-[var(--rd-pink-l)] hover:text-[var(--rd-pink-d)] transition-colors"
                       title="Bỏ điểm từ đề, dùng điểm ước tính"
                     >
                       ✕ Bỏ
@@ -506,13 +506,13 @@ export function ResultImageButton({
                     setScoreReview(empty);
                     onScoresPending?.(true);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between text-xs font-black text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 transition-colors py-0.5"
+                  className="flex w-full cursor-pointer items-center justify-between text-xs font-black text-[#5c675f] hover:text-[var(--rd-violet-d)] transition-colors py-0.5"
                 >
                   <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="text-amber-500">📄</span>
+                    <span aria-hidden="true" className="text-[#8a6a10]">📄</span>
                     <span>Điểm từ đề thi</span>
                   </span>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 font-bold dark:bg-slate-800 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700 transition-colors" aria-hidden="true">
+                  <span className="rounded bg-[var(--rd-soft)] px-1.5 py-0.5 text-[10px] text-[#5c675f] font-bold hover:bg-[var(--rd-gold-l)] hover:text-[#8a6a10] transition-colors" aria-hidden="true">
                     + Nhập ›
                   </span>
                 </button>
@@ -543,11 +543,11 @@ export function ResultImageButton({
       {isTyping && typingContent ? (
         typingContent
       ) : dropzone && needsSignIn ? (
-        <div className="rounded-2xl border-[2.5px] border-dashed border-slate-300 bg-slate-100 px-4 py-6 text-center dark:border-slate-600 dark:bg-slate-900/60">
-          <p className="text-[16px] font-black text-slate-800 dark:text-slate-100">Đọc ảnh tự động cần đăng nhập</p>
-          <p className="mx-auto mt-1 max-w-sm text-[13px] font-semibold leading-5 text-slate-600 dark:text-slate-300">Đăng nhập Google để dán ảnh kết quả và để AI điền điểm, thời gian, câu sai.</p>
+        <div className="rounded-2xl border-[2.5px] border-dashed border-[var(--rd-line)] bg-[var(--rd-soft)] px-4 py-6 text-center">
+          <p className="text-[16px] font-black text-[var(--rd-ink)]">Đọc ảnh tự động cần đăng nhập</p>
+          <p className="mx-auto mt-1 max-w-sm text-[13px] font-semibold leading-5 text-[#5c675f]">Đăng nhập Google để dán ảnh kết quả và để AI điền điểm, thời gian, câu sai.</p>
           <button type="button" onClick={requestAISignIn}
-            className="mt-3 min-h-10 cursor-pointer rounded-xl border-2 border-slate-900 bg-blue-600 px-4 text-[13.5px] font-black text-white shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:shadow-none">
+            className="mt-3 min-h-10 cursor-pointer rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-green)] px-4 text-[13.5px] font-black text-white shadow-[0_3px_0_var(--rd-line)] active:translate-x-px active:translate-y-px active:shadow-none">
             Đăng nhập Google
           </button>
         </div>
@@ -582,7 +582,7 @@ export function ResultImageButton({
         </div>
       ) : desktop && extraButton ? (
         <div className="space-y-2">
-          {busy && <button type="button" disabled className="flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-50 px-3 text-xs font-bold text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"><ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />Đang đọc…</button>}
+          {busy && <button type="button" disabled className="flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-soft)] px-3 text-xs font-bold text-[#5c675f]"><ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />Đang đọc…</button>}
           {extraButton}
         </div>
       ) : (
@@ -591,12 +591,12 @@ export function ResultImageButton({
           disabled={busy}
           onClick={() => input.current?.click()}
           className={desktop
-            ? 'flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white text-[14px] font-black text-slate-950 hover:bg-violet-50 disabled:cursor-wait disabled:opacity-60 dark:border-slate-300 dark:bg-slate-900 dark:text-white'
-            : 'flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-violet-100 text-[14.5px] font-black text-violet-950 disabled:cursor-wait disabled:opacity-60 dark:border-violet-300 dark:bg-violet-950 dark:text-white'}
+            ? 'flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-[var(--rd-line)] bg-white text-[14px] font-black text-[var(--rd-ink)] hover:bg-[var(--rd-violet-l)] disabled:cursor-wait disabled:opacity-60'
+            : 'flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-violet-l)] text-[14.5px] font-black text-[var(--rd-violet-d)] disabled:cursor-wait disabled:opacity-60'}
         >
           <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />
           {busy ? 'AI đang đọc ảnh…' : 'Dán ảnh kết quả'}
-          {!desktop && <span className="text-[12px] font-bold text-violet-700 dark:text-violet-300">(không bắt buộc)</span>}
+          {!desktop && <span className="text-[12px] font-bold text-[var(--rd-violet-d)]">(không bắt buộc)</span>}
         </button>
       )}
 
@@ -619,10 +619,10 @@ export function ResultImageButton({
             aria-pressed={photoMode}
             onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
             className={'inline-flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-[12px] font-extrabold transition-colors ' + (photoMode
-              ? 'border-pink-400 bg-pink-50 text-pink-800 dark:border-pink-500/70 dark:bg-pink-950/60 dark:text-pink-200'
-              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200')}
+              ? 'border-[var(--rd-pink)] bg-[var(--rd-pink-l)] text-[var(--rd-pink-d)]'
+              : 'border-[var(--rd-line)] bg-white text-[#5c675f] hover:bg-[var(--rd-soft)]')}
           >
-            <span aria-hidden="true" className={'relative inline-block h-4 w-7 rounded-full transition-colors ' + (photoMode ? 'bg-pink-500' : 'bg-slate-300 dark:bg-slate-600')}>
+            <span aria-hidden="true" className={'relative inline-block h-4 w-7 rounded-full transition-colors ' + (photoMode ? 'bg-[var(--rd-pink)]' : 'bg-[#f1f3f1]')}>
               <span className={'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ' + (photoMode ? 'translate-x-3' : '')} />
             </span>
             <span>Phiếu tô giấy</span>
@@ -634,8 +634,8 @@ export function ResultImageButton({
               aria-pressed={multiStage}
               onClick={() => { triggerHaptic(4); setMultiStage(value => !value); }}
               className={'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-extrabold transition-colors ' + (multiStage
-                ? 'border-violet-400 bg-violet-50 text-violet-800 dark:border-violet-500/70 dark:bg-violet-950/60 dark:text-violet-200'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200')}
+                ? 'border-[var(--rd-violet)] bg-[var(--rd-violet-l)] text-[var(--rd-violet-d)]'
+                : 'border-[var(--rd-line)] bg-white text-[#5c675f] hover:bg-[var(--rd-soft)]')}
             >
               <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span>Ghép nhiều ảnh</span>
@@ -646,7 +646,7 @@ export function ResultImageButton({
               type="button"
               disabled={busy || staged.length >= MAX_RESULT_IMAGES}
               onClick={() => { triggerHaptic(6); setBurstOpen(true); }}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-pink-300 bg-pink-50 px-3 py-1 text-[12px] font-extrabold text-pink-800 hover:bg-pink-100 disabled:opacity-50 dark:border-pink-500/60 dark:bg-pink-950/60 dark:text-pink-200"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--rd-pink)] bg-[var(--rd-pink-l)] px-3 py-1 text-[12px] font-extrabold text-[var(--rd-pink-d)] hover:bg-[var(--rd-pink-l)] disabled:opacity-50"
             >
               <Camera className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span>Chụp phiếu giấy liên tiếp</span>
@@ -657,7 +657,7 @@ export function ResultImageButton({
               type="button"
               disabled={busy}
               onClick={() => setReviewFile(clarityWarn.file)}
-              className="cursor-pointer rounded-lg bg-amber-100 px-2.5 py-1 text-[11.5px] font-bold text-amber-900 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200"
+              className="cursor-pointer rounded-lg bg-[var(--rd-gold-l)] px-2.5 py-1 text-[11.5px] font-bold text-[#8a6a10] hover:bg-[var(--rd-gold-l)]"
             >
               {clarityWarn.text} Chỉnh / cắt đọc lại
             </button>
@@ -665,19 +665,19 @@ export function ResultImageButton({
         </div>
       )}</>)}
       {!isTyping && !needsSignIn && stagingActive && (
-        <div className="mt-2.5 rounded-2xl border-2 border-dashed border-pink-300 bg-pink-50/60 p-3 dark:border-pink-500/50 dark:bg-pink-950/20" aria-label="Khay ảnh chờ đọc">
+        <div className="mt-2.5 rounded-2xl border-2 border-dashed border-[var(--rd-pink)] bg-[var(--rd-pink-l)] p-3" aria-label="Khay ảnh chờ đọc">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[12.5px] font-black text-slate-800 dark:text-slate-100">
+            <span className="text-[12.5px] font-black text-[var(--rd-ink)]">
               {photoMode ? 'Khay ảnh Phiếu tô + Bảng đáp án' : 'Khay ghép nhiều ảnh kết quả'} ({staged.length}/{MAX_RESULT_IMAGES})
             </span>
             {staged.length > 0 && (
-              <button type="button" disabled={busy} onClick={clearStaged} className="cursor-pointer text-[12px] font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400">
+              <button type="button" disabled={busy} onClick={clearStaged} className="cursor-pointer text-[12px] font-bold text-[var(--rd-mut)] hover:text-[var(--rd-pink-d)]">
                 Xóa hết
               </button>
             )}
           </div>
           {staged.length === 0 ? (
-            <p className="mt-1 text-[12px] font-semibold text-slate-600 dark:text-slate-300">
+            <p className="mt-1 text-[12px] font-semibold text-[#5c675f]">
               {photoMode
                 ? 'Thêm đủ ảnh Phiếu tô và Bảng đáp án trước, rồi bấm Đọc để Sóc tự dò đáp án trong 1 lượt.'
                 : 'Dán hoặc chọn thêm nhiều ảnh kết quả (VD: ảnh điểm + ảnh danh sách câu sai), rồi bấm Đọc cùng lúc.'}
@@ -685,7 +685,7 @@ export function ResultImageButton({
           ) : (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {staged.map((item, idx) => (
-                <span key={item.id} className="relative h-16 w-14 flex-none overflow-hidden rounded-lg bg-white shadow-sm ring-2 ring-pink-200 dark:bg-slate-900 dark:ring-pink-700/60">
+                <span key={item.id} className="relative h-16 w-14 flex-none overflow-hidden rounded-lg bg-white shadow-sm ring-2 ring-[var(--rd-pink)]">
                   <img
                     src={item.url}
                     alt={`Ảnh chờ đọc ${idx + 1}`}
@@ -694,31 +694,31 @@ export function ResultImageButton({
                     title="Bấm để xem to, xoay hoặc cắt ảnh"
                   />
                   {item.clarity?.problem && (
-                    <span className="pointer-events-none absolute top-0.5 left-0.5 grid h-4 w-4 place-items-center rounded-full bg-amber-400 text-[10px] font-black text-amber-950" aria-label="Ảnh hơi tối hoặc mờ">!</span>
+                    <span className="pointer-events-none absolute top-0.5 left-0.5 grid h-4 w-4 place-items-center rounded-full bg-[var(--rd-gold)] text-[10px] font-black text-[#8a6a10]" aria-label="Ảnh hơi tối hoặc mờ">!</span>
                   )}
                   <button
                     type="button"
                     disabled={busy}
                     aria-label={`Bỏ ảnh ${idx + 1}`}
                     onClick={() => removeStaged(item.id)}
-                    className="absolute top-0.5 right-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-slate-900/80 text-[11px] font-black text-white"
+                    className="absolute top-0.5 right-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-[var(--rd-ink)] text-[11px] font-black text-white"
                   >×</button>
                   <button
                     type="button"
                     disabled={busy}
                     aria-label={`Chỉnh ảnh ${idx + 1}`}
                     onClick={() => setEditingStagedId(item.id)}
-                    className="absolute right-0.5 bottom-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-pink-600/90 text-[10px] font-black text-white"
+                    className="absolute right-0.5 bottom-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-[var(--rd-pink)] text-[10px] font-black text-white"
                   >✎</button>
                   {staged.length > 1 && (
                     <span className="absolute bottom-0.5 left-0.5 flex gap-0.5">
                       {idx > 0 && (
                         <button type="button" disabled={busy} aria-label={`Đưa ảnh ${idx + 1} lên trước`} onClick={() => moveStaged(item.id, -1)}
-                          className="grid h-4 w-3.5 cursor-pointer place-items-center rounded bg-slate-900/75 text-[11px] font-black text-white">‹</button>
+                          className="grid h-4 w-3.5 cursor-pointer place-items-center rounded bg-[var(--rd-ink)] text-[11px] font-black text-white">‹</button>
                       )}
                       {idx < staged.length - 1 && (
                         <button type="button" disabled={busy} aria-label={`Đưa ảnh ${idx + 1} ra sau`} onClick={() => moveStaged(item.id, 1)}
-                          className="grid h-4 w-3.5 cursor-pointer place-items-center rounded bg-slate-900/75 text-[11px] font-black text-white">›</button>
+                          className="grid h-4 w-3.5 cursor-pointer place-items-center rounded bg-[var(--rd-ink)] text-[11px] font-black text-white">›</button>
                       )}
                     </span>
                   )}
@@ -730,7 +730,7 @@ export function ResultImageButton({
                   disabled={busy}
                   onClick={() => input.current?.click()}
                   aria-label="Thêm ảnh vào khay kết quả"
-                  className="grid h-16 w-14 flex-none cursor-pointer place-items-center rounded-lg border-2 border-dashed border-pink-300 bg-white/80 text-pink-700 hover:bg-pink-100/70 dark:border-pink-600 dark:bg-slate-900/60 dark:text-pink-300"
+                  className="grid h-16 w-14 flex-none cursor-pointer place-items-center rounded-lg border-2 border-dashed border-[var(--rd-pink)] bg-white/80 text-[var(--rd-pink-d)] hover:bg-[var(--rd-pink-l)]"
                 >
                   <Plus className="h-5 w-5" aria-hidden="true" />
                 </button>
@@ -743,7 +743,7 @@ export function ResultImageButton({
                 type="button"
                 disabled={busy}
                 onClick={() => input.current?.click()}
-                className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-pink-300 bg-white px-3 text-[12.5px] font-extrabold text-pink-800 hover:bg-pink-50 dark:border-pink-600 dark:bg-slate-900 dark:text-pink-200"
+                className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--rd-pink)] bg-white px-3 text-[12.5px] font-extrabold text-[var(--rd-pink-d)] hover:bg-[var(--rd-pink-l)]"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Chọn ảnh</span>
@@ -754,7 +754,7 @@ export function ResultImageButton({
                 type="button"
                 disabled={busy}
                 onClick={() => void read(staged.map(item => item.file), photoMode, true)}
-                className="inline-flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-pink-600 px-4 text-[13.5px] font-black text-white shadow-sm hover:bg-pink-700 disabled:opacity-50"
+                className="inline-flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[var(--rd-pink)] px-4 text-[13.5px] font-black text-white shadow-sm hover:bg-[var(--rd-pink)] disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{busy ? 'Sóc đang đọc ảnh…' : `Đọc ${staged.length} ảnh kết quả`}</span>
@@ -778,9 +778,9 @@ export function ResultImageButton({
           ] : undefined}
         />
       )}
-      {!phone && <p className={'mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>}
-      {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-violet-700 dark:text-violet-300">{note}</p>}
-      {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-rose-700 dark:text-rose-300">{error}</p>}
+      {!phone && <p className={'mt-2 text-xs leading-5 text-[var(--rd-mut)]' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>}
+      {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-[var(--rd-violet-d)]">{note}</p>}
+      {error && <p role="alert" className="mt-1.5 text-[13px] font-semibold text-[var(--rd-pink-d)]">{error}</p>}
       {editingStaged && (
         <PhotoReview
           file={editingStaged.file}
@@ -822,10 +822,10 @@ export function ResultImageButton({
 
       {/* Fallback button when scoreCard is not provided (e.g. mobile) */}
       {!scoreCard && scoreReview && !scoreOpen && <button type="button" onClick={() => setScoreOpen(true)}
-        className="min-h-11 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Kiểm tra điểm chưa áp dụng</button>}
+        className="min-h-11 w-full rounded-xl border border-[var(--rd-gold)] bg-[var(--rd-gold-l)] px-3 text-sm font-bold text-[#8a6a10]">Kiểm tra điểm chưa áp dụng</button>}
       {place(<>
       {!scoreCard && onScores && !scoreReview && hasAppliedScore && (
-        <div className="mt-2 flex min-h-9 w-full items-center justify-between rounded-xl border border-amber-300 bg-amber-50/70 px-3 py-1.5 text-xs font-black text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="mt-2 flex min-h-9 w-full items-center justify-between rounded-xl border border-[var(--rd-gold)] bg-[var(--rd-gold-l)] px-3 py-1.5 text-xs font-black text-[#8a6a10]">
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true">📄</span>
             <span>Điểm từ đề thi</span>
@@ -834,7 +834,7 @@ export function ResultImageButton({
             <button
               type="button"
               onClick={openEditAppliedScore}
-              className="cursor-pointer rounded-md bg-amber-200/80 px-2 py-0.5 text-[11px] font-bold text-amber-950 hover:bg-amber-300 dark:bg-amber-900/70 dark:text-amber-100"
+              className="cursor-pointer rounded-md bg-[var(--rd-gold-l)] px-2 py-0.5 text-[11px] font-bold text-[#8a6a10] hover:bg-[var(--rd-gold)]"
               title="Chỉnh sửa điểm từ đề"
             >
               ✏️ Sửa
@@ -847,7 +847,7 @@ export function ResultImageButton({
                 scoreEdited.current = false;
                 onRevertScore?.();
               }}
-              className="cursor-pointer rounded-md bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-300"
+              className="cursor-pointer rounded-md bg-white px-2 py-0.5 text-[11px] font-bold text-[#5c675f] hover:bg-[var(--rd-pink-l)] hover:text-[var(--rd-pink-d)]"
               title="Bỏ điểm từ đề, dùng điểm ước tính"
             >
               ✕ Bỏ
@@ -866,13 +866,13 @@ export function ResultImageButton({
             setScoreReview(empty);
             onScoresPending?.(true);
           }}
-          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-slate-50/50 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-slate-800 hover:bg-slate-100 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:border-slate-400 dark:hover:text-white transition-all disabled:opacity-60"
+          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border border-dashed border-[var(--rd-line)] bg-[var(--rd-soft)] px-3 py-1.5 text-xs font-bold text-[#5c675f] hover:border-[var(--rd-line)] hover:bg-[var(--rd-soft)] hover:text-[var(--rd-ink)] transition-all disabled:opacity-60"
         >
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true">📄</span>
             <span>Nhập điểm từ đề (tùy chọn)</span>
           </span>
-          <span className="text-slate-400 font-bold" aria-hidden="true">›</span>
+          <span className="text-[var(--rd-mut)] font-bold" aria-hidden="true">›</span>
         </button>
       )}
       {!scoreCard && onScores && scoreReview && (
@@ -880,13 +880,13 @@ export function ResultImageButton({
           type="button"
           disabled={busy}
           onClick={() => triggerHaptic(4)}
-          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-amber-400 bg-amber-50/70 px-3 py-1.5 text-xs font-black text-amber-950 transition-all dark:border-amber-500/80 dark:bg-amber-950/40 dark:text-amber-200"
+          className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-between rounded-xl border-2 border-[var(--rd-gold)] bg-[var(--rd-gold-l)] px-3 py-1.5 text-xs font-black text-[#8a6a10] transition-all"
         >
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="animate-pulse">📄</span>
             <span>Điểm từ đề: Đang mở hộp thoại</span>
           </span>
-          <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300" aria-hidden="true">Đang kiểm tra ›</span>
+          <span className="text-[11px] font-bold text-[#8a6a10]" aria-hidden="true">Đang kiểm tra ›</span>
         </button>
       )}
       </>)}

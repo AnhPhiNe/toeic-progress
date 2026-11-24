@@ -6,8 +6,8 @@ import { Soc, type SocMood } from '@/shared/ui/soc/Soc';
 
 type Part = PracticePartResult['part'];
 const PARTS: Part[] = [1, 2, 3, 4, 5, 6, 7];
-const INK = 'border-2 border-slate-900 dark:border-slate-300';
-const FIELD = `${INK} bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-[3px] focus:ring-blue-300 dark:focus:ring-blue-700`;
+const INK = 'border-2 border-[var(--rd-line)]';
+const FIELD = `${INK} bg-white text-[var(--rd-ink)] focus:outline-none focus:ring-[3px] focus:ring-[var(--rd-violet)]`;
 const NO_SPIN = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 interface Props {
@@ -107,7 +107,7 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
 
       <div className="flex items-center justify-between text-[13px] font-extrabold">
         <button type="button" className="rdp-time" onClick={() => setDetailOpen(true)}>⏱ {Math.round(duration)} phút</button>
-        <button type="button" aria-expanded={detailOpen} onClick={() => setDetailOpen(o => !o)} className="cursor-pointer text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+        <button type="button" aria-expanded={detailOpen} onClick={() => setDetailOpen(o => !o)} className="cursor-pointer text-[var(--rd-mut)] hover:text-[var(--rd-ink)]">
           {detailOpen ? 'Ẩn chi tiết ▴' : 'Thêm tên bài, ghi chú ▾'}
         </button>
       </div>
@@ -116,24 +116,24 @@ export const DesktopPracticeBody = ({ rows, setRows, testName, setTestName, sugg
         <div className="space-y-3.5">
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-12">
             <div className="sm:col-span-6">
-              <label htmlFor="session-test-name" className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
-                Tên đề hoặc nguồn <span className="font-medium text-slate-400 dark:text-slate-500">(không bắt buộc)</span>
+              <label htmlFor="session-test-name" className="mb-1 block text-xs font-bold text-[#5c675f]">
+                Tên đề hoặc nguồn <span className="font-medium text-[var(--rd-mut)]">(không bắt buộc)</span>
               </label>
               <TestNamePicker id="session-test-name" label="Tên đề hoặc nguồn" required={false} value={testName} onChange={setTestName} suggestions={suggestions} />
             </div>
             <div className="sm:col-span-3">
-              <label htmlFor="session-date" className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Ngày luyện</label>
+              <label htmlFor="session-date" className="mb-1 block text-xs font-bold text-[#5c675f]">Ngày luyện</label>
               <input id="session-date" type="date" required max={today} value={date} onChange={e => setDate(e.target.value)}
                 className={`w-full rounded-xl px-3 py-1.5 text-sm ${FIELD}`} />
             </div>
             <div className="sm:col-span-3">
-              <label htmlFor="session-duration" className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Thời gian làm (phút)</label>
+              <label htmlFor="session-duration" className="mb-1 block text-xs font-bold text-[#5c675f]">Thời gian làm (phút)</label>
               <input id="session-duration" type="number" min="0.01" max="1440" step="any" required value={duration} onChange={e => setDuration(Number(e.target.value))}
                 className={`w-full rounded-xl px-3 py-1.5 text-sm ${FIELD}`} />
             </div>
           </div>
           <div>
-            <label htmlFor="session-notes" className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Ghi chú</label>
+            <label htmlFor="session-notes" className="mb-1 block text-xs font-bold text-[#5c675f]">Ghi chú</label>
             <textarea id="session-notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="vd: Part 7 bài đọc đôi quản lý thời gian tốt hơn..."
               className={`w-full rounded-xl px-3 py-2 text-sm ${FIELD}`} />
