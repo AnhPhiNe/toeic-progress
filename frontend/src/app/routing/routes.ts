@@ -16,3 +16,15 @@ export function tabFromPath(path: string): NavTabId {
   // Retired pages (Từ vựng, Kế hoạch) land on Hôm nay.
   return (Object.entries(TAB_PATHS).find(([, value]) => value === normalized)?.[0] || 'dashboard') as NavTabId;
 }
+
+/** Opens the app straight on sign-in (Cài đặt); used by "Đã có tài khoản? Đăng nhập" on the public pages. */
+export const SIGN_IN_PATH = '/?dang-nhap';
+
+/** True once when the page was opened with ?dang-nhap; the parameter is removed from the address bar. */
+export function takeSignInParam(): boolean {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('dang-nhap')) return false;
+  url.searchParams.delete('dang-nhap');
+  window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  return true;
+}
