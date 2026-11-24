@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PHONE_VIEWPORT, openCardEditor, openNoteForm } from './helpers/mistakeForm';
+import { PHONE_VIEWPORT, openCardEditor, openManualForm } from './helpers/mistakeForm';
 import { gotoPage } from './helpers/nav';
 
 const options = ['(A) A man is standing.', '(B) A man is seated at a table.', '(C) Two people are talking.', '(D) A woman is cooking.'];
@@ -17,7 +17,7 @@ test('new notes are Reading only, while an existing Part 1 card keeps its Part w
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(data));
   }, [options, description] as const);
   await page.reload();
-  const modal = await openNoteForm(page);
+  const modal = await openManualForm(page);
   await expect(modal.getByRole('group', { name: 'Part', exact: true }).getByRole('button')).toHaveText(['5', '6', '7']);
   await modal.getByRole('button', { name: 'Đóng', exact: true }).click();
   // An existing card is edited from its page; computers open the same form.

@@ -24,11 +24,12 @@ interface Props {
   onTip: (p: PartNumber | null) => void;
 }
 
-function Chest({ x, y, k, rank, open, label, onClick, onHover }: { x: number; y: number; k: number; rank: number; open: boolean; label: string; onClick: () => void; onHover: (on: boolean) => void }) {
+function Chest({ x, y, k, rank, open, label, interactive = true, onClick, onHover }: { x: number; y: number; k: number; rank: number; open: boolean; label: string; interactive?: boolean; onClick: () => void; onHover: (on: boolean) => void }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(${k})`} className={'jr-chest' + (open ? ' is-open' : '')} role="button" tabIndex={0} aria-label={label}
-      onClick={e => { e.stopPropagation(); onClick(); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClick(); } }}
-      onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} onFocus={() => onHover(true)} onBlur={() => onHover(false)}>
+    <g transform={`translate(${x} ${y}) scale(${k})`} className={'jr-chest' + (open ? ' is-open' : '')}
+      role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? label : undefined} aria-hidden={interactive ? undefined : true} pointerEvents={interactive ? undefined : 'none'}
+      onClick={interactive ? e => { e.stopPropagation(); onClick(); } : undefined} onKeyDown={interactive ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClick(); } } : undefined}
+      onMouseEnter={interactive ? () => onHover(true) : undefined} onMouseLeave={interactive ? () => onHover(false) : undefined} onFocus={interactive ? () => onHover(true) : undefined} onBlur={interactive ? () => onHover(false) : undefined}>
       {!open && <><circle r="28" fill="#fff6c8" opacity=".5" /><circle className="il-pulse" r="19" fill="#fff6c8" opacity=".6" /></>}
       <ellipse cx="0" cy="13" rx="19" ry="4" fill="#000" opacity=".12" />
       {open ? (
@@ -144,9 +145,9 @@ export function IslandMap({ device, L, height, parts, plan, shown, ariaLabel, on
               </g>
             </g>
             {showChest && (
-              <Chest x={cx} y={cy} k={phone ? 0.62 : 1} rank={info.rank + 1} open={info.open}
+              <Chest x={cx} y={cy} k={phone ? 0.62 : 1} rank={info.rank + 1} open={info.open} interactive={!phone}
                 label={info.open ? `Rương Part ${p} đã mở, xem lại câu sai` : `Rương số ${info.rank + 1}, Part ${p}: xem ${info.wrong} câu sai`}
-                onClick={() => (phone ? onChoose(p) : onOpenNotebook(p))} onHover={o => onTip(o ? p : null)} />
+                onClick={() => onOpenNotebook(p)} onHover={o => onTip(o ? p : null)} />
             )}
           </g>
         );

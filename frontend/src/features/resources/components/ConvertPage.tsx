@@ -116,6 +116,8 @@ export function ConvertPage({ sessions, targetScore, gear = [] }: Props) {
                       <i style={{ width: `${Math.min(100, total / goal * 100)}%` }} />
                     </div>
                   </div>
+                ) : total >= 990 ? (
+                  <div className="cv-goal"><span>Điểm tối đa 990 · đã chạm <span aria-hidden="true">🎉</span></span></div>
                 ) : (
                   <div className="cv-goal"><span>Chưa đặt mục tiêu</span></div>
                 )}

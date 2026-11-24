@@ -93,7 +93,7 @@
 .pf-go { width: 100%; margin-top: 16px; padding: 15px; font-size: 17px; }
 
 /* phone */
-.pf.is-phone { padding: calc(8px + env(safe-area-inset-top)) 16px calc(170px + env(safe-area-inset-bottom)); }
+.pf.is-phone { padding: calc(8px + env(safe-area-inset-top)) 16px calc(116px + env(safe-area-inset-bottom)); }
 .pf.is-phone .pf-top h1 { font-size: 24px; }
 .pf-back { width: 44px; height: 44px; margin-left: -8px; border: 0; background: none; display: grid; place-items: center; color: var(--rd-ink); }
 .pf-pid { display: flex; gap: 12px; align-items: center; padding: 14px; }
@@ -111,7 +111,8 @@
 .pf.is-phone .pf-gt { flex-direction: column; text-align: center; gap: 2px; padding: 8px 4px; }
 .pf.is-phone .pf-gt__l b { font-size: 12.5px; }
 .pf.is-phone .pf-gt__l small { font-size: 11.5px; justify-content: center; }
-.pf-pfoot { position: fixed; left: 0; right: 0; bottom: calc(86px + env(safe-area-inset-bottom)); padding: 10px 16px; background: linear-gradient(transparent, #fbf8f2 30%); z-index: 30; }
+.pf-pfoot { margin-top: 14px; }
+.pf-pfoot.is-sticky { position: fixed; left: 0; right: 0; bottom: calc(86px + env(safe-area-inset-bottom)); margin-top: 0; padding: 10px 16px; background: linear-gradient(transparent, #fbf8f2 30%); z-index: 30; }
 .pf-pfoot .pf-save { width: 100%; padding: 15px; font-size: 17px; }
 .pf.is-phone .pf-cats { grid-template-columns: 1fr; }
 .pf.is-phone .pf-bgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -3,7 +3,7 @@
    remaining Neo ink frames inside the form into the flat, light language. */
 .rdl { font-family: var(--rd-font); color: var(--rd-ink); }
 .rdl-modal { border: 0 !important; border-radius: 26px !important; box-shadow: 0 10px 0 rgba(47, 58, 51, .1), 0 30px 60px rgba(47, 58, 51, .25) !important; }
-.rdl-head { border: 0 !important; padding: 22px 26px 6px !important; }
+.rdl-head { border: 0 !important; padding: 22px 26px 6px !important; border-radius: 26px 26px 0 0; }
 .rdl-title { font-weight: 900 !important; font-size: 23px !important; letter-spacing: -.4px; }
 .rdl-x { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; border: 2px solid var(--rd-line) !important; box-shadow: 0 2px 0 var(--rd-line); color: var(--rd-ink) !important; font-weight: 900; }
 .rdl-x:hover { background: var(--rd-soft) !important; }
@@ -55,7 +55,7 @@
 .rdl-chips em.is-max { background: var(--rd-pink-l); color: var(--rd-pink-d); }
 .rdl-hint { font-weight: 700; font-size: 12.5px; color: var(--rd-mut); margin-top: 8px; }
 
-.rdl-foot { border-top: 0 !important; padding: 10px 26px 22px !important; }
+.rdl-foot { border-top: 0 !important; padding: 10px 26px 22px !important; border-radius: 0 0 26px 26px; }
 .rdl .rdl-cancel { background: none !important; border: 0; font: 900 14.5px var(--rd-font) !important; color: var(--rd-mut) !important; }
 .rdl .rdl-cancel:hover { color: var(--rd-ink) !important; }
 .rdl-ghost { background: #fff !important; border: 2px solid var(--rd-line) !important; border-radius: 14px !important; box-shadow: 0 3px 0 var(--rd-line) !important; font: 900 14.5px var(--rd-font) !important; color: var(--rd-blue) !important; padding: 9px 16px !important; }

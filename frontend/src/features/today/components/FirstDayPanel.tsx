@@ -65,7 +65,7 @@ export function FirstDayPanel({ task, firstStep, week, onStartTask, hideCta = fa
             <small>{task.kicker}</small>
             <h2>{task.title}</h2>
             <p>{task.reason}</p>
-            {!hideCta && <div className="td-acts"><button type="button" className="td-go" onClick={() => onStartTask(task)}>{task.kind === 'FULL_TEST' ? '+ Ghi điểm' : '▶ Bắt đầu'}</button></div>}
+            {!(hideCta && task.kind === 'FULL_TEST') && <div className="td-acts"><button type="button" className="td-go" onClick={() => onStartTask(task)}>{task.kind === 'FULL_TEST' ? '+ Ghi điểm' : '▶ Bắt đầu'}</button></div>}
           </> : <>
             <small>HÔM NAY</small>
             <h2>Ghi điểm đề đầu tiên</h2>

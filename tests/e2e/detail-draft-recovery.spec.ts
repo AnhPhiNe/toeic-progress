@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { captureMore } from './helpers/wrongDetail';
 import { openDesktopFlow, openPendingList, screenshot, skipListening } from './helpers/detailAI';
+import { answerConfirm } from './helpers/confirmDialog';
 
 const reason = (flow: Locator, number: number, label: string) =>
   flow.getByRole('group', { name: `Vì sao sai câu ${number}` }).getByRole('button', { name: label, exact: true });
@@ -46,8 +47,8 @@ test('closing keeps read rows as a draft; discarding them keeps notebook cards u
   await flow.getByRole('button', { name: 'Soát 2 câu', exact: true }).click();
   await flow.getByRole('button', { name: 'Mở câu 104', exact: true }).click();
   await expect(reason(flow, 104, 'Hết giờ')).toHaveAttribute('aria-pressed', 'true');
-  page.once('dialog', dialog => dialog.accept());
   await flow.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
+  await answerConfirm(page, true);
   await expect(flow.getByRole('heading', { name: 'Chụp câu sai', exact: true })).toBeVisible();
   await expect(flow.getByRole('button', { name: /^Soát/ })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes
@@ -68,11 +69,8 @@ test('a quota failure on the close click keeps the flow open when losing the dra
   const card = flow.getByRole('group', { name: 'Ghi tay một câu' });
   await card.getByRole('group', { name: 'Vì sao sai câu 104' }).getByRole('button', { name: 'Hết giờ', exact: true }).click();
   await card.getByRole('button', { name: 'Đóng ghi tay', exact: true }).click();
-  page.once('dialog', dialog => {
-    expect(dialog.message()).toContain('Chưa tự lưu được nháp');
-    void dialog.dismiss();
-  });
   await flow.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await answerConfirm(page, false, 'Chưa lưu được nháp');
   await expect(flow).toBeVisible();
   await expect(flow.getByRole('button', { name: 'Soát 1 câu', exact: true })).toBeVisible();
 });

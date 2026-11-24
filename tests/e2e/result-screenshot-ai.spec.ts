@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mockResultsAI } from './helpers/resultsAI';
 import { resolve } from 'node:path';
+import { chooseMore } from './helpers/manualEntry';
 import { openGridForm } from './helpers/sessionForm';
 
 test('a result screenshot marks wrong and skipped questions on the grid for the learner to check', async ({ page }) => {
@@ -34,7 +35,7 @@ test('Phiếu tô giấy mode stages multiple result photos (answer sheet + answ
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
 
   // Turning on Phiếu tô giấy activates the multi-image staging tray instead of sending immediately on photo 1.
-  await form.getByRole('button', { name: 'Phiếu tô giấy', exact: true }).click();
+  await chooseMore(form, 'Phiếu tô giấy');
   await expect(form.getByText(/Khay ảnh Phiếu tô \+ Bảng đáp án/)).toBeVisible();
 
   const img = resolve('tests/fixtures/part7-notice.png');

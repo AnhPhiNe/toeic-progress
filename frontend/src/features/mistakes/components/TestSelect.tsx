@@ -23,7 +23,7 @@ export function TestSelect({ value, names, onChange, variant = 'field', disabled
     return (
       <div className={'cap-field is-input' + (variant === 'bare' ? ' is-bare' : '')}>
         <label htmlFor={id}>{variant === 'field' && <small>Đề</small>}
-          <input id={id} autoFocus={typing} value={value} maxLength={300} placeholder="Tên đề, ví dụ ETS 2024 Test 11" disabled={disabled}
+          <input id={id} aria-label="Đề" autoFocus={typing} value={value} maxLength={300} placeholder="Tên đề, ví dụ ETS 2024 Test 11" disabled={disabled}
             onChange={event => { setTyping(true); onChange(event.target.value); }} onBlur={() => { const next = normalizeTestName(value); onChange(next); if (typing && next) setTyping(false); }} />
         </label>
         {known.length > 0 && <button type="button" className="cap-link" onClick={() => setTyping(false)}>Chọn đề có sẵn</button>}

@@ -79,7 +79,7 @@ export function WordRows({ words, isSaved, onSave, onToggle, all = false }: { wo
               <span className="cd-wm"><b lang="en">{item.word}</b><em>{item.meaning}</em></span>
               <button type="button" className={saved ? 'is-saved' : undefined} disabled={saved && !canUntoggle}
                 aria-pressed={saved}
-                aria-label={saved ? (canUntoggle ? `Bỏ lưu ${item.word}` : `Đã lưu ${item.word}`) : `Ôn từ ${item.word}`}
+                aria-label={saved ? `Đã lưu ${item.word}` : `Ôn từ ${item.word}`}
                 title={saved && canUntoggle ? 'Bấm để bỏ lưu' : undefined}
                 onClick={() => (onToggle ? onToggle(item.word) : onSave([item.word]))}>{saved ? 'Đã lưu' : '+ Ôn'}</button>
             </li>

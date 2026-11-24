@@ -1,21 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import { resolve } from 'node:path';
-import { chooseNoteSource } from './helpers/noteSource';
 import { openManualEntry } from './helpers/manualEntry';
 import { openGridForm, phoneLogger, phoneManualScore } from './helpers/sessionForm';
-import { openNoteForm, PHONE_VIEWPORT } from './helpers/mistakeForm';
+import { openManualForm, PHONE_VIEWPORT } from './helpers/mistakeForm';
 import { openScoreLogger } from './helpers/nav';
+import { answerConfirm } from './helpers/confirmDialog';
 
 async function openResult(page: Page) {
   return openGridForm(page);
 }
-// The old note form (dialog "Thêm câu sai") is the phone way to add a note by hand.
-async function openNote(page: Page) {
-  await page.setViewportSize(PHONE_VIEWPORT);
-  await page.goto('/so-tay');
-  return openNoteForm(page);
-}
-const reopenNote = (page: Page) => openNoteForm(page);
 const draftRecords = (page: Page) => page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('toeic_form_draft_v1:')).map(key => JSON.parse(localStorage.getItem(key)!)));
 
 test('unfinished result restores name and marks after reload on a computer, then clears only on save', async ({ page }) => {
@@ -29,7 +22,6 @@ test('unfinished result restores name and marks after reload on a computer, then
   await page.reload(); form = await openResult(page);
   await expect(form.locator('#session-test-name')).toHaveValue('QA durable result');
   await expect(form.getByRole('status').filter({ hasText: /Đã khôi phục bản nháp trên thiết bị này|Đang tiếp tục bản nháp chưa lưu/ })).toBeVisible();
-  // A restored draft with marks opens the short manual view with the list; the grid is one step further.
   await expect(form.getByLabel('Số câu sai', { exact: true })).toHaveValue('107');
   await form.getByRole('button', { name: /^Chạm từng câu trên lưới/ }).click();
   await expect(form.getByRole('button', { name: 'Câu 107', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -51,7 +43,6 @@ test('unfinished phone result restores its name and marks after reload, then cle
   await expect.poll(() => draftRecords(page)).toContainEqual(expect.objectContaining({ scope: expect.stringMatching(/^session:/), value: expect.objectContaining({ testName: 'QA durable result', wrongQuestions: [107] }) }));
   await page.reload();
   await openScoreLogger(page);
-  // The draft reopens on the score step with its name and mark.
   await expect(dialog.getByRole('heading', { name: 'QA durable result', exact: true })).toBeVisible();
   await expect(dialog.getByText('1 câu đã chọn', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: /^Lưu điểm/ }).click();
@@ -61,23 +52,24 @@ test('unfinished phone result restores its name and marks after reload, then cle
   await expect(phoneLogger(page).getByRole('heading', { name: 'Ghi điểm đề', exact: true })).toBeVisible();
 });
 
-test('a note restores typed question, reason and choice without calling AI, and explicit discard removes its draft', async ({ page }) => {
-  let form = await openNote(page);
-  await chooseNoteSource(form, 'QA durable note');
-  await form.getByRole('button', { name: 'Part 5', exact: true }).click();
+test('manual question restores typed text, choice and passage after reload, and clears on save', async ({ page }) => {
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await page.goto('/so-tay');
+  let form = await openManualForm(page);
+  await form.getByRole('button', { name: 'Part 7', exact: true }).click();
+  await form.getByLabel('Đề', { exact: true }).fill('QA durable note');
   const question = 'Reports should ____ submitted.\n(A) are\n(B) be\n(C) were\n(D) been';
-  await form.getByLabel('Câu hỏi + phương án').fill(question);
-  await form.getByRole('button', { name: 'Bạn chọn A', exact: true }).click();
-  await form.locator('#mistake-reason').fill('I forgot the passive voice.');
+  await form.getByLabel('Câu hỏi và các phương án').fill(question);
+  await form.getByLabel('Đoạn văn').fill('Memo: All reports are due Friday.');
+  await form.getByRole('button', { name: 'Mình chọn: A', exact: true }).click();
   await form.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await page.reload(); form = await reopenNote(page);
-  await expect(form.getByLabel('Câu hỏi + phương án')).toHaveValue(question);
-  await expect(form.locator('#mistake-reason')).toHaveValue('I forgot the passive voice.');
-  await expect(form.getByRole('button', { name: 'Bạn chọn A', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  page.once('dialog', dialog => dialog.accept()); await form.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
+  await page.reload();
+  form = await openManualForm(page);
+  await expect(form.getByLabel('Câu hỏi và các phương án')).toHaveValue(question);
+  await expect(form.getByLabel('Đoạn văn')).toHaveValue('Memo: All reports are due Friday.');
+  await expect(form.getByRole('button', { name: 'Mình chọn: A', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await form.getByRole('button', { name: /^Lưu(, Sóc giải thích giúp| vào Sổ tay)$/ }).click();
   await expect.poll(() => draftRecords(page)).toEqual([]);
-  await openNoteForm(page);
-  await expect(page.getByLabel('Câu hỏi + phương án')).toHaveValue('');
 });
 
 test('a failed result save retains its durable draft and a later successful retry clears it', async ({ page }) => {
@@ -104,59 +96,18 @@ test('a failed result save retains its durable draft and a later successful retr
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.filter((session: { testName: string }) => session.testName === 'QA failed draft save'))).toHaveLength(1);
 });
 
-test('clearing a question updates the stored draft instead of resurrecting old text', async ({ page }) => {
-  await openNote(page);
-  await page.getByLabel('Câu hỏi + phương án').fill('This text will be cleared.');
+test('clearing a manual question updates the stored draft instead of resurrecting old text', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/so-tay');
+  const form = await openManualForm(page);
+  await form.getByLabel('Câu hỏi và các phương án').fill('This text will be cleared.');
   await expect.poll(() => draftRecords(page)).toContainEqual(expect.objectContaining({ value: expect.objectContaining({ raw: 'This text will be cleared.' }) }));
-  await page.getByLabel('Câu hỏi + phương án').fill('');
-  await page.reload(); await reopenNote(page);
-  await expect(page.getByLabel('Câu hỏi + phương án')).toHaveValue('');
+  await form.getByLabel('Câu hỏi và các phương án').fill('');
+  await page.reload();
+  const reopened = await openManualForm(page);
+  await expect(reopened.getByLabel('Câu hỏi và các phương án')).toHaveValue('');
 });
 
-test('read batch items survive reload without retaining tickets or repeating the paid extraction', async ({ page }) => {
-  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
-    export async function getAIConfiguration() { return {provider:'openai', structuredInput:true, pageImages:true}; }
-    export async function getAIUsage() { return null; }
-    export async function extractPageWithAI() {
-      localStorage.setItem('__qaDraftCalls', String(Number(localStorage.getItem('__qaDraftCalls') || 0) + 1));
-      return {usage:{}, explainTicket:'temporary-ticket', items:[{number:107, draft:{part:5,category:'OTHER',question:'Reports ____ ready.',context:'',questionContext:'Reports ____ ready.',
-        options:['(A) are','(B) is'],correctAnswer:'(A) are',answerSource:'PROVIDED',userChoice:'B',userChoiceState:'CHOSEN',userMistake:'',trapTip:'',tags:[],missingInformation:[],optionNotes:[],explanation:null}}]};
-    }
-    export async function explainBatchWithAI() { throw new Error('Restored ticket must not be reused.'); }
-    export async function extractMistakeWithAI() { throw new Error('unused'); }
-  ` }));
-  let form = await openNote(page); await form.getByRole('tab', { name: /Quét ảnh AI/ }).click(); await chooseNoteSource(form, 'QA durable batch');
-  await form.getByLabel('Ảnh màn hình câu sai').setInputFiles(resolve('tests/fixtures/part7-notice.png'));
-  await expect(form.getByText('Đã quét được 1 câu:', { exact: true })).toBeVisible();
-  await page.reload(); form = await reopenNote(page);
-  await expect(form.getByRole('tab', { name: /Quét ảnh AI/ })).toHaveAttribute('aria-selected', 'true');
-  await expect(form.getByText('Đã quét được 1 câu:', { exact: true })).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem('__qaDraftCalls'))).toBe('1');
-  expect(JSON.stringify(await draftRecords(page))).not.toContain('temporary-ticket');
-  expect(JSON.stringify(await draftRecords(page))).not.toContain('data:image');
-});
-
-test('a restored draft asks for missing local images before making another AI request', async ({ page }) => {
-  await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
-    export async function getAIConfiguration() { return {provider:'openai',structuredInput:true,part7Images:true}; }
-    export async function getAIUsage() { return null; }
-    export async function extractMistakeWithAI() { localStorage.setItem('__unexpectedPaidCall','true'); throw new Error('Unexpected request'); }
-    export async function extractPageWithAI() { throw new Error('unused'); }
-  ` }));
-  let form = await openNote(page); await chooseNoteSource(form, 'QA missing draft image');
-  await form.getByRole('button', { name: 'Part 7', exact: true }).click();
-  await form.getByLabel('Câu hỏi + phương án').fill('Where is the workshop?\n(A) Main hall\n(B) Library\n(C) Cafeteria\n(D) Outside');
-  await form.getByRole('button', { name: 'Ảnh', exact: true }).click();
-  await form.getByLabel('Chọn ảnh Part 7', { exact: true }).setInputFiles(resolve('tests/fixtures/part7-notice.png'));
-  await expect(form.getByRole('img', { name: 'Ảnh Part 7 1', exact: true })).toBeVisible();
-  await page.reload(); form = await reopenNote(page);
-  await form.getByRole('button', { name: 'Phân tích với AI', exact: true }).click();
-  await expect(form.getByRole('alert')).toContainText('Chọn lại ảnh ngữ cảnh của bản nháp');
-  expect(await page.evaluate(() => localStorage.getItem('__unexpectedPaidCall'))).toBeNull();
-  expect(JSON.stringify(await draftRecords(page))).not.toContain('data:image');
-});
-
-// Regression: "Bỏ nháp" used to reset the form one commit late, so the persist in between re-wrote the discarded draft (then a blank one).
 test('pending score corrections survive reload and explicit discard stays cleared on pagehide', async ({ page }) => {
   await page.route('**/src/features/mistakes/services/aiMistakeExtractor.ts*', route => route.fulfill({ contentType: 'application/javascript', body: `
     export async function getAIConfiguration() { return {provider:'openai',resultImages:true}; }
@@ -176,12 +127,10 @@ test('pending score corrections survive reload and explicit discard stays cleare
   review = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
   await expect(review.getByLabel('Điểm từ ảnh: Listening')).toHaveValue('400');
   await expect(review.getByLabel('Điểm từ ảnh: Reading')).toHaveValue('345');
-  // Change only the child-owned mutable score draft before discarding the whole form.
   await review.getByLabel('Điểm từ ảnh: Reading').fill('350');
   await page.keyboard.press('Escape');
-  page.once('dialog', dialog => dialog.accept()); await form.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
+  await form.getByRole('button', { name: 'Bỏ nháp', exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
-  // The discarded content must be gone, also after pagehide.
   expect(JSON.stringify(await draftRecords(page))).not.toContain('QA pending score draft');
   expect(JSON.stringify(await draftRecords(page))).not.toContain('"sourceScoreDraft":{');
   await page.reload(); form = await openResult(page);

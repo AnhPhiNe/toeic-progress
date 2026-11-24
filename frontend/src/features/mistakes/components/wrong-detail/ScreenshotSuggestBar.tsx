@@ -34,11 +34,14 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
   const [pasting, setPasting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+  const [menuHost, setMenuHost] = useState<HTMLElement | null>(null);
   const menuId = useId();
   const menuBox = useRef<HTMLDivElement>(null);
   const menuPop = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) { setMenuHost(null); return; }
+    const dialogHost = menuBox.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
+    setMenuHost(dialogHost);
     const place = () => {
       const rect = menuBox.current?.getBoundingClientRect();
       if (!rect) return;
@@ -47,12 +50,20 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
       const width = Math.min(284, vw - 24);
       const spaceBelow = vh - rect.bottom - 12;
       const spaceAbove = rect.top - 12;
-      const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+      const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
       const rawLeft = menuAlign === 'right' ? rect.right - width : rect.left;
       const left = Math.max(12, Math.min(rawLeft, vw - width - 12));
-      setMenuStyle(openUp
-        ? { left, bottom: vh - rect.top + 6, width, maxHeight: Math.min(340, Math.max(160, spaceAbove - 6)) }
-        : { left, top: rect.bottom + 6, width, maxHeight: Math.min(340, Math.max(160, spaceBelow - 6)) });
+      if (dialogHost) {
+        const hostRect = dialogHost.getBoundingClientRect();
+        const relLeft = left - hostRect.left;
+        setMenuStyle(openUp
+          ? { position: 'absolute', left: relLeft, bottom: hostRect.bottom - rect.top + 6, width, maxHeight: Math.min(340, Math.max(160, spaceAbove - 6)) }
+          : { position: 'absolute', left: relLeft, top: rect.bottom - hostRect.top + 6, width, maxHeight: Math.min(340, Math.max(160, spaceBelow - 6)) });
+      } else {
+        setMenuStyle(openUp
+          ? { position: 'fixed', left, bottom: vh - rect.top + 6, width, maxHeight: Math.min(340, Math.max(160, spaceAbove - 6)) }
+          : { position: 'fixed', left, top: rect.bottom + 6, width, maxHeight: Math.min(340, Math.max(160, spaceBelow - 6)) });
+      }
     };
     place();
     window.addEventListener('resize', place);
@@ -154,7 +165,7 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
         {menuOpen && createPortal(
           <div ref={menuPop} id={menuId} data-modal-owner={menuId} className="rd ssb-menu" style={menuStyle} role="menu" aria-label="Cách khác">
             {menuItems.map(item => (
-              <button key={item.key} type="button" role={item.pressed !== undefined ? 'menuitemcheckbox' : 'menuitem'} disabled={item.disabled} aria-checked={item.pressed === undefined ? undefined : item.pressed}
+              <button key={item.key} type="button" role="menuitem" disabled={item.disabled}
                 className={'ssb-mi' + (item.pressed ? ' is-on' : '')} onClick={() => { setMenuOpen(false); item.onClick(); }}>
                 <span>{item.label}</span>{item.pressed !== undefined && <span className="ssb-mi-sw" aria-hidden="true" />}
               </button>
@@ -164,7 +175,7 @@ export function ScreenshotSuggestBar({ enabled, disabled = false, addVerb = 'và
               <button type="button" role="menuitem" className="ssb-mi" disabled={disabled} onClick={() => { setMenuOpen(false); folderRun(); }}><span>{folderLabel}</span></button>
             )}
           </div>,
-          document.body
+          menuHost ?? document.body
         )}
       </div>
       {watcher.status === 'watching' && <span className="ssb-watch" role="status"><span className="ssb-dot" aria-hidden="true" /><span>Đang theo dõi thư mục</span></span>}

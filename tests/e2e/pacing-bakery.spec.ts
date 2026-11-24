@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { answerConfirm } from './helpers/confirmDialog';
 
 // Luyện tập is the bakery: pick a Part (a "dish"), set minutes, "Bật lò", "Xong rồi · ra lò", then say how many were wrong.
 // Desktop (BakeryChoose/Run/Done) and phone (PhoneBakery*) share their labels, so one set of helpers drives both.
@@ -116,11 +117,11 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
       await page.reload();
       await expect(clock(page, '11:55')).toBeVisible();
       await expect(page.getByRole('button', { name: 'Tiếp tục', exact: true })).toBeVisible();
-      page.once('dialog', dialog => dialog.dismiss());
       await page.getByRole('button', { name: '× Dừng', exact: true }).click();
+      await answerConfirm(page, false);
       await expect(clock(page, '11:55')).toBeVisible();
-      page.once('dialog', dialog => dialog.accept());
       await page.getByRole('button', { name: '× Dừng', exact: true }).click();
+      await answerConfirm(page, true);
       await expect(fire(page)).toBeVisible();
       expect((await data(page)).pacingRuns).toHaveLength(0);
       expect((await data(page)).sessions).toHaveLength(0);

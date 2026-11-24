@@ -130,8 +130,8 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
           <h2>Xong {cards.length} câu!</h2>
           <p className="rv-done-sub">{perfect ? 'Chuẩn hết lượt này luôn — Sóc vỗ tay!' : 'Hôm nay đã tính vào chuỗi ngày. Câu chưa chắc Sóc hẹn mai ôn tiếp.'}</p>
           <div className="rv-stats" aria-label="Tổng kết phiên ôn">
-            <div className="is-ok"><b>{tally.got}</b><span>Hiểu rồi</span></div>
-            <div className="is-again"><b>{tally.again}</b><span>Ôn lại ngày mai</span></div>
+            <div className="is-ok"><span>Hiểu rồi</span> <b>{tally.got}</b></div>
+            <div className="is-again"><span>Ôn lại ngày mai</span> <b>{tally.again}</b></div>
           </div>
           <p className="rv-next">{nextReviewLine(loadMistakes(), getTodayDateString())}</p>
           {error && <p role="alert" className="rv-err">{error}</p>}
@@ -171,7 +171,7 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
             const isAns = o.letter === answer, isPick = o.letter === picked;
             const cls = !revealed ? '' : isAns ? 'is-ok' : isPick ? 'is-bad' : 'is-dim';
             const noteLine = o.note?.reason || o.note?.meaning || '';
-            const showNote = revealed && Boolean(noteLine) && (isAns || isPick || more);
+            const showNote = revealed && Boolean(noteLine) && more;
             return (
               <button key={o.letter} ref={i === 0 ? firstOption : undefined} type="button" className={'rv-o ' + cls} disabled={revealed} onClick={() => pick(o.letter)}>
                 <div className="rv-ot">
@@ -269,7 +269,7 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
                 </>}
             </div>
             {(hasMeanings || hasExtraDetails) && !more && (
-              <p className="rv-hint"><button type="button" onClick={() => setMore(true)}>{hasMeanings && !hasExtraDetails ? 'Xem nghĩa từng phương án' : 'Xem thêm giải thích'}</button></p>
+              <p className="rv-hint"><button type="button" onClick={() => setMore(true)}>{hasMeanings ? 'Xem nghĩa từng phương án' : 'Xem thêm giải thích'}</button></p>
             )}
           </div>
         ) : (

@@ -25,33 +25,42 @@ export async function openAnswerKey(modal: Locator) {
   if (!await isOpen()) await summary.click();
 }
 
-/** The phone viewport the old note form ("Thêm câu sai", MistakeEntryModal) is reached in. Computers add cards with the camera or "Tự gõ một câu" (ManualQuestionModal). */
+/** Standard phone viewport for mobile E2E tests. */
 export const PHONE_VIEWPORT = { width: 390, height: 844 } as const;
 
-/**
- * Opens the full note form (MistakeEntryModal, dialog "Thêm câu sai") the way a phone does: bottom nav "Ghi" ->
- * "Chụp câu sai" -> camera screen -> "Tự gõ". On computers this form is only used for editing a card, so tests that
- * type a new note through it run at phone width (`test.use({ viewport: PHONE_VIEWPORT })`).
- */
-export async function openNoteForm(page: Page) {
-  if (!await isPhoneLayout(page)) throw new Error('openNoteForm is for phone width; computers use openManualForm');
-  // The first-time camera tips sheet would cover the camera screen.
-  await page.evaluate(() => localStorage.setItem('toeic.capture.tipsSeen', '1'));
-  await openRecordSheet(page, 'mistake');
-  await captureMore(page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true }), 'Tự gõ một câu');
-  await expect(page.getByRole('dialog', { name: 'Thêm câu sai', exact: true })).toBeVisible();
-  return noteModal(page);
-}
-
-/** The note form dialog; its title changes (Thêm câu sai / Kiểm tra và lưu / Sửa câu sai), so it is found by its labelling id. */
+/** The note editor dialog (MistakeEntryModal, used for editing saved cards); found by its labelling id. */
 export const noteModal = (page: Page) => page.locator('[role="dialog"][aria-labelledby="mistake-entry-title"]');
 
-/** Computers: Sổ tay -> "Tự gõ một câu" opens ManualQuestionModal ("Tự gõ một câu sai"). */
+/** Opens "Tự gõ một câu" (ManualQuestionModal) on both desktop and phone. */
 export async function openManualForm(page: Page) {
-  await page.getByRole('button', { name: /Tự gõ một câu$/i }).first().click();
+  if (await isPhoneLayout(page)) {
+    const direct = page.getByRole('button', { name: /Tự gõ một câu$/i }).first();
+    if (await direct.isVisible()) {
+      await direct.click();
+    } else {
+      await page.evaluate(() => localStorage.setItem('toeic.capture.tipsSeen', '1'));
+      await openRecordSheet(page, 'mistake');
+      await captureMore(page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true }), 'Tự gõ một câu');
+    }
+  } else {
+    await page.getByRole('button', { name: /Tự gõ một câu$/i }).first().click();
+  }
   const modal = page.getByRole('dialog', { name: 'Tự gõ một câu sai', exact: true });
   await expect(modal).toBeVisible();
   return modal;
+}
+
+/** Sets the test name inside ManualQuestionModal's TestSelect (works whether it renders <input> or <select>). */
+export async function setManualSource(modal: Locator, name: string) {
+  const select = modal.locator('select[aria-label="Đề"]');
+  if (await select.count()) {
+    const existing = await select.locator('option').evaluateAll((opts, target) =>
+      opts.map(o => (o as HTMLOptionElement).value).find(v => v.trim().toLowerCase().replace(/\s+/g, ' ') === target.trim().toLowerCase().replace(/\s+/g, ' ')) ?? '',
+    name);
+    if (existing) { await select.selectOption(existing); return; }
+    await select.selectOption('__new__');
+  }
+  await modal.locator('input[aria-label="Đề"]').fill(name);
 }
 
 /**

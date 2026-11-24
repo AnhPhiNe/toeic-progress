@@ -212,6 +212,7 @@
   .cap-mod.is-manual .cap-body { padding: 8px 16px 8px; }
   .cap-mod.is-manual .cap-foot { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); flex-wrap: wrap; }
   .cap-mod.is-manual .cap-two { flex-direction: column; gap: 10px; }
+  .cap-mod.is-manual .cap-ta, .cap-mod.is-manual .cap-edit textarea, .cap-mod.is-manual .cap-edit input, .cap-mod.is-manual .cap-more-body input { font-size: 16px; }
   .cap-mod.is-manual .cap-abcd { grid-template-columns: 92px repeat(4, 1fr); gap: 6px; }
   .cap-mod.is-manual .cap-foot .rd-btn { width: 100%; }
 }

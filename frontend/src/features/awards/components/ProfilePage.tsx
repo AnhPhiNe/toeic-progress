@@ -132,7 +132,7 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
         <>
           <div className="pf-stage" dangerouslySetInnerHTML={{ __html: roomScene(358, 150, 96, true, gear, coat) }} />
           {wardrobe}
-          {(dirty || justSaved) && <div className="pf-pfoot">{saveBtn}</div>}
+          <div className={'pf-pfoot' + (dirty || justSaved ? ' is-sticky' : '')}>{saveBtn}</div>
         </>
       ) : badgeGrid} />
       {detail}{gift}

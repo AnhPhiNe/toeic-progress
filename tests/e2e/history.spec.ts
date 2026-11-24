@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { openScoreLogger } from './helpers/nav';
 import { openManualEntry } from './helpers/manualEntry';
 import { openHistoryEdit, sessionDialog, usePartCounts } from './helpers/sessionForm';
+import { answerConfirm } from './helpers/confirmDialog';
 
 async function seed(page: Page, count = 4) {
   await page.goto('/lich-su');
@@ -108,12 +109,12 @@ test('deleting a test from its drawer asks first, cancel preserves data and the 
   await expect(rows).toHaveCount(7);
   await rows.first().getByRole('button').click();
   const drawer = page.getByRole('dialog');
-  page.once('dialog', dialog => dialog.dismiss());
   await drawer.getByRole('button', { name: 'Xoá', exact: true }).click();
+  await answerConfirm(page, false);
   await expect(drawer).toBeVisible();
   await expect(rows).toHaveCount(7);
-  page.once('dialog', dialog => dialog.accept());
   await drawer.getByRole('button', { name: 'Xoá', exact: true }).click();
+  await answerConfirm(page, true);
   await expect(rows).toHaveCount(6);
   await expect(page.getByRole('heading', { name: /^6 đề đã ghi/ })).toBeVisible();
   await page.reload(); await testsTab(page); await expect(rows).toHaveCount(6);

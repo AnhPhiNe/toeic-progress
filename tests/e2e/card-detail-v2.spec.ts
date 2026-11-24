@@ -88,12 +88,16 @@ test.describe('desktop 1440x900', () => {
     await shot(page, 'desktop-part5');
 
     await card.getByRole('button', { name: 'Ôn từ widespread', exact: true }).click();
-    await expect(card.getByRole('button', { name: 'Đã lưu widespread', exact: true })).toBeDisabled();
+    await expect(card.getByRole('button', { name: 'Đã lưu widespread', exact: true })).toHaveAttribute('aria-pressed', 'true');
     expect((await stored(page, 'p5')).savedWords).toEqual(['widespread']);
     await page.reload();
     await open(page, '.nb-row', /widespread/);
     await expect(page.getByRole('button', { name: 'Đã lưu widespread', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ôn từ rely on', exact: true })).toBeEnabled();
+    // Clicking again toggles the saved word off cleanly.
+    await page.getByRole('button', { name: 'Đã lưu widespread', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Ôn từ widespread', exact: true })).toBeVisible();
+    expect((await stored(page, 'p5')).savedWords ?? []).toEqual([]);
   });
 
   test('triple-passage Part 7: both evidences highlighted with translations underneath, opened at the first, jumper goes to the second', async ({ page }) => {

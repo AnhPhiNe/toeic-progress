@@ -53,12 +53,12 @@ for (const practice of [false, true]) test(`saving ${practice ? 'practice' : 'fu
   await expect(manual.getByLabel('Đề', { exact: true })).toHaveValue(source);
   await manual.getByLabel('Câu hỏi và các phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
   await manual.getByRole('button', { name: 'Đáp án đúng: B', exact: true }).click();
-  await manual.getByRole('button', { name: 'Lưu, Sóc giải thích giúp', exact: true }).click();
+  await manual.getByRole('button', { name: /^Lưu(, Sóc giải thích giúp| vào Sổ tay)$/ }).click();
   await expect(manual).toHaveCount(0);
   await openManualForm(page);
   await expect(manual.getByLabel('Đề', { exact: true })).toHaveValue(source);
   await manual.getByLabel('Câu hỏi và các phương án').fill('Forms should ____ submitted.\n(A) are\n(B) be');
-  await manual.getByRole('button', { name: 'Lưu, Sóc giải thích giúp', exact: true }).click();
+  await manual.getByRole('button', { name: /^Lưu(, Sóc giải thích giúp| vào Sổ tay)$/ }).click();
   await expect(manual).toHaveCount(0);
   const mistakes = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes);
   expect(mistakes).toHaveLength(2);
@@ -71,7 +71,7 @@ test('a note typed right after logging a test is linked to that test session', a
   await captureMore(captureDialog(page), 'Tự gõ một câu');
   const manual = page.getByRole('dialog', { name: 'Tự gõ một câu sai', exact: true });
   await manual.getByLabel('Câu hỏi và các phương án').fill('Reports should ____ submitted.\n(A) are\n(B) be');
-  await manual.getByRole('button', { name: 'Lưu, Sóc giải thích giúp', exact: true }).click();
+  await manual.getByRole('button', { name: /^Lưu(, Sóc giải thích giúp| vào Sổ tay)$/ }).click();
   const state = await page.evaluate(() => { const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!); return { session: bundle.sessions[0], card: bundle.mistakes[0] }; });
   expect(state.card.sessionId).toBe(state.session.id);
 });

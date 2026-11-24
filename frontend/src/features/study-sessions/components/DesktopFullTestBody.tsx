@@ -179,7 +179,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
                 ? [
                     { key: 'notes', label: notes.trim() ? 'Ghi chú (đã có)' : 'Ghi chú bài thi', pressed: showNotes, onClick: () => setShowNotes(prev => !prev) },
                     { key: 'counts', label: 'Số câu đúng mỗi Part', onClick: onCounts },
-                    { key: 'official', label: 'Điểm chính thức ETS', onClick: onOfficial }
+                    { key: 'official', label: 'Điểm chính thức', onClick: onOfficial }
                   ]
                 : undefined
           }

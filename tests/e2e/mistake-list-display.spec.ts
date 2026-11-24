@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { gotoPage } from './helpers/nav';
+import { answerConfirm } from './helpers/confirmDialog';
 
 // Sổ tay on computers pages its list 8 rows at a time ("‹ Trước 1 / 3 Sau ›"); phones use the grouped list in phone-notebook specs.
 
@@ -82,11 +83,11 @@ test('deleting the final card on the last page returns to a populated page and t
   }
   await pagination.getByRole('button', { name: /Sau/ }).click();
   await rows.first().click();
-  page.once('dialog', dialog => dialog.dismiss());
   await page.getByRole('button', { name: 'Xoá câu này', exact: true }).click();
+  await answerConfirm(page, false);
   await expect(page.getByRole('button', { name: 'Xoá câu này', exact: true })).toBeVisible();
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Xoá câu này', exact: true }).click();
+  await answerConfirm(page, true);
   await expect(rows).toHaveCount(8);
   await expect(pagination).toHaveCount(0);
   await page.reload();

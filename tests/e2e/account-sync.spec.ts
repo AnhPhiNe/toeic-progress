@@ -3,6 +3,7 @@ import { emptyBundle } from '../../frontend/src/shared/data/dataBundle';
 import { openSettings } from './helpers/accountGroup';
 import { chooseMore } from './helpers/manualEntry';
 import { openScoreLogger } from './helpers/nav';
+import { answerConfirm } from './helpers/confirmDialog';
 
 /** The profile name the app currently shows in Cài đặt (the old top bar's "Cài đặt hồ sơ <tên>" button is gone). */
 async function profileName(page: Page) {
@@ -350,12 +351,8 @@ test('a score form left open in another tab after sign-out is refused with a not
 
   // Closing it and opening a new form: that one belongs to the guest and saves normally.
   // The stale draft cannot be kept for a signed-out account, so closing asks first.
-  const closing = tabB.waitForEvent('dialog');
-  const close = form.getByRole('button', { name: 'Đóng form ghi nhận buổi học', exact: true }).click();
-  const ask = await closing;
-  expect(ask.message()).toContain('Đóng form sẽ mất nội dung đang nhập');
-  await ask.accept();
-  await close;
+  await form.getByRole('button', { name: 'Đóng form ghi nhận buổi học', exact: true }).click();
+  await answerConfirm(tabB, true, 'Đóng form sẽ mất nội dung đang nhập');
   await expect(form).toHaveCount(0);
   const fresh = await fillScore(tabB, 'ETS Guest Tab');
   await fresh.getByRole('button', { name: 'Lưu điểm', exact: true }).click();

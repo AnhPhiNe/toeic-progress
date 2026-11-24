@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openRecordSheet, openScoreLogger } from './helpers/nav';
 import { phoneLogger, phoneManualScore, pickPhoneTestName, setWheel } from './helpers/sessionForm';
+import { answerConfirm } from './helpers/confirmDialog';
 
 // Phones (<768px) log through the full-screen PhoneLogger: pick the test, then type the score on wheels or read it from a screenshot.
 async function openForm(page: Page) {
@@ -105,10 +106,8 @@ test('phone asks before saving a screenshot result with no wrong questions', asy
   await pickPhoneTestName(page, 'Perfect run');
   await dialog.getByLabel('Chụp màn kết quả').setInputFiles('tests/fixtures/part7-notice.png');
   await expect(dialog.getByRole('heading', { name: 'Câu sai', exact: true })).toBeVisible();
-  let asked = '';
-  page.once('dialog', prompt => { asked = prompt.message(); void prompt.dismiss(); });
   await dialog.getByRole('button', { name: /^Lưu điểm/ }).click();
-  expect(asked).toContain('990');
+  await answerConfirm(page, false, '990');
   await expect(dialog).toBeVisible();
 });
 

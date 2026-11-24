@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { mockResultsAI } from './helpers/resultsAI';
-import { openManualEntry } from './helpers/manualEntry';
+import { chooseMore, openManualEntry } from './helpers/manualEntry';
 import { openScoreLogger } from './helpers/nav';
 
 test('a computer logs a Full Test by clicking, typing and pasting its wrong questions', async ({ page }) => {
@@ -67,11 +67,11 @@ test('a computer can still log per-Part counts or an official score', async ({ p
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
   await openManualEntry(page, form);
   await form.getByRole('button', { name: 'Câu 5', exact: true }).click();
-  await form.getByRole('button', { name: 'Số câu đúng mỗi Part', exact: true }).click();
+  await chooseMore(form, 'Số câu đúng mỗi Part');
   // The marks carry over as counts.
   await expect(form.getByLabel('Số câu đúng Part 1', { exact: true })).toHaveValue('5');
   await form.getByRole('button', { name: 'Đánh dấu câu sai', exact: true }).click();
   await expect(form.getByRole('button', { name: 'Câu 5', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await form.getByRole('button', { name: 'Điểm chính thức', exact: true }).click();
+  await chooseMore(form, 'Điểm chính thức');
   await expect(form.getByLabel('Điểm Nghe /495')).toBeVisible();
 });

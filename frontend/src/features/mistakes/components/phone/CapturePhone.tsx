@@ -188,7 +188,7 @@ export function CapturePhone({ sessions, mistakes, sourceSuggestions, initialTes
   if (!testName && state.images.length) primary = <button type="button" className={wide} disabled>Chọn đề trước khi gửi</button>;
   else if (badImage) primary = <button type="button" className={wide} onClick={() => { removeImage(badImage.id); controls.current?.open(badImage.zone); }}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp lại ảnh {problemIndex + 1}</button>;
   else if (sendReady) {
-    primary = <button type="button" className={wide} onClick={nextGroup !== null ? sendAndContinue : send}>Gửi Sóc đọc{nextGroup !== null ? ' · Nhóm tiếp' : ''} <ArrowRight className="h-5 w-5" aria-hidden="true" /></button>;
+    primary = <button type="button" className={wide} onClick={send}>Gửi Sóc đọc <ArrowRight className="h-5 w-5" aria-hidden="true" /></button>;
     under = <button type="button" className={wide + ' is-outline'} disabled={full} onClick={() => controls.current?.open()}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp tiếp</button>;
   } else if (passageOnly) {
     primary = <button type="button" className={wide} onClick={() => { setActiveZone('questions'); controls.current?.open('questions'); }}><Camera className="h-5 w-5" aria-hidden="true" /> Chụp câu hỏi</button>;

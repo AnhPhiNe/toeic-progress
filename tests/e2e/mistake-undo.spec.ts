@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openCard } from './helpers/mistakeForm';
 import { gotoPage } from './helpers/nav';
+import { answerConfirm } from './helpers/confirmDialog';
 
 const question = 'Reports should ____ submitted.';
 async function seed(page: Page) {
@@ -23,10 +24,10 @@ for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     await seed(page);
     await openCard(page, question);
-    page.once('dialog', dialog => dialog.accept());
     // Phones keep Sửa/Xoá in the ⋯ menu of the card.
     if (width < 768) await page.getByRole('button', { name: 'Thêm thao tác', exact: true }).click();
     await page.getByRole(width < 768 ? 'menuitem' : 'button', { name: 'Xoá câu này', exact: true }).click();
+    await answerConfirm(page, true);
     expect((await saved(page)).deletedAt).toBeTruthy();
     await page.getByRole('button', { name: 'Hoàn tác', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Đã khôi phục thẻ' })).toBeVisible();

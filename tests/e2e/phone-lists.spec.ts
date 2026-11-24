@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { openCard } from './helpers/mistakeForm';
 import { gotoPage } from './helpers/nav';
+import { answerConfirm } from './helpers/confirmDialog';
 
 test('phone notebook splits cards by status, keeps review above the bottom bar and fits the card actions on one row', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 760 });
@@ -41,7 +42,6 @@ test('phone notebook splits cards by status, keeps review above the bottom bar a
 });
 
 test('phone history groups by month, opens the detail from the row and deletes from there', async ({ page }) => {
-  page.on('dialog', dialog => dialog.accept());
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoPage(page, '/lich-su');
   await page.evaluate(() => {
@@ -60,6 +60,7 @@ test('phone history groups by month, opens the detail from the row and deletes f
   await page.getByRole('button', { name: /ETS B/ }).first().click();
   const detail = page.getByRole('dialog');
   await detail.getByRole('button', { name: 'Xoá bản ghi này', exact: true }).click();
+  await answerConfirm(page, true);
   await expect(detail).toHaveCount(0);
   await expect(page.getByRole('button', { name: /ETS B/ })).toHaveCount(0);
   const live = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).sessions.filter((s: { deletedAt: unknown }) => !s.deletedAt).length);

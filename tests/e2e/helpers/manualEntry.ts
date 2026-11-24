@@ -11,7 +11,7 @@ export async function openManualEntry(page: Page, form: Locator) {
   const shortView = form.getByRole('button', { name: /^Chạm từng câu trên lưới/ });
   const grid = form.getByRole('button', { name: 'Câu 1', exact: true });
   await more.or(shortView).or(grid).first().waitFor();
-  if (!(await more.isVisible())) return;
+  if (await grid.isVisible() || !(await more.isVisible())) return;
   await chooseMore(form, /^Tự chọn câu sai/);
 }
 
