@@ -1,13 +1,14 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import type { MistakeEntry } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
-import { getUserChoice, optionLetter } from '@/features/mistakes/lib/userChoice';
-import { isDueForReview } from '@/features/mistakes/lib/spacedRepetition';
-import { Soc } from '@/shared/ui/soc/Soc';
-import { PassageText } from './PassageText';
+import { optionLetter } from '@/features/mistakes/lib/userChoice';
+import { canReview, isDueForReview } from '@/features/mistakes/lib/spacedRepetition';
+import { cardEvidences, cardWords, optionRows, signalLine } from '@/features/mistakes/lib/cardDetail';
+import { isWordSaved } from '@/features/mistakes/lib/savedWords';
 import { AnswerDoubtNote } from './AnswerDoubtNote';
 import { canExplain } from './MistakeCard';
 import { isNumberLabel } from '@/features/mistakes/lib/questionSnippet';
+import { EvidenceJumper, EvidencePassage, OptionRows, SignalBlock, TipBlock, WordRows, useEvidenceJump } from './CardParts';
 
 export interface MistakeDetailActions {
   onEdit: () => void;
@@ -19,6 +20,8 @@ export interface MistakeDetailActions {
   explainLabel: string;
   explaining: boolean;
   onResolveDoubt: (switchToAI: boolean) => void;
+  /** Keeps words from "Từ cần nhớ" on the card for review. */
+  onSaveWords: (words: string[]) => void;
 }
 
 const CATEGORY_SHORT: Record<string, string> = {
@@ -37,103 +40,136 @@ export function rowReviewLabel(m: MistakeEntry): { text: string; due: boolean } 
   return label.due && !m.nextReviewDate ? { text: '', due: false } : label;
 }
 
-/** Mark the evidence sentence inside the passage, when the AI quoted it exactly. */
-function withEvidence(text: string, evidence: string, show: boolean): ReactNode {
-  const e = evidence.trim().replace(/^["“]|["”]$/g, '');
-  if (!show || e.length < 6) return text;
-  const i = text.toLowerCase().indexOf(e.toLowerCase());
-  if (i < 0) return text;
-  return <>{text.slice(0, i)}<mark className="nbd-ev">{text.slice(i, i + e.length)}</mark>{text.slice(i + e.length)}</>;
+/** Everything both layouts read from a card, worked out once. */
+export function useCardView(m: MistakeEntry) {
+  return useMemo(() => {
+    const ex = m.explanation;
+    const context = (m.context ?? '').trim();
+    const question = (m.question ?? m.questionContext ?? '').trim();
+    const rows = optionRows(m);
+    return {
+      ex, context, rows,
+      question: question && !isNumberLabel(question) ? question : '',
+      evidences: cardEvidences(m),
+      words: cardWords(m),
+      signal: signalLine(ex?.analysis),
+      tip: (ex?.quickTip || m.trapTip || '').trim(),
+      mine: m.userReason?.trim() ?? '',
+      // Part 5/6 sentence translation; on a reading card it sits under the marked sentence instead.
+      translation: !context ? ex?.translation?.trim() ?? '' : '',
+      showPos: new Set(rows.map(row => row.pos).filter(Boolean)).size > 1,
+      due: reviewLabel(m),
+      answer: optionLetter(m.correctAnswer)
+    };
+  }, [m]);
+}
+export type CardView = ReturnType<typeof useCardView>;
+
+export const cardTitle = (m: MistakeEntry, joiner: string) => `${m.questionNumber ? `Câu ${m.questionNumber}${joiner}` : ''}Part ${m.part}`;
+
+/** The explanation side: tip, signal, translation, learner note, words; or the "Giải thích với AI" button. */
+export function ExplainBody({ m, view, actions, words = true }: { m: MistakeEntry; view: CardView; actions: MistakeDetailActions; words?: boolean }) {
+  const { tip, signal, translation, mine, ex } = view;
+  const empty = !tip && !signal && !translation && !(words && (view.words.length || ex?.keyVocabulary?.trim()));
+  return <>
+    {tip && <TipBlock tip={tip} />}
+    {signal && <SignalBlock text={signal} />}
+    {translation && <div className="cd-sign is-plain"><small>Dịch câu</small><p>{translation}</p></div>}
+    {mine && <p className="cd-mine"><b>Bạn ghi:</b> {mine}</p>}
+    {words && <Words m={m} view={view} actions={actions} />}
+    {empty && canExplain(m) && (
+      <button type="button" className="cd-explain" onClick={actions.onExplain} disabled={actions.explaining}>
+        {actions.explaining ? 'Sóc đang viết lời giải…' : `${actions.explainLabel} ✨`}
+      </button>
+    )}
+  </>;
+}
+
+export function Words({ m, view, actions, all = false }: { m: MistakeEntry; view: CardView; actions: MistakeDetailActions; all?: boolean }) {
+  if (view.words.length) return <div className="cd-block"><small className="cd-cap">Từ cần nhớ</small>
+    <WordRows words={view.words} isSaved={word => isWordSaved(m, word)} onSave={actions.onSaveWords} all={all} /></div>;
+  const text = view.ex?.keyVocabulary?.trim();
+  return text ? <div className="cd-sign is-plain"><small>Từ cần nhớ</small><p>{text}</p></div> : null;
+}
+
+function Actions({ m, actions }: { m: MistakeEntry; actions: MistakeDetailActions }) {
+  return (
+    <div className="cd-acts">
+      {canReview(m) && <button type="button" className="rd-btn rd-btn--pink" onClick={actions.onReview}>Ôn câu này</button>}
+      {m.status === 'MASTERED'
+        ? <button type="button" className="rd-btn rd-btn--white" onClick={actions.onReopen}>Ôn lại từ đầu</button>
+        : <button type="button" className="rd-btn rd-btn--white" onClick={actions.onMarkMastered}>Đã thuộc</button>}
+      <span className="cd-sp" />
+      <button type="button" className="cd-link" onClick={actions.onEdit}>Sửa</button>
+      <button type="button" className="cd-link is-del" onClick={actions.onDelete} aria-label="Xoá câu này">Xoá</button>
+    </div>
+  );
+}
+
+function Plain({ m }: { m: MistakeEntry }) {
+  return <div className="cd-plain"><p><b>Bạn chọn:</b> {m.userMistake || '—'}</p><p><b>Đáp án:</b> {m.correctAnswer || '—'}</p></div>;
 }
 
 /**
- * One card per mistake (design/previews/mock-detail-v3.html): answers only by default; "Xem giải thích" adds
- * each option's meaning, the passage translation with the evidence marked, why, words and tip.
+ * One mistake card on computers (design/previews/card-v2/1-desktop-part5.html, 2-desktop-part7.html): two columns
+ * that fit the screen. A single question has the question and options on the left and a sticky panel with the tip,
+ * signal, words and actions on the right; a reading card keeps the passage in its own scroll box on the left, opened
+ * at the evidence, and the question with everything else on the right.
  */
 export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mistake: MistakeEntry; testName?: string; actions: MistakeDetailActions; onBack: () => void }) {
-  const [open, setOpen] = useState(false);
-  const chosen = getUserChoice(m);
-  const answer = optionLetter(m.correctAnswer);
-  const notes = m.optionNotes ?? [];
-  const ex = m.explanation;
-  const due = reviewLabel(m);
-  const question = (m.question ?? m.questionContext ?? '').trim();
-  const context = (m.context ?? '').trim();
-  const posDiffer = new Set(notes.map(n => n.pos).filter(Boolean)).size > 1;
-  const tip = (ex?.quickTip || m.trapTip || '').trim();
-  const reason = m.userReason?.trim() ?? '';
-  // "Mẹo nhanh" is always shown; the toggle holds the rest.
-  const hasMore = Boolean(ex && (ex.analysis || ex.translation || ex.keyVocabulary || ex.evidence)) || notes.some(n => n.meaning);
+  const view = useCardView(m);
+  const { context, question, rows, evidences, due } = view;
+  const reading = Boolean(context);
+  const jump = useEvidenceJump(reading ? evidences.length : 0, `${m.id}:${context.length}`);
+  const options = rows.length
+    ? <OptionRows rows={rows} reasonOnly={reading} showPos={view.showPos} />
+    : <Plain m={m} />;
+  const hint = rows.some(row => row.role === '' && (row.meaning || row.reason));
 
   return (
-    <div className="nbd">
-      <button type="button" className="nbd-back" onClick={onBack}>← Sổ tay</button>
-      <article className="nbd-card">
-        <header className="nbd-head">
-          <div>
-            <h2>{m.questionNumber ? `Câu ${m.questionNumber}, ` : ''}Part {m.part}</h2>
-            <p>{testName ? `${testName} · ` : ''}{categoryShort(m.category)} · <b className={due.due ? 'is-due' : undefined}>{due.text}</b></p>
-          </div>
-          <div className="nbd-links">
-            <button type="button" onClick={actions.onEdit}>Sửa</button>
-          </div>
-        </header>
-        {m.answerDoubt && answer !== m.answerDoubt && <AnswerDoubtNote doubt={m.answerDoubt} current={answer} onSwitch={() => actions.onResolveDoubt(true)} onKeep={() => actions.onResolveDoubt(false)} />}
-
-        {context && (
-          <div className="nbd-ctx">
-            <PassageText text={context} renderText={text => withEvidence(text, ex?.evidence ?? '', open)} />
-            {open && ex?.translation && <p className="nbd-tr">{ex.translation}</p>}
-          </div>
-        )}
-        {question && !isNumberLabel(question) && <h3 className="nbd-q">{question}</h3>}
-        {!context && open && ex?.translation && <p className="nbd-tr is-solo">{ex.translation}</p>}
-
-        {m.options?.length ? (
-          <ol className="nbd-opts">
-            {m.options.map(option => {
-              const letter = optionLetter(option);
-              const note = notes.find(n => n.label === letter);
-              const isAnswer = letter === answer, isChosen = letter === chosen && !isAnswer;
-              return (
-                <li key={option} className={isAnswer ? 'is-ans' : isChosen ? 'is-pick' : undefined}>
-                  <div className="nbd-ot">
-                    <span>{option}{open && posDiffer && note?.pos ? <em className="nbd-pos">{note.pos}</em> : null}</span>
-                    {isAnswer && <small>đáp án</small>}{isChosen && <small>bạn chọn</small>}
-                  </div>
-                  {open && note?.meaning && <p className="nbd-mean">{note.meaning}</p>}
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <div className="nbd-plain"><p><b>Bạn chọn:</b> {m.userMistake || '—'}</p><p><b>Đáp án:</b> {m.correctAnswer || '—'}</p></div>
-        )}
-
-        {tip && <div className="nbd-tip"><Soc state="idle" size={48} /><p><b>Mẹo nhanh:</b> <span>{tip}</span></p></div>}
-        {reason && <p className="nbd-mine"><b>Bạn ghi:</b> {reason}</p>}
-
-        {open && (ex?.analysis || ex?.keyVocabulary) && (
-          <div className="nbd-why">
-            {ex?.analysis && <div className={'nbd-say' + (tip ? ' is-plain' : '')}>{!tip && <Soc state="idle" size={54} />}<p>{ex.analysis}</p></div>}
-            {ex?.keyVocabulary && <div className="nbd-two"><div><small>Từ cần nhớ</small><p>{ex.keyVocabulary}</p></div></div>}
-          </div>
-        )}
-
-        <div className="nbd-foot">
-          {hasMore
-            ? <button type="button" className="nbd-toggle" onClick={() => setOpen(v => !v)} aria-expanded={open}>{open ? 'Ẩn giải thích ▴' : 'Xem giải thích ▾'}</button>
-            : canExplain(m) ? <button type="button" className="nbd-toggle" onClick={actions.onExplain} disabled={actions.explaining}>{actions.explaining ? 'Sóc đang viết lời giải…' : `${actions.explainLabel} ✨`}</button>
-            : <span />}
+    <div className={'cd' + (reading ? ' is-reading' : '')}>
+      <header className="cd-crumb">
+        <button type="button" className="cd-back" onClick={onBack}><span aria-hidden="true">←</span> Sổ tay</button>
+        <div>
+          <h2>{cardTitle(m, ', ')}</h2>
+          <p>{testName ? `${testName} · ` : ''}{categoryShort(m.category)} · <b className={due.due ? 'is-due' : undefined}>{due.text}</b></p>
         </div>
-      </article>
-      <div className="nbd-actions">
-        {due.due && <button type="button" className="rd-btn rd-btn--pink" onClick={actions.onReview}>Ôn câu này</button>}
-        {m.status === 'MASTERED'
-          ? <button type="button" className="rd-btn rd-btn--white" onClick={actions.onReopen}>Ôn lại từ đầu</button>
-          : <button type="button" className="rd-btn rd-btn--white" onClick={actions.onMarkMastered}>Đã thuộc</button>}
-        <button type="button" className="nbd-del" onClick={actions.onDelete}>Xoá câu này</button>
-      </div>
+      </header>
+      {m.answerDoubt && view.answer !== m.answerDoubt && <div className="cd-doubt"><AnswerDoubtNote doubt={m.answerDoubt} current={view.answer} onSwitch={() => actions.onResolveDoubt(true)} onKeep={() => actions.onResolveDoubt(false)} /></div>}
+
+      {reading ? (
+        <div className="cd-cols">
+          <section className="cd-pcard" aria-label="Đoạn văn">
+            <div className="cd-phd"><span>Đoạn văn</span>
+              {evidences.length > 1 ? <EvidenceJumper at={jump.at} count={evidences.length} onNext={jump.next} />
+                : evidences.length === 1 ? <span>Câu bằng chứng tô vàng</span> : null}
+            </div>
+            <div className="cd-pscroll" ref={jump.box} tabIndex={0} aria-label="Nội dung đoạn văn">
+              <EvidencePassage context={context} evidences={evidences} at={evidences.length > 1 ? jump.at : -1} />
+            </div>
+          </section>
+          <aside className="cd-panel">
+            <div className="cd-pbody">
+              {question && <h3 className="cd-q is-sm">{question}</h3>}
+              {options}
+              <ExplainBody m={m} view={view} actions={actions} />
+            </div>
+            <Actions m={m} actions={actions} />
+          </aside>
+        </div>
+      ) : (
+        <div className="cd-cols">
+          <section className="cd-qcard" aria-label="Câu hỏi">
+            {question && <h3 className="cd-q">{question}</h3>}
+            {options}
+            {hint && <p className="cd-hint">Bấm “Vì sao” để xem lý do của từng đáp án.</p>}
+          </section>
+          <aside className="cd-panel">
+            <div className="cd-pbody"><ExplainBody m={m} view={view} actions={actions} /></div>
+            <Actions m={m} actions={actions} />
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

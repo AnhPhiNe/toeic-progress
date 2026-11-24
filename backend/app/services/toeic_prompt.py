@@ -49,6 +49,7 @@ Quy tắc này thay thế yêu cầu chép nội dung ảnh vào context: contex
 Không OCR/chép lại toàn bộ bài đọc, bảng, quảng cáo hoặc mô tả tranh. Ảnh được hiển thị trực tiếp cho người học.
 Giữ nguyên văn input.question và input.options. Đọc tất cả ảnh nguồn để giải đúng câu đang xét.
 Chỉ trích ngắn bằng chứng cần thiết trong explanation.evidence và giải thích cách chọn/loại trong analysis.
+Không có context để đánh dấu nên explanation.evidences=[].
 Đối với Part 1, evidence nêu ngắn chi tiết thực sự nhìn thấy, không tạo trích dẫn giả.
 Nếu không đọc rõ chi tiết quyết định, trả MISSING và ghi thiếu gì; không đoán hoặc dựa vào dấu tô/khoanh.
 Không cảnh báo kiểm tra 'văn bản trích từ ảnh' vì không tạo bản chép; vẫn ghi mâu thuẫn/chi tiết mờ khi có.
@@ -164,11 +165,15 @@ Giải thích cụ thể theo câu hỏi; không chỉ lặp lại 'đọc kỹ 
   ngữ cảnh công việc/giao tiếp TOEIC Listening & Reading và phải có nghĩa phù hợp với câu đang xét.
   Đặt nghĩa đang dùng trước; có thể thêm 1–2 nghĩa TOEIC thường gặp cùng từ loại, ngăn bằng ';'.
   Không liệt kê cả từ điển. Tuyệt đối không ghi nhận xét đúng/sai, lý do chọn/loại, câu 'không phù hợp...',
-  'khớp với...' hoặc nhắc lại ngữ cảnh trong meaning. Những nội dung đó chỉ thuộc analysis.
+  'khớp với...' hoặc nhắc lại ngữ cảnh trong meaning. Những nội dung đó chỉ thuộc reason và analysis.
   Với phương án nhiễu, dịch đúng nghĩa của nó, không ép thành nghĩa của đáp án đúng.
   Không rút ngắn làm mất nghĩa quyết định.
   Các dạng của cùng một động từ: ghi dạng trong meaning (ví dụ 'to be, quá khứ', 'đã thúc đẩy (V2/V3)').
   Thành ngữ/collocation: nghĩa CẢ CỤM (ví dụ 'be subject to: thuộc diện'). Part 7: bản dịch ngắn của phương án.
+- reason: MỘT dòng tiếng Việt, tối đa 90 ký tự: vì sao phương án này đúng hoặc sai TRONG CÂU NÀY (dấu hiệu, cấu trúc,
+  chi tiết trong bài). Không lặp lại meaning, không mở đầu bằng 'Đúng vì'/'Sai vì', không nhắc nhãn chữ cái.
+  Ví dụ: 'mở đầu cụm nhượng bộ, hợp với “still” ở vế sau.' / 'không tạo được cụm nhượng bộ.'
+  Thiếu căn cứ (MISSING) thì reason=''.
 
 6. explanation — mỗi trường một vai trò riêng; trường không áp dụng là ''.
 - quickTip (Mẹo 10s): một quy tắc thao tác có dấu hiệu nhận biết cụ thể, dùng được cho câu tương tự; 1–2 câu.
@@ -183,6 +188,15 @@ Giải thích cụ thể theo câu hỏi; không chỉ lặp lại 'đọc kỹ 
   nhiều văn bản) và cách xử lý dạng đó trong một câu. Part 5/6: ''.
 - evidence: Part 7 trích NGUYÊN VĂN tiếng Anh câu/cụm trong bài quyết định đáp án, ghi văn bản nào nếu có nhiều
   văn bản, kèm bản dịch. Phải có thật trong nguồn; không tìm thấy thì MISSING và ghi thiếu đoạn văn. Part 5/6: ''.
+- evidences: Part 6/7 liệt kê TẤT CẢ câu bằng chứng cần để chọn đáp án, theo thứ tự xuất hiện, tối đa 3.
+  Câu hỏi nhiều văn bản (double/triple passage) thường cần một câu ở mỗi văn bản: ghi đủ từng câu, mỗi câu một mục.
+  text: chép NGUYÊN VĂN từng chữ một câu (hoặc một dòng/ô bảng) có trong context, không thêm '…', không
+  ghép hai câu xa nhau, không sửa chính tả hay dấu câu; câu không có nguyên văn trong context sẽ bị loại.
+  passageLabel: nhãn văn bản chứa câu đó đúng như dòng 'Đoạn N — Loại' trong context, không có nhãn thì ''.
+  translation: dịch tự nhiên câu đó sang tiếng Việt, tối đa 200 ký tự. Part 6: câu chứa chỗ trống và câu nối
+  quyết định. Part 1–5 hoặc không có context: evidences=[].
+- words: cùng các từ/cụm trong keyVocabulary nhưng tách từng mục: word là từ/cụm tiếng Anh như trong câu
+  (tối đa 40 ký tự), meaning là nghĩa tiếng Việt ngắn trong câu này (tối đa 60 ký tự). 1–3 mục; không lấy phương án.
 - paraphrase: Part 7 cụm trong bài ↔ cụm trong đáp án. Part 5/6: ''.
 - analysis: dấu hiệu quyết định (Part 5/6: ngay trước/sau chỗ trống); vì sao đáp án phù hợp, vì sao các phương án
   còn lại sai, đối chiếu lựa chọn người học. Không chép lại cả danh sách nghĩa trong optionNotes; được nhắc lại
@@ -219,7 +233,8 @@ Giải thích cụ thể theo câu hỏi; không chỉ lặp lại 'đọc kỹ 
 
 8. ĐỘ DÀI VÀ CÁCH VIẾT
 - analysis: Part 5 từ loại/thì đơn giản 150–350 ký tự; Part 5 nghĩa hoặc ngữ pháp khó 300–600; Part 6/7 tối đa 800.
-  translation tối đa 300; evidence tối đa 400; quickTip tối đa 200; keyVocabulary tối đa 200.
+  translation tối đa 300; evidence tối đa 400; quickTip tối đa 200; keyVocabulary tối đa 200;
+  mỗi reason tối đa 90; mỗi evidences.text tối đa 400.
 - Ưu tiên dấu hiệu quyết định, đối chiếu phương án và mẹo. Không từ nguyên, danh sách nghĩa ngoài ngữ cảnh,
   lời động viên hoặc quy tắc tuyệt đối thiếu căn cứ. Ngắn gọn nhưng không bỏ nghĩa cần để hiểu đáp án.
 - Không xuất suy luận nội bộ; chỉ giải thích sư phạm ngắn gọn đã kiểm tra.

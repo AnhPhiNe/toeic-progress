@@ -34,9 +34,13 @@ test('Part 7 meanings stay inside explanations in preview, saved cards and answe
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.reload();
   await openCard(page, question);
-  for (const meaning of meanings) await expect(page.locator('.nbd').getByText(meaning, { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
-  for (const meaning of meanings) await expect(page.locator('.nbd-mean').getByText(meaning, { exact: true })).toBeVisible();
+  // Card v2: the answer's meaning shows on its row; the others open with their own "Vì sao" button.
+  await expect(page.locator('.cd-why').getByText(meanings[1], { exact: true })).toBeVisible();
+  for (const index of [0, 2, 3]) {
+    await expect(page.locator('.cd').getByText(meanings[index], { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: `Vì sao ${'ABCD'[index]}`, exact: true }).click();
+    await expect(page.locator('.cd-why').getByText(meanings[index], { exact: true })).toBeVisible();
+  }
   await page.getByRole('button', { name: 'Ôn câu này', exact: true }).click();
   const review = page.getByRole('dialog', { name: 'Ôn câu sai', exact: true });
   for (const meaning of meanings) await expect(review.getByText(meaning, { exact: true })).toHaveCount(0);

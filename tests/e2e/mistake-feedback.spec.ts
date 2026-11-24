@@ -40,7 +40,7 @@ test('marking mastered confirms a real save and failure never claims success', a
   const status = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).mistakes[0].status);
   expect(status).toBe('MASTERED');
   await page.getByRole('button', { name: 'Đóng thông báo', exact: true }).click();
-  await page.getByRole('button', { name: '← Sổ tay', exact: true }).click();
+  await page.locator('.cd-back').click();
   await failWrites(page);
   await openCard(page, 'Reports 2 should');
   await page.getByRole('button', { name: 'Đã thuộc', exact: true }).click();
@@ -71,7 +71,9 @@ test('save confirmation appears only after persistence, respects reduced motion 
   expect(await editor.locator('.study-success-mark').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await editor.getByRole('button', { name: 'Đóng', exact: true }).last().click();
   await openCard(page, undefined, 0);
-  await page.getByRole('button', { name: 'Sửa', exact: true }).click();
+  // Phones keep Sửa in the card's ⋯ menu.
+  await page.getByRole('button', { name: 'Thêm thao tác', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Sửa câu này', exact: true }).click();
   await page.clock.install();
   await noteModal(page).getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
   await expect(page.getByText('Đã lưu thay đổi', { exact: true })).toBeVisible();

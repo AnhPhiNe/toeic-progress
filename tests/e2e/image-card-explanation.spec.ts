@@ -48,7 +48,6 @@ test('an older image-only Part 7 card shows its text, is explained from text onl
   await openImageCard(page);
   await expect(page.getByRole('button', { name: 'Ảnh gốc', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: /^Giải thích với AI/ }).click();
-  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
   await expect(page.getByText(tip, { exact: true })).toBeVisible();
 
   const call = await page.evaluate(() => (window as Window & { __imageExplanationCall: {
@@ -64,7 +63,6 @@ test('an older image-only Part 7 card shows its text, is explained from text onl
   expect(saved).toMatchObject({ sourceImageIds, question, context: '', correctAnswer: '(A) Monday', answerSource: 'PROVIDED',
     answerProvidedBy: 'SOURCE', userChoice: 'B', userChoiceState: 'CHOSEN', userReason: 'Nhầm ngày trong ảnh', explanation: { quickTip: tip } });
   await openCard(page, question);
-  await page.getByRole('button', { name: /^Xem giải thích/ }).click();
   await expect(page.getByText(tip, { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Giải thích với AI/ })).toHaveCount(0);
 });

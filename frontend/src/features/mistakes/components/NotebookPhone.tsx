@@ -26,7 +26,9 @@ import { loadMistakes } from '@/shared/data/storage';
 import { getActiveAccountId } from '@/shared/data/dataBundle';
 import { SuccessMark } from '@/shared/ui/SuccessMark';
 import { MistakeEntryModal } from './MistakeEntryModal';
-import { MistakeDetail, categoryShort, rowReviewLabel } from './MistakeDetail';
+import { categoryShort, rowReviewLabel } from './MistakeDetail';
+import { CardDetailPhone } from './phone/CardDetailPhone';
+import { withSavedWords } from '@/features/mistakes/lib/savedWords';
 import { CapturePhone } from './phone/CapturePhone';
 import { CameraIcon, PhoneNotebookEmpty } from './phone/PhoneNotebookEmpty';
 import { categoryChip, PART_COLORS } from './phone/partStyle';
@@ -230,11 +232,17 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
         const option = latest.options?.find(value => optionLetter(value) === latest.answerDoubt);
         onUpdateMistake({ ...latest, answerDoubt: undefined, ...(switchToAI && option ? { correctAnswer: option, answerSource: 'PROVIDED', answerProvidedBy: 'LEARNER' } : {}) }, latest);
         notify(switchToAI ? `Đã đổi đáp án sang ${latest.answerDoubt}` : 'Đã giữ đáp án trang đề');
+      },
+      onSaveWords: (words: string[]) => {
+        const latest = mistakes.find(m => m.id === detail.id) ?? detail;
+        const next = withSavedWords(latest, words);
+        try { if (next !== latest) onUpdateMistake(next, latest); }
+        catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa lưu được từ.', true); }
       }
     } as const;
     return (
       <div className="rd pn pn-detail">
-        <MistakeDetail mistake={detail} testName={detail.sourceTestName ?? undefined} onBack={() => setDetailId(null)} actions={actions} />
+        <CardDetailPhone mistake={detail} testName={detail.sourceTestName ?? undefined} onBack={() => setDetailId(null)} actions={actions} />
         {overlays}
       </div>
     );

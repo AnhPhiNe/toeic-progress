@@ -54,8 +54,9 @@ test('AI extracts the stem in one analysis; context folds without changing choic
   await expect(page.locator('.pn-row')).toHaveCount(1);
   await openCard(page);
   // The redesigned card shows the reading text under its heading instead of folding it.
-  await expect(page.locator('.nbd-q')).toHaveText(question);
-  await expect(page.locator('.nbd-ctx').getByText(transcript, { exact: true })).toBeVisible();
+  await expect(page.locator('.cdp-pcard').getByText(transcript, { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Câu hỏi', exact: true }).click();
+  await expect(page.locator('.cd-q')).toHaveText(question);
   for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

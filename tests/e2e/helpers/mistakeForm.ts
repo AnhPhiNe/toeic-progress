@@ -67,7 +67,11 @@ export async function openCard(page: Page, text?: string | RegExp, index = 0) {
 /** Opens a card, then the old note form through the card's "Sửa" link. */
 export async function openCardEditor(page: Page, text?: string | RegExp, index = 0) {
   await openCard(page, text, index);
-  await page.getByRole('button', { name: 'Sửa', exact: true }).click();
+  // Phones keep Sửa/Xoá in the card's ⋯ menu.
+  if (await isPhoneLayout(page)) {
+    await page.getByRole('button', { name: 'Thêm thao tác', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Sửa câu này', exact: true }).click();
+  } else await page.getByRole('button', { name: 'Sửa', exact: true }).click();
   await expect(noteModal(page)).toBeVisible();
   return noteModal(page);
 }

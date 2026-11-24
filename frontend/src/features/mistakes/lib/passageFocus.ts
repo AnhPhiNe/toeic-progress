@@ -59,7 +59,8 @@ export function findFocus(text: string, options: { part: number; number?: number
  * may be marked: the evidence sentence would give the answer away, so it is used only once the learner has answered.
  */
 export function reviewFocus(text: string, card: Pick<MistakeEntry, 'part' | 'questionNumber' | 'explanation'>, revealed: boolean): FocusRange | null {
-  return findFocus(text, { part: card.part, number: card.questionNumber, evidence: revealed ? card.explanation?.evidence : undefined });
+  const evidence = revealed ? card.explanation?.evidences?.[0]?.text || card.explanation?.evidence : undefined;
+  return findFocus(text, { part: card.part, number: card.questionNumber, evidence });
 }
 
 /** The text cut into what comes before, inside and after the focus. */
