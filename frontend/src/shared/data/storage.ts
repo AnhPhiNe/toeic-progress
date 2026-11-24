@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import { StudySession, MistakeEntry, UserProfile, RANK_TIERS, RankTier, SessionAttemptMeta, PacingRun } from '@/shared/types';
 import { INITIAL_USER_PROFILE, DEMO_SESSIONS, DEMO_MISTAKES } from '@/shared/data/demoData';
-import { canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readDataBundle, replaceCollection, retainedSessionSources, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
+import { canWriteAccount, clearRetiredCopies, defaultProfile, getActiveAccountId, live, nextUpdatedAt, readAccountBundle, readDataBundle, replaceCollection, retainedSessionSources, updateDataBundle, writeDataBundle, type VocabLog } from '@/shared/data/dataBundle';
 import { BACKUP_VERSION, parseBackup, type BackupPreview } from '@/shared/data/backup';
 import { actualStudyDates, deriveStreak } from '@/shared/domain/streak';
 import { testNameKey } from '@/shared/domain/testNames';
@@ -256,9 +256,10 @@ export function triggerCelebrationConfetti(): void {
   });
 }
 
-// Xuất file JSON toàn bộ dữ liệu
-export function exportDataAsJSON(): void {
-  const backup = createBackupSnapshot();
+// Xuất file JSON toàn bộ dữ liệu (khi đang cảnh báo đăng xuất, truyền userId để luôn đọc đúng gói tài khoản)
+export function exportDataAsJSON(accountId?: string | null): void {
+  const safeId = typeof accountId === 'string' && accountId.length > 0 ? accountId : undefined;
+  const backup = createBackupSnapshot(safeId);
   const file = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(file);
   const downloadAnchor = document.createElement('a');
@@ -295,8 +296,8 @@ export function restoreBackup(preview: BackupPreview): void {
   writeDataBundle(next);
 }
 
-export function createBackupSnapshot() {
-  const bundle = readDataBundle();
+export function createBackupSnapshot(accountId?: string | null) {
+  const bundle = (typeof accountId === 'string' && accountId.length > 0 ? readAccountBundle(accountId) : null) ?? readDataBundle();
   return { ...bundle, sessions: live(bundle.sessions), mistakes: live(bundle.mistakes), pacingRuns: live(bundle.pacingRuns),
     vocabLog: live(bundle.vocabLog), shieldDays: live(bundle.shieldDays), schemaVersion: BACKUP_VERSION,
     exportDate: new Date().toISOString() };

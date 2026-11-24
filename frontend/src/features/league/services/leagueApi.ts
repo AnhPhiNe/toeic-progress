@@ -1,6 +1,6 @@
 import { backendRequest } from '@/shared/api/api';
 
-export type LeagueTier = 'dong' | 'bac' | 'vang' | 'kim-cuong';
+export type LeagueTier = 'dong' | 'bac' | 'vang' | 'bach-kim' | 'kim-cuong' | 'cao-thu';
 
 /** One learner in the group table: only public fields, never a real name, email or TOEIC score. */
 export interface LeagueRow { rank: number; nickname: string; coat: string; stars: number; me: boolean }

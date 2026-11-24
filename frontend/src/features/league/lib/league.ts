@@ -1,10 +1,17 @@
 import type { LeagueRow, LeagueState, LeagueTier } from '../services/leagueApi';
 
-export const TIERS: readonly LeagueTier[] = ['dong', 'bac', 'vang', 'kim-cuong'];
-export const TIER_NAME: Record<LeagueTier, string> = { dong: 'Đồng', bac: 'Bạc', vang: 'Vàng', 'kim-cuong': 'Kim cương' };
+export const TIERS: readonly LeagueTier[] = ['dong', 'bac', 'vang', 'bach-kim', 'kim-cuong', 'cao-thu'];
+export const TIER_NAME: Record<LeagueTier, string> = {
+  dong: 'Đồng', bac: 'Bạc', vang: 'Vàng', 'bach-kim': 'Bạch kim', 'kim-cuong': 'Kim cương', 'cao-thu': 'Cao thủ'
+};
 /** Shield colours per tier: [rim, face]. */
 export const TIER_COLOR: Record<LeagueTier, [string, string]> = {
-  dong: ['#c97b3a', '#eaa66a'], bac: ['#8a9bb8', '#b8c4d6'], vang: ['#e89b00', '#ffd25e'], 'kim-cuong': ['#2f9fd6', '#8fdcf6']
+  dong: ['#c97b3a', '#eaa66a'],
+  bac: ['#8a9bb8', '#b8c4d6'],
+  vang: ['#e89b00', '#ffd25e'],
+  'bach-kim': ['#2aa89b', '#7be3d6'],
+  'kim-cuong': ['#2f9fd6', '#8fdcf6'],
+  'cao-thu': ['#7c3aed', '#c09cff']
 };
 
 export const nextTier = (tier: LeagueTier): LeagueTier | null => TIERS[TIERS.indexOf(tier) + 1] ?? null;

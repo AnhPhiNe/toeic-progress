@@ -1,4 +1,5 @@
 import { ArrowDownToLine, GitMerge, Smartphone } from 'lucide-react';
+import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import './account.css';
 
 export type TransferChoice = 'merge' | 'account' | 'device';
@@ -12,9 +13,10 @@ interface Props {
 
 /** Shown after sign-in whenever this device holds guest data, so the learner explicitly confirms any transfer. */
 export function TransferChoiceDialog({ error, accountHasData = true, onChoose, onSkip }: Props) {
+  const dialogRef = useModalA11y(true, () => void onSkip());
   return (
-    <div className="rd st fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(47,58,51,.55)] p-4" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
-      <div className="st-tr">
+    <div className="rd st fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(47,58,51,.55)] p-4">
+      <div ref={dialogRef} className="st-tr" role="dialog" aria-modal="true" aria-labelledby="transfer-title" tabIndex={-1}>
         <div>
           <h2 id="transfer-title">Chọn dữ liệu để đồng bộ</h2>
           <p className="st-note mt-1">

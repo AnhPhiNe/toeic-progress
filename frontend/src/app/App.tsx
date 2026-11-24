@@ -215,7 +215,7 @@ export const App: React.FC = () => {
       ) {
         return;
       }
-      if (isSessionModalOpen || isSettingsModalOpen || editingPacing || document.querySelector('[role="dialog"]')) return;
+      if (isSessionModalOpen || isSettingsModalOpen || editingPacing || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
 
       if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -767,7 +767,7 @@ export const App: React.FC = () => {
 
       {account.pendingTransfer && <TransferChoiceDialog error={account.error} accountHasData={account.pendingTransfer.accountHasData} onChoose={account.chooseTransfer} onSkip={account.signOut} />}
       <ConfirmHost />
-      {account.signOutWarning && <SignOutWarningDialog count={account.signOutWarning.count} onStay={() => account.answerSignOutWarning(false)} onSignOut={() => account.answerSignOutWarning(true)} />}
+      {account.signOutWarning && <SignOutWarningDialog count={account.signOutWarning.count} userId={account.signOutWarning.userId} onStay={() => account.answerSignOutWarning(false)} onSignOut={() => account.answerSignOutWarning(true)} />}
 
 
     </div>

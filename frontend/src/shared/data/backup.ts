@@ -7,7 +7,12 @@ import { partOfQuestion, partScoresFromWrong } from '@/shared/domain/questionNum
 /** Same limits as the server (backend/app/schemas/models.py): a file that passes here also syncs. */
 export const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
 export const MAX_BACKUP_RECORDS = 10_000;
-const MAX_RECORD_BYTES = 30_000;
+export const MAX_RECORD_BYTES = 32_768;
+export const MAX_MISTAKE_RECORD_BYTES = 65_536;
+const utf8Encoder = new TextEncoder();
+export const jsonByteLength = (value: unknown): number => utf8Encoder.encode(JSON.stringify(value ?? null)).length;
+export const fitsSyncPayload = (kind: 'mistakes' | 'other', record: unknown): boolean =>
+  jsonByteLength(record) <= (kind === 'mistakes' ? MAX_MISTAKE_RECORD_BYTES : MAX_RECORD_BYTES);
 const NUL = String.fromCharCode(0);
 const inRange = (value: string) => value >= '1970-01-01' && value <= '2100-12-31';
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'phải là ngày YYYY-MM-DD')
@@ -114,6 +119,11 @@ const mistake = z.object({
   reviewCount: count(1_000_000).optional(), lastReviewedAt: timestamp.optional(), ...metadata
 }).superRefine((value, context) => {
   if (value.questionNumber !== undefined && partOfQuestion(value.questionNumber) !== value.part) context.addIssue({ code: 'custom', path: ['questionNumber'], message: 'số câu không thuộc Part đã chọn' });
+  if (value.sourceImageIds?.length) {
+    if ((value.part !== 1 && value.part !== 7) || (value.part === 1 && value.sourceImageIds.length !== 1) || new Set(value.sourceImageIds).size !== value.sourceImageIds.length) {
+      context.addIssue({ code: 'custom', path: ['sourceImageIds'], message: 'ảnh nguồn chỉ dùng cho Part 1 (một ảnh) hoặc Part 7 và không trùng' });
+    }
+  }
   if (value.userChoiceState === 'CHOSEN' && !value.userChoice) context.addIssue({ code: 'custom', path: ['userChoice'], message: 'thiếu phương án đã chọn' });
   if (value.userChoiceState && value.userChoiceState !== 'CHOSEN' && value.userChoice) context.addIssue({ code: 'custom', path: ['userChoice'], message: 'Không nhớ/Bỏ trống không có phương án đã chọn' });
 });
@@ -224,11 +234,15 @@ const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const COLLECTION_KEYS = ['sessions', 'mistakes', 'pacingRuns', 'vocabLog', 'shieldDays'] as const;
 
 function oversizedRecord(raw: Record<string, unknown>): string | null {
+  if (raw.profile !== undefined && jsonByteLength(raw.profile) > MAX_RECORD_BYTES) {
+    return 'profile: bản ghi hồ sơ quá lớn (tối đa 32 KB)';
+  }
   for (const key of COLLECTION_KEYS) {
     const records = raw[key];
     if (!Array.isArray(records)) continue;
-    const index = records.findIndex(record => JSON.stringify(record ?? null).length > MAX_RECORD_BYTES);
-    if (index >= 0) return `${key}[${index}]: bản ghi quá lớn (tối đa khoảng 30 KB)`;
+    const limit = key === 'mistakes' ? MAX_MISTAKE_RECORD_BYTES : MAX_RECORD_BYTES;
+    const index = records.findIndex(record => jsonByteLength(record) > limit);
+    if (index >= 0) return `${key}[${index}]: bản ghi quá lớn (tối đa ${limit === MAX_MISTAKE_RECORD_BYTES ? '64' : '32'} KB)`;
   }
   return null;
 }

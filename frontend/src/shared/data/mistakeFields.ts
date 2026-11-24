@@ -1,30 +1,33 @@
 import { z } from 'zod';
 
+const NUL = String.fromCharCode(0);
+const safeStr = (max: number) => z.string().max(max).refine(value => !value.includes(NUL), 'chứa ký tự không hợp lệ');
+
 /** Shapes of the structured AI fields, shared by draft parsing and backup validation. */
 export const optionNoteSchema = z.object({
   label: z.enum(['A', 'B', 'C', 'D']),
   pos: z.enum(['n', 'v', 'adj', 'adv', 'prep', 'conj', 'pron', 'det', '']),
-  meaning: z.string().max(120),
+  meaning: safeStr(120),
   /** One line on why this option is right or wrong here; older cards have none. */
-  reason: z.string().max(160).optional()
+  reason: safeStr(160).optional()
 });
 
 export const evidenceSchema = z.object({
-  passageLabel: z.string().max(80).optional(),
-  text: z.string().max(400),
-  translation: z.string().max(400).optional()
+  passageLabel: safeStr(80).optional(),
+  text: safeStr(400),
+  translation: safeStr(400).optional()
 });
 
-export const keyWordSchema = z.object({ word: z.string().max(80), meaning: z.string().max(120) });
+export const keyWordSchema = z.object({ word: safeStr(80), meaning: safeStr(120) });
 
 export const explanationSchema = z.object({
-  quickTip: z.string().max(400),
-  translation: z.string().max(600),
-  questionType: z.string().max(300),
-  evidence: z.string().max(800),
-  paraphrase: z.string().max(400),
-  analysis: z.string().max(1200),
-  keyVocabulary: z.string().max(400),
+  quickTip: safeStr(400),
+  translation: safeStr(600),
+  questionType: safeStr(300),
+  evidence: safeStr(800),
+  paraphrase: safeStr(400),
+  analysis: safeStr(1200),
+  keyVocabulary: safeStr(400),
   evidences: z.array(evidenceSchema).max(3).optional(),
   words: z.array(keyWordSchema).max(4).optional()
 });

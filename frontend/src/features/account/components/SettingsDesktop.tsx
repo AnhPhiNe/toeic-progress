@@ -32,6 +32,8 @@ interface Props {
   accountPanel?: React.ReactNode;
   onSignIn?: () => Promise<void>;
   onSignOut?: () => Promise<void>;
+  signOutBusy?: boolean;
+  signOutError?: string;
   busy: boolean;
   onExport: () => void;
   onPickBackup: () => void;
@@ -216,13 +218,11 @@ function NameEditor({ value, onSave, onClose }: { value: string; onSave: SaveFie
 
 /** Computers: Cài đặt option B — warm header, tiles that show each value big, one Đổi per tile, data row at the foot. */
 export function SettingsDesktop(props: Props) {
-  const { profile, editing, onEdit, onSaveField, onSaveGoal, sync, email, accountAvailable, accountError, accountPanel, onSignIn, onSignOut, busy,
+  const { profile, editing, onEdit, onSaveField, onSaveGoal, sync, email, accountAvailable, accountError, accountPanel, onSignIn, onSignOut, signOutBusy = false, signOutError = '', busy,
     onExport, onPickBackup, onLoadDemo, onReset, resetBusy, dataNotice, error, dialog } = props;
   const tiles = useRef<Partial<Record<DesktopSettingsField, HTMLElement | null>>>({});
   const buttons = useRef<Partial<Record<DesktopSettingsField, HTMLButtonElement | null>>>({});
   const [signInBusy, setSignInBusy] = useState(false);
-  const [signOutBusy, setSignOutBusy] = useState(false);
-  const [signOutError, setSignOutError] = useState('');
   const close = () => onEdit(null);
   const closeRef = useRef(close);
   closeRef.current = close;
@@ -279,12 +279,9 @@ export function SettingsDesktop(props: Props) {
         </div>
         {email ? (
           onSignOut && <div className="stb-acct">
-            <button type="button" className="st-btn stb-quiet" disabled={busy || signOutBusy} onClick={async () => {
-              setSignOutBusy(true); setSignOutError('');
-              try { await onSignOut(); }
-              catch (reason) { setSignOutError(reason instanceof Error ? reason.message : 'Chưa đăng xuất được. Hãy thử lại.'); }
-              finally { setSignOutBusy(false); }
-            }}><LogOut size={16} aria-hidden="true" />{signOutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+            <button type="button" className="st-btn stb-quiet" disabled={busy || signOutBusy} onClick={() => void onSignOut()}>
+              <LogOut size={16} aria-hidden="true" />{signOutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}
+            </button>
             {signOutError && <p role="alert" className="st-err">{signOutError}</p>}
           </div>
         ) : accountAvailable && onSignIn ? (

@@ -15,7 +15,7 @@ import { crossTabAccountChange, unsyncedRecordCount } from '@/features/account/l
 
 interface PendingTransfer { userId: string; device: DataBundle; account: DataBundle; accountHasData: boolean }
 /** Shown before sign-out purges records the server has not acknowledged yet. */
-export interface SignOutWarning { count: number }
+export interface SignOutWarning { count: number; userId: string }
 
 export function useCloudAccount(onDataChanged: () => void) {
   const [status, setStatus] = useState<AccountStatus>(apiAvailable ? 'loading' : 'guest');
@@ -181,9 +181,9 @@ export function useCloudAccount(onDataChanged: () => void) {
         }
         await finishAccountTransfer(id, device, remote.bundle, 'account');
       } else {
-        await synchronizeAccount(id, () => run === generation.current && !resetting.current);
+        await synchronizeAccount(id, () => run === generation.current && userId.current === id && !resetting.current);
       }
-      if (run !== generation.current) return;
+      if (run !== generation.current || userId.current !== id) return;
       activateAccount(id);
       setAccountWriteEnabled(navigator.onLine);
       setPendingTransfer(null);
@@ -208,7 +208,7 @@ export function useCloudAccount(onDataChanged: () => void) {
     setAccountWriteEnabled(false);
     initialized.current = false;
     userId.current = null;
-    deactivateAccount();
+    if (!shown || getActiveAccountId() === shown) deactivateAccount();
     if (shown) { clearCaptureSessionForAccountChange(); clearExplanationQueue(); void clearScreenshotWatcherForOwner(shown); }
     onDataChanged();
   }, [onDataChanged]);
@@ -317,10 +317,10 @@ export function useCloudAccount(onDataChanged: () => void) {
   const settleSync = async () => {
     for (let waited = 0; syncing.current && waited < 15_000; waited += 100) await new Promise(resolve => setTimeout(resolve, 100));
   };
-  const askSignOut = (count: number) => new Promise<boolean>(resolve => {
+  const askSignOut = (count: number, id: string) => new Promise<boolean>(resolve => {
     warningAnswer.current?.(false);
     warningAnswer.current = resolve;
-    setSignOutWarning({ count });
+    setSignOutWarning({ count, userId: id });
   });
   const answerSignOutWarning = (proceed: boolean) => {
     const answer = warningAnswer.current;
@@ -339,10 +339,12 @@ export function useCloudAccount(onDataChanged: () => void) {
         await settleSync();
       }
       const count = unsyncedRecordCount(id);
-      if (count > 0 && !await askSignOut(count)) return;
+      if (count > 0 && !await askSignOut(count, id)) return;
     }
     const { error: authError } = await cloud.auth.signOut({ scope: 'local' });
     if (authError) { setError(authError.message); throw new Error(authError.message); }
+    generation.current += 1;
+    resetWake();
     deactivateAccount();
     if (id) purgeAccountLocalStorage(id);
     clearCaptureSessionForAccountChange();
@@ -355,7 +357,6 @@ export function useCloudAccount(onDataChanged: () => void) {
     setHasAccountSession(false);
     setStatus('guest');
     setError('');
-    resetWake();
     setSyncedAt(null);
     onDataChanged();
   };
@@ -364,6 +365,8 @@ export function useCloudAccount(onDataChanged: () => void) {
     const id = userId.current ?? getActiveAccountId();
     try {
       await deleteCloudAccount();
+      generation.current += 1;
+      resetWake();
       deactivateAccount();
       if (id) purgeAccountLocalStorage(id);
       clearCaptureSessionForAccountChange();
@@ -376,6 +379,7 @@ export function useCloudAccount(onDataChanged: () => void) {
       setHasAccountSession(false);
       setStatus('guest');
       setError('');
+      setSyncedAt(null);
       onDataChanged();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không thể xóa tài khoản.');

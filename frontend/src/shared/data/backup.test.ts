@@ -337,4 +337,25 @@ describe('backup import limits (S-24)', () => {
     expect(errors(run({ plannedMinutes: 1e308 })).length).toBeGreaterThan(0);
     expect(errors(run({ updatedAt: '0001-01-01T00:00:00.000Z' }))[0]).toContain('1970–2100');
   });
+
+  it('allows up to 64 KiB for mistakes, enforces UTF-8 bytes on profile, blocks NUL in AI fields and checks sourceImageIds', () => {
+    const richMistake = {
+      id: 'm-big', part: 7, category: 'VOCABULARY_TRAP', status: 'NEEDS_REVIEW',
+      questionContext: 'Q' + 'x'.repeat(15000), question: 'What? ' + 'q'.repeat(12000),
+      context: 'Đoạn 1 — Email\n' + 'Nội dung tiếng Việt dài. '.repeat(350),
+      userMistake: '(A) Sai', correctAnswer: '(B) Đúng', tags: ['part7'],
+      createdAt: now, updatedAt: now, deletedAt: null,
+      explanation: { quickTip: 'Tip', translation: '', questionType: '', evidence: '', paraphrase: '', analysis: '', keyVocabulary: '', evidences: [], words: [{ word: 'refund', meaning: 'hoàn tiền' }] },
+      savedWords: ['refund'],
+    };
+    expect(parseBackup(JSON.stringify(file({ mistakes: [richMistake] }))).ok).toBe(true);
+    // NUL byte inside explanation is rejected
+    expect(parseBackup(JSON.stringify(file({ mistakes: [{ ...richMistake, explanation: { ...richMistake.explanation, quickTip: 'a\u0000b' } }] }))).ok).toBe(false);
+    // Duplicate or wrong-part sourceImageIds are rejected
+    const imgId = 'a'.repeat(64);
+    expect(parseBackup(JSON.stringify(file({ mistakes: [{ ...richMistake, part: 5, sourceImageIds: [imgId] }] }))).ok).toBe(false);
+    expect(parseBackup(JSON.stringify(file({ mistakes: [{ ...richMistake, part: 7, sourceImageIds: [imgId, imgId] }] }))).ok).toBe(false);
+    // Oversized profile (> 32 KiB) is rejected
+    expect(errors(file({ profile: { ...bundle().profile, extraBlob: 'x'.repeat(35000) } }))[0]).toContain('profile');
+  });
 });

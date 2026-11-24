@@ -85,4 +85,32 @@ describe('paged sync replies', () => {
     const canonical = { ...emptyBundle(), vocabLog: [previous.vocabLog[1]] };
     expect(withoutServerDeleted(latest, previous, canonical).vocabLog.map(item => item.id)).toEqual(['kept', 'new']);
   });
+
+  it('keeps concurrent server records during a single-chunk reset merge transfer', async () => {
+    const local = emptyBundle();
+    local.vocabLog = [{ id: 'guest-v1', date: '2026-11-09', count: 5, updatedAt: stamp, deletedAt: null }];
+    replies = [
+      // Initial snapshot at cursor 10 already contains concurrent record 'other-device'
+      { cursor: 10, records: [profileRow, vocab('other-device', 7)], hasRecords: true, hasMore: false, epoch: 'e1' },
+      // Single-chunk upload returns only records modified after cursor 10
+      { cursor: 11, records: [profileRow, vocab('guest-v1', 5)], hasRecords: true, hasMore: false, epoch: 'e1' }
+    ];
+    const reply = await exchangeCloudChanges('alice', local, false, true);
+    expect(reply.cursor).toBe(11);
+    const ids = reply.records.filter(r => r.entity_type === 'vocabLog').map(r => r.record_id).sort();
+    expect(ids).toEqual(['guest-v1', 'other-device']);
+  });
+
+  it('refuses paged replies with epoch change or regressing final cursor', async () => {
+    replies = [
+      { cursor: 5, records: [vocab('v1')], hasRecords: true, hasMore: true, resetVersion: 0, epoch: 'e1' },
+      { cursor: 4, records: [vocab('v2')], hasRecords: true, hasMore: false, resetVersion: 0, epoch: 'e1' }
+    ];
+    await expect(fetchCloudBundle('alice')).rejects.toThrow('không hợp lệ');
+    replies = [
+      { cursor: 5, records: [vocab('v1')], hasRecords: true, hasMore: true, resetVersion: 0, epoch: 'e1' },
+      { cursor: 7, records: [vocab('v2')], hasRecords: true, hasMore: false, resetVersion: 0, epoch: 'e2' }
+    ];
+    await expect(fetchCloudBundle('alice')).rejects.toThrow('thay đổi');
+  });
 });

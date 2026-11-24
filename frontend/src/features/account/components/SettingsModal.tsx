@@ -275,7 +275,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <details><summary>Đã chuẩn hóa {backupPreview.corrections.length} trường</summary><ul>{backupPreview.corrections.map((item, index) => <li key={index}>{item}</li>)}</ul></details>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
-            <button type="button" onClick={exportDataAsJSON} className="st-btn">Xuất bản hiện tại trước</button>
+            <button type="button" onClick={() => exportDataAsJSON()} className="st-btn">Xuất bản hiện tại trước</button>
             <button type="button" onClick={() => void handleRestore()} className="st-btn st-btn--green">Thay thế</button>
           </div>
         </div>
@@ -285,13 +285,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   </>;
 
   const sync = describeSync(!!accountAvailable, accountStatus ?? 'guest', syncDetail);
-  const signOutAction = onSignOut ? <div className="mt-3 space-y-2">
-    <button type="button" disabled={resetBusy || signOutBusy} onClick={async () => {
-      setSignOutBusy(true); setSignOutError('');
-      try { await onSignOut(); }
-      catch (error) { setSignOutError(error instanceof Error ? error.message : 'Chưa đăng xuất được. Hãy thử lại.'); }
-      finally { setSignOutBusy(false); }
-    }} className="st-btn st-btn--wide">
+  const triggerSignOut = onSignOut ? async () => {
+    if (resetBusy || signOutBusy) return;
+    setSignOutBusy(true); setSignOutError('');
+    try { await onSignOut(); }
+    catch (error) { setSignOutError(error instanceof Error ? error.message : 'Chưa đăng xuất được. Hãy thử lại.'); }
+    finally { setSignOutBusy(false); }
+  } : undefined;
+  const signOutAction = triggerSignOut ? <div className="mt-3 space-y-2">
+    <button type="button" disabled={resetBusy || signOutBusy} onClick={() => void triggerSignOut()} className="st-btn st-btn--wide">
       <LogOut size={17} aria-hidden="true" />{signOutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}
     </button>
     {signOutError && <p role="alert" className="st-err">{signOutError}</p>}
@@ -303,27 +305,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {isPhone ? (
           <div className="st-modal__head">
             <h3 id="settings-modal-title">Cài đặt</h3>
-            <button type="button" onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="st-x"><X size={20} /></button>
+            <button type="button" onClick={closeWhenIdle} disabled={resetBusy || signOutBusy} aria-label="Đóng cài đặt" className="st-x"><X size={20} /></button>
           </div>
         ) : (
-          <button type="button" onClick={closeWhenIdle} disabled={resetBusy} aria-label="Đóng cài đặt" className="st-x stb-x"><X size={20} /></button>
+          <button type="button" onClick={closeWhenIdle} disabled={resetBusy || signOutBusy} aria-label="Đóng cài đặt" className="st-x stb-x"><X size={20} /></button>
         )}
 
         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
 
         {isPhone ? (
-          <div className="min-h-0 flex-1 overflow-y-auto" aria-busy={resetBusy}>
+          <div className="min-h-0 flex-1 overflow-y-auto" aria-busy={resetBusy || signOutBusy}>
             <PhoneSettings profile={formData} syncLabel={syncLabel} syncTone={sync.tone} editing={phoneEditing} setEditing={setPhoneEditing}
               onSaveField={savePhoneField} accountPanel={accountPanel} signOutAction={signOutAction}
-              onExport={exportDataAsJSON} onPickBackup={() => fileInputRef.current?.click()}
+              onExport={() => exportDataAsJSON()} onPickBackup={() => fileInputRef.current?.click()}
               onLoadDemo={onLoadDemo ? loadDemo : undefined} onReset={onResetData ? () => void handleReset() : undefined} resetBusy={resetBusy}
               dataNotice={(backupErrors.length > 0 || backupPreview || resetError) ? renderDataNotice() : undefined} />
           </div>
         ) : (
           <SettingsDesktop profile={formData} editing={editing} onEdit={setEditing} onSaveField={saveTileField} onSaveGoal={saveGoalOnly}
             sync={sync} email={accountEmail ?? null} accountAvailable={!!accountAvailable} accountError={accountError} accountPanel={accountPanel}
-            onSignIn={onSignIn} onSignOut={onSignOut} busy={resetBusy}
-            onExport={exportDataAsJSON} onPickBackup={() => fileInputRef.current?.click()}
+            onSignIn={onSignIn} onSignOut={triggerSignOut} signOutBusy={signOutBusy} signOutError={signOutError} busy={resetBusy || signOutBusy}
+            onExport={() => exportDataAsJSON()} onPickBackup={() => fileInputRef.current?.click()}
             onLoadDemo={onLoadDemo ? loadDemo : undefined} onReset={onResetData ? () => void handleReset() : undefined} resetBusy={resetBusy}
             dataNotice={(backupErrors.length > 0 || backupPreview) ? renderDataNotice() : undefined} error={resetError || undefined}
             dialog={modalRef.current} />

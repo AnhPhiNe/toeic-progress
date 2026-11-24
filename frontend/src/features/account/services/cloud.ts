@@ -87,9 +87,12 @@ async function followPages(userId: string, first: SyncReply): Promise<SyncReply>
   for (let pages = 1; reply.hasMore; pages++) {
     if (pages >= MAX_SYNC_PAGES) throw new Error('Phản hồi đồng bộ quá dài. Vui lòng thử lại.');
     const next = validateSyncReply(await backendRequest<SyncReply>('/api/v1/sync', 'POST', { records: [], after: reply.cursor }, userId));
-    if (next.hasMore && next.cursor <= reply.cursor) throw new Error('Phản hồi đồng bộ không hợp lệ.');
+    if (next.hasMore ? next.cursor <= reply.cursor : next.cursor < reply.cursor) throw new Error('Phản hồi đồng bộ không hợp lệ.');
     if ((next.resetVersion ?? 0) !== (first.resetVersion ?? 0)) {
       throw new Error('Dữ liệu tài khoản vừa được xóa trên thiết bị khác. Vui lòng đồng bộ lại.');
+    }
+    if (first.epoch && next.epoch && next.epoch !== first.epoch) {
+      throw new Error('Dữ liệu máy chủ vừa thay đổi. Vui lòng đồng bộ lại.');
     }
     for (const row of next.records) rows.set(identity(row), row);
     reply = next;
@@ -141,6 +144,12 @@ export async function exchangeCloudChanges(userId: string, bundle: DataBundle, r
   let reply: SyncReply;
   if (chunks.length <= 1) {
     reply = await syncRequest(userId, pending, state.cursor, replace);
+    if (reset && !replace && !reply.resetBarrier && snapshot) {
+      const merged = new Map<string, CloudRow>();
+      for (const row of snapshot.records) merged.set(identity(row), row);
+      for (const row of reply.records) merged.set(identity(row), row);
+      reply = { ...reply, records: [...merged.values()] };
+    }
   } else if (replace) {
     const first = await syncRequest(userId, chunks[0], state.cursor, true);
     if (first.resetBarrier) return first;
@@ -159,11 +168,14 @@ export async function exchangeCloudChanges(userId: string, bundle: DataBundle, r
     reply = await syncRequest(userId, [], 0);
   } else {
     let last: SyncReply | null = null;
+    const merged = new Map<string, CloudRow>();
+    if (snapshot) for (const row of snapshot.records) merged.set(identity(row), row);
     for (const chunk of chunks) {
       last = await syncRequest(userId, chunk, state.cursor, false);
       if (last.resetBarrier) return last;
+      for (const row of last.records) merged.set(identity(row), row);
     }
-    reply = reset ? await syncRequest(userId, [], 0) : last!;
+    reply = reset ? await syncRequest(userId, [], 0) : { ...last!, records: [...merged.values()] };
   }
   // Nothing acknowledged yet means this request already carried every record.
   const sentEverything = Object.keys(state.acknowledged).length === 0;
