@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ConfirmHost } from '@/shared/components/ConfirmDialog';
 import { generateUUID } from '@/shared/domain/uuid';
 import { RdSidebar } from '@/app/components/RdSidebar';
 import { TodayPage } from '@/features/today/components/TodayPage';
@@ -765,6 +766,7 @@ export const App: React.FC = () => {
       />
 
       {account.pendingTransfer && <TransferChoiceDialog error={account.error} accountHasData={account.pendingTransfer.accountHasData} onChoose={account.chooseTransfer} onSkip={account.signOut} />}
+      <ConfirmHost />
       {account.signOutWarning && <SignOutWarningDialog count={account.signOutWarning.count} onStay={() => account.answerSignOutWarning(false)} onSignOut={() => account.answerSignOutWarning(true)} />}
 
 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { askConfirm } from '@/shared/components/ConfirmDialog';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { X, LogOut } from 'lucide-react';
 import { UserProfile } from '@/shared/types';
@@ -127,7 +128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const message = session.owner
         ? 'Xóa nội dung học của tài khoản này trên server và máy đang dùng? Máy chủ chỉ giữ mã bản ghi và dấu xóa để đồng bộ. Không thể phục hồi nếu chưa xuất bản sao lưu. Dữ liệu khách riêng và tệp backup đã tải không bị xóa.'
         : 'Xóa nội dung học khách trên trình duyệt này? Không thể phục hồi nếu chưa xuất bản sao lưu. Dữ liệu tài khoản và tệp backup đã tải không bị xóa.';
-      if (!window.confirm(message)) return;
+      if (!await askConfirm({ title: 'Xóa toàn bộ dữ liệu học?', message, confirmLabel: 'Xóa dữ liệu', destructive: true })) return;
       requireSession(session);
       setResetBusy(true);
       await onResetData();
@@ -169,11 +170,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleRestore = () => {
+  const handleRestore = async () => {
     try {
       const session = requireSession();
       if (!backupPreview || ownedPreview?.owner !== session.owner || ownedPreview.cycle !== session.cycle) return;
-      if (!window.confirm('Thay thế dữ liệu bằng bản sao lưu đã xem trước? Dữ liệu hiện tại sẽ bị ghi đè.')) return;
+      if (!await askConfirm({ title: 'Thay thế dữ liệu hiện tại?', message: 'Dữ liệu hiện tại sẽ bị ghi đè bằng bản sao lưu đã xem trước.', confirmLabel: 'Thay thế', destructive: true })) return;
       requireSession(session);
       restoreBackup(backupPreview);
       setOwnedPreview(null);
@@ -228,10 +229,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const saveTileField = (patch: Partial<UserProfile>) => saveOneField(patch, editSnapshot.current ?? formData);
   const savePhoneField = (patch: Partial<UserProfile>) => saveOneField(patch, formData);
 
-  const loadDemo = () => {
+  const loadDemo = async () => {
     try {
       const session = requireSession();
-      if (!window.confirm('Bạn có muốn nạp dữ liệu mẫu Demo (bao gồm các lần làm bài thi mẫu và danh sách bẫy)?')) return;
+      if (!await askConfirm({ title: 'Nạp dữ liệu mẫu?', message: 'Thêm các lần làm bài thi mẫu và danh sách bẫy để bạn xem thử ứng dụng.', confirmLabel: 'Nạp dữ liệu mẫu' })) return;
       requireSession(session);
       onLoadDemo?.();
       onClose();
@@ -275,7 +276,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
           <div className="flex flex-wrap gap-2 pt-1">
             <button type="button" onClick={exportDataAsJSON} className="st-btn">Xuất bản hiện tại trước</button>
-            <button type="button" onClick={handleRestore} className="st-btn st-btn--green">Thay thế</button>
+            <button type="button" onClick={() => void handleRestore()} className="st-btn st-btn--green">Thay thế</button>
           </div>
         </div>
       );

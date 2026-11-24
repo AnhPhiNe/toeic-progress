@@ -1,0 +1,18 @@
+/* Themed confirm dialog: replaces window.confirm. Same soft look as the sign-out warning. */
+.cfm-back { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(47, 58, 51, .55); }
+.cfm { width: 100%; max-width: 400px; padding: 18px 22px 22px; border-radius: 28px; background: #fbfdf8; text-align: center; color: var(--rd-ink, #2f3a33);
+  box-shadow: 0 24px 60px -26px rgba(30, 60, 20, .45); outline: none; font-family: var(--rd-font, 'Nunito', system-ui, sans-serif); }
+.cfm h2 { margin: 2px 0 0; font-size: 21px; font-weight: 900; letter-spacing: -.01em; }
+.cfm p { margin: 8px auto 0; max-width: 320px; font-size: 14.5px; font-weight: 700; line-height: 1.45; color: var(--rd-mut, #7a857e); }
+.cfm-actions { display: grid; gap: 10px; margin-top: 20px; }
+.cfm-btn { min-height: 50px; padding: 0 16px; border: 0; border-radius: 16px; cursor: pointer; font: 900 15.5px var(--rd-font, 'Nunito', system-ui, sans-serif);
+  background: #fff; color: var(--rd-ink, #2f3a33); box-shadow: 0 4px 0 var(--rd-line, #e6e9e6); transition: transform .08s, box-shadow .08s, filter .15s; }
+.cfm-btn:hover { filter: brightness(1.03); }
+.cfm-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rd-line, #e6e9e6); }
+.cfm-btn:focus-visible { outline: 3px solid var(--rd-blue, #1c8fe3); outline-offset: 3px; }
+.cfm-btn--ok { background: var(--rd-green, #46b35a); color: #fff; box-shadow: 0 4px 0 var(--rd-green-d, #2f8a42); }
+.cfm-btn--ok:active { box-shadow: 0 1px 0 var(--rd-green-d, #2f8a42); }
+.cfm-btn--danger { background: var(--rd-pink, #ff7a9c); color: #fff; box-shadow: 0 4px 0 var(--rd-pink-d, #d6416a); }
+.cfm-btn--danger:active { box-shadow: 0 1px 0 var(--rd-pink-d, #d6416a); }
+@media (min-width: 480px) { .cfm-actions { grid-template-columns: 1fr 1fr; } .cfm-actions .cfm-btn:first-child { order: 2; } }
+@media (prefers-reduced-motion: reduce) { .cfm-btn { transition: none; } }

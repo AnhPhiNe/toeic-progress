@@ -90,7 +90,7 @@ export function PageScrollCue({ activeTab }: PageScrollCueProps) {
         type="button"
         onClick={handleScrollDown}
         aria-label="Cuộn xem thêm nội dung bên dưới"
-        className="flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white/95 px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] backdrop-blur-xs transition-all hover:bg-slate-50 hover:shadow-[3px_3px_0_0_#0f172a] active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C]/95 dark:text-slate-100 dark:shadow-[2px_2px_0_0_#cbd5e1] cursor-pointer group"
+        className="flex items-center gap-1.5 rounded-full rd bg-white px-3.5 py-1.5 text-xs font-black text-[#2f3a33] shadow-[0_3px_0_#e6e9e6,0_8px_18px_-8px_rgba(47,58,51,.35)] transition-all hover:brightness-105 active:translate-y-0.5 active:shadow-[0_1px_0_#e6e9e6] cursor-pointer group"
       >
         <ChevronDown className="h-3.5 w-3.5 animate-bounce [animation-iteration-count:2] motion-reduce:animate-none stroke-[2.5]" aria-hidden="true" />
         <span className="tracking-tight">Cuộn để xem tiếp</span>
@@ -161,7 +161,7 @@ export function ContainerScrollCue({
         type="button"
         onClick={handleScroll}
         aria-label="Cuộn xem tiếp nội dung bên dưới"
-        className="flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white/95 px-3 py-1 text-[11.5px] font-black text-slate-800 shadow-[2px_2px_0_0_#0f172a] backdrop-blur-xs hover:bg-slate-50 active:translate-x-px active:translate-y-px active:shadow-none dark:border-slate-300 dark:bg-[#111A2C]/95 dark:text-white dark:shadow-none cursor-pointer group"
+        className="flex items-center gap-1.5 rounded-full rd bg-white px-3 py-1 text-[11.5px] font-black text-[#2f3a33] shadow-[0_3px_0_#e6e9e6,0_6px_14px_-8px_rgba(47,58,51,.3)] hover:brightness-105 active:translate-y-0.5 active:shadow-[0_1px_0_#e6e9e6] cursor-pointer group"
       >
         <ChevronDown className="h-3 w-3 animate-bounce [animation-iteration-count:2] motion-reduce:animate-none stroke-[2.5]" aria-hidden="true" />
         <span className="tracking-tight">{label}</span>

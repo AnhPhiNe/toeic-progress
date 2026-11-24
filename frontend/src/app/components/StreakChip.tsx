@@ -37,10 +37,10 @@ export function StreakChip({ streak, longestStreak, studiedDates, today }: Strea
   return <>
     <button ref={chipRef} type="button" aria-haspopup="dialog" aria-expanded={anchor !== null} aria-label={`Chuỗi học ${streak} ngày, xem tuần này`}
       onClick={() => setAnchor(chipRef.current?.getBoundingClientRect() ?? null)}
-      className={'flex h-9 items-center gap-1 rounded-xl border-2 border-slate-900 px-2 text-[13px] font-black tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer '
-        + (lit ? 'bg-amber-100 text-slate-950' : 'bg-slate-100 text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400')
-        + (anchor ? ' ring-[3px] ring-orange-300 ring-offset-1' : '')}>
-      <Flame size={16} strokeWidth={2.5} className={lit ? 'text-orange-600' : 'text-slate-400'} aria-hidden="true" />
+      className={'rd flex h-9 items-center gap-1 rounded-xl px-2.5 text-[13px] font-black tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[#1c8fe3] cursor-pointer '
+        + (lit ? 'bg-[#fff1e3] text-[#2f3a33]' : 'bg-[#f6f8f6] text-[#7a857e]')
+        + (anchor ? ' ring-[3px] ring-[#ffc99a] ring-offset-1' : '')}>
+      <Flame size={16} strokeWidth={2.5} className={lit ? 'text-[#e2701a]' : 'text-[#b3bab4]'} aria-hidden="true" />
       {streak}
     </button>
     {anchor && <StreakPopover anchor={anchor} streak={streak} longestStreak={longestStreak} studiedDates={studiedDates} today={today} onClose={() => setAnchor(null)} />}
@@ -59,34 +59,34 @@ function StreakPopover({ anchor, streak, longestStreak, studiedDates, today, onC
     : studiedToday ? 'Hôm nay đã học. Mai học tiếp để giữ lửa.' : 'Hôm nay chưa học. Học một chút để giữ chuỗi.';
   return createPortal(
     <div className="fixed inset-0 z-50 md:hidden">
-      <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-slate-950/20 cursor-default" />
+      <button type="button" tabIndex={-1} aria-label="Đóng" onClick={onClose} className="absolute inset-0 bg-[rgba(47,58,51,.28)] cursor-default" />
       <div ref={ref} role="dialog" aria-modal="true" aria-label={`Chuỗi ${streak} ngày`} tabIndex={-1}
         style={{ top: anchor.bottom + 12, right, width }}
-        className="streak-popover absolute rounded-[22px] border-2 border-slate-900 bg-white p-[18px] pb-4 text-slate-950 shadow-[4px_4px_0_0_#0f172a] outline-none dark:border-slate-300 dark:bg-[#111A2C] dark:text-white dark:shadow-[4px_4px_0_0_#cbd5e1]">
+        className="rd streak-popover absolute rounded-[24px] bg-white p-[18px] pb-4 text-[#2f3a33] shadow-[0_14px_36px_-10px_rgba(47,58,51,.35)] outline-none">
         <span aria-hidden="true" style={{ right: arrowRight }}
-          className="absolute -top-[9px] h-3.5 w-3.5 rotate-45 border-l-2 border-t-2 border-slate-900 bg-white dark:border-slate-300 dark:bg-[#111A2C]" />
+          className="absolute -top-[6px] h-3.5 w-3.5 rotate-45 rounded-[3px] bg-white" />
         <div className="flex items-center gap-3.5">
-          <span className="streak-popover-flame flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[18px] text-orange-600">
+          <span className="streak-popover-flame flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[18px] text-[#e2701a]">
             <Flame size={34} strokeWidth={2.4} aria-hidden="true" />
           </span>
           <div className="min-w-0">
             <p className="flex items-baseline gap-1.5 leading-none">
               <span className="text-[30px] font-black tracking-tight tabular-nums">{streak}</span>
-              <span className="text-base font-bold text-slate-500 dark:text-slate-400">ngày liên tiếp</span>
+              <span className="text-base font-extrabold text-[#7a857e]">ngày liên tiếp</span>
             </p>
-            <p className="mt-1.5 text-[13px] font-semibold leading-snug text-slate-600 dark:text-slate-300">{message}</p>
+            <p className="mt-1.5 text-[13px] font-bold leading-snug text-[#7a857e]">{message}</p>
           </div>
         </div>
-        <ol className="mt-[18px] flex justify-between border-t border-stone-200 pt-3.5 dark:border-slate-700" aria-label="Tuần này">
+        <ol className="mt-[18px] flex justify-between border-t-2 border-[#e6e9e6] pt-3.5" aria-label="Tuần này">
           {currentWeek(today).map(day => {
             const done = studiedDates.has(day.iso);
             const isToday = day.iso === today;
             return (
               <li key={day.iso} aria-label={`${day.label}: ${done ? 'đã học' : isToday ? 'hôm nay, chưa học' : 'chưa học'}`}
-                className={'flex flex-col items-center gap-1.5 text-[11px] font-bold ' + (done ? 'text-slate-950 dark:text-white' : isToday ? 'text-orange-700 dark:text-orange-300' : 'text-slate-400 dark:text-slate-500')}>
+                className={'flex flex-col items-center gap-1.5 text-[11px] font-bold ' + (done ? 'text-[#2f3a33]' : isToday ? 'text-[#e2701a]' : 'text-[#b3bab4]')}>
                 <span className={'flex h-[30px] w-[30px] items-center justify-center rounded-full ' + (done
-                  ? 'bg-orange-500 text-white'
-                  : isToday ? 'border-2 border-dashed border-orange-500' : 'bg-slate-100 dark:bg-slate-800')}>
+                  ? 'bg-[#e2701a] text-white'
+                  : isToday ? 'border-2 border-dashed border-[#e2701a]' : 'bg-[#f6f8f6]')}>
                   {done && (isToday ? <Flame size={16} strokeWidth={2.6} aria-hidden="true" /> : <Check size={16} strokeWidth={3} aria-hidden="true" />)}
                 </span>
                 {day.label}
@@ -94,8 +94,8 @@ function StreakPopover({ anchor, streak, longestStreak, studiedDates, today, onC
             );
           })}
         </ol>
-        <p className="mt-3.5 flex justify-between text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">
-          Kỷ lục chuỗi <strong className="font-black text-slate-950 dark:text-white">{Math.max(longestStreak, streak)} ngày</strong>
+        <p className="mt-3.5 flex justify-between text-[12.5px] font-bold text-[#7a857e]">
+          Kỷ lục chuỗi <strong className="font-black text-[#2f3a33]">{Math.max(longestStreak, streak)} ngày</strong>
         </p>
       </div>
     </div>,
@@ -148,12 +148,12 @@ export function StreakCelebration({ streak, studiedToday, today, held = false }:
   if (!visible) return null;
   return (
     <div className="streak-celebration pointer-events-none fixed inset-0 z-[60] flex items-center justify-center md:hidden" role="status" aria-live="polite">
-      <div className="streak-celebration-card flex w-[280px] flex-col items-center rounded-3xl border-2 border-slate-900 bg-white px-6 py-7 text-center shadow-[4px_4px_0_0_#0f172a] dark:border-slate-200 dark:bg-[#111A2C]">
+      <div className="streak-celebration-card flex w-[280px] flex-col items-center rd rounded-3xl bg-white px-6 py-7 text-center shadow-[0_18px_44px_-14px_rgba(47,58,51,.4)]">
         <span className="streak-celebration-glow flex h-28 w-28 items-center justify-center rounded-full">
-          <Flame className="streak-celebration-flame h-16 w-16 text-orange-600" strokeWidth={2.2} aria-hidden="true" />
+          <Flame className="streak-celebration-flame h-16 w-16 text-[#e2701a]" strokeWidth={2.2} aria-hidden="true" />
         </span>
-        <p className="mt-2 text-[28px] font-black tracking-tight text-slate-950 dark:text-white">{streak} ngày liên tiếp</p>
-        <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Học thêm ngày mai để giữ lửa</p>
+        <p className="mt-2 text-[28px] font-black tracking-tight text-[#2f3a33]">{streak} ngày liên tiếp</p>
+        <p className="mt-1 text-sm font-bold text-[#7a857e]">Học thêm ngày mai để giữ lửa</p>
       </div>
     </div>
   );

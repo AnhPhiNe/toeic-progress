@@ -18,16 +18,21 @@ export default {
       },
       colors: {
         brand: {
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          200: '#C7D2FE',
-          300: '#A5B4FC',
-          400: '#818CF8',
-          500: '#6366F1', // Primary Indigo
-          600: '#4F46E5',
-          700: '#4338CA',
-          800: '#3730A3',
-          900: '#312E81',
+          50: '#E7F6EA',
+          100: '#CDEBD3',
+          200: '#A6DBB0',
+          300: '#7CCB8B',
+          400: '#5CBE70',
+          500: '#46B35A', // --rd-green
+          600: '#2F8A42', // --rd-green-d
+          700: '#276F37',
+          800: '#1F562C',
+          900: '#183F21',
+        },
+        pink: {
+          soft: '#FFE1E9', // --rd-pink-l
+          DEFAULT: '#FF7A9C', // --rd-pink
+          deep: '#D6416A', // --rd-pink-d
         },
         slate: {
           850: '#151E2E',
@@ -36,7 +41,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Nunito', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
         '2xs': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',

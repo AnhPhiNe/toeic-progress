@@ -22,11 +22,14 @@ test('guest reset removes content and retired copies with one confirmation', asy
     localStorage.setItem('toeic_smart_weekly_plans_v1','Private old plan');
   });
   await openSettings(page);
-  let confirmations=0;
-  page.on('dialog',async dialog => { confirmations++; await dialog.accept(); });
+  let nativeDialogs=0;
+  page.on('dialog',async dialog => { nativeDialogs++; await dialog.dismiss(); });
   await page.getByRole('button',{name:'Xóa toàn bộ dữ liệu'}).click();
+  const confirm=page.getByRole('alertdialog',{name:'Xóa toàn bộ dữ liệu học?'});
+  await expect(confirm).toContainText('Không thể phục hồi');
+  await confirm.getByRole('button',{name:'Xóa dữ liệu'}).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  expect(confirmations).toBe(1);
+  expect(nativeDialogs).toBe(0);
   const result = await page.evaluate(() => {
     const bundle=JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
     return {records:bundle.vocabLog,oldBundle:localStorage.getItem('toeic_progress_bundle_v2'),legacy:localStorage.getItem('toeic_990_sessions_v1'),plans:localStorage.getItem('toeic_smart_weekly_plans_v1')};
@@ -45,8 +48,11 @@ test('canceling reset retains guest content', async ({ page }) => {
   await seedVocab(page, 4);
   const before=await page.evaluate(()=>localStorage.getItem('toeic_progress_bundle_v3'));
   await openSettings(page);
-  page.once('dialog',dialog=>dialog.dismiss());
   await page.getByRole('button',{name:'Xóa toàn bộ dữ liệu'}).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  const confirm=page.getByRole('alertdialog',{name:'Xóa toàn bộ dữ liệu học?'});
+  await expect(confirm.getByRole('button',{name:'Hủy'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(confirm).toHaveCount(0);
+  await expect(page.getByRole('dialog',{name:'Cài đặt',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>localStorage.getItem('toeic_progress_bundle_v3'))).toBe(before);
 });
