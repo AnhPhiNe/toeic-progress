@@ -221,6 +221,7 @@ export function ResultImageButton({
   const lastImageScores = useRef<aiService.ResultImageScores | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [slot, setSlot] = useState<HTMLDivElement | null>(null);
   /** On the phone read view these blocks live in the "Cách khác" sheet; elsewhere they stay where they are. */
   const place = (node: ReactNode): ReactNode => {
@@ -568,23 +569,58 @@ export function ResultImageButton({
           </div>
         </div>
       ) : dropzone ? (
-        <div role="button" tabIndex={0} className="rdl-drop" onClick={() => input.current?.click()}
-          onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.current?.click(); } }}
-          aria-label="Dán ảnh kết quả: bấm Ctrl V, kéo ảnh vào, hoặc bấm để chọn tệp">
-          <Soc state="focus" size={132} />
-          <div className="rdl-drop-t">
-            <b>Chụp trang kết quả</b>
-            <span>Sóc đọc điểm và các câu bạn sai, bạn khỏi gõ tay.</span>
-            <div className="rdl-drop-act">
-              <span className="rdl-drop-btn"><ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />Chọn ảnh</span>
-              <em>hoặc dán <span className="rdl-kbd">Ctrl</span> + <span className="rdl-kbd">V</span></em>
+        <div className="rdl-ai-wrap">
+          <div className="rdl-toggles" role="group" aria-label="Tùy chọn đọc ảnh">
+            <button type="button" disabled={busy} aria-pressed={photoMode}
+              onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
+              className={'rdl-pill-sw' + (photoMode ? ' is-on' : '')}>
+              <span className="rdl-sw" aria-hidden="true"><i /></span>
+              <span>Phiếu tô giấy</span>
+            </button>
+            {!photoMode && staged.length === 0 && (
+              <button type="button" disabled={busy} aria-pressed={multiStage}
+                onClick={() => { triggerHaptic(4); setMultiStage(value => !value); }}
+                className={'rdl-pill-sw' + (multiStage ? ' is-on' : '')}>
+                <span className="rdl-sw" aria-hidden="true"><i /></span>
+                <span>Ghép nhiều ảnh</span>
+              </button>
+            )}
+          </div>
+          <div role="button" tabIndex={0} className={'rdl-drop' + (dragOver ? ' is-drag' : '')}
+            onClick={() => input.current?.click()}
+            onDragOver={event => { event.preventDefault(); if (!dragOver) setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={event => {
+              event.preventDefault();
+              setDragOver(false);
+              const files = [...event.dataTransfer.files].filter(file => file.type.startsWith('image/'));
+              if (files.length) handleIncomingFiles(files);
+            }}
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.current?.click(); } }}
+            aria-label="Dán ảnh kết quả: bấm Ctrl V, kéo ảnh vào, hoặc bấm để chọn tệp">
+            <Soc state="focus" size={116} />
+            <div className="rdl-drop-t">
+              <b>Chụp trang kết quả</b>
+              <span>Sóc đọc điểm và các câu bạn sai, bạn khỏi gõ tay.</span>
+              <p className="rdl-drop-hint">{dragOver ? 'Thả ảnh vào đây để Sóc đọc ngay!' : 'Kéo thả ảnh vào đây, dán Ctrl+V hoặc dùng nút bên dưới'}</p>
             </div>
           </div>
         </div>
       ) : desktop && extraButton ? (
         <div className="space-y-2">
           {busy && <button type="button" disabled className="flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-soft)] px-3 text-xs font-bold text-[#5c675f]"><ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />Đang đọc…</button>}
-          {extraButton}
+          <div className="rdg-act-row">
+            {extraButton}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => input.current?.click()}
+              className="rdg-act-btn"
+            >
+              <ImagePlus className="h-4 w-4 shrink-0 text-[var(--rd-pink-d)]" aria-hidden="true" />
+              <span>Chọn ảnh</span>
+            </button>
+          </div>
         </div>
       ) : (
         <button
@@ -750,22 +786,73 @@ export function ResultImageButton({
           </div>
         </div>
       )}
-      {desktop && !isTyping && !needsSignIn && (
-        <ScreenshotSuggestBar
-          enabled={desktop && !isTyping && !needsSignIn}
-          disabled={busy}
-          addVerb="kết quả"
-          maxAdd={stagingActive ? Math.max(0, MAX_RESULT_IMAGES - staged.length) : MAX_RESULT_IMAGES}
-          onAddFiles={picked => handleIncomingFiles(picked)}
-          menuAlign={!dropzone ? 'right' : 'left'}
-          menuItems={[
-            ...(!dropzone ? [{ key: 'pick-image', label: 'Chọn ảnh kết quả', disabled: busy, onClick: () => input.current?.click() }] : []),
-            { key: 'paper', label: 'Phiếu tô giấy', pressed: photoMode, disabled: busy, onClick: () => { triggerHaptic(4); setPhotoMode(value => !value); } },
-            ...(!photoMode && staged.length === 0 ? [{ key: 'multi', label: 'Ghép nhiều ảnh', pressed: multiStage, disabled: busy, onClick: () => { triggerHaptic(4); setMultiStage(value => !value); } }] : []),
-            ...(compactDrop ? [{ key: 'again', label: 'Chọn ảnh khác', disabled: busy, onClick: () => input.current?.click() }] : []),
-            ...(extraMenu ?? [])
-          ]}
-        />
+      {desktop && !isTyping && !needsSignIn && dropzone && (
+        <>
+          {compactDrop && (
+            <div className="rdl-toggles mt-2.5" role="group" aria-label="Tùy chọn đọc ảnh">
+              <button type="button" disabled={busy} aria-pressed={photoMode}
+                onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
+                className={'rdl-pill-sw' + (photoMode ? ' is-on' : '')}>
+                <span className="rdl-sw" aria-hidden="true"><i /></span>
+                <span>Phiếu tô giấy</span>
+              </button>
+              <button type="button" disabled={busy} onClick={() => input.current?.click()} className="rdl-pill-sw">
+                <ImagePlus className="h-3.5 w-3.5 text-[var(--rd-pink-d)]" aria-hidden="true" />
+                <span>Chọn ảnh khác</span>
+              </button>
+            </div>
+          )}
+          <ScreenshotSuggestBar
+            enabled={desktop && !isTyping && !needsSignIn}
+            disabled={busy}
+            quick
+            onPick={() => input.current?.click()}
+            addVerb="kết quả"
+            maxAdd={stagingActive ? Math.max(0, MAX_RESULT_IMAGES - staged.length) : MAX_RESULT_IMAGES}
+            onAddFiles={picked => handleIncomingFiles(picked)}
+          />
+          {extraMenu && extraMenu.length > 0 && (
+            <div className="rdl-alt-bar" role="group" aria-label="Cách nhập khác">
+              <span className="rdl-alt-lbl">Hoặc tự nhập:</span>
+              <div className="rdl-alt-btns">
+                {extraMenu.map((item, idx) => (
+                  <button key={item.key} type="button" disabled={item.disabled}
+                    className={'rdl-alt-btn' + (idx === 0 ? ' is-main' : '')}
+                    onClick={item.onClick}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {desktop && !isTyping && !needsSignIn && !dropzone && (
+        <div className="rdg-tools" role="group" aria-label="Tùy chọn bổ sung">
+          <button type="button" disabled={busy} aria-pressed={photoMode}
+            onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
+            className={'rdg-tool-sw' + (photoMode ? ' is-on' : '')}>
+            <span>Phiếu tô giấy</span>
+            <span className="rdl-sw" aria-hidden="true"><i /></span>
+          </button>
+          {(extraMenu ?? []).filter(item => item.pressed !== undefined).map(item => (
+            <button key={item.key} type="button" disabled={item.disabled} aria-pressed={item.pressed}
+              onClick={item.onClick}
+              className={'rdg-tool-sw' + (item.pressed ? ' is-on' : '')}>
+              <span>{item.label}</span>
+              <span className="rdl-sw" aria-hidden="true"><i /></span>
+            </button>
+          ))}
+          {(extraMenu ?? []).some(item => item.pressed === undefined) && (
+            <div className="rdg-modes">
+              {(extraMenu ?? []).filter(item => item.pressed === undefined).map(item => (
+                <button key={item.key} type="button" disabled={item.disabled} onClick={item.onClick} className="rdg-mode-btn">
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {!phone && <p className={'mt-2 text-xs leading-5 text-[var(--rd-mut)]' + (compactDrop || dropzone || (desktop && extraButton && !dropzone) ? ' hidden' : '')}>Chụp rõ điểm, thời gian đã làm và câu sai (hoặc gửi chung Phiếu tô + Bảng đáp án để Sóc tự chấm). Có thể thêm nhiều ảnh, không cần chụp gộp.</p>}
       {note && <p role="status" className="mt-1.5 text-[13px] font-bold text-[var(--rd-violet-d)]">{note}</p>}

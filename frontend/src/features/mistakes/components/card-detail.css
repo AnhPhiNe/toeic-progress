@@ -105,7 +105,11 @@
 .cd-note-banner p { flex: 1 0 100%; margin: 2px 0 0; font-weight: 700; font-size: 14.5px; line-height: 1.45; color: #525d56; }
 .cd-jump { border: 0; border-radius: 12px; background: #fff4dc; color: #8a5a00; font-weight: 900; font-size: 13.5px; min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; }
 .cd-jump span { font-size: 18px; line-height: 1; }
-.cd-jump:hover { background: #ffecc0; }
+.cd-jump:hover { background: #ffecc0; transform: translateY(-1px); }
+.cd-jump { transition: background .14s, transform .14s cubic-bezier(.34, 1.56, .64, 1); }
+.cd-words button { transition: transform .14s cubic-bezier(.34, 1.56, .64, 1), background .14s, color .14s; }
+.cd-words button:active { transform: scale(.94); }
+@media (prefers-reduced-motion: reduce) { .cd-jump, .cd-words button { transition: none; } }
 
 @media (max-width: 1180px) {
   .nb-page.is-detail { height: auto; min-height: 100vh; }

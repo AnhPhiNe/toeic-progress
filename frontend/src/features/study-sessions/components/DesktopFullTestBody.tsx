@@ -141,10 +141,10 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
     </div>
   );
   return (
-    <div className={manualOpen ? 'grid gap-6 lg:grid-cols-[1fr_276px]' : 'mx-auto grid w-full max-w-[560px] gap-3'}>
+    <div className={manualOpen ? 'grid gap-5 lg:grid-cols-[1fr_292px]' : 'mx-auto grid w-full max-w-[640px] gap-3'}>
       {/* Kept mounted (just hidden) so the image reader and its drafts survive switching views */}
       <div className={manualOpen ? 'min-w-0 overflow-x-auto [scrollbar-gutter:stable] pb-2' : 'hidden'}>
-        <div className="flex flex-nowrap gap-x-6 items-start">
+        <div className="flex flex-nowrap gap-x-5 items-start">
           {section('Listening', PART_NUMBERS.filter(listening))}
           {section('Reading', PART_NUMBERS.filter(part => !listening(part)))}
         </div>
@@ -152,9 +152,9 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
       <div className="flex flex-col gap-2.5 max-lg:order-first">
         {manualOpen && (
-          <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(true); }}
-            className="w-fit cursor-pointer text-[13px] font-black text-[var(--rd-violet-d)] hover:underline">
-            ‹ Quay lại
+          <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(false); }}
+            className="rdg-back">
+            ‹ Đọc ảnh kết quả
           </button>
         )}
         {minimalOpen && !manualOpen && (
@@ -174,7 +174,11 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           dropzone={aiFirst}
           extraMenu={
             aiFirst && !minimalOpen
-              ? [{ key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) }]
+              ? [
+                  { key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) },
+                  { key: 'counts', label: 'Số câu đúng mỗi Part', onClick: onCounts },
+                  { key: 'official', label: 'Điểm chính thức', onClick: onOfficial }
+                ]
               : manualOpen
                 ? [
                     { key: 'notes', label: notes.trim() ? 'Ghi chú (đã có)' : 'Ghi chú bài thi', pressed: showNotes, onClick: () => setShowNotes(prev => !prev) },
@@ -259,9 +263,9 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
             <button
               type="button"
               onClick={openNumbers}
-              className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[var(--rd-line)] bg-white px-3 text-xs font-black text-[var(--rd-ink)] shadow-[0_3px_0_var(--rd-line)] hover:bg-[var(--rd-soft)] active:translate-x-px active:translate-y-px active:shadow-none"
+              className="rdg-act-btn"
             >
-              <Keyboard className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <Keyboard className="h-4 w-4 shrink-0 text-[var(--rd-violet-d)]" aria-hidden="true" />
               Gõ số câu
             </button>
           }

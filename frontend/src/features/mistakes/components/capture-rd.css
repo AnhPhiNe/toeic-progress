@@ -75,7 +75,7 @@
 .cap-done { position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--rd-green); color: #fff; font-weight: 900; font-size: 12px; display: grid; place-items: center; }
 .cap-done.is-bad { background: var(--rd-pink-d); }
 
-.cap-hint { margin-top: 12px; font-weight: 800; font-size: 13px; color: #a87a00; }
+.cap-hint { margin-top: 14px; font-weight: 800; font-size: 13px; color: #a87a00; }
 .cap-note { margin-top: 12px; font-weight: 700; font-size: 13.5px; color: #5e6962; background: #f6f8f6; border-radius: 12px; padding: 8px 12px; }
 .cap-note.is-warn { background: #fff6d6; color: #6b5310; }
 .cap-error { margin-top: 12px; font-weight: 800; font-size: 13.5px; color: #c23c63; }

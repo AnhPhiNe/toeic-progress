@@ -44,6 +44,8 @@
 .cz-cnt i { font-style: normal; border-radius: 99px; background: var(--pk); color: #fff; font-weight: 900; font-size: 12px; padding: 2px 9px; }
 .cz-hr { margin-left: auto; }
 .cz-empty { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; }
+.cz-empty .soc { animation: cz-soc-float 3.4s ease-in-out infinite; }
+@keyframes cz-soc-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .cz-empty p { font-weight: 800; font-size: 15px; color: #5e6962; }
 .cz:not(.is-active) .cz-empty { opacity: .55; }
 .cz-ths { display: flex; flex-wrap: wrap; gap: 12px; align-content: flex-start; padding: 8px 8px 8px 0; margin: -8px -8px -8px 0; }
@@ -61,15 +63,10 @@
 .cz-tools button { border: 0; border-radius: 8px; min-width: 24px; height: 24px; padding: 0 5px; background: rgba(47, 58, 51, .82); color: #fff; font-weight: 900; font-size: 13px; }
 .cz-add { width: 70px; height: 70px; border-radius: 12px; border: 2.5px dashed #ffb8ca; background: #fff; color: var(--pk); font-size: 26px; font-weight: 900; flex: none; align-self: flex-start; }
 @keyframes cv-pop { 0% { transform: scale(.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .cz-th, .cv-tk.is-on { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cz-th, .cv-tk.is-on, .cz-empty .soc { animation: none; } }
 
-/* quick input buttons */
-.ssb.is-quick { margin-top: 0; }
-.ssb.is-quick .ssb-btn { border-radius: 14px; padding: 10px 16px; font-size: 14.5px; background: #fff; color: var(--ink); box-shadow: 0 0 0 2px #e8e2e5, 0 3px 0 #e8e2e5; gap: 8px; white-space: nowrap; }
-.ssb.is-quick .ssb-btn svg { width: 18px; height: 18px; color: var(--pd); }
-.ssb.is-quick .ssb-btn.is-clip { color: var(--pd); background: #fff; box-shadow: 0 0 0 2.5px var(--pk), 0 3px 0 #ffd3de; }
-.ssb.is-quick .ssb-btn kbd { font-size: 11.5px; margin-left: 2px; }
-.ssb.is-quick .ssb-watch { border-radius: 14px; padding: 10px 14px; font-size: 14px; }
+/* quick input buttons: shared styles live in screenshot-bar.css; keep zero top margin inside .cv-tray flex gap */
+.cv-tray > .ssb.is-quick { margin-top: 0; }
 
 /* warning rows */
 .cv-warn-row { display: flex; align-items: center; gap: 4px; border-radius: 14px; background: #fff7e3; padding: 2px 6px 2px 14px; font-weight: 800; font-size: 14.5px; color: #6b4f08; }

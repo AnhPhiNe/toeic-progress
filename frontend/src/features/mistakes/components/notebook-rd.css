@@ -206,7 +206,8 @@
 .nb-words-head h2 { font-weight: 900; font-size: 26px; letter-spacing: -.6px; }
 .nb-words-head p { font-weight: 700; font-size: 14.5px; color: var(--rd-mut); margin-top: 4px; }
 .nb-words-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
-.nb-words-list li { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 18px; box-shadow: 0 0 0 2px #efeae4; padding: 12px 14px; }
+.nb-words-list li { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 18px; box-shadow: 0 0 0 2px #efeae4; padding: 12px 14px; transition: transform .14s cubic-bezier(.34, 1.56, .64, 1), box-shadow .14s; }
+.nb-words-list li:hover { transform: translateY(-2px); box-shadow: 0 0 0 2px #ffd3de, 0 6px 16px rgba(214, 69, 112, .08); }
 .nb-w-main { flex: 1; min-width: 0; }
 .nb-w-main b { display: block; font-weight: 900; font-size: 16px; color: var(--rd-ink); overflow-wrap: anywhere; }
 .nb-w-main span { display: block; font-weight: 700; font-size: 14px; color: #5c675f; margin-top: 2px; }

@@ -750,7 +750,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         aria-modal="true"
         aria-labelledby="session-logger-title"
         tabIndex={-1}
-        className={`rd rdl rdl-modal relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[600px]') : !isPhone && sessionType === 'PART_PRACTICE' ? 'max-w-[600px]' : 'max-w-3xl'} my-4 bg-white overflow-visible flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none animate-sheet-up sm:animate-modal-pop`}>
+        className={`rd rdl rdl-modal relative w-full ${wrongEntry && !isPhone ? (fullTestManual ? 'max-w-[1100px]' : 'max-w-[656px]') : !isPhone && sessionType === 'PART_PRACTICE' ? 'max-w-[600px]' : 'max-w-3xl'} my-4 bg-white overflow-visible flex flex-col max-h-[92vh] max-md:my-0 max-md:h-[100dvh] max-md:max-h-none animate-sheet-up sm:animate-modal-pop`}>
         
         {/* Header Modal */}
         <div className="rdl-head flex items-center justify-between bg-white">

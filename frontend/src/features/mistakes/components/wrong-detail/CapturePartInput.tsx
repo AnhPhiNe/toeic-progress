@@ -101,8 +101,11 @@ export function CapturePartInput({
   return (
     <div className={'wd-vars' + (phone ? ' cpi-phone' : '')}>
       <div className="cpi-head">
-        <span>Part {part} · {PART_NAMES[part]}</span>
-        {logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>}
+        <span className="cpi-head-l">
+          <span>Part {part} · {PART_NAMES[part]}</span>
+          {logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>}
+        </span>
+        {onPhotoMode && <div className="cpi-paper"><PaperToggle on={photoMode} onChange={onPhotoMode} /></div>}
       </div>
       <div className="cpi-switch" role="group" aria-label="Chọn Part">
         <span className="cpi-sw-grp">
@@ -157,7 +160,6 @@ export function CapturePartInput({
           {rangeErr && <span className="wd-err" style={{ marginTop: 0, width: '100%' }} role="alert">{rangeErr}</span>}
         </div>
       )}
-      {onPhotoMode && <div className="cpi-paper"><PaperToggle on={photoMode} onChange={onPhotoMode} /></div>}
       {part === 7 && phone ? <>
         <div className="cv-seg" role="tablist" aria-label="Ô ảnh">
           <button type="button" role="tab" aria-selected={activeZone === 'passage'} className={activeZone === 'passage' ? 'is-on' : ''} onClick={() => onActiveZone?.('passage')}>Đoạn văn · {zoneImages('passage').length}</button>

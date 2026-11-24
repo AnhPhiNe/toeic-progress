@@ -19,10 +19,10 @@ export async function choosePractice(dialog: Locator) {
 
 /** Switch a Full Test from per-Part estimation to typing the official score. */
 export async function useOfficialScore(dialog: Locator) {
-  // Computer Full Test opens on the paste view; the official-score switch lives in the 200-question grid's "Cách khác" menu.
-  const more = dialog.getByRole('button', { name: /^Cách khác/ });
   const direct = dialog.getByRole('button', { name: 'Điểm chính thức', exact: true });
-  if (await more.isVisible() && !(await direct.isVisible())) {
+  if (await direct.isVisible()) { await direct.click(); return; }
+  const more = dialog.getByRole('button', { name: /^Cách khác/ });
+  if (await more.isVisible()) {
     const grid = dialog.getByRole('button', { name: 'Câu 1', exact: true });
     if (!(await grid.isVisible())) await chooseMore(dialog, /^Tự chọn câu sai/);
     await chooseMore(dialog, 'Điểm chính thức');
