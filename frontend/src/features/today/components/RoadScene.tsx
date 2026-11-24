@@ -5,7 +5,7 @@ import { Soc } from '@/shared/ui/soc/Soc';
 import { Balloon, Bush, Cloud, FlowerDots, House, Pine, Sun, Tree, Windmill } from '@/shared/illustrations/Scenery';
 import { Bridge, Coin, FlowerArch, Podium, SocSprite, Stone } from '@/shared/illustrations/Landmarks';
 import type { Pt } from '@/shared/illustrations/geometry';
-import { DESK_H, DESK_ROAD, DESK_W, flagSpots, phoneFit, phoneRoad, roadDate, roadRoute, walkFrames, type FlagTest, type RoadLayout, type RoadRoute } from '../lib/roadLayout';
+import { DESK_H, DESK_W, deskFit, deskRoad, flagSpots, phoneFit, phoneRoad, roadDate, roadRoute, walkFrames, type FlagTest, type RoadLayout, type RoadRoute } from '../lib/roadLayout';
 import { reduceMotion } from '../lib/useStairTween';
 import type { RestMood } from '../lib/socMood';
 import './road.css';
@@ -85,11 +85,15 @@ export function RoadScene(props: RoadSceneProps) {
   const phone = variant === 'phone';
   const [boxRef, box] = useBox<HTMLDivElement>();
 
-  // Desktop: the scene is DESK_H tall and as wide as the window gives it; the road keeps its place on the left.
+  // Desktop: the scene is DESK_H tall and as wide as the window gives it; the road expands smoothly into the left stage.
   const W = phone ? Math.max(1, box.w) : Math.max(DESK_W, Math.round(box.h ? box.w * DESK_H / box.h : DESK_W));
   const H = phone ? Math.max(1, box.h) : DESK_H;
+  const panelReserve = !phone && box.w <= 1140 ? 372 : 412;
+  const availDeskW = Math.max(420, box.w - panelReserve);
+  const availSceneW = !phone && box.h > 0 ? Math.round(availDeskW * DESK_H / box.h) : 760;
+  const dFit = useMemo(() => deskFit(availSceneW), [availSceneW]);
   const fit = useMemo(() => phoneFit(W, props.top ?? 200, props.base ?? H - 260), [W, H, props.top, props.base]);
-  const L: RoadLayout = useMemo(() => (phone ? phoneRoad(fit) : DESK_ROAD), [phone, fit]);
+  const L: RoadLayout = useMemo(() => (phone ? phoneRoad(fit) : deskRoad(dFit)), [phone, fit, dFit]);
   const route = useMemo(() => roadRoute(L), [L]);
   const values = steps.map(s => s.value);
   const flags = useMemo(() => (estimate ? [] : flagSpots(route, values, tests, L.r)), [route, values.join(','), tests, L.r, estimate]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -142,11 +146,9 @@ export function RoadScene(props: RoadSceneProps) {
     : `Bậc ${socAt + 1} trên ${stopCount}, ${best} điểm, mục tiêu ${target}`;
   const walkedTo = estimate ? 0 : done ? route.L : route.stopLen[socAt];
 
-  // Desktop: keep the road + trophy + bridge comfortably left of the right-hand task panel at 1100–1360px widths.
-  const panelReserve = !phone && box.w <= 1140 ? 372 : 412;
-  const availDeskW = Math.max(420, box.w - panelReserve);
+  // Desktop: when narrower than the base road, scale down cleanly so trophy + bridge never touch the right-hand panel.
   const roadRightPx = !phone && box.h > 0 ? 748 * (box.h / DESK_H) : 0;
-  const deskScale = !phone && roadRightPx > availDeskW ? Math.max(0.72, availDeskW / roadRightPx) : 1;
+  const deskScale = !phone && dFit.sx === 1 && roadRightPx > availDeskW ? Math.max(0.72, availDeskW / roadRightPx) : 1;
   const worldTransform = deskScale < 1 ? `translate(0 ${((1 - deskScale) * H).toFixed(1)}) scale(${deskScale.toFixed(4)})` : undefined;
 
   const stops: ReactNode[] = L.stops.map(([x, y], i) => {
@@ -177,7 +179,7 @@ export function RoadScene(props: RoadSceneProps) {
   const archAt = L.arch;
   const tagW = f * 7.4;
   const cupSub = done ? `Bạn đã chạm ${target}!` : estimate ? 'Mục tiêu của bạn' : goalDate ? `Theo đà này chạm khoảng ${roadDate(goalDate)}` : `Còn ${Math.max(0, target - best)} điểm`;
-  const scenery = phone ? <PhoneScenery fit={fit} W={W} uid={uid} /> : <DeskScenery W={W} />;
+  const scenery = phone ? <PhoneScenery fit={fit} W={W} uid={uid} /> : <DeskScenery W={W} mapX={dFit.mapX} bridgeX={dFit.bridgeX} availSceneW={availSceneW} />;
 
   return (
     <div className={'rr' + (phone ? ' rr--phone' : ' rr--desk') + (hidden ? ' is-hidden' : '')} ref={boxRef}>
@@ -197,7 +199,7 @@ export function RoadScene(props: RoadSceneProps) {
           <path d={chevrons(route, [...L.stops, L.goal], r)} fill="none" stroke="#fff" strokeWidth={3.2 * r / 30} strokeLinecap="round" strokeLinejoin="round" opacity=".95" />
           {phone
             ? <Bridge x={fit.map([362, 574])[0]} y={fit.map([362, 574])[1]} angle={-90} s={.32 * fit.ky} />
-            : <Bridge x={700} y={733} angle={-84} s={.56} />}
+            : <Bridge x={dFit.bridgeX} y={733} angle={-84} s={.56} />}
 
           <ellipse cx={gx} cy={gy - 40 * L.podiumS} rx={120 * L.podiumS} ry={120 * L.podiumS} fill={`url(#${uid}spot)`} />
           <FlowerArch x={archAt[0]} y={archAt[1]} s={L.archS} font={L.archFont} />
@@ -247,9 +249,11 @@ export function RoadScene(props: RoadSceneProps) {
 
       {/* A dozing Sóc is an HTML button over the scene (a steady target while its zzz floats). */}
       {sleeping && !hidden && box.w > 0 && (() => {
-        const k = phone ? 1 : box.h / H, w = L.socW * k;
+        const k = phone ? 1 : (box.h / H) * deskScale;
+        const yOff = phone ? 0 : (1 - deskScale) * box.h;
+        const w = L.socW * k;
         return (
-          <button type="button" className="tp-soc rr-soc rr-wake" style={{ left: socSpot[0] * k - w * .47, top: socSpot[1] * k - w * 260 / 240 * .95, width: w }}
+          <button type="button" className="tp-soc rr-soc rr-wake" style={{ left: socSpot[0] * k - w * .47, top: yOff + socSpot[1] * k - w * 260 / 240 * .95, width: w }}
             aria-label="Sóc đang ngủ gật trên bậc, chạm để đánh thức" onClick={onWake}>
             <Soc state="zzz" size={w} gear={gear} />
           </button>
@@ -273,32 +277,34 @@ export function RoadSign({ text, late, className }: { text: string; late?: boole
   );
 }
 
-/** Desktop landscape behind the road (1b-today-road.html), stretched to the scene width W. */
-function DeskScenery({ W }: { W: number }) {
+/** Desktop landscape behind the road (1b-today-road.html), stretched smoothly across W and aligned to the road stage. */
+function DeskScenery({ W, mapX, bridgeX, availSceneW }: { W: number; mapX: (x: number) => number; bridgeX: number; availSceneW: number }) {
   const H = DESK_H;
   const R = (x: number) => W - (DESK_W - x);
+  const balloonX = Math.min(availSceneW - 24, mapX(752));
+  const river = `M${W + 10} 694 C${Math.max(bridgeX + 180, W - 260)} 704 ${bridgeX + 110} 734 ${bridgeX} 733 C${Math.max(360, bridgeX - 240)} 731 220 742 -10 730`;
   return (
     <g aria-hidden="true">
-      <Sun x={640} y={120} r={46} />
-      <Cloud x={560} y={300} s={.55} /><Cloud x={700} y={250} s={.45} className="il-drift2" /><Cloud x={110} y={300} s={.5} />
-      <Balloon x={752} y={250} s={.66} />
-      <path d={`M0 345 C140 300 300 330 420 312 C560 292 680 330 820 300 C960 276 1080 296 ${W} 286 V${H} H0Z`} fill="#cfe8cf" />
-      <path d={`M0 400 C180 360 330 400 520 380 C700 362 860 396 1020 372 C1100 362 1150 368 ${W} 366 V${H} H0Z`} fill="#b5dfb9" />
-      <path d={`M0 452 C200 430 420 460 620 446 C820 432 1000 452 ${W} 440 V${H} H0Z`} fill="#a4dbab" />
+      <Sun x={Math.min(availSceneW - 90, mapX(610))} y={120} r={46} />
+      <Cloud x={mapX(540)} y={295} s={.55} /><Cloud x={Math.min(availSceneW - 40, mapX(700))} y={248} s={.45} className="il-drift2" /><Cloud x={110} y={300} s={.5} />
+      <Balloon x={balloonX} y={248} s={.66} />
+      <path d={`M0 345 C${mapX(140)} 300 ${mapX(300)} 330 ${mapX(420)} 312 C${mapX(560)} 292 ${mapX(680)} 330 ${Math.max(mapX(820), W - 360)} 300 C${W - 220} 276 ${W - 110} 296 ${W} 286 V${H} H0Z`} fill="#cfe8cf" />
+      <path d={`M0 400 C${mapX(180)} 360 ${mapX(330)} 400 ${mapX(520)} 380 C${mapX(700)} 362 ${Math.max(mapX(860), W - 320)} 396 ${W - 160} 372 C${W - 90} 362 ${W - 40} 368 ${W} 366 V${H} H0Z`} fill="#b5dfb9" />
+      <path d={`M0 452 C${mapX(200)} 430 ${mapX(420)} 460 ${mapX(620)} 446 C${Math.max(mapX(820), W - 360)} 432 ${W - 180} 452 ${W} 440 V${H} H0Z`} fill="#a4dbab" />
       <g className="il-decor">
-        <Pine x={30} y={380} s={.8} /><Pine x={62} y={392} s={.6} /><House x={90} y={420} s={.75} roof="#ff9ab4" /><Windmill x={330} y={400} s={.9} />
-        <Pine x={760} y={440} s={.7} /><Pine x={740} y={395} s={.55} /><House x={270} y={418} s={.6} roof="#1c8fe3" />
+        <Pine x={30} y={380} s={.8} /><Pine x={62} y={392} s={.6} /><House x={mapX(95)} y={420} s={.75} roof="#ff9ab4" /><Windmill x={mapX(330)} y={400} s={.9} />
+        <Pine x={Math.min(availSceneW - 18, mapX(755))} y={440} s={.7} /><Pine x={Math.min(availSceneW - 36, mapX(735))} y={395} s={.55} /><House x={mapX(265)} y={418} s={.6} roof="#1c8fe3" />
       </g>
-      <path d={`M${W + 10} 690 C900 700 780 736 620 734 C420 730 220 742 -10 730`} fill="none" stroke="#7cc6ef" strokeWidth="30" strokeLinecap="round" />
-      <path d={`M${W + 10} 690 C900 700 780 736 620 734 C420 730 220 742 -10 730`} fill="none" stroke="#a9dcf7" strokeWidth="18.6" strokeLinecap="round" />
-      <path className="il-shimmer" d={`M${W + 10} 690 C900 700 780 736 620 734 C420 730 220 742 -10 730`} fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="6 26" opacity=".8" strokeLinecap="round" />
+      <path d={river} fill="none" stroke="#7cc6ef" strokeWidth="30" strokeLinecap="round" />
+      <path d={river} fill="none" stroke="#a9dcf7" strokeWidth="18.6" strokeLinecap="round" />
+      <path className="il-shimmer" d={river} fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="6 26" opacity=".8" strokeLinecap="round" />
       <g className="il-decor">
         <House x={R(900)} y={830} roof="#ff7a9c" /><House x={R(990)} y={860} s={.9} roof="#ffc83d" /><House x={R(1090)} y={820} s={.85} roof="#a78bfa" /><Windmill x={R(1140)} y={780} s={.8} />
-        <Tree x={R(840)} y={885} s={1.1} /><Tree x={R(1150)} y={895} /><Tree x={22} y={900} s={1.1} /><Tree x={560} y={545} s={.7} color="#5cbf6b" /><Tree x={760} y={610} s={.7} />
-        <Bush x={40} y={690} s={.8} /><Bush x={380} y={700} s={.8} /><Bush x={560} y={700} s={.8} /><Bush x={R(860)} y={680} s={.8} /><Bush x={250} y={545} s={.8} /><Bush x={420} y={548} s={.7} /><Bush x={200} y={880} s={.8} />
-        <FlowerDots x={380} y={880} n={12} spread={140} seed={3} /><FlowerDots x={620} y={880} n={10} spread={120} seed={7} /><FlowerDots x={R(1000)} y={760} n={10} spread={120} seed={11} />
-        <FlowerDots x={210} y={705} n={10} spread={120} seed={5} /><FlowerDots x={470} y={700} n={8} spread={80} seed={9} /><FlowerDots x={240} y={560} n={8} spread={90} seed={13} />
-        <FlowerDots x={740} y={520} n={8} spread={70} seed={17} /><FlowerDots x={60} y={470} n={8} spread={60} seed={19} />
+        <Tree x={R(840)} y={885} s={1.1} /><Tree x={R(1150)} y={895} /><Tree x={22} y={900} s={1.1} /><Tree x={mapX(560)} y={545} s={.7} color="#5cbf6b" /><Tree x={Math.min(availSceneW - 16, mapX(755))} y={610} s={.7} />
+        <Bush x={40} y={690} s={.8} /><Bush x={mapX(380)} y={700} s={.8} /><Bush x={mapX(560)} y={700} s={.8} /><Bush x={R(860)} y={680} s={.8} /><Bush x={mapX(250)} y={545} s={.8} /><Bush x={mapX(420)} y={548} s={.7} /><Bush x={mapX(200)} y={880} s={.8} />
+        <FlowerDots x={mapX(380)} y={880} n={12} spread={140} seed={3} /><FlowerDots x={mapX(620)} y={880} n={10} spread={120} seed={7} /><FlowerDots x={R(1000)} y={760} n={10} spread={120} seed={11} />
+        <FlowerDots x={mapX(210)} y={705} n={10} spread={120} seed={5} /><FlowerDots x={mapX(470)} y={700} n={8} spread={80} seed={9} /><FlowerDots x={mapX(240)} y={560} n={8} spread={90} seed={13} />
+        <FlowerDots x={Math.min(availSceneW - 30, mapX(740))} y={520} n={8} spread={70} seed={17} /><FlowerDots x={60} y={470} n={8} spread={60} seed={19} />
       </g>
     </g>
   );

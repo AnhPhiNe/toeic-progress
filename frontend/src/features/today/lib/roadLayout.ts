@@ -32,6 +32,52 @@ export const DESK_ROAD: RoadLayout = {
   arch: [490, 455], goal: [640, 432]
 };
 
+export interface DeskFit {
+  /** Maps a base DESK_ROAD x coordinate into the widened left stage so wide screens have no empty gap before the panel. */
+  mapX: (x: number) => number;
+  sx: number;
+  ox: number;
+  bridgeX: number;
+}
+
+const DESK_X0 = 90;
+const DESK_SPAN = 610; // bridge (700) - DESK_X0 (90)
+const DESK_RIGHT_PAD = 84;
+const DESK_MAX_SX = 1.48;
+
+/** Fits the desktop S-road horizontally into the scene width left of the right-hand panel, keeping circles undistorted. */
+export function deskFit(availSceneW: number): DeskFit {
+  const usable = availSceneW - DESK_RIGHT_PAD - DESK_X0;
+  if (usable <= DESK_SPAN) {
+    return { mapX: x => x, sx: 1, ox: 0, bridgeX: 700 };
+  }
+  const sx = Math.min(DESK_MAX_SX, usable / DESK_SPAN);
+  const usedRight = DESK_X0 + DESK_SPAN * sx;
+  const ox = Math.max(0, Math.round((availSceneW - DESK_RIGHT_PAD - usedRight) * 0.45));
+  const mapX = (x: number) => Math.round(ox + DESK_X0 + (x - DESK_X0) * sx);
+  return { mapX, sx, ox, bridgeX: mapX(700) };
+}
+
+export function deskRoad(fit: DeskFit): RoadLayout {
+  if (fit.sx === 1 && fit.ox === 0) return DESK_ROAD;
+  const pt = ([x, y]: Pt): Pt => [fit.mapX(x), y];
+  const via: Record<number, Pt[]> = {};
+  for (const [i, pts] of Object.entries(DESK_ROAD.via)) via[Number(i)] = pts.map(pt);
+  const k = 1 + (fit.sx - 1) * 0.14;
+  return {
+    ...DESK_ROAD,
+    r: Number((DESK_ROAD.r * k).toFixed(1)),
+    f: Number((DESK_ROAD.f * (1 + (fit.sx - 1) * 0.1)).toFixed(1)),
+    socW: Math.round(DESK_ROAD.socW * k),
+    podiumS: Number((DESK_ROAD.podiumS * k).toFixed(3)),
+    archS: Number((DESK_ROAD.archS * k).toFixed(3)),
+    stops: DESK_ROAD.stops.map(pt),
+    via,
+    arch: pt(DESK_ROAD.arch),
+    goal: pt(DESK_ROAD.goal)
+  };
+}
+
 /** Phone template (390 wide), drawn for the band from the trophy top (PHONE_TOP) to under row 1 (PHONE_BASE). */
 const PHONE_W = 390;
 const PHONE_TOP = 321;
