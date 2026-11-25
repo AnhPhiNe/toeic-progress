@@ -155,7 +155,7 @@ test('phone: a thumbnail opens a full-screen preview and "Chuyển sang" moves t
   await expect(flow.locator('.cv-pv')).toContainText('Ảnh 1/1');
 });
 
-test('Ghi điểm: "Lưu điểm" appears only after Sóc has read the photo; the other ways sit in Cách khác', async ({ page }) => {
+test('Ghi điểm: "Lưu điểm" appears only after Sóc has read the photo; quick tools sit right below the dropzone', async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await mockResultsAI(page);
   await page.goto('/');
@@ -163,13 +163,13 @@ test('Ghi điểm: "Lưu điểm" appears only after Sóc has read the photo; th
   await page.reload();
   await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await expect(form.locator('.rdl-drop-btn')).toHaveText('Chọn ảnh');
+  await expect(form.getByRole('button', { name: 'Chọn ảnh', exact: true })).toBeVisible();
   await expect(form.getByRole('button', { name: 'Lưu điểm', exact: true })).toHaveCount(0);
   await shot(page, '6a-ghi-diem-desktop');
-  await form.getByRole('button', { name: /^Cách khác/ }).click();
-  for (const name of ['Phiếu tô giấy', 'Ghép nhiều ảnh', 'Dán ảnh vừa chụp', 'Tự nhận nhiều ảnh chụp', 'Tự chọn câu sai']) await expect(form.getByRole('menuitem', { name })).toBeVisible();
+  for (const name of ['Phiếu tô giấy', 'Ghép nhiều ảnh', 'Dán ảnh vừa chụp', 'Tự nhận ảnh mới', 'Tự chọn câu sai']) {
+    await expect(form.getByRole('button', { name: new RegExp(`^${name}`) })).toBeVisible();
+  }
   await shot(page, '6b-ghi-diem-cach-khac-desktop');
-  await form.getByRole('button', { name: /^Cách khác/ }).click();
   await form.getByLabel('Ảnh kết quả', { exact: true }).setInputFiles(pageTopPng());
   await expect(form.getByRole('button', { name: 'Lưu điểm', exact: true })).toBeVisible({ timeout: 10000 });
   await shot(page, '6c-ghi-diem-da-doc-desktop');

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { X } from 'lucide-react';
+import './edit-rd.css';
 import type { ResultImageScores } from '@/features/mistakes/services/aiMistakeExtractor';
 import { resolveFullTestScore } from '../lib/fullTestScore';
 import { triggerHaptic } from '@/shared/lib/haptics';
@@ -134,54 +135,42 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, onClose,
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6" onClick={event => { if (event.target === event.currentTarget) close(); }}>
       {/* Visual Backdrop Overlay */}
       <div
-        className="fixed inset-0 bg-[var(--rd-ink)] backdrop-blur-[2px] pointer-events-none animate-backdrop"
+        className="fixed inset-0 bg-[#2f3a33]/60 backdrop-blur-[2px] pointer-events-none animate-backdrop"
         aria-hidden="true"
       />
 
-      {/* Modal Dialog Card: Phương án 1 - Thanh 3 Cột Liền Khối [ L + R = Tổng ] */}
+      {/* Modal Dialog Card: Đồng bộ hệ .rd / .rdt */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
         aria-label="Kiểm tra điểm từ ảnh"
-        className="relative max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full max-w-[560px] rounded-3xl border-2 border-[var(--rd-line)] bg-[#FFFDF7] p-6 sm:p-7 shadow-[0_3px_0_var(--rd-line)] animate-modal-pop space-y-5"
+        className="rd rdr relative max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full max-w-[496px] animate-modal-pop"
       >
         {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-[var(--rd-line)] pb-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--rd-gold)] text-[var(--rd-ink)] text-base font-black shadow-[0_3px_0_var(--rd-line)]">
-              📄
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-[var(--rd-ink)]">Điểm từ đề thi</h3>
-                <span className="rounded-md border border-[var(--rd-gold)] bg-[var(--rd-gold-l)] px-2 py-0.5 text-[11px] font-extrabold text-[#8a6a10]">
-                  Tùy chọn
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-[var(--rd-mut)] mt-0.5">
-                Kiểm tra hoặc sửa điểm trước khi áp dụng vào bài thi
-              </p>
-            </div>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="rdr-title">Điểm từ đề thi</h3>
+            <p className="rdr-sub">Kiểm tra hoặc sửa điểm trước khi áp dụng vào bài thi</p>
           </div>
           <button
             type="button"
             onClick={close}
             disabled={disabled}
             aria-label="Đóng điểm từ đề"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-[var(--rd-line)] bg-white text-[#5c675f] shadow-[0_3px_0_var(--rd-line)] hover:bg-[var(--rd-soft)] hover:text-[var(--rd-ink)] active:translate-x-px active:translate-y-px active:shadow-none transition-all cursor-pointer"
+            className="rdl-x shrink-0 cursor-pointer"
             title="Đóng và giữ điểm chờ kiểm tra"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Segmented Control chọn chế độ */}
+        {/* Segmented Control chọn chế độ (đồng bộ .rde-seg) */}
         <div
           role="group"
           aria-label="Dùng điểm từ ảnh"
-          className="grid grid-cols-2 gap-1.5 rounded-2xl border-2 border-[var(--rd-line)] bg-[var(--rd-soft)] p-1.5"
+          className="rde-seg rde-seg--sm mt-4"
         >
           {(['MANUAL_SECTIONS', 'MANUAL_TOTAL'] as const).map(value => {
             const active = mode === value;
@@ -198,11 +187,6 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, onClose,
                   onEdit();
                   onDraftChange?.({ scores, mode: value, fields, edited: true });
                 }}
-                className={`min-h-10 cursor-pointer rounded-xl text-xs sm:text-sm font-black transition-all ${
-                  active
-                    ? 'border-2 border-[var(--rd-line)] bg-white text-[var(--rd-ink)] shadow-[0_3px_0_var(--rd-line)]'
-                    : 'border border-transparent text-[var(--rd-mut)] hover:text-[var(--rd-ink)]'
-                }`}
               >
                 {value === 'MANUAL_SECTIONS' ? 'Listening + Reading' : 'Chỉ tổng điểm'}
               </button>
@@ -210,67 +194,43 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, onClose,
           })}
         </div>
 
-        {/* Khối Bento 3 Cột Ngang [ L + R = Tổng ] */}
-        <div className="rounded-2xl border-2 border-[var(--rd-line)] bg-white p-4 shadow-sm">
-          <div className="grid grid-cols-[1fr_auto_1fr_auto_1.1fr] items-center gap-2 sm:gap-3 text-center">
-            
-            {/* Cột 1: Listening */}
-            <div className={`flex flex-col items-center transition-opacity ${mode === 'MANUAL_TOTAL' ? 'opacity-35' : 'opacity-100'}`}>
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-[11px] font-black uppercase tracking-wider text-[var(--rd-violet-d)]">
-                  <span className="hidden sm:inline">🎧 Listening</span><span className="sm:hidden">🎧 Nghe</span>
-                </span>
-              </div>
+        {/* Nhập điểm: tách rõ 2 trạng thái để "Chỉ tổng điểm" không hiện ô L/R bị mờ gây nhầm lẫn */}
+        {mode === 'MANUAL_SECTIONS' ? (
+          <div className="rdr-eq mt-4">
+            <label className="rdr-cell is-l">
+              <span>Listening</span>
               <input
                 type="text"
                 inputMode="numeric"
                 aria-label="Điểm từ ảnh: Listening"
-                disabled={disabled || mode === 'MANUAL_TOTAL'}
+                disabled={disabled}
                 value={fields.listening}
                 placeholder="—"
                 onChange={event => handleLChange(event.target.value)}
-                className="h-13 w-full rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-violet-l)] focus:bg-white text-center font-black tabular-nums text-2xl text-[var(--rd-ink)] placeholder:text-[#c3cac5] shadow-[0_3px_0_var(--rd-line)] focus:outline-none focus:ring-4 focus:ring-[var(--rd-violet)] disabled:cursor-not-allowed"
               />
-              <span className="text-[10.5px] font-bold text-[var(--rd-mut)] mt-1">/ 495</span>
-            </div>
+              <small>/ 495</small>
+            </label>
 
-            {/* Dấu cộng + */}
-            <span className="text-xl font-black text-[#c3cac5] mb-4 select-none" aria-hidden="true">
-              +
-            </span>
+            <span className="rdr-op" aria-hidden="true">+</span>
 
-            {/* Cột 2: Reading */}
-            <div className={`flex flex-col items-center transition-opacity ${mode === 'MANUAL_TOTAL' ? 'opacity-35' : 'opacity-100'}`}>
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-[11px] font-black uppercase tracking-wider text-[var(--rd-teal-d)]">
-                  <span className="hidden sm:inline">📖 Reading</span><span className="sm:hidden">📖 Đọc</span>
-                </span>
-              </div>
+            <label className="rdr-cell is-r">
+              <span>Reading</span>
               <input
                 type="text"
                 inputMode="numeric"
                 aria-label="Điểm từ ảnh: Reading"
-                disabled={disabled || mode === 'MANUAL_TOTAL'}
+                disabled={disabled}
                 value={fields.reading}
                 placeholder="—"
                 onChange={event => handleRChange(event.target.value)}
-                className="h-13 w-full rounded-xl border-2 border-[var(--rd-line)] bg-[#e0f7f4] focus:bg-white text-center font-black tabular-nums text-2xl text-[var(--rd-ink)] placeholder:text-[#c3cac5] shadow-[0_3px_0_var(--rd-line)] focus:outline-none focus:ring-4 focus:ring-[#bfece6] disabled:cursor-not-allowed"
               />
-              <span className="text-[10.5px] font-bold text-[var(--rd-mut)] mt-1">/ 495</span>
-            </div>
+              <small>/ 495</small>
+            </label>
 
-            {/* Dấu bằng = */}
-            <span className="text-xl font-black text-[#c3cac5] mb-4 select-none" aria-hidden="true">
-              =
-            </span>
+            <span className="rdr-op" aria-hidden="true">=</span>
 
-            {/* Cột 3: Tổng Điểm */}
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-[11px] font-black uppercase tracking-wider text-[#8a6a10]">
-                  <span className="hidden sm:inline">⚡ Tổng điểm</span><span className="sm:hidden">⚡ Tổng</span>
-                </span>
-              </div>
+            <label className="rdr-cell is-t">
+              <span>Tổng điểm</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -279,79 +239,87 @@ export function ResultScoreReview({ scores, onApply, onEdit, onDiscard, onClose,
                 value={fields.total}
                 placeholder="—"
                 onChange={event => handleTotalChange(event.target.value)}
-                className="h-13 w-full rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-gold-l)] focus:bg-white text-center font-black tabular-nums text-2xl text-[var(--rd-ink)] placeholder:text-[#c3cac5] shadow-[0_3px_0_var(--rd-line)] focus:outline-none focus:ring-4 focus:ring-[var(--rd-gold)]"
               />
-              <span className="text-[10.5px] font-bold text-[var(--rd-mut)] mt-1">/ 990</span>
-            </div>
-
+              <small>/ 990</small>
+            </label>
           </div>
-        </div>
+        ) : (
+          <div className="rdr-total mt-4">
+            <label className="rdr-total-box">
+              <span>Tổng điểm toàn bài</span>
+              <div className="rdr-total-row">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  aria-label="Điểm từ ảnh: Tổng"
+                  disabled={disabled}
+                  value={fields.total}
+                  placeholder="—"
+                  onChange={event => handleTotalChange(event.target.value)}
+                />
+                <small>/ 990</small>
+              </div>
+            </label>
+          </div>
+        )}
 
         {/* Dải Thời gian Part 5 – 7 bóc tách từ ảnh */}
         {(scores.part5Minutes != null || scores.part6Minutes != null || scores.part7Minutes != null) && (
-          <div className="rounded-2xl border-2 border-[var(--rd-line)] bg-[var(--rd-green-l)] p-3.5 space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-black text-[var(--rd-green-d)]">
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden="true">⏱️</span>
-                <span>Thời gian Reading Part 5 – 7 bóc tách từ ảnh</span>
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--rd-green-l)] text-[var(--rd-green-d)] font-extrabold">
-                Theo ảnh
-              </span>
+          <div className="rdr-timing mt-3.5">
+            <div className="rdr-timing-h">
+              <span>Thời gian Reading Part 5 – 7</span>
+              <small>Bóc tách từ ảnh</small>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-[var(--rd-green)] bg-white p-2 text-center">
-                <span className="text-[10px] font-extrabold text-[var(--rd-green-d)] block uppercase">Part 5</span>
-                <span className="text-lg font-black text-[var(--rd-ink)] tabular-nums">
-                  {scores.part5Minutes ?? '—'} <span className="text-xs font-bold text-[var(--rd-mut)]">p</span>
-                </span>
+            <div className="rdt-grid mt-2">
+              <div className="rdt-cell">
+                <span>Part 5</span>
+                <b>{scores.part5Minutes ?? '—'}</b>
+                <small>phút</small>
               </div>
-              <div className="rounded-xl border border-[var(--rd-green)] bg-white p-2 text-center">
-                <span className="text-[10px] font-extrabold text-[var(--rd-green-d)] block uppercase">Part 6</span>
-                <span className="text-lg font-black text-[var(--rd-ink)] tabular-nums">
-                  {scores.part6Minutes ?? '—'} <span className="text-xs font-bold text-[var(--rd-mut)]">p</span>
-                </span>
+              <div className="rdt-cell">
+                <span>Part 6</span>
+                <b>{scores.part6Minutes ?? '—'}</b>
+                <small>phút</small>
               </div>
-              <div className="rounded-xl border border-[var(--rd-green)] bg-white p-2 text-center">
-                <span className="text-[10px] font-extrabold text-[var(--rd-green-d)] block uppercase">Part 7</span>
-                <span className="text-lg font-black text-[var(--rd-ink)] tabular-nums">
-                  {scores.part7Minutes ?? '—'} <span className="text-xs font-bold text-[var(--rd-mut)]">p</span>
-                </span>
+              <div className="rdt-cell">
+                <span>Part 7</span>
+                <b>{scores.part7Minutes ?? '—'}</b>
+                <small>phút</small>
               </div>
             </div>
           </div>
         )}
 
-        {/* Chú thích thông minh */}
-        <p className="text-xs font-semibold text-[var(--rd-mut)] text-center">
+        {/* Chú thích gọn, dễ quét */}
+        <p className="rdr-hint mt-3.5">
           {mode === 'MANUAL_SECTIONS'
-            ? '💡 Tổng điểm tự động cập nhật khi sửa Listening hoặc Reading. Bạn có thể sửa trực tiếp ô Tổng.'
-            : '💡 Chế độ chỉ lưu Tổng điểm. Các câu sai đã đánh dấu vẫn được lưu đầy đủ trên lưới 200 câu.'}
+            ? 'Tổng điểm tự động cộng từ Listening + Reading, hoặc bạn có thể sửa trực tiếp.'
+            : 'Chỉ lưu Tổng điểm; các câu sai đã chọn trên lưới 200 câu vẫn được giữ đầy đủ.'}
         </p>
 
         {error && (
-          <div role="alert" className="rounded-2xl border-2 border-[var(--rd-pink)] bg-[var(--rd-pink-l)] p-3 text-xs font-bold text-[var(--rd-pink-d)]">
+          <div role="alert" className="rdt-err rounded-2xl bg-[var(--rd-pink-l)] px-3.5 py-2.5">
             {error}
           </div>
         )}
 
-        {/* Nút hành động */}
-        <div className="space-y-2 pt-1">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={apply}
-            className="min-h-12 w-full cursor-pointer rounded-xl border-2 border-[var(--rd-line)] bg-[var(--rd-gold)] hover:bg-[var(--rd-gold)] px-4 text-sm font-black text-[var(--rd-ink)] shadow-[0_3px_0_var(--rd-line)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[0_3px_0_var(--rd-line)] transition-all disabled:opacity-60"
-          >
-            Áp dụng điểm từ đề
-          </button>
+        {/* Footer action đồng bộ PartTimingModal (.rdt-foot + .rd-btn) */}
+        <div className="rdt-foot">
           <button
             type="button"
             disabled={disabled}
             onClick={handleDiscard}
-            className="min-h-9 w-full cursor-pointer rounded-xl border border-transparent text-xs font-bold text-[var(--rd-mut)] hover:text-[var(--rd-ink)] hover:bg-[var(--rd-soft)] transition-colors"
+            className="rdt-cancel"
           >
             Dùng điểm ước tính
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={apply}
+            className="rd-btn rdt-save"
+          >
+            Áp dụng điểm từ đề
           </button>
         </div>
       </div>

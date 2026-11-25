@@ -121,9 +121,51 @@ textarea.rde-in { min-height: 0; font-weight: 700; resize: vertical; }
 .rdt-err { margin: 12px 0 0; font-weight: 800; font-size: 13px; color: var(--rd-pink-d); }
 .rdt-foot { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
 .rdt-foot .rdt-save { margin-left: auto; font-size: 15px; padding: 11px 18px; }
+.rdt-foot .rdt-save:disabled { opacity: .6; cursor: not-allowed; }
 .rdt-cancel, .rdt-del { min-height: 44px; border: 0; background: none; padding: 0 8px; font: 900 14px var(--rd-font); color: var(--rd-mut); cursor: pointer; }
 .rdt-cancel:hover { color: var(--rd-ink); }
 .rdt-del { color: var(--rd-pink-d); }
 .rdt-strip { display: flex; width: 100%; align-items: center; justify-content: space-between; min-height: 32px; border: 0; background: none; padding: 0; cursor: pointer;
   font: 900 13.5px var(--rd-font); color: var(--rd-ink); }
 .rdt-strip-a { border-radius: 99px; background: #fff; padding: 3px 10px; font-weight: 900; font-size: 12px; color: #0d9488; }
+
+/* ResultScoreReview modal (.rdr): shares the exact card/cell/footer language with .rdt & .rdl */
+.rdr { border-radius: 26px; background: #fff; padding: 24px; box-shadow: 0 10px 0 rgba(47, 58, 51, .1), 0 30px 60px rgba(47, 58, 51, .25); color: var(--rd-ink); }
+.rdr-title { margin: 0; font: 900 20px/1.15 var(--rd-font); letter-spacing: -.3px; color: var(--rd-ink); }
+.rdr-sub { margin: 3px 0 0; font: 700 13px/1.4 var(--rd-font); color: var(--rd-mut); }
+
+.rdr-eq { display: grid; grid-template-columns: 1fr auto 1fr auto 1.08fr; align-items: center; gap: 6px; border-radius: 20px; background: var(--rd-soft); padding: 14px 12px; }
+.rdr-cell { min-width: 0; display: flex; flex-direction: column; align-items: center; border-radius: 16px; background: #fff; border: 2px solid transparent; padding: 10px 6px 8px; transition: border-color .15s, box-shadow .15s; cursor: text; }
+.rdr-cell.is-l:focus-within { border-color: var(--rd-violet-d); }
+.rdr-cell.is-r:focus-within { border-color: #0d9488; }
+.rdr-cell.is-t { background: #eef9f0; border-color: #cde8d2; }
+.rdr-cell.is-t:focus-within { border-color: var(--rd-green); background: #fff; }
+.rdr-cell span { font: 900 11.5px var(--rd-font); text-transform: uppercase; letter-spacing: .04em; }
+.rdr-cell.is-l span { color: var(--rd-violet-d); }
+.rdr-cell.is-r span { color: #0d9488; }
+.rdr-cell.is-t span { color: var(--rd-green-d); }
+.rdr-cell input { width: 100%; min-width: 0; border: 0; background: none; text-align: center; font: 900 26px/1.2 var(--rd-font); font-variant-numeric: tabular-nums; color: var(--rd-ink); outline: none; margin: 2px 0 1px; padding: 0; }
+.rdr-cell input::placeholder { color: #c3cac5; }
+.rdr-cell small { font: 800 11px var(--rd-font); color: var(--rd-mut); }
+.rdr-op { font: 900 18px var(--rd-font); color: #b8c0ba; user-select: none; }
+
+.rdr-total { border-radius: 20px; background: var(--rd-soft); padding: 18px 20px; }
+.rdr-total-box { display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 16px; background: #fff; border: 2px solid #e6e9e6; padding: 14px 16px; transition: border-color .15s; cursor: text; }
+.rdr-total-box:focus-within { border-color: var(--rd-green); }
+.rdr-total-box > span { font: 900 11.5px var(--rd-font); text-transform: uppercase; letter-spacing: .05em; color: var(--rd-green-d); }
+.rdr-total-row { display: inline-flex; align-items: baseline; justify-content: center; gap: 2px; }
+.rdr-total-row input { width: 88px; border: 0; background: none; text-align: center; font: 900 40px/1 var(--rd-font); font-variant-numeric: tabular-nums; letter-spacing: -.03em; color: var(--rd-ink); outline: none; padding: 0; }
+.rdr-total-row input::placeholder { color: #c3cac5; }
+.rdr-total-row small { font: 800 14px var(--rd-font); color: var(--rd-mut); }
+
+.rdr-timing { border-radius: 18px; background: var(--rd-soft); padding: 12px 14px; }
+.rdr-timing-h { display: flex; align-items: center; justify-content: space-between; font: 900 12px var(--rd-font); color: #0d9488; }
+.rdr-timing-h small { font: 800 11px var(--rd-font); color: var(--rd-mut); }
+.rdr-timing .rdt-cell { background: #fff; padding: 8px 6px; }
+.rdr-timing .rdt-cell b { display: block; font: 900 20px/1.2 var(--rd-font); font-variant-numeric: tabular-nums; color: var(--rd-ink); }
+.rdr-hint { margin-bottom: 0; text-align: center; font: 700 12.5px/1.45 var(--rd-font); color: var(--rd-mut); text-wrap: balance; }
+@media (max-width: 480px) {
+  .rdr { padding: 20px 18px; }
+  .rdr-eq { padding: 12px 8px; gap: 4px; }
+  .rdr-cell input { font-size: 22px; }
+}

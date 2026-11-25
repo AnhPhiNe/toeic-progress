@@ -140,13 +140,13 @@ export function numberChoices(guess: number, open: Iterable<number>, count = 3):
 /* ---------- remembered choices, per account ---------- */
 
 export interface CapturePrefs { photoMode: boolean; part7Zone: 'passage' | 'questions' }
-const DEFAULT_PREFS: CapturePrefs = { photoMode: false, part7Zone: 'passage' };
+const DEFAULT_PREFS: CapturePrefs = { photoMode: false, part7Zone: 'questions' };
 /** Ends with `:{account}` so signing out scrubs it with the account's other copies. */
 const prefsKey = (owner: string | null) => `toeic_capture_prefs_v1:${owner ?? 'guest'}`;
 export function readCapturePrefs(owner: string | null): CapturePrefs {
   try {
     const value = JSON.parse(localStorage.getItem(prefsKey(owner)) ?? '{}') as Partial<CapturePrefs>;
-    return { photoMode: value.photoMode === true, part7Zone: value.part7Zone === 'questions' ? 'questions' : 'passage' };
+    return { photoMode: value.photoMode === true, part7Zone: value.part7Zone === 'passage' ? 'passage' : 'questions' };
   } catch { return { ...DEFAULT_PREFS }; }
 }
 export function writeCapturePrefs(owner: string | null, patch: Partial<CapturePrefs>) {

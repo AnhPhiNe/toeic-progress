@@ -35,7 +35,7 @@ interface Props {
   canRead: boolean; inFlight: boolean; job: CurrentJob | null; strip: StripChip[]; onRetry: (key: string) => void;
   missing: number[]; onCaptureMissing: () => ShotItem | null;
   reviewCount: number; allDone: boolean; anyReading: boolean;
-  onSelect: (key: string) => void; onSend: () => void; onSkip: () => void; onManual: () => void; onReview: () => void;
+  onSelect: (key: string) => void; onSend: () => void; onSkip: () => void; onManual: () => void; onReview: () => void; onSwitchToTray?: () => void;
   onEditRange: (from: number, to: number) => string | null;
   listeningLeft: number; onListening: () => void;
   /** After Soát saved: the hero says how many cards went to Sổ tay and offers "Ôn ngay". */
@@ -87,7 +87,7 @@ export function MoreMenu({ items }: { items: Array<{ key: string; icon: ReactNod
 export function CaptureView(props: Props) {
   const { phone, testName, onClose, rows, current, currentState, next, zones, activeZone, onActivateZone, sent, clarity, photoMode, onPhotoMode,
     onAddFiles, onCameraAdd, onEditPhoto, onMovePhoto, onSwitchZone, onRemove, canRead, inFlight, job, strip, onRetry, missing, onCaptureMissing,
-    reviewCount, allDone, anyReading, onSelect, onSend, onSkip, onManual, onReview, onEditRange, listeningLeft, onListening, saved, onReviewSaved, onNotify, error, note } = props;
+    reviewCount, allDone, anyReading, onSelect, onSend, onSkip, onManual, onReview, onSwitchToTray, onEditRange, listeningLeft, onListening, saved, onReviewSaved, onNotify, error, note } = props;
   const [burst, setBurst] = useState<Zone | null>(null);
   const [sheet, setSheet] = useState(false);
   const [preview, setPreview] = useState<{ zone: Zone; index: number } | null>(null);
@@ -203,7 +203,7 @@ export function CaptureView(props: Props) {
   const zonesView = current && canRead && (twoZones && !phone ? (
     <div className="cv-zones">
       <CaptureZone {...zoneBase} zone="passage" num={1} title="Đoạn văn" items={zones.passage} active={activeZone === 'passage'} onSwitchZone={onSwitchZone}
-        emptyText={activeZone === 'passage' ? 'Thả ảnh vào đây' : 'Chưa có ảnh'} />
+        emptyText={activeZone === 'passage' ? 'Thả ảnh vào đây' : 'Không cần nếu ảnh ② đã đủ'} />
       <CaptureZone {...zoneBase} zone="questions" num={2} title="Câu hỏi" items={zones.questions} sent={sentHere} active={activeZone === 'questions'} onSwitchZone={onSwitchZone}
         emptyText={activeZone === 'questions' ? 'Thả ảnh vào đây' : 'Chưa có ảnh'} />
     </div>
@@ -235,6 +235,7 @@ export function CaptureView(props: Props) {
     { key: 'manual', icon: <span>✎</span>, title: current.kind === 'group' || current.wrong.length > 1 ? 'Ghi tay câu này' : 'Ghi tay câu này', sub: 'Gõ số câu và đáp án thay vì chụp', run: onManual },
     ...(canRead ? [{ key: 'skip', icon: <span>⏭</span>, title: skipLabel, sub: skipSub, run: onSkip }] : []),
     ...(current.part === 7 ? [{ key: 'range', icon: <span>↔</span>, title: 'Đổi dải câu', sub: 'Sửa câu bắt đầu và kết thúc của nhóm', run: () => setEditingRange(true) }] : []),
+    ...(onSwitchToTray && canRead ? [{ key: 'tray', icon: <MoreHorizontal size={18} />, title: 'Gộp gửi 1 khay', sub: 'Thả chung ảnh nhiều Part thay vì chia từng nhóm', run: onSwitchToTray }] : []),
     ...(reviewCount > 0 && (staged > 0 || (phone && !allDone)) ? [{ key: 'review', icon: <Check size={18} />, title: `Soát ${reviewCount} câu`, sub: 'Xem lại các câu Sóc đã đọc', run: onReview }] : []),
     ...(phone && listeningLeft > 0 ? [{ key: 'listening', icon: <span>🎧</span>, title: `Phần Nghe còn ${listeningLeft} câu`, sub: 'Ghi lý do cho các câu Nghe', run: onListening }] : [])
   ] : [];

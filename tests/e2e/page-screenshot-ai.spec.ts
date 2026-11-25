@@ -62,6 +62,7 @@ async function readSet(page: Page) {
   await form.getByRole('button', { name: /^Lưu điểm/ }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
   const flow = page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Screen', exact: true });
+  { await flow.getByRole('button', { name: 'Đóng', exact: true }).click(); await page.getByRole('button', { name: /câu chờ ghi chi tiết/ }).first().click(); }
   // The phone opens on the first item; the chips on top jump between items.
   await flow.getByRole('button', { name: 'Nhóm 131–134', exact: true }).click();
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);

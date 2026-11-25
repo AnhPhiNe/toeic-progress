@@ -307,10 +307,12 @@ Input JSON là {"questions": [{"number": số câu, "part": Part}]}: danh sách 
   1) Đã chọn & đã chấm/sửa rõ ràng (có 2 dấu khác vai trò trên cùng một câu): trên web có phương án người học chọn (màu đỏ, dấu ✗, 'Bạn chọn') và phương án đúng (màu xanh lá, dấu ✓, 'Đáp án đúng'); trên giấy/PDF có 1 phương án chọn ban đầu (thường bị gạch/đánh sai ✗) và 1 phương án khác được chấm sửa làm đáp án đúng (dấu ✓, bút màu khác, mũi tên hoặc ghi chú Key/Đáp án) → userChoice='A'..'D' (phương án người học chọn ban đầu), correctAnswer='(A) ...' (phương án đúng sau khi sửa), answerSource='PROVIDED'. Nếu chỉ có dấu hiệu tẩy/gạch nhầm cùng nét để đổi sang một đáp án cuối cùng lúc đang làm bài mà chưa có dấu chấm đúng/sai, xử lý như trường hợp (2) với đáp án cuối cùng đó.
   2) Chỉ có DUY NHẤT 1 phương án làm bài được đánh dấu trên câu đó (chưa có dấu chấm/sửa sang đáp án chuẩn khác và không có nhãn 'Key:'/'Đáp án:'): bất kể kiểu đánh dấu nào (khoanh, tô, bôi màu highlight, gạch chân, chấm/tích trên giấy, PDF hay màn hình), luôn ghi nhận chữ cái đó là lựa chọn làm bài của người học userChoice='A'..'D', và để correctAnswer='', answerSource='MISSING' (để bước giải đề tiếp theo tự kiểm tra độc lập xem lựa chọn đó đúng hay sai).
   3) Bỏ trống / Không có dấu chọn của người học (0 dấu chọn trên các phương án, hoặc trang đã chấm ghi rõ 'Chưa trả lời'/'Bỏ qua'/'Không chọn'/'Unanswered'/'Skipped', hoặc chỉ hiển thị đáp án đúng mà không có lựa chọn của người học) → trả userChoice='BLANK'; nếu trên ảnh có ghi rõ đáp án đúng riêng của đề thì chép correctAnswer='(A) ...', answerSource='PROVIDED', nếu không có đáp án đúng trên ảnh thì correctAnswer='', answerSource='MISSING'; vẫn chép đầy đủ question, options, context. Không tự giải đề ở bước này.
-- Người học có thể gửi tất cả ảnh của MỘT nhóm Part 3/4/6/7 chung trong cùng một dãy ảnh (ví dụ trang bài đọc rồi trang câu hỏi, hoặc 1 trang gộp cả hai):
-  tự nhận diện đâu là đoạn văn/transcript và đâu là câu hỏi thuộc các số câu yêu cầu.
-- Nếu input có nhãn PASSAGE_IMAGES rồi QUESTION_IMAGES: các ảnh sau PASSAGE_IMAGES là đoạn văn/transcript của MỘT nhóm câu
-  (có thể 2–3 bài đọc), các ảnh sau QUESTION_IMAGES là câu hỏi của nhóm đó. context của mọi câu trong nhóm chép từ các ảnh
+- Một khay ảnh có thể chứa nhiều Part, nhiều nhóm câu hoặc cả đoạn văn và câu hỏi trên cùng trang.
+  Ghép đoạn văn, bảng và đáp án nguồn theo số câu, dải câu được in rõ hoặc tham chiếu xác định duy nhất.
+  Không mặc định hai ảnh liên tiếp thuộc cùng một bài. Nếu có hai ngữ cảnh khả dĩ, giữ câu hỏi và phương án
+  đọc được, để context rỗng cho người học bổ sung đúng cụm. Không điền đáp án từ một bảng key chưa ghép chắc số câu.
+- Nếu input có nhãn PASSAGE_IMAGES rồi QUESTION_IMAGES: các ảnh sau PASSAGE_IMAGES có thể chứa đoạn văn/transcript của một hoặc nhiều nhóm câu
+  (có thể 2–3 bài đọc), các ảnh sau QUESTION_IMAGES là câu hỏi của nhóm đó. Chỉ khi ghép chắc chắn theo quy tắc trên, context của câu chép từ đúng các ảnh
   đoạn văn (đủ mọi bài đọc, theo thứ tự ảnh); question, options, userChoice, correctAnswer lấy từ ảnh câu hỏi (hoặc từ ảnh
   đoạn văn nếu câu hỏi in ở đó).
 - Ghi chú SLICED_IMAGE nói các ảnh liền nhau là những phần cắt liên tiếp của MỘT ảnh dài: ghép đọc từ trên xuống như một

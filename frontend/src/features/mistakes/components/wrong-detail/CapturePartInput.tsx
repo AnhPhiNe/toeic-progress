@@ -171,7 +171,7 @@ export function CapturePartInput({
       </> : part === 7 ? (
         <div className="cv-zones">
           <CalmZone {...zoneProps} zone="passage" num={1} title="Đoạn văn" items={zoneImages('passage')} active={activeZone === 'passage'} onSwitchZone={switchZone}
-            emptyText={activeZone === 'passage' ? 'Thả ảnh vào đây' : 'Chưa có ảnh'} />
+            emptyText={activeZone === 'passage' ? 'Thả ảnh vào đây' : 'Không cần nếu ảnh ② đã đủ'} />
           <CalmZone {...zoneProps} zone="questions" num={2} title="Câu hỏi" items={zoneImages('questions')} active={activeZone === 'questions'} onSwitchZone={switchZone}
             emptyText={activeZone === 'questions' ? 'Thả ảnh vào đây' : 'Chưa có ảnh'} />
         </div>

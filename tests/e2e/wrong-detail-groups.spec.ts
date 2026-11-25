@@ -118,17 +118,20 @@ test('the Listening step can be set aside and taken back', async ({ page }) => {
   await expect(again.getByRole('heading', { name: 'Listening', exact: true })).toBeVisible();
 });
 
-test('Part 7 has two zones: pastes go to the active zone, ① is sent as the passage, and the zone is remembered', async ({ page }) => {
+test('Part 7 has two zones: ② Câu hỏi starts active, ① sends as the passage, and the zone is remembered', async ({ page }) => {
   const flow = await open(page);
   await item(flow, 'Nhóm 186–190').click();
   const passage = flow.locator('.cz[data-zone="passage"]'), questions = flow.locator('.cz[data-zone="questions"]');
-  await expect(passage).toHaveAttribute('data-active', 'true');
+  await expect(questions).toHaveAttribute('data-active', 'true');
+  await expect(passage).not.toHaveAttribute('data-active', 'true');
   const bytes = [...readFileSync(screenshot)];
   const paste = (count: number) => page.evaluate(({ data, count }) => {
     const dt = new DataTransfer();
     for (let i = 0; i < count; i++) dt.items.add(new File([new Uint8Array(data)], `shot-${i}.png`, { type: 'image/png' }));
     document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   }, { data: bytes, count });
+  await page.keyboard.press('1');
+  await expect(passage).toHaveAttribute('data-active', 'true');
   await paste(3);
   await expect(passage.getByRole('img')).toHaveCount(3);
   await page.keyboard.press('2');
@@ -149,10 +152,11 @@ test('Part 7 has two zones: pastes go to the active zone, ① is sent as the pas
   expect([call.questions, call.context, call.images]).toEqual([[186, 187, 188, 189, 190], 3, 1]);
   // The next group opens on the zone the learner used last, also after reopening.
   await expect(questions).toHaveAttribute('data-active', 'true');
+  await page.keyboard.press('1');
   await page.reload();
   const again = await openFromNotebook(page);
   await item(again, 'Nhóm 196–200').click();
-  await expect(again.locator('.cz[data-zone="questions"]')).toHaveAttribute('data-active', 'true');
+  await expect(again.locator('.cz[data-zone="passage"]')).toHaveAttribute('data-active', 'true');
 });
 
 test('Part 6 has one tray: the whole group is sent together in one request', async ({ page }) => {

@@ -52,7 +52,7 @@ export async function mockTurnsAI(page: Page) {
 }
 
 /** Logs "ETS Table" (wrong 3, 104, 112, 131) on a computer and opens Gỡ câu sai from the result screen. */
-export async function openDesktopFlow(page: Page) {
+export async function openDesktopFlow(page: Page, quick = false) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await mockTurnsAI(page);
   await gotoPage(page, '/lich-su');
@@ -66,7 +66,9 @@ export async function openDesktopFlow(page: Page) {
   await form.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
   await page.getByRole('button', { name: 'Ghi chi tiết 3 câu sai', exact: true }).click();
-  return page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Table', exact: true });
+  const flow = page.getByRole('dialog', { name: 'Gỡ câu sai · ETS Table', exact: true });
+  if (!quick) { await flow.getByRole('button', { name: 'Đóng', exact: true }).click(); await page.getByRole('button', { name: /câu chờ ghi chi tiết/ }).first().click(); }
+  return flow;
 }
 
 /** Sổ tay gathers a test's number-only drafts in one pink row; this opens Gỡ câu sai for that test (the nth attempt). */

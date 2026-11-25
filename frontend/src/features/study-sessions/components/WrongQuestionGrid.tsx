@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { PhoneSheet } from '@/app/components/phone';
 import { Soc } from '@/shared/ui/soc/Soc';
-import { Camera, ImagePlus, Plus, Sparkles } from 'lucide-react';
+import { Camera, FileText, ImagePlus, Pencil, Plus, Sparkles } from 'lucide-react';
 import { generateUUID } from '@/shared/domain/uuid';
 import { fileExifOrientation, prepareResultImages, MAX_RESULT_IMAGES } from '@/features/mistakes/lib/imageInput';
 import { checkPhotoClarity, clarityMessage, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
@@ -443,7 +443,7 @@ export function ResultImageButton({
     >
       {/* Unified Score Card (if provided on desktop) */}
       {scoreCard && (
-        <div className={flatCard ? 'mb-2.5' : 'rounded-[20px] border-2 border-[var(--rd-line)] bg-[#FFFDF7] p-3.5 text-center shadow-[0_3px_0_var(--rd-line)] mb-2.5'} aria-live="polite">
+        <div className={flatCard ? 'mb-2.5' : 'rdg-card mb-2' + (hasAppliedScore ? ' is-official' : '')} aria-live="polite">
           {typeof scoreCard === 'function' ? scoreCard({ editScore: openEditAppliedScore }) : scoreCard}
           {onScores && flatCard && scoreReview && (
             <button type="button" disabled={busy} onClick={() => { triggerHaptic(4); setScoreOpen(true); }}
@@ -453,49 +453,44 @@ export function ResultImageButton({
             </button>
           )}
           {onScores && !flatCard && (
-            <div className="mt-2.5 pt-2 border-t border-[var(--rd-line)] space-y-1.5">
+            <div className="rdg-meta">
               {scoreReview ? (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => { triggerHaptic(4); setScoreOpen(true); }}
-                  className="flex min-h-8 w-full cursor-pointer items-center justify-between rounded-lg bg-[var(--rd-gold-l)] px-2.5 py-1 text-xs font-black text-[#8a6a10] transition-colors"
+                  className="rdg-meta-row is-pending"
                 >
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="animate-pulse">📄</span>
+                  <span className="rdg-meta-lbl">
+                    <FileText size={14} className="shrink-0 text-[#9a6b00]" aria-hidden="true" />
                     <span>Điểm từ đề: {scoreOpen ? 'Đang mở hộp thoại' : 'Cần kiểm tra'}</span>
                   </span>
-                  <span className="text-[11px] font-bold text-[#8a6a10]" aria-hidden="true">Kiểm tra ›</span>
+                  <span className="rdg-meta-pill is-pending" aria-hidden="true">Kiểm tra ›</span>
                 </button>
               ) : hasAppliedScore ? (
-                <div className="flex w-full items-center justify-between py-0.5 text-xs font-black">
-                  <span className="flex items-center gap-1.5 text-[#8a6a10]">
-                    <span aria-hidden="true">📄</span>
-                    <span>Điểm từ đề thi</span>
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={openEditAppliedScore}
-                      className="cursor-pointer rounded-md bg-[var(--rd-gold-l)] px-2 py-0.5 text-[10.5px] font-bold text-[#8a6a10] hover:bg-[var(--rd-gold-l)] transition-colors"
-                      title="Chỉnh sửa điểm từ đề"
-                    >
-                      ✏️ Sửa
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic(6);
-                        lastImageScores.current = null;
-                        scoreEdited.current = false;
-                        onRevertScore?.();
-                      }}
-                      className="cursor-pointer rounded-md bg-[var(--rd-soft)] px-1.5 py-0.5 text-[10.5px] font-bold text-[var(--rd-mut)] hover:bg-[var(--rd-pink-l)] hover:text-[var(--rd-pink-d)] transition-colors"
-                      title="Bỏ điểm từ đề, dùng điểm ước tính"
-                    >
-                      ✕ Bỏ
-                    </button>
-                  </div>
+                <div className="rdg-meta-applied">
+                  <button
+                    type="button"
+                    onClick={openEditAppliedScore}
+                    className="rdg-meta-pill is-edit"
+                    title="Chỉnh sửa điểm từ đề"
+                  >
+                    <Pencil size={11} aria-hidden="true" />
+                    <span>Sửa điểm</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(6);
+                      lastImageScores.current = null;
+                      scoreEdited.current = false;
+                      onRevertScore?.();
+                    }}
+                    className="rdg-meta-pill is-drop"
+                    title="Bỏ điểm từ đề, dùng điểm ước tính"
+                  >
+                    ✕ Bỏ
+                  </button>
                 </div>
               ) : (
                 <button
@@ -508,15 +503,13 @@ export function ResultImageButton({
                     setScoreReview(empty);
                     onScoresPending?.(true);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between text-xs font-black text-[#5c675f] hover:text-[var(--rd-violet-d)] transition-colors py-0.5"
+                  className="rdg-meta-row"
                 >
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="text-[#8a6a10]">📄</span>
+                  <span className="rdg-meta-lbl">
+                    <FileText size={14} className="shrink-0 text-[var(--rd-mut)]" aria-hidden="true" />
                     <span>Điểm từ đề thi</span>
                   </span>
-                  <span className="rounded bg-[var(--rd-soft)] px-1.5 py-0.5 text-[10px] text-[#5c675f] font-bold hover:bg-[var(--rd-gold-l)] hover:text-[#8a6a10] transition-colors" aria-hidden="true">
-                    + Nhập ›
-                  </span>
+                  <span className="rdg-meta-pill" aria-hidden="true">+ Nhập ›</span>
                 </button>
               )}
               {timingContent}
@@ -828,28 +821,42 @@ export function ResultImageButton({
         </>
       )}
       {desktop && !isTyping && !needsSignIn && !dropzone && (
-        <div className="rdg-tools" role="group" aria-label="Tùy chọn bổ sung">
-          <button type="button" disabled={busy} aria-pressed={photoMode}
-            onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
-            className={'rdg-tool-sw' + (photoMode ? ' is-on' : '')}>
-            <span>Phiếu tô giấy</span>
-            <span className="rdl-sw" aria-hidden="true"><i /></span>
+        <div className="rdg-more-wrap">
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            onClick={() => setMoreOpen(open => !open)}
+            className="rdg-more-btn"
+          >
+            <span>Cách khác</span>
+            <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
           </button>
-          {(extraMenu ?? []).filter(item => item.pressed !== undefined).map(item => (
-            <button key={item.key} type="button" disabled={item.disabled} aria-pressed={item.pressed}
-              onClick={item.onClick}
-              className={'rdg-tool-sw' + (item.pressed ? ' is-on' : '')}>
-              <span>{item.label}</span>
-              <span className="rdl-sw" aria-hidden="true"><i /></span>
-            </button>
-          ))}
-          {(extraMenu ?? []).some(item => item.pressed === undefined) && (
-            <div className="rdg-modes">
-              {(extraMenu ?? []).filter(item => item.pressed === undefined).map(item => (
-                <button key={item.key} type="button" disabled={item.disabled} onClick={item.onClick} className="rdg-mode-btn">
-                  {item.label}
+          {moreOpen && (
+            <div className="rdg-tools" role="menu" aria-label="Tùy chọn bổ sung">
+              <button type="button" role="menuitem" disabled={busy} aria-pressed={photoMode}
+                onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); setMoreOpen(false); }}
+                className={'rdg-tool-sw' + (photoMode ? ' is-on' : '')}>
+                <span>Phiếu tô giấy</span>
+                <span className="rdl-sw" aria-hidden="true"><i /></span>
+              </button>
+              {(extraMenu ?? []).filter(item => item.pressed !== undefined).map(item => (
+                <button key={item.key} type="button" role="menuitem" disabled={item.disabled} aria-pressed={item.pressed}
+                  onClick={() => { item.onClick(); setMoreOpen(false); }}
+                  className={'rdg-tool-sw' + (item.pressed ? ' is-on' : '')}>
+                  <span>{item.label}</span>
+                  <span className="rdl-sw" aria-hidden="true"><i /></span>
                 </button>
               ))}
+              {(extraMenu ?? []).some(item => item.pressed === undefined) && (
+                <div className="rdg-modes">
+                  {(extraMenu ?? []).filter(item => item.pressed === undefined).map(item => (
+                    <button key={item.key} type="button" role="menuitem" disabled={item.disabled} onClick={() => { item.onClick(); setMoreOpen(false); }} className="rdg-mode-btn">
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

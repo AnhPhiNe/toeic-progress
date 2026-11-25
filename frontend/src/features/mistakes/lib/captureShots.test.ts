@@ -96,11 +96,11 @@ describe('remembered capture choices', () => {
   });
   afterEach(() => { vi.unstubAllGlobals(); });
   it('keeps photo mode and the Part 7 zone per account', () => {
-    expect(readCapturePrefs('u1')).toEqual({ photoMode: false, part7Zone: 'passage' });
+    expect(readCapturePrefs('u1')).toEqual({ photoMode: false, part7Zone: 'questions' });
     writeCapturePrefs('u1', { photoMode: true });
-    writeCapturePrefs('u1', { part7Zone: 'questions' });
-    expect(readCapturePrefs('u1')).toEqual({ photoMode: true, part7Zone: 'questions' });
-    expect(readCapturePrefs('u2')).toEqual({ photoMode: false, part7Zone: 'passage' });
+    writeCapturePrefs('u1', { part7Zone: 'passage' });
+    expect(readCapturePrefs('u1')).toEqual({ photoMode: true, part7Zone: 'passage' });
+    expect(readCapturePrefs('u2')).toEqual({ photoMode: false, part7Zone: 'questions' });
     expect([...values.keys()].some(key => key.startsWith('toeic_') && key.endsWith(':u1'))).toBe(true);
   });
 });

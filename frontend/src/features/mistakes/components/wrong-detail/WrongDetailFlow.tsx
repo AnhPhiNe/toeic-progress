@@ -16,8 +16,8 @@ import { buildDetailEntry, canExplainRead, detailExplanationInput, editDetailFor
 import { sameExplanationInput } from '@/features/mistakes/lib/explanationMerge';
 import { buildDetailDraft, detailDraftScope, restoreDetailDraft, validateDetailDraft } from '@/features/mistakes/lib/detailDraft';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
-import { prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
-import { NEW_BATCH_NOTE, SPLIT_NOTE, captureRequestLimit, explainCapNote, ticketedNumbers } from '@/features/mistakes/lib/captureBatch';
+import { prepareAttempt, prepareGroup, prepareSingles } from '@/features/mistakes/lib/capturePrepare';
+import { MAX_CAPTURE_IMAGES, NEW_BATCH_NOTE, SPLIT_NOTE, captureRequestLimit, explainCapNote, ticketedNumbers } from '@/features/mistakes/lib/captureBatch';
 import { checkPhotoClarity, type ClarityResult } from '@/features/mistakes/lib/photoClarity';
 import { fileExifOrientation } from '@/features/mistakes/lib/imageInput';
 import { flowCards, groupNumbers, heroPart, isRecorded, listeningSkipped, partProgress, setListeningSkipped, visibleProgress, updatePart7Range, type CustomRangeMap } from '@/features/mistakes/lib/wrongDetail';
@@ -27,6 +27,7 @@ import { buildShotList, classifyDoubt, firstOpenShot, nextOpenShot, numberChoice
 import { PhotoReview } from '@/features/mistakes/components/PhotoReview';
 import { DoneView, ManualCard, type SentThumb, type Staged, type Zone } from './views';
 import { ListeningView, SoatView, type SoatRow } from './captureViews';
+import { AttemptTrayView } from './AttemptTrayView';
 import { CaptureView, type ShotRow, type ShotState, type StripChip } from './CaptureShotView';
 import './wrong-detail.css';
 
@@ -40,6 +41,7 @@ interface Props {
   onReview: (ids: string[]) => void;
   onClose: (saved: number) => void;
   phone?: boolean;
+  quickEntry?: boolean;
 }
 
 export type Screen = { name: 'listening' } | { name: 'capture' } | { name: 'review' };
@@ -48,6 +50,7 @@ export interface ReadJob {
   key: string; item: string; part: PartNumber; group?: number; label: string; status: 'waiting' | 'reading' | 'done' | 'failed';
   done: number; total: number; startedAt?: number; passage: File[]; questions: File[]; wanted: number[]; requested: number[];
   photoMode: boolean;
+  replaceForms?: Record<string, CardForm>;
   readIds: string[]; skipped: number[]; missing: number[]; rejectionReasons: PageRejectionReason[]; error: string; note: string;
 }
 interface SentImage { id: string; url: string; job: string }
@@ -60,7 +63,7 @@ const busyStatus = (job?: ReadJob) => job?.status === 'waiting' || job?.status =
  * "Cần chụp" shot list derived from the wrong list, one tray per item, Part 6/7 groups sent one after another while
  * Sóc reads in the background, and one Soát where only doubtful rows are open. Drafts survive closing.
  */
-export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, onClose, phone = false }: Props) {
+export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, onClose, phone = false, quickEntry = false }: Props) {
   const { cards, unsaved } = useMemo(() => flowCards(session, mistakes), [session, mistakes]);
   const byId = useMemo(() => new Map(cards.map(card => [card.id, card])), [cards]);
   const byNumber = useMemo(() => new Map(cards.map(card => [card.questionNumber!, card])), [cards]);
@@ -74,8 +77,20 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const prefs = useRef(readCapturePrefs(owner.current));
   const [skipListening, setSkipListening] = useState(() => listeningSkipped(owner.current, session.id));
   const recordedNow = (card: MistakeEntry) => !unsaved.has(card.id) && isRecorded(card);
+  const openReading = cards.filter(card => card.part >= 5 && !recordedNow(card)).map(card => card.questionNumber!);
+  const startCapture = quickEntry && openReading.length > 0;
+  // Multi-cluster Part 6/7 or double/triple-passage Part 7 (passages > 1) defaults straight to grouped capture (skipping Listening barrier) to keep passage context exact.
+  const openShots = startCapture ? buildShotList(openReading) : [];
+  const startQuick = startCapture && openShots.filter(item => item.part >= 6).length <= 1 && !openShots.some(item => item.passages > 1);
   const [screen, setScreen] = useState<Screen>(() =>
-    !skipListening && cards.some(card => card.part <= 4 && !recordedNow(card)) ? { name: 'listening' } : { name: 'capture' });
+    !startCapture && !skipListening && cards.some(card => card.part <= 4 && !recordedNow(card)) ? { name: 'listening' } : { name: 'capture' });
+  const [captureMode, setCaptureMode] = useState<'tray' | 'shots'>(() => startQuick ? 'tray' : 'shots');
+  const quick = captureMode === 'tray';
+  const [capturePart, setCapturePart] = useState(0);
+  const [targetNumber, setTargetNumber] = useState('');
+  const [adding, setAdding] = useState(false);
+  const pendingAdds = useRef(Promise.resolve());
+  const addCount = useRef(0);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [skippedItems, setSkippedItems] = useState<Set<string>>(() => new Set());
   const [customPart7Ranges, setCustomPart7Ranges] = useState<CustomRangeMap>({});
@@ -335,9 +350,28 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     if (!activeFlow()) { setError('Tài khoản đã thay đổi. Đóng và mở lại để tiếp tục.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
     const item = currentRef.current;
-    if (!images.length || shownScreen.current.name !== 'capture' || !item || !canReadPageImages) return;
+    if (!images.length || shownScreen.current.name !== 'capture' || (!quick && !item) || !canReadPageImages) return;
+    if (quick) {
+      setError(''); setNote('');
+      setAdding(true); addCount.current++;
+      pendingAdds.current = pendingAdds.current.then(async () => {
+        for (const file of images) {
+          if (!activeFlow()) return;
+          if (zonesRef.current.questions.length >= MAX_CAPTURE_IMAGES) { setError(`Khay nhận tối đa ${MAX_CAPTURE_IMAGES} ảnh mỗi lần gửi.`); return; }
+          if (file.size > 30 * 1024 * 1024) { setError('Ảnh vượt 30 MB. Hãy chọn vùng đề nhỏ hơn.'); continue; }
+          const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+          if (!activeFlow()) return;
+          const id = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+          if (zonesRef.current.questions.some(image => image.id === id)) { setNote('Ảnh này đã có trong khay.'); continue; }
+          zonesRef.current = addToZone(zonesRef.current, 'questions', [{ id, file, url: URL.createObjectURL(file) }]);
+          setZones(zonesRef.current);
+        }
+      }).catch(() => { if (activeFlow()) setError('Chưa thêm được ảnh. Hãy chọn lại tệp.'); })
+        .finally(() => { addCount.current--; if (activeFlow()) setAdding(addCount.current > 0); });
+      return;
+    }
     // Part 7: the zone it was dropped on, else the active zone, in arrival order; nothing moves by itself.
-    const target = importZone(hasZones(item.part), activeZoneRef.current, zone);
+    const target = importZone(hasZones(item!.part), activeZoneRef.current, zone);
     const staged = images.map(file => ({ id: generateUUID(), file, url: URL.createObjectURL(file) }));
     setZones(currentZones => addToZone(currentZones, target, staged));
     setError('');
@@ -380,13 +414,13 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(file => file.type.startsWith('image/'));
-      if (files.length) { event.preventDefault(); addRef.current(files); }
+      if (files.length && !event.defaultPrevented && !ref.current?.closest('[inert]')) { event.preventDefault(); addRef.current(files); }
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
-  }, []);
+  }, [ref]);
   // Desktop: keys 1/2 pick zone ① or ② of an open Part 7 group.
-  const zoneKeysOn = screen.name === 'capture' && canReadPageImages && current?.part === 7 && !phone;
+  const zoneKeysOn = !quick && screen.name === 'capture' && canReadPageImages && current?.part === 7 && !phone;
   useEffect(() => {
     if (!zoneKeysOn) return;
     const onKey = (event: KeyboardEvent) => {
@@ -430,9 +464,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     let failure = '';
     try {
       const limit = captureRequestLimit(config);
-      const plan = job.group !== undefined
-        ? await prepareGroup(job.passage, job.questions, job.requested, config?.pageContextImages !== false, limit)
-        : await prepareSingles(job.questions, job.requested, limit);
+      const contextSupported = config?.pageContextImages !== false;
+      const plan = job.item === 'attempt'
+        ? await prepareAttempt(job.questions, job.requested, limit)
+        : job.group !== undefined
+          ? await prepareGroup(job.passage, job.questions, job.requested, contextSupported, limit)
+          : await prepareSingles(job.questions, job.requested, limit);
       if (!activeFlow()) return;
       if (plan.error) throw new Error(plan.error);
       // The whole sitting is one AI use (one batch id) while the backend accepts more requests for it; a group that
@@ -462,6 +499,9 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
           const card = byNumber.get(item.number);
           // Only the wrong list is kept; a recorded question keeps what was saved.
           if (!card || !job.requested.includes(item.number)) { skipped.add(item.number); continue; }
+          if (job.item === 'attempt' && isRecorded(draftBases.current.get(card.id) ?? card)) { skipped.add(item.number); continue; }
+          if (job.item === 'attempt' && job.replaceForms && Object.prototype.hasOwnProperty.call(job.replaceForms, card.id)
+            && job.replaceForms[card.id] !== nextForms[card.id]) continue;
           if (recorded(card) && !dirtyIds.current.has(card.id)) { skipped.add(item.number); continue; }
           const nextForm = withReadResult(nextForms[card.id] ?? EMPTY_FORM, item.draft);
           nextForms[card.id] = nextForm;
@@ -475,6 +515,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
         if (result.explainTicket) {
           const explainable = matches.filter(({ item, card }) => {
             const effective = detailExplanationInput(nextForms[card.id], card.part);
+            if (job.item === 'attempt' && card.part >= 6 && !item.draft.context?.trim()) return false;
             return canExplainRead(item.draft, card.part) && effective && sameExplanationInput(effective, explainInput(item.draft, card.part));
           });
           // Only the numbers the ticket covers may be sent; the rest stay saved and can be explained from the card later.
@@ -492,7 +533,9 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
         const worker = async () => {
           while (cursor < plan.requests.length && activeFlow()) await processRequest(plan.requests[cursor++]);
         };
-        await Promise.all(Array.from({ length: Math.min(PARALLEL_READS, plan.requests.length) }, worker));
+        const outcomes = await Promise.allSettled(Array.from({ length: Math.min(PARALLEL_READS, plan.requests.length) }, worker));
+        const unsuccessful = outcomes.find(outcome => outcome.status === 'rejected');
+        if (unsuccessful?.status === 'rejected') throw unsuccessful.reason;
       } else {
         for (const request of plan.requests) await processRequest(request);
       }
@@ -580,6 +623,8 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       knownAnswer: draftBases.current.get(id)?.correctAnswer, rejection: rejectionOf.get(number), explaining: isExplaining(id) });
     return { id, card, form, doubt, choices: doubt?.kind === 'number' ? numberChoices(number, openOfPart(card.part)) : [] };
   });
+  const readyRows = soatRows.filter(row => !row.doubt && !isRightForm(row.form) && row.form.answer
+    && (row.card.part < 6 || row.form.ai?.context?.trim()) && !isExplaining(row.id));
   const confirm = (id: string) => setConfirmed(currentSet => new Set([...currentSet, id]));
   /** "Sóc đoán là câu N": the learner names the real number; the reading moves to that card. */
   const pickNumber = (fromId: string, number: number): string | null => {
@@ -601,6 +646,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   };
   const saveAll = () => {
     const savedIds = filledIds(reviewIds);
+    if (quick) {
+      const ready = readyRows.map(row => row.id);
+      if (!ready.length || !save(ready)) return;
+      setDismissed(previous => new Set([...previous, ...ready]));
+      setScreen({ name: 'capture' }); return;
+    }
     if (!save(reviewIds)) return;
     setSavedHero(savedIds); setToast(null);
     setDismissed(currentSet => new Set([...currentSet, ...reviewIds]));
@@ -639,11 +690,81 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
   const showListening = screen.name === 'listening' && listeningLeft > 0 && !skipListening;
   if (screen.name === 'review' && reviewIds.length) {
     body = <SoatView {...common} rows={soatRows} read={readNumbers.size > 0} openRow={openRow} setOpenRow={setOpenRow}
-      writing={reviewIds.filter(id => isExplaining(id)).length} saveCount={filledIds(reviewIds).length} error={error}
+      writing={reviewIds.filter(id => isExplaining(id)).length} saveCount={quick ? readyRows.length : filledIds(reviewIds).length} error={error}
       note={note || [...new Set(Object.values(jobs).map(job => job.note).filter(Boolean))].join(' ')}
       skipped={skippedNumbers} reasons={[...new Set(generalReasons)]} onUpdate={update} onConfirm={confirm} onPickNumber={pickNumber}
       onMore={() => { setError(''); setScreen({ name: 'capture' }); }} onSave={saveAll} onDoneRight={dismissRightRows}
       onDiscard={readNumbers.size ? undefined : () => { void discardDrafts(); }} />;
+  } else if (quick && screen.name === 'capture') {
+    const outstanding = readingNumbers.filter(n => !recorded(byNumber.get(n)!) && !dismissed.has(byNumber.get(n)!.id));
+    const remaining = outstanding.filter(n => !capturePart || partOfQuestion(n) === capturePart);
+    const unread = remaining.filter(n => !readNumbers.has(n));
+    const group = items.find(item => item.kind === 'group' && item.key === targetNumber);
+    const wanted = group ? remaining.filter(n => group.wrong.includes(n)) : targetNumber
+      ? remaining.filter(n => n === Number(targetNumber)) : unread;
+    const ready = readyRows;
+    if (!outstanding.length && !ready.length && !anyReading && !allFilled.length && listeningLeft === 0) {
+      const reviewable = cards.filter(card => !unsaved.has(card.id) && canReview(card)).map(card => card.id);
+      body = <DoneView {...common} total={total} doneCount={total} progress={shown} cards={cards} reviewIds={reviewable}
+        onReview={() => { closing.current = true; removeCaptcha(); onClose(savedTotal); onReview(reviewable); }} />;
+    } else {
+      const submit = () => {
+        if (!activeFlow() || addCount.current || anyReading || !wanted.length || !zones.questions.length) return;
+        const key = `attempt#${++jobSeq.current}`, images = zones.questions;
+        const replaceForms = targetNumber ? Object.fromEntries(wanted.map(n => byNumber.get(n)!).map(card => [card.id, formsRef.current[card.id]])) : undefined;
+        setSent(previous => ({ ...previous, [key]: images.map(image => ({ id: image.id, url: image.url, job: key })) }));
+        setZones({ passage: [], questions: [] }); setError('');
+        enqueue({ key, item: 'attempt', replaceForms, part: partOfQuestion(wanted[0])!, label: group ? `Câu ${group.from}–${group.to}` : targetNumber ? `Câu ${targetNumber}` : session.testName,
+          status: 'waiting', done: 0, total: 0, passage: [], questions: images.map(image => image.file),
+          wanted, requested: wanted, photoMode, readIds: [], skipped: [], missing: [], rejectionReasons: [], error: '', note: '' });
+      };
+      const attemptSent = Object.values(sent).flat().map(image => {
+        const job = jobsRef.current[image.job];
+        const pos = sent[image.job]?.indexOf(image) ?? -1;
+        return { id: image.id, url: image.url, job: image.job, file: pos >= 0 ? job?.questions[pos] : undefined };
+      });
+      body = <AttemptTrayView
+        phone={phone}
+        session={session}
+        readingNumbers={readingNumbers}
+        outstanding={outstanding}
+        remaining={remaining}
+        unread={unread}
+        capturePart={capturePart}
+        targetNumber={targetNumber}
+        items={items}
+        staged={zones.questions}
+        clarity={clarity}
+        photoMode={photoMode}
+        canRead={canReadPageImages}
+        adding={adding}
+        anyReading={anyReading}
+        readyCount={ready.length}
+        reviewCount={reviewIds.length}
+        savedTotal={savedTotal}
+        listeningLeft={listeningLeft}
+        contextDoubts={soatRows.filter(row => row.doubt?.kind === 'context').map(row => ({ id: row.id, number: row.card.questionNumber!, part: row.card.part }))}
+        jobs={Object.values(jobs).map(job => ({ key: job.key, error: job.error, note: job.note, missing: job.missing }))}
+        sent={attemptSent}
+        note={note}
+        error={error}
+        onCapturePart={setCapturePart}
+        onTargetNumber={setTargetNumber}
+        onPhotoMode={setPhotoMode}
+        onAddFiles={files => addFiles(files)}
+        onCameraAdd={files => addCameraFiles(files)}
+        onRemoveStaged={removeStaged}
+        onMoveStaged={moveStaged}
+        onEditPhoto={(zone, id) => setEditingPhoto({ zone, id })}
+        onSubmit={submit}
+        onSaveReady={saveAll}
+        onReview={() => { setError(''); setScreen({ name: 'review' }); }}
+        onManual={(part, number) => setManual({ part, number })}
+        onListening={() => toggleListening(false)}
+        onSwitchToShots={() => { clearZones(); setError(''); setNote(''); setCaptureMode('shots'); }}
+        onClose={close}
+      />;
+    }
   } else if (showListening) {
     const hasReading = readingNumbers.length > 0;
     body = <ListeningView {...common} cards={listeningCards} recorded={recorded} suggested={suggestedReason} error={error} hasReading={hasReading}
@@ -681,6 +802,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       }}
       reviewCount={reviewIds.length} allDone={doneRows === rows.length} anyReading={anyReading}
       onSelect={selectItem} onSend={send}
+      onSwitchToTray={readingNumbers.length ? () => { clearZones(); setError(''); setNote(''); setCaptureMode('tray'); } : undefined}
       onSkip={() => {
         if (!current) return;
         setSkippedItems(currentSet => new Set([...currentSet, current.key]));
@@ -692,7 +814,7 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
       onManual={() => current && setManual({ part: current.part, number: firstOpenOf(current) })}
       onReview={() => { setError(''); setOpenRow(''); setScreen({ name: 'review' }); }}
       onEditRange={editPart7Range}
-      listeningLeft={skipListening || screen.name === 'listening' ? listeningLeft : 0} onListening={() => toggleListening(false)}
+      listeningLeft={listeningLeft} onListening={() => toggleListening(false)}
       saved={savedHero && { count: savedHero.length, reviewable: savedHero.filter(id => { const card = byId.get(id); return Boolean(card && canReview(card)); }).length }}
       onReviewSaved={() => {
         const reviewable = (savedHero ?? []).filter(id => { const card = byId.get(id); return Boolean(card && canReview(card)); });

@@ -150,7 +150,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 max-lg:order-first">
+      <div className={manualOpen ? 'flex flex-col gap-2 max-lg:order-first' : 'flex flex-col gap-2.5 max-lg:order-first'}>
         {manualOpen && (
           <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(false); }}
             className="rdg-back">
@@ -188,39 +188,34 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
                 : undefined
           }
           scoreCard={aiFirst ? (showSummary ? summaryTable : undefined) :
-            <div>
-              <div className={`flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider ${
-                isOfficial ? 'text-[#8a6a10]' : 'text-[var(--rd-mut)]'
-              }`}>
-                <span className={`flex items-center gap-1.5 ${isOfficial ? 'text-[#8a6a10] font-black' : 'text-[#5c675f]'}`}>
-                  <span className={`h-2 w-2 rounded-full ${isOfficial ? 'bg-[var(--rd-gold)] animate-pulse' : 'bg-[var(--rd-green)]'}`} aria-hidden="true" />
+            <div className="rdg-score">
+              <div className="rdg-score-top">
+                <span className={'rdg-score-k' + (isOfficial ? ' is-off' : '')}>
+                  <i className="rdg-dot" aria-hidden="true" />
                   {isOfficial ? 'Điểm từ đề thi' : 'Điểm ước tính'}
                 </span>
                 {isOfficial ? (
-                  <span className="rounded bg-[var(--rd-gold-l)] px-1.5 py-0.5 text-[9.5px] font-black text-[#8a6a10]">
-                    Chính thức
-                  </span>
+                  <span className="rdg-badge">Chính thức</span>
                 ) : hasMarks ? (
-                  <span className="font-black normal-case tabular-nums text-[var(--rd-pink-d)]">{wrong.length} câu sai</span>
+                  <span className="rdg-count">{wrong.length} câu sai</span>
                 ) : (
-                  <span className="font-semibold normal-case text-[var(--rd-mut)]">Chạm câu sai</span>
+                  <span className="rdg-hint">Chạm câu sai</span>
                 )}
               </div>
-              <p className="mt-0.5 text-[40px] font-black leading-none tracking-tight tabular-nums text-[var(--rd-ink)]">
-                {isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—'}
+              <p className={'rdg-total' + (!isOfficial && !hasMarks ? ' is-empty' : '')}>
+                <span>{isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—'}</span>
+                <small>/990</small>
               </p>
-              <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs font-black tabular-nums">
-                <span className="rounded-lg border border-[var(--rd-violet)] bg-[var(--rd-violet-l)] py-1 text-[var(--rd-violet-d)]">
+              <div className="rdg-lr">
+                <span className="is-l">
                   L {isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—'}
                 </span>
-                <span className="rounded-lg border border-[#bfece6] bg-[#e0f7f4] py-1 text-[var(--rd-teal-d)]">
+                <span className="is-r">
                   R {isOfficial ? preview?.scaledReading ?? (manualReading || '—') : hasMarks ? preview?.scaledReading ?? '—' : '—'}
                 </span>
               </div>
               {isOfficial && hasMarks && (
-                <p className="mt-1.5 text-[11px] font-bold text-[var(--rd-pink-d)]">
-                  Đã đánh dấu {wrong.length} câu sai trên đề
-                </p>
+                <p className="rdg-marked">{wrong.length} câu sai trên đề</p>
               )}
             </div>
           }

@@ -78,6 +78,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>(createRequest && !createRequest.detailSessionId ? null : undefined);
   // The test whose wrong questions are being worked through (Gỡ câu sai); its cards are read live from `mistakes`.
   const [detailSessionId, setDetailSessionId] = useState<string | null>(createRequest?.detailSessionId ?? null);
+  const [quickDetailId, setQuickDetailId] = useState<string | null>(createRequest?.detailSessionId ?? null);
   const [sessionSource, setSessionSource] = useState(createRequest);
   const [reusedReading, setReusedReading] = useState<{ text: string; sourceName: string; cardId: string } | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
@@ -299,9 +300,9 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
       </div>
 
       <div ref={captchaRef} aria-label="Xác minh yêu cầu AI" />
-      {detailSession && <WrongDetailFlow session={detailSession} mistakes={mistakes} phone={false} onSave={onUpdateMistake} onAdd={onAddMistake}
+      {detailSession && <WrongDetailFlow quickEntry={quickDetailId === detailSession.id} session={detailSession} mistakes={mistakes} phone={false} onSave={onUpdateMistake} onAdd={onAddMistake}
         onReview={ids => onStartReview(ids)}
-        onClose={saved => { setDetailSessionId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
+        onClose={saved => { setDetailSessionId(null); setQuickDetailId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {entry === null && <CaptureModal sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions}
         initialTestName={reusedReading?.sourceName ?? sessionSource?.sourceName ?? defaultSourceName} getToken={getToken}
         onClose={closeEntry} onManual={openManual} onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={savedFeedback} />}

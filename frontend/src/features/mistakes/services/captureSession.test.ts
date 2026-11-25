@@ -28,7 +28,8 @@ describe('capture session', () => {
   it('routes every import to the active zone in arrival order and moves images only on request', () => {
     setPart(7);
     setGroup(186);
-    expect(captureState().activeZone).toBe('passage');
+    expect(captureState().activeZone).toBe('questions');
+    setActiveZone('passage');
     // Paste 3 (no zone given: paste, watcher, burst camera all land in the active zone).
     addFiles([new File(['a'], 'p1.png', { type: 'image/png' }), new File(['b'], 'p2.png', { type: 'image/png' })]);
     addFiles([new File(['c'], 'p3.png', { type: 'image/png' })]);
@@ -53,9 +54,9 @@ describe('capture session', () => {
     moveImageToZone(q1.id);
     expect(captureState().images.find(image => image.id === q1.id)?.zone).toBe('questions');
     expect(captureState().error).toMatch(/tối đa 5/);
-    // Opening another group starts on ① again.
+    // Opening another group starts on ② again (FIRST_ZONE).
     setGroup(191);
-    expect(captureState().activeZone).toBe('passage');
+    expect(captureState().activeZone).toBe('questions');
   });
   it('keeps staged screenshots intact when switching between Parts, supports reordering, and lets cancelReading return to input', async () => {
     setPart(7);

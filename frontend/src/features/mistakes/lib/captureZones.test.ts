@@ -8,19 +8,20 @@ describe('capture zones', () => {
   it('sends paste, watcher and camera imports to the active zone in arrival order', () => {
     let zones = empty();
     let active = FIRST_ZONE;
-    expect(active).toBe('passage');
-    // Paste 3 into ①, then the learner switches to ② and the watcher and camera add more.
+    expect(active).toBe('questions');
+    // Paste 3 into ② by default, then switch to ① for a separate passage and back to ②.
+    zones = addToZone(zones, importZone(true, active), [item('q1')]);
+    active = 'passage';
     zones = addToZone(zones, importZone(true, active), [item('p1'), item('p2')]);
     zones = addToZone(zones, importZone(true, active), [item('p3')]);
     active = 'questions';
-    zones = addToZone(zones, importZone(true, active), [item('q1')]);
     zones = addToZone(zones, importZone(true, active), [item('q2'), item('q3')]);
     expect(zones.passage.map(entry => entry.id)).toEqual(['p1', 'p2', 'p3']);
     expect(zones.questions.map(entry => entry.id)).toEqual(['q1', 'q2', 'q3']);
   });
   it('uses the zone an image was dropped on, and one zone for single-question Parts', () => {
     expect(importZone(true, 'questions', 'passage')).toBe('passage');
-    expect(importZone(true, null)).toBe('passage');
+    expect(importZone(true, null)).toBe('questions');
     expect(importZone(false, 'passage', 'passage')).toBe('questions');
   });
   it('never moves an image between zones except by "Chuyển sang"', () => {

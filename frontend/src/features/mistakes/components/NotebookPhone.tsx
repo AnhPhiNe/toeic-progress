@@ -80,6 +80,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   const [entry, setEntry] = useState<MistakeEntry | null | undefined>(undefined);
   const [editorVersion, setEditorVersion] = useState(0);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(createRequest?.detailSessionId ?? null);
+  const [quickDetailId, setQuickDetailId] = useState<string | null>(createRequest?.detailSessionId ?? null);
   const capture = useSyncExternalStore(subscribeCapture, captureState);
   const [feedback, setFeedback] = useState<{ id: number; message: string; error: boolean; undo?: MistakeUndoAction; owner?: string | null } | null>(null);
   const sequence = useRef(0);
@@ -223,9 +224,9 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
           );
         })()}
       </div>
-      {detailSession && <WrongDetailFlow session={detailSession} mistakes={mistakes} phone onSave={onUpdateMistake} onAdd={onAddMistake}
+      {detailSession && <WrongDetailFlow quickEntry={quickDetailId === detailSession.id} session={detailSession} mistakes={mistakes} phone onSave={onUpdateMistake} onAdd={onAddMistake}
         onReview={ids => onStartReview(ids)}
-        onClose={saved => { setDetailSessionId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
+        onClose={saved => { setDetailSessionId(null); setQuickDetailId(null); if (saved) notify(`Đã ghi chi tiết ${saved} câu`); }} />}
       {captureOpen && <CapturePhone sessions={sessions} mistakes={mistakes} sourceSuggestions={sourceSuggestions} initialTestName={defaultTestName} getToken={getToken}
         onClose={() => { closeCapture(); setCaptureOpen(false); }} onManual={() => { setCaptureOpen(false); setManualOpen(true); }}
         onAddBatch={onAddMistakes} onUpdate={onUpdateMistake} onSaved={message => notify(message)} />}

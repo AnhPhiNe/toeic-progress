@@ -9,8 +9,8 @@ export type Zoned<T> = Record<CaptureZone, T[]>;
 
 /** Only Part 7 shows the ①/② zones. */
 export const hasZones = (part: number) => part === 7;
-/** The zone a group opens on. */
-export const FIRST_ZONE: CaptureZone = 'passage';
+/** The zone a group opens on (② Câu hỏi lets one-screen screenshots send right away; ① stays beside it for long passages). */
+export const FIRST_ZONE: CaptureZone = 'questions';
 export const otherZone = (zone: CaptureZone): CaptureZone => zone === 'passage' ? 'questions' : 'passage';
 /** Desktop keys 1/2 pick a zone. */
 export const zoneForKey = (key: string): CaptureZone | null => key === '1' ? 'passage' : key === '2' ? 'questions' : null;

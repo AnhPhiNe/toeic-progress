@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { Clock3, Pencil, X } from 'lucide-react';
 import type { PartTimingDurations } from '@/shared/types';
 import { triggerHaptic } from '@/shared/lib/haptics';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
@@ -44,7 +44,7 @@ export function PartTimingModal({ isOpen, onClose, value, onChange }: PartTiming
   };
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <div aria-hidden="true" className="absolute inset-0 bg-[var(--rd-ink)] backdrop-blur-[2px] pointer-events-none animate-backdrop" />
+      <div aria-hidden="true" className="absolute inset-0 bg-[#2f3a33]/60 backdrop-blur-[2px] pointer-events-none animate-backdrop" />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="timing-modal-title" tabIndex={-1}
         className="rd rdt relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto overscroll-contain animate-modal-pop">
         <div className="flex items-start justify-between gap-3">
@@ -72,9 +72,9 @@ export function PartTimingModal({ isOpen, onClose, value, onChange }: PartTiming
 }
 
 /**
- * Hiển thị thời gian Reading Part 5 - 7 tại Thẻ Điểm ở Cột Phải:
- * - Khi chưa có: Hiển thị 1 dòng mỏng không trùng lặp: "⏱️ Thời gian Part 5 – 7  [+ Nhập ›]"
- * - Khi đã có: Hiển thị 3 chip to rõ [P5 14p] [P6 9p] [P7 52p] [✏️] (Phương án 1)
+ * Hiển thị thời gian Reading Part 5 - 7 tại Thẻ Điểm ở Cột Phải (đồng bộ .rdg-meta):
+ * - Khi chưa có: cùng hàng gọn với "Điểm từ đề thi" -> [+ Nhập ›]
+ * - Khi đã có: 3 chip P5 / P6 / P7 + nút sửa gọn
  */
 export function PartTimingStrip({
   durations,
@@ -93,65 +93,44 @@ export function PartTimingStrip({
           triggerHaptic(6);
           onOpenEdit();
         }}
-        className="rdt-strip"
+        className="rdg-meta-row"
       >
-        <span>Thời gian Part 5 – 7</span>
-        <span className="rdt-strip-a" aria-hidden="true">+ Nhập ›</span>
+        <span className="rdg-meta-lbl">
+          <Clock3 size={14} className="shrink-0 text-[var(--rd-mut)]" aria-hidden="true" />
+          <span>Thời gian Part 5 – 7</span>
+        </span>
+        <span className="rdg-meta-pill" aria-hidden="true">+ Nhập ›</span>
       </button>
     );
   }
 
   return (
-    <div className="space-y-1 pt-0.5">
-      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[var(--rd-mut)]">
-        <span className="flex items-center gap-1">
-          <span className="text-xs" aria-hidden="true">⏱️</span>
-          <span>Thời gian Reading</span>
-        </span>
-        <span className="rounded px-1.5 py-0.5 bg-[var(--rd-green-l)] text-[var(--rd-green-d)] font-black text-[9.5px]">
-          Đã ghi {[durations.part5, durations.part6, durations.part7].filter(value => value != null).length}/3 Part
-        </span>
+    <div className="rdg-timing-row" title="Thời gian làm Reading Part 5 – 7">
+      <Clock3 size={14} className="shrink-0 text-[#0d9488]" aria-hidden="true" />
+      <div className="rdg-tchip is-p5" title={`Part 5: ${durations.part5 ?? '—'} phút`}>
+        <small>P5</small>
+        <b>{durations.part5 ?? '—'}p</b>
       </div>
-      <div className="grid grid-cols-[1fr_1fr_1fr_32px] gap-1.5 items-center">
-        <div
-          title={`Part 5: ${durations.part5 ?? '—'} phút`}
-          className="rounded-lg border-[1.5px] border-[var(--rd-violet)] bg-[var(--rd-violet-l)] p-1 text-center"
-        >
-          <span className="text-[9px] font-black uppercase text-[var(--rd-violet-d)] block">P5</span>
-          <span className="text-sm font-black tabular-nums text-[var(--rd-violet-d)] leading-tight">
-            {durations.part5 ?? '—'}p
-          </span>
-        </div>
-        <div
-          title={`Part 6: ${durations.part6 ?? '—'} phút`}
-          className="rounded-lg border-[1.5px] border-[#bfece6] bg-[#e0f7f4] p-1 text-center"
-        >
-          <span className="text-[9px] font-black uppercase text-[var(--rd-teal-d)] block">P6</span>
-          <span className="text-sm font-black tabular-nums text-[var(--rd-teal-d)] leading-tight">
-            {durations.part6 ?? '—'}p
-          </span>
-        </div>
-        <div
-          title={`Part 7: ${durations.part7 ?? '—'} phút`}
-          className="rounded-lg border-[1.5px] border-[var(--rd-line)] bg-[var(--rd-soft)] p-1 text-center"
-        >
-          <span className="text-[9px] font-black uppercase text-[#5c675f] block">P7</span>
-          <span className="text-sm font-black tabular-nums text-[var(--rd-ink)] leading-tight">
-            {durations.part7 ?? '—'}p
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic(6);
-            onOpenEdit();
-          }}
-          title="Chỉnh sửa thời gian thực tế" aria-label="Chỉnh sửa thời gian thực tế"
-          className="h-[34px] w-8 rounded-lg border-[1.5px] border-[var(--rd-line)] bg-white hover:border-[var(--rd-line)] hover:bg-[var(--rd-ink)] hover:text-white flex items-center justify-center text-xs font-black text-[#5c675f] transition-colors shadow-2xs cursor-pointer"
-        >
-          ✏️
-        </button>
+      <div className="rdg-tchip is-p6" title={`Part 6: ${durations.part6 ?? '—'} phút`}>
+        <small>P6</small>
+        <b>{durations.part6 ?? '—'}p</b>
       </div>
+      <div className="rdg-tchip is-p7" title={`Part 7: ${durations.part7 ?? '—'} phút`}>
+        <small>P7</small>
+        <b>{durations.part7 ?? '—'}p</b>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic(6);
+          onOpenEdit();
+        }}
+        title="Chỉnh sửa thời gian thực tế"
+        aria-label="Chỉnh sửa thời gian thực tế"
+        className="rdg-tedit"
+      >
+        <Pencil size={12} aria-hidden="true" />
+      </button>
     </div>
   );
 }

@@ -9,11 +9,12 @@ const requestFits = (plan: RequestPlan<PreparedImage>) => !plan.error && plan.re
   return sizes.every(size => size <= PAGE_IMAGE_BYTES) && sizes.reduce((sum, size) => sum + size, 0) <= MAX_REQUEST_BYTES;
 });
 
-/** Part 5: the screenshots together, as they are unless the request would be too heavy. */
-export async function prepareSingles(files: readonly File[], wanted: number[], maxRequests = MAX_CAPTURE_REQUESTS): Promise<PreparedPlan> {
+/** Part 5 (or flat ordered tray): screenshots packed cleanly within `maxRequests`. */
+export async function prepareSingles(files: readonly File[], wanted: number[], maxRequests = MAX_CAPTURE_REQUESTS,
+  parallelPackSize = 3): Promise<PreparedPlan> {
   const decoded = await decodeFiles(files);
   try {
-    const plan = (groups: PreparedImage[][]) => planSingleRequests(groups, wanted, { maxRequests });
+    const plan = (groups: PreparedImage[][]) => planSingleRequests(groups, wanted, { maxRequests, parallelPackSize });
     const slices = files.length < IMAGES_PER_REQUEST ? sliceAllowance(decoded.map(image => image.meta), IMAGES_PER_REQUEST) : decoded.map(() => false);
     const result = await compressTogether(decoded, encodeDecoded, { slices, fits: groups => { const value = plan(groups); return !value.split && requestFits(value); } });
     return { ...plan(result.groups), compressed: result.compressed };
@@ -35,4 +36,30 @@ export async function prepareGroup(passage: readonly File[], questions: readonly
     const result = await compressTogether(decoded, encodeDecoded, { slices, fits: groups => { const value = plan(groups); return !value.split && requestFits(value); } });
     return { ...plan(result.groups), compressed: result.compressed };
   } finally { releaseImages(decoded); }
+}
+
+/**
+ * Attempt-wide 1-tray capture: keeps images ordered equally without forcing PASSAGE_IMAGES labels across unrelated
+ * clusters, keeping Part 5 and Part 6–7 clean within `maxRequests`.
+ */
+export async function prepareAttempt(files: readonly File[], wanted: number[], maxRequests = MAX_CAPTURE_REQUESTS): Promise<PreparedPlan> {
+  const part5 = wanted.filter(number => number < 131);
+  const grouped = wanted.filter(number => number >= 131);
+  if (!grouped.length || !part5.length || files.length <= IMAGES_PER_REQUEST) {
+    return prepareSingles(files, wanted, maxRequests, IMAGES_PER_REQUEST);
+  }
+  const singleBudget = Math.max(1, Math.min(2, maxRequests - 1));
+  const singlePlan = await prepareSingles(files, part5, singleBudget, IMAGES_PER_REQUEST);
+  if (singlePlan.error) return singlePlan;
+  const groupedBudget = maxRequests - singlePlan.requests.length;
+  if (groupedBudget < 1) {
+    return { requests: [], split: false, compressed: false, error: `Khay trộn Part có nhiều ảnh (${files.length}). Hãy chọn lọc P5 hoặc P6/P7 để Sóc đọc trọn vẹn.` };
+  }
+  const groupedPlan = await prepareSingles(files, grouped, groupedBudget, IMAGES_PER_REQUEST);
+  if (groupedPlan.error) return groupedPlan;
+  return {
+    requests: [...singlePlan.requests, ...groupedPlan.requests],
+    split: singlePlan.split || groupedPlan.split,
+    compressed: singlePlan.compressed || groupedPlan.compressed,
+  };
 }
